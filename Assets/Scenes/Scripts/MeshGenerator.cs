@@ -59,6 +59,8 @@ public class MeshGenerator
                             mesh.vertices.Add(
                                VertexInterp(isoLevel, new Vector3(x, y + 1, z), new Vector3(x + 1, y + 1, z),
                                             noiseMap[x, y + 1, z], noiseMap[x + 1, y + 1, z]));
+                            mesh.vertexParents.Add(new Vector3(x, y + 1, z));
+                            mesh.vertexParents.Add(new Vector3(x + 1, y + 1, z));
                             vertPos[0] = vertCount;
                             vertCount++;
                         }
@@ -66,6 +68,8 @@ public class MeshGenerator
                             mesh.vertices.Add(
                                VertexInterp(isoLevel, new Vector3(x + 1, y + 1, z), new Vector3(x + 1, y, z),
                                             noiseMap[x + 1, y + 1, z], noiseMap[x + 1, y, z]));
+                            mesh.vertexParents.Add(new Vector3(x + 1, y + 1, z));
+                            mesh.vertexParents.Add(new Vector3(x + 1, y, z));
                             vertPos[1] = vertCount;
                             vertCount++;
                         }
@@ -73,6 +77,8 @@ public class MeshGenerator
                             mesh.vertices.Add(
                                VertexInterp(isoLevel, new Vector3(x + 1, y, z), new Vector3(x, y, z),
                                             noiseMap[x + 1, y, z], noiseMap[x, y, z]));
+                            mesh.vertexParents.Add(new Vector3(x + 1, y, z));
+                            mesh.vertexParents.Add(new Vector3(x, y, z));
                             vertPos[2] = vertCount;
                             vertCount++;
                         }
@@ -80,6 +86,8 @@ public class MeshGenerator
                             mesh.vertices.Add(
                                VertexInterp(isoLevel, new Vector3(x, y, z), new Vector3(x, y + 1, z),
                                             noiseMap[x, y, z], noiseMap[x, y + 1, z]));
+                            mesh.vertexParents.Add(new Vector3(x, y, z));
+                            mesh.vertexParents.Add(new Vector3(x, y + 1, z));
                             vertPos[3] = vertCount;
                             vertCount++;
                         }
@@ -87,6 +95,8 @@ public class MeshGenerator
                             mesh.vertices.Add(
                                VertexInterp(isoLevel, new Vector3(x, y + 1, z + 1), new Vector3(x + 1, y + 1, z + 1),
                                             noiseMap[x, y + 1, z + 1], noiseMap[x + 1, y + 1, z + 1]));
+                            mesh.vertexParents.Add(new Vector3(x, y + 1, z + 1));
+                            mesh.vertexParents.Add(new Vector3(x + 1, y + 1, z + 1));
                             vertPos[4] = vertCount;
                             vertCount++;
                         }
@@ -94,6 +104,8 @@ public class MeshGenerator
                             mesh.vertices.Add(
                                VertexInterp(isoLevel, new Vector3(x + 1, y + 1, z + 1), new Vector3(x + 1, y, z + 1),
                                             noiseMap[x + 1, y + 1, z + 1], noiseMap[x + 1, y, z + 1]));
+                            mesh.vertexParents.Add(new Vector3(x + 1, y + 1, z + 1));
+                            mesh.vertexParents.Add(new Vector3(x + 1, y, z + 1));
                             vertPos[5] = vertCount;
                             vertCount++;
                         }
@@ -101,6 +113,8 @@ public class MeshGenerator
                             mesh.vertices.Add(
                                VertexInterp(isoLevel, new Vector3(x + 1, y, z + 1), new Vector3(x, y, z + 1),
                                             noiseMap[x + 1, y, z + 1], noiseMap[x, y, z + 1]));
+                            mesh.vertexParents.Add(new Vector3(x + 1, y, z + 1));
+                            mesh.vertexParents.Add(new Vector3(x, y, z + 1));
                             vertPos[6] = vertCount;
                             vertCount++;
                         }
@@ -108,6 +122,8 @@ public class MeshGenerator
                             mesh.vertices.Add(
                                VertexInterp(isoLevel, new Vector3(x, y, z + 1), new Vector3(x, y + 1, z + 1),
                                             noiseMap[x, y, z + 1], noiseMap[x, y + 1, z + 1]));
+                            mesh.vertexParents.Add(new Vector3(x, y, z + 1));
+                            mesh.vertexParents.Add(new Vector3(x, y + 1, z + 1));
                             vertPos[7] = vertCount;
                             vertCount++;
                         }
@@ -115,6 +131,8 @@ public class MeshGenerator
                             mesh.vertices.Add(
                                VertexInterp(isoLevel, new Vector3(x, y + 1, z), new Vector3(x, y + 1, z + 1),
                                             noiseMap[x, y + 1, z], noiseMap[x, y + 1, z + 1]));
+                            mesh.vertexParents.Add(new Vector3(x, y + 1, z));
+                            mesh.vertexParents.Add(new Vector3(x, y + 1, z + 1));
                             vertPos[8] = vertCount;
                             vertCount++;
                         }
@@ -122,6 +140,8 @@ public class MeshGenerator
                             mesh.vertices.Add(
                                VertexInterp(isoLevel, new Vector3(x + 1, y + 1, z), new Vector3(x + 1, y + 1, z + 1),
                                             noiseMap[x + 1, y + 1, z], noiseMap[x + 1, y + 1, z     + 1]));
+                            mesh.vertexParents.Add(new Vector3(x + 1, y + 1, z));
+                            mesh.vertexParents.Add(new Vector3(x + 1, y + 1, z + 1));
                             vertPos[9] = vertCount;
                             vertCount++;
                         }
@@ -129,6 +149,8 @@ public class MeshGenerator
                             mesh.vertices.Add(
                                VertexInterp(isoLevel, new Vector3(x + 1, y, z), new Vector3(x + 1, y, z + 1),
                                             noiseMap[x + 1, y, z], noiseMap[x + 1, y, z + 1]));
+                            mesh.vertexParents.Add(new Vector3(x + 1, y, z));
+                            mesh.vertexParents.Add(new Vector3(x + 1, y, z + 1));
                             vertPos[10] = vertCount;
                             vertCount++;
                         }
@@ -136,15 +158,18 @@ public class MeshGenerator
                             mesh.vertices.Add(
                                VertexInterp(isoLevel, new Vector3(x, y, z), new Vector3(x, y, z + 1),
                                             noiseMap[x, y, z], noiseMap[x, y, z + 1]));
+                            mesh.vertexParents.Add(new Vector3(x, y, z));
+                            mesh.vertexParents.Add(new Vector3(x, y, z+1));
                             vertPos[11] = vertCount;
+
                         }
                     }
 
                     for (int i = 0; MarchCubeRef.triTable[cubeindex, i] != -1; i += 3)
                     {
                         mesh.AddTriangle(originalLength + vertPos[MarchCubeRef.triTable[cubeindex, i]],
-                                         originalLength + vertPos[MarchCubeRef.triTable[cubeindex, i+1]],
-                                         originalLength + vertPos[MarchCubeRef.triTable[cubeindex, i+2]]);
+                                         originalLength + vertPos[MarchCubeRef.triTable[cubeindex, i + 1]],
+                                         originalLength + vertPos[MarchCubeRef.triTable[cubeindex, i + 2]]);
                     }
 
                 }
@@ -165,19 +190,19 @@ public class MeshGenerator
 
         p = p1 + ((isoLevel - p1Val) / (p2Val - p1Val) * (p2 - p1));
         return p;
-    }
-
-    
+    }   
 }
 
 public class MeshData
 {
     public List<Vector3> vertices;
+    public List<Vector3> vertexParents;
     public List<int> triangles;
 
     public MeshData(int meshWidth, int meshLength, int meshHeight)
     {
         vertices = new List<Vector3>();
+        vertexParents = new List<Vector3>();
         triangles = new List<int>();
     }
 

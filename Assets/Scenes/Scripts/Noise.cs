@@ -26,7 +26,7 @@ public static class Noise
 
         scale = Mathf.Max(epsilon, scale);
         System.Random prng = new System.Random(seed);
-
+           
         Vector3[] octaveOffsets = new Vector3[octaves];
         for(int i = 0; i < octaves; i++)
         {
@@ -86,6 +86,62 @@ public static class Noise
             }
         }
 
+        return noiseMap;
+    }
+
+    public static float[] GenerateFocusedNoiseMap(int seed, int mapWidth, int mapLength, int mapHeight, float scale, int octaves, float persistence, float lacunarity, Vector3 offset, List<Vector3> Vertices)
+    {
+        float[] noiseMap = new float[Vertices.Count];
+        float epsilon = (float)10E-9;
+
+        scale = Mathf.Max(epsilon, scale);
+        System.Random prng = new System.Random(seed);
+
+        Vector3[] octaveOffsets = new Vector3[octaves];
+
+        float maxPossibleHeight = 0;
+        float amplitude = 1;
+
+        for (int i = 0; i < octaves; i++)
+        {
+            float offsetX = prng.Next((int)-10E5, (int)10E5) + offset.x;
+            float offsetY = prng.Next((int)-10E5, (int)10E5) + offset.y;
+            float offsetZ = prng.Next((int)-10E5, (int)10E5) + offset.z;
+            octaveOffsets[i] = new Vector3(offsetX, offsetY, offsetZ);
+
+            maxPossibleHeight += amplitude;
+            amplitude *= persistence;
+        }
+
+
+        float halfWidth = mapWidth / 2;
+        float halfLength = mapLength / 2;
+        float halfHeight = mapHeight / 2;
+
+        for (int i = 0; i < Vertices.Count; i++)
+        {
+            Vector3 Vertex = Vertices[i];
+
+            amplitude = 1;
+            float frequency = 1;
+            float noiseHeight = 0;
+
+
+            for (int u = 0; u < octaves; u++)
+            {
+                float sampleX = ((int)Vertex.x - halfWidth) / scale * frequency + octaveOffsets[u].x;
+                float sampleY = ((int)Vertex.y - halfLength) / scale * frequency + octaveOffsets[u].y;
+                float sampleZ = ((int)Vertex.z - halfHeight) / scale * frequency + octaveOffsets[u].z;
+
+                float perlinValue = Perlin3D(sampleX, sampleY, sampleZ) * 2 - 1;//Range -1 to 1;
+                noiseHeight += perlinValue * amplitude;
+
+                amplitude *= persistence; //amplitude decreases -> effect of samples decreases 
+                frequency *= lacunarity; //frequency increases -> size of noise sampling increases -> more random
+            }
+
+            noiseMap[i] = (noiseHeight + 1) / (maxPossibleHeight/0.9f);
+        }
         return noiseMap;
     }
 }
