@@ -9,12 +9,20 @@ public class GenerationHeightData : ScriptableObject
     public List<BMaterial> Materials;
 
     [System.Serializable]
+    public class DensityGrad
+    {
+        public AnimationCurve DensityCurve;
+        public int upperLimit;
+        public int lowerLimit;
+    }
+
+    [System.Serializable]
     public class BMaterial
     {
         public NoiseData generationNoise;
 
-        public AnimationCurve generationPreference;
-        public AnimationCurve heightPreference;
+        public List<DensityGrad> VerticalPreference;
+        public AnimationCurve generationPref;
 
         public MaterialData mat;
     }

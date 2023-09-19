@@ -27,24 +27,27 @@ public class MeshGenerator
      * | xyz_______./  /
      * +---------> x  /
      */
-    public static MeshData GenerateMesh(float[,,] noiseMap, float isoLevel)
+    public static MapData GenerateMesh(float[,,] noiseMap, float isoLevel, float refactorSize)
     {
-        MeshData mesh = new MeshData(noiseMap.GetLength(0), noiseMap.GetLength(1), noiseMap.GetLength(2));
-        for(int x = 0; x < noiseMap.GetLength(0) - 1; x++)
+
+        MapData mesh = new MapData();
+
+        int IncSize = 1; //will add more later
+        for (int x = 0; x < noiseMap.GetLength(0)-1; x += IncSize)
         {
-            for (int y = 0; y < noiseMap.GetLength(1) - 1; y++)
+            for (int y = 0; y < noiseMap.GetLength(1)-1; y += IncSize)
             {
-                for (int z = 0; z < noiseMap.GetLength(2) - 1; z++)
+                for (int z = 0; z < noiseMap.GetLength(2)-1; z += IncSize)
                 {
                     int cubeindex = 0;
-                    if (noiseMap[x, y + 1, z] < isoLevel) cubeindex |= 1;
-                    if (noiseMap[x + 1, y + 1, z] < isoLevel) cubeindex |= 2;
-                    if (noiseMap[x + 1, y, z] < isoLevel) cubeindex |= 4;
-                    if (noiseMap[x, y, z] < isoLevel) cubeindex |= 8;
-                    if (noiseMap[x, y + 1, z + 1] < isoLevel) cubeindex |= 16;
-                    if (noiseMap[x + 1, y + 1, z + 1] < isoLevel) cubeindex |= 32;
-                    if (noiseMap[x + 1, y, z + 1] < isoLevel) cubeindex |= 64;
-                    if (noiseMap[x, y, z + 1] < isoLevel) cubeindex |= 128;
+                    if (noiseMap[x, y + IncSize, z] > isoLevel) cubeindex |= 1;
+                    if (noiseMap[x + IncSize, y + IncSize, z] > isoLevel) cubeindex |= 2;
+                    if (noiseMap[x + IncSize, y, z] > isoLevel) cubeindex |= 4;
+                    if (noiseMap[x, y, z] > isoLevel) cubeindex |= 8;
+                    if (noiseMap[x, y + IncSize, z + IncSize] > isoLevel) cubeindex |= 16;
+                    if (noiseMap[x + IncSize, y + IncSize, z + IncSize] > isoLevel) cubeindex |= 32;
+                    if (noiseMap[x + IncSize, y, z + IncSize] > isoLevel) cubeindex |= 64;
+                    if (noiseMap[x, y, z + IncSize] > isoLevel) cubeindex |= 128;
 
                     int vertCount = 0;
                     int originalLength = mesh.vertices.Count;
@@ -57,111 +60,111 @@ public class MeshGenerator
                         //Why does c# not take int as bools
                         if ((MarchCubeRef.edgeTable[cubeindex] & 1) != 0) {
                             mesh.vertices.Add(
-                               VertexInterp(isoLevel, new Vector3(x, y + 1, z), new Vector3(x + 1, y + 1, z),
-                                            noiseMap[x, y + 1, z], noiseMap[x + 1, y + 1, z]));
-                            mesh.vertexParents.Add(new Vector3(x, y + 1, z));
-                            mesh.vertexParents.Add(new Vector3(x + 1, y + 1, z));
+                               VertexInterp(isoLevel, new Vector3(x, y + IncSize, z), new Vector3(x + IncSize, y + IncSize, z),
+                                            noiseMap[x, y + IncSize, z], noiseMap[x + IncSize, y + IncSize, z]));
+                            mesh.vertexParents.Add(new Vector3(x, y + IncSize, z));
+                            mesh.vertexParents.Add(new Vector3(x + IncSize, y + IncSize, z));
                             vertPos[0] = vertCount;
                             vertCount++;
                         }
                         if ((MarchCubeRef.edgeTable[cubeindex] & 2) != 0) {
                             mesh.vertices.Add(
-                               VertexInterp(isoLevel, new Vector3(x + 1, y + 1, z), new Vector3(x + 1, y, z),
-                                            noiseMap[x + 1, y + 1, z], noiseMap[x + 1, y, z]));
-                            mesh.vertexParents.Add(new Vector3(x + 1, y + 1, z));
-                            mesh.vertexParents.Add(new Vector3(x + 1, y, z));
+                               VertexInterp(isoLevel, new Vector3(x + IncSize, y + IncSize, z), new Vector3(x + IncSize, y, z),
+                                            noiseMap[x + IncSize, y + IncSize, z], noiseMap[x + IncSize, y, z]));
+                            mesh.vertexParents.Add(new Vector3(x + IncSize, y + IncSize, z));
+                            mesh.vertexParents.Add(new Vector3(x + IncSize, y, z));
                             vertPos[1] = vertCount;
                             vertCount++;
                         }
                         if ((MarchCubeRef.edgeTable[cubeindex] & 4) != 0) { 
                             mesh.vertices.Add(
-                               VertexInterp(isoLevel, new Vector3(x + 1, y, z), new Vector3(x, y, z),
-                                            noiseMap[x + 1, y, z], noiseMap[x, y, z]));
-                            mesh.vertexParents.Add(new Vector3(x + 1, y, z));
+                               VertexInterp(isoLevel, new Vector3(x + IncSize, y, z), new Vector3(x, y, z),
+                                            noiseMap[x + IncSize, y, z], noiseMap[x, y, z]));
+                            mesh.vertexParents.Add(new Vector3(x + IncSize, y, z));
                             mesh.vertexParents.Add(new Vector3(x, y, z));
                             vertPos[2] = vertCount;
                             vertCount++;
                         }
                         if ((MarchCubeRef.edgeTable[cubeindex] & 8) != 0) { 
                             mesh.vertices.Add(
-                               VertexInterp(isoLevel, new Vector3(x, y, z), new Vector3(x, y + 1, z),
-                                            noiseMap[x, y, z], noiseMap[x, y + 1, z]));
+                               VertexInterp(isoLevel, new Vector3(x, y, z), new Vector3(x, y + IncSize, z),
+                                            noiseMap[x, y, z], noiseMap[x, y + IncSize, z]));
                             mesh.vertexParents.Add(new Vector3(x, y, z));
-                            mesh.vertexParents.Add(new Vector3(x, y + 1, z));
+                            mesh.vertexParents.Add(new Vector3(x, y + IncSize, z));
                             vertPos[3] = vertCount;
                             vertCount++;
                         }
                         if ((MarchCubeRef.edgeTable[cubeindex] & 16) != 0) { 
                             mesh.vertices.Add(
-                               VertexInterp(isoLevel, new Vector3(x, y + 1, z + 1), new Vector3(x + 1, y + 1, z + 1),
-                                            noiseMap[x, y + 1, z + 1], noiseMap[x + 1, y + 1, z + 1]));
-                            mesh.vertexParents.Add(new Vector3(x, y + 1, z + 1));
-                            mesh.vertexParents.Add(new Vector3(x + 1, y + 1, z + 1));
+                               VertexInterp(isoLevel, new Vector3(x, y + IncSize, z + IncSize), new Vector3(x + IncSize, y + IncSize, z + IncSize),
+                                            noiseMap[x, y + IncSize, z + IncSize], noiseMap[x + IncSize, y + IncSize, z + IncSize]));
+                            mesh.vertexParents.Add(new Vector3(x, y + IncSize, z + IncSize));
+                            mesh.vertexParents.Add(new Vector3(x + IncSize, y + IncSize, z + IncSize));
                             vertPos[4] = vertCount;
                             vertCount++;
                         }
                         if ((MarchCubeRef.edgeTable[cubeindex] & 32) != 0) { 
                             mesh.vertices.Add(
-                               VertexInterp(isoLevel, new Vector3(x + 1, y + 1, z + 1), new Vector3(x + 1, y, z + 1),
-                                            noiseMap[x + 1, y + 1, z + 1], noiseMap[x + 1, y, z + 1]));
-                            mesh.vertexParents.Add(new Vector3(x + 1, y + 1, z + 1));
-                            mesh.vertexParents.Add(new Vector3(x + 1, y, z + 1));
+                               VertexInterp(isoLevel, new Vector3(x + IncSize, y + IncSize, z + IncSize), new Vector3(x + IncSize, y, z + IncSize),
+                                            noiseMap[x + IncSize, y + IncSize, z + IncSize], noiseMap[x + IncSize, y, z + IncSize]));
+                            mesh.vertexParents.Add(new Vector3(x + IncSize, y + IncSize, z + IncSize));
+                            mesh.vertexParents.Add(new Vector3(x + IncSize, y, z + IncSize));
                             vertPos[5] = vertCount;
                             vertCount++;
                         }
                         if ((MarchCubeRef.edgeTable[cubeindex] & 64) != 0) { 
                             mesh.vertices.Add(
-                               VertexInterp(isoLevel, new Vector3(x + 1, y, z + 1), new Vector3(x, y, z + 1),
-                                            noiseMap[x + 1, y, z + 1], noiseMap[x, y, z + 1]));
-                            mesh.vertexParents.Add(new Vector3(x + 1, y, z + 1));
-                            mesh.vertexParents.Add(new Vector3(x, y, z + 1));
+                               VertexInterp(isoLevel, new Vector3(x + IncSize, y, z + IncSize), new Vector3(x, y, z + IncSize),
+                                            noiseMap[x + IncSize, y, z + IncSize], noiseMap[x, y, z + IncSize]));
+                            mesh.vertexParents.Add(new Vector3(x + IncSize, y, z + IncSize));
+                            mesh.vertexParents.Add(new Vector3(x, y, z + IncSize));
                             vertPos[6] = vertCount;
                             vertCount++;
                         }
                         if ((MarchCubeRef.edgeTable[cubeindex] & 128) != 0) { 
                             mesh.vertices.Add(
-                               VertexInterp(isoLevel, new Vector3(x, y, z + 1), new Vector3(x, y + 1, z + 1),
-                                            noiseMap[x, y, z + 1], noiseMap[x, y + 1, z + 1]));
-                            mesh.vertexParents.Add(new Vector3(x, y, z + 1));
-                            mesh.vertexParents.Add(new Vector3(x, y + 1, z + 1));
+                               VertexInterp(isoLevel, new Vector3(x, y, z + IncSize), new Vector3(x, y + IncSize, z + IncSize),
+                                            noiseMap[x, y, z + IncSize], noiseMap[x, y + IncSize, z + IncSize]));
+                            mesh.vertexParents.Add(new Vector3(x, y, z + IncSize));
+                            mesh.vertexParents.Add(new Vector3(x, y + IncSize, z + IncSize));
                             vertPos[7] = vertCount;
                             vertCount++;
                         }
                         if ((MarchCubeRef.edgeTable[cubeindex] & 256) != 0) { 
                             mesh.vertices.Add(
-                               VertexInterp(isoLevel, new Vector3(x, y + 1, z), new Vector3(x, y + 1, z + 1),
-                                            noiseMap[x, y + 1, z], noiseMap[x, y + 1, z + 1]));
-                            mesh.vertexParents.Add(new Vector3(x, y + 1, z));
-                            mesh.vertexParents.Add(new Vector3(x, y + 1, z + 1));
+                               VertexInterp(isoLevel, new Vector3(x, y + IncSize, z), new Vector3(x, y + IncSize, z + IncSize),
+                                            noiseMap[x, y + IncSize, z], noiseMap[x, y + IncSize, z + IncSize]));
+                            mesh.vertexParents.Add(new Vector3(x, y + IncSize, z));
+                            mesh.vertexParents.Add(new Vector3(x, y + IncSize, z + IncSize));
                             vertPos[8] = vertCount;
                             vertCount++;
                         }
                         if ((MarchCubeRef.edgeTable[cubeindex] & 512) != 0) { 
                             mesh.vertices.Add(
-                               VertexInterp(isoLevel, new Vector3(x + 1, y + 1, z), new Vector3(x + 1, y + 1, z + 1),
-                                            noiseMap[x + 1, y + 1, z], noiseMap[x + 1, y + 1, z     + 1]));
-                            mesh.vertexParents.Add(new Vector3(x + 1, y + 1, z));
-                            mesh.vertexParents.Add(new Vector3(x + 1, y + 1, z + 1));
+                               VertexInterp(isoLevel, new Vector3(x + IncSize, y + IncSize, z), new Vector3(x + IncSize, y + IncSize, z + IncSize),
+                                            noiseMap[x + IncSize, y + IncSize, z], noiseMap[x + IncSize, y + IncSize, z + IncSize]));
+                            mesh.vertexParents.Add(new Vector3(x + IncSize, y + IncSize, z));
+                            mesh.vertexParents.Add(new Vector3(x + IncSize, y + IncSize, z + IncSize));
                             vertPos[9] = vertCount;
                             vertCount++;
                         }
                         if ((MarchCubeRef.edgeTable[cubeindex] & 1024) != 0) { 
                             mesh.vertices.Add(
-                               VertexInterp(isoLevel, new Vector3(x + 1, y, z), new Vector3(x + 1, y, z + 1),
-                                            noiseMap[x + 1, y, z], noiseMap[x + 1, y, z + 1]));
-                            mesh.vertexParents.Add(new Vector3(x + 1, y, z));
-                            mesh.vertexParents.Add(new Vector3(x + 1, y, z + 1));
+                               VertexInterp(isoLevel, new Vector3(x + IncSize, y, z), new Vector3(x + IncSize, y, z + IncSize),
+                                            noiseMap[x + IncSize, y, z], noiseMap[x + IncSize, y, z + IncSize]));
+                            mesh.vertexParents.Add(new Vector3(x + IncSize, y, z));
+                            mesh.vertexParents.Add(new Vector3(x + IncSize, y, z + IncSize));
                             vertPos[10] = vertCount;
                             vertCount++;
                         }
                         if ((MarchCubeRef.edgeTable[cubeindex] & 2048) != 0) { 
                             mesh.vertices.Add(
-                               VertexInterp(isoLevel, new Vector3(x, y, z), new Vector3(x, y, z + 1),
-                                            noiseMap[x, y, z], noiseMap[x, y, z + 1]));
+                               VertexInterp(isoLevel, new Vector3(x, y, z), new Vector3(x, y, z + IncSize),
+                                            noiseMap[x, y, z], noiseMap[x, y, z + IncSize]));
                             mesh.vertexParents.Add(new Vector3(x, y, z));
-                            mesh.vertexParents.Add(new Vector3(x, y, z+1));
+                            mesh.vertexParents.Add(new Vector3(x, y, z + IncSize));
                             vertPos[11] = vertCount;
-
+                            vertCount++;
                         }
                     }
 
@@ -175,6 +178,12 @@ public class MeshGenerator
                 }
             }
         }
+
+        for(int i = 0; i < mesh.vertices.Count; i++)
+        {
+            mesh.vertices[i] *= refactorSize;
+        }
+
         return mesh;
     }
 
@@ -193,13 +202,13 @@ public class MeshGenerator
     }   
 }
 
-public class MeshData
+public class MapData
 {
     public List<Vector3> vertices;
     public List<Vector3> vertexParents;
     public List<int> triangles;
 
-    public MeshData(int meshWidth, int meshLength, int meshHeight)
+    public MapData()
     {
         vertices = new List<Vector3>();
         vertexParents = new List<Vector3>();
@@ -213,12 +222,4 @@ public class MeshData
         triangles.Add(c);   
     }
 
-    public Mesh CreateMesh()
-    {
-        Mesh mesh = new Mesh();
-        mesh.vertices = vertices.ToArray();
-        mesh.triangles = triangles.ToArray();
-        mesh.RecalculateNormals();
-        return mesh;
-    }
 }

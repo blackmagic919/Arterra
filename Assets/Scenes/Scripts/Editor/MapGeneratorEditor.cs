@@ -15,14 +15,14 @@ public class MapGeneratorEditor : Editor
             if (mapGen.editorAutoUpdate)
             {
                 //mapGen.voxels.DeleteMap();
-                mapGen.GenerateMap();
+                mapGen.GenerateMapInEditor();
             }
         }
 
         if (GUILayout.Button("Generate"))
         {
             //mapGen.voxels.DeleteMap();
-            mapGen.GenerateMap();
+            mapGen.GenerateMapInEditor();
         }
 
         if (GUILayout.Button("Delete"))

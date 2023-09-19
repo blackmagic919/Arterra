@@ -11,6 +11,7 @@ public class NoiseData : ScriptableObject
     public float persistance;
     public float lacunarity;
     public float lerpScale;
+
     public int seed = 0;
 
     private void OnValidate()

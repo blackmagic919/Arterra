@@ -1,3 +1,6 @@
+/*
+ *  LEGACY CODE: SOMEBODY CAN FIX THIS 
+ * 
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,10 +16,10 @@ public class VoxelMesh : MapGenerator
         for (int i = 0; i < GenerationData.Materials.Count; i++)
         {
             NoiseData genDataNoise = GenerationData.Materials[i].generationNoise;
-            generationNoiseMap[i] = Noise.GenerateNoiseMap(genDataNoise.seed, mapWidth, mapLength, mapHeight, genDataNoise.noiseScale, genDataNoise.octaves, genDataNoise.persistance, genDataNoise.lacunarity, offset);
+            generationNoiseMap[i] = Noise.GenerateNoiseMap(genDataNoise, mapChunkSize, mapChunkSize, mapChunkSize, Vector3.one, EditorLoD);
         }
 
-        MaterialData[,,] materialMap = GetMaterialMap(generationNoiseMap, terrainNoiseMap, GenerationData, mapWidth, mapLength, mapHeight);
+        MaterialData[,,] materialMap = GetMaterialMap(generationNoiseMap, terrainNoiseMap, GenerationData, mapChunkSize, mapChunkSize, mapChunkSize);
 
         GameObject TerrainChunkFolder = new GameObject("Blocks");
         TerrainChunkFolder = new GameObject("Blocks");
@@ -58,7 +61,7 @@ public class VoxelMesh : MapGenerator
                     {
                         GenerationHeightData.BMaterial mat = generationData.Materials[i];
                         float scaledDepth = Mathf.Clamp(0.0f, 1.0f, Mathf.Lerp(-1, 1, actualHeights[x, y, z]));
-                        float weight = (mat.heightPreference.Evaluate(scaledDepth) * mat.generationPreference.Evaluate(generationHeights[i][x, y, z]));
+                        float weight = (mat.generationPref.Evaluate(scaledDepth) * mat.generationPreference.Evaluate(generationHeights[i][x, y, z]));
 
                         if (weight > maxWeight)
                         {
@@ -82,3 +85,4 @@ public class VoxelMesh : MapGenerator
         }
     }
 }
+*/
