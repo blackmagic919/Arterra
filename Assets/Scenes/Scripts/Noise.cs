@@ -18,9 +18,8 @@ public static class Noise
         return xyz / 6f;
     }
 
-    public static float[,,] GenerateNoiseMap(NoiseData noiseData, int mapWidth, int mapLength, int mapHeight, Vector3 offset, int LOD)
+    public static float[,,] GenerateNoiseMap(NoiseData noiseData, int mapWidth, int mapLength, int mapHeight, Vector3 offset, int meshSimpInc)
     {
-        int meshSimpInc = (LOD == 0) ? 1 : LOD * 2;
 
         float[,,] noiseMap = new float[mapWidth/ meshSimpInc + 1, mapLength / meshSimpInc + 1, mapHeight /meshSimpInc + 1];
         float epsilon = (float)10E-9;

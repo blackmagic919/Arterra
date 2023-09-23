@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "Generation/NoiseData")]
-public class NoiseData : ScriptableObject
+public class NoiseData : UpdatableData
 {
     public float noiseScale;
     public int octaves;
@@ -14,9 +14,11 @@ public class NoiseData : ScriptableObject
 
     public int seed = 0;
 
-    private void OnValidate()
+    protected override void OnValidate()
     {
         if (lacunarity < 1) lacunarity = 1;
         if (octaves < 0) octaves = 0;
+
+        base.OnValidate();
     }
 }

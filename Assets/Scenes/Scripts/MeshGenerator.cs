@@ -27,10 +27,10 @@ public class MeshGenerator
      * | xyz_______./  /
      * +---------> x  /
      */
-    public static MapData GenerateMesh(float[,,] noiseMap, float isoLevel, float refactorSize)
+    public static MeshData GenerateMesh(float[,,] noiseMap, float isoLevel)
     {
 
-        MapData mesh = new MapData();
+        MeshData mesh = new MeshData();
 
         int IncSize = 1; //will add more later
         for (int x = 0; x < noiseMap.GetLength(0)-1; x += IncSize)
@@ -179,11 +179,6 @@ public class MeshGenerator
             }
         }
 
-        for(int i = 0; i < mesh.vertices.Count; i++)
-        {
-            mesh.vertices[i] *= refactorSize;
-        }
-
         return mesh;
     }
 
@@ -202,13 +197,13 @@ public class MeshGenerator
     }   
 }
 
-public class MapData
+public class MeshData
 {
     public List<Vector3> vertices;
     public List<Vector3> vertexParents;
     public List<int> triangles;
 
-    public MapData()
+    public MeshData()
     {
         vertices = new List<Vector3>();
         vertexParents = new List<Vector3>();

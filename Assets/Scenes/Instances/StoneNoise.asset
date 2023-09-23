@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5a55167b9f07403db285acd197bbc09, type: 3}
   m_Name: StoneNoise
   m_EditorClassIdentifier: 
-  noiseScale: 25
+  noiseScale: 10
   octaves: 2
   persistance: 0.5
   lacunarity: 1.5

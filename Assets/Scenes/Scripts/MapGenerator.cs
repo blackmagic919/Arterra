@@ -3,33 +3,29 @@ using UnityEngine;
 using System;
 using System.Threading;
 using static GenerationHeightData;
+using UnityEngine.AI;
+using UnityEngine.TerrainUtils;
 
 public class MapGenerator : MonoBehaviour
 {
     public enum DrawMode { Voxel, March }
     public DrawMode drawMode;
 
-    public NoiseData TerrainNoise; //For underground terrain generation
-    public GenerationHeightData GenerationData;
-
-    public NoiseData SurfaceNoise; //For underground terrain generation
-    public float surfaceMaxDepth;
-
     public MeshFilter meshFilter;
-
-    public Vector3 offset;
 
     [HideInInspector]
     public const int mapChunkSize = 48;
+    public Vector3 EditorOffset;
     [Range(0, 4)]
     public int EditorLoD;
 
-    Queue<MapThreadInfo<MeshData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MeshData>>();
+    Queue<ThreadInfo> ThreadInfoQueue = new Queue<ThreadInfo>();
 
     public bool editorAutoUpdate;
 
     //[HideInInspector]
     //public VoxelMesh voxels = new VoxelMesh(); Voxel mesh crashes the game atm someone can fix this if they want
+
 
     public void GenerateMapInEditor()
     {
@@ -40,89 +36,109 @@ public class MapGenerator : MonoBehaviour
         }
         else
         {
-            MeshData newMap = GenerateMapData(EditorLoD, Vector3.zero);
+            EndlessTerrain settings = transform.GetComponent<EndlessTerrain>();
+            ChunkData newMap = GenerateMapData(settings.TerrainNoise, settings.SurfaceNoise, settings.GenerationData, settings.IsoLevel, settings.surfaceMaxDepth, EditorOffset, EditorLoD);
             meshFilter.sharedMesh = newMap.GenerateMesh();
+            TextureData.ApplyToMaterial(settings.mapMaterial, settings.GenerationData.Materials);
 
         }
     }
 
-    public void RequestMapData(int LoD, Vector3 center, Action<MeshData> callback)
+    //Terrain Noise -> Vertices -> Generation Noise -> Material Map -> Color Map -> Color Vertices
+    public static ChunkData GenerateMapData(NoiseData TerrainNoise, NoiseData SurfaceNoise, GenerationHeightData GenerationData, float IsoLevel, int surfaceMaxDepth, Vector3 offset, int LOD)
+    {
+        int meshSkipInc = ((LOD == 0) ? 1 : LOD * 2);
+        ChunkData chunk = new ChunkData();
+
+        chunk.undergroundNoise = Noise.GenerateNoiseMap(TerrainNoise, mapChunkSize, mapChunkSize, mapChunkSize, offset, meshSkipInc); //This is so ineffecient cause it only matters when y pos is < depth but I'm lazy somebody fix this
+
+        chunk.surfaceNoise = Noise.GenerateNoiseMap(SurfaceNoise, mapChunkSize, mapChunkSize, mapChunkSize, offset, meshSkipInc);
+
+        chunk.terrainNoiseMap = terrainBelowGround(mapChunkSize, mapChunkSize, mapChunkSize, chunk.surfaceNoise, chunk.undergroundNoise, surfaceMaxDepth, IsoLevel, offset, meshSkipInc);
+
+        chunk.meshData = MeshGenerator.GenerateMesh(chunk.terrainNoiseMap, IsoLevel);
+
+        chunk.partialGenerationNoises = GetPartialGenerationNoises(GenerationData, offset, chunk.meshData.vertexParents);
+
+        chunk.heightCurves = GetHeightCurves(GenerationData.Materials, (int)(offset.y), mapChunkSize, meshSkipInc);
+
+        chunk.materialMap = GetPartialMaterialMap(chunk.partialGenerationNoises, GenerationData, chunk.meshData.vertexParents, meshSkipInc, chunk.heightCurves);
+
+        chunk.colorMap = GetPartialColors(chunk.meshData.vertices, chunk.meshData.vertexParents, chunk.materialMap);
+
+        chunk.meshData.vertices = RescaleVertices(chunk.meshData.vertices, meshSkipInc);
+
+        chunk.meshData.vertexParents = RescaleVertices(chunk.meshData.vertexParents, meshSkipInc);
+
+        return chunk;
+    }
+
+    public void RequestData(Func<object> generateDatum, Action<object> callback)
     {
         ThreadStart threadStart = delegate
         {
-            MapDataThread(LoD, center, callback);
+            dataThread(generateDatum, callback);
         }; ;
 
-        new Thread(threadStart).Start();
+        new Thread(threadStart).Start();//int LoD, Vector3 center,
     }
 
-    void MapDataThread(int LoD, Vector3 center, Action<MeshData> callback)
+    void dataThread(Func<object> generateDatum, Action<object> callback)
     {
-        MeshData mapData = GenerateMapData(LoD, center);
+        object data = generateDatum();
 
-        lock (mapDataThreadInfoQueue)
+        lock (ThreadInfoQueue)
         {
-            mapDataThreadInfoQueue.Enqueue(new MapThreadInfo<MeshData>(callback, mapData));
+            ThreadInfoQueue.Enqueue(new ThreadInfo(callback, data));
         }
     }
 
     private void Update()
     {
-        if (mapDataThreadInfoQueue.Count > 0)
+        if (ThreadInfoQueue.Count > 0)
         {
-            while (mapDataThreadInfoQueue.Count > 0)
+            while (ThreadInfoQueue.Count > 0)
             {
-                MapThreadInfo<MeshData> threadInfo = mapDataThreadInfoQueue.Dequeue();
+                ThreadInfo threadInfo = ThreadInfoQueue.Dequeue();
+                //if (threadInfo.callback == null) continue;
                 threadInfo.callback(threadInfo.parameter);
+                
             }
         }
     }
 
-    //Terrain Noise -> Vertices -> Generation Noise -> Material Map -> Color Map -> Color Vertices
-    public MeshData GenerateMapData(int LOD, Vector3 center)
+    public static List<Vector3> RescaleVertices(List<Vector3> vertices, float rescaleFactor)
     {
-        float[,,] undergroundNoiseMap = Noise.GenerateNoiseMap(TerrainNoise, mapChunkSize, mapChunkSize, mapChunkSize, center + offset, LOD); //This is so ineffecient cause it only matters when y pos is < depth but I'm lazy somebody fix this
+        for (int i = 0; i < vertices.Count; i++)
+            vertices[i] *= rescaleFactor;
+        return vertices;
+    }
 
-        float[,,] surfaceNoiseMap = Noise.GenerateNoiseMap(SurfaceNoise, mapChunkSize, mapChunkSize, mapChunkSize, center + offset, LOD);
-
-        float[,,] terrainNoiseMap = terrainBelowGround(mapChunkSize, mapChunkSize, mapChunkSize, surfaceNoiseMap, surfaceMaxDepth, center + offset, LOD, undergroundNoiseMap);
-
-        float resizeFactor = ((LOD == 0) ? 1 : LOD * 2);
-
-        MapData newMesh = MeshGenerator.GenerateMesh(terrainNoiseMap, 0.3f, resizeFactor);
-
+    public static float[][] GetPartialGenerationNoises(GenerationHeightData GenerationData, Vector3 offset, List<Vector3> parentVertices)
+    {
         float[][] partialGenerationNoiseMap = new float[GenerationData.Materials.Count][];
 
         for (int i = 0; i < GenerationData.Materials.Count; i++)
         {
             NoiseData genDataNoise = GenerationData.Materials[i].generationNoise;
-            partialGenerationNoiseMap[i] = Noise.GenerateFocusedNoiseMap(genDataNoise, mapChunkSize, mapChunkSize, mapChunkSize, center + offset, newMesh.vertexParents);
+            partialGenerationNoiseMap[i] = Noise.GenerateFocusedNoiseMap(genDataNoise, mapChunkSize, mapChunkSize, mapChunkSize, offset, parentVertices);
         }
-
-        AnimationCurve[] materialHeightPrefs = GetHeightCurves(GenerationData.Materials, (int)(center.y + offset.y), mapChunkSize, LOD);
-
-        MaterialData[,,] materialMap = GetPartialMaterialMap(partialGenerationNoiseMap, terrainNoiseMap, GenerationData, newMesh.vertexParents, LOD, materialHeightPrefs);
-        Color[] colorMap = GetPartialColors(newMesh.vertices, newMesh.vertexParents, materialMap);
-        
-        return new MeshData(terrainNoiseMap, newMesh.vertices, newMesh.vertexParents, newMesh.triangles, partialGenerationNoiseMap, materialMap, colorMap);
+        return partialGenerationNoiseMap;
     }
 
-    public AnimationCurve[] GetHeightCurves(List<BMaterial> mats, int center, int height, int LoD)
+    public static AnimationCurve[] GetHeightCurves(List<BMaterial> mats, int center, int height, int meshSkipInc)
     {
         AnimationCurve[] Curves = new AnimationCurve[mats.Count];
         for(int i = 0; i < mats.Count; i++)
         {
-            Curves[i] = BiomeHeightMap.calculateDensityCurve(mats[i].VerticalPreference, center, height, LoD);
+            Curves[i] = BiomeHeightMap.calculateDensityCurve(mats[i].VerticalPreference, center, height, meshSkipInc);
         }
         return Curves;
     }
 
-    public MaterialData[,,] GetPartialMaterialMap(float[][] generationHeights, float[,,] actualHeights, GenerationHeightData generationData, List<Vector3> focusedNodes, int LoD, AnimationCurve[] heightPref)
+    public static int[,,] GetPartialMaterialMap(float[][] generationHeights, GenerationHeightData generationData, List<Vector3> focusedNodes, int meshSimpInc, AnimationCurve[] heightPref)
     {
-
-        int meshSimpInc = (LoD == 0) ? 1 : LoD * 2;
-
-        MaterialData[,,] materialData = new MaterialData[mapChunkSize/ meshSimpInc + 1, mapChunkSize/ meshSimpInc + 1, mapChunkSize/ meshSimpInc + 1];
+        int[,,] materialData = new int[mapChunkSize/ meshSimpInc + 1, mapChunkSize/ meshSimpInc + 1, mapChunkSize/ meshSimpInc + 1];
         for (int n = 0; n < focusedNodes.Count; n++)
         {
             Vector3 node = focusedNodes[n];
@@ -136,18 +152,16 @@ public class MapGenerator : MonoBehaviour
                 int y = (int)node.y;
                 int z = (int)node.z;
 
-                float scaledDepth = Mathf.Clamp(0.0f, 1.0f, Mathf.Lerp(-1, 1, actualHeights[x, y, z]));
+                float scaledDepth = Mathf.InverseLerp(0, mapChunkSize/meshSimpInc, y);
 
                 float weight;
 
-                lock ((mat)) {
-                    weight = (mat.generationPref.Evaluate(scaledDepth) * heightPref[i].Evaluate(generationHeights[i][n]));
-                };
+                weight = (mat.generationPref.Evaluate(generationHeights[i][n]) * heightPref[i].Evaluate(scaledDepth));
 
                 if (weight > maxWeight)
                 {
                     maxWeight = weight;
-                    materialData[x, y, z] = mat.mat;
+                    materialData[x, y, z] = i;
                 };
             }
         }
@@ -155,7 +169,7 @@ public class MapGenerator : MonoBehaviour
         return materialData;
     }
 
-    public Color[] GetPartialColors(List<Vector3> Vertices, List<Vector3> parentVertices, MaterialData[,,] parantMats)
+    public static Color[] GetPartialColors(List<Vector3> Vertices, List<Vector3> parentVertices, int[,,] parantMats)
     {
         Color[] colors = new Color[Vertices.Count];
         for (int i = 0; i < parentVertices.Count; i += 2)
@@ -164,19 +178,17 @@ public class MapGenerator : MonoBehaviour
             Vector3 p2 = parentVertices[i + 1];
             Vector3 p = Vertices[Mathf.FloorToInt(i / 2)];
 
-            MaterialData p1Mat = parantMats[(int)p1.x, (int)p1.y, (int)p1.z];
-            MaterialData p2Mat = parantMats[(int)p2.x, (int)p2.y, (int)p2.z];
+            int p1Mat = parantMats[(int)p1.x, (int)p1.y, (int)p1.z];
+            int p2Mat = parantMats[(int)p2.x, (int)p2.y, (int)p2.z];
 
             float p1Affinity = Vector3.Distance(p, p1) / Vector3.Distance(p1, p2);
-            colors[Mathf.FloorToInt(i / 2)] = Color.Lerp(p1Mat.color, p2Mat.color, p1Affinity);
+            colors[Mathf.FloorToInt(i / 2)] = new Color(p1Mat, p2Mat, p1Affinity*255);
         }
         return colors;
     }
 
-    public float[,,] terrainBelowGround(int mapWidth, int mapLength, int mapHeight, float[,,] surfaceMesh, float depth, Vector3 offset, int LoD, float[,,] undergroundMap)
+    public static float[,,] terrainBelowGround(int mapWidth, int mapLength, int mapHeight, float[,,] surfaceMesh, float[,,] undergroundMap, float depth, float IsoLevel, Vector3 offset, int meshSimpInc)
     {
-        int meshSimpInc = (LoD == 0) ? 1 : LoD * 2;
-
         float[,,] terrainMap = new float[mapWidth / meshSimpInc + 1, mapLength / meshSimpInc + 1, mapHeight / meshSimpInc + 1];
 
         float halfHeight = mapHeight / 2;
@@ -187,12 +199,13 @@ public class MapGenerator : MonoBehaviour
             {
                 for (int z = 0; z <= mapHeight; z += meshSimpInc)
                 {
-                    float actualHeight = y + halfHeight + offset.y;
+                    float actualHeight = y - halfHeight + offset.y;
 
-                    if (surfaceMesh[x / meshSimpInc, y / meshSimpInc, z / meshSimpInc] * depth > actualHeight)
-                        terrainMap[x / meshSimpInc, y / meshSimpInc, z / meshSimpInc] = undergroundMap[x / meshSimpInc, y / meshSimpInc, z / meshSimpInc];
-                    else
-                        terrainMap[x / meshSimpInc, y / meshSimpInc, z / meshSimpInc] = 0;
+                    float clampedHeight = Mathf.Clamp(actualHeight, -depth, depth);
+
+                    float disToSurface = (surfaceMesh[x / meshSimpInc, y / meshSimpInc, z / meshSimpInc] * depth + clampedHeight) /depth;
+
+                    terrainMap[x / meshSimpInc, y / meshSimpInc, z / meshSimpInc] = Mathf.Clamp((-1*disToSurface + IsoLevel), 0, 1) * undergroundMap[x / meshSimpInc, y / meshSimpInc, z / meshSimpInc];
                 }
             }
         }
@@ -200,47 +213,36 @@ public class MapGenerator : MonoBehaviour
         return terrainMap;
     }
 
-    struct MapThreadInfo<T>
-    {
-        public readonly Action<T> callback;
-        public readonly T parameter;
+    
 
-        public MapThreadInfo(Action<T> callback, T parameter)
+    struct ThreadInfo
+    {
+        public readonly Action<object> callback;
+        public readonly object parameter;
+
+        public ThreadInfo(Action<object> callback, object parameter)
         {
             this.callback = callback;
             this.parameter = parameter;
         }
     }
 
-    public struct MeshData
+    public struct ChunkData
     {
+        public float[,,] undergroundNoise;
+        public float[,,] surfaceNoise;
         public float[,,] terrainNoiseMap;
-
-        public List<Vector3> vertices;
-        public List<Vector3> vertexParents;
-        public List<int> triangles;
-
-        public float[][] partialGenerationNoiseMap;
-        public MaterialData[,,] materialMap;
+        public MeshData meshData;
+        public float[][] partialGenerationNoises;
         public Color[] colorMap;
-
-        public MeshData(float[,,] terrainNoiseMap, List<Vector3> vertices, List<Vector3> vertexParents, List<int> triangles,
-                        float[][] partialGenerationNoiseMap, MaterialData[,,] materialMap, Color[] colorMap)
-        {
-            this.terrainNoiseMap = terrainNoiseMap;
-            this.vertices = vertices;
-            this.vertexParents = vertexParents;
-            this.triangles = triangles;
-            this.partialGenerationNoiseMap = partialGenerationNoiseMap;
-            this.materialMap = materialMap;
-            this.colorMap = colorMap;
-        }
+        public AnimationCurve[] heightCurves;
+        public int[,,] materialMap;
 
         public Mesh GenerateMesh()
         {
             Mesh mesh = new Mesh();
-            mesh.vertices = vertices.ToArray();
-            mesh.triangles = triangles.ToArray();
+            mesh.vertices = meshData.vertices.ToArray();
+            mesh.triangles = meshData.triangles.ToArray();
             mesh.colors = colorMap;
             mesh.RecalculateNormals();
             return mesh;

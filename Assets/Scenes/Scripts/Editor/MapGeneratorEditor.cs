@@ -6,6 +6,8 @@ using UnityEditor;
 [CustomEditor (typeof (MapGenerator))]
 public class MapGeneratorEditor : Editor
 {
+
+
     public override void OnInspectorGUI()
     {
         MapGenerator mapGen = (MapGenerator)target;
@@ -21,10 +23,11 @@ public class MapGeneratorEditor : Editor
 
         if (GUILayout.Button("Generate"))
         {
-            //mapGen.voxels.DeleteMap();
             mapGen.GenerateMapInEditor();
-        }
+            //mapGen.voxels.DeleteMap();
 
+        }
+        
         if (GUILayout.Button("Delete"))
         {
             //mapGen.voxels.DeleteMap();

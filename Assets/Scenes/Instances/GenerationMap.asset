@@ -12,8 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49bee82ffcb1d4036a871bcb04d33c57, type: 3}
   m_Name: GenerationMap
   m_EditorClassIdentifier: 
+  autoUpdate: 1
   Materials:
   - generationNoise: {fileID: 11400000, guid: 911cf29ffcb1347a9b960bee28d68b27, type: 2}
+    materialData: {fileID: 11400000, guid: 07449c87023a44e26891a2231b9cbe6d, type: 2}
     VerticalPreference:
     - DensityCurve:
         serializedVersion: 2
@@ -74,8 +76,8 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    mat: {fileID: 11400000, guid: 07449c87023a44e26891a2231b9cbe6d, type: 2}
   - generationNoise: {fileID: 11400000, guid: 04e509b69a3dd41b2b450d154d3f36c3, type: 2}
+    materialData: {fileID: 11400000, guid: d506e071805fe4402ad951fce277f5d8, type: 2}
     VerticalPreference:
     - DensityCurve:
         serializedVersion: 2
@@ -136,8 +138,8 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    mat: {fileID: 11400000, guid: e53b69200c48d4f0982d3de38b212810, type: 2}
   - generationNoise: {fileID: 11400000, guid: cb1ea4d19e71846f2adcc0d7c17bbc19, type: 2}
+    materialData: {fileID: 11400000, guid: 770b7b57cc5fd44a5b48aa4a63b86229, type: 2}
     VerticalPreference:
     - DensityCurve:
         serializedVersion: 2
@@ -198,8 +200,8 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    mat: {fileID: 11400000, guid: 72f382d75cb9f4c178d1d0a8d6cd12aa, type: 2}
   - generationNoise: {fileID: 11400000, guid: 5d245c70c77264401a0133ae37be74e4, type: 2}
+    materialData: {fileID: 11400000, guid: 42dfefa92a7cd4973b7685fbaaf1d6f7, type: 2}
     VerticalPreference:
     - DensityCurve:
         serializedVersion: 2
@@ -207,17 +209,17 @@ MonoBehaviour:
         - serializedVersion: 3
           time: 0
           value: -0.0065721273
-          inSlope: 1.0663961
-          outSlope: 1.0663961
+          inSlope: 1.1038306
+          outSlope: 1.1038306
           tangentMode: 34
           weightedMode: 0
           inWeight: 0
           outWeight: 0.33333334
         - serializedVersion: 3
           time: 0.50402504
-          value: 0.53091824
-          inSlope: -0.008654237
-          outSlope: -0.008654237
+          value: 0.54978615
+          inSlope: -0.008958042
+          outSlope: -0.008958042
           tangentMode: 34
           weightedMode: 0
           inWeight: 0.33333334
@@ -225,8 +227,8 @@ MonoBehaviour:
         - serializedVersion: 3
           time: 1
           value: -0.0065721273
-          inSlope: -1.0837046
-          outSlope: -1.0837046
+          inSlope: -1.1217467
+          outSlope: -1.1217467
           tangentMode: 34
           weightedMode: 0
           inWeight: 0.33333334
@@ -260,4 +262,3 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    mat: {fileID: 11400000, guid: bd7c390c54ed24b2f9860fa39efc4596, type: 2}

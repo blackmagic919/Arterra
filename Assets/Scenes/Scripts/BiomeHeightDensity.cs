@@ -9,10 +9,8 @@ public class BiomeHeightMap
     /*
      */
 
-    public static AnimationCurve calculateDensityCurve(List<DensityGrad> HeightRanges, int coord, int height, int LoD)
+    public static AnimationCurve calculateDensityCurve(List<DensityGrad> HeightRanges, int coord, int height, int meshSimpInc)
     {
-        int meshSimpInc = (LoD == 0) ? 1 : LoD * 2;
-
         AnimationCurve chunkDensity = new AnimationCurve();
         for(int z = coord - (height/2); z <= coord + (height/2); z+= meshSimpInc)
         {

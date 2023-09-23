@@ -10,7 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 957bdd82243d4447fbab41e0462ba1d5, type: 3}
-  m_Name: Grass
+  m_Name: RockMat
   m_EditorClassIdentifier: 
-  Name: 
-  color: {r: 0, g: 0.3207547, b: 0.025195774, a: 0}
+  autoUpdate: 0
+  Name: Rock
+  color: {r: 0.4811321, g: 0.4811321, b: 0.4811321, a: 0}
+  texture: {fileID: 2800000, guid: 71c9ce063b15b453ba2769813a1726be, type: 3}
+  textureScale: 1
+  baseColorStrength: 0.25
