@@ -16,5 +16,5 @@ MonoBehaviour:
   Name: Grass
   color: {r: 0, g: 0.33962262, b: 0.07397779, a: 0}
   texture: {fileID: 2800000, guid: 9a32d08edbf8447c88139bfb43dfbe1a, type: 3}
-  textureScale: 1
+  textureScale: 10
   baseColorStrength: 0.25

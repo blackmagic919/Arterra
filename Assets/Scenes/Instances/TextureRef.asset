@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 040870a578bbf46179e139dc5e722edf, type: 3}
+  m_Name: TextureRef
+  m_EditorClassIdentifier: 
+  autoUpdate: 0
+  TextureDictionary:
+  - {fileID: 2800000, guid: 9a32d08edbf8447c88139bfb43dfbe1a, type: 3}
+  - {fileID: 2800000, guid: 2f8fcee7ecef34830847067a47a2012d, type: 3}
+  - {fileID: 2800000, guid: d6daddfb095a14f1e814f6fcd10fab89, type: 3}
+  - {fileID: 2800000, guid: 71c9ce063b15b453ba2769813a1726be, type: 3}
+  - {fileID: 2800000, guid: d0eb2762eac0c4bc08e0a4ca534e0c9d, type: 3}
+  - {fileID: 2800000, guid: e3acbac5c9b9847aa9fd983dd618db4c, type: 3}
+  - {fileID: 2800000, guid: 138c287f6d11c4bb19ec588671f1ddb9, type: 3}
+  - {fileID: 2800000, guid: c071ddde8a7294dfc811dab26c30da86, type: 3}
+  TerrainShader: {fileID: 4800000, guid: cb97721bea19541b6972ca336ca07564, type: 3}

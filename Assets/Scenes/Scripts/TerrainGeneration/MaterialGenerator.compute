@@ -1,0 +1,84 @@
+#pragma kernel Generate
+
+#include "/Includes/PerlinNoiseGenerator.compute"
+
+struct parentMat{
+    uint materialIndex;
+    float weight; //Purely for generation purposes
+};
+
+struct vertexMat{
+    uint p1Index;
+    uint p2Index;
+    float interp; //Range 0-1
+};
+
+struct Triangle{
+    float3 x;
+    float3 y;
+    float3 z;
+};
+
+struct TriangleConst { //Constructor
+    Triangle tri;
+    Triangle p1;
+    Triangle p2;
+};
+
+float3 getVert(Triangle t, uint i){ //For some reason I can't make this a method of Triangle
+    float3 ret = t.z;
+    if(i == 0)
+        ret = t.x;
+    if(i == 1)
+        ret = t.y;
+    return ret;
+}
+
+uint numTris;
+uint numTrisAxis;
+uint matIndex;
+uint numMats;
+StructuredBuffer<TriangleConst> trianglesR;
+RWStructuredBuffer<parentMat> materials;
+RWStructuredBuffer<vertexMat> vertexColor;
+StructuredBuffer<float> heights;
+
+const static int numThreads = 8;
+
+//2D threading
+[numthreads(numThreads,numThreads, 1)]
+void Generate (uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x*(numTrisAxis) + id.y;
+
+    if (index >= numTris) {
+        return;
+    }
+    
+    for(int i = 0; i < 3; i++){
+        
+        float3 p1PosF = getVert(trianglesR[index].p1, i);
+        uint3 p1PosI = uint3(p1PosF.x, p1PosF.y, p1PosF.z);
+        float p1Weight = GetNoise(p1PosI) * heights[p1PosI.y];
+
+        if(matIndex == 0 || p1Weight > materials[6*(index) + 2*i].weight){
+            materials[6*(index) + 2*i].weight = p1Weight;
+            materials[6*(index) + 2*i].materialIndex = matIndex;
+        }
+
+        float3 p2PosF = getVert(trianglesR[index].p2, i);
+        uint3 p2PosI = uint3(p2PosF.x, p2PosF.y, p2PosF.z);
+        float p2Weight = GetNoise(p2PosI) * heights[p2PosI.y];
+
+        if(matIndex == 0 || p2Weight > materials[6*(index) + 2*i + 1].weight){
+            materials[6*(index) + 2*i + 1].weight = p2Weight;
+            materials[6*(index) + 2*i + 1].materialIndex = matIndex;
+        }
+        
+        if(matIndex+1 == numMats){
+            vertexColor[3*index + i].p1Index = materials[6*(index) + 2*i].materialIndex;
+            vertexColor[3*index + i].p2Index = materials[6*(index) + 2*i + 1].materialIndex;
+            vertexColor[3*index + i].interp = distance(getVert(trianglesR[index].tri, i), p1PosF) / distance(p2PosF, p1PosF);
+        }
+    }
+}

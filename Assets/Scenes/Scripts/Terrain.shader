@@ -3,16 +3,12 @@ Shader "Custom/Terrain"
     Properties
     {
         _Color ("Color", Color) = (1,1,1,1)
-        _MainTex ("Albedo (RGB)", 2D) = "white" {}
-        _TextureScale("Scale", Float) = 1
-        _Glossiness ("Smoothness", Range(0,1)) = 0.5
-        _Metallic ("Metallic", Range(0,1)) = 0.0 
     }
     SubShader
     {
         Tags { "RenderType"="Opaque" }
         LOD 200
-
+        //
         CGPROGRAM
         // Physically based Standard lighting model, and enable shadows on all light types
         #pragma surface surf Standard fullforwardshadows
@@ -27,8 +23,9 @@ Shader "Custom/Terrain"
         float4 baseColors[maxMatCount];
         float baseColorStrength[maxMatCount];
         float baseTextureScales[maxMatCount];
+        float baseTextureIndexes[maxMatCount];
 
-        UNITY_DECLARE_TEX2DARRAY(baseTextures);
+        UNITY_DECLARE_TEX2DARRAY(_Textures);
 
         struct Input
         {
@@ -38,10 +35,7 @@ Shader "Custom/Terrain"
             float3 worldNormal;
         };
 
-        sampler2D _MainTex;
-        float _TextureScale;
-        half _Glossiness;
-        half _Metallic;
+        //sampler2D _Textures;
         fixed4 _Color;
 
 
@@ -73,9 +67,10 @@ Shader "Custom/Terrain"
         float3 triplanar(float3 worldPos, float scale, float3 blendAxes, int texInd){
             float3 scaledWorldPos = worldPos / scale;
             
-            float3 xProjection = UNITY_SAMPLE_TEX2DARRAY(baseTextures, float3(scaledWorldPos.y, scaledWorldPos.z, texInd)) * blendAxes.x;
-            float3 yProjection = UNITY_SAMPLE_TEX2DARRAY(baseTextures, float3(scaledWorldPos.x, scaledWorldPos.z, texInd)) * blendAxes.y; 
-            float3 zProjection = UNITY_SAMPLE_TEX2DARRAY(baseTextures, float3(scaledWorldPos.x, scaledWorldPos.y, texInd)) * blendAxes.z;
+            float4 xProjection = UNITY_SAMPLE_TEX2DARRAY(_Textures, float3(scaledWorldPos.y, scaledWorldPos.z, baseTextureIndexes[texInd])) * blendAxes.x;
+            float4 yProjection = UNITY_SAMPLE_TEX2DARRAY(_Textures, float3(scaledWorldPos.x, scaledWorldPos.z, baseTextureIndexes[texInd])) * blendAxes.y;
+            float4 zProjection = UNITY_SAMPLE_TEX2DARRAY(_Textures, float3(scaledWorldPos.x, scaledWorldPos.y, baseTextureIndexes[texInd])) * blendAxes.z;
+
             return xProjection + yProjection + zProjection;
         }
 

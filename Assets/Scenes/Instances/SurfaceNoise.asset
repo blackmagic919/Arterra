@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SurfaceNoise
   m_EditorClassIdentifier: 
   autoUpdate: 1
-  noiseScale: 100
+  noiseScale: 500
   octaves: 9
   persistance: 0.5
   lacunarity: 2

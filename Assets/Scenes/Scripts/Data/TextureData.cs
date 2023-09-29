@@ -3,30 +3,43 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
-public class TextureData
+[CreateAssetMenu(menuName = "Settings/TextureDict")]
+public class TextureData : UpdatableData
 {
 
     const int textureSize = 512;
     const TextureFormat textureFormat = TextureFormat.RGB565;
 
-    public static void ApplyToMaterial(Material mat, List<GenerationHeightData.BMaterial> materials)
+    [SerializeField]
+    public List<Texture2D> TextureDictionary;
+
+    Texture2DArray textureArray;
+
+    public Shader TerrainShader;
+
+    public void ApplyToMaterial(Material mat, List<GenerationHeightData.BMaterial> materials)
     {
         mat.SetInt("baseColorCount", materials.Count);
         mat.SetColorArray("baseColors", materials.Select(x => x.materialData.color).ToArray());
         mat.SetFloatArray("baseColorStrength", materials.Select(x => x.materialData.baseColorStrength).ToArray());
         mat.SetFloatArray("baseTextureScales", materials.Select(x => x.materialData.textureScale).ToArray());
-        Texture2DArray texturesArray = GenerateTextureArray(materials.Select(x => x.materialData.texture).ToArray());
-        mat.SetTexture("baseTextures", texturesArray);
+        mat.SetFloatArray("baseTextureIndexes", materials.Select(x => (float)x.materialData.textureInd).ToArray());
     }
 
-    public static Texture2DArray GenerateTextureArray(Texture2D[] textures)
+    public void GenerateTextureArray(Texture2D[] textures)
     {   
-        Texture2DArray textureArray = new Texture2DArray(textureSize, textureSize, textures.Length, textureFormat, true);
+        textureArray = new Texture2DArray(textureSize, textureSize, textures.Length, textureFormat, true);
         for(int i = 0; i < textures.Length; i++)
         {
             textureArray.SetPixels(textures[i].GetPixels(), i);
         }
         textureArray.Apply();
-        return textureArray;
+        Shader.SetGlobalTexture("_Textures", textureArray);
+    }
+
+    protected override void OnValidate()
+    {
+        GenerateTextureArray(TextureDictionary.ToArray());
+        base.OnValidate();
     }
 }

@@ -8,7 +8,7 @@ public class MaterialData : UpdatableData
 {
     public string Name;
     public Color color;
-    public Texture2D texture;
+    public int textureInd;
     public float textureScale;
     [Range(0,1)]
     public float baseColorStrength;
