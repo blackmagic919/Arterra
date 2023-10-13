@@ -113,4 +113,54 @@ public class LegacyGeneration
         return terrainMap;
     }
 
+    public static MapGenerator.MeshData getGrassMesh(List<MaterialData> materials, MapGenerator.MeshData meshData)
+    {
+        MapGenerator.MeshData grassMesh = new MapGenerator.MeshData();
+        grassMesh.vertices = new List<Vector3>();
+        grassMesh.triangles = new List<int>();
+        grassMesh.colorMap = new List<Color>();
+
+        Dictionary<int, int> vertDict = new Dictionary<int, int>();
+        int vertCount = 0;
+        for(int t = 0; t < meshData.triangles.Count; t+=3)
+        {
+            float percentGrass = 0;
+            for(int i = 0; i < 3; i++)
+            {
+                int vertexInd = meshData.triangles[t+i];
+
+                int p1 = (int)meshData.colorMap[vertexInd].r;
+                int p2 = (int)meshData.colorMap[vertexInd].g;
+                float interp = meshData.colorMap[vertexInd].b / 255f;
+
+                if (materials[p1].UseForGrass)
+                    percentGrass += interp / 3f;
+                if (materials[p2].UseForGrass)
+                    percentGrass += (1.0f-interp) / 3f;
+            }
+
+            if (percentGrass < 0.01f) //50% grass minimum threshold
+                continue;
+
+            for(int i = 0; i < 3; i++)
+            {
+                int index = meshData.triangles[t + i];
+                int vertIndex;
+                if (vertDict.TryGetValue(index, out vertIndex))
+                {
+                    grassMesh.triangles.Add(vertIndex);
+                }
+                else
+                {
+                    vertDict.Add(index, vertCount);
+                    grassMesh.vertices.Add(meshData.vertices[index]);
+                    grassMesh.triangles.Add(vertCount);
+                    grassMesh.colorMap.Add(new Color(0, 0, 0, percentGrass));
+                    vertCount++;
+                }
+            }
+        }
+
+        return grassMesh;
+    }
 }

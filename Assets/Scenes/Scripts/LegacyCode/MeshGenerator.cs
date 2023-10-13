@@ -1,3 +1,5 @@
+
+#if false //Legacy code
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -196,25 +198,4 @@ public class MeshGenerator
         return p;
     }   
 }
-
-public class MeshData
-{
-    public List<Vector3> vertices;
-    public List<Vector3> vertexParents;
-    public List<int> triangles;
-
-    public MeshData()
-    {
-        vertices = new List<Vector3>();
-        vertexParents = new List<Vector3>();
-        triangles = new List<int>();
-    }
-
-    public void AddTriangle(int a, int b, int c)
-    {
-        triangles.Add(a);
-        triangles.Add(b);
-        triangles.Add(c);   
-    }
-
-}
+#endif

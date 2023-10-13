@@ -1,0 +1,137 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Main
+
+#pragma multi_compile _ USE_WORLD_POSITION_AS_UV
+
+struct SourceVertex{
+    float3 positionOS;
+    float3 normalOS;
+    float4 color;
+    float2 uv;
+};
+
+StructuredBuffer<SourceVertex> _SourceVertices;
+StructuredBuffer<int> _SourceTriangles;
+
+struct DrawVertex{
+    float3 positionWS;
+    float3 normalWS;
+    float2 uv;
+};
+
+struct DrawTriangle{
+    float2 heights; //sharing height
+    DrawVertex vertices[3];
+};
+
+AppendStructuredBuffer<DrawTriangle> _DrawTriangles;
+
+int _NumSourceTriangles;
+float _TotalHeight;
+int _MaxLayers;
+float _CameraDistanceMin;
+float _CameraDistanceMax;
+float _CameraDistanceFactor;
+float _WorldPositionToUVScale;
+float4 _CameraPosition;
+float4x4 _LocalToWorld;
+
+float2 mapCoordinates(float3 worldPos)
+{
+    float2 projXY = worldPos.xy;
+    float2 projXZ = worldPos.xz;
+    float2 projYZ = worldPos.yz;
+
+    float2 worldUV = (projXY + projXZ + projYZ) / 3;
+
+    return worldUV;
+}
+
+//Experimented a lot with this
+/*
+    Conventional triplanar:
+    float3 blendAxes = abs(worldNormal);
+    blendAxes /= blendAxes.x + blendAxes.y + blendAxes.z;
+
+    float2 projXY = worldPos.xy * blendAxes.z;
+    float2 projXZ = worldPos.xz * blendAxes.y;
+    float2 projYZ = worldPos.yz * blendAxes.x;
+
+    return (projXY+projXZ+projYZ);
+
+    As length(xyz) increases, the coordinates change more as normals change
+*/
+
+DrawVertex MakeBaseDrawVertex(SourceVertex v){
+    DrawVertex o;
+    o.normalWS = mul(_LocalToWorld, float4(v.normalOS, 0)).xyz;
+    o.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
+#ifdef USE_WORLD_POSITION_AS_UV
+    o.uv = mapCoordinates(o.positionWS) * _WorldPositionToUVScale;
+#else
+    o.uv = v.uv;
+#endif
+    return o;
+}
+
+DrawVertex ExtrudeVertex(DrawVertex v, float height){
+    DrawVertex o;
+    o.positionWS = v.positionWS + v.normalWS * (height * _TotalHeight);
+    o.normalWS = v.normalWS;
+    o.uv = v.uv;
+    return o;
+}
+
+float GetDistanceFromCamera(DrawVertex v){
+    return distance(v.positionWS.xyz, _CameraPosition.xyz);
+}
+
+int GetNumLayers(DrawVertex a, DrawVertex b, DrawVertex c){
+    float dA = GetDistanceFromCamera(a);
+    float dB = GetDistanceFromCamera(b);
+    float dC = GetDistanceFromCamera(c);
+
+    float d = min(dA, min(dB, dC));
+
+    d = 1 - smoothstep(_CameraDistanceMin, _CameraDistanceMax, d);
+
+    d = pow(abs(d), _CameraDistanceFactor);
+
+    return max(0, ceil(d * _MaxLayers)); //0 is min for our purposes
+}
+
+[numthreads(128, 1, 1)]
+void Main(uint3 id : SV_DispatchThreadID){
+    if((int)id.x >= _NumSourceTriangles)
+        return;
+
+    int triStart = id.x * 3;
+    DrawVertex inputs[3];
+
+    float fallOff = 0;
+    [unroll] for(int i = 0; i < 3; i++){
+        inputs[i] = MakeBaseDrawVertex(_SourceVertices[_SourceTriangles[triStart+i]]);
+        fallOff += _SourceVertices[_SourceTriangles[triStart+i]].color.a;
+    }
+    fallOff /= 3;
+
+    int numLayers = GetNumLayers(inputs[0], inputs[1], inputs[2]) * fallOff;
+
+    float colorOffset = (_MaxLayers - numLayers) / 2.0f;
+
+    for(i = 0; i < numLayers; i++)
+    {
+        float posHeight = (float) i / _MaxLayers; //max(1, numLayers - 1.0f); Do this so there aren't floating meshes far away
+        float texHeight = (float) i / numLayers;
+
+        float colorHeight = (float)(i) / (_MaxLayers - 1.0); // Use (float)(colorOffset + i) / (_MaxLayers - 1.0); if topColor priority
+
+        DrawTriangle tri = (DrawTriangle)0;
+        tri.heights = float2(texHeight, colorHeight);
+        [unroll] for(int p = 0; p < 3; p++){
+            tri.vertices[p] = ExtrudeVertex(inputs[p], posHeight);
+        }
+
+        _DrawTriangles.Append(tri);
+    }
+}

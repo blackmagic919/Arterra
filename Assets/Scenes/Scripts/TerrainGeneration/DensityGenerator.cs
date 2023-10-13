@@ -2,15 +2,17 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DensityGenerator : MonoBehaviour
+[CreateAssetMenu(menuName = "Containers/DensityGenerator")]
+public class DensityGenerator : ScriptableObject
 {
     const int threadGroupSize = 8;
     public ComputeShader terrainNoiseCompute;
     public ComputeShader undergroundNoiseCompute;
     public ComputeShader materialGenCompute;
     public ComputeShader meshGenerator;
+    public ComputeShader densitySimplification;
 
-    List<ComputeBuffer> buffersToRelease;
+    public Queue<ComputeBuffer> buffersToRelease;
 
     public void SetPoints(ComputeBuffer points)
     {
@@ -19,42 +21,73 @@ public class DensityGenerator : MonoBehaviour
         terrainNoiseCompute.SetBuffer(0, "points", points);
     }
 
-    public void GenerateMat(List<GenerationHeightData.BMaterial> materials, ComputeBuffer vertexBuffer, MeshCreator.TriangleConst[] triangles, int numTris, float[][] heights, int chunkSize, int meshSkipInc, Vector3 offset)
+    public void SimplifyDensity(int chunkSize, int meshSkipInc, float[] density, ComputeBuffer points)
     {
-        int numTrisAxis = Mathf.CeilToInt(Mathf.Sqrt(numTris));
-        int numThreadsAxis = Mathf.CeilToInt(numTrisAxis / (float)threadGroupSize);
-        ComputeBuffer materialBuffer = new ComputeBuffer(numTris * 3 * 2, sizeof(uint) + sizeof(float));
-        ComputeBuffer triangleRBuffer = new ComputeBuffer(numTris, sizeof(float) * 3 * 9);
-        triangleRBuffer.SetData(triangles);
+        int totalPoints = (chunkSize+1)*(chunkSize+1)*(chunkSize+1);
+        ComputeBuffer completeDensity = new ComputeBuffer(totalPoints, sizeof(float));
+        completeDensity.SetData(density);
+        buffersToRelease.Enqueue(completeDensity);
 
-        materialGenCompute.SetFloat("numTris", numTris);
+        densitySimplification.SetInt("meshSkipInc", meshSkipInc);
+        densitySimplification.SetInt("totalPointsPerAxis", chunkSize+1);
+        densitySimplification.SetInt("pointsPerAxis", chunkSize/meshSkipInc + 1);
+        densitySimplification.SetBuffer(0, "points_full", completeDensity);
+        densitySimplification.SetBuffer(0, "points", points);
+
+        int numThreadsPerAxis = Mathf.CeilToInt((chunkSize / meshSkipInc) / (float)threadGroupSize);
+
+        densitySimplification.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+    }
+
+    public void GenerateMat(List<GenerationHeightData.BMaterial> materials, ComputeBuffer vertexBuffer, ComputeBuffer existingMats, Vector3[] triangles, Vector3[] triangleParents, int numVerts, float[][] heights, int chunkSize, int meshSkipInc, Vector3 offset)
+    {
+        int numVertsAxis = Mathf.CeilToInt(Mathf.Pow(numVerts, 1f/3f));
+        int numThreadsAxis = Mathf.CeilToInt(numVertsAxis / (float)threadGroupSize);
+
+        ComputeBuffer triangleRBuffer = new ComputeBuffer(numVerts, sizeof(float) * 3);
+        triangleRBuffer.SetData(triangles);
+        ComputeBuffer materialBuffer = new ComputeBuffer(numVerts * 2, sizeof(uint) + sizeof(float));
+        ComputeBuffer parentTriRBuffer = new ComputeBuffer(numVerts * 2, sizeof(float) * 3);
+        parentTriRBuffer.SetData(triangleParents);
+
+        buffersToRelease.Enqueue(materialBuffer);
+        buffersToRelease.Enqueue(triangleRBuffer);
+        buffersToRelease.Enqueue(parentTriRBuffer);
+
+        materialGenCompute.SetFloat("numVerts", numVerts);
         materialGenCompute.SetFloat("numMats", materials.Count);
-        materialGenCompute.SetFloat("numTrisAxis", numTrisAxis);
+        materialGenCompute.SetFloat("numVertsAxis", numVertsAxis);
         materialGenCompute.SetBuffer(0, "trianglesR", triangleRBuffer);
-        materialGenCompute.SetBuffer(0, "materials", materialBuffer);
+        materialGenCompute.SetBuffer(0, "parentTriR", parentTriRBuffer);
         materialGenCompute.SetBuffer(0, "vertexColor", vertexBuffer);
+        materialGenCompute.SetBuffer(0, "materials", materialBuffer);
+        materialGenCompute.SetBool("hasMats", false);
+
+        if (existingMats != null)
+        {
+            materialGenCompute.EnableKeyword("HAS_EXISTING_MATERIALS");
+            materialGenCompute.SetBuffer(0, "existingMats", existingMats);
+            materialGenCompute.SetFloat("pointsPerAxis", chunkSize / meshSkipInc + 1);
+        }
+        else
+        {
+            materialGenCompute.DisableKeyword("HAS_EXISTING_MATERIALS");
+        }
 
         for (int i = 0; i < materials.Count; i++)
         {
-            buffersToRelease = new List<ComputeBuffer>();
-
             ComputeBuffer heightRef = new ComputeBuffer(heights[i].Length, sizeof(float));
-            buffersToRelease.Add(heightRef);
-
             heightRef.SetData(heights[i]);
+            buffersToRelease.Enqueue(heightRef);
 
-            materialGenCompute.SetInt("matIndex", i);
+            materialGenCompute.SetInt("genOrder", i);
+            materialGenCompute.SetInt("matIndex", materials[i].materialIndex);
             materialGenCompute.SetBuffer(0, "heights", heightRef);
 
             GenerateNoise(materialGenCompute, chunkSize, meshSkipInc, materials[i].generationNoise, offset, buffersToRelease);
 
-            materialGenCompute.Dispatch(0, numThreadsAxis, numThreadsAxis, 1);
-            foreach (ComputeBuffer buffer in buffersToRelease)
-                buffer.Release();
+            materialGenCompute.Dispatch(0, numThreadsAxis, numThreadsAxis, numThreadsAxis);
         }
-
-        triangleRBuffer.Release();
-        materialBuffer.Release();
     }
 
     public void GenerateMesh(int chunkSize, int meshSkipInc, float IsoLevel, ComputeBuffer triangleBuffer)
@@ -63,44 +96,34 @@ public class DensityGenerator : MonoBehaviour
         meshGenerator.SetFloat("numPointsPerAxis", chunkSize / meshSkipInc + 1);
         meshGenerator.SetBuffer(0, "triangles", triangleBuffer);
 
-        int numThreadsPerAxis = Mathf.CeilToInt(((chunkSize) / meshSkipInc) / (float)threadGroupSize);
+        int numThreadsPerAxis = Mathf.CeilToInt((chunkSize / meshSkipInc) / (float)threadGroupSize);
 
         meshGenerator.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
     }
 
     public void GenerateUnderground(int chunkSize, int meshSkipInc, NoiseData noiseData, Vector3 offset)
     {
-        buffersToRelease = new List<ComputeBuffer>();
-
         GenerateNoise(undergroundNoiseCompute, chunkSize, meshSkipInc, noiseData, offset, buffersToRelease);
 
-        int numThreadsPerAxis = Mathf.CeilToInt(((chunkSize) / meshSkipInc) / (float)threadGroupSize) + 1;
+        int numThreadsPerAxis = Mathf.CeilToInt((chunkSize / meshSkipInc) / (float)threadGroupSize) + 1;
 
         undergroundNoiseCompute.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
-
-        foreach (ComputeBuffer buffer in buffersToRelease)
-            buffer.Release();
     }
 
     public void GenerateTerrain(int chunkSize, int meshSkipInc, NoiseData noiseData, Vector3 offset, float depth, float IsoValue)
     {
-        buffersToRelease = new List<ComputeBuffer>();
-
         terrainNoiseCompute.SetFloat("offsetY", offset.y);
         terrainNoiseCompute.SetFloat("depth", depth);
         terrainNoiseCompute.SetFloat("IsoLevel", IsoValue);
 
         GenerateNoise(terrainNoiseCompute, chunkSize, meshSkipInc, noiseData, offset, buffersToRelease);
 
-        int numThreadsPerAxis = Mathf.CeilToInt(((chunkSize) / meshSkipInc) / (float)threadGroupSize) + 1;
+        int numThreadsPerAxis = Mathf.CeilToInt((chunkSize / meshSkipInc) / (float)threadGroupSize) + 1;
 
         terrainNoiseCompute.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
-
-        foreach (ComputeBuffer buffer in buffersToRelease)
-            buffer.Release();
     }
 
-    public static void GenerateNoise(ComputeShader noiseGen, int chunkSize, int meshSkipInc, NoiseData noiseData, Vector3 offset, List<ComputeBuffer> buffersToRelease)
+    public static void GenerateNoise(ComputeShader noiseGen, int chunkSize, int meshSkipInc, NoiseData noiseData, Vector3 offset, Queue<ComputeBuffer> buffersToRelease)
     {
         float epsilon = (float)10E-9;
 
@@ -124,8 +147,8 @@ public class DensityGenerator : MonoBehaviour
 
 
         var offsetsBuffer = new ComputeBuffer(octaveOffsets.Length, sizeof(float) * 3);
-        buffersToRelease.Add(offsetsBuffer);
         offsetsBuffer.SetData(octaveOffsets);
+        buffersToRelease.Enqueue(offsetsBuffer);
 
         noiseGen.SetInt("chunkSize", chunkSize);
         noiseGen.SetInt("octaves", noiseData.octaves);

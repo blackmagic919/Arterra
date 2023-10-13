@@ -13,13 +13,8 @@ MonoBehaviour:
   m_Name: TextureRef
   m_EditorClassIdentifier: 
   autoUpdate: 0
-  TextureDictionary:
-  - {fileID: 2800000, guid: 9a32d08edbf8447c88139bfb43dfbe1a, type: 3}
-  - {fileID: 2800000, guid: 2f8fcee7ecef34830847067a47a2012d, type: 3}
-  - {fileID: 2800000, guid: d6daddfb095a14f1e814f6fcd10fab89, type: 3}
-  - {fileID: 2800000, guid: 71c9ce063b15b453ba2769813a1726be, type: 3}
-  - {fileID: 2800000, guid: d0eb2762eac0c4bc08e0a4ca534e0c9d, type: 3}
-  - {fileID: 2800000, guid: e3acbac5c9b9847aa9fd983dd618db4c, type: 3}
-  - {fileID: 2800000, guid: 138c287f6d11c4bb19ec588671f1ddb9, type: 3}
-  - {fileID: 2800000, guid: c071ddde8a7294dfc811dab26c30da86, type: 3}
-  TerrainShader: {fileID: 4800000, guid: cb97721bea19541b6972ca336ca07564, type: 3}
+  MaterialDictionary:
+  - {fileID: 11400000, guid: 7366b567971cc41fd870194bd88913c8, type: 2}
+  - {fileID: 11400000, guid: 770b7b57cc5fd44a5b48aa4a63b86229, type: 2}
+  - {fileID: 11400000, guid: d506e071805fe4402ad951fce277f5d8, type: 2}
+  - {fileID: 11400000, guid: 07449c87023a44e26891a2231b9cbe6d, type: 2}

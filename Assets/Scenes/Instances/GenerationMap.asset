@@ -15,7 +15,7 @@ MonoBehaviour:
   autoUpdate: 1
   Materials:
   - generationNoise: {fileID: 11400000, guid: 911cf29ffcb1347a9b960bee28d68b27, type: 2}
-    materialData: {fileID: 11400000, guid: 07449c87023a44e26891a2231b9cbe6d, type: 2}
+    materialIndex: 3
     VerticalPreference:
     - DensityCurve:
         serializedVersion: 2
@@ -77,7 +77,7 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
   - generationNoise: {fileID: 11400000, guid: 04e509b69a3dd41b2b450d154d3f36c3, type: 2}
-    materialData: {fileID: 11400000, guid: d506e071805fe4402ad951fce277f5d8, type: 2}
+    materialIndex: 2
     VerticalPreference:
     - DensityCurve:
         serializedVersion: 2
@@ -139,7 +139,7 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
   - generationNoise: {fileID: 11400000, guid: cb1ea4d19e71846f2adcc0d7c17bbc19, type: 2}
-    materialData: {fileID: 11400000, guid: 770b7b57cc5fd44a5b48aa4a63b86229, type: 2}
+    materialIndex: 1
     VerticalPreference:
     - DensityCurve:
         serializedVersion: 2
@@ -147,15 +147,15 @@ MonoBehaviour:
         - serializedVersion: 3
           time: 0
           value: 0.0047187805
-          inSlope: 1.2735848
-          outSlope: 1.2735848
+          inSlope: 1.3234802
+          outSlope: 1.3234802
           tangentMode: 34
           weightedMode: 0
           inWeight: 0
           outWeight: 0.33333334
         - serializedVersion: 3
-          time: 0.35
-          value: 0.4504735
+          time: 0.37241372
+          value: 0.49760097
           inSlope: -0.000008390501
           outSlope: -0.000008390501
           tangentMode: 0
@@ -165,8 +165,8 @@ MonoBehaviour:
         - serializedVersion: 3
           time: 1
           value: 0.0047187805
-          inSlope: -0.6857765
-          outSlope: -0.6857765
+          inSlope: -0.7853617
+          outSlope: -0.7853617
           tangentMode: 34
           weightedMode: 0
           inWeight: 0.33333334
@@ -201,7 +201,7 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
   - generationNoise: {fileID: 11400000, guid: 5d245c70c77264401a0133ae37be74e4, type: 2}
-    materialData: {fileID: 11400000, guid: 42dfefa92a7cd4973b7685fbaaf1d6f7, type: 2}
+    materialIndex: 0
     VerticalPreference:
     - DensityCurve:
         serializedVersion: 2
@@ -209,17 +209,17 @@ MonoBehaviour:
         - serializedVersion: 3
           time: 0
           value: -0.0065721273
-          inSlope: 1.1038306
-          outSlope: 1.1038306
+          inSlope: 1.0129709
+          outSlope: 1.0129709
           tangentMode: 34
           weightedMode: 0
           inWeight: 0
           outWeight: 0.33333334
         - serializedVersion: 3
-          time: 0.50402504
-          value: 0.54978615
-          inSlope: -0.008958042
-          outSlope: -0.008958042
+          time: 0.49985838
+          value: 0.49976987
+          inSlope: 0.00028681755
+          outSlope: 0.00028681755
           tangentMode: 34
           weightedMode: 0
           inWeight: 0.33333334
@@ -227,8 +227,8 @@ MonoBehaviour:
         - serializedVersion: 3
           time: 1
           value: -0.0065721273
-          inSlope: -1.1217467
-          outSlope: -1.1217467
+          inSlope: -1.0123973
+          outSlope: -1.0123973
           tangentMode: 34
           weightedMode: 0
           inWeight: 0.33333334

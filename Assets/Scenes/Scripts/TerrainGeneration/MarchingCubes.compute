@@ -9,14 +9,6 @@ struct Triangle{
     float3 z;
 };
 
-float3 getVert(Triangle t, uint i){ //For some reason I can't make this a method of Triangle
-    if(i == 0)
-        return t.x;
-    if(i == 1)
-        return t.y;
-    return t.z;
-}
-
 struct TriangleConst { //Constructor
     Triangle tri;
     Triangle p1;
@@ -50,9 +42,21 @@ float IsoLevel;
 * | xyz_______./  /
 * +---------> x  /
 */
+float lerp(float a, float b, float value){
+    return (a*value) + (b*(1-value));
+}
 
-float3 interpolate(float3 p1, float3 p2, float p1Val, float p2Val) {
-    return p1 + ((IsoLevel - p1Val) / (p2Val - p1Val)) * (p2 - p1);
+float scaleNormals(float noise){
+    float ret;
+    if(noise >= IsoLevel)
+        ret = -1*(noise-IsoLevel)/(1.0-IsoLevel);
+    else
+        ret = -1*(noise-IsoLevel)/(IsoLevel);
+    return ret;
+}
+
+float interpolate(float p1Val, float p2Val) {
+    return ((IsoLevel - p1Val) / (p2Val - p1Val));
 }
 
 [numthreads(numThreads,numThreads,numThreads)]
@@ -88,10 +92,11 @@ void March (uint3 id : SV_DispatchThreadID)
         int b2 = cornerIndexBFromEdge[triangulation[cubeIndex][i+2]];
         
         float3 a0Pos = float3(x,y,z) + positionFromIndex[a0];
-        float3 b0Pos = float3(x,y,z) + positionFromIndex[b0];
         float3 a1Pos = float3(x,y,z) + positionFromIndex[a1];
-        float3 b1Pos = float3(x,y,z) + positionFromIndex[b1];
         float3 a2Pos = float3(x,y,z) + positionFromIndex[a2];
+
+        float3 b0Pos = float3(x,y,z) + positionFromIndex[b0];
+        float3 b1Pos = float3(x,y,z) + positionFromIndex[b1];
         float3 b2Pos = float3(x,y,z) + positionFromIndex[b2];
 
         float a0Val = points[indexFromCoord(a0Pos.x, a0Pos.y, a0Pos.z)];
@@ -101,6 +106,10 @@ void March (uint3 id : SV_DispatchThreadID)
         float b0Val = points[indexFromCoord(b0Pos.x, b0Pos.y, b0Pos.z)];
         float b1Val = points[indexFromCoord(b1Pos.x, b1Pos.y, b1Pos.z)];
         float b2Val = points[indexFromCoord(b2Pos.x, b2Pos.y, b2Pos.z)];
+
+        float interpFactorX = interpolate(a0Val, b0Val);
+        float interpFactorY = interpolate(a1Val, b1Val);
+        float interpFactorZ = interpolate(a2Val, b2Val);
        
         TriangleConst tric;
         Triangle tri;
@@ -117,10 +126,11 @@ void March (uint3 id : SV_DispatchThreadID)
         p2.z = b2Pos;
         tric.p2 = p2;
 
-        tri.x = interpolate(a0Pos, b0Pos, a0Val, b0Val);
-        tri.y = interpolate(a1Pos, b1Pos, a1Val, b1Val);
-        tri.z = interpolate(a2Pos, b2Pos, a2Val, b2Val);
+        tri.x = a0Pos + interpFactorX * (b0Pos - a0Pos);
+        tri.y = a1Pos + interpFactorY * (b1Pos - a1Pos);
+        tri.z = a2Pos + interpFactorZ * (b2Pos - a2Pos);
         tric.tri = tri;
+
 
         triangles.Append(tric);
     }

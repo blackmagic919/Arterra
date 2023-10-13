@@ -15,7 +15,7 @@ MonoBehaviour:
   autoUpdate: 0
   noiseScale: 25
   octaves: 2
-  persistance: 0.5
+  persistance: 0.2
   lacunarity: 1.5
   lerpScale: 4
   seed: 3

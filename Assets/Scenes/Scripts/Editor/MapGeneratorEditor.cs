@@ -31,6 +31,6 @@ public class MapGeneratorEditor : Editor
             //mapGen.voxels.DeleteMap();
         }
 
-        base.OnInspectorGUI();
+        //base.OnInspectorGUI(); THis causes duplicate GUI
     }
 }
