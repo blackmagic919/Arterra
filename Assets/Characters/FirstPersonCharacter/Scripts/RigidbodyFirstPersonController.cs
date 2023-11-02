@@ -242,7 +242,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
             mouseLook.LookRotation (transform, cam.transform);
 
-            if (m_IsGrounded || advancedSettings.airControl)
+            if (m_IsGrounded || (advancedSettings.airControl && !m_RigidBody.isKinematic))
             {
                 // Rotate the rigidbody velocity to match the new direction that the character is looking
                 Quaternion velRotation = Quaternion.AngleAxis(transform.eulerAngles.y - oldYRotation, Vector3.up);

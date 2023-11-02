@@ -1,0 +1,144 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Main
+
+struct SourceVertex{
+    float3 positionOS;
+    float3 normalOS;
+};
+
+StructuredBuffer<SourceVertex> _SourceVertices;
+StructuredBuffer<int> _SourceTriangles;
+
+struct DrawVertex{
+    float3 positionWS;
+    float3 normalWS;
+    float2 uv;
+};
+
+struct DrawTriangle{
+    DrawVertex vertices[3];
+};
+
+struct Quad {
+    float3 topLeft;
+    float3 topRight;
+    float3 bottomLeft;
+    float3 bottomRight;
+};
+
+AppendStructuredBuffer<DrawTriangle> _DrawTriangles;
+
+int _NumSourceTriangles;
+float _QuadSize;
+float _InflationFactor;
+float4x4 _LocalToWorld;
+float _CameraDistanceMin;
+float _CameraDistanceMax;
+float _CameraDistanceFactor;
+float3 _CameraPosition;
+uint _MaxSkipInc;
+
+DrawVertex MakeBaseDrawVertex(SourceVertex v){
+    DrawVertex o = (DrawVertex)0;
+    o.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
+    o.normalWS = mul(_LocalToWorld, float4(v.normalOS, 0)).xyz;
+    //uv is thrown away and rebuilt for every quad
+    return o;
+}
+
+
+DrawVertex InitializeDrawVertex(float3 positionWS, float3 normalWS, float2 uv){
+    DrawVertex o = (DrawVertex)0;
+    o.positionWS = positionWS;
+    o.normalWS = normalWS;
+    o.uv = uv;
+
+    return o;
+}
+
+float GetDistanceFromCamera(DrawVertex v){
+    return distance(v.positionWS.xyz, _CameraPosition.xyz);
+}
+
+uint CalculateSkipInc(DrawVertex a, DrawVertex b, DrawVertex c){
+    float dA = GetDistanceFromCamera(a);
+    float dB = GetDistanceFromCamera(b);
+    float dC = GetDistanceFromCamera(c);
+
+    float d = min(dA, min(dB, dC));
+
+    d = smoothstep(_CameraDistanceMin, _CameraDistanceMax, d); //Less skip closer to camera
+
+    d = pow(abs(d), _CameraDistanceFactor);
+
+    return max(1, ceil(d * _MaxSkipInc));
+}
+
+
+
+float3 GetTriangleCenter(float3 a, float3 b, float3 c) {
+    return (a + b + c) / 3.0;
+}
+
+float3 random(float3 st)
+{
+    st = float3(dot(st, float3(127.1, 311.7, 531.5)),
+                dot(st, float3(269.5, 183.3, 246.1)),
+                dot(st, float3(419.2, 371.9, 619.8)));
+    return -1.0 + 2.0 * frac(sin(st) * 43758.5453123);
+}
+
+Quad GetQuadFacingCamera(float3 cameraPosition, float3 center, float quadSize) {
+    float3 normal = normalize(cameraPosition - center);
+    float3 randomAngles = random(float3(center.x, center.y, center.z));
+
+    // Create the right and up vectors orthogonal to the new normal vector.
+    float3 right = normalize(cross(normal, float3(randomAngles.x, randomAngles.y, randomAngles.z)));
+    float3 up = cross(right, normal);
+
+    Quad quad = (Quad)0;
+
+    // Calculate the four corner points of the quad, with A at its center.
+    quad.topLeft = center - right * (quadSize / 2.0) + up * (quadSize / 2.0);
+    quad.topRight = center + right * (quadSize / 2.0) + up * (quadSize / 2.0);
+    quad.bottomLeft = center - right * (quadSize / 2.0) - up * (quadSize / 2.0);
+    quad.bottomRight = center + right * (quadSize / 2.0) - up * (quadSize / 2.0);
+
+    return quad;
+}
+
+[numthreads(128,1,1)]
+void Main (uint3 id : SV_DispatchThreadID)
+{
+    if((int)id.x >= _NumSourceTriangles)
+        return;
+
+    int triStart = id.x * 3;
+    DrawVertex inputs[3];
+
+    [unroll] for(int i = 0; i < 3; i++){
+        inputs[i] = MakeBaseDrawVertex(_SourceVertices[_SourceTriangles[triStart+i]]);
+    }
+
+    uint skipInc = CalculateSkipInc(inputs[0], inputs[1], inputs[2]);
+    if(id.x % skipInc != 0)
+        return;
+
+    float3 center = GetTriangleCenter(inputs[0].positionWS, inputs[1].positionWS, inputs[2].positionWS);
+    float3 normalWS = GetTriangleCenter(inputs[0].normalWS, inputs[1].normalWS, inputs[2].normalWS);// If not want to inherit -> normalize(_CameraPosition - center);
+    Quad quad = GetQuadFacingCamera(_CameraPosition, center, _QuadSize);
+    
+    //Bottom triangle
+    DrawTriangle lowerTri = (DrawTriangle)0;
+    lowerTri.vertices[0] = InitializeDrawVertex(quad.topLeft + _InflationFactor*normalWS, normalWS, float2(0, 1));
+    lowerTri.vertices[2] = InitializeDrawVertex(quad.bottomLeft + _InflationFactor*normalWS, normalWS, float2(0, 0));
+    lowerTri.vertices[1] = InitializeDrawVertex(quad.bottomRight + _InflationFactor*normalWS, normalWS, float2(1, 0)); //Add this first because clockwise winding
+    _DrawTriangles.Append(lowerTri);
+    
+    //Top triangle
+    DrawTriangle topTri = (DrawTriangle)0;
+    topTri.vertices[0] = InitializeDrawVertex(quad.topLeft + _InflationFactor*normalWS, normalWS, float2(0, 1));
+    topTri.vertices[2] = InitializeDrawVertex(quad.bottomRight + _InflationFactor*normalWS, normalWS, float2(1, 0));
+    topTri.vertices[1] = InitializeDrawVertex(quad.topRight + _InflationFactor*normalWS, normalWS, float2(1, 1));
+    _DrawTriangles.Append(topTri);
+}

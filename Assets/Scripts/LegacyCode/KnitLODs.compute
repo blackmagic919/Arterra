@@ -1,0 +1,77 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Knit
+#include "/Includes/GetIndex.compute"
+
+RWStructuredBuffer<float> points;
+const static int numThreads = 8;
+uint normalAxis; //Range 0-2 inclusive -> x, y, z
+uint normalPosition;
+uint faceSkipInc; //meshSkipInc difference of bordering mesh
+
+//To be filled in code
+uint3 corners[4];
+
+uint3 GetCoord(uint u, uint v){
+    uint coord[3];
+    coord[(normalAxis + 1) % 3] = u;
+    coord[(normalAxis + 2) % 3] = v;
+    coord[normalAxis] = normalPosition;
+    
+    return uint3(coord[0], coord[1], coord[2]);//
+}
+const static float uD[4] = {-1, 1, 1, -1};
+const static float vD[4] = {-1, -1, 1, 1};
+
+void GetCorners(uint u, uint v){
+    [unroll]for(int i = 0; i < 4; i++){
+        uint uC = (uD[i] == -1) ? floor(u / (float)faceSkipInc) * faceSkipInc : ceil(u / (float)faceSkipInc) * faceSkipInc;
+        uint vC = (vD[i] == -1) ? floor(v / (float)faceSkipInc) * faceSkipInc : ceil(u/ (float)faceSkipInc) * faceSkipInc;
+
+        uint coord[3];
+        coord[(normalAxis + 1) % 3] = uC;
+        coord[(normalAxis + 2) % 3] = vC;
+        coord[normalAxis] = normalPosition;
+
+        corners[i] = uint3(coord[0], coord[1], coord[2]);
+    }
+}
+
+float getArea(float3 pointA, float3 pointB){
+    float dx = (normalAxis == 0) ? 1 : abs(pointA.x - pointB.x);
+    float dy = (normalAxis == 1) ? 1 : abs(pointA.y - pointB.y);
+    float dz = (normalAxis == 2) ? 1 : abs(pointA.z - pointB.z);
+    
+   return dx*dy*dz;
+}
+
+/*
+ * 0,0------------> u
+ * |  0----------1
+ * |  |          |
+ * |  |     P    |
+ * |  |          |
+ * |  |          |
+ * v  3----------2
+ * v
+ */
+
+[numthreads(numThreads,numThreads,1)]
+void Knit (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numPointsPerAxis || id.y >= numPointsPerAxis) 
+        return;
+    
+    uint3 coord = GetCoord(id.x, id.y);
+    uint pointIndex = indexFromCoord(coord.x, coord.y, coord.z);
+    GetCorners(id.x, id.y);
+
+    float density = 0;
+    for(uint i = 0; i < 4; i++){
+       float cornerDensity = points[indexFromCoord(corners[i].x, corners[i].y, corners[i].z)];
+       float intensity = getArea((float3)coord, (float3)corners[(i+2)%4]);
+
+       density += cornerDensity * intensity;
+    }
+
+    points[pointIndex] = density;
+}

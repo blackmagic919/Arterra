@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 040870a578bbf46179e139dc5e722edf, type: 3}
+  m_Name: TextureRef
+  m_EditorClassIdentifier: 
+  autoUpdate: 0
+  MaterialDictionary:
+  - {fileID: 11400000, guid: 7366b567971cc41fd870194bd88913c8, type: 2}
+  - {fileID: 11400000, guid: 770b7b57cc5fd44a5b48aa4a63b86229, type: 2}
+  - {fileID: 11400000, guid: d506e071805fe4402ad951fce277f5d8, type: 2}
+  - {fileID: 11400000, guid: 07449c87023a44e26891a2231b9cbe6d, type: 2}
+  - {fileID: 11400000, guid: 850f75f6d316949d7846383e92f0c696, type: 2}
+  - {fileID: 11400000, guid: 8e0a46373a2254653ac6cc138422e6e8, type: 2}

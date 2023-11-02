@@ -1,0 +1,30 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Apply
+const static int numThreads = 8;
+const static float Epsilon = 1E-5f;
+
+uint indexFromCoord(uint x, uint y, uint z, float pointsPerAxis) {
+    return x * pointsPerAxis * pointsPerAxis + y * pointsPerAxis + z;
+}
+
+StructuredBuffer<float> structureDensity;
+RWStructuredBuffer<float> points;
+
+uint pointsPerAxis;
+float IsoLevel;
+
+[numthreads(numThreads, numThreads, numThreads)]
+void Apply (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= pointsPerAxis || id.y >= pointsPerAxis || id.z >= pointsPerAxis)
+        return;
+
+    uint index = indexFromCoord(id.x, id.y, id.z, pointsPerAxis);
+
+    float density = structureDensity[index];
+
+    if(density < IsoLevel && points[index] > IsoLevel || density <= Epsilon) //So it connects with terrain
+        return;
+
+    points[index] = density;
+}
