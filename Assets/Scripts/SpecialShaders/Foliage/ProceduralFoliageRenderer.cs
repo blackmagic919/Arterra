@@ -1,7 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Utils;
 
 [ExecuteInEditMode]
 public class ProceduralFoliageRenderer : SpecialShader
@@ -18,8 +17,6 @@ public class ProceduralFoliageRenderer : SpecialShader
     }
 
     private bool initialized = false;
-    private bool isEnabled = false;
-    private bool sourceUpdated = false;
 
     private int idFoliageKernel;
     private int idTriToVertKernel;
@@ -43,8 +40,6 @@ public class ProceduralFoliageRenderer : SpecialShader
     public void OnEnable()
     {
         initialized = false;
-        isEnabled = false;
-        sourceUpdated = false;
     }
 
     public override void SetMesh(Mesh mesh)
@@ -57,21 +52,18 @@ public class ProceduralFoliageRenderer : SpecialShader
         this.foliageSettings = (FoliageSettings)settings;
     }
 
-    public override void Enable()
+    public override void Render()
     {
         if (sourceMesh.triangles.Length == 0)
         {
-            isEnabled = false;
+            Release();
             return;
         }
-
-        isEnabled = true;
 
         if (initialized)
             Release();
 
         initialized = true;
-        sourceUpdated = true;
 
         instantiatedFoliageComputeShader = Instantiate(foliageSettings.foliageComputeShader);
         instantiatedTriToVertComputeShader = Instantiate(foliageSettings.triToVertComputeShader);
@@ -99,7 +91,7 @@ public class ProceduralFoliageRenderer : SpecialShader
         sourceTriBuffer = new ComputeBuffer(tris.Length, SOURCE_TRI_STRIDE, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
         sourceTriBuffer.SetData(tris);
 
-        drawBuffer = new ComputeBuffer(numTriangles * 2, DRAW_STRIDE, ComputeBufferType.Append); //Quad is two triangles
+        drawBuffer = new ComputeBuffer(numTriangles * 2 * 3, DRAW_STRIDE, ComputeBufferType.Append); //Quad is two triangles
         drawBuffer.SetCounterValue(0);
         argsBuffer = new ComputeBuffer(1, ARGS_STRIDE, ComputeBufferType.IndirectArguments);
 
@@ -114,10 +106,6 @@ public class ProceduralFoliageRenderer : SpecialShader
         instantiatedFoliageComputeShader.SetInt("_NumSourceTriangles", numTriangles);
         instantiatedFoliageComputeShader.SetFloat("_QuadSize", foliageSettings.QuadSize);
         instantiatedFoliageComputeShader.SetFloat("_InflationFactor", foliageSettings.Inflation);
-        instantiatedFoliageComputeShader.SetFloat("_MaxSkipInc", foliageSettings.maxSkipInc);
-        instantiatedFoliageComputeShader.SetFloat("_CameraDistanceMin", foliageSettings.lodMinCameraDistance);
-        instantiatedFoliageComputeShader.SetFloat("_CameraDistanceMax", foliageSettings.lodMaxCameraDistance);
-        instantiatedFoliageComputeShader.SetFloat("_CameraDistanceFactor", Mathf.Max(0, foliageSettings.lodFactor));
 
         instantiatedTriToVertComputeShader.SetBuffer(idTriToVertKernel, "_IndirectArgsBuffer", argsBuffer);
         instantiatedMaterial.SetBuffer("_DrawTriangles", drawBuffer);
@@ -127,6 +115,8 @@ public class ProceduralFoliageRenderer : SpecialShader
 
         localBounds = sourceMesh.bounds;
         localBounds.Expand(foliageSettings.QuadSize/2.0f);
+
+        ComputeGeometry();
     }
 
     public void OnDisable()
@@ -134,13 +124,7 @@ public class ProceduralFoliageRenderer : SpecialShader
         Release();
     }
 
-    public override void Disable()
-    {
-        isEnabled = false;
-        Release();
-    }
-
-    private void Release()
+    public override void Release()
     {
         if (initialized)
         {
@@ -182,15 +166,13 @@ public class ProceduralFoliageRenderer : SpecialShader
 
     private void LateUpdate()
     {
-        if (!isEnabled)
+        if (!initialized)
             return;
-        if (EndlessTerrain.timeRequestQueue.Count == 0 || sourceUpdated)
-            RecalculateRender();
 
         if (!Application.isPlaying)
         {
-            Disable();
-            Enable();
+            Release();
+            Render();
         }
 
         Bounds bounds = TransformBounds(localBounds);
@@ -198,20 +180,17 @@ public class ProceduralFoliageRenderer : SpecialShader
         Graphics.DrawProceduralIndirect(instantiatedMaterial, bounds, MeshTopology.Triangles, argsBuffer, 0, null, null, ShadowCastingMode.Off, true, gameObject.layer);
     }
 
-    private void RecalculateRender()
+    private void ComputeGeometry()
     {
         drawBuffer.SetCounterValue(0);
 
         instantiatedFoliageComputeShader.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
-        instantiatedFoliageComputeShader.SetVector("_CameraPosition", Camera.main.transform.position);
 
         instantiatedFoliageComputeShader.Dispatch(idFoliageKernel, dispatchSize, 1, 1);
 
         ComputeBuffer.CopyCount(drawBuffer, argsBuffer, 0);
 
         instantiatedTriToVertComputeShader.Dispatch(idTriToVertKernel, 1, 1, 1);
-
-        sourceUpdated = false;
     }
 }
 

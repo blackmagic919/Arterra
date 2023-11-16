@@ -1,6 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
+using Utils;
 
 public class DensityAdjuster : MonoBehaviour
 {
@@ -15,12 +15,15 @@ public class DensityAdjuster : MonoBehaviour
             {
                 for (int z = 0; z < structure.sizeZ; z++)
                 {
-                    int index = Utility.irregularIndexFromCoord(x, y, z, structure.sizeX, structure.sizeY);
+                    int index = CustomUtility.irregularIndexFromCoord(x, y, z, structure.sizeX, structure.sizeY);
                     if (structure.density[index] == 0)
                         continue;
                     structure.density[index] += deltaDensity;
                 }
             }
         }
+        EditorUtility.SetDirty(structure);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
     }
 }

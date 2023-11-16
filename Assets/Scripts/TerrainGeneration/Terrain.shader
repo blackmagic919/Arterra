@@ -14,6 +14,11 @@ Shader "Unlit/Terrain1"
             Tags{"LightMode" = "UniversalForward"}
 
             HLSLPROGRAM
+            // Signal this shader requires geometry function support
+            #pragma prefer_hlslcc gles
+            #pragma exclude_renderers d3d11_9x
+            #pragma target 5.0
+
             #pragma vertex vert
             #pragma fragment frag
 
@@ -28,7 +33,7 @@ Shader "Unlit/Terrain1"
             #include "TerrainShader.hlsl"
             ENDHLSL
         }
-
+        /*
         Pass {
             Name "ShadowCaster"
             Tags{"LightMode" = "ShadowCaster"}
@@ -42,6 +47,6 @@ Shader "Unlit/Terrain1"
 
             #include "TerrainShaderShadowCast.hlsl"
             ENDHLSL
-        }
+        }*/
     }
 }

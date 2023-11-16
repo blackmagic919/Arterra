@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Utils;
 
 [System.Serializable]
 [CreateAssetMenu(fileName = "Structure_Data", menuName = "Structure Data")]
@@ -37,7 +38,7 @@ public class StructureData : ScriptableObject
             {
                 for (int z = 0; z < sizeZ; z++)
                 {
-                    ret[Utility.irregularIndexFromCoord(x, y, z, sizeX, sizeY)] = array[x, y, z];
+                    ret[CustomUtility.irregularIndexFromCoord(x, y, z, sizeX, sizeY)] = array[x, y, z];
                 }
             }
         }

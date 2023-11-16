@@ -1,21 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using static GenerationHeightData;
+using static BiomeInfo;
 
 public class BiomeHeightMap
 {
-    public static float[][] GetHeightCurves(List<BMaterial> mats, int center, int height, int meshSkipInc)
-    {
-        float[][] Curves = new float[mats.Count][];
-        for (int i = 0; i < mats.Count; i++)
-        {
-            Curves[i] = CalculateHeightCurve(mats[i].VerticalPreference, center, height, meshSkipInc);
-        }
-        return Curves;
-    }
 
-
+    //Rewrite with lazy segment tree
     public static float[] CalculateHeightCurve(List<DensityGrad> HeightRanges, int coord, int height, int meshSkipInc)
     {
         float[] heights = new float[(height)/ meshSkipInc + 1];

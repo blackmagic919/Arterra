@@ -1,12 +1,11 @@
-using System.Collections;
 using System.Collections.Generic;
 using System;
 using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
-using static MapGenerator;
-using static GenerationHeightData;
+using static EditorMesh;
 using UnityEditor;
+using Utils;
 
 
 public class DensityDeconstructor : MonoBehaviour
@@ -38,8 +37,6 @@ public class DensityDeconstructor : MonoBehaviour
     MeshFilter meshFilter;
     MeshRenderer meshRenderer;
 
-    float Epsilon = 1E-5f;
-
     [Serializable]
     public struct CheckPoint
     {
@@ -67,7 +64,7 @@ public class DensityDeconstructor : MonoBehaviour
         uint sizeY = pointsY * skipIncrementWS;
         uint sizeZ = pointsZ * skipIncrementWS;
 
-        materials ??= Utility.InitializeArray3D(-1, pointsX, pointsY, pointsZ);
+        materials ??= CustomUtility.InitializeArray3D(-1, pointsX, pointsY, pointsZ);
 
         bool[,,] isOutside = new bool[pointsX, pointsY, pointsZ];
         isOutside[0, 0, 0] = true;

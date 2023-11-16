@@ -2,10 +2,9 @@ using System.Collections.Generic;
 using System;
 using UnityEngine;
 using UnityStandardAssets.Characters.FirstPerson;
-using Unity.Mathematics;
-using System.Linq;
-using static MapGenerator;
-using static GenerationHeightData;
+using UnityEngine.Profiling;
+using Utils;
+
 
 public class EndlessTerrain : MonoBehaviour
 {
@@ -14,13 +13,11 @@ public class EndlessTerrain : MonoBehaviour
     public float IsoLevel;
     public LODInfo[] detailLevels;
     public static float renderDistance;
-    public const int mapChunkSize = 48;//Number of cubes, points-1;
-    public int surfaceMaxDepth;
-    const float chunkUpdateThresh = 20f;
+    public const int mapChunkSize = 64; //Number of cubes;
+    const float chunkUpdateThresh = 24f;
     const float sqrChunkUpdateThresh = chunkUpdateThresh * chunkUpdateThresh;
-    public const float lerpScale = 2.5f;
+    public const float lerpScale = 2f;
     int chunksVisibleInViewDistance;
-    int loadingChunks = 0;
 
     [Header("Viewer Information")]
     public Transform viewer;
@@ -35,28 +32,34 @@ public class EndlessTerrain : MonoBehaviour
     [Header("Dependencies")]
     public Material mapMaterial;
     public MeshCreator meshCreator;
-    public GenerationHeightData GenerationData;
+    public MapCreator mapCreator;
+    public BiomeInfo GenerationData;
+    public BiomeGenerationData biomeData;
     public TextureData texData;
     public List<SpecialShaderData> specialShaders;
     //Ideally specialShaders should be in materialData, but can't compile monobehavior in an asset 
 
+    
     public static Queue<TerrainChunk> lastUpdateChunks = new Queue<TerrainChunk>();
-    public static Queue<Action> timeRequestQueue = new Queue<Action>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finishe
+    public static PriorityQueue<Action, int> timeRequestQueue = new PriorityQueue<Action, int>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
 
     Dictionary<Vector3, TerrainChunk> terrainChunkDict = new Dictionary<Vector3, TerrainChunk>();
+    Dictionary<Vector2, SurfaceChunk> surfaceChunkDict = new Dictionary<Vector2, SurfaceChunk>();
+
 
     void Start()
     {
         renderDistance = detailLevels[detailLevels.Length - 1].distanceThresh;
         chunksVisibleInViewDistance = Mathf.RoundToInt(renderDistance / mapChunkSize);
-        meshCreator.GenerationData = GenerationData;//Will change, temporary
+        meshCreator.biomeData = biomeData;//Will change, temporary
+        mapCreator.biomeData = biomeData;
         //texData.ApplyToMaterial(mapMaterial, GenerationData.Materials);
     }
 
     private void Update()
     {
         viewerPosition = viewer.position / lerpScale;
-        if ((oldViewerPos - viewerPosition).sqrMagnitude > sqrChunkUpdateThresh && timeRequestQueue.Count == 0)
+        if ((oldViewerPos - viewerPosition).sqrMagnitude > sqrChunkUpdateThresh)
         {
             oldViewerPos = viewerPosition;
             UpdateVisibleChunks();
@@ -64,20 +67,16 @@ public class EndlessTerrain : MonoBehaviour
         StartGeneration();
     }
 
-
-    private void onChunkRecieved(bool completedChunk)
+    private void LateUpdate()
     {
         if (viewerActive)
             return;
-
-        loadingChunks += completedChunk ? -1 : 1;
-
-        if (loadingChunks == 0)
-        {
-            viewerActive = true;
-            viewerRigidBody.ActivateCharacter();
-        }
+        if (timeRequestQueue.Count > 0)
+            return;
+        viewerActive = true;
+        viewerRigidBody.ActivateCharacter();
     }
+
 
     void StartGeneration()
     {
@@ -85,10 +84,12 @@ public class EndlessTerrain : MonoBehaviour
         float endTime = startTime + genTimePerFrameMs;
         while (Time.realtimeSinceStartup * 1000f < endTime)
         {
-            if (timeRequestQueue.Count == 0)
+            if (!timeRequestQueue.TryDequeue(out Action action, out int priority))
                 return;
 
-            timeRequestQueue.Dequeue().Invoke();
+            Profiler.BeginSample($"Time Request Queue: {Enum.GetName(typeof(priorities), priority)}");
+            action.Invoke();
+            Profiler.EndSample();
         }
     }
 
@@ -98,6 +99,7 @@ public class EndlessTerrain : MonoBehaviour
         int CCCoordY = Mathf.RoundToInt(viewerPosition.y / mapChunkSize);
         int CCCoordZ = Mathf.RoundToInt(viewerPosition.z / mapChunkSize);
         Vector3 CCCoord = new Vector3(CCCoordX, CCCoordY, CCCoordZ);
+        Vector2 CSCoord = new Vector2(CCCoordX, CCCoordZ);
 
         while (lastUpdateChunks.Count > 0)
         {
@@ -108,6 +110,13 @@ public class EndlessTerrain : MonoBehaviour
         {
             for (int zOffset = -chunksVisibleInViewDistance; zOffset <= chunksVisibleInViewDistance; zOffset++)
             {
+                Vector3 viewedSC = new Vector2(xOffset, zOffset) + CSCoord;
+                SurfaceChunk curSChunk;
+                if (!surfaceChunkDict.TryGetValue(viewedSC, out curSChunk)) { 
+                    curSChunk = new SurfaceChunk(mapCreator, viewedSC, detailLevels);
+                    surfaceChunkDict.Add(viewedSC, curSChunk);
+                }
+
                 for (int yOffset = -chunksVisibleInViewDistance; yOffset <= chunksVisibleInViewDistance; yOffset++)
                 {
                     Vector3 viewedCC = new Vector3(xOffset, yOffset, zOffset) + CCCoord;
@@ -116,7 +125,7 @@ public class EndlessTerrain : MonoBehaviour
                         TerrainChunk curChunk = terrainChunkDict[viewedCC];
                         curChunk.Update();
                     } else {
-                        terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, mapChunkSize, surfaceMaxDepth, IsoLevel, transform, specialShaders, meshCreator, mapMaterial, detailLevels, onChunkRecieved));
+                        terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, IsoLevel, transform, specialShaders, curSChunk, meshCreator, mapMaterial, detailLevels));
                     }
                 }
             }
@@ -157,22 +166,12 @@ public class EndlessTerrain : MonoBehaviour
                     if (!terrainChunkDict.ContainsKey(viewedCC))
                         continue;
                     //For some reason terraformRadius itself isn't updating all the chunks properly
-                    if (SphereIntersectsBox(terraformPoint, (terraformRadius+1), mapChunkSize * lerpScale * viewedCC, mapChunkSize * lerpScale * Vector3.one)) { 
+                    if (SphereIntersectsBox(terraformPoint, (terraformRadius+1), mapChunkSize * lerpScale * viewedCC, (mapChunkSize+1) * lerpScale * Vector3.one)) { 
                         TerrainChunk curChunk = terrainChunkDict[viewedCC];
                         curChunk.TerraformChunk(terraformPoint, terraformRadius, handleTerraform);
                     }
                 }
             }
         }
-    }
-    
-
-    
-    
-    void OnValuesUpdated()
-    {
-        if (!Application.isPlaying)
-            return;
-            //GenerateMapInEditor();
     }
 }

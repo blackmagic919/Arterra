@@ -21,6 +21,8 @@ public class SpecialShaderData
     public SpecialShader shader;
     public int materialIndex;
     public int detailLevel;
+    [Range(0,1)]
+    public float cuttoffThreshold;
     public bool replaceOriginal;
 
     //Use this to copy shader data when instantiating the shader

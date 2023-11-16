@@ -86,20 +86,6 @@ float GetDistanceFromCamera(DrawVertex v){
     return distance(v.positionWS.xyz, _CameraPosition.xyz);
 }
 
-int GetNumLayers(DrawVertex a, DrawVertex b, DrawVertex c){
-    float dA = GetDistanceFromCamera(a);
-    float dB = GetDistanceFromCamera(b);
-    float dC = GetDistanceFromCamera(c);
-
-    float d = min(dA, min(dB, dC));
-
-    d = 1 - smoothstep(_CameraDistanceMin, _CameraDistanceMax, d);
-
-    d = pow(abs(d), _CameraDistanceFactor);
-
-    return max(0, ceil(d * _MaxLayers)); //0 is min for our purposes
-}
-
 [numthreads(128, 1, 1)]
 void Main(uint3 id : SV_DispatchThreadID){
     if((int)id.x >= _NumSourceTriangles)
@@ -115,7 +101,7 @@ void Main(uint3 id : SV_DispatchThreadID){
     }
     fallOff /= 3;
 
-    int numLayers = GetNumLayers(inputs[0], inputs[1], inputs[2]) * fallOff;
+    int numLayers = _MaxLayers;
 
     float colorOffset = (_MaxLayers - numLayers) / 2.0f;
 

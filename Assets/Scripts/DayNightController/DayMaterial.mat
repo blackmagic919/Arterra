@@ -110,7 +110,7 @@ Material:
     - _FogDistanceEnd: 700
     - _FogDistanceFalloff: 2
     - _FogDistanceStart: 100
-    - _FogHeightEnd: 200
+    - _FogHeightEnd: 300
     - _FogHeightFalloff: 1
     - _FogHeightStart: 0
     - _FogIntensity: 1

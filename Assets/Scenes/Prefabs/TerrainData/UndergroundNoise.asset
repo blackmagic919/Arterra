@@ -13,45 +13,45 @@ MonoBehaviour:
   m_Name: UndergroundNoise
   m_EditorClassIdentifier: 
   autoUpdate: 0
-  noiseScale: 25
+  noiseScale: 50
   octaves: 4
   persistance: 0.5
   lacunarity: 1.5
   lerpScale: 4
   seed: 0
   splinePoints:
-  - {x: 0, y: 0, z: 0, w: 0}
-  - {x: 0.5003946, y: 0.7067872, z: 0.06643049, w: 0.06643049}
-  - {x: 1, y: 1, z: 2, w: 2}
+  - {x: 0, y: 0, z: 1.2035635, w: 1.2035635}
+  - {x: 0.49843794, y: 0.5999017, z: 0.060439687, w: 0.060439687}
+  - {x: 1, y: 1, z: 0.7977045, w: 0.7977045}
   interpolation:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
       time: 0
       value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
+      inSlope: 1.2035635
+      outSlope: 1.2035635
+      tangentMode: 34
       weightedMode: 0
       inWeight: 0
-      outWeight: 0
+      outWeight: 0.33333334
     - serializedVersion: 3
-      time: 0.5003946
-      value: 0.7067872
-      inSlope: 0.06643049
-      outSlope: 0.06643049
+      time: 0.49843794
+      value: 0.5999017
+      inSlope: 0.060439687
+      outSlope: 0.060439687
       tangentMode: 0
       weightedMode: 0
       inWeight: 0.33333334
-      outWeight: 0.14861791
+      outWeight: 0.1351937
     - serializedVersion: 3
       time: 1
       value: 1
-      inSlope: 2
-      outSlope: 2
-      tangentMode: 0
+      inSlope: 0.7977045
+      outSlope: 0.7977045
+      tangentMode: 34
       weightedMode: 0
-      inWeight: 0
+      inWeight: 0.33333334
       outWeight: 0
     m_PreInfinity: 2
     m_PostInfinity: 2

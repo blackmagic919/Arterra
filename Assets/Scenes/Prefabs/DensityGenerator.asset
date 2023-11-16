@@ -20,3 +20,4 @@ MonoBehaviour:
   undergroundAnalyzer: {fileID: 7200000, guid: 425bf2ba4d8314baba140531e91440b4, type: 3}
   terrainAnalyzer: {fileID: 7200000, guid: 73f9620355c864ae1b6da0c13f6399a0, type: 3}
   structureApplier: {fileID: 7200000, guid: c0fb31fc59c6141629ae7cf3a7db6097, type: 3}
+  TriCountToVertCount: {fileID: 7200000, guid: 159df37c2450349148c005cb7ff801c4, type: 3}

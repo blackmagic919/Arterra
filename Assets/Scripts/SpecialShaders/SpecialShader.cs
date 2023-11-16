@@ -15,12 +15,12 @@ public abstract class SpecialShader : MonoBehaviour
 
     }
 
-    public virtual void Enable()
+    public virtual void Render()
     {
 
     }
 
-    public virtual void Disable()
+    public virtual void Release()
     {
 
     }

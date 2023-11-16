@@ -1,29 +1,36 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
-using static MapGenerator;
-using static GenerationHeightData;
+using Utils;
+using static EditorMesh;
+using static BiomeInfo;
+using UnityEngine.Rendering;
 using Unity.Mathematics;
+using static UnityEngine.Mesh;
 
 [CreateAssetMenu(menuName = "Containers/MeshCreator")]
 public class MeshCreator : ScriptableObject
 {
 
-    public NoiseData TerrainNoise; //For underground terrain generation'
-    public NoiseData SurfaceNoise; //For surface generation
+    public NoiseData TerrainNoise; //For underground terrain generation
+    public NoiseData MaterialCoarseNoise;
+    public NoiseData MaterialFineNoise;
+
+
     public DensityGenerator densityGenerator;
+    public MapCreator mapCreator;
     [HideInInspector]
-    public GenerationHeightData GenerationData;
+    public BiomeGenerationData biomeData;
     public TextureData textureData;
 
     ComputeBuffer pointBuffer;
     ComputeBuffer materialBuffer;
-    ComputeBuffer triangleBuffer;
-    ComputeBuffer triangleCountBuffer;
-    ComputeBuffer vertexColor;
 
     Queue<ComputeBuffer> buffersToRelease = new Queue<ComputeBuffer>();
     StructureDictionary structureDictionary = new StructureDictionary();
+
+    const int MESH_TRIANGLES_STRIDE = (sizeof(float) * 3 * 2 + sizeof(int) * (2 + 1)) * 3;
 
 
     public void OnValidate()
@@ -36,9 +43,9 @@ public class MeshCreator : ScriptableObject
         structureDictionary = new StructureDictionary();
     }
 
-    public float[] GetDensity(float IsoLevel, int surfaceMaxDepth, Vector3 offset, Vector3 CCoord)
+    public float[] GetDensity(SurfaceChunk.LODMap surfaceData, Vector3 offset, Vector3 CCoord, float IsoLevel, int chunkSize)
     {
-        int numPointsAxes = mapChunkSize + 1;
+        int numPointsAxes = chunkSize + 1;
         int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
         float[] density = new float[numOfPoints];
 
@@ -46,9 +53,9 @@ public class MeshCreator : ScriptableObject
 
         buffersToRelease.Enqueue(pointBuffer);
 
-        densityGenerator.GenerateUnderground(mapChunkSize, 1, TerrainNoise, offset, pointBuffer);
-        densityGenerator.GenerateTerrain(mapChunkSize, 1, SurfaceNoise, offset, surfaceMaxDepth, IsoLevel, pointBuffer);
-        GenerateStructures(CCoord, IsoLevel, 0, mapChunkSize);
+        densityGenerator.GenerateUnderground(chunkSize, 1, TerrainNoise, offset, pointBuffer);
+        densityGenerator.GenerateTerrain(chunkSize, 1, surfaceData, offset, IsoLevel, pointBuffer);
+        GenerateStructures(CCoord, IsoLevel, 0, chunkSize);
         pointBuffer.GetData(density);
 
         ReleaseBuffers();
@@ -56,93 +63,40 @@ public class MeshCreator : ScriptableObject
         return density;
     }
 
-    public void GetFocusedMaterials(int blockHalfLength, Vector3 center, Vector3 offset, ref float[] OUT)
+    public int[] GetMaterials(SurfaceChunk.LODMap surfaceData, Vector3 offset, Vector3 CCoord, float IsoLevel, int chunkSize)
     {
-        List<Vector3> points = new List<Vector3>();
-        List<int> pointIndices = new List<int>();
+        int numPointsAxes = chunkSize + 1;
+        int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
 
-        float[][] heightCurves = BiomeHeightMap.GetHeightCurves(GenerationData.Materials, (int)offset.y, mapChunkSize, 1);
+        GenerateStructures(CCoord, IsoLevel, 0, chunkSize, false); //Sets materialBuffer with structures
+        this.materialBuffer = densityGenerator.GenerateMat(MaterialCoarseNoise, MaterialFineNoise, materialBuffer, surfaceData.biomeMap, chunkSize, 1, offset);
 
-        for (int x = -blockHalfLength; x <= blockHalfLength; x++)
-        {
-            for (int y = -blockHalfLength; y <= blockHalfLength; y++)
-            {
-                for (int z = -blockHalfLength; z <= blockHalfLength; z++)
-                {
-                    Vector3 position = center + new Vector3(x, y, z);
-                    if (Mathf.Max(position.x, position.y, position.z) > mapChunkSize)
-                        continue;
-                    if (Mathf.Min(position.x, position.y, position.z) < 0)
-                        continue;
-
-                    int index = Utility.indexFromCoordV(position, mapChunkSize + 1);
-
-                    if (OUT[index] != -1)
-                        continue;
-
-                    pointIndices.Add(index);
-                    points.Add(position);
-                }
-            }
-        }
-        if(points.Count % 2 == 1) //ensure even so divisible by 2
-        {
-            points.Add(points[0]);
-            pointIndices.Add(pointIndices[0]);
-        }
-
-        Vector3[] pointArray = points.ToArray();
-        int pointCount = pointArray.Length/2;
-
-        if (pointCount == 0)
-            return;
-
-        vertexColor = new ComputeBuffer(pointCount, (sizeof(float) + sizeof(uint) + sizeof(uint)));
-        buffersToRelease.Enqueue(vertexColor);
-
-        densityGenerator.GenerateMat(GenerationData.Materials, vertexColor, null, pointArray.Where((e,i)=>i%2 == 0).ToArray(), pointArray, pointCount, heightCurves, mapChunkSize, 1, offset);
-
-        VertexColor[] vertColors = new VertexColor[pointCount];
-        int[] pointIndicesArray = pointIndices.ToArray();
-        vertexColor.GetData(vertColors);
-
-        for(int i = 0; i < pointCount; i++)
-        {
-            OUT[pointIndicesArray[2 * i]] = vertColors[i].p1Index;
-            OUT[pointIndicesArray[2 * i + 1]] = vertColors[i].p2Index;
-        }
-        
+        int[] materials = new int[numOfPoints];
+        materialBuffer.GetData(materials);
         ReleaseBuffers();
+
+        return materials;
     }
 
-    public void GenerateDensity(Vector3 offset, int LOD, int surfaceMaxDepth, int chunkSize, float IsoLevel)
+    public void GenerateDensity(SurfaceChunk.LODMap surfaceData, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
     {
-        ChunkData chunk = new ChunkData();
-
-        chunk.meshData = new MeshData();
-
-
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxes = chunkSize / meshSkipInc + 1;
         int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
         /*(numPoints-1)^3 cubes. A cube can have a maximum of 5 triangles. Though this is correct,
         it is usually way above the amount of actual triangles that exist(as mesh gets larger)*/
-     
+
         this.pointBuffer = new ComputeBuffer(numOfPoints, sizeof(float));
         this.materialBuffer = null;
 
         buffersToRelease.Enqueue(pointBuffer);
 
         densityGenerator.GenerateUnderground(chunkSize, meshSkipInc, TerrainNoise, offset, pointBuffer);
-        densityGenerator.GenerateTerrain(chunkSize, meshSkipInc, SurfaceNoise, offset, surfaceMaxDepth, IsoLevel, pointBuffer);
+        densityGenerator.GenerateTerrain(chunkSize, meshSkipInc, surfaceData, offset, IsoLevel, pointBuffer);
     }
 
-    public void SetDensity(int LOD, int chunkSize, float[] density = null, float[] material = null)
+    public void SetMapInfo(int LOD, int chunkSize, float[] density = null, int[] material = null)
     {
-        ChunkData chunk = new ChunkData();
-
-        chunk.meshData = new MeshData();
-
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxes = chunkSize / meshSkipInc + 1;
         int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
@@ -150,14 +104,15 @@ public class MeshCreator : ScriptableObject
         it is usually way above the amount of actual triangles that exist(as mesh gets larger)*/
 
         this.pointBuffer = new ComputeBuffer(numOfPoints, sizeof(float));
-        this.materialBuffer = new ComputeBuffer(numOfPoints, sizeof(float));
+        this.materialBuffer = new ComputeBuffer(numOfPoints, sizeof(int));
 
         buffersToRelease.Enqueue(pointBuffer);
         buffersToRelease.Enqueue(materialBuffer);
 
         densityGenerator.SimplifyDensity(chunkSize, meshSkipInc, density, pointBuffer);
-        densityGenerator.SimplifyDensity(chunkSize, meshSkipInc, material, materialBuffer);
+        densityGenerator.SimplifyMaterials(chunkSize, meshSkipInc, material, materialBuffer);
     }
+
 
     //Get the random points for all structures
     //Calculate all the density checks for these structures(<4 hopefully)
@@ -165,49 +120,57 @@ public class MeshCreator : ScriptableObject
     //When readback, round points in dict to closest approximation
     //Time: O(n*(m^3)) where n is # of structures and m is average dimension of structures in this LOD
     
-    public void PlanStructures(Vector3 chunkCoord, Vector3 offset, int chunkSize, int surfaceMaxDepth, float IsoLevel)
+    public void PlanStructures(SurfaceChunk.LODMap surfaceData, Vector3 chunkCoord, Vector3 offset, int chunkSize, float IsoLevel)
     {
-        List<TerrainStructure> structureData = GenerationData.Structures;
-
-        int chunkSeed = GenerationData.seed + ((int)chunkCoord.x * 2 + (int)chunkCoord.y * 3 + (int)chunkCoord.z * 5);
+        int chunkSeed = ((int)chunkCoord.x * 2 + (int)chunkCoord.y * 3 + (int)chunkCoord.z * 5);
         System.Random prng = new System.Random(chunkSeed);
 
         Queue<StructureInfo> structures = new Queue<StructureInfo>();
-
         List<Vector3> checkPositions = new List<Vector3>();
-
-        foreach (TerrainStructure structure in structureData)
+        
+        for (int _ = 0; _ < biomeData.StructureChecksPerChunk; _++)
         {
-            float[] heightPref = BiomeHeightMap.CalculateHeightCurve(structure.VerticalPreference, (int)offset.y, chunkSize, 1);
+            //If 0, nearby chunk edges aren't updated
+            int x; int y; int z;
+            (x, y, z) = (prng.Next(1, chunkSize+1), prng.Next(1, chunkSize+1), prng.Next(1, chunkSize+1));
+            int biome = surfaceData.biomeMap[CustomUtility.indexFromCoord2D(x, z, chunkSize + 1)];
+            if (biomeData.biomes[biome].info.structurePointDensity < prng.NextDouble())
+                continue;
 
-            int count = Mathf.FloorToInt(structure.baseFrequencyPerChunk + ((float)prng.Next(0, 10000) / 10000f)); //For percentages
+            BiomeInfo info = biomeData.biomes[biome].info;
+            TerrainStructure structure =  info.GetStructure((float)prng.NextDouble());
 
-            for (int _ = 0; _ < count; _++)
+            float actualHeight = y - chunkSize / 2 + offset.y;
+            float heightDensity = structure.VerticalPreference.GetDensity(actualHeight);
+
+            if (heightDensity < prng.NextDouble())
+                continue;
+
+            Vector3 position = new (x, y, z);
+            for (int i = 0; i < structure.structureData.checks.Length; i++)
             {
-                Vector3 position = new(prng.Next(0, chunkSize), prng.Next(0, chunkSize), prng.Next(0, chunkSize));
-
-                if (prng.NextDouble() > heightPref[(int)position.y])
-                    continue;
-
-                List<StructureData.CheckPoint> checks = new List<StructureData.CheckPoint>();
-                for (int i = 0; i < structure.structureData.checks.Length; i++)
-                {
-                    checks.Add(structure.structureData.checks[i]);
-                    checkPositions.Add(position + structure.structureData.checks[i].position);
-                }
-
-                StructureInfo newStructureInfo = new StructureInfo(checks.ToArray(), structure.structureData, position);
-                structures.Enqueue(newStructureInfo);
+                checkPositions.Add(position + structure.structureData.checks[i].position);
             }
+
+            StructureInfo newStructureInfo = new StructureInfo(structure.structureData.checks, structure.structureData, position);
+            structures.Enqueue(newStructureInfo);
         }
 
         Vector3[] rawPositions = checkPositions.ToArray();
+        float heightOffest = offset.y - (chunkSize/2);
+        float[] posY = rawPositions.Select((e) => e.y + heightOffest).ToArray();
+        Vector2 offset2D = new Vector2(offset.x, offset.z);
 
         if (rawPositions.Length <= 0)
             return;
 
-        float[] terrainValues = densityGenerator.GetPointDensity(rawPositions, TerrainNoise, SurfaceNoise, offset, IsoLevel, surfaceMaxDepth, chunkSize);
-        
+        ComputeBuffer baseDensity = densityGenerator.AnalyzeBase(rawPositions, TerrainNoise, offset, chunkSize);
+        ComputeBuffer terrainHeights = mapCreator.AnalyzeTerrainMap(rawPositions, offset2D, chunkSize);
+        ComputeBuffer squashHeights = mapCreator.AnalyzeSquashMap(rawPositions, offset2D, chunkSize);
+
+        float[] densities = densityGenerator.AnalyzeTerrain(posY, baseDensity, terrainHeights, squashHeights);
+        mapCreator.ReleaseBuffers();
+
         int checkCount = 0;
         int structureCount = structures.Count;
         for (int _ = 0; _ < structureCount; _++)
@@ -216,7 +179,7 @@ public class MeshCreator : ScriptableObject
             bool passed = true;
             for (int i = 0; i < structure.checks.Length; i++)
             {
-                bool isUnderGround = terrainValues[checkCount] >= IsoLevel;
+                bool isUnderGround = densities[checkCount] >= IsoLevel;
                 passed = passed && (isUnderGround == structure.checks[i].isUnderGround);
                 checkCount++;
             }
@@ -238,7 +201,7 @@ public class MeshCreator : ScriptableObject
             if (structure.randPhiRot)
                 phi90 = prng.Next(0, 3); //0, pi/2, pi
 
-            int[] transformAxis = Utility.RotateAxis(theta90, phi90);
+            int[] transformAxis = CustomUtility.RotateAxis(theta90, phi90);
 
             float[] originalSize = { structure.sizeX, structure.sizeY, structure.sizeZ };
             float sizeX = originalSize[Mathf.Abs(transformAxis[0]) - 1];
@@ -277,20 +240,18 @@ public class MeshCreator : ScriptableObject
             
         }
     }
-
     public void GenerateStructures(Vector3 CCoord, float IsoLevel, int LOD, int chunkSize)
     {
-        GenerateStructures(CCoord, IsoLevel, LOD, chunkSize, out float[] materialMap, apply: true);
+        GenerateStructures(CCoord, IsoLevel, LOD, chunkSize, apply: true);
     }
 
-
-    public void GenerateStructures(Vector3 CCoord, float IsoLevel, int LOD, int chunkSize, out float[] materialMap, bool apply = false)
+    public void GenerateStructures(Vector3 CCoord, float IsoLevel, int LOD, int chunkSize, bool apply = false)
     {
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxes = chunkSize / meshSkipInc + 1;
         int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
         float[] densityMap = new float[numOfPoints];
-        materialMap = Enumerable.Repeat(-1.0f, numOfPoints).ToArray();
+        int[] materialMap = Enumerable.Repeat(-1, numOfPoints).ToArray();
 
         List<StructureDictionary.StructureSection> structures = structureDictionary.GetChunk(CCoord);
         foreach(StructureDictionary.StructureSection structure in structures)
@@ -317,12 +278,12 @@ public class MeshCreator : ScriptableObject
                         int structureY = (y - (int)structure.chunkOrigin.y) + (int)structure.structureOrigin.y;
                         int structureZ = (z - (int)structure.chunkOrigin.z) + (int)structure.structureOrigin.z;
                         (structureX, structureY, structureZ) = structure.GetCoord(structureX, structureY, structureZ);
-                        int structureIndex = Utility.irregularIndexFromCoord(structureX, structureY, structureZ, data.sizeX, data.sizeY);
+                        int structureIndex = CustomUtility.irregularIndexFromCoord(structureX, structureY, structureZ, data.sizeX, data.sizeY);
 
                         int chunkX = x / meshSkipInc;
                         int chunkY = y / meshSkipInc;
                         int chunkZ = z / meshSkipInc;
-                        int chunkIndex = Utility.indexFromCoord(chunkX, chunkY, chunkZ, numPointsAxes);
+                        int chunkIndex = CustomUtility.indexFromCoord(chunkX, chunkY, chunkZ, numPointsAxes);
 
                         if(structure.structure.density[structureIndex] > densityMap[chunkIndex])
                         {
@@ -334,11 +295,12 @@ public class MeshCreator : ScriptableObject
                 }
             }
         }
-        this.materialBuffer = new ComputeBuffer(numOfPoints, sizeof(float));
+
+        this.materialBuffer = new ComputeBuffer(numOfPoints, sizeof(int));
         materialBuffer.SetData(materialMap);
         buffersToRelease.Enqueue(materialBuffer);
 
-        if(apply) densityGenerator.SetStructureData(pointBuffer, densityMap, IsoLevel, meshSkipInc, chunkSize);
+        if (apply) densityGenerator.SetStructureData(pointBuffer, densityMap, IsoLevel, meshSkipInc, chunkSize);
     }
 
     public class StructureInfo
@@ -355,39 +317,41 @@ public class MeshCreator : ScriptableObject
         }
     }
 
-    public ChunkData GenerateMapData(float IsoLevel, Vector3 offset, int LOD, int chunkSize)
+    public void GenerateMaterials(SurfaceChunk.LODMap surfaceData, Vector3 offset, int LOD, int chunkSize)
     {
-        ChunkData chunk = new ChunkData();
-        densityGenerator.buffersToRelease = buffersToRelease;
+        int meshSkipInc = meshSkipTable[LOD];
+        this.materialBuffer = densityGenerator.GenerateMat(MaterialCoarseNoise, MaterialFineNoise, materialBuffer, surfaceData.biomeMap, chunkSize, meshSkipInc, offset);
+    }
 
-        chunk.meshData = new MeshData();
+    public ChunkBuffers GenerateMapData(float IsoLevel, int LOD, int chunkSize)
+    {
+        ChunkBuffers chunk = new ChunkBuffers();
+
+        densityGenerator.buffersToRelease = buffersToRelease;
 
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxes = chunkSize / meshSkipInc + 1;
-        int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
         int numOfTris = (numPointsAxes - 1) * (numPointsAxes - 1) * (numPointsAxes - 1) * 5;
         /*(numPoints-1)^3 cubes. A cube can have a maximum of 5 triangles. Though this is correct,
         it is usually way above the amount of actual triangles that exist(as mesh gets larger)*/
 
-        chunk.heightCurves = BiomeHeightMap.GetHeightCurves(GenerationData.Materials, (int)(offset.y), chunkSize, meshSkipInc); //Only O(n*m)
-     
-        this.triangleBuffer = new ComputeBuffer(numOfTris, sizeof(float) * 3 * 9, ComputeBufferType.Append);
-        this.triangleCountBuffer = new ComputeBuffer(4, sizeof(int), ComputeBufferType.IndirectArguments);
+        chunk.sourceMeshBuffer = new ComputeBuffer(numOfTris, MESH_TRIANGLES_STRIDE, ComputeBufferType.Append);
+        chunk.argsBuffer = new ComputeBuffer(1, sizeof(int) * 4, ComputeBufferType.IndirectArguments);
+        chunk.argsBuffer.SetData(new int[] { 0, 1, 0, 0 });
+        chunk.released = false;
 
-        buffersToRelease.Enqueue(triangleBuffer);
-        buffersToRelease.Enqueue(triangleCountBuffer);
+        chunk.sourceMeshBuffer.SetCounterValue(0);
+        densityGenerator.GenerateMesh(chunkSize, meshSkipInc, IsoLevel, materialBuffer, chunk.sourceMeshBuffer, pointBuffer);
+        ComputeBuffer.CopyCount(chunk.sourceMeshBuffer, chunk.argsBuffer, 0);
 
-        triangleBuffer.SetCounterValue(0);
-        densityGenerator.GenerateMesh(chunkSize, meshSkipInc, IsoLevel, triangleBuffer, pointBuffer);
-        ComputeBuffer.CopyCount(triangleBuffer, triangleCountBuffer, 0);
+        densityGenerator.ConvertTriCountToVert(chunk.argsBuffer);
 
-        //AsyncGPUReadbackRequest request = AsyncGPUReadback.Request(triangelCountBuffer, onTrianglesRecieved);
-        ////It seems to allocate the gpu to do this for a small amount of time each frame, but I need them generated much faster
-
-        int[] data = { 0 };
+        return chunk;
+        /*
+        int[] data = { 0, 1, 0, 0 };
         triangleCountBuffer.GetData(data);
         int numTris = data[0];
-
+        
         if (numTris == 0)
         {
             ReleaseBuffers();
@@ -396,7 +360,7 @@ public class MeshCreator : ScriptableObject
         
         TriangleConst[] tris = new TriangleConst[numTris];
         triangleBuffer.GetData(tris, 0, 0, numTris);
-
+        
         Dictionary<int, int> vertDict = new Dictionary<int, int>();
         int vertCount = 0;
 
@@ -404,59 +368,186 @@ public class MeshCreator : ScriptableObject
         {
             for (int j = 0; j < 3; j++)
             {
-                Vector3 pInd1 = tris[i][j].p1;
-                Vector3 pInd2 = tris[i][j].p2;
-                //Before we would need to make sure p1Ind1 is greater, but now as the underground point is always first, there is unique ids.
-
-                int index = numOfPoints * Utility.indexFromCoordV(pInd1, numPointsAxes) + Utility.indexFromCoordV(pInd2, numPointsAxes);
-                if (vertDict.TryGetValue(index, out int vertIndex))
+                if (vertDict.TryGetValue(tris[i][j].id, out int vertIndex))
                 {
                     chunk.meshData.triangles.Add(vertIndex);
                 }
                 else
                 {
-                    vertDict.Add(index, vertCount);
+                    vertDict.Add(tris[i][j].id, vertCount);
                     chunk.meshData.triangles.Add(vertCount);
-                    chunk.meshData.vertices.Add(tris[i][j].tri);
-                    chunk.vertexParents.Add(tris[i][j].p1);
-                    chunk.vertexParents.Add(tris[i][j].p2);
+                    chunk.meshData.vertices.Add(tris[i][j].tri * meshSkipInc);
+                    chunk.meshData.normals.Add(tris[i][j].norm);
+                    chunk.meshData.colorMap.Add(new Color(tris[i][j].material, 0, 0));
                     vertCount++;
                 }
             }
         }
-
-        //Calculating this here reduces amount of vertices from 48^3(110k) to 7k.
-        vertexColor = new ComputeBuffer(vertCount, (sizeof(float) + sizeof(uint) + sizeof(uint)));
-        buffersToRelease.Enqueue(vertexColor);
-
-        Vector3[] vertices = chunk.meshData.vertices.ToArray();
-        Vector3[] vertexParents = chunk.vertexParents.ToArray();
-        densityGenerator.GenerateMat(GenerationData.Materials, vertexColor, materialBuffer, vertices, vertexParents, vertCount, chunk.heightCurves, chunkSize, meshSkipInc, offset);
-
-        VertexColor[] vertColors = new VertexColor[vertCount];
-        vertexColor.GetData(vertColors);
-
-        for(int i = 0; i < vertCount; i++)
-        {
-            chunk.meshData.colorMap.Add(new Color(vertColors[i].p1Index, 0, 1));
-            chunk.meshData.vertices[i] *= meshSkipInc;
-        }
-
-        return chunk;
+        */
     }
-
+    /*
     public Dictionary<int, Mesh> CreateSpecialMeshes(SpecialShaderData[] specialShaderData, ChunkData terrainData)
     {
         Dictionary<int, Mesh> meshes = new Dictionary<int, Mesh>();
         for(int i = 0; i < specialShaderData.Length; i++)
         {
-            int material = specialShaderData[i].materialIndex;
-            bool replaceOriginal = specialShaderData[i].replaceOriginal;
-            MeshData meshData = LegacyGeneration.GetSpecialMesh(material, replaceOriginal, terrainData.meshData);
-            meshes.TryAdd(material, terrainData.GenerateMesh(meshData));
+            MeshData meshData = GetSpecialMesh(specialShaderData[i], terrainData.meshData);
+            meshes.TryAdd(specialShaderData[i].materialIndex, ChunkData.GenerateMesh(meshData));
         }
         return meshes;
     }
+
+
+    public static MeshData GetSpecialMesh(SpecialShaderData shaderData, MeshData meshData)
+    {
+        MeshData subMesh = new MeshData();
+
+        Dictionary<int, int> vertDict = new Dictionary<int, int>();
+        int vertCount = 0;
+        for (int t = 0; t < meshData.triangles.Count; t += 3)
+        {
+            float percentMaterial = 0;
+            for (int i = 0; i < 3; i++)
+            {
+                int vertexInd = meshData.triangles[t + i];
+
+                int material = (int)meshData.colorMap[vertexInd].r;
+
+                if (material == shaderData.materialIndex)
+                    percentMaterial++;
+            }
+            percentMaterial /= 3;
+
+            if (percentMaterial < shaderData.cuttoffThreshold)
+                continue;
+
+            for (int i = 0; i < 3; i++)
+            {
+                int index = meshData.triangles[t + i];
+                int vertIndex;
+                if (vertDict.TryGetValue(index, out vertIndex))
+                {
+                    subMesh.triangles.Add(vertIndex);
+                }
+                else
+                {
+                    if (shaderData.replaceOriginal)
+                        meshData.colorMap[index] = new Color(meshData.colorMap[index].r, meshData.colorMap[index].g, meshData.colorMap[index].b, 0f);
+
+                    vertDict.Add(index, vertCount);
+                    subMesh.vertices.Add(meshData.vertices[index]);
+                    subMesh.normals.Add(meshData.normals[index]);
+                    subMesh.triangles.Add(vertCount);
+                    subMesh.colorMap.Add(new Color(0, 0, 0, percentMaterial));
+                    vertCount++;
+                }
+            }
+        }
+
+        return subMesh;
+    }*/
+
+    public void BeginMeshReadback(ChunkBuffers sourceBuffers, Action<Mesh> callback)
+    {
+        AsyncGPUReadback.Request(sourceBuffers.argsBuffer, ret => onTriCountRecieved(ret, sourceBuffers, callback));
+    }
+
+    
+    void onTriCountRecieved(AsyncGPUReadbackRequest request, ChunkBuffers sourceBuffers, Action<Mesh> callback)
+    {
+        if (sourceBuffers.released)
+            return;
+
+        int numTris = request.GetData<int>()[0] / 3;
+
+        if (numTris == 0)
+            return;
+
+        AsyncGPUReadback.Request(sourceBuffers.sourceMeshBuffer, size:numTris * MESH_TRIANGLES_STRIDE, offset:0, ret => onMeshDataRecieved(ret, sourceBuffers, callback));
+    }
+
+    void onMeshDataRecieved(AsyncGPUReadbackRequest request, ChunkBuffers sourceBuffers, Action<Mesh> callback)
+    {
+        if (sourceBuffers.released)
+            return;
+
+        TriangleConst[] meshData = request.GetData<TriangleConst>().ToArray();
+        int numTris = meshData.Length;
+
+        List<int> triangles = new List<int>();
+        List<Vector3> vertices = new List<Vector3>();
+        List<Vector3> normals = new List<Vector3>();
+        List<Color> colorMap = new List<Color>();
+
+        Dictionary<int2, int> vertDict = new Dictionary<int2, int>();
+        int vertCount = 0;
+
+        for (int i = 0; i < numTris; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                if (vertDict.TryGetValue(meshData[i][j].id, out int vertIndex))
+                {
+                    triangles.Add(vertIndex);
+                }
+                else
+                {
+                    vertDict.Add(meshData[i][j].id, vertCount);
+                    triangles.Add(vertCount);
+                    vertices.Add(meshData[i][j].tri);
+                    normals.Add(meshData[i][j].norm);
+                    colorMap.Add(new Color(meshData[i][j].material, 0, 0));
+                    vertCount++;
+                }
+            }
+        }
+
+        Mesh mesh = new Mesh();
+        mesh.vertices = vertices.ToArray();
+        mesh.normals = normals.ToArray();
+        mesh.colors = colorMap.ToArray();
+        mesh.triangles = triangles.ToArray();
+
+        callback(mesh);
+    }
+
+    /*y     
+    * ^
+    * |     .--------.      z
+    * |    /|  5    /|     /\
+    * |   / |   1  / |     /
+    * |  .--+-----.  |    /
+    * |  |4 |     |2 |   /
+    * |  |  .--3--+--.  /
+    * |  | /    6 | /  /
+    * | xyz_______./  /
+    * +--------------->x
+    */
+    /*
+    public ComputeBuffer GetBorderPlanes(int chunkSize, int meshSkipInc, Vector3 offset)
+    {
+        Vector2 offset2D = new Vector2(offset.x, offset.z);
+        int[] borderAxis = new int[6] { 2, 0, 2, 0, 1, 1 };
+        int[] borderChunk = new int[6] { 1, 1, -1, -1, 1, -1 };
+        int[] borderPlane = new int[6] { 1, 1, chunkSize - 1, chunkSize - 1, 1, chunkSize - 1 };
+
+        for(int i = 0; i < 6; i++)
+        {
+            for()
+        }
+
+        ComputeBuffer baseDensity = densityGenerator.AnalyzeBase(rawPositions, TerrainNoise, offset, chunkSize);
+        ComputeBuffer terrainHeights = mapCreator.AnalyzeTerrainMap(rawPositions, offset2D, chunkSize);
+        ComputeBuffer squashHeights = mapCreator.AnalyzeSquashMap(rawPositions, offset2D, chunkSize);
+
+        float[] densities = densityGenerator.AnalyzeTerrain(posY, baseDensity, terrainHeights, squashHeights);
+    }
+
+    public void GenerateStructures(Vector3 CCoord, float IsoLevel, int LOD, int chunkSize)
+    {
+        GenerateStructures(CCoord, IsoLevel, LOD, chunkSize, out float[] _, apply: true);
+    }*/
+
 
 
     public void ReleaseBuffers()
@@ -472,13 +563,6 @@ public class MeshCreator : ScriptableObject
         ReleaseBuffers();
     }
 
-    struct VertexColor
-    {
-        public uint p1Index;
-        public uint p2Index;
-        public float interp;
-    }
-
     public struct TriangleConst
     {
         #pragma warning disable 649
@@ -489,9 +573,9 @@ public class MeshCreator : ScriptableObject
         public struct Point
         {
             public Vector3 tri;
-            public Vector3 p1;
-            public Vector3 p2;
-
+            public Vector3 norm;
+            public int2 id;
+            public int material;
         }
 
         public Point this[int i] //courtesy of sebastian laugue, this is pretty smart
@@ -509,6 +593,25 @@ public class MeshCreator : ScriptableObject
                 }
             }
         }
+    }
+}
+
+public class ChunkBuffers
+{
+    public bool released;
+    public ComputeBuffer sourceMeshBuffer;
+    public ComputeBuffer argsBuffer;
+
+    ~ChunkBuffers()
+    {
+        Release();
+    }
+
+    public void Release()
+    {
+        released = true;
+        sourceMeshBuffer?.Release();
+        argsBuffer?.Release();
     }
 }
 

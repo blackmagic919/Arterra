@@ -1,0 +1,31 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Terrain
+
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/PerlinNoiseGenerator.compute"
+
+const static int numThreads = 8;
+const static int Epsilon = 0.0001;
+
+uint numPoints;
+RWStructuredBuffer<float> results;
+StructuredBuffer<float> positionY;
+StructuredBuffer<float> base;
+StructuredBuffer<float> heights;
+StructuredBuffer<float> squash;
+
+
+[numthreads(numThreads,1,1)]
+void Terrain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numPoints)
+        return;
+
+    float underground = base[id.x];
+    float squashHeight = squash[id.x];
+    float terrainHeight = heights[id.x];
+    float actualHeight = positionY[id.x];
+
+    float densityFactor = clamp((terrainHeight - actualHeight) / (squashHeight + Epsilon), 0, 1);
+
+    results[id.x] = underground*densityFactor;
+}

@@ -13,7 +13,7 @@ public class NoiseData : UpdatableData
     public float lacunarity;
     public float lerpScale;
     public int seed = 0;
-
+    [HideInInspector]
     public Vector4[] splinePoints;
 
     [SerializeField]

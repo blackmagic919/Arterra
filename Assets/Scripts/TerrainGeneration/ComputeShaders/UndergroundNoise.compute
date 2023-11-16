@@ -1,0 +1,19 @@
+#pragma kernel Generate
+
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.compute"
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/PerlinNoiseGenerator.compute"
+
+const static int numThreads = 8;
+RWStructuredBuffer<float> points;
+
+[numthreads(numThreads,numThreads,numThreads)]
+void Generate (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis) {
+        return;
+    }
+
+    uint index = indexFromCoord(id.x,id.y,id.z);
+
+    points[index] = GetNoise(id);
+}

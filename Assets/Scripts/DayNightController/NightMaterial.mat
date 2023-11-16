@@ -101,8 +101,8 @@ Material:
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
-    - _FarDistanceHeight: 400
-    - _FarDistanceOffset: 0
+    - _FarDistanceHeight: 1000
+    - _FarDistanceOffset: 100
     - _FogAxisMode: 1
     - _FogCameraMode: 0
     - _FogCat: 1
@@ -110,9 +110,9 @@ Material:
     - _FogDistanceEnd: 700
     - _FogDistanceFalloff: 1
     - _FogDistanceStart: 100
-    - _FogHeightEnd: 200
+    - _FogHeightEnd: 1000
     - _FogHeightFalloff: 1
-    - _FogHeightStart: 0
+    - _FogHeightStart: 100
     - _FogIntensity: 1
     - _FogLayersMode: 0
     - _GlossMapScale: 0

@@ -74,7 +74,6 @@ half4 Fragment(VertexOutput IN) : SV_TARGET{
     lightingInput.shadowCoord = CalculateShadowCoord(IN.positionWS, IN.positionCS);
 
     float fresnel = pow(1.0 - saturate(dot(lightingInput.viewDirectionWS, normalize(IN.normalWS))), _FresnelFalloff);
-
     lightingInput.normalWS = (1-fresnel) * NormalizeNormalPerPixel(IN.normalWS) + fresnel * (_LightDirection);
 
     SurfaceData surfaceInput = (SurfaceData)0;

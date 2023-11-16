@@ -1,7 +1,8 @@
+/*
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using static GenerationHeightData;
+using static BiomeInfo;
 
 public class LegacyGeneration 
 {
@@ -14,7 +15,7 @@ public class LegacyGeneration
         return vertices; 
     }
 
-    public static float[][] GetPartialGenerationNoises(GenerationHeightData GenerationData, Vector3 offset, List<Vector3> parentVertices)
+    public static float[][] GetPartialGenerationNoises(BiomeInfo GenerationData, Vector3 offset, List<Vector3> parentVertices)
     {
         float[][] partialGenerationNoiseMap = new float[GenerationData.Materials.Count][];
 
@@ -26,7 +27,7 @@ public class LegacyGeneration
         return partialGenerationNoiseMap;
     }
 
-    public static int[,,] GetPartialMaterialMap(float[][] generationHeights, GenerationHeightData generationData, List<Vector3> focusedNodes, int meshSkipInc, float[][] heightPref)
+    public static int[,,] GetPartialMaterialMap(float[][] generationHeights, BiomeInfo generationData, List<Vector3> focusedNodes, int meshSkipInc, float[][] heightPref)
     {
         int[,,] materialData = new int[mapChunkSize / meshSkipInc + 1, mapChunkSize / meshSkipInc + 1, mapChunkSize / meshSkipInc + 1];
         for (int n = 0; n < focusedNodes.Count; n++)
@@ -102,55 +103,4 @@ public class LegacyGeneration
 
         return terrainMap;
     }
-
-    public static MapGenerator.MeshData GetSpecialMesh(int materialIndex, bool replaceOriginal, MapGenerator.MeshData meshData)
-    {
-        MapGenerator.MeshData subMesh = new MapGenerator.MeshData();
-        subMesh.vertices = new List<Vector3>();
-        subMesh.triangles = new List<int>();
-        subMesh.colorMap = new List<Color>();
-
-        Dictionary<int, int> vertDict = new Dictionary<int, int>();
-        int vertCount = 0;
-        for(int t = 0; t < meshData.triangles.Count; t+=3)
-        {
-            float percentMaterial = 0;
-            for(int i = 0; i < 3; i++)
-            {
-                int vertexInd = meshData.triangles[t+i];
-
-                int material = (int)meshData.colorMap[vertexInd].r;
-
-                if(material == materialIndex)
-                    percentMaterial ++;
-            }
-            percentMaterial /= 3;
-
-            if (percentMaterial < 0.01f) 
-                continue;
-
-            for(int i = 0; i < 3; i++)
-            {
-                int index = meshData.triangles[t + i];
-                int vertIndex;
-                if (vertDict.TryGetValue(index, out vertIndex))
-                {
-                    subMesh.triangles.Add(vertIndex);
-                }
-                else
-                {
-                    if (replaceOriginal)
-                        meshData.colorMap[index] =  new Color(meshData.colorMap[index].r, meshData.colorMap[index].g, meshData.colorMap[index].b, 0f);
-
-                    vertDict.Add(index, vertCount);
-                    subMesh.vertices.Add(meshData.vertices[index]);
-                    subMesh.triangles.Add(vertCount);
-                    subMesh.colorMap.Add(new Color(0, 0, 0, percentMaterial));
-                    vertCount++;
-                }
-            }
-        }
-
-        return subMesh;
-    }
-}
+}*/

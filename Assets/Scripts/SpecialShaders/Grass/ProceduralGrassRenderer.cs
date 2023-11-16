@@ -1,7 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Utils;
 
 [ExecuteInEditMode]
 public class ProceduralGrassRenderer : SpecialShader
@@ -22,9 +21,7 @@ public class ProceduralGrassRenderer : SpecialShader
         public Vector2 uv;
     }
 
-    public bool initialized = false;//
-    private bool isEnabled = false;
-    private bool sourceUpdated = false;
+    public bool initialized = false;
 
     private ComputeBuffer sourceVertexBuffer;
     private ComputeBuffer sourceTriBuffer;
@@ -49,8 +46,6 @@ public class ProceduralGrassRenderer : SpecialShader
     public void OnEnable()
     {
         initialized = false;
-        isEnabled = false;
-        sourceUpdated = false;
     }
 
     public override void SetMesh(Mesh mesh)
@@ -63,20 +58,17 @@ public class ProceduralGrassRenderer : SpecialShader
         this.grassSettings = (GrassSettings)settings;
     }
 
-    public override void Enable()
+    public override void Render()
     {
         if (sourceMesh.triangles.Length == 0) {
-            isEnabled = false;
+            Release();
             return;
         }
-
-        isEnabled = true;
 
         if (initialized)
             Release();
 
         initialized = true;
-        sourceUpdated = true;
 
         instantiatedGrassComputeShader = Instantiate(grassSettings.grassComputeShader);
         instantiatedTriToVertComputeShader = Instantiate(grassSettings.triToVertComputeShader);
@@ -134,9 +126,6 @@ public class ProceduralGrassRenderer : SpecialShader
         instantiatedGrassComputeShader.SetInt("_NumSourceTriangles", numTriangles);
         instantiatedGrassComputeShader.SetInt("_MaxLayers", grassSettings.maxLayers);
         instantiatedGrassComputeShader.SetFloat("_TotalHeight", grassSettings.grassHeight);
-        instantiatedGrassComputeShader.SetFloat("_CameraDistanceMin", grassSettings.lodMinCameraDistance);
-        instantiatedGrassComputeShader.SetFloat("_CameraDistanceMax", grassSettings.lodMaxCameraDistance);
-        instantiatedGrassComputeShader.SetFloat("_CameraDistanceFactor", Mathf.Max(0, grassSettings.lodFactor));
         instantiatedGrassComputeShader.SetFloat("_WorldPositionToUVScale", grassSettings.worldPositionUVScale);
         if (grassSettings.useWorldPositionAsUV)
             instantiatedGrassComputeShader.EnableKeyword("USE_WORLD_POSITION_AS_UV");
@@ -151,6 +140,8 @@ public class ProceduralGrassRenderer : SpecialShader
 
         localBounds = sourceMesh.bounds;
         localBounds.Expand(grassSettings.grassHeight);
+
+        ComputeGeometry();
     }
 
     public void OnDisable()
@@ -158,13 +149,7 @@ public class ProceduralGrassRenderer : SpecialShader
         Release();
     }
 
-    public override void Disable()
-    {
-        isEnabled = false;
-        Release();
-    }
-
-    public void Release()
+    public override void Release()
     {
         if (initialized)
         {
@@ -180,10 +165,10 @@ public class ProceduralGrassRenderer : SpecialShader
                 DestroyImmediate(instantiatedTriToVertComputeShader);
                 DestroyImmediate(instantiatedMaterial);
             }
-            sourceVertexBuffer.Release();
-            sourceTriBuffer.Release();
-            drawBuffer.Release();
-            argsBuffer.Release();
+            sourceVertexBuffer?.Release();
+            sourceTriBuffer?.Release();
+            drawBuffer?.Release();
+            argsBuffer?.Release();
         }
 
         initialized = false;
@@ -207,37 +192,33 @@ public class ProceduralGrassRenderer : SpecialShader
 
     private void LateUpdate()
     {
-        if (!isEnabled)
+        if (!initialized)
             return;
-        if (EndlessTerrain.timeRequestQueue.Count == 0 || sourceUpdated)
-            RecalculateRender();
 
         if (!Application.isPlaying)
         {
-            Disable();
-            Enable();
+            Release();
+            Render();
         }
 
         Bounds bounds = TransformBounds(localBounds);
+        Shader.SetGlobalVector("_CameraPosition", Camera.main.transform.position);
 
         Graphics.DrawProceduralIndirect(instantiatedMaterial, bounds, MeshTopology.Triangles, argsBuffer, 0, null, null, ShadowCastingMode.Off, true, gameObject.layer);
     }
 
     //Geometry shading takes the most amount of time, and slows down generation
-    private void RecalculateRender() 
+    private void ComputeGeometry() 
     {
         drawBuffer.SetCounterValue(0);
 
         instantiatedGrassComputeShader.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
         instantiatedGrassComputeShader.SetVector("_CameraPosition", Camera.main.transform.position);
         instantiatedGrassComputeShader.Dispatch(idGrassKernel, dispatchSize, 1, 1);
-        Shader.SetGlobalVector("_CameraPosition", Camera.main.transform.position);
 
         ComputeBuffer.CopyCount(drawBuffer, argsBuffer, 0);
 
         instantiatedTriToVertComputeShader.Dispatch(idTriToVertKernel, 1, 1, 1);
-
-        sourceUpdated = false;
     }
 
 }

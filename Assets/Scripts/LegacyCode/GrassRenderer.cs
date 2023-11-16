@@ -5,7 +5,7 @@ using System.Linq;
 public class GrassRenderer
 {
     [HideInInspector]
-    public GenerationHeightData GenerationData;
+    public BiomeInfo GenerationData;
     /*Loop through materials, keep array for mesh instance for each material
      * 
      *For a mesh, go through every triangle
