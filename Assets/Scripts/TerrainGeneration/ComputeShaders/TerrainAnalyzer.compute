@@ -1,7 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Terrain
 
-#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/PerlinNoiseGenerator.compute"
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/PerlinNoiseGenerator.hlsl"
 
 const static int numThreads = 8;
 const static int Epsilon = 0.0001;

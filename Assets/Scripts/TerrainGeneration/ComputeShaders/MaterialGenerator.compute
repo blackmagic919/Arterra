@@ -1,7 +1,7 @@
 #pragma kernel Generate
 #pragma multi_compile _ HAS_EXISTING_MATERIALS
 
-#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.compute"
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.hlsl"
 
 
 struct density{

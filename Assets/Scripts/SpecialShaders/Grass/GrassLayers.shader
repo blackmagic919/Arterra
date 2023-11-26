@@ -38,14 +38,12 @@ Shader "Grass/GrassLayers" {
     }
 
     SubShader {
-        // UniversalPipeline needed to have this render in URP
         Tags{"RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "IgnoreProjector" = "True"}
-
         // Forward Lit Pass
         Pass {
 
             Name "ForwardLit"
-            Tags{"LightMode" = "UniversalForward"}
+            Tags {"LightMode" = "UniversalForward"}
             Cull Back
 
             HLSLPROGRAM

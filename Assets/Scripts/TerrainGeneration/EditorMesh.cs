@@ -118,15 +118,16 @@ public class EditorMesh : MonoBehaviour
 
     public class ChunkData
     {
-        public MeshData meshData;
+        public MeshInfo meshData;
         public List<Vector3> vertexParents;
 
         public ChunkData()
         {
             vertexParents = new List<Vector3>();
+            meshData = new MeshInfo();
         }
 
-        public static Mesh GenerateMesh(MeshData meshData)
+        public static Mesh GenerateMesh(MeshInfo meshData)
         {
             Mesh mesh = new Mesh();
             mesh.vertices = meshData.vertices.ToArray();
@@ -147,14 +148,14 @@ public class EditorMesh : MonoBehaviour
         }
     }
 
-    public class MeshData
+    public class MeshInfo
     {
         public List<Vector3> vertices;
         public List<Vector3> normals;
         public List<Color> colorMap;
         public List<int> triangles;
 
-        public MeshData()
+        public MeshInfo()
         {
             vertices = new List<Vector3>();
             normals = new List<Vector3>();

@@ -91,7 +91,7 @@ public class SurfaceChunk
 
         public void GetChunk(Action UpdateCallback)
         {
-            this.heightMap = mapCreator.GenerateTerrainMaps(mapChunkSize, LOD, position, out noiseMaps.continental, out noiseMaps.pvNoise, out noiseMaps.erosion);
+            this.heightMap = mapCreator.GenerateTerrainMaps(mapChunkSize, LOD, position, out noiseMaps.continental, out noiseMaps.erosion, out noiseMaps.pvNoise);
             this.squashMap = mapCreator.GenerateSquashMap(mapChunkSize, LOD, position, out noiseMaps.squash);
             mapCreator.GetBiomeNoises(mapChunkSize, LOD, position, out noiseMaps.temperature, out noiseMaps.humidity);
             this.biomeMap = mapCreator.ConstructBiomes(mapChunkSize, LOD, ref noiseMaps);

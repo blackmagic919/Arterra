@@ -2,8 +2,8 @@
 #pragma kernel Generate
 #pragma multi_compile _ CENTER_NOISE
 
-#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.compute"
-#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/PerlinNoiseGenerator.compute"
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.hlsl"
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/PerlinNoiseGenerator.hlsl"
 
 const static int numThreads = 8;
 RWStructuredBuffer<float> rawPoints;

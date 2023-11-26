@@ -1,7 +1,7 @@
 #pragma kernel March
 
-#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/MarchingTables.compute"
-#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.compute"
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/MarchingTables.hlsl"
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.hlsl"
 
 struct Point{
     float3 tri;

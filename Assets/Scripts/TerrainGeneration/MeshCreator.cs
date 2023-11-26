@@ -5,7 +5,6 @@ using System.Linq;
 using Utils;
 using static EditorMesh;
 using static BiomeInfo;
-using UnityEngine.Rendering;
 using Unity.Mathematics;
 using static UnityEngine.Mesh;
 
@@ -323,9 +322,9 @@ public class MeshCreator : ScriptableObject
         this.materialBuffer = densityGenerator.GenerateMat(MaterialCoarseNoise, MaterialFineNoise, materialBuffer, surfaceData.biomeMap, chunkSize, meshSkipInc, offset);
     }
 
-    public ChunkBuffers GenerateMapData(float IsoLevel, int LOD, int chunkSize)
+    public ChunkData GenerateMapData(float IsoLevel, int LOD, int chunkSize)
     {
-        ChunkBuffers chunk = new ChunkBuffers();
+        ChunkData chunk = new ChunkData();
 
         densityGenerator.buffersToRelease = buffersToRelease;
 
@@ -335,21 +334,19 @@ public class MeshCreator : ScriptableObject
         /*(numPoints-1)^3 cubes. A cube can have a maximum of 5 triangles. Though this is correct,
         it is usually way above the amount of actual triangles that exist(as mesh gets larger)*/
 
-        chunk.sourceMeshBuffer = new ComputeBuffer(numOfTris, MESH_TRIANGLES_STRIDE, ComputeBufferType.Append);
-        chunk.argsBuffer = new ComputeBuffer(1, sizeof(int) * 4, ComputeBufferType.IndirectArguments);
-        chunk.argsBuffer.SetData(new int[] { 0, 1, 0, 0 });
-        chunk.released = false;
+        ComputeBuffer sourceMeshBuffer = new ComputeBuffer(numOfTris, MESH_TRIANGLES_STRIDE, ComputeBufferType.Append);
+        ComputeBuffer argsBuffer = new ComputeBuffer(1, sizeof(int) * 4, ComputeBufferType.IndirectArguments);
+        argsBuffer.SetData(new int[] { 0, 1, 0, 0 });
 
-        chunk.sourceMeshBuffer.SetCounterValue(0);
-        densityGenerator.GenerateMesh(chunkSize, meshSkipInc, IsoLevel, materialBuffer, chunk.sourceMeshBuffer, pointBuffer);
-        ComputeBuffer.CopyCount(chunk.sourceMeshBuffer, chunk.argsBuffer, 0);
+        sourceMeshBuffer.SetCounterValue(0);
+        densityGenerator.GenerateMesh(chunkSize, meshSkipInc, IsoLevel, materialBuffer, sourceMeshBuffer, pointBuffer);
+        ComputeBuffer.CopyCount(sourceMeshBuffer, argsBuffer, 0);
 
-        densityGenerator.ConvertTriCountToVert(chunk.argsBuffer);
+        buffersToRelease.Enqueue(sourceMeshBuffer);
+        buffersToRelease.Enqueue(argsBuffer);
 
-        return chunk;
-        /*
         int[] data = { 0, 1, 0, 0 };
-        triangleCountBuffer.GetData(data);
+        argsBuffer.GetData(data);
         int numTris = data[0];
         
         if (numTris == 0)
@@ -359,9 +356,9 @@ public class MeshCreator : ScriptableObject
         }
         
         TriangleConst[] tris = new TriangleConst[numTris];
-        triangleBuffer.GetData(tris, 0, 0, numTris);
+        sourceMeshBuffer.GetData(tris, 0, 0, numTris);
         
-        Dictionary<int, int> vertDict = new Dictionary<int, int>();
+        Dictionary<int2, int> vertDict = new Dictionary<int2, int>();
         int vertCount = 0;
 
         for (int i = 0; i < numTris; i++)
@@ -376,31 +373,32 @@ public class MeshCreator : ScriptableObject
                 {
                     vertDict.Add(tris[i][j].id, vertCount);
                     chunk.meshData.triangles.Add(vertCount);
-                    chunk.meshData.vertices.Add(tris[i][j].tri * meshSkipInc);
+                    chunk.meshData.vertices.Add(tris[i][j].tri);
                     chunk.meshData.normals.Add(tris[i][j].norm);
                     chunk.meshData.colorMap.Add(new Color(tris[i][j].material, 0, 0));
                     vertCount++;
                 }
             }
         }
-        */
+        return chunk;
+
     }
-    /*
-    public Dictionary<int, Mesh> CreateSpecialMeshes(SpecialShaderData[] specialShaderData, ChunkData terrainData)
+    
+    public Dictionary<int, Mesh> CreateSpecialMeshes(SpecialShaderData[] specialShaderData, MeshInfo terrainData)
     {
         Dictionary<int, Mesh> meshes = new Dictionary<int, Mesh>();
         for(int i = 0; i < specialShaderData.Length; i++)
         {
-            MeshData meshData = GetSpecialMesh(specialShaderData[i], terrainData.meshData);
+            MeshInfo meshData = GetSpecialMesh(specialShaderData[i], terrainData);
             meshes.TryAdd(specialShaderData[i].materialIndex, ChunkData.GenerateMesh(meshData));
         }
         return meshes;
     }
 
 
-    public static MeshData GetSpecialMesh(SpecialShaderData shaderData, MeshData meshData)
+    public static MeshInfo GetSpecialMesh(SpecialShaderData shaderData, MeshInfo meshData)
     {
-        MeshData subMesh = new MeshData();
+        MeshInfo subMesh = new MeshInfo();
 
         Dictionary<int, int> vertDict = new Dictionary<int, int>();
         int vertCount = 0;
@@ -445,71 +443,8 @@ public class MeshCreator : ScriptableObject
         }
 
         return subMesh;
-    }*/
-
-    public void BeginMeshReadback(ChunkBuffers sourceBuffers, Action<Mesh> callback)
-    {
-        AsyncGPUReadback.Request(sourceBuffers.argsBuffer, ret => onTriCountRecieved(ret, sourceBuffers, callback));
     }
 
-    
-    void onTriCountRecieved(AsyncGPUReadbackRequest request, ChunkBuffers sourceBuffers, Action<Mesh> callback)
-    {
-        if (sourceBuffers.released)
-            return;
-
-        int numTris = request.GetData<int>()[0] / 3;
-
-        if (numTris == 0)
-            return;
-
-        AsyncGPUReadback.Request(sourceBuffers.sourceMeshBuffer, size:numTris * MESH_TRIANGLES_STRIDE, offset:0, ret => onMeshDataRecieved(ret, sourceBuffers, callback));
-    }
-
-    void onMeshDataRecieved(AsyncGPUReadbackRequest request, ChunkBuffers sourceBuffers, Action<Mesh> callback)
-    {
-        if (sourceBuffers.released)
-            return;
-
-        TriangleConst[] meshData = request.GetData<TriangleConst>().ToArray();
-        int numTris = meshData.Length;
-
-        List<int> triangles = new List<int>();
-        List<Vector3> vertices = new List<Vector3>();
-        List<Vector3> normals = new List<Vector3>();
-        List<Color> colorMap = new List<Color>();
-
-        Dictionary<int2, int> vertDict = new Dictionary<int2, int>();
-        int vertCount = 0;
-
-        for (int i = 0; i < numTris; i++)
-        {
-            for (int j = 0; j < 3; j++)
-            {
-                if (vertDict.TryGetValue(meshData[i][j].id, out int vertIndex))
-                {
-                    triangles.Add(vertIndex);
-                }
-                else
-                {
-                    vertDict.Add(meshData[i][j].id, vertCount);
-                    triangles.Add(vertCount);
-                    vertices.Add(meshData[i][j].tri);
-                    normals.Add(meshData[i][j].norm);
-                    colorMap.Add(new Color(meshData[i][j].material, 0, 0));
-                    vertCount++;
-                }
-            }
-        }
-
-        Mesh mesh = new Mesh();
-        mesh.vertices = vertices.ToArray();
-        mesh.normals = normals.ToArray();
-        mesh.colors = colorMap.ToArray();
-        mesh.triangles = triangles.ToArray();
-
-        callback(mesh);
-    }
 
     /*y     
     * ^
@@ -596,24 +531,6 @@ public class MeshCreator : ScriptableObject
     }
 }
 
-public class ChunkBuffers
-{
-    public bool released;
-    public ComputeBuffer sourceMeshBuffer;
-    public ComputeBuffer argsBuffer;
-
-    ~ChunkBuffers()
-    {
-        Release();
-    }
-
-    public void Release()
-    {
-        released = true;
-        sourceMeshBuffer?.Release();
-        argsBuffer?.Release();
-    }
-}
 
 
 /* old async logic that's too slow

@@ -4,6 +4,16 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
 
+
+/*
+ I once wanted to use this for all terrain generation, read collision mesh back async.
+ However, it is impossible to do with special shaders that take terrain triangle data.
+    - If I took the data from the collision mesh read back async, it wouldn't update smoothly
+    - If I read the data straight from the buffer in the GPU, when making draw vertices I need to initialize the buffer size to the
+      maximum size of 63^3 * 5 * (num extruded triangles) * (~16 bytes) = Upwards of 10 GB
+
+  This can still be used later for water rendering:
+ */
 public class TerrainRenderer : MonoBehaviour
 {
     [HideInInspector]

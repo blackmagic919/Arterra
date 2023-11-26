@@ -22,7 +22,7 @@ Shader "Unlit/Terrain1"
             #pragma vertex vert
             #pragma fragment frag
 
-#if UNITY_VERSION >= 202120
+            #if UNITY_VERSION >= 202120
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
 #else
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
@@ -33,7 +33,7 @@ Shader "Unlit/Terrain1"
             #include "TerrainShader.hlsl"
             ENDHLSL
         }
-        /*
+        
         Pass {
             Name "ShadowCaster"
             Tags{"LightMode" = "ShadowCaster"}
@@ -47,6 +47,6 @@ Shader "Unlit/Terrain1"
 
             #include "TerrainShaderShadowCast.hlsl"
             ENDHLSL
-        }*/
+        }
     }
 }

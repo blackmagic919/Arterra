@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f67e18118f5594c60a3185bba687bef3, type: 3}
   m_Name: MapCreator
   m_EditorClassIdentifier: 
-  terrainOffset: -150
+  terrainOffset: -300
   TerrainContinentalDetail: {fileID: 11400000, guid: 9c045f93b50334808b6154737c67175b, type: 2}
   MaxContinentalHeight: 400
   TerrainErosionDetail: {fileID: 11400000, guid: 1a8cb70f57d0f4d0aa53c6806a8d38f1, type: 2}

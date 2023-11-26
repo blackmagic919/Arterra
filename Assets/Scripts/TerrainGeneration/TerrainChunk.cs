@@ -14,9 +14,10 @@ public class TerrainChunk
     Bounds bounds;
     Bounds WSBounds;
 
+    MeshRenderer meshRenderer;
+    MeshFilter meshFilter;
     MeshCollider meshCollider;
     MeshCreator meshCreator;
-    TerrainRenderer terrainRenderer;
     SpecialShaderData[] shaders;
 
     readonly LODMesh[] LODMeshes;
@@ -45,9 +46,10 @@ public class TerrainChunk
         meshObject.transform.localScale = Vector3.one * lerpScale;
         meshObject.transform.parent = parent;
 
+        meshFilter = meshObject.AddComponent<MeshFilter>();
+        meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshCollider = meshObject.AddComponent<MeshCollider>();
-        terrainRenderer = meshObject.AddComponent<TerrainRenderer>();
-        terrainRenderer.CreateRenderer(material, WSBounds);
+        meshRenderer.material = material;
 
         shaders = new SpecialShaderData[specialShaders.Count];
         for(int i = 0; i < specialShaders.Count; i++)
@@ -152,7 +154,9 @@ public class TerrainChunk
             LODMesh lodMesh = LODMeshes[lodInd];
             if (lodInd != prevLODInd || lodMesh.depreceated)
             {
-                if (!lodMesh.hasRequestedChunk)
+                if (lodMesh.hasChunk && !lodMesh.depreceated)
+                    onChunkCreated(lodInd, lodMesh);
+                else if (!lodMesh.hasRequestedChunk)
                 {
                     lodMesh.hasRequestedChunk = true;
 
@@ -172,11 +176,11 @@ public class TerrainChunk
         lodMesh.hasRequestedChunk = false;
         lodMesh.depreceated = false;
         prevLODInd = lodInd;
-        terrainRenderer.Render(lodMesh.chunkBuffers);
-
+        
+        meshFilter.mesh = lodMesh.mesh;
         if (detailLevels[lodInd].useForCollider)
-            meshCreator.BeginMeshReadback(lodMesh.chunkBuffers, (Mesh mesh) => { meshCollider.sharedMesh = mesh; });
-        /*
+            meshCollider.sharedMesh = lodMesh.mesh;
+        
         for(int i = 0; i < shaders.Length; i++)
         {
             SpecialShaderData shaderData = shaders[i];
@@ -189,7 +193,7 @@ public class TerrainChunk
             else
                 shaderData.shader.Release();
         }
-        */
+        
         if (lodMesh.depreceated) //was depreceated while chunk was regenerating
             timeRequestQueue.Enqueue(Update, (int)Utils.priorities.generation);
         
@@ -214,17 +218,17 @@ public class TerrainChunk
 
 public class LODMesh
 {
+    public Mesh mesh;
     public Dictionary<int, Mesh> specialMeshes;
     public SpecialShaderData[] specialShaderData;
     public SurfaceChunk.LODMap surfaceData;
     public Vector3 position;
+
+    EditorMesh.ChunkData chunkData;
+
     Vector3 CCoord;
-
-    public ChunkBuffers chunkBuffers;
-
     float IsoLevel;
     MeshCreator meshCreator;
-    
 
     public bool hasChunk = false;
     public bool hasRequestedChunk = false;
@@ -251,8 +255,11 @@ public class LODMesh
         meshCreator.GenerateDensity(surfaceData, this.position, LOD, mapChunkSize, IsoLevel);
         meshCreator.GenerateStructures(this.CCoord, IsoLevel, LOD, mapChunkSize);
         meshCreator.GenerateMaterials(surfaceData, this.position, LOD, mapChunkSize);
-        this.chunkBuffers = meshCreator.GenerateMapData(IsoLevel, LOD, mapChunkSize);
+        this.chunkData = meshCreator.GenerateMapData(IsoLevel, LOD, mapChunkSize);
+        this.specialMeshes = meshCreator.CreateSpecialMeshes(specialShaderData, chunkData.meshData);
         meshCreator.ReleaseBuffers();
+
+        this.mesh = this.chunkData.GenerateMesh();
 
         hasChunk = true;
         UpdateCallback();
@@ -261,8 +268,11 @@ public class LODMesh
     public void ComputeChunk(ref float[] density, ref int[] material, Action UpdateCallback)
     {
         meshCreator.SetMapInfo(LOD, mapChunkSize, density, material);
-        this.chunkBuffers = meshCreator.GenerateMapData(IsoLevel, LOD, mapChunkSize);
+        this.chunkData = meshCreator.GenerateMapData(IsoLevel, LOD, mapChunkSize);
+        this.specialMeshes = meshCreator.CreateSpecialMeshes(specialShaderData, chunkData.meshData);    
         meshCreator.ReleaseBuffers();
+
+        this.mesh = this.chunkData.GenerateMesh();
 
         hasChunk = true;
         UpdateCallback();

@@ -34,7 +34,7 @@ public static class MeshGenerator
     {
 
         ChunkData chunk = new ChunkData();
-        chunk.meshData = new MeshData();
+        chunk.meshData = new MeshInfo();
 
         int IncSize = 1; //will add more later
         for (int x = 0; x < noiseMap.GetLength(0)-1; x += IncSize)

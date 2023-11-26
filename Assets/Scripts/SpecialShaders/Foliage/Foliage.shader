@@ -1,4 +1,4 @@
-Shader "Custom/Foliage"
+Shader "Unlit/Foliage"
 {
     Properties
     {

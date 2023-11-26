@@ -16,12 +16,12 @@ MonoBehaviour:
   ContinentalStart: 0
   ContinentalEnd: 1
   ErosionStart: 0
-  ErosionEnd: 1
+  ErosionEnd: 0.6
   PVStart: 0
   PVEnd: 1
   SquashStart: 0
   SquashEnd: 1
   TempStart: 0
-  TempEnd: 0.5
+  TempEnd: 1
   HumidStart: 0
   HumidEnd: 1

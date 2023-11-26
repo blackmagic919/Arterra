@@ -18,12 +18,12 @@ MonoBehaviour:
   persistance: 0.75
   lacunarity: 1.25
   lerpScale: 4
-  seed: 2
+  seed: 6
   splinePoints:
   - {x: 0, y: 0, z: 0, w: 0}
-  - {x: 0.3523894, y: 0.13092011, z: 0.9226054, w: 0.9226054}
-  - {x: 0.49971765, y: 0.5040425, z: 0.16748263, w: 0.16748263}
-  - {x: 0.65045446, y: 0.9116699, z: 1.3737327, w: 1.3737327}
+  - {x: 0.2545889, y: 0.1269986, z: 0.9226054, w: 0.9226054}
+  - {x: 0.49971765, y: 0.49997845, z: 0.16748263, w: 0.16748263}
+  - {x: 0.73088396, y: 0.8793888, z: 1.3737327, w: 1.3737327}
   - {x: 1, y: 1, z: 0, w: 0}
   interpolation:
     serializedVersion: 2
@@ -38,8 +38,8 @@ MonoBehaviour:
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 0.3523894
-      value: 0.13092011
+      time: 0.2545889
+      value: 0.1269986
       inSlope: 0.9226054
       outSlope: 0.9226054
       tangentMode: 0
@@ -48,7 +48,7 @@ MonoBehaviour:
       outWeight: 0.25841004
     - serializedVersion: 3
       time: 0.49971765
-      value: 0.5040425
+      value: 0.49997845
       inSlope: 0.16748263
       outSlope: 0.16748263
       tangentMode: 0
@@ -56,8 +56,8 @@ MonoBehaviour:
       inWeight: 0.33333334
       outWeight: 0.2689154
     - serializedVersion: 3
-      time: 0.65045446
-      value: 0.9116699
+      time: 0.73088396
+      value: 0.8793888
       inSlope: 1.3737327
       outSlope: 1.3737327
       tangentMode: 0

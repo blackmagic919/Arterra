@@ -11,25 +11,12 @@ float _BaseTextureScales[maxMatCount];
 Texture2DArray _Textures;
 SamplerState sampler_Textures;
 
-struct Point{
-    float3 tri;
-    float3 norm;
-    int2 id;
-    int material;
-};
-
-struct Triangle {
-    Point points[3];
-};
-
-StructuredBuffer<Triangle> _DrawTriangles;
-/*
 struct appdata
 {
     float4 vertex : POSITION;
     float4 normal : NORMAL;
     float4 color: COLOR;
-};*/
+};
 
 struct v2f
 {
@@ -44,22 +31,17 @@ float3 _TargetPoint;
 float closestDistance;
 float4x4 _LocalToWorld;
 
-v2f vert (uint vertexID: SV_VertexID)
+v2f vert (appdata v)
 {
-    v2f o = (v2f)0;
+    v2f o;
 
-    Triangle tri = _DrawTriangles[vertexID/3];
-    Point input = tri.points[vertexID % 3];
+    VertexPositionInputs posInputs = GetVertexPositionInputs(v.vertex.xyz);
+	VertexNormalInputs normInputs = GetVertexNormalInputs(v.normal.xyz);
 
-    o.positionWS = mul(_LocalToWorld, float4(input.tri, 1)).xyz;
-    o.normalWS = normalize(mul(_LocalToWorld, float4(input.norm, 0)).xyz);
-    o.positionCS = TransformWorldToHClip(o.positionWS);
-    /*
     o.positionCS = posInputs.positionCS;
     o.positionWS = posInputs.positionWS;
     o.normalWS = normInputs.normalWS;
-    */
-    o.color = float4(input.material, 0, 0, 0.5);
+    o.color = v.color;
     return o;
 }
 

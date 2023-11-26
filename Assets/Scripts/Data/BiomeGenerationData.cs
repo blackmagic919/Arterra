@@ -171,6 +171,7 @@ public class BiomeDictionary
             BiomeConditionsData conditions = biome.conditions;
             regionBound bounds = new regionBound(6);
             bounds.SetDimensions(conditions);
+            bounds.CalculateArea();
 
             for (int u = i - 1; u >= 0; u--)
             {

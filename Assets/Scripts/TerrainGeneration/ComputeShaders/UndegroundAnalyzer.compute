@@ -2,7 +2,7 @@
 #pragma kernel Underground
 #pragma multi_compile _ CENTER_NOISE
 
-#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/PerlinNoiseGenerator.compute"
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/PerlinNoiseGenerator.hlsl"
 
 const static int numThreads = 8;
 uint numPoints;
