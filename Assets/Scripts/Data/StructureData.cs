@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,29 +8,22 @@ using Utils;
 [CreateAssetMenu(fileName = "Structure_Data", menuName = "Structure Data")]
 public class StructureData : ScriptableObject
 {
-    [Header("Settings")]
-    public int maximumLOD;
-    public bool randThetaRot;
-    public bool randPhiRot;
 
     [Header("Generated")]
     public float[] density;
     public int[] materials;
     public CheckPoint[] checks;
-    public int sizeX;
-    public int sizeY;
-    public int sizeZ;
 
     public void SetChecks(Vector3[] position, bool[] isUnderGround)
     {
         checks = new CheckPoint[position.Length];
         for (int i = 0; i < position.Length; i++)
         {
-            checks[i] = new CheckPoint(position[i], isUnderGround[i]);
+            checks[i] = new CheckPoint(position[i], isUnderGround[i] ? 1u : 0u);
         }
     }
 
-    public T[] Flatten<T>(T[,,] array)
+    public T[] Flatten<T>(T[,,] array, int sizeX, int sizeY, int sizeZ)
     {
         T[] ret = new T[sizeX * sizeY * sizeZ];
         for(int x = 0; x < sizeX; x++)
@@ -47,12 +41,14 @@ public class StructureData : ScriptableObject
 
 
     [Serializable]
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public struct CheckPoint
     {
         public Vector3 position;
-        public bool isUnderGround;
+        [Range(0, 1)]
+        public uint isUnderGround; //bool is not yet blittable in shader 5.0
 
-        public CheckPoint(Vector3 position, bool isUnderGround)
+        public CheckPoint(Vector3 position, uint isUnderGround)
         {
             this.position = position;
             this.isUnderGround = isUnderGround;
@@ -92,21 +88,23 @@ public class StructureDictionary
     {
         public Vector3 chunkOrigin; //Plan +x + y +z from origin
         public Vector3 structureOrigin;
-        public StructureData structure;
+        public StructureData data;
+        public StructureSettings settings;
 
         public int[] transformIndex;
         public bool[] transformFlipped;
         public int[] transformSizes;
 
-        public StructureSection(StructureData structure, Vector3 structureOrigin, Vector3 chunkOrigin, int[] transformAxis)
+        public StructureSection(StructureData data, StructureSettings settings, Vector3 structureOrigin, Vector3 chunkOrigin, int[] transformAxis)
         {
-            this.structure = structure;
+            this.data = data;
+            this.settings = settings;
             this.structureOrigin = structureOrigin;
             this.chunkOrigin = chunkOrigin;
 
             this.transformIndex = new int[] { Mathf.Abs(transformAxis[0]) - 1, Mathf.Abs(transformAxis[1]) - 1, Mathf.Abs(transformAxis[2]) - 1};
             this.transformFlipped = new bool[] { transformAxis[0] < 0, transformAxis[1] < 0, transformAxis[2] < 0 };
-            int[] originalSize = new int[] { structure.sizeX, structure.sizeY, structure.sizeZ };
+            int[] originalSize = new int[] { settings.sizeX, settings.sizeY, settings.sizeZ };
             this.transformSizes = new int[] { originalSize[transformIndex[0]], originalSize[transformIndex[1]], originalSize[transformIndex[2]] };
 
         }

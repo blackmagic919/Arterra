@@ -1,0 +1,39 @@
+#pragma kernel Underground
+#pragma multi_compile _ CENTER_NOISE
+#pragma multi_compile _ SAMPLE_2D
+
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/PerlinNoiseGenerator.hlsl"
+
+const static int numThreads = 8;
+
+struct check{
+    uint index;
+    float3 position;
+    uint value;
+};
+
+StructuredBuffer<check> CheckPoints;
+StructuredBuffer<uint> numPoints;
+RWStructuredBuffer<float> Results;
+float influenceHeight;
+
+[numthreads(numThreads,1,1)]
+void Underground (uint3 id : SV_DispatchThreadID)//
+{
+    if(id.x >= numPoints[0])
+        return;
+
+#ifdef SAMPLE_2D
+    float rawNoise = GetRawNoise(float3(CheckPoints[id.x].position.x, 0, CheckPoints[id.x].position.z));
+#else
+    float rawNoise = GetRawNoise(CheckPoints[id.x].position);
+#endif
+
+#ifdef CENTER_NOISE
+    float interpNoise = interpolateValue(rawNoise) * 2.0f - 1.0f;
+#else
+    float interpNoise = interpolateValue(rawNoise);
+#endif
+
+    Results[id.x] = interpNoise * influenceHeight;
+}

@@ -63,11 +63,13 @@ public class MapCreator : ScriptableObject
     [HideInInspector]
     public BiomeGenerationData biomeData;
 
-    Queue<ComputeBuffer> buffersToRelease = new Queue<ComputeBuffer>();
+    Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
+    Queue<ComputeBuffer> persistantBuffers = new Queue<ComputeBuffer>();
 
-    public void OnValidate()
+    public void OnDisable()
     {
-        terrainGenerator.buffersToRelease = buffersToRelease;
+        ReleaseTempBuffers();
+        ReleasePersistantBuffers();//
     }
 
     public ComputeBuffer AnalyzeSquashMap(Vector3[] rawPositions, Vector2 offset, int chunkSize)
@@ -76,81 +78,105 @@ public class MapCreator : ScriptableObject
         Vector3[] position3D = rawPositions.Select(e => new Vector3(e.x, 0, e.z)).ToArray();
         Vector3 offset3D = new(offset.x, 0, offset.y);
 
-        ComputeBuffer squash = terrainGenerator.AnalyzeNoiseMap(position3D, SquashMapDetail, offset3D, MaxSquashHeight, chunkSize, false);
+        ComputeBuffer squash = terrainGenerator.AnalyzeNoiseMap(position3D, SquashMapDetail, offset3D, MaxSquashHeight, chunkSize, false, tempBuffers);
 
         return squash;
     }
 
-    public ComputeBuffer AnalyzeTerrainMap(Vector3[] rawPositions, Vector2 offset, int chunkSize)
+    public ComputeBuffer GenerateTerrainMaps(int chunkSize, int LOD, Vector2 offset, out ComputeBuffer continentalNoise, out ComputeBuffer erosionNoise, out ComputeBuffer PVNoise)
     {
-        int numOfPoints = rawPositions.Length;
-        Vector3[] position3D = rawPositions.Select(e => new Vector3(e.x, 0, e.z)).ToArray();
+        int meshSkipInc = meshSkipTable[LOD];
+        int numPointsAxes = chunkSize / meshSkipInc + 1;
+        int numOfPoints = numPointsAxes * numPointsAxes;
+
+        ComputeBuffer continentalDetail; ComputeBuffer pVDetail; ComputeBuffer erosionDetail;
+        continentalNoise = terrainGenerator.GetNoiseMap(TerrainContinentalDetail, offset, MaxContinentalHeight, chunkSize, meshSkipInc, false, tempBuffers, out continentalDetail);
+        PVNoise = terrainGenerator.GetNoiseMap(TerrainPVDetail, offset, MaxPVHeight, chunkSize, meshSkipInc, true, tempBuffers, out pVDetail);
+        erosionNoise = terrainGenerator.GetNoiseMap(TerrainErosionDetail, offset, 1, chunkSize, meshSkipInc, false, tempBuffers, out erosionDetail);
+
+        tempBuffers.Enqueue(continentalDetail);
+        tempBuffers.Enqueue(pVDetail);
+        tempBuffers.Enqueue(erosionDetail);
+
+        ComputeBuffer heightBuffer = terrainGenerator.CombineTerrainMaps(continentalDetail, erosionDetail, pVDetail, numOfPoints, terrainOffset, persistantBuffers);
+
+        return heightBuffer;
+    }
+
+    public ComputeBuffer AnalyzeBiomeMap(ComputeBuffer rawPositions, ComputeBuffer count, ComputeBuffer args, Vector2 offset, int chunkSize, int maxPoints)
+    {
         Vector3 offset3D = new(offset.x, 0, offset.y);
 
-        ComputeBuffer continentalDetail = terrainGenerator.AnalyzeNoiseMap(position3D, TerrainContinentalDetail, offset3D, MaxContinentalHeight, chunkSize, false);
-        ComputeBuffer pVDetail = terrainGenerator.AnalyzeNoiseMap(position3D, TerrainPVDetail, offset3D, MaxPVHeight, chunkSize, true);
-        ComputeBuffer erosionDetail = terrainGenerator.AnalyzeNoiseMap(position3D, TerrainErosionDetail, offset3D, 1, chunkSize, false);
+        SurfaceChunk.NoiseMaps noiseMaps;
 
-        ComputeBuffer results = terrainGenerator.CombineTerrainMaps(continentalDetail, erosionDetail, pVDetail, numOfPoints, terrainOffset);
+        noiseMaps.continental = terrainGenerator.AnalyzeRawNoiseMap(rawPositions, count, args, TerrainContinentalDetail, offset3D, chunkSize, maxPoints, tempBuffers);
+        noiseMaps.pvNoise = terrainGenerator.AnalyzeRawNoiseMap(rawPositions, count, args, TerrainPVDetail, offset3D, chunkSize, maxPoints, tempBuffers);
+        noiseMaps.erosion = terrainGenerator.AnalyzeRawNoiseMap(rawPositions, count, args, TerrainErosionDetail, offset3D, chunkSize, maxPoints, tempBuffers);
+        noiseMaps.squash = terrainGenerator.AnalyzeRawNoiseMap(rawPositions, count, args, SquashMapDetail, offset3D, chunkSize, maxPoints, tempBuffers);
+        noiseMaps.temperature = terrainGenerator.AnalyzeRawNoiseMap(rawPositions, count, args, TemperatureDetail, offset3D, chunkSize, maxPoints, tempBuffers);
+        noiseMaps.humidity = terrainGenerator.AnalyzeRawNoiseMap(rawPositions, count, args, HumidityDetail, offset3D, chunkSize, maxPoints, tempBuffers);
+
+        ComputeBuffer biome = terrainGenerator.AnalyzeBiome(noiseMaps, count, args, maxPoints, tempBuffers);
+
+        return biome;
+    }
+
+    public ComputeBuffer AnalyzeSquashMap(ComputeBuffer checks, ComputeBuffer count, ComputeBuffer args, Vector2 offset, int chunkSize, int maxPoints)
+    {
+        Vector3 offset3D = new(offset.x, 0, offset.y);
+
+        ComputeBuffer squash = terrainGenerator.AnalyzeNoiseMapGPU(checks, count, args, SquashMapDetail, offset3D, MaxSquashHeight, chunkSize, maxPoints, false, tempBuffers);
+
+        return squash;
+    }
+
+    public ComputeBuffer AnalyzeTerrainMap(ComputeBuffer checks, ComputeBuffer count, ComputeBuffer args, Vector2 offset, int chunkSize, int maxPoints)
+    {
+        Vector3 offset3D = new(offset.x, 0, offset.y);
+
+        ComputeBuffer continentalDetail = terrainGenerator.AnalyzeNoiseMapGPU(checks, count, args, TerrainContinentalDetail, offset3D, MaxContinentalHeight, chunkSize, maxPoints, false, tempBuffers);
+        ComputeBuffer pVDetail = terrainGenerator.AnalyzeNoiseMapGPU(checks, count, args, TerrainPVDetail, offset3D, MaxPVHeight, chunkSize, maxPoints, true, tempBuffers);
+        ComputeBuffer erosionDetail = terrainGenerator.AnalyzeNoiseMapGPU(checks, count, args, TerrainErosionDetail, offset3D, 1, chunkSize, maxPoints, false, tempBuffers);
+
+        ComputeBuffer results = terrainGenerator.CombineTerrainMapsGPU(continentalDetail, erosionDetail, pVDetail, count, args, maxPoints, terrainOffset, tempBuffers);
 
         return results;
     }
 
-    public float[] GenerateTerrainMaps(int chunkSize, int LOD, Vector2 offset, out float[] continentalNoise, out float[] erosionNoise, out float[] PVNoise)
+    public ComputeBuffer GenerateSquashMap(int chunkSize, int LOD, Vector2 offset, out ComputeBuffer squashNoise)
     {
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxes = chunkSize / meshSkipInc + 1;
-        int numOfPoints = numPointsAxes * numPointsAxes;
 
-        ComputeBuffer continentalDetail = terrainGenerator.GetNoiseMap(TerrainContinentalDetail, offset, MaxContinentalHeight, chunkSize, meshSkipInc, false, out continentalNoise);
-        ComputeBuffer pVDetail = terrainGenerator.GetNoiseMap(TerrainPVDetail, offset, MaxPVHeight, chunkSize, meshSkipInc, true, out PVNoise);
-        ComputeBuffer erosionDetail = terrainGenerator.GetNoiseMap(TerrainErosionDetail, offset, 1, chunkSize, meshSkipInc, false, out erosionNoise);
+        ComputeBuffer squashBuffer;
+        squashNoise = terrainGenerator.GetNoiseMap(SquashMapDetail, offset, MaxSquashHeight, chunkSize, meshSkipInc, false, tempBuffers, out squashBuffer);
 
-        ComputeBuffer heightBuffer = terrainGenerator.CombineTerrainMaps(continentalDetail, erosionDetail, pVDetail, numOfPoints, terrainOffset);
+        persistantBuffers.Enqueue(squashBuffer);
 
-        float[] heights = new float[numOfPoints];
-        heightBuffer.GetData(heights);
-
-        return heights;
-    }
-
-    public float[] GenerateSquashMap(int chunkSize, int LOD, Vector2 offset, out float[] squashNoise)
-    {
-        int meshSkipInc = meshSkipTable[LOD];
-        int numPointsAxes = chunkSize / meshSkipInc + 1;
-        int numOfPoints = numPointsAxes * numPointsAxes;
-
-        ComputeBuffer squashBuffer = terrainGenerator.GetNoiseMap(SquashMapDetail, offset, MaxSquashHeight, chunkSize, meshSkipInc, false, out squashNoise);
-
-        float[] squashHeight = new float[numOfPoints];
-        squashBuffer.GetData(squashHeight);
-
-        return squashHeight;
+        return squashBuffer;
     }
 
     //Use interpolated values
-    public void GetBiomeNoises(int chunkSize, int LOD, Vector2 offset, out float[] tempNoise, out float[] humidNoise)
+    public void GetBiomeNoises(int chunkSize, int LOD, Vector2 offset, out ComputeBuffer tempNoise, out ComputeBuffer humidNoise)
     {
         int meshSkipInc = meshSkipTable[LOD];
-        int numPointsAxes = chunkSize / meshSkipInc + 1;
-        int numOfPoints = numPointsAxes * numPointsAxes;
 
-        ComputeBuffer tempBuffer = terrainGenerator.GetNoiseMap(TemperatureDetail, offset, 1, chunkSize, meshSkipInc, false, out float[] _);
-        ComputeBuffer humidBuffer = terrainGenerator.GetNoiseMap(HumidityDetail, offset, 1, chunkSize, meshSkipInc, false, out float[] _);
+        terrainGenerator.GetNoiseMap(TemperatureDetail, offset, 1, chunkSize, meshSkipInc, false, tempBuffers, out tempNoise);
+        terrainGenerator.GetNoiseMap(HumidityDetail, offset, 1, chunkSize, meshSkipInc, false, tempBuffers, out humidNoise);
 
-        tempNoise = new float[numOfPoints];
-        humidNoise = new float[numOfPoints];
-        tempBuffer.GetData(tempNoise);
-        humidBuffer.GetData(humidNoise);
+        tempBuffers.Enqueue(tempNoise);
+        tempBuffers.Enqueue(humidNoise);
     }
 
-    public int[] ConstructBiomes(int chunkSize, int LOD, ref NoiseMaps noiseMaps)
+    public ComputeBuffer ConstructBiomes(int chunkSize, int LOD, ref NoiseMaps noiseMaps)
     {
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxes = chunkSize / meshSkipInc + 1;
-        int numOfPoints = numPointsAxes * numPointsAxes;
 
-        int[] ret = new int[numOfPoints];
+        ComputeBuffer biomeMap = terrainGenerator.GetBiomeMap(chunkSize, meshSkipInc, noiseMaps, persistantBuffers);
+        /*int[] ret = new int[numOfPoints];
+        biomeMap.GetData(ret);
+
         for(int i = 0; i < numOfPoints; i++)
         {
             float[] point = new float[6]
@@ -164,10 +190,22 @@ public class MapCreator : ScriptableObject
             };
 
             ret[i] = biomeData.dictionary.Query(point);
-        }
-        return ret;
+        }*/
+        return biomeMap;
     }
 
+    
+    public ComputeBuffer SimplifyMap(ComputeBuffer sourceMap, int sourceLOD, int destLOD, int chunkSize, bool isFloat)
+    {
+        int sourceSkipInc = meshSkipTable[sourceLOD];
+        int destSkipInc = meshSkipTable[destLOD];
+
+        ComputeBuffer simplified = terrainGenerator.SimplifyMap(sourceMap, chunkSize, sourceSkipInc, destSkipInc, isFloat, persistantBuffers);
+
+        return simplified;
+    }
+
+    /*
     //Small error at edges--someone fix
     public T[] SimplifyMap<T>(T[] sourceMap, int sourceLOD, int destLOD, int chunkSize)
     {
@@ -192,16 +230,22 @@ public class MapCreator : ScriptableObject
             }
         }
 
-
-
         return destMap;
+    }*/
+
+    public void ReleaseTempBuffers()
+    {
+        while (tempBuffers.Count > 0)
+        {
+            tempBuffers.Dequeue().Release();
+        }
     }
 
-    public void ReleaseBuffers()
+    public void ReleasePersistantBuffers()
     {
-        while (buffersToRelease.Count > 0)
+        while (persistantBuffers.Count > 0)
         {
-            buffersToRelease.Dequeue().Release();
+            persistantBuffers.Dequeue().Release();
         }
     }
 }

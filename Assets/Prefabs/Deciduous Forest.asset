@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49bee82ffcb1d4036a871bcb04d33c57, type: 3}
+  m_Name: Deciduous Forest
+  m_EditorClassIdentifier: 
+  autoUpdate: 1
+  BiomeName: Deciduous Forest
+  Materials:
+  - materialIndex: 3
+    genNoiseSize: 1
+    genNoiseShape: 1
+    VerticalPreference:
+      lowerLimit: -400
+      upperLimit: 200
+      center: -300
+      multiplier: 1
+      power: 2
+  - materialIndex: 2
+    genNoiseSize: 0.569
+    genNoiseShape: 0.69
+    VerticalPreference:
+      lowerLimit: -400
+      upperLimit: 200
+      center: -200
+      multiplier: 1
+      power: 2
+  - materialIndex: 1
+    genNoiseSize: 0.286
+    genNoiseShape: 0.575
+    VerticalPreference:
+      lowerLimit: -400
+      upperLimit: 200
+      center: -50
+      multiplier: 1
+      power: 2
+  - materialIndex: 0
+    genNoiseSize: 0.326
+    genNoiseShape: 0.434
+    VerticalPreference:
+      lowerLimit: -400
+      upperLimit: 200
+      center: 0
+      multiplier: 1
+      power: 4
+  Structures:
+  - VerticalPreference:
+      lowerLimit: -200
+      upperLimit: 200
+      center: 0
+      multiplier: 1
+      power: 2
+    ChancePerStructurePoint: 0.45432243
+    structureIndex: 0
+    structureData: {fileID: 11400000, guid: 47f8cded4e30d4bbab55502f96bded1c, type: 2}
+    structureSettings: {fileID: 11400000, guid: b0396615401ed43529486c788cd2359a, type: 2}
+  - VerticalPreference:
+      lowerLimit: -200
+      upperLimit: 200
+      center: 0
+      multiplier: 1
+      power: 2
+    ChancePerStructurePoint: 0.54567754
+    structureIndex: 1
+    structureData: {fileID: 11400000, guid: c9e502f655b8f4c2bb695c58a092f880, type: 2}
+    structureSettings: {fileID: 11400000, guid: 66e5cf3a06c4c421da8c5d6cc3ac3410, type: 2}
+  structurePointDensity: 1
+  seed: 0

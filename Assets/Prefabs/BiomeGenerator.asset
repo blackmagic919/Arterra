@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: beb15f52643eb4aa09be7f699206597b, type: 3}
+  m_Name: BiomeGenerator
+  m_EditorClassIdentifier: 
+  autoUpdate: 1
+  biomes:
+  - conditions: {fileID: 11400000, guid: a4507df7bcd0f4ecd94d0f3648612cc4, type: 2}
+    info: {fileID: 11400000, guid: 02eaeedd9a6ed4996aad9918da531d9e, type: 2}
+  - conditions: {fileID: 11400000, guid: f55b8e2c4f3e146e2898bb9416ae8de1, type: 2}
+    info: {fileID: 11400000, guid: 5582aeedae81942ea996b519b3c776f8, type: 2}
+  StructureChecksPerChunk: 500
+  LoDFalloff: 3
+  maxLoD: 1

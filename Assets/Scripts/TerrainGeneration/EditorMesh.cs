@@ -53,18 +53,16 @@ public class EditorMesh : MonoBehaviour
             settings.meshCreator.biomeData = settings.biomeData;
             settings.mapCreator.biomeData = settings.biomeData;
 
-            settings.meshCreator.ResetStructureDictionary();
-            settings.meshCreator.PlanStructures(surfaceData, CCoord, EditorOffset, EndlessTerrain.mapChunkSize, settings.IsoLevel);
             settings.meshCreator.GenerateDensity(surfaceData, EditorOffset, EditorLoD, EndlessTerrain.mapChunkSize, settings.IsoLevel);
-            settings.meshCreator.GenerateStructures(CCoord, settings.IsoLevel, EditorLoD, EndlessTerrain.mapChunkSize);
             settings.meshCreator.GenerateMaterials(surfaceData, EditorOffset, EditorLoD, EndlessTerrain.mapChunkSize);
             //Chunkbuffers chunkData = settings.meshCreator.GenerateMapData(settings.IsoLevel, EditorLoD, EndlessTerrain.mapChunkSize);
-            settings.meshCreator.ReleaseBuffers();
+            settings.meshCreator.ReleaseTempBuffers();
  
             MeshFilter meshFilter = mesh.GetComponent<MeshFilter>();
             //meshFilter.sharedMesh = chunkData.GenerateMesh();
 
             settings.texData.ApplyToMaterial();
+            settings.structData.ApplyToMaterial();
         }
     }
 

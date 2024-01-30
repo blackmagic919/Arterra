@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Mathematics;
+using UnityEditor.MPE;
 using UnityEngine;
 using Utils;
 using static EndlessTerrain;
@@ -12,7 +13,6 @@ public class TerrainChunk
     Vector3 position;
     Vector3 CCoord;
     Bounds bounds;
-    Bounds WSBounds;
 
     MeshRenderer meshRenderer;
     MeshFilter meshFilter;
@@ -26,6 +26,7 @@ public class TerrainChunk
     float[] storedDensity = null;
     int[] storedMaterial = null;
     bool hasDensityMap = false;
+    public bool active = true;
 
     float IsoLevel;
     int prevLODInd = -1;
@@ -36,7 +37,6 @@ public class TerrainChunk
         CCoord = coord;
         position = (coord * mapChunkSize - Vector3.one * (mapChunkSize / 2f)); //Shift mesh so it is aligned with center
         bounds = new Bounds(position, Vector3.one * mapChunkSize);  
-        WSBounds = new Bounds(bounds.center * lerpScale, bounds.size * lerpScale * 2);
         this.IsoLevel = IsoLevel;
         this.detailLevels = detailLevels;
         this.meshCreator = meshCreator;
@@ -69,12 +69,11 @@ public class TerrainChunk
             SpecialShaderData[] specialMaterialIndexes = specialShaders.Where((e) => i <= e.detailLevel).ToArray();
             LODMeshes[i] = new LODMesh(meshCreator, specialMaterialIndexes, surfaceChunk.LODMaps[i], detailLevels[i].LOD, this.position, CCoord, IsoLevel);
         }
-
+        
         //Plan Structures
-       
-        timeRequestQueue.Enqueue(() => meshCreator.PlanStructures(surfaceChunk.LODMaps[0], this.CCoord, this.position, mapChunkSize, IsoLevel), (int)Utils.priorities.structure);
+        timeRequestQueue.Enqueue(() => processEvent(() => meshCreator.PlanStructuresGPU(this.CCoord, this.position, mapChunkSize, IsoLevel)), (int)Utils.priorities.structure);
+        //timeRequestQueue.Enqueue(() => processEvent(() => meshCreator.PlanStructures(surfaceChunk.LODMaps[0], this.CCoord, this.position, mapChunkSize, IsoLevel)), (int)Utils.priorities.structure);
 
-        SetVisible(false);
         Update();
     }
 
@@ -83,8 +82,7 @@ public class TerrainChunk
         SurfaceChunk.LODMap maxSurfaceData = LODMeshes[0].surfaceData;
         if (!hasDensityMap)
         {
-            storedDensity = meshCreator.GetDensity(maxSurfaceData, this.position, this.CCoord, IsoLevel, mapChunkSize);
-            storedMaterial = meshCreator.GetMaterials(maxSurfaceData, this.position, this.CCoord, IsoLevel, mapChunkSize);
+            (storedDensity, storedMaterial) = meshCreator.GetChunkInfo(maxSurfaceData, this.position, this.CCoord, IsoLevel, mapChunkSize);
             hasDensityMap = true;
         }
 
@@ -136,39 +134,42 @@ public class TerrainChunk
     public void Update()
     {
         float closestDist = Mathf.Sqrt(bounds.SqrDistance(viewerPosition));
-        bool visible = closestDist <= renderDistance;
+        
+        int lodInd = 0;
 
-        if (visible)
+        for (int i = 0; i < detailLevels.Length - 1; i++)
         {
-            int lodInd = 0;
-
-            for (int i = 0; i < detailLevels.Length - 1; i++)
-            {
-                if (closestDist > detailLevels[i].distanceThresh)
-                    lodInd = i + 1;
-                else
-                    break;
-            }
-
-            //Have to regenerate everytime because GPU can't store too many buffers
-            LODMesh lodMesh = LODMeshes[lodInd];
-            if (lodInd != prevLODInd || lodMesh.depreceated)
-            {
-                if (lodMesh.hasChunk && !lodMesh.depreceated)
-                    onChunkCreated(lodInd, lodMesh);
-                else if (!lodMesh.hasRequestedChunk)
-                {
-                    lodMesh.hasRequestedChunk = true;
-
-                    if (hasDensityMap)
-                        timeRequestQueue.Enqueue(() => lodMesh.ComputeChunk(ref storedDensity, ref storedMaterial, () => onChunkCreated(lodInd, lodMesh)), (int)Utils.priorities.generation);
-                    else
-                        timeRequestQueue.Enqueue(() => lodMesh.GetChunk(() => onChunkCreated(lodInd, lodMesh)), (int)priorities.generation);
-                }
-            }
-            lastUpdateChunks.Enqueue(this);
+            if (closestDist > detailLevels[i].distanceThresh)
+                lodInd = i + 1;
+            else
+                break;
         }
-        SetVisible(visible);
+
+        //Have to regenerate everytime because GPU can't store too many buffers
+        LODMesh lodMesh = LODMeshes[lodInd];
+        if (lodInd != prevLODInd || lodMesh.depreceated)
+        {
+            if (lodMesh.hasChunk && !lodMesh.depreceated)
+                onChunkCreated(lodInd, lodMesh);
+            else if (!lodMesh.hasRequestedChunk)
+            {
+                lodMesh.hasRequestedChunk = true;
+
+                if (hasDensityMap)
+                    timeRequestQueue.Enqueue(() => processEvent(() => lodMesh.ComputeChunk(ref storedDensity, ref storedMaterial, () => onChunkCreated(lodInd, lodMesh))), (int)Utils.priorities.generation);
+                else
+                    timeRequestQueue.Enqueue(() => processEvent(() => lodMesh.GetChunk(() => onChunkCreated(lodInd, lodMesh))), (int)priorities.generation);
+            }
+        }
+        lastUpdateTerrainChunks.Enqueue(this);
+    }
+
+    public void processEvent(Action callback)
+    {
+        if (!active)
+            return;
+        
+        callback();
     }
 
     public void onChunkCreated(int lodInd, LODMesh lodMesh)
@@ -195,7 +196,7 @@ public class TerrainChunk
         }
         
         if (lodMesh.depreceated) //was depreceated while chunk was regenerating
-            timeRequestQueue.Enqueue(Update, (int)Utils.priorities.generation);
+            timeRequestQueue.Enqueue(() => processEvent(Update), (int)Utils.priorities.generation);
         
     }
 
@@ -203,17 +204,27 @@ public class TerrainChunk
     {
         Vector3 distance = CCoord - CCCoord;
         bool visible = Mathf.Max(Mathf.Abs(distance.x), Mathf.Abs(distance.y), Mathf.Abs(distance.z)) <= maxRenderDistance;
-        SetVisible(visible);
+
+        if(!visible)
+            DestroyChunk();
     }
 
-    public void SetVisible(bool visible)
+    //We destroy the chunk to preserve RAM in both dictionary and scene
+    public void DestroyChunk()
     {
-        if (visible == meshObject.activeSelf)
+        if (!active)
             return;
-        meshObject.SetActive(visible);
+
+        active = false;
+
+        meshCreator.ReleasePersistantBuffers();
+        terrainChunkDict.Remove(CCoord);
+#if UNITY_EDITOR
+        GameObject.DestroyImmediate(meshObject);
+#else
+        GameObject.Destroy(meshObject);
+#endif
     }
-    
-    public bool isVisible() { return meshObject.activeSelf; }
 }
 
 public class LODMesh
@@ -253,11 +264,13 @@ public class LODMesh
     public void GetChunk(Action UpdateCallback)
     {
         meshCreator.GenerateDensity(surfaceData, this.position, LOD, mapChunkSize, IsoLevel);
-        meshCreator.GenerateStructures(this.CCoord, IsoLevel, LOD, mapChunkSize);
+        //meshCreator.GenerateStructures(this.CCoord, IsoLevel, LOD, mapChunkSize);
         meshCreator.GenerateMaterials(surfaceData, this.position, LOD, mapChunkSize);
+        meshCreator.GenerateStrucutresGPU(mapChunkSize, LOD, IsoLevel);
+
         this.chunkData = meshCreator.GenerateMapData(IsoLevel, LOD, mapChunkSize);
         this.specialMeshes = meshCreator.CreateSpecialMeshes(specialShaderData, chunkData.meshData);
-        meshCreator.ReleaseBuffers();
+        meshCreator.ReleaseTempBuffers();
 
         this.mesh = this.chunkData.GenerateMesh();
 
@@ -270,7 +283,7 @@ public class LODMesh
         meshCreator.SetMapInfo(LOD, mapChunkSize, density, material);
         this.chunkData = meshCreator.GenerateMapData(IsoLevel, LOD, mapChunkSize);
         this.specialMeshes = meshCreator.CreateSpecialMeshes(specialShaderData, chunkData.meshData);    
-        meshCreator.ReleaseBuffers();
+        meshCreator.ReleaseTempBuffers();
 
         this.mesh = this.chunkData.GenerateMesh();
 

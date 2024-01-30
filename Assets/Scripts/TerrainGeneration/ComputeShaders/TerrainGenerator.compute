@@ -1,6 +1,6 @@
 #pragma kernel GenerateFull
 
-#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.hlsl"//
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.hlsl"
 
 const static int numThreads = 8;
 const static int Epsilon = 0.0001;

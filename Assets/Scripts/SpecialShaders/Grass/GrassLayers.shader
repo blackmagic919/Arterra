@@ -78,7 +78,7 @@ Shader "Grass/GrassLayers" {
             // Signal this shader requires geometry function support
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
-            #pragma target 5.0
+            #pragma target 5.0  
 
             // Support all the various light types and shadow paths
             #pragma multi_compile_shadowcaster

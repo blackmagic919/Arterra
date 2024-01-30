@@ -9,14 +9,19 @@ public class SurfaceChunk
     
     public LODMap[] LODMaps;
     LODInfo[] detailLevels;
+    MapCreator mapCreator;
 
+    Vector2 SCoord;
     Vector2 position;
-    int prevLODInd = -1;
+    bool active = true;
+
     // Start is called before the first frame update
     public SurfaceChunk(MapCreator mapCreator, Vector2 coord, LODInfo[] detailLevels)
     {
+        this.SCoord = coord;
         this.position = (coord * mapChunkSize - Vector2.one * (mapChunkSize / 2f));
         this.detailLevels = detailLevels;
+        this.mapCreator = mapCreator;
 
         LODMaps = new LODMap[detailLevels.Length];
         for (int i = 0; i < detailLevels.Length; i++)
@@ -25,6 +30,12 @@ public class SurfaceChunk
         }
 
         CreateChunk(0, LODMaps[0]);
+        Update();
+    }
+
+    public void Update()
+    {
+        lastUpdateSurfaceChunks.Enqueue(this);
     }
 
     /*y
@@ -43,7 +54,6 @@ public class SurfaceChunk
     {
         if (lodMap.hasChunk)
         {
-            prevLODInd = lodInd;
             PropogateDetail(lodMap, lodInd+1);
         }
         else if (!lodMap.hasRequestedChunk)
@@ -65,15 +75,36 @@ public class SurfaceChunk
             timeRequestQueue.Enqueue(() => lodMap.SimplifyMap(baseLOD, () => PropogateDetail(baseLOD, lodInd + 1)), (int)priorities.planning);
     }
 
+    public void UpdateVisibility(Vector2 CSCoord, float maxRenderDistance)
+    {
+        Vector2 distance = SCoord - CSCoord;
+        bool visible = Mathf.Max(Mathf.Abs(distance.x), Mathf.Abs(distance.y)) <= maxRenderDistance;
+
+        if (!visible)
+            DestroyChunk();
+    }
+
+    public void DestroyChunk()
+    {
+        if (!active)
+            return;
+
+        active = false;
+
+        mapCreator.ReleasePersistantBuffers();
+
+        surfaceChunkDict.Remove(SCoord);
+    }
+
     public class LODMap
     {
         MapCreator mapCreator;
         NoiseMaps noiseMaps;
 
         //Return values--height map and squash map
-        public float[] heightMap = default;
-        public float[] squashMap = default;
-        public int[] biomeMap = default;
+        public ComputeBuffer heightMap = default;
+        public ComputeBuffer squashMap = default;
+        public ComputeBuffer biomeMap = default;
 
         public bool hasChunk = false;
         public bool hasRequestedChunk = false;
@@ -95,7 +126,7 @@ public class SurfaceChunk
             this.squashMap = mapCreator.GenerateSquashMap(mapChunkSize, LOD, position, out noiseMaps.squash);
             mapCreator.GetBiomeNoises(mapChunkSize, LOD, position, out noiseMaps.temperature, out noiseMaps.humidity);
             this.biomeMap = mapCreator.ConstructBiomes(mapChunkSize, LOD, ref noiseMaps);
-            mapCreator.ReleaseBuffers();
+            mapCreator.ReleaseTempBuffers();
 
             hasChunk = true;
             UpdateCallback();
@@ -103,9 +134,9 @@ public class SurfaceChunk
 
         public void SimplifyMap(LODMap highDetailMap, Action UpdateCallback)
         {
-            this.heightMap = mapCreator.SimplifyMap(highDetailMap.heightMap, highDetailMap.LOD, LOD, mapChunkSize);
-            this.squashMap = mapCreator.SimplifyMap(highDetailMap.squashMap, highDetailMap.LOD, LOD, mapChunkSize);
-            this.biomeMap = mapCreator.SimplifyMap(highDetailMap.biomeMap, highDetailMap.LOD, LOD, mapChunkSize);
+            this.heightMap = mapCreator.SimplifyMap(highDetailMap.heightMap, highDetailMap.LOD, LOD, mapChunkSize, true);
+            this.squashMap = mapCreator.SimplifyMap(highDetailMap.squashMap, highDetailMap.LOD, LOD, mapChunkSize, true);
+            this.biomeMap = mapCreator.SimplifyMap(highDetailMap.biomeMap, highDetailMap.LOD, LOD, mapChunkSize, false);
 
             hasChunk = true;
             UpdateCallback();
@@ -114,11 +145,11 @@ public class SurfaceChunk
 
     public struct NoiseMaps
     {
-        public float[] continental;
-        public float[] erosion;
-        public float[] pvNoise;
-        public float[] squash;
-        public float[] temperature;
-        public float[] humidity;
+        public ComputeBuffer continental;
+        public ComputeBuffer erosion;
+        public ComputeBuffer pvNoise;
+        public ComputeBuffer squash;
+        public ComputeBuffer temperature;
+        public ComputeBuffer humidity;
     }
 }

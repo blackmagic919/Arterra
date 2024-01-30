@@ -1,0 +1,40 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#pragma multi_compile _ USE_FLOAT
+
+uint indexFromCoord2D(uint x, uint y, uint numPointsPerAxis) {
+    return x * numPointsPerAxis + y;
+}
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+
+const static int numThreads = 8;
+
+#ifdef USE_FLOAT
+StructuredBuffer<float> source;
+RWStructuredBuffer<float> destination;
+#else
+StructuredBuffer<int> source;
+RWStructuredBuffer<int> destination;
+#endif
+
+uint destPointsPerAxis;
+uint destSkipInc;
+
+uint sourcePointsPerAxis;
+uint sourceSkipInc;
+
+[numthreads(numThreads,numThreads,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= destPointsPerAxis || id.y >= destPointsPerAxis)
+        return;
+
+    int destIndex = indexFromCoord2D(id.x, id.y, destPointsPerAxis);
+
+    int2 sourceCoords = (id.xy * destSkipInc) / sourceSkipInc;
+    int sourceIndex = indexFromCoord2D(sourceCoords.x, sourceCoords.y, sourcePointsPerAxis);
+
+    destination[destIndex] = source[sourceIndex];
+}

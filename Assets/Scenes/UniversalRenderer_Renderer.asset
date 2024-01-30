@@ -15,8 +15,9 @@ MonoBehaviour:
   debugShaders:
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7, type: 3}
     hdrDebugViewPS: {fileID: 4800000, guid: 573620ae32aec764abd4d728906d2587, type: 3}
-  m_RendererFeatures: []
-  m_RendererFeatureMap: 
+  m_RendererFeatures:
+  - {fileID: 5841424627466265696}
+  m_RendererFeatureMap: 606458debfe81051
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -55,3 +56,29 @@ MonoBehaviour:
   m_CopyDepthMode: 1
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 1
+--- !u!114 &5841424627466265696
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec125bd958bc94d5ab0c8080aa7f5605, type: 3}
+  m_Name: TemplateFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  passSettings:
+    renderPassEvent: 550
+    downsample: 1
+    scatteringCoeffs: {x: 0.05, y: 0.1, z: 0.2}
+    atmosphereRadius: 1500
+    planetRadius: 100
+    surfaceOffset: 1200
+    densityFalloffFactor: 1
+    extinctionFactor: 0.2
+    inScatterPoints: 50
+    opticalDepthPoints: 5
+    RaySetupCompute: {fileID: 7200000, guid: cf65ba6c79c1c4a41b120f79fc902a6a, type: 3}
+    InScatteringCompute: {fileID: 7200000, guid: 87a7f9612fb7f472182d8e179ec95696, type: 3}

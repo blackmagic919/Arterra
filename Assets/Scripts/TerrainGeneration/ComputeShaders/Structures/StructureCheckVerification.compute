@@ -1,0 +1,33 @@
+#pragma kernel CSMain
+
+const static int numThreads = 8;
+
+struct check{
+    uint index;
+    float3 position;
+    uint value;
+};
+
+StructuredBuffer<uint> numPoints;
+StructuredBuffer<check> checks;
+StructuredBuffer<float> density;
+float IsoValue;
+
+RWStructuredBuffer<bool> validity;
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numPoints[0])
+        return;
+
+    check curCheck = checks[id.x];
+    bool isUnderground = density[id.x] >= IsoValue;
+    bool checkUnderground = curCheck.value != 0;
+
+    //Because we only set it to false, it doesn't matter which thread actually passes
+    //So even though multiple threads may edit the same value, it will innevitably be false
+    //Thread confliction doesn't matter :D
+    if(isUnderground != checkUnderground)
+        validity[curCheck.index] = false;
+}

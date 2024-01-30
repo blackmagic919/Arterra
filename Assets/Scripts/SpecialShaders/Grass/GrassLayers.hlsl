@@ -115,7 +115,7 @@ half4 Fragment(VertexOutput input) : SV_Target {
 
     clip(_DistortionClip-influence);
 
-    uv = uv + distortionFactor*height;
+    uv = uv + distortionFactor * height;
 
     // Calculate wind
     // Get the wind noise texture uv by applying scale and offset and then adding a time offset

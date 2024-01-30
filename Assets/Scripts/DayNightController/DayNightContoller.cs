@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEditor;
-using AtmosphericHeightFog;
 
 public class DayNightContoller : MonoBehaviour
 {
@@ -24,29 +23,21 @@ public class DayNightContoller : MonoBehaviour
     [SerializeField]
     private Light Sun;
     [SerializeField]
-    private AnimationCurve sunLightIntensityCurve;
+    private AnimationCurve sunIntensityCurve;
     [SerializeField]
     private float maxSunIntensity;
 
     [SerializeField]
     private Light Moon;
     [SerializeField]
-    private AnimationCurve moonLightIntensityCurve;
+    private AnimationCurve moonIntensityCurve;
     [SerializeField]
     private float maxMoonIntensity;
-
-    [SerializeField]
-    private HeightFogGlobal fogController;
-
-    [SerializeField]
-    private AnimationCurve fogSettingsCurve;
 
     private DateTime currentTime;
 
     private TimeSpan sunriseTime;
     private TimeSpan sunsetTime;
-
-    private bool isDay;
 
     // Start is called before the first frame update
     void Start()
@@ -83,9 +74,8 @@ public class DayNightContoller : MonoBehaviour
 
     private void UpdateLightSettings(float progress)
     {
-        Sun.intensity = Mathf.Lerp(0, maxSunIntensity, sunLightIntensityCurve.Evaluate(progress));
-        Moon.intensity = Mathf.Lerp(0, maxMoonIntensity, moonLightIntensityCurve.Evaluate(progress));
-        fogController.timeOfDay = Mathf.Clamp(fogSettingsCurve.Evaluate(progress), 0, 1);
+        Sun.intensity = Mathf.Lerp(0, maxSunIntensity, sunIntensityCurve.Evaluate(progress));
+        Moon.intensity = Mathf.Lerp(0, maxMoonIntensity, moonIntensityCurve.Evaluate(progress));
     }
 
     

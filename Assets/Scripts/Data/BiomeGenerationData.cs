@@ -12,12 +12,21 @@ public class BiomeGenerationData : UpdatableData
     [HideInInspector]
     public BiomeDictionary dictionary;
     public int StructureChecksPerChunk;
+    [Range(1, 5)]
+    public float LoDFalloff;
+    public int maxLoD;
 
+    ComputeBuffer biomeRTreeBuffer;
     ComputeBuffer biomeMatCountBuffer;
     ComputeBuffer materialPrefBuffer;
     ComputeBuffer materialVertPrefBuffer;
     ComputeBuffer materialIndexBuffer;
 
+    ComputeBuffer biomeStructBuffer;
+    ComputeBuffer structVertPrefBuffer;
+    ComputeBuffer structFrequencyBuffer;
+    ComputeBuffer structIndexBuffer;
+    //
     protected override void OnValidate()
     {
         if (biomes == null || biomes.Count == 0)
@@ -29,32 +38,45 @@ public class BiomeGenerationData : UpdatableData
 
     private void OnEnable()
     {
-        SetBiomeMaterialData();
+        SetGlobalBuffers();
     }
 
     void OnDisable()
     {
+        biomeRTreeBuffer?.Release();
         biomeMatCountBuffer?.Release();
         materialPrefBuffer?.Release();
         materialVertPrefBuffer?.Release();
         materialIndexBuffer?.Release();
+
+        biomeStructBuffer?.Release();
+        structVertPrefBuffer?.Release();
+        structFrequencyBuffer?.Release();
+        structIndexBuffer?.Release();
     }
 
-    void SetBiomeMaterialData()
+    void SetGlobalBuffers()
     {
+        
         int numBiomes = biomes.Count;
         uint[] biomeMatCount = new uint[numBiomes + 1]; //Prefix sum
         List<Vector2> matPrefList = new List<Vector2>();
-        List<BiomeInfo.DensityFunc> densityFuncs = new List<BiomeInfo.DensityFunc>();
+        List<BiomeInfo.DensityFunc> densityFuncsMat = new List<BiomeInfo.DensityFunc>();
         List<uint> materialIndexes = new List<uint>();
 
         for (int i = 0; i < numBiomes; i++)
         {
             biomeMatCount[i+1] = (uint)biomes[i].info.Materials.Count + biomeMatCount[i];
             matPrefList.AddRange(biomes[i].info.Materials.Select((e) => new Vector2(e.genNoiseSize, e.genNoiseShape)));
-            densityFuncs.AddRange(biomes[i].info.Materials.Select((e) => e.VerticalPreference));
+            densityFuncsMat.AddRange(biomes[i].info.Materials.Select((e) => e.VerticalPreference));
             materialIndexes.AddRange(biomes[i].info.Materials.Select((e) => (uint)e.materialIndex));
         }
+
+        int numNodes = dictionary.GetTreeSize();
+        BiomeDictionary.RNodeFlat[] RTree = dictionary.FlattenTree();
+
+        biomeRTreeBuffer = new ComputeBuffer(numNodes, (sizeof(float) * 6) * 2 + sizeof(int), ComputeBufferType.Structured);
+        biomeRTreeBuffer.SetData(RTree);
 
         biomeMatCountBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint), ComputeBufferType.Structured);
         biomeMatCountBuffer.SetData(biomeMatCount);
@@ -62,25 +84,57 @@ public class BiomeGenerationData : UpdatableData
         materialPrefBuffer = new ComputeBuffer(matPrefList.Count, sizeof(float) * 2, ComputeBufferType.Structured);
         materialPrefBuffer.SetData(matPrefList);
 
-        materialVertPrefBuffer = new ComputeBuffer(densityFuncs.Count, sizeof(int) * 3 + sizeof(float) * 2, ComputeBufferType.Structured);
-        materialVertPrefBuffer.SetData(densityFuncs);
+        materialVertPrefBuffer = new ComputeBuffer(densityFuncsMat.Count, sizeof(int) * 3 + sizeof(float) * 2, ComputeBufferType.Structured);
+        materialVertPrefBuffer.SetData(densityFuncsMat);
 
         materialIndexBuffer = new ComputeBuffer(materialIndexes.Count, sizeof(uint), ComputeBufferType.Structured);
         materialIndexBuffer.SetData(materialIndexes);
 
+        Shader.SetGlobalBuffer("_BiomeRTree", biomeRTreeBuffer);
         Shader.SetGlobalBuffer("_BiomeMaterialCount", biomeMatCountBuffer);
         Shader.SetGlobalBuffer("_BiomeMaterialNoisePref", materialPrefBuffer);
         Shader.SetGlobalBuffer("_BiomeMaterialVerticalPref", materialVertPrefBuffer);
         Shader.SetGlobalBuffer("_BiomeMaterialIndexBuffer", materialIndexBuffer);
+
+        uint[] biomeStructCount = new uint[numBiomes + 1]; 
+        List<BiomeInfo.DensityFunc> densityFuncsStruct = new List<BiomeInfo.DensityFunc>();
+        List<float> generationFrequency = new List<float>();
+        List<uint> structureIndices = new List<uint>();
+        for (int i = 0; i < numBiomes; i++)
+        {
+            biomeStructCount[i+1] = (uint)biomes[i].info.Structures.Count + biomeStructCount[i];
+            densityFuncsStruct.AddRange(biomes[i].info.Structures.Select((e) => e.VerticalPreference));
+            generationFrequency.AddRange(biomes[i].info.Structures.Select((e) => e.ChancePerStructurePoint));
+            structureIndices.AddRange(biomes[i].info.Structures.Select((e) => e.structureIndex));
+        }
+
+        biomeStructBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint), ComputeBufferType.Structured);
+        biomeStructBuffer.SetData(biomeStructCount);
+
+        structVertPrefBuffer = new ComputeBuffer(densityFuncsStruct.Count, sizeof(int) * 3 + sizeof(float) * 2, ComputeBufferType.Structured);
+        structVertPrefBuffer.SetData(densityFuncsStruct);
+
+        structFrequencyBuffer = new ComputeBuffer(generationFrequency.Count, sizeof(float), ComputeBufferType.Structured);
+        structFrequencyBuffer.SetData(generationFrequency);
+
+        structIndexBuffer = new ComputeBuffer(structureIndices.Count, sizeof(uint), ComputeBufferType.Structured);
+        structIndexBuffer.SetData(structureIndices);
+
+        Shader.SetGlobalBuffer("_BiomeStructurePrefix", biomeStructBuffer);
+        Shader.SetGlobalBuffer("_BiomeStructureVerticalPref", structVertPrefBuffer);
+        Shader.SetGlobalBuffer("_BiomeStructureFrequency", structFrequencyBuffer);
+        Shader.SetGlobalBuffer("_BiomeStructureIndex", structIndexBuffer);
     }
 }
-
+//
 [System.Serializable]
 public class Biome
 {
     public BiomeConditionsData conditions;
     public BiomeInfo info;
 }
+
+
 
 public class BiomeDictionary
 {
@@ -98,6 +152,77 @@ public class BiomeDictionary
     {
         List<RNode> leaves = InitializeBiomeRegions(biomes);
         _rTree = ConstructRTree(leaves);
+    }
+
+    public RNodeFlat[] FlattenTree()
+    {
+        int treeSize = GetTreeSize();
+
+        RNodeFlat[] flattenedNodes = new RNodeFlat[treeSize];
+        Queue<RNode> treeNodes = new Queue<RNode>();
+        treeNodes.Enqueue(_rTree);
+
+        for(int i = 0; i < treeSize; i++)
+        {
+            RNode cur = treeNodes.Dequeue();
+
+            flattenedNodes[i] = new RNodeFlat(cur);
+
+            if (cur.GetType() == typeof(LeafNode)) { 
+                flattenedNodes[i].biome = ((LeafNode)cur).biome;
+                continue;//
+            }
+
+            BranchNode branch = (BranchNode)cur;
+            treeNodes.Enqueue(branch.childOne);
+            treeNodes.Enqueue(branch.childTwo);
+        }
+
+        return flattenedNodes;
+        //Based on the nature of queues, it will be filled exactly in order of the array
+    }
+    //
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    public struct RNodeFlat
+    {
+        //Unfortunately, can't use fixed float minCond[6] because unsafe
+        //However, this can be redefined into float[6] because it's sequential
+        public Vector3 min1;
+        public Vector3 min2;
+        public Vector3 max1;
+        public Vector3 max2;
+        public int biome; 
+
+        public RNodeFlat(RNode rNode)
+        {
+
+            min1 = new(rNode.bounds.minCorner[0], rNode.bounds.minCorner[1], rNode.bounds.minCorner[2]);
+            min2 = new(rNode.bounds.minCorner[3], rNode.bounds.minCorner[4], rNode.bounds.minCorner[5]);
+            max1 = new(rNode.bounds.maxCorner[0], rNode.bounds.maxCorner[1], rNode.bounds.maxCorner[2]);
+            max2 = new(rNode.bounds.maxCorner[3], rNode.bounds.maxCorner[4], rNode.bounds.maxCorner[5]);
+
+            biome = -1;
+        }
+    }
+
+    public int GetTreeSize()
+    {
+        Queue<RNode> treeNodes = new Queue<RNode>();
+        treeNodes.Enqueue(_rTree);
+        int treeSize = 0;
+        while (treeNodes.Count != 0)
+        {
+            RNode cur = treeNodes.Dequeue();
+            treeSize++;
+
+            if (cur.GetType() == typeof(LeafNode))
+                continue;
+
+            BranchNode branch = (BranchNode)cur;
+            treeNodes.Enqueue(branch.childOne);
+            treeNodes.Enqueue(branch.childTwo);
+        }
+        return treeSize;
     }
 
     LeafNode QueryNode(RNode node, ref float[] point)
@@ -195,18 +320,18 @@ public class BiomeDictionary
         return true;
     }
 
-    abstract class RNode
+    public abstract class RNode
     {
         public regionBound bounds;
     }
 
-    class BranchNode : RNode
+    public class BranchNode : RNode
     {
         public RNode childOne; //compiles both leaf and branch nodes
         public RNode childTwo;
     }
 
-    class LeafNode : RNode
+    public class LeafNode : RNode
     {
         public int biome;
 
@@ -217,7 +342,7 @@ public class BiomeDictionary
         }
     }
 
-    struct regionBound
+    public struct regionBound
     {
         public float[] maxCorner;
         public float[] minCorner;

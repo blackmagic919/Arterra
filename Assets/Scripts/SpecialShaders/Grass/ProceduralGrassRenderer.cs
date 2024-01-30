@@ -33,6 +33,7 @@ public class ProceduralGrassRenderer : SpecialShader
     private Material instantiatedMaterial;
 
 
+
     private int idGrassKernel;
     private int idTriToVertKernel;
     private int dispatchSize;

@@ -1,0 +1,90 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Compute
+#pragma multi_compile _ INDIRECT
+
+const static int numThreads = 8;
+
+struct RNode{
+    float minCorner[6];
+    float maxCorner[6];
+    int biome;
+};
+
+
+StructuredBuffer<RNode> _BiomeRTree;
+
+StructuredBuffer<float> continental;
+StructuredBuffer<float> erosion;
+StructuredBuffer<float> peaksValleys;
+StructuredBuffer<float> squash;
+StructuredBuffer<float> temperature;
+StructuredBuffer<float> humidity;
+
+RWStructuredBuffer<int> biomeMap;
+
+#ifdef INDIRECT
+StructuredBuffer<uint> numOfPoints;
+#else
+uint numOfPoints;
+#endif
+
+bool contains(RNode node, uint pointIndex){
+
+    float mapData[6] = {continental[pointIndex], erosion[pointIndex], peaksValleys[pointIndex],
+                        squash[pointIndex], temperature[pointIndex], humidity[pointIndex]};
+
+    for (int i = 0; i < 6; i++)
+    {
+        if (mapData[i] < node.minCorner[i] || mapData[i] > node.maxCorner[i])
+            return false;
+    }
+    return true;
+}
+
+//No recursion
+int getBiome(uint dataIndex){
+
+    uint curInd = 1;
+    uint checkedChild = 0; //0<-unvisited, 1<-visited first child, 2 <- fully visited
+
+    //    if not found     if biome is found
+    while(curInd > 0 && _BiomeRTree[curInd-1].biome == -1){
+
+        if(checkedChild == 2){
+            checkedChild = curInd % 2 + 1;
+            curInd = floor(curInd / 2);
+        }
+        else if(checkedChild == 0){
+            if(contains(_BiomeRTree[curInd * 2 - 1], dataIndex)){
+                curInd = curInd * 2;
+                checkedChild = 0;
+            }
+            else
+                checkedChild = 1;
+        }
+        else{
+            if(contains(_BiomeRTree[curInd * 2], dataIndex)){
+                curInd = curInd * 2 + 1;
+                checkedChild = 0;
+            }
+            else
+                checkedChild = 2;
+        }
+    }
+
+    return (curInd == 0) ? 0 : _BiomeRTree[curInd-1].biome;
+}
+
+[numthreads(numThreads,1,1)]
+void Compute (uint3 id : SV_DispatchThreadID)
+{
+#ifdef INDIRECT
+    if (id.x >= numOfPoints[0])
+        return;
+#else
+    if (id.x >= numOfPoints)
+        return;
+#endif
+
+    biomeMap[id.x] = getBiome(id.x);
+}

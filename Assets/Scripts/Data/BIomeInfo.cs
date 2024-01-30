@@ -41,6 +41,9 @@ public class BiomeInfo : UpdatableData
         for (int i = 1; i <= Structures.Count; i++) {
             _StucturePrefixSum[i] = _StucturePrefixSum[i-1] + Structures[i-1].ChancePerStructurePoint;
         }
+
+        Structures.Sort((a, b) => a.structureSettings.minimumLOD.CompareTo(b.structureSettings.minimumLOD));
+        //Always sorted smallest to biggest to use bin search
     }
 
 
@@ -90,11 +93,15 @@ public class BiomeInfo : UpdatableData
     [System.Serializable]
     public class TerrainStructure
     {
-        [Range(0, 1)]
         [Tooltip("Cumulative chance for structure point to turn into this structure")]
-        public float ChancePerStructurePoint = 0;
         public DensityFunc VerticalPreference;
+
+        [Range(0, 1)]
+        public float ChancePerStructurePoint = 0;
+        public uint structureIndex;
+
         public StructureData structureData;
+        public StructureSettings structureSettings;
     }
 
 

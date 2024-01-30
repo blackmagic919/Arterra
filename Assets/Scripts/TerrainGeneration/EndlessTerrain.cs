@@ -23,7 +23,7 @@ public class EndlessTerrain : MonoBehaviour
     public Transform viewer;
     //Pause Viewer until terrain is generated
     public RigidbodyFirstPersonController viewerRigidBody;
-    public float genTimePerFrameMs;
+    public int actionsPerFrame = 50;
     public static Vector3 viewerPosition;
     Vector3 oldViewerPos = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
     public bool viewerActive = false;
@@ -36,15 +36,18 @@ public class EndlessTerrain : MonoBehaviour
     public BiomeInfo GenerationData;
     public BiomeGenerationData biomeData;
     public TextureData texData;
+    public StructureGenerationData structData;
     public List<SpecialShaderData> specialShaders;
     //Ideally specialShaders should be in materialData, but can't compile monobehavior in an asset 
 
     
-    public static Queue<TerrainChunk> lastUpdateChunks = new Queue<TerrainChunk>();
+    public static Queue<TerrainChunk> lastUpdateTerrainChunks = new Queue<TerrainChunk>();
+    public static Queue<SurfaceChunk> lastUpdateSurfaceChunks = new Queue<SurfaceChunk>();
+
     public static PriorityQueue<Action, int> timeRequestQueue = new PriorityQueue<Action, int>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
 
-    Dictionary<Vector3, TerrainChunk> terrainChunkDict = new Dictionary<Vector3, TerrainChunk>();
-    Dictionary<Vector2, SurfaceChunk> surfaceChunkDict = new Dictionary<Vector2, SurfaceChunk>();
+    public static Dictionary<Vector3, TerrainChunk> terrainChunkDict = new Dictionary<Vector3, TerrainChunk>();
+    public static Dictionary<Vector2, SurfaceChunk> surfaceChunkDict = new Dictionary<Vector2, SurfaceChunk>();
 
 
     void Start()
@@ -80,9 +83,7 @@ public class EndlessTerrain : MonoBehaviour
 
     void StartGeneration()
     {
-        float startTime = Time.realtimeSinceStartup * 1000f;
-        float endTime = startTime + genTimePerFrameMs;
-        while (Time.realtimeSinceStartup * 1000f < endTime)
+        for(int i = 0; i < actionsPerFrame; i++)
         {
             if (!timeRequestQueue.TryDequeue(out Action action, out int priority))
                 return;
@@ -101,9 +102,13 @@ public class EndlessTerrain : MonoBehaviour
         Vector3 CCCoord = new Vector3(CCCoordX, CCCoordY, CCCoordZ);
         Vector2 CSCoord = new Vector2(CCCoordX, CCCoordZ);
 
-        while (lastUpdateChunks.Count > 0)
+        while (lastUpdateTerrainChunks.Count > 0)
         {
-            lastUpdateChunks.Dequeue().UpdateVisibility(CCCoord, chunksVisibleInViewDistance);
+            lastUpdateTerrainChunks.Dequeue().UpdateVisibility(CCCoord, chunksVisibleInViewDistance);
+        }
+        while (lastUpdateSurfaceChunks.Count > 0)
+        {
+            lastUpdateSurfaceChunks.Dequeue().UpdateVisibility(CSCoord, chunksVisibleInViewDistance);
         }
 
         for (int xOffset = -chunksVisibleInViewDistance; xOffset <= chunksVisibleInViewDistance; xOffset++)
@@ -112,8 +117,11 @@ public class EndlessTerrain : MonoBehaviour
             {
                 Vector3 viewedSC = new Vector2(xOffset, zOffset) + CSCoord;
                 SurfaceChunk curSChunk;
-                if (!surfaceChunkDict.TryGetValue(viewedSC, out curSChunk)) { 
-                    curSChunk = new SurfaceChunk(mapCreator, viewedSC, detailLevels);
+                if (surfaceChunkDict.TryGetValue(viewedSC, out curSChunk)) {
+                    curSChunk.Update();
+                }
+                else {
+                    curSChunk = new SurfaceChunk(Instantiate(mapCreator), viewedSC, detailLevels);
                     surfaceChunkDict.Add(viewedSC, curSChunk);
                 }
 
@@ -125,7 +133,7 @@ public class EndlessTerrain : MonoBehaviour
                         TerrainChunk curChunk = terrainChunkDict[viewedCC];
                         curChunk.Update();
                     } else {
-                        terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, IsoLevel, transform, specialShaders, curSChunk, meshCreator, mapMaterial, detailLevels));
+                        terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, IsoLevel, transform, specialShaders, curSChunk, Instantiate(meshCreator), mapMaterial, detailLevels));
                     }
                 }
             }

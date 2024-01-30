@@ -47,6 +47,7 @@ public class TextureData : UpdatableData
         return textureArray;
     }
 
+
     protected override void OnValidate()
     {
         ApplyToMaterial();

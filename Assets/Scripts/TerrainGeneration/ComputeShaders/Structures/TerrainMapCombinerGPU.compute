@@ -1,0 +1,24 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CombineDetails
+
+const static int numThreads = 8;
+
+RWStructuredBuffer<float> continental;
+RWStructuredBuffer<float> erosion;
+RWStructuredBuffer<float> peaksValleys;
+RWStructuredBuffer<float> Result;
+StructuredBuffer<uint> numOfPoints;
+float heightOffset;
+
+[numthreads(numThreads,1,1)]
+void CombineDetails (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numOfPoints[0])
+        return;
+
+    float continentalness = continental[id.x];
+    float erosionFactor = erosion[id.x];
+    float PVDetail = peaksValleys[id.x];
+
+    Result[id.x] = continentalness + erosionFactor * PVDetail + heightOffset;
+}

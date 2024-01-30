@@ -59,15 +59,14 @@ float interpolateValue(float value){
         ret = lerp(l1, l2, progress);
     }
     return ret;
-    //
 }
 
-float GetRawNoise(uint3 id){
+float GetRawNoise(int3 id){
     float center = chunkSize / 2;
 
-    uint x = id.x * meshSkipInc;
-    uint y = id.y * meshSkipInc;
-    uint z = id.z * meshSkipInc;
+    int x = id.x * meshSkipInc;
+    int y = id.y * meshSkipInc;
+    int z = id.z * meshSkipInc;
 
     float amplitude = 1;
     float frequency = 1;
@@ -90,6 +89,12 @@ float GetRawNoise(uint3 id){
     //float smoothNoise = invLerp(-maxPossibleHeight, maxPossibleHeight, noiseHeight);
     return smoothNoise;
 }
+
+float GetRawNoise(float3 id){
+    //Implicit conversion eliminates decimal
+    return GetRawNoise(int3(floor(id.x), floor(id.y), floor(id.z)));
+}
+
 
 float GetNoise(uint3 id) {
     float rawNoise = GetRawNoise(id);

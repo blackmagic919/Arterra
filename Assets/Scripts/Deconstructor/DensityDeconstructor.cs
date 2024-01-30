@@ -178,23 +178,25 @@ public class DensityDeconstructor : MonoBehaviour
 
     public void SaveData()
     {
-        StructureData obj = ScriptableObject.CreateInstance<StructureData>();
+        StructureData data = ScriptableObject.CreateInstance<StructureData>();
+        StructureSettings settings = ScriptableObject.CreateInstance<StructureSettings>();
 
-        obj.sizeX = density.GetLength(0);
-        obj.sizeY = density.GetLength(1);
-        obj.sizeZ = density.GetLength(2);
+        settings.sizeX = density.GetLength(0);
+        settings.sizeY = density.GetLength(1);
+        settings.sizeZ = density.GetLength(2);
 
-        obj.density = obj.Flatten(density);
-        obj.materials = obj.Flatten(materials);
+        data.density = data.Flatten(density, settings.sizeX, settings.sizeY, settings.sizeZ);
+        data.materials = data.Flatten(materials, settings.sizeX, settings.sizeY, settings.sizeZ);
 
         Bounds bounds = boxRenderer.bounds;
         Vector3 center = bounds.center;
         Vector3 extents = bounds.extents;
 
         Vector3 origin = center - extents;
-        obj.SetChecks(CheckPoints.Select(e => (e.transform.position - origin)/ skipIncrementWS).ToArray(), CheckPoints.Select(e => e.isUnderGround).ToArray());
+        data.SetChecks(CheckPoints.Select(e => (e.transform.position - origin)/ skipIncrementWS).ToArray(), CheckPoints.Select(e => e.isUnderGround).ToArray());
 
-        AssetDatabase.CreateAsset(obj, "Assets/" + savePath + "/Saved_Data.asset");
+        AssetDatabase.CreateAsset(data, "Assets/" + savePath + "/Saved_Data.asset");
+        AssetDatabase.CreateAsset(settings, "Assets/" + savePath + "/Saved_Settings.asset");
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
     }
