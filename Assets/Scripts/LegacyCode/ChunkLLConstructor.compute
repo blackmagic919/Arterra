@@ -1,0 +1,27 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+const static uint numThreads = 8;
+const static uint _ChunkTagStride4Bytes = 2;
+const static uint _SectionTagStride4Bytes = 1;
+
+RWStructuredBuffer<uint> _SectionedMemory;
+
+uint chunkStride4Bytes;
+uint numChunks;
+uint sectionAddress;
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numChunks)
+        return;
+
+    //Construct Linked List
+    uint chunkAddress = id.x * (chunkStride4Bytes + _ChunkTagStride4Bytes) + _ChunkTagStride4Bytes;
+    uint prevChunkAddress = max((int)id.x - 1, 0) * (chunkStride4Bytes + _ChunkTagStride4Bytes) + _ChunkTagStride4Bytes;
+    uint nextChunkAddress = min((int)id.x + 1, numChunks-1) * (chunkStride4Bytes + _ChunkTagStride4Bytes) + _ChunkTagStride4Bytes;
+
+    _SectionedMemory[chunkAddress - 2] = prevChunkAddress + sectionAddress + _SectionTagStride4Bytes;
+    _SectionedMemory[chunkAddress - 1] = nextChunkAddress + sectionAddress + _SectionTagStride4Bytes;
+}

@@ -26,5 +26,8 @@ MonoBehaviour:
   checkVerification: {fileID: 7200000, guid: 341e97b72a9f1475b9aabdf63ba6d5eb, type: 3}
   structureCheckFilter: {fileID: 7200000, guid: 3dbc6cc40af45430f8cd39332386f264, type: 3}
   structureChunkGenerator: {fileID: 7200000, guid: 3cb6a1ec7652247c38b37b70e7a96e89, type: 3}
+  structureDataTranscriber: {fileID: 7200000, guid: 792fc8bf7a9874a4ab66448406103fb7, type: 3}
+  structureMemorySize: {fileID: 7200000, guid: 0b4d7e22a463a4bcdaa7c547c45ab3ca, type: 3}
   indirectThreads: {fileID: 7200000, guid: 582dc85c3053340088287291ce32e33d, type: 3}
+  indirectCountToArgs: {fileID: 7200000, guid: 1e85a0e13a78943b980e1b2e477ffb49, type: 3}
   indirectMapInitialize: {fileID: 7200000, guid: c7da4ef886598435a9e31e4fd8efce98, type: 3}

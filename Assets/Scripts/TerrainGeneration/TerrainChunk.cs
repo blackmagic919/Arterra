@@ -18,9 +18,10 @@ public class TerrainChunk
     MeshFilter meshFilter;
     MeshCollider meshCollider;
     MeshCreator meshCreator;
-    SpecialShaderData[] shaders;
+    ShaderGenerator geoShaders;
+    AsyncMeshReadback meshReadback;
 
-    readonly LODMesh[] LODMeshes;
+    readonly LODMesh LODMeshHandle;
     readonly LODInfo[] detailLevels;
 
     float[] storedDensity = null;
@@ -31,15 +32,14 @@ public class TerrainChunk
     float IsoLevel;
     int prevLODInd = -1;
 
-    public TerrainChunk(Vector3 coord, float IsoLevel, Transform parent, List<SpecialShaderData> specialShaders,
-                        SurfaceChunk surfaceChunk, MeshCreator meshCreator, Material material, LODInfo[] detailLevels)
+    public TerrainChunk(Vector3 coord, float IsoLevel, Transform parent, SurfaceChunk surfaceChunk,  LODInfo[] detailLevels, GenerationResources generation)
     {
         CCoord = coord;
         position = (coord * mapChunkSize - Vector3.one * (mapChunkSize / 2f)); //Shift mesh so it is aligned with center
         bounds = new Bounds(position, Vector3.one * mapChunkSize);  
         this.IsoLevel = IsoLevel;
         this.detailLevels = detailLevels;
-        this.meshCreator = meshCreator;
+        this.meshCreator = UnityEngine.Object.Instantiate(generation.meshCreator);
 
         meshObject = new GameObject("Terrain Chunk");
         meshObject.transform.position = position * lerpScale;
@@ -49,37 +49,25 @@ public class TerrainChunk
         meshFilter = meshObject.AddComponent<MeshFilter>();
         meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshCollider = meshObject.AddComponent<MeshCollider>();
-        meshRenderer.material = material;
+        geoShaders = meshObject.AddComponent<ShaderGenerator>();
+        meshReadback = meshObject.AddComponent<AsyncMeshReadback>();
+        meshRenderer.material = generation.mapMaterial;
 
-        shaders = new SpecialShaderData[specialShaders.Count];
-        for(int i = 0; i < specialShaders.Count; i++)
-        {
-            SpecialShaderData shaderData = specialShaders[i];
-            SpecialShaderData instantiatedShaderData = new SpecialShaderData(shaderData);
+        Bounds boundsOS = new Bounds(Vector3.one * (mapChunkSize / 2), Vector3.one * mapChunkSize);
+        geoShaders.Initialize(generation.geoSettings, boundsOS);
+        meshReadback.Initialize(generation.readbackSettings, boundsOS, new MeshFilter[] {meshFilter});
 
-            instantiatedShaderData.shader = meshObject.AddComponent(shaderData.shader.GetType()) as SpecialShader;
-            instantiatedShaderData.shader.SetSettings(shaderData.settings);
-
-            shaders[i] = instantiatedShaderData;
-        }
-
-        LODMeshes = new LODMesh[detailLevels.Length];
-        for (int i = 0; i < detailLevels.Length; i++)
-        {
-            SpecialShaderData[] specialMaterialIndexes = specialShaders.Where((e) => i <= e.detailLevel).ToArray();
-            LODMeshes[i] = new LODMesh(meshCreator, specialMaterialIndexes, surfaceChunk.LODMaps[i], detailLevels[i].LOD, this.position, CCoord, IsoLevel);
-        }
+        LODMeshHandle = new LODMesh(meshCreator, this.geoShaders, meshReadback, generation.densityDict, surfaceChunk.baseMap, detailLevels, this.position, this.CCoord, IsoLevel);
         
         //Plan Structures
         timeRequestQueue.Enqueue(() => processEvent(() => meshCreator.PlanStructuresGPU(this.CCoord, this.position, mapChunkSize, IsoLevel)), (int)Utils.priorities.structure);
-        //timeRequestQueue.Enqueue(() => processEvent(() => meshCreator.PlanStructures(surfaceChunk.LODMaps[0], this.CCoord, this.position, mapChunkSize, IsoLevel)), (int)Utils.priorities.structure);
 
         Update();
     }
 
     public void TerraformChunk(Vector3 targetPosition, float terraformRadius, Func<Vector2, float, Vector2> handleTerraform)
     {
-        SurfaceChunk.LODMap maxSurfaceData = LODMeshes[0].surfaceData;
+        SurfaceChunk.SurfaceMap maxSurfaceData = LODMeshHandle.surfaceMap.surfaceMap;
         if (!hasDensityMap)
         {
             (storedDensity, storedMaterial) = meshCreator.GetChunkInfo(maxSurfaceData, this.position, this.CCoord, IsoLevel, mapChunkSize);
@@ -111,7 +99,6 @@ public class TerrainChunk
                     Vector3 dR = new Vector3(vertPosition.x, vertPosition.y, vertPosition.z) - targetPointLocal;
                     float sqrDistWS = worldScale * (dR.x * dR.x + dR.y * dR.y + dR.z * dR.z);
 
-
                     float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
 
                     Vector2 ret = handleTerraform(new Vector2(storedMaterial[index], storedDensity[index]), brushStrength);
@@ -122,11 +109,7 @@ public class TerrainChunk
         }
 
 
-        foreach (LODMesh mesh in LODMeshes)
-        {
-            mesh.depreceated = true;
-        }
-
+        LODMeshHandle.depreceated = true;
         Update();
     }
 
@@ -146,19 +129,17 @@ public class TerrainChunk
         }
 
         //Have to regenerate everytime because GPU can't store too many buffers
-        LODMesh lodMesh = LODMeshes[lodInd];
-        if (lodInd != prevLODInd || lodMesh.depreceated)
+        if (lodInd != prevLODInd || LODMeshHandle.depreceated)
         {
-            if (lodMesh.hasChunk && !lodMesh.depreceated)
-                onChunkCreated(lodInd, lodMesh);
-            else if (!lodMesh.hasRequestedChunk)
+            if (!LODMeshHandle.hasRequestedChunk)
             {
-                lodMesh.hasRequestedChunk = true;
+                LODMeshHandle.hasRequestedChunk = true;
 
                 if (hasDensityMap)
-                    timeRequestQueue.Enqueue(() => processEvent(() => lodMesh.ComputeChunk(ref storedDensity, ref storedMaterial, () => onChunkCreated(lodInd, lodMesh))), (int)Utils.priorities.generation);
-                else
-                    timeRequestQueue.Enqueue(() => processEvent(() => lodMesh.GetChunk(() => onChunkCreated(lodInd, lodMesh))), (int)priorities.generation);
+                    timeRequestQueue.Enqueue(() => processEvent(() => LODMeshHandle.ComputeChunk(lodInd, ref storedDensity, ref storedMaterial, () => onChunkCreated(lodInd))), (int)Utils.priorities.generation);
+                else { 
+                    timeRequestQueue.Enqueue(() => processEvent(() => LODMeshHandle.GetChunk(lodInd, () => onChunkCreated(lodInd))), (int)priorities.generation);
+                }
             }
         }
         lastUpdateTerrainChunks.Enqueue(this);
@@ -172,30 +153,19 @@ public class TerrainChunk
         callback();
     }
 
-    public void onChunkCreated(int lodInd, LODMesh lodMesh)
+    public void onChunkCreated(int lodInd)
     {
-        lodMesh.hasRequestedChunk = false;
-        lodMesh.depreceated = false;
+        LODMeshHandle.depreceated = false;
         prevLODInd = lodInd;
-        
-        meshFilter.mesh = lodMesh.mesh;
-        if (detailLevels[lodInd].useForCollider)
-            meshCollider.sharedMesh = lodMesh.mesh;
-        
-        for(int i = 0; i < shaders.Length; i++)
-        {
-            SpecialShaderData shaderData = shaders[i];
 
-            if (lodMesh.specialMeshes.TryGetValue(shaders[i].materialIndex, out Mesh mesh))
-            {
-                shaderData.shader.SetMesh(mesh);
-                shaderData.shader.Render();
-            }
-            else
-                shaderData.shader.Release();
-        }
-        
-        if (lodMesh.depreceated) //was depreceated while chunk was regenerating
+        meshFilter.mesh = LODMeshHandle.baseMesh;
+        if (detailLevels[lodInd].useForCollider)
+            meshCollider.sharedMesh = LODMeshHandle.baseMesh;
+        if (!detailLevels[lodInd].useForGeoShaders)
+            geoShaders.ReleaseGeometry();
+
+
+        if (LODMeshHandle.depreceated) //was depreceated while chunk was regenerating
             timeRequestQueue.Enqueue(() => processEvent(Update), (int)Utils.priorities.generation);
         
     }
@@ -217,6 +187,10 @@ public class TerrainChunk
 
         active = false;
 
+        //If currently Generating chunk (It's doubtful if this ever does anything)
+        meshCreator.ReleaseTempBuffers();
+
+        //Release Persistant data
         meshCreator.ReleasePersistantBuffers();
         terrainChunkDict.Remove(CCoord);
 #if UNITY_EDITOR
@@ -225,77 +199,4 @@ public class TerrainChunk
         GameObject.Destroy(meshObject);
 #endif
     }
-}
-
-public class LODMesh
-{
-    public Mesh mesh;
-    public Dictionary<int, Mesh> specialMeshes;
-    public SpecialShaderData[] specialShaderData;
-    public SurfaceChunk.LODMap surfaceData;
-    public Vector3 position;
-
-    EditorMesh.ChunkData chunkData;
-
-    Vector3 CCoord;
-    float IsoLevel;
-    MeshCreator meshCreator;
-
-    public bool hasChunk = false;
-    public bool hasRequestedChunk = false;
-    public bool depreceated = false;
-    int LOD;
-
-    //Temporary
-
-    public LODMesh(MeshCreator meshCreator, SpecialShaderData[] specialShaderData, SurfaceChunk.LODMap surfaceData, int LOD, Vector3 position, Vector3 CCoord, float IsoLevel)
-    {
-        this.LOD = LOD;
-        this.CCoord = CCoord;
-        this.position = position;
-        this.meshCreator = meshCreator;
-        this.surfaceData = surfaceData;
-        this.specialShaderData = specialShaderData;
-
-        this.IsoLevel = IsoLevel;
-    }
-
-
-    public void GetChunk(Action UpdateCallback)
-    {
-        meshCreator.GenerateDensity(surfaceData, this.position, LOD, mapChunkSize, IsoLevel);
-        //meshCreator.GenerateStructures(this.CCoord, IsoLevel, LOD, mapChunkSize);
-        meshCreator.GenerateMaterials(surfaceData, this.position, LOD, mapChunkSize);
-        meshCreator.GenerateStrucutresGPU(mapChunkSize, LOD, IsoLevel);
-
-        this.chunkData = meshCreator.GenerateMapData(IsoLevel, LOD, mapChunkSize);
-        this.specialMeshes = meshCreator.CreateSpecialMeshes(specialShaderData, chunkData.meshData);
-        meshCreator.ReleaseTempBuffers();
-
-        this.mesh = this.chunkData.GenerateMesh();
-
-        hasChunk = true;
-        UpdateCallback();
-    }
-
-    public void ComputeChunk(ref float[] density, ref int[] material, Action UpdateCallback)
-    {
-        meshCreator.SetMapInfo(LOD, mapChunkSize, density, material);
-        this.chunkData = meshCreator.GenerateMapData(IsoLevel, LOD, mapChunkSize);
-        this.specialMeshes = meshCreator.CreateSpecialMeshes(specialShaderData, chunkData.meshData);    
-        meshCreator.ReleaseTempBuffers();
-
-        this.mesh = this.chunkData.GenerateMesh();
-
-        hasChunk = true;
-        UpdateCallback();
-    }
-}
-
-[System.Serializable]
-public struct LODInfo
-{
-    public int LOD;
-    public float distanceThresh;
-    public bool useForCollider;
 }

@@ -4,6 +4,7 @@
 
 const static int numThreads = 8;
 const static int Epsilon = 0.0001;
+const static float FalloffFactor = 0.01;
 
 float offsetY;
 float IsoLevel;
@@ -31,7 +32,8 @@ void GenerateFull (uint3 id : SV_DispatchThreadID)
     float squashHeight = squash[mapIndex];
     float terrainHeight = heights[mapIndex];
 
-    float densityFactor = clamp((terrainHeight - actualHeight) / (squashHeight + Epsilon), 0, 1);
+    float terrainFactor = clamp((terrainHeight - actualHeight) / (squashHeight + Epsilon), 0, 1) * (1-IsoLevel) + IsoLevel;
+    float atmosphereFactor = exp(-max(actualHeight - terrainHeight, 0) * FalloffFactor);
 
-    points[index] = underground * densityFactor;
+    points[index] = underground * terrainFactor * atmosphereFactor;
 }

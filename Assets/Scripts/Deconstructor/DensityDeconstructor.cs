@@ -216,7 +216,7 @@ public class DensityDeconstructor : MonoBehaviour
 
         meshRenderer.material = recreationMaterial;
 
-        ChunkData newChunk = MeshGenerator.GenerateMesh(density, IsoLevel);
+        MeshGenerator.ChunkData newChunk = MeshGenerator.GenerateMesh(density, IsoLevel);
         meshFilter.sharedMesh = newChunk.GenerateMesh();
     }
 
@@ -250,7 +250,7 @@ public class DensityDeconstructor : MonoBehaviour
             }
         }
 
-        ChunkData newChunk = MeshGenerator.GenerateMesh(materialView, 0.5f);
+        MeshGenerator.ChunkData newChunk = MeshGenerator.GenerateMesh(materialView, 0.5f);
         meshFilter.sharedMesh = newChunk.GenerateMesh();
     }
 }

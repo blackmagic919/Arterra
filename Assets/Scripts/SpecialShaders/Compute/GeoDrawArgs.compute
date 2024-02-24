@@ -1,0 +1,26 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+StructuredBuffer<uint> prefixSizes;
+uint shaderIndex;
+
+struct IndirectArgs{
+    uint numVerticesPerInstance;
+    uint numInstances;
+    uint startVertexIndex;
+    uint startInstanceIndex;
+};
+
+RWStructuredBuffer<IndirectArgs> _IndirectArgsBuffer;
+
+[numthreads(1,1,1)] 
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint numTriangles = prefixSizes[shaderIndex+1] - prefixSizes[shaderIndex];
+
+    _IndirectArgsBuffer[0].numInstances = numTriangles == 0 ? 0 : 1;
+    _IndirectArgsBuffer[0].numVerticesPerInstance = numTriangles * 3;
+    _IndirectArgsBuffer[0].startVertexIndex = 0;
+    _IndirectArgsBuffer[0].startInstanceIndex = 0;
+
+}

@@ -13,7 +13,6 @@ public class TemplatePass : ScriptableRenderPass
     const string ProfilerTag = "Atmosphere Pass";
 
     TemplateFeature.PassSettings passSettings;
-    //AtmosphereBake inScatterComputation;
 
     RenderTargetIdentifier temporaryBuffer;
     RTHandle colorBuffer;
@@ -21,15 +20,17 @@ public class TemplatePass : ScriptableRenderPass
 
     Material material;
 
+    /*static readonly int PlanetRadiusProperty = Shader.PropertyToID("_PlanetRadius");
+    static readonly int SurfaceOffsetProperty = Shader.PropertyToID("_SurfaceOffset");
+    static readonly int DensityFalloffProperty = Shader.PropertyToID("_DensityFalloff");*/
+
     // It is good to cache the shader property IDs here.
     static readonly int ScatteringProperty = Shader.PropertyToID("_ScatteringCoeffs");
     static readonly int AtmosphereRadiusProperty = Shader.PropertyToID("_AtmosphereRadius");
-    static readonly int PlanetRadiusProperty = Shader.PropertyToID("_PlanetRadius");
-    static readonly int SurfaceOffsetProperty = Shader.PropertyToID("_SurfaceOffset");
-    static readonly int DensityFalloffProperty = Shader.PropertyToID("_DensityFalloff");
     static readonly int GroundExtinctionProperty = Shader.PropertyToID("_GroundExtinction");
     static readonly int inScatterProperty = Shader.PropertyToID("_NumInScatterPoints");
     static readonly int opticalDepthProperty = Shader.PropertyToID("_NumOpticalDepthPoints");
+    static readonly int DensityMultiplier = Shader.PropertyToID("_DensityMultiplier");
 
     // The constructor of the pass. Here you can set any material properties that do not need to be updated on a per-frame basis.
     public TemplatePass(TemplateFeature.PassSettings passSettings)
@@ -43,53 +44,48 @@ public class TemplatePass : ScriptableRenderPass
         // Set any material properties based on our pass settings. 
         material.SetVector(ScatteringProperty, passSettings.scatteringCoeffs);
         material.SetFloat(AtmosphereRadiusProperty, passSettings.atmosphereRadius);
-        material.SetFloat(DensityFalloffProperty, passSettings.densityFalloffFactor);
         material.SetFloat(GroundExtinctionProperty, passSettings.extinctionFactor);
-        material.SetFloat(PlanetRadiusProperty, passSettings.planetRadius);
-        material.SetFloat(SurfaceOffsetProperty, passSettings.surfaceOffset);
         material.SetInt(inScatterProperty, passSettings.inScatterPoints);
         material.SetInt(opticalDepthProperty, passSettings.opticalDepthPoints);
-        //inScatterComputation = new AtmosphereBake(passSettings);
+        material.SetFloat(DensityMultiplier, passSettings.densityMultiplier);
+
+        passSettings.densityManager.SetDensitySampleData(material);
+        passSettings.luminanceBake.SetSettings(passSettings);
     }
 
     public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
     {
-        
         RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
 
-        //descriptor.width /= passSettings.downsample;
-        //descriptor.height /= passSettings.downsample;
-
         descriptor.depthBufferBits = 0;
-
+        
         ConfigureInput(ScriptableRenderPassInput.Depth);
 
         colorBuffer = renderingData.cameraData.renderer.cameraColorTargetHandle;
 
         cmd.GetTemporaryRT(temporaryBufferID, descriptor, FilterMode.Bilinear);
         temporaryBuffer = new RenderTargetIdentifier(temporaryBufferID);
-
-        //inScatterComputation.SetScreenTarget(descriptor);
-        //inScatterComputation.Execute();
-        //material.SetTexture("_inScatterBaked", inScatterComputation.inScattering);
+        
+        passSettings.luminanceBake.SetBakedData(material);
     }
 
     // The actual execution of the pass. This is where custom rendering occurs.
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
-        // Grab a command buffer. We put the actual execution of the pass inside of a profiling scope.
-        CommandBuffer cmd = CommandBufferPool.Get();
+        if(passSettings.densityManager.initialized && passSettings.luminanceBake.initialized){
+            CommandBuffer cmd = CommandBufferPool.Get();
 
-        using (new ProfilingScope(cmd, new ProfilingSampler(ProfilerTag)))
-        {
-            // Blit from the color buffer to a temporary buffer and back. This is needed for a two-pass shader.
-            Blit(cmd, colorBuffer, temporaryBuffer, material, 0); // shader pass 0
-            Blit(cmd, temporaryBuffer, colorBuffer);
+            using (new ProfilingScope(cmd, new ProfilingSampler(ProfilerTag)))
+            {
+                // Blit from the color buffer to a temporary buffer and back. This is needed for a two-pass shader.
+                Blit(cmd, colorBuffer, temporaryBuffer, material, 0); // shader pass 0
+                Blit(cmd, temporaryBuffer, colorBuffer);
+            }
+
+            // Execute the command buffer and release it.
+            context.ExecuteCommandBuffer(cmd);
+            CommandBufferPool.Release(cmd);
         }
-
-        // Execute the command buffer and release it.
-        context.ExecuteCommandBuffer(cmd);
-        CommandBufferPool.Release(cmd);
     }
 
     // Called when the camera has finished rendering.

@@ -29,17 +29,11 @@
 #include "NMGGrassLayersHelpers.hlsl"
 
 struct DrawVertex{
-    float3 positionWS;
-    float3 normalWS;
+    float4 positionWS;
+    float4 normalWS;
+    float4 color;
     float2 uv;
 };
-
-struct DrawTriangle{
-    float2 heights; //sharing height
-    DrawVertex vertices[3];
-};
-
-StructuredBuffer<DrawTriangle> _DrawTriangles;
 
 // Vertex function output and geometry function input
 struct VertexOutput {
@@ -49,6 +43,11 @@ struct VertexOutput {
 
     float4 positionCS   : SV_POSITION;
 };
+
+StructuredBuffer<uint> _StorageMemory;
+StructuredBuffer<uint> instanceAddress;
+uint _Vertex4ByteStride;
+
 
 // Properties
 float4 _BaseColor;
@@ -63,7 +62,6 @@ TEXTURE2D(_WindNoiseTexture); SAMPLER(sampler_WindNoiseTexture); float4 _WindNoi
 float _WindTimeMult;
 float _WindAmplitude;
 
-
 float2 mapCoordinates(float3 worldPos)
 {
     float2 projXY = worldPos.xy;
@@ -75,6 +73,28 @@ float2 mapCoordinates(float3 worldPos)
     return worldUV;
 }
 
+DrawVertex ReadVertex(uint vertexAddress){
+    uint address = vertexAddress + instanceAddress[0];
+    DrawVertex vertex = (DrawVertex)0;
+
+    vertex.positionWS.x = asfloat(_StorageMemory[address]);
+    vertex.positionWS.y = asfloat(_StorageMemory[address + 1]);
+    vertex.positionWS.z = asfloat(_StorageMemory[address + 2]);
+
+    vertex.normalWS.x = asfloat(_StorageMemory[address + 3]);
+    vertex.normalWS.y = asfloat(_StorageMemory[address + 4]);
+    vertex.normalWS.z = asfloat(_StorageMemory[address + 5]);
+
+    vertex.uv.x = asfloat(_StorageMemory[address + 6]);
+    vertex.uv.y = asfloat(_StorageMemory[address + 7]);
+
+    vertex.color.x = asfloat(_StorageMemory[address + 8]);
+    vertex.color.y = asfloat(_StorageMemory[address + 9]);
+    vertex.color.z = asfloat(_StorageMemory[address + 10]);
+    vertex.color.w = asfloat(_StorageMemory[address + 11]);
+
+    return vertex;
+}
 
 float4 _CameraPosition;
 float _CameraHeight;
@@ -83,16 +103,18 @@ float _DistortionClip;
 float _TrampleDistortion;
 // Vertex functions
 
-VertexOutput Vertex(uint vertexID: SV_VertexID) {
-    // Initialize the output struct
+VertexOutput Vertex(uint vertexID: SV_VertexID)
+{
     VertexOutput output = (VertexOutput)0;
+    if(instanceAddress[0] == 0)
+        return output;
 
-    DrawTriangle tri = _DrawTriangles[vertexID/3];
-    DrawVertex input = tri.vertices[vertexID % 3];
+    uint vertexAddress = vertexID * _Vertex4ByteStride;
+    DrawVertex input = ReadVertex(vertexAddress);
 
     output.positionWS = input.positionWS;
     output.normalWS = input.normalWS;
-    output.uvAndHeight = float4(input.uv, tri.heights);
+    output.uvAndHeight = float4(input.uv, input.color.xy);
 
     output.positionCS = CalculatePositionCSWithShadowCasterLogic(output.positionWS, output.normalWS);
     

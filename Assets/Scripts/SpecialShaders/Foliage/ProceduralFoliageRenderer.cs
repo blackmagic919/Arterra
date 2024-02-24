@@ -1,161 +1,88 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Utils;
 
-[ExecuteInEditMode]
+[CreateAssetMenu(menuName = "ShaderData/FoliageShader/Generator")]
 public class ProceduralFoliageRenderer : SpecialShader
 {
     [Tooltip("A mesh to create foliage from")]
-    [SerializeField] private Mesh sourceMesh = default;
     [SerializeField] private FoliageSettings foliageSettings = default; 
 
-    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    private struct SourceVertex
-    {
-        public Vector3 position;
-        public Vector3 normal;
-    }
-
-    private bool initialized = false;
+    private Transform objTransform;
 
     private int idFoliageKernel;
-    private int idTriToVertKernel;
-    private int dispatchSize;
-    private Bounds localBounds;
+    private int idIndirectArgsKernel;
 
-    private ComputeShader instantiatedFoliageComputeShader;
-    private ComputeShader instantiatedTriToVertComputeShader;
-    private Material instantiatedMaterial;
+    private Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
-    private ComputeBuffer sourceVertexBuffer;
-    private ComputeBuffer sourceTriBuffer;
-    private ComputeBuffer drawBuffer;
-    private ComputeBuffer argsBuffer;
-
-    private const int SOURCE_VERT_STRIDE = sizeof(float) * (3 + 3);
-    private const int SOURCE_TRI_STRIDE = sizeof(int);
-    private const int DRAW_STRIDE = sizeof(float) * ((3 + 3 + 2) * 3);
-    private const int ARGS_STRIDE = sizeof(int) * 4;
-
-    public void OnEnable()
+    public override void Instantiate(Transform transform)
     {
-        initialized = false;
+        this.objTransform = transform;
     }
 
-    public override void SetMesh(Mesh mesh)
+    public override Material GetMaterial()
     {
-        this.sourceMesh = mesh;
+        return Instantiate(foliageSettings.material);
     }
 
-    public override void SetSettings(ShaderSettings settings)
+    public override void ProcessGeoShader(Transform transform, ComputeBuffer sourceTriangles, ComputeBuffer startIndices, ComputeBuffer drawTriangles, int shaderIndex)
     {
-        this.foliageSettings = (FoliageSettings)settings;
+        idFoliageKernel = foliageSettings.foliageComputeShader.FindKernel("Main");
+        idIndirectArgsKernel = foliageSettings.indirectArgsShader.FindKernel("Main");
+
+        uint argsGroupSize; foliageSettings.indirectArgsShader.GetKernelThreadGroupSizes(idIndirectArgsKernel, out argsGroupSize, out _, out _);
+        ComputeBuffer dispatchArgs = SetArgs(startIndices, shaderIndex, (int)argsGroupSize, ref tempBuffers);
+
+        GenerateGeometry(transform, sourceTriangles, startIndices, drawTriangles, dispatchArgs, shaderIndex);
     }
 
-    public override void Render()
+    void GenerateGeometry(Transform transform, ComputeBuffer sourceTriangles, ComputeBuffer startIndices, ComputeBuffer drawTriangles, ComputeBuffer args, int shaderIndex)
     {
-        if (sourceMesh.triangles.Length == 0)
+        foliageSettings.foliageComputeShader.SetBuffer(idFoliageKernel, "_SourceTriangles", sourceTriangles);
+        foliageSettings.foliageComputeShader.SetBuffer(idFoliageKernel, "_SourceStartIndices", startIndices);
+        foliageSettings.foliageComputeShader.SetBuffer(idFoliageKernel, "_DrawTriangles", drawTriangles); //This is the output
+
+        foliageSettings.foliageComputeShader.SetFloat("_QuadSize", foliageSettings.QuadSize);
+        foliageSettings.foliageComputeShader.SetFloat("_InflationFactor", foliageSettings.Inflation);
+        foliageSettings.foliageComputeShader.SetInt("_ShaderIndex", shaderIndex);
+        foliageSettings.foliageComputeShader.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
+
+        foliageSettings.foliageComputeShader.DispatchIndirect(idFoliageKernel, args);
+    }
+
+    public override void ReleaseTempBuffers()
+    {
+        while(tempBuffers.Count > 0)
         {
-            Release();
-            return;
+            tempBuffers.Dequeue().Release();
         }
-
-        if (initialized)
-            Release();
-
-        initialized = true;
-
-        instantiatedFoliageComputeShader = Instantiate(foliageSettings.foliageComputeShader);
-        instantiatedTriToVertComputeShader = Instantiate(foliageSettings.triToVertComputeShader);
-        instantiatedMaterial = Instantiate(foliageSettings.material);
-
-        Vector3[] positions = sourceMesh.vertices;
-        Vector3[] normals = sourceMesh.normals;
-        int[] tris = sourceMesh.triangles;
-
-        SourceVertex[] vertices = new SourceVertex[positions.Length];
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            vertices[i] = new SourceVertex()
-            {
-                position = positions[i],
-                normal = normals[i]
-            };
-        }
-
-        int numTriangles = tris.Length / 3;
-
-        sourceVertexBuffer = new ComputeBuffer(vertices.Length, SOURCE_VERT_STRIDE, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
-        sourceVertexBuffer.SetData(vertices);
-
-        sourceTriBuffer = new ComputeBuffer(tris.Length, SOURCE_TRI_STRIDE, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
-        sourceTriBuffer.SetData(tris);
-
-        drawBuffer = new ComputeBuffer(numTriangles * 2 * 3, DRAW_STRIDE, ComputeBufferType.Append); //Quad is two triangles
-        drawBuffer.SetCounterValue(0);
-        argsBuffer = new ComputeBuffer(1, ARGS_STRIDE, ComputeBufferType.IndirectArguments);
-
-        argsBuffer.SetData(new int[] { 0, 1, 0, 0 });
-
-        idFoliageKernel = instantiatedFoliageComputeShader.FindKernel("Main");
-        idTriToVertKernel = instantiatedFoliageComputeShader.FindKernel("Main");
-
-        instantiatedFoliageComputeShader.SetBuffer(idFoliageKernel, "_SourceVertices", sourceVertexBuffer);
-        instantiatedFoliageComputeShader.SetBuffer(idFoliageKernel, "_SourceTriangles", sourceTriBuffer);
-        instantiatedFoliageComputeShader.SetBuffer(idFoliageKernel, "_DrawTriangles", drawBuffer);
-        instantiatedFoliageComputeShader.SetInt("_NumSourceTriangles", numTriangles);
-        instantiatedFoliageComputeShader.SetFloat("_QuadSize", foliageSettings.QuadSize);
-        instantiatedFoliageComputeShader.SetFloat("_InflationFactor", foliageSettings.Inflation);
-
-        instantiatedTriToVertComputeShader.SetBuffer(idTriToVertKernel, "_IndirectArgsBuffer", argsBuffer);
-        instantiatedMaterial.SetBuffer("_DrawTriangles", drawBuffer);
-
-        instantiatedFoliageComputeShader.GetKernelThreadGroupSizes(idFoliageKernel, out uint threadGroupSize, out _, out _);
-        dispatchSize = Mathf.CeilToInt((float)numTriangles / threadGroupSize);
-
-        localBounds = sourceMesh.bounds;
-        localBounds.Expand(foliageSettings.QuadSize/2.0f);
-
-        ComputeGeometry();
     }
 
-    public void OnDisable()
+    ComputeBuffer SetArgs(ComputeBuffer prefixIndexes, int shaderIndex, int threadGroupSize, ref Queue<ComputeBuffer> bufferHandle)
     {
-        Release();
-    }
+        ComputeBuffer indirectArgs = new ComputeBuffer(3, sizeof(uint), ComputeBufferType.Structured);
+        indirectArgs.SetData(new uint[]{ 1, 1, 1});
+        bufferHandle.Enqueue(indirectArgs);
 
-    public override void Release()
-    {
-        if (initialized)
-        {
-            if (Application.isPlaying)
-            {
-                Destroy(instantiatedFoliageComputeShader);
-                Destroy(instantiatedTriToVertComputeShader);
-                Destroy(instantiatedMaterial);
-            }
-            else
-            {
-                DestroyImmediate(instantiatedFoliageComputeShader);
-                DestroyImmediate(instantiatedTriToVertComputeShader);
-                DestroyImmediate(instantiatedMaterial);
-            }
-            sourceVertexBuffer?.Release();
-            sourceTriBuffer?.Release();
-            drawBuffer?.Release();
-            argsBuffer?.Release();
-        }
-        initialized = false;
+        foliageSettings.indirectArgsShader.SetBuffer(idIndirectArgsKernel, "prefixStart", prefixIndexes);
+        foliageSettings.indirectArgsShader.SetInt("shaderIndex", shaderIndex);
+        foliageSettings.indirectArgsShader.SetInt("threadGroupSize", threadGroupSize);
+        foliageSettings.indirectArgsShader.SetBuffer(idIndirectArgsKernel, "indirectArgs", indirectArgs);
+
+        foliageSettings.indirectArgsShader.Dispatch(idIndirectArgsKernel, 1, 1, 1);
+
+        return indirectArgs;
     }
 
     public Bounds TransformBounds(Bounds boundsOS)
     {
-        var center = transform.TransformPoint(boundsOS.center);
+        var center = objTransform.TransformPoint(boundsOS.center);
 
         var extents = boundsOS.size; //Don't use boundsOS.extents, this is object space
-        var axisX = transform.TransformVector(extents.x, 0, 0);
-        var axisY = transform.TransformVector(0, extents.y, 0);
-        var axisZ = transform.TransformVector(0, 0, extents.z);
+        var axisX = objTransform.TransformVector(extents.x, 0, 0);
+        var axisY = objTransform.TransformVector(0, extents.y, 0);
+        var axisZ = objTransform.TransformVector(0, 0, extents.z);
 
         extents.x = Mathf.Abs(axisX.x) + Mathf.Abs(axisY.x) + Mathf.Abs(axisZ.x);
         extents.y = Mathf.Abs(axisX.y) + Mathf.Abs(axisY.y) + Mathf.Abs(axisZ.y);
@@ -164,33 +91,5 @@ public class ProceduralFoliageRenderer : SpecialShader
         return new Bounds(center, extents);
     }
 
-    private void LateUpdate()
-    {
-        if (!initialized)
-            return;
-
-        if (!Application.isPlaying)
-        {
-            Release();
-            Render();
-        }
-
-        Bounds bounds = TransformBounds(localBounds);
-
-        Graphics.DrawProceduralIndirect(instantiatedMaterial, bounds, MeshTopology.Triangles, argsBuffer, 0, null, null, ShadowCastingMode.Off, true, gameObject.layer);
-    }
-
-    private void ComputeGeometry()
-    {
-        drawBuffer.SetCounterValue(0);
-
-        instantiatedFoliageComputeShader.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
-
-        instantiatedFoliageComputeShader.Dispatch(idFoliageKernel, dispatchSize, 1, 1);
-
-        ComputeBuffer.CopyCount(drawBuffer, argsBuffer, 0);
-
-        instantiatedTriToVertComputeShader.Dispatch(idTriToVertKernel, 1, 1, 1);
-    }
 }
 

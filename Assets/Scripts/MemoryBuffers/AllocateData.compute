@@ -1,0 +1,72 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+const static uint InitBlockSize = 3;
+
+RWStructuredBuffer<uint> _SourceMemory;
+RWStructuredBuffer<uint2> _Heap;
+
+StructuredBuffer<uint> allocSizeBuffer;
+
+//OUTPUT
+RWStructuredBuffer<uint> startIndex;
+
+
+void Swap(uint a, uint b){
+    uint2 temp = _Heap[a];
+    _Heap[a] = _Heap[b];
+    _Heap[b] = temp;
+
+    //Update Linked List for positions
+    _SourceMemory[_Heap[a].x - 2] = a;
+    _SourceMemory[_Heap[b].x - 2] = b;
+}
+
+void SinkBlock(uint node){
+    while(2*node <= _Heap[0].x){
+        uint maxChild = 2*node;
+        if(2*node + 1 <= _Heap[0].x && _Heap[2*node + 1].y > _Heap[maxChild].y)
+            maxChild = 2*node + 1;
+
+        if(_Heap[node].y >= _Heap[maxChild].y)
+            break;
+
+        Swap(node, maxChild);
+        node = maxChild;
+    }
+}
+
+//Time Complexity: O(log n)
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint allocSize = allocSizeBuffer[0];
+
+    uint2 rootNode = _Heap[1];
+    uint rAddress = rootNode.x;
+    uint rBlockSize = rootNode.y;
+
+    //Don't allocate 0 size blocks
+    if(allocSize == 0 || allocSize + InitBlockSize > rBlockSize){
+        startIndex[0] = 0; //INDICATE NOT ALLOCATED
+        return; 
+    }
+
+    startIndex[0] = rAddress;
+
+    //Set Alloc Block's Info
+    _SourceMemory[rAddress - 2] = 0; //0 bit pattern means ISALLOCATED
+    _SourceMemory[rAddress - 1] = allocSize;
+    _SourceMemory[rAddress + allocSize] = allocSize;
+
+    //Create new empty block
+    uint address = rAddress + (allocSize + InitBlockSize);
+    uint blockSize = rBlockSize - (allocSize + InitBlockSize);
+
+    _Heap[1] = uint2(address, blockSize);
+    _SourceMemory[address-2] = 1;
+    _SourceMemory[address-1] = blockSize;
+    _SourceMemory[address + blockSize] = blockSize;
+
+    SinkBlock(1);
+}

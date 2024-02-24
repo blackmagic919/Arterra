@@ -17,15 +17,30 @@ public class TextureData : UpdatableData
     ComputeBuffer baseColors;
     ComputeBuffer baseColorStrengths;
     ComputeBuffer baseTextureScales;
-    ComputeBuffer baseTextureIndexes;
+    ComputeBuffer geoShaderIndexes;
 
     public void ApplyToMaterial()
     {
+        OnDisable();
+
+        int numMats = MaterialDictionary.Count;
+        baseColors = new ComputeBuffer(numMats, sizeof(float) * 4, ComputeBufferType.Structured);
+        baseColorStrengths = new ComputeBuffer(numMats, sizeof(float), ComputeBufferType.Structured);
+        baseTextureScales = new ComputeBuffer(numMats, sizeof(float), ComputeBufferType.Structured);
+        geoShaderIndexes = new ComputeBuffer(numMats, sizeof(int), ComputeBufferType.Structured);
+
+        baseColors.SetData(MaterialDictionary.SelectMany(e => new float[] { e.color.r, e.color.g, e.color.b, e.color.a }).ToArray());
+        baseColorStrengths.SetData(MaterialDictionary.Select(e => e.baseColorStrength).ToArray());
+        baseTextureScales.SetData(MaterialDictionary.Select(e => e.textureScale).ToArray());
+        geoShaderIndexes.SetData(MaterialDictionary.Select(e => e.GeoShaderIndex).ToArray());
+
+
         Texture2DArray textures = GenerateTextureArray(MaterialDictionary.Select(x => x.texture).ToArray());
         Shader.SetGlobalTexture("_Textures", textures);
-        Shader.SetGlobalFloatArray("_BaseColors", MaterialDictionary.SelectMany(e => new float[] { e.color.r, e.color.g, e.color.b, e.color.a }).ToArray());
-        Shader.SetGlobalFloatArray("_BaseColorStrength", MaterialDictionary.Select(e => e.baseColorStrength).ToArray());
-        Shader.SetGlobalFloatArray("_BaseTextureScales", MaterialDictionary.Select(e => e.textureScale).ToArray());
+        Shader.SetGlobalBuffer("_BaseColors", baseColors);
+        Shader.SetGlobalBuffer("_BaseColorStrength", baseColorStrengths);
+        Shader.SetGlobalBuffer("_BaseTextureScales", baseTextureScales);
+        Shader.SetGlobalBuffer("_MaterialShaderIndex", geoShaderIndexes);
 
     }
     public void OnDisable()
@@ -33,7 +48,7 @@ public class TextureData : UpdatableData
         baseColors?.Release();
         baseColorStrengths?.Release();
         baseTextureScales?.Release();
-        baseTextureIndexes?.Release();
+        geoShaderIndexes?.Release();
     }
 
     public Texture2DArray GenerateTextureArray(Texture2D[] textures)

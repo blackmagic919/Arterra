@@ -1,0 +1,28 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+RWStructuredBuffer<uint> _SectionedMemory;
+uint sectionAddress;
+
+RWStructuredBuffer<uint> memoryAddress;
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint address = memoryAddress[0];
+    uint pAddress = _SectionedMemory[address - 2];
+    uint nAddress = _SectionedMemory[address - 1];
+
+    //Remove address from CLL
+    _SectionedMemory[pAddress - 1] = nAddress;
+    _SectionedMemory[nAddress - 2] = pAddress;
+
+    uint frAddress = _SectionedMemory[sectionAddress]; //Free address
+    uint fuAddress = _SectionedMemory[frAddress - 2]; //Full address
+
+    //Add address back into CLL
+    _SectionedMemory[fuAddress - 1] = address;
+    _SectionedMemory[frAddress - 2] = address;
+
+    _SectionedMemory[sectionAddress] = address;
+}

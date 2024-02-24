@@ -1,23 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Main
 
-struct SourceVertex{
-    float3 positionOS;
-    float3 normalOS;
-};
-
-StructuredBuffer<SourceVertex> _SourceVertices;
-StructuredBuffer<int> _SourceTriangles;
-
-struct DrawVertex{
-    float3 positionWS;
-    float3 normalWS;
-    float2 uv;
-};
-
-struct DrawTriangle{
-    DrawVertex vertices[3];
-};
+const static int numThreads = 128;
 
 struct Quad {
     float3 topLeft;
@@ -26,20 +10,45 @@ struct Quad {
     float3 bottomRight;
 };
 
+struct SourceVertex{
+    float3 positionOS;
+    float3 normalOS;
+    int2 id;
+    int material; 
+};
+
+struct SourceTriangle { //Constructor
+    SourceVertex points[3];
+};
+
+struct DrawVertex{
+    float3 positionWS;
+    float3 normalWS;
+    float2 uv;
+    float4 color; //4 channels for 
+};
+
+struct DrawTriangle{
+    DrawVertex vertices[3];
+};
+
+StructuredBuffer<SourceTriangle> _SourceTriangles;
+StructuredBuffer<uint> _SourceStartIndices;
+int _ShaderIndex;
+
 AppendStructuredBuffer<DrawTriangle> _DrawTriangles;
 
-int _NumSourceTriangles;
 float _QuadSize;
 float _InflationFactor;
 float4x4 _LocalToWorld;
-
-float3 randomVector;
 
 DrawVertex MakeBaseDrawVertex(SourceVertex v){
     DrawVertex o = (DrawVertex)0;
     o.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
     o.normalWS = mul(_LocalToWorld, float4(v.normalOS, 0)).xyz;
     //uv is thrown away and rebuilt for every quad
+    o.color = float4(0, 0, 0, 0);
+
     return o;
 }
 
@@ -49,6 +58,7 @@ DrawVertex InitializeDrawVertex(float3 positionWS, float3 normalWS, float2 uv){
     o.positionWS = positionWS;
     o.normalWS = normalWS;
     o.uv = uv;
+    o.color = float4(0, 0, 0, 0);
 
     return o;
 }
@@ -111,21 +121,23 @@ void CreateQuadIntersects(float3 center, float3 normalWS) {
     AppendQuad(GetQuad(center, up), normalWS);
 }
 
-[numthreads(128,1,1)]
+[numthreads(numThreads,1,1)]
 void Main (uint3 id : SV_DispatchThreadID)
 {
-    if((int)id.x >= _NumSourceTriangles)
+    uint startIndex = _SourceStartIndices[_ShaderIndex];
+    uint numSourceTriangles = _SourceStartIndices[_ShaderIndex+1] - startIndex;
+    if(id.x >= numSourceTriangles)
         return;
 
-    int triStart = id.x * 3;
+    uint triIndex = startIndex + id.x;
     DrawVertex inputs[3];
 
     [unroll] for(int i = 0; i < 3; i++){
-        inputs[i] = MakeBaseDrawVertex(_SourceVertices[_SourceTriangles[triStart+i]]);
+        inputs[i] = MakeBaseDrawVertex(_SourceTriangles[triIndex].points[i]);
     }
 
     float3 center = GetTriangleCenter(inputs[0].positionWS, inputs[1].positionWS, inputs[2].positionWS);
-    float3 normalWS = GetTriangleCenter(inputs[0].normalWS, inputs[1].normalWS, inputs[2].normalWS);// If not want to inherit -> normalize(_CameraPosition - center);
-    CreateQuadIntersects(center, normalWS);
+    float3 normal = GetTriangleCenter(inputs[0].normalWS, inputs[1].normalWS, inputs[2].normalWS);// If not want to inherit -> normalize(_CameraPosition - center);
+    CreateQuadIntersects(center, normal);
   
 }

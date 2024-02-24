@@ -30,6 +30,40 @@ public static class MeshGenerator
      * | xyz_______./  /
      * +---------> x  /
      */
+
+
+    public class ChunkData
+    {
+        public MeshInfo meshData;
+        public List<Vector3> vertexParents;
+
+        public ChunkData()
+        {
+            vertexParents = new List<Vector3>();
+            meshData = new MeshInfo();
+        }
+
+        public static Mesh GenerateMesh(MeshInfo meshData)
+        {
+            Mesh mesh = new Mesh();
+            mesh.vertices = meshData.vertices.ToArray();
+            mesh.normals = meshData.normals.ToArray();
+            mesh.triangles = meshData.triangles.ToArray();
+            mesh.colors = meshData.colorMap.ToArray();
+            return mesh;
+        }
+
+        public Mesh GenerateMesh()
+        {
+            Mesh mesh = new Mesh();
+            mesh.vertices = meshData.vertices.ToArray();
+            mesh.normals = meshData.normals.ToArray();
+            mesh.triangles = meshData.triangles.ToArray();
+            mesh.colors = meshData.colorMap.ToArray();
+            return mesh;
+        }
+    }
+
     public static ChunkData GenerateMesh(float[,,] noiseMap, float isoLevel)
     {
 

@@ -1,0 +1,27 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+const static uint numThreads = 128;
+const static int POINT_STRIDE_4BYTE = 2;
+
+RWStructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<float> densityMap;
+StructuredBuffer<int> materialMap;
+uint numPoints;
+
+StructuredBuffer<uint> startAddress;
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(startAddress[0] == 0) //Invalid
+        return;
+
+    if(id.x >= numPoints)
+        return;
+
+    uint wAddress = startAddress[0] + id.x * POINT_STRIDE_4BYTE;
+
+    _MemoryBuffer[wAddress] = asuint(densityMap[id.x]);
+    _MemoryBuffer[wAddress + 1] = asuint(materialMap[id.x]);
+}

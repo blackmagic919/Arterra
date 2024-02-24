@@ -1,0 +1,25 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+const static uint InitBlockSize = 3;
+/*
+3 values are intrinsic to block
+    1. Pointer to heap position
+    2. Buffer size at front of buffer
+    3. Buffer size at end of buffer
+*/
+
+RWStructuredBuffer<uint> _SourceMemory;
+RWStructuredBuffer<uint2> _Heap;
+uint _BufferSize4Bytes;
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    _Heap[0] = uint2(1, 0); //size of filled heap, null
+    _Heap[1] = uint2(2, _BufferSize4Bytes - InitBlockSize); //Start index in memory, size of empty block(prioritized)
+
+    _SourceMemory[0] = 1; //address of position in heap
+    _SourceMemory[1] = _BufferSize4Bytes - InitBlockSize; //Size
+    _SourceMemory[_BufferSize4Bytes - 1] = _BufferSize4Bytes - InitBlockSize; //Size
+}

@@ -76,11 +76,11 @@ public class TerrainGenerator : ScriptableObject
     }
 
 
-    public ComputeBuffer CombineTerrainMaps(ComputeBuffer contBuffer, ComputeBuffer erosionBuffer, ComputeBuffer PVBuffer, int numOfPoints, float terrainOffset, Queue<ComputeBuffer> bufferHandle)
+    public ComputeBuffer CombineTerrainMaps(ComputeBuffer contBuffer, ComputeBuffer erosionBuffer, ComputeBuffer PVBuffer, int numOfPoints, float terrainOffset, Queue<ComputeBuffer> bufferHandle = null)
     {
         ComputeBuffer results = new ComputeBuffer(numOfPoints, sizeof(float));
 
-        bufferHandle.Enqueue(results);
+        bufferHandle?.Enqueue(results);
 
         terrainCombiner.SetBuffer(0, "continental", contBuffer);
         terrainCombiner.SetBuffer(0, "erosion", erosionBuffer);
@@ -96,14 +96,14 @@ public class TerrainGenerator : ScriptableObject
         return results;
     }
 
-    public ComputeBuffer GetBiomeMap(int chunkSize, int meshSkipInc, SurfaceChunk.NoiseMaps noiseData, Queue<ComputeBuffer> bufferHandle)
+    public ComputeBuffer GetBiomeMap(int chunkSize, int meshSkipInc, SurfaceChunk.NoiseMaps noiseData, Queue<ComputeBuffer> bufferHandle = null)
     {
         int numPointsAxes = chunkSize / meshSkipInc + 1;
         int numOfPoints = numPointsAxes * numPointsAxes;
 
         ComputeBuffer biomes = new ComputeBuffer(numOfPoints, sizeof(int), ComputeBufferType.Structured);
 
-        bufferHandle.Enqueue(biomes);
+        bufferHandle?.Enqueue(biomes);
 
         biomeMapGenerator.DisableKeyword("INDIRECT");
         biomeMapGenerator.SetInt("numOfPoints", numOfPoints);
@@ -141,7 +141,7 @@ public class TerrainGenerator : ScriptableObject
         return results;
     }
 
-    public ComputeBuffer SimplifyMap(ComputeBuffer source, int chunkSize, int sourceSkipInc, int destSkipInc, bool isFloat, Queue<ComputeBuffer> bufferHandle)
+    public ComputeBuffer SimplifyMap(ComputeBuffer source, int chunkSize, int sourceSkipInc, int destSkipInc, bool isFloat, Queue<ComputeBuffer> bufferHandle = null)
     {
         int sourcePointsAxes = chunkSize / sourceSkipInc + 1;
         int destPointsAxes = chunkSize / destSkipInc + 1;
@@ -156,7 +156,7 @@ public class TerrainGenerator : ScriptableObject
             mapSimplifier.DisableKeyword("USE_FLOAT");
             dest = new ComputeBuffer(destNumOfPoints, sizeof(int));
         }
-        bufferHandle.Enqueue(dest);
+        bufferHandle?.Enqueue(dest);
 
         mapSimplifier.SetInt("destPointsPerAxis", destPointsAxes);
         mapSimplifier.SetInt("destSkipInc", destSkipInc);

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4217182035e9b4aa2a76ffd25cdfb6e5, type: 3}
+  m_Name: Luminance
+  m_EditorClassIdentifier: 
+  RaySetupCompute: {fileID: 7200000, guid: cf65ba6c79c1c4a41b120f79fc902a6a, type: 3}
+  OpticalDepthCompute: {fileID: 7200000, guid: 87a7f9612fb7f472182d8e179ec95696, type: 3}
+  BakedTextureSizePX: 128
+  SunRayInScatterPoints: 5
+  SunRayOpticalDepthPoints: 5
+  initialized: 1
+  isApplied: 1

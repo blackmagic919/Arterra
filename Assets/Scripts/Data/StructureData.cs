@@ -5,7 +5,7 @@ using UnityEngine;
 using Utils;
 
 [System.Serializable]
-[CreateAssetMenu(fileName = "Structure_Data", menuName = "Structure Data")]
+[CreateAssetMenu(fileName = "Structure_Data", menuName = "Generation/Structure/Structure Data")]
 public class StructureData : ScriptableObject
 {
 

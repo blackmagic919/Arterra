@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static SpecialShader;
 
-[CreateAssetMenu(menuName = "ShaderData/FoliageSetting")]
+[CreateAssetMenu(menuName = "ShaderData/FoliageShader/Settings")]
 public class FoliageSettings : ShaderSettings
 {
     [Tooltip("Size of Quad Images")]
@@ -10,11 +11,9 @@ public class FoliageSettings : ShaderSettings
     [Tooltip("Distance Extruded Along Normal")]
     public float Inflation = 0f;
 
+    [Tooltip("For determining dispatch args for shader")]
+    public ComputeShader indirectArgsShader = default;
     [Tooltip("The grass geometry creating compute shader")]
     public ComputeShader foliageComputeShader = default;
-    [Tooltip("The triangle count adjustment compute shader")]
-    public ComputeShader triToVertComputeShader = default;
-    [Tooltip("The material to render the grass mesh")]
-    public Material material = default;
-
+    public Material material;
 }

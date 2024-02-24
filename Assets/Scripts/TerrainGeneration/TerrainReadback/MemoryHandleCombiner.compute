@@ -1,0 +1,13 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+StructuredBuffer<uint> address;
+StructuredBuffer<uint> memSize;
+
+RWStructuredBuffer<uint2> handle;
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    handle[0] = uint2(address[0], memSize[0]);
+}

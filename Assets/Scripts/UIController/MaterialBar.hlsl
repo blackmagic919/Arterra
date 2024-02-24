@@ -16,11 +16,9 @@ struct v2f
 sampler2D _MaterialData;
 float4 _MaterialData_ST;
 
-const static int matAllocate = 8;
-            
-float _BaseColors[4*matAllocate];
-float _BaseColorStrength[matAllocate];
-float _BaseTextureScales[matAllocate];
+StructuredBuffer<float4> _BaseColors;
+StructuredBuffer<float> _BaseColorStrength;
+StructuredBuffer<float> _BaseTextureScales;
 
 int maxMatCount;
 int selectedMat;
@@ -40,15 +38,12 @@ v2f vert (appdata v)
     return o;
 }
 
-float4 GetColor(uint ind){
-    return float4(_BaseColors[4*ind], _BaseColors[4*ind+1], _BaseColors[4*ind+2], _BaseColors[4*ind+3]);
-}
             
 fixed3 frag (v2f IN) : SV_Target
 {
     uint index = tex2D(_MaterialData, IN.uv).a * maxMatCount;
 
-    float3 color = GetColor(index);
+    float3 color = _BaseColors[index];
     float colorStrength = _BaseColorStrength[index];
 
     float textureU = IN.uv.x / _BaseTextureScales[index] * (InventorySize*25);

@@ -30,17 +30,10 @@ public class EndlessTerrain : MonoBehaviour
 
 
     [Header("Dependencies")]
-    public Material mapMaterial;
-    public MeshCreator meshCreator;
-    public MapCreator mapCreator;
-    public BiomeInfo GenerationData;
-    public BiomeGenerationData biomeData;
-    public TextureData texData;
-    public StructureGenerationData structData;
-    public List<SpecialShaderData> specialShaders;
+    public GenerationResources generation;
     //Ideally specialShaders should be in materialData, but can't compile monobehavior in an asset 
 
-    
+
     public static Queue<TerrainChunk> lastUpdateTerrainChunks = new Queue<TerrainChunk>();
     public static Queue<SurfaceChunk> lastUpdateSurfaceChunks = new Queue<SurfaceChunk>();
 
@@ -54,9 +47,12 @@ public class EndlessTerrain : MonoBehaviour
     {
         renderDistance = detailLevels[detailLevels.Length - 1].distanceThresh;
         chunksVisibleInViewDistance = Mathf.RoundToInt(renderDistance / mapChunkSize);
-        meshCreator.biomeData = biomeData;//Will change, temporary
-        mapCreator.biomeData = biomeData;
-        //texData.ApplyToMaterial(mapMaterial, GenerationData.Materials);
+        generation.meshCreator.biomeData = generation.biomeData;//Will change, temporary
+        generation.mapCreator.biomeData = generation.biomeData;
+        generation.texData.ApplyToMaterial();
+        generation.structData.ApplyToMaterial();
+
+        generation.densityDict.InitializeManage(chunksVisibleInViewDistance, mapChunkSize, lerpScale);
     }
 
     private void Update()
@@ -70,6 +66,23 @@ public class EndlessTerrain : MonoBehaviour
         StartGeneration();
     }
 
+    private void OnDisable()
+    {
+        TerrainChunk[] chunks = new TerrainChunk[terrainChunkDict.Count];
+        terrainChunkDict.Values.CopyTo(chunks, 0);
+        foreach(TerrainChunk chunk in chunks)
+        {
+            chunk.DestroyChunk();
+        }
+
+        SurfaceChunk[] schunks = new SurfaceChunk[surfaceChunkDict.Count];
+        surfaceChunkDict.Values.CopyTo(schunks, 0);
+        foreach (SurfaceChunk chunk in schunks)
+        {
+            chunk.DestroyChunk();
+        }
+    }
+
     private void LateUpdate()
     {
         if (viewerActive)
@@ -78,6 +91,7 @@ public class EndlessTerrain : MonoBehaviour
             return;
         viewerActive = true;
         viewerRigidBody.ActivateCharacter();
+        generation.atmosphereBake.Execute();
     }
 
 
@@ -121,7 +135,7 @@ public class EndlessTerrain : MonoBehaviour
                     curSChunk.Update();
                 }
                 else {
-                    curSChunk = new SurfaceChunk(Instantiate(mapCreator), viewedSC, detailLevels);
+                    curSChunk = new SurfaceChunk(Instantiate(generation.mapCreator), viewedSC);
                     surfaceChunkDict.Add(viewedSC, curSChunk);
                 }
 
@@ -133,7 +147,7 @@ public class EndlessTerrain : MonoBehaviour
                         TerrainChunk curChunk = terrainChunkDict[viewedCC];
                         curChunk.Update();
                     } else {
-                        terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, IsoLevel, transform, specialShaders, curSChunk, Instantiate(meshCreator), mapMaterial, detailLevels));
+                        terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, IsoLevel, transform, curSChunk, detailLevels, generation));
                     }
                 }
             }

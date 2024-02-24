@@ -5,6 +5,7 @@ using System.Threading;
 using System.Linq;
 using UnityEditor.Rendering;
 using UnityEngine.Analytics;
+using static UnityEngine.Mesh;
 
 public class EditorMesh : MonoBehaviour
 {
@@ -22,7 +23,7 @@ public class EditorMesh : MonoBehaviour
 
     [Header("Dependencies")]
     public GameObject mesh;
-    public ProceduralGrassRenderer grassRenderer;
+    public StructureGenerationData structureData;
     static EditorMesh instance;
 
     Queue<ThreadInfo> ThreadInfoQueue = new Queue<ThreadInfo>();
@@ -45,24 +46,7 @@ public class EditorMesh : MonoBehaviour
         }
         else
         {
-            EndlessTerrain settings = transform.GetComponent<EndlessTerrain>();
-            Vector3 CCoord = new (Mathf.FloorToInt(EditorOffset.x / EndlessTerrain.mapChunkSize), Mathf.FloorToInt(EditorOffset.y / EndlessTerrain.mapChunkSize), Mathf.FloorToInt(EditorOffset.z / EndlessTerrain.mapChunkSize));
-            SurfaceChunk.LODMap surfaceData = new SurfaceChunk.LODMap(settings.mapCreator, new Vector2(CCoord.x, CCoord.z), EditorLoD);
-            surfaceData.GetChunk(() => { });
-
-            settings.meshCreator.biomeData = settings.biomeData;
-            settings.mapCreator.biomeData = settings.biomeData;
-
-            settings.meshCreator.GenerateDensity(surfaceData, EditorOffset, EditorLoD, EndlessTerrain.mapChunkSize, settings.IsoLevel);
-            settings.meshCreator.GenerateMaterials(surfaceData, EditorOffset, EditorLoD, EndlessTerrain.mapChunkSize);
-            //Chunkbuffers chunkData = settings.meshCreator.GenerateMapData(settings.IsoLevel, EditorLoD, EndlessTerrain.mapChunkSize);
-            settings.meshCreator.ReleaseTempBuffers();
- 
-            MeshFilter meshFilter = mesh.GetComponent<MeshFilter>();
-            //meshFilter.sharedMesh = chunkData.GenerateMesh();
-
-            settings.texData.ApplyToMaterial();
-            settings.structData.ApplyToMaterial();
+            
         }
     }
 
@@ -113,16 +97,23 @@ public class EditorMesh : MonoBehaviour
         }
     }
 
-
-    public class ChunkData
+    public class MeshInfo
     {
-        public MeshInfo meshData;
-        public List<Vector3> vertexParents;
+        public List<Vector3> vertices;
+        public List<Vector3> normals;
+        public List<Vector2> UVs;
+        public List<Color> colorMap;
+        public List<int> triangles;
+        public List<UnityEngine.Rendering.SubMeshDescriptor> subMeshes;
 
-        public ChunkData()
+        public MeshInfo()
         {
-            vertexParents = new List<Vector3>();
-            meshData = new MeshInfo();
+            vertices = new List<Vector3>();
+            normals = new List<Vector3>();
+            UVs = new List<Vector2>();
+            triangles = new List<int>();
+            colorMap = new List<Color>();
+            subMeshes = new List<UnityEngine.Rendering.SubMeshDescriptor>();
         }
 
         public static Mesh GenerateMesh(MeshInfo meshData)
@@ -132,33 +123,26 @@ public class EditorMesh : MonoBehaviour
             mesh.normals = meshData.normals.ToArray();
             mesh.triangles = meshData.triangles.ToArray();
             mesh.colors = meshData.colorMap.ToArray();
+            if (meshData.UVs.Count > 0)
+                mesh.uv = meshData.UVs.ToArray();
+            if(meshData.subMeshes.Count > 0)
+                mesh.SetSubMeshes(meshData.subMeshes.ToArray());
             return mesh;
         }
 
-        public Mesh GenerateMesh()
+        public Mesh GenerateMesh(UnityEngine.Rendering.IndexFormat meshIndexFormat)
         {
             Mesh mesh = new Mesh();
-            mesh.vertices = meshData.vertices.ToArray();
-            mesh.normals = meshData.normals.ToArray();
-            mesh.triangles = meshData.triangles.ToArray();
-            mesh.colors = meshData.colorMap.ToArray();
+            mesh.indexFormat = meshIndexFormat;
+            mesh.vertices = vertices.ToArray();
+            mesh.normals = normals.ToArray();
+            mesh.triangles = triangles.ToArray();
+            mesh.colors = colorMap.ToArray();
+            if (UVs.Count > 0)
+                mesh.uv = UVs.ToArray();
+            if (subMeshes.Count > 0)
+                mesh.SetSubMeshes(subMeshes.ToArray());
             return mesh;
-        }
-    }
-
-    public class MeshInfo
-    {
-        public List<Vector3> vertices;
-        public List<Vector3> normals;
-        public List<Color> colorMap;
-        public List<int> triangles;
-
-        public MeshInfo()
-        {
-            vertices = new List<Vector3>();
-            normals = new List<Vector3>();
-            triangles = new List<int>();
-            colorMap = new List<Color>();
         }
 
         public void AddTriangle(int a, int b, int c)
@@ -167,6 +151,5 @@ public class EditorMesh : MonoBehaviour
             triangles.Add(b);
             triangles.Add(c);
         }
-
     }
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
-[CreateAssetMenu(fileName = "Structure_Settings", menuName = "Structure Settings")]
+[CreateAssetMenu(fileName = "Structure_Settings", menuName = "Generation/Structure/Structure Settings")]
 public class StructureSettings : ScriptableObject
 {
     public int minimumLOD; 

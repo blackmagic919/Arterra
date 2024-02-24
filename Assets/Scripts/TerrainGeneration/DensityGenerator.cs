@@ -14,7 +14,6 @@ public class DensityGenerator : ScriptableObject
     public ComputeShader materialGenCompute;
     public ComputeShader meshGenerator;
     public ComputeShader densitySimplification;
-
     public ComputeShader TriCountToVertCount;
 
     [Space(10)]
@@ -28,8 +27,11 @@ public class DensityGenerator : ScriptableObject
     public ComputeShader checkVerification;
     public ComputeShader structureCheckFilter;
     public ComputeShader structureChunkGenerator;
+    public ComputeShader structureDataTranscriber;
+    public ComputeShader structureMemorySize;
 
     public ComputeShader indirectThreads;
+    public ComputeShader indirectCountToArgs;
     public ComputeShader indirectMapInitialize;
 
     public void ConvertTriCountToVert(ComputeBuffer args)
@@ -114,7 +116,7 @@ public class DensityGenerator : ScriptableObject
         return materialBuffer;
     }
 
-    public ComputeBuffer AnalyzeTerrain(ComputeBuffer checks, ComputeBuffer baseDensity, ComputeBuffer heights, ComputeBuffer squash, ComputeBuffer count, ComputeBuffer args, float chunkYOrigin, int maxPoints, ref Queue<ComputeBuffer> bufferHandle)
+    public ComputeBuffer AnalyzeTerrain(ComputeBuffer checks, ComputeBuffer baseDensity, ComputeBuffer heights, ComputeBuffer squash, ComputeBuffer count, ComputeBuffer args, float chunkYOrigin, int maxPoints, float IsoLevel, ref Queue<ComputeBuffer> bufferHandle)
     {
         ComputeBuffer result = new ComputeBuffer(maxPoints, sizeof(float), ComputeBufferType.Structured);
         bufferHandle.Enqueue(result);
@@ -125,6 +127,7 @@ public class DensityGenerator : ScriptableObject
         terrainAnalyzerGPU.SetBuffer(0, "heights", heights);
         terrainAnalyzerGPU.SetBuffer(0, "squash", squash);
         terrainAnalyzerGPU.SetFloat("chunkYOrigin", chunkYOrigin);
+        terrainAnalyzerGPU.SetFloat("IsoLevel", IsoLevel);
 
         terrainAnalyzerGPU.SetBuffer(0, "results", result);
 
@@ -161,7 +164,7 @@ public class DensityGenerator : ScriptableObject
         undergroundNoiseCompute.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
     }
 
-    public void GenerateTerrain(int chunkSize, int meshSkipInc, SurfaceChunk.LODMap surfaceData, Vector3 offset, float IsoValue, ComputeBuffer pointBuffer)
+    public void GenerateTerrain(int chunkSize, int meshSkipInc, SurfaceChunk.SurfaceMap surfaceData, Vector3 offset, float IsoValue, ComputeBuffer pointBuffer)
     {
         int numPointsAxes = chunkSize / meshSkipInc + 1;
 
@@ -204,33 +207,6 @@ public class DensityGenerator : ScriptableObject
         StructureLoDSampler.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
         return structurePoints;
-    }
-
-    public ComputeBuffer CopyCount(ComputeBuffer data, ref Queue<ComputeBuffer> bufferHandle)
-    {
-        ComputeBuffer count = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
-        bufferHandle.Enqueue(count);
-
-        count.SetData(new int[] { 0 });
-        ComputeBuffer.CopyCount(data, count, 0);
-
-        return count;
-    }
-
-    public ComputeBuffer SetArgs(ComputeBuffer data, ref Queue<ComputeBuffer> bufferHandle)
-    {
-        ComputeBuffer args = new ComputeBuffer(3, sizeof(uint), ComputeBufferType.IndirectArguments);
-        bufferHandle.Enqueue(args);
-
-        args.SetData(new int[] { 1, 1, 1 });
-        ComputeBuffer.CopyCount(data, args, 0);
-
-        indirectThreads.SetBuffer(0, "args", args);
-        indirectThreads.SetInt("numThreads", threadGroupSize);
-
-        indirectThreads.Dispatch(0, 1, 1, 1);
-
-        return args;
     }
 
     public ComputeBuffer IdenfityStructures(ComputeBuffer structurePoints, ComputeBuffer biomes, ComputeBuffer count, ComputeBuffer args, Vector3 chunkCoord, int chunkSize, int maxPoints, ref Queue<ComputeBuffer> bufferHandle)
@@ -322,6 +298,7 @@ public class DensityGenerator : ScriptableObject
     public ComputeBuffer FilterStructures(ComputeBuffer valid, ComputeBuffer structures, ComputeBuffer count, ComputeBuffer args, int maxPoints, ref Queue<ComputeBuffer> bufferHandle)
     {
         ComputeBuffer result = new ComputeBuffer(maxPoints, sizeof(float) * 3 + sizeof(uint) * 3, ComputeBufferType.Append);
+        result.SetCounterValue(0);
         bufferHandle.Enqueue(result);
 
         structureCheckFilter.SetBuffer(0, "numPoints", count);
@@ -332,6 +309,32 @@ public class DensityGenerator : ScriptableObject
         structureCheckFilter.DispatchIndirect(0, args);
 
         return result;
+    }
+
+    public ComputeBuffer CalculateStructureSize(ComputeBuffer structureCount, int structureStride, ref Queue<ComputeBuffer> bufferHandle)
+    {
+        ComputeBuffer result = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
+        bufferHandle.Enqueue(result);
+
+        structureMemorySize.SetBuffer(0, "structureCount", structureCount);
+        structureMemorySize.SetInt("structStride4Byte", structureStride);
+        structureMemorySize.SetBuffer(0, "byteLength", result);
+
+        structureMemorySize.Dispatch(0, 1, 1, 1);
+
+        return result;
+    }
+
+    public void TranscribeStructures(ComputeBuffer memory, ComputeBuffer structures, ComputeBuffer count, ComputeBuffer address, ref Queue<ComputeBuffer> bufferHandle)
+    {
+        ComputeBuffer args = SetArgs(this.structureDataTranscriber, structures, ref bufferHandle);
+
+        structureDataTranscriber.SetBuffer(0, "_MemoryBuffer", memory);
+        structureDataTranscriber.SetBuffer(0, "structPoints", structures);
+        structureDataTranscriber.SetBuffer(0, "numStructPoints", count);
+        structureDataTranscriber.SetBuffer(0, "startAddress", address);
+
+        structureDataTranscriber.DispatchIndirect(0, args);
     }
 
     public void AnalyzeChecks(ComputeBuffer checks, ComputeBuffer density, ComputeBuffer count, ComputeBuffer args, float IsoValue, ref ComputeBuffer valid)
@@ -346,16 +349,74 @@ public class DensityGenerator : ScriptableObject
         checkVerification.DispatchIndirect(0, args);
     }
 
-    public void ApplyStructures(ComputeBuffer strucutures, ComputeBuffer density, ComputeBuffer material, ComputeBuffer count, ComputeBuffer args, int chunkSize, int meshSkipInc, float IsoLevel)
+    public void ApplyStructures(ComputeBuffer memory, ComputeBuffer address, ComputeBuffer count, ComputeBuffer density, ComputeBuffer material, int chunkSize, int meshSkipInc, float IsoLevel, ref Queue<ComputeBuffer> bufferHandle)
     {
+        ComputeBuffer args = CountToArgs(structureChunkGenerator, count, ref bufferHandle);
+
+        structureChunkGenerator.SetBuffer(0, "_MemoryBuffer", memory);
+        structureChunkGenerator.SetBuffer(0, "address", address);
+        structureChunkGenerator.SetBuffer(0, "numPoints", count);
+
         structureChunkGenerator.SetBuffer(0, "density", density);
         structureChunkGenerator.SetBuffer(0, "material", material);
-        structureChunkGenerator.SetBuffer(0, "structures", strucutures);
-        structureChunkGenerator.SetBuffer(0, "numPoints", count);
         structureChunkGenerator.SetInt("chunkSize", chunkSize);
         structureChunkGenerator.SetInt("meshSkipInc", meshSkipInc);
         structureChunkGenerator.SetFloat("IsoLevel", IsoLevel);
 
         structureChunkGenerator.DispatchIndirect(0, args);
+    }
+
+    public ComputeBuffer CopyCount(ComputeBuffer data, ref Queue<ComputeBuffer> bufferHandle)
+    {
+        ComputeBuffer count = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
+        bufferHandle.Enqueue(count);
+
+        count.SetData(new int[] { 0 });
+        ComputeBuffer.CopyCount(data, count, 0);
+
+        return count;
+    }
+
+    public ComputeBuffer CountToArgs(ComputeShader shader, ComputeBuffer count, ref Queue<ComputeBuffer> bufferHandle)
+    {
+        shader.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+        return CountToArgs(count, ref bufferHandle, (int)threadGroupSize);
+    }
+
+    public ComputeBuffer CountToArgs(ComputeBuffer count, ref Queue<ComputeBuffer> bufferHandle, int threadGroupSize = threadGroupSize) {
+        ComputeBuffer args = new ComputeBuffer(3, sizeof(uint), ComputeBufferType.IndirectArguments);
+        bufferHandle.Enqueue(args);
+
+        args.SetData(new int[] { 1, 1, 1 });
+
+        indirectCountToArgs.SetBuffer(0, "count", count);
+        indirectCountToArgs.SetBuffer(0, "args", args);
+        indirectCountToArgs.SetInt("numThreads", threadGroupSize);
+
+        indirectCountToArgs.Dispatch(0, 1, 1, 1);
+
+        return args;
+    }
+
+    public ComputeBuffer SetArgs(ComputeShader shader, ComputeBuffer data, ref Queue<ComputeBuffer> bufferHandle)
+    {
+        shader.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+        return SetArgs(data, ref bufferHandle, (int)threadGroupSize);
+    }
+
+    public ComputeBuffer SetArgs(ComputeBuffer data, ref Queue<ComputeBuffer> bufferHandle, int threadGroupSize = threadGroupSize)
+    {
+        ComputeBuffer args = new ComputeBuffer(3, sizeof(uint), ComputeBufferType.IndirectArguments);
+        bufferHandle.Enqueue(args);
+
+        args.SetData(new int[] { 1, 1, 1 });
+        ComputeBuffer.CopyCount(data, args, 0);
+
+        indirectThreads.SetBuffer(0, "args", args);
+        indirectThreads.SetInt("numThreads", threadGroupSize);
+
+        indirectThreads.Dispatch(0, 1, 1, 1);
+
+        return args;
     }
 }

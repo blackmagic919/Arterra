@@ -16,6 +16,8 @@ public class StructureGenerationData : UpdatableData
 
     public void ApplyToMaterial()
     {
+        OnDisable();
+
         uint[] indexPrefixSum = new uint[(StructureDictionary.Count+1)*2];
         List<float> density = new List<float>();
         List<int> material = new List<int>();

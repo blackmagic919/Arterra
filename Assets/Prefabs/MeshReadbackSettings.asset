@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 384f1f75f93f44a2eb9b0ad85699bd26, type: 3}
+  m_Name: MeshReadbackSettings
+  m_EditorClassIdentifier: 
+  indirectTerrainMats:
+  - {fileID: 2100000, guid: 3b9db681500dd456cae8fe982fec0395, type: 2}
+  memoryBuffer: {fileID: 11400000, guid: 333e208760bd64ad6af53d09071df190, type: 2}
+  memorySizeCalculator: {fileID: 7200000, guid: 2b9e42840e66140d38b6aa68b820ed19, type: 3}
+  baseGeoTranscriber: {fileID: 7200000, guid: 31e43c2c61b4e447da5e7938ad0516a2, type: 3}
+  memoryHandleCombiner: {fileID: 7200000, guid: aa703f429b5c445bb978d26b062791ea, type: 3}
+  meshDrawArgsCreator: {fileID: 7200000, guid: 268536113f6b04e758183f57cd70b59a, type: 3}
+  indirectThreads: {fileID: 7200000, guid: e3a89d0d07a2849e589b43c4950ea014, type: 3}

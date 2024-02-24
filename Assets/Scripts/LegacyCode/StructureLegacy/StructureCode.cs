@@ -61,9 +61,9 @@ public class StructureCode
 
     int[] meshSkipTable = new int[6];
 
-    public void PlanStructures(SurfaceChunk.LODMap surfaceData, Vector3 chunkCoord, Vector3 offset, int chunkSize, float IsoLevel)
+    public void PlanStructures(SurfaceChunk.SurfaceMap surfaceData, Vector3 chunkCoord, Vector3 offset, int chunkSize, float IsoLevel)
     {
-        int chunkSeed = ((int)chunkCoord.x * 2 + (int)chunkCoord.y * 3 + (int)chunkCoord.z * 5);
+        int chunkSeed = (int)chunkCoord.x * 2 + (int)chunkCoord.y * 3 + (int)chunkCoord.z * 5;
         System.Random prng = new System.Random(chunkSeed);
 
         Queue<StructureInfo> structures = new Queue<StructureInfo>();

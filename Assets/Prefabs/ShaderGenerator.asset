@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a945e9378cc3647f6890ba78d0f0ce6d, type: 3}
+  m_Name: ShaderGenerator
+  m_EditorClassIdentifier: 
+  shaderDictionary:
+  - {fileID: 11400000, guid: e11232fbec10841a4a488fcc70cc241f, type: 2}
+  - {fileID: 11400000, guid: aad37b9e5794849e98fbbc9c685c00d1, type: 2}
+  maxVertexPerBase: 3
+  memoryBuffer: {fileID: 11400000, guid: 743280fd1911d428e99f1d63657bfdaf, type: 2}
+  matSizeCounter: {fileID: 7200000, guid: d323637ddb04943fc8c2a7bc3c3e9c3a, type: 3}
+  filterGeometry: {fileID: 7200000, guid: 5b11ff800ff86449498f7e43c4899770, type: 3}
+  sizePrefixSum: {fileID: 7200000, guid: 970f90d750e014dd8aec13764792d7e8, type: 3}
+  indirectThreads: {fileID: 7200000, guid: ada36d988c06e40f2864470524a87e61, type: 3}
+  geoSizeCalculator: {fileID: 7200000, guid: be4b7cedc3d284f43994919b91c132d7, type: 3}
+  geoTranscriber: {fileID: 7200000, guid: 38d08d3acbe3d47a8b58f9d433a696b1, type: 3}
+  prefixShaderArgs: {fileID: 7200000, guid: 7ff327240d7634acc87ce2b986f23c6f, type: 3}
+  shaderDrawArgs: {fileID: 7200000, guid: 3e844aacab07e4f81924328ee5868a27, type: 3}

@@ -5,16 +5,11 @@
 #include "NMGFoliageHelpers.hlsl"
 
 struct DrawVertex{
-    float3 positionWS;
-    float3 normalWS;
+    float4 positionWS;
+    float4 normalWS;
+    float4 color;
     float2 uv;
 };
-
-struct DrawTriangle{
-    DrawVertex vertices[3];
-};
-
-StructuredBuffer<DrawTriangle> _DrawTriangles;
 
 struct VertexOutput {
     float3 positionWS   : TEXCOORD0; 
@@ -23,6 +18,10 @@ struct VertexOutput {
 
     float4 positionCS   : SV_POSITION;
 };
+
+StructuredBuffer<uint> _StorageMemory;
+StructuredBuffer<uint> instanceAddress;
+uint _Vertex4ByteStride;
 
 TEXTURE2D(_AlphaMap); SAMPLER(sampler_AlphaMap); float4 _AlphaMap_ST;
 float4 _LeafColor;
@@ -33,17 +32,43 @@ TEXTURE2D(_WindNoiseTexture); SAMPLER(sampler_WindNoiseTexture); float4 _WindNoi
 float _WindTimeMult;
 float _WindAmplitude;
 
+
+DrawVertex ReadVertex(uint vertexAddress){
+    uint address = vertexAddress + instanceAddress[0];
+    DrawVertex vertex = (DrawVertex)0;
+
+    vertex.positionWS.x = asfloat(_StorageMemory[address]);
+    vertex.positionWS.y = asfloat(_StorageMemory[address + 1]);
+    vertex.positionWS.z = asfloat(_StorageMemory[address + 2]);
+
+    vertex.normalWS.x = asfloat(_StorageMemory[address + 3]);
+    vertex.normalWS.y = asfloat(_StorageMemory[address + 4]);
+    vertex.normalWS.z = asfloat(_StorageMemory[address + 5]);
+
+    vertex.uv.x = asfloat(_StorageMemory[address + 6]);
+    vertex.uv.y = asfloat(_StorageMemory[address + 7]);
+
+    vertex.color.x = asfloat(_StorageMemory[address + 8]);
+    vertex.color.y = asfloat(_StorageMemory[address + 9]);
+    vertex.color.z = asfloat(_StorageMemory[address + 10]);
+    vertex.color.w = asfloat(_StorageMemory[address + 11]);
+
+    return vertex;
+}
+
 VertexOutput Vertex(uint vertexID: SV_VertexID){
     VertexOutput output = (VertexOutput)0;
+    if(instanceAddress[0] == 0)
+        return output;
 
-    DrawTriangle tri = _DrawTriangles[vertexID / 3];
-    DrawVertex input = tri.vertices[vertexID % 3];
+    uint vertexAddress = vertexID * _Vertex4ByteStride;
+    DrawVertex input = ReadVertex(vertexAddress);
 
     output.positionWS = input.positionWS;
     output.normalWS = input.normalWS;
-    output.positionCS = CalculatePositionCSWithShadowCasterLogic(output.positionWS, input.normalWS);
-
     output.uv = input.uv;
+    output.positionCS = CalculatePositionCSWithShadowCasterLogic(output.positionWS, output.normalWS);
+
     return output;
 }
 

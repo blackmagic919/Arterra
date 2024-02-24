@@ -64,12 +64,10 @@ public class MapCreator : ScriptableObject
     public BiomeGenerationData biomeData;
 
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
-    Queue<ComputeBuffer> persistantBuffers = new Queue<ComputeBuffer>();
 
     public void OnDisable()
     {
         ReleaseTempBuffers();
-        ReleasePersistantBuffers();//
     }
 
     public ComputeBuffer AnalyzeSquashMap(Vector3[] rawPositions, Vector2 offset, int chunkSize)
@@ -98,7 +96,7 @@ public class MapCreator : ScriptableObject
         tempBuffers.Enqueue(pVDetail);
         tempBuffers.Enqueue(erosionDetail);
 
-        ComputeBuffer heightBuffer = terrainGenerator.CombineTerrainMaps(continentalDetail, erosionDetail, pVDetail, numOfPoints, terrainOffset, persistantBuffers);
+        ComputeBuffer heightBuffer = terrainGenerator.CombineTerrainMaps(continentalDetail, erosionDetail, pVDetail, numOfPoints, terrainOffset, null);
 
         return heightBuffer;
     }
@@ -151,8 +149,6 @@ public class MapCreator : ScriptableObject
         ComputeBuffer squashBuffer;
         squashNoise = terrainGenerator.GetNoiseMap(SquashMapDetail, offset, MaxSquashHeight, chunkSize, meshSkipInc, false, tempBuffers, out squashBuffer);
 
-        persistantBuffers.Enqueue(squashBuffer);
-
         return squashBuffer;
     }
 
@@ -171,9 +167,8 @@ public class MapCreator : ScriptableObject
     public ComputeBuffer ConstructBiomes(int chunkSize, int LOD, ref NoiseMaps noiseMaps)
     {
         int meshSkipInc = meshSkipTable[LOD];
-        int numPointsAxes = chunkSize / meshSkipInc + 1;
 
-        ComputeBuffer biomeMap = terrainGenerator.GetBiomeMap(chunkSize, meshSkipInc, noiseMaps, persistantBuffers);
+        ComputeBuffer biomeMap = terrainGenerator.GetBiomeMap(chunkSize, meshSkipInc, noiseMaps, null);
         /*int[] ret = new int[numOfPoints];
         biomeMap.GetData(ret);
 
@@ -200,7 +195,7 @@ public class MapCreator : ScriptableObject
         int sourceSkipInc = meshSkipTable[sourceLOD];
         int destSkipInc = meshSkipTable[destLOD];
 
-        ComputeBuffer simplified = terrainGenerator.SimplifyMap(sourceMap, chunkSize, sourceSkipInc, destSkipInc, isFloat, persistantBuffers);
+        ComputeBuffer simplified = terrainGenerator.SimplifyMap(sourceMap, chunkSize, sourceSkipInc, destSkipInc, isFloat, null);
 
         return simplified;
     }
@@ -238,14 +233,6 @@ public class MapCreator : ScriptableObject
         while (tempBuffers.Count > 0)
         {
             tempBuffers.Dequeue().Release();
-        }
-    }
-
-    public void ReleasePersistantBuffers()
-    {
-        while (persistantBuffers.Count > 0)
-        {
-            persistantBuffers.Dequeue().Release();
         }
     }
 }

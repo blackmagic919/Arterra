@@ -1,0 +1,59 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+const static uint numThreads = 128;
+const static uint VERTEX_STRIDE_4BYTES = 3*2 + 4 + 2;
+
+struct DrawVertex{
+    float3 positionWS;
+    float3 normalWS;
+    float2 uv;
+    float4 color; //4 channels for 
+};
+
+struct DrawTriangle{
+    DrawVertex vertices[3];
+};
+
+StructuredBuffer<DrawTriangle> _DrawTriangles;
+StructuredBuffer<uint> _ShaderPrefixes;
+uint shaderIndex;
+
+RWStructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint> startAddress;
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(startAddress[0] == 0) //Out of space
+        return;
+
+    uint start = _ShaderPrefixes[shaderIndex];
+    uint length = _ShaderPrefixes[shaderIndex+1] - start;
+    if(id.x >= length)
+        return;
+
+    DrawTriangle tri = _DrawTriangles[start + id.x];
+
+    uint triAddress = startAddress[0] + (id.x * (VERTEX_STRIDE_4BYTES * 3));
+
+    [unroll] for(uint i = 0; i < 3; i++){
+        uint vertAddress = triAddress + (VERTEX_STRIDE_4BYTES * i);
+
+        _MemoryBuffer[vertAddress] = asuint(tri.vertices[i].positionWS.x);
+        _MemoryBuffer[vertAddress + 1] = asuint(tri.vertices[i].positionWS.y);
+        _MemoryBuffer[vertAddress + 2] = asuint(tri.vertices[i].positionWS.z);
+
+        _MemoryBuffer[vertAddress + 3] = asuint(tri.vertices[i].normalWS.x);
+        _MemoryBuffer[vertAddress + 4] = asuint(tri.vertices[i].normalWS.y);
+        _MemoryBuffer[vertAddress + 5] = asuint(tri.vertices[i].normalWS.z);
+
+        _MemoryBuffer[vertAddress + 6] = asuint(tri.vertices[i].uv.x);
+        _MemoryBuffer[vertAddress + 7] = asuint(tri.vertices[i].uv.y);
+
+        _MemoryBuffer[vertAddress + 8] = asuint(tri.vertices[i].color.x);
+        _MemoryBuffer[vertAddress + 9] = asuint(tri.vertices[i].color.y);
+        _MemoryBuffer[vertAddress + 10] = asuint(tri.vertices[i].color.z);
+        _MemoryBuffer[vertAddress + 11] = asuint(tri.vertices[i].color.w);
+    }
+}

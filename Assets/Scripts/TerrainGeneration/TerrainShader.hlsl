@@ -1,22 +1,14 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#pragma shader_feature _ INDIRECT 
 //#include "UnityCG.cginc"
 
 
-const static int maxMatCount = 8;
-
-float _BaseColors[4*maxMatCount];
-float _BaseColorStrength[maxMatCount];
-float _BaseTextureScales[maxMatCount];
+StructuredBuffer<float4> _BaseColors;
+StructuredBuffer<float> _BaseColorStrength;
+StructuredBuffer<float> _BaseTextureScales;
 
 Texture2DArray _Textures;
 SamplerState sampler_Textures;
-
-struct appdata
-{
-    float4 vertex : POSITION;
-    float4 normal : NORMAL;
-    float4 color: COLOR;
-};
 
 struct v2f
 {
@@ -27,9 +19,67 @@ struct v2f
     nointerpolation float4 color: COLOR; //Materials are definate and can't be interpolated
 };
 
+#ifdef INDIRECT
+
+float4x4 _LocalToWorld;
+
+struct DrawVertex{
+    float3 positionOS;
+    float3 normalOS;
+    int2 id;
+    int material;
+};
+
+StructuredBuffer<uint> _StorageMemory;
+StructuredBuffer<uint> instanceHandle;
+uint _Vertex4ByteStride;
+
+DrawVertex ReadVertex(uint vertexAddress){
+    uint address = vertexAddress + instanceHandle[0];
+    DrawVertex vertex = (DrawVertex)0;
+
+    vertex.positionOS.x = asfloat(_StorageMemory[address]);
+    vertex.positionOS.y = asfloat(_StorageMemory[address + 1]);
+    vertex.positionOS.z = asfloat(_StorageMemory[address + 2]);
+
+    vertex.normalOS.x = asfloat(_StorageMemory[address + 3]);
+    vertex.normalOS.y = asfloat(_StorageMemory[address + 4]);
+    vertex.normalOS.z = asfloat(_StorageMemory[address + 5]);
+
+    vertex.id.x = asint(_StorageMemory[address + 6]);
+    vertex.id.y = asint(_StorageMemory[address + 7]);
+
+    vertex.material = asint(_StorageMemory[address + 8]);
+
+    return vertex;
+}
+
+v2f vert (uint vertexID: SV_VertexID){
+    v2f o = (v2f)0;
+
+    uint vertexAddress = vertexID * _Vertex4ByteStride;
+    DrawVertex input = ReadVertex(vertexAddress);
+
+    o.positionWS = mul(_LocalToWorld, float4(input.positionOS, 1)).xyz;
+    o.normalWS = normalize(mul(_LocalToWorld, float4(input.normalOS, 0)).xyz);
+    o.positionCS = TransformWorldToHClip(o.positionWS);
+
+    o.color = float4(input.material, 0, 0, 1);
+    return o;
+}
+
+#else
+
 float3 _TargetPoint;
 float closestDistance;
 float4x4 _LocalToWorld;
+
+struct appdata
+{
+    float4 vertex : POSITION;
+    float4 normal : NORMAL;
+    float4 color: COLOR;
+};
 
 v2f vert (appdata v)
 {
@@ -45,6 +95,8 @@ v2f vert (appdata v)
     return o;
 }
 
+#endif
+
 float4 lerp(float4 a, float4 b, float value){
     return (a*value) + (b*(1-value));
 }
@@ -56,11 +108,6 @@ float3 lerp(float3 a, float3 b, float value){
 float lerp(float a, float b, float value){
     return (a*value) + (b*(1-value));
 }
-
-float4 GetColor(float ind){
-    return float4(_BaseColors[4*ind], _BaseColors[4*ind+1], _BaseColors[4*ind+2], _BaseColors[4*ind+3]);
-}
-
 
 float3 triplanar(float3 worldPos, float scale, float3 blendAxes, int texInd){
     float3 scaledWorldPos = worldPos / scale;
@@ -81,7 +128,7 @@ float3 frag (v2f IN) : SV_Target
     int material = (int)IN.color.r;
     float alpha = IN.color.a;
 
-    float3 baseColor = GetColor(material);//lerp(GetColor(a), GetColor(b), interpFactor);
+    float3 baseColor = _BaseColors[material];//lerp(GetColor(a), GetColor(b), interpFactor);
 
     float3 textureColor = triplanar(IN.positionWS, _BaseTextureScales[material], blendAxes, material);
 
@@ -94,11 +141,11 @@ float3 frag (v2f IN) : SV_Target
 	lightingInput.shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
 
 	SurfaceData surfaceInput = (SurfaceData)0;
-	surfaceInput.albedo = baseColor * colorStrength + textureColor*(1-colorStrength);
+	surfaceInput.albedo = baseColor * colorStrength + textureColor * (1-colorStrength);
 	surfaceInput.alpha = alpha;
     clip(surfaceInput.alpha - 0.01);
 
-    #if UNITY_VERSION >= 202120
+#if UNITY_VERSION >= 202120
 	return UniversalFragmentBlinnPhong(lightingInput, surfaceInput);
 #else
 	return UniversalFragmentBlinnPhong(lightingInput, surfaceInput.albedo, float4(surfaceInput.specular, 1), surfaceInput.smoothness, 0, surfaceInput.alpha);

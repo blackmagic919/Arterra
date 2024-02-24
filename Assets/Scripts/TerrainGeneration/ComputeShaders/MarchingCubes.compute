@@ -3,6 +3,8 @@
 #include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/MarchingTables.hlsl"
 #include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.hlsl"
 
+static const float3 Epsilon = float3(1E-6, 1E-6, 1E-6);
+
 struct Point{
     float3 tri;
     float3 norm;
@@ -58,7 +60,7 @@ uint numCubesPerAxis;
 */
 
 float sampleDensity(int3 coord) {
-	coord = max(0, min(coord, numCubesPerAxis));
+	coord = clamp(coord, 0, numCubesPerAxis);
 	return points[indexFromCoord(coord.x, coord.y, coord.z)];
 }
 
@@ -80,7 +82,7 @@ float3 calculateNormal(int3 coord) {
 	float dz = sampleDensity(coord - offsetZ) - sampleDensity(coord + offsetZ);
 
 
-	return normalize(float3(dx, dy, dz));
+	return float3(dx, dy, dz);
 }
 
 
@@ -139,11 +141,16 @@ void March (uint3 id : SV_DispatchThreadID)
                 interpFactor = (1.0f-interpFactor);
             }
 
+            
             float3 p1Norm = calculateNormal(p1);
             float3 p2Norm = calculateNormal(p2);
 
+            //If value approaches float3.zero, normalize returns NaN, so we add fallback norm.
+            //Epsilon will be lost in float conversion if result is big enough, but if close to 0, it will default to Epsilon
+            float3 fallbackNorm = normalize(p2 - p1);
+            newPoint.norm = normalize((p1Norm + interpFactor * (p2Norm - p1Norm)) + Epsilon*fallbackNorm);
+
             newPoint.tri = p1 + interpFactor * (p2 - p1);
-            newPoint.norm = normalize(p1Norm + interpFactor * (p2Norm - p1Norm));
             newPoint.material = material[indexFromCoord(p1.x, p1.y, p1.z)];
 
             int numOfPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
@@ -154,7 +161,8 @@ void March (uint3 id : SV_DispatchThreadID)
             if(isBorder(p1) || isBorder(p2)) Borders[v] = true;
         }
 
-        float3 triNorm = cross(tric.points[1].tri - tric.points[0].tri, tric.points[2].tri - tric.points[0].tri);
+        //This is the standard mesh-based algorithm
+        float3 triNorm = normalize(cross(tric.points[1].tri - tric.points[0].tri, tric.points[2].tri - tric.points[0].tri));
         if(Borders[0]) tric.points[0].norm = triNorm;
         if(Borders[1]) tric.points[1].norm = triNorm;
         if(Borders[2]) tric.points[2].norm = triNorm;

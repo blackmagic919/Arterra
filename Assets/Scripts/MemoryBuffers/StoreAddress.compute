@@ -1,0 +1,12 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+RWStructuredBuffer<uint> _AddressDict;
+RWStructuredBuffer<uint> address;
+uint addressIndex;
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    _AddressDict[addressIndex] = address[0];
+}

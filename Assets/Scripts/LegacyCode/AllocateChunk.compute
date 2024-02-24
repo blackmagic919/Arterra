@@ -1,0 +1,16 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+RWStructuredBuffer<uint> _SectionedMemory;
+uint sectionAddress;
+
+RWStructuredBuffer<uint> memoryAddress;
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint address = _SectionedMemory[sectionAddress];
+    _SectionedMemory[sectionAddress] = _SectionedMemory[address-1];
+
+    memoryAddress[0] = address;
+}

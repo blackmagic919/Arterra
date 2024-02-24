@@ -6,6 +6,7 @@
 
 
 const static int numThreads = 8;
+const static uint POINT_STRIDE_4BYTES = 3 + 1 + 2;
 
 struct structureInfo{
     float3 structurePos;
@@ -23,6 +24,24 @@ struct settings{
     int sizeZ;
 };
 
+StructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint> address;
+
+structureInfo ReadStructure(uint structureAddress){
+    structureInfo structure = (structureInfo)0;
+
+    structure.structurePos.x = asfloat(_MemoryBuffer[structureAddress]);
+    structure.structurePos.y = asfloat(_MemoryBuffer[structureAddress + 1]);
+    structure.structurePos.z = asfloat(_MemoryBuffer[structureAddress + 2]);
+
+    structure.structureIndex = asuint(_MemoryBuffer[structureAddress + 3]);
+
+    structure.rotation.x = asuint(_MemoryBuffer[structureAddress + 4]);
+    structure.rotation.y = asuint(_MemoryBuffer[structureAddress + 5]);
+
+    return structure;
+}
+
 StructuredBuffer<settings> _StructureSettings; //settings for structure
 StructuredBuffer<uint2> _StructureIndexes;
 StructuredBuffer<float> _StructureDensities;
@@ -31,7 +50,6 @@ StructuredBuffer<int> _StructureMaterials;
 RWStructuredBuffer<float> density;
 RWStructuredBuffer<int> material;
 
-StructuredBuffer<structureInfo> structures;
 StructuredBuffer<uint> numPoints;
 
 uint chunkSize;
@@ -44,10 +62,12 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     if(id.x >= numPoints[0])
         return;
 
+    uint structureAddress = address[0] + id.x * POINT_STRIDE_4BYTES;
+    structureInfo structure = ReadStructure(structureAddress);
     //can't use implicit concatenation because -1.5 -> -1 while 1.5 -> 1, positive ints for current chunk, negative for adjacent ones
-    int3 origin = int3(floor(structures[id.x].structurePos.x), floor(structures[id.x].structurePos.y), floor(structures[id.x].structurePos.z));
-    uint2 rotation = structures[id.x].rotation;
-    uint structureIndex = structures[id.x].structureIndex;
+    int3 origin = int3(floor(structure.structurePos.x), floor(structure.structurePos.y), floor(structure.structurePos.z));
+    uint2 rotation = structure.rotation;
+    uint structureIndex = structure.structureIndex;
 
     settings structureSettings = _StructureSettings[structureIndex];
     uint3 sizes = uint3(structureSettings.sizeX, structureSettings.sizeY, structureSettings.sizeZ);

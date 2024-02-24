@@ -1,35 +1,25 @@
-using System;
+using System.Collections.Generic;
 using UnityEngine;
 using static EndlessTerrain;
 using Utils;
-using static SurfaceChunk;
+
 
 public class SurfaceChunk
 {
-    
-    public LODMap[] LODMaps;
-    LODInfo[] detailLevels;
-    MapCreator mapCreator;
+    public BaseMap baseMap;
 
     Vector2 SCoord;
     Vector2 position;
     bool active = true;
 
     // Start is called before the first frame update
-    public SurfaceChunk(MapCreator mapCreator, Vector2 coord, LODInfo[] detailLevels)
+    public SurfaceChunk(MapCreator mapCreator, Vector2 coord)
     {
         this.SCoord = coord;
-        this.position = (coord * mapChunkSize - Vector2.one * (mapChunkSize / 2f));
-        this.detailLevels = detailLevels;
-        this.mapCreator = mapCreator;
+        this.position = coord * mapChunkSize - Vector2.one * (mapChunkSize / 2f);
+        baseMap = new BaseMap(mapCreator, position);
 
-        LODMaps = new LODMap[detailLevels.Length];
-        for (int i = 0; i < detailLevels.Length; i++)
-        {
-            LODMaps[i] = new LODMap(mapCreator, this.position, detailLevels[i].LOD);
-        }
-
-        CreateChunk(0, LODMaps[0]);
+        CreateChunk(0);
         Update();
     }
 
@@ -50,29 +40,16 @@ public class SurfaceChunk
      *+----------------->x
      */
 
-    public void CreateChunk(int lodInd, LODMap lodMap)
+    public void CreateChunk(int lodInd)
     {
-        if (lodMap.hasChunk)
-        {
-            PropogateDetail(lodMap, lodInd+1);
-        }
-        else if (!lodMap.hasRequestedChunk)
-        {
-            lodMap.hasRequestedChunk = true;
-            timeRequestQueue.Enqueue(() => lodMap.GetChunk(() => CreateChunk(lodInd, lodMap)), (int)priorities.planning);
-        }
-    }
-
-    public void PropogateDetail(LODMap baseLOD, int lodInd)
-    {
-        if (lodInd >= detailLevels.Length)
+        if (baseMap.hasChunk)
             return;
-
-        LODMap lodMap = LODMaps[lodInd];
-        if (lodMap.hasChunk)
-            return;
-        else
-            timeRequestQueue.Enqueue(() => lodMap.SimplifyMap(baseLOD, () => PropogateDetail(baseLOD, lodInd + 1)), (int)priorities.planning);
+        
+        if (!baseMap.hasRequestedChunk)
+        {
+            baseMap.hasRequestedChunk = true;
+            timeRequestQueue.Enqueue(() => baseMap.GetChunk(), (int)priorities.planning);
+        }
     }
 
     public void UpdateVisibility(Vector2 CSCoord, float maxRenderDistance)
@@ -91,55 +68,72 @@ public class SurfaceChunk
 
         active = false;
 
-        mapCreator.ReleasePersistantBuffers();
-
+        baseMap.surfaceMap.Release();
         surfaceChunkDict.Remove(SCoord);
     }
 
-    public class LODMap
+    public class BaseMap
     {
         MapCreator mapCreator;
         NoiseMaps noiseMaps;
 
         //Return values--height map and squash map
-        public ComputeBuffer heightMap = default;
-        public ComputeBuffer squashMap = default;
-        public ComputeBuffer biomeMap = default;
+        public SurfaceMap surfaceMap;
 
         public bool hasChunk = false;
         public bool hasRequestedChunk = false;
 
         Vector2 position;
-        int LOD;
 
-        public LODMap(MapCreator mapCreator, Vector2 position, int LOD){
+        public BaseMap(MapCreator mapCreator, Vector2 position){
             this.mapCreator = mapCreator;
             this.position = position;
-            this.LOD = LOD;
 
             noiseMaps = new NoiseMaps();
         }
 
-        public void GetChunk(Action UpdateCallback)
+        public void GetChunk()
         {
-            this.heightMap = mapCreator.GenerateTerrainMaps(mapChunkSize, LOD, position, out noiseMaps.continental, out noiseMaps.erosion, out noiseMaps.pvNoise);
-            this.squashMap = mapCreator.GenerateSquashMap(mapChunkSize, LOD, position, out noiseMaps.squash);
-            mapCreator.GetBiomeNoises(mapChunkSize, LOD, position, out noiseMaps.temperature, out noiseMaps.humidity);
-            this.biomeMap = mapCreator.ConstructBiomes(mapChunkSize, LOD, ref noiseMaps);
+            ComputeBuffer heightMap = mapCreator.GenerateTerrainMaps(mapChunkSize, 0, position, out noiseMaps.continental, out noiseMaps.erosion, out noiseMaps.pvNoise);
+            ComputeBuffer squashMap = mapCreator.GenerateSquashMap(mapChunkSize, 0, position, out noiseMaps.squash);
+            mapCreator.GetBiomeNoises(mapChunkSize, 0, position, out noiseMaps.temperature, out noiseMaps.humidity);
+            ComputeBuffer biomeMap = mapCreator.ConstructBiomes(mapChunkSize, 0, ref noiseMaps);
             mapCreator.ReleaseTempBuffers();
 
+            this.surfaceMap = new SurfaceMap(heightMap, squashMap, biomeMap);
             hasChunk = true;
-            UpdateCallback();
         }
 
-        public void SimplifyMap(LODMap highDetailMap, Action UpdateCallback)
+        public SurfaceMap SimplifyMap(int LOD)
         {
-            this.heightMap = mapCreator.SimplifyMap(highDetailMap.heightMap, highDetailMap.LOD, LOD, mapChunkSize, true);
-            this.squashMap = mapCreator.SimplifyMap(highDetailMap.squashMap, highDetailMap.LOD, LOD, mapChunkSize, true);
-            this.biomeMap = mapCreator.SimplifyMap(highDetailMap.biomeMap, highDetailMap.LOD, LOD, mapChunkSize, false);
+            if(LOD == 0) //If base, just return the calculated map
+                return new SurfaceMap(surfaceMap.heightMap, surfaceMap.squashMap, surfaceMap.biomeMap, false);
+            
+            ComputeBuffer heightMap = mapCreator.SimplifyMap(this.surfaceMap.heightMap, 0, LOD, mapChunkSize, true);
+            ComputeBuffer squashMap = mapCreator.SimplifyMap(this.surfaceMap.squashMap, 0, LOD, mapChunkSize, true);
+            ComputeBuffer biomeMap = mapCreator.SimplifyMap(this.surfaceMap.biomeMap, 0, LOD, mapChunkSize, false);
+            return new SurfaceMap(heightMap, squashMap, biomeMap);
+        }
+    }
 
-            hasChunk = true;
-            UpdateCallback();
+    public struct SurfaceMap{
+        public ComputeBuffer heightMap;
+        public ComputeBuffer squashMap;
+        public ComputeBuffer biomeMap;
+        public Queue<ComputeBuffer> bufferHandle;
+
+        public SurfaceMap(ComputeBuffer heightMap, ComputeBuffer squashMap, ComputeBuffer biomeMap, bool handle = true){
+            this.heightMap = heightMap;
+            this.squashMap = squashMap;
+            this.biomeMap = biomeMap;
+
+            this.bufferHandle = new Queue<ComputeBuffer>();
+            if(handle){bufferHandle.Enqueue(heightMap); bufferHandle.Enqueue(squashMap); bufferHandle.Enqueue(biomeMap);}
+        }
+
+        public void Release(){
+            while(bufferHandle.Count > 0)
+                bufferHandle.Dequeue().Release();
         }
     }
 

@@ -1,0 +1,26 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+const static uint _ChunkTagStride4Bytes = 2;
+const static uint _SectionTagStride4Bytes = 1;
+
+RWStructuredBuffer<uint> _SectionedMemory;
+
+uint chunkStride4Bytes;
+uint numChunks;
+uint sectionAddress;
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    //Pointer to first free memory position
+    _SectionedMemory[sectionAddress] = sectionAddress + _SectionTagStride4Bytes;
+
+    //Connect to create CLL --> same logic to release first and last nodes
+    uint fChunkAddress = _ChunkTagStride4Bytes + sectionAddress + _SectionTagStride4Bytes;
+    uint lChunkAddress = (numChunks-1) * (chunkStride4Bytes + _ChunkTagStride4Bytes) +
+                         _ChunkTagStride4Bytes + sectionAddress + _SectionTagStride4Bytes;
+
+    _SectionedMemory[fChunkAddress - 2] = lChunkAddress;
+    _SectionedMemory[lChunkAddress - 1] = fChunkAddress;
+}
