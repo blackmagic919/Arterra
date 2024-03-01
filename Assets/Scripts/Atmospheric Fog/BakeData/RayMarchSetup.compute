@@ -11,7 +11,8 @@ RWStructuredBuffer<float2> rayLengths;
 
 float _AtmosphereRadius;
 
-uniform Texture2D<float> _CameraDepthTexture;
+//Sadly we can't use this because of aliasing artifacts from upsampling
+//uniform Texture2D<float4> _CameraDepthTexture;
 
 const static uint numThreads = 8;
 uint screenHeight;
@@ -45,15 +46,15 @@ void Bake (uint3 id : SV_DispatchThreadID)
     float3 viewVectorCS = mul(unity_CameraInvProjection, float4(screenUV * 2 - 1, 0, -1)).xyz;
     float3 rayDir = mul(unity_CameraToWorld, float4(viewVectorCS, 0)).xyz; //viewVectorWS
 
-    float screenDepth = _CameraDepthTexture[screenUV];
-    float linearDepth = LinearEyeDepth(screenDepth, _ZBufferParams) * length(rayDir);
+    //float screenDepth = _CameraDepthTexture[screenUV * _ScreenParams.xy].r; 
+    //float linearDepth = LinearEyeDepth(screenDepth, _ZBufferParams) * length(rayDir);
 
     float3 rayOrigin = _WorldSpaceCameraPos;
 
     float2 hitInfo = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, rayOrigin, rayDir);
     float dstToAtmosphere = hitInfo.x;
     float dstThroughAtmosphere = hitInfo.y;
-    dstThroughAtmosphere = min(dstThroughAtmosphere, linearDepth-dstToAtmosphere);
+    //dstThroughAtmosphere = min(dstThroughAtmosphere, linearDepth-dstToAtmosphere);
     
     uint pixelIndex = indexFromCoord2DManual(screenX, screenY, screenWidth);
     rayDirs[pixelIndex] = rayDir; //texture format is unsigned, so add float3.one to it

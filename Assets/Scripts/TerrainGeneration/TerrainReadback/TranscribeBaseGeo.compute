@@ -14,23 +14,23 @@ struct TriangleConst { //Constructor
     Point points[3];
 };
 
-StructuredBuffer<TriangleConst> _BaseTriangles;
-
-StructuredBuffer<uint> startAddress;
+StructuredBuffer<TriangleConst> _BaseTriangles; 
 StructuredBuffer<uint> triLength;
 
 RWStructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint> _AddressDict;
+uint addressIndex;
 
 [numthreads(numThreads,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    if(startAddress[0] == 0) //Out of space
+    if(_AddressDict[addressIndex] == 0) //Out of space
         return;
     if(id.x >= triLength[0])
         return;
 
     TriangleConst tri = _BaseTriangles[id.x];
-    uint triAddress = startAddress[0] + (id.x * (VERTEX_STRIDE_4BYTES * 3));
+    uint triAddress = _AddressDict[addressIndex] + (id.x * (VERTEX_STRIDE_4BYTES * 3));
 
     [unroll]for(uint i = 0; i < 3; i++){
         uint vertAddress = triAddress + (VERTEX_STRIDE_4BYTES * i);

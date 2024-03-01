@@ -10,6 +10,5 @@ RWStructuredBuffer<uint> indirectArgs;
 [numthreads(1,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    uint numThreads = ceil((float)(_PrefixStart[shaderIndex + 1] - _PrefixStart[shaderIndex]) / threadGroupSize);
-    indirectArgs[0] = numThreads;
+    indirectArgs[0] = ceil((float)(_PrefixStart[shaderIndex + 1] - _PrefixStart[shaderIndex]) / threadGroupSize);
 }

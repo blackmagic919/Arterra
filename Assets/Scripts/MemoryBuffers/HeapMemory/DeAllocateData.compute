@@ -1,12 +1,19 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
+#pragma multi_compile _ DIRECT_DEALLOCATE
 
 const static uint InitBlockSize = 3;
 
 RWStructuredBuffer<uint> _SourceMemory;
 RWStructuredBuffer<uint2> _Heap;
 
-StructuredBuffer<uint> targetIndex;
+#ifdef DIRECT_DEALLOCATE
+StructuredBuffer<uint> _Address;
+
+#else
+StructuredBuffer<uint> _AddressDict;
+uint addressIndex;
+#endif
 
 void Swap(uint a, uint b){
     uint2 temp = _Heap[a];
@@ -89,7 +96,11 @@ uint NextBlockIndex(uint blockIndex){
 [numthreads(1,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    uint blockAddress = targetIndex[0];
+#ifdef DIRECT_DEALLOCATE
+    uint blockAddress = _Address[0];
+#else
+    uint blockAddress = _AddressDict[addressIndex];
+#endif
     if(blockAddress == 0) //Not allocated
         return;
 

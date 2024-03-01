@@ -1,0 +1,175 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/TransVoxelTables.hlsl"
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.hlsl"
+
+// Technically a modified version of TransVoxel by Eric Lengyel a key difference
+//       - connect High LoD to Low instead of other way around, because all the data
+//         is already present in high LoD, so we don't need extra sample points
+
+/*
+* z 
+* ^     .--------.
+* |    /|       /|
+* |   / | 5    / |    y
+* |  .--+--3--.  |   /\
+* |  |2 |     | 1|   /
+* |  |  .-4---+--.  /
+* |  | /   6  | /  /
+* | xyz_______./  /
+* +---------> x  /
+*/
+
+/*
+* [<uint3> <-- which axis U aligns to]
+* [<uint3> <-- which axis V aligns to]
+* [<uint3> <-- which value P aligns to]
+*/
+
+const static uint3x3 chunkAlign[6] = {
+    //      Ux Vx Px Uy Vy Py Uz Vz Pz, --> Ux means U is mapped to x axis
+    uint3x3(0, 0, 1, 1, 0, 0, 0, 1, 0),
+    uint3x3(0, 0, 0, 1, 0, 0, 0, 1, 0),
+    uint3x3(1, 0, 0, 0, 0, 1, 0, 1, 0),
+    uint3x3(1, 0, 0, 0, 0, 0, 0, 1, 0),
+    uint3x3(1, 0, 0, 0, 1, 0, 0, 0, 1),
+    uint3x3(1, 0, 0, 0, 1, 0, 0, 0, 0),
+};
+
+const static int3x3 gridAlign[6] = {//Same thing but with P -1 when 0
+    int3x3(0, 0, 1, 1, 0, 0, 0, 1, 0),
+    int3x3(0, 0, -1, 1, 0, 0, 0, 1, 0),
+    int3x3(1, 0, 0, 0, 0, 1, 0, 1, 0),
+    int3x3(1, 0, 0, 0, 0, -1, 0, 1, 0),
+    int3x3(1, 0, 0, 0, 1, 0, 0, 0, 1),
+    int3x3(1, 0, 0, 0, 1, 0, 0, 0, -1),
+};
+
+const static int3 chunkDelta[6] = {
+    int3(1,0,0),
+    int3(-1,0,0),
+    int3(0,1,0),
+    int3(0,-1,0),
+    int3(0,0,1),
+    int3(0,0,-1),
+};
+
+const static uint2 gridDelta[9] = {
+    uint2(0, 0),
+    uint2(1, 0),
+    uint2(2, 0),
+    uint2(0, 1),
+    uint2(1, 1),
+    uint2(2, 1),
+    uint2(0, 2),
+    uint2(1, 2),
+    uint2(2, 2),
+}
+
+struct Point{
+    float3 tri;
+    float3 norm;
+    int2 id;
+    int material;
+};
+
+struct Triangle { //Constructor
+    Point points[3];
+};
+
+StructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+uint chunkHash;
+
+uint numHalfCubes;
+uint halfSkipInc;
+float transitionWidth;
+
+RWStructuredBuffer<Triangle> _TriangleOUT;
+
+struct Corner{
+    float density;
+    int material;
+};
+
+struct GridFace{
+    Corner corners[9];
+};
+
+float Interpolate(float p1Val, float p2Val) {
+    return ((IsoLevel - p1Val) / (p2Val - p1Val));
+}
+
+GridFace ReadGrid(uint3 originCoord){
+    uint chunkAddress = _AddressDict[chunkHash].x;
+    FullFace face;
+
+    [unroll]for(int i = 0; i < 9; i++){
+        uint3 deltaCoord = mul(chunkAlign[align], uint3(gridDelta[i], 0));
+        uint3 fullCubeCoord = originCoord + deltaCoord;
+
+        uint address = indexFromCoord(fullCubeCoord) * POINT_STRIDE_4BYTE + chunkAddress;
+        face.corners[i].density = asfloat(_MemoryBuffer[address]);
+        face.corners[i].material = asint(_MemoryBuffer[address + 1]);
+    }
+    return face;
+}
+
+//This function only consideres edge planes, not their corners
+const static int numThreads = 8;
+[numthreads(numThreads,numThreads,6)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= (numHalfCubes-2) || id.y >= (numHalfCubes-2))
+        return;
+
+    int3 nChunkCoord = chunkCoord + chunkDelta[id.z];
+    uint nChunkHash = HashCoord(nChunkCoord);
+    uint nMeshSkipInc = _AddressDict[nChunkHash].y;
+
+    if(nMeshSkipInc != halfSkipInc) //Only process if half resolution
+        return;
+    
+    uint numFullCubes = numHalfCubes * 2;
+    uint2 fullFaceCoord = uint2(2*(id.x+1), 2*(id.y+1));
+    uint3 originCoord = mul(chunkAlign[align], uint3(fullFaceCoord, numFullCubes));
+    GridFace Face = ReadGrid(originCoord);
+
+    uint cubeIndex = 0;
+    [unroll] for(int u = 0; u < 9; u++){
+        if (Face.corners[u].density > IsoLevel) cubeIndex |= (1 << u);
+    }
+
+    char SymmetryClass = transitionCellClass[ cubeIndex ];
+    half flipWinding = data & 0x80; //First bit
+    half SymmetryIndex = SymmetryClass & 0x7F; //All other bits
+
+    TransitionCellData SymmetryData = transitionCellData[ SymmetryIndex ];
+    uint vertexCount = SymmetryData.GetVertexCount();
+    uint triCount = SymmetryData.GetTriangleCount();
+    Point vertex[8]; //16 bits
+
+    for(uint i = 0; i < vertexCount; i++){
+        //Not reusing vertices so ignore 2 high nibbles
+        half coord = transitionVertexData[cubeIndex][i] & 0x00FF; 
+        half p1Index = (half)(coord & 0x0F);
+        half p2Index = (half)(coord >> 4);
+
+        int3 p1Offset = CornerFromIndex[p1Index];
+        int3 p2Offset = CornerFromIndex[p2Index];
+
+        p1Offset.z *= transitionWidth;
+        p2Offset.z *= transitionWidth;
+
+        int3 p1Coord = mul(gridAlign[id.z], p1Offset) + originCoord;
+        int3 p2Coord = mul(gridAlign[id.z], p2Offset) + originCoord;
+
+        Corner p1Corner = Face.corners[VertexToGrid[p1Index]];
+        Corner p2Corner = Face.corners[VertexToGrid[p2Index]];
+        
+        float interp = Interpolate(p1Corner.density, p2Corner.density);
+        vertex[i].tri = p1Coord + (p2Coord - p1Coord) * interp;
+
+    }
+}

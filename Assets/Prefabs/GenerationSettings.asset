@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 042c647c6590a46049f02ed827103e9a, type: 3}
+  m_Name: GenerationSettings
+  m_EditorClassIdentifier: 
+  autoUpdate: 0
+  IsoLevel: 0.5
+  detailLevels:
+  - LOD: 0
+    distanceThresh: 100
+    useForCollider: 1
+    useForGeoShaders: 1
+  - LOD: 1
+    distanceThresh: 200
+    useForCollider: 0
+    useForGeoShaders: 0
+  - LOD: 2
+    distanceThresh: 300
+    useForCollider: 0
+    useForGeoShaders: 0
+  - LOD: 3
+    distanceThresh: 450
+    useForCollider: 0
+    useForGeoShaders: 0
+  - LOD: 4
+    distanceThresh: 600
+    useForCollider: 0
+    useForGeoShaders: 0

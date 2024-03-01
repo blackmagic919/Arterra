@@ -150,5 +150,6 @@ namespace Utils {
         planning = 0,
         structure = 1,
         generation = 2,
+        mesh = 3,
     };
 }

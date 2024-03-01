@@ -38,32 +38,33 @@ public class LODMesh
         this.IsoLevel = IsoLevel;
     }
 
-    public void GetChunk(int LOD, Action UpdateCallback)
+    public void GenerateMap(int LOD)
     {
         SurfaceChunk.SurfaceMap surfaceLODMap = surfaceMap.SimplifyMap(LOD);
 
         ComputeBuffer density = meshCreator.GenerateDensity(surfaceLODMap, this.position, LOD, mapChunkSize, IsoLevel);
         ComputeBuffer material = meshCreator.GenerateMaterials(surfaceLODMap, this.position, LOD, mapChunkSize);
-        densityManager.SubscribeChunk(density, material, CCoord, LOD);
-        
         meshCreator.GenerateStrucutresGPU(density, material, mapChunkSize, LOD, IsoLevel);
-        ComputeBuffer sourceMesh = meshCreator.GenerateMapData(density, material, IsoLevel, LOD, mapChunkSize);
-
-        meshReadback.CreateReadbackMeshInfoTask(sourceMesh, (int)ReadbackMaterial.terrain, ret => onMeshInfoRecieved(ret, UpdateCallback));
-        if (detailLevels[LOD].useForGeoShaders)
-            geoShaders.ComputeGeoShaderGeometry(sourceMesh, mapChunkSize, LOD);
+        densityManager.SubscribeChunk(density, material, CCoord, LOD);
         
         surfaceLODMap.Release();
         meshCreator.ReleaseTempBuffers();
-        hasRequestedChunk = false;
+    }
 
-        UpdateCallback();
+    public void CreateMesh(int LOD, Action UpdateCallback){
+        ComputeBuffer sourceMesh = meshCreator.GenerateMapData(densityManager, this.CCoord, IsoLevel, LOD, mapChunkSize);
+        
+        meshReadback.CreateReadbackMeshInfoTask(sourceMesh, (int)ReadbackMaterial.terrain, ret => onMeshInfoRecieved(ret, UpdateCallback));
+        if (detailLevels[LOD].useForGeoShaders)
+            geoShaders.ComputeGeoShaderGeometry(sourceMesh, mapChunkSize, LOD);
+
+        meshCreator.ReleaseTempBuffers();
+        hasRequestedChunk = false;
     }
 
     void onMeshInfoRecieved(EditorMesh.MeshInfo meshInfo, Action UpdateCallback)
     {
-        this.baseMesh = meshInfo.GenerateMesh(UnityEngine.Rendering.IndexFormat.UInt16);
-
+        this.baseMesh = meshInfo.GenerateMesh(UnityEngine.Rendering.IndexFormat.UInt32);
         UpdateCallback();
     }
 
@@ -73,7 +74,7 @@ public class LODMesh
         (densityBuffer, materialBuffer) = meshCreator.SetMapInfo(LOD, mapChunkSize, density, material);
         densityManager.SubscribeChunk(densityBuffer, materialBuffer, CCoord, LOD);
 
-        ComputeBuffer sourceMesh = meshCreator.GenerateMapData(densityBuffer, materialBuffer, IsoLevel, LOD, mapChunkSize);
+        ComputeBuffer sourceMesh = meshCreator.GenerateMapData(densityManager, this.CCoord, IsoLevel, LOD, mapChunkSize);
 
         meshReadback.CreateReadbackMeshInfoTask(sourceMesh, (int)ReadbackMaterial.terrain, ret => onMeshInfoRecieved(ret, UpdateCallback));
         if (detailLevels[LOD].useForGeoShaders)

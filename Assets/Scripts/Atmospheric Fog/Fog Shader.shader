@@ -45,22 +45,24 @@ Shader "Hidden/Fog"
         TEXTURE2D(_CameraDepthTexture);
         SAMPLER(sampler_CameraDepthTexture);
 
-        StructuredBuffer<float> _LuminanceLookup;
+        StructuredBuffer<float3> _LuminanceLookup;
 
         float4 _MainTex_TexelSize;
         float4 _MainTex_ST;
 
         float _AtmosphereRadius;
-
-        float3 _ScatteringCoeffs; //In order RGB
         float3 _LightDirection; 
-        
-        float _GroundExtinction;
+    
         int _NumInScatterPoints;
-        int _NumOpticalDepthPoints;
         int _NumSunRayPoints;
 
-        float _DensityMultiplier;
+        float _IsoLevel;
+
+        struct ScatterData{
+            float3 inScatteredLight;
+            float3 opticalDepth;
+            float extinction;
+        };
 
 
         v2f vert(Attributes IN)
@@ -98,29 +100,29 @@ Shader "Hidden/Fog"
 	            }
             }
 
-            float sampleLuminance(float3 UVZ){
-                float opticalDepth = 0;
+            float3 sampleLuminance(float3 UVZ){
+                float3 opticalDepth = 0;
                 Influences influence = GetTextureInfluences(UVZ);
                 [unroll]for(int i = 0; i < 8; i++){
                     uint index = GetTextureIndex(influence.corner[i].mapCoord);
-                    opticalDepth += influence.corner[i].influence * _LuminanceLookup[index];
+                    opticalDepth += _LuminanceLookup[index] * influence.corner[i].influence;
                 }
                 return opticalDepth;
             }
 
-            float opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
+            /*float opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
                 float3 densitySamplePoint = rayOrigin;
                 float stepSize = rayLength / (_NumOpticalDepthPoints - 1);
                 float opticalDepth = 0;
             
                 for(int i = 0; i < _NumOpticalDepthPoints; i++){
-                    float localDensity = densityAtPoint(densitySamplePoint) * _DensityMultiplier;
+                    float localDensity = densityAtPoint(densitySamplePoint) / _IsoLevel;
                     opticalDepth += localDensity * stepSize;
                     densitySamplePoint += rayDir * stepSize;
                 }
             
                 return opticalDepth;
-            }
+            }*/
             
             float calculateOcclusionFactor(float3 rayOrigin, float3 rayDir, float rayLength){
 
@@ -138,26 +140,46 @@ Shader "Hidden/Fog"
                 return (transmittanceCount / NumShadowPoints);
             }
 
-            half3 calculateInScatterLight(float3 rayOrigin, float3 rayDir, float rayLength, float2 CSuv){
+            ScatterData CalculateScatterData(float3 rayOrigin, float3 rayDir, float rayLength, 
+                                            float sampleDist, Influences2D rayInfluences, int sampleStride){
+                int NumInScatterPoints = max(1, rayLength / sampleDist);
+
                 float3 inScatterPoint = rayOrigin;
+                ScatterData scatterData = (ScatterData)0;
+
+                for(int i = 0; i < NumInScatterPoints; i++){
+                    float stepSize = min(rayLength - length(inScatterPoint - rayOrigin), sampleDist);
+                    float occlusionFactor = calculateOcclusionFactor(inScatterPoint, rayDir, stepSize);
+                    
+                }
+            }
+
+            ScatterData calculateInScatterLight(float3 rayOrigin, float3 rayDir, float rayLength, float2 CSuv){
                 float stepSize = rayLength / (_NumInScatterPoints - 1);
-                float cameraOpticalDepth = 0; //Represented by PPa in paper
-                float3 inScatteredLight = 0;
+
+                float3 inScatterPoint = rayOrigin;
+                ScatterData scatterData = (ScatterData)0;
 
                 for(int i = 0; i < _NumInScatterPoints; i++){
                     float occlusionFactor = calculateOcclusionFactor(inScatterPoint, rayDir, stepSize); //Gives more detail to shadows
-                    float rayDepth = length(inScatterPoint - rayOrigin) / rayLength; 
-                    float sunOpticalDepth = sampleLuminance(float3(CSuv, rayDepth));// Represented by PPc in paper 
-                    float3 transmittance = exp((-(sunOpticalDepth + cameraOpticalDepth)) * _ScatteringCoeffs); // exp(-t(PPc, lambda)-t(PPa, lambda))
-                    float pointDensity = densityAtPoint(inScatterPoint) * _DensityMultiplier;
 
-                    inScatteredLight += pointDensity * transmittance * occlusionFactor * stepSize; //implement trapezoid-rule later
+                    float rayDepth = length(inScatterPoint - rayOrigin) / _AtmosphereRadius; 
+                    float3 sunOpticalDepth = sampleLuminance(float3(CSuv, rayDepth));// Represented by PPc in paper 
+
+                    SurMapData mapData = SampleMapData(inScatterPoint);
+                    float pointDensity = GetDensity(mapData) / _IsoLevel;
+                    float3 ScatterCoeffs = GetScatterCoeffs(mapData);
+                    float extinctionCoeff = GetExtinction(mapData);
+
+                    float3 transmittance = exp((-(sunOpticalDepth + scatterData.opticalDepth))); // exp(-t(PPc, lambda)-t(PPa, lambda))
+
+                    scatterData.inScatteredLight += pointDensity * transmittance * occlusionFactor * stepSize * ScatterCoeffs; //implement trapezoid-rule later
+                    scatterData.opticalDepth += ScatterCoeffs * pointDensity * stepSize;
+                    scatterData.extinction += extinctionCoeff * pointDensity * stepSize;
                     inScatterPoint += rayDir * stepSize;
-                    cameraOpticalDepth += pointDensity * stepSize;
                 }
-                inScatteredLight *= _ScatteringCoeffs;
 
-                return inScatteredLight;
+                return scatterData;
             }
 
             half4 frag(v2f IN) : SV_TARGET
@@ -179,9 +201,9 @@ Shader "Hidden/Fog"
 
                 if(dstThroughAtmosphere > 0){
                     float3 pointInAtmosphere = rayOrigin + rayDir * dstToAtmosphere;//Get first point in atmosphere
-                    half3 inScatteredLight = calculateInScatterLight(pointInAtmosphere, rayDir, dstThroughAtmosphere, IN.uv) * emissionColor;
+                    ScatterData atmosphereData = calculateInScatterLight(pointInAtmosphere, rayDir, dstThroughAtmosphere, IN.uv);
 
-                    return half4(inScatteredLight + originalColor.xyz * exp(-opticalDepth(rayOrigin, rayDir, dstThroughAtmosphere) * _GroundExtinction), 0);
+                    return half4(atmosphereData.inScatteredLight * emissionColor + originalColor.xyz * exp(-atmosphereData.opticalDepth * atmosphereData.extinction), 0);
                 }
                 return originalColor;
             }

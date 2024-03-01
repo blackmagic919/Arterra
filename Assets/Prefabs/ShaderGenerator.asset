@@ -17,6 +17,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: aad37b9e5794849e98fbbc9c685c00d1, type: 2}
   maxVertexPerBase: 3
   memoryBuffer: {fileID: 11400000, guid: 743280fd1911d428e99f1d63657bfdaf, type: 2}
+  indirectArgsBuffer: {fileID: 11400000, guid: 1f79864b075194989981065119bceb94, type: 2}
   matSizeCounter: {fileID: 7200000, guid: d323637ddb04943fc8c2a7bc3c3e9c3a, type: 3}
   filterGeometry: {fileID: 7200000, guid: 5b11ff800ff86449498f7e43c4899770, type: 3}
   sizePrefixSum: {fileID: 7200000, guid: 970f90d750e014dd8aec13764792d7e8, type: 3}

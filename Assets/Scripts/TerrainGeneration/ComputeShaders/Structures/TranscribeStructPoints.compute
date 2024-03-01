@@ -11,22 +11,24 @@ struct structureInfo{
 };
 
 RWStructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint> _AddressDict;
+uint addressIndex;
+
 StructuredBuffer<structureInfo> structPoints;
 StructuredBuffer<uint> numStructPoints;
 
-StructuredBuffer<uint> startAddress;
 
 [numthreads(numThreads,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    if(startAddress[0] == 0) //Invalid
+    if(_AddressDict[addressIndex] == 0) //Invalid
         return;
 
     if(id.x >= numStructPoints[0])
         return;
 
     structureInfo structPoint = structPoints[id.x];
-    uint pointAddress = startAddress[0] + id.x * POINT_STRIDE_4BYTES;
+    uint pointAddress = _AddressDict[addressIndex] + id.x * POINT_STRIDE_4BYTES;
 
     _MemoryBuffer[pointAddress] = asuint(structPoint.structurePos.x);
     _MemoryBuffer[pointAddress + 1] = asuint(structPoint.structurePos.y);

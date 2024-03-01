@@ -8,9 +8,9 @@
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
-RWStructuredBuffer<float> luminance;
-RWStructuredBuffer<float3> rayDirs;
-RWStructuredBuffer<float2> rayLengths;
+RWStructuredBuffer<float3> luminance;
+StructuredBuffer<float3> rayDirs;
+StructuredBuffer<float2> rayLengths;
 
 const static uint numThreads = 8;
 uint screenHeight;
@@ -21,7 +21,7 @@ float3 _LightDirection; //Global Variable
 float _AtmosphereRadius;
 uint _NumInScatterPoints;
 uint _NumOpticalDepthPoints;
-float _DensityMultiplier;
+float _IsoLevel;
 
 float2 raySphere(float3 s0, float sr, float3 r0, float3 rd) {
     float a = dot(rd, rd);
@@ -39,14 +39,16 @@ float2 raySphere(float3 s0, float sr, float3 r0, float3 rd) {
 	}
 }
 
-float opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
+float3 opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
     float3 densitySamplePoint = rayOrigin;
     float stepSize = rayLength / (_NumOpticalDepthPoints - 1);
-    float opticalDepth = 0;
+    float3 opticalDepth = float3(0, 0, 0);
 
     for(uint i = 0; i < _NumOpticalDepthPoints; i++){
-        float localDensity = densityAtPoint(densitySamplePoint) * _DensityMultiplier;
-        opticalDepth += localDensity * stepSize;
+        SurMapData mapData = SampleMapData(densitySamplePoint);
+        float localDensity = GetDensity(mapData) / _IsoLevel;
+        float3 localScatterCoeffs = GetScatterCoeffs(mapData);
+        opticalDepth += localScatterCoeffs * localDensity * stepSize;
         densitySamplePoint += rayDir * stepSize;
     }
 
@@ -74,8 +76,8 @@ void Bake (uint3 id : SV_DispatchThreadID)
     float3 inScatterPoint = rayOrigin + rayDir * stepSize * depth;
 
     float sunRayLength = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, inScatterPoint, _LightDirection).y;    
-    float sunOpticalDepth = opticalDepth(inScatterPoint, _LightDirection, sunRayLength);
-
+    float3 sunOpticalDepth = opticalDepth(inScatterPoint, _LightDirection, sunRayLength);
+    
     uint texelIndex = indexFromCoordIrregular(viewX, viewY, depth, screenWidth, screenHeight);
     luminance[texelIndex] = sunOpticalDepth;
 }

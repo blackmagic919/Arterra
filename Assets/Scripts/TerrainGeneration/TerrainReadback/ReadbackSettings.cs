@@ -14,7 +14,6 @@ public class ReadbackSettings : ScriptableObject
     [Header("Dependencies")]
     public ComputeShader memorySizeCalculator;
     public ComputeShader baseGeoTranscriber;
-    public ComputeShader memoryHandleCombiner;
     public ComputeShader meshDrawArgsCreator;
     public ComputeShader indirectThreads;
 }

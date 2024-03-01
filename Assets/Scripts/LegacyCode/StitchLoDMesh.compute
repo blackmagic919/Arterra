@@ -1,0 +1,106 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.hlsl"
+#include "Assets/Scripts/TerrainGeneration/DensityManager/CCoordHash.hlsl"
+#include "Assets/Scripts/TerrainGeneration/DensityManager/BlendHelper.hlsl"
+
+const static int numThreads = 8;
+
+/*
+* z 
+* ^     .--------.
+* |    /|       /|
+* |   / | 5    / |    y
+* |  .--+--3--.  |   /\
+* |  |2 |     | 1|   /
+* |  |  .-4---+--.  /
+* |  | /   6  | /  /
+* | xyz_______./  /
+* +---------> x  /
+*/
+
+/*
+* [<uint3> <-- which axis U aligns to]
+* [<uint3> <-- which axis V aligns to]
+* [<uint3> <-- which value P aligns to]
+*/
+const static uint3x3 chunkAlign[6] = {
+    //      Ux Vx Px Uy Vy Py Uz Vz Pz, --> Ux means U is mapped to x axis
+    uint3x3(0, 0, 1, 1, 0, 0, 0, 1, 0),
+    uint3x3(0, 0, 0, 1, 0, 0, 0, 1, 0),
+    uint3x3(1, 0, 0, 0, 0, 1, 0, 1, 0),
+    uint3x3(1, 0, 0, 0, 0, 0, 0, 1, 0),
+    uint3x3(1, 0, 0, 0, 1, 0, 0, 0, 1),
+    uint3x3(1, 0, 0, 0, 1, 0, 0, 0, 0),
+};
+
+
+
+
+const static int3 chunkDelta[6] = {
+    int3(1,0,0),
+    int3(-1,0,0),
+    int3(0,1,0),
+    int3(0,-1,0),
+    int3(0,0,1),
+    int3(0,0,-1),
+};
+
+const static int POINT_STRIDE_4BYTE = 2;
+
+RWStructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+int3 chunkCoord;
+uint meshSkipInc;
+
+struct PointInfo{
+    float density;
+    int material;
+};
+
+PointInfo ReadMap(uint address){
+    PointInfo nPoint;
+    nPoint.density = asfloat(_MemoryBuffer[address]);
+    nPoint.material = asint(_MemoryBuffer[address + 1]);
+
+    return nPoint;
+}
+
+[numthreads(numThreads,numThreads,6)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numPointsPerAxis || id.y >= numPointsPerAxis)
+        return;
+    
+    int3 nChunkCoord = chunkCoord + chunkDelta[id.z];
+    uint nChunkHash = HashCoord(nChunkCoord);
+    uint nMeshSkipInc = _AddressDict[nChunkHash].y;
+
+    if(nMeshSkipInc == 0) //Not defined
+        return;
+    if(nMeshSkipInc <= meshSkipInc) //Neighbor Chunk will stitch to this mesh
+        return;
+
+    uint chunkHash = HashCoord(chunkCoord);
+    uint chunkAddress = _AddressDict[chunkHash].x; //has to be defined
+    uint3 alignedCoord = mul(chunkAlign[id.z], uint3(id.x, id.y, numPointsPerAxis-1));
+    uint wAddress = chunkAddress + indexFromCoord(alignedCoord) * POINT_STRIDE_4BYTE; //write address
+    
+    float chunkToN = meshSkipInc / (float)nMeshSkipInc; // = 2^(-n) < 1
+    uint nToChunk = nMeshSkipInc / meshSkipInc; // = 2^(n) > 1
+
+    float2 nChunkUV = float2(id.x, id.y) * chunkToN;
+    Influences2D blendInfo = GetBlendInfo(nChunkUV);
+    
+    float density = 0;
+    [unroll] for(uint i = 0; i < 4; i++){ 
+        uint2 cornerCoord = min(blendInfo.corner[i].mapCoord * nToChunk, numPointsPerAxis-1); //Guaranteed to be an integer
+        uint3 cAlignedCoord = mul(chunkAlign[id.z], uint3(cornerCoord, numPointsPerAxis-1));
+        uint cornerAddress = chunkAddress + indexFromCoord(cAlignedCoord) * POINT_STRIDE_4BYTE;
+        
+        PointInfo cornerPoint = ReadMap(cornerAddress);
+        density += cornerPoint.density * blendInfo.corner[i].influence;  
+    }    
+    _MemoryBuffer[wAddress] = asuint(density); //First position is density
+}

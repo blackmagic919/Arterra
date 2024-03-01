@@ -1,5 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
+#pragma multi_compile _ DIRECT_ALLOCATE
 
 const static uint InitBlockSize = 3;
 
@@ -9,7 +10,14 @@ RWStructuredBuffer<uint2> _Heap;
 StructuredBuffer<uint> allocSizeBuffer;
 
 //OUTPUT
-RWStructuredBuffer<uint> startIndex;
+#ifdef DIRECT_ALLOCATE
+RWStructuredBuffer<uint> _Address;
+
+#else
+RWStructuredBuffer<uint> _AddressDict;
+uint addressIndex;
+
+#endif
 
 
 void Swap(uint a, uint b){
@@ -48,11 +56,19 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     //Don't allocate 0 size blocks
     if(allocSize == 0 || allocSize + InitBlockSize > rBlockSize){
-        startIndex[0] = 0; //INDICATE NOT ALLOCATED
+#ifdef DIRECT_ALLOCATE
+        _Address[0] = 0; //INDICATE NOT ALLOCATED
+#else
+        _AddressDict[addressIndex] = 0; //INDICATE NOT ALLOCATED
+#endif
         return; 
     }
 
-    startIndex[0] = rAddress;
+#ifdef DIRECT_ALLOCATE
+    _Address[0] = rAddress;
+#else
+    _AddressDict[addressIndex] = rAddress;
+#endif
 
     //Set Alloc Block's Info
     _SourceMemory[rAddress - 2] = 0; //0 bit pattern means ISALLOCATED

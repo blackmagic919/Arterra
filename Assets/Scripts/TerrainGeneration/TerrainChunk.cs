@@ -35,7 +35,7 @@ public class TerrainChunk
     public TerrainChunk(Vector3 coord, float IsoLevel, Transform parent, SurfaceChunk surfaceChunk,  LODInfo[] detailLevels, GenerationResources generation)
     {
         CCoord = coord;
-        position = (coord * mapChunkSize - Vector3.one * (mapChunkSize / 2f)); //Shift mesh so it is aligned with center
+        position = coord * mapChunkSize - Vector3.one * (mapChunkSize / 2f); //Shift mesh so it is aligned with center
         bounds = new Bounds(position, Vector3.one * mapChunkSize);  
         this.IsoLevel = IsoLevel;
         this.detailLevels = detailLevels;
@@ -67,10 +67,12 @@ public class TerrainChunk
 
     public void TerraformChunk(Vector3 targetPosition, float terraformRadius, Func<Vector2, float, Vector2> handleTerraform)
     {
-        SurfaceChunk.SurfaceMap maxSurfaceData = LODMeshHandle.surfaceMap.surfaceMap;
         if (!hasDensityMap)
         {
+            SurfaceChunk.SurfaceMap maxSurfaceData = LODMeshHandle.surfaceMap.SimplifyMap(0);
             (storedDensity, storedMaterial) = meshCreator.GetChunkInfo(maxSurfaceData, this.position, this.CCoord, IsoLevel, mapChunkSize);
+            maxSurfaceData.Release();
+            
             hasDensityMap = true;
         }
 
@@ -112,14 +114,11 @@ public class TerrainChunk
         LODMeshHandle.depreceated = true;
         Update();
     }
-
-
     public void Update()
     {
         float closestDist = Mathf.Sqrt(bounds.SqrDistance(viewerPosition));
         
         int lodInd = 0;
-
         for (int i = 0; i < detailLevels.Length - 1; i++)
         {
             if (closestDist > detailLevels[i].distanceThresh)
@@ -133,21 +132,25 @@ public class TerrainChunk
         {
             if (!LODMeshHandle.hasRequestedChunk)
             {
+                prevLODInd = lodInd;
                 LODMeshHandle.hasRequestedChunk = true;
 
                 if (hasDensityMap)
-                    timeRequestQueue.Enqueue(() => processEvent(() => LODMeshHandle.ComputeChunk(lodInd, ref storedDensity, ref storedMaterial, () => onChunkCreated(lodInd))), (int)Utils.priorities.generation);
+                    timeRequestQueue.Enqueue(() => processEvent(() => LODMeshHandle.ComputeChunk(lodInd, ref storedDensity, ref storedMaterial, () => onChunkCreated(lodInd)), lodInd), (int)Utils.priorities.generation);
                 else { 
-                    timeRequestQueue.Enqueue(() => processEvent(() => LODMeshHandle.GetChunk(lodInd, () => onChunkCreated(lodInd))), (int)priorities.generation);
+                    timeRequestQueue.Enqueue(() => processEvent(() => LODMeshHandle.GenerateMap(lodInd), lodInd), (int)priorities.generation);
+                    timeRequestQueue.Enqueue(() => processEvent(() => LODMeshHandle.CreateMesh(lodInd, () => onChunkCreated(lodInd)), lodInd), (int)priorities.mesh);
                 }
             }
         }
         lastUpdateTerrainChunks.Enqueue(this);
     }
 
-    public void processEvent(Action callback)
+    public void processEvent(Action callback, int LOD = -1)
     {
         if (!active)
+            return;
+        if (LOD != -1 && LOD != prevLODInd)
             return;
         
         callback();
@@ -156,7 +159,6 @@ public class TerrainChunk
     public void onChunkCreated(int lodInd)
     {
         LODMeshHandle.depreceated = false;
-        prevLODInd = lodInd;
 
         meshFilter.mesh = LODMeshHandle.baseMesh;
         if (detailLevels[lodInd].useForCollider)
@@ -189,9 +191,6 @@ public class TerrainChunk
 
         //If currently Generating chunk (It's doubtful if this ever does anything)
         meshCreator.ReleaseTempBuffers();
-
-        //Release Persistant data
-        meshCreator.ReleasePersistantBuffers();
         terrainChunkDict.Remove(CCoord);
 #if UNITY_EDITOR
         GameObject.DestroyImmediate(meshObject);

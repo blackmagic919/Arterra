@@ -14,35 +14,14 @@ public class TemplateFeature : ScriptableRendererFeature
 
         public GPUDensityManager densityManager;
         public AtmosphereBake luminanceBake;
-        public Vector3 scatteringCoeffs = new Vector3(40, 60, 80);
-        public float atmosphereRadius = 10;
-
-        public float extinctionFactor = 1;
         public int inScatterPoints = 10;
-        public int opticalDepthPoints = 5;
-        public float densityMultiplier = 0.05f;
 
-        /*
-        public float planetRadius = 5;
-        public float surfaceOffset = 5;
-        public float densityFalloffFactor = 1;
-
-        [HideInInspector]
-        public Vector3 planetCenter
-        {//
-            get
-            {
-                Vector3 viewerPos = Camera.current.transform.position;
-                viewerPos.y = -planetRadius;
-                return viewerPos;
-            }
-        }*/
+        public GenerationSettings generationSettings;
     }
 
     public void OnValidate()
     {
         passSettings.inScatterPoints = Mathf.Max(2, passSettings.inScatterPoints);
-        passSettings.opticalDepthPoints = Mathf.Max(2, passSettings.opticalDepthPoints);
     }
 
 

@@ -2,27 +2,32 @@
 #pragma kernel CSMain
 
 RWStructuredBuffer<uint> _SectionedMemory;
-uint sectionAddress;
-
-RWStructuredBuffer<uint> memoryAddress;
+StructuredBuffer<uint> memoryAddress;
 
 [numthreads(1,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
+    if(memoryAddress[0] == 0)
+        return;
+        
     uint address = memoryAddress[0];
     uint pAddress = _SectionedMemory[address - 2];
     uint nAddress = _SectionedMemory[address - 1];
+    uint sectionAddress = _SectionedMemory[address - 3];
 
     //Remove address from CLL
     _SectionedMemory[pAddress - 1] = nAddress;
     _SectionedMemory[nAddress - 2] = pAddress;
 
     uint frAddress = _SectionedMemory[sectionAddress]; //Free address
-    uint fuAddress = _SectionedMemory[frAddress - 2]; //Full address
+    uint allAddress = _SectionedMemory[frAddress - 2]; //Allocated address
 
     //Add address back into CLL
-    _SectionedMemory[fuAddress - 1] = address;
+    _SectionedMemory[allAddress - 1] = address;
     _SectionedMemory[frAddress - 2] = address;
+
+    _SectionedMemory[address - 2] = allAddress;
+    _SectionedMemory[address - 1] = frAddress;
 
     _SectionedMemory[sectionAddress] = address;
 }

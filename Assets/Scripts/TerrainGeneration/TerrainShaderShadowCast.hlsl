@@ -32,11 +32,12 @@ struct DrawVertex{
 };
 
 StructuredBuffer<uint> _StorageMemory;
-StructuredBuffer<uint> instanceHandle;
+StructuredBuffer<uint> _AddressDict;
+uint addressIndex;
 uint _Vertex4ByteStride;
 
 DrawVertex ReadVertex(uint vertexAddress){
-    uint address = vertexAddress + instanceHandle[0];
+    uint address = vertexAddress + _AddressDict[addressIndex];
     DrawVertex vertex = (DrawVertex)0;
 
     vertex.positionOS.x = asfloat(_StorageMemory[address]);

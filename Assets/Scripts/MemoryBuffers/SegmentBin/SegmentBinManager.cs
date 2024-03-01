@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEngine;
 using static EditorMesh;
 
+[CreateAssetMenu(menuName = "BufferMemory/Bin Segments")]
 public class SegmentBinManager : UpdatableData
 {
     public ComputeShader ChunkLLConstructor;
@@ -12,11 +13,10 @@ public class SegmentBinManager : UpdatableData
     public ComputeShader DeAllocateChunkShader;
 
     //Managed with chunk-bins because chunks
-    private ComputeBuffer _ChunkAddressDict;
     private ComputeBuffer _GPUSectionedMemory;
     BinSection[] BufferSections;
 
-    const int ChunkTagStride4Bytes = 2; //Doubly linked list
+    const int ChunkTagStride4Bytes = 3; //Doubly linked list + Section address reference
     const int SectionTagStride4Bytes = 1; //Address of first open space in LL
     const int UpdateContingencyFactor = 2;
 
@@ -44,11 +44,10 @@ public class SegmentBinManager : UpdatableData
 
     public void OnDisable()
     {
-        _ChunkAddressDict?.Release();
         _GPUSectionedMemory?.Release();
     }
 
-    public void InitGPUManagement(int mapChunkSize, LODInfo[] detailLevels, int PointStride4Bytes = 1)
+    public void InitGPUManagement(int mapChunkSize, LODInfo[] detailLevels, int PointStride4Bytes = 2)
     {
         int numChunks = 0;
         int num4Bytes = 0;
@@ -74,14 +73,15 @@ public class SegmentBinManager : UpdatableData
         }
 
         _GPUSectionedMemory = new ComputeBuffer(num4Bytes, sizeof(uint), ComputeBufferType.Structured);
-        _ChunkAddressDict = new ComputeBuffer(numChunks, sizeof(uint), ComputeBufferType.Structured);
-        _ChunkAddressDict.SetData(Enumerable.Repeat(0, numChunks).ToArray());
 
         for (int i = 0; i < numLoDs; i++)
         {
             CreateChunkLL(BufferSections[i]);
             ConstructSection(BufferSections[i]);
         }
+        /*
+        uint[] data = new uint[num4Bytes];
+        _GPUSectionedMemory.GetData(data);*/
     }
 
     void CreateChunkLL(BinSection binInfo)
@@ -104,5 +104,30 @@ public class SegmentBinManager : UpdatableData
         this.SectionConstructor.SetInt("sectionAddress", binInfo.startingAddress);
 
         this.SectionConstructor.Dispatch(0, 1, 1, 1);
+    }
+
+    public ComputeBuffer AllocateChunk(int LOD)
+    {
+        BinSection binInfo = BufferSections[LOD];
+        ComputeBuffer address = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
+
+        AllocateChunkShader.SetBuffer(0, "_SectionedMemory", _GPUSectionedMemory);
+        AllocateChunkShader.SetInt("sectionAddress", binInfo.startingAddress);
+        AllocateChunkShader.SetBuffer(0, "memoryAddress", address);
+
+        AllocateChunkShader.Dispatch(0, 1, 1, 1);
+
+        return address;
+    }
+
+    public void ReleaseChunk(ComputeBuffer address){
+        DeAllocateChunkShader.SetBuffer(0, "_SectionedMemory", _GPUSectionedMemory);
+        DeAllocateChunkShader.SetBuffer(0, "memoryAddress", address);
+
+        DeAllocateChunkShader.Dispatch(0, 1, 1, 1);
+    }
+
+    public ComputeBuffer AccessStorage(){
+        return _GPUSectionedMemory;
     }
 }

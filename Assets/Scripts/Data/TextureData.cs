@@ -18,6 +18,7 @@ public class TextureData : UpdatableData
     ComputeBuffer baseColorStrengths;
     ComputeBuffer baseTextureScales;
     ComputeBuffer geoShaderIndexes;
+    ComputeBuffer atmosphericData;
 
     public void ApplyToMaterial()
     {
@@ -28,11 +29,13 @@ public class TextureData : UpdatableData
         baseColorStrengths = new ComputeBuffer(numMats, sizeof(float), ComputeBufferType.Structured);
         baseTextureScales = new ComputeBuffer(numMats, sizeof(float), ComputeBufferType.Structured);
         geoShaderIndexes = new ComputeBuffer(numMats, sizeof(int), ComputeBufferType.Structured);
+        atmosphericData = new ComputeBuffer(numMats, sizeof(float)*4, ComputeBufferType.Structured);
 
         baseColors.SetData(MaterialDictionary.SelectMany(e => new float[] { e.color.r, e.color.g, e.color.b, e.color.a }).ToArray());
         baseColorStrengths.SetData(MaterialDictionary.Select(e => e.baseColorStrength).ToArray());
         baseTextureScales.SetData(MaterialDictionary.Select(e => e.textureScale).ToArray());
         geoShaderIndexes.SetData(MaterialDictionary.Select(e => e.GeoShaderIndex).ToArray());
+        atmosphericData.SetData(MaterialDictionary.Select(e => e.AtmosphereScatter).ToArray());
 
 
         Texture2DArray textures = GenerateTextureArray(MaterialDictionary.Select(x => x.texture).ToArray());
@@ -41,7 +44,7 @@ public class TextureData : UpdatableData
         Shader.SetGlobalBuffer("_BaseColorStrength", baseColorStrengths);
         Shader.SetGlobalBuffer("_BaseTextureScales", baseTextureScales);
         Shader.SetGlobalBuffer("_MaterialShaderIndex", geoShaderIndexes);
-
+        Shader.SetGlobalBuffer("_MatAtmosphericData", atmosphericData);
     }
     public void OnDisable()
     {
@@ -49,6 +52,7 @@ public class TextureData : UpdatableData
         baseColorStrengths?.Release();
         baseTextureScales?.Release();
         geoShaderIndexes?.Release();
+        atmosphericData?.Release();
     }
 
     public Texture2DArray GenerateTextureArray(Texture2D[] textures)

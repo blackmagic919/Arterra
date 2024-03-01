@@ -20,7 +20,9 @@ struct VertexOutput {
 };
 
 StructuredBuffer<uint> _StorageMemory;
-StructuredBuffer<uint> instanceAddress;
+StructuredBuffer<uint> _AddressDict;
+uint addressIndex;
+
 uint _Vertex4ByteStride;
 
 TEXTURE2D(_AlphaMap); SAMPLER(sampler_AlphaMap); float4 _AlphaMap_ST;
@@ -34,7 +36,7 @@ float _WindAmplitude;
 
 
 DrawVertex ReadVertex(uint vertexAddress){
-    uint address = vertexAddress + instanceAddress[0];
+    uint address = vertexAddress + _AddressDict[addressIndex];
     DrawVertex vertex = (DrawVertex)0;
 
     vertex.positionWS.x = asfloat(_StorageMemory[address]);
@@ -58,7 +60,7 @@ DrawVertex ReadVertex(uint vertexAddress){
 
 VertexOutput Vertex(uint vertexID: SV_VertexID){
     VertexOutput output = (VertexOutput)0;
-    if(instanceAddress[0] == 0)
+    if(_AddressDict[addressIndex] == 0)
         return output;
 
     uint vertexAddress = vertexID * _Vertex4ByteStride;

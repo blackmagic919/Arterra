@@ -1,9 +1,6 @@
-// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
 #include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/RotationTables.hlsl"
-
-const static int numThreads = 8;
 
 struct settings{ 
     int minimumLOD;
@@ -128,6 +125,7 @@ int determineStructure(int pointIndex, float seed, float yPos){
     return structureIndex;
 }
 
+const static int numThreads = 8;
 [numthreads(numThreads,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {

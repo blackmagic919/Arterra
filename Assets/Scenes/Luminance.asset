@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   RaySetupCompute: {fileID: 7200000, guid: cf65ba6c79c1c4a41b120f79fc902a6a, type: 3}
   OpticalDepthCompute: {fileID: 7200000, guid: 87a7f9612fb7f472182d8e179ec95696, type: 3}
-  BakedTextureSizePX: 128
-  SunRayInScatterPoints: 5
-  SunRayOpticalDepthPoints: 5
+  OpticalDataCompute: {fileID: 0}
+  BakedTextureSizePX: 64
+  SunRayInScatterPoints: 30
+  SunRayOpticalDepthPoints: 15
   initialized: 1
-  isApplied: 1

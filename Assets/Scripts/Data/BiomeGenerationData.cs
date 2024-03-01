@@ -62,14 +62,14 @@ public class BiomeGenerationData : UpdatableData
         uint[] biomeMatCount = new uint[numBiomes + 1]; //Prefix sum
         List<Vector2> matPrefList = new List<Vector2>();
         List<BiomeInfo.DensityFunc> densityFuncsMat = new List<BiomeInfo.DensityFunc>();
-        List<uint> materialIndexes = new List<uint>();
+        List<int> materialIndexes = new List<int>();
 
         for (int i = 0; i < numBiomes; i++)
         {
             biomeMatCount[i+1] = (uint)biomes[i].info.Materials.Count + biomeMatCount[i];
             matPrefList.AddRange(biomes[i].info.Materials.Select((e) => new Vector2(e.genNoiseSize, e.genNoiseShape)));
             densityFuncsMat.AddRange(biomes[i].info.Materials.Select((e) => e.VerticalPreference));
-            materialIndexes.AddRange(biomes[i].info.Materials.Select((e) => (uint)e.materialIndex));
+            materialIndexes.AddRange(biomes[i].info.Materials.Select((e) => e.materialIndex));
         }
 
         int numNodes = dictionary.GetTreeSize();
@@ -87,7 +87,7 @@ public class BiomeGenerationData : UpdatableData
         materialVertPrefBuffer = new ComputeBuffer(densityFuncsMat.Count, sizeof(int) * 3 + sizeof(float) * 2, ComputeBufferType.Structured);
         materialVertPrefBuffer.SetData(densityFuncsMat);
 
-        materialIndexBuffer = new ComputeBuffer(materialIndexes.Count, sizeof(uint), ComputeBufferType.Structured);
+        materialIndexBuffer = new ComputeBuffer(materialIndexes.Count, sizeof(int), ComputeBufferType.Structured);
         materialIndexBuffer.SetData(materialIndexes);
 
         Shader.SetGlobalBuffer("_BiomeRTree", biomeRTreeBuffer);

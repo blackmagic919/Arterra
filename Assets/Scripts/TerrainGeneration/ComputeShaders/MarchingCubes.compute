@@ -1,7 +1,9 @@
 #pragma kernel March
 
+#include "Assets/Scripts/TerrainGeneration/DensityManager/CCoordHash.hlsl"
 #include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/MarchingTables.hlsl"
 #include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.hlsl"
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/MapNormalSampler.hlsl"
 
 static const float3 Epsilon = float3(1E-6, 1E-6, 1E-6);
 
@@ -18,11 +20,11 @@ struct TriangleConst { //Constructor
 
 const static int numThreads = 8;
 AppendStructuredBuffer<TriangleConst> triangles;
-RWStructuredBuffer<float> points;
-StructuredBuffer<int> material;
 float IsoLevel;
 float ResizeFactor;
 uint numCubesPerAxis;
+
+
 
 /*               
 *  _____________  8  ------
@@ -58,36 +60,48 @@ uint numCubesPerAxis;
 * | xyz_______./  /
 * +---------> x  /
 */
+const static int dx[8] = {0, 1, 1, 0, 0, 1, 1, 0};
+const static int dy[8] = {1, 1, 0, 0, 1, 1, 0, 0};
+const static int dz[8] = {0, 0, 0, 0, 1, 1, 1, 1};
 
-float sampleDensity(int3 coord) {
-	coord = clamp(coord, 0, numCubesPerAxis);
-	return points[indexFromCoord(coord.x, coord.y, coord.z)];
+struct CubeCorner{
+    float density;
+    int material;
+};
+
+struct MarchCube{
+    CubeCorner corners[8];
+};
+
+#ifndef MAP_SAMPLER
+#define MAP_SAMPLER
+StructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+int3 CCoord;
+
+const static int POINT_STRIDE_4BYTE = 2;
+#endif
+
+MarchCube ReadCube(int3 coord){
+    MarchCube cube;
+
+    uint chunkHash = HashCoord(CCoord);
+    [unroll]for(int i = 0; i < 8; i++){
+        uint address = indexFromCoord(coord.x + dx[i], coord.y + dy[i], coord.z + dz[i]) * POINT_STRIDE_4BYTE + _AddressDict[chunkHash].x;
+        cube.corners[i].density = asfloat(_MemoryBuffer[address]);
+        cube.corners[i].material = asint(_MemoryBuffer[address + 1]);
+    }
+    return cube;
 }
 
 bool isBorder(int3 coord){
     return (uint)max(coord.x, max(coord.y, coord.z)) == numCubesPerAxis || min(coord.x, min(coord.y, coord.z)) == 0;
 }
 
-float3 calculateNormal(int3 coord) {
-	int3 offsetX = int3(1, 0, 0);
-	int3 offsetY = int3(0, 1, 0);
-	int3 offsetZ = int3(0, 0, 1);
-
-    //Someone fix this later(I tried it's pain)
-    //Either expand 3D map by 2 overlap points(which will make everything else very hard)
-    //Or get 6 edge planes from neighbors(also hard)
-
-	float dx = sampleDensity(coord - offsetX) - sampleDensity(coord + offsetX);
-	float dy = sampleDensity(coord - offsetY) - sampleDensity(coord + offsetY);
-	float dz = sampleDensity(coord - offsetZ) - sampleDensity(coord + offsetZ);
-
-
-	return float3(dx, dy, dz);
-}
-
 
 float interpolate(float p1Val, float p2Val) {
-    return ((IsoLevel - p1Val) / (p2Val - p1Val));
+    //If p1Val != p2Val, Epsilon is lost through float conversion, otherwise Epsilon prevents Nan
+    return ((IsoLevel - p1Val) / (p2Val - p1Val + Epsilon.x)); 
 }
 
 
@@ -101,21 +115,17 @@ void March (uint3 id : SV_DispatchThreadID)
     int x = id.x;
     int y = id.y;
     int z = id.z;
+    
+    MarchCube cube = ReadCube(int3(x, y, z));
 
     uint cubeIndex = 0;
-    if (points[indexFromCoord(x, y + 1, z)] > IsoLevel) cubeIndex |= 1;
-    if (points[indexFromCoord(x + 1, y + 1, z)] > IsoLevel) cubeIndex |= 2;
-    if (points[indexFromCoord(x + 1, y, z)] > IsoLevel) cubeIndex |= 4;
-    if (points[indexFromCoord(x, y, z)] > IsoLevel) cubeIndex |= 8;
-    if (points[indexFromCoord(x, y + 1, z + 1)] > IsoLevel) cubeIndex |= 16;
-    if (points[indexFromCoord(x + 1, y + 1, z + 1)] > IsoLevel) cubeIndex |= 32;
-    if (points[indexFromCoord(x + 1, y, z + 1)] > IsoLevel) cubeIndex |= 64;
-    if (points[indexFromCoord(x, y, z + 1)] > IsoLevel) cubeIndex |= 128;
+    [unroll] for(int u = 0; u < 8; u++){
+        if (cube.corners[u].density > IsoLevel) cubeIndex |= (1 << u);
+    }
 
-    bool Borders[3] = {false, false, false};
     for (int i = 0; triangulation[cubeIndex][i] != -1; i +=3) {
-
         TriangleConst tric;
+        bool Borders[3] = {false, false, false};
         [unroll] for(int v = 0; v < 3; v++){
             Point newPoint;
 
@@ -123,35 +133,27 @@ void March (uint3 id : SV_DispatchThreadID)
             int p1Ind = cornerIndexAFromEdge[triangulation[cubeIndex][i + v]];
             int p2Ind = cornerIndexBFromEdge[triangulation[cubeIndex][i + v]];
 
+
+            //Get point densities
+            float p1Val = cube.corners[p1Ind].density;
+            float p2Val = cube.corners[p2Ind].density;
+
+            float interpFactor = interpolate(p1Val, p2Val);
+
             //Figure out point positions
             float3 p1 = float3(x,y,z) + positionFromIndex[p1Ind];
             float3 p2 = float3(x,y,z) + positionFromIndex[p2Ind];
 
-            //Get point densities
-            float p1Val = points[indexFromCoord(p1.x, p1.y, p1.z)];
-            float p2Val = points[indexFromCoord(p2.x, p2.y, p2.z)];
-
-            float interpFactor = interpolate(p1Val, p2Val);
-
-            if(p2Val > p1Val){
-                float3 temp = p1;
-                p1 = p2;
-                p2 = temp;
-
-                interpFactor = (1.0f-interpFactor);
-            }
-
-            
-            float3 p1Norm = calculateNormal(p1);
-            float3 p2Norm = calculateNormal(p2);
+            //float3 p1Norm = calculateNormal(p1);
+            //float3 p2Norm = calculateNormal(p2);
 
             //If value approaches float3.zero, normalize returns NaN, so we add fallback norm.
             //Epsilon will be lost in float conversion if result is big enough, but if close to 0, it will default to Epsilon
             float3 fallbackNorm = normalize(p2 - p1);
-            newPoint.norm = normalize((p1Norm + interpFactor * (p2Norm - p1Norm)) + Epsilon*fallbackNorm);
+            newPoint.norm = normalize(GetVertexNormal(p1, p2, interpFactor) + Epsilon*fallbackNorm);
 
             newPoint.tri = p1 + interpFactor * (p2 - p1);
-            newPoint.material = material[indexFromCoord(p1.x, p1.y, p1.z)];
+            newPoint.material = cube.corners[p1Val > p2Val ? p1Ind: p2Ind].material;
 
             int numOfPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
             newPoint.id = int2(indexFromCoord(p1.x, p1.y, p1.z), indexFromCoord(p2.x, p2.y, p2.z));
@@ -162,10 +164,10 @@ void March (uint3 id : SV_DispatchThreadID)
         }
 
         //This is the standard mesh-based algorithm
-        float3 triNorm = normalize(cross(tric.points[1].tri - tric.points[0].tri, tric.points[2].tri - tric.points[0].tri));
+        /*float3 triNorm = normalize(cross(tric.points[1].tri - tric.points[0].tri, tric.points[2].tri - tric.points[0].tri));
         if(Borders[0]) tric.points[0].norm = triNorm;
         if(Borders[1]) tric.points[1].norm = triNorm;
-        if(Borders[2]) tric.points[2].norm = triNorm;
+        if(Borders[2]) tric.points[2].norm = triNorm;*/
 
         tric.points[0].tri *= ResizeFactor;
         tric.points[1].tri *= ResizeFactor;

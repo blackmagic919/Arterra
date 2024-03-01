@@ -13,5 +13,6 @@ Influences GetTextureInfluences(float3 UVZ){ //z = depth
 
 uint GetTextureIndex(uint3 mapCoord){
     mapCoord = min(mapCoord, uint3(SampleTextureWidth - 1, SampleTextureHeight - 1, SampleDepth - 1));
-    return indexFromCoordIrregular(mapCoord, uint2(SampleTextureWidth, SampleTextureHeight));
+    uint texelCoord = indexFromCoordIrregular(mapCoord, uint2(SampleTextureWidth, SampleTextureHeight));
+    return texelCoord;
 }

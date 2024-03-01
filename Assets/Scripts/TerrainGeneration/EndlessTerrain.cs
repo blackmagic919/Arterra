@@ -5,13 +5,10 @@ using UnityStandardAssets.Characters.FirstPerson;
 using UnityEngine.Profiling;
 using Utils;
 
-
 public class EndlessTerrain : MonoBehaviour
 {
     [Header("Map Generic Information")]
-    [Range(0, 1)]
-    public float IsoLevel;
-    public LODInfo[] detailLevels;
+    public GenerationSettings settings;
     public static float renderDistance;
     public const int mapChunkSize = 64; //Number of cubes;
     const float chunkUpdateThresh = 24f;
@@ -30,7 +27,7 @@ public class EndlessTerrain : MonoBehaviour
 
 
     [Header("Dependencies")]
-    public GenerationResources generation;
+    public GenerationResources resources;
     //Ideally specialShaders should be in materialData, but can't compile monobehavior in an asset 
 
 
@@ -45,14 +42,14 @@ public class EndlessTerrain : MonoBehaviour
 
     void Start()
     {
-        renderDistance = detailLevels[detailLevels.Length - 1].distanceThresh;
+        renderDistance = settings.detailLevels[settings.detailLevels.Length - 1].distanceThresh;
         chunksVisibleInViewDistance = Mathf.RoundToInt(renderDistance / mapChunkSize);
-        generation.meshCreator.biomeData = generation.biomeData;//Will change, temporary
-        generation.mapCreator.biomeData = generation.biomeData;
-        generation.texData.ApplyToMaterial();
-        generation.structData.ApplyToMaterial();
+        resources.meshCreator.biomeData = resources.biomeData;//Will change, temporary
+        resources.mapCreator.biomeData = resources.biomeData;
+        resources.texData.ApplyToMaterial();
+        resources.structData.ApplyToMaterial();
 
-        generation.densityDict.InitializeManage(chunksVisibleInViewDistance, mapChunkSize, lerpScale);
+        resources.densityDict.InitializeManage(settings.detailLevels, mapChunkSize, lerpScale);
     }
 
     private void Update()
@@ -65,6 +62,7 @@ public class EndlessTerrain : MonoBehaviour
         }
         StartGeneration();
     }
+    
 
     private void OnDisable()
     {
@@ -91,7 +89,6 @@ public class EndlessTerrain : MonoBehaviour
             return;
         viewerActive = true;
         viewerRigidBody.ActivateCharacter();
-        generation.atmosphereBake.Execute();
     }
 
 
@@ -135,7 +132,7 @@ public class EndlessTerrain : MonoBehaviour
                     curSChunk.Update();
                 }
                 else {
-                    curSChunk = new SurfaceChunk(Instantiate(generation.mapCreator), viewedSC);
+                    curSChunk = new SurfaceChunk(Instantiate(resources.mapCreator), viewedSC);
                     surfaceChunkDict.Add(viewedSC, curSChunk);
                 }
 
@@ -147,7 +144,7 @@ public class EndlessTerrain : MonoBehaviour
                         TerrainChunk curChunk = terrainChunkDict[viewedCC];
                         curChunk.Update();
                     } else {
-                        terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, IsoLevel, transform, curSChunk, detailLevels, generation));
+                        terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, settings.IsoLevel, transform, curSChunk, settings.detailLevels, resources));
                     }
                 }
             }

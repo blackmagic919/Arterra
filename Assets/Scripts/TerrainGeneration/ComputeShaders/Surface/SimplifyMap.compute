@@ -11,11 +11,13 @@ uint indexFromCoord2D(uint x, uint y, uint numPointsPerAxis) {
 
 const static int numThreads = 8;
 
+StructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint> _AddressDict;
+uint addressIndex;
+
 #ifdef USE_FLOAT
-StructuredBuffer<float> source;
 RWStructuredBuffer<float> destination;
 #else
-StructuredBuffer<int> source;
 RWStructuredBuffer<int> destination;
 #endif
 
@@ -34,7 +36,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     int destIndex = indexFromCoord2D(id.x, id.y, destPointsPerAxis);
 
     int2 sourceCoords = (id.xy * destSkipInc) / sourceSkipInc;
-    int sourceIndex = indexFromCoord2D(sourceCoords.x, sourceCoords.y, sourcePointsPerAxis);
+    int sourceIndex = _AddressDict[addressIndex] + indexFromCoord2D(sourceCoords.x, sourceCoords.y, sourcePointsPerAxis);
 
-    destination[destIndex] = source[sourceIndex];
+#ifdef USE_FLOAT
+    destination[destIndex] = asfloat(_MemoryBuffer[sourceIndex]);
+#else
+    destination[destIndex] = asint(_MemoryBuffer[sourceIndex]);
+#endif
 }

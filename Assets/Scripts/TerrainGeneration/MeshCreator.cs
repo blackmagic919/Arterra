@@ -3,6 +3,7 @@ using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using static EditorMesh;
+using static UtilityBuffers;
 
 [CreateAssetMenu(menuName = "Containers/MeshCreator")]
 public class MeshCreator : ScriptableObject
@@ -19,11 +20,9 @@ public class MeshCreator : ScriptableObject
     public BiomeGenerationData biomeData;
     public TextureData textureData;
 
-    ComputeBuffer structureCount;
-    ComputeBuffer structureAddress;
+    uint structureDataIndex;
 
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
-    Queue<ComputeBuffer> persistantBuffers = new Queue<ComputeBuffer>();
 
     const int MESH_TRIANGLES_STRIDE = (sizeof(float) * 3 * 2 + sizeof(int) * (2 + 1)) * 3;
     const int STRUCTURE_STRIDE_4BYTE = 3 + 2 + 1;
@@ -65,17 +64,11 @@ public class MeshCreator : ScriptableObject
 
     public ComputeBuffer GetMaterials(SurfaceChunk.SurfaceMap surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
     {
-        int numPointsAxes = chunkSize + 1;
-        int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
-
-        ComputeBuffer materialBuffer = new ComputeBuffer(numOfPoints, sizeof(int));
-        materialBuffer.SetData(Enumerable.Repeat(-1, numOfPoints).ToArray());
-        tempBuffers.Enqueue(materialBuffer);
-
-        materialBuffer = densityGenerator.GenerateMat(MaterialCoarseNoise, MaterialFineNoise, materialBuffer, surfaceData.biomeMap, chunkSize, 1, offset, ref tempBuffers);
+        ComputeBuffer materialBuffer = densityGenerator.GenerateMat(MaterialCoarseNoise, MaterialFineNoise, surfaceData.biomeMap, chunkSize, 1, offset, ref tempBuffers);
 
         return materialBuffer;
     }
+
 
     public ComputeBuffer GenerateDensity(SurfaceChunk.SurfaceMap surfaceData, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
     {
@@ -98,14 +91,8 @@ public class MeshCreator : ScriptableObject
     public ComputeBuffer GenerateMaterials(SurfaceChunk.SurfaceMap surfaceData, Vector3 offset, int LOD, int chunkSize)
     {
         int meshSkipInc = meshSkipTable[LOD];
-        int numPointsAxes = chunkSize / meshSkipInc + 1;
-        int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
-
-        ComputeBuffer materialBuffer = new ComputeBuffer(numOfPoints, sizeof(int));
-        materialBuffer.SetData(Enumerable.Repeat(-1, numOfPoints).ToArray());
-        tempBuffers.Enqueue(materialBuffer);
-
-        materialBuffer = densityGenerator.GenerateMat(MaterialCoarseNoise, MaterialFineNoise, materialBuffer, surfaceData.biomeMap, chunkSize, meshSkipInc, offset, ref tempBuffers);
+        
+        ComputeBuffer materialBuffer = densityGenerator.GenerateMat(MaterialCoarseNoise, MaterialFineNoise, surfaceData.biomeMap, chunkSize, meshSkipInc, offset, ref tempBuffers);
         return materialBuffer;
     }
 
@@ -169,37 +156,31 @@ public class MeshCreator : ScriptableObject
         int maxStructurePoints = calculateMaxStructurePoints(biomeData.maxLoD, biomeData.StructureChecksPerChunk, biomeData.LoDFalloff);
 
         ComputeBuffer planPointsAppend = densityGenerator.SampleStructureLoD(biomeData.maxLoD, chunkSize, biomeData.LoDFalloff, biomeData.StructureChecksPerChunk, maxStructurePoints, chunkCoord, ref tempBuffers);
-
-        ComputeBuffer planArgs = densityGenerator.SetArgs(planPointsAppend, ref tempBuffers);
-        ComputeBuffer planCount = densityGenerator.CopyCount(planPointsAppend, ref tempBuffers);
-
-        ComputeBuffer biomes = mapCreator.AnalyzeBiomeMap(planPointsAppend, planCount, planArgs, offset2D, chunkSize, maxStructurePoints);
-
-        ComputeBuffer structureInfo = densityGenerator.IdenfityStructures(planPointsAppend, biomes, planCount, planArgs, chunkCoord, chunkSize, maxStructurePoints, ref tempBuffers);
-
-        ComputeBuffer structArgs = densityGenerator.SetArgs(structureInfo, ref tempBuffers);
-        ComputeBuffer structCount = densityGenerator.CopyCount(structureInfo, ref tempBuffers);
-
-        ComputeBuffer checkPoints = densityGenerator.CreateChecks(structureInfo, structCount, structArgs, maxStructurePoints, ref tempBuffers);//change maxPoints
-
-        ComputeBuffer checkArgs = densityGenerator.SetArgs(checkPoints, ref tempBuffers);
-        ComputeBuffer checkCount = densityGenerator.CopyCount(checkPoints, ref tempBuffers);
-
-        ComputeBuffer baseDensity = densityGenerator.AnalyzeBase(checkPoints, checkCount, checkArgs, TerrainNoise, offset, chunkSize, maxStructurePoints, ref tempBuffers);
-        ComputeBuffer terrainHeights = mapCreator.AnalyzeTerrainMap(checkPoints, checkCount, checkArgs, offset2D, chunkSize, maxStructurePoints);
-        ComputeBuffer squashHeights = mapCreator.AnalyzeSquashMap(checkPoints, checkCount, checkArgs, offset2D, chunkSize, maxStructurePoints);
         
-        ComputeBuffer densities = densityGenerator.AnalyzeTerrain(checkPoints, baseDensity, terrainHeights, squashHeights, checkCount, checkArgs, chunkYOrigin, maxStructurePoints, IsoLevel, ref tempBuffers);
+        ComputeBuffer planCount = UtilityBuffers.CopyCount(planPointsAppend, tempBuffers);
+        ComputeBuffer biomes = mapCreator.AnalyzeBiomeMap(planPointsAppend, planCount, offset2D, chunkSize, maxStructurePoints);
+        ComputeBuffer structureInfo = densityGenerator.IdentifyStructures(planPointsAppend, planCount, biomes, chunkCoord, chunkSize, maxStructurePoints, ref tempBuffers);
+        
+        ComputeBuffer structCount = UtilityBuffers.CopyCount(structureInfo, tempBuffers);
+        ComputeBuffer checkPoints = densityGenerator.CreateChecks(structureInfo, structCount, maxStructurePoints, ref tempBuffers);//change maxPoints
 
-        ComputeBuffer checkResults = densityGenerator.InitializeIndirect(structCount, structArgs, true, maxStructurePoints, ref tempBuffers);
-        densityGenerator.AnalyzeChecks(checkPoints, densities, checkCount, checkArgs, IsoLevel, ref checkResults);
-        ComputeBuffer structureBuffer = densityGenerator.FilterStructures(checkResults, structureInfo, structCount, structArgs, maxStructurePoints, ref tempBuffers);
+        ComputeBuffer checkCount = UtilityBuffers.CopyCount(checkPoints, tempBuffers);
+        ComputeBuffer baseDensity = densityGenerator.AnalyzeBase(checkPoints, checkCount, TerrainNoise, offset, chunkSize, maxStructurePoints, ref tempBuffers);
+        ComputeBuffer terrainHeights = mapCreator.AnalyzeTerrainMap(checkPoints, checkCount, offset2D, chunkSize, maxStructurePoints);
+        ComputeBuffer squashHeights = mapCreator.AnalyzeSquashMap(checkPoints, checkCount, offset2D, chunkSize, maxStructurePoints);
+        
+        ComputeBuffer densities = densityGenerator.AnalyzeTerrain(checkPoints, checkCount, baseDensity, terrainHeights, squashHeights, chunkYOrigin, maxStructurePoints, IsoLevel, ref tempBuffers);
 
-        this.structureCount = densityGenerator.CopyCount(structureBuffer, ref persistantBuffers);
+        ComputeBuffer checkResults = densityGenerator.InitializeIndirect(structCount, true, maxStructurePoints, ref tempBuffers);
+        densityGenerator.AnalyzeChecks(checkPoints, checkCount, densities, IsoLevel, ref checkResults, ref tempBuffers);
+        ComputeBuffer structureBuffer = densityGenerator.FilterStructures(checkResults, structureInfo, structCount, maxStructurePoints, ref tempBuffers);
+
+        ComputeBuffer structureCount = UtilityBuffers.CopyCount(structureBuffer, tempBuffers);
         ComputeBuffer structByteSize = densityGenerator.CalculateStructureSize(structureCount, STRUCTURE_STRIDE_4BYTE, ref tempBuffers);
-        this.structureAddress = structureMemory.AllocateMemory(structByteSize);
+        this.structureDataIndex = structureMemory.AllocateMemory(structByteSize);
 
-        densityGenerator.TranscribeStructures(this.structureMemory.AccessStorage(), structureBuffer, structureCount, structureAddress, ref tempBuffers);
+        densityGenerator.TranscribeStructures(this.structureMemory.AccessStorage(), this.structureMemory.AccessAddresses(), 
+                                              structureBuffer, structureCount, (int)this.structureDataIndex, ref tempBuffers);
 
         mapCreator.ReleaseTempBuffers();
         ReleaseTempBuffers();
@@ -217,8 +198,12 @@ public class MeshCreator : ScriptableObject
     public void GenerateStrucutresGPU(ComputeBuffer pointBuffer, ComputeBuffer materialBuffer, int chunkSize, int LOD, float IsoLevel)
     {
         int meshSkipInc = meshSkipTable[LOD];
-
-        densityGenerator.ApplyStructures(this.structureMemory.AccessStorage(), structureAddress, structureCount, pointBuffer, materialBuffer, chunkSize, meshSkipInc, IsoLevel, ref tempBuffers);
+        
+        ComputeBuffer structCount = densityGenerator.GetStructCount(this.structureMemory.AccessStorage(), this.structureMemory.AccessAddresses(), 
+                                                                    (int)structureDataIndex, STRUCTURE_STRIDE_4BYTE, ref tempBuffers);
+        
+        densityGenerator.ApplyStructures(this.structureMemory.AccessStorage(), this.structureMemory.AccessAddresses(), structCount, pointBuffer, 
+                                        materialBuffer, (int)structureDataIndex, chunkSize, meshSkipInc, IsoLevel, ref tempBuffers);
 
         return;
     }
@@ -244,7 +229,7 @@ public class MeshCreator : ScriptableObject
         }
     }
 
-    public ComputeBuffer GenerateMapData(ComputeBuffer pointBuffer, ComputeBuffer materialBuffer, float IsoLevel, int LOD, int chunkSize)
+    public ComputeBuffer GenerateMapData(GPUDensityManager densityManager, Vector3 CCoord, float IsoLevel, int LOD, int chunkSize)
     {
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxes = chunkSize / meshSkipInc + 1;
@@ -257,7 +242,7 @@ public class MeshCreator : ScriptableObject
         tempBuffers.Enqueue(sourceMeshBuffer);
         sourceMeshBuffer.SetCounterValue(0);
 
-        densityGenerator.GenerateMesh(chunkSize, meshSkipInc, IsoLevel, materialBuffer, sourceMeshBuffer, pointBuffer);
+        densityGenerator.GenerateMesh(densityManager, CCoord, chunkSize, meshSkipInc, IsoLevel, sourceMeshBuffer);
 
         return sourceMeshBuffer;
 
@@ -421,28 +406,15 @@ public class MeshCreator : ScriptableObject
         }
     }
 
-    public void ReleasePersistantBuffers()
-    {
-        ReleaseStructure();
-        while (persistantBuffers.Count > 0)
-        {
-            persistantBuffers.Dequeue()?.Release();
-        }
-    }
-
     public void ReleaseStructure()
     {
-        if (structureAddress != null && structureAddress.IsValid())
-            structureMemory?.ReleaseMemory(structureAddress);
-
-        structureAddress?.Release();
-        structureCount?.Release();
+        if(this.structureMemory != null)
+            this.structureMemory.ReleaseMemory(this.structureDataIndex);
     }
 
     public void OnDisable()
     {
         ReleaseTempBuffers();
-        ReleasePersistantBuffers();
     }
 
     public struct TriangleConst

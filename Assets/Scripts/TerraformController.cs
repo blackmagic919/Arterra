@@ -59,7 +59,7 @@ public class TerraformController : MonoBehaviour
         cam = Camera.main.transform;
         terrain = FindAnyObjectByType<EndlessTerrain>();
         barController = FindAnyObjectByType<MaterialBarController>();
-        cutOff = terrain.IsoLevel;
+        cutOff = terrain.settings.IsoLevel;
     }
 
     // Update is called once per frame

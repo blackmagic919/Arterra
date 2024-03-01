@@ -18,6 +18,7 @@ MonoBehaviour:
   meshGenerator: {fileID: 7200000, guid: 97b007ef0e46a4590965b6332d79b70c, type: 3}
   densitySimplification: {fileID: 7200000, guid: e4a9cc5c125fb4f09807f1bf8ca4c73d, type: 3}
   TriCountToVertCount: {fileID: 7200000, guid: 159df37c2450349148c005cb7ff801c4, type: 3}
+  StitchLoDs: {fileID: 7200000, guid: 513a05ac17c0d4a469bc943ab3d6c54d, type: 3}
   StructureLoDSampler: {fileID: 7200000, guid: c77fc9624dcc9414f940efbee6e95fec, type: 3}
   StructureIdentifier: {fileID: 7200000, guid: e06e23c52ea0d45efbfd1590adc5dc60, type: 3}
   StructureChecks: {fileID: 7200000, guid: 0fe362ac9f8c7403cba5d5cbd709002b, type: 3}
@@ -28,6 +29,7 @@ MonoBehaviour:
   structureChunkGenerator: {fileID: 7200000, guid: 3cb6a1ec7652247c38b37b70e7a96e89, type: 3}
   structureDataTranscriber: {fileID: 7200000, guid: 792fc8bf7a9874a4ab66448406103fb7, type: 3}
   structureMemorySize: {fileID: 7200000, guid: 0b4d7e22a463a4bcdaa7c547c45ab3ca, type: 3}
+  structureSizeCounter: {fileID: 7200000, guid: e6bcd6d226eac4735a5c821af3d2be30, type: 3}
   indirectThreads: {fileID: 7200000, guid: 582dc85c3053340088287291ce32e33d, type: 3}
   indirectCountToArgs: {fileID: 7200000, guid: 1e85a0e13a78943b980e1b2e477ffb49, type: 3}
   indirectMapInitialize: {fileID: 7200000, guid: c7da4ef886598435a9e31e4fd8efce98, type: 3}

@@ -31,11 +31,13 @@ struct DrawVertex{
 };
 
 StructuredBuffer<uint> _StorageMemory;
-StructuredBuffer<uint> instanceHandle;
+StructuredBuffer<uint> _AddressDict;
+uint addressIndex;
+
 uint _Vertex4ByteStride;
 
 DrawVertex ReadVertex(uint vertexAddress){
-    uint address = vertexAddress + instanceHandle[0];
+    uint address = vertexAddress + _AddressDict[addressIndex];
     DrawVertex vertex = (DrawVertex)0;
 
     vertex.positionOS.x = asfloat(_StorageMemory[address]);
@@ -143,7 +145,6 @@ float3 frag (v2f IN) : SV_Target
 	SurfaceData surfaceInput = (SurfaceData)0;
 	surfaceInput.albedo = baseColor * colorStrength + textureColor * (1-colorStrength);
 	surfaceInput.alpha = alpha;
-    clip(surfaceInput.alpha - 0.01);
 
 #if UNITY_VERSION >= 202120
 	return UniversalFragmentBlinnPhong(lightingInput, surfaceInput);

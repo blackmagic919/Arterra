@@ -20,12 +20,13 @@ StructuredBuffer<uint> _ShaderPrefixes;
 uint shaderIndex;
 
 RWStructuredBuffer<uint> _MemoryBuffer;
-StructuredBuffer<uint> startAddress;
+StructuredBuffer<uint> _AddressDict;
+uint addressIndex;
 
 [numthreads(numThreads,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    if(startAddress[0] == 0) //Out of space
+    if(_AddressDict[addressIndex] == 0) //Out of space
         return;
 
     uint start = _ShaderPrefixes[shaderIndex];
@@ -35,7 +36,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     DrawTriangle tri = _DrawTriangles[start + id.x];
 
-    uint triAddress = startAddress[0] + (id.x * (VERTEX_STRIDE_4BYTES * 3));
+    uint triAddress = _AddressDict[addressIndex] + (id.x * (VERTEX_STRIDE_4BYTES * 3));
 
     [unroll] for(uint i = 0; i < 3; i++){
         uint vertAddress = triAddress + (VERTEX_STRIDE_4BYTES * i);

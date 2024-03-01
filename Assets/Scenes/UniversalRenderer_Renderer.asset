@@ -70,12 +70,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Active: 1
   passSettings:
-    renderPassEvent: 550
+    renderPassEvent: 500
     densityManager: {fileID: 11400000, guid: 5e2b4725878474942a7c7babbf0f436d, type: 2}
     luminanceBake: {fileID: 11400000, guid: 871b8f4841c1e455f9f0e07616307f87, type: 2}
-    scatteringCoeffs: {x: 0.0025, y: 0.005, z: 0.01}
-    atmosphereRadius: 1000
-    extinctionFactor: 0.02
-    inScatterPoints: 25
-    opticalDepthPoints: 5
-    densityMultiplier: 1
+    inScatterPoints: 30
+    generationSettings: {fileID: 11400000, guid: 20f244f85582c4ac2858ece976b58a49, type: 2}

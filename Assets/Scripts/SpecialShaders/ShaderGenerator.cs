@@ -1,13 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using NUnit.Framework.Constraints;
-using Unity.Mathematics;
-using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.UIElements;
 using static EditorMesh;
+using static UtilityBuffers;
 
 public class ShaderGenerator : MonoBehaviour
 {
@@ -19,8 +16,8 @@ public class ShaderGenerator : MonoBehaviour
 
     private Bounds shaderBounds;
 
-    private ComputeBuffer[] geoShaderMemAdds = null;
-    private ComputeBuffer[] geoShaderDispArgs = null;
+    private uint[] geoShaderMemAdds = null;
+    private uint[] geoShaderDispArgs = null;
     private Material[] geoShaderMats = null;
     private bool hasShaderInfo = false;
 
@@ -50,11 +47,13 @@ public class ShaderGenerator : MonoBehaviour
 
     private void LateUpdate()
     {
+        ReleaseTempBuffers();
         if (!hasShaderInfo)
             return;
-
+        
+        ComputeBuffer sharedArgs = UtilityBuffers.ArgumentBuffer;
         for(uint i = 0; i < this.settings.shaderDictionary.Count; i++) {
-            Graphics.DrawProceduralIndirect(geoShaderMats[i], shaderBounds, MeshTopology.Triangles, geoShaderDispArgs[i], 0, null, null, ShadowCastingMode.Off, true, gameObject.layer);
+            Graphics.DrawProceduralIndirect(geoShaderMats[i], shaderBounds, MeshTopology.Triangles, sharedArgs, (int)geoShaderDispArgs[i] * (4*4), null, null, ShadowCastingMode.Off, true, gameObject.layer);
         }
     }
 
@@ -73,12 +72,11 @@ public class ShaderGenerator : MonoBehaviour
         foreach (Material geoMat in geoShaderMats)
             if (Application.isPlaying) Destroy(geoMat); else DestroyImmediate(geoMat);
 
-        foreach (ComputeBuffer dispatchArg in geoShaderDispArgs)
-            dispatchArg.Release();
-
-        foreach (ComputeBuffer address in geoShaderMemAdds) {
+        foreach (uint address in geoShaderMemAdds) {
             this.settings.memoryBuffer.ReleaseMemory(address);
-            address.Release();
+        }
+        foreach (uint address in geoShaderDispArgs) {
+            UtilityBuffers.ReleaseArgs(address);
         }
     }
 
@@ -91,7 +89,7 @@ public class ShaderGenerator : MonoBehaviour
     }
 
     public void ComputeGeoShaderGeometry(ComputeBuffer geometry, int chunkSize, int LOD)
-    {
+    { 
         ReleaseGeometry();
 
         ComputeBuffer filteredGeometry; ComputeBuffer shaderBaseIndexes;
@@ -102,7 +100,7 @@ public class ShaderGenerator : MonoBehaviour
 
         this.geoShaderMemAdds = TranscribeGeometries(geoShaderGeometry, shaderStartIndexes);
         this.geoShaderDispArgs = GetShaderDrawArgs(shaderStartIndexes);
-        this.geoShaderMats = SetupShaderMaterials(this.geoShaderMemAdds, this.settings.memoryBuffer.AccessStorage());
+        this.geoShaderMats = SetupShaderMaterials(this.settings.memoryBuffer.AccessStorage(), this.settings.memoryBuffer.AccessAddresses(), this.geoShaderMemAdds);
 
         this.hasShaderInfo = true;
 
@@ -162,12 +160,13 @@ public class ShaderGenerator : MonoBehaviour
         return (geoShaderGeometry, shaderStartIndexes);
     }
 
-    public ComputeBuffer[] TranscribeGeometries(ComputeBuffer geoShaderGeometry, ComputeBuffer shaderStartIndexes)
+    public uint[] TranscribeGeometries(ComputeBuffer geoShaderGeometry, ComputeBuffer shaderStartIndexes)
     {
         int numShaders = this.settings.shaderDictionary.Count;
 
-        ComputeBuffer[] geoShaderAddresses = new ComputeBuffer[numShaders];
+        uint[] geoShaderAddresses = new uint[numShaders];
         ComputeBuffer memoryReference = settings.memoryBuffer.AccessStorage();
+        ComputeBuffer addressesReference = settings.memoryBuffer.AccessAddresses();
 
         for (int i = 0; i < numShaders; i++)
         {
@@ -176,49 +175,47 @@ public class ShaderGenerator : MonoBehaviour
 
             ComputeBuffer geoShaderArgs = CalculateArgsFromPrefix(shaderStartIndexes, i);
 
-            /*
-            uint[] address = new uint[1]; uint[] size = new uint[1];
-            geoShaderAddresses[i].GetData(address); memByte4Length.GetData(size);
-            Debug.Log(address[0] + "|" + size[0]);*/
-
-            TranscribeGeometry(geoShaderGeometry, shaderStartIndexes, memoryReference, geoShaderAddresses[i], geoShaderArgs, i);
+            TranscribeGeometry(memoryReference, addressesReference, (int)geoShaderAddresses[i], geoShaderGeometry, shaderStartIndexes, geoShaderArgs, i);
         }
 
         return geoShaderAddresses;
     }
 
-    public ComputeBuffer[] GetShaderDrawArgs(ComputeBuffer shaderStartIndexes)
-    {
-        int numShaders = this.settings.shaderDictionary.Count;
-        ComputeBuffer[] shaderDrawArgs = new ComputeBuffer[numShaders];
-
-        for (int i = 0; i < numShaders; i++)
-        {
-            shaderDrawArgs[i] = new ComputeBuffer(4, sizeof(uint), ComputeBufferType.Structured);
-            GetDrawArgs(shaderStartIndexes, i, ref shaderDrawArgs[i]);
-        }
-        return shaderDrawArgs;
-    }
-
-    public Material[] SetupShaderMaterials(ComputeBuffer[] addresses, ComputeBuffer storageBuffer)
+    public Material[] SetupShaderMaterials(ComputeBuffer storageBuffer, ComputeBuffer addressBuffer, uint[] address)
     {
         Material[] shaderMaterials = settings.GetMaterialInstances();
         for(int i = 0; i < this.settings.shaderDictionary.Count; i++)
         {
             Material shaderMaterial = shaderMaterials[i];
             shaderMaterial.SetBuffer("_StorageMemory", storageBuffer);
-            shaderMaterial.SetBuffer("instanceAddress", addresses[i]);
+            shaderMaterial.SetBuffer("_AddressDict", addressBuffer);
+            shaderMaterial.SetInt("addressIndex", (int)address[i]);
             shaderMaterial.SetInt("_Vertex4ByteStride", GEO_VERTEX_STRIDE / 4);
         }
         return shaderMaterials;
     }
 
-    void GetDrawArgs(ComputeBuffer shaderStartIndexes, int shaderIndex, ref ComputeBuffer indirectArgs)
+    public uint[] GetShaderDrawArgs(ComputeBuffer shaderStartIndexes)
     {
-        this.settings.shaderDrawArgs.SetBuffer(0, "prefixSizes", shaderStartIndexes);
+        int numShaders = this.settings.shaderDictionary.Count;
+        uint[] shaderDrawArgs = new uint[numShaders];
+
+        for (int i = 0; i < numShaders; i++)
+        {
+            shaderDrawArgs[i] = UtilityBuffers.AllocateArgs();
+            GetDrawArgs(UtilityBuffers.ArgumentBuffer, (int)shaderDrawArgs[i], shaderStartIndexes, i);
+        }
+        return shaderDrawArgs;
+    }
+
+    void GetDrawArgs(ComputeBuffer indirectArgs, int address, ComputeBuffer shaderPrefix, int shaderIndex)
+    {
+        this.settings.shaderDrawArgs.SetBuffer(0, "prefixSizes", shaderPrefix);
         this.settings.shaderDrawArgs.SetInt("shaderIndex", shaderIndex);
 
         this.settings.shaderDrawArgs.SetBuffer(0, "_IndirectArgsBuffer", indirectArgs);
+        this.settings.shaderDrawArgs.SetInt("argOffset", address);
+
         this.settings.shaderDrawArgs.Dispatch(0, 1, 1, 1);
     }
 
@@ -264,8 +261,7 @@ public class ShaderGenerator : MonoBehaviour
         geoShaderArgs.SetData(new uint[] { 1, 1, 1 });
         tempBuffers.Enqueue(geoShaderArgs);
 
-        uint threadGroupSize;
-        this.settings.geoTranscriber.GetKernelThreadGroupSizes(0, out threadGroupSize, out _, out _);
+        this.settings.geoTranscriber.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
 
         this.settings.prefixShaderArgs.SetBuffer(0, "_PrefixStart", shaderStartIndexes);
         this.settings.prefixShaderArgs.SetInt("shaderIndex", shaderIndex);
@@ -277,12 +273,13 @@ public class ShaderGenerator : MonoBehaviour
         return geoShaderArgs;
     }
 
-    void TranscribeGeometry(ComputeBuffer geoShaderGeometry, ComputeBuffer shaderStartIndexes, ComputeBuffer memory, ComputeBuffer memoryAddress, ComputeBuffer args, int shaderIndex)
+    void TranscribeGeometry(ComputeBuffer memory, ComputeBuffer addresses, int addressIndex, ComputeBuffer geoShaderGeometry, ComputeBuffer shaderStartIndexes, ComputeBuffer args, int shaderIndex)
     {
         this.settings.geoTranscriber.SetBuffer(0, "_DrawTriangles", geoShaderGeometry);
         this.settings.geoTranscriber.SetBuffer(0, "_ShaderPrefixes", shaderStartIndexes);
         this.settings.geoTranscriber.SetBuffer(0, "_MemoryBuffer", memory);
-        this.settings.geoTranscriber.SetBuffer(0, "startAddress", memoryAddress);
+        this.settings.geoTranscriber.SetBuffer(0, "_AddressDict", addresses);
+        this.settings.geoTranscriber.SetInt("addressIndex", addressIndex);
         this.settings.geoTranscriber.SetInt("shaderIndex", shaderIndex);
 
         this.settings.geoTranscriber.DispatchIndirect(0, args);

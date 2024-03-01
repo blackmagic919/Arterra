@@ -1,8 +1,8 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-StructuredBuffer<uint> memoryHandle;
-uint _Vertex4ByteStride;
+StructuredBuffer<uint> triCount;
+uint argOffset;
 
 struct IndirectArgs{
     uint numVerticesPerInstance;
@@ -16,9 +16,10 @@ RWStructuredBuffer<IndirectArgs> _IndirectArgsBuffer;
 [numthreads(1,1,1)] 
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    _IndirectArgsBuffer[0].numInstances = memoryHandle[0] == 0 ? 0 : 1;
-    _IndirectArgsBuffer[0].numVerticesPerInstance = memoryHandle[1] / _Vertex4ByteStride;
-    _IndirectArgsBuffer[0].startVertexIndex = 0;
-    _IndirectArgsBuffer[0].startInstanceIndex = 0;
+
+    _IndirectArgsBuffer[argOffset].numInstances = triCount[0] == 0 ? 0 : 1;
+    _IndirectArgsBuffer[argOffset].numVerticesPerInstance = triCount[0] * 3;
+    _IndirectArgsBuffer[argOffset].startVertexIndex = 0;
+    _IndirectArgsBuffer[argOffset].startInstanceIndex = 0;
 
 }

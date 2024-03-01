@@ -58,7 +58,7 @@ MonoBehaviour:
       center: 0
       multiplier: 1
       power: 2
-    ChancePerStructurePoint: 0.45432243
+    ChancePerStructurePoint: 0.50065815
     structureIndex: 0
     structureData: {fileID: 11400000, guid: 47f8cded4e30d4bbab55502f96bded1c, type: 2}
     structureSettings: {fileID: 11400000, guid: b0396615401ed43529486c788cd2359a, type: 2}
@@ -68,7 +68,7 @@ MonoBehaviour:
       center: 0
       multiplier: 1
       power: 2
-    ChancePerStructurePoint: 0.54567754
+    ChancePerStructurePoint: 0.49934185
     structureIndex: 1
     structureData: {fileID: 11400000, guid: c9e502f655b8f4c2bb695c58a092f880, type: 2}
     structureSettings: {fileID: 11400000, guid: 66e5cf3a06c4c421da8c5d6cc3ac3410, type: 2}

@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using static EditorMesh;
+using static UtilityBuffers;
 
 //Purpose: Render geometry directly from GPU until it is readback async.
 
@@ -17,7 +16,6 @@ public class AsyncMeshReadback : MonoBehaviour
 {
     private ReadbackSettings settings;
     private Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
-
     private GeometryHandle[] geoHandles = default;
     private Bounds shaderBounds = default;
     private MeshFilter[] meshFilters;
@@ -62,17 +60,16 @@ public class AsyncMeshReadback : MonoBehaviour
 
     private void ReleaseGeometry(GeometryHandle handle)
     {
-        if (!handle.IsOnHeap()) return;
-        handle.isOnHeap.value = false;
+        if (handle == null || !handle.isOnHeap) return;
+        handle.isOnHeap = false;
+        
         //Destroy Material
-
         if (Application.isPlaying) Destroy(handle.matInstance);
         else DestroyImmediate(handle.matInstance);
 
         //Release geometry memory
-        this.settings.memoryBuffer.ReleaseMemory(handle.memHandle);
-        handle.memHandle.Release();
-        handle.dispArgs.Release();
+        this.settings.memoryBuffer.ReleaseMemory(handle.addressIndex);
+        UtilityBuffers.ReleaseArgs(handle.argsAddress);
     }
 
     private void ReleaseTempBuffers()
@@ -83,12 +80,13 @@ public class AsyncMeshReadback : MonoBehaviour
     
     void LateUpdate()
     {
+        ComputeBuffer sharedArgs = UtilityBuffers.ArgumentBuffer;
         for (int i = 0; i < settings.indirectTerrainMats.Count; i++)
         {
             GeometryHandle handle = geoHandles[i];
-            if (!handle.IsOnHeap()) continue;
-
-            Graphics.DrawProceduralIndirect(handle.matInstance, shaderBounds, MeshTopology.Triangles, handle.dispArgs, 0, null, null, ShadowCastingMode.On, true, gameObject.layer);
+            if (handle == null || !handle.isOnHeap) continue;
+            //Offset in bytes = address * 4 args per address * 4 bytes per arg
+            Graphics.DrawProceduralIndirect(handle.matInstance, shaderBounds, MeshTopology.Triangles, sharedArgs, (int)handle.argsAddress * 4 * 4, null, null, ShadowCastingMode.On, true, gameObject.layer);
         }
     }
 
@@ -101,49 +99,60 @@ public class AsyncMeshReadback : MonoBehaviour
         ComputeBuffer baseCount = CopyCount(baseGeo, ref tempBuffers);
 
         ComputeBuffer memByte4Length = CalculateGeoSize(baseCount, ref tempBuffers);
-        ComputeBuffer geoHeapMemoryAddress = this.settings.memoryBuffer.AllocateMemory(memByte4Length);
-        tempBuffers.Enqueue(geoHeapMemoryAddress);
+        uint geoHeapMemoryAddress = this.settings.memoryBuffer.AllocateMemory(memByte4Length);
 
-        TranscribeGeometry(this.settings.memoryBuffer.AccessStorage(), geoHeapMemoryAddress, baseGeo, baseCount, ref tempBuffers);
+        uint drawArgsAddress = UtilityBuffers.AllocateArgs(); //Allocates 4 bytes
+        CreateDispArg(UtilityBuffers.ArgumentBuffer, baseCount, (int)drawArgsAddress);
+
+        TranscribeGeometry(this.settings.memoryBuffer.AccessStorage(), this.settings.memoryBuffer.AccessAddresses(),
+                           baseGeo, baseCount, (int)geoHeapMemoryAddress, ref tempBuffers);
 
         //All buffers that are created by helper functions must enqueue to a buffer handle for consistency
         //Thus to indicate that they aren't being handled, initialize persistant buffers here
-        ComputeBuffer memHandle = new ComputeBuffer(1, sizeof(uint) * 2, ComputeBufferType.Structured); CombineMemoryHandle(geoHeapMemoryAddress, memByte4Length, ref memHandle);
-        Material matInstance = InstantiateMaterial(this.settings.memoryBuffer.AccessStorage(), memHandle, matIndex);
-        ComputeBuffer dispArg = new ComputeBuffer(4, sizeof(uint), ComputeBufferType.Structured); CreateDispArg(memHandle, ref dispArg);
-        geoHandles[matIndex] = new GeometryHandle(memHandle, dispArg, matInstance, true);
+        Material matInstance = InstantiateMaterial(this.settings.memoryBuffer.AccessStorage(), this.settings.memoryBuffer.AccessAddresses(), (int)geoHeapMemoryAddress, matIndex);
+        geoHandles[matIndex] = new GeometryHandle(matInstance, geoHeapMemoryAddress, drawArgsAddress, true);
 
         //Begin readback of data
-        AsyncGPUReadback.Request(memHandle, ret => onMemAddressRecieved(ret, geoHandles[matIndex], callback));
+        AsyncGPUReadback.Request(this.settings.memoryBuffer.AccessAddresses(), size: 4, offset: 4*(int)geoHeapMemoryAddress, ret => onMemAddressRecieved(ret, geoHandles[matIndex], callback));
 
         ReleaseTempBuffers();
     }
 
     void onMemAddressRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, Action<MeshInfo> callback)
     {
-        if (!geoHandle.isOnHeap.value) //Info was depreceated
+        if (!geoHandle.isOnHeap) //Info was depreceated
             return;
-        
 
-        uint[] memData = request.GetData<uint>().ToArray();
+        uint memAddress = request.GetData<uint>().ToArray()[0];
 
-        if (memData[0] == 0) { //No geometry to readback
+        if (memAddress == 0) { //No geometry to readback
             ReleaseGeometry(geoHandle);
             return; 
         }
 
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
-        AsyncGPUReadback.Request(this.settings.memoryBuffer.AccessStorage(), size: (4 * (int)memData[1]), offset: (4 * (int)memData[0]), ret => onMeshDataRecieved(ret, memData, geoHandle, callback));
+        AsyncGPUReadback.Request(this.settings.memoryBuffer.AccessStorage(), size: 4, offset: 4 * ((int)memAddress - 1), ret => onMemSizeRecieved(ret, geoHandle, memAddress, callback));
     }
 
-    void onMeshDataRecieved(AsyncGPUReadbackRequest request, uint[] geoData, GeometryHandle geoHandle, Action<MeshInfo> callback)
+    void onMemSizeRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, uint address, Action<MeshInfo> callback)
     {
-        if (!geoHandle.isOnHeap.value)  //Info was depreceated
+        if (!geoHandle.isOnHeap)  //Info was depreceated
+            return;
+
+        uint memSize = request.GetData<uint>().ToArray()[0];
+
+        //AsyncGPUReadback.Request size and offset are in units of bytes... 
+        AsyncGPUReadback.Request(this.settings.memoryBuffer.AccessStorage(), size: 4 * (int)memSize, offset: 4 * (int)address, ret => onMeshDataRecieved(ret, geoHandle, memSize, callback));
+    }
+
+    void onMeshDataRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, uint size, Action<MeshInfo> callback)
+    {
+        if (!geoHandle.isOnHeap)  //Info was depreceated
             return;
 
         MeshInfo chunk = new MeshInfo();
 
-        int numTris = ((int)geoData[1]) / (MESH_VERTEX_STRIDE_4BYTE * 3);
+        int numTris = ((int)size) / (MESH_VERTEX_STRIDE_4BYTE * 3);
 
         uint[] tris = request.GetData<uint>().ToArray();
 
@@ -175,20 +184,12 @@ public class AsyncMeshReadback : MonoBehaviour
         callback(chunk);
     }
 
-    void CombineMemoryHandle(ComputeBuffer address, ComputeBuffer size, ref ComputeBuffer memoryHandle)
+    void CreateDispArg(ComputeBuffer argumentBuffer, ComputeBuffer triCount, int address)
     {
-        this.settings.memoryHandleCombiner.SetBuffer(0, "address", address);
-        this.settings.memoryHandleCombiner.SetBuffer(0, "memSize", size);
-        this.settings.memoryHandleCombiner.SetBuffer(0, "handle", memoryHandle);
+        this.settings.meshDrawArgsCreator.SetBuffer(0, "triCount", triCount);
+        this.settings.meshDrawArgsCreator.SetInt("argOffset", address);
 
-        this.settings.memoryHandleCombiner.Dispatch(0, 1, 1, 1);
-    }
-
-    void CreateDispArg(ComputeBuffer memHandle, ref ComputeBuffer indirectArgs)
-    {
-        this.settings.meshDrawArgsCreator.SetBuffer(0, "memoryHandle", memHandle);
-        this.settings.meshDrawArgsCreator.SetInt("_Vertex4ByteStride", MESH_VERTEX_STRIDE_4BYTE);
-        this.settings.meshDrawArgsCreator.SetBuffer(0, "_IndirectArgsBuffer", indirectArgs);
+        this.settings.meshDrawArgsCreator.SetBuffer(0, "_IndirectArgsBuffer", argumentBuffer);
 
         this.settings.meshDrawArgsCreator.Dispatch(0, 1, 1, 1);
     }
@@ -208,28 +209,31 @@ public class AsyncMeshReadback : MonoBehaviour
         return memSize;
     }
 
-    Material InstantiateMaterial(ComputeBuffer storage, ComputeBuffer memHandle, int matIndex)
+    Material InstantiateMaterial(ComputeBuffer storage, ComputeBuffer addresses, int addressIndex, int matIndex)
     {
         Material instance = Instantiate(this.settings.indirectTerrainMats[matIndex]);
 
         instance.EnableKeyword("INDIRECT");
         instance.SetBuffer("_StorageMemory", storage);
-        instance.SetBuffer("instanceHandle", memHandle);
+        instance.SetBuffer("_AddressDict", addresses);
+        instance.SetInt("addressIndex", addressIndex);
+        
         instance.SetInt("_Vertex4ByteStride", MESH_VERTEX_STRIDE_4BYTE);
         instance.SetMatrix("_LocalToWorld", this.transform.localToWorldMatrix);
 
         return instance;
     }
 
-    void TranscribeGeometry(ComputeBuffer memoryBuffer, ComputeBuffer address, ComputeBuffer source, ComputeBuffer count, ref Queue<ComputeBuffer> bufferHandle)
+    void TranscribeGeometry(ComputeBuffer memoryBuffer, ComputeBuffer addressBufer, ComputeBuffer source, ComputeBuffer count, int addressIndex, ref Queue<ComputeBuffer> bufferHandle)
     {
         ComputeBuffer args = SetArgs(this.settings.baseGeoTranscriber, source, ref bufferHandle);
 
         this.settings.baseGeoTranscriber.SetBuffer(0, "_BaseTriangles", source);
-        this.settings.baseGeoTranscriber.SetBuffer(0, "startAddress", address);
         this.settings.baseGeoTranscriber.SetBuffer(0, "triLength", count);
 
         this.settings.baseGeoTranscriber.SetBuffer(0, "_MemoryBuffer", memoryBuffer);
+        this.settings.baseGeoTranscriber.SetBuffer(0, "_AddressDict", addressBufer);
+        this.settings.baseGeoTranscriber.SetInt("addressIndex", addressIndex);
 
         this.settings.baseGeoTranscriber.DispatchIndirect(0, args);
     }
@@ -322,33 +326,19 @@ public class AsyncMeshReadback : MonoBehaviour
         }
     }
 
-    struct GeometryHandle
+    class GeometryHandle
     {
-        public ComputeBuffer memHandle;
-        public ComputeBuffer dispArgs;
         public Material matInstance;
-        public Pointer<bool> isOnHeap; 
+        public uint addressIndex = 0;
+        public uint argsAddress = 0;
+        public bool isOnHeap = false; 
 
-        public GeometryHandle(ComputeBuffer memHandle, ComputeBuffer dispArgs, Material matInstance, bool isOnHeap)
+        public GeometryHandle(Material matInstance, uint addressIndex, uint argsAddress, bool isOnHeap)
         {
-            this.memHandle = memHandle;
-            this.dispArgs = dispArgs;
+            this.addressIndex = addressIndex;
             this.matInstance = matInstance;
-            this.isOnHeap = new Pointer<bool>(isOnHeap);
-        }
-
-        public bool IsOnHeap()
-        {
-            return isOnHeap == null ? false : isOnHeap.value;
-        }
-
-        public class Pointer<T>
-        {
-            public T value;
-            public Pointer(T val)
-            {
-                this.value = val;
-            }
+            this.argsAddress = argsAddress;
+            this.isOnHeap = isOnHeap;
         }
     }
 }

@@ -6,6 +6,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using static EndlessTerrain;
 
 public class TemplatePass : ScriptableRenderPass
 {
@@ -25,12 +26,9 @@ public class TemplatePass : ScriptableRenderPass
     static readonly int DensityFalloffProperty = Shader.PropertyToID("_DensityFalloff");*/
 
     // It is good to cache the shader property IDs here.
-    static readonly int ScatteringProperty = Shader.PropertyToID("_ScatteringCoeffs");
     static readonly int AtmosphereRadiusProperty = Shader.PropertyToID("_AtmosphereRadius");
-    static readonly int GroundExtinctionProperty = Shader.PropertyToID("_GroundExtinction");
     static readonly int inScatterProperty = Shader.PropertyToID("_NumInScatterPoints");
-    static readonly int opticalDepthProperty = Shader.PropertyToID("_NumOpticalDepthPoints");
-    static readonly int DensityMultiplier = Shader.PropertyToID("_DensityMultiplier");
+    static readonly int IsoLevelProperty = Shader.PropertyToID("_IsoLevel");
 
     // The constructor of the pass. Here you can set any material properties that do not need to be updated on a per-frame basis.
     public TemplatePass(TemplateFeature.PassSettings passSettings)
@@ -40,17 +38,15 @@ public class TemplatePass : ScriptableRenderPass
         renderPassEvent = passSettings.renderPassEvent;
         
         if (material == null) material = CoreUtils.CreateEngineMaterial("Hidden/Fog");
-
-        // Set any material properties based on our pass settings. 
-        material.SetVector(ScatteringProperty, passSettings.scatteringCoeffs);
-        material.SetFloat(AtmosphereRadiusProperty, passSettings.atmosphereRadius);
-        material.SetFloat(GroundExtinctionProperty, passSettings.extinctionFactor);
+        
+        float atmosphereRadius = lerpScale * passSettings.generationSettings.detailLevels[^1].distanceThresh;
+        material.SetFloat(AtmosphereRadiusProperty, atmosphereRadius);
+        material.SetFloat(IsoLevelProperty, passSettings.generationSettings.IsoLevel);
         material.SetInt(inScatterProperty, passSettings.inScatterPoints);
-        material.SetInt(opticalDepthProperty, passSettings.opticalDepthPoints);
-        material.SetFloat(DensityMultiplier, passSettings.densityMultiplier);
 
         passSettings.densityManager.SetDensitySampleData(material);
         passSettings.luminanceBake.SetSettings(passSettings);
+        passSettings.luminanceBake.SetBakedData(material);
     }
 
     public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -65,18 +61,18 @@ public class TemplatePass : ScriptableRenderPass
 
         cmd.GetTemporaryRT(temporaryBufferID, descriptor, FilterMode.Bilinear);
         temporaryBuffer = new RenderTargetIdentifier(temporaryBufferID);
-        
-        passSettings.luminanceBake.SetBakedData(material);
     }
 
     // The actual execution of the pass. This is where custom rendering occurs.
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
+        
         if(passSettings.densityManager.initialized && passSettings.luminanceBake.initialized){
             CommandBuffer cmd = CommandBufferPool.Get();
-
+            
             using (new ProfilingScope(cmd, new ProfilingSampler(ProfilerTag)))
             {
+                passSettings.luminanceBake.Execute();
                 // Blit from the color buffer to a temporary buffer and back. This is needed for a two-pass shader.
                 Blit(cmd, colorBuffer, temporaryBuffer, material, 0); // shader pass 0
                 Blit(cmd, temporaryBuffer, colorBuffer);

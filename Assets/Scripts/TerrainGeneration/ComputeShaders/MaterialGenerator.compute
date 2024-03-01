@@ -13,7 +13,6 @@ struct density{
     float power;
 };
 
-StructuredBuffer<int> structureMat;
 StructuredBuffer<float> coarseMatDetail;
 StructuredBuffer<float> fineMatDetail;
 StructuredBuffer<int> biomeMap;
@@ -22,7 +21,7 @@ RWStructuredBuffer<int> material;
 StructuredBuffer<uint> _BiomeMaterialCount;
 StructuredBuffer<float2> _BiomeMaterialNoisePref;
 StructuredBuffer<density> _BiomeMaterialVerticalPref;
-StructuredBuffer<uint> _BiomeMaterialIndexBuffer;
+StructuredBuffer<int> _BiomeMaterialIndexBuffer;
 
 
 float offsetY;
@@ -52,11 +51,11 @@ float GetHeigtPref(uint matInd, float posY){
     return densityValue * pref.multiplier;
 }
 
-uint GetBiomeMaterial(float coarse, float fine, uint biome, float posY){
+int GetBiomeMaterial(float coarse, float fine, uint biome, float posY){
     uint biomeStartIndex = _BiomeMaterialCount[biome];
     uint biomeEndIndex = _BiomeMaterialCount[biome+1];
 
-    uint bestMat = 0;
+    int bestMat = 0;
     float maxWeight = -1.0f;
     
     for(uint matInd = biomeStartIndex; matInd < biomeEndIndex; matInd++){
@@ -88,19 +87,14 @@ void Generate (uint3 id : SV_DispatchThreadID)
 
     uint index = indexFromCoord(id.x, id.y, id.z);
 
-    if(structureMat[index] == -1){
-        uint biome = max(0, (uint)biomeMap[indexFromCoord2D(id.x, id.z)]);
-        float coarseDetail = coarseMatDetail[index];
-        float fineDetail = fineMatDetail[index];
+    uint biome = max(0, (uint)biomeMap[indexFromCoord2D(id.x, id.z)]);
+    float coarseDetail = coarseMatDetail[index];
+    float fineDetail = fineMatDetail[index];
 
-        uint y = id.y * meshSkipInc;
-        float halfHeight = chunkSize / 2;
-        float actualHeight = y - halfHeight + offsetY;
+    float y = id.y * meshSkipInc;
+    float halfHeight = chunkSize / 2;
+    float actualHeight = y - halfHeight + offsetY;
 
-        uint matInd = GetBiomeMaterial(coarseDetail, fineDetail, biome, actualHeight);
-        material[index] = (int)matInd;
-    }
-    else{
-        material[index] = structureMat[index];
-    }
+    int matInd = GetBiomeMaterial(coarseDetail, fineDetail, biome, actualHeight);
+    material[index] = matInd;
 }

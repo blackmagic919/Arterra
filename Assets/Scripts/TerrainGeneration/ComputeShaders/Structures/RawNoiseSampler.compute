@@ -2,7 +2,7 @@
 #pragma kernel CSMain
 #include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/PerlinNoiseGenerator.hlsl"
 
-const static int numThreads = 8;
+const static int numThreads = 64;
 
 struct structurePoint{
     float3 position;

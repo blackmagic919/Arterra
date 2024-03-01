@@ -17,7 +17,7 @@ StructuredBuffer<float> continental;
 StructuredBuffer<float> erosion;
 StructuredBuffer<float> peaksValleys;
 StructuredBuffer<float> squash;
-StructuredBuffer<float> temperature;
+StructuredBuffer<float> atmosphere;
 StructuredBuffer<float> humidity;
 
 RWStructuredBuffer<int> biomeMap;
@@ -31,7 +31,7 @@ uint numOfPoints;
 bool contains(RNode node, uint pointIndex){
 
     float mapData[6] = {continental[pointIndex], erosion[pointIndex], peaksValleys[pointIndex],
-                        squash[pointIndex], temperature[pointIndex], humidity[pointIndex]};
+                        squash[pointIndex], atmosphere[pointIndex], humidity[pointIndex]};
 
     for (int i = 0; i < 6; i++)
     {

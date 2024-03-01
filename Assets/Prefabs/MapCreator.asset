@@ -20,7 +20,9 @@ MonoBehaviour:
   MaxPVHeight: 200
   SquashMapDetail: {fileID: 11400000, guid: d7d6a8b31e97345e48f8fe95e523f5be, type: 2}
   MaxSquashHeight: 100
-  TemperatureDetail: {fileID: 11400000, guid: 9b2a2490aae0a404db8553ff56a7d66b, type: 2}
+  AtmosphereDetail: {fileID: 11400000, guid: 9b2a2490aae0a404db8553ff56a7d66b, type: 2}
+  AtmosphereFalloff: 20
   HumidityDetail: {fileID: 11400000, guid: 06bcbe453e4ae4863ae0cd8a454b2940, type: 2}
+  surfaceMemoryBuffer: {fileID: 11400000, guid: 333e208760bd64ad6af53d09071df190, type: 2}
   terrainGenerator: {fileID: 11400000, guid: 312d9de4b7d0546e2a7f7968691b16c9, type: 2}
   biomeData: {fileID: 11400000, guid: a50efbb6521ad475786885000f19947c, type: 2}
