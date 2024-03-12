@@ -19,8 +19,8 @@ public class AtmosphereBake : ScriptableObject
     public ComputeShader OpticalDataCompute;
     
     public int BakedTextureSizePX = 128;
-    public int SunRayInScatterPoints = 5;
-    public int SunRayOpticalDepthPoints = 5;
+    public int NumInScatterPoints = 30;
+    public int NumOpticalDepthPoints = 10;
 
     [HideInInspector]
     public bool initialized = false;
@@ -33,6 +33,12 @@ public class AtmosphereBake : ScriptableObject
         this.passSettings = passSettings;
     }
 
+    public void OnValidate()
+    {
+        NumInScatterPoints = Mathf.Max(2, NumInScatterPoints);
+        NumOpticalDepthPoints = Mathf.Max(1, NumOpticalDepthPoints);
+    }
+
     public void OnEnable(){
         ReleaseData();
 
@@ -42,9 +48,10 @@ public class AtmosphereBake : ScriptableObject
 
         //3D texture to store SunRayOpticalDepth
         //We can't use RenderTexture-Texture2DArray because SAMPLER2DARRAY does not terminate in a timely fashion
-        int numCubicTexels = BakedTextureSizePX * BakedTextureSizePX * SunRayInScatterPoints;
+        int numCubicTexels = BakedTextureSizePX * BakedTextureSizePX * NumInScatterPoints;
         this.Luminance = new ComputeBuffer(numCubicTexels, sizeof(float) * 3, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
         this.OpticalInfo = new ComputeBuffer(numCubicTexels, sizeof(float) * (1 + 3 + 1), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+        Camera.main.depthTextureMode = DepthTextureMode.Depth;
 
         initialized = true;
     }
@@ -63,8 +70,6 @@ public class AtmosphereBake : ScriptableObject
 
     public void Execute()
     {
-        if (Shader.GetGlobalTexture("_CameraDepthTexture") == null)
-            return;
         if (BakedTextureSizePX == 0)
             return;
         if(!initialized)
@@ -74,18 +79,20 @@ public class AtmosphereBake : ScriptableObject
         
         CalculateRayData();
         ExecuteRaymarch();
+        ExecuteOpticalMarch();
     }
 
     public void SetBakedData(Material material)
     {
         InitializeTextureInterpHelper(material);
         material.SetBuffer("_LuminanceLookup", Luminance);
+        material.SetBuffer("_OpticalInfoLookup", OpticalInfo);
     }
 
     void InitializeTextureInterpHelper(Material material){
         material.SetInt("SampleTextureHeight", BakedTextureSizePX);
         material.SetInt("SampleTextureWidth", BakedTextureSizePX);
-        material.SetInt("SampleDepth", SunRayInScatterPoints);
+        material.SetInt("SampleDepth", NumInScatterPoints);
     }
 
     void CalculateRayData()
@@ -110,8 +117,8 @@ public class AtmosphereBake : ScriptableObject
         OpticalDepthCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
         OpticalDepthCompute.SetFloat("_IsoLevel", passSettings.generationSettings.IsoLevel);
 
-        OpticalDepthCompute.SetInt("_NumInScatterPoints", SunRayInScatterPoints);
-        OpticalDepthCompute.SetInt("_NumOpticalDepthPoints", SunRayOpticalDepthPoints);
+        OpticalDepthCompute.SetInt("_NumInScatterPoints", NumInScatterPoints);
+        OpticalDepthCompute.SetInt("_NumOpticalDepthPoints", NumOpticalDepthPoints);
 
         OpticalDepthCompute.SetInt("screenHeight", BakedTextureSizePX);
         OpticalDepthCompute.SetInt("screenWidth", BakedTextureSizePX);
@@ -124,17 +131,17 @@ public class AtmosphereBake : ScriptableObject
 
         int numThreadsPerAxisX = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
         int numThreadsPerAxisY = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
-        int numThreadsPerAxisZ = Mathf.CeilToInt(SunRayInScatterPoints / (float)threadGroupSize);
+        int numThreadsPerAxisZ = Mathf.CeilToInt(NumInScatterPoints / (float)threadGroupSize);
         OpticalDepthCompute.Dispatch(0, numThreadsPerAxisX, numThreadsPerAxisY, numThreadsPerAxisZ);
     }
 
-    void ExecuteOpticMarch(){
+    void ExecuteOpticalMarch(){
         float atmosphereRadius = lerpScale * passSettings.generationSettings.detailLevels[^1].distanceThresh;
-        OpticalDepthCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
-        OpticalDepthCompute.SetFloat("_IsoLevel", passSettings.generationSettings.IsoLevel);
+        OpticalDataCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
+        OpticalDataCompute.SetFloat("_IsoLevel", passSettings.generationSettings.IsoLevel);
 
-        OpticalDepthCompute.SetInt("_NumInScatterPoints", SunRayInScatterPoints);
-        OpticalDepthCompute.SetInt("_NumOpticalDepthPoints", SunRayOpticalDepthPoints);
+        OpticalDataCompute.SetInt("_NumInScatterPoints", NumInScatterPoints);
+        OpticalDataCompute.SetInt("_NumOpticalDepthPoints", NumOpticalDepthPoints);
 
         OpticalDataCompute.SetInt("screenHeight", BakedTextureSizePX);
         OpticalDataCompute.SetInt("screenWidth", BakedTextureSizePX);
@@ -147,8 +154,9 @@ public class AtmosphereBake : ScriptableObject
 
         int numThreadsPerAxisX = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
         int numThreadsPerAxisY = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
-        int numThreadsPerAxisZ = Mathf.CeilToInt(SunRayInScatterPoints / (float)threadGroupSize);
+        int numThreadsPerAxisZ = Mathf.CeilToInt(NumInScatterPoints / (float)threadGroupSize);
         OpticalDataCompute.Dispatch(0, numThreadsPerAxisX, numThreadsPerAxisY, numThreadsPerAxisZ);
+
     }
 
 }

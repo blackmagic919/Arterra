@@ -14,14 +14,8 @@ public class TemplateFeature : ScriptableRendererFeature
 
         public GPUDensityManager densityManager;
         public AtmosphereBake luminanceBake;
-        public int inScatterPoints = 10;
 
         public GenerationSettings generationSettings;
-    }
-
-    public void OnValidate()
-    {
-        passSettings.inScatterPoints = Mathf.Max(2, passSettings.inScatterPoints);
     }
 
 

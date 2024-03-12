@@ -27,14 +27,13 @@ OpticalInfo CumulativeMapInfo(float3 rayOrigin, float3 rayDir, float rayLength){
     float stepSize = rayLength / (_NumOpticalDepthPoints - 1);
     OpticalInfo info = (OpticalInfo)0;
     for(uint i = 0; i < _NumOpticalDepthPoints; i++){
-        SurMapData mapData = SampleMapData(densitySamplePoint);
-        float pointDensity = GetDensity(mapData) / _IsoLevel;
-        float3 ScatterCoeffs = GetScatterCoeffs(mapData);
-        float extinctionCoeff = GetExtinction(mapData);
+        SurMapData sampleData = SampleMapData(densitySamplePoint);
 
-        info.opticalDensity += pointDensity;
-        info.scatterCoeffs += ScatterCoeffs;
-        info.extinctionCoeff += extinctionCoeff;
+        info.opticalDensity += GetDensity(sampleData) / _IsoLevel;
+        info.scatterCoeffs += GetScatterCoeffs(sampleData);
+        info.extinctionCoeff += GetExtinction(sampleData);
+
+        densitySamplePoint += rayDir * stepSize;
     }
     info.opticalDensity /= (_NumOpticalDepthPoints-1);
     info.scatterCoeffs /= (_NumOpticalDepthPoints-1);
@@ -63,8 +62,8 @@ void Bake (uint3 id : SV_DispatchThreadID)
 
     float stepSize = rayLength / (_NumInScatterPoints - 1);
     float3 inScatterPoint = rayOrigin + rayDir * stepSize * depth;
-    OpticalInfo opticInfo = CumulativeMapInfo(inScatterPoint, rayDir, stepSize); 
+    OpticalInfo opticalInfo = CumulativeMapInfo(inScatterPoint, rayDir, stepSize); 
 
     uint texelIndex = indexFromCoordIrregular(viewX, viewY, depth, screenWidth, screenHeight);
-    mapData[texelIndex] = opticInfo;
+    mapData[texelIndex] = opticalInfo;
 }

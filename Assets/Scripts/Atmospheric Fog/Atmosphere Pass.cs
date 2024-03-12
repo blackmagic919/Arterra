@@ -28,7 +28,6 @@ public class TemplatePass : ScriptableRenderPass
     // It is good to cache the shader property IDs here.
     static readonly int AtmosphereRadiusProperty = Shader.PropertyToID("_AtmosphereRadius");
     static readonly int inScatterProperty = Shader.PropertyToID("_NumInScatterPoints");
-    static readonly int IsoLevelProperty = Shader.PropertyToID("_IsoLevel");
 
     // The constructor of the pass. Here you can set any material properties that do not need to be updated on a per-frame basis.
     public TemplatePass(TemplateFeature.PassSettings passSettings)
@@ -41,10 +40,9 @@ public class TemplatePass : ScriptableRenderPass
         
         float atmosphereRadius = lerpScale * passSettings.generationSettings.detailLevels[^1].distanceThresh;
         material.SetFloat(AtmosphereRadiusProperty, atmosphereRadius);
-        material.SetFloat(IsoLevelProperty, passSettings.generationSettings.IsoLevel);
-        material.SetInt(inScatterProperty, passSettings.inScatterPoints);
+        material.SetInt(inScatterProperty, passSettings.luminanceBake.NumInScatterPoints);
 
-        passSettings.densityManager.SetDensitySampleData(material);
+        //passSettings.densityManager.SetDensitySampleData(material);
         passSettings.luminanceBake.SetSettings(passSettings);
         passSettings.luminanceBake.SetBakedData(material);
     }
