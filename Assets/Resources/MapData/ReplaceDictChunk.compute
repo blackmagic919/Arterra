@@ -1,0 +1,17 @@
+#include "Assets/Resources/MapData/CCoordHash.hlsl"
+#pragma kernel CSMain
+
+RWStructuredBuffer<uint2> chunkAddressDict;
+RWStructuredBuffer<uint2> oAddress;
+StructuredBuffer<uint> nAddress;
+int3 CCoord;
+uint meshSkipInc;
+
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint hash = HashCoord(CCoord);
+    oAddress[0] = chunkAddressDict[hash];
+    chunkAddressDict[hash] = uint2(nAddress[0], meshSkipInc);
+}

@@ -1,7 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Main
 
-const static int numThreads = 128;
+const static int numThreads = 256;
 
 struct SourceVertex{
     float3 positionOS;

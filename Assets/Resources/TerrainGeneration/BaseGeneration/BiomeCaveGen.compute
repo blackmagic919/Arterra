@@ -1,0 +1,53 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#include "Assets/Resources/Utility/GetIndex.hlsl"
+
+struct CaveGen{
+    float coarse;
+    float shape;
+    float frequency;
+};
+
+StructuredBuffer<CaveGen> _BiomeCaveData;
+
+StructuredBuffer<float> coarseNoise;
+StructuredBuffer<float> fineNoise;
+StructuredBuffer<int> biomeMap;
+
+RWStructuredBuffer<float> densityMap;
+
+float invLerp(float val, float min, float max){
+    return (val - min) / (max-min);
+}
+
+float GetNoiseCentered(float val, float center){
+    float clamped = clamp(val, 0, 1);
+    float ret = (clamped > center) ? 1-invLerp(clamped, center, 1)
+                : invLerp(clamped, 0, center);
+                
+    return ret;
+}
+
+const static int numThreads = 8;
+[numthreads(numThreads,numThreads,numThreads)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis ) {
+        return;
+    }
+
+    uint index = indexFromCoord(id.x, id.y, id.z);
+    uint mapIndex = indexFromCoord2D(id.x, id.z);
+
+    int biome = biomeMap[mapIndex];
+    CaveGen caveData = _BiomeCaveData[biome];
+
+    float coarseCentered = GetNoiseCentered(coarseNoise[index], caveData.shape);
+    float fineCentered = GetNoiseCentered(fineNoise[index], caveData.shape);
+
+    float centeredNoise = caveData.coarse * coarseCentered + (1.0f - caveData.coarse) * fineCentered;
+    float baseDensity = pow(abs(1.0f-centeredNoise), caveData.frequency); //We do 1-noise because cave means low density
+
+    densityMap[index] = baseDensity;
+}

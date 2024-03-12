@@ -14,10 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   autoUpdate: 1
   BiomeName: Plains
-  Materials:
+  caveSize: 0.7
+  caveShape: 1
+  caveFrequency: 0.5
+  GroundMaterials:
   - materialIndex: 3
-    genNoiseSize: 1
-    genNoiseShape: 1
+    genSize: 1
+    genShape: 0.72
     VerticalPreference:
       lowerLimit: -400
       upperLimit: 200
@@ -25,8 +28,8 @@ MonoBehaviour:
       multiplier: 1
       power: 2
   - materialIndex: 2
-    genNoiseSize: 0.569
-    genNoiseShape: 0.69
+    genSize: 0.367
+    genShape: 0.779
     VerticalPreference:
       lowerLimit: -400
       upperLimit: 200
@@ -34,23 +37,42 @@ MonoBehaviour:
       multiplier: 1
       power: 2
   - materialIndex: 1
-    genNoiseSize: 0.333
-    genNoiseShape: 0.501
+    genSize: 0.622
+    genShape: 0.357
     VerticalPreference:
       lowerLimit: -400
       upperLimit: 200
       center: -150
       multiplier: 1
-      power: 3
+      power: 2
   - materialIndex: 0
-    genNoiseSize: 0.495
-    genNoiseShape: 0.344
+    genSize: 1
+    genShape: 0.544
     VerticalPreference:
       lowerLimit: -400
       upperLimit: 200
       center: 0
       multiplier: 1
-      power: 4
+      power: 3
+  SurfaceMaterials:
+  - materialIndex: 6
+    genSize: 0.44
+    genShape: 0.279
+    VerticalPreference:
+      lowerLimit: -400
+      upperLimit: 600
+      center: 100
+      multiplier: 1
+      power: 2
+  - materialIndex: 7
+    genSize: 0.259
+    genShape: 1
+    VerticalPreference:
+      lowerLimit: 50
+      upperLimit: 250
+      center: 100
+      multiplier: 1
+      power: 3
   Structures: []
   structurePointDensity: 1
   seed: 0

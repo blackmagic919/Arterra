@@ -19,6 +19,6 @@ MonoBehaviour:
   densityDict: {fileID: 11400000, guid: 5e2b4725878474942a7c7babbf0f436d, type: 2}
   readbackSettings: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
   geoSettings: {fileID: 11400000, guid: 91b568ecd9e304c998bf7c49cf668984, type: 2}
-  meshCreator: {fileID: 11400000, guid: 40af22afd63c84488ac261e995b81367, type: 2}
-  mapCreator: {fileID: 11400000, guid: 059fbd96e92fc48f58e23299045cf3d1, type: 2}
+  meshCreator: {fileID: 11400000, guid: 0de3e9ffe97c444aa933eb61088a5569, type: 2}
+  surfaceSettings: {fileID: 11400000, guid: fd19f890984fc499ba5f22b62562d1ea, type: 2}
   atmosphereBake: {fileID: 11400000, guid: 871b8f4841c1e455f9f0e07616307f87, type: 2}

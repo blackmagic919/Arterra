@@ -4,11 +4,13 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 using static EditorMesh;
-using static UtilityBuffers;
+using static EndlessTerrain;
 
-public class ShaderGenerator : MonoBehaviour
+public class ShaderGenerator : UpdateTask
 {
     private GeneratorSettings settings;
+
+    private Transform transform;
 
     //                          Color                  Position & Normal        UV
     const int GEO_VERTEX_STRIDE = ((sizeof(float) * 4) + (sizeof(float) * 3 * 2) + sizeof(float) * 2);
@@ -19,17 +21,17 @@ public class ShaderGenerator : MonoBehaviour
     private uint[] geoShaderMemAdds = null;
     private uint[] geoShaderDispArgs = null;
     private Material[] geoShaderMats = null;
-    private bool hasShaderInfo = false;
 
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
-    private void OnDisable()
+    public ShaderGenerator(GeneratorSettings settings, Transform transform, Bounds boundsOS)
     {
-        ReleaseGeometry();
-        ReleaseTempBuffers();
+        this.settings = settings;
+        this.transform = transform;
+        this.shaderBounds = TransformBounds(transform, boundsOS);
     }
 
-    public Bounds TransformBounds(Bounds boundsOS)
+    public Bounds TransformBounds(Transform transform, Bounds boundsOS)
     {
         var center = transform.TransformPoint(boundsOS.center);
 
@@ -45,32 +47,24 @@ public class ShaderGenerator : MonoBehaviour
         return new Bounds(center, size);
     }
 
-    private void LateUpdate()
+    public override void Update()
     {
         ReleaseTempBuffers();
-        if (!hasShaderInfo)
-            return;
         
         ComputeBuffer sharedArgs = UtilityBuffers.ArgumentBuffer;
         for(uint i = 0; i < this.settings.shaderDictionary.Count; i++) {
-            Graphics.DrawProceduralIndirect(geoShaderMats[i], shaderBounds, MeshTopology.Triangles, sharedArgs, (int)geoShaderDispArgs[i] * (4*4), null, null, ShadowCastingMode.Off, true, gameObject.layer);
+            Graphics.DrawProceduralIndirect(geoShaderMats[i], shaderBounds, MeshTopology.Triangles, sharedArgs, (int)geoShaderDispArgs[i] * (4*4), null, null, ShadowCastingMode.Off, true, 0);
         }
-    }
-
-    public void Initialize(GeneratorSettings settings, Bounds boundsOS)
-    {
-        this.settings = settings;
-        this.shaderBounds = TransformBounds(boundsOS);
     }
 
     public void ReleaseGeometry()
     {
-        if (!hasShaderInfo)
+        if (!initialized)
             return;
-        hasShaderInfo = false;
+        initialized = false;
 
         foreach (Material geoMat in geoShaderMats)
-            if (Application.isPlaying) Destroy(geoMat); else DestroyImmediate(geoMat);
+            if (Application.isPlaying) UnityEngine.Object.Destroy(geoMat); else  UnityEngine.Object.DestroyImmediate(geoMat);
 
         foreach (uint address in geoShaderMemAdds) {
             this.settings.memoryBuffer.ReleaseMemory(address);
@@ -102,7 +96,9 @@ public class ShaderGenerator : MonoBehaviour
         this.geoShaderDispArgs = GetShaderDrawArgs(shaderStartIndexes);
         this.geoShaderMats = SetupShaderMaterials(this.settings.memoryBuffer.AccessStorage(), this.settings.memoryBuffer.AccessAddresses(), this.geoShaderMemAdds);
 
-        this.hasShaderInfo = true;
+        if(!enqueued) MainLoopUpdateTasks.Enqueue(this);
+        this.enqueued = true;
+        this.initialized = true;
 
         ReleaseTempBuffers();
     }
@@ -152,7 +148,7 @@ public class ShaderGenerator : MonoBehaviour
         for (int i = 0; i < this.settings.shaderDictionary.Count; i++){
             SpecialShader geoShader = this.settings.shaderDictionary[i];
 
-            geoShader.ProcessGeoShader(this.gameObject.transform, filteredGeometry, shaderBaseIndexes, geoShaderGeometry, i);
+            geoShader.ProcessGeoShader(transform, filteredGeometry, shaderBaseIndexes, geoShaderGeometry, i);
             ComputeBuffer.CopyCount(geoShaderGeometry, shaderStartIndexes, (i+1) * sizeof(int));
             geoShader.ReleaseTempBuffers();
         }

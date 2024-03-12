@@ -1,4 +1,5 @@
 using System;
+using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -14,33 +15,29 @@ public class AtmosphereBake : ScriptableObject
 
     private TemplateFeature.PassSettings passSettings;
 
-    public ComputeShader RaySetupCompute;
-    public ComputeShader OpticalDepthCompute;
-    public ComputeShader OpticalDataCompute;
+    private ComputeShader RaySetupCompute;
+    private ComputeShader OpticalDepthCompute;
+    private ComputeShader OpticalDataCompute;
     
     public int BakedTextureSizePX = 128;
-    public int NumInScatterPoints = 30;
-    public int NumOpticalDepthPoints = 10;
+    public int NumInScatterPoints = 5;
+    public int NumOpticalDepthPoints = 5;
 
     [HideInInspector]
     public bool initialized = false;
     [HideInInspector]
-
-    const uint threadGroupSize = 8;
 
     public void SetSettings(TemplateFeature.PassSettings passSettings)
     {
         this.passSettings = passSettings;
     }
 
-    public void OnValidate()
-    {
-        NumInScatterPoints = Mathf.Max(2, NumInScatterPoints);
-        NumOpticalDepthPoints = Mathf.Max(1, NumOpticalDepthPoints);
-    }
-
     public void OnEnable(){
         ReleaseData();
+        
+        RaySetupCompute = Resources.Load<ComputeShader>("Atmosphere/RayMarchSetup");
+        OpticalDepthCompute = Resources.Load<ComputeShader>("Atmosphere/Luminance");
+        OpticalDataCompute = Resources.Load<ComputeShader>("Atmosphere/OpticalData");
 
         int numPixels = BakedTextureSizePX * BakedTextureSizePX;
         rayDirs = new ComputeBuffer(numPixels, sizeof(float) * 3, ComputeBufferType.Structured, ComputeBufferMode.Immutable); //Floating point 3 channel
@@ -51,9 +48,6 @@ public class AtmosphereBake : ScriptableObject
         int numCubicTexels = BakedTextureSizePX * BakedTextureSizePX * NumInScatterPoints;
         this.Luminance = new ComputeBuffer(numCubicTexels, sizeof(float) * 3, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
         this.OpticalInfo = new ComputeBuffer(numCubicTexels, sizeof(float) * (1 + 3 + 1), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
-        Camera.main.depthTextureMode = DepthTextureMode.Depth;
-
-        initialized = true;
     }
 
     public void OnDisable(){
@@ -70,6 +64,10 @@ public class AtmosphereBake : ScriptableObject
 
     public void Execute()
     {
+        if(!initialized)
+            SetupData();
+        if (Shader.GetGlobalTexture("_CameraDepthTexture") == null)
+            return;
         if (BakedTextureSizePX == 0)
             return;
         if(!initialized)
@@ -80,6 +78,13 @@ public class AtmosphereBake : ScriptableObject
         CalculateRayData();
         ExecuteRaymarch();
         ExecuteOpticalMarch();
+    }
+
+    public void SetupData(){
+        SetupRayData();
+        SetupRaymarch();
+        SetupOpticalMarch();
+        initialized = true;
     }
 
     public void SetBakedData(Material material)
@@ -95,8 +100,7 @@ public class AtmosphereBake : ScriptableObject
         material.SetInt("SampleDepth", NumInScatterPoints);
     }
 
-    void CalculateRayData()
-    {
+    void SetupRayData(){
         float atmosphereRadius = lerpScale * passSettings.generationSettings.detailLevels[^1].distanceThresh;
         RaySetupCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
         
@@ -105,14 +109,8 @@ public class AtmosphereBake : ScriptableObject
         
         RaySetupCompute.SetBuffer(0, "rayDirs", rayDirs);
         RaySetupCompute.SetBuffer(0, "rayLengths", rayLengths);
-
-        int numThreadsPerAxisX = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
-        int numThreadsPerAxisY = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
-        RaySetupCompute.Dispatch(0, numThreadsPerAxisX, numThreadsPerAxisY, 1);
     }
-
-    void ExecuteRaymarch()
-    {
+    void SetupRaymarch(){
         float atmosphereRadius = lerpScale * passSettings.generationSettings.detailLevels[^1].distanceThresh;
         OpticalDepthCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
         OpticalDepthCompute.SetFloat("_IsoLevel", passSettings.generationSettings.IsoLevel);
@@ -128,14 +126,9 @@ public class AtmosphereBake : ScriptableObject
         OpticalDepthCompute.SetBuffer(0, "luminance", Luminance);
 
         this.passSettings.densityManager.SetDensitySampleData(OpticalDepthCompute);
-
-        int numThreadsPerAxisX = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
-        int numThreadsPerAxisY = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
-        int numThreadsPerAxisZ = Mathf.CeilToInt(NumInScatterPoints / (float)threadGroupSize);
-        OpticalDepthCompute.Dispatch(0, numThreadsPerAxisX, numThreadsPerAxisY, numThreadsPerAxisZ);
     }
 
-    void ExecuteOpticalMarch(){
+    void SetupOpticalMarch(){
         float atmosphereRadius = lerpScale * passSettings.generationSettings.detailLevels[^1].distanceThresh;
         OpticalDataCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
         OpticalDataCompute.SetFloat("_IsoLevel", passSettings.generationSettings.IsoLevel);
@@ -151,7 +144,27 @@ public class AtmosphereBake : ScriptableObject
         OpticalDataCompute.SetBuffer(0, "mapData", OpticalInfo);
 
         this.passSettings.densityManager.SetDensitySampleData(OpticalDataCompute);
+    }
 
+    void CalculateRayData()
+    {
+        RaySetupCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+        int numThreadsPerAxisX = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
+        int numThreadsPerAxisY = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
+        RaySetupCompute.Dispatch(0, numThreadsPerAxisX, numThreadsPerAxisY, 1);
+    }
+    void ExecuteRaymarch()
+    {
+        OpticalDepthCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+        int numThreadsPerAxisX = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
+        int numThreadsPerAxisY = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
+        int numThreadsPerAxisZ = Mathf.CeilToInt(NumInScatterPoints / (float)threadGroupSize);
+        OpticalDepthCompute.Dispatch(0, numThreadsPerAxisX, numThreadsPerAxisY, numThreadsPerAxisZ);
+    }
+
+    void ExecuteOpticalMarch(){
+
+        OpticalDataCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsPerAxisX = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
         int numThreadsPerAxisY = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
         int numThreadsPerAxisZ = Mathf.CeilToInt(NumInScatterPoints / (float)threadGroupSize);

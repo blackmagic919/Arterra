@@ -1,0 +1,146 @@
+#pragma kernel Generate
+#pragma multi_compile _ HAS_EXISTING_MATERIALS
+
+#include "Assets/Resources/Utility/GetIndex.hlsl"
+
+
+struct DensityFunc{
+    int lowerLimit;
+    int upperLimit;
+    int center;
+
+    float multiplier;
+    float power;
+};
+
+struct BMaterial{
+    int materialIndex;
+    float genNoiseSize;
+    float genNoiseShape;
+    DensityFunc density;
+};
+
+StructuredBuffer<float> densityMap;
+float IsoLevel;
+
+StructuredBuffer<float> coarseMatDetail;
+StructuredBuffer<float> fineMatDetail;
+StructuredBuffer<int> biomeMap;
+StructuredBuffer<float> heights;
+RWStructuredBuffer<int> materialMap;
+
+StructuredBuffer<uint2> _BiomeMaterialCount;
+StructuredBuffer<BMaterial> _BiomeGroundMaterials;
+StructuredBuffer<BMaterial> _BiomeSurfaceMaterials;
+
+
+float offsetY;
+float meshSkipInc;
+float chunkSize;
+
+const static int numThreads = 8;
+
+float invLerp(float val, float min, float max){
+    return (val - min) / (max-min);
+}
+
+float GetNoiseCentered(float val, float center, float bottom, float top){
+    float clamped = clamp(val, bottom, top);
+    float ret = (clamped > center) ? 1-invLerp(clamped, center, top)
+                : invLerp(clamped, bottom, center);
+                
+    return ret;
+}
+
+float GetHeightPref(BMaterial material, float posY){
+    DensityFunc pref = material.density;
+    float heightFactor = GetNoiseCentered(posY, pref.center, pref.lowerLimit, pref.upperLimit);
+    float densityValue = pow(abs(heightFactor), pref.power);
+    return densityValue * pref.multiplier;
+}
+
+float GetMaterialWeight(BMaterial material, float coarse, float fine, float posY){
+    float coarsePref = material.genNoiseSize;
+    float noiseCenter = material.genNoiseShape;
+
+    float coarseCentered = GetNoiseCentered(coarse, noiseCenter, 0, 1);
+    float fineCentered = GetNoiseCentered(fine, noiseCenter, 0, 1);
+
+    float baseWeight = coarsePref * coarseCentered + (1.0f-coarsePref) * fineCentered;
+    float heightPref = GetHeightPref(material, posY);
+    return baseWeight * heightPref;
+}
+
+//It's better to make 2 funcs rather than do extra comparisons
+int GetGroundMaterial(float coarse, float fine, uint biome, float posY){
+    uint biomeStartIndex = _BiomeMaterialCount[biome].x;
+    uint biomeEndIndex = _BiomeMaterialCount[biome+1].x;
+
+    int bestMat = _BiomeGroundMaterials[biomeStartIndex].materialIndex;
+    float maxWeight = -1.0f;
+    
+    for(uint matInd = biomeStartIndex; matInd < biomeEndIndex; matInd++){
+        BMaterial material = _BiomeGroundMaterials[matInd];
+        float weight = GetMaterialWeight(material, coarse, fine, posY);
+
+        if(weight > maxWeight){
+            maxWeight = weight;
+            bestMat = material.materialIndex;
+        }
+    }
+
+    return bestMat;
+}
+
+int GetSurfaceMaterial(float coarse, float fine, uint biome, float posY){
+    uint biomeStartIndex = _BiomeMaterialCount[biome].y;
+    uint biomeEndIndex = _BiomeMaterialCount[biome+1].y;
+
+    int bestMat = _BiomeSurfaceMaterials[biomeStartIndex].materialIndex;
+    float maxWeight = -1.0f;
+    
+    for(uint matInd = biomeStartIndex; matInd < biomeEndIndex; matInd++){
+        BMaterial material = _BiomeSurfaceMaterials[matInd];
+        float weight = GetMaterialWeight(material, coarse, fine, posY);
+
+        if(weight > maxWeight){
+            maxWeight = weight;
+            bestMat = material.materialIndex;
+        }
+    }
+
+    return bestMat;
+}
+
+
+
+[numthreads(numThreads, numThreads, numThreads)]
+void Generate (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis ) {
+        return;
+    }
+
+    uint index = indexFromCoord(id.x, id.y, id.z);
+
+    uint mapIndex = indexFromCoord2D(id.x, id.z);
+    uint biome = max(0, (uint)biomeMap[mapIndex]);
+    float coarseDetail = coarseMatDetail[index];
+    float fineDetail = fineMatDetail[index];
+
+    float y = id.y * meshSkipInc;
+    float halfHeight = chunkSize / 2;
+    float actualHeight = y - halfHeight + offsetY;
+    float terrainHeight = heights[mapIndex];
+    float groundHeight = actualHeight - terrainHeight;
+
+    float density = densityMap[index];
+
+    int matInd = 0;
+    if(density > IsoLevel)
+        matInd = GetGroundMaterial(coarseDetail, fineDetail, biome, groundHeight);
+    else
+        matInd = GetSurfaceMaterial(coarseDetail, fineDetail, biome, groundHeight);
+
+    materialMap[index] = matInd;
+}

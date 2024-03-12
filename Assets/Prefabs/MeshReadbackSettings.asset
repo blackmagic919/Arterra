@@ -14,8 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   indirectTerrainMats:
   - {fileID: 2100000, guid: 3b9db681500dd456cae8fe982fec0395, type: 2}
-  memoryBuffer: {fileID: 11400000, guid: 333e208760bd64ad6af53d09071df190, type: 2}
-  indirectArgsBuffer: {fileID: 11400000, guid: 1f79864b075194989981065119bceb94, type: 2}
+  memoryBuffer: {fileID: 11400000, guid: 743280fd1911d428e99f1d63657bfdaf, type: 2}
   memorySizeCalculator: {fileID: 7200000, guid: 2b9e42840e66140d38b6aa68b820ed19, type: 3}
   baseGeoTranscriber: {fileID: 7200000, guid: 31e43c2c61b4e447da5e7938ad0516a2, type: 3}
   meshDrawArgsCreator: {fileID: 7200000, guid: 268536113f6b04e758183f57cd70b59a, type: 3}

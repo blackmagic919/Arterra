@@ -157,15 +157,14 @@ public class TerraformController : MonoBehaviour
     {
         if (isAdding)
         {
-
             if (pointInfo.y < cutOff || pointInfo.x == selected)
             {
                 float deltaDensity = Mathf.Clamp(pointInfo.y + brushStrength * weight, 0, 1) - pointInfo.y;
                 pointInfo.x = selected;
                 pointInfo.y += RemoveMaterialFromInventory((int)pointInfo.x, deltaDensity);
             }
-
         }
+        
         else if(pointInfo.y > cutOff)
         {
             float deltaDensity = pointInfo.y - Mathf.Clamp(pointInfo.y - brushStrength * weight, 0, 1);

@@ -1,0 +1,43 @@
+#pragma kernel GenerateFull
+
+#include "Assets/Resources/Utility/GetIndex.hlsl"
+
+const static int numThreads = 8;
+const static int Epsilon = 0.0001;
+const static float SmoothFactor = 0.9;
+
+float offsetY;
+float IsoLevel;
+float meshSkipInc;
+float chunkSize;
+RWStructuredBuffer<float> points;
+StructuredBuffer<float> heights;
+StructuredBuffer<float> squash;
+StructuredBuffer<float> atmosphericDepth;
+
+[numthreads(numThreads,numThreads,numThreads)]
+void GenerateFull (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis) {
+        return;
+    }//
+
+    uint y = id.y * meshSkipInc;
+    float halfHeight = chunkSize / 2;
+    float actualHeight = y - halfHeight + offsetY;
+
+    uint index = indexFromCoord(id.x,id.y,id.z);
+    uint mapIndex = indexFromCoord2D(id.x, id.z);
+
+    float underground = points[index];
+    float squashHeight = squash[mapIndex];
+    float terrainHeight = heights[mapIndex];
+    float atmosphereFalloff = atmosphericDepth[mapIndex];
+
+    float squashFactor = clamp((terrainHeight - actualHeight) / (squashHeight + Epsilon), 0, 1);
+
+    float terrainFactor = squashFactor * (1-IsoLevel) + IsoLevel;
+    float atmosphereFactor = exp(-max(actualHeight - terrainHeight, 0) * atmosphereFalloff);
+
+    points[index] = underground * terrainFactor * atmosphereFactor;
+}

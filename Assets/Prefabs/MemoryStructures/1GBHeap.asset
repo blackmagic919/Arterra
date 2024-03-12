@@ -14,6 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _BufferSize4Bytes: 250000000
   _MaxHeapSize: 5000
-  HeapSetupShader: {fileID: 7200000, guid: 5ca13957174764646bab6e40a6aeb4f1, type: 3}
-  AllocateShader: {fileID: 7200000, guid: 5abcaa652ca884d5e9b2718a41cd75c5, type: 3}
-  DeallocateShader: {fileID: 7200000, guid: 5cd6996de9cb5423ebb63ac81a7988ed, type: 3}
+  _MaxAddressSize: 50000

@@ -1,3 +1,4 @@
+/*
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -262,4 +263,26 @@ public class StructureCode
 
         return results;
     }
+
+    //Get the random points for all structures
+    //Calculate all the density checks for these structures(<4 hopefully)
+    //For all the successful structures, plan out their space in structureDict
+    //When readback, round points in dict to closest approximation
+    //Time: O(n*(m^3)) where n is # of structures and m is average dimension of structures in this LOD
+    public class StructureInfo
+    {
+        public StructureData.CheckPoint[] checks;
+        public StructureData data;
+        public StructureSettings settings;
+        public Vector3 position;
+
+        public StructureInfo(StructureData.CheckPoint[] checks, StructureData data, StructureSettings settings, Vector3 position)
+        {
+            this.checks = checks;
+            this.data = data;
+            this.settings = settings;
+            this.position = position;
+        }
+    }
 }
+*/

@@ -130,11 +130,11 @@ float3 frag (v2f IN) : SV_Target
     int material = (int)IN.color.r;
     float alpha = IN.color.a;
 
-    float3 baseColor = _BaseColors[material];//lerp(GetColor(a), GetColor(b), interpFactor);
+    float3 baseColor = _BaseColors[material];
 
     float3 textureColor = triplanar(IN.positionWS, _BaseTextureScales[material], blendAxes, material);
 
-    float colorStrength = _BaseColorStrength[material];//lerp(_BaseColorStrength[a], _BaseColorStrength[b], interpFactor);
+    float colorStrength = _BaseColorStrength[material];
 
     InputData lightingInput = (InputData)0;
 	lightingInput.positionWS = IN.positionWS;

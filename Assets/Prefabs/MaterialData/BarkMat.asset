@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: BarkMat
   m_EditorClassIdentifier: 
   autoUpdate: 0
-  Name: 
+  Name: Bark
   color: {r: 0.3018868, g: 0.18284246, b: 0.08401567, a: 0}
   texture: {fileID: 2800000, guid: 3e30a42e52755488789c9c1cbb471854, type: 3}
   textureScale: 5
   baseColorStrength: 0.1
   GeoShaderIndex: -1
-  AtmosphereScatter: {x: 0.00125, y: 0.0025, z: 0.005, w: 1}
+  AtmosphereScatter: {x: 0.004, y: 0.002, z: 0, w: 0.5}

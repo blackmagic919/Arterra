@@ -4,7 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using static EditorMesh;
+using static EndlessTerrain;
 
 public static class MeshGenerator
 {

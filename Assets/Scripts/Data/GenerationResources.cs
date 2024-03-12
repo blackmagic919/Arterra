@@ -16,10 +16,15 @@ public class GenerationResources : ScriptableObject
     [Header("Generation Utilities")]
     public ReadbackSettings readbackSettings;
     public GeneratorSettings geoSettings;
-    public MeshCreator meshCreator;
-    public MapCreator mapCreator;
+    public MeshCreatorSettings meshCreator;
+    public SurfaceCreatorSettings surfaceSettings;
 
     [Header("Bake Data")]
     
     public AtmosphereBake atmosphereBake;
+
+    public void OnEnable(){
+        DensityGenerator.PresetShaders(meshCreator); 
+        StructureGenerator.PresetShaders(meshCreator, surfaceSettings);
+    }
 }

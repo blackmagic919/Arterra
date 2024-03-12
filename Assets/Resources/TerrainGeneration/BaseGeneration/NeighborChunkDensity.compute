@@ -1,0 +1,89 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#include "Assets/Resources/MapData/CCoordHash.hlsl"
+#include "Assets/Resources/Utility/GetIndex.hlsl"
+#include "Assets/Resources/Utility/BlendHelper.hlsl"
+const static int POINT_STRIDE_4BYTE = 2;
+
+/*
+* z 
+* ^     .--------.
+* |    /|       /|
+* |   / | 5    / |    y
+* |  .--+--3--.  |   /\
+* |  |2 |     | 1|   /
+* |  |  .-4---+--.  /
+* |  | /   6  | /  /
+* | xyz_______./  /
+* +---------> x  /
+*/
+
+/*
+* [<uint3> <-- which axis U aligns to]
+* [<uint3> <-- which axis V aligns to]
+* [<uint3> <-- which value P aligns to]
+*/
+
+const static uint3x3 chunkAlign[6] = {
+    //      Ux Vx Px Uy Vy Py Uz Vz Pz, --> Ux means U is mapped to x axis
+    uint3x3(0, 0, 1, 1, 0, 0, 0, 1, 0),
+    uint3x3(0, 0, 0, 1, 0, 0, 0, 1, 0),
+    uint3x3(1, 0, 0, 0, 0, 1, 0, 1, 0),
+    uint3x3(1, 0, 0, 0, 0, 0, 0, 1, 0),
+    uint3x3(1, 0, 0, 0, 1, 0, 0, 0, 1),
+    uint3x3(1, 0, 0, 0, 1, 0, 0, 0, 0),
+};
+
+
+const static int3 chunkDelta[6] = {
+    int3(1,0,0),
+    int3(-1,0,0),
+    int3(0,1,0),
+    int3(0,-1,0),
+    int3(0,0,1),
+    int3(0,0,-1),
+};
+
+StructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+int meshSkipInc;
+int3 CCoord;
+
+RWStructuredBuffer<float> nDensity;
+
+float GetNeighborDensity(int3 dCC, int3 oCoord){
+    float density = 0;
+
+    int3 nCCoord = CCoord + dCC;
+    uint chunkHash = HashCoord(nCCoord);
+    uint2 chunkHandle = _AddressDict[chunkHash];
+    if(chunkHandle.x != 0){ //If it is undefined, it's ok to return 0 because it's probably at edge of world
+        float oToNChunk = (meshSkipInc / (float)chunkHandle.y);
+        float3 nCoord = abs(dCC * ((int)numPointsPerAxis-1) - oCoord) * oToNChunk;
+        uint nPointsPerAxis = (uint)((numPointsPerAxis-1) * oToNChunk) + 1;
+        Influences nMapInfo = GetBlendInfo(nCoord);
+
+        [unroll] for(int i = 0; i < 8; i++){
+            uint3 nMapCoord = min(nMapInfo.corner[i].mapCoord, nPointsPerAxis);
+            uint address = indexFromCoordManual(nMapCoord, nPointsPerAxis) * POINT_STRIDE_4BYTE + chunkHandle.x;
+            density += asfloat(_MemoryBuffer[address]) * nMapInfo.corner[i].influence;
+        }
+    }
+    
+    return density;
+}
+
+const static uint numThreads = 8;
+[numthreads(numThreads,numThreads,6)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numPointsPerAxis || id.y >= numPointsPerAxis)
+        return;
+
+    int3 coord = (int3)mul(chunkAlign[id.z], uint3(id.xy, numPointsPerAxis)) + chunkDelta[id.z];
+    float density = GetNeighborDensity(chunkDelta[id.z], coord);
+    uint nIndex = indexFromCoord(id.xyz);
+
+    nDensity[nIndex] = density;
+}

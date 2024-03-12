@@ -1,0 +1,169 @@
+#pragma kernel March
+
+#include "Assets/Resources/MapData/CCoordHash.hlsl"
+#include "Assets/Resources/Utility/GetIndex.hlsl"
+#include "Assets/Resources/TerrainGeneration/BaseGeneration/MarchingTables.hlsl"
+#include "Assets/Resources/TerrainGeneration/BaseGeneration/MapNormalSampler.hlsl"
+
+static const float3 Epsilon = float3(1E-6, 1E-6, 1E-6);
+
+struct Point{
+    float3 tri;
+    float3 norm;
+    int2 id;
+    int material;
+};
+
+struct TriangleConst { //Constructor
+    Point points[3];
+};
+
+const static int numThreads = 8;
+AppendStructuredBuffer<TriangleConst> triangles;
+float IsoLevel;
+float ResizeFactor;
+uint numCubesPerAxis;
+
+
+
+/*               
+*  _____________  8  ------
+* |  _________  | 7 6      |<-NumOfPoints, Density Map Size
+* | |_|_|_|_|_| | 6 5 5 -  |
+* | |_|_|_|_|_| | 5 4 4  | |
+* | |_|_|_|_|_| | 4 3 3  |<+--ChunkSize / meshSkipInc
+* | |_|_|_|_|_| | 3 2 2  | |  "Real Vertices"
+* | |_|_|_|_|_| | 2 1 1 _| |
+* |_____________| 1_^_^____|
+*Purpose:           ^ | |
+*   Border Normals⅃ | |
+*          Last Edge⅃ |     
+*      Number of Cubes⅃
+*
+*    4---4----5
+*   7|       5|
+*  / 8      / 9
+* 7--+-6---6  |
+* |  |     10 |
+*11  0---0-+--1
+* | 3      | 1
+* 3----2---2/
+* 
+* z
+* ^     .--------.
+* |    /|       /|
+* |   / |      / |    y
+* |  .--+-----.  |   /\
+* |  |  |     |  |   /
+* |  |  .-----+--.  /
+* |  | /      | /  /
+* | xyz_______./  /
+* +---------> x  /
+*/
+
+struct CubeCorner{
+    float density;
+    int material;
+};
+
+struct MarchCube{
+    CubeCorner corners[8];
+};
+
+#ifndef MAP_SAMPLER
+#define MAP_SAMPLER
+StructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+int3 CCoord;
+
+const static int POINT_STRIDE_4BYTE = 2;
+#endif
+
+MarchCube ReadCube(int3 coord){
+    MarchCube cube;
+
+    uint chunkHash = HashCoord(CCoord);
+    [unroll]for(int i = 0; i < 8; i++){
+        uint address = indexFromCoord(coord.x + dx[i], coord.y + dy[i], coord.z + dz[i]) * POINT_STRIDE_4BYTE + _AddressDict[chunkHash].x;
+        cube.corners[i].density = asfloat(_MemoryBuffer[address]);
+        cube.corners[i].material = asint(_MemoryBuffer[address + 1]);
+    }
+    return cube;
+}
+
+bool isBorder(int3 coord){
+    return (uint)max(coord.x, max(coord.y, coord.z)) == numCubesPerAxis || min(coord.x, min(coord.y, coord.z)) == 0;
+}
+
+
+float interpolate(float p1Val, float p2Val) {
+    //If p1Val != p2Val, Epsilon is lost through float conversion, otherwise Epsilon prevents Nan
+    return ((IsoLevel - p1Val) / (p2Val - p1Val + Epsilon.x)); 
+}
+
+
+[numthreads(numThreads,numThreads,numThreads)]
+void March (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numCubesPerAxis || id.y >= numCubesPerAxis || id.z >= numCubesPerAxis) {
+        return;
+    }
+
+    int3 oCoord = int3(id.xyz);
+    MarchCube cube = ReadCube(oCoord);
+
+    uint cubeIndex = 0;
+    [unroll] for(int u = 0; u < 8; u++){
+        if (cube.corners[u].density > IsoLevel) cubeIndex |= (1 << u);
+    }
+
+    CubeNormals cNormals = GetCornerNormals(oCoord);
+    for (int i = 0; triangulation[cubeIndex][i] != -1; i +=3) {
+        TriangleConst tric;
+        [unroll] for(int v = 0; v < 3; v++){
+            Point newPoint;
+
+            //Get the point indexes
+            int p1Ind = cornerIndexAFromEdge[triangulation[cubeIndex][i + v]];
+            int p2Ind = cornerIndexBFromEdge[triangulation[cubeIndex][i + v]];
+
+
+            //Get point densities
+            float p1Val = cube.corners[p1Ind].density;
+            float p2Val = cube.corners[p2Ind].density;
+
+            float interpFactor = interpolate(p1Val, p2Val);
+
+            //Figure out point positions
+            float3 p1 = float3(oCoord) + positionFromIndex[p1Ind];
+            float3 p2 = float3(oCoord) + positionFromIndex[p2Ind];
+
+            //float3 p1Norm = calculateNormal(p1);
+            //float3 p2Norm = calculateNormal(p2);
+
+            //If value approaches float3.zero, normalize returns NaN, so we add fallback norm.
+            //Epsilon will be lost in float conversion if result is big enough, but if close to 0, it will default to Epsilon
+            float3 fallbackNorm = normalize(p2 - p1);
+            newPoint.norm = normalize(GetVertexNormal(cNormals, p1Ind, p2Ind, interpFactor) + Epsilon*fallbackNorm);
+
+            newPoint.tri = p1 + interpFactor * (p2 - p1);
+            newPoint.material = cube.corners[p1Val > p2Val ? p1Ind: p2Ind].material;
+
+            int numOfPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
+            newPoint.id = int2(indexFromCoord(p1.x, p1.y, p1.z), indexFromCoord(p2.x, p2.y, p2.z));
+
+            tric.points[v] = newPoint;
+        }
+
+        tric.points[0].tri *= ResizeFactor;
+        tric.points[1].tri *= ResizeFactor;
+        tric.points[2].tri *= ResizeFactor;
+        /*This is a temporary workaround, someone fix this
+        *Two Options:
+        *Expand mesh info by 2 to get out-of-mesh normal info (Hard)
+        *Get 6 planes out-of-mesh info seperately(Still Hard)
+        */
+
+        triangles.Append(tric);
+    }
+}
