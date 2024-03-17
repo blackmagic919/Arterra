@@ -18,7 +18,7 @@ public class SurfaceCreatorSettings : ScriptableObject{
      *__/
      * Low Values: Low Altitude, High Values: High Altitude 
      */
-    public NoiseData TerrainContinentalDetail;
+    public int TerrainContinentalDetail;
     public float MaxContinentalHeight;
     /* General Curve Form:
      *_
@@ -32,31 +32,31 @@ public class SurfaceCreatorSettings : ScriptableObject{
     [Space(10)]
     [Header("Erosion Detail")]
     [Tooltip("Influence of PV Map")]
-    public NoiseData TerrainErosionDetail;
+    public int TerrainErosionDetail;
 
     [Space(10)]
     [Header("Peaks and Values")]
     [Tooltip("Fine detail of terrain")]
     //Any curve form
-    public NoiseData TerrainPVDetail;
+    public int TerrainPVDetail;
     public float MaxPVHeight;
 
     [Space(10)]
     [Header("Squash Map")]
     //Low Values: More terrain-like, High Values: More overhangs
-    public NoiseData SquashMapDetail;
+    public int SquashMapDetail;
     public float MaxSquashHeight;
 
     [Space(10)]
     [Header("Atmosphere Map")]
     [Tooltip("How quickly the atmosphere fades off")]
-    public NoiseData AtmosphereDetail;
+    public int AtmosphereDetail;
 
     [Space(10)]
     [Header("Biome Maps")]
     [Tooltip("Extra details to add variation to biomes")]
     //Any curve form
-    public NoiseData HumidityDetail;
+    public int HumidityDetail;
 
     [Space(10)]
     [Header("Dependencies")]
@@ -80,58 +80,12 @@ public class SurfaceCreator
         this.settings = settings;
     }
     
-
-    public ComputeBuffer GenerateTerrainMaps(int chunkSize, int LOD, Vector2 offset, out ComputeBuffer continentalNoise, out ComputeBuffer erosionNoise, out ComputeBuffer PVNoise)
-    {
+    public SurfaceChunk.SurfaceMap SampleSurfaceMaps(Vector2 offset, int chunkSize, int LOD){
         int meshSkipInc = meshSkipTable[LOD];
-        int numPointsAxes = chunkSize / meshSkipInc + 1;
-        int numOfPoints = numPointsAxes * numPointsAxes;
-
-        ComputeBuffer continentalDetail; ComputeBuffer pVDetail; ComputeBuffer erosionDetail;
-        continentalNoise = GetNoiseMap(settings.TerrainContinentalDetail, offset, settings.MaxContinentalHeight, chunkSize, meshSkipInc, false, tempBuffers, out continentalDetail);
-        PVNoise = GetNoiseMap(settings.TerrainPVDetail, offset, settings.MaxPVHeight, chunkSize, meshSkipInc, true, tempBuffers, out pVDetail);
-        erosionNoise = GetNoiseMap(settings.TerrainErosionDetail, offset, 1, chunkSize, meshSkipInc, false, tempBuffers, out erosionDetail);
-
-        tempBuffers.Enqueue(continentalDetail);
-        tempBuffers.Enqueue(pVDetail);
-        tempBuffers.Enqueue(erosionDetail);
-
-        ComputeBuffer heightBuffer = CombineTerrainMaps(continentalDetail, erosionDetail, pVDetail, numOfPoints, settings.terrainOffset, tempBuffers);
-
-        return heightBuffer;
-    }
-
-    public ComputeBuffer GenerateSquashMap(int chunkSize, int LOD, Vector2 offset, out ComputeBuffer squashNoise)
-    {
-        int meshSkipInc = meshSkipTable[LOD];
-        int numPointsAxes = chunkSize / meshSkipInc + 1;
-
-        ComputeBuffer squashBuffer;
-        squashNoise = GetNoiseMap(settings.SquashMapDetail, offset, settings.MaxSquashHeight, chunkSize, meshSkipInc, false, tempBuffers, out squashBuffer);
-        tempBuffers.Enqueue(squashBuffer);
-
-        return squashBuffer;
-    }
-
-    //Use interpolated values
-    public void GetBiomeNoises(int chunkSize, int LOD, Vector2 offset, out ComputeBuffer humidNoise)
-    {
-        int meshSkipInc = meshSkipTable[LOD];
-
-        GetNoiseMap(settings.HumidityDetail, offset, 1, chunkSize, meshSkipInc, false, tempBuffers, out humidNoise);
-
-        tempBuffers.Enqueue(humidNoise);
-    }
-    
-    public ComputeBuffer GetAtmosphereMap(int chunkSize, int LOD, Vector2 offset, out ComputeBuffer atmosphereNoise)
-    {
-        int meshSkipInc = meshSkipTable[LOD];
-
-        ComputeBuffer atmosphereBuffer;
-        atmosphereNoise = GetNoiseMap(settings.AtmosphereDetail, offset, 1, chunkSize, meshSkipInc, false, tempBuffers, out atmosphereBuffer);
-        tempBuffers.Enqueue(atmosphereBuffer);
-        
-        return atmosphereBuffer;
+        int[] samplers = new int[6]{settings.TerrainContinentalDetail, settings.TerrainErosionDetail, settings.TerrainPVDetail, settings.SquashMapDetail, settings.AtmosphereDetail, settings.HumidityDetail};
+        float[] heights = new float[4]{settings.MaxContinentalHeight, settings.MaxPVHeight, settings.MaxSquashHeight, settings.terrainOffset};
+ 
+        return SampleSurfaceData(offset, chunkSize, meshSkipInc, samplers, heights, tempBuffers);
     }
 
     public uint StoreSurfaceMap(ComputeBuffer surfaceMap, int chunkSize, int LOD, bool isFloat)
@@ -149,31 +103,6 @@ public class SurfaceCreator
                                               (int)mapAddressIndex, surfaceMap, numOfPoints, isFloat);
 
         return mapAddressIndex;
-    }
-
-    public ComputeBuffer ConstructBiomes(int chunkSize, int LOD, ref SurfaceChunk.NoiseMaps noiseMaps)
-    {
-        int meshSkipInc = meshSkipTable[LOD];
-
-        ComputeBuffer biomeMap = GetBiomeMap(chunkSize, meshSkipInc, noiseMaps, tempBuffers);
-        /*int[] ret = new int[numOfPoints];
-        biomeMap.GetData(ret);
-
-        for(int i = 0; i < numOfPoints; i++)
-        {
-            float[] point = new float[6]
-            {
-                noiseMaps.continental[i],
-                noiseMaps.erosion[i],
-                noiseMaps.pvNoise[i],
-                noiseMaps.squash[i],
-                noiseMaps.temperature[i],
-                noiseMaps.humidity[i]
-            };
-
-            ret[i] = biomeData.dictionary.Query(point);
-        }*/
-        return biomeMap;
     }
 
     
@@ -222,4 +151,84 @@ public class SurfaceCreator
             tempBuffers.Dequeue().Release();
         }
     }
+
+     /*
+    public ComputeBuffer GenerateTerrainMaps(int chunkSize, int LOD, Vector2 offset, out ComputeBuffer continentalNoise, out ComputeBuffer erosionNoise, out ComputeBuffer PVNoise)
+    {
+        int meshSkipInc = meshSkipTable[LOD];
+        int numPointsAxes = chunkSize / meshSkipInc + 1;
+        int numOfPoints = numPointsAxes * numPointsAxes;
+
+        ComputeBuffer continentalDetail; ComputeBuffer pVDetail; ComputeBuffer erosionDetail;
+        continentalNoise = GetNoiseMap(settings.TerrainContinentalDetail, offset, settings.MaxContinentalHeight, chunkSize, meshSkipInc, tempBuffers, out continentalDetail);
+        PVNoise = GetNoiseMap(settings.TerrainPVDetail, offset, settings.MaxPVHeight, chunkSize, meshSkipInc, tempBuffers, out pVDetail);
+        erosionNoise = GetNoiseMap(settings.TerrainErosionDetail, offset, 1, chunkSize, meshSkipInc, tempBuffers, out erosionDetail);
+
+        tempBuffers.Enqueue(continentalDetail);
+        tempBuffers.Enqueue(pVDetail);
+        tempBuffers.Enqueue(erosionDetail);
+
+        ComputeBuffer heightBuffer = CombineTerrainMaps(continentalDetail, erosionDetail, pVDetail, numOfPoints, settings.terrainOffset, tempBuffers);
+
+        return heightBuffer;
+    }
+
+    public ComputeBuffer GenerateSquashMap(int chunkSize, int LOD, Vector2 offset, out ComputeBuffer squashNoise)
+    {
+        int meshSkipInc = meshSkipTable[LOD];
+        int numPointsAxes = chunkSize / meshSkipInc + 1;
+
+        ComputeBuffer squashBuffer;
+        squashNoise = GetNoiseMap(settings.SquashMapDetail, offset, settings.MaxSquashHeight, chunkSize, meshSkipInc, tempBuffers, out squashBuffer);
+        tempBuffers.Enqueue(squashBuffer);
+
+        return squashBuffer;
+    }
+
+    //Use interpolated values
+    public void GetBiomeNoises(int chunkSize, int LOD, Vector2 offset, out ComputeBuffer humidNoise)
+    {
+        int meshSkipInc = meshSkipTable[LOD];
+
+        GetNoiseMap(settings.HumidityDetail, offset, 1, chunkSize, meshSkipInc, tempBuffers, out humidNoise);
+
+        tempBuffers.Enqueue(humidNoise);
+    }
+    
+    public ComputeBuffer GetAtmosphereMap(int chunkSize, int LOD, Vector2 offset, out ComputeBuffer atmosphereNoise)
+    {
+        int meshSkipInc = meshSkipTable[LOD];
+
+        ComputeBuffer atmosphereBuffer;
+        atmosphereNoise = GetNoiseMap(settings.AtmosphereDetail, offset, 1, chunkSize, meshSkipInc, tempBuffers, out atmosphereBuffer);
+        tempBuffers.Enqueue(atmosphereBuffer);
+        
+        return atmosphereBuffer;
+    }
+
+    public ComputeBuffer ConstructBiomes(int chunkSize, int LOD, ref SurfaceChunk.NoiseMaps noiseMaps)
+    {
+        int meshSkipInc = meshSkipTable[LOD];
+
+        ComputeBuffer biomeMap = GetBiomeMap(chunkSize, meshSkipInc, noiseMaps, tempBuffers);
+        int[] ret = new int[numOfPoints];
+        biomeMap.GetData(ret);
+
+        for(int i = 0; i < numOfPoints; i++)
+        {
+            float[] point = new float[6]
+            {
+                noiseMaps.continental[i],
+                noiseMaps.erosion[i],
+                noiseMaps.pvNoise[i],
+                noiseMaps.squash[i],
+                noiseMaps.temperature[i],
+                noiseMaps.humidity[i]
+            };
+
+            ret[i] = biomeData.dictionary.Query(point);
+        }
+        return biomeMap;
+    }
+    */
 }

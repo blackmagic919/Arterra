@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49bee82ffcb1d4036a871bcb04d33c57, type: 3}
   m_Name: Deciduous Forest
   m_EditorClassIdentifier: 
-  autoUpdate: 1
   BiomeName: Deciduous Forest
   caveSize: 0.4
   caveShape: 0
@@ -88,7 +87,7 @@ MonoBehaviour:
       center: 0
       multiplier: 1
       power: 2
-    ChancePerStructurePoint: 0
+    ChancePerStructurePoint: 0.6
     structureIndex: 1
   structurePointDensity: 1
   seed: 0

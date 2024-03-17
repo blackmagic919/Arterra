@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -77,14 +78,17 @@ public class UtilityBuffers : MonoBehaviour
     }
 
     public static ComputeBuffer CountToArgs(ComputeShader shader, ComputeBuffer count, Queue<ComputeBuffer> bufferQueue = null) {
+        shader.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+        return CountToArgs((int)threadGroupSize, count, bufferQueue);
+    }
+
+    public static ComputeBuffer CountToArgs(int threadGroupSize, ComputeBuffer count, Queue<ComputeBuffer> bufferQueue = null) {
         ComputeBuffer args = indirectArgs;
         if(bufferQueue != null){
             args = new ComputeBuffer(3, sizeof(int), ComputeBufferType.IndirectArguments);
             bufferQueue.Enqueue(args);
         }
-
-        args.SetData(new int[] { 1, 1, 1 });
-        shader.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+        
         indirectCountToArgs.SetBuffer(0, "count", count);
         indirectCountToArgs.SetBuffer(0, "args", args);
         indirectCountToArgs.SetInt("numThreads", (int)threadGroupSize);
@@ -116,27 +120,7 @@ public class UtilityBuffers : MonoBehaviour
 
     public static void SetNoiseData(ComputeShader noiseGen, int chunkSize, int meshSkipInc, NoiseData noiseData, Vector3 offset)
     {
-        float epsilon = (float)10E-9;
-
-        float scale = Mathf.Max(epsilon, noiseData.noiseScale);
-        System.Random prng = new System.Random(noiseData.seed);
-
-        float maxPossibleHeight = 0;
-        float amplitude = 1;
-
-        Vector4[] octaveOffsets = new Vector4[noiseData.octaves * 4];
-        for (int i = 0; i < noiseData.octaves; i++)
-        {
-            float offsetX = prng.Next((int)-10E5, (int)10E5);
-            float offsetY = prng.Next((int)-10E5, (int)10E5);
-            float offsetZ = prng.Next((int)-10E5, (int)10E5);
-            octaveOffsets[i] = new Vector4(offsetX, offsetY, offsetZ, 0);
-
-            maxPossibleHeight += amplitude;
-            amplitude *= noiseData.persistance;
-        }
-
-        noiseGen.SetVectorArray("offsets", octaveOffsets); //mapped to float3, so reinterpretation
+        noiseGen.SetVectorArray("offsets", noiseData.offsets.Select(e => new Vector4(e.x, e.y, e.z, 0)).ToArray()); //mapped to float3, so reinterpretation
         noiseGen.SetVectorArray("SplinePoints", noiseData.splinePoints);
         noiseGen.SetFloats("sOffset", new float[]{offset.x, offset.y, offset.z});
         noiseGen.SetInt("numSplinePoints", noiseData.splinePoints.Length);
@@ -145,41 +129,21 @@ public class UtilityBuffers : MonoBehaviour
         noiseGen.SetInt("meshSkipInc", meshSkipInc);
         noiseGen.SetFloat("persistence", noiseData.persistance);
         noiseGen.SetFloat("lacunarity", noiseData.lacunarity);
-        noiseGen.SetFloat("noiseScale", scale);
-        noiseGen.SetFloat("maxPossibleHeight", maxPossibleHeight);
+        noiseGen.SetFloat("noiseScale", noiseData.noiseScale);
+        noiseGen.SetFloat("maxPossibleHeight", noiseData.maxPossibleHeight);
     }
 
     //Random takes time, so it's better to preset the data when possible
     public static void PresetNoiseData(ComputeShader noiseGen, NoiseData noiseData)
     {
-        float epsilon = (float)10E-9;
-
-        float scale = Mathf.Max(epsilon, noiseData.noiseScale);
-        System.Random prng = new System.Random(noiseData.seed);
-
-        float maxPossibleHeight = 0;
-        float amplitude = 1;
-
-        Vector4[] octaveOffsets = new Vector4[noiseData.octaves * 4]; //Vector Array is processed as float4
-        for (int i = 0; i < noiseData.octaves; i++)
-        {
-            float offsetX = prng.Next((int)-10E5, (int)10E5);
-            float offsetY = prng.Next((int)-10E5, (int)10E5);
-            float offsetZ = prng.Next((int)-10E5, (int)10E5);
-            octaveOffsets[i] = new Vector4(offsetX, offsetY, offsetZ, 0);
-
-            maxPossibleHeight += amplitude;
-            amplitude *= noiseData.persistance;
-        }
-
-        noiseGen.SetVectorArray("offsets", octaveOffsets); //mapped to float3, so reinterpretation
+        noiseGen.SetVectorArray("offsets", noiseData.offsets.Select(e => new Vector4(e.x, e.y, e.z, 0)).ToArray()); //mapped to float3, so reinterpretation
         noiseGen.SetVectorArray("SplinePoints", noiseData.splinePoints);
         noiseGen.SetInt("numSplinePoints", noiseData.splinePoints.Length);
         noiseGen.SetInt("octaves", noiseData.octaves);
         noiseGen.SetFloat("persistence", noiseData.persistance);
         noiseGen.SetFloat("lacunarity", noiseData.lacunarity);
-        noiseGen.SetFloat("noiseScale", scale);
-        noiseGen.SetFloat("maxPossibleHeight", maxPossibleHeight);
+        noiseGen.SetFloat("noiseScale", noiseData.noiseScale);
+        noiseGen.SetFloat("maxPossibleHeight", noiseData.maxPossibleHeight);
     }
 
     public static void SetSampleData(ComputeShader noiseGen, Vector3 offset, int chunkSize, int meshSkipInc){

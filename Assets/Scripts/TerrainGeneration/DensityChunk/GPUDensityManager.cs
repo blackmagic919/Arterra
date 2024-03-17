@@ -6,7 +6,7 @@ using UnityEngine;
 using static EndlessTerrain;
 
 [CreateAssetMenu(menuName = "Settings/DensityManager")]
-public class GPUDensityManager : UpdatableData
+public class GPUDensityManager : ScriptableObject
 {
     private ComputeShader dictReplaceKey;
     private ComputeShader transcribeMapInfo;

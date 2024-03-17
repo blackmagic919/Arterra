@@ -66,8 +66,8 @@ VertexOutput Vertex(uint vertexID: SV_VertexID){
     uint vertexAddress = vertexID * _Vertex4ByteStride;
     DrawVertex input = ReadVertex(vertexAddress);
 
-    output.positionWS = input.positionWS;
-    output.normalWS = input.normalWS;
+    output.positionWS = input.positionWS.xyz;
+    output.normalWS = input.normalWS.xyz;
     output.uv = input.uv;
     output.positionCS = CalculatePositionCSWithShadowCasterLogic(output.positionWS, output.normalWS);
 

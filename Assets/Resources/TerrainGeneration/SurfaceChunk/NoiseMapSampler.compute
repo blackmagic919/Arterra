@@ -1,6 +1,5 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Generate
-#pragma multi_compile _ CENTER_NOISE
 
 #include "Assets/Resources/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Utility/PerlinNoiseGenerator.hlsl"
@@ -21,11 +20,7 @@ void Generate (uint3 id : SV_DispatchThreadID)
 
     float rawNoise = GetRawNoise(float3(id.x, 0, id.y));
 
-#ifdef CENTER_NOISE
-    float interpNoise = interpolateValue(rawNoise) * 2.0f - 1.0f;
-#else
     float interpNoise = interpolateValue(rawNoise);
-#endif
 
     rawPoints[index] = rawNoise;
 

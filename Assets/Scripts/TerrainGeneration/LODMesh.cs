@@ -47,7 +47,6 @@ public class LODMesh
         ComputeBuffer density = meshCreator.GenerateDensity(surfaceLODMap, this.position, LOD, mapChunkSize, IsoLevel);
         ComputeBuffer material = meshCreator.GenerateMaterials(surfaceLODMap, density, this.position, IsoLevel, LOD, mapChunkSize);
         structCreator.GenerateStrucutresGPU(density, material, mapChunkSize, LOD, IsoLevel);
-        
         densityManager.SubscribeChunk(density, material, CCoord, LOD);
         
         surfaceLODMap.Release();
@@ -56,7 +55,6 @@ public class LODMesh
 
     public void CreateMesh(int LOD, Action UpdateCallback){
         ComputeBuffer sourceMesh = meshCreator.GenerateMapData(densityManager, this.CCoord, IsoLevel, LOD, mapChunkSize);
-        
         meshReadback.OffloadMeshToGPU(sourceMesh, (int)ReadbackMaterial.terrain);
         if(detailLevels[LOD].useForCollider)
             meshReadback.BeginMeshReadback((int)ReadbackMaterial.terrain, ret => onMeshInfoRecieved(ret, UpdateCallback));

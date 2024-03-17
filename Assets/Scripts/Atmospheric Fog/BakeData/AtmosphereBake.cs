@@ -64,15 +64,13 @@ public class AtmosphereBake : ScriptableObject
 
     public void Execute()
     {
+        if(!passSettings.densityManager.initialized)
+            return;
         if(!initialized)
             SetupData();
         if (Shader.GetGlobalTexture("_CameraDepthTexture") == null)
             return;
         if (BakedTextureSizePX == 0)
-            return;
-        if(!initialized)
-            return;
-        if(!passSettings.densityManager.initialized)
             return;
         
         CalculateRayData();

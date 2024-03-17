@@ -11,6 +11,7 @@ public class StructureCreator
     uint structureDataIndex;
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
     const int STRUCTURE_STRIDE_4BYTE = 3 + 2 + 1;
+    const int THREAD_GROUP_SIZE = 64;
 
     public StructureCreator(MeshCreatorSettings mSettings, SurfaceCreatorSettings sSettings){
         this.meshSettings = mSettings;
@@ -65,29 +66,26 @@ public class StructureCreator
         ReleaseStructure();
 
         Vector3 offset3D = new Vector3(offset.x, 0, offset.z);
-        float chunkYOrigin = offset.y - (chunkSize/2);
 
         int maxStructurePoints = calculateMaxStructurePoints(meshSettings.biomeData.maxLoD, meshSettings.biomeData.StructureChecksPerChunk, meshSettings.biomeData.LoDFalloff);
 
         ComputeBuffer planPointsAppend = SampleStructureLoD(meshSettings.biomeData.maxLoD, chunkSize, meshSettings.biomeData.LoDFalloff, meshSettings.biomeData.StructureChecksPerChunk, maxStructurePoints, chunkCoord, ref tempBuffers);
 
         ComputeBuffer planCount = UtilityBuffers.CopyCount(planPointsAppend, tempBuffers);
-        ComputeBuffer biomes = AnalyzeBiomeMap(planPointsAppend, planCount, offset3D, chunkSize, maxStructurePoints);
-        ComputeBuffer structureInfo = IdentifyStructures(planPointsAppend, planCount, biomes, chunkCoord, chunkSize, maxStructurePoints, ref tempBuffers);
+        ComputeBuffer planArgs = UtilityBuffers.CountToArgs(THREAD_GROUP_SIZE, planCount, tempBuffers);
+
+        ComputeBuffer biomes = AnalyzeBiomeMap(planPointsAppend, planArgs, planCount, offset3D, chunkSize, maxStructurePoints);
+        ComputeBuffer structureInfo = IdentifyStructures(planPointsAppend, planArgs, planCount, biomes, chunkCoord, chunkSize, maxStructurePoints, ref tempBuffers);
         
         ComputeBuffer structCount = UtilityBuffers.CopyCount(structureInfo, tempBuffers);
-        ComputeBuffer checkPoints = CreateChecks(structureInfo, structCount, maxStructurePoints, ref tempBuffers);//change maxPoints
+        ComputeBuffer structArgs = UtilityBuffers.CountToArgs(THREAD_GROUP_SIZE, structCount, tempBuffers);
 
+        ComputeBuffer checkPoints = CreateChecks(structureInfo, structArgs, structCount, maxStructurePoints, ref tempBuffers);//change maxPoints
         ComputeBuffer checkCount = UtilityBuffers.CopyCount(checkPoints, tempBuffers);
-        ComputeBuffer terrainHeights = AnalyzeTerrainMap(checkPoints, checkCount, offset3D, chunkSize, maxStructurePoints);
-        ComputeBuffer baseDensity = AnalyzeNoiseMapGPU(sampler_terrCoarse, checkPoints, checkCount, offset, chunkSize, maxStructurePoints, tempBuffers);
-        ComputeBuffer squashHeights = AnalyzeNoiseMapGPU(sampler_terrSquash, checkPoints, checkCount, offset3D, chunkSize, maxStructurePoints, tempBuffers);
+        ComputeBuffer checkArgs = UtilityBuffers.CountToArgs(THREAD_GROUP_SIZE, checkCount, tempBuffers);
         
-        ComputeBuffer densities = AnalyzeTerrain(checkPoints, checkCount, baseDensity, terrainHeights, squashHeights, chunkYOrigin, maxStructurePoints, IsoLevel, ref tempBuffers);
-
-        ComputeBuffer checkResults = InitializeIndirect(structCount, true, maxStructurePoints, ref tempBuffers);
-        AnalyzeChecks(checkPoints, checkCount, densities, IsoLevel, ref checkResults, ref tempBuffers);
-        ComputeBuffer structureBuffer = FilterStructures(checkResults, structureInfo, structCount, maxStructurePoints, ref tempBuffers);
+        AnalyzeTerrainMap(checkPoints, structureInfo, checkArgs, checkCount, offset, chunkSize, IsoLevel);
+        ComputeBuffer structureBuffer = FilterStructures(structureInfo, structArgs, structCount, maxStructurePoints, ref tempBuffers);
 
         ComputeBuffer structureCount = UtilityBuffers.CopyCount(structureBuffer, tempBuffers);
         ComputeBuffer structByteSize = CalculateStructureSize(structureCount, STRUCTURE_STRIDE_4BYTE, ref tempBuffers);
@@ -114,33 +112,24 @@ public class StructureCreator
         return;
     }
 
-    public ComputeBuffer AnalyzeBiomeMap(ComputeBuffer rawPositions, ComputeBuffer count, Vector3 offset, int chunkSize, int maxPoints)
+    public ComputeBuffer AnalyzeBiomeMap(ComputeBuffer rawPositions, ComputeBuffer args, ComputeBuffer count, Vector3 offset, int chunkSize, int maxPoints)
     {
-        SurfaceChunk.NoiseMaps noiseMaps;
+        int[] samplers = new int[6]{surfSettings.TerrainContinentalDetail, surfSettings.TerrainErosionDetail, surfSettings.TerrainPVDetail, 
+                                    surfSettings.SquashMapDetail, surfSettings.AtmosphereDetail, surfSettings.HumidityDetail};
 
-        ComputeBuffer args = UtilityBuffers.CountToArgs(checkNoiseSampler, count);
-        noiseMaps.continental = AnalyzeNoiseMapGPU(sampler_surfContinental, rawPositions, args, count, offset, chunkSize, maxPoints, tempBuffers);
-        noiseMaps.pvNoise = AnalyzeNoiseMapGPU(sampler_surfPV, rawPositions, args, count, offset, chunkSize, maxPoints, tempBuffers);
-        noiseMaps.erosion = AnalyzeNoiseMapGPU(sampler_surfErosion, rawPositions, args, count, offset, chunkSize, maxPoints, tempBuffers);
-        noiseMaps.squash = AnalyzeNoiseMapGPU(sampler_surfSquash, rawPositions, args, count, offset, chunkSize, maxPoints, tempBuffers);
-        noiseMaps.atmosphere = AnalyzeNoiseMapGPU(sampler_surfAtmosphere, rawPositions, args, count, offset, chunkSize, maxPoints, tempBuffers);
-        noiseMaps.humidity = AnalyzeNoiseMapGPU(sampler_surfHumidity, rawPositions, args, count, offset, chunkSize, maxPoints, tempBuffers);
-
-        ComputeBuffer biome = AnalyzeBiome(noiseMaps, count, maxPoints, tempBuffers);
+        ComputeBuffer biome = AnalyzeBiome(rawPositions, args, count, samplers, offset, chunkSize, maxPoints, tempBuffers);
 
         return biome;
     }
 
-    public ComputeBuffer AnalyzeTerrainMap(ComputeBuffer checks, ComputeBuffer count, Vector3 offset, int chunkSize, int maxPoints)
+    public void AnalyzeTerrainMap(ComputeBuffer checks, ComputeBuffer structs, ComputeBuffer args, ComputeBuffer count, Vector3 offset, int chunkSize, float IsoLevel)
     {
-        ComputeBuffer args = UtilityBuffers.CountToArgs(checkNoiseSampler, count);
-        ComputeBuffer continentalDetail = AnalyzeNoiseMapGPU(sampler_terrContinental, checks, args, count, offset, chunkSize, maxPoints, tempBuffers);
-        ComputeBuffer pVDetail = AnalyzeNoiseMapGPU(sampler_terrPV, checks, args, count, offset, chunkSize, maxPoints, tempBuffers);
-        ComputeBuffer erosionDetail = AnalyzeNoiseMapGPU(sampler_terrErosion, checks, args, count, offset, chunkSize, maxPoints, tempBuffers);
+        int[] samplers = new int[6]{meshSettings.CoarseTerrainNoise, meshSettings.FineTerrainNoise, surfSettings.TerrainContinentalDetail, 
+                                    surfSettings.TerrainErosionDetail, surfSettings.TerrainPVDetail, surfSettings.SquashMapDetail};
+        
+        float[] heights = new float[4]{surfSettings.MaxContinentalHeight, surfSettings.MaxPVHeight, surfSettings.MaxSquashHeight, surfSettings.terrainOffset};
 
-        ComputeBuffer results = CombineTerrainMapsGPU(count, continentalDetail, erosionDetail, pVDetail, maxPoints, surfSettings.terrainOffset, tempBuffers);
-
-        return results;
+        AnalyzeTerrain(checks, structs, args, count, samplers, heights, offset, chunkSize, IsoLevel);
     }
 
     /*

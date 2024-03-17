@@ -11,6 +11,7 @@ public class GenerationResources : ScriptableObject
     public TextureData texData;
     public StructureGenerationData structData;
     public BiomeGenerationData biomeData;
+    public NoiseGenerationData noiseData;
     public GPUDensityManager densityDict;
 
     [Header("Generation Utilities")]
@@ -22,9 +23,4 @@ public class GenerationResources : ScriptableObject
     [Header("Bake Data")]
     
     public AtmosphereBake atmosphereBake;
-
-    public void OnEnable(){
-        DensityGenerator.PresetShaders(meshCreator); 
-        StructureGenerator.PresetShaders(meshCreator, surfaceSettings);
-    }
 }

@@ -43,8 +43,6 @@ public class TemplatePass : ScriptableRenderPass
         material.SetInt(inScatterProperty, passSettings.luminanceBake.NumInScatterPoints);
 
         passSettings.densityManager.SetDensitySampleData(material);
-        passSettings.luminanceBake.SetSettings(passSettings);
-        passSettings.luminanceBake.SetBakedData(material);
     }
 
     public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -59,6 +57,9 @@ public class TemplatePass : ScriptableRenderPass
 
         cmd.GetTemporaryRT(temporaryBufferID, descriptor, FilterMode.Bilinear);
         temporaryBuffer = new RenderTargetIdentifier(temporaryBufferID);
+
+        passSettings.luminanceBake.SetSettings(passSettings);
+        passSettings.luminanceBake.SetBakedData(material);
     }
 
     // The actual execution of the pass. This is where custom rendering occurs.

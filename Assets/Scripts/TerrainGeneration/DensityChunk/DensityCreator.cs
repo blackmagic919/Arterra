@@ -4,27 +4,24 @@ using UnityEngine;
 using static EndlessTerrain;
 using static DensityGenerator;
 
-[CreateAssetMenu(menuName = "Containers/MeshCreator Settings")]
+[CreateAssetMenu(menuName = "Containers/Mesh Creator Settings")]
 public class MeshCreatorSettings : ScriptableObject{
     [Header("Material Generation Noise")]
-    public NoiseData MaterialCoarseNoise;
-    public NoiseData MaterialFineNoise;
+    public int CoarseMaterialNoise;
+    public int FineMaterialNoise;
 
     [Header("Underground Generation Noise")]
-    public NoiseData CoarseTerrainNoise; //For underground terrain generation
-    public NoiseData FineTerrainNoise;
+    public int CoarseTerrainNoise; //For underground terrain generation
+    public int FineTerrainNoise;
     public BiomeGenerationData biomeData;
 
     [Header("Dependencies")]
     public MemoryBufferSettings structureMemory;
-    public SurfaceCreatorSettings surfSettings;
     public TextureData textureData;
 }
 public class MeshCreator
 {
-    MeshCreatorSettings settings;
-    SurfaceCreator mapCreator;
-    uint structureDataIndex;
+    MeshCreatorSettings settings; //Funny it's not used...
 
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
@@ -33,7 +30,6 @@ public class MeshCreator
 
     public MeshCreator(MeshCreatorSettings settings){
         this.settings = settings;
-        this.mapCreator = new SurfaceCreator(settings.surfSettings);
     }
 
     public (float[], int[]) GetChunkInfo(StructureCreator structCreator, SurfaceChunk.SurfaceMap surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
@@ -58,9 +54,7 @@ public class MeshCreator
 
     public ComputeBuffer GetDensity(SurfaceChunk.SurfaceMap surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
     {
-        ComputeBuffer coarseDetail = GenerateNoiseMap(sampler_caveCoarse, offset, chunkSize, 1, ref tempBuffers);
-        ComputeBuffer fineDetail = GenerateNoiseMap(sampler_caveFine, offset, chunkSize, 1, ref tempBuffers);
-        ComputeBuffer pointBuffer = GenerateCaveNoise(surfaceData, coarseDetail, fineDetail, chunkSize, 1, ref tempBuffers);
+        ComputeBuffer pointBuffer = GenerateCaveNoise(surfaceData, offset, settings.CoarseTerrainNoise, settings.FineTerrainNoise, chunkSize, 1, ref tempBuffers);
         GenerateTerrain(chunkSize, 1, surfaceData, offset, IsoLevel, pointBuffer);
 
         return pointBuffer;
@@ -68,11 +62,8 @@ public class MeshCreator
 
     public ComputeBuffer GetMaterials(SurfaceChunk.SurfaceMap surfaceData, ComputeBuffer densityMap, Vector3 offset, float IsoLevel, int chunkSize)
     {   
-        ComputeBuffer coarseMatDetail = GenerateNoiseMap(sampler_caveCoarse, offset, chunkSize, 1, ref tempBuffers);
-        ComputeBuffer fineMatDetail = GenerateNoiseMap(sampler_caveFine, offset, chunkSize, 1, ref tempBuffers);
-
-        ComputeBuffer materialBuffer = GenerateMat(coarseMatDetail, fineMatDetail, surfaceData, densityMap, 
-                                                                    IsoLevel, chunkSize, 1, offset, ref tempBuffers);
+        ComputeBuffer materialBuffer = GenerateMat(surfaceData, densityMap, settings.CoarseMaterialNoise, settings.FineMaterialNoise,
+                                                    IsoLevel, chunkSize, 1, offset, ref tempBuffers);
 
         return materialBuffer;
     }
@@ -81,10 +72,7 @@ public class MeshCreator
     public ComputeBuffer GenerateDensity(SurfaceChunk.SurfaceMap surfaceData, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
     {
         int meshSkipInc = meshSkipTable[LOD];
-
-        ComputeBuffer coarseDetail = GenerateNoiseMap(sampler_caveCoarse, offset, chunkSize, meshSkipInc, ref tempBuffers);
-        ComputeBuffer fineDetail = GenerateNoiseMap(sampler_caveFine, offset, chunkSize, meshSkipInc, ref tempBuffers);
-        ComputeBuffer pointBuffer = GenerateCaveNoise(surfaceData, coarseDetail, fineDetail, chunkSize, meshSkipInc, ref tempBuffers);
+        ComputeBuffer pointBuffer = GenerateCaveNoise(surfaceData, offset, settings.CoarseTerrainNoise, settings.FineTerrainNoise, chunkSize, meshSkipInc, ref tempBuffers);
         GenerateTerrain(chunkSize, meshSkipInc, surfaceData, offset, IsoLevel, pointBuffer);
 
         return pointBuffer;
@@ -93,12 +81,9 @@ public class MeshCreator
     public ComputeBuffer GenerateMaterials(SurfaceChunk.SurfaceMap surfaceData, ComputeBuffer densityMap, Vector3 offset, float IsoLevel, int LOD, int chunkSize)
     {
         int meshSkipInc = meshSkipTable[LOD];
-        
-        ComputeBuffer coarseMatDetail = GenerateNoiseMap(sampler_caveCoarse, offset, chunkSize, meshSkipInc, ref tempBuffers);
-        ComputeBuffer fineMatDetail = GenerateNoiseMap(sampler_caveFine, offset, chunkSize, meshSkipInc, ref tempBuffers);
 
-        ComputeBuffer materialBuffer = GenerateMat(coarseMatDetail, fineMatDetail, surfaceData, densityMap, 
-                                                                    IsoLevel, chunkSize, meshSkipInc, offset, ref tempBuffers);
+        ComputeBuffer materialBuffer = GenerateMat(surfaceData, densityMap, settings.CoarseMaterialNoise, settings.FineMaterialNoise,
+                                                    IsoLevel, chunkSize, meshSkipInc, offset, ref tempBuffers);
         return materialBuffer;
     }
 

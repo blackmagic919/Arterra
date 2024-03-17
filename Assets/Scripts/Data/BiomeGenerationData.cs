@@ -6,7 +6,7 @@ using Unity.Mathematics;
 using Utils;
 
 [CreateAssetMenu(menuName = "Generation/BiomeGenerationData")]
-public class BiomeGenerationData : UpdatableData
+public class BiomeGenerationData : ScriptableObject
 {
     [SerializeField]
     public List<Biome> biomes;
@@ -26,17 +26,10 @@ public class BiomeGenerationData : UpdatableData
     ComputeBuffer biomeStructBuffer;
     ComputeBuffer structGenBuffer;
     //
-    protected override void OnValidate()
-    {
-        if (biomes == null || biomes.Count == 0)
-            return;
-        dictionary = new BiomeDictionary(biomes);
-
-        base.OnValidate();
-    }
 
     private void OnEnable()
     {
+        dictionary = new BiomeDictionary(biomes);
         SetGlobalBuffers();
     }
 
@@ -52,7 +45,7 @@ public class BiomeGenerationData : UpdatableData
         structGenBuffer?.Release();
     }
 
-    void SetGlobalBuffers()
+   public void SetGlobalBuffers()
     {
         
         int numBiomes = biomes.Count;

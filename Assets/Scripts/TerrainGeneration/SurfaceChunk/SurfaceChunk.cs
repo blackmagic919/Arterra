@@ -74,7 +74,6 @@ public class SurfaceChunk : ChunkData
     public class BaseMap
     {
         SurfaceCreator mapCreator;
-        NoiseMaps noiseMaps;
 
         //Return values--height map and squash map
         uint heightMapAddress;
@@ -90,22 +89,16 @@ public class SurfaceChunk : ChunkData
         public BaseMap(SurfaceCreatorSettings mapCreator, Vector2 position){
             this.mapCreator = new SurfaceCreator(mapCreator);
             this.position = position;
-
-            noiseMaps = new NoiseMaps();
         }
 
         public void GetChunk()
         {
-            ComputeBuffer heightMap = mapCreator.GenerateTerrainMaps(mapChunkSize, 0, position, out noiseMaps.continental, out noiseMaps.erosion, out noiseMaps.pvNoise);
-            ComputeBuffer squashMap = mapCreator.GenerateSquashMap(mapChunkSize, 0, position, out noiseMaps.squash);
-            ComputeBuffer atmosphereMap = mapCreator.GetAtmosphereMap(mapChunkSize, 0, position, out noiseMaps.atmosphere);
-            mapCreator.GetBiomeNoises(mapChunkSize, 0, position, out noiseMaps.humidity);
-            ComputeBuffer biomeMap = mapCreator.ConstructBiomes(mapChunkSize, 0, ref noiseMaps);
+            SurfaceMap surfaceData = mapCreator.SampleSurfaceMaps(position, mapChunkSize, 0);
             
-            this.heightMapAddress = mapCreator.StoreSurfaceMap(heightMap, mapChunkSize, 0, true);
-            this.squashMapAddress = mapCreator.StoreSurfaceMap(squashMap, mapChunkSize, 0, true);
-            this.biomeMapAddress = mapCreator.StoreSurfaceMap(biomeMap, mapChunkSize, 0, false);
-            this.atmosphereMapAddress = mapCreator.StoreSurfaceMap(atmosphereMap, mapChunkSize, 0, true);
+            this.heightMapAddress = mapCreator.StoreSurfaceMap(surfaceData.heightMap, mapChunkSize, 0, true);
+            this.squashMapAddress = mapCreator.StoreSurfaceMap(surfaceData.squashMap, mapChunkSize, 0, true);
+            this.biomeMapAddress = mapCreator.StoreSurfaceMap(surfaceData.biomeMap, mapChunkSize, 0, false);
+            this.atmosphereMapAddress = mapCreator.StoreSurfaceMap(surfaceData.atmosphereMap, mapChunkSize, 0, true);
 
             mapCreator.ReleaseTempBuffers();
             hasChunk = true;

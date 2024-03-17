@@ -45,8 +45,6 @@ public class EndlessTerrain : MonoBehaviour
     {
         renderDistance = settings.detailLevels[settings.detailLevels.Length - 1].distanceThresh;
         chunksVisibleInViewDistance = Mathf.RoundToInt(renderDistance / mapChunkSize);
-        resources.texData.ApplyToMaterial();
-        resources.structData.ApplyToMaterial();
 
         resources.densityDict.InitializeManage(settings.detailLevels, mapChunkSize, lerpScale);
     }

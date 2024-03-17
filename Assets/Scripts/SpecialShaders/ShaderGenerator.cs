@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
-using static EditorMesh;
 using static EndlessTerrain;
 
 public class ShaderGenerator : UpdateTask

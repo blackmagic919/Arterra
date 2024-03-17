@@ -2,6 +2,7 @@
 #pragma multi_compile _ HAS_EXISTING_MATERIALS
 
 #include "Assets/Resources/Utility/GetIndex.hlsl"
+#include "Assets/Resources/Utility/PerlinNoiseSampler.hlsl"
 
 
 struct DensityFunc{
@@ -23,8 +24,7 @@ struct BMaterial{
 StructuredBuffer<float> densityMap;
 float IsoLevel;
 
-StructuredBuffer<float> coarseMatDetail;
-StructuredBuffer<float> fineMatDetail;
+
 StructuredBuffer<int> biomeMap;
 StructuredBuffer<float> heights;
 RWStructuredBuffer<int> materialMap;
@@ -33,21 +33,17 @@ StructuredBuffer<uint2> _BiomeMaterialCount;
 StructuredBuffer<BMaterial> _BiomeGroundMaterials;
 StructuredBuffer<BMaterial> _BiomeSurfaceMaterials;
 
-
+uint coarseSampler;
+uint fineSampler;
 float offsetY;
-float meshSkipInc;
-float chunkSize;
 
 const static int numThreads = 8;
 
-float invLerp(float val, float min, float max){
-    return (val - min) / (max-min);
-}
 
 float GetNoiseCentered(float val, float center, float bottom, float top){
     float clamped = clamp(val, bottom, top);
-    float ret = (clamped > center) ? 1-invLerp(clamped, center, top)
-                : invLerp(clamped, bottom, center);
+    float ret = (clamped > center) ? 1-invLerp(center, top, clamped)
+                : invLerp(bottom, center, clamped);
                 
     return ret;
 }
@@ -125,8 +121,8 @@ void Generate (uint3 id : SV_DispatchThreadID)
 
     uint mapIndex = indexFromCoord2D(id.x, id.z);
     uint biome = max(0, (uint)biomeMap[mapIndex]);
-    float coarseDetail = coarseMatDetail[index];
-    float fineDetail = fineMatDetail[index];
+    float coarseDetail = GetNoise(id, coarseSampler);
+    float fineDetail = GetNoise(id, fineSampler);
 
     float y = id.y * meshSkipInc;
     float halfHeight = chunkSize / 2;

@@ -10,6 +10,7 @@ using Utils;
 
 public class DensityDeconstructor : MonoBehaviour
 {
+#if UNITY_EDITOR
     [Header("Density Settings")]
     public LayerMask meshLayer;
     public float MaxDensityDifference;
@@ -253,4 +254,5 @@ public class DensityDeconstructor : MonoBehaviour
         MeshGenerator.ChunkData newChunk = MeshGenerator.GenerateMesh(materialView, 0.5f);
         meshFilter.sharedMesh = newChunk.GenerateMesh();
     }
+#endif
 }

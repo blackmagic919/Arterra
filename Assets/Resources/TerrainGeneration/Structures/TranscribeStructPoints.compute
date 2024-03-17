@@ -1,7 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-const static uint numThreads = 128;
+const static uint numThreads = 64;
 const static uint POINT_STRIDE_4BYTES = 3 + 1 + 2;
 
 struct structureInfo{

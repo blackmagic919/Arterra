@@ -11,11 +11,6 @@ public static class DensityGenerator
     static ComputeShader meshGenerator;//
     static ComputeShader densitySimplification;//
     static ComputeShader baseCaveGenerator;
-
-    public static ComputeShader sampler_materialCoarse;
-    public static ComputeShader sampler_materialFine;
-    public static ComputeShader sampler_caveCoarse;
-    public static ComputeShader sampler_caveFine;
     
 
     static DensityGenerator(){ //That's a lot of Compute Shaders XD
@@ -29,19 +24,6 @@ public static class DensityGenerator
         indirectThreads = Resources.Load<ComputeShader>("Utility/DivideByThreads");
         indirectCountToArgs = Resources.Load<ComputeShader>("Utility/CountToArgs");
     }
-
-    public static void PresetShaders(MeshCreatorSettings meshSettings){
-        sampler_materialCoarse = UnityEngine.Object.Instantiate(rawNoiseSampler);
-        sampler_materialFine = UnityEngine.Object.Instantiate(rawNoiseSampler);
-        sampler_caveCoarse = UnityEngine.Object.Instantiate(rawNoiseSampler);
-        sampler_caveFine = UnityEngine.Object.Instantiate(rawNoiseSampler);
-
-        PresetNoiseData(sampler_materialCoarse, meshSettings.MaterialCoarseNoise);
-        PresetNoiseData(sampler_materialFine, meshSettings.MaterialFineNoise);
-        PresetNoiseData(sampler_caveCoarse, meshSettings.CoarseTerrainNoise);
-        PresetNoiseData(sampler_caveFine, meshSettings.FineTerrainNoise);
-    }
-
     public static void SimplifyMaterials(int chunkSize, int meshSkipInc, int[] materials, ComputeBuffer pointBuffer, ref Queue<ComputeBuffer> bufferHandle)
     {
         int numPointsAxes = chunkSize / meshSkipInc + 1;
@@ -87,7 +69,7 @@ public static class DensityGenerator
     }
 
        
-    public static ComputeBuffer GenerateMat(ComputeBuffer coarseNoise, ComputeBuffer fineNoise, SurfaceChunk.SurfaceMap surfaceData, ComputeBuffer densityBuffer, 
+    public static ComputeBuffer GenerateMat( SurfaceChunk.SurfaceMap surfaceData, ComputeBuffer densityBuffer, int coarseSampler, int fineSampler,
                                     float IsoLevel, int chunkSize, int meshSkipInc, Vector3 offset, ref Queue<ComputeBuffer> bufferHandle)
     {
         int numPointsAxes = chunkSize / meshSkipInc + 1;
@@ -100,8 +82,6 @@ public static class DensityGenerator
         materialGenCompute.SetBuffer(0, "densityMap", densityBuffer);
         materialGenCompute.SetFloat("IsoLevel", IsoLevel);
 
-        materialGenCompute.SetBuffer(0, "coarseMatDetail", coarseNoise);
-        materialGenCompute.SetBuffer(0, "fineMatDetail", fineNoise);
         materialGenCompute.SetBuffer(0, "biomeMap", surfaceData.biomeMap);
         materialGenCompute.SetBuffer(0, "heights", surfaceData.heightMap);
         materialGenCompute.SetBuffer(0, "materialMap", materialBuffer);//Result
@@ -110,6 +90,10 @@ public static class DensityGenerator
         materialGenCompute.SetFloat("meshSkipInc", meshSkipInc);
         materialGenCompute.SetFloat("chunkSize", chunkSize);
         materialGenCompute.SetFloat("offsetY", offset.y);
+
+        materialGenCompute.SetInt("fineSampler", fineSampler);
+        materialGenCompute.SetInt("coarseSampler", coarseSampler);
+        SetSampleData(materialGenCompute, offset, chunkSize, meshSkipInc);
         
         materialGenCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);
@@ -139,17 +123,18 @@ public static class DensityGenerator
         meshGenerator.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
     }
 
-    public static ComputeBuffer GenerateCaveNoise(SurfaceChunk.SurfaceMap surfaceData, ComputeBuffer coarseNoise, ComputeBuffer fineNoise, int chunkSize, int meshSkipInc, ref Queue<ComputeBuffer> bufferHandle){
+    public static ComputeBuffer GenerateCaveNoise(SurfaceChunk.SurfaceMap surfaceData, Vector3 offset, int coarseSampler, int fineSampler, int chunkSize, int meshSkipInc, ref Queue<ComputeBuffer> bufferHandle){
         int numPointsAxes = chunkSize / meshSkipInc + 1;
         int numPoints = numPointsAxes * numPointsAxes * numPointsAxes;
 
         ComputeBuffer caveDensity = new ComputeBuffer(numPoints, sizeof(float), ComputeBufferType.Structured);
         bufferHandle.Enqueue(caveDensity);
         
-        baseCaveGenerator.SetBuffer(0, "coarseNoise", coarseNoise);
-        baseCaveGenerator.SetBuffer(0, "fineNoise", fineNoise);
         baseCaveGenerator.SetBuffer(0, "biomeMap", surfaceData.biomeMap);
+        baseCaveGenerator.SetInt("coarseSampler", coarseSampler);
+        baseCaveGenerator.SetInt("fineSampler", fineSampler);
         baseCaveGenerator.SetInt("numPointsPerAxis", numPointsAxes);
+        SetSampleData(baseCaveGenerator, offset, chunkSize, meshSkipInc);
 
         baseCaveGenerator.SetBuffer(0, "densityMap", caveDensity);
 

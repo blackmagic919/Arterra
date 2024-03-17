@@ -30,6 +30,8 @@ Shader "Unlit/Terrain1"
 #endif
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
 
+            #pragma multi_compile _ INDIRECT  //Try to use shader_feature--doesn't work with material instances, but less variants
+
             #include "TerrainShader.hlsl"
             ENDHLSL
         }
@@ -43,6 +45,7 @@ Shader "Unlit/Terrain1"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            #pragma multi_compile _ INDIRECT
 
 
             #include "TerrainShaderShadowCast.hlsl"

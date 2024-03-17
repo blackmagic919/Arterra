@@ -33,11 +33,9 @@ float invLerp(float from, float to, float value){
 uint Search(float targetValue)
 {
     uint index = 0;
-    if(numSplinePoints != 0){
-        for(uint i = 0; i < numSplinePoints; i++){
-            if(SplinePoints[i].x < targetValue)
-                index++;//
-        }
+    for(uint i = 0; i < numSplinePoints; i++){
+        if(SplinePoints[i].x < targetValue)
+            index++;//
     }
     return index;
 }

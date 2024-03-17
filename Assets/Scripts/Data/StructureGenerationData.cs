@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "Settings/StructureDict")]
-public class StructureGenerationData : UpdatableData
+public class StructureGenerationData : ScriptableObject
 {
     [SerializeField]
     public List<Structure> StructureDictionary;
@@ -35,18 +35,15 @@ public class StructureGenerationData : UpdatableData
         }
 
         indexBuffer = new ComputeBuffer(StructureDictionary.Count + 1, sizeof(uint) * 2, ComputeBufferType.Structured); //By doubling stride, we compress the prefix sums
-        indexBuffer.SetData(indexPrefixSum);
-
         densityBuffer = new ComputeBuffer(density.Count, sizeof(float), ComputeBufferType.Structured);
-        densityBuffer.SetData(density);
-
         materialBuffer = new ComputeBuffer(material.Count, sizeof(int), ComputeBufferType.Structured);
-        materialBuffer.SetData(material);
-
         checksBuffer = new ComputeBuffer(checks.Count, sizeof(float) * 3 + sizeof(uint), ComputeBufferType.Structured);
-        checksBuffer.SetData(checks.ToArray());
-
         settingsBuffer = new ComputeBuffer(StructureDictionary.Count, sizeof(int) * 4 + sizeof(uint) * 2, ComputeBufferType.Structured);
+
+        indexBuffer.SetData(indexPrefixSum);
+        densityBuffer.SetData(density);
+        materialBuffer.SetData(material);
+        checksBuffer.SetData(checks.ToArray());
         settingsBuffer.SetData(settings);
 
 
@@ -66,11 +63,9 @@ public class StructureGenerationData : UpdatableData
         settingsBuffer?.Release();
     }
 
-    protected override void OnValidate()
+    public void OnEnable()
     {
         ApplyToMaterial();
-
-        base.OnValidate();
     }
 
     [System.Serializable]

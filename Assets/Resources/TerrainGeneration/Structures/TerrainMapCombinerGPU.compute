@@ -1,7 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CombineDetails
 
-const static int numThreads = 8;
+const static uint numThreads = 64;
 
 RWStructuredBuffer<float> continental;
 RWStructuredBuffer<float> erosion;

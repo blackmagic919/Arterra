@@ -4,7 +4,7 @@ using UnityEngine;
 using System.Linq;
 
 [CreateAssetMenu(menuName = "Settings/TextureDict")]
-public class TextureData : UpdatableData
+public class TextureData : ScriptableObject
 {
 
     const int textureSize = 512;
@@ -67,10 +67,8 @@ public class TextureData : UpdatableData
     }
 
 
-    protected override void OnValidate()
+    public void OnEnable()
     {
         ApplyToMaterial();
-        
-        base.OnValidate();
     }
 }

@@ -9,7 +9,6 @@ const static int numThreads = 8;
 struct structurePoint{
     float3 position;
     uint LoD;
-    uint padding;
     //Padding to keep same stride as terrain checks
 };
 
@@ -72,7 +71,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
             structurePoint newStructure;
             newStructure.position = position;
             newStructure.LoD = (uint)cLoD;
-            newStructure.padding = 0;
             
             structures.Append(newStructure);
 

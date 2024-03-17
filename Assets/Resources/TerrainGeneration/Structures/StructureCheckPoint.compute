@@ -2,7 +2,7 @@
 #pragma kernel CSMain
 #include "Assets/Resources/Utility/RotationTables.hlsl"
 
-const static int numThreads = 8;
+const static uint numThreads = 64;
 
 struct settings{
     int minimumLOD;
@@ -23,6 +23,8 @@ struct structureInfo{
     float3 structurePos;
     uint structureIndex;
     uint2 rotation;
+    uint valid;
+    int biome;
 };
 
 struct check{

@@ -2,6 +2,8 @@
 
 #include "Assets/Resources/Utility/RotationTables.hlsl"
 
+const static int numThreads = 64;
+
 struct settings{ 
     int minimumLOD;
 
@@ -31,12 +33,14 @@ struct structureInfo{
     float3 structurePos;
     uint structureIndex;
     uint2 rotation;
+    //Used for analyzing terrain checks
+    uint valid; 
+    int biome; 
 };
 
 struct structurePoint{
     float3 position;
     uint LoD;
-    uint padding;
 };
 
 // 11 Buffers!! Lol I'm going insane
@@ -131,7 +135,6 @@ int determineStructure(int pointIndex, float seed, float yPos){
     return structureIndex;
 }
 
-const static int numThreads = 8;
 [numthreads(numThreads,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
@@ -180,6 +183,9 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     structureInfo newStructure;
     newStructure.structurePos = pointPosition;
     newStructure.structureIndex = structureIndex;
+    newStructure.biome = biome[id.x];
+    newStructure.valid = 1;
+
     newStructure.rotation = uint2(rotTheta, rotPhi);
 
     structurePlans.Append(newStructure);

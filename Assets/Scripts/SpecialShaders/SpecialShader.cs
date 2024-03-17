@@ -2,10 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public abstract class SpecialShader : UpdatableData
+public abstract class SpecialShader : ScriptableObject
 {
     [System.Serializable]
-    public abstract class MaterialReference : UpdatableData
+    public abstract class MaterialReference : ScriptableObject
     {
         public Shader shader;
 
@@ -16,7 +16,7 @@ public abstract class SpecialShader : UpdatableData
     }
 
     [System.Serializable]
-    public abstract class ShaderSettings : UpdatableData
+    public abstract class ShaderSettings : ScriptableObject
     {
         //public MaterialReference material;
     }

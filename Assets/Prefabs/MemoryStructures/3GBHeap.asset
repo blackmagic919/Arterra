@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9933ec2c3a294ea88de025ab5caf6a9, type: 3}
-  m_Name: 2GBHeap
+  m_Name: 3GBHeap
   m_EditorClassIdentifier: 
-  _BufferSize4Bytes: 500000000
+  _BufferSize4Bytes: 750000000
   _MaxHeapSize: 5000
   _MaxAddressSize: 50000

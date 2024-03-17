@@ -2,7 +2,7 @@
 #pragma kernel CSMain
 #pragma multi_compile _ USE_INT USE_BOOL
 
-const static int numThreads = 8;
+const static int numThreads = 64;
 
 #ifdef USE_BOOL
 RWStructuredBuffer<bool> map;

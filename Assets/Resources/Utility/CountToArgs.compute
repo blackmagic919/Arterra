@@ -10,4 +10,5 @@ RWStructuredBuffer<uint> args;
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     args[0] = ceil(count[0] / (float)numThreads);
+    args[1] = 1; args[2] = 1; //1D
 }

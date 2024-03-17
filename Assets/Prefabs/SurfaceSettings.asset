@@ -9,18 +9,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: f67e18118f5594c60a3185bba687bef3, type: 3}
   m_Name: SurfaceSettings
-  m_EditorClassIdentifier: Assembly-CSharp::SurfaceCreatorSettings
-  terrainOffset: -300
-  TerrainContinentalDetail: {fileID: 11400000, guid: 9c045f93b50334808b6154737c67175b, type: 2}
+  m_EditorClassIdentifier: 
+  TerrainContinentalDetail_Data: {fileID: 11400000, guid: 9c045f93b50334808b6154737c67175b, type: 2}
+  TerrainErosionDetail_Data: {fileID: 11400000, guid: 1a8cb70f57d0f4d0aa53c6806a8d38f1, type: 2}
+  TerrainPVDetail_Data: {fileID: 11400000, guid: 4cfde776cdfbf4e21b8e32f76d99eb95, type: 2}
+  SquashMapDetail_Data: {fileID: 11400000, guid: d7d6a8b31e97345e48f8fe95e523f5be, type: 2}
+  AtmosphereDetail_Data: {fileID: 11400000, guid: 9b2a2490aae0a404db8553ff56a7d66b, type: 2}
+  HumidityDetail_Data: {fileID: 11400000, guid: 06bcbe453e4ae4863ae0cd8a454b2940, type: 2}
+  terrainOffset: -325
+  TerrainContinentalDetail: 4
   MaxContinentalHeight: 400
-  TerrainErosionDetail: {fileID: 11400000, guid: 1a8cb70f57d0f4d0aa53c6806a8d38f1, type: 2}
-  TerrainPVDetail: {fileID: 11400000, guid: 4cfde776cdfbf4e21b8e32f76d99eb95, type: 2}
+  TerrainErosionDetail: 5
+  TerrainPVDetail: 6
   MaxPVHeight: 200
-  SquashMapDetail: {fileID: 11400000, guid: d7d6a8b31e97345e48f8fe95e523f5be, type: 2}
+  SquashMapDetail: 7
   MaxSquashHeight: 100
-  AtmosphereDetail: {fileID: 11400000, guid: 9b2a2490aae0a404db8553ff56a7d66b, type: 2}
-  HumidityDetail: {fileID: 11400000, guid: 06bcbe453e4ae4863ae0cd8a454b2940, type: 2}
+  AtmosphereDetail: 8
+  HumidityDetail: 9
   surfaceMemoryBuffer: {fileID: 11400000, guid: 7427a5499c6fe4d55b4be7eb730c6a58, type: 2}
   biomeData: {fileID: 0}

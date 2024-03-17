@@ -4,7 +4,7 @@ using UnityEngine;
 using Utils;
 
 [CreateAssetMenu(menuName = "Generation/BiomeInfo")]
-public class BiomeInfo : UpdatableData
+public class BiomeInfo : ScriptableObject
 {
     public string BiomeName;
 

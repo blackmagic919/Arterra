@@ -1,6 +1,6 @@
 #pragma kernel CSMain
 
-const static int numThreads = 8;
+const static int numThreads = 64;
 
 struct check{
     float3 position;

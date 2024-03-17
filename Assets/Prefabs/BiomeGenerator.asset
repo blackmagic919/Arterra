@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: beb15f52643eb4aa09be7f699206597b, type: 3}
   m_Name: BiomeGenerator
   m_EditorClassIdentifier: 
-  autoUpdate: 1
   biomes:
   - conditions: {fileID: 11400000, guid: a4507df7bcd0f4ecd94d0f3648612cc4, type: 2}
     info: {fileID: 11400000, guid: 02eaeedd9a6ed4996aad9918da531d9e, type: 2}

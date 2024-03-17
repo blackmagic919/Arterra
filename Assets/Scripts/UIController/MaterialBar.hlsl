@@ -53,7 +53,7 @@ fixed3 frag (v2f IN) : SV_Target
 
     float3 OUT = color * colorStrength + textureColor * (1-colorStrength);
 
-    if(index == selectedMat){
+    if((int)index == selectedMat){
         float tintStrength = abs((_Time.y % _TintFrequency)/_TintFrequency * 2 - 1);
         return OUT*(1-tintStrength) + _Tint*tintStrength;
     }
