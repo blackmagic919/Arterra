@@ -32,13 +32,13 @@ public class MeshCreator
         this.settings = settings;
     }
 
-    public (float[], int[]) GetChunkInfo(StructureCreator structCreator, SurfaceChunk.SurfaceMap surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
+    public (float[], int[]) GetChunkInfo(StructureCreator structCreator, SurfaceChunk.SurfData surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
     {
         int numPointsAxes = chunkSize + 1;
         int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
 
-        ComputeBuffer densityBuffer = GetDensity(surfaceData, offset, IsoLevel, chunkSize);
-        ComputeBuffer materialBuffer = GetMaterials(surfaceData, densityBuffer, offset, IsoLevel, chunkSize);
+        ComputeBuffer densityBuffer = GenerateDensity(surfaceData, offset, 0, chunkSize, IsoLevel);
+        ComputeBuffer materialBuffer = GenerateMaterials(surfaceData, densityBuffer, offset, 0, chunkSize, IsoLevel);
         structCreator.GenerateStrucutresGPU(densityBuffer, materialBuffer, chunkSize, 0, IsoLevel);
 
         float[] density = new float[numOfPoints];
@@ -52,33 +52,15 @@ public class MeshCreator
         return (density, material);
     }
 
-    public ComputeBuffer GetDensity(SurfaceChunk.SurfaceMap surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
-    {
-        ComputeBuffer pointBuffer = GenerateCaveNoise(surfaceData, offset, settings.CoarseTerrainNoise, settings.FineTerrainNoise, chunkSize, 1, ref tempBuffers);
-        GenerateTerrain(chunkSize, 1, surfaceData, offset, IsoLevel, pointBuffer);
-
-        return pointBuffer;
-    }
-
-    public ComputeBuffer GetMaterials(SurfaceChunk.SurfaceMap surfaceData, ComputeBuffer densityMap, Vector3 offset, float IsoLevel, int chunkSize)
-    {   
-        ComputeBuffer materialBuffer = GenerateMat(surfaceData, densityMap, settings.CoarseMaterialNoise, settings.FineMaterialNoise,
-                                                    IsoLevel, chunkSize, 1, offset, ref tempBuffers);
-
-        return materialBuffer;
-    }
-
-
-    public ComputeBuffer GenerateDensity(SurfaceChunk.SurfaceMap surfaceData, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
+    public ComputeBuffer GenerateDensity(SurfaceChunk.SurfData surfaceData, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
     {
         int meshSkipInc = meshSkipTable[LOD];
-        ComputeBuffer pointBuffer = GenerateCaveNoise(surfaceData, offset, settings.CoarseTerrainNoise, settings.FineTerrainNoise, chunkSize, meshSkipInc, ref tempBuffers);
-        GenerateTerrain(chunkSize, meshSkipInc, surfaceData, offset, IsoLevel, pointBuffer);
+        ComputeBuffer density = GenerateTerrain(chunkSize, meshSkipInc, surfaceData, settings.CoarseTerrainNoise, settings.FineTerrainNoise, offset, IsoLevel, ref tempBuffers);
 
-        return pointBuffer;
+        return density;
     }
 
-    public ComputeBuffer GenerateMaterials(SurfaceChunk.SurfaceMap surfaceData, ComputeBuffer densityMap, Vector3 offset, float IsoLevel, int LOD, int chunkSize)
+    public ComputeBuffer GenerateMaterials(SurfaceChunk.SurfData surfaceData, ComputeBuffer densityMap, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
     {
         int meshSkipInc = meshSkipTable[LOD];
 

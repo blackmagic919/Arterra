@@ -16,25 +16,16 @@ public static class TerrainGenerator
     }
 
     //The wonder shader that does everything (This way more parallelization is achieved)
-    public static SurfaceChunk.SurfaceMap SampleSurfaceData(Vector2 offset, int chunkSize, int meshSkipInc, int[] samplerData, float[] heights, Queue<ComputeBuffer> bufferHandle){
+    public static ComputeBuffer SampleSurfaceData(Vector2 offset, int chunkSize, int meshSkipInc, int[] samplerData, float[] heights, Queue<ComputeBuffer> bufferHandle){
         int numPointsAxes = chunkSize / meshSkipInc + 1;
         int numOfPoints = numPointsAxes * numPointsAxes;
         Vector3 offset3D = new Vector3(offset.x, 0, offset.y);
 
-        ComputeBuffer heightMap = new ComputeBuffer(numOfPoints, sizeof(float), ComputeBufferType.Structured);
-        ComputeBuffer biomeMap = new ComputeBuffer(numOfPoints, sizeof(int), ComputeBufferType.Structured);
-        ComputeBuffer squashMap = new ComputeBuffer(numOfPoints, sizeof(float), ComputeBufferType.Structured);
-        ComputeBuffer atmosphereMap = new ComputeBuffer(numOfPoints, sizeof(float), ComputeBufferType.Structured);
+        ComputeBuffer surfMap = new ComputeBuffer(numOfPoints, sizeof(float) * 3 + sizeof(int), ComputeBufferType.Structured);
         
-        bufferHandle.Enqueue(heightMap);
-        bufferHandle.Enqueue(biomeMap);
-        bufferHandle.Enqueue(squashMap);
-        bufferHandle.Enqueue(atmosphereMap);
+        bufferHandle.Enqueue(surfMap);
 
-        surfaceDataSampler.SetBuffer(0, "heightMap", heightMap);
-        surfaceDataSampler.SetBuffer(0, "biomeMap", biomeMap);
-        surfaceDataSampler.SetBuffer(0, "squashMap", squashMap);
-        surfaceDataSampler.SetBuffer(0, "atmosphereMap", atmosphereMap);
+        surfaceDataSampler.SetBuffer(0, "surfMap", surfMap);
         surfaceDataSampler.SetInt("numPointsPerAxis", numPointsAxes);
         surfaceDataSampler.SetInt("continentalSampler", samplerData[0]);
         surfaceDataSampler.SetInt("erosionSampler", samplerData[1]);
@@ -53,16 +44,10 @@ public static class TerrainGenerator
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);
         surfaceDataSampler.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, 1);
 
-        SurfaceChunk.SurfaceMap mapData = new SurfaceChunk.SurfaceMap(heightMap, squashMap, biomeMap, atmosphereMap, handle: false);
-        return mapData;
+        return surfMap;
     }
 
-    public static void TranscribeSurfaceMap(ComputeBuffer memory, ComputeBuffer addresses, int addressIndex, ComputeBuffer surfaceMap, int numPoints, bool isFloat){
-        if(isFloat)
-            surfaceTranscriber.DisableKeyword("PROCESS_INT");
-        else
-            surfaceTranscriber.EnableKeyword("PROCESS_INT");
-
+    public static void TranscribeSurfaceMap(ComputeBuffer memory, ComputeBuffer addresses, int addressIndex, ComputeBuffer surfaceMap, int numPoints){
         surfaceTranscriber.SetBuffer(0, "SurfaceMap", surfaceMap);
         surfaceTranscriber.SetInt("numSurfacePoints", numPoints);
 

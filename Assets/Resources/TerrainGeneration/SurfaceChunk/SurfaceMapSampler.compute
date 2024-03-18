@@ -17,10 +17,14 @@ float PVHeight;
 
 float heightOffset;
 
-RWStructuredBuffer<float> heightMap;
-RWStructuredBuffer<int> biomeMap;
-RWStructuredBuffer<float> squashMap;
-RWStructuredBuffer<float> atmosphereMap;
+struct surfData{
+    float terrain;
+    float squash;
+    float atmosphere;
+    int biome;
+};
+
+RWStructuredBuffer<surfData> surfMap;
 
 const static int numThreads = 8;
 
@@ -50,8 +54,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float atmosphereNoise = interpolateValue(atmosphereRaw, atmosphereSampler);
     float humidityNoise = interpolateValue(humidityRaw, humiditySampler);
 
-    squashMap[index] = squashNoise;
-    atmosphereMap[index] = atmosphereNoise;
-    heightMap[index] = continentalNoise + erosionNoise * PVNoise + heightOffset;
-    biomeMap[index] = GetBiome(rawMaps);
+    surfData data;
+    data.terrain = continentalNoise + erosionNoise * PVNoise + heightOffset;
+    data.squash = squashNoise;
+    data.atmosphere = atmosphereNoise;
+    data.biome = GetBiome(rawMaps);
+
+    surfMap[index] = data;
 }

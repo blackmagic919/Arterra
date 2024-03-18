@@ -42,14 +42,12 @@ public class LODMesh
 
     public void GenerateMap(int LOD)
     {
-        SurfaceChunk.SurfaceMap surfaceLODMap = surfaceMap.SimplifyMap(LOD);
-
-        ComputeBuffer density = meshCreator.GenerateDensity(surfaceLODMap, this.position, LOD, mapChunkSize, IsoLevel);
-        ComputeBuffer material = meshCreator.GenerateMaterials(surfaceLODMap, density, this.position, IsoLevel, LOD, mapChunkSize);
+        SurfaceChunk.SurfData surfData = surfaceMap.GetMap();
+        ComputeBuffer density = meshCreator.GenerateDensity(surfData, this.position, LOD, mapChunkSize, IsoLevel);
+        ComputeBuffer material = meshCreator.GenerateMaterials(surfData, density, this.position, LOD, mapChunkSize, IsoLevel);
         structCreator.GenerateStrucutresGPU(density, material, mapChunkSize, LOD, IsoLevel);
         densityManager.SubscribeChunk(density, material, CCoord, LOD);
         
-        surfaceLODMap.Release();
         meshCreator.ReleaseTempBuffers();
     }
 

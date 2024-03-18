@@ -69,8 +69,6 @@ v2f vert (uint vertexID: SV_VertexID){
 
 #else
 
-float3 _TargetPoint;
-float closestDistance;
 float4x4 _LocalToWorld;
 
 struct appdata

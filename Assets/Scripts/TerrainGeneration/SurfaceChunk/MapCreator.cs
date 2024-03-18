@@ -71,6 +71,8 @@ public class SurfaceCreator
     public SurfaceCreatorSettings settings;
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
+    const uint SURFDATA_STRIDE_4BYTE = 3 + 1;
+
     public void OnDisable()
     {
         ReleaseTempBuffers();
@@ -80,7 +82,7 @@ public class SurfaceCreator
         this.settings = settings;
     }
     
-    public SurfaceChunk.SurfaceMap SampleSurfaceMaps(Vector2 offset, int chunkSize, int LOD){
+    public ComputeBuffer SampleSurfaceMaps(Vector2 offset, int chunkSize, int LOD){
         int meshSkipInc = meshSkipTable[LOD];
         int[] samplers = new int[6]{settings.TerrainContinentalDetail, settings.TerrainErosionDetail, settings.TerrainPVDetail, settings.SquashMapDetail, settings.AtmosphereDetail, settings.HumidityDetail};
         float[] heights = new float[4]{settings.MaxContinentalHeight, settings.MaxPVHeight, settings.MaxSquashHeight, settings.terrainOffset};
@@ -88,19 +90,19 @@ public class SurfaceCreator
         return SampleSurfaceData(offset, chunkSize, meshSkipInc, samplers, heights, tempBuffers);
     }
 
-    public uint StoreSurfaceMap(ComputeBuffer surfaceMap, int chunkSize, int LOD, bool isFloat)
+    public uint StoreSurfaceMap(ComputeBuffer surfaceMap, int chunkSize, int LOD)
     {
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxes = chunkSize / meshSkipInc + 1;
         int numOfPoints = numPointsAxes * numPointsAxes;
         
         ComputeBuffer mapSize4Byte = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
-        mapSize4Byte.SetData(new uint[1] { (uint)numOfPoints });
+        mapSize4Byte.SetData(new uint[1] { (uint)numOfPoints * SURFDATA_STRIDE_4BYTE});
         tempBuffers.Enqueue(mapSize4Byte);
 
         uint mapAddressIndex = settings.surfaceMemoryBuffer.AllocateMemory(mapSize4Byte);
         TranscribeSurfaceMap(settings.surfaceMemoryBuffer.AccessStorage(), settings.surfaceMemoryBuffer.AccessAddresses(),
-                                              (int)mapAddressIndex, surfaceMap, numOfPoints, isFloat);
+                                              (int)mapAddressIndex, surfaceMap, numOfPoints);
 
         return mapAddressIndex;
     }

@@ -148,5 +148,4 @@ public class MemoryBufferSettings : ScriptableObject
     {
         return _AddressBuffer;
     }
-
 }

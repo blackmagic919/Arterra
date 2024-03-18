@@ -1,8 +1,8 @@
 #pragma kernel Generate
 #pragma multi_compile _ HAS_EXISTING_MATERIALS
-
 #include "Assets/Resources/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Utility/PerlinNoiseSampler.hlsl"
+const static uint SURF_STRIDE_4BYTE = 4;
 
 
 struct DensityFunc{
@@ -24,11 +24,6 @@ struct BMaterial{
 StructuredBuffer<float> densityMap;
 float IsoLevel;
 
-
-StructuredBuffer<int> biomeMap;
-StructuredBuffer<float> heights;
-RWStructuredBuffer<int> materialMap;
-
 StructuredBuffer<uint2> _BiomeMaterialCount;
 StructuredBuffer<BMaterial> _BiomeGroundMaterials;
 StructuredBuffer<BMaterial> _BiomeSurfaceMaterials;
@@ -36,6 +31,32 @@ StructuredBuffer<BMaterial> _BiomeSurfaceMaterials;
 uint coarseSampler;
 uint fineSampler;
 float offsetY;
+
+StructuredBuffer<uint> _SurfMemoryBuffer;
+StructuredBuffer<uint> _SurfAddressDict;
+uint surfAddress;
+
+struct surfData{
+    float terrain;
+    float squash;
+    float atmosphere;
+    int biome;
+};
+
+surfData ReadSurfData(uint2 coord){
+    uint2 fullCoord = coord * meshSkipInc;
+    uint numPointsAxisFull = (numPointsPerAxis - 1) * meshSkipInc + 1;
+    uint address = _SurfAddressDict[surfAddress] + indexFromCoord2DManual(fullCoord, numPointsAxisFull) * SURF_STRIDE_4BYTE;
+    
+    surfData data;
+    data.terrain = asfloat(_SurfMemoryBuffer[address]);
+    data.squash = asfloat(_SurfMemoryBuffer[address + 1]);
+    data.atmosphere = asfloat(_SurfMemoryBuffer[address + 2]);
+    data.biome = asint(_SurfMemoryBuffer[address + 3]);
+    return data;
+}
+
+RWStructuredBuffer<int> materialMap;
 
 const static int numThreads = 8;
 
@@ -117,18 +138,18 @@ void Generate (uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    uint index = indexFromCoord(id.x, id.y, id.z);
+    uint index = indexFromCoord(id);
+    uint mapIndex = indexFromCoord2D(id.xz);
 
-    uint mapIndex = indexFromCoord2D(id.x, id.z);
-    uint biome = max(0, (uint)biomeMap[mapIndex]);
+    surfData data = ReadSurfData(id.xz);
+    uint biome = max(0, (uint)data.biome);
     float coarseDetail = GetNoise(id, coarseSampler);
     float fineDetail = GetNoise(id, fineSampler);
 
     float y = id.y * meshSkipInc;
     float halfHeight = chunkSize / 2;
     float actualHeight = y - halfHeight + offsetY;
-    float terrainHeight = heights[mapIndex];
-    float groundHeight = actualHeight - terrainHeight;
+    float groundHeight = actualHeight - data.terrain;
 
     float density = densityMap[index];
 

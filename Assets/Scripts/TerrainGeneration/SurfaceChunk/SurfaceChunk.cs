@@ -76,10 +76,7 @@ public class SurfaceChunk : ChunkData
         SurfaceCreator mapCreator;
 
         //Return values--height map and squash map
-        uint heightMapAddress;
-        uint squashMapAddress;
-        uint biomeMapAddress;
-        uint atmosphereMapAddress;
+        uint surfAddress;
 
         public bool hasChunk = false;
         public bool hasRequestedChunk = false;
@@ -93,24 +90,18 @@ public class SurfaceChunk : ChunkData
 
         public void GetChunk()
         {
-            SurfaceMap surfaceData = mapCreator.SampleSurfaceMaps(position, mapChunkSize, 0);
-            
-            this.heightMapAddress = mapCreator.StoreSurfaceMap(surfaceData.heightMap, mapChunkSize, 0, true);
-            this.squashMapAddress = mapCreator.StoreSurfaceMap(surfaceData.squashMap, mapChunkSize, 0, true);
-            this.biomeMapAddress = mapCreator.StoreSurfaceMap(surfaceData.biomeMap, mapChunkSize, 0, false);
-            this.atmosphereMapAddress = mapCreator.StoreSurfaceMap(surfaceData.atmosphereMap, mapChunkSize, 0, true);
+            ComputeBuffer surfaceData = mapCreator.SampleSurfaceMaps(position, mapChunkSize, 0);
+            this.surfAddress = mapCreator.StoreSurfaceMap(surfaceData, mapChunkSize, 0);
 
             mapCreator.ReleaseTempBuffers();
             hasChunk = true;
         }
 
-        public SurfaceMap SimplifyMap(int LOD)
+        public SurfData GetMap()
         {  
-            ComputeBuffer heightMap = mapCreator.SimplifyMap((int)this.heightMapAddress, 0, LOD, mapChunkSize, true);
-            ComputeBuffer squashMap = mapCreator.SimplifyMap((int)this.squashMapAddress, 0, LOD, mapChunkSize, true);
-            ComputeBuffer biomeMap = mapCreator.SimplifyMap((int)this.biomeMapAddress, 0, LOD, mapChunkSize, false);
-            ComputeBuffer atmosphereMap = mapCreator.SimplifyMap((int)this.atmosphereMapAddress, 0, LOD, mapChunkSize, true);
-            return new SurfaceMap(heightMap, squashMap, biomeMap, atmosphereMap);
+            return new SurfData(mapCreator.settings.surfaceMemoryBuffer.AccessStorage(), 
+                                mapCreator.settings.surfaceMemoryBuffer.AccessAddresses(), 
+                                this.surfAddress);
         }
 
         public void ReleaseSurfaceMap()
@@ -118,32 +109,19 @@ public class SurfaceChunk : ChunkData
             if(!hasChunk)
                 return;
             
-            mapCreator.settings.surfaceMemoryBuffer.ReleaseMemory(this.heightMapAddress);
-            mapCreator.settings.surfaceMemoryBuffer.ReleaseMemory(this.squashMapAddress);
-            mapCreator.settings.surfaceMemoryBuffer.ReleaseMemory(this.biomeMapAddress);
+            mapCreator.settings.surfaceMemoryBuffer.ReleaseMemory(this.surfAddress);
         }
     }
 
-    public struct SurfaceMap{
-        public ComputeBuffer heightMap;
-        public ComputeBuffer squashMap;
-        public ComputeBuffer biomeMap;
-        public ComputeBuffer atmosphereMap;
-        public Queue<ComputeBuffer> bufferHandle;
+    public struct SurfData{
+        public ComputeBuffer Memory;
+        public ComputeBuffer Addresses;
+        public uint addressIndex;
 
-        public SurfaceMap(ComputeBuffer heightMap, ComputeBuffer squashMap, ComputeBuffer biomeMap, ComputeBuffer atmosphereMap, bool handle = true){
-            this.heightMap = heightMap;
-            this.squashMap = squashMap;
-            this.biomeMap = biomeMap;
-            this.atmosphereMap = atmosphereMap;
-
-            this.bufferHandle = new Queue<ComputeBuffer>();
-            if(handle){bufferHandle.Enqueue(heightMap); bufferHandle.Enqueue(squashMap); bufferHandle.Enqueue(biomeMap); bufferHandle.Enqueue(atmosphereMap);}
-        }
-
-        public void Release(){
-            while(bufferHandle.Count > 0)
-                bufferHandle.Dequeue().Release();
+        public SurfData(ComputeBuffer memory, ComputeBuffer addresses, uint addressIndex){
+            this.Memory = memory;
+            this.Addresses = addresses;
+            this.addressIndex = addressIndex;
         }
     }
 

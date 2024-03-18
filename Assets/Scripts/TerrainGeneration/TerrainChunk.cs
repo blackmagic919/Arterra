@@ -68,9 +68,8 @@ public class TerrainChunk : ChunkData
     {
         if (!hasDensityMap)
         {
-            SurfaceChunk.SurfaceMap maxSurfaceData = LODMeshHandle.surfaceMap.SimplifyMap(0);
+            SurfaceChunk.SurfData maxSurfaceData = LODMeshHandle.surfaceMap.GetMap();
             (storedDensity, storedMaterial) = meshCreator.GetChunkInfo(structCreator, maxSurfaceData, this.position, IsoLevel, mapChunkSize);
-            maxSurfaceData.Release();
             
             hasDensityMap = true;
         }

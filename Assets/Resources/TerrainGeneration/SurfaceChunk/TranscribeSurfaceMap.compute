@@ -1,13 +1,17 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
-#pragma multi_compile _ PROCESS_INT
 const static uint numthread = 128;
+const static uint SURF_STRIDE_4BYTE = 4;
 
-#ifdef PROCESS_INT
-StructuredBuffer<int> SurfaceMap;
-#else
-StructuredBuffer<float> SurfaceMap;
-#endif
+struct surfData{
+    float terrain;
+    float squash;
+    float atmosphere;
+    int biome;
+};
+
+StructuredBuffer<surfData> SurfaceMap;
+
 uint numSurfacePoints;
 
 RWStructuredBuffer<uint> _MemoryBuffer;
@@ -20,6 +24,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     if(id.x >= numSurfacePoints)
         return;
     
-    uint pointAddress = _AddressDict[addressIndex] + id.x;
-    _MemoryBuffer[pointAddress] = asuint(SurfaceMap[id.x]);
+    uint pointAddress = _AddressDict[addressIndex] + id.x * SURF_STRIDE_4BYTE;
+    surfData data = SurfaceMap[id.x];
+
+    _MemoryBuffer[pointAddress] = asuint(data.terrain);
+    _MemoryBuffer[pointAddress + 1] = asuint(data.squash);
+    _MemoryBuffer[pointAddress + 2] = asuint(data.atmosphere);
+    _MemoryBuffer[pointAddress + 3] = asuint(data.biome);
 }

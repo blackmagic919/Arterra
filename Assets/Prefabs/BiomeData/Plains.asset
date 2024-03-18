@@ -44,7 +44,7 @@ MonoBehaviour:
       center: -150
       multiplier: 1
       power: 2
-  - materialIndex: 1
+  - materialIndex: 0
     genSize: 1
     genShape: 0.544
     VerticalPreference:

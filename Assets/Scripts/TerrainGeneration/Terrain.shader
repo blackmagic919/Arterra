@@ -13,6 +13,8 @@ Shader "Unlit/Terrain1"
             Name "ForwardLit"
             Tags{"LightMode" = "UniversalForward"}
 
+            Cull Back
+
             HLSLPROGRAM
             // Signal this shader requires geometry function support
             #pragma prefer_hlslcc gles
@@ -28,6 +30,8 @@ Shader "Unlit/Terrain1"
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
 #endif
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS
+            #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
 
             #pragma multi_compile _ INDIRECT  //Try to use shader_feature--doesn't work with material instances, but less variants
