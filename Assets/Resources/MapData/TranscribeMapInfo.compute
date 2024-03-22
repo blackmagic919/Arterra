@@ -4,9 +4,13 @@
 const static uint numThreads = 128;
 const static int POINT_STRIDE_4BYTE = 2;
 
+struct mapData{
+    float density;
+    int material;
+};
+
 RWStructuredBuffer<uint> _MemoryBuffer;
-StructuredBuffer<float> densityMap;
-StructuredBuffer<int> materialMap;
+StructuredBuffer<mapData> chunkData;
 uint numPoints;
 
 StructuredBuffer<uint> startAddress;
@@ -22,6 +26,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     uint wAddress = startAddress[0] + id.x * POINT_STRIDE_4BYTE;
 
-    _MemoryBuffer[wAddress] = asuint(densityMap[id.x]);
-    _MemoryBuffer[wAddress + 1] = asuint(materialMap[id.x]);
+    _MemoryBuffer[wAddress] = asuint(chunkData[id.x].density);
+    _MemoryBuffer[wAddress + 1] = asuint(chunkData[id.x].material);
 }

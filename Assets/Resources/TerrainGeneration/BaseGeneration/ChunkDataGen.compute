@@ -3,7 +3,8 @@
 #include "Assets/Resources/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Utility/PerlinNoiseSampler.hlsl"
 const static uint SURF_STRIDE_4BYTE = 4;
-
+const static int numThreads = 8;
+const static int Epsilon = 0.0001;
 
 struct DensityFunc{
     int lowerLimit;
@@ -21,15 +22,23 @@ struct BMaterial{
     DensityFunc density;
 };
 
-StructuredBuffer<float> densityMap;
+struct CaveGen{
+    float coarse;
+    float shape;
+    float frequency;
+};
+
 float IsoLevel;
 
+StructuredBuffer<CaveGen> _BiomeCaveData;
 StructuredBuffer<uint2> _BiomeMaterialCount;
 StructuredBuffer<BMaterial> _BiomeGroundMaterials;
 StructuredBuffer<BMaterial> _BiomeSurfaceMaterials;
 
-uint coarseSampler;
-uint fineSampler;
+uint coarseCaveSampler;
+uint fineCaveSampler;
+uint coarseMatSampler;
+uint fineMatSampler;
 float offsetY;
 
 StructuredBuffer<uint> _SurfMemoryBuffer;
@@ -56,10 +65,20 @@ surfData ReadSurfData(uint2 coord){
     return data;
 }
 
-RWStructuredBuffer<int> materialMap;
+struct mapData{
+    float density;
+    int material;
+};
 
-const static int numThreads = 8;
+RWStructuredBuffer<mapData> baseMap;
 
+float GetNoiseCentered(float val, float center){
+    float clamped = clamp(val, 0, 1);
+    float ret = (clamped > center) ? 1-invLerp(center, 1, clamped)
+                : invLerp(0, center, clamped);
+                
+    return ret;
+}
 
 float GetNoiseCentered(float val, float center, float bottom, float top){
     float clamped = clamp(val, bottom, top);
@@ -143,21 +162,40 @@ void Generate (uint3 id : SV_DispatchThreadID)
 
     surfData data = ReadSurfData(id.xz);
     uint biome = max(0, (uint)data.biome);
-    float coarseDetail = GetNoise(id, coarseSampler);
-    float fineDetail = GetNoise(id, fineSampler);
+    float coarseMatNoise = GetNoise(id, coarseMatSampler);
+    float fineMatNoise = GetNoise(id, fineMatSampler);
 
     float y = id.y * meshSkipInc;
     float halfHeight = chunkSize / 2;
     float actualHeight = y - halfHeight + offsetY;
     float groundHeight = actualHeight - data.terrain;
 
-    float density = densityMap[index];
+    //Get Base Density
+    CaveGen caveData = _BiomeCaveData[data.biome];
 
+    float coarseCaveNoise = GetNoise(id, coarseCaveSampler);
+    float fineCaveNoise = GetNoise(id, fineCaveSampler);
+
+    float coarseCaveCentered = GetNoiseCentered(coarseCaveNoise, caveData.shape);
+    float fineCaveCentered = GetNoiseCentered(fineCaveNoise, caveData.shape);
+
+    float centereCavedNoise = caveData.coarse * coarseCaveCentered + (1.0f - caveData.coarse) * fineCaveCentered;
+    float baseDensity = pow(abs(1.0f-centereCavedNoise), caveData.frequency); //We do 1-noise because cave means low density
+
+    //Blend with Terrain Height
+    float squashFactor = clamp((data.terrain - actualHeight) / (data.squash + Epsilon), 0, 1);
+    float terrainFactor = squashFactor * (1-IsoLevel) + IsoLevel;
+    float atmosphereFactor = exp(-max(actualHeight - data.terrain, 0) * data.atmosphere);
+    float density = baseDensity * terrainFactor * atmosphereFactor;
+
+    //Get Material
     int matInd = 0;
     if(density > IsoLevel)
-        matInd = GetGroundMaterial(coarseDetail, fineDetail, biome, groundHeight);
+        matInd = GetGroundMaterial(coarseMatNoise, fineMatNoise, biome, groundHeight);
     else
-        matInd = GetSurfaceMaterial(coarseDetail, fineDetail, biome, groundHeight);
+        matInd = GetSurfaceMaterial(coarseMatNoise, fineMatNoise, biome, groundHeight);
 
-    materialMap[index] = matInd;
+    
+    baseMap[index].density = density;
+    baseMap[index].material = matInd;
 }

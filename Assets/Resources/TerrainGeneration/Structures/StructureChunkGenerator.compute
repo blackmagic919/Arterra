@@ -48,8 +48,12 @@ StructuredBuffer<uint2> _StructureIndexes;
 StructuredBuffer<float> _StructureDensities;
 StructuredBuffer<int> _StructureMaterials;
 
-RWStructuredBuffer<float> density;
-RWStructuredBuffer<int> material;
+struct mapData{
+    float density;
+    int material;
+};
+
+RWStructuredBuffer<mapData> chunkData;
 
 StructuredBuffer<uint> numPoints;
 
@@ -137,9 +141,9 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
         //This section will have racing issues, but it's negligable
         //If < IsoLevel, don't override ground, but otherwise override
-        if(_StructureDensities[structIndex] > min(density[chunkIndex], IsoLevel)){
-            density[chunkIndex] = _StructureDensities[structIndex];
-            material[chunkIndex] = max(_StructureMaterials[structIndex], 0);
+        if(_StructureDensities[structIndex] > min(chunkData[chunkIndex].density, IsoLevel)){
+            chunkData[chunkIndex].density = _StructureDensities[structIndex];
+            chunkData[chunkIndex].material = max(_StructureMaterials[structIndex], 0);
         }
     }
 }

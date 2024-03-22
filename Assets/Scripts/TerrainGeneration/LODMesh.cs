@@ -43,10 +43,9 @@ public class LODMesh
     public void GenerateMap(int LOD)
     {
         SurfaceChunk.SurfData surfData = surfaceMap.GetMap();
-        ComputeBuffer density = meshCreator.GenerateDensity(surfData, this.position, LOD, mapChunkSize, IsoLevel);
-        ComputeBuffer material = meshCreator.GenerateMaterials(surfData, density, this.position, LOD, mapChunkSize, IsoLevel);
-        structCreator.GenerateStrucutresGPU(density, material, mapChunkSize, LOD, IsoLevel);
-        densityManager.SubscribeChunk(density, material, CCoord, LOD);
+        ComputeBuffer baseMap = meshCreator.GenerateBaseChunk(surfData, this.position, LOD, mapChunkSize, IsoLevel);
+        structCreator.GenerateStrucutresGPU(baseMap, mapChunkSize, LOD, IsoLevel);
+        densityManager.SubscribeChunk(baseMap, CCoord, LOD);
         
         meshCreator.ReleaseTempBuffers();
     }
@@ -71,12 +70,11 @@ public class LODMesh
         UpdateCallback();
     }
 
-    public void ComputeChunk(int LOD, ref float[] density, ref int[] material, Action UpdateCallback)
+    public void ComputeChunk(int LOD, ref TerrainChunk.MapData[] chunkData, Action UpdateCallback)
     {
-        ComputeBuffer densityBuffer; ComputeBuffer materialBuffer;
-        (densityBuffer, materialBuffer) = meshCreator.SetMapInfo(LOD, mapChunkSize, density, material);
-        densityManager.SubscribeChunk(densityBuffer, materialBuffer, CCoord, LOD);
-
+        ComputeBuffer chunkMap = meshCreator.SetMapInfo(LOD, mapChunkSize, chunkData);
+        densityManager.SubscribeChunk(chunkMap, CCoord, LOD);
+        
         ComputeBuffer sourceMesh = meshCreator.GenerateMapData(densityManager, this.CCoord, IsoLevel, LOD, mapChunkSize);
 
         meshReadback.OffloadMeshToGPU(sourceMesh, (int)ReadbackMaterial.terrain);

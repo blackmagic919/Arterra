@@ -175,7 +175,7 @@ public class EndlessTerrain : MonoBehaviour
         return sqrDstToBox < sphereRadius * sphereRadius;
     }
 
-    public void Terraform(Vector3 terraformPoint, float terraformRadius, Func<Vector2, float, Vector2> handleTerraform)
+    public void Terraform(Vector3 terraformPoint, float terraformRadius, Func<TerrainChunk.MapData, float, TerrainChunk.MapData> handleTerraform)
     {
         int CCCoordX = Mathf.RoundToInt(terraformPoint.x / (mapChunkSize*lerpScale));
         int CCCoordY = Mathf.RoundToInt(terraformPoint.y / (mapChunkSize*lerpScale));

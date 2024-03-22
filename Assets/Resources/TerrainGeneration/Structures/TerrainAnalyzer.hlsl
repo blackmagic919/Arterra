@@ -1,24 +1,6 @@
-// Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel Terrain
 #include "Assets/Resources/Utility/PerlinNoiseSampler.hlsl"
-
-const static int numThreads = 64;
+#include "Assets/Resources/TerrainGeneration/Structures/StructIDSettings.hlsl"
 const static int Epsilon = 0.0001;
-
-struct checkPoint{
-    float3 position;
-    uint index;
-    uint value;
-};
-
-struct structInfo{
-    float3 structurePos;
-    uint structureIndex;
-    uint2 rotation;
-    //Used for analyzing terrain checks
-    uint valid; 
-    int biome; 
-};
 
 struct CaveGen{
     float coarse;
@@ -35,39 +17,14 @@ float GetNoiseCentered(float val, float center){
 }
 
 StructuredBuffer<CaveGen> _BiomeCaveData;
-StructuredBuffer<checkPoint> checks;
-
-float IsoLevel;
-uint caveCoarseSampler;
-uint caveFineSampler;
-uint continentalSampler;
-uint erosionSampler;
-uint PVSampler;
-uint squashSampler;
-
-float continentalHeight;
-float PVHeight;
-float squashHeight;
-
-float heightOffset;
-
-RWStructuredBuffer<structInfo> structs;
-StructuredBuffer<uint> numPoints;
 
 
-[numthreads(numThreads,1,1)]
-void Terrain (uint3 id : SV_DispatchThreadID)
+bool SampleTerrain (float3 position, int biome)
 {
-    if(id.x >= numPoints[0])
-        return;
-    
-    checkPoint check = checks[id.x];
-    float3 position = check.position;
     float3 position2D = float3(position.x, 0, position.z);
     float3 sOffset2D = float3(sOffset.x, 0, sOffset.z);
 
     //Get Base Density
-    int biome = structs[check.index].biome;
     CaveGen caveData = _BiomeCaveData[biome];
 
     float coarseCave = GetNoise(position, caveCoarseSampler);
@@ -92,9 +49,5 @@ void Terrain (uint3 id : SV_DispatchThreadID)
     float terrainFactor = clamp((terrainHeight - actualHeight) / (squashFactor + Epsilon), 0, 1) * (1-IsoLevel) + IsoLevel;
     float density = baseDensity * terrainFactor;
 
-    bool isUnderground = density >= IsoLevel;
-    bool checkUnderground = check.value != 0;
-
-    if(isUnderground != checkUnderground)
-        structs[check.index].valid = 0;
+    return density >= IsoLevel;
 }

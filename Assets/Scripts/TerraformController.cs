@@ -16,7 +16,7 @@ public class TerraformController : MonoBehaviour
     float cutOff;
     float weight;
     bool isAdding;
-    public float selected = -1.0f;
+    public int selected = -1;
     int selectPosition = 0;
 
 
@@ -29,12 +29,12 @@ public class TerraformController : MonoBehaviour
 
 
     [HideInInspector]
-    public Dictionary<float, float> materialInventory = new Dictionary<float, float>();
+    public Dictionary<int, float> materialInventory = new Dictionary<int, float>();
 
-    public float[] getInventoryKeys
+    public int[] getInventoryKeys
     {
         get{
-            float[] keys = new float[materialInventory.Count];
+            int[] keys = new int[materialInventory.Count];
             materialInventory.Keys.CopyTo(keys, 0);
             return keys;
         }
@@ -153,22 +153,22 @@ public class TerraformController : MonoBehaviour
         return delta;
     }
 
-    Vector2 handleTerraform(Vector2 pointInfo, float brushStrength)
+    TerrainChunk.MapData handleTerraform(TerrainChunk.MapData pointInfo, float brushStrength)
     {
         if (isAdding)
         {
-            if (pointInfo.y < cutOff || pointInfo.x == selected)
+            if (pointInfo.density < cutOff || pointInfo.material == selected)
             {
-                float deltaDensity = Mathf.Clamp(pointInfo.y + brushStrength * weight, 0, 1) - pointInfo.y;
-                pointInfo.x = selected;
-                pointInfo.y += RemoveMaterialFromInventory((int)pointInfo.x, deltaDensity);
+                float deltaDensity = Mathf.Clamp(pointInfo.density + brushStrength * weight, 0, 1) - pointInfo.density;
+                pointInfo.material = selected;
+                pointInfo.density += RemoveMaterialFromInventory(pointInfo.material, deltaDensity);
             }
         }
         
-        else if(pointInfo.y > cutOff)
+        else if(pointInfo.density > cutOff)
         {
-            float deltaDensity = pointInfo.y - Mathf.Clamp(pointInfo.y - brushStrength * weight, 0, 1);
-            pointInfo.y -= AddMaterialToInventory((int)pointInfo.x, deltaDensity);
+            float deltaDensity = pointInfo.density - Mathf.Clamp(pointInfo.density - brushStrength * weight, 0, 1);
+            pointInfo.density -= AddMaterialToInventory(pointInfo.material, deltaDensity);
         }
 
         return pointInfo;

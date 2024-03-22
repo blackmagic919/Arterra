@@ -1,3 +1,6 @@
+#ifndef PERLIN_SAMPLER
+#define PERLIN_SAMPLER
+
 #include "Assets/Resources/Utility/Noise.hlsl"
 
 //Lower spread results in more spread out values
@@ -126,3 +129,5 @@ float GetNoise(float3 id, uint samplerIndex, float3 sOffset){
     float rawNoise = GetRawNoise(id, samplerIndex, sOffset);
     return interpolateValue(rawNoise, samplerIndex);
 }
+
+#endif

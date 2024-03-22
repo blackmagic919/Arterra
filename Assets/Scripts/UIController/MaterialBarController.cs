@@ -56,7 +56,7 @@ public class MaterialBarController : MonoBehaviour
         if (totalMaterials == 0)
             return;
         //
-        float[] indexes = terraform.getInventoryKeys;
+        int[] indexes = terraform.getInventoryKeys;
         float[] amounts = terraform.getInventoryValues;
         int maxMaterials = textureData.MaterialDictionary.Count;
 
@@ -65,7 +65,7 @@ public class MaterialBarController : MonoBehaviour
         for (int i = 1; i < totalMaterials; i++)
             percentageCumulative[i] = (amounts[i-1]) / terraform.totalMaterialAmount + percentageCumulative[i - 1];
 
-        ComputeBuffer indexBuffer = new ComputeBuffer(totalMaterials, sizeof(float));
+        ComputeBuffer indexBuffer = new ComputeBuffer(totalMaterials, sizeof(int));
         indexBuffer.SetData(indexes);
 
         ComputeBuffer percentageBuffer = new ComputeBuffer(totalMaterials, sizeof(float));

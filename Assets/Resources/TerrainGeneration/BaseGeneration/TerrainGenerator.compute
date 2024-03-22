@@ -6,7 +6,6 @@ const static uint SURF_STRIDE_4BYTE = 4;
 
 const static int numThreads = 8;
 const static int Epsilon = 0.0001;
-const static float SmoothFactor = 0.9;
 
 struct CaveGen{
     float coarse;

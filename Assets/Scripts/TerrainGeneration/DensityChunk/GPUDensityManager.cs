@@ -64,7 +64,7 @@ public class GPUDensityManager : ScriptableObject
         initialized = false;
     }
 
-    public void SubscribeChunk(ComputeBuffer densityMap, ComputeBuffer materialMap, Vector3 CCoord, int LOD)
+    public void SubscribeChunk(ComputeBuffer chunkData, Vector3 CCoord, int LOD)
     {
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxis = mapChunkSize / meshSkipInc + 1;
@@ -78,18 +78,17 @@ public class GPUDensityManager : ScriptableObject
         ComputeBuffer oAddress = ReplaceAddress(address, CCoord, meshSkipInc);
         this.memorySpace.ReleaseChunk(oAddress);
 
-        TranscribeData(this.memorySpace.AccessStorage(), densityMap, materialMap, address, numPoints);
+        TranscribeData(this.memorySpace.AccessStorage(), chunkData, address, numPoints);
 
         chunkSize.Release();
         address.Release();
         oAddress.Release();
     }
 
-    void TranscribeData(ComputeBuffer memory, ComputeBuffer density, ComputeBuffer material, ComputeBuffer address, int numPoints)
+    void TranscribeData(ComputeBuffer memory, ComputeBuffer chunkData, ComputeBuffer address, int numPoints)
     {
         this.transcribeMapInfo.SetBuffer(0, "_MemoryBuffer", memory);
-        this.transcribeMapInfo.SetBuffer(0, "densityMap", density);
-        this.transcribeMapInfo.SetBuffer(0, "materialMap", material);
+        this.transcribeMapInfo.SetBuffer(0, "chunkData", chunkData);
         this.transcribeMapInfo.SetBuffer(0, "startAddress", address); 
         this.transcribeMapInfo.SetInt("numPoints", numPoints);
 

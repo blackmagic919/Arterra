@@ -23,8 +23,7 @@ public class TerrainChunk : ChunkData
     readonly LODMesh LODMeshHandle;
     readonly LODInfo[] detailLevels;
 
-    float[] storedDensity = null;
-    int[] storedMaterial = null;
+    MapData[] storedMap = null;
     bool hasDensityMap = false;
     public bool active = true;
 
@@ -64,12 +63,12 @@ public class TerrainChunk : ChunkData
         Update();
     }
 
-    public void TerraformChunk(Vector3 targetPosition, float terraformRadius, Func<Vector2, float, Vector2> handleTerraform)
+    public void TerraformChunk(Vector3 targetPosition, float terraformRadius, Func<TerrainChunk.MapData, float, TerrainChunk.MapData> handleTerraform)
     {
         if (!hasDensityMap)
         {
             SurfaceChunk.SurfData maxSurfaceData = LODMeshHandle.surfaceMap.GetMap();
-            (storedDensity, storedMaterial) = meshCreator.GetChunkInfo(structCreator, maxSurfaceData, this.position, IsoLevel, mapChunkSize);
+            storedMap = meshCreator.GetChunkInfo(structCreator, maxSurfaceData, this.position, IsoLevel, mapChunkSize);
             
             hasDensityMap = true;
         }
@@ -100,10 +99,7 @@ public class TerrainChunk : ChunkData
                     float sqrDistWS = worldScale * (dR.x * dR.x + dR.y * dR.y + dR.z * dR.z);
 
                     float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
-
-                    Vector2 ret = handleTerraform(new Vector2(storedMaterial[index], storedDensity[index]), brushStrength);
-                    storedMaterial[index] = (int)ret.x;
-                    storedDensity[index] = ret.y;
+                    storedMap[index] = handleTerraform(storedMap[index], brushStrength);
                 }
             }
         }
@@ -134,7 +130,7 @@ public class TerrainChunk : ChunkData
                 LODMeshHandle.hasRequestedChunk = true;
 
                 if (hasDensityMap){
-                    EndlessTerrain.GenTask computeTask = new EndlessTerrain.GenTask(() => processEvent(() => LODMeshHandle.ComputeChunk(lodInd, ref storedDensity, ref storedMaterial, () => onChunkCreated()), lodInd), taskLoadTable[(int)Utils.priorities.mesh]);
+                    EndlessTerrain.GenTask computeTask = new EndlessTerrain.GenTask(() => processEvent(() => LODMeshHandle.ComputeChunk(lodInd, ref storedMap, () => onChunkCreated()), lodInd), taskLoadTable[(int)Utils.priorities.mesh]);
                     timeRequestQueue.Enqueue(computeTask, (int)Utils.priorities.mesh);
                 }else { 
                     EndlessTerrain.GenTask mapDataTask = new EndlessTerrain.GenTask(() => processEvent(() => LODMeshHandle.GenerateMap(lodInd), lodInd), taskLoadTable[(int)Utils.priorities.generation]);
@@ -192,5 +188,11 @@ public class TerrainChunk : ChunkData
 #else
         GameObject.Destroy(meshObject);
 #endif
+    }
+    
+    public struct MapData
+    {
+        public float density;
+        public int material;
     }
 }

@@ -12,13 +12,13 @@ uint meshSkipInc;
 uint totalPointsPerAxis;
 uint pointsPerAxis;
 
-#ifdef USE_INT
-StructuredBuffer<int> points_full;
-RWStructuredBuffer<int> points;
-#else
-StructuredBuffer<float> points_full;
-RWStructuredBuffer<float> points;
-#endif
+struct mapData{
+    float density;
+    int material;
+};
+
+StructuredBuffer<mapData> points_full;
+RWStructuredBuffer<mapData> points;
 
 [numthreads(numThreads,numThreads,numThreads)]
 void Simplify (uint3 id : SV_DispatchThreadID)

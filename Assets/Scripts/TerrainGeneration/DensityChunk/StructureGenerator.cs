@@ -7,29 +7,20 @@ public static class StructureGenerator
 {
     static ComputeShader StructureLoDSampler;//
     static ComputeShader StructureIdentifier;//
-    static ComputeShader StructureChecks;//
-    static ComputeShader terrainAnalyzerGPU;//
-    static ComputeShader structureCheckFilter;//
     static ComputeShader structureChunkGenerator;//
     static ComputeShader structureDataTranscriber;//
     static ComputeShader structureMemorySize;//
     static ComputeShader structureSizeCounter;//
 
     //Surface Shaders
-    static ComputeShader biomeMapGenerator; // 
     
     static StructureGenerator(){
         StructureLoDSampler = Resources.Load<ComputeShader>("TerrainGeneration/Structures/StructureLODSampler");
         StructureIdentifier = Resources.Load<ComputeShader>("TerrainGeneration/Structures/StructureIdentifier");
-        StructureChecks = Resources.Load<ComputeShader>("TerrainGeneration/Structures/StructureCheckPoint");
-        terrainAnalyzerGPU = Resources.Load<ComputeShader>("TerrainGeneration/Structures/TerrainAnalyzerGPU");
-        structureCheckFilter = Resources.Load<ComputeShader>("TerrainGeneration/Structures/StructureCheckFilter");
         structureChunkGenerator = Resources.Load<ComputeShader>("TerrainGeneration/Structures/StructureChunkGenerator");
         structureDataTranscriber = Resources.Load<ComputeShader>("TerrainGeneration/Structures/TranscribeStructPoints");
         structureMemorySize = Resources.Load<ComputeShader>("TerrainGeneration/Structures/StructureMemorySize");
         structureSizeCounter = Resources.Load<ComputeShader>("TerrainGeneration/Structures/StructureSizeCounter");
-
-        biomeMapGenerator = Resources.Load<ComputeShader>("TerrainGeneration/Structures/BiomeGenerator");
     }
     
     public static ComputeBuffer SampleStructureLoD(int maxLoD, int chunkSize, float LoDFalloff, int structurePoints0, int maxStructurePoints, Vector3 chunkCoord, ref Queue<ComputeBuffer> bufferHandle)
@@ -54,51 +45,39 @@ public static class StructureGenerator
 
         return structurePoints;
     }
-
-    public static ComputeBuffer IdentifyStructures(ComputeBuffer structurePoints, ComputeBuffer args, ComputeBuffer count, ComputeBuffer biomes, Vector3 chunkCoord, int chunkSize, int maxPoints, ref Queue<ComputeBuffer> bufferHandle)
+    
+    public static ComputeBuffer IdentifyStructures(ComputeBuffer structurePoints, ComputeBuffer args, ComputeBuffer count, int[] samplers, float[] heights, 
+                                    Vector3 chunkCoord, Vector3 offset, float IsoLevel, int chunkSize, int maxPoints, ref Queue<ComputeBuffer> bufferHandle)
     {
-        ComputeBuffer results = new ComputeBuffer(maxPoints, sizeof(float) * 3 + sizeof(uint) * 5, ComputeBufferType.Append);
+        ComputeBuffer results = new ComputeBuffer(maxPoints, sizeof(float) * 3 + sizeof(uint) * 3, ComputeBufferType.Append);
         bufferHandle.Enqueue(results);
 
-        StructureIdentifier.SetBuffer(0, "biome", biomes);
-        StructureIdentifier.SetBuffer(0, "structurePoints", structurePoints);
-        StructureIdentifier.SetBuffer(0, "numPoints", count);
-        StructureIdentifier.SetInts("originChunkCoord", new int[] { (int)chunkCoord.x, (int)chunkCoord.y, (int)chunkCoord.z });
-        StructureIdentifier.SetInt("chunkSize", chunkSize);
+        StructureIdentifier.SetInt("caveCoarseSampler", samplers[0]);
+        StructureIdentifier.SetInt("caveFineSampler", samplers[1]);
+        StructureIdentifier.SetInt("continentalSampler", samplers[2]);
+        StructureIdentifier.SetInt("erosionSampler", samplers[3]);
+        StructureIdentifier.SetInt("PVSampler", samplers[4]);
+        StructureIdentifier.SetInt("squashSampler", samplers[5]);
+        StructureIdentifier.SetInt("atmosphereSampler", samplers[6]);
+        StructureIdentifier.SetInt("humiditySampler", samplers[7]);
 
-        StructureIdentifier.SetBuffer(0, "structurePlans", results);
+        StructureIdentifier.SetFloat("continentalHeight", heights[0]);
+        StructureIdentifier.SetFloat("PVHeight", heights[1]);
+        StructureIdentifier.SetFloat("squashHeight", heights[2]);
+        StructureIdentifier.SetFloat("heightOffset", heights[3]);
+        StructureIdentifier.SetFloat("IsoLevel", IsoLevel);
+
+        StructureIdentifier.SetBuffer(0, "structurePlan", structurePoints);
+        StructureIdentifier.SetBuffer(0, "numPoints", count);
+        StructureIdentifier.SetInts("CCoord", new int[] { (int)chunkCoord.x, (int)chunkCoord.y, (int)chunkCoord.z });
+        StructureIdentifier.SetInt("chunkSize", chunkSize);
+        SetSampleData(StructureIdentifier, offset, chunkSize, 1);
+
+        StructureIdentifier.SetBuffer(0, "genStructures", results);
 
         StructureIdentifier.DispatchIndirect(0, args);
 
         return results;
-    }
-
-    public static ComputeBuffer CreateChecks(ComputeBuffer structures, ComputeBuffer args, ComputeBuffer count, int maxPoints, ref Queue<ComputeBuffer> bufferHandle)
-    {
-        ComputeBuffer results = new ComputeBuffer(maxPoints, sizeof(uint) * 2 + sizeof(float) * 3, ComputeBufferType.Append);
-        bufferHandle.Enqueue(results);
-
-        StructureChecks.SetBuffer(0, "structures", structures);
-        StructureChecks.SetBuffer(0, "numPoints", count);
-        StructureChecks.SetBuffer(0, "checks", results);
-
-        StructureChecks.DispatchIndirect(0, args);
-
-        return results;
-    }
-    public static ComputeBuffer FilterStructures(ComputeBuffer structures, ComputeBuffer args, ComputeBuffer count, int maxPoints, ref Queue<ComputeBuffer> bufferHandle)
-    {
-        ComputeBuffer result = new ComputeBuffer(maxPoints, sizeof(float) * 3 + sizeof(uint) * 3, ComputeBufferType.Append);
-        result.SetCounterValue(0);
-        bufferHandle.Enqueue(result);
-
-        structureCheckFilter.SetBuffer(0, "numPoints", count);
-        structureCheckFilter.SetBuffer(0, "structureInfos", structures);
-        structureCheckFilter.SetBuffer(0, "validStructures", result);
-
-        structureCheckFilter.DispatchIndirect(0, args);
-
-        return result;
     }
 
     public static ComputeBuffer CalculateStructureSize(ComputeBuffer structureCount, int structureStride, ref Queue<ComputeBuffer> bufferHandle)
@@ -129,23 +108,89 @@ public static class StructureGenerator
         structureDataTranscriber.DispatchIndirect(0, args);
     }
 
-    public static ComputeBuffer AnalyzeBiome(ComputeBuffer structs, ComputeBuffer args, ComputeBuffer count, int[] samplers, Vector3 offset, int chunkSize, int maxPoints, Queue<ComputeBuffer> bufferHandle)
+    public static ComputeBuffer GetStructCount(ComputeBuffer memory, ComputeBuffer address, int addressIndex, int STRUCTURE_STRIDE_4BYTE, ref Queue<ComputeBuffer> bufferHandle)
     {
-        ComputeBuffer result = new ComputeBuffer(maxPoints, sizeof(int), ComputeBufferType.Structured);
+        ComputeBuffer structCount = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
+        bufferHandle.Enqueue(structCount);
+
+        structureSizeCounter.SetBuffer(0, "_MemoryBuffer", memory);
+        structureSizeCounter.SetBuffer(0, "_AddressDict", address);
+        structureSizeCounter.SetInt("addressIndex", addressIndex);
+        structureSizeCounter.SetInt("STRUCTURE_STRIDE_4BYTE", STRUCTURE_STRIDE_4BYTE);
+
+        structureSizeCounter.SetBuffer(0, "structCount", structCount);
+        structureSizeCounter.Dispatch(0, 1, 1, 1);
+
+        return structCount;
+    }
+    
+    public static void ApplyStructures(ComputeBuffer memory, ComputeBuffer addresses, ComputeBuffer count, ComputeBuffer chunkData, int addressIndex, int chunkSize, int meshSkipInc, float IsoLevel, ref Queue<ComputeBuffer> bufferHandle)
+    {
+        ComputeBuffer args = UtilityBuffers.CountToArgs(structureChunkGenerator, count);
+
+        structureChunkGenerator.SetBuffer(0, "_MemoryBuffer", memory);
+        structureChunkGenerator.SetBuffer(0, "_AddressDict", addresses);
+        structureChunkGenerator.SetInt("addressIndex", addressIndex);
+
+        structureChunkGenerator.SetBuffer(0, "numPoints", count);
+
+        structureChunkGenerator.SetBuffer(0, "chunkData", chunkData);
+        structureChunkGenerator.SetInt("chunkSize", chunkSize);
+        structureChunkGenerator.SetInt("meshSkipInc", meshSkipInc);
+        structureChunkGenerator.SetFloat("IsoLevel", IsoLevel);
+
+        structureChunkGenerator.DispatchIndirect(0, args);
+    }
+
+    /*
+
+    public static void AnalyzeTerrain(ComputeBuffer checks, ComputeBuffer structs, ComputeBuffer args, ComputeBuffer count, int[] samplers, float[] heights, Vector3 offset, int chunkSize, float IsoLevel)
+    {
+        terrainAnalyzerGPU.SetBuffer(0, "numPoints", count);
+        terrainAnalyzerGPU.SetBuffer(0, "checks", checks);
+        terrainAnalyzerGPU.SetBuffer(0, "structs", structs);//output
+        terrainAnalyzerGPU.SetFloat("IsoLevel", IsoLevel);
+
+        terrainAnalyzerGPU.SetInt("caveCoarseSampler", samplers[0]);
+        terrainAnalyzerGPU.SetInt("caveFineSampler", samplers[1]);
+        terrainAnalyzerGPU.SetInt("continentalSampler", samplers[2]);
+        terrainAnalyzerGPU.SetInt("erosionSampler", samplers[3]);
+        terrainAnalyzerGPU.SetInt("PVSampler", samplers[4]);
+        terrainAnalyzerGPU.SetInt("squashSampler", samplers[5]);
+
+        terrainAnalyzerGPU.SetFloat("continentalHeight", heights[0]);
+        terrainAnalyzerGPU.SetFloat("PVHeight", heights[1]);
+        terrainAnalyzerGPU.SetFloat("squashHeight", heights[2]);
+        terrainAnalyzerGPU.SetFloat("heightOffset", heights[3]);
+        SetSampleData(terrainAnalyzerGPU, offset, chunkSize, 1);
+
+        terrainAnalyzerGPU.DispatchIndirect(0, args);
+    }
+
+    public static ComputeBuffer CreateChecks(ComputeBuffer structures, ComputeBuffer args, ComputeBuffer count, int maxPoints, ref Queue<ComputeBuffer> bufferHandle)
+    {
+        ComputeBuffer results = new ComputeBuffer(maxPoints, sizeof(uint) * 2 + sizeof(float) * 3, ComputeBufferType.Append);
+        bufferHandle.Enqueue(results);
+
+        StructureChecks.SetBuffer(0, "structures", structures);
+        StructureChecks.SetBuffer(0, "numPoints", count);
+        StructureChecks.SetBuffer(0, "checks", results);
+
+        StructureChecks.DispatchIndirect(0, args);
+
+        return results;
+    }
+    public static ComputeBuffer FilterStructures(ComputeBuffer structures, ComputeBuffer args, ComputeBuffer count, int maxPoints, ref Queue<ComputeBuffer> bufferHandle)
+    {
+        ComputeBuffer result = new ComputeBuffer(maxPoints, sizeof(float) * 3 + sizeof(uint) * 3, ComputeBufferType.Append);
+        result.SetCounterValue(0);
         bufferHandle.Enqueue(result);
 
-        biomeMapGenerator.SetBuffer(0, "structOrigins", structs);
-        biomeMapGenerator.SetBuffer(0, "numPoints", count);
-        biomeMapGenerator.SetBuffer(0, "biomeMap", result);
-        biomeMapGenerator.SetInt("continentalSampler", samplers[0]);
-        biomeMapGenerator.SetInt("erosionSampler", samplers[1]);
-        biomeMapGenerator.SetInt("PVSampler", samplers[2]);
-        biomeMapGenerator.SetInt("squashSampler", samplers[3]);
-        biomeMapGenerator.SetInt("atmosphereSampler", samplers[4]);
-        biomeMapGenerator.SetInt("humiditySampler", samplers[5]);
-        SetSampleData(biomeMapGenerator, offset, chunkSize, 1);
+        structureCheckFilter.SetBuffer(0, "numPoints", count);
+        structureCheckFilter.SetBuffer(0, "structureInfos", structures);
+        structureCheckFilter.SetBuffer(0, "validStructures", result);
 
-        biomeMapGenerator.DispatchIndirect(0, args);
+        structureCheckFilter.DispatchIndirect(0, args);
 
         return result;
     }
@@ -170,70 +215,28 @@ public static class StructureGenerator
         
         PresetNoiseData(sampler, noiseData);
     }
-
-    public static void AnalyzeTerrain(ComputeBuffer checks, ComputeBuffer structs, ComputeBuffer args, ComputeBuffer count, int[] samplers, float[] heights, Vector3 offset, int chunkSize, float IsoLevel)
-    {
-        float chunkYOrigin = offset.y - (chunkSize/2);
-
-        terrainAnalyzerGPU.SetBuffer(0, "numPoints", count);
-        terrainAnalyzerGPU.SetBuffer(0, "checks", checks);
-        terrainAnalyzerGPU.SetBuffer(0, "structs", structs);//output
-
-        terrainAnalyzerGPU.SetFloat("chunkYOrigin", chunkYOrigin);
-        terrainAnalyzerGPU.SetFloat("IsoLevel", IsoLevel);
-
-        terrainAnalyzerGPU.SetInt("caveCoarseSampler", samplers[0]);
-        terrainAnalyzerGPU.SetInt("caveFineSampler", samplers[1]);
-        terrainAnalyzerGPU.SetInt("continentalSampler", samplers[2]);
-        terrainAnalyzerGPU.SetInt("erosionSampler", samplers[3]);
-        terrainAnalyzerGPU.SetInt("PVSampler", samplers[4]);
-        terrainAnalyzerGPU.SetInt("squashSampler", samplers[5]);
-
-        terrainAnalyzerGPU.SetFloat("continentalHeight", heights[0]);
-        terrainAnalyzerGPU.SetFloat("PVHeight", heights[1]);
-        terrainAnalyzerGPU.SetFloat("squashHeight", heights[2]);
-        terrainAnalyzerGPU.SetFloat("heightOffset", heights[3]);
-        SetSampleData(terrainAnalyzerGPU, offset, chunkSize, 1);
-
-        terrainAnalyzerGPU.DispatchIndirect(0, args);
-    }
-
-    public static ComputeBuffer GetStructCount(ComputeBuffer memory, ComputeBuffer address, int addressIndex, int STRUCTURE_STRIDE_4BYTE, ref Queue<ComputeBuffer> bufferHandle)
-    {
-        ComputeBuffer structCount = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
-        bufferHandle.Enqueue(structCount);
-
-        structureSizeCounter.SetBuffer(0, "_MemoryBuffer", memory);
-        structureSizeCounter.SetBuffer(0, "_AddressDict", address);
-        structureSizeCounter.SetInt("addressIndex", addressIndex);
-        structureSizeCounter.SetInt("STRUCTURE_STRIDE_4BYTE", STRUCTURE_STRIDE_4BYTE);
-
-        structureSizeCounter.SetBuffer(0, "structCount", structCount);
-        structureSizeCounter.Dispatch(0, 1, 1, 1);
-
-        return structCount;
-    }
     
-    public static void ApplyStructures(ComputeBuffer memory, ComputeBuffer addresses, ComputeBuffer count, ComputeBuffer density, ComputeBuffer material, int addressIndex, int chunkSize, int meshSkipInc, float IsoLevel, ref Queue<ComputeBuffer> bufferHandle)
+    public static ComputeBuffer AnalyzeBiome(ComputeBuffer structs, ComputeBuffer args, ComputeBuffer count, int[] samplers, Vector3 offset, int chunkSize, int maxPoints, Queue<ComputeBuffer> bufferHandle)
     {
-        ComputeBuffer args = UtilityBuffers.CountToArgs(structureChunkGenerator, count);
+        ComputeBuffer result = new ComputeBuffer(maxPoints, sizeof(int), ComputeBufferType.Structured);
+        bufferHandle.Enqueue(result);
 
-        structureChunkGenerator.SetBuffer(0, "_MemoryBuffer", memory);
-        structureChunkGenerator.SetBuffer(0, "_AddressDict", addresses);
-        structureChunkGenerator.SetInt("addressIndex", addressIndex);
+        biomeMapGenerator.SetBuffer(0, "structOrigins", structs);
+        biomeMapGenerator.SetBuffer(0, "numPoints", count);
+        biomeMapGenerator.SetBuffer(0, "biomeMap", result);
+        biomeMapGenerator.SetInt("continentalSampler", samplers[0]);
+        biomeMapGenerator.SetInt("erosionSampler", samplers[1]);
+        biomeMapGenerator.SetInt("PVSampler", samplers[2]);
+        biomeMapGenerator.SetInt("squashSampler", samplers[3]);
+        biomeMapGenerator.SetInt("atmosphereSampler", samplers[4]);
+        biomeMapGenerator.SetInt("humiditySampler", samplers[5]);
+        SetSampleData(biomeMapGenerator, offset, chunkSize, 1);
 
-        structureChunkGenerator.SetBuffer(0, "numPoints", count);
+        biomeMapGenerator.DispatchIndirect(0, args);
 
-        structureChunkGenerator.SetBuffer(0, "density", density);
-        structureChunkGenerator.SetBuffer(0, "material", material);
-        structureChunkGenerator.SetInt("chunkSize", chunkSize);
-        structureChunkGenerator.SetInt("meshSkipInc", meshSkipInc);
-        structureChunkGenerator.SetFloat("IsoLevel", IsoLevel);
-
-        structureChunkGenerator.DispatchIndirect(0, args);
+        return result;
     }
 
-    /*
     public static ComputeBuffer AnalyzeNoiseMapGPU(ComputeBuffer checks, ComputeBuffer count, NoiseData noiseData, Vector3 offset, float maxInfluenceHeight, int chunkSize, int maxPoints, bool sample2D, bool interp, bool centerNoise, Queue<ComputeBuffer> bufferHandle){
         ComputeBuffer args = UtilityBuffers.CountToArgs(checkNoiseSampler, count);
         return AnalyzeNoiseMapGPU(checks, args, count, noiseData, offset, maxInfluenceHeight, chunkSize, maxPoints, sample2D, interp, centerNoise, bufferHandle);

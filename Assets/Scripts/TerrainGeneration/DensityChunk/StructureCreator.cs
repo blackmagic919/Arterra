@@ -65,8 +65,6 @@ public class StructureCreator
     {
         ReleaseStructure();
 
-        Vector3 offset3D = new Vector3(offset.x, 0, offset.z);
-
         int maxStructurePoints = calculateMaxStructurePoints(meshSettings.biomeData.maxLoD, meshSettings.biomeData.StructureChecksPerChunk, meshSettings.biomeData.LoDFalloff);
 
         ComputeBuffer planPointsAppend = SampleStructureLoD(meshSettings.biomeData.maxLoD, chunkSize, meshSettings.biomeData.LoDFalloff, meshSettings.biomeData.StructureChecksPerChunk, maxStructurePoints, chunkCoord, ref tempBuffers);
@@ -74,18 +72,7 @@ public class StructureCreator
         ComputeBuffer planCount = UtilityBuffers.CopyCount(planPointsAppend, tempBuffers);
         ComputeBuffer planArgs = UtilityBuffers.CountToArgs(THREAD_GROUP_SIZE, planCount, tempBuffers);
 
-        ComputeBuffer biomes = AnalyzeBiomeMap(planPointsAppend, planArgs, planCount, offset3D, chunkSize, maxStructurePoints);
-        ComputeBuffer structureInfo = IdentifyStructures(planPointsAppend, planArgs, planCount, biomes, chunkCoord, chunkSize, maxStructurePoints, ref tempBuffers);
-        
-        ComputeBuffer structCount = UtilityBuffers.CopyCount(structureInfo, tempBuffers);
-        ComputeBuffer structArgs = UtilityBuffers.CountToArgs(THREAD_GROUP_SIZE, structCount, tempBuffers);
-
-        ComputeBuffer checkPoints = CreateChecks(structureInfo, structArgs, structCount, maxStructurePoints, ref tempBuffers);//change maxPoints
-        ComputeBuffer checkCount = UtilityBuffers.CopyCount(checkPoints, tempBuffers);
-        ComputeBuffer checkArgs = UtilityBuffers.CountToArgs(THREAD_GROUP_SIZE, checkCount, tempBuffers);
-        
-        AnalyzeTerrainMap(checkPoints, structureInfo, checkArgs, checkCount, offset, chunkSize, IsoLevel);
-        ComputeBuffer structureBuffer = FilterStructures(structureInfo, structArgs, structCount, maxStructurePoints, ref tempBuffers);
+        ComputeBuffer structureBuffer = IdentifyStructures(planPointsAppend, planArgs, planCount, chunkCoord, offset, IsoLevel, chunkSize, maxStructurePoints);
 
         ComputeBuffer structureCount = UtilityBuffers.CopyCount(structureBuffer, tempBuffers);
         ComputeBuffer structByteSize = CalculateStructureSize(structureCount, STRUCTURE_STRIDE_4BYTE, ref tempBuffers);
@@ -98,40 +85,31 @@ public class StructureCreator
         return;
     }
 
-    public void GenerateStrucutresGPU(ComputeBuffer pointBuffer, ComputeBuffer materialBuffer, int chunkSize, int LOD, float IsoLevel)
+    public void GenerateStrucutresGPU(ComputeBuffer baseBuffer, int chunkSize, int LOD, float IsoLevel)
     {
         int meshSkipInc = meshSkipTable[LOD];
         
         ComputeBuffer structCount = GetStructCount(meshSettings.structureMemory.AccessStorage(), meshSettings.structureMemory.AccessAddresses(), 
                                                    (int)structureDataIndex, STRUCTURE_STRIDE_4BYTE, ref tempBuffers);
         
-        ApplyStructures(meshSettings.structureMemory.AccessStorage(), meshSettings.structureMemory.AccessAddresses(), structCount, pointBuffer, 
-                        materialBuffer, (int)structureDataIndex, chunkSize, meshSkipInc, IsoLevel, ref tempBuffers);
+        ApplyStructures(meshSettings.structureMemory.AccessStorage(), meshSettings.structureMemory.AccessAddresses(), structCount, 
+                        baseBuffer, (int)structureDataIndex, chunkSize, meshSkipInc, IsoLevel, ref tempBuffers);
 
         ReleaseTempBuffers();
         return;
     }
 
-    public ComputeBuffer AnalyzeBiomeMap(ComputeBuffer rawPositions, ComputeBuffer args, ComputeBuffer count, Vector3 offset, int chunkSize, int maxPoints)
+    public ComputeBuffer IdentifyStructures(ComputeBuffer structurePoints, ComputeBuffer args, ComputeBuffer count, Vector3 CCoord, Vector3 offset, float IsoLevel, int chunkSize, int maxPoints)
     {
-        int[] samplers = new int[6]{surfSettings.TerrainContinentalDetail, surfSettings.TerrainErosionDetail, surfSettings.TerrainPVDetail, 
-                                    surfSettings.SquashMapDetail, surfSettings.AtmosphereDetail, surfSettings.HumidityDetail};
-
-        ComputeBuffer biome = AnalyzeBiome(rawPositions, args, count, samplers, offset, chunkSize, maxPoints, tempBuffers);
-
-        return biome;
-    }
-
-    public void AnalyzeTerrainMap(ComputeBuffer checks, ComputeBuffer structs, ComputeBuffer args, ComputeBuffer count, Vector3 offset, int chunkSize, float IsoLevel)
-    {
-        int[] samplers = new int[6]{meshSettings.CoarseTerrainNoise, meshSettings.FineTerrainNoise, surfSettings.TerrainContinentalDetail, 
-                                    surfSettings.TerrainErosionDetail, surfSettings.TerrainPVDetail, surfSettings.SquashMapDetail};
+        int[] samplers = new int[8]{meshSettings.CoarseTerrainNoise, meshSettings.FineTerrainNoise, surfSettings.TerrainContinentalDetail, surfSettings.TerrainErosionDetail, 
+                                    surfSettings.TerrainPVDetail, surfSettings.SquashMapDetail, surfSettings.AtmosphereDetail, surfSettings.HumidityDetail};
         
         float[] heights = new float[4]{surfSettings.MaxContinentalHeight, surfSettings.MaxPVHeight, surfSettings.MaxSquashHeight, surfSettings.terrainOffset};
 
-        AnalyzeTerrain(checks, structs, args, count, samplers, heights, offset, chunkSize, IsoLevel);
-    }
+        ComputeBuffer biome = StructureGenerator.IdentifyStructures(structurePoints, args, count, samplers, heights, CCoord, offset, IsoLevel, chunkSize, maxPoints, ref tempBuffers);
 
+        return biome;
+    }
     /*
     public ComputeBuffer AnalyzeCaveTerrain(ComputeBuffer points, ComputeBuffer count, Vector3 offset, int chunkSize, int maxPoints){
         ComputeBuffer coarseDetail = AnalyzeNoiseMapGPU(points, count, meshSettings.CoarseTerrainNoise, offset, 1, chunkSize, maxPoints, false, true, false, tempBuffers);

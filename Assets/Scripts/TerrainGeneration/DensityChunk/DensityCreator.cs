@@ -26,50 +26,37 @@ public class MeshCreator
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
     const int MESH_TRIANGLES_STRIDE = (sizeof(float) * 3 * 2 + sizeof(int) * (2 + 1)) * 3;
-    const int STRUCTURE_STRIDE_4BYTE = 3 + 2 + 1;
 
     public MeshCreator(MeshCreatorSettings settings){
         this.settings = settings;
     }
 
-    public (float[], int[]) GetChunkInfo(StructureCreator structCreator, SurfaceChunk.SurfData surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
+    public TerrainChunk.MapData[] GetChunkInfo(StructureCreator structCreator, SurfaceChunk.SurfData surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
     {
         int numPointsAxes = chunkSize + 1;
         int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
 
-        ComputeBuffer densityBuffer = GenerateDensity(surfaceData, offset, 0, chunkSize, IsoLevel);
-        ComputeBuffer materialBuffer = GenerateMaterials(surfaceData, densityBuffer, offset, 0, chunkSize, IsoLevel);
-        structCreator.GenerateStrucutresGPU(densityBuffer, materialBuffer, chunkSize, 0, IsoLevel);
+        ComputeBuffer chunkData = GenerateBaseChunk(surfaceData, offset, 0, chunkSize, IsoLevel);
+        structCreator.GenerateStrucutresGPU(chunkData, chunkSize, 0, IsoLevel);
 
-        float[] density = new float[numOfPoints];
-        int[] material = new int[numOfPoints];
+        TerrainChunk.MapData[] chunkMap = new TerrainChunk.MapData[numOfPoints];
 
-        densityBuffer.GetData(density);
-        materialBuffer.GetData(material);
-
+        chunkData.GetData(chunkMap);
         ReleaseTempBuffers();
 
-        return (density, material);
+        return chunkMap;
     }
 
-    public ComputeBuffer GenerateDensity(SurfaceChunk.SurfData surfaceData, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
+    public ComputeBuffer GenerateBaseChunk(SurfaceChunk.SurfData surfaceData, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
     {
         int meshSkipInc = meshSkipTable[LOD];
-        ComputeBuffer density = GenerateTerrain(chunkSize, meshSkipInc, surfaceData, settings.CoarseTerrainNoise, settings.FineTerrainNoise, offset, IsoLevel, ref tempBuffers);
+        int[] samplers = new int[4] {settings.CoarseTerrainNoise, settings.FineTerrainNoise, settings.CoarseMaterialNoise, settings.FineMaterialNoise};
 
-        return density;
+        ComputeBuffer baseMap = GenerateBaseData(surfaceData, samplers, IsoLevel, chunkSize, meshSkipInc, offset, ref tempBuffers);
+        return baseMap;
     }
 
-    public ComputeBuffer GenerateMaterials(SurfaceChunk.SurfData surfaceData, ComputeBuffer densityMap, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
-    {
-        int meshSkipInc = meshSkipTable[LOD];
-
-        ComputeBuffer materialBuffer = GenerateMat(surfaceData, densityMap, settings.CoarseMaterialNoise, settings.FineMaterialNoise,
-                                                    IsoLevel, chunkSize, meshSkipInc, offset, ref tempBuffers);
-        return materialBuffer;
-    }
-
-    public (ComputeBuffer, ComputeBuffer) SetMapInfo(int LOD, int chunkSize, float[] density = null, int[] material = null)
+    public ComputeBuffer SetMapInfo(int LOD, int chunkSize, TerrainChunk.MapData[] chunkData)
     {
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxes = chunkSize / meshSkipInc + 1;
@@ -77,16 +64,10 @@ public class MeshCreator
         /*(numPoints-1)^3 cubes. A cube can have a maximum of 5 triangles. Though this is correct,
         it is usually way above the amount of actual triangles that exist(as mesh gets larger)*/
 
-        ComputeBuffer pointBuffer = new ComputeBuffer(numOfPoints, sizeof(float));
-        ComputeBuffer materialBuffer = new ComputeBuffer(numOfPoints, sizeof(int));
+        ComputeBuffer chunkMap = new ComputeBuffer(numOfPoints, sizeof(float) + sizeof(int));
+        SimplifyMap(chunkSize, meshSkipInc, chunkData, chunkMap, ref tempBuffers);
 
-        tempBuffers.Enqueue(pointBuffer);
-        tempBuffers.Enqueue(materialBuffer);
-
-        SimplifyDensity(chunkSize, meshSkipInc, density, pointBuffer, ref tempBuffers);
-        SimplifyMaterials(chunkSize, meshSkipInc, material, materialBuffer, ref tempBuffers);
-
-        return (pointBuffer, materialBuffer);
+        return chunkMap;
     }
 
     struct structurInfo
@@ -116,6 +97,25 @@ public class MeshCreator
 
     }
 
+    public void ReleaseTempBuffers()
+    {
+        while (tempBuffers.Count > 0)
+        {
+            tempBuffers.Dequeue()?.Release();
+        }
+    }
+}
+
+/*
+public ComputeBuffer GenerateDensity(SurfaceChunk.SurfData surfaceData, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
+{
+    int meshSkipInc = meshSkipTable[LOD];
+    ComputeBuffer density = GenerateTerrain(chunkSize, meshSkipInc, surfaceData, settings.CoarseTerrainNoise, settings.FineTerrainNoise, offset, IsoLevel, ref tempBuffers);
+
+    return density;
+}*/
+
+/* old Direct Readback logic
     public MeshInfo ReadBackMesh(ComputeBuffer sourceMeshBuffer)
     {
         MeshInfo chunk = new MeshInfo();
@@ -164,7 +164,7 @@ public class MeshCreator
         return chunk;
 
     }
-    /*
+    
     public Dictionary<int, Mesh> CreateSpecialMeshes(SpecialShaderData[] specialShaderData, MeshInfo terrainData)
     {
         Dictionary<int, Mesh> meshes = new Dictionary<int, Mesh>();
@@ -262,24 +262,7 @@ public class MeshCreator
     public void GenerateStructures(Vector3 CCoord, float IsoLevel, int LOD, int chunkSize)
     {
         GenerateStructures(CCoord, IsoLevel, LOD, chunkSize, out float[] _, apply: true);
-    }*/
-
-
-
-    public void ReleaseTempBuffers()
-    {
-        while (tempBuffers.Count > 0)
-        {
-            tempBuffers.Dequeue()?.Release();
-        }
     }
-
-
-    public void OnDisable()
-    {
-        ReleaseTempBuffers();
-    }
-
     public struct TriangleConst
     {
         #pragma warning disable 649
@@ -311,11 +294,11 @@ public class MeshCreator
             }
         }
     }
-}
-
+*/
 
 
 /* old async logic that's too slow
+
     public void onTrianglesRecieved(AsyncGPUReadbackRequest request)
     {
         int[] data = request.GetData<int>().ToArray();
