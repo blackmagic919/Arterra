@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "Generation/Biome Conditions")]
-public class BiomeConditionsData : ScriptableObject
+public class BiomeConditionsData : UpdatableData
 {
     [Space(10)]
     [Range(0, 1)]
@@ -40,7 +40,7 @@ public class BiomeConditionsData : ScriptableObject
     [Range(0, 1)]
     public float HumidEnd;
 
-    private void OnValidate()
+    protected override void OnValidate()
     {
         ErosionEnd = Mathf.Max(ErosionStart, ErosionEnd);
         ContinentalEnd = Mathf.Max(ContinentalStart, ContinentalEnd);
@@ -48,6 +48,8 @@ public class BiomeConditionsData : ScriptableObject
         SquashEnd = Mathf.Max(SquashStart, SquashEnd);
         TempEnd = Mathf.Max(TempStart, TempEnd);
         HumidEnd = Mathf.Max(HumidStart, HumidEnd);
+
+        base.OnValidate();
     }
 
 }

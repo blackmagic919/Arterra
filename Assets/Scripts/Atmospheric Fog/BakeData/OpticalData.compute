@@ -1,0 +1,69 @@
+#pragma kernel Bake
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
+#include "Assets/Scripts/TerrainGeneration/DensityManager/WSDensitySampler.hlsl"
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.hlsl"
+
+struct OpticalInfo{
+    float opticalDensity;
+    float3 scatterCoeffs;
+    float extinctionCoeff;
+};
+
+RWStructuredBuffer<OpticalInfo> mapData;
+StructuredBuffer<float3> rayDirs;
+StructuredBuffer<float2> rayLengths;
+uint screenHeight;
+uint screenWidth;
+
+float _AtmosphereRadius;
+uint _NumInScatterPoints;
+uint _NumOpticalDepthPoints;
+float _IsoLevel;
+
+OpticalInfo CumulativeMapInfo(float3 rayOrigin, float3 rayDir, float rayLength){
+    float3 densitySamplePoint = rayOrigin;
+    float stepSize = rayLength / (_NumOpticalDepthPoints - 1);
+    OpticalInfo info = (OpticalInfo)0;
+    for(uint i = 0; i < _NumOpticalDepthPoints; i++){
+        SurMapData sampleData = SampleMapData(densitySamplePoint);
+
+        info.opticalDensity += GetDensity(sampleData) / _IsoLevel;
+        info.scatterCoeffs += GetScatterCoeffs(sampleData);
+        info.extinctionCoeff += GetExtinction(sampleData);
+
+        densitySamplePoint += rayDir * stepSize;
+    }
+    info.opticalDensity /= (_NumOpticalDepthPoints-1);
+    info.scatterCoeffs /= (_NumOpticalDepthPoints-1);
+    info.extinctionCoeff /= (_NumOpticalDepthPoints-1);
+    
+    return info;
+}
+
+const static uint numThreads = 8;
+[numthreads(numThreads,numThreads,numThreads)]
+void Bake (uint3 id : SV_DispatchThreadID)
+{
+    uint viewX = id.x;
+    uint viewY = id.y;
+    uint depth = id.z;
+
+    if(viewX >= screenWidth || viewY >= screenHeight || depth >= _NumInScatterPoints)
+        return;
+    
+    uint pixelIndex = indexFromCoord2DManual(viewX, viewY, screenWidth);
+    float3 rayDir = rayDirs[pixelIndex];
+    float2 lengths = rayLengths[pixelIndex];
+    float rayLength = lengths.y;
+    
+    float3 rayOrigin = _WorldSpaceCameraPos + rayDir * lengths.x;
+
+    float stepSize = rayLength / (_NumInScatterPoints - 1);
+    float3 inScatterPoint = rayOrigin + rayDir * stepSize * depth;
+    OpticalInfo opticalInfo = CumulativeMapInfo(inScatterPoint, rayDir, stepSize); 
+
+    uint texelIndex = indexFromCoordIrregular(viewX, viewY, depth, screenWidth, screenHeight);
+    mapData[texelIndex] = opticalInfo;
+}

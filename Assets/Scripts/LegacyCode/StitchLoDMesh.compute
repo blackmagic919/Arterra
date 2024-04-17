@@ -1,9 +1,9 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-#include "Assets/Resources/Utility/GetIndex.hlsl"
-#include "Assets/Resources/MapData/CCoordHash.hlsl"
-#include "Assets/Resources/Utility/BlendHelper.hlsl"
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.hlsl"
+#include "Assets/Scripts/TerrainGeneration/DensityManager/CCoordHash.hlsl"
+#include "Assets/Scripts/TerrainGeneration/DensityManager/BlendHelper.hlsl"
 
 const static int numThreads = 8;
 

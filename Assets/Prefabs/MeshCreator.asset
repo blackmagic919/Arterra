@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd2c618eff9714d1b8dad6fccbcfbf1e, type: 3}
+  m_Name: MeshCreator
+  m_EditorClassIdentifier: 
+  structureMemory: {fileID: 11400000, guid: 333e208760bd64ad6af53d09071df190, type: 2}
+  TerrainNoise: {fileID: 11400000, guid: e03d286ba66aa46238fedf83be699d0b, type: 2}
+  MaterialCoarseNoise: {fileID: 11400000, guid: 59376b1bd76944978a461173821c7078, type: 2}
+  MaterialFineNoise: {fileID: 11400000, guid: 7cfb22d5ff9cf40f1a397544e3c84704, type: 2}
+  densityGenerator: {fileID: 11400000, guid: c4f9ccdbf13b143ba8fc973aa568bc64, type: 2}
+  mapCreator: {fileID: 11400000, guid: 059fbd96e92fc48f58e23299045cf3d1, type: 2}
+  biomeData: {fileID: 11400000, guid: a50efbb6521ad475786885000f19947c, type: 2}
+  textureData: {fileID: 11400000, guid: 68574011324274a58acce0da69b5d4f7, type: 2}

@@ -1,0 +1,100 @@
+#pragma kernel Generate
+#pragma multi_compile _ HAS_EXISTING_MATERIALS
+
+#include "Assets/Scripts/TerrainGeneration/ComputeShaders/Includes/GetIndex.hlsl"
+
+
+struct density{
+    int lowerLimit;
+    int upperLimit;
+    int center;
+
+    float multiplier;
+    float power;
+};
+
+StructuredBuffer<float> coarseMatDetail;
+StructuredBuffer<float> fineMatDetail;
+StructuredBuffer<int> biomeMap;
+RWStructuredBuffer<int> material;
+
+StructuredBuffer<uint> _BiomeMaterialCount;
+StructuredBuffer<float2> _BiomeMaterialNoisePref;
+StructuredBuffer<density> _BiomeMaterialVerticalPref;
+StructuredBuffer<int> _BiomeMaterialIndexBuffer;
+
+
+float offsetY;
+float meshSkipInc;
+float chunkSize;
+
+const static int numThreads = 8;
+
+float invLerp(float val, float min, float max){
+    return (val - min) / (max-min);
+}
+
+float GetNoiseCentered(float val, float center, float bottom, float top){
+    float clamped = clamp(val, bottom, top);
+    float ret;
+    if (clamped > center)
+        ret = 1-invLerp(clamped, center, top);
+    else
+        ret = invLerp(clamped, bottom, center);
+    return ret;
+}
+
+float GetHeigtPref(uint matInd, float posY){
+    density pref = _BiomeMaterialVerticalPref[matInd];
+    float heightFactor = GetNoiseCentered(posY, pref.center, pref.lowerLimit, pref.upperLimit);
+    float densityValue = pow(abs(heightFactor), pref.power);
+    return densityValue * pref.multiplier;
+}
+
+int GetBiomeMaterial(float coarse, float fine, uint biome, float posY){
+    uint biomeStartIndex = _BiomeMaterialCount[biome];
+    uint biomeEndIndex = _BiomeMaterialCount[biome+1];
+
+    int bestMat = 0;
+    float maxWeight = -1.0f;
+    
+    for(uint matInd = biomeStartIndex; matInd < biomeEndIndex; matInd++){
+        float finePref = _BiomeMaterialNoisePref[matInd].x;
+        float noiseCenter = _BiomeMaterialNoisePref[matInd].y;
+
+        float coarseCentered = GetNoiseCentered(coarse, noiseCenter, 0, 1);
+        float fineCentered = GetNoiseCentered(fine, noiseCenter, 0, 1);
+
+        float baseWeight = finePref * coarseCentered + (1.0f-finePref) * fineCentered;
+        float heightPref = GetHeigtPref(matInd, posY);
+        float weight = baseWeight * heightPref;
+
+        if(weight > maxWeight){
+            maxWeight = weight;
+            bestMat = _BiomeMaterialIndexBuffer[matInd];
+        }
+    }
+
+    return bestMat;
+}
+
+[numthreads(numThreads, numThreads, numThreads)]
+void Generate (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis ) {
+        return;
+    }
+
+    uint index = indexFromCoord(id.x, id.y, id.z);
+
+    uint biome = max(0, (uint)biomeMap[indexFromCoord2D(id.x, id.z)]);
+    float coarseDetail = coarseMatDetail[index];
+    float fineDetail = fineMatDetail[index];
+
+    float y = id.y * meshSkipInc;
+    float halfHeight = chunkSize / 2;
+    float actualHeight = y - halfHeight + offsetY;
+
+    int matInd = GetBiomeMaterial(coarseDetail, fineDetail, biome, actualHeight);
+    material[index] = matInd;
+}

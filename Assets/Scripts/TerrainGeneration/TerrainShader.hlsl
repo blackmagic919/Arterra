@@ -1,4 +1,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#pragma shader_feature _ INDIRECT 
+//#include "UnityCG.cginc"
+
 
 StructuredBuffer<float4> _BaseColors;
 StructuredBuffer<float> _BaseColorStrength;
@@ -69,6 +72,8 @@ v2f vert (uint vertexID: SV_VertexID){
 
 #else
 
+float3 _TargetPoint;
+float closestDistance;
 float4x4 _LocalToWorld;
 
 struct appdata
@@ -80,7 +85,7 @@ struct appdata
 
 v2f vert (appdata v)
 {
-    v2f o = (v2f)0;
+    v2f o;
 
     VertexPositionInputs posInputs = GetVertexPositionInputs(v.vertex.xyz);
 	VertexNormalInputs normInputs = GetVertexNormalInputs(v.normal.xyz);
@@ -109,9 +114,9 @@ float lerp(float a, float b, float value){
 float3 triplanar(float3 worldPos, float scale, float3 blendAxes, int texInd){
     float3 scaledWorldPos = worldPos / scale;
     
-    float3 xProjection = _Textures.Sample(sampler_Textures, float3(scaledWorldPos.y, scaledWorldPos.z, texInd)).xyz * blendAxes.x;
-    float3 yProjection = _Textures.Sample(sampler_Textures, float3(scaledWorldPos.x, scaledWorldPos.z, texInd)).xyz * blendAxes.y;
-    float3 zProjection = _Textures.Sample(sampler_Textures, float3(scaledWorldPos.x, scaledWorldPos.y, texInd)).xyz * blendAxes.z;
+    float4 xProjection = _Textures.Sample(sampler_Textures, float3(scaledWorldPos.y, scaledWorldPos.z, texInd)) * blendAxes.x;
+    float4 yProjection = _Textures.Sample(sampler_Textures, float3(scaledWorldPos.x, scaledWorldPos.z, texInd)) * blendAxes.y;
+    float4 zProjection = _Textures.Sample(sampler_Textures, float3(scaledWorldPos.x, scaledWorldPos.y, texInd)) * blendAxes.z;
 
     return xProjection + yProjection + zProjection;
 }
@@ -125,11 +130,11 @@ float3 frag (v2f IN) : SV_Target
     int material = (int)IN.color.r;
     float alpha = IN.color.a;
 
-    float3 baseColor = _BaseColors[material].xyz;
+    float3 baseColor = _BaseColors[material];//lerp(GetColor(a), GetColor(b), interpFactor);
 
     float3 textureColor = triplanar(IN.positionWS, _BaseTextureScales[material], blendAxes, material);
 
-    float colorStrength = _BaseColorStrength[material];
+    float colorStrength = _BaseColorStrength[material];//lerp(_BaseColorStrength[a], _BaseColorStrength[b], interpFactor);
 
     InputData lightingInput = (InputData)0;
 	lightingInput.positionWS = IN.positionWS;

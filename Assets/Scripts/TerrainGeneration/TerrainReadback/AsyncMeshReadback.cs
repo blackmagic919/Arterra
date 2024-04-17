@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
+using static EditorMesh;
 using static UtilityBuffers;
-using static EndlessTerrain;
 
 //Purpose: Render geometry directly from GPU until it is readback async.
 
@@ -12,27 +12,25 @@ using static EndlessTerrain;
  * If readback called on same geometry while it is not readback
  * overide previous asyncReadbackTask with new readback task.
  */
-public class AsyncMeshReadback : UpdateTask
+public class AsyncMeshReadback : MonoBehaviour
 {
     private ReadbackSettings settings;
     private Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
     private GeometryHandle[] geoHandles = default;
-    private MeshFilter[] meshFilters; //Keep this to disable meshfilter when on GPU
-    private Transform transform;
     private Bounds shaderBounds = default;
+    private MeshFilter[] meshFilters;
 
     const int MESH_VERTEX_STRIDE_4BYTE = (3 * 2 + (2 + 1));
 
-    public AsyncMeshReadback(ReadbackSettings settings, Transform transform, Bounds boundsOS, MeshFilter[] meshFilters)
+    public void Initialize(ReadbackSettings settings, Bounds boundsOS, MeshFilter[] meshFilters)
     {
         this.settings = settings;
-        this.transform = transform;
         this.geoHandles = new GeometryHandle[settings.indirectTerrainMats.Count];
-        this.shaderBounds = TransformBounds(transform, boundsOS);
+        this.shaderBounds = TransformBounds(boundsOS);
         this.meshFilters = meshFilters;
     }
 
-    public Bounds TransformBounds(Transform transform, Bounds boundsOS)
+    public Bounds TransformBounds(Bounds boundsOS)
     {
         var center = transform.TransformPoint(boundsOS.center);
 
@@ -48,7 +46,13 @@ public class AsyncMeshReadback : UpdateTask
         return new Bounds(center, size);
     }
 
-    public void ReleaseAllGeometry()
+    private void OnDisable()
+    {
+        ReleaseAllGeometry();
+        ReleaseTempBuffers();
+    }
+
+    private void ReleaseAllGeometry()
     {
         for(int i = 0; i < settings.indirectTerrainMats.Count; i++)
             ReleaseGeometry(geoHandles[i]);
@@ -56,14 +60,12 @@ public class AsyncMeshReadback : UpdateTask
 
     private void ReleaseGeometry(GeometryHandle handle)
     {
-        initialized = false;
-
         if (handle == null || !handle.isOnHeap) return;
         handle.isOnHeap = false;
         
         //Destroy Material
-        if (Application.isPlaying) UnityEngine.Object.Destroy(handle.matInstance);
-        else UnityEngine.Object.DestroyImmediate(handle.matInstance);
+        if (Application.isPlaying) Destroy(handle.matInstance);
+        else DestroyImmediate(handle.matInstance);
 
         //Release geometry memory
         this.settings.memoryBuffer.ReleaseMemory(handle.addressIndex);
@@ -76,7 +78,7 @@ public class AsyncMeshReadback : UpdateTask
             tempBuffers.Dequeue().Release();
     }
     
-    public override void Update()
+    void LateUpdate()
     {
         ComputeBuffer sharedArgs = UtilityBuffers.ArgumentBuffer;
         for (int i = 0; i < settings.indirectTerrainMats.Count; i++)
@@ -84,19 +86,19 @@ public class AsyncMeshReadback : UpdateTask
             GeometryHandle handle = geoHandles[i];
             if (handle == null || !handle.isOnHeap) continue;
             //Offset in bytes = address * 4 args per address * 4 bytes per arg
-            Graphics.DrawProceduralIndirect(handle.matInstance, shaderBounds, MeshTopology.Triangles, sharedArgs, (int)handle.argsAddress * 4 * 4, null, null, ShadowCastingMode.On, true, 0);
+            Graphics.DrawProceduralIndirect(handle.matInstance, shaderBounds, MeshTopology.Triangles, sharedArgs, (int)handle.argsAddress * 4 * 4, null, null, ShadowCastingMode.On, true, gameObject.layer);
         }
     }
 
-    public void OffloadMeshToGPU(ComputeBuffer baseGeo, int matIndex)
+    public void CreateReadbackMeshInfoTask(ComputeBuffer baseGeo, int matIndex, Action<MeshInfo> callback)
     {
         ReleaseGeometry(geoHandles[matIndex]);
         meshFilters[matIndex].mesh = null;
 
         //Transcribe data to memory heap for GPU-forward render
-        ComputeBuffer baseCount = CopyCount(baseGeo);
-        ComputeBuffer memByte4Length = CalculateGeoSize(baseCount, ref tempBuffers);
+        ComputeBuffer baseCount = CopyCount(baseGeo, ref tempBuffers);
 
+        ComputeBuffer memByte4Length = CalculateGeoSize(baseCount, ref tempBuffers);
         uint geoHeapMemoryAddress = this.settings.memoryBuffer.AllocateMemory(memByte4Length);
 
         uint drawArgsAddress = UtilityBuffers.AllocateArgs(); //Allocates 4 bytes
@@ -110,24 +112,15 @@ public class AsyncMeshReadback : UpdateTask
         Material matInstance = InstantiateMaterial(this.settings.memoryBuffer.AccessStorage(), this.settings.memoryBuffer.AccessAddresses(), (int)geoHeapMemoryAddress, matIndex);
         geoHandles[matIndex] = new GeometryHandle(matInstance, geoHeapMemoryAddress, drawArgsAddress, true);
 
-        if(!enqueued) MainLoopUpdateTasks.Enqueue(this);
-        enqueued = true;
-        initialized = true;
+        //Begin readback of data
+        AsyncGPUReadback.Request(this.settings.memoryBuffer.AccessAddresses(), size: 4, offset: 4*(int)geoHeapMemoryAddress, ret => onMemAddressRecieved(ret, geoHandles[matIndex], callback));
 
         ReleaseTempBuffers();
     }
 
-    public void BeginMeshReadback(int matIndex, Action<MeshInfo> callback){
-        GeometryHandle geoHandle = geoHandles[matIndex];
-        if(geoHandle == null || !geoHandle.isOnHeap)
-            return;
-        //Begin readback of data
-        AsyncGPUReadback.Request(this.settings.memoryBuffer.AccessAddresses(), size: 4, offset: 4*(int)geoHandle.addressIndex, ret => onMemAddressRecieved(ret, geoHandle, callback));
-    }
-
     void onMemAddressRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, Action<MeshInfo> callback)
     {
-        if (geoHandle == null || !geoHandle.isOnHeap) //Info was depreceated
+        if (!geoHandle.isOnHeap) //Info was depreceated
             return;
 
         uint memAddress = request.GetData<uint>().ToArray()[0];
@@ -143,7 +136,7 @@ public class AsyncMeshReadback : UpdateTask
 
     void onMemSizeRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, uint address, Action<MeshInfo> callback)
     {
-        if (geoHandle == null || !geoHandle.isOnHeap)  //Info was depreceated
+        if (!geoHandle.isOnHeap)  //Info was depreceated
             return;
 
         uint memSize = request.GetData<uint>().ToArray()[0];
@@ -154,34 +147,34 @@ public class AsyncMeshReadback : UpdateTask
 
     void onMeshDataRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, uint size, Action<MeshInfo> callback)
     {
-        if (geoHandle == null || !geoHandle.isOnHeap)  //Info was depreceated
+        if (!geoHandle.isOnHeap)  //Info was depreceated
             return;
 
         MeshInfo chunk = new MeshInfo();
 
         int numTris = ((int)size) / (MESH_VERTEX_STRIDE_4BYTE * 3);
 
-        TriangleConst[] tris = request.GetData<TriangleConst>().ToArray();
+        uint[] tris = request.GetData<uint>().ToArray();
 
         Dictionary<int2, int> vertDict = new Dictionary<int2, int>();
         int vertCount = 0;
 
         for (int i = 0; i < numTris; i++)
         {
-            //TriangleConst tri = new TriangleConst(i * (MESH_VERTEX_STRIDE_4BYTE * 3), ref tris);
+            TriangleConst tri = new TriangleConst(i * (MESH_VERTEX_STRIDE_4BYTE * 3), ref tris);
             for (int j = 0; j < 3; j++)
             {
-                if (vertDict.TryGetValue(tris[i][j].id, out int vertIndex))
+                if (vertDict.TryGetValue(tri[j].id, out int vertIndex))
                 {
                     chunk.triangles.Add(vertIndex);
                 }
                 else
                 {
-                    vertDict.Add(tris[i][j].id, vertCount);
+                    vertDict.Add(tri[j].id, vertCount);
                     chunk.triangles.Add(vertCount);
-                    chunk.vertices.Add(tris[i][j].pos);
-                    chunk.normals.Add(tris[i][j].norm);
-                    chunk.colorMap.Add(new Color(tris[i][j].material, 0, 0));
+                    chunk.vertices.Add(tri[j].pos);
+                    chunk.normals.Add(tri[j].norm);
+                    chunk.colorMap.Add(new Color(tri[j].material, 0, 0));
                     vertCount++;
                 }
             }
@@ -218,7 +211,7 @@ public class AsyncMeshReadback : UpdateTask
 
     Material InstantiateMaterial(ComputeBuffer storage, ComputeBuffer addresses, int addressIndex, int matIndex)
     {
-        Material instance = UnityEngine.Object.Instantiate(this.settings.indirectTerrainMats[matIndex]);
+        Material instance = Instantiate(this.settings.indirectTerrainMats[matIndex]);
 
         instance.EnableKeyword("INDIRECT");
         instance.SetBuffer("_StorageMemory", storage);
@@ -231,7 +224,7 @@ public class AsyncMeshReadback : UpdateTask
         return instance;
     }
 
-    void TranscribeGeometry(ComputeBuffer memoryBuffer, ComputeBuffer addressBuffer, ComputeBuffer source, ComputeBuffer count, int addressIndex, ref Queue<ComputeBuffer> bufferHandle)
+    void TranscribeGeometry(ComputeBuffer memoryBuffer, ComputeBuffer addressBufer, ComputeBuffer source, ComputeBuffer count, int addressIndex, ref Queue<ComputeBuffer> bufferHandle)
     {
         ComputeBuffer args = SetArgs(this.settings.baseGeoTranscriber, source, ref bufferHandle);
 
@@ -239,10 +232,21 @@ public class AsyncMeshReadback : UpdateTask
         this.settings.baseGeoTranscriber.SetBuffer(0, "triLength", count);
 
         this.settings.baseGeoTranscriber.SetBuffer(0, "_MemoryBuffer", memoryBuffer);
-        this.settings.baseGeoTranscriber.SetBuffer(0, "_AddressDict", addressBuffer);
+        this.settings.baseGeoTranscriber.SetBuffer(0, "_AddressDict", addressBufer);
         this.settings.baseGeoTranscriber.SetInt("addressIndex", addressIndex);
 
         this.settings.baseGeoTranscriber.DispatchIndirect(0, args);
+    }
+
+    ComputeBuffer CopyCount(ComputeBuffer data, ref Queue<ComputeBuffer> bufferHandle)
+    {
+        ComputeBuffer count = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
+        bufferHandle.Enqueue(count);
+
+        count.SetData(new uint[] { 0 });
+        ComputeBuffer.CopyCount(data, count, 0);
+
+        return count;
     }
 
     ComputeBuffer SetArgs(ComputeShader shader, ComputeBuffer data, ref Queue<ComputeBuffer> bufferHandle)

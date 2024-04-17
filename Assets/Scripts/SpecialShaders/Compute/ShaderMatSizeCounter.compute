@@ -1,0 +1,43 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+const static int numThreads = 128;
+
+struct Point{
+    float3 tri;
+    float3 norm;
+    int2 id;
+    int material; 
+};
+
+struct TriangleConst { //Constructor
+    Point points[3];
+};
+
+StructuredBuffer<int> _MaterialShaderIndex; //-1 if not defined
+
+StructuredBuffer<TriangleConst> baseGeometry;
+
+RWStructuredBuffer<uint> triangleIndexOffset; //This is to facilitate parallelization
+RWStructuredBuffer<uint> sizes; //This ensures vertexes are sorted by shader
+
+StructuredBuffer<uint> numTriangles;
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numTriangles[0])
+        return;
+
+    triangleIndexOffset[id.x] = -1; 
+
+    //Each triangle will have 3 materials, but due to noInterp, it is visually material of first vertex
+    int material = baseGeometry[id.x].points[0].material;
+    int shaderIndex = _MaterialShaderIndex[material];
+
+    if(shaderIndex == -1)
+        return;
+
+    //This function makes this sorter possible
+    InterlockedAdd(sizes[shaderIndex + 1], 1, triangleIndexOffset[id.x]);
+}

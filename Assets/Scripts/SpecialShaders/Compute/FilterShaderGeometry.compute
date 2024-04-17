@@ -1,0 +1,45 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+const static int numThreads = 128;
+
+struct Point{
+    float3 tri;
+    float3 norm;
+    int2 id;
+    int material; 
+};
+
+struct TriangleConst { //Constructor
+    Point points[3];
+};
+
+StructuredBuffer<int> _MaterialShaderIndex;
+
+StructuredBuffer<TriangleConst> baseGeometry;
+
+StructuredBuffer<uint> triangleIndexOffset;
+StructuredBuffer<uint> shaderPrefix;
+StructuredBuffer<uint> numTriangles;
+
+RWStructuredBuffer<TriangleConst> filteredGeometry;
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numTriangles[0])
+        return;
+
+    int material = baseGeometry[id.x].points[0].material;
+    int shaderInd = _MaterialShaderIndex[material];
+
+    if(shaderInd == -1)
+        return;
+
+    uint shaderOffset = shaderPrefix[shaderInd];
+    uint triangleOffset = triangleIndexOffset[id.x];
+    uint offset = shaderOffset + triangleOffset; 
+
+    //Now it's all sorted!!
+    filteredGeometry[offset] = baseGeometry[id.x];
+}

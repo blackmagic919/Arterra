@@ -12,14 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49bee82ffcb1d4036a871bcb04d33c57, type: 3}
   m_Name: Deciduous Forest
   m_EditorClassIdentifier: 
+  autoUpdate: 1
   BiomeName: Deciduous Forest
-  caveSize: 0.4
-  caveShape: 0
-  caveFrequency: 0.4
-  GroundMaterials:
+  Materials:
   - materialIndex: 3
-    genSize: 1
-    genShape: 0.809
+    genNoiseSize: 1
+    genNoiseShape: 1
     VerticalPreference:
       lowerLimit: -400
       upperLimit: 200
@@ -27,8 +25,8 @@ MonoBehaviour:
       multiplier: 1
       power: 2
   - materialIndex: 2
-    genSize: 0.593
-    genShape: 0.416
+    genNoiseSize: 0.569
+    genNoiseShape: 0.69
     VerticalPreference:
       lowerLimit: -400
       upperLimit: 200
@@ -36,8 +34,8 @@ MonoBehaviour:
       multiplier: 1
       power: 2
   - materialIndex: 1
-    genSize: 0.8
-    genShape: 0.662
+    genNoiseSize: 0.286
+    genNoiseShape: 0.575
     VerticalPreference:
       lowerLimit: -400
       upperLimit: 200
@@ -45,33 +43,14 @@ MonoBehaviour:
       multiplier: 1
       power: 2
   - materialIndex: 0
-    genSize: 0.2
-    genShape: 0.237
+    genNoiseSize: 0.326
+    genNoiseShape: 0.434
     VerticalPreference:
       lowerLimit: -400
       upperLimit: 200
       center: 0
-      multiplier: 1.5
+      multiplier: 1
       power: 4
-  SurfaceMaterials:
-  - materialIndex: 6
-    genSize: 0.3
-    genShape: 0.508
-    VerticalPreference:
-      lowerLimit: -400
-      upperLimit: 600
-      center: 100
-      multiplier: 1
-      power: 2
-  - materialIndex: 7
-    genSize: 1
-    genShape: 1
-    VerticalPreference:
-      lowerLimit: 50
-      upperLimit: 300
-      center: 150
-      multiplier: 1
-      power: 3
   Structures:
   - VerticalPreference:
       lowerLimit: -200
@@ -79,15 +58,19 @@ MonoBehaviour:
       center: 0
       multiplier: 1
       power: 2
-    ChancePerStructurePoint: 0.501
+    ChancePerStructurePoint: 0.50065815
     structureIndex: 0
+    structureData: {fileID: 11400000, guid: 47f8cded4e30d4bbab55502f96bded1c, type: 2}
+    structureSettings: {fileID: 11400000, guid: b0396615401ed43529486c788cd2359a, type: 2}
   - VerticalPreference:
       lowerLimit: -200
       upperLimit: 200
       center: 0
       multiplier: 1
       power: 2
-    ChancePerStructurePoint: 0.6
+    ChancePerStructurePoint: 0.49934185
     structureIndex: 1
+    structureData: {fileID: 11400000, guid: c9e502f655b8f4c2bb695c58a092f880, type: 2}
+    structureSettings: {fileID: 11400000, guid: 66e5cf3a06c4c421da8c5d6cc3ac3410, type: 2}
   structurePointDensity: 1
   seed: 0

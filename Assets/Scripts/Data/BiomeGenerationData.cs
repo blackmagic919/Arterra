@@ -2,11 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Unity.Mathematics;
 using Utils;
 
 [CreateAssetMenu(menuName = "Generation/BiomeGenerationData")]
-public class BiomeGenerationData : ScriptableObject
+public class BiomeGenerationData : UpdatableData
 {
     [SerializeField]
     public List<Biome> biomes;
@@ -18,18 +17,27 @@ public class BiomeGenerationData : ScriptableObject
     public int maxLoD;
 
     ComputeBuffer biomeRTreeBuffer;
-    ComputeBuffer biomeCaveDataBuffer;
     ComputeBuffer biomeMatCountBuffer;
-    ComputeBuffer biomeGroundMatBuffer;
-    ComputeBuffer biomeSurfaceMatBuffer;
+    ComputeBuffer materialPrefBuffer;
+    ComputeBuffer materialVertPrefBuffer;
+    ComputeBuffer materialIndexBuffer;
 
     ComputeBuffer biomeStructBuffer;
-    ComputeBuffer structGenBuffer;
+    ComputeBuffer structVertPrefBuffer;
+    ComputeBuffer structFrequencyBuffer;
+    ComputeBuffer structIndexBuffer;
     //
+    protected override void OnValidate()
+    {
+        if (biomes == null || biomes.Count == 0)
+            return;
+        dictionary = new BiomeDictionary(biomes);
+
+        base.OnValidate();
+    }
 
     private void OnEnable()
     {
-        dictionary = new BiomeDictionary(biomes);
         SetGlobalBuffers();
     }
 
@@ -37,71 +45,85 @@ public class BiomeGenerationData : ScriptableObject
     {
         biomeRTreeBuffer?.Release();
         biomeMatCountBuffer?.Release();
-        biomeCaveDataBuffer?.Release();
-        biomeGroundMatBuffer?.Release();
-        biomeSurfaceMatBuffer?.Release();
+        materialPrefBuffer?.Release();
+        materialVertPrefBuffer?.Release();
+        materialIndexBuffer?.Release();
 
         biomeStructBuffer?.Release();
-        structGenBuffer?.Release();
+        structVertPrefBuffer?.Release();
+        structFrequencyBuffer?.Release();
+        structIndexBuffer?.Release();
     }
 
-   public void SetGlobalBuffers()
+    void SetGlobalBuffers()
     {
         
         int numBiomes = biomes.Count;
-        uint2[] biomeMatCount = new uint2[numBiomes + 1]; //Prefix sum
-        List<Vector3> biomeCaveData = new List<Vector3>();
-        List<BiomeInfo.BMaterial> biomeGroundMaterial = new List<BiomeInfo.BMaterial>();
-        List<BiomeInfo.BMaterial> biomeSurfaceMaterial = new List<BiomeInfo.BMaterial>();
+        uint[] biomeMatCount = new uint[numBiomes + 1]; //Prefix sum
+        List<Vector2> matPrefList = new List<Vector2>();
+        List<BiomeInfo.DensityFunc> densityFuncsMat = new List<BiomeInfo.DensityFunc>();
+        List<int> materialIndexes = new List<int>();
 
         for (int i = 0; i < numBiomes; i++)
         {
-            biomeMatCount[i+1] = new uint2((uint)biomes[i].info.GroundMaterials.Count + biomeMatCount[i].x, (uint)biomes[i].info.SurfaceMaterials.Count + biomeMatCount[i].y);
-            biomeCaveData.Add(new Vector3(biomes[i].info.caveSize, biomes[i].info.caveShape, biomes[i].info.caveFrequency));
-            biomeGroundMaterial.AddRange(biomes[i].info.GroundMaterials);
-            biomeSurfaceMaterial.AddRange(biomes[i].info.SurfaceMaterials);
+            biomeMatCount[i+1] = (uint)biomes[i].info.Materials.Count + biomeMatCount[i];
+            matPrefList.AddRange(biomes[i].info.Materials.Select((e) => new Vector2(e.genNoiseSize, e.genNoiseShape)));
+            densityFuncsMat.AddRange(biomes[i].info.Materials.Select((e) => e.VerticalPreference));
+            materialIndexes.AddRange(biomes[i].info.Materials.Select((e) => e.materialIndex));
         }
 
         int numNodes = dictionary.GetTreeSize();
         BiomeDictionary.RNodeFlat[] RTree = dictionary.FlattenTree();
 
-        int matStride = sizeof(int) + sizeof(float) + sizeof(float) + (sizeof(int) * 3 + sizeof(float) * 2);
-        biomeRTreeBuffer = new ComputeBuffer(numNodes, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
-        biomeMatCountBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint) * 2, ComputeBufferType.Structured);
-        biomeCaveDataBuffer = new ComputeBuffer(numBiomes, sizeof(float) * 3, ComputeBufferType.Structured);
-        biomeGroundMatBuffer = new ComputeBuffer(biomeGroundMaterial.Count, matStride, ComputeBufferType.Structured);
-        biomeSurfaceMatBuffer = new ComputeBuffer(biomeSurfaceMaterial.Count, matStride, ComputeBufferType.Structured);
-
+        biomeRTreeBuffer = new ComputeBuffer(numNodes, (sizeof(float) * 6) * 2 + sizeof(int), ComputeBufferType.Structured);
         biomeRTreeBuffer.SetData(RTree);
+
+        biomeMatCountBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint), ComputeBufferType.Structured);
         biomeMatCountBuffer.SetData(biomeMatCount);
-        biomeCaveDataBuffer.SetData(biomeCaveData);
-        biomeGroundMatBuffer.SetData(biomeGroundMaterial);
-        biomeSurfaceMatBuffer.SetData(biomeSurfaceMaterial);
+
+        materialPrefBuffer = new ComputeBuffer(matPrefList.Count, sizeof(float) * 2, ComputeBufferType.Structured);
+        materialPrefBuffer.SetData(matPrefList);
+
+        materialVertPrefBuffer = new ComputeBuffer(densityFuncsMat.Count, sizeof(int) * 3 + sizeof(float) * 2, ComputeBufferType.Structured);
+        materialVertPrefBuffer.SetData(densityFuncsMat);
+
+        materialIndexBuffer = new ComputeBuffer(materialIndexes.Count, sizeof(int), ComputeBufferType.Structured);
+        materialIndexBuffer.SetData(materialIndexes);
 
         Shader.SetGlobalBuffer("_BiomeRTree", biomeRTreeBuffer);
         Shader.SetGlobalBuffer("_BiomeMaterialCount", biomeMatCountBuffer);
-        Shader.SetGlobalBuffer("_BiomeCaveData", biomeCaveDataBuffer);
-        Shader.SetGlobalBuffer("_BiomeGroundMaterials", biomeGroundMatBuffer);
-        Shader.SetGlobalBuffer("_BiomeSurfaceMaterials", biomeSurfaceMatBuffer);
+        Shader.SetGlobalBuffer("_BiomeMaterialNoisePref", materialPrefBuffer);
+        Shader.SetGlobalBuffer("_BiomeMaterialVerticalPref", materialVertPrefBuffer);
+        Shader.SetGlobalBuffer("_BiomeMaterialIndexBuffer", materialIndexBuffer);
 
         uint[] biomeStructCount = new uint[numBiomes + 1]; 
-        List<BiomeInfo.TerrainStructure> biomeStructures = new List<BiomeInfo.TerrainStructure>();
-
+        List<BiomeInfo.DensityFunc> densityFuncsStruct = new List<BiomeInfo.DensityFunc>();
+        List<float> generationFrequency = new List<float>();
+        List<uint> structureIndices = new List<uint>();
         for (int i = 0; i < numBiomes; i++)
         {
             biomeStructCount[i+1] = (uint)biomes[i].info.Structures.Count + biomeStructCount[i];
-            biomeStructures.AddRange(biomes[i].info.Structures);
+            densityFuncsStruct.AddRange(biomes[i].info.Structures.Select((e) => e.VerticalPreference));
+            generationFrequency.AddRange(biomes[i].info.Structures.Select((e) => e.ChancePerStructurePoint));
+            structureIndices.AddRange(biomes[i].info.Structures.Select((e) => e.structureIndex));
         }
 
-        int structStride = sizeof(uint) + sizeof(float) + (sizeof(int) * 3 + sizeof(float) * 2);
         biomeStructBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint), ComputeBufferType.Structured);
-        structGenBuffer = new ComputeBuffer(biomeStructures.Count, structStride, ComputeBufferType.Structured);
-
         biomeStructBuffer.SetData(biomeStructCount);
-        structGenBuffer.SetData(biomeStructures);
+
+        structVertPrefBuffer = new ComputeBuffer(densityFuncsStruct.Count, sizeof(int) * 3 + sizeof(float) * 2, ComputeBufferType.Structured);
+        structVertPrefBuffer.SetData(densityFuncsStruct);
+
+        structFrequencyBuffer = new ComputeBuffer(generationFrequency.Count, sizeof(float), ComputeBufferType.Structured);
+        structFrequencyBuffer.SetData(generationFrequency);
+
+        structIndexBuffer = new ComputeBuffer(structureIndices.Count, sizeof(uint), ComputeBufferType.Structured);
+        structIndexBuffer.SetData(structureIndices);
 
         Shader.SetGlobalBuffer("_BiomeStructurePrefix", biomeStructBuffer);
-        Shader.SetGlobalBuffer("_BiomeStructureData", structGenBuffer);
+        Shader.SetGlobalBuffer("_BiomeStructureVerticalPref", structVertPrefBuffer);
+        Shader.SetGlobalBuffer("_BiomeStructureFrequency", structFrequencyBuffer);
+        Shader.SetGlobalBuffer("_BiomeStructureIndex", structIndexBuffer);
     }
 }
 //

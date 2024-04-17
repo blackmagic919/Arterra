@@ -1,0 +1,25 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#pragma multi_compile _ PROCESS_INT
+const static uint numthread = 128;
+
+#ifdef PROCESS_INT
+StructuredBuffer<int> SurfaceMap;
+#else
+StructuredBuffer<float> SurfaceMap;
+#endif
+uint numSurfacePoints;
+
+RWStructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint> _AddressDict;
+uint addressIndex;
+
+[numthreads(numthread,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numSurfacePoints)
+        return;
+    
+    uint pointAddress = _AddressDict[addressIndex] + id.x;
+    _MemoryBuffer[pointAddress] = asuint(SurfaceMap[id.x]);
+}

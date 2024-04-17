@@ -13,6 +13,7 @@ public class EditorMesh : MonoBehaviour
     public DrawMode drawMode;
 
     [HideInInspector]
+    public static readonly int[] meshSkipTable = { 1, 2, 4, 8, 16 }; //has to be multiple
 
     [Header("Editor Information")]
     public Vector3 EditorOffset;
@@ -93,6 +94,62 @@ public class EditorMesh : MonoBehaviour
         {
             this.callback = callback;
             this.parameter = parameter;
+        }
+    }
+
+    public class MeshInfo
+    {
+        public List<Vector3> vertices;
+        public List<Vector3> normals;
+        public List<Vector2> UVs;
+        public List<Color> colorMap;
+        public List<int> triangles;
+        public List<UnityEngine.Rendering.SubMeshDescriptor> subMeshes;
+
+        public MeshInfo()
+        {
+            vertices = new List<Vector3>();
+            normals = new List<Vector3>();
+            UVs = new List<Vector2>();
+            triangles = new List<int>();
+            colorMap = new List<Color>();
+            subMeshes = new List<UnityEngine.Rendering.SubMeshDescriptor>();
+        }
+
+        public static Mesh GenerateMesh(MeshInfo meshData)
+        {
+            Mesh mesh = new Mesh();
+            mesh.vertices = meshData.vertices.ToArray();
+            mesh.normals = meshData.normals.ToArray();
+            mesh.triangles = meshData.triangles.ToArray();
+            mesh.colors = meshData.colorMap.ToArray();
+            if (meshData.UVs.Count > 0)
+                mesh.uv = meshData.UVs.ToArray();
+            if(meshData.subMeshes.Count > 0)
+                mesh.SetSubMeshes(meshData.subMeshes.ToArray());
+            return mesh;
+        }
+
+        public Mesh GenerateMesh(UnityEngine.Rendering.IndexFormat meshIndexFormat)
+        {
+            Mesh mesh = new Mesh();
+            mesh.indexFormat = meshIndexFormat;
+            mesh.vertices = vertices.ToArray();
+            mesh.normals = normals.ToArray();
+            mesh.triangles = triangles.ToArray();
+            mesh.colors = colorMap.ToArray();
+            if (UVs.Count > 0)
+                mesh.uv = UVs.ToArray();
+            if (subMeshes.Count > 0)
+                mesh.SetSubMeshes(subMeshes.ToArray());
+            return mesh;
+        }
+
+        public void AddTriangle(int a, int b, int c)
+        {
+            triangles.Add(a);
+            triangles.Add(b);
+            triangles.Add(c);
         }
     }
 }

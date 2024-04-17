@@ -19,4 +19,4 @@ MonoBehaviour:
   textureScale: 5
   baseColorStrength: 0.25
   GeoShaderIndex: 0
-  AtmosphereScatter: {x: 0.002, y: 0.008, z: 0.002, w: 0.5}
+  AtmosphereScatter: {x: 0, y: 0.01, z: 0, w: 1}

@@ -18,11 +18,6 @@ public class TemplateFeature : ScriptableRendererFeature
         public GenerationSettings generationSettings;
     }
 
-    public void OnValidate()
-    {
-        
-    }
-
 
     // References to our pass and its settings.
     TemplatePass pass;

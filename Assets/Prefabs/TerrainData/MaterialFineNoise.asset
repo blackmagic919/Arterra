@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: MaterialFineNoise
   m_EditorClassIdentifier: 
   autoUpdate: 0
-  noiseScale: 25
+  noiseScale: 250
   octaves: 4
   persistance: 0.5
   lacunarity: 2

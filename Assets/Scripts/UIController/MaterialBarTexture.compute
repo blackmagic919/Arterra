@@ -11,7 +11,7 @@ const static float epsilon = 1.0f/255.0f; //necessary to shift it just over
 
 int materialCount;
 int maxMaterialCount;
-StructuredBuffer<int> inventoryMaterialIndexes;
+StructuredBuffer<float> inventoryMaterialIndexes;
 StructuredBuffer<float> inventoryMaterialPercents;
 
 float BinarySearch(float key, uint arraySize) {

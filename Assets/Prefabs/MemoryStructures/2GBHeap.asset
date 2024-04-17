@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9933ec2c3a294ea88de025ab5caf6a9, type: 3}
+  m_Name: 2GBHeap
+  m_EditorClassIdentifier: 
+  _BufferSize4Bytes: 500000000
+  _MaxHeapSize: 5000
+  HeapSetupShader: {fileID: 7200000, guid: 5ca13957174764646bab6e40a6aeb4f1, type: 3}
+  AllocateShader: {fileID: 7200000, guid: 5abcaa652ca884d5e9b2718a41cd75c5, type: 3}
+  DeallocateShader: {fileID: 7200000, guid: 5cd6996de9cb5423ebb63ac81a7988ed, type: 3}

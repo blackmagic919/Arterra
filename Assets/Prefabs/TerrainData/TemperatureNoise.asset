@@ -20,48 +20,28 @@ MonoBehaviour:
   lerpScale: 4
   seed: 8
   splinePoints:
-  - {x: 0, y: 0, z: 0.38393867, w: 0.38393867}
-  - {x: 0.05887492, y: 0.02260436, z: 0.008027821, w: 0.008027821}
-  - {x: 0.95233953, y: 0.03248641, z: 0.061225146, w: 0.061225146}
-  - {x: 1, y: 1, z: 20.300127, w: 20.300127}
+  - {x: 0, y: 0, z: 1, w: 1}
+  - {x: 1, y: 1, z: 1, w: 1}
   interpolation:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
       time: 0
       value: 0
-      inSlope: 0.38393867
-      outSlope: 0.38393867
+      inSlope: 1
+      outSlope: 1
       tangentMode: 34
       weightedMode: 0
       inWeight: 0
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 0.05887492
-      value: 0.02260436
-      inSlope: 0.008027821
-      outSlope: 0.008027821
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.03661015
-    - serializedVersion: 3
-      time: 0.95233953
-      value: 0.03248641
-      inSlope: 0.061225146
-      outSlope: 0.061225146
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.5928561
+      outWeight: 0
     - serializedVersion: 3
       time: 1
       value: 1
-      inSlope: 20.300127
-      outSlope: 20.300127
+      inSlope: 1
+      outSlope: 1
       tangentMode: 34
       weightedMode: 0
-      inWeight: 0.33333334
+      inWeight: 0
       outWeight: 0
     m_PreInfinity: 2
     m_PostInfinity: 2

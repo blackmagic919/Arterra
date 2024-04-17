@@ -1,4 +1,5 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#pragma shader_feature _ INDIRECT
 
 struct Interpolators {
 	float4 positionCS : SV_POSITION;

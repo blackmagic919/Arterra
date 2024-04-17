@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0639f099e64b14b1583620fdc7c1b52b, type: 3}
   m_Name: PlainConditions
   m_EditorClassIdentifier: 
+  autoUpdate: 0
   ContinentalStart: 0
   ContinentalEnd: 1
   ErosionStart: 0.6

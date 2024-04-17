@@ -4,7 +4,7 @@ using UnityEngine;
 
 
 [CreateAssetMenu(menuName = "Generation/MaterialData")]
-public class MaterialData : ScriptableObject
+public class MaterialData : UpdatableData
 {
     public string Name;
     public Color color;

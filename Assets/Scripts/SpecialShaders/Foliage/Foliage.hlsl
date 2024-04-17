@@ -66,8 +66,8 @@ VertexOutput Vertex(uint vertexID: SV_VertexID){
     uint vertexAddress = vertexID * _Vertex4ByteStride;
     DrawVertex input = ReadVertex(vertexAddress);
 
-    output.positionWS = input.positionWS.xyz;
-    output.normalWS = input.normalWS.xyz;
+    output.positionWS = input.positionWS;
+    output.normalWS = input.normalWS;
     output.uv = input.uv;
     output.positionCS = CalculatePositionCSWithShadowCasterLogic(output.positionWS, output.normalWS);
 
@@ -99,15 +99,14 @@ half4 Fragment(VertexOutput IN) : SV_TARGET{
     lightingInput.positionWS = IN.positionWS;
     lightingInput.viewDirectionWS = GetViewDirectionFromPosition(IN.positionWS);
     lightingInput.shadowCoord = CalculateShadowCoord(IN.positionWS, IN.positionCS);
-    lightingInput.normalWS = NormalizeNormalPerPixel(IN.normalWS);
 
-    //float fresnel = pow(1.0 - saturate(dot(lightingInput.viewDirectionWS, normalize(IN.normalWS))), _FresnelFalloff);
-    //lightingInput.normalWS = (1-fresnel) * lightingInput.normalWS + fresnel * (_LightDirection);
+    float fresnel = pow(1.0 - saturate(dot(lightingInput.viewDirectionWS, normalize(IN.normalWS))), _FresnelFalloff);
+    lightingInput.normalWS = (1-fresnel) * NormalizeNormalPerPixel(IN.normalWS) + fresnel * (_LightDirection);
 
     SurfaceData surfaceInput = (SurfaceData)0;
 	surfaceInput.albedo = _LeafColor.rgb;
-	surfaceInput.alpha = 1;
-    clip(SAMPLE_TEXTURE2D(_AlphaMap, sampler_AlphaMap, IN.uv).a - _AlphaClip);
+	surfaceInput.alpha = SAMPLE_TEXTURE2D(_AlphaMap, sampler_AlphaMap, IN.uv).a;
+    clip(surfaceInput.alpha - _AlphaClip);
 
     #if UNITY_VERSION >= 202120
 	    return UniversalFragmentBlinnPhong(lightingInput, surfaceInput);

@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
-using static EndlessTerrain;
+using static EditorMesh;
+using static UtilityBuffers;
 
-public class ShaderGenerator : UpdateTask
+public class ShaderGenerator : MonoBehaviour
 {
     private GeneratorSettings settings;
-
-    private Transform transform;
 
     //                          Color                  Position & Normal        UV
     const int GEO_VERTEX_STRIDE = ((sizeof(float) * 4) + (sizeof(float) * 3 * 2) + sizeof(float) * 2);
@@ -20,17 +19,17 @@ public class ShaderGenerator : UpdateTask
     private uint[] geoShaderMemAdds = null;
     private uint[] geoShaderDispArgs = null;
     private Material[] geoShaderMats = null;
+    private bool hasShaderInfo = false;
 
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
-    public ShaderGenerator(GeneratorSettings settings, Transform transform, Bounds boundsOS)
+    private void OnDisable()
     {
-        this.settings = settings;
-        this.transform = transform;
-        this.shaderBounds = TransformBounds(transform, boundsOS);
+        ReleaseGeometry();
+        ReleaseTempBuffers();
     }
 
-    public Bounds TransformBounds(Transform transform, Bounds boundsOS)
+    public Bounds TransformBounds(Bounds boundsOS)
     {
         var center = transform.TransformPoint(boundsOS.center);
 
@@ -46,24 +45,32 @@ public class ShaderGenerator : UpdateTask
         return new Bounds(center, size);
     }
 
-    public override void Update()
+    private void LateUpdate()
     {
         ReleaseTempBuffers();
+        if (!hasShaderInfo)
+            return;
         
         ComputeBuffer sharedArgs = UtilityBuffers.ArgumentBuffer;
         for(uint i = 0; i < this.settings.shaderDictionary.Count; i++) {
-            Graphics.DrawProceduralIndirect(geoShaderMats[i], shaderBounds, MeshTopology.Triangles, sharedArgs, (int)geoShaderDispArgs[i] * (4*4), null, null, ShadowCastingMode.Off, true, 0);
+            Graphics.DrawProceduralIndirect(geoShaderMats[i], shaderBounds, MeshTopology.Triangles, sharedArgs, (int)geoShaderDispArgs[i] * (4*4), null, null, ShadowCastingMode.Off, true, gameObject.layer);
         }
+    }
+
+    public void Initialize(GeneratorSettings settings, Bounds boundsOS)
+    {
+        this.settings = settings;
+        this.shaderBounds = TransformBounds(boundsOS);
     }
 
     public void ReleaseGeometry()
     {
-        if (!initialized)
+        if (!hasShaderInfo)
             return;
-        initialized = false;
+        hasShaderInfo = false;
 
         foreach (Material geoMat in geoShaderMats)
-            if (Application.isPlaying) UnityEngine.Object.Destroy(geoMat); else  UnityEngine.Object.DestroyImmediate(geoMat);
+            if (Application.isPlaying) Destroy(geoMat); else DestroyImmediate(geoMat);
 
         foreach (uint address in geoShaderMemAdds) {
             this.settings.memoryBuffer.ReleaseMemory(address);
@@ -95,9 +102,7 @@ public class ShaderGenerator : UpdateTask
         this.geoShaderDispArgs = GetShaderDrawArgs(shaderStartIndexes);
         this.geoShaderMats = SetupShaderMaterials(this.settings.memoryBuffer.AccessStorage(), this.settings.memoryBuffer.AccessAddresses(), this.geoShaderMemAdds);
 
-        if(!enqueued) MainLoopUpdateTasks.Enqueue(this);
-        this.enqueued = true;
-        this.initialized = true;
+        this.hasShaderInfo = true;
 
         ReleaseTempBuffers();
     }
@@ -147,7 +152,7 @@ public class ShaderGenerator : UpdateTask
         for (int i = 0; i < this.settings.shaderDictionary.Count; i++){
             SpecialShader geoShader = this.settings.shaderDictionary[i];
 
-            geoShader.ProcessGeoShader(transform, filteredGeometry, shaderBaseIndexes, geoShaderGeometry, i);
+            geoShader.ProcessGeoShader(this.gameObject.transform, filteredGeometry, shaderBaseIndexes, geoShaderGeometry, i);
             ComputeBuffer.CopyCount(geoShaderGeometry, shaderStartIndexes, (i+1) * sizeof(int));
             geoShader.ReleaseTempBuffers();
         }

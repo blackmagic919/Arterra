@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Unity.Mathematics;
+using UnityEditor.MPE;
 using UnityEngine;
 using Utils;
 using static EndlessTerrain;
 
-public class TerrainChunk : ChunkData
+public class TerrainChunk
 {
     GameObject meshObject;
     Vector3 position;
@@ -14,16 +17,15 @@ public class TerrainChunk : ChunkData
     MeshRenderer meshRenderer;
     MeshFilter meshFilter;
     MeshCollider meshCollider;
+    MeshCreator meshCreator;
     ShaderGenerator geoShaders;
     AsyncMeshReadback meshReadback;
-
-    MeshCreator meshCreator;
-    StructureCreator structCreator;
 
     readonly LODMesh LODMeshHandle;
     readonly LODInfo[] detailLevels;
 
-    MapData[] storedMap = null;
+    float[] storedDensity = null;
+    int[] storedMaterial = null;
     bool hasDensityMap = false;
     public bool active = true;
 
@@ -37,8 +39,7 @@ public class TerrainChunk : ChunkData
         bounds = new Bounds(position, Vector3.one * mapChunkSize);  
         this.IsoLevel = IsoLevel;
         this.detailLevels = detailLevels;
-        this.meshCreator = new MeshCreator(generation.meshCreator);
-        this.structCreator = new StructureCreator(generation.meshCreator, generation.surfaceSettings);
+        this.meshCreator = UnityEngine.Object.Instantiate(generation.meshCreator);
 
         meshObject = new GameObject("Terrain Chunk");
         meshObject.transform.position = position * lerpScale;
@@ -48,27 +49,29 @@ public class TerrainChunk : ChunkData
         meshFilter = meshObject.AddComponent<MeshFilter>();
         meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshCollider = meshObject.AddComponent<MeshCollider>();
+        geoShaders = meshObject.AddComponent<ShaderGenerator>();
+        meshReadback = meshObject.AddComponent<AsyncMeshReadback>();
         meshRenderer.material = generation.mapMaterial;
 
         Bounds boundsOS = new Bounds(Vector3.one * (mapChunkSize / 2), Vector3.one * mapChunkSize);
-        geoShaders = new ShaderGenerator(generation.geoSettings, meshObject.transform, boundsOS);
-        meshReadback = new AsyncMeshReadback(generation.readbackSettings, meshObject.transform, boundsOS, new MeshFilter[] {meshFilter});
+        geoShaders.Initialize(generation.geoSettings, boundsOS);
+        meshReadback.Initialize(generation.readbackSettings, boundsOS, new MeshFilter[] {meshFilter});
 
-        LODMeshHandle = new LODMesh(meshCreator, structCreator, this.geoShaders, meshReadback, generation.densityDict, surfaceChunk.baseMap, detailLevels, this.position, this.CCoord, IsoLevel);
+        LODMeshHandle = new LODMesh(meshCreator, this.geoShaders, meshReadback, generation.densityDict, surfaceChunk.baseMap, detailLevels, this.position, this.CCoord, IsoLevel);
         
         //Plan Structures
-        EndlessTerrain.GenTask structTask = new EndlessTerrain.GenTask(() => processEvent(() => structCreator.PlanStructuresGPU(this.CCoord, this.position, mapChunkSize, IsoLevel)), taskLoadTable[(int)Utils.priorities.structure]);
-        timeRequestQueue.Enqueue(structTask, (int)Utils.priorities.structure);
+        timeRequestQueue.Enqueue(() => processEvent(() => meshCreator.PlanStructuresGPU(this.CCoord, this.position, mapChunkSize, IsoLevel)), (int)Utils.priorities.structure);
 
         Update();
     }
 
-    public void TerraformChunk(Vector3 targetPosition, float terraformRadius, Func<TerrainChunk.MapData, float, TerrainChunk.MapData> handleTerraform)
+    public void TerraformChunk(Vector3 targetPosition, float terraformRadius, Func<Vector2, float, Vector2> handleTerraform)
     {
         if (!hasDensityMap)
         {
-            SurfaceChunk.SurfData maxSurfaceData = LODMeshHandle.surfaceMap.GetMap();
-            storedMap = meshCreator.GetChunkInfo(structCreator, maxSurfaceData, this.position, IsoLevel, mapChunkSize);
+            SurfaceChunk.SurfaceMap maxSurfaceData = LODMeshHandle.surfaceMap.SimplifyMap(0);
+            (storedDensity, storedMaterial) = meshCreator.GetChunkInfo(maxSurfaceData, this.position, this.CCoord, IsoLevel, mapChunkSize);
+            maxSurfaceData.Release();
             
             hasDensityMap = true;
         }
@@ -99,7 +102,10 @@ public class TerrainChunk : ChunkData
                     float sqrDistWS = worldScale * (dR.x * dR.x + dR.y * dR.y + dR.z * dR.z);
 
                     float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
-                    storedMap[index] = handleTerraform(storedMap[index], brushStrength);
+
+                    Vector2 ret = handleTerraform(new Vector2(storedMaterial[index], storedDensity[index]), brushStrength);
+                    storedMaterial[index] = (int)ret.x;
+                    storedDensity[index] = ret.y;
                 }
             }
         }
@@ -129,19 +135,15 @@ public class TerrainChunk : ChunkData
                 prevLODInd = lodInd;
                 LODMeshHandle.hasRequestedChunk = true;
 
-                if (hasDensityMap){
-                    EndlessTerrain.GenTask computeTask = new EndlessTerrain.GenTask(() => processEvent(() => LODMeshHandle.ComputeChunk(lodInd, ref storedMap, () => onChunkCreated()), lodInd), taskLoadTable[(int)Utils.priorities.mesh]);
-                    timeRequestQueue.Enqueue(computeTask, (int)Utils.priorities.mesh);
-                }else { 
-                    EndlessTerrain.GenTask mapDataTask = new EndlessTerrain.GenTask(() => processEvent(() => LODMeshHandle.GenerateMap(lodInd), lodInd), taskLoadTable[(int)Utils.priorities.generation]);
-                    EndlessTerrain.GenTask meshGenTask = new EndlessTerrain.GenTask(() => processEvent(() => LODMeshHandle.CreateMesh(lodInd, () => onChunkCreated()), lodInd), taskLoadTable[(int)Utils.priorities.mesh]);
-
-                    timeRequestQueue.Enqueue(mapDataTask, (int)priorities.generation);
-                    timeRequestQueue.Enqueue(meshGenTask, (int)priorities.mesh);
+                if (hasDensityMap)
+                    timeRequestQueue.Enqueue(() => processEvent(() => LODMeshHandle.ComputeChunk(lodInd, ref storedDensity, ref storedMaterial, () => onChunkCreated(lodInd)), lodInd), (int)Utils.priorities.generation);
+                else { 
+                    timeRequestQueue.Enqueue(() => processEvent(() => LODMeshHandle.GenerateMap(lodInd), lodInd), (int)priorities.generation);
+                    timeRequestQueue.Enqueue(() => processEvent(() => LODMeshHandle.CreateMesh(lodInd, () => onChunkCreated(lodInd)), lodInd), (int)priorities.mesh);
                 }
             }
         }
-        lastUpdateChunks.Enqueue(this);
+        lastUpdateTerrainChunks.Enqueue(this);
     }
 
     public void processEvent(Action callback, int LOD = -1)
@@ -154,15 +156,23 @@ public class TerrainChunk : ChunkData
         callback();
     }
 
-    public void onChunkCreated()
+    public void onChunkCreated(int lodInd)
     {
         LODMeshHandle.depreceated = false;
 
         meshFilter.mesh = LODMeshHandle.baseMesh;
-        meshCollider.sharedMesh = LODMeshHandle.baseMesh;
+        if (detailLevels[lodInd].useForCollider)
+            meshCollider.sharedMesh = LODMeshHandle.baseMesh;
+        if (!detailLevels[lodInd].useForGeoShaders)
+            geoShaders.ReleaseGeometry();
+
+
+        if (LODMeshHandle.depreceated) //was depreceated while chunk was regenerating
+            timeRequestQueue.Enqueue(() => processEvent(Update), (int)Utils.priorities.generation);
+        
     }
 
-    public override void UpdateVisibility(Vector3 CCCoord, float maxRenderDistance)
+    public void UpdateVisibility(Vector3 CCCoord, float maxRenderDistance)
     {
         Vector3 distance = CCoord - CCCoord;
         bool visible = Mathf.Max(Mathf.Abs(distance.x), Mathf.Abs(distance.y), Mathf.Abs(distance.z)) <= maxRenderDistance;
@@ -172,27 +182,20 @@ public class TerrainChunk : ChunkData
     }
 
     //We destroy the chunk to preserve RAM in both dictionary and scene
-    public override void DestroyChunk()
+    public void DestroyChunk()
     {
         if (!active)
             return;
 
         active = false;
 
-        geoShaders.ReleaseGeometry(); //Release geoShader Geometry
-        meshReadback.ReleaseAllGeometry(); //Release base geometry on GPU
-        structCreator.ReleaseStructure(); //Release structure data
+        //If currently Generating chunk (It's doubtful if this ever does anything)
+        meshCreator.ReleaseTempBuffers();
         terrainChunkDict.Remove(CCoord);
 #if UNITY_EDITOR
         GameObject.DestroyImmediate(meshObject);
 #else
         GameObject.Destroy(meshObject);
 #endif
-    }
-    
-    public struct MapData
-    {
-        public float density;
-        public int material;
     }
 }

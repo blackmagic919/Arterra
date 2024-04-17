@@ -1,7 +1,7 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using static UtilityBuffers;
 
 public class StructureAnalyzer
 {
@@ -35,7 +35,7 @@ public class StructureAnalyzer
 
         int numThreadsPerAxis = Mathf.CeilToInt(numPoints / (float)threadGroupSize);
 
-        SetNoiseData(undergroundAnalyzer, chunkSize, 1, undergroundNoise, offset);
+        Generator.SetNoiseData(undergroundAnalyzer, chunkSize, 1, undergroundNoise, offset, ref bufferHandle);
 
         undergroundAnalyzer.Dispatch(0, numThreadsPerAxis, 1, 1);
 

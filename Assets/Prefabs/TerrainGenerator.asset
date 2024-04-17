@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: caf8871c411404dd79262357c3d015d6, type: 3}
+  m_Name: TerrainGenerator
+  m_EditorClassIdentifier: 
+  noiseMapGenerator: {fileID: 7200000, guid: fbdf4a6db352647738a37ff07e00520c, type: 3}
+  terrainCombinerGPU: {fileID: 7200000, guid: 7a2a2664ee0984c4baebc7e0657faea6, type: 3}
+  biomeMapGenerator: {fileID: 7200000, guid: 1b9afe1ba9dcc4876b269e701b60755c, type: 3}
+  surfaceTranscriber: {fileID: 7200000, guid: 11528a89b69824b879861f83c6e6552d, type: 3}
+  mapSimplifier: {fileID: 7200000, guid: 7d4e4569cd9704294a50d2cd86cbe6c4, type: 3}
+  expFalloffNoise: {fileID: 7200000, guid: 1546ba74df6bd4bd0a1cb2564513f294, type: 3}
+  fullNoiseSampler: {fileID: 7200000, guid: 1215d3cf808974e4b948ff6e37d84bd5, type: 3}
+  terrainCombiner: {fileID: 7200000, guid: 968e65cf5d9c44e47803648aa00c0a6b, type: 3}
+  rawNoiseSampler: {fileID: 7200000, guid: e80e4cccc70244b0992546f189a78925, type: 3}
+  checkNoiseSampler: {fileID: 7200000, guid: 86944982c56e94cc99c508efa4d21ec3, type: 3}
+  indirectThreads: {fileID: 7200000, guid: ada36d988c06e40f2864470524a87e61, type: 3}

@@ -11,14 +11,13 @@ public class GenerationResources : ScriptableObject
     public TextureData texData;
     public StructureGenerationData structData;
     public BiomeGenerationData biomeData;
-    public NoiseGenerationData noiseData;
     public GPUDensityManager densityDict;
 
     [Header("Generation Utilities")]
     public ReadbackSettings readbackSettings;
     public GeneratorSettings geoSettings;
-    public MeshCreatorSettings meshCreator;
-    public SurfaceCreatorSettings surfaceSettings;
+    public MeshCreator meshCreator;
+    public MapCreator mapCreator;
 
     [Header("Bake Data")]
     
