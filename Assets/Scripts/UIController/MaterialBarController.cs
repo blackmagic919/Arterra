@@ -8,12 +8,11 @@ using UnityEngine.UI;
 public class MaterialBarController : MonoBehaviour
 {
     TerraformController terraform;
-    public TextureData textureData;
     public RectTransform panelRectTransform;
-    public ComputeShader BarTextureCompute;
     public Material inventoryMat;
 
-    public RenderTexture result;
+    private ComputeBuffer indexBuffer;
+    private ComputeBuffer percentageBuffer;
 
     const int numThreadsPerAxis = 8;
     const int textureWidth = 800;
@@ -24,9 +23,14 @@ public class MaterialBarController : MonoBehaviour
 
     private void OnEnable()
     {
-        result = new RenderTexture(textureWidth, textureHeight, 1);
-        result.enableRandomWrite = true;
-        result.Create();
+        indexBuffer = new ComputeBuffer(100, sizeof(int));
+        percentageBuffer = new ComputeBuffer(100, sizeof(float));
+    }
+
+    private void OnDisable()
+    {
+        indexBuffer.Release();
+        percentageBuffer.Release();
     }
 
     void Start()
@@ -34,7 +38,10 @@ public class MaterialBarController : MonoBehaviour
         // Get the RectTransform component of the UI panel.
         panelRectTransform = GetComponent<RectTransform>();
         terraform = FindFirstObjectByType<TerraformController>();
-        result.filterMode = FilterMode.Point; //Prevent weird ghost interpolated materials -> Materials index not interpolated
+
+        inventoryMat.SetBuffer("inventoryMaterialIndexes", indexBuffer);
+        inventoryMat.SetBuffer("inventoryMaterialPercents", percentageBuffer);
+
     }
 
     // Update is called once per frame
@@ -56,37 +63,20 @@ public class MaterialBarController : MonoBehaviour
         if (totalMaterials == 0)
             return;
         //
-        float[] indexes = terraform.getInventoryKeys;
+        int[] indexes = terraform.getInventoryKeys;
         float[] amounts = terraform.getInventoryValues;
-        int maxMaterials = textureData.MaterialDictionary.Count;
 
         float[] percentageCumulative = new float[totalMaterials];
         percentageCumulative[0] = 0;
+
         for (int i = 1; i < totalMaterials; i++)
             percentageCumulative[i] = (amounts[i-1]) / terraform.totalMaterialAmount + percentageCumulative[i - 1];
 
-        ComputeBuffer indexBuffer = new ComputeBuffer(totalMaterials, sizeof(float));
-        indexBuffer.SetData(indexes);
-
-        ComputeBuffer percentageBuffer = new ComputeBuffer(totalMaterials, sizeof(float));
-        percentageBuffer.SetData(percentageCumulative);
-
-        BarTextureCompute.SetInt("materialCount", totalMaterials);
-        BarTextureCompute.SetInt("maxMaterialCount", maxMaterials);
-        BarTextureCompute.SetBuffer(0, "inventoryMaterialIndexes", indexBuffer);
-        BarTextureCompute.SetBuffer(0, "inventoryMaterialPercents", percentageBuffer);
-
-        BarTextureCompute.SetTexture(0, "Result", result); 
-        BarTextureCompute.Dispatch(0, textureWidth / numThreadsPerAxis + 1, textureHeight/ numThreadsPerAxis + 1, 1);
-
-
-        inventoryMat.SetInt("maxMatCount", maxMaterials);
+        indexBuffer.SetData(indexes, 0, 0, indexes.Count());
+        percentageBuffer.SetData(percentageCumulative, 0, 0, percentageCumulative.Count());
+        inventoryMat.SetInt("materialCount", totalMaterials);
         inventoryMat.SetInt("selectedMat", (int)terraform.selected);
         inventoryMat.SetFloat("InventorySize", size);
-        inventoryMat.SetTexture("_MaterialData", result);
-
-        indexBuffer.Release();
-        percentageBuffer.Release();
     }
 
 }

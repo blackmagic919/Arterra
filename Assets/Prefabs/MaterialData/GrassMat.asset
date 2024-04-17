@@ -12,11 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 957bdd82243d4447fbab41e0462ba1d5, type: 3}
   m_Name: GrassMat
   m_EditorClassIdentifier: 
-  autoUpdate: 0
   Name: Grass
-  color: {r: 0.052014284, g: 0.33962262, b: 0, a: 0}
   texture: {fileID: 2800000, guid: 9a32d08edbf8447c88139bfb43dfbe1a, type: 3}
-  textureScale: 5
-  baseColorStrength: 0.25
-  GeoShaderIndex: 0
-  AtmosphereScatter: {x: 0, y: 0.01, z: 0, w: 1}
+  terrainData:
+    color: {r: 0.050980397, g: 0.34117648, b: 0, a: 0}
+    textureScale: 5
+    baseColorStrength: 0.25
+    GeoShaderIndex: 0
+  AtmosphereScatter:
+    ScatterCoeffs: {x: 0, y: 0, z: 0}
+    GroundExtinction: {x: 0, y: 0, z: 0}
+  liquidData:
+    shallowCol: {x: 0.1, y: 0.5, z: 0.1}
+    deepCol: {x: 0, y: 0.5, z: 0.25}
+    colFalloff: 0.052
+    depthOpacity: 0.173
+    smoothness: 0.468

@@ -1,0 +1,17 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+StructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+
+uint addressIndex;
+uint STRUCTURE_STRIDE_4BYTE;
+
+//Output
+RWStructuredBuffer<uint> structCount;
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    structCount[0] = _AddressDict[addressIndex].x == 0 ? 0 : (_MemoryBuffer[_AddressDict[addressIndex].x - 1] / STRUCTURE_STRIDE_4BYTE - 1);
+}

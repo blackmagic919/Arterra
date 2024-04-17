@@ -1,0 +1,16 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+RWStructuredBuffer<uint> shaderCountOffset;
+uint numShaders;
+uint bSTART_scount;
+
+//Simple Prefix Sum :D
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    //This is prefix sum so 1->numShaders inclusive
+    for(uint i = 1; i <= numShaders; i++){
+        shaderCountOffset[bSTART_scount + i] += shaderCountOffset[bSTART_scount + i-1];
+    }
+}

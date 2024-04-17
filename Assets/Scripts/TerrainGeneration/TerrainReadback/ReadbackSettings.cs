@@ -6,14 +6,25 @@ using UnityEngine;
 public class ReadbackSettings : ScriptableObject
 {
     [Header("Indirectly Drawn Shader")]
-    public List<Material> indirectTerrainMats;
+    public List<Material> TerrainMats; 
+    [HideInInspector]
+    public Material[] indirectTerrainMats;
 
     [Header("Buffer Space")]
     public MemoryBufferSettings memoryBuffer;
 
-    [Header("Dependencies")]
-    public ComputeShader memorySizeCalculator;
-    public ComputeShader baseGeoTranscriber;
-    public ComputeShader meshDrawArgsCreator;
-    public ComputeShader indirectThreads;
+    public void OnEnable(){
+        indirectTerrainMats = new Material[TerrainMats.Count];
+        for(int i = 0; i < TerrainMats.Count; i++){
+            indirectTerrainMats[i] = Object.Instantiate(TerrainMats[i]);
+            indirectTerrainMats[i].EnableKeyword("INDIRECT");
+        }
+    }
+
+    public void OnDisable(){
+        for(int i = 0; i < indirectTerrainMats.Length; i++){
+            if(Application.isPlaying) Object.Destroy(indirectTerrainMats[i]);
+            else Object.DestroyImmediate(indirectTerrainMats[i]);
+        }
+    }
 }

@@ -12,24 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5a55167b9f07403db285acd197bbc09, type: 3}
   m_Name: SquashNoise
   m_EditorClassIdentifier: 
-  autoUpdate: 0
   noiseScale: 1000
   octaves: 9
   persistance: 0.5
-  lacunarity: 1.5
-  lerpScale: 2
+  lacunarity: 2
   seed: 7
-  splinePoints:
-  - {x: 0.0015773177, y: 0, z: 0, w: 0}
-  - {x: 0.49602434, y: 0.17567652, z: 0.1427199, w: 0.1427199}
-  - {x: 0.7053776, y: 0.37017965, z: 0.095927045, w: 0.095927045}
-  - {x: 1.0015774, y: 1, z: 0, w: 0}
   interpolation:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
-      time: 0.0015773177
-      value: 0
+      time: 0.000074853306
+      value: 0.0020688113
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -37,22 +30,22 @@ MonoBehaviour:
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 0.49602434
-      value: 0.17567652
-      inSlope: 0.1427199
-      outSlope: 0.1427199
+      time: 0.49833125
+      value: 0.05007317
+      inSlope: 0.09173089
+      outSlope: 0.09173089
       tangentMode: 0
       weightedMode: 0
       inWeight: 0.33333334
-      outWeight: 0.12330118
+      outWeight: 0.15038414
     - serializedVersion: 3
-      time: 0.7053776
-      value: 0.37017965
-      inSlope: 0.095927045
-      outSlope: 0.095927045
+      time: 0.97403395
+      value: 0.10497157
+      inSlope: -0.046432313
+      outSlope: -0.046432313
       tangentMode: 0
       weightedMode: 0
-      inWeight: 0.33333334
+      inWeight: 0.16309077
       outWeight: 0.24162228
     - serializedVersion: 3
       time: 1.0015774
@@ -66,3 +59,19 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  splinePoints:
+  - {x: 0.000074853306, y: 0.0020688113, z: 0, w: 0}
+  - {x: 0.49833125, y: 0.05007317, z: 0.09173089, w: 0.09173089}
+  - {x: 0.97403395, y: 0.10497157, z: -0.046432313, w: -0.046432313}
+  - {x: 1.0015774, y: 1, z: 0, w: 0}
+  offsets:
+  - {x: -233560, y: 742511, z: 321877}
+  - {x: -895477, y: -267134, z: 352338}
+  - {x: -915153, y: 907937, z: 687133}
+  - {x: 709924, y: -101961, z: 864631}
+  - {x: -110368, y: -777403, z: 763908}
+  - {x: -195974, y: 609767, z: -329316}
+  - {x: 733347, y: -949949, z: 494003}
+  - {x: 130817, y: -650126, z: -43908}
+  - {x: -228037, y: -942870, z: 904746}
+  maxPossibleHeight: 1.9960938

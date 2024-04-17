@@ -1,0 +1,20 @@
+#pragma kernel CSMain
+//Use this to load info from mem buffers into generation buffer
+
+//Generation buffer binding
+RWStructuredBuffer<uint> counter;
+uint bCOUNTER_tri;
+
+StructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+uint triAddress;
+uint triStride;
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(_AddressDict[triAddress].x == 0)
+        return;
+        
+    counter[bCOUNTER_tri] = _MemoryBuffer[_AddressDict[triAddress].x - 1] / triStride - 1; //1 for padding
+}

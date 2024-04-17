@@ -1,0 +1,208 @@
+#pragma kernel Generate
+#pragma multi_compile _ HAS_EXISTING_MATERIALS
+#include "Assets/Resources/Utility/GetIndex.hlsl"
+#include "Assets/Resources/Utility/PerlinNoiseSampler.hlsl"
+const static uint SURF_STRIDE_4BYTE = 4;
+const static int numThreads = 8;
+const static int Epsilon = 0.0001;
+
+struct DensityFunc{
+    int lowerLimit;
+    int upperLimit;
+    int center;
+
+    float multiplier;
+    float power;
+};
+
+struct BMaterial{
+    int materialIndex;
+    float genNoiseSize;
+    float genNoiseShape;
+    DensityFunc density;
+};
+
+struct CaveGen{
+    float coarse;
+    float shape;
+    float frequency;
+};
+
+float IsoLevel;
+float waterHeight;
+int waterMat;
+
+StructuredBuffer<CaveGen> _BiomeCaveData;
+StructuredBuffer<uint2> _BiomeMaterialCount;
+StructuredBuffer<BMaterial> _BiomeGroundMaterials;
+StructuredBuffer<BMaterial> _BiomeSurfaceMaterials;
+
+uint coarseCaveSampler;
+uint fineCaveSampler;
+uint coarseMatSampler;
+uint fineMatSampler;
+float offsetY;
+
+struct surfData{
+    float terrain;
+    float squash;
+    float atmosphere;
+    int biome;
+};
+
+StructuredBuffer<surfData> _SurfMemoryBuffer;
+StructuredBuffer<uint2> _SurfAddressDict;
+uint surfAddress;
+
+
+surfData ReadSurfData(uint2 coord){
+    uint2 fullCoord = coord * meshSkipInc;
+    uint numPointsAxisFull = (numPointsPerAxis - 1) * meshSkipInc + 1;
+    uint address = _SurfAddressDict[surfAddress].y + indexFromCoord2DManual(fullCoord, numPointsAxisFull);
+    
+    return _SurfMemoryBuffer[address];
+}
+
+struct mapData{
+    float density;
+    float viscosity;
+    int material;
+};
+
+RWStructuredBuffer<mapData> baseMap;
+
+float GetNoiseCentered(float val, float center){
+    float clamped = clamp(val, 0, 1);
+    float ret = (clamped > center) ? 1-invLerp(center, 1, clamped)
+                : invLerp(0, center, clamped);
+                
+    return ret;
+}
+
+float GetNoiseCentered(float val, float center, float bottom, float top){
+    float clamped = clamp(val, bottom, top);
+    float ret = (clamped > center) ? 1-invLerp(center, top, clamped)
+                : invLerp(bottom, center, clamped);
+                
+    return ret;
+}
+
+float GetHeightPref(BMaterial material, float posY){
+    DensityFunc pref = material.density;
+    float heightFactor = GetNoiseCentered(posY, pref.center, pref.lowerLimit, pref.upperLimit);
+    float densityValue = pow(abs(heightFactor), pref.power);
+    return densityValue * pref.multiplier;
+}
+
+float GetMaterialWeight(BMaterial material, float coarse, float fine, float posY){
+    float coarsePref = material.genNoiseSize;
+    float noiseCenter = material.genNoiseShape;
+
+    float coarseCentered = GetNoiseCentered(coarse, noiseCenter, 0, 1);
+    float fineCentered = GetNoiseCentered(fine, noiseCenter, 0, 1);
+
+    float baseWeight = coarsePref * coarseCentered + (1.0f-coarsePref) * fineCentered;
+    float heightPref = GetHeightPref(material, posY);
+    return baseWeight * heightPref;
+}
+
+//It's better to make 2 funcs rather than do extra comparisons
+int GetGroundMaterial(float coarse, float fine, uint biome, float posY){
+    uint biomeStartIndex = _BiomeMaterialCount[biome].x;
+    uint biomeEndIndex = _BiomeMaterialCount[biome+1].x;
+
+    int bestMat = _BiomeGroundMaterials[biomeStartIndex].materialIndex;
+    float maxWeight = -1.0f;
+    
+    for(uint matInd = biomeStartIndex; matInd < biomeEndIndex; matInd++){
+        BMaterial material = _BiomeGroundMaterials[matInd];
+        float weight = GetMaterialWeight(material, coarse, fine, posY);
+
+        if(weight > maxWeight){
+            maxWeight = weight;
+            bestMat = material.materialIndex;
+        }
+    }
+
+    return bestMat;
+}
+
+int GetSurfaceMaterial(float coarse, float fine, uint biome, float posY){
+    uint biomeStartIndex = _BiomeMaterialCount[biome].y;
+    uint biomeEndIndex = _BiomeMaterialCount[biome+1].y;
+
+    int bestMat = _BiomeSurfaceMaterials[biomeStartIndex].materialIndex;
+    float maxWeight = -1.0f;
+    
+    for(uint matInd = biomeStartIndex; matInd < biomeEndIndex; matInd++){
+        BMaterial material = _BiomeSurfaceMaterials[matInd];
+        float weight = GetMaterialWeight(material, coarse, fine, posY);
+
+        if(weight > maxWeight){
+            maxWeight = weight;
+            bestMat = material.materialIndex;
+        }
+    }
+
+    return bestMat;
+}
+
+
+
+[numthreads(numThreads, numThreads, numThreads)]
+void Generate (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis ) {
+        return;
+    }
+
+    uint index = indexFromCoord(id);
+
+    surfData data = ReadSurfData(id.xz);
+    uint biome = max(0, (uint)data.biome);
+    float coarseMatNoise = GetNoise(id, coarseMatSampler);
+    float fineMatNoise = GetNoise(id, fineMatSampler);
+
+    float y = id.y * meshSkipInc;
+    float halfHeight = chunkSize / 2;
+    float actualHeight = y - halfHeight + offsetY;
+    float groundHeight = actualHeight - data.terrain;
+
+    //Get Base Density
+    CaveGen caveData = _BiomeCaveData[data.biome];
+
+    float coarseCaveNoise = GetNoise(id, coarseCaveSampler);
+    float fineCaveNoise = GetNoise(id, fineCaveSampler);
+
+    float coarseCaveCentered = GetNoiseCentered(coarseCaveNoise, caveData.shape);
+    float fineCaveCentered = GetNoiseCentered(fineCaveNoise, caveData.shape);
+
+    float centereCavedNoise = caveData.coarse * coarseCaveCentered + (1.0f - caveData.coarse) * fineCaveCentered;
+    float baseDensity = pow(abs(1.0f-centereCavedNoise), caveData.frequency); //We do 1-noise because cave means low density
+
+    //Blend with Terrain Height
+    float squashFactor = clamp((data.terrain - actualHeight) / (data.squash + Epsilon), 0, 1);
+    float terrainFactor = squashFactor * (1-IsoLevel) + IsoLevel;
+    float atmosphereFactor = exp(-max(actualHeight - data.terrain, 0) * data.atmosphere);
+    float density = baseDensity * terrainFactor * atmosphereFactor;
+
+    //Generate Water
+    if(actualHeight > (data.terrain - data.squash) && actualHeight < waterHeight && density < IsoLevel){
+        baseMap[index].density = 1.0f;
+        baseMap[index].viscosity = density;
+        baseMap[index].material = waterMat;
+        return;
+    }
+
+    //Get Material
+    int matInd = 0;
+    if(density > IsoLevel)
+        matInd = GetGroundMaterial(coarseMatNoise, fineMatNoise, biome, groundHeight);
+    else
+        matInd = GetSurfaceMaterial(coarseMatNoise, fineMatNoise, biome, groundHeight);
+    
+    //Generate Land
+    baseMap[index].density = density;
+    baseMap[index].viscosity = 1.0f;
+    baseMap[index].material = matInd;
+}

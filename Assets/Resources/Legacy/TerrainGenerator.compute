@@ -1,0 +1,89 @@
+#pragma kernel GenerateFull
+#include "Assets/Resources/Utility/PerlinNoiseSampler.hlsl"
+#include "Assets/Resources/Utility/GetIndex.hlsl"
+const static uint SURF_STRIDE_4BYTE = 4;
+
+
+const static int numThreads = 8;
+const static int Epsilon = 0.0001;
+
+struct CaveGen{
+    float coarse;
+    float shape;
+    float frequency;
+};
+
+StructuredBuffer<CaveGen> _BiomeCaveData;
+uint coarseSampler;
+uint fineSampler;
+
+float offsetY;
+float IsoLevel;
+RWStructuredBuffer<float> points;
+
+StructuredBuffer<uint> _SurfMemoryBuffer;
+StructuredBuffer<uint> _SurfAddressDict;
+uint surfAddress;
+
+struct surfData{
+    float terrain;
+    float squash;
+    float atmosphere;
+    int biome;
+};
+
+float GetNoiseCentered(float val, float center){
+    float clamped = clamp(val, 0, 1);
+    float ret = (clamped > center) ? 1-invLerp(center, 1, clamped)
+                : invLerp(0, center, clamped);
+                
+    return ret;
+}
+
+surfData ReadSurfData(uint2 coord){
+    uint2 fullCoord = coord * meshSkipInc;
+    uint numPointsAxisFull = (numPointsPerAxis - 1) * meshSkipInc + 1;
+    uint address = _SurfAddressDict[surfAddress] + indexFromCoord2DManual(fullCoord, numPointsAxisFull) * SURF_STRIDE_4BYTE;
+    
+    surfData data;
+    data.terrain = asfloat(_SurfMemoryBuffer[address]);
+    data.squash = asfloat(_SurfMemoryBuffer[address + 1]);
+    data.atmosphere = asfloat(_SurfMemoryBuffer[address + 2]);
+    data.biome = asint(_SurfMemoryBuffer[address + 3]);
+    return data;
+}
+
+[numthreads(numThreads,numThreads,numThreads)]
+void GenerateFull (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis) {
+        return;
+    }//
+
+    uint y = id.y * meshSkipInc;
+    float halfHeight = chunkSize / 2;
+    float actualHeight = y - halfHeight + offsetY;
+
+    uint index = indexFromCoord(id);
+    uint mapIndex = indexFromCoord2D(id.xz);
+    surfData data = ReadSurfData(id.xz);
+
+    //Get Base Cave Density
+    CaveGen caveData = _BiomeCaveData[data.biome];
+
+    float coarseNoise = GetNoise(id, coarseSampler);
+    float fineNoise = GetNoise(id, fineSampler);
+
+    float coarseCentered = GetNoiseCentered(coarseNoise, caveData.shape);
+    float fineCentered = GetNoiseCentered(fineNoise, caveData.shape);
+
+    float centeredNoise = caveData.coarse * coarseCentered + (1.0f - caveData.coarse) * fineCentered;
+    float baseDensity = pow(abs(1.0f-centeredNoise), caveData.frequency); //We do 1-noise because cave means low density
+
+    //Blend with Terrain Height
+    float squashFactor = clamp((data.terrain - actualHeight) / (data.squash + Epsilon), 0, 1);
+    float terrainFactor = squashFactor * (1-IsoLevel) + IsoLevel;
+    float atmosphereFactor = exp(-max(actualHeight - data.terrain, 0) * data.atmosphere);
+
+    points[index] = baseDensity * terrainFactor * atmosphereFactor;
+}

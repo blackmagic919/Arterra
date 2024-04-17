@@ -1,0 +1,28 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+StructuredBuffer<uint> prefixSizes;
+uint bCOUNTER_oGeo;
+
+struct IndirectArgs{
+    uint numVerticesPerInstance;
+    uint numInstances;
+    //Useless in PC platforms :( Curse you!!
+    uint startVertexIndex; 
+    uint startInstanceIndex;
+};
+
+RWStructuredBuffer<IndirectArgs> _IndirectArgsBuffer;
+uint argOffset;
+
+[numthreads(1,1,1)] 
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint numTriangles = prefixSizes[bCOUNTER_oGeo+1] - prefixSizes[bCOUNTER_oGeo];
+
+    _IndirectArgsBuffer[argOffset].numInstances = numTriangles == 0 ? 0 : 1;
+    _IndirectArgsBuffer[argOffset].numVerticesPerInstance = numTriangles * 3;
+    _IndirectArgsBuffer[argOffset].startVertexIndex = 0; //vertex multiply by 3
+    _IndirectArgsBuffer[argOffset].startInstanceIndex = 0;
+
+}

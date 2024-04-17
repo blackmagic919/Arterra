@@ -19,46 +19,36 @@ public class ProceduralGrassRenderer : SpecialShader
         return grassSettings.material;
     }
 
-    public override void ProcessGeoShader(Transform transform, ComputeBuffer sourceTriangles, ComputeBuffer startIndices, ComputeBuffer drawTriangles, int shaderIndex)
+    public override void ProcessGeoShader(Transform transform, MemoryBufferSettings memoryHandle, int vertAddress, int triAddress, 
+                        int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart)
     {
         idGrassKernel = grassSettings.grassComputeShader.FindKernel("Main");
         idIndirectArgsKernel = grassSettings.indirectArgsShader.FindKernel("Main");
+        ComputeBuffer memory = memoryHandle.AccessStorage();
+        ComputeBuffer addresses = memoryHandle.AccessAddresses();
 
-        uint argsGroupSize; grassSettings.indirectArgsShader.GetKernelThreadGroupSizes(idIndirectArgsKernel, out argsGroupSize, out _, out _);
-        ComputeBuffer dispatchArgs = SetArgs(startIndices, shaderIndex, (int)argsGroupSize, ref tempBuffers);
+        ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(grassSettings.grassComputeShader, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
-        GenerateGeometry(transform, sourceTriangles, startIndices, drawTriangles, dispatchArgs, shaderIndex);
-    }
+        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "SourceVertices", memory);
+        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "SourceTriangles", memory);
+        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "_AddressDict", addresses); 
+        grassSettings.grassComputeShader.SetInt("vertAddress", vertAddress);
+        grassSettings.grassComputeShader.SetInt("triAddress", triAddress);
 
-    void GenerateGeometry(Transform transform, ComputeBuffer sourceTriangles, ComputeBuffer startIndices, ComputeBuffer drawTriangles, ComputeBuffer args, int shaderIndex)
-    {
-        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "_SourceTriangles", sourceTriangles);
-        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "_SourceStartIndices", startIndices);
-        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "_DrawTriangles", drawTriangles); //This is the output
+        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "counters", UtilityBuffers.GenerationBuffer);
+        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
+        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
+        grassSettings.grassComputeShader.SetInt("bSTART_base", baseGeoStart);
+        grassSettings.grassComputeShader.SetInt("bCOUNT_base", baseGeoCount);
+        grassSettings.grassComputeShader.SetInt("bSTART_oGeo", geoStart);
+        grassSettings.grassComputeShader.SetInt("bCOUNT_oGeo", geoCounter);
 
         grassSettings.grassComputeShader.SetFloat("_TotalHeight", grassSettings.grassHeight);
         grassSettings.grassComputeShader.SetFloat("_WorldPositionToUVScale", grassSettings.worldPositionUVScale);
         grassSettings.grassComputeShader.SetInt("_MaxLayers", grassSettings.maxLayers);
-        grassSettings.grassComputeShader.SetInt("_ShaderIndex", shaderIndex);
         grassSettings.grassComputeShader.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
 
         grassSettings.grassComputeShader.DispatchIndirect(idGrassKernel, args);
-    }
-
-    ComputeBuffer SetArgs(ComputeBuffer prefixIndexes, int shaderIndex, int threadGroupSize, ref Queue<ComputeBuffer> bufferHandle)
-    {
-        ComputeBuffer indirectArgs = new ComputeBuffer(3, sizeof(uint), ComputeBufferType.Structured);
-        indirectArgs.SetData(new uint[] { 1, 1, 1 });
-        bufferHandle.Enqueue(indirectArgs);
-
-        grassSettings.indirectArgsShader.SetBuffer(idIndirectArgsKernel, "prefixStart", prefixIndexes);
-        grassSettings.indirectArgsShader.SetInt("shaderIndex", shaderIndex);
-        grassSettings.indirectArgsShader.SetInt("threadGroupSize", threadGroupSize);
-        grassSettings.indirectArgsShader.SetBuffer(idIndirectArgsKernel, "indirectArgs", indirectArgs);
-
-        grassSettings.indirectArgsShader.Dispatch(idIndirectArgsKernel, 1, 1, 1);
-
-        return indirectArgs;
     }
 
     public override void ReleaseTempBuffers()

@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityStandardAssets.Characters.FirstPerson;
 using UnityEngine.Profiling;
 using Utils;
+using UnityEngine.Rendering;
 
 public class EndlessTerrain : MonoBehaviour
 {
@@ -20,7 +21,7 @@ public class EndlessTerrain : MonoBehaviour
     public Transform viewer;
     //Pause Viewer until terrain is generated
     public RigidbodyFirstPersonController viewerRigidBody;
-    public int actionsPerFrame = 50;
+    public int maxFrameLoad = 50; //GPU load
     public static Vector3 viewerPosition;
     Vector3 oldViewerPos = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
     public bool viewerActive = false;
@@ -30,11 +31,12 @@ public class EndlessTerrain : MonoBehaviour
     public GenerationResources resources;
     //Ideally specialShaders should be in materialData, but can't compile monobehavior in an asset 
 
+    public static readonly int[] meshSkipTable = { 1, 2, 4, 8, 16 }; //has to be 2x for proper stitching
+    public static readonly int[] taskLoadTable = { 5, 5, 2, 3 };
+    public static Queue<UpdateTask> MainLoopUpdateTasks = new Queue<UpdateTask>();
+    public static PriorityQueue<GenTask, int> timeRequestQueue = new PriorityQueue<GenTask, int>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
 
-    public static Queue<TerrainChunk> lastUpdateTerrainChunks = new Queue<TerrainChunk>();
-    public static Queue<SurfaceChunk> lastUpdateSurfaceChunks = new Queue<SurfaceChunk>();
-
-    public static PriorityQueue<Action, int> timeRequestQueue = new PriorityQueue<Action, int>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
+    public static Queue<ChunkData> lastUpdateChunks = new Queue<ChunkData>();
 
     public static Dictionary<Vector3, TerrainChunk> terrainChunkDict = new Dictionary<Vector3, TerrainChunk>();
     public static Dictionary<Vector2, SurfaceChunk> surfaceChunkDict = new Dictionary<Vector2, SurfaceChunk>();
@@ -44,12 +46,12 @@ public class EndlessTerrain : MonoBehaviour
     {
         renderDistance = settings.detailLevels[settings.detailLevels.Length - 1].distanceThresh;
         chunksVisibleInViewDistance = Mathf.RoundToInt(renderDistance / mapChunkSize);
-        resources.meshCreator.biomeData = resources.biomeData;//Will change, temporary
-        resources.mapCreator.biomeData = resources.biomeData;
-        resources.texData.ApplyToMaterial();
-        resources.structData.ApplyToMaterial();
 
         resources.densityDict.InitializeManage(settings.detailLevels, mapChunkSize, lerpScale);
+        StructureGenerator.PresetData(resources.meshCreator, resources.surfaceSettings);
+        TerrainGenerator.PresetData(resources.surfaceSettings);
+        DensityGenerator.PresetData(resources.meshCreator, mapChunkSize);
+        ShaderGenerator.PresetData(mapChunkSize);
     }
 
     private void Update()
@@ -61,6 +63,17 @@ public class EndlessTerrain : MonoBehaviour
             UpdateVisibleChunks();
         }
         StartGeneration();
+
+        int UpdateTaskCount = MainLoopUpdateTasks.Count;
+        for(int i = 0; i < UpdateTaskCount; i++){
+            UpdateTask task = MainLoopUpdateTasks.Dequeue();
+            
+            if(!task.initialized)
+                continue;
+
+            task.Update();
+            MainLoopUpdateTasks.Enqueue(task);
+        }
     }
     
 
@@ -94,14 +107,17 @@ public class EndlessTerrain : MonoBehaviour
 
     void StartGeneration()
     {
-        for(int i = 0; i < actionsPerFrame; i++)
+        int FrameGPULoad = 0;
+        while(FrameGPULoad < maxFrameLoad)
         {
-            if (!timeRequestQueue.TryDequeue(out Action action, out int priority))
+            if (!timeRequestQueue.TryDequeue(out GenTask gen, out int priority))
                 return;
 
             Profiler.BeginSample($"Time Request Queue: {Enum.GetName(typeof(priorities), priority)}");
-            action.Invoke();
+            gen.task.Invoke();
             Profiler.EndSample();
+
+            FrameGPULoad += gen.genLoad;
         }
     }
 
@@ -113,13 +129,9 @@ public class EndlessTerrain : MonoBehaviour
         Vector3 CCCoord = new Vector3(CCCoordX, CCCoordY, CCCoordZ);
         Vector2 CSCoord = new Vector2(CCCoordX, CCCoordZ);
 
-        while (lastUpdateTerrainChunks.Count > 0)
+        while (lastUpdateChunks.Count > 0)
         {
-            lastUpdateTerrainChunks.Dequeue().UpdateVisibility(CCCoord, chunksVisibleInViewDistance);
-        }
-        while (lastUpdateSurfaceChunks.Count > 0)
-        {
-            lastUpdateSurfaceChunks.Dequeue().UpdateVisibility(CSCoord, chunksVisibleInViewDistance);
+            lastUpdateChunks.Dequeue().UpdateVisibility(CCCoord, chunksVisibleInViewDistance);
         }
 
         for (int xOffset = -chunksVisibleInViewDistance; xOffset <= chunksVisibleInViewDistance; xOffset++)
@@ -132,7 +144,7 @@ public class EndlessTerrain : MonoBehaviour
                     curSChunk.Update();
                 }
                 else {
-                    curSChunk = new SurfaceChunk(Instantiate(resources.mapCreator), viewedSC);
+                    curSChunk = new SurfaceChunk(resources.surfaceSettings, viewedSC);
                     surfaceChunkDict.Add(viewedSC, curSChunk);
                 }
 
@@ -166,7 +178,7 @@ public class EndlessTerrain : MonoBehaviour
         return sqrDstToBox < sphereRadius * sphereRadius;
     }
 
-    public void Terraform(Vector3 terraformPoint, float terraformRadius, Func<Vector2, float, Vector2> handleTerraform)
+    public void Terraform(Vector3 terraformPoint, float terraformRadius, Func<TerrainChunk.MapData, float, TerrainChunk.MapData> handleTerraform)
     {
         int CCCoordX = Mathf.RoundToInt(terraformPoint.x / (mapChunkSize*lerpScale));
         int CCCoordY = Mathf.RoundToInt(terraformPoint.y / (mapChunkSize*lerpScale));
@@ -193,4 +205,91 @@ public class EndlessTerrain : MonoBehaviour
             }
         }
     }
+
+    public struct GenTask{
+        public Action task;
+        public int genLoad;
+        public GenTask(Action task, int genLoad){
+            this.task = task;
+            this.genLoad = genLoad;
+        }
+    }
+
+    public class MeshInfo
+    {
+        public List<Vector3> vertices;
+        public List<Vector3> normals;
+        public List<Vector2> UVs;
+        public List<Color> colorMap;
+        public List<int> triangles;
+        public UnityEngine.Rendering.SubMeshDescriptor[] subMeshes;
+
+        public MeshInfo()
+        {
+            vertices = new List<Vector3>();
+            normals = new List<Vector3>();
+            UVs = new List<Vector2>();
+            triangles = new List<int>();
+            colorMap = new List<Color>();
+            subMeshes = new UnityEngine.Rendering.SubMeshDescriptor[0];
+        }
+
+        public static Mesh GenerateMesh(MeshInfo meshData)
+        {
+            Mesh mesh = new Mesh
+            {
+                vertices = meshData.vertices.ToArray(),
+                normals = meshData.normals.ToArray(),
+                triangles = meshData.triangles.ToArray(),
+                colors = meshData.colorMap.ToArray()
+            };
+
+            if (meshData.UVs.Count > 0)
+                mesh.uv = meshData.UVs.ToArray();
+            if(meshData.subMeshes.Length > 0)
+                mesh.SetSubMeshes(meshData.subMeshes);
+            return mesh;
+        }
+
+        public Mesh GenerateMesh(UnityEngine.Rendering.IndexFormat meshIndexFormat)
+        {
+            Mesh mesh = new Mesh
+            {
+                indexFormat = meshIndexFormat,
+                vertices = vertices.ToArray(),
+                normals = normals.ToArray(),
+                triangles = triangles.ToArray(),
+                colors = colorMap.ToArray()
+            };
+            
+            if (UVs.Count > 0)
+                mesh.uv = UVs.ToArray();
+            if (subMeshes.Length > 0)
+                mesh.SetSubMeshes(subMeshes);
+            return mesh;
+        }
+
+        public Mesh GetSubmesh(int submeshIndex, UnityEngine.Rendering.IndexFormat meshIndexFormat){
+            Mesh mesh = new Mesh
+            {
+                indexFormat = meshIndexFormat,
+                vertices = vertices.ToArray(),
+                normals = normals.ToArray(),
+                triangles = triangles.GetRange(subMeshes[submeshIndex].indexStart, subMeshes[submeshIndex].indexCount).ToArray(),
+                colors = colorMap.ToArray()
+            };
+            
+            if (UVs.Count > 0)
+                mesh.uv = UVs.ToArray();
+            return mesh.triangles.Length == 0 ? null : mesh;
+        }
+
+        public void AddTriangle(int a, int b, int c)
+        {
+            triangles.Add(a);
+            triangles.Add(b);
+            triangles.Add(c);
+        }
+    }
 }
+

@@ -12,45 +12,66 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49bee82ffcb1d4036a871bcb04d33c57, type: 3}
   m_Name: Plains
   m_EditorClassIdentifier: 
-  autoUpdate: 1
   BiomeName: Plains
-  Materials:
-  - materialIndex: 3
-    genNoiseSize: 1
-    genNoiseShape: 1
+  caveSize: 0.7
+  caveShape: 1
+  caveFrequency: 0.5
+  GroundMaterials:
+  - materialIndex: 9
+    genSize: 1
+    genShape: 0.72
     VerticalPreference:
       lowerLimit: -400
       upperLimit: 200
       center: -300
       multiplier: 1
       power: 2
-  - materialIndex: 2
-    genNoiseSize: 0.569
-    genNoiseShape: 0.69
+  - materialIndex: 8
+    genSize: 0.367
+    genShape: 0.779
     VerticalPreference:
       lowerLimit: -400
       upperLimit: 200
       center: -200
       multiplier: 1
       power: 2
-  - materialIndex: 1
-    genNoiseSize: 0.333
-    genNoiseShape: 0.501
+  - materialIndex: 7
+    genSize: 0.622
+    genShape: 0.357
     VerticalPreference:
       lowerLimit: -400
       upperLimit: 200
       center: -150
       multiplier: 1
-      power: 3
-  - materialIndex: 0
-    genNoiseSize: 0.495
-    genNoiseShape: 0.344
+      power: 2
+  - materialIndex: 6
+    genSize: 1
+    genShape: 0.544
     VerticalPreference:
       lowerLimit: -400
       upperLimit: 200
       center: 0
       multiplier: 1
-      power: 4
+      power: 3
+  SurfaceMaterials:
+  - materialIndex: 0
+    genSize: 0.44
+    genShape: 0.279
+    VerticalPreference:
+      lowerLimit: -400
+      upperLimit: 600
+      center: 100
+      multiplier: 1
+      power: 2
+  - materialIndex: 1
+    genSize: 0.259
+    genShape: 1
+    VerticalPreference:
+      lowerLimit: 50
+      upperLimit: 250
+      center: 100
+      multiplier: 1
+      power: 3
   Structures: []
   structurePointDensity: 1
   seed: 0

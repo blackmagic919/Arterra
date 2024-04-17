@@ -16,14 +16,10 @@ public class TemplatePass : ScriptableRenderPass
     TemplateFeature.PassSettings passSettings;
 
     RenderTargetIdentifier temporaryBuffer;
-    RTHandle colorBuffer;
+    RTHandle colorBuffer; RTHandle depthBuffer;
     int temporaryBufferID = Shader.PropertyToID("_TemporaryBuffer");
 
     Material material;
-
-    /*static readonly int PlanetRadiusProperty = Shader.PropertyToID("_PlanetRadius");
-    static readonly int SurfaceOffsetProperty = Shader.PropertyToID("_SurfaceOffset");
-    static readonly int DensityFalloffProperty = Shader.PropertyToID("_DensityFalloff");*/
 
     // It is good to cache the shader property IDs here.
     static readonly int AtmosphereRadiusProperty = Shader.PropertyToID("_AtmosphereRadius");
@@ -42,36 +38,37 @@ public class TemplatePass : ScriptableRenderPass
         material.SetFloat(AtmosphereRadiusProperty, atmosphereRadius);
         material.SetInt(inScatterProperty, passSettings.luminanceBake.NumInScatterPoints);
 
-        //passSettings.densityManager.SetDensitySampleData(material);
-        passSettings.luminanceBake.SetSettings(passSettings);
-        passSettings.luminanceBake.SetBakedData(material);
+        passSettings.densityManager.SetDensitySampleData(material);
     }
 
     public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
     {
         RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
-
         descriptor.depthBufferBits = 0;
         
-        ConfigureInput(ScriptableRenderPassInput.Depth);
-
+        ConfigureInput(ScriptableRenderPassInput.Color);
         colorBuffer = renderingData.cameraData.renderer.cameraColorTargetHandle;
+        //We need copy from depth buffer because transparent pass needs depth texture of opaque pass, and fog needs depth texture of transparent pass
+        depthBuffer = renderingData.cameraData.renderer.cameraDepthTargetHandle; 
 
         cmd.GetTemporaryRT(temporaryBufferID, descriptor, FilterMode.Bilinear);
         temporaryBuffer = new RenderTargetIdentifier(temporaryBufferID);
+
+        passSettings.luminanceBake.SetSettings(passSettings);
+        passSettings.luminanceBake.SetBakedData(material);
     }
 
     // The actual execution of the pass. This is where custom rendering occurs.
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
-        
+        passSettings.luminanceBake.Execute();
         if(passSettings.densityManager.initialized && passSettings.luminanceBake.initialized){
             CommandBuffer cmd = CommandBufferPool.Get();
             
             using (new ProfilingScope(cmd, new ProfilingSampler(ProfilerTag)))
             {
-                passSettings.luminanceBake.Execute();
                 // Blit from the color buffer to a temporary buffer and back. This is needed for a two-pass shader.
+                Blit(cmd, depthBuffer, Shader.GetGlobalTexture("_CameraDepthTexture")); //Make sure camera depth is available in shader
                 Blit(cmd, colorBuffer, temporaryBuffer, material, 0); // shader pass 0
                 Blit(cmd, temporaryBuffer, colorBuffer);
             }

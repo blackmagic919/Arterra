@@ -1,6 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using static EndlessTerrain;
 
@@ -11,21 +9,19 @@ public class LODMesh
     public Vector3 position;
     public Vector3 CCoord;
 
-    public Mesh baseMesh;
     ShaderGenerator geoShaders;
     AsyncMeshReadback meshReadback;
     GPUDensityManager densityManager;
 
     float IsoLevel;
     MeshCreator meshCreator;
+    StructureCreator structCreator;
 
-    public bool hasRequestedChunk = false;
-    public bool depreceated = false;
-
-    public LODMesh(MeshCreator meshCreator, ShaderGenerator geoShaders, AsyncMeshReadback meshReadback, GPUDensityManager densityManager,
-                   SurfaceChunk.BaseMap surfaceMap, LODInfo[] detailLevels, Vector3 position, Vector3 CCoord, float IsoLevel)
+    public LODMesh(MeshCreator meshCreator, StructureCreator structCreator, ShaderGenerator geoShaders, AsyncMeshReadback meshReadback, 
+                GPUDensityManager densityManager, SurfaceChunk.BaseMap surfaceMap, LODInfo[] detailLevels, Vector3 position, Vector3 CCoord, float IsoLevel)
     {
         this.meshCreator = meshCreator;
+        this.structCreator = structCreator;
         this.meshReadback = meshReadback;
         this.densityManager = densityManager;
         this.geoShaders = geoShaders;
@@ -40,55 +36,57 @@ public class LODMesh
 
     public void GenerateMap(int LOD)
     {
-        SurfaceChunk.SurfaceMap surfaceLODMap = surfaceMap.SimplifyMap(LOD);
-
-        ComputeBuffer density = meshCreator.GenerateDensity(surfaceLODMap, this.position, LOD, mapChunkSize, IsoLevel);
-        ComputeBuffer material = meshCreator.GenerateMaterials(surfaceLODMap, this.position, LOD, mapChunkSize);
-        meshCreator.GenerateStrucutresGPU(density, material, mapChunkSize, LOD, IsoLevel);
-        densityManager.SubscribeChunk(density, material, CCoord, LOD);
+        SurfaceChunk.SurfData surfData = surfaceMap.GetMap();
+        meshCreator.GenerateBaseChunk(surfData, this.position, LOD, mapChunkSize, IsoLevel);
+        structCreator.GenerateStrucutresGPU(mapChunkSize, LOD, IsoLevel);
+        densityManager.SubscribeChunk(CCoord, LOD);
         
-        surfaceLODMap.Release();
         meshCreator.ReleaseTempBuffers();
     }
 
-    public void CreateMesh(int LOD, Action UpdateCallback){
-        ComputeBuffer sourceMesh = meshCreator.GenerateMapData(densityManager, this.CCoord, IsoLevel, LOD, mapChunkSize);
+    public void CreateMesh(int LOD, Action<MeshInfo, int> UpdateCallback){
+        meshCreator.GenerateMapData(densityManager, this.CCoord, IsoLevel, LOD, mapChunkSize);
+
+        meshReadback.OffloadVerticesToGPU(DensityGenerator.countInd.x, DensityGenerator.vertexStart_U);
+        meshReadback.OffloadTrisToGPU(DensityGenerator.countInd.y, DensityGenerator.baseTriStart_U, DensityGenerator.dictStart_U, (int)ReadbackMaterial.terrain);
+        meshReadback.OffloadTrisToGPU(DensityGenerator.countInd.z, DensityGenerator.waterTriStart_U, DensityGenerator.dictStart_U, (int)ReadbackMaterial.water);
+        meshReadback.BeginMeshReadback(ret => UpdateCallback(ret, LOD));
+
+        if (detailLevels[LOD].useForGeoShaders)
+            geoShaders.ComputeGeoShaderGeometry(meshReadback.settings.memoryBuffer, meshReadback.vertexHandle, meshReadback.triHandles[(int)ReadbackMaterial.terrain]);
+        else
+            geoShaders.ReleaseGeometry();
+
+        meshCreator.ReleaseTempBuffers();
+    }
+
+    public void SetChunkData(int LOD, ref TerrainChunk.MapData[] chunkData){
+        meshCreator.SetMapInfo(LOD, mapChunkSize, chunkData);
+        densityManager.SubscribeChunk(CCoord, LOD);
+
+        meshCreator.ReleaseTempBuffers();
+    }
+
+    public void ComputeChunk(int LOD, Action<MeshInfo, int>  UpdateCallback){
+        meshCreator.GenerateMapData(densityManager, this.CCoord, IsoLevel, LOD, mapChunkSize);
         
-        meshReadback.CreateReadbackMeshInfoTask(sourceMesh, (int)ReadbackMaterial.terrain, ret => onMeshInfoRecieved(ret, UpdateCallback));
+        meshReadback.OffloadVerticesToGPU(DensityGenerator.countInd.x, DensityGenerator.vertexStart_U);
+        meshReadback.OffloadTrisToGPU(DensityGenerator.countInd.y, DensityGenerator.baseTriStart_U, DensityGenerator.dictStart_U, (int)ReadbackMaterial.terrain);
+        meshReadback.OffloadTrisToGPU(DensityGenerator.countInd.z, DensityGenerator.waterTriStart_U, DensityGenerator.dictStart_U, (int)ReadbackMaterial.water);
+        meshReadback.BeginMeshReadback(ret => UpdateCallback(ret, LOD));
+
         if (detailLevels[LOD].useForGeoShaders)
-            geoShaders.ComputeGeoShaderGeometry(sourceMesh, mapChunkSize, LOD);
+            geoShaders.ComputeGeoShaderGeometry(meshReadback.settings.memoryBuffer, meshReadback.vertexHandle, meshReadback.triHandles[(int)ReadbackMaterial.terrain]);
+        else
+            geoShaders.ReleaseGeometry();
 
         meshCreator.ReleaseTempBuffers();
-        hasRequestedChunk = false;
-    }
-
-    void onMeshInfoRecieved(EditorMesh.MeshInfo meshInfo, Action UpdateCallback)
-    {
-        this.baseMesh = meshInfo.GenerateMesh(UnityEngine.Rendering.IndexFormat.UInt32);
-        UpdateCallback();
-    }
-
-    public void ComputeChunk(int LOD, ref float[] density, ref int[] material, Action UpdateCallback)
-    {
-        ComputeBuffer densityBuffer; ComputeBuffer materialBuffer;
-        (densityBuffer, materialBuffer) = meshCreator.SetMapInfo(LOD, mapChunkSize, density, material);
-        densityManager.SubscribeChunk(densityBuffer, materialBuffer, CCoord, LOD);
-
-        ComputeBuffer sourceMesh = meshCreator.GenerateMapData(densityManager, this.CCoord, IsoLevel, LOD, mapChunkSize);
-
-        meshReadback.CreateReadbackMeshInfoTask(sourceMesh, (int)ReadbackMaterial.terrain, ret => onMeshInfoRecieved(ret, UpdateCallback));
-        if (detailLevels[LOD].useForGeoShaders)
-            geoShaders.ComputeGeoShaderGeometry(sourceMesh, mapChunkSize, LOD);
-
-        meshCreator.ReleaseTempBuffers();
-        hasRequestedChunk = false;
     }
 }
 
-public enum ReadbackMaterial
-{
+public enum ReadbackMaterial{
     terrain = 0,
-    water = 1, //To be implemented
+    water = 1,
 }
 
 [System.Serializable]

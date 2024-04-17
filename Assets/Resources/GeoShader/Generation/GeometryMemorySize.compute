@@ -1,0 +1,14 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+StructuredBuffer<uint> prefixSizes;
+uint bCOUNT_oGeo;
+
+RWStructuredBuffer<uint> counter;
+uint bCOUNT_write;
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    counter[bCOUNT_write] = (prefixSizes[bCOUNT_oGeo+1] - prefixSizes[bCOUNT_oGeo]);
+}

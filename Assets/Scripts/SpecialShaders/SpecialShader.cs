@@ -2,10 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public abstract class SpecialShader : UpdatableData
+public abstract class SpecialShader : ScriptableObject
 {
     [System.Serializable]
-    public abstract class MaterialReference : UpdatableData
+    public abstract class MaterialReference : ScriptableObject
     {
         public Shader shader;
 
@@ -16,7 +16,7 @@ public abstract class SpecialShader : UpdatableData
     }
 
     [System.Serializable]
-    public abstract class ShaderSettings : UpdatableData
+    public abstract class ShaderSettings : ScriptableObject
     {
         //public MaterialReference material;
     }
@@ -38,7 +38,8 @@ public abstract class SpecialShader : UpdatableData
         
     }
 
-    public virtual void ProcessGeoShader(Transform transform, ComputeBuffer sourceTriangles, ComputeBuffer startIndex, ComputeBuffer drawTriangles, int shaderIndex)
+    public virtual void ProcessGeoShader(Transform transform, MemoryBufferSettings memoryHandle, int vertAddress, int triAddress, 
+                                         int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart)
     {
 
     }

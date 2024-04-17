@@ -4,23 +4,43 @@ using UnityEngine;
 
 
 [CreateAssetMenu(menuName = "Generation/MaterialData")]
-public class MaterialData : UpdatableData
+public class MaterialData : ScriptableObject
 {
     public string Name;
-    public Color color;
     public Texture2D texture;
-    public float textureScale;
-    [Range(0,1)]
-    public float baseColorStrength;
-    public int GeoShaderIndex = -1;
+    public TerrainData terrainData;
+    public AtmosphericData AtmosphereScatter;
+    public LiquidData liquidData;
 
-    public Vector4 AtmosphereScatter;
+    [System.Serializable]
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    public struct TerrainData{
+        public Color color;
+        public float textureScale;
+        [Range(0,1)]
+        public float baseColorStrength;
+        public int GeoShaderIndex;
+    
+    }
 
     [System.Serializable]
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public struct AtmosphericData
     {
         public Vector3 ScatterCoeffs;
-        public float GroundExtinction;
+        public Vector3 GroundExtinction;
+    }
+
+    [System.Serializable]
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    public struct LiquidData{
+        public Vector3 shallowCol;
+        public Vector3 deepCol;
+        [Range(0,1)]
+        public float colFalloff;
+        [Range(0,1)]
+        public float depthOpacity;
+        [Range(0,1)]
+        public float smoothness;
     }
 }

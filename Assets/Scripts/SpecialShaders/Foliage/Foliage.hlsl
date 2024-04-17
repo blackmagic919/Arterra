@@ -5,10 +5,14 @@
 #include "NMGFoliageHelpers.hlsl"
 
 struct DrawVertex{
-    float4 positionWS;
-    float4 normalWS;
-    float4 color;
+    float3 positionWS;
+    float3 normalWS;
     float2 uv;
+    float4 color;
+};
+
+struct DrawTriangle{
+    DrawVertex vertex[3];
 };
 
 struct VertexOutput {
@@ -19,11 +23,9 @@ struct VertexOutput {
     float4 positionCS   : SV_POSITION;
 };
 
-StructuredBuffer<uint> _StorageMemory;
-StructuredBuffer<uint> _AddressDict;
+StructuredBuffer<DrawTriangle> _StorageMemory;
+StructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
-
-uint _Vertex4ByteStride;
 
 TEXTURE2D(_AlphaMap); SAMPLER(sampler_AlphaMap); float4 _AlphaMap_ST;
 float4 _LeafColor;
@@ -34,40 +36,17 @@ TEXTURE2D(_WindNoiseTexture); SAMPLER(sampler_WindNoiseTexture); float4 _WindNoi
 float _WindTimeMult;
 float _WindAmplitude;
 
-
-DrawVertex ReadVertex(uint vertexAddress){
-    uint address = vertexAddress + _AddressDict[addressIndex];
-    DrawVertex vertex = (DrawVertex)0;
-
-    vertex.positionWS.x = asfloat(_StorageMemory[address]);
-    vertex.positionWS.y = asfloat(_StorageMemory[address + 1]);
-    vertex.positionWS.z = asfloat(_StorageMemory[address + 2]);
-
-    vertex.normalWS.x = asfloat(_StorageMemory[address + 3]);
-    vertex.normalWS.y = asfloat(_StorageMemory[address + 4]);
-    vertex.normalWS.z = asfloat(_StorageMemory[address + 5]);
-
-    vertex.uv.x = asfloat(_StorageMemory[address + 6]);
-    vertex.uv.y = asfloat(_StorageMemory[address + 7]);
-
-    vertex.color.x = asfloat(_StorageMemory[address + 8]);
-    vertex.color.y = asfloat(_StorageMemory[address + 9]);
-    vertex.color.z = asfloat(_StorageMemory[address + 10]);
-    vertex.color.w = asfloat(_StorageMemory[address + 11]);
-
-    return vertex;
-}
-
 VertexOutput Vertex(uint vertexID: SV_VertexID){
     VertexOutput output = (VertexOutput)0;
-    if(_AddressDict[addressIndex] == 0)
+    if(_AddressDict[addressIndex].x == 0)
         return output;
 
-    uint vertexAddress = vertexID * _Vertex4ByteStride;
-    DrawVertex input = ReadVertex(vertexAddress);
+    uint triAddress = vertexID / 3 + _AddressDict[addressIndex].y;
+    uint vertexIndex = vertexID % 3;
+    DrawVertex input = _StorageMemory[triAddress].vertex[vertexIndex];
 
-    output.positionWS = input.positionWS;
-    output.normalWS = input.normalWS;
+    output.positionWS = input.positionWS.xyz;
+    output.normalWS = input.normalWS.xyz;
     output.uv = input.uv;
     output.positionCS = CalculatePositionCSWithShadowCasterLogic(output.positionWS, output.normalWS);
 
@@ -99,14 +78,15 @@ half4 Fragment(VertexOutput IN) : SV_TARGET{
     lightingInput.positionWS = IN.positionWS;
     lightingInput.viewDirectionWS = GetViewDirectionFromPosition(IN.positionWS);
     lightingInput.shadowCoord = CalculateShadowCoord(IN.positionWS, IN.positionCS);
+    lightingInput.normalWS = NormalizeNormalPerPixel(IN.normalWS);
 
-    float fresnel = pow(1.0 - saturate(dot(lightingInput.viewDirectionWS, normalize(IN.normalWS))), _FresnelFalloff);
-    lightingInput.normalWS = (1-fresnel) * NormalizeNormalPerPixel(IN.normalWS) + fresnel * (_LightDirection);
+    //float fresnel = pow(1.0 - saturate(dot(lightingInput.viewDirectionWS, normalize(IN.normalWS))), _FresnelFalloff);
+    //lightingInput.normalWS = (1-fresnel) * lightingInput.normalWS + fresnel * (_LightDirection);
 
     SurfaceData surfaceInput = (SurfaceData)0;
 	surfaceInput.albedo = _LeafColor.rgb;
-	surfaceInput.alpha = SAMPLE_TEXTURE2D(_AlphaMap, sampler_AlphaMap, IN.uv).a;
-    clip(surfaceInput.alpha - _AlphaClip);
+	surfaceInput.alpha = 1;
+    clip(SAMPLE_TEXTURE2D(_AlphaMap, sampler_AlphaMap, IN.uv).a - _AlphaClip);
 
     #if UNITY_VERSION >= 202120
 	    return UniversalFragmentBlinnPhong(lightingInput, surfaceInput);

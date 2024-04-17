@@ -12,10 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4217182035e9b4aa2a76ffd25cdfb6e5, type: 3}
   m_Name: Luminance
   m_EditorClassIdentifier: 
-  RaySetupCompute: {fileID: 7200000, guid: cf65ba6c79c1c4a41b120f79fc902a6a, type: 3}
-  OpticalDepthCompute: {fileID: 7200000, guid: 87a7f9612fb7f472182d8e179ec95696, type: 3}
-  OpticalDataCompute: {fileID: 7200000, guid: fd75d808d404948b1ad01baa17239b98, type: 3}
   BakedTextureSizePX: 128
-  NumInScatterPoints: 30
+  NumInScatterPoints: 50
   NumOpticalDepthPoints: 10
   initialized: 1

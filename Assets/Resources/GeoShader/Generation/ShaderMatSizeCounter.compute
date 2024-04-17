@@ -1,0 +1,54 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+const static int numThreads = 256;
+
+struct matTerrain{
+    float4 baseColor;
+    float baseTextureScale;
+    float baseColorStrength;
+    int geoShaderInd;
+};
+
+struct vertex{
+    float3 tri;
+    float3 norm;
+    int2 material; 
+};
+
+
+StructuredBuffer<matTerrain> _MatTerrainData;
+
+StructuredBuffer<vertex> vertices;
+StructuredBuffer<uint3> triangles;
+StructuredBuffer<uint2> _AddressDict;
+uint vertAddress;
+uint triAddress;
+
+StructuredBuffer<uint> counter;
+RWStructuredBuffer<uint> triangleIndexOffset; //This is to facilitate parallelization
+RWStructuredBuffer<uint> shaderIndexOffset; //This ensures vertexes are sorted by shader
+uint bSTART_scount;
+uint bSTART_tri;
+uint bCOUNTER_base;
+
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= counter[bCOUNTER_base])
+        return;
+
+    triangleIndexOffset[bSTART_tri + id.x] = -1; 
+
+    //Each triangle will have 3 materials, but due to noInterp, it is visually material of first vertex
+    uint firstVertexAddress = triangles[_AddressDict[triAddress].y + id.x].x;
+    int material = vertices[_AddressDict[vertAddress].y + firstVertexAddress].material.x; //only consider solid material
+    int shaderIndex = _MatTerrainData[material].geoShaderInd;
+
+    if(shaderIndex == -1)
+        return;
+
+    //This function makes this sorter possible
+    InterlockedAdd(shaderIndexOffset[bSTART_scount + shaderIndex + 1], 1, triangleIndexOffset[bSTART_tri + id.x]);
+}

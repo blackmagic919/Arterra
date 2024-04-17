@@ -4,7 +4,7 @@ using UnityEngine;
 
 
 [CreateAssetMenu(menuName = "Generation/Settings Wrapper")]
-public class GenerationSettings : UpdatableData
+public class GenerationSettings : ScriptableObject
 {
     [Range(0, 1)]
     public float IsoLevel;

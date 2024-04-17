@@ -4,6 +4,7 @@ using Utils;
 
 public class DensityAdjuster : MonoBehaviour
 {
+    #if UNITY_EDITOR
     public StructureData structure;
     public StructureSettings settings;
     public float deltaDensity;
@@ -27,4 +28,5 @@ public class DensityAdjuster : MonoBehaviour
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
     }
+    #endif
 }

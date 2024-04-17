@@ -1,0 +1,35 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+const static uint numThreads = 128;
+const static uint POINT_STRIDE_4BYTES = 3 + 1 + 2;
+
+struct structureInfo{
+    float3 structurePos;
+    uint structureIndex;
+    uint2 rotation;
+};
+
+RWStructuredBuffer<structureInfo> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+uint addressIndex;
+
+StructuredBuffer<structureInfo> structPoints;
+uint bSTART;
+StructuredBuffer<uint> counter;
+uint bCOUNTER;
+
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(_AddressDict[addressIndex].x == 0) //Invalid
+        return;
+
+    if(id.x >= counter[bCOUNTER])
+        return;
+
+    uint pointAddress = _AddressDict[addressIndex].y + id.x;
+    _MemoryBuffer[pointAddress] = structPoints[bSTART + id.x];
+
+}

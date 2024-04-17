@@ -12,11 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 040870a578bbf46179e139dc5e722edf, type: 3}
   m_Name: TextureRef
   m_EditorClassIdentifier: 
-  autoUpdate: 0
   MaterialDictionary:
-  - {fileID: 11400000, guid: 7366b567971cc41fd870194bd88913c8, type: 2}
+  - {fileID: 11400000, guid: e241281622587414ea0366319f4b389a, type: 2}
+  - {fileID: 11400000, guid: 6beb6e35811a241549e8cf648024d02f, type: 2}
+  - {fileID: 11400000, guid: 76e5d482c0c8542f3a11248f3dbc0581, type: 2}
   - {fileID: 11400000, guid: 770b7b57cc5fd44a5b48aa4a63b86229, type: 2}
-  - {fileID: 11400000, guid: d506e071805fe4402ad951fce277f5d8, type: 2}
-  - {fileID: 11400000, guid: 07449c87023a44e26891a2231b9cbe6d, type: 2}
   - {fileID: 11400000, guid: 850f75f6d316949d7846383e92f0c696, type: 2}
   - {fileID: 11400000, guid: 8e0a46373a2254653ac6cc138422e6e8, type: 2}
+  - {fileID: 11400000, guid: 7366b567971cc41fd870194bd88913c8, type: 2}
+  - {fileID: 11400000, guid: 78d8ca816d38b44af9fbcbf451289ef8, type: 2}
+  - {fileID: 11400000, guid: d506e071805fe4402ad951fce277f5d8, type: 2}
+  - {fileID: 11400000, guid: 07449c87023a44e26891a2231b9cbe6d, type: 2}

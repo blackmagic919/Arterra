@@ -52,7 +52,7 @@ public class FailedFunctions
 
     public void KnitLODS(int[] surroundingLOD, int chunkSize, int LOD)
     {
-        int meshSkipInc = EditorMesh.meshSkipTable[LOD];
+        int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxis = chunkSize / meshSkipInc + 1;
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxis / (float)threadGroupSize);
 
@@ -66,7 +66,7 @@ public class FailedFunctions
             if (surroundingLOD[i] <= 0)
                 continue;
 
-            int surroundSkipInc = EditorMesh.meshSkipTable[surroundingLOD[i]] / meshSkipInc;
+            int surroundSkipInc = meshSkipTable[surroundingLOD[i]] / meshSkipInc;
 
             lodKnitter.SetInt("normalAxis", faceOrientation[i]);
             lodKnitter.SetInt("normalPosition", facePosition[i]);

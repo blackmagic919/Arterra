@@ -1,18 +1,14 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Main
 
-const static int numThreads = 128;
+const static int numThreads = 256;
 
 struct SourceVertex{
     float3 positionOS;
     float3 normalOS;
-    int2 id;
-    int material; 
+    int2 material; 
 };
 
-struct SourceTriangle { //Constructor
-    SourceVertex points[3];
-};
 
 struct DrawVertex{
     float3 positionWS;
@@ -25,12 +21,20 @@ struct DrawTriangle{
     DrawVertex vertices[3];
 };
 
-StructuredBuffer<SourceTriangle> _SourceTriangles;
-StructuredBuffer<uint> _SourceStartIndices;
-int _ShaderIndex;
 
-AppendStructuredBuffer<DrawTriangle> _DrawTriangles;
+StructuredBuffer<SourceVertex> SourceVertices;
+StructuredBuffer<uint3> SourceTriangles;
+StructuredBuffer<uint2> _AddressDict;
+uint vertAddress;
+uint triAddress;
 
+RWStructuredBuffer<uint> counters;
+StructuredBuffer<uint> BaseTriangles;
+RWStructuredBuffer<DrawTriangle> DrawTriangles;
+int bSTART_base;
+int bCOUNT_base;
+int bSTART_oGeo;
+int bCOUNT_oGeo;
 
 float _TotalHeight;
 int _MaxLayers;
@@ -88,20 +92,21 @@ DrawVertex ExtrudeVertex(DrawVertex v, float height){
 [numthreads(numThreads, 1, 1)]
 void Main(uint3 id : SV_DispatchThreadID){
 
-    uint startIndex = _SourceStartIndices[_ShaderIndex];
-    uint numSourceTriangles = _SourceStartIndices[_ShaderIndex+1] - startIndex;
+    uint startIndex = counters[bCOUNT_base];
+    uint numSourceTriangles = counters[bCOUNT_base+1] - startIndex;
     if(id.x >= numSourceTriangles)
         return;
 
-    uint triIndex = startIndex + id.x;
+    uint triIndex = BaseTriangles[bSTART_base + startIndex + id.x];
+    uint3 sourceTri = SourceTriangles[_AddressDict[triAddress].y + triIndex];
 
     DrawVertex inputs[3];
+    inputs[0] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.x]);
+    inputs[1] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.y]);
+    inputs[2] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.z]);
+    
 
-    [unroll] for(int i = 0; i < 3; i++){
-        inputs[i] = MakeBaseDrawVertex(_SourceTriangles[triIndex].points[i]);
-    }
-
-    for(i = 0; i < _MaxLayers; i++)
+    for(int i = 0; i < _MaxLayers; i++)
     {
         float texHeight = (float) i / _MaxLayers;
 
@@ -113,6 +118,8 @@ void Main(uint3 id : SV_DispatchThreadID){
             tri.vertices[p].color = float4(texHeight, colorHeight, 0, 0); 
         }
 
-        _DrawTriangles.Append(tri);
+        int appendInd = 0;
+        InterlockedAdd(counters[bCOUNT_oGeo], 1, appendInd);
+        DrawTriangles[bSTART_oGeo + appendInd] = tri;
     }
 }

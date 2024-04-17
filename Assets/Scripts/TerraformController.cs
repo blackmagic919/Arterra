@@ -13,11 +13,12 @@ public class TerraformController : MonoBehaviour
     public float maxTerraformDistance = 60;
     public float materialCapacity = 20;
 
-    float cutOff;
+    float IsoLevel;
     float weight;
     bool isAdding;
-    public float selected = -1.0f;
-    int selectPosition = 0;
+    public int selected = -1;
+    private int selectPosition = 0;
+    private bool useSolid = true;
 
 
     MaterialBarController barController;
@@ -29,12 +30,12 @@ public class TerraformController : MonoBehaviour
 
 
     [HideInInspector]
-    public Dictionary<float, float> materialInventory = new Dictionary<float, float>();
+    public Dictionary<int, float> materialInventory = new Dictionary<int, float>();
 
-    public float[] getInventoryKeys
+    public int[] getInventoryKeys
     {
         get{
-            float[] keys = new float[materialInventory.Count];
+            int[] keys = new int[materialInventory.Count];
             materialInventory.Keys.CopyTo(keys, 0);
             return keys;
         }
@@ -59,7 +60,8 @@ public class TerraformController : MonoBehaviour
         cam = Camera.main.transform;
         terrain = FindAnyObjectByType<EndlessTerrain>();
         barController = FindAnyObjectByType<MaterialBarController>();
-        cutOff = terrain.settings.IsoLevel;
+        IsoLevel = terrain.settings.IsoLevel;
+        useSolid = true;
     }
 
     // Update is called once per frame
@@ -75,6 +77,7 @@ public class TerraformController : MonoBehaviour
             if (Physics.SphereCast(cam.position, rayRadius, cam.forward, out hit, maxTerraformDistance, terrainMask))
             {
                 Terraform(hit.point);
+                break;
             }
         }
         HandleMaterialSwitch();
@@ -90,6 +93,8 @@ public class TerraformController : MonoBehaviour
             selectPosition--;
         if (Input.GetKeyDown(KeyCode.Alpha2))
             selectPosition++;
+        if(Input.GetKeyDown(KeyCode.Alpha3))
+            useSolid = !useSolid;
 
         if (selectPosition < 0)
             selectPosition = inventorySize + selectPosition;
@@ -110,14 +115,15 @@ public class TerraformController : MonoBehaviour
         if (Input.GetMouseButton(1))
         {
             isAdding = true;
-            terrain.Terraform(terraformPoint, terraformRadius, handleTerraform);
+            terrain.Terraform(terraformPoint, terraformRadius, HandleTerraform);
         }
         // Subtract terrain
         else if (Input.GetMouseButton(0))
         {
             isAdding = false;
-            terrain.Terraform(terraformPoint, terraformRadius, handleTerraform);
+            terrain.Terraform(terraformPoint, terraformRadius, HandleTerraform);
         }
+
         barController.OnInventoryChanged();
     }
 
@@ -153,25 +159,58 @@ public class TerraformController : MonoBehaviour
         return delta;
     }
 
-    Vector2 handleTerraform(Vector2 pointInfo, float brushStrength)
+    void HandleAdd(ref TerrainChunk.MapData pointInfo, float brushStrength){
+        float solidDensity = pointInfo.density * pointInfo.viscosity;
+        float liquidDensity = pointInfo.density * (1 - pointInfo.viscosity);
+        if(useSolid && (solidDensity < IsoLevel || pointInfo.material == selected)){
+            //If adding solid density, remove all water there first
+            float deltaDensity = RemoveMaterialFromInventory(selected, Mathf.Min(solidDensity + brushStrength * weight, 1) - solidDensity);
+
+            solidDensity += deltaDensity;
+            pointInfo.density = Mathf.Min(pointInfo.density + deltaDensity, 1);
+            if(solidDensity >= IsoLevel){ pointInfo.material = selected;}
+
+            pointInfo.viscosity = solidDensity / pointInfo.density;
+        }
+        else if(!useSolid && (pointInfo.density < IsoLevel || pointInfo.material == selected)){
+            //If adding liquid density, only change if not solid
+            float deltaDensity = RemoveMaterialFromInventory(selected, Mathf.Min(pointInfo.density + brushStrength * weight, 1) - pointInfo.density);
+
+            pointInfo.density += deltaDensity;
+            liquidDensity += deltaDensity;
+            pointInfo.material = selected;
+
+            pointInfo.viscosity = 1 - (liquidDensity / pointInfo.density);
+        }
+        //This is the most expected behavior I can reproduce...
+    }
+
+    void HandleRemove(ref TerrainChunk.MapData pointInfo, float brushStrength){
+        float solidDensity = pointInfo.density * pointInfo.viscosity;
+        float liquidDensity = pointInfo.density * (1 - pointInfo.viscosity);
+        if(useSolid && (solidDensity > IsoLevel)){
+            float deltaDensity = AddMaterialToInventory(pointInfo.material, solidDensity - Mathf.Max(solidDensity - brushStrength * weight, 0));
+
+            pointInfo.density -= deltaDensity;
+            solidDensity -= deltaDensity;
+            
+            if(pointInfo.density != 0) pointInfo.viscosity = solidDensity / pointInfo.density;
+        } else if (!useSolid && (liquidDensity > IsoLevel)){
+            float deltaDensity = AddMaterialToInventory(pointInfo.material, liquidDensity - Mathf.Max(liquidDensity - brushStrength * weight, 0));
+
+            pointInfo.density -= deltaDensity;
+            liquidDensity -= deltaDensity;
+            
+            if(pointInfo.density != 0) pointInfo.viscosity = 1 - (liquidDensity / pointInfo.density);
+        }
+    }
+
+    TerrainChunk.MapData HandleTerraform(TerrainChunk.MapData pointInfo, float brushStrength)
     {
-        if (isAdding)
-        {
+        if(weight * brushStrength == 0) return pointInfo;
 
-            if (pointInfo.y < cutOff || pointInfo.x == selected)
-            {
-                float deltaDensity = Mathf.Clamp(pointInfo.y + brushStrength * weight, 0, 1) - pointInfo.y;
-                pointInfo.x = selected;
-                pointInfo.y += RemoveMaterialFromInventory((int)pointInfo.x, deltaDensity);
-            }
-
-        }
-        else if(pointInfo.y > cutOff)
-        {
-            float deltaDensity = pointInfo.y - Mathf.Clamp(pointInfo.y - brushStrength * weight, 0, 1);
-            pointInfo.y -= AddMaterialToInventory((int)pointInfo.x, deltaDensity);
-        }
-
+        if (isAdding) HandleAdd(ref pointInfo, brushStrength);
+        else HandleRemove(ref pointInfo, brushStrength);
         return pointInfo;
     }
 

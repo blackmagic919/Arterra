@@ -12,13 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2059921678484190856066ba0510b1b, type: 3}
   m_Name: Generation Resources
   m_EditorClassIdentifier: 
-  mapMaterial: {fileID: 2100000, guid: 3b9db681500dd456cae8fe982fec0395, type: 2}
+  terrainMat: {fileID: 2100000, guid: 3b9db681500dd456cae8fe982fec0395, type: 2}
+  waterMat: {fileID: 2100000, guid: d4da0f12dd5cc4020945038b6bc3566c, type: 2}
   texData: {fileID: 11400000, guid: 68574011324274a58acce0da69b5d4f7, type: 2}
   structData: {fileID: 11400000, guid: 6df50ead646b847c8a984f1e3608ed73, type: 2}
   biomeData: {fileID: 11400000, guid: a50efbb6521ad475786885000f19947c, type: 2}
+  noiseData: {fileID: 11400000, guid: d4fe4548016844f80bc50c3578cb0f61, type: 2}
   densityDict: {fileID: 11400000, guid: 5e2b4725878474942a7c7babbf0f436d, type: 2}
   readbackSettings: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
   geoSettings: {fileID: 11400000, guid: 91b568ecd9e304c998bf7c49cf668984, type: 2}
-  meshCreator: {fileID: 11400000, guid: 40af22afd63c84488ac261e995b81367, type: 2}
-  mapCreator: {fileID: 11400000, guid: 059fbd96e92fc48f58e23299045cf3d1, type: 2}
+  meshCreator: {fileID: 11400000, guid: 85e29791c2ff8480cbf48b10d72a19a4, type: 2}
+  surfaceSettings: {fileID: 11400000, guid: 9fe9d4253698c402d8b2f4c56d0eb093, type: 2}
   atmosphereBake: {fileID: 11400000, guid: 871b8f4841c1e455f9f0e07616307f87, type: 2}

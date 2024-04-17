@@ -53,7 +53,7 @@ MonoBehaviour:
   m_ShadowTransparentReceive: 1
   m_RenderingMode: 0
   m_DepthPrimingMode: 0
-  m_CopyDepthMode: 1
+  m_CopyDepthMode: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 1
 --- !u!114 &5841424627466265696
@@ -70,7 +70,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Active: 1
   passSettings:
-    renderPassEvent: 500
+    renderPassEvent: 550
     densityManager: {fileID: 11400000, guid: 5e2b4725878474942a7c7babbf0f436d, type: 2}
     luminanceBake: {fileID: 11400000, guid: 871b8f4841c1e455f9f0e07616307f87, type: 2}
     generationSettings: {fileID: 11400000, guid: 20f244f85582c4ac2858ece976b58a49, type: 2}

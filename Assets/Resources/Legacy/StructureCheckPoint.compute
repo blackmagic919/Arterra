@@ -1,0 +1,81 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#include "Assets/Resources/Utility/RotationTables.hlsl"
+
+const static uint numThreads = 64;
+
+struct settings{
+    int minimumLOD;
+
+    uint randThetaRot;
+    uint randPhiRot;
+    int sizeX;
+    int sizeY;
+    int sizeZ;
+};
+
+struct checkData{
+    float3 position;
+    uint value;
+};
+
+struct structureInfo{
+    float3 structurePos;
+    uint structureIndex;
+    uint2 rotation;
+    uint valid;
+    int biome;
+};
+
+struct check{
+    float3 position;
+    uint index;
+    uint value;
+};
+
+StructuredBuffer<uint2> _StructureIndexes;
+StructuredBuffer<checkData> _StructureChecks;
+StructuredBuffer<settings> _StructureSettings;
+
+StructuredBuffer<structureInfo> structures;
+StructuredBuffer<uint> numPoints;
+
+AppendStructuredBuffer<check> checks;
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numPoints[0])
+        return;
+
+    structureInfo info = structures[id.x];
+    settings settings = _StructureSettings[info.structureIndex];
+    uint checkStart = _StructureIndexes[info.structureIndex].y;
+    uint checkEnd = _StructureIndexes[info.structureIndex+1].y;
+
+    //Origin is always located at the least point, so there is one consistent direction of generation
+    float3 corner = mul(RotationLookupTable[info.rotation.x][info.rotation.y], float3(settings.sizeX, settings.sizeY, settings.sizeZ));
+    float3 newOrigin = float3(min(corner.x, 0), min(corner.y, 0), min(corner.z, 0)); //old origin at (0,0,0)
+
+    for(uint i = checkStart; i < checkEnd; i++){
+        checkData data = _StructureChecks[i];
+
+        float3 rotatedPos = mul(RotationLookupTable[info.rotation.x][info.rotation.y], data.position);
+        float3 transformedPos = rotatedPos - newOrigin;
+
+        check newCheck;
+        newCheck.position = transformedPos + info.structurePos;
+        newCheck.value = data.value;
+        newCheck.index = id.x; //Position in structure buffer
+        checks.Append(newCheck);
+    }
+    /*
+    Explanation:
+
+    Imagine structure is rotated:
+    - the minimal point xyz is the generation origin
+    - find the vector from this minimal point to the check point
+    - this minimal point is the actual structure point, so shift check point by same vector
+
+    */
+}

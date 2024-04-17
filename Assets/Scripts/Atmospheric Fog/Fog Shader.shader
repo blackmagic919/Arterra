@@ -15,6 +15,7 @@ Shader "Hidden/Fog"
         {
             "RenderType"="Opaque" "RenderPipeline" = "UniversalPipeline"
         }
+        ZWrite Off
         
         HLSLINCLUDE
         #pragma vertex vert
@@ -23,8 +24,9 @@ Shader "Hidden/Fog"
 
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-            
-        #include "Assets/Scripts/Atmospheric Fog/BakeData/TextureInterpHelper.hlsl"
+
+        #include "Assets/Resources/MapData/WSDensitySampler.hlsl"
+        #include "Assets/Resources/Atmosphere/TextureInterpHelper.hlsl"
 
         struct Attributes
         {
@@ -39,32 +41,29 @@ Shader "Hidden/Fog"
             float3 viewVector : TEXCOORD1;
         };
 
+        TEXTURE2D(_MainTex);
+        SAMPLER(sampler_MainTex);
+        TEXTURE2D(_CameraDepthTexture);
+        SAMPLER(sampler_CameraDepthTexture);
+
         struct ScatterData{
             float3 inScatteredLight;
             float3 opticalDepth;
-            float extinction;
+            float3 extinction;
         };
 
         struct OpticalInfo{
             float opticalDensity;
             float3 scatterCoeffs;
-            float extinctionCoeff;
+            float3 extinctionCoeff;
         };
-
-
-        TEXTURE2D(_MainTex);
-        SAMPLER(sampler_MainTex);
-        TEXTURE2D(_CameraDepthTexture);
-        SAMPLER(sampler_CameraDepthTexture);
 
         StructuredBuffer<float3> _LuminanceLookup;
         StructuredBuffer<OpticalInfo> _OpticalInfoLookup;
 
         float4 _MainTex_TexelSize;
         float4 _MainTex_ST;
-
         float _AtmosphereRadius;
-        float3 _LightDirection; 
     
         int _NumInScatterPoints;
 
@@ -104,6 +103,21 @@ Shader "Hidden/Fog"
 	            }
             }
 
+            float calculateOcclusionFactor(float3 rayOrigin, float3 rayDir, float rayLength){
+
+                half cascadeIndex = ComputeCascadeIndex(rayOrigin);
+                float stepSize = pow(2, cascadeIndex);
+                int NumShadowPoints = max(1, rayLength / stepSize);
+
+                float3 shadowPoint = rayOrigin;
+                float transmittanceCount = 0;
+
+                for(int i = 0; i < NumShadowPoints; i++){
+                    transmittanceCount += MainLightRealtimeShadow(TransformWorldToShadowCoord(shadowPoint));
+                    shadowPoint += rayDir * stepSize;
+                }
+                return (transmittanceCount / NumShadowPoints);
+            }
 
             float3 sampleLuminance(Influences2D sampleIndex, uint sampleDepth){
                 float3 opticalDepth = 0;
@@ -125,21 +139,7 @@ Shader "Hidden/Fog"
                 return info;
             }
             
-            float calculateOcclusionFactor(float3 rayOrigin, float3 rayDir, float rayLength){
 
-                half cascadeIndex = ComputeCascadeIndex(rayOrigin);
-                float stepSize = pow(2, cascadeIndex);
-                int NumShadowPoints = max(1, rayLength / stepSize);
-
-                float3 shadowPoint = rayOrigin;
-                float transmittanceCount = 0;
-
-                for(int i = 0; i < NumShadowPoints; i++){
-                    transmittanceCount += MainLightRealtimeShadow(TransformWorldToShadowCoord(shadowPoint));
-                    shadowPoint += rayDir * stepSize;
-                }
-                return (transmittanceCount / NumShadowPoints);
-            }
 
             ScatterData CalculateScatterData(float3 rayOrigin, float3 rayDir, float rayLength, 
                                             float sampleDist, Influences2D rayInfluences){
@@ -164,8 +164,6 @@ Shader "Hidden/Fog"
                 return scatterData;
             }
 
-
-
             half4 frag(v2f IN) : SV_TARGET
             {
                 float2 res = _MainTex_TexelSize.xy;
@@ -180,7 +178,8 @@ Shader "Hidden/Fog"
 
                 float2 hitInfo = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, rayOrigin, rayDir);
                 float dstToAtmosphere = hitInfo.x;
-                float dstThroughAtmosphere = min(hitInfo.y, linearDepth-hitInfo.y);
+                float dstThroughAtmosphere = hitInfo.y;
+                dstThroughAtmosphere = min(dstThroughAtmosphere, linearDepth-dstToAtmosphere);
 
                 Influences2D rayInfluences = GetLookupBlend(IN.uv);
                 float sampleDist = _AtmosphereRadius / (_NumInScatterPoints - 1);
@@ -189,7 +188,7 @@ Shader "Hidden/Fog"
                     float3 pointInAtmosphere = rayOrigin + rayDir * dstToAtmosphere;//Get first point in atmosphere
                     ScatterData atmosphereData = CalculateScatterData(pointInAtmosphere, rayDir, dstThroughAtmosphere, sampleDist, rayInfluences);
 
-                    return half4(atmosphereData.inScatteredLight * emissionColor + originalColor.xyz * exp(-atmosphereData.opticalDepth * atmosphereData.extinction), 0);
+                    return half4(atmosphereData.inScatteredLight * emissionColor + originalColor.xyz * exp(-atmosphereData.extinction), 0);
                 }
                 return originalColor;
             }

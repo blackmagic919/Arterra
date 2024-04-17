@@ -1,7 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Main
 
-const static int numThreads = 128;
+const static int numThreads = 256;
 
 struct Quad {
     float3 topLeft;
@@ -13,12 +13,7 @@ struct Quad {
 struct SourceVertex{
     float3 positionOS;
     float3 normalOS;
-    int2 id;
-    int material; 
-};
-
-struct SourceTriangle { //Constructor
-    SourceVertex points[3];
+    int2 material; 
 };
 
 struct DrawVertex{
@@ -32,11 +27,19 @@ struct DrawTriangle{
     DrawVertex vertices[3];
 };
 
-StructuredBuffer<SourceTriangle> _SourceTriangles;
-StructuredBuffer<uint> _SourceStartIndices;
-int _ShaderIndex;
+StructuredBuffer<SourceVertex> SourceVertices;
+StructuredBuffer<uint3> SourceTriangles;
+StructuredBuffer<uint2> _AddressDict;
+uint vertAddress;
+uint triAddress;
 
-AppendStructuredBuffer<DrawTriangle> _DrawTriangles;
+RWStructuredBuffer<uint> counters;
+StructuredBuffer<uint> BaseTriangles;
+RWStructuredBuffer<DrawTriangle> DrawTriangles;
+int bSTART_base;
+int bCOUNT_base;
+int bSTART_oGeo;
+int bCOUNT_oGeo;
 
 float _QuadSize;
 float _InflationFactor;
@@ -92,20 +95,26 @@ Quad GetQuad(float3 center, float3 normal){
     return quad;
 }
 
+void AppendTri(DrawTriangle tri){
+    int appendInd = 0;
+    InterlockedAdd(counters[bCOUNT_oGeo], 1, appendInd);
+    DrawTriangles[bSTART_oGeo + appendInd] = tri;
+}
+
 void AppendQuad(Quad quad, float3 normalWS){
     //Bottom triangle
     DrawTriangle lowerTri = (DrawTriangle)0;
     lowerTri.vertices[0] = InitializeDrawVertex(quad.topLeft + _InflationFactor*normalWS, normalWS, float2(0, 1));
     lowerTri.vertices[2] = InitializeDrawVertex(quad.bottomLeft + _InflationFactor*normalWS, normalWS, float2(0, 0));
     lowerTri.vertices[1] = InitializeDrawVertex(quad.bottomRight + _InflationFactor*normalWS, normalWS, float2(1, 0)); //Add this first because clockwise winding
-    _DrawTriangles.Append(lowerTri);
+    AppendTri(lowerTri);
     
     //Top triangle
     DrawTriangle topTri = (DrawTriangle)0;
     topTri.vertices[0] = InitializeDrawVertex(quad.topLeft + _InflationFactor*normalWS, normalWS, float2(0, 1));
     topTri.vertices[2] = InitializeDrawVertex(quad.bottomRight + _InflationFactor*normalWS, normalWS, float2(1, 0));
     topTri.vertices[1] = InitializeDrawVertex(quad.topRight + _InflationFactor*normalWS, normalWS, float2(1, 1));
-    _DrawTriangles.Append(topTri);
+    AppendTri(topTri);
 }
 
 void CreateQuadIntersects(float3 center, float3 normalWS) {
@@ -124,17 +133,18 @@ void CreateQuadIntersects(float3 center, float3 normalWS) {
 [numthreads(numThreads,1,1)]
 void Main (uint3 id : SV_DispatchThreadID)
 {
-    uint startIndex = _SourceStartIndices[_ShaderIndex];
-    uint numSourceTriangles = _SourceStartIndices[_ShaderIndex+1] - startIndex;
+    uint startIndex = counters[bCOUNT_base];
+    uint numSourceTriangles = counters[bCOUNT_base+1] - startIndex;
     if(id.x >= numSourceTriangles)
         return;
 
-    uint triIndex = startIndex + id.x;
-    DrawVertex inputs[3];
+    uint triIndex = BaseTriangles[bSTART_base + startIndex + id.x];
+    uint3 sourceTri = SourceTriangles[_AddressDict[triAddress].y + triIndex];
 
-    [unroll] for(int i = 0; i < 3; i++){
-        inputs[i] = MakeBaseDrawVertex(_SourceTriangles[triIndex].points[i]);
-    }
+    DrawVertex inputs[3];
+    inputs[0] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.x]);
+    inputs[1] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.y]);
+    inputs[2] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.z]);
 
     float3 center = GetTriangleCenter(inputs[0].positionWS, inputs[1].positionWS, inputs[2].positionWS);
     float3 normal = GetTriangleCenter(inputs[0].normalWS, inputs[1].normalWS, inputs[2].normalWS);// If not want to inherit -> normalize(_CameraPosition - center);

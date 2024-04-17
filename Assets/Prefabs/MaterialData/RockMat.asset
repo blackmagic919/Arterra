@@ -12,11 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 957bdd82243d4447fbab41e0462ba1d5, type: 3}
   m_Name: RockMat
   m_EditorClassIdentifier: 
-  autoUpdate: 0
   Name: Rock
-  color: {r: 0.4811321, g: 0.4811321, b: 0.4811321, a: 0}
   texture: {fileID: 2800000, guid: 71c9ce063b15b453ba2769813a1726be, type: 3}
-  textureScale: 10
-  baseColorStrength: 0.25
-  GeoShaderIndex: -1
-  AtmosphereScatter: {x: 0.00125, y: 0.0025, z: 0.005, w: 1}
+  terrainData:
+    color: {r: 0.48235297, g: 0.48235297, b: 0.48235297, a: 0}
+    textureScale: 10
+    baseColorStrength: 0.25
+    GeoShaderIndex: -1
+  AtmosphereScatter:
+    ScatterCoeffs: {x: 0, y: 0, z: 0}
+    GroundExtinction: {x: 0, y: 0, z: 0}
+  liquidData:
+    shallowCol: {r: 0, g: 0, b: 0, a: 0}
+    deepCol: {r: 0, g: 0, b: 0, a: 0}
+    colFalloff: 0
+    depthOpacity: 0
+    smoothness: 0

@@ -1,0 +1,219 @@
+//I combined about 20+ comp shader files into one file to increase parallelism
+//This is the omega structure file XD
+#pragma kernel CSMain
+
+#include "Assets/Resources/Utility/RotationTables.hlsl"
+#include "Assets/Resources/TerrainGeneration/Structures/StructIDSettings.hlsl"
+#include "Assets/Resources/TerrainGeneration/Structures/BiomeGenerator.hlsl"
+#include "Assets/Resources/TerrainGeneration/Structures/TerrainAnalyzer.hlsl"
+#include "Assets/Resources/Utility/PerlinNoiseSampler.hlsl"
+
+const static int numThreads = 128;
+
+struct settings{ 
+    int minimumLOD;
+
+    uint randThetaRot;
+    uint randPhiRot;
+    int sizeX;
+    int sizeY;
+    int sizeZ;
+};
+
+struct density{
+    int lowerLimit;
+    int upperLimit;
+    int center;
+
+    float multiplier;
+    float power;
+};
+
+struct biomeStructure{
+    density verticalPref;
+    float frequency;
+    uint structIndex;
+};
+
+struct structureData{
+    float3 structurePos;
+    uint structureIndex;
+    uint2 rotation;
+};
+
+struct checkData{
+    float3 position;
+    uint value;
+};
+
+// Global references
+StructuredBuffer<uint> _BiomeStructurePrefix; //Gets range of details for biome
+StructuredBuffer<biomeStructure> _BiomeStructureData; //biome generation data for structure
+
+StructuredBuffer<uint2> _StructureIndexes;
+StructuredBuffer<checkData> _StructureChecks;
+StructuredBuffer<settings> _StructureSettings; //settings for structure
+int3 CCoord;
+
+//All 3 of these buffers are the same entity assigned with different bindings
+StructuredBuffer<structInfo> structurePlan;
+uint bSTART_plan;
+
+RWStructuredBuffer<structureData> genStructures;
+uint bSTART_out;
+
+RWStructuredBuffer<uint> counter;
+uint bCOUNTER_plan;
+uint bCOUNTER_out;
+
+float random(float seed){
+    float hash = frac(sin(seed) * 43758.5453);
+    return frac(hash * seed);
+}
+
+float3 random(float3 seed)
+{
+    seed = float3(dot(seed, float3(127.1, 311.7, 531.5)),
+                dot(seed, float3(269.5, 183.3, 246.1)),
+                dot(seed, float3(419.2, 371.9, 619.8)));
+    return frac(sin(seed) * 43758.5453123);
+}
+
+float getDensity(biomeStructure structure, float y){ //Same as in C#
+    density structVertPref = structure.verticalPref; //copy
+    float height = clamp(y, structVertPref.lowerLimit, structVertPref.upperLimit);
+    float percent = y > structVertPref.center ?
+                1-invLerp(structVertPref.center, structVertPref.upperLimit, y) :
+                invLerp(structVertPref.lowerLimit, structVertPref.center, y);
+    return pow(abs(percent), structVertPref.power) * structVertPref.multiplier;
+}
+
+int BinSearchStructures(uint startIndex, uint arraySize, uint searchLoD) //Returns smallest LoD structure closest to it
+{
+    int low = startIndex;
+    int high = startIndex + (arraySize - 1);
+    int ret = -1; //Not found yet
+
+    while (low <= high)
+    {
+        int mid = ((uint)low + (uint)high) / 2; //so it stops complaining about int division
+        uint structLoD = _StructureSettings[_BiomeStructureData[mid].structIndex].minimumLOD;
+
+        if (structLoD == searchLoD)
+            return mid;
+        else if (structLoD < searchLoD)
+        {
+            ret = mid;
+            low = mid + 1;
+        }
+        else
+            high = mid - 1;
+    }
+    return ret;
+}
+
+int determineStructure(uint LoD, int biome, float seed, float yPos){
+    //Determine Structure
+    uint biomeStart = _BiomeStructurePrefix[biome];
+    uint biomeLength = _BiomeStructurePrefix[biome+1] - biomeStart;
+
+    int structureIndex = BinSearchStructures(biomeStart, biomeLength, LoD);
+
+    //Allow frequency control(if there are multiple of same LoD)
+    //Allowing to try other structures if fail allows better utilization of limited structure points
+    //Because of this, each frequency isn't fixed, but multiplicative, however, it allows for more structures for less cost
+    while(structureIndex >= (int)biomeStart){
+        biomeStructure currentStructure = _BiomeStructureData[structureIndex];
+        if(currentStructure.frequency > seed && //Frequency Condition
+            getDensity(currentStructure, yPos) > random(seed)) //Height Condition
+                break;
+        seed = random(random(seed));
+        structureIndex--;
+    }
+
+    return structureIndex;
+}
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    //Note, operations are better if ordered from less expensive to more
+    if(id.x >= counter[bCOUNTER_plan])
+        return;
+    
+    structInfo structPlan = structurePlan[id.x + bSTART_plan];
+
+//IDENTIFY STRUCTURE
+    int structBiome = SampleBiome(structPlan.position);
+
+    //This is what makes this function deterministic, pointCoord is same no matter which chunk samples the poin
+    float3 pointCoord = structPlan.position + (CCoord - 0.5f) * chunkSize; 
+    float seedStruct = random(dot(random(pointCoord), float3(456.7, 789.2, 123.4))); 
+    int structureIndex = determineStructure(structPlan.LoD, structBiome, seedStruct, pointCoord.y);
+
+    //No structure found
+    if(structureIndex < (int)_BiomeStructurePrefix[structBiome])
+        return;
+    
+    structureIndex = _BiomeStructureData[structureIndex].structIndex;
+    settings structureSettings = _StructureSettings[structureIndex];
+
+    //Determine if it Intersects with current generating chunk
+    float3 origin = structPlan.position; //structure origin
+    uint rotTheta = 0; uint rotPhi = 0;
+    float seedRot = random(dot(random(pointCoord), float3(876.5, 234.8, 567.3))); 
+
+    if(structureSettings.randThetaRot != 0)
+        rotTheta = uint(seedRot * 4); //0 -> 3
+
+    seedRot = random(seedRot);
+    if(structureSettings.randPhiRot != 0)
+        rotPhi = uint(seedRot * 3); //0 -> 2
+
+    float3 sizes = float3(structureSettings.sizeX, structureSettings.sizeY, structureSettings.sizeZ);
+    float xLength = abs(dot(sizes, mul(RotationLookupTable[rotTheta][rotPhi], float3(1, 0, 0))));
+    float yLength = abs(dot(sizes, mul(RotationLookupTable[rotTheta][rotPhi], float3(0, 1, 0))));
+    float zLength = abs(dot(sizes, mul(RotationLookupTable[rotTheta][rotPhi], float3(0, 0, 1))));
+
+    //If doesn't intersect
+    if(origin.x + xLength < 0 || origin.y + yLength < 0 || origin.z + zLength < 0) 
+        return;
+
+//ANALYZE STRUCTURE CHECKS
+    settings settings = _StructureSettings[structureIndex];
+    uint checkStart = _StructureIndexes[structureIndex].y;
+    uint checkEnd = _StructureIndexes[structureIndex+1].y;
+
+    //Origin is always located at the least point, so there is one consistent direction of generation
+    float3 corner = mul(RotationLookupTable[rotTheta][rotPhi], float3(settings.sizeX, settings.sizeY, settings.sizeZ));
+    float3 newOrigin = float3(min(corner.x, 0), min(corner.y, 0), min(corner.z, 0)); //old origin at (0,0,0)
+
+    uint i = checkStart;
+    for(; i < checkEnd; i++){
+        checkData data = _StructureChecks[i];
+
+        float3 rotatedPos = mul(RotationLookupTable[rotTheta][rotPhi], data.position);
+        float3 transformedPos = rotatedPos - newOrigin;
+
+        float3 checkPosition = transformedPos + structPlan.position;
+        bool checkUnderground = data.value != 0;
+        bool isUnderground = SampleTerrain(checkPosition, structBiome);
+
+        if(isUnderground != checkUnderground)
+            break;
+    }
+
+    if(i != checkEnd) //A check failed
+        return;
+    
+//ADD STRUCTURE
+
+    structureData newStructure;
+    newStructure.structurePos = structPlan.position;
+    newStructure.structureIndex = structureIndex;
+    newStructure.rotation = uint2(rotTheta, rotPhi);
+
+    int appendInd = 0;
+    InterlockedAdd(counter[bCOUNTER_out], 1, appendInd);
+    genStructures[appendInd + bSTART_out] = newStructure;
+}

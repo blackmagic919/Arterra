@@ -1,0 +1,39 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+const static uint numThreads = 256;
+
+struct DrawVertex{
+    float3 positionWS;
+    float3 normalWS;
+    float2 uv;
+    float4 color; //4 channels for 
+};
+
+struct DrawTriangle{
+    DrawVertex vertices[3];
+};
+
+StructuredBuffer<DrawTriangle> DrawTriangles;
+StructuredBuffer<uint> ShaderPrefixes;
+uint bSTART_oGeo;
+uint bCOUNTER_oGeo;
+
+RWStructuredBuffer<DrawTriangle> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+uint addressIndex;
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(_AddressDict[addressIndex].x == 0) //Out of space
+        return;
+
+    uint start = ShaderPrefixes[bCOUNTER_oGeo];
+    uint length = ShaderPrefixes[bCOUNTER_oGeo+1] - start;
+    if(id.x >= length)
+        return;
+
+    uint triAddress = _AddressDict[addressIndex].y + id.x;
+    _MemoryBuffer[triAddress] = DrawTriangles[bSTART_oGeo + start + id.x];
+}

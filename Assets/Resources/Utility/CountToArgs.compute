@@ -1,0 +1,15 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+StructuredBuffer<uint> count;
+int numThreads;
+uint countOffset;
+
+RWStructuredBuffer<uint> args;
+
+[numthreads(1,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    args[0] = ceil(count[countOffset] / (float)numThreads);
+    args[1] = 1; args[2] = 1; //1D
+}

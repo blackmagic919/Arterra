@@ -1,22 +1,23 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-#pragma shader_feature _ INDIRECT 
-//#include "UnityCG.cginc"
 
+struct matTerrain{
+    float4 baseColor;
+    float baseTextureScale;
+    float baseColorStrength;
+    int geoShaderInd;
+};
 
-StructuredBuffer<float4> _BaseColors;
-StructuredBuffer<float> _BaseColorStrength;
-StructuredBuffer<float> _BaseTextureScales;
+StructuredBuffer<matTerrain> _MatTerrainData;
 
 Texture2DArray _Textures;
 SamplerState sampler_Textures;
 
 struct v2f
 {
-    float2 uv : TEXCOORD0;
     float4 positionCS : SV_POSITION;
-    float3 positionWS : TEXCOORD1;
-    float3 normalWS : TEXCOORD2;
-    nointerpolation float4 color: COLOR; //Materials are definate and can't be interpolated
+    float3 positionWS : TEXCOORD0;
+    float3 normalWS : TEXCOORD1;
+    nointerpolation int material: TEXCOORD2; //Materials are definate and can't be interpolated
 };
 
 #ifdef INDIRECT
@@ -26,55 +27,33 @@ float4x4 _LocalToWorld;
 struct DrawVertex{
     float3 positionOS;
     float3 normalOS;
-    int2 id;
-    int material;
+    int2 material;
 };
 
-StructuredBuffer<uint> _StorageMemory;
-StructuredBuffer<uint> _AddressDict;
-uint addressIndex;
+struct vInfo{
+    uint axis[3];
+};
 
-uint _Vertex4ByteStride;
-
-DrawVertex ReadVertex(uint vertexAddress){
-    uint address = vertexAddress + _AddressDict[addressIndex];
-    DrawVertex vertex = (DrawVertex)0;
-
-    vertex.positionOS.x = asfloat(_StorageMemory[address]);
-    vertex.positionOS.y = asfloat(_StorageMemory[address + 1]);
-    vertex.positionOS.z = asfloat(_StorageMemory[address + 2]);
-
-    vertex.normalOS.x = asfloat(_StorageMemory[address + 3]);
-    vertex.normalOS.y = asfloat(_StorageMemory[address + 4]);
-    vertex.normalOS.z = asfloat(_StorageMemory[address + 5]);
-
-    vertex.id.x = asint(_StorageMemory[address + 6]);
-    vertex.id.y = asint(_StorageMemory[address + 7]);
-
-    vertex.material = asint(_StorageMemory[address + 8]);
-
-    return vertex;
-}
+StructuredBuffer<DrawVertex> Vertices;
+StructuredBuffer<vInfo> Triangles;
+StructuredBuffer<uint2> _AddressDict;
+uint triAddress;
+uint vertAddress;
 
 v2f vert (uint vertexID: SV_VertexID){
     v2f o = (v2f)0;
 
-    uint vertexAddress = vertexID * _Vertex4ByteStride;
-    DrawVertex input = ReadVertex(vertexAddress);
+    uint vertInd = Triangles[_AddressDict[triAddress].y + (vertexID/3)].axis[vertexID%3];
+    DrawVertex input = Vertices[vertInd + _AddressDict[vertAddress].y];
 
     o.positionWS = mul(_LocalToWorld, float4(input.positionOS, 1)).xyz;
     o.normalWS = normalize(mul(_LocalToWorld, float4(input.normalOS, 0)).xyz);
     o.positionCS = TransformWorldToHClip(o.positionWS);
-
-    o.color = float4(input.material, 0, 0, 1);
+    o.material = input.material.x;
     return o;
 }
 
 #else
-
-float3 _TargetPoint;
-float closestDistance;
-float4x4 _LocalToWorld;
 
 struct appdata
 {
@@ -85,7 +64,7 @@ struct appdata
 
 v2f vert (appdata v)
 {
-    v2f o;
+    v2f o = (v2f)0;
 
     VertexPositionInputs posInputs = GetVertexPositionInputs(v.vertex.xyz);
 	VertexNormalInputs normInputs = GetVertexNormalInputs(v.normal.xyz);
@@ -93,7 +72,7 @@ v2f vert (appdata v)
     o.positionCS = posInputs.positionCS;
     o.positionWS = posInputs.positionWS;
     o.normalWS = normInputs.normalWS;
-    o.color = v.color;
+    o.material = (int)v.color.x;
     return o;
 }
 
@@ -114,9 +93,9 @@ float lerp(float a, float b, float value){
 float3 triplanar(float3 worldPos, float scale, float3 blendAxes, int texInd){
     float3 scaledWorldPos = worldPos / scale;
     
-    float4 xProjection = _Textures.Sample(sampler_Textures, float3(scaledWorldPos.y, scaledWorldPos.z, texInd)) * blendAxes.x;
-    float4 yProjection = _Textures.Sample(sampler_Textures, float3(scaledWorldPos.x, scaledWorldPos.z, texInd)) * blendAxes.y;
-    float4 zProjection = _Textures.Sample(sampler_Textures, float3(scaledWorldPos.x, scaledWorldPos.y, texInd)) * blendAxes.z;
+    float3 xProjection = _Textures.Sample(sampler_Textures, float3(scaledWorldPos.y, scaledWorldPos.z, texInd)).xyz * blendAxes.x;
+    float3 yProjection = _Textures.Sample(sampler_Textures, float3(scaledWorldPos.x, scaledWorldPos.z, texInd)).xyz * blendAxes.y;
+    float3 zProjection = _Textures.Sample(sampler_Textures, float3(scaledWorldPos.x, scaledWorldPos.y, texInd)).xyz * blendAxes.z;
 
     return xProjection + yProjection + zProjection;
 }
@@ -127,14 +106,13 @@ float3 frag (v2f IN) : SV_Target
     float3 blendAxes = abs(IN.normalWS);
     blendAxes /= blendAxes.x + blendAxes.y + blendAxes.z;
 
-    int material = (int)IN.color.r;
-    float alpha = IN.color.a;
+    int material = IN.material;
 
-    float3 baseColor = _BaseColors[material];//lerp(GetColor(a), GetColor(b), interpFactor);
+    float3 baseColor = _MatTerrainData[material].baseColor.xyz;
 
-    float3 textureColor = triplanar(IN.positionWS, _BaseTextureScales[material], blendAxes, material);
+    float3 textureColor = triplanar(IN.positionWS, _MatTerrainData[material].baseTextureScale, blendAxes, material);
 
-    float colorStrength = _BaseColorStrength[material];//lerp(_BaseColorStrength[a], _BaseColorStrength[b], interpFactor);
+    float colorStrength = _MatTerrainData[material].baseColorStrength;
 
     InputData lightingInput = (InputData)0;
 	lightingInput.positionWS = IN.positionWS;
@@ -144,7 +122,6 @@ float3 frag (v2f IN) : SV_Target
 
 	SurfaceData surfaceInput = (SurfaceData)0;
 	surfaceInput.albedo = baseColor * colorStrength + textureColor * (1-colorStrength);
-	surfaceInput.alpha = alpha;
 
 #if UNITY_VERSION >= 202120
 	return UniversalFragmentBlinnPhong(lightingInput, surfaceInput);

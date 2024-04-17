@@ -1,0 +1,28 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+const static uint numThreads = 128;
+
+struct vertex{
+    float3 tri;
+    float3 norm;
+    int2 material;
+};
+
+StructuredBuffer<vertex> baseVertices; 
+StructuredBuffer<uint> counter;
+uint bCOUNTER;
+uint bSTART;
+
+RWStructuredBuffer<vertex> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+uint addressIndex;
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= counter[bCOUNTER])
+        return;
+    
+    uint vertAddress = _AddressDict[addressIndex].y + id.x;
+    _MemoryBuffer[vertAddress] = baseVertices[bSTART + id.x];
+}
