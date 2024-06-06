@@ -64,7 +64,7 @@ public class AtmosphereBake : ScriptableObject
 
     public void Execute()
     {
-        if(!passSettings.densityManager.initialized)
+        if(!GPUDensityManager.initialized)
             return;
         if(!initialized)
             SetupData();
@@ -123,7 +123,7 @@ public class AtmosphereBake : ScriptableObject
         OpticalDepthCompute.SetBuffer(0, "rayLengths", rayLengths);
         OpticalDepthCompute.SetBuffer(0, "luminance", Luminance);
 
-        this.passSettings.densityManager.SetDensitySampleData(OpticalDepthCompute);
+        GPUDensityManager.SetDensitySampleData(OpticalDepthCompute);
     }
 
     void SetupOpticalMarch(){
@@ -141,7 +141,7 @@ public class AtmosphereBake : ScriptableObject
         OpticalDataCompute.SetBuffer(0, "rayLengths", rayLengths);
         OpticalDataCompute.SetBuffer(0, "mapData", OpticalInfo);
 
-        this.passSettings.densityManager.SetDensitySampleData(OpticalDataCompute);
+        GPUDensityManager.SetDensitySampleData(OpticalDataCompute);
     }
 
     void CalculateRayData()

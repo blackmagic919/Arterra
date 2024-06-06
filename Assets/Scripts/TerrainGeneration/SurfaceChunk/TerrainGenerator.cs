@@ -19,21 +19,21 @@ public static class TerrainGenerator
         surfaceDataSampler.SetBuffer(0, "surfMap", UtilityBuffers.GenerationBuffer);
 
         surfaceDataSampler.SetInt("continentalSampler", surfSettings.TerrainContinentalDetail);
-        surfaceDataSampler.SetInt("erosionSampler", surfSettings.TerrainErosionDetail);
         surfaceDataSampler.SetInt("PVSampler", surfSettings.TerrainPVDetail);
+        surfaceDataSampler.SetInt("erosionSampler", surfSettings.TerrainErosionDetail);
         surfaceDataSampler.SetInt("squashSampler", surfSettings.SquashMapDetail);
         surfaceDataSampler.SetInt("atmosphereSampler", surfSettings.AtmosphereDetail);
         surfaceDataSampler.SetInt("humiditySampler", surfSettings.HumidityDetail);
 
-        surfaceDataSampler.SetFloat("continentalHeight", surfSettings.MaxContinentalHeight);
-        surfaceDataSampler.SetFloat("PVHeight", surfSettings.MaxPVHeight);
+        surfaceDataSampler.SetFloat("maxTerrainHeight", surfSettings.MaxTerrainHeight);
+        surfaceDataSampler.SetFloat("heightInfluence", surfSettings.fineHeightInfluence);
         surfaceDataSampler.SetFloat("squashHeight", surfSettings.MaxSquashHeight);
         surfaceDataSampler.SetFloat("heightOffset", surfSettings.terrainOffset);
     }
 
     //The wonder shader that does everything (This way more parallelization is achieved)
     public static void SampleSurfaceData(Vector2 offset, int chunkSize, int meshSkipInc){
-        int numPointsAxes = chunkSize / meshSkipInc + 1;
+        int numPointsAxes = chunkSize / meshSkipInc;
         Vector3 offset3D = new Vector3(offset.x, 0, offset.y);
 
         surfaceDataSampler.SetInt("numPointsPerAxis", numPointsAxes);

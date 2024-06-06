@@ -3,6 +3,8 @@ using Unity.Mathematics;
 using UnityEngine;
 using static EndlessTerrain;
 using static DensityGenerator;
+using Unity.Collections;
+
 
 [CreateAssetMenu(menuName = "Containers/Mesh Creator Settings")]
 public class MeshCreatorSettings : ScriptableObject{
@@ -33,7 +35,7 @@ public class MeshCreator
         this.settings = settings;
     }
 
-    public TerrainChunk.MapData[] GetChunkInfo(StructureCreator structCreator, SurfaceChunk.SurfData surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
+    public CPUDensityManager.MapData[] GetChunkInfo(StructureCreator structCreator, SurfaceChunk.SurfData surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
     {
         int numPointsAxes = chunkSize + 1;
         int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
@@ -41,7 +43,7 @@ public class MeshCreator
         GenerateBaseChunk(surfaceData, offset, 0, chunkSize, IsoLevel);
         structCreator.GenerateStrucutresGPU(chunkSize, 0, IsoLevel);
 
-        TerrainChunk.MapData[] chunkMap = new TerrainChunk.MapData[numOfPoints];
+        CPUDensityManager.MapData[] chunkMap = new CPUDensityManager.MapData[numOfPoints];
 
         UtilityBuffers.GenerationBuffer.GetData(chunkMap);
         ReleaseTempBuffers();
@@ -55,13 +57,21 @@ public class MeshCreator
         GenerateBaseData(surfaceData, IsoLevel, chunkSize, meshSkipInc, offset);
     }
 
-    public void SetMapInfo(int LOD, int chunkSize, TerrainChunk.MapData[] chunkData)
+    public void SetMapInfo(int LOD, int chunkSize, int offset, CPUDensityManager.MapData[] chunkData){
+        int meshSkipInc = meshSkipTable[LOD];
+        int numPointsAxes = chunkSize / meshSkipInc;
+        int numPoints = numPointsAxes * numPointsAxes * numPointsAxes;
+
+        UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
+    }
+    public void SetMapInfo(int LOD, int chunkSize, int offset, ref NativeArray<CPUDensityManager.MapData> chunkData)
     {
         int meshSkipInc = meshSkipTable[LOD];
-        /*(numPoints-1)^3 cubes. A cube can have a maximum of 5 triangles. Though this is correct,
-        it is usually way above the amount of actual triangles that exist(as mesh gets larger)*/
+        int numPointsAxes = chunkSize / meshSkipInc;
+        int numPoints = numPointsAxes * numPointsAxes * numPointsAxes;
+        
 
-        SimplifyMap(chunkSize, meshSkipInc, chunkData, ref tempBuffers);
+        UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
     }
 
     struct structurInfo
@@ -72,10 +82,10 @@ public class MeshCreator
     }
 
 
-    public void GenerateMapData(GPUDensityManager densityManager, Vector3 CCoord, float IsoLevel, int LOD, int chunkSize)
+    public void GenerateMapData(int3 CCoord, float IsoLevel, int LOD, int chunkSize)
     {
         int meshSkipInc = meshSkipTable[LOD];
-        GenerateMesh(densityManager, CCoord, chunkSize, meshSkipInc, IsoLevel);;
+        GenerateMesh(CCoord, chunkSize, meshSkipInc, IsoLevel);
     }
 
     public void ReleaseTempBuffers()

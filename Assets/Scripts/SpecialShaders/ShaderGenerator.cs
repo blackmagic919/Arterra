@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Mathematics;
-using UnityEditor.Playables;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Utils;
 using static EndlessTerrain;
 using static UtilityBuffers;
 
@@ -22,7 +22,7 @@ public class ShaderGenerator
 
     private Transform transform;
     //                          Color                  Position & Normal        UV
-    const int GEO_VERTEX_STRIDE = 4 + 3 * 2 + 2;
+    const int GEO_VERTEX_STRIDE = 3 * 2 + 2;
     const int TRI_STRIDE_WORD = 3;
 
     private Bounds shaderBounds;
@@ -99,24 +99,8 @@ public class ShaderGenerator
     {
         this.settings = settings;
         this.transform = transform;
-        this.shaderBounds = TransformBounds(transform, boundsOS);
+        this.shaderBounds = CustomUtility.TransformBounds(transform, boundsOS);
         this.shaderUpdateTasks = new ShaderUpdateTask[this.settings.shaderDictionary.Count];
-    }
-
-    public Bounds TransformBounds(Transform transform, Bounds boundsOS)
-    {
-        var center = transform.TransformPoint(boundsOS.center);
-
-        var size = boundsOS.size;
-        var axisX = transform.TransformVector(size.x, 0, 0);
-        var axisY = transform.TransformVector(0, size.y, 0);
-        var axisZ = transform.TransformVector(0, 0, size.z);
-
-        size.x = Mathf.Abs(axisX.x) + Mathf.Abs(axisY.x) + Mathf.Abs(axisZ.x);
-        size.y = Mathf.Abs(axisX.y) + Mathf.Abs(axisY.y) + Mathf.Abs(axisZ.y);
-        size.z = Mathf.Abs(axisX.z) + Mathf.Abs(axisY.z) + Mathf.Abs(axisZ.z);
-
-        return new Bounds(center, size);
     }
 
     public void ReleaseGeometry()
@@ -144,7 +128,7 @@ public class ShaderGenerator
         int triAddress = (int)triHandle.addressIndex;
         int vertAddress = (int)vertHandle.addressIndex;
 
-        UtilityBuffers.ClearCounters(UtilityBuffers.GenerationBuffer, triIndDictStart);
+        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, triIndDictStart, 0);
         FilterGeometry(geoMem, triAddress, vertAddress);
 
         ProcessGeoShaders(geoMem, vertAddress, triAddress);
@@ -180,7 +164,7 @@ public class ShaderGenerator
 
     public void ProcessGeoShaders(MemoryBufferSettings memSettings, int vertAddress, int triAddress)
     {
-        UtilityBuffers.ClearCounters(UtilityBuffers.GenerationBuffer, 1); //clear base count
+        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 1, 0); //clear base count
         for (int i = 0; i < this.settings.shaderDictionary.Count; i++){
             SpecialShader geoShader = this.settings.shaderDictionary[i];
             

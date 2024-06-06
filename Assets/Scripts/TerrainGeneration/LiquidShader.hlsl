@@ -17,21 +17,19 @@ struct liquidMat{
     float WaterColFalloff;
     float DepthOpacity;
     float Smoothness;
+    float WaveBlend;
+    float WaveStrength;
+    float2 WaveScale;
+    float2 WaveSpeed;
 };
 
 StructuredBuffer<liquidMat> _MatLiquidData;
 
-float _WaveStrength;
-float _WaveBlend;
-float _WaveScaleFine;
-float _WaveSpeedFine;
-float _WaveScaleCoarse;
-float _WaveSpeedCoarse;
 
-TEXTURE2D(_WaveNormalFine);
-SAMPLER(sampler_WaveNormalFine);
-TEXTURE2D(_WaveNormalCoarse);
-SAMPLER(sampler_WaveNormalCoarse);
+TEXTURE2D(_LiquidFineWave);
+SAMPLER(sampler_LiquidFineWave);
+TEXTURE2D(_LiquidCoarseWave);
+SAMPLER(sampler_LiquidCoarseWave);
 TEXTURE2D(_CameraDepthTexture);
 SAMPLER(sampler_CameraDepthTexture);
 
@@ -74,9 +72,9 @@ v2f vert (uint vertexID: SV_VertexID){
 
 struct appdata
 {
-    float4 vertex : POSITION;
-    float4 normal : NORMAL;
-    float4 color: COLOR;
+    float3 vertex : POSITION;
+    float3 normal : NORMAL;
+    int2 material: TEXCOORD0;
 };
 
 v2f vert (appdata v)
@@ -89,7 +87,7 @@ v2f vert (appdata v)
     o.positionCS = posInputs.positionCS;
     o.positionWS = posInputs.positionWS;
     o.normalWS = normInputs.normalWS;
-    o.material = (int)v.color.y;
+    o.material = v.material.y;
     o.screenPos = ComputeScreenPos(o.positionCS);
 
     return o;
@@ -137,13 +135,13 @@ half4 frag (v2f IN) : SV_Target
     float dstToWater = IN.positionCS.w;
 
     float3 viewDir = normalize(viewVector);
-    float2 waveOffsetFine = float2(_Time.x * _WaveSpeedFine, _Time.x * _WaveSpeedFine * 0.75);
-    float2 waveOffsetCoarse = float2(_Time.x * _WaveSpeedCoarse * -0.5, _Time.x * _WaveSpeedCoarse * -0.25);
+    float2 waveOffsetFine = float2(_Time.x * matData.WaveSpeed.x, _Time.x * matData.WaveSpeed.x * 0.75);
+    float2 waveOffsetCoarse = float2(_Time.x * matData.WaveSpeed.y * -0.5, _Time.x * matData.WaveSpeed.y * -0.25);
 
-    float3 waveNormalFine = triplanar(_WaveNormalFine, sampler_WaveNormalFine, IN.positionWS, _WaveScaleFine, IN.normalWS, waveOffsetFine);
-    float3 waveNormalCoarse = triplanar(_WaveNormalCoarse, sampler_WaveNormalCoarse, IN.positionWS, _WaveScaleCoarse, IN.normalWS, waveOffsetCoarse);
-    float3 waveNormal = lerp(waveNormalCoarse, waveNormalFine, _WaveBlend);
-    float3 specWaveNormal = normalize(lerp(IN.normalWS, blend_rnm(IN.normalWS, waveNormal), _WaveStrength));
+    float3 waveNormalFine = triplanar(_LiquidFineWave, sampler_LiquidFineWave, IN.positionWS, matData.WaveScale.x, IN.normalWS, waveOffsetFine);
+    float3 waveNormalCoarse = triplanar(_LiquidCoarseWave, sampler_LiquidCoarseWave, IN.positionWS, matData.WaveScale.y, IN.normalWS, waveOffsetCoarse);
+    float3 waveNormal = lerp(waveNormalCoarse, waveNormalFine, matData.WaveBlend);
+    float3 specWaveNormal = normalize(lerp(IN.normalWS, blend_rnm(IN.normalWS, waveNormal), matData.WaveStrength));
 
     float waterDepth = linearDepth - dstToWater;
     
@@ -159,7 +157,7 @@ half4 frag (v2f IN) : SV_Target
     surfaceInput.albedo = waterCol;
     surfaceInput.alpha = waterAlpha;
     surfaceInput.smoothness = matData.Smoothness;
-    surfaceInput.specular = 0.5;
+    surfaceInput.specular = 1;
 
 #if UNITY_VERSION >= 202120
     return UniversalFragmentBlinnPhong(lightingInput, surfaceInput);

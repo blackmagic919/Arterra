@@ -57,6 +57,7 @@ Interpolators vert (uint vertexID: SV_VertexID){
 struct Attributes {
 	float3 positionOS : POSITION;
 	float3 normalOS : NORMAL;
+	int2 material : TEXCOORD0;
 };
 
 

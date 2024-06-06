@@ -1,0 +1,27 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+const static uint numThreads = 128;
+
+StructuredBuffer<uint> triDict; //Remapped from uint3
+StructuredBuffer<uint> counter;
+uint bCOUNTER_Tri;
+uint bSTART_Tri;
+uint bSTART_Dict;
+
+RWStructuredBuffer<uint3> BaseTriangles; //Input & Output
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= counter[bCOUNTER_Tri])
+        return;
+    
+    uint3 baseTri = BaseTriangles[bSTART_Tri + id.x];
+
+    uint3 tri;
+    tri.x = triDict[baseTri.x + bSTART_Dict];
+    tri.y = triDict[baseTri.y + bSTART_Dict];
+    tri.z = triDict[baseTri.z + bSTART_Dict];
+
+    BaseTriangles[bSTART_Tri + id.x] = tri;
+}

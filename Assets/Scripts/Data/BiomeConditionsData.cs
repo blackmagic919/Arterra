@@ -5,22 +5,24 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Generation/Biome Conditions")]
 public class BiomeConditionsData : ScriptableObject
 {
+    public int biome;
+
+    [Space(10)]
+    [Range(0, 1)]
+    public float TerrainStart;
+    [Range(0, 1)]
+    public float TerrainEnd;
+    
     [Space(10)]
     [Range(0, 1)]
     public float ContinentalStart;
     [Range(0, 1)]
-    public float ContinentalEnd;
+    public float ContinentalEnd;//
 
     [Range(0, 1)]
     public float ErosionStart;
     [Range(0, 1)]
     public float ErosionEnd;
-
-    [Space(10)]
-    [Range(0, 1)]
-    public float PVStart;
-    [Range(0, 1)]
-    public float PVEnd;
 
     [Space(10)]
     [Range(0, 1)]
@@ -30,9 +32,9 @@ public class BiomeConditionsData : ScriptableObject
 
     [Space(10)]
     [Range(0, 1)]
-    public float TempStart;
+    public float AtmosphereStart;
     [Range(0, 1)]
-    public float TempEnd;
+    public float AtmosphereEnd;
 
     [Space(10)]
     [Range(0, 1)]
@@ -42,11 +44,11 @@ public class BiomeConditionsData : ScriptableObject
 
     private void OnValidate()
     {
-        ErosionEnd = Mathf.Max(ErosionStart, ErosionEnd);
         ContinentalEnd = Mathf.Max(ContinentalStart, ContinentalEnd);
-        PVEnd = Mathf.Max(PVStart, PVEnd);
+        ErosionEnd = Mathf.Max(ErosionStart, ErosionEnd);
+        TerrainEnd = Mathf.Max(TerrainStart, TerrainEnd);
         SquashEnd = Mathf.Max(SquashStart, SquashEnd);
-        TempEnd = Mathf.Max(TempStart, TempEnd);
+        AtmosphereEnd = Mathf.Max(AtmosphereStart, AtmosphereEnd);
         HumidEnd = Mathf.Max(HumidStart, HumidEnd);
     }
 

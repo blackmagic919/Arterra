@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Mathematics;
 
 namespace Utils { 
     public static class CustomUtility
@@ -16,20 +17,25 @@ namespace Utils {
             return x + y * sizeX + z * sizeX * sizeY;
         }
 
+        public static int irregularIndexFromCoord(int3 pos, int2 size)
+        {
+            return pos.x + pos.y * size.x + pos.z * size.x * size.y;
+        }
+
         public static int indexFromCoord(int x, int y, int z, int numPointsAxis)
         {
-            return x  + y * numPointsAxis + z * numPointsAxis * numPointsAxis;
+            return x * numPointsAxis * numPointsAxis + y * numPointsAxis + z;
         }
 
         public static int indexFromCoord2D(int x, int y, int numPointsAxis)
         {
-            return x + y * numPointsAxis;
+            return x * numPointsAxis + y;
         }
 
-        public static int indexFromCoordV(Vector3 coord, int numPointsPerAxis)
+        public static int indexFromCoord(int3 coord, int numPointsPerAxis)
         {
 
-            return (int)coord.x * numPointsPerAxis * numPointsPerAxis + (int)coord.y * numPointsPerAxis + (int)coord.z;
+            return coord.x * numPointsPerAxis * numPointsPerAxis + coord.y * numPointsPerAxis + coord.z;
         }
 
         public static Vector3 FloorVector(Vector3 vector)
@@ -141,6 +147,40 @@ namespace Utils {
             }
 
             return right; //returns closest before it
+        }
+        public static float Frac(float value){ return value - (float)Math.Truncate(value);}
+
+        public static Vector3 AsVector(int3 vector)
+        {
+            return new Vector3(vector.x, vector.y, vector.z);
+        }
+
+        public static Vector2 AsVector(int2 vector)
+        {
+            return new Vector2(vector.x, vector.y);
+        }
+        
+        public static Bounds TransformBounds(Transform transform, Bounds boundsOS)
+        {
+            var center = transform.TransformPoint(boundsOS.center);
+
+            var size = boundsOS.size;
+            var axisX = transform.TransformVector(size.x, 0, 0);
+            var axisY = transform.TransformVector(0, size.y, 0);
+            var axisZ = transform.TransformVector(0, 0, size.z);
+
+            size.x = Mathf.Abs(axisX.x) + Mathf.Abs(axisY.x) + Mathf.Abs(axisZ.x);
+            size.y = Mathf.Abs(axisX.y) + Mathf.Abs(axisY.y) + Mathf.Abs(axisZ.y);
+            size.z = Mathf.Abs(axisX.z) + Mathf.Abs(axisY.z) + Mathf.Abs(axisZ.z);
+
+            return new Bounds(center, size);
+        }
+    }
+
+    public class Wrapper<T>{
+        public T value;
+        public Wrapper(ref T value){
+            this.value = value;
         }
     }
 

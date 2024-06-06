@@ -15,19 +15,19 @@ MonoBehaviour:
   IsoLevel: 0.5
   detailLevels:
   - LOD: 0
-    distanceThresh: 100
+    distanceThresh: 200
     useForCollider: 1
     useForGeoShaders: 1
   - LOD: 1
-    distanceThresh: 200
-    useForCollider: 0
-    useForGeoShaders: 0
-  - LOD: 2
     distanceThresh: 300
     useForCollider: 0
     useForGeoShaders: 0
+  - LOD: 2
+    distanceThresh: 400
+    useForCollider: 0
+    useForGeoShaders: 0
   - LOD: 3
-    distanceThresh: 450
+    distanceThresh: 500
     useForCollider: 0
     useForGeoShaders: 0
   - LOD: 4

@@ -1,5 +1,5 @@
 #include "UnityCG.cginc"
- #include "UnityUI.cginc"
+#include "UnityUI.cginc"
 
 struct appdata
 {
@@ -9,8 +9,8 @@ struct appdata
 
 struct v2f
 {
-    float2 uv : TEXCOORD0;
     float4 positionCS : SV_POSITION;
+    float2 uv : TEXCOORD0;
 };
 
 sampler2D _MaterialData;
@@ -23,16 +23,35 @@ struct matTerrain{
     int geoShaderInd;
 };
 
+struct liquidMat{
+    float3 WaterShallowCol;
+    float3 WaterDeepCol;
+    float WaterColFalloff;
+    float DepthOpacity;
+    float Smoothness;
+    float WaveBlend;
+    float WaveStrength;
+    float2 WaveScale;
+    float2 WaveSpeed;
+};
+
 StructuredBuffer<matTerrain> _MatTerrainData;
+StructuredBuffer<liquidMat> _MatLiquidData;
 
 int selectedMat;
 float InventorySize;
 
+//A lot of global textures
 Texture2DArray _Textures;
 SamplerState sampler_Textures;
+Texture2D _LiquidFineWave;
+SamplerState sampler_LiquidFineWave;
+Texture2D _LiquidCoarseWave;
+SamplerState sampler_LiquidCoarseWave;
 
 float4 _Tint;
 float _TintFrequency;
+float _AuxFadeEnd;
 
 v2f vert (appdata v)
 {
@@ -42,18 +61,27 @@ v2f vert (appdata v)
     return o;
 }
 
-int materialCount;
-StructuredBuffer<int> inventoryMaterialIndexes;
-StructuredBuffer<float> inventoryMaterialPercents;
-uint BinarySearch(float key, uint arraySize) {
-    uint left = 0;
-    uint right = arraySize - 1;
+struct invMat {
+    int material;
+    float percent;
+};
+
+
+StructuredBuffer<invMat> MainInventoryMaterial;
+StructuredBuffer<invMat> AuxInventoryMaterial;
+int MainMaterialCount;
+int AuxMaterialCount;
+uint UseSolid;
+
+int BinarySearch(float key, int arraySize, StructuredBuffer<invMat> inventory) {
+    int left = 0;
+    int right = max(arraySize - 1, 0);
     uint closestIndex = 0;
 
     while (left <= right) { 
-        uint mid = (left + right) / 2;
+        int mid = (left + right) / 2;
 
-        if (inventoryMaterialPercents[mid] <= key) {
+        if (inventory[mid].percent <= key) {
             closestIndex = mid;
             left = mid + 1;
         } else {
@@ -63,30 +91,64 @@ uint BinarySearch(float key, uint arraySize) {
         }
     }
                
-    return closestIndex;
+    return inventory[closestIndex].material;
+}
+
+fixed3 GetMatColor(float2 uv, int index){
+    matTerrain matData = _MatTerrainData[index];
+    float3 color = matData.baseColor;
+    float colorStrength = matData.baseColorStrength;
+
+    float textureU = uv.x / matData.baseTextureScale * (InventorySize*25);
+    float textureV = uv.y / matData.baseTextureScale;
+
+    float3 textureColor = _Textures.Sample(sampler_Textures, float3(textureU, textureV, index));
+
+    return color * colorStrength + textureColor * (1-colorStrength);
+}
+
+fixed3 GetLiquidColor(float2 uv, int index){
+    liquidMat matData = _MatLiquidData[index];
+    
+    uv = float2(uv.x * (InventorySize*25), uv.y);
+
+    float2 fineUV = float2(_Time.x * matData.WaveSpeed.x, _Time.x * matData.WaveSpeed.x * 0.75);
+    float2 coarseUV = float2(_Time.x * matData.WaveSpeed.y * -0.5, _Time.x * matData.WaveSpeed.y * -0.25);
+
+    fineUV = uv * matData.WaveScale + fineUV;
+    coarseUV = uv * matData.WaveScale + coarseUV;
+
+    float3 fineNormal = UnpackNormal(_LiquidFineWave.Sample(sampler_LiquidFineWave, fineUV));
+    float3 coarseNormal = UnpackNormal(_LiquidCoarseWave.Sample(sampler_LiquidCoarseWave, coarseUV));
+    float3 waveNormal = lerp(coarseNormal, fineNormal, matData.WaveBlend);
+
+    return lerp(matData.WaterShallowCol, matData.WaterDeepCol, abs(waveNormal.y)); //Give illusion of shadows
 }
 
             
 fixed3 frag (v2f IN) : SV_Target
 {
-    int index = inventoryMaterialIndexes[BinarySearch(IN.uv.x, materialCount)];
+    fixed3 MainColor; fixed3 AuxColor;
 
-    matTerrain matData = _MatTerrainData[index];
-    float3 color = matData.baseColor;
-    float colorStrength = matData.baseColorStrength;
-    
+    int mainIndex = BinarySearch(IN.uv.x, MainMaterialCount, MainInventoryMaterial);
+    MainColor = UseSolid == 1 ? GetMatColor(IN.uv, mainIndex) : GetLiquidColor(IN.uv, mainIndex);
 
-    float textureU = IN.uv.x / matData.baseTextureScale * (InventorySize*25);
-    float textureV = IN.uv.y / matData.baseTextureScale;
-
-    float3 textureColor = _Textures.Sample(sampler_Textures, float3(textureU, textureV, index));
-
-    float3 OUT = color * colorStrength + textureColor * (1-colorStrength);
-
-    if((int)index == selectedMat){
-        float tintStrength = abs((_Time.y % _TintFrequency)/_TintFrequency * 2 - 1);
-        return OUT*(1-tintStrength) + _Tint*tintStrength;
+    if(mainIndex == selectedMat){
+        float tintStrength = abs((_Time.y % _TintFrequency)/_TintFrequency * 2 - 1) * _Tint.a;
+        MainColor =  MainColor*(1-tintStrength) + _Tint.rgb*tintStrength;
     }
+    
+    if(AuxMaterialCount == 0) 
+        AuxColor = MainColor;
+    else
+    {
+        int auxIndex = BinarySearch(IN.uv.x, AuxMaterialCount, AuxInventoryMaterial);
+        AuxColor = UseSolid == 1 ? GetLiquidColor(IN.uv, auxIndex) : GetMatColor(IN.uv, auxIndex);
+    }
+
+    fixed3 OUT;
+    if(IN.uv.y < _AuxFadeEnd) OUT = AuxColor;
+    else OUT = MainColor;
 
     return OUT;
 }

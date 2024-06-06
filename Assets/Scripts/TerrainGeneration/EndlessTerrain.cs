@@ -5,6 +5,7 @@ using UnityStandardAssets.Characters.FirstPerson;
 using UnityEngine.Profiling;
 using Utils;
 using UnityEngine.Rendering;
+using Unity.Mathematics;
 
 public class EndlessTerrain : MonoBehaviour
 {
@@ -34,20 +35,21 @@ public class EndlessTerrain : MonoBehaviour
     public static readonly int[] meshSkipTable = { 1, 2, 4, 8, 16 }; //has to be 2x for proper stitching
     public static readonly int[] taskLoadTable = { 5, 5, 2, 3 };
     public static Queue<UpdateTask> MainLoopUpdateTasks = new Queue<UpdateTask>();
-    public static PriorityQueue<GenTask, int> timeRequestQueue = new PriorityQueue<GenTask, int>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
+    public static Queue<GenTask> timeRequestQueue = new Queue<GenTask>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
 
     public static Queue<ChunkData> lastUpdateChunks = new Queue<ChunkData>();
 
-    public static Dictionary<Vector3, TerrainChunk> terrainChunkDict = new Dictionary<Vector3, TerrainChunk>();
-    public static Dictionary<Vector2, SurfaceChunk> surfaceChunkDict = new Dictionary<Vector2, SurfaceChunk>();
+    public static Dictionary<int3, TerrainChunk> terrainChunkDict = new Dictionary<int3, TerrainChunk>();
+    public static Dictionary<int2, SurfaceChunk> surfaceChunkDict = new Dictionary<int2, SurfaceChunk>();
 
 
     void Start()
     {
-        renderDistance = settings.detailLevels[settings.detailLevels.Length - 1].distanceThresh;
-        chunksVisibleInViewDistance = Mathf.RoundToInt(renderDistance / mapChunkSize);
+        renderDistance = settings.detailLevels[^1].distanceThresh;
+        chunksVisibleInViewDistance = Mathf.CeilToInt(renderDistance / mapChunkSize) + 1;
 
-        resources.densityDict.InitializeManage(settings.detailLevels, mapChunkSize, lerpScale);
+        GPUDensityManager.Initialize(settings.detailLevels, mapChunkSize, lerpScale);
+        CPUDensityManager.Intiialize(settings.detailLevels[0], mapChunkSize);
         StructureGenerator.PresetData(resources.meshCreator, resources.surfaceSettings);
         TerrainGenerator.PresetData(resources.surfaceSettings);
         DensityGenerator.PresetData(resources.meshCreator, mapChunkSize);
@@ -63,24 +65,19 @@ public class EndlessTerrain : MonoBehaviour
             UpdateVisibleChunks();
         }
         StartGeneration();
-
-        int UpdateTaskCount = MainLoopUpdateTasks.Count;
-        for(int i = 0; i < UpdateTaskCount; i++){
-            UpdateTask task = MainLoopUpdateTasks.Dequeue();
-            
-            if(!task.initialized)
-                continue;
-
-            task.Update();
-            MainLoopUpdateTasks.Enqueue(task);
-        }
     }
     
-
+    /*void OnDrawGizmos(){
+        foreach(KeyValuePair<int3, TerrainChunk> chunk in terrainChunkDict){
+            if(chunk.Value.prevMapLOD == 4) Gizmos.DrawWireCube(chunk.Value.position * lerpScale, mapChunkSize * lerpScale * Vector3.one);
+        }
+    }*/
     private void OnDisable()
     {
         TerrainChunk[] chunks = new TerrainChunk[terrainChunkDict.Count];
         terrainChunkDict.Values.CopyTo(chunks, 0);
+        GPUDensityManager.Release();
+        CPUDensityManager.Release();
         foreach(TerrainChunk chunk in chunks)
         {
             chunk.DestroyChunk();
@@ -96,6 +93,17 @@ public class EndlessTerrain : MonoBehaviour
 
     private void LateUpdate()
     {
+        int UpdateTaskCount = MainLoopUpdateTasks.Count;
+        for(int i = 0; i < UpdateTaskCount; i++){
+            UpdateTask task = MainLoopUpdateTasks.Dequeue();
+            
+            if(!task.initialized)
+                continue;
+
+            task.Update();
+            MainLoopUpdateTasks.Enqueue(task);
+        }
+
         if (viewerActive)
             return;
         if (timeRequestQueue.Count > 0)
@@ -110,14 +118,14 @@ public class EndlessTerrain : MonoBehaviour
         int FrameGPULoad = 0;
         while(FrameGPULoad < maxFrameLoad)
         {
-            if (!timeRequestQueue.TryDequeue(out GenTask gen, out int priority))
+            if (!timeRequestQueue.TryDequeue(out GenTask gen))
                 return;
 
-            Profiler.BeginSample($"Time Request Queue: {Enum.GetName(typeof(priorities), priority)}");
-            gen.task.Invoke();
-            Profiler.EndSample();
+            //Profiler.BeginSample($"Time Request Queue: {Enum.GetName(typeof(priorities), gen.load))}");
+            if(gen.valid()) gen.task();
+            //Profiler.EndSample();
 
-            FrameGPULoad += gen.genLoad;
+            FrameGPULoad += gen.load;
         }
     }
 
@@ -126,8 +134,8 @@ public class EndlessTerrain : MonoBehaviour
         int CCCoordX = Mathf.RoundToInt(viewerPosition.x / mapChunkSize); //CurrentChunkCoord
         int CCCoordY = Mathf.RoundToInt(viewerPosition.y / mapChunkSize);
         int CCCoordZ = Mathf.RoundToInt(viewerPosition.z / mapChunkSize);
-        Vector3 CCCoord = new Vector3(CCCoordX, CCCoordY, CCCoordZ);
-        Vector2 CSCoord = new Vector2(CCCoordX, CCCoordZ);
+        int3 CCCoord = new int3(CCCoordX, CCCoordY, CCCoordZ);
+        int2 CSCoord = new int2(CCCoordX, CCCoordZ);
 
         while (lastUpdateChunks.Count > 0)
         {
@@ -138,7 +146,7 @@ public class EndlessTerrain : MonoBehaviour
         {
             for (int zOffset = -chunksVisibleInViewDistance; zOffset <= chunksVisibleInViewDistance; zOffset++)
             {
-                Vector3 viewedSC = new Vector2(xOffset, zOffset) + CSCoord;
+                int2 viewedSC = new int2(xOffset, zOffset) + CSCoord;
                 SurfaceChunk curSChunk;
                 if (surfaceChunkDict.TryGetValue(viewedSC, out curSChunk)) {
                     curSChunk.Update();
@@ -150,68 +158,23 @@ public class EndlessTerrain : MonoBehaviour
 
                 for (int yOffset = -chunksVisibleInViewDistance; yOffset <= chunksVisibleInViewDistance; yOffset++)
                 {
-                    Vector3 viewedCC = new Vector3(xOffset, yOffset, zOffset) + CCCoord;
-                    if (terrainChunkDict.ContainsKey(viewedCC))
-                    {
-                        TerrainChunk curChunk = terrainChunkDict[viewedCC];
-                        curChunk.Update();
-                    } else {
-                        terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, settings.IsoLevel, transform, curSChunk, settings.detailLevels, resources));
-                    }
+                    int3 viewedCC = new int3(xOffset, yOffset, zOffset) + CCCoord;
+                    if (terrainChunkDict.ContainsKey(viewedCC)) terrainChunkDict[viewedCC].Update();
+                    else terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, settings.IsoLevel, transform, curSChunk, settings.detailLevels, resources));
                 }
             }
         }
     }
 
-
-    static bool SphereIntersectsBox(Vector3 sphereCentre, float sphereRadius, Vector3 boxCentre, Vector3 boxSize)
-    {
-        float closestX = Mathf.Clamp(sphereCentre.x, boxCentre.x - boxSize.x / 2, boxCentre.x + boxSize.x / 2);
-        float closestY = Mathf.Clamp(sphereCentre.y, boxCentre.y - boxSize.y / 2, boxCentre.y + boxSize.y / 2);
-        float closestZ = Mathf.Clamp(sphereCentre.z, boxCentre.z - boxSize.z / 2, boxCentre.z + boxSize.z / 2);
-
-        float dx = closestX - sphereCentre.x;
-        float dy = closestY - sphereCentre.y;
-        float dz = closestZ - sphereCentre.z;
-
-        float sqrDstToBox = dx * dx + dy * dy + dz * dz;
-        return sqrDstToBox < sphereRadius * sphereRadius;
-    }
-
-    public void Terraform(Vector3 terraformPoint, float terraformRadius, Func<TerrainChunk.MapData, float, TerrainChunk.MapData> handleTerraform)
-    {
-        int CCCoordX = Mathf.RoundToInt(terraformPoint.x / (mapChunkSize*lerpScale));
-        int CCCoordY = Mathf.RoundToInt(terraformPoint.y / (mapChunkSize*lerpScale));
-        int CCCoordZ = Mathf.RoundToInt(terraformPoint.z / (mapChunkSize*lerpScale));
-
-        int chunkTerraformRadius = Mathf.CeilToInt(terraformRadius / (mapChunkSize* lerpScale));
-
-        for(int x = -chunkTerraformRadius; x <= chunkTerraformRadius; x++)
-        {
-            for (int y = -chunkTerraformRadius; y <= chunkTerraformRadius; y++)
-            {
-                for (int z = -chunkTerraformRadius; z <= chunkTerraformRadius; z++)
-                {
-                    Vector3 viewedCC = new Vector3(x + CCCoordX, y + CCCoordY, z + CCCoordZ);
-
-                    if (!terrainChunkDict.ContainsKey(viewedCC))
-                        continue;
-                    //For some reason terraformRadius itself isn't updating all the chunks properly
-                    if (SphereIntersectsBox(terraformPoint, (terraformRadius+1), mapChunkSize * lerpScale * viewedCC, (mapChunkSize+1) * lerpScale * Vector3.one)) { 
-                        TerrainChunk curChunk = terrainChunkDict[viewedCC];
-                        curChunk.TerraformChunk(terraformPoint, terraformRadius, handleTerraform);
-                    }
-                }
-            }
-        }
-    }
 
     public struct GenTask{
+        public Func<bool> valid;
         public Action task;
-        public int genLoad;
-        public GenTask(Action task, int genLoad){
+        public int load;
+        public GenTask(Func<bool> valid, Action task, int genLoad){
+            this.valid = valid;
             this.task = task;
-            this.genLoad = genLoad;
+            this.load = genLoad;
         }
     }
 
@@ -234,22 +197,6 @@ public class EndlessTerrain : MonoBehaviour
             subMeshes = new UnityEngine.Rendering.SubMeshDescriptor[0];
         }
 
-        public static Mesh GenerateMesh(MeshInfo meshData)
-        {
-            Mesh mesh = new Mesh
-            {
-                vertices = meshData.vertices.ToArray(),
-                normals = meshData.normals.ToArray(),
-                triangles = meshData.triangles.ToArray(),
-                colors = meshData.colorMap.ToArray()
-            };
-
-            if (meshData.UVs.Count > 0)
-                mesh.uv = meshData.UVs.ToArray();
-            if(meshData.subMeshes.Length > 0)
-                mesh.SetSubMeshes(meshData.subMeshes);
-            return mesh;
-        }
 
         public Mesh GenerateMesh(UnityEngine.Rendering.IndexFormat meshIndexFormat)
         {

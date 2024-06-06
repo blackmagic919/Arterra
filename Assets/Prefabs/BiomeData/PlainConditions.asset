@@ -12,15 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0639f099e64b14b1583620fdc7c1b52b, type: 3}
   m_Name: PlainConditions
   m_EditorClassIdentifier: 
+  biome: 1
+  TerrainStart: 0.3875
+  TerrainEnd: 1
   ContinentalStart: 0
   ContinentalEnd: 1
-  ErosionStart: 0.6
+  ErosionStart: 0
   ErosionEnd: 1
-  PVStart: 0
-  PVEnd: 1
   SquashStart: 0
   SquashEnd: 1
-  TempStart: 0
-  TempEnd: 1
-  HumidStart: 0
+  AtmosphereStart: 0
+  AtmosphereEnd: 1
+  HumidStart: 0.6
   HumidEnd: 1

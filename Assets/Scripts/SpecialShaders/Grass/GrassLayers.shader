@@ -11,9 +11,7 @@ Shader "Grass/GrassLayers" {
         _WindTimeMult("Wind frequency", Float) = 1 // Wind noise offset by time
         _WindAmplitude("Wind strength", Float) = 1 // The largest UV offset of wind
         _CameraHeight("Camera Height", Float) = 2
-        _TrampleSize("Trample Size", Float) = 1.5
-        _TrampleDistortion("Trampling Distortion", Float) = 0.5
-        _DistortionClip("Maximum Trample Influence Level", Float) = 0.1
+        _WSToUVScale("UV Scale", Float) = 1
     }
 
     SubShader {

@@ -23,8 +23,12 @@ MonoBehaviour:
     ScatterCoeffs: {x: 0.025, y: 0.025, z: 0.025}
     GroundExtinction: {x: 0, y: 0, z: 0}
   liquidData:
-    shallowCol: {r: 0, g: 0, b: 0, a: 0}
-    deepCol: {r: 0, g: 0, b: 0, a: 0}
+    shallowCol: {x: 0, y: 0, z: 0}
+    deepCol: {x: 0, y: 0, z: 0}
     colFalloff: 0
     depthOpacity: 0
     smoothness: 0
+    waveBlend: 0
+    waveStrength: 0
+    waveScale: {x: 0, y: 0}
+    waveSpeed: {x: 0, y: 0}

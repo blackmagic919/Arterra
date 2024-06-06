@@ -28,3 +28,7 @@ MonoBehaviour:
     colFalloff: 0.05
     depthOpacity: 0.025
     smoothness: 0.25
+    waveBlend: 0
+    waveStrength: 0
+    waveScale: {x: 0, y: 0}
+    waveSpeed: {x: 0, y: 0}

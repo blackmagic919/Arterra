@@ -74,19 +74,19 @@ MonoBehaviour:
       power: 3
   Structures:
   - VerticalPreference:
-      lowerLimit: -200
-      upperLimit: 200
+      lowerLimit: -50
+      upperLimit: 50
       center: 0
-      multiplier: 1
-      power: 2
+      multiplier: 5
+      power: 0.5
     ChancePerStructurePoint: 0.501
     structureIndex: 0
   - VerticalPreference:
-      lowerLimit: -200
-      upperLimit: 200
+      lowerLimit: -50
+      upperLimit: 50
       center: 0
-      multiplier: 1
-      power: 2
+      multiplier: 5
+      power: 0.5
     ChancePerStructurePoint: 0.6
     structureIndex: 1
   structurePointDensity: 1

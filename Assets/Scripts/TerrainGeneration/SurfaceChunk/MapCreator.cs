@@ -7,6 +7,10 @@ using static TerrainGenerator;
 [CreateAssetMenu(menuName = "Containers/Surface Settings")]
 public class SurfaceCreatorSettings : ScriptableObject{
     public float terrainOffset = 0;
+    public float MaxTerrainHeight;
+    [Range(0, 1)] //0: Continental, 1: PV
+    public float fineHeightInfluence;
+
     [Header("Continental Detail")]
     [Tooltip("Base Terrain Height")]
     /* General Curve Form:
@@ -19,7 +23,6 @@ public class SurfaceCreatorSettings : ScriptableObject{
      * Low Values: Low Altitude, High Values: High Altitude 
      */
     public int TerrainContinentalDetail;
-    public float MaxContinentalHeight;
     /* General Curve Form:
      *_
      * \_
@@ -39,7 +42,6 @@ public class SurfaceCreatorSettings : ScriptableObject{
     [Tooltip("Fine detail of terrain")]
     //Any curve form
     public int TerrainPVDetail;
-    public float MaxPVHeight;
 
     [Space(10)]
     [Header("Squash Map")]
@@ -90,7 +92,7 @@ public class SurfaceCreator
     public uint StoreSurfaceMap(int chunkSize, int LOD)
     {
         int meshSkipInc = meshSkipTable[LOD];
-        int numPointsAxes = chunkSize / meshSkipInc + 1;
+        int numPointsAxes = chunkSize / meshSkipInc;
         int numOfPoints = numPointsAxes * numPointsAxes;
 
         uint mapAddressIndex = settings.surfaceMemoryBuffer.AllocateMemoryDirect(numOfPoints, (int)SURFDATA_STRIDE_4BYTE);

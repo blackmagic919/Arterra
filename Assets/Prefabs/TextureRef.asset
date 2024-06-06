@@ -23,3 +23,5 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 78d8ca816d38b44af9fbcbf451289ef8, type: 2}
   - {fileID: 11400000, guid: d506e071805fe4402ad951fce277f5d8, type: 2}
   - {fileID: 11400000, guid: 07449c87023a44e26891a2231b9cbe6d, type: 2}
+  liquidFineWave: {fileID: 2800000, guid: 0a658634b9a994b12b7ee75cb511ac02, type: 3}
+  liquidCoarseWave: {fileID: 2800000, guid: 03ddc5285c7f24a009c3eff5304abb4e, type: 3}

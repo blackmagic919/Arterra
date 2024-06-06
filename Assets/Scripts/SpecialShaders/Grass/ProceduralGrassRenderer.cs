@@ -58,21 +58,4 @@ public class ProceduralGrassRenderer : SpecialShader
             tempBuffers.Dequeue().Release();
         }
     }
-
-
-    public Bounds TransformBounds(Bounds boundsOS, Transform transform)
-    {
-        var center = transform.TransformPoint(boundsOS.center);
-
-        var size = boundsOS.size;
-        var axisX = transform.TransformVector(size.x, 0, 0);
-        var axisY = transform.TransformVector(0, size.y, 0);
-        var axisZ = transform.TransformVector(0, 0, size.z);
-
-        size.x = Mathf.Abs(axisX.x) + Mathf.Abs(axisY.x) + Mathf.Abs(axisZ.x);
-        size.y = Mathf.Abs(axisX.y) + Mathf.Abs(axisY.y) + Mathf.Abs(axisZ.y);
-        size.z = Mathf.Abs(axisX.z) + Mathf.Abs(axisY.z) + Mathf.Abs(axisZ.z);
-
-        return new Bounds(center, size);
-    }
 }

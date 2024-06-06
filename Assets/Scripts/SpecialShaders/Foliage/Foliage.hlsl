@@ -8,7 +8,6 @@ struct DrawVertex{
     float3 positionWS;
     float3 normalWS;
     float2 uv;
-    float4 color;
 };
 
 struct DrawTriangle{

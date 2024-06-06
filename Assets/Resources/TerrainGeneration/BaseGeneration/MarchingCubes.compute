@@ -76,8 +76,9 @@ StructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
 int3 CCoord;
 float meshSkipInc;
+int numCubesPerAxis;
 
-const static int POINT_STRIDE_4BYTE = 3;
+const static int POINT_STRIDE_4BYTE = 1;
 #endif
 
 float IsoLevel;
@@ -99,20 +100,15 @@ uint bSTART_waterT;
 
 MarchCube ReadCube(int3 coord){
     MarchCube cube;
-
-    uint chunkHash = HashCoord(CCoord);
-    uint2 chunkHandle = _AddressDict[chunkHash];
-    float chunkResize = meshSkipInc / (float)chunkHandle.y;
-    uint mapPtsPerAxis = ((numPointsPerAxis-1) * chunkResize) + 1;
     [unroll]for(int i = 0; i < 8; i++){
-        int3 sCoord = clamp(coord + positionFromIndex[i], 0, numPointsPerAxis - 1);
-        uint address = indexFromCoordManual(sCoord * chunkResize, mapPtsPerAxis) * POINT_STRIDE_4BYTE + chunkHandle.x;
-        float density = asfloat(_MemoryBuffer[address]);
-        float viscosity = asfloat(_MemoryBuffer[address + 1]);
+        int3 sCoord = clamp(coord + positionFromIndex[i], 0, numCubesPerAxis);
+        uint mapData = ReadMapData(sCoord, CCoord);
+        float density = (mapData & 0xFF) / 255.0f;
+        float viscosity = ((mapData >> 8) & 0xFF) / 255.0f;
 
         cube.corners[i].solid = density * viscosity;
         cube.corners[i].liquid = density * (1-viscosity);
-        cube.corners[i].material = asint(_MemoryBuffer[address + 2]);
+        cube.corners[i].material = ((mapData >> 16) & 0x7FFF);
     }
     return cube;
 }
@@ -212,7 +208,7 @@ void March (uint3 id : SV_DispatchThreadID)
     }
 
     //Only add triangles if a valid cube
-    if(id.x >= (numPointsPerAxis-1) || id.y >= (numPointsPerAxis-1) || id.z >= (numPointsPerAxis-1)) 
+    if(id.x >= numCubesPerAxis || id.y >= numCubesPerAxis || id.z >= numCubesPerAxis) 
         return;
 
     for (i = 0; triangulation[baseIndex][i] != -1; i +=3) {

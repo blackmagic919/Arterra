@@ -14,84 +14,55 @@ StructuredBuffer<AtmosphericData> _MatAtmosphericData;
 //MapData
 StructuredBuffer<uint2> _ChunkAddressDict;
 StructuredBuffer<uint> _ChunkInfoBuffer;
-const static int POINT_STRIDE_4BYTE = 3;
+const static int POINT_STRIDE_4BYTE = 1;
 
-struct MapInfo{
-    float density;
-    float viscosity;
-    int material;
-};
 
 struct SurMapData{
-    MapInfo info[8];
+    uint info[8];
     float weight[8];
-    bool hasChunk;
 };
 
-MapInfo ReadChunkPoint(uint address){
-    MapInfo mapInfo = (MapInfo)0;
-
-    mapInfo.density = asfloat(_ChunkInfoBuffer[address]);
-    mapInfo.viscosity = asfloat(_ChunkInfoBuffer[address + 1]);
-    mapInfo.material = asint(_ChunkInfoBuffer[address + 2]);
-
-    return mapInfo;
-}
-
 SurMapData SampleMapData(float3 samplePointWS){
-    int3 chunkCoord = GetChunkCoord(samplePointWS);
-    uint chunkHash = HashCoord(chunkCoord);
-
-    uint2 chunkHandle = _ChunkAddressDict[chunkHash];
-    uint chunkAddress = chunkHandle.x;
-    uint meshSkipInc = chunkHandle.y;
-    uint numPointsPerAxis = (mapChunkSize / meshSkipInc) + 1;
-
+    uint2 chunkHandle = _ChunkAddressDict[HashCoord(WSToCS(samplePointWS))];
     SurMapData mapData = (SurMapData)0;
-    if(chunkAddress != 0u){ //if chunk defined
-        float3 pointCoord = GetMapCoord(samplePointWS, meshSkipInc);
-        Influences blendInfo = GetBlendInfo(pointCoord); //Blend pos using grid-fixed cube 
-        mapData.hasChunk = true;
+    
+    if(chunkHandle.x == 0) return mapData; else{
+    Influences blendInfo = GetBlendInfo(WSToMS(samplePointWS) / chunkHandle.y); //Blend pos using grid-fixed cube
+    [unroll]for(uint i = 0; i < 8; i++){
+        //unfortunately we have to clamp here
+        //if you store duplice edge data in the map you don't have to do this
+        uint3 MSCoord = clamp(blendInfo.corner[i].mapCoord, 0, mapChunkSize/chunkHandle.y - 1); 
+        uint pointAddress = chunkHandle.x + indexFromCoordManual(MSCoord, mapChunkSize / chunkHandle.y) * POINT_STRIDE_4BYTE;
 
-        [unroll]for(uint i = 0; i < 8; i++){
-            uint pointIndex = indexFromCoordManual(blendInfo.corner[i].mapCoord, numPointsPerAxis);
-            uint pointAddress = chunkAddress + pointIndex * POINT_STRIDE_4BYTE;
-            MapInfo pointInfo = ReadChunkPoint(pointAddress);
-
-            mapData.weight[i] = blendInfo.corner[i].influence;
-            mapData.info[i] = pointInfo;
-        }
+        mapData.weight[i] = blendInfo.corner[i].influence;
+        mapData.info[i] = _ChunkInfoBuffer[pointAddress];
     }
+
     return mapData;
-}
+}}
 
 float GetDensity(SurMapData mapData){
     float density = 0;
-
-    if(mapData.hasChunk){
-        [unroll]for(uint i = 0; i < 8; i++){
-            density += mapData.info[i].density * mapData.weight[i];
-        }
+    [unroll]for(uint i = 0; i < 8; i++){
+        density += ((mapData.info[i] & 0xFF) / 255.0f) * mapData.weight[i];
     }
     return density;
 }
 
 float3 GetScatterCoeffs(SurMapData mapData){
     float3 scatterCoeffs = float3(0, 0, 0);
-    if(mapData.hasChunk){
-        [unroll]for(uint i = 0; i < 8; i++){
-            scatterCoeffs += _MatAtmosphericData[mapData.info[i].material].scatterCoeffs * mapData.weight[i];
-        }
+    [unroll]for(uint i = 0; i < 8; i++){
+        int material = mapData.info[i] >> 16 & 0x7FFF;
+        scatterCoeffs += _MatAtmosphericData[material].scatterCoeffs * mapData.weight[i];
     }
     return scatterCoeffs;
 }
 
 float3 GetExtinction(SurMapData mapData){
     float3 extinction = 0;
-    if(mapData.hasChunk){
-        [unroll]for(uint i = 0; i < 8; i++){
-            extinction += _MatAtmosphericData[mapData.info[i].material].extinctCoeff * mapData.weight[i];
-        }
+    [unroll]for(uint i = 0; i < 8; i++){
+        int material = mapData.info[i] >> 16 & 0x7FFF;
+        extinction += _MatAtmosphericData[material].extinctCoeff * mapData.weight[i];
     }
     return extinction;
 }

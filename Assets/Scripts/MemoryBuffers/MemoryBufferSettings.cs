@@ -23,6 +23,8 @@ public class MemoryBufferSettings : ScriptableObject
 
     public void OnEnable()
     {
+        if(initialized) OnDisable();
+
         HeapSetupShader = Resources.Load<ComputeShader>("MemoryStructures/Heap/PrepareHeap");
         AllocateShader = Resources.Load<ComputeShader>("MemoryStructures/Heap/AllocateData");
         DeallocateShader = Resources.Load<ComputeShader>("MemoryStructures/Heap/DeallocateData");

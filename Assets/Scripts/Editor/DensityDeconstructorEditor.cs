@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
 
@@ -10,6 +11,15 @@ public class DensityDeconstructorEditor : Editor
     {
         DensityDeconstructor deconstructor = (DensityDeconstructor)target;
 
+        if(GUILayout.Button("Initialize Grid"))
+        {
+            deconstructor.InitializeGrid();
+        }
+
+        if(GUILayout.Button("Exit")){
+            deconstructor.Release();
+        }
+        /*
         if (GUILayout.Button("Deconstruct"))
         {
             deconstructor.ExtractDensity();
@@ -18,28 +28,23 @@ public class DensityDeconstructorEditor : Editor
         if (GUILayout.Button("Reconstruct"))
         {
             deconstructor.BuildMesh();
-        }
+        }*/
 
-        if (GUILayout.Button("Set Material"))
-        {
-            deconstructor.SetMaterial();
-        }
-
-        if (GUILayout.Button("Visualize Material"))
-        {
-            deconstructor.VisualizeMaterial();
-        }
-
-        if (GUILayout.Button("Dispose Materials"))
-        {
-            deconstructor.DisposeMaterials();
-        }
+        base.OnInspectorGUI(); 
+        
+        GUILayout.Label("Transfer");
 
         if (GUILayout.Button("Save"))
         {
             deconstructor.SaveData();
         }
-
-        base.OnInspectorGUI(); 
+        if (GUILayout.Button("Load"))
+        {
+            deconstructor.LoadData();
+        }
+        if(GUILayout.Button("Convert"))
+        {
+            deconstructor.ConvertMesh();
+        }
     }
 }

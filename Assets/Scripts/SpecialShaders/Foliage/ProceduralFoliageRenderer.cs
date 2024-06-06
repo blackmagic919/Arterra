@@ -23,7 +23,7 @@ public class ProceduralFoliageRenderer : SpecialShader
 
     public override Material GetMaterial()
     {
-        return Instantiate(foliageSettings.material);
+        return foliageSettings.material;
     }
 
     public override void ProcessGeoShader(Transform transform, MemoryBufferSettings memoryHandle, int vertAddress, int triAddress, 
@@ -65,38 +65,6 @@ public class ProceduralFoliageRenderer : SpecialShader
         {
             tempBuffers.Dequeue().Release();
         }
-    }
-
-    ComputeBuffer SetArgs(ComputeBuffer prefixIndexes, int shaderIndex, int threadGroupSize, ref Queue<ComputeBuffer> bufferHandle)
-    {
-        ComputeBuffer indirectArgs = new ComputeBuffer(3, sizeof(uint), ComputeBufferType.Structured);
-        indirectArgs.SetData(new uint[]{ 1, 1, 1});
-        bufferHandle.Enqueue(indirectArgs);
-
-        foliageSettings.indirectArgsShader.SetBuffer(idIndirectArgsKernel, "prefixStart", prefixIndexes);
-        foliageSettings.indirectArgsShader.SetInt("shaderIndex", shaderIndex);
-        foliageSettings.indirectArgsShader.SetInt("threadGroupSize", threadGroupSize);
-        foliageSettings.indirectArgsShader.SetBuffer(idIndirectArgsKernel, "indirectArgs", indirectArgs);
-
-        foliageSettings.indirectArgsShader.Dispatch(idIndirectArgsKernel, 1, 1, 1);
-
-        return indirectArgs;
-    }
-
-    public Bounds TransformBounds(Bounds boundsOS)
-    {
-        var center = objTransform.TransformPoint(boundsOS.center);
-
-        var extents = boundsOS.size; //Don't use boundsOS.extents, this is object space
-        var axisX = objTransform.TransformVector(extents.x, 0, 0);
-        var axisY = objTransform.TransformVector(0, extents.y, 0);
-        var axisZ = objTransform.TransformVector(0, 0, extents.z);
-
-        extents.x = Mathf.Abs(axisX.x) + Mathf.Abs(axisY.x) + Mathf.Abs(axisZ.x);
-        extents.y = Mathf.Abs(axisX.y) + Mathf.Abs(axisY.y) + Mathf.Abs(axisZ.y);
-        extents.z = Mathf.Abs(axisX.z) + Mathf.Abs(axisY.z) + Mathf.Abs(axisZ.z);
-
-        return new Bounds(center, extents);
     }
 
 }

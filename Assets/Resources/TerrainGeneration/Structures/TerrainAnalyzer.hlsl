@@ -37,12 +37,12 @@ bool SampleTerrain (float3 position, int biome)
     float baseDensity = pow(abs(1.0f-centeredNoise), caveData.frequency);
 
     //Get SurfaceData
-    float continental = GetNoise(position2D, continentalSampler, sOffset2D) * continentalHeight;
+    float continental = GetNoise(position2D, continentalSampler, sOffset2D);
     float erosion = GetNoise(position2D, erosionSampler, sOffset2D);
-    float PV = GetNoise(position2D, PVSampler, sOffset2D) * PVHeight;
+    float PV = GetNoise(position2D, PVSampler, sOffset2D);
     float squashFactor = GetNoise(position2D, squashSampler, sOffset2D) * squashHeight;
 
-    float terrainHeight = continental + erosion * PV + heightOffset;
+    float terrainHeight = (continental * (1-heightInfluence) + erosion * PV * heightInfluence) * maxTerrainHeight + heightOffset;
 
     //Solve for density
     float actualHeight = position.y + (sOffset.y - chunkSize / 2.0f);

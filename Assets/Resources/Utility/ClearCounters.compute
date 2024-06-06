@@ -2,10 +2,11 @@
 #pragma kernel CSMain
 
 RWStructuredBuffer<uint> counters;
-uint numCounters;
+uint length;
+uint start;
 
 [numthreads(1,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    for(uint i = 0; i < numCounters; i++) {counters[i] = 0;}
+    for(uint i = 0; i < length; i++) {counters[start + i] = 0;}
 }

@@ -38,7 +38,7 @@ public class TemplatePass : ScriptableRenderPass
         material.SetFloat(AtmosphereRadiusProperty, atmosphereRadius);
         material.SetInt(inScatterProperty, passSettings.luminanceBake.NumInScatterPoints);
 
-        passSettings.densityManager.SetDensitySampleData(material);
+        GPUDensityManager.SetDensitySampleData(material);
     }
 
     public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -62,7 +62,7 @@ public class TemplatePass : ScriptableRenderPass
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
         passSettings.luminanceBake.Execute();
-        if(passSettings.densityManager.initialized && passSettings.luminanceBake.initialized){
+        if(GPUDensityManager.initialized && passSettings.luminanceBake.initialized){
             CommandBuffer cmd = CommandBufferPool.Get();
             
             using (new ProfilingScope(cmd, new ProfilingSampler(ProfilerTag)))

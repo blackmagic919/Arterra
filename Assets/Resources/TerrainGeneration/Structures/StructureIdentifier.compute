@@ -8,16 +8,13 @@
 #include "Assets/Resources/TerrainGeneration/Structures/TerrainAnalyzer.hlsl"
 #include "Assets/Resources/Utility/PerlinNoiseSampler.hlsl"
 
-const static int numThreads = 128;
+const static int numThreads = 256;
 
 struct settings{ 
+    uint3 size;
     int minimumLOD;
-
     uint randThetaRot;
     uint randPhiRot;
-    int sizeX;
-    int sizeY;
-    int sizeZ;
 };
 
 struct density{
@@ -170,29 +167,27 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     if(structureSettings.randPhiRot != 0)
         rotPhi = uint(seedRot * 3); //0 -> 2
 
-    float3 sizes = float3(structureSettings.sizeX, structureSettings.sizeY, structureSettings.sizeZ);
-    float xLength = abs(dot(sizes, mul(RotationLookupTable[rotTheta][rotPhi], float3(1, 0, 0))));
-    float yLength = abs(dot(sizes, mul(RotationLookupTable[rotTheta][rotPhi], float3(0, 1, 0))));
-    float zLength = abs(dot(sizes, mul(RotationLookupTable[rotTheta][rotPhi], float3(0, 0, 1))));
+    float3x3 rotMatrix = RotationLookupTable[rotTheta][rotPhi];
+    float xLength = abs(dot(structureSettings.size, mul(rotMatrix, float3(1, 0, 0))));
+    float yLength = abs(dot(structureSettings.size, mul(rotMatrix, float3(0, 1, 0))));
+    float zLength = abs(dot(structureSettings.size, mul(rotMatrix, float3(0, 0, 1))));
 
     //If doesn't intersect
     if(origin.x + xLength < 0 || origin.y + yLength < 0 || origin.z + zLength < 0) 
         return;
 
 //ANALYZE STRUCTURE CHECKS
-    settings settings = _StructureSettings[structureIndex];
     uint checkStart = _StructureIndexes[structureIndex].y;
     uint checkEnd = _StructureIndexes[structureIndex+1].y;
 
     //Origin is always located at the least point, so there is one consistent direction of generation
-    float3 corner = mul(RotationLookupTable[rotTheta][rotPhi], float3(settings.sizeX, settings.sizeY, settings.sizeZ));
-    float3 newOrigin = float3(min(corner.x, 0), min(corner.y, 0), min(corner.z, 0)); //old origin at (0,0,0)
-
-    uint i = checkStart;
-    for(; i < checkEnd; i++){
+    float3 corner = mul(rotMatrix, structureSettings.size);
+    float3 newOrigin = min(float3(corner.x, corner.y, corner.z), 0); //old origin at (0,0,0)
+    
+    for(uint i = checkStart; i < checkEnd; i++){
         checkData data = _StructureChecks[i];
 
-        float3 rotatedPos = mul(RotationLookupTable[rotTheta][rotPhi], data.position);
+        float3 rotatedPos = mul(rotMatrix, data.position);
         float3 transformedPos = rotatedPos - newOrigin;
 
         float3 checkPosition = transformedPos + structPlan.position;
@@ -200,14 +195,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         bool isUnderground = SampleTerrain(checkPosition, structBiome);
 
         if(isUnderground != checkUnderground)
-            break;
+            return;
     }
-
-    if(i != checkEnd) //A check failed
-        return;
     
 //ADD STRUCTURE
-
     structureData newStructure;
     newStructure.structurePos = structPlan.position;
     newStructure.structureIndex = structureIndex;

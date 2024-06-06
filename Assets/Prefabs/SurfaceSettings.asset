@@ -13,14 +13,14 @@ MonoBehaviour:
   m_Name: SurfaceSettings
   m_EditorClassIdentifier: 
   terrainOffset: -150
+  MaxTerrainHeight: 400
+  fineHeightInfluence: 0.5
   TerrainContinentalDetail: 4
-  MaxContinentalHeight: 200
   TerrainErosionDetail: 5
   TerrainPVDetail: 6
-  MaxPVHeight: 200
   SquashMapDetail: 7
   MaxSquashHeight: 100
   AtmosphereDetail: 8
   HumidityDetail: 9
-  surfaceMemoryBuffer: {fileID: 11400000, guid: 7427a5499c6fe4d55b4be7eb730c6a58, type: 2}
+  surfaceMemoryBuffer: {fileID: 11400000, guid: 743280fd1911d428e99f1d63657bfdaf, type: 2}
   biomeData: {fileID: 0}

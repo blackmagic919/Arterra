@@ -32,7 +32,6 @@ struct DrawVertex{
     float3 positionWS;
     float3 normalWS;
     float2 uv;
-    float4 color;
 };
 
 struct DrawTriangle{
@@ -41,9 +40,10 @@ struct DrawTriangle{
 
 // Vertex function output and geometry function input
 struct VertexOutput {
-    float4 uvAndHeight  : TEXCOORD0; // UV, no scaling applied
-    float3 positionWS   : TEXCOORD1; // Position in world space
-    float3 normalWS     : TEXCOORD2; // Normal vector in world space
+    float3 positionWS   : TEXCOORD0; // Position in world space
+    float3 normalWS     : TEXCOORD1; // Normal vector in world space
+    float2 uv  : TEXCOORD2; // UV
+    float2 height : TEXCOORD3; // Height of the layer
 
     float4 positionCS   : SV_POSITION;
 };
@@ -79,9 +79,8 @@ float2 mapCoordinates(float3 worldPos)
 
 float4 _CameraPosition;
 float _CameraHeight;
-float _TrampleSize;
-float _DistortionClip;
-float _TrampleDistortion;
+float _WSToUVScale;
+
 // Vertex functions
 
 VertexOutput Vertex(uint vertexID: SV_VertexID)
@@ -96,7 +95,8 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
 
     output.positionWS = input.positionWS.xyz;
     output.normalWS = input.normalWS.xyz;
-    output.uvAndHeight = float4(input.uv, input.color.xy);
+    output.uv = mapCoordinates(input.positionWS) * _WSToUVScale;
+    output.height = input.uv;
 
     output.positionCS = CalculatePositionCSWithShadowCasterLogic(output.positionWS, output.normalWS);
     
@@ -107,19 +107,8 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
 
 half4 Fragment(VertexOutput input) : SV_Target {
 
-    float2 uv = input.uvAndHeight.xy;
-    float height = input.uvAndHeight.z;
-
-    float3 tramplePosition = _CameraPosition.xyz - float3(0, _CameraHeight, 0);
-
-    float distance = length(input.positionWS - tramplePosition);
-    float influence = (1-clamp(distance, 0, _TrampleSize)) * _TrampleDistortion;
-
-    float2 distortionFactor = mapCoordinates(normalize(tramplePosition-input.positionWS) * influence);
-
-    clip(_DistortionClip-influence);
-
-    uv = uv + distortionFactor * height;
+    float2 uv = input.uv;
+    float height = input.height.x;
 
     // Calculate wind
     // Get the wind noise texture uv by applying scale and offset and then adding a time offset
@@ -153,7 +142,7 @@ half4 Fragment(VertexOutput input) : SV_Target {
     lightingInput.shadowCoord = CalculateShadowCoord(input.positionWS, input.positionCS); // Calculate the shadow map coord
 
     // Lerp between the two grass colors based on layer height
-    float colorLerp = input.uvAndHeight.w;
+    float colorLerp = input.height.y;
     float3 albedo = lerp(_BaseColor, _TopColor, colorLerp).rgb;
 
     SurfaceData surfaceInput = (SurfaceData)0;

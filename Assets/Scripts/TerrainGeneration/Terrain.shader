@@ -16,10 +16,6 @@ Shader "Unlit/Terrain"
             Cull Back
 
             HLSLPROGRAM
-            // Signal this shader requires geometry function support
-            #pragma prefer_hlslcc gles
-            #pragma exclude_renderers d3d11_9x
-            #pragma target 5.0
 
             #pragma vertex vert
             #pragma fragment frag

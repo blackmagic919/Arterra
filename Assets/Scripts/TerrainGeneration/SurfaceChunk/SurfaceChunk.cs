@@ -2,20 +2,21 @@ using System.Collections.Generic;
 using UnityEngine;
 using static EndlessTerrain;
 using Utils;
+using Unity.Mathematics;
 
 public class SurfaceChunk : ChunkData
 {
     public BaseMap baseMap;
 
-    Vector2 SCoord;
+    int2 SCoord;
     Vector2 position;
     bool active = true;
 
     // Start is called before the first frame update
-    public SurfaceChunk(SurfaceCreatorSettings surfSettings, Vector2 coord)
+    public SurfaceChunk(SurfaceCreatorSettings surfSettings, int2 coord)
     {
         this.SCoord = coord;
-        this.position = coord * mapChunkSize - Vector2.one * (mapChunkSize / 2f);
+        this.position = CustomUtility.AsVector(coord) * mapChunkSize - Vector2.one * (mapChunkSize / 2f);
         baseMap = new BaseMap(surfSettings, position);
 
         CreateBaseChunk();
@@ -47,14 +48,18 @@ public class SurfaceChunk : ChunkData
         if (!baseMap.hasRequestedChunk)
         {
             baseMap.hasRequestedChunk = true;
-            EndlessTerrain.GenTask surfChunkTask = new EndlessTerrain.GenTask(() => baseMap.GetChunk(), taskLoadTable[(int)priorities.planning]);
-            timeRequestQueue.Enqueue(surfChunkTask, (int)priorities.planning);
+            EndlessTerrain.GenTask surfChunkTask = new EndlessTerrain.GenTask{
+                valid = () => this.active,
+                task = () => baseMap.GetChunk(), 
+                load = taskLoadTable[(int)priorities.planning]
+            };
+            timeRequestQueue.Enqueue(surfChunkTask);
         }
     }
 
-    public override void UpdateVisibility(Vector3 CSCoord, float maxRenderDistance)
+    public override void UpdateVisibility(int3 CSCoord, float maxRenderDistance)
     {
-        Vector2 distance = SCoord - new Vector2(CSCoord.x, CSCoord.z);
+        int2 distance = SCoord - new int2(CSCoord.x, CSCoord.z);
         bool visible = Mathf.Max(Mathf.Abs(distance.x), Mathf.Abs(distance.y)) <= maxRenderDistance;
 
         if (!visible)

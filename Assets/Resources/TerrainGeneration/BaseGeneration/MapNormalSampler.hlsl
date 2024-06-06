@@ -7,41 +7,33 @@ StructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
 int3 CCoord;
 float meshSkipInc;
+int numCubesPerAxis;
 
-const static int POINT_STRIDE_4BYTE = 3;
+const static int POINT_STRIDE_4BYTE = 1;
 #endif
 
-
-int3 GetSampleCCoord(int3 coord){
-    int3 dCC = int3(0, 0, 0);
-    //Add 1 because 0 case
-    dCC.x = sign(sign(coord.x + 1) + sign(coord.x - (int)numPointsPerAxis));
-    dCC.y = sign(sign(coord.y + 1) + sign(coord.y - (int)numPointsPerAxis));
-    dCC.z = sign(sign(coord.z + 1) + sign(coord.z - (int)numPointsPerAxis));
-    return dCC;
+//mem access, if statement, operations, vector operations
+int3 GetSampleCCoord(int3 coord){//(-inf, -1] => -1, [0, numCubesPerAxis-1] => 0, [numCubesPerAxis, inf) => 1
+    return sign(sign(coord + 1) + sign(coord - numCubesPerAxis));
 }
 
 //Water is 1, terrain is 0
-float ReadBaseDensity(int3 coord, int3 CCoord, uint isWater){
-    float density = 0;
+uint ReadMapData(int3 coord, int3 CCoord){
+    int3 dCC = GetSampleCCoord(coord);
+    coord = abs(dCC * numCubesPerAxis - coord);
+    CCoord += dCC;
 
-    uint chunkHash = HashCoord(CCoord);
-    uint2 chunkHandle = _AddressDict[chunkHash];
-    if(chunkHandle.x != 0){
-        int chunkResize = meshSkipInc / (float)chunkHandle.y;
-        uint mapPtsPerAxis = (uint)((numPointsPerAxis-1) * chunkResize) + 1;
-        uint address = indexFromCoordManual(coord * chunkResize, mapPtsPerAxis) * POINT_STRIDE_4BYTE + chunkHandle.x;
+    uint2 chunkHandle = _AddressDict[HashCoord(CCoord)];
+    if(chunkHandle.x == 0) return 0; else{
+    uint chunkResize = meshSkipInc / (float)chunkHandle.y;
+    uint address = indexFromCoordManual(coord * chunkResize, numCubesPerAxis * chunkResize) * POINT_STRIDE_4BYTE + chunkHandle.x;
 
-        density = asfloat(_MemoryBuffer[address]) * max(isWater, asfloat(_MemoryBuffer[address + 1]));
-    }
-
-    return density;
+    return _MemoryBuffer[address];}
 }
 
 float SampleDensity(int3 coord, uint isWater) {
-    int3 dCC = GetSampleCCoord(coord);
-    int3 nCoord = abs(dCC * ((int)numPointsPerAxis-1) - coord);
-    return ReadBaseDensity(nCoord, CCoord + dCC, isWater);
+    uint mapData = ReadMapData(coord, CCoord);
+    return ((mapData & 0xFF) / 255.0f) * max(isWater, (mapData >> 8 & 0xFF) / 255.0f);
 }
 
 float3 CalculateNormal(int3 cCoord, uint isWater) {

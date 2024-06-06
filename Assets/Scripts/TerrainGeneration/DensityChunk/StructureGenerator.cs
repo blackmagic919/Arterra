@@ -1,8 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.Playables;
 using UnityEngine;
 using static UtilityBuffers;
+using Unity.Mathematics;
 
 public static class StructureGenerator 
 {
@@ -15,10 +15,7 @@ public static class StructureGenerator
     const int STRUCTURE_STRIDE_WORD = 3 + 2 + 1;
     const int SAMPLE_STRIDE_WORD = 3 + 1;
 
-    static int SAMPLE_STARTU;
-    static int STRUCTURE_STARTU;
-    const int SAMPLE_COUNTER = 0;
-    const int STRUCTURE_COUNTER = 1;
+    public static StructureOffsets offsets;
     
     static StructureGenerator(){
         StructureLoDSampler = Resources.Load<ComputeShader>("TerrainGeneration/Structures/StructureLODSampler");
@@ -61,21 +58,15 @@ public static class StructureGenerator
     public static void PresetData(MeshCreatorSettings meshSettings, SurfaceCreatorSettings surfSettings)
     {
         int maxStructurePoints = calculateMaxStructurePoints(meshSettings.biomeData.maxLoD, meshSettings.biomeData.StructureChecksPerChunk, meshSettings.biomeData.LoDFalloff);
-        
-        int MetaLength = 2;
-        SAMPLE_STARTU = Mathf.CeilToInt((float)MetaLength / SAMPLE_STRIDE_WORD); //U for unit, W for word
-        int SampleEndInd_W = SAMPLE_STARTU * SAMPLE_STRIDE_WORD + maxStructurePoints * SAMPLE_STRIDE_WORD;
-        
-        int StructStartInd_U = Mathf.CeilToInt((float)SampleEndInd_W / STRUCTURE_STRIDE_WORD);
-        STRUCTURE_STARTU = StructStartInd_U * STRUCTURE_STRIDE_WORD + maxStructurePoints * STRUCTURE_STRIDE_WORD;
+        offsets = new StructureOffsets(maxStructurePoints, 0, SAMPLE_STRIDE_WORD, STRUCTURE_STRIDE_WORD);
 
         StructureLoDSampler.SetInt("maxLOD", meshSettings.biomeData.maxLoD);
         StructureLoDSampler.SetInt("numPoints0", meshSettings.biomeData.StructureChecksPerChunk);
         StructureLoDSampler.SetFloat("LoDFalloff", meshSettings.biomeData.LoDFalloff);
         StructureLoDSampler.SetBuffer(0, "structures", UtilityBuffers.GenerationBuffer);
         StructureLoDSampler.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
-        StructureLoDSampler.SetInt("bSTART", SAMPLE_STARTU);
-        StructureLoDSampler.SetInt("bCOUNTER", SAMPLE_COUNTER);
+        StructureLoDSampler.SetInt("bSTART", offsets.sampleStart);
+        StructureLoDSampler.SetInt("bCOUNTER", offsets.sampleCounter);
 
         StructureIdentifier.SetInt("caveCoarseSampler", meshSettings.CoarseTerrainNoise);
         StructureIdentifier.SetInt("caveFineSampler", meshSettings.FineTerrainNoise);
@@ -86,55 +77,56 @@ public static class StructureGenerator
         StructureIdentifier.SetInt("atmosphereSampler", surfSettings.AtmosphereDetail);
         StructureIdentifier.SetInt("humiditySampler", surfSettings.HumidityDetail);
 
-        StructureIdentifier.SetFloat("continentalHeight", surfSettings.MaxContinentalHeight);
-        StructureIdentifier.SetFloat("PVHeight", surfSettings.MaxPVHeight);
+        StructureIdentifier.SetFloat("maxTerrainHeight", surfSettings.MaxTerrainHeight);
+        StructureIdentifier.SetFloat("heightInfluence", surfSettings.fineHeightInfluence);
         StructureIdentifier.SetFloat("squashHeight", surfSettings.MaxSquashHeight);
         StructureIdentifier.SetFloat("heightOffset", surfSettings.terrainOffset);
 
         StructureIdentifier.SetBuffer(0, "structurePlan", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetInt("bSTART_plan", SAMPLE_STARTU);
+        StructureIdentifier.SetInt("bSTART_plan", offsets.sampleStart);
 
         StructureIdentifier.SetBuffer(0, "genStructures", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetInt("bSTART_out", STRUCTURE_STARTU);
+        StructureIdentifier.SetInt("bSTART_out", offsets.structureStart);
 
         StructureIdentifier.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetInt("bCOUNTER_plan", SAMPLE_COUNTER);
-        StructureIdentifier.SetInt("bCOUNTER_out", STRUCTURE_COUNTER);
+        StructureIdentifier.SetInt("bCOUNTER_plan", offsets.sampleCounter);
+        StructureIdentifier.SetInt("bCOUNTER_out", offsets.structureCounter);
 
         structureDataTranscriber.SetBuffer(0, "structPoints", UtilityBuffers.GenerationBuffer);
-        structureDataTranscriber.SetInt("bSTART", STRUCTURE_STARTU);
+        structureDataTranscriber.SetInt("bSTART", offsets.structureStart);
         structureDataTranscriber.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
-        structureDataTranscriber.SetInt("bCOUNTER", STRUCTURE_COUNTER);
+        structureDataTranscriber.SetInt("bCOUNTER", offsets.structureCounter);
     }
     
-    public static void SampleStructureLoD(int maxLoD, int chunkSize, Vector3 chunkCoord)
-    {
+    public static void SampleStructureLoD(int maxLoD, int chunkSize, int3 chunkCoord)
+    {   
         int numChunksPerAxis = maxLoD + 2;
+        int numChunksMax = numChunksPerAxis * numChunksPerAxis * numChunksPerAxis;
 
-        StructureLoDSampler.SetInts("originChunkCoord", new int[] { (int)chunkCoord.x, (int)chunkCoord.y, (int)chunkCoord.z });
+        StructureLoDSampler.SetInts("originChunkCoord", new int[] { chunkCoord.x, chunkCoord.y, chunkCoord.z });
         StructureLoDSampler.SetInt("chunkSize", chunkSize);
 
-        StructureLoDSampler.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
-        int numThreadsPerAxis = Mathf.CeilToInt(numChunksPerAxis / (float)threadGroupSize);
-        StructureLoDSampler.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+        StructureLoDSampler.GetKernelThreadGroupSizes(0, out uint threadChunkSize, out uint threadLoDSize, out _);
+        int numThreadsChunk = Mathf.CeilToInt(numChunksMax / (float)threadChunkSize);
+        int numThreadsLoD = Mathf.CeilToInt(maxLoD / (float)threadLoDSize);
+        StructureLoDSampler.Dispatch(0, numThreadsChunk, numThreadsLoD, 1);
     }
     
-    public static void IdentifyStructures(Vector3 chunkCoord, Vector3 offset, float IsoLevel, int chunkSize)
+    public static void IdentifyStructures(int3 chunkCoord, Vector3 offset, float IsoLevel, int chunkSize)
     {
         //ComputeBuffer results = new ComputeBuffer(maxPoints, sizeof(float) * 3 + sizeof(uint) * 3, ComputeBufferType.Append);
-        ComputeBuffer args = UtilityBuffers.CountToArgs(StructureIdentifier, UtilityBuffers.GenerationBuffer, SAMPLE_COUNTER);
+        ComputeBuffer args = UtilityBuffers.CountToArgs(StructureIdentifier, UtilityBuffers.GenerationBuffer, offsets.sampleCounter);
 
         StructureIdentifier.SetFloat("IsoLevel", IsoLevel);
-        StructureIdentifier.SetInts("CCoord", new int[] { (int)chunkCoord.x, (int)chunkCoord.y, (int)chunkCoord.z });
+        StructureIdentifier.SetInts("CCoord", new int[] { chunkCoord.x, chunkCoord.y, chunkCoord.z });
         SetSampleData(StructureIdentifier, offset, chunkSize, 1);
-        
 
         StructureIdentifier.DispatchIndirect(0, args);//byte offset
     }
 
     public static void TranscribeStructures(ComputeBuffer memory, ComputeBuffer addresses, int addressIndex)
     {
-        ComputeBuffer args = UtilityBuffers.CountToArgs(structureDataTranscriber, UtilityBuffers.GenerationBuffer, STRUCTURE_COUNTER);
+        ComputeBuffer args = UtilityBuffers.CountToArgs(structureDataTranscriber, UtilityBuffers.GenerationBuffer, offsets.structureCounter);
 
         structureDataTranscriber.SetBuffer(0, "_MemoryBuffer", memory);
         structureDataTranscriber.SetBuffer(0, "_AddressDict", addresses);
@@ -174,6 +166,28 @@ public static class StructureGenerator
         structureChunkGenerator.SetFloat("IsoLevel", IsoLevel);
 
         structureChunkGenerator.DispatchIndirect(0, args);
+    }
+
+    public struct StructureOffsets : BufferOffsets{
+        public int sampleCounter;
+        public int structureCounter;
+        public int sampleStart;
+        public int structureStart;
+        private int offsetStart; private int offsetEnd;
+        public int bufferStart{get{return offsetStart;}} public int bufferEnd{get{return offsetEnd;}}
+
+        public StructureOffsets(int maxStructurePoints, int bufferStart, int sampleStride, int structureStride){
+            this.offsetStart = bufferStart;
+            sampleCounter = bufferStart; structureCounter = bufferStart + 1;
+
+            sampleStart = Mathf.CeilToInt((float)(bufferStart + 2) / sampleStride); //U for unit, W for word
+            int SampleEndInd_W = sampleStart * sampleStride + maxStructurePoints * sampleStride;
+            
+            structureStart = Mathf.CeilToInt((float)SampleEndInd_W / structureStride);
+            int StructureEndInd_W = structureStart * structureStride + maxStructurePoints * structureStride;
+
+            this.offsetEnd = StructureEndInd_W;
+        }
     }
 
     /*

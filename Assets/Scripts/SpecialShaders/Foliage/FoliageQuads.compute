@@ -20,7 +20,6 @@ struct DrawVertex{
     float3 positionWS;
     float3 normalWS;
     float2 uv;
-    float4 color; //4 channels for 
 };
 
 struct DrawTriangle{
@@ -49,8 +48,6 @@ DrawVertex MakeBaseDrawVertex(SourceVertex v){
     DrawVertex o = (DrawVertex)0;
     o.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
     o.normalWS = mul(_LocalToWorld, float4(v.normalOS, 0)).xyz;
-    //uv is thrown away and rebuilt for every quad
-    o.color = float4(0, 0, 0, 0);
 
     return o;
 }
@@ -61,7 +58,6 @@ DrawVertex InitializeDrawVertex(float3 positionWS, float3 normalWS, float2 uv){
     o.positionWS = positionWS;
     o.normalWS = normalWS;
     o.uv = uv;
-    o.color = float4(0, 0, 0, 0);
 
     return o;
 }

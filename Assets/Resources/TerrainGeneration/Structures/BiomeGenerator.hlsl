@@ -10,13 +10,19 @@ int SampleBiome (float3 position)
     float3 sOffset2D = sOffset;
     sOffset2D.y = 0.0f;
 
-    float continentalRaw = GetRawNoise(position, continentalSampler, sOffset2D);
-    float erosionRaw = GetRawNoise(position, erosionSampler, sOffset2D);
-    float peaksValleysRaw = GetRawNoise(position, PVSampler, sOffset2D);
-    float squashRaw = GetRawNoise(position, squashSampler, sOffset2D);
-    float atmosphereRaw = GetRawNoise(position, atmosphereSampler, sOffset2D);
-    float humidityRaw = GetRawNoise(position, humiditySampler, sOffset2D);
+    float mapData[6];
+    mapData[0] = GetRawNoise(position, PVSampler, sOffset2D);
+    mapData[1] = GetRawNoise(position, continentalSampler, sOffset2D);
+    mapData[2] = GetRawNoise(position, erosionSampler, sOffset2D);
+    mapData[3] = GetRawNoise(position, squashSampler, sOffset2D);
+    mapData[4] = GetRawNoise(position, atmosphereSampler, sOffset2D);
+    mapData[5] = GetRawNoise(position, humiditySampler, sOffset2D);
 
-    float mapData[6] = {continentalRaw, erosionRaw, peaksValleysRaw, squashRaw, atmosphereRaw, humidityRaw};
+    float PVNoise = interpolateValue(mapData[0], PVSampler);
+    float continentalNoise = interpolateValue(mapData[1], continentalSampler);
+    float erosionNoise = interpolateValue(mapData[2], erosionSampler);
+    mapData[0] = continentalNoise * (1-heightInfluence) + erosionNoise * PVNoise * heightInfluence;
+
+
     return GetBiome(mapData);
 }

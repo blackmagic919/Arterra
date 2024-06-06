@@ -1,5 +1,4 @@
 #pragma kernel Generate
-#pragma multi_compile _ HAS_EXISTING_MATERIALS
 #include "Assets/Resources/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Utility/PerlinNoiseSampler.hlsl"
 const static uint SURF_STRIDE_4BYTE = 4;
@@ -57,19 +56,20 @@ uint surfAddress;
 
 surfData ReadSurfData(uint2 coord){
     uint2 fullCoord = coord * meshSkipInc;
-    uint numPointsAxisFull = (numPointsPerAxis - 1) * meshSkipInc + 1;
-    uint address = _SurfAddressDict[surfAddress].y + indexFromCoord2DManual(fullCoord, numPointsAxisFull);
+    uint address = _SurfAddressDict[surfAddress].y + indexFromCoord2DManual(fullCoord, numPointsPerAxis * meshSkipInc);
     
     return _SurfMemoryBuffer[address];
 }
 
-struct mapData{
-    float density;
-    float viscosity;
-    int material;
+//We can't store them all together just yet because structures
+//use InterlockedMax which only works on 4 byte types
+struct mapData{ 
+    uint density;
+    uint viscosity;
+    uint material;
 };
 
-RWStructuredBuffer<mapData> baseMap;
+RWStructuredBuffer<mapData> BaseMap;
 
 float GetNoiseCentered(float val, float center){
     float clamped = clamp(val, 0, 1);
@@ -188,9 +188,9 @@ void Generate (uint3 id : SV_DispatchThreadID)
 
     //Generate Water
     if(actualHeight > (data.terrain - data.squash) && actualHeight < waterHeight && density < IsoLevel){
-        baseMap[index].density = 1.0f;
-        baseMap[index].viscosity = density;
-        baseMap[index].material = waterMat;
+        BaseMap[index].density = 255;
+        BaseMap[index].viscosity = (uint)round(density * 255.0f);
+        BaseMap[index].material = waterMat;
         return;
     }
 
@@ -202,7 +202,7 @@ void Generate (uint3 id : SV_DispatchThreadID)
         matInd = GetSurfaceMaterial(coarseMatNoise, fineMatNoise, biome, groundHeight);
     
     //Generate Land
-    baseMap[index].density = density;
-    baseMap[index].viscosity = 1.0f;
-    baseMap[index].material = matInd;
+    BaseMap[index].density = (uint)round(density * 255.0f);
+    BaseMap[index].viscosity = 255;
+    BaseMap[index].material = matInd;
 }

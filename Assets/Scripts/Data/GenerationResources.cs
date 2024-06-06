@@ -13,7 +13,6 @@ public class GenerationResources : ScriptableObject
     public StructureGenerationData structData;
     public BiomeGenerationData biomeData;
     public NoiseGenerationData noiseData;
-    public GPUDensityManager densityDict;
 
     [Header("Generation Utilities")]
     public ReadbackSettings readbackSettings;
@@ -24,4 +23,7 @@ public class GenerationResources : ScriptableObject
     [Header("Bake Data")]
     
     public AtmosphereBake atmosphereBake;
+
+    [Header("Misc")]
+    public List<ScriptableObject> MiscResources;
 }

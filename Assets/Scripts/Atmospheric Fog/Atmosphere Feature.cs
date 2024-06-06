@@ -11,8 +11,6 @@ public class TemplateFeature : ScriptableRendererFeature
     public class PassSettings
     {
         public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
-
-        public GPUDensityManager densityManager;
         public AtmosphereBake luminanceBake;
 
         public GenerationSettings generationSettings;

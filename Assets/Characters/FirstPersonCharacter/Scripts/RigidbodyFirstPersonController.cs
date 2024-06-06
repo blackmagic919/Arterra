@@ -171,7 +171,6 @@ namespace UnityStandardAssets.Characters.FirstPerson
             if (m_IsGrounded)
             {
                 m_RigidBody.drag = 5f;
-
                 if (m_Jump)
                 {
                     m_RigidBody.drag = 0f;
@@ -188,6 +187,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
             else
             {
                 m_RigidBody.drag = 0f;
+                //ApplyHorizontalDrag(5f); //Horizontal drag to make it slow down when not pressed
                 if (m_PreviouslyGrounded && !m_Jumping)
                 {
                     StickToGroundHelper();
@@ -196,6 +196,12 @@ namespace UnityStandardAssets.Characters.FirstPerson
             m_Jump = false;
         }
 
+        private void ApplyHorizontalDrag(float drag){
+            Vector3 velocity = m_RigidBody.velocity;
+            velocity.x *= Mathf.Pow(1f/(drag+1), Time.fixedDeltaTime);
+            velocity.z *= Mathf.Pow(1f/(drag+1), Time.fixedDeltaTime);
+            m_RigidBody.velocity = velocity;
+        }
 
         private float SlopeMultiplier()
         {

@@ -57,9 +57,9 @@ v2f vert (uint vertexID: SV_VertexID){
 
 struct appdata
 {
-    float4 vertex : POSITION;
-    float4 normal : NORMAL;
-    float4 color: COLOR;
+    float3 vertex : POSITION;
+    float3 normal : NORMAL;
+    int2 material: TEXCOORD0;
 };
 
 v2f vert (appdata v)
@@ -72,23 +72,12 @@ v2f vert (appdata v)
     o.positionCS = posInputs.positionCS;
     o.positionWS = posInputs.positionWS;
     o.normalWS = normInputs.normalWS;
-    o.material = (int)v.color.x;
+    o.material = v.material.x;
     return o;
 }
 
 #endif
 
-float4 lerp(float4 a, float4 b, float value){
-    return (a*value) + (b*(1-value));
-}
-
-float3 lerp(float3 a, float3 b, float value){
-    return (a*value) + (b*(1-value));
-}
-
-float lerp(float a, float b, float value){
-    return (a*value) + (b*(1-value));
-}
 
 float3 triplanar(float3 worldPos, float scale, float3 blendAxes, int texInd){
     float3 scaledWorldPos = worldPos / scale;

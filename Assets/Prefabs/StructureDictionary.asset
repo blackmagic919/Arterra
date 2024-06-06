@@ -12,9 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 64d18277aab2b4b62a0fb0f9b95807aa, type: 3}
   m_Name: StructureDictionary
   m_EditorClassIdentifier: 
-  autoUpdate: 1
   StructureDictionary:
-  - data: {fileID: 11400000, guid: 47f8cded4e30d4bbab55502f96bded1c, type: 2}
-    settings: {fileID: 11400000, guid: b0396615401ed43529486c788cd2359a, type: 2}
-  - data: {fileID: 11400000, guid: c9e502f655b8f4c2bb695c58a092f880, type: 2}
-    settings: {fileID: 11400000, guid: 66e5cf3a06c4c421da8c5d6cc3ac3410, type: 2}
+  - {fileID: 11400000, guid: b63beb20e5a694151ab0dc8364184232, type: 2}
+  - {fileID: 11400000, guid: cf6f979f9cb13484c8aea97d02c8f6ab, type: 2}

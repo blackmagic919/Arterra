@@ -127,6 +127,7 @@ Material:
     - _Surface: 0
     - _TrampleDistortion: 0.3
     - _TrampleSize: 1
+    - _WSToUVScale: 0.1
     - _WindAmplitude: 0.1
     - _WindTimeMult: 0.1
     - _WorkflowMode: 1

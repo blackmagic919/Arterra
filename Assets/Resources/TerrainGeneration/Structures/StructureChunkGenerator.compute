@@ -15,14 +15,16 @@ struct structureInfo{
 };
 
 struct settings{
+    uint3 size;
     int minimumLOD;
-
     uint randThetaRot;
     uint randPhiRot;
-    int sizeX;
-    int sizeY;
-    int sizeZ;
 };
+
+uint density(uint data) { return data & 0x000000FF; }
+uint viscosity(uint data) { return (data & 0x0000FF00) >> 8; }
+uint material(uint data) { return (data & 0x7FFF0000) >> 16; }
+bool preserve(uint data) { return (data & 0x80000000) >> 31; }
 
 StructuredBuffer<structureInfo> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
@@ -30,13 +32,12 @@ uint addressIndex;
 
 StructuredBuffer<settings> _StructureSettings; //settings for structure
 StructuredBuffer<uint2> _StructureIndexes;
-StructuredBuffer<float> _StructureDensities;
-StructuredBuffer<int> _StructureMaterials;
+StructuredBuffer<uint> _StructureMap;
 
 struct mapData{
-    float density;
-    float viscosity;
-    int material;
+    uint density;
+    uint viscosity;
+    uint material;
 };
 
 RWStructuredBuffer<mapData> chunkData;
@@ -60,8 +61,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint2 rotation = structure.rotation;
     uint structureIndex = structure.structureIndex;
 
-    settings structureSettings = _StructureSettings[structureIndex];
-    uint3 sizes = uint3(structureSettings.sizeX, structureSettings.sizeY, structureSettings.sizeZ);
+    settings StructureSettings = _StructureSettings[structureIndex];
+    uint3 sizes = StructureSettings.size;
 
     //Where in the chunk to start generation
     uint3 chunkOrigin = uint3(max(0, origin.x), max(0, origin.y), max(0, origin.z));
@@ -83,7 +84,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint zLength = dot(sizes, zDir);
 
     int3 chunkEnd = int3((origin.x + xLength), (origin.y + yLength), (origin.z + zLength));
-    uint numPointsPerAxis = chunkSize / meshSkipInc+1;
+    uint numPointsPerAxis = chunkSize / meshSkipInc;
 
     uint indexOffset = _StructureIndexes[structureIndex].x;
 
@@ -122,17 +123,16 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         uint3 chunkCoord = chunkOriginLoD + uint3(x,y,z);
 
         //structCoord = min(structCoord, sizes - 1);
-        uint chunkIndex = indexFromCoordManual(chunkCoord.x, chunkCoord.y, chunkCoord.z, chunkSize / meshSkipInc + 1);
+        uint chunkIndex = indexFromCoordManual(chunkCoord.x, chunkCoord.y, chunkCoord.z, numPointsPerAxis);
         uint structIndex = indexFromCoordIrregular(structCoord.x, structCoord.y, structCoord.z, sizes.x, sizes.y) + indexOffset;
 
         //This section will have racing issues, but it's negligable
         //If < IsoLevel, don't override ground, but otherwise override
-        mapData chunkCube = chunkData[chunkIndex];
-        float structDensity = _StructureDensities[structIndex];
-        if(structDensity > IsoLevel || (chunkCube.density < IsoLevel && structDensity != 0)){
-            chunkData[chunkIndex].density = (chunkCube.viscosity < IsoLevel) ? 1 : structDensity;
-            chunkData[chunkIndex].viscosity = (chunkCube.viscosity < IsoLevel) ? structDensity : 1;
-            if(structDensity > IsoLevel) chunkData[chunkIndex].material = max(_StructureMaterials[structIndex], 0);
-        }
+        uint mapInfo = _StructureMap[structIndex]; 
+        uint force = preserve(mapInfo) ? 1 << 31 : 0;
+        InterlockedMax(chunkData[chunkIndex].density, force | density(mapInfo));
+        InterlockedMax(chunkData[chunkIndex].viscosity, 
+            force | (preserve(mapInfo)? viscosity(mapInfo) : density(mapInfo)));
+        InterlockedMax(chunkData[chunkIndex].material, force | material(mapInfo));
     }
 }

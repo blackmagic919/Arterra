@@ -1,17 +1,23 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
+#pragma multi_compile _ COMPRESSED
 
 const static uint numThreads = 128;
-const static int POINT_STRIDE_4BYTE = 3;
+const static int POINT_STRIDE_4BYTE = 1;
 
-struct mapData{
-    float density;
-    float viscosity;
-    int material;
-};
 
 RWStructuredBuffer<uint> _MemoryBuffer;
+#ifdef COMPRESSED
+StructuredBuffer<uint> chunkData;
+#else
+struct mapData{
+    uint density;
+    uint viscosity;
+    uint material;
+};
+
 StructuredBuffer<mapData> chunkData;
+#endif
 uint numPoints;
 
 StructuredBuffer<uint> startAddress;
@@ -26,8 +32,13 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         return;
 
     uint wAddress = startAddress[0] + id.x * POINT_STRIDE_4BYTE;
+    
+#ifdef COMPRESSED
+    _MemoryBuffer[wAddress] = chunkData[id.x];
 
-    _MemoryBuffer[wAddress] = asuint(chunkData[id.x].density);
-    _MemoryBuffer[wAddress + 1] = asuint(chunkData[id.x].viscosity);
-    _MemoryBuffer[wAddress + 2] = asuint(chunkData[id.x].material);
+#else
+    mapData data = chunkData[id.x];
+
+    _MemoryBuffer[wAddress] = (data.density & 0xFF) | ((data.viscosity & 0xFF) << 8) | ((data.material & 0x7FFF) << 16);
+#endif
 }

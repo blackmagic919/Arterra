@@ -2,17 +2,7 @@ Shader "Unlit/LiquidShader"
 {
     Properties
     {
-        _WaveNormalFine ("Wave Normal", 2D) = "white" {}
-        _WaveNormalCoarse ("Wave Normal Coarse", 2D) = "white" {}
-
-        _WaveScaleFine ("Wave Scale Fine", Range(0, 1)) = 0.5
-        _WaveScaleCoarse ("Wave Scale Coarse", Range(0, 1)) = 0.5
-
-        _WaveStrength("Wave Normal Strength", Range(0, 1)) = 0.5
-        _WaveBlend("Wave Blend", Range(0, 1)) = 0.5
-
-        _WaveSpeedFine("Wave Speed Fine", Range(0, 20)) = 0.5
-        _WaveSpeedCoarse("Wave Speed Coarse", Range(0, 20)) = 0.5
+        //None all data from buffers
     }   
 
     SubShader

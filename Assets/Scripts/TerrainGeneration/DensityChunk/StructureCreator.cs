@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using static EndlessTerrain;
 using static StructureGenerator;
+using Unity.Mathematics;
 
 public class StructureCreator
 {
@@ -12,8 +13,6 @@ public class StructureCreator
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
     const int STRUCTURE_STRIDE_WORD = 3 + 2 + 1;
     const int SAMPLE_STRIDE_WORD = 3 + 1;
-
-    const int samplerCounter = 0;
     const int structCounter = 1;
 
     public StructureCreator(MeshCreatorSettings mSettings, SurfaceCreatorSettings sSettings){
@@ -64,10 +63,10 @@ public class StructureCreator
     }
 
     //All Done Without Readback!
-    public void PlanStructuresGPU(Vector3 chunkCoord, Vector3 offset, int chunkSize, float IsoLevel)
+    public void PlanStructuresGPU(int3 chunkCoord, Vector3 offset, int chunkSize, float IsoLevel)
     {
         ReleaseStructure();
-        UtilityBuffers.ClearCounters(UtilityBuffers.GenerationBuffer, 2);
+        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 2, 0);
 
         SampleStructureLoD(meshSettings.biomeData.maxLoD, chunkSize, chunkCoord);
 

@@ -20,9 +20,10 @@ float IsoLevel;
 uint caveCoarseSampler;
 uint caveFineSampler;
 
-float continentalHeight;
-float PVHeight;
+float maxTerrainHeight;
+float heightInfluence;
 float squashHeight;
 float heightOffset;
+float waterHeight;
 
 #endif

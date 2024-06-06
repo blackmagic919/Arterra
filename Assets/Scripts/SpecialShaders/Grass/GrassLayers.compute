@@ -3,6 +3,7 @@
 
 const static int numThreads = 256;
 
+
 struct SourceVertex{
     float3 positionOS;
     float3 normalOS;
@@ -14,7 +15,6 @@ struct DrawVertex{
     float3 positionWS;
     float3 normalWS;
     float2 uv;
-    float4 color; //4 channels for 
 };
 
 struct DrawTriangle{
@@ -72,8 +72,7 @@ DrawVertex MakeBaseDrawVertex(SourceVertex v){
 
     o.normalWS = mul(_LocalToWorld, float4(v.normalOS, 0)).xyz;
     o.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
-    o.uv = mapCoordinates(o.positionWS) * _WorldPositionToUVScale;
-    o.color = float4(0, 0, 0, 0);
+    o.uv = float2(0, 0);
 
     return o;
 }
@@ -84,8 +83,6 @@ DrawVertex ExtrudeVertex(DrawVertex v, float height){
     o.normalWS = v.normalWS;
 
     o.uv = v.uv;
-    o.color = v.color;
-
     return o;
 }
 
@@ -109,13 +106,12 @@ void Main(uint3 id : SV_DispatchThreadID){
     for(int i = 0; i < _MaxLayers; i++)
     {
         float texHeight = (float) i / _MaxLayers;
-
         float colorHeight = (float)(i) / (_MaxLayers - 1.0); // Use (float)(colorOffset + i) / (_MaxLayers - 1.0); if topColor priority
 
         DrawTriangle tri = (DrawTriangle)0;
         [unroll] for(int p = 0; p < 3; p++){
             tri.vertices[p] = ExtrudeVertex(inputs[p], texHeight);
-            tri.vertices[p].color = float4(texHeight, colorHeight, 0, 0); 
+            tri.vertices[p].uv = float2(texHeight, colorHeight); 
         }
 
         int appendInd = 0;

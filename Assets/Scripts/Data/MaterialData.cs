@@ -42,5 +42,11 @@ public class MaterialData : ScriptableObject
         public float depthOpacity;
         [Range(0,1)]
         public float smoothness;
+        [Range(0,1)]
+        public float waveBlend;
+        [Range(0,1)]
+        public float waveStrength;
+        public Vector2 waveScale;
+        public Vector2 waveSpeed;
     }
 }

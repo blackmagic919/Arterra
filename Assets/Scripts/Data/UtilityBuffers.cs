@@ -4,14 +4,15 @@ using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 
-public class UtilityBuffers : MonoBehaviour
+[CreateAssetMenu(menuName = "Settings/UtilityBuffers")]
+public class UtilityBuffers : ScriptableObject
 {
     public static ComputeBuffer indirectArgs;
     public static ComputeBuffer appendCount;
 
     public static ComputeShader indirectCopyCount;
     public static ComputeShader indirectCountToArgs;
-    public static ComputeShader clearCounters;
+    public static ComputeShader clearRange;
     public static ComputeShader prefixCountToArgs;
     
     const int _MaxArgsCount = (int)5E4;
@@ -22,6 +23,7 @@ public class UtilityBuffers : MonoBehaviour
 
     //First 16 words reserved for metadata, apply padding as per data member
     public static ComputeBuffer GenerationBuffer;
+    public static ComputeBuffer TransferBuffer;
     const int GEN_BYTE_SIZE = 200000000; //200MB
 
 
@@ -51,36 +53,42 @@ public class UtilityBuffers : MonoBehaviour
         addressLL[0].x = addressIndex;
     }
     
-    public void OnEnable()
-    {
+    public static void Initialize(){
         indirectArgs = new ComputeBuffer(3, sizeof(int), ComputeBufferType.IndirectArguments);
         appendCount = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
+        int maxPoints = (EndlessTerrain.mapChunkSize+1) * (EndlessTerrain.mapChunkSize+1) * (EndlessTerrain.mapChunkSize+1);
 
         ArgumentBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _MaxArgsCount+1, sizeof(uint) * ARGS_STRIDE_4BYTES);
         addressLL = new uint2[_MaxArgsCount+1];
         addressLL[0].x = 1;
 
-        GenerationBuffer = new ComputeBuffer(GEN_BYTE_SIZE/4, 4, ComputeBufferType.Structured);
         //This buffer will contain all temporary data during generation
+        GenerationBuffer = new ComputeBuffer(GEN_BYTE_SIZE/4, 4, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+        //This buffer will be slower but will be written to a lot by CPU
+        TransferBuffer = new ComputeBuffer(maxPoints, 4, ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
 
         indirectCopyCount = Resources.Load<ComputeShader>("Utility/CopyCount");
         indirectCountToArgs = Resources.Load<ComputeShader>("Utility/CountToArgs");
-        clearCounters = Resources.Load<ComputeShader>("Utility/ClearCounters");
+        clearRange = Resources.Load<ComputeShader>("Utility/ClearCounters");
         prefixCountToArgs = Resources.Load<ComputeShader>("Utility/PrefixArgsCreator");
     }
 
-    public void OnDisable()
-    {
+    public static void Release(){
         indirectArgs?.Release();
         appendCount?.Release();
         ArgumentBuffer?.Release();
         GenerationBuffer?.Release();
+        TransferBuffer?.Release();
     }
+    public void OnEnable(){ Initialize();}
 
-    public static void ClearCounters(ComputeBuffer buffer, int numCounters){
-        clearCounters.SetBuffer(0, "counters", buffer);
-        clearCounters.SetInt("numCounters", numCounters);
-        clearCounters.Dispatch(0, 1, 1, 1);
+    public void OnDisable(){ Release();}
+
+    public static void ClearRange(ComputeBuffer buffer, int length, int start){
+        clearRange.SetBuffer(0, "counters", buffer);
+        clearRange.SetInt("length", length);
+        clearRange.SetInt("start", start);
+        clearRange.Dispatch(0, 1, 1, 1);
     }
 
     public static ComputeBuffer CopyCount(ComputeBuffer source, ComputeBuffer dest = null, int readOffset = 0, int writeOffset = 0, Queue<ComputeBuffer> bufferQueue = null)
@@ -125,7 +133,7 @@ public class UtilityBuffers : MonoBehaviour
 
         return args;
     }
-    
+
     public static ComputeBuffer PrefixCountToArgs(ComputeShader shader, ComputeBuffer count, int countOffset = 0, Queue<ComputeBuffer> bufferQueue = null) {
         shader.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         return PrefixCountToArgs((int)threadGroupSize, count, countOffset, bufferQueue);
@@ -168,3 +176,9 @@ public class UtilityBuffers : MonoBehaviour
         noiseGen.SetInt("chunkSize", chunkSize);
     }
 }
+
+public interface BufferOffsets{
+    public int bufferEnd{get;}
+    public int bufferStart{get;}
+}
+

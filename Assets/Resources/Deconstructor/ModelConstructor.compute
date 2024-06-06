@@ -1,0 +1,233 @@
+#pragma kernel March
+
+#include "Assets/Resources/Utility/GetIndex.hlsl"
+#include "Assets/Resources/TerrainGeneration/BaseGeneration/MarchingTables.hlsl"
+
+static const float3 Epsilon = float3(1E-6, 1E-6, 1E-6);
+
+struct vertex{
+    //Calculate vertex normals in vertex shader cause it's too hard to get here
+    //Don't use smooth normals because out of bounds are unresolvable
+    float3 tri; 
+    int2 material; //x = base, y = water
+};
+
+struct CubeCorner{
+    float solid;
+    float liquid;
+    int material;
+};
+
+struct MarchCube{
+    CubeCorner corners[8];
+};
+
+struct pInfo{
+    uint axis[3];
+};
+
+
+const static int numThreads = 8;
+
+
+
+/*               
+*  _____________  8  ------
+* |  _________  | 7 6      |<-NumOfPoints, Density Map Size
+* | |_|_|_|_|_| | 6 5 5 -  |
+* | |_|_|_|_|_| | 5 4 4  | |
+* | |_|_|_|_|_| | 4 3 3  |<+--ChunkSize / meshSkipInc
+* | |_|_|_|_|_| | 3 2 2  | |  "Real Vertices"
+* | |_|_|_|_|_| | 2 1 1 _| |
+* |_____________| 1_^_^____|
+*Purpose:           ^ | |
+*   Border Normals⅃ | |
+*          Last Edge⅃ |     
+*      Number of Cubes⅃
+*
+*    7---6----6
+*   7|       5|
+*  / 11      /10
+* 4--+-4---5  |
+* |  |     9  |
+* 8  3---2-+--2
+* | 3      | 1
+* 0----0---1/
+* 
+* z
+* ^     .--------.
+* |    /|       /|
+* |   / |      / |    y
+* |  .--+-----.  |   /\
+* |  |  |     |  |   /
+* |  |  .-----+--.  /
+* |  | /      | /  /
+* | xyz_______./  /
+* +---------> x  /
+*/
+
+//Map Info
+StructuredBuffer<uint> MapInfo;
+
+const static int POINT_STRIDE_4BYTE = 1;
+float IsoLevel;
+uint3 GridSize;
+
+//Output
+RWStructuredBuffer<uint> counter;
+uint3 counterInd; //x -> vertex, y -> baseTri, z -> waterTri
+
+RWStructuredBuffer<vertex> vertexes;
+
+RWStructuredBuffer<pInfo> triangles;
+RWStructuredBuffer<uint> triangleDict;
+uint bSTART_dict;
+uint bSTART_verts;
+uint bSTART_baseT;
+uint bSTART_waterT;
+
+
+
+float interpolate(float p1Val, float p2Val) {
+    //If p1Val != p2Val, Epsilon is lost through float conversion, otherwise Epsilon prevents Nan
+    return ((IsoLevel - p1Val) / (p2Val - p1Val + Epsilon.x)); 
+}
+
+MarchCube ReadCube(int3 coord){
+    MarchCube cube; 
+
+    [unroll]for(uint i = 0; i < 8; i++){
+        CubeCorner corner;
+
+        int rIndex = indexFromCoordIrregular(coord + positionFromIndex[i], GridSize.xy);
+        uint mapData = MapInfo[rIndex];
+        float density = ((mapData & 0xFF) / 255.0f);
+        float viscosity = ((mapData >> 8) & 0xFF) / 255.0f;
+
+        corner.solid = density * viscosity;
+        corner.liquid = density * (1 - viscosity);
+        corner.material = ((mapData  >> 16) & 0x7FFF);
+        cube.corners[i] = corner;
+    }
+    
+    return cube;
+}
+
+
+[numthreads(numThreads,numThreads,numThreads)]
+void March (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= GridSize.x || id.y >= GridSize.y || id.z >= GridSize.z)
+        return;
+
+    int3 oCoord = int3(id.xyz);
+    int oIndex = indexFromCoordIrregular(id, GridSize.xy);
+    MarchCube cube = ReadCube(oCoord);
+
+    uint baseIndex = 0; uint waterIndex = 0;
+    [unroll] for(uint u = 0; u < 8; u++){
+        if (cube.corners[u].solid < IsoLevel) baseIndex |= (1 << u);
+        if (cube.corners[u].liquid < IsoLevel) waterIndex |= (1 << u);
+    }
+    
+    uint i;
+    //Generate Water first so terrain can override its geometry
+    for (i = 0; triangulation[waterIndex][i] != -1; i +=3) {
+        [unroll] for(uint v = 0; v < 3; v++){
+            //Get the point indexes
+            int2 pInd = cornerIndexFromEdge[triangulation[waterIndex][i + v]].xy;
+
+            if(pInd.x != 0) continue; //Duplicate Vertex
+
+            //Figure out point positions
+            int3 p1 = oCoord + positionFromIndex[pInd.x];
+            int3 p2 = oCoord + positionFromIndex[pInd.y];
+
+            if((uint)p2.x >= GridSize.x || (uint)p2.y >= GridSize.y || (uint)p2.z >= GridSize.z) 
+                continue; //Out of Bounds
+
+            vertex newVert;
+            //Get point densities
+            float p1Val = cube.corners[pInd.x].liquid;
+            float p2Val = cube.corners[pInd.y].liquid;
+            float interpFactor = interpolate(p1Val, p2Val);
+
+            newVert.tri = (p1 + interpFactor * (p2 - p1));
+            newVert.material = uint2(cube.corners[p1Val > p2Val ? pInd.y: pInd.x].material, 
+                                     cube.corners[p1Val > p2Val ? pInd.x: pInd.y].material);
+
+            //Append Vertex
+            int appendInd = 0;
+            InterlockedAdd(counter[counterInd.x], 1, appendInd);
+            vertexes[bSTART_verts + appendInd] = newVert;
+
+            //Set To Dictionary
+            triangleDict[3 * oIndex + cornerToDict[pInd.y] + bSTART_dict] = appendInd;
+        }
+    }
+
+    for (i = 0; triangulation[baseIndex][i] != -1; i +=3) {
+        [unroll] for(uint v = 0; v < 3; v++){
+            //Get the point indexes
+            int2 pInd = cornerIndexFromEdge[triangulation[baseIndex][i + v]].xy;
+
+            if(pInd.x != 0) continue; //Duplicate Vertex
+
+            //Figure out point positions
+            int3 p1 = oCoord + positionFromIndex[pInd.x];
+            int3 p2 = oCoord + positionFromIndex[pInd.y];
+
+            if((uint)p2.x >= GridSize.x || (uint)p2.y >= GridSize.y || (uint)p2.z >= GridSize.z) 
+                continue; //Out of Bounds
+
+            vertex newVert;
+            //Get point densities
+            float p1Val = cube.corners[pInd.x].solid;
+            float p2Val = cube.corners[pInd.y].solid;
+            float interpFactor = interpolate(p1Val, p2Val);
+
+            newVert.tri = (p1 + interpFactor * (p2 - p1));
+            //If it borders liquid, the liquid will always be in y channel
+            newVert.material = uint2(cube.corners[p1Val > p2Val ? pInd.x: pInd.y].material, 
+                                     cube.corners[p1Val > p2Val ? pInd.y: pInd.x].material);
+            
+            //Append Vertex
+            int appendInd = 0;
+            InterlockedAdd(counter[counterInd.x], 1, appendInd);
+            vertexes[bSTART_verts + appendInd] = newVert;
+
+            //Set To Dictionary
+            triangleDict[3 * oIndex + cornerToDict[pInd.y] + bSTART_dict] = appendInd;
+        }
+    }
+
+    //Only add triangles if a valid cube
+    if(id.x >= (GridSize.x - 1) || id.y >= (GridSize.y - 1) || id.z >= (GridSize.z - 1)) 
+        return;
+
+    for (i = 0; triangulation[baseIndex][i] != -1; i +=3) {
+        pInfo baseTri;
+        [unroll] for(uint v = 0; v < 3; v++){ //Get the dict index locations of the vertices
+            int3 cornerInfo = cornerIndexFromEdge[triangulation[baseIndex][i + v]];
+            baseTri.axis[v] = indexFromCoordIrregular(oCoord + positionFromIndex[cornerInfo.x], GridSize.xy) * 3 + cornerInfo.z;
+        }
+
+        //Append Base Triangle
+        int appendInd = 0;
+        InterlockedAdd(counter[counterInd.y], 1, appendInd);
+        triangles[bSTART_baseT + appendInd] = baseTri;
+    }
+
+    for (i = 0; triangulation[waterIndex][i] != -1; i +=3) {
+        pInfo waterTri;
+        [unroll] for(uint v = 0; v < 3; v++){ //Get the dict index locations of the vertices
+            int3 cornerInfo = cornerIndexFromEdge[triangulation[waterIndex][i + v]];
+            waterTri.axis[v] = indexFromCoordIrregular(oCoord + positionFromIndex[cornerInfo.x], GridSize.xy) * 3 + cornerInfo.z;
+        }
+
+        //Append Base Triangle
+        int appendInd = 0;
+        InterlockedAdd(counter[counterInd.z], 1, appendInd);
+        triangles[bSTART_waterT + appendInd] = waterTri;
+    }
+}
