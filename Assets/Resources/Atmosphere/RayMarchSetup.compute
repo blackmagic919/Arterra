@@ -6,8 +6,12 @@
 
 #include "Assets/Resources/Utility/GetIndex.hlsl"
 
-RWStructuredBuffer<float3> rayDirs;
-RWStructuredBuffer<float2> rayLengths;
+struct RayInfo{
+    float3 direction;
+    float2 length;
+};
+
+RWStructuredBuffer<RayInfo> rayInfo;
 
 float _AtmosphereRadius;
 
@@ -41,22 +45,20 @@ void Bake (uint3 id : SV_DispatchThreadID)
     uint screenY = id.y;
     if(screenX >= screenWidth || screenY >= screenHeight)
         return;
-
+    
+    RayInfo rInfo;
     float2 screenUV = id.xy / float2(screenWidth-1, screenHeight-1);
     float3 viewVectorCS = mul(unity_CameraInvProjection, float4(screenUV * 2 - 1, 0, -1)).xyz;
-    float3 rayDir = mul(unity_CameraToWorld, float4(viewVectorCS, 0)).xyz; //viewVectorWS
+    rInfo.direction = mul(unity_CameraToWorld, float4(viewVectorCS, 0)).xyz; //viewVectorWS
 
     //float screenDepth = _CameraDepthTexture[screenUV * _ScreenParams.xy].r; 
     //float linearDepth = LinearEyeDepth(screenDepth, _ZBufferParams) * length(rayDir);
 
     float3 rayOrigin = _WorldSpaceCameraPos;
 
-    float2 hitInfo = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, rayOrigin, rayDir);
-    float dstToAtmosphere = hitInfo.x;
-    float dstThroughAtmosphere = hitInfo.y;
+    rInfo.length = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, rayOrigin, rInfo.direction);
     //dstThroughAtmosphere = min(dstThroughAtmosphere, linearDepth-dstToAtmosphere);
     
     uint pixelIndex = indexFromCoord2DManual(screenX, screenY, screenWidth);
-    rayDirs[pixelIndex] = rayDir; //texture format is unsigned, so add float3.one to it
-    rayLengths[pixelIndex] = float2(dstToAtmosphere, dstThroughAtmosphere);
+    rayInfo[pixelIndex] = rInfo; 
 }

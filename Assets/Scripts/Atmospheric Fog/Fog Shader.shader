@@ -56,10 +56,11 @@ Shader "Hidden/Fog"
             float opticalDensity;
             float3 scatterCoeffs;
             float3 extinctionCoeff;
+            float3 opticalDepth;
         };
 
         StructuredBuffer<float3> _LuminanceLookup;
-        StructuredBuffer<OpticalInfo> _OpticalInfoLookup;
+        StructuredBuffer<OpticalInfo> _OpticalInfo;
 
         float4 _MainTex_TexelSize;
         float4 _MainTex_ST;
@@ -119,22 +120,14 @@ Shader "Hidden/Fog"
                 return (transmittanceCount / NumShadowPoints);
             }
 
-            float3 sampleLuminance(Influences2D sampleIndex, uint sampleDepth){
-                float3 opticalDepth = 0;
-                [unroll]for(int i = 0; i < 4; i++){
-                    uint index = GetTextureIndex(sampleIndex.corner[i].mapCoord, sampleDepth);
-                    opticalDepth += _LuminanceLookup[index] * sampleIndex.corner[i].influence;
-                }
-                return opticalDepth;
-            }
-
             OpticalInfo sampleOpticalInfo(Influences2D sampleIndex, uint sampleDepth){
                 OpticalInfo info = (OpticalInfo)0;
                 [unroll]for(int i = 0; i < 4; i++){
                     uint index = GetTextureIndex(sampleIndex.corner[i].mapCoord, sampleDepth);
-                    info.opticalDensity += _OpticalInfoLookup[index].opticalDensity * sampleIndex.corner[i].influence;
-                    info.scatterCoeffs += _OpticalInfoLookup[index].scatterCoeffs * sampleIndex.corner[i].influence;
-                    info.extinctionCoeff += _OpticalInfoLookup[index].extinctionCoeff * sampleIndex.corner[i].influence;
+                    info.opticalDensity += _OpticalInfo[index].opticalDensity * sampleIndex.corner[i].influence;
+                    info.scatterCoeffs += _OpticalInfo[index].scatterCoeffs * sampleIndex.corner[i].influence;
+                    info.extinctionCoeff += _OpticalInfo[index].extinctionCoeff * sampleIndex.corner[i].influence;
+                    info.opticalDepth += _OpticalInfo[index].opticalDepth * sampleIndex.corner[i].influence;
                 }
                 return info;
             }
@@ -151,11 +144,9 @@ Shader "Hidden/Fog"
                     float stepSize = min(rayLength - sampleDist*depth, sampleDist);
                     float occlusionFactor = calculateOcclusionFactor(inScatterPoint, rayDir, stepSize);
                     
-                    float3 sunOpticalDepth = sampleLuminance(rayInfluences, depth);
                     OpticalInfo opticalInfo = sampleOpticalInfo(rayInfluences, depth); 
 
-                    float3 transmittance = exp((-(sunOpticalDepth + scatterData.opticalDepth))); // exp(-t(PPc, lambda)-t(PPa, lambda))
-
+                    float3 transmittance = exp((-(opticalInfo.opticalDepth + scatterData.opticalDepth))); // exp(-t(PPc, lambda)-t(PPa, lambda))
                     scatterData.inScatteredLight += opticalInfo.scatterCoeffs * opticalInfo.opticalDensity * transmittance * occlusionFactor * stepSize;
                     scatterData.opticalDepth += opticalInfo.scatterCoeffs * opticalInfo.opticalDensity * stepSize;
                     scatterData.extinction += opticalInfo.extinctionCoeff * opticalInfo.opticalDensity * stepSize;

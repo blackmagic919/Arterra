@@ -9,18 +9,41 @@ struct OpticalInfo{
     float opticalDensity;
     float3 scatterCoeffs;
     float3 extinctionCoeff;
+    float3 opticalDepth;
+};
+
+struct RayInfo{
+    float3 direction;
+    float2 length;
 };
 
 RWStructuredBuffer<OpticalInfo> mapData;
-StructuredBuffer<float3> rayDirs;
-StructuredBuffer<float2> rayLengths;
+StructuredBuffer<RayInfo> rayInfo;
 uint screenHeight;
 uint screenWidth;
+
+float3 _LightDirection; //Global Variable
 
 float _AtmosphereRadius;
 uint _NumInScatterPoints;
 uint _NumOpticalDepthPoints;
 float _IsoLevel;
+
+float2 raySphere(float3 s0, float sr, float3 r0, float3 rd) {
+    float a = dot(rd, rd);
+    float3 s0_r0 = r0 - s0;
+    float b = 2.0 * dot(rd, s0_r0);
+    float c = dot(s0_r0, s0_r0) - (sr * sr);
+	float disc = b * b - 4.0 * a* c;
+                    
+    if (disc < 0.0) {
+        return float2(-1.0, -1.0);
+    }else{
+        float t1 = max((-b - sqrt(disc)) / (2.0 * a), 0);
+        float t2 = max((-b + sqrt(disc)) / (2.0 * a), 0);
+        return float2(t1, t2-t1);
+	}
+}
 
 OpticalInfo CumulativeMapInfo(float3 rayOrigin, float3 rayDir, float rayLength){
     float3 densitySamplePoint = rayOrigin;
@@ -42,6 +65,23 @@ OpticalInfo CumulativeMapInfo(float3 rayOrigin, float3 rayDir, float rayLength){
     return info;
 }
 
+float3 opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
+    float3 densitySamplePoint = rayOrigin;
+    float stepSize = rayLength / (_NumOpticalDepthPoints - 1);
+    float3 opticalDepth = 0;
+
+    for(uint i = 0; i < _NumOpticalDepthPoints; i++){
+        SurMapData mapData = SampleMapData(densitySamplePoint);
+        float localDensity = GetDensity(mapData) / _IsoLevel;
+        float3 localScatterCoeffs = GetScatterCoeffs(mapData);
+        opticalDepth += localScatterCoeffs * localDensity * stepSize;
+        densitySamplePoint += rayDir * stepSize;
+    }
+
+    return opticalDepth;
+}
+
+
 const static uint numThreads = 8;
 [numthreads(numThreads,numThreads,numThreads)]
 void Bake (uint3 id : SV_DispatchThreadID)
@@ -54,15 +94,16 @@ void Bake (uint3 id : SV_DispatchThreadID)
         return;
     
     uint pixelIndex = indexFromCoord2DManual(viewX, viewY, screenWidth);
-    float3 rayDir = rayDirs[pixelIndex];
-    float2 lengths = rayLengths[pixelIndex];
-    float rayLength = lengths.y;
-    
-    float3 rayOrigin = _WorldSpaceCameraPos + rayDir * lengths.x;
+    RayInfo rInfo = rayInfo[pixelIndex];
 
-    float stepSize = rayLength / (_NumInScatterPoints - 1);
-    float3 inScatterPoint = rayOrigin + rayDir * stepSize * depth;
-    OpticalInfo opticalInfo = CumulativeMapInfo(inScatterPoint, rayDir, stepSize); 
+    float3 rayOrigin = _WorldSpaceCameraPos + rInfo.direction * rInfo.length.x;
+    float stepSize = rInfo.length.y / (_NumInScatterPoints - 1);
+    float3 inScatterPoint = rayOrigin + rInfo.direction * stepSize * depth;
+
+    OpticalInfo opticalInfo = CumulativeMapInfo(inScatterPoint, rInfo.direction, stepSize); 
+
+    float sunRayLength = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, inScatterPoint, _LightDirection).y;    
+    opticalInfo.opticalDepth = opticalDepth(inScatterPoint, _LightDirection, sunRayLength);
 
     uint texelIndex = indexFromCoordIrregular(viewX, viewY, depth, screenWidth, screenHeight);
     mapData[texelIndex] = opticalInfo;

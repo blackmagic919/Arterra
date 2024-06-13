@@ -42,7 +42,7 @@ float2 raySphere(float3 s0, float sr, float3 r0, float3 rd) {
 float3 opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
     float3 densitySamplePoint = rayOrigin;
     float stepSize = rayLength / (_NumOpticalDepthPoints - 1);
-    float3 opticalDepth = float3(0, 0, 0);
+    float3 opticalDepth = 0;
 
     for(uint i = 0; i < _NumOpticalDepthPoints; i++){
         SurMapData mapData = SampleMapData(densitySamplePoint);
