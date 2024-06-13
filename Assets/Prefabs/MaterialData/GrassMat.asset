@@ -18,7 +18,7 @@ MonoBehaviour:
     color: {r: 0.050980397, g: 0.34117648, b: 0, a: 0}
     textureScale: 5
     baseColorStrength: 0.25
-    GeoShaderIndex: 0
+    GeoShaderIndex: 1
   AtmosphereScatter:
     ScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}

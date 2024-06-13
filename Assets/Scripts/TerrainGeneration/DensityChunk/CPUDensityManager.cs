@@ -108,7 +108,11 @@ public static class CPUDensityManager
         //Unsafe slice of code
         MapData* memStart = ((MapData*)NativeArrayUnsafeUtility.GetUnsafePtr(_SectionedMemory)) + (int)_AddressDict[chunkHash].address;
         NativeArray<MapData> nativeSlice = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<MapData>((void *)memStart, numPoints, Allocator.None);
+
+#if ENABLE_UNITY_COLLECTIONS_CHECKS //Saftey handles don't exist in release mode
         NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref nativeSlice, AtomicSafetyHandle.GetTempMemoryHandle());
+#endif
+
 
         return nativeSlice;
     }

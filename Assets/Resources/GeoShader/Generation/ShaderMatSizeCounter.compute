@@ -16,11 +16,15 @@ struct vertex{
     int2 material; 
 };
 
+struct pInfo{
+    uint axis[3];
+};
+
 
 StructuredBuffer<matTerrain> _MatTerrainData;
 
 StructuredBuffer<vertex> vertices;
-StructuredBuffer<uint3> triangles;
+StructuredBuffer<pInfo> triangles;
 StructuredBuffer<uint2> _AddressDict;
 uint vertAddress;
 uint triAddress;
@@ -41,14 +45,13 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     triangleIndexOffset[bSTART_tri + id.x] = -1; 
 
-    //Each triangle will have 3 materials, but due to noInterp, it is visually material of first vertex
-    uint firstVertexAddress = triangles[_AddressDict[triAddress].y + id.x].x;
-    int material = vertices[_AddressDict[vertAddress].y + firstVertexAddress].material.x; //only consider solid material
-    int shaderIndex = _MatTerrainData[material].geoShaderInd;
+    //Each triangle will have 3 materials, take the minimum shader index
+    uint shaderIndex = asuint(-1);
+    pInfo vIndex = triangles[_AddressDict[triAddress].y + id.x];
+    [unroll] for(uint i = 0; i < 3; i++) {
+        int material = vertices[_AddressDict[vertAddress].y + vIndex.axis[i]].material.x; // Only consider solid material
+        shaderIndex = min(shaderIndex, asuint(_MatTerrainData[material].geoShaderInd));
+    }
 
-    if(shaderIndex == -1)
-        return;
-
-    //This function makes this sorter possible
-    InterlockedAdd(shaderIndexOffset[bSTART_scount + shaderIndex + 1], 1, triangleIndexOffset[bSTART_tri + id.x]);
+    if(shaderIndex != asuint(-1)) InterlockedAdd(shaderIndexOffset[bSTART_scount + shaderIndex + 1], 1, triangleIndexOffset[bSTART_tri + id.x]);
 }

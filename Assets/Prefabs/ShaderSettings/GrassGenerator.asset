@@ -12,5 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 87195c2ad27524d5e8e3582bb4fd6b6f, type: 3}
   m_Name: GrassGenerator
   m_EditorClassIdentifier: 
-  autoUpdate: 0
-  grassSettings: {fileID: 11400000, guid: b82c95864a6f94e8aa254d76abe73427, type: 2}
+  grassSettings:
+    grassHeight: 0.5
+    maxLayers: 15
+    worldPositionUVScale: 0.1
+    grassComputeShader: {fileID: 7200000, guid: 8f05bdc49c0834c6eb32c2d28279e0d0, type: 3}
+    material: {fileID: 2100000, guid: 9e55a027ee0ba4f9d90667f02145910c, type: 2}

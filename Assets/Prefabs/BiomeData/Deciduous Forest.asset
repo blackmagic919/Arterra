@@ -12,12 +12,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49bee82ffcb1d4036a871bcb04d33c57, type: 3}
   m_Name: Deciduous Forest
   m_EditorClassIdentifier: 
-  BiomeName: Deciduous Forest
+  BiomeConditions:
+    TerrainStart: 0.3875
+    TerrainEnd: 1
+    ContinentalStart: 0
+    ContinentalEnd: 1
+    ErosionStart: 0
+    ErosionEnd: 0.65
+    SquashStart: 0
+    SquashEnd: 1
+    AtmosphereStart: 0
+    AtmosphereEnd: 1
+    HumidStart: 0
+    HumidEnd: 0.5
   caveSize: 0.4
   caveShape: 0
   caveFrequency: 0.4
   GroundMaterials:
-  - materialIndex: 9
+  - materialIndex: 7
     genSize: 1
     genShape: 0.809
     VerticalPreference:
@@ -26,7 +38,7 @@ MonoBehaviour:
       center: -300
       multiplier: 1
       power: 2
-  - materialIndex: 8
+  - materialIndex: 6
     genSize: 0.593
     genShape: 0.416
     VerticalPreference:
@@ -35,7 +47,7 @@ MonoBehaviour:
       center: -200
       multiplier: 1
       power: 2
-  - materialIndex: 7
+  - materialIndex: 5
     genSize: 0.8
     genShape: 0.662
     VerticalPreference:
@@ -44,7 +56,7 @@ MonoBehaviour:
       center: -50
       multiplier: 1
       power: 2
-  - materialIndex: 6
+  - materialIndex: 4
     genSize: 0.2
     genShape: 0.237
     VerticalPreference:
@@ -89,5 +101,3 @@ MonoBehaviour:
       power: 0.5
     ChancePerStructurePoint: 0.6
     structureIndex: 1
-  structurePointDensity: 1
-  seed: 0

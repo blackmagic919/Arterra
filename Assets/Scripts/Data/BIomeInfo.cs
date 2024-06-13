@@ -6,7 +6,7 @@ using Utils;
 [CreateAssetMenu(menuName = "Generation/BiomeInfo")]
 public class BiomeInfo : ScriptableObject
 {
-    public string BiomeName;
+    public BiomeConditionsData BiomeConditions;
 
     [Header("Underground Generation")]
     [Range(0, 1)]
@@ -24,14 +24,8 @@ public class BiomeInfo : ScriptableObject
 
     [Header("Structures")]
     public List<TerrainStructure> Structures;
-    [Range(0, 1)]
-    [Tooltip("The percentage of structure points considered to generate a structure")]
-    public float structurePointDensity;
 
-    [HideInInspector]
-    float[] _StucturePrefixSum;
-
-    public int seed;
+    public void OnValidate(){ BiomeConditions.Validate(); }
 
     [System.Serializable]
     public class DensityGrad
@@ -39,12 +33,6 @@ public class BiomeInfo : ScriptableObject
         public AnimationCurve DensityCurve;
         public int upperLimit;
         public int lowerLimit;
-    }
-
-    public TerrainStructure GetStructure(float percentage)
-    {
-        int index = CustomUtility.BinarySearch(percentage, ref _StucturePrefixSum, (float val, float target) => target.CompareTo(val));
-        return Structures[index];
     }
 
     [System.Serializable]
@@ -95,5 +83,55 @@ public class BiomeInfo : ScriptableObject
         public uint structureIndex;
     }
 
+    [System.Serializable]
+    public class BiomeConditionsData
+    {
+
+        [Space(10)]
+        [Range(0, 1)]
+        public float TerrainStart;
+        [Range(0, 1)]
+        public float TerrainEnd;
+        
+        [Space(10)]
+        [Range(0, 1)]
+        public float ContinentalStart;
+        [Range(0, 1)]
+        public float ContinentalEnd;//
+
+        [Range(0, 1)]
+        public float ErosionStart;
+        [Range(0, 1)]
+        public float ErosionEnd;
+
+        [Space(10)]
+        [Range(0, 1)]
+        public float SquashStart;
+        [Range(0, 1)]
+        public float SquashEnd;
+
+        [Space(10)]
+        [Range(0, 1)]
+        public float AtmosphereStart;
+        [Range(0, 1)]
+        public float AtmosphereEnd;
+
+        [Space(10)]
+        [Range(0, 1)]
+        public float HumidStart;
+        [Range(0, 1)]
+        public float HumidEnd;
+
+        public void Validate()
+        {
+            ContinentalEnd = Mathf.Max(ContinentalStart, ContinentalEnd);
+            ErosionEnd = Mathf.Max(ErosionStart, ErosionEnd);
+            TerrainEnd = Mathf.Max(TerrainStart, TerrainEnd);
+            SquashEnd = Mathf.Max(SquashStart, SquashEnd);
+            AtmosphereEnd = Mathf.Max(AtmosphereStart, AtmosphereEnd);
+            HumidEnd = Mathf.Max(HumidStart, HumidEnd);
+        }
+
+    }
 
 }

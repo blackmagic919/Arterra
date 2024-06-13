@@ -12,5 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5cb1e4dd4ebf74b35afea33d89fb694c, type: 3}
   m_Name: FoliageGenerator
   m_EditorClassIdentifier: 
-  autoUpdate: 0
-  foliageSettings: {fileID: 11400000, guid: 08ac5fce96627496498fde15ad4b1856, type: 2}
+  foliageSettings:
+    QuadSize: 3
+    Inflation: 0
+    foliageComputeShader: {fileID: 7200000, guid: 92ccc8e35df9942849493d4f1ea6dbcd, type: 3}
+    material: {fileID: 2100000, guid: 6b7b7953cf23d455387bef629745f60a, type: 2}

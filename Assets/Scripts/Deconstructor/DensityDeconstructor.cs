@@ -3,7 +3,6 @@ using System;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEditor;
-using UnityEditor.ShortcutManagement;
 using Utils;
 using System.Linq;
 using UnityEngine.EventSystems;
@@ -399,7 +398,7 @@ public class DensityDeconstructor : MonoBehaviour
             ReleaseHandles();
         }
 
-        void ReleaseHandles(){ for(int i = 0; i < 2; i++){ GeoHandles[i]?.Release(null); } }
+        void ReleaseHandles(){ for(int i = 0; i < 2; i++){ GeoHandles[i]?.Release(); } }
 
         public void Render(){ for(int i = 0; i < 2; i++) {GeoHandles[i]?.Update();} }
 
@@ -416,9 +415,9 @@ public class DensityDeconstructor : MonoBehaviour
               between updates
             */
         
-            GeoHandles[0]?.Release(null);
+            GeoHandles[0]?.Release();
             GeoHandles[0] = SetupGeoHandle(offsets.vertStart, offsets.baseTriStart, offsets.baseTriCounter, 0);
-            GeoHandles[1]?.Release(null);
+            GeoHandles[1]?.Release();
             GeoHandles[1] = SetupGeoHandle(offsets.vertStart, offsets.waterTriStart, offsets.waterTriCounter, 1);
         }
 
@@ -478,7 +477,7 @@ public class DensityDeconstructor : MonoBehaviour
             rp.matProps.SetInt("vertAddress", vertStart);
             rp.matProps.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
 
-            return new AsyncMeshReadback.GeometryHandle(rp, 0, drawArgs, matInd);
+            return new AsyncMeshReadback.GeometryHandle(rp, null, 0, drawArgs, matInd);
         }
 
         void PresetData(){

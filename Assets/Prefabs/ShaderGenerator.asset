@@ -13,16 +13,8 @@ MonoBehaviour:
   m_Name: ShaderGenerator
   m_EditorClassIdentifier: 
   shaderDictionary:
+  - {fileID: 11400000, guid: 416aff69279c14e2ebb1f76e050273ce, type: 2}
   - {fileID: 11400000, guid: e11232fbec10841a4a488fcc70cc241f, type: 2}
   - {fileID: 11400000, guid: aad37b9e5794849e98fbbc9c685c00d1, type: 2}
   maxVertexPerBase: 3
   memoryBuffer: {fileID: 11400000, guid: 743280fd1911d428e99f1d63657bfdaf, type: 2}
-  indirectArgsBuffer: {fileID: 11400000, guid: 1f79864b075194989981065119bceb94, type: 2}
-  matSizeCounter: {fileID: 7200000, guid: d323637ddb04943fc8c2a7bc3c3e9c3a, type: 3}
-  filterGeometry: {fileID: 7200000, guid: 5b11ff800ff86449498f7e43c4899770, type: 3}
-  sizePrefixSum: {fileID: 7200000, guid: 970f90d750e014dd8aec13764792d7e8, type: 3}
-  indirectThreads: {fileID: 7200000, guid: ada36d988c06e40f2864470524a87e61, type: 3}
-  geoSizeCalculator: {fileID: 7200000, guid: be4b7cedc3d284f43994919b91c132d7, type: 3}
-  geoTranscriber: {fileID: 7200000, guid: 38d08d3acbe3d47a8b58f9d433a696b1, type: 3}
-  prefixShaderArgs: {fileID: 7200000, guid: 7ff327240d7634acc87ce2b986f23c6f, type: 3}
-  shaderDrawArgs: {fileID: 7200000, guid: 3e844aacab07e4f81924328ee5868a27, type: 3}

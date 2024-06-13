@@ -106,9 +106,9 @@ public class ShaderGenerator
     public void ReleaseGeometry()
     {
         foreach (ShaderUpdateTask task in shaderUpdateTasks){
-            if (task == null || !task.initialized)
+            if (task == null || !task.active)
                 continue;
-            task.initialized = false;
+            task.active = false;
 
             task.Release(this.settings.memoryBuffer);
         }
@@ -168,7 +168,7 @@ public class ShaderGenerator
         for (int i = 0; i < this.settings.shaderDictionary.Count; i++){
             SpecialShader geoShader = this.settings.shaderDictionary[i];
             
-            geoShader.ProcessGeoShader(transform, memSettings, vertAddress, triAddress, fBaseGeoStart, matSizeCStart + i, baseGeoCounter, shadGeoStart);
+            geoShader.ProcessGeoShader(transform, memSettings, vertAddress, triAddress, fBaseGeoStart, matSizeCStart + i, baseGeoCounter, shadGeoStart, i);
             UtilityBuffers.CopyCount(source: UtilityBuffers.GenerationBuffer, dest: UtilityBuffers.GenerationBuffer, readOffset: baseGeoCounter, writeOffset: shadGeoCStart + i + 1);
             geoShader.ReleaseTempBuffers();
         }
@@ -313,7 +313,7 @@ public class ShaderGenerator
             this.address = address;
             this.dispArgs = dispArgs;
             this.rp = rp;
-            this.initialized = true;
+            this.active = true;
         }
 
         public override void Update()

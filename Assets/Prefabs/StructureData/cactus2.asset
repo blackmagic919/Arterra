@@ -1,0 +1,275 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42eaf1dfd0dbb42fdb87d5a5eba090f1, type: 3}
+  m_Name: cactus2
+  m_EditorClassIdentifier: 
+  This:
+    settings:
+      GridSize:
+        x: 4
+        y: 10
+        z: 6
+      minimumLOD: 0
+      randThetaRot: 1
+      randPhiRot: 0
+    map:
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65314
+    - data: 65291
+    - data: 65280
+    - data: 65284
+    - data: 65377
+    - data: 65346
+    - data: 65280
+    - data: 65285
+    - data: 65386
+    - data: 65355
+    - data: 65280
+    - data: 65280
+    - data: 65285
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65356
+    - data: 65323
+    - data: 65280
+    - data: 65302
+    - data: 786326
+    - data: 65386
+    - data: 65280
+    - data: 65319
+    - data: 786336
+    - data: 65398
+    - data: 65280
+    - data: 65307
+    - data: 786313
+    - data: 65388
+    - data: 65280
+    - data: 65280
+    - data: 65311
+    - data: 65287
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65331
+    - data: 65349
+    - data: 65286
+    - data: 65280
+    - data: 65318
+    - data: 65307
+    - data: 65280
+    - data: 65280
+    - data: 65307
+    - data: 65287
+    - data: 65280
+    - data: 65280
+    - data: 65321
+    - data: 65296
+    - data: 65280
+    - data: 65301
+    - data: 786310
+    - data: 65385
+    - data: 65280
+    - data: 65294
+    - data: 786318
+    - data: 65378
+    - data: 65280
+    - data: 65280
+    - data: 65362
+    - data: 65321
+    - data: 65280
+    - data: 65280
+    - data: 65324
+    - data: 65292
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65309
+    - data: 786318
+    - data: 786354
+    - data: 65355
+    - data: 65336
+    - data: 786333
+    - data: 786311
+    - data: 65303
+    - data: 65350
+    - data: 786323
+    - data: 65407
+    - data: 65283
+    - data: 65353
+    - data: 786313
+    - data: 65407
+    - data: 65280
+    - data: 65359
+    - data: 786348
+    - data: 65407
+    - data: 65282
+    - data: 65364
+    - data: 786309
+    - data: 65407
+    - data: 65291
+    - data: 65360
+    - data: 786308
+    - data: 65407
+    - data: 65305
+    - data: 65327
+    - data: 65407
+    - data: 65406
+    - data: 65305
+    - data: 65289
+    - data: 65398
+    - data: 65401
+    - data: 65300
+    - data: 65280
+    - data: 65358
+    - data: 65379
+    - data: 65283
+    - data: 65286
+    - data: 65406
+    - data: 65407
+    - data: 65318
+    - data: 65327
+    - data: 786313
+    - data: 786307
+    - data: 65293
+    - data: 65358
+    - data: 786338
+    - data: 786304
+    - data: 65287
+    - data: 65374
+    - data: 786360
+    - data: 786306
+    - data: 65291
+    - data: 65390
+    - data: 786382
+    - data: 786314
+    - data: 65303
+    - data: 65399
+    - data: 786401
+    - data: 786335
+    - data: 65333
+    - data: 65399
+    - data: 786411
+    - data: 786364
+    - data: 65360
+    - data: 65384
+    - data: 786388
+    - data: 786369
+    - data: 65363
+    - data: 65337
+    - data: 786340
+    - data: 786365
+    - data: 65357
+    - data: 65281
+    - data: 65390
+    - data: 65393
+    - data: 65317
+    - data: 65280
+    - data: 65280
+    - data: 65282
+    - data: 65280
+    - data: 65280
+    - data: 65299
+    - data: 65289
+    - data: 65280
+    - data: 65280
+    - data: 65326
+    - data: 65301
+    - data: 65280
+    - data: 65288
+    - data: 65348
+    - data: 65317
+    - data: 65280
+    - data: 65304
+    - data: 65370
+    - data: 65338
+    - data: 65280
+    - data: 65322
+    - data: 65387
+    - data: 65364
+    - data: 65280
+    - data: 65331
+    - data: 65396
+    - data: 65382
+    - data: 65288
+    - data: 65307
+    - data: 65388
+    - data: 65383
+    - data: 65291
+    - data: 65282
+    - data: 65369
+    - data: 65376
+    - data: 65289
+    - data: 65280
+    - data: 65326
+    - data: 65347
+    - data: 65280
+    checks:
+    - position:
+        x: 1
+        y: 1
+        z: 3
+      isUnderGround: 1
+    - position:
+        x: 1
+        y: 4
+        z: 3
+      isUnderGround: 0

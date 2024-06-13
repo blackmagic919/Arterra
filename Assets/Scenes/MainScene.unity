@@ -1064,7 +1064,7 @@ Light:
   serializedVersion: 10
   m_Type: 1
   m_Shape: 0
-  m_Color: {r: 0.2901961, g: 0.7294118, b: 1, a: 1}
+  m_Color: {r: 0.4292453, g: 0.76587147, b: 1, a: 1}
   m_Intensity: 0.5
   m_Range: 10
   m_SpotAngle: 30
@@ -1622,14 +1622,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae7e31fadc365438eb6353b62af08f78, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  savePath: prefabs/StructureData/pine2
+  savePath: prefabs/StructureData/cactus1
   IsoLevel: 0.5
   Structure:
     settings:
       GridSize:
         x: 10
-        y: 20
-        z: 10
+        y: 13
+        z: 4
       minimumLOD: 0
       randThetaRot: 1
       randPhiRot: 0

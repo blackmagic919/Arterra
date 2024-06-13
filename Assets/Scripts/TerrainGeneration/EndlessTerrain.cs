@@ -97,7 +97,7 @@ public class EndlessTerrain : MonoBehaviour
         for(int i = 0; i < UpdateTaskCount; i++){
             UpdateTask task = MainLoopUpdateTasks.Dequeue();
             
-            if(!task.initialized)
+            if(!task.active)
                 continue;
 
             task.Update();

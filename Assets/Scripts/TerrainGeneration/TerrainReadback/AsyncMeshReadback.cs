@@ -57,15 +57,8 @@ public class AsyncMeshReadback
     public void ReleaseAllGeometry()
     {
         for(int i = 0; i < numMeshes; i++)
-            ReleaseGeometry(triHandles[i]);
-        ReleaseGeometry(this.vertexHandle);
-    }
-
-    private void ReleaseGeometry(GeometryHandle handle)
-    {
-        if (handle == null || !handle.initialized) return;
-
-        handle.Release(this.settings.memoryBuffer);
+            triHandles[i]?.Release();  
+        this.vertexHandle?.Release();
     }
 
     private void ReleaseTempBuffers()
@@ -76,18 +69,18 @@ public class AsyncMeshReadback
 
     public void OffloadVerticesToGPU(DensityGenerator.GeoGenOffsets bufferOffsets)
     {
-        ReleaseGeometry(this.vertexHandle);
+        this.vertexHandle?.Release();
 
         uint vertAddress = this.settings.memoryBuffer.AllocateMemory(UtilityBuffers.GenerationBuffer, MESH_VERTEX_STRIDE_WORD, bufferOffsets.vertexCounter);
         TranscribeVertices(this.settings.memoryBuffer.AccessStorage(), this.settings.memoryBuffer.AccessAddresses(), (int)vertAddress, bufferOffsets.vertexCounter, bufferOffsets.vertStart);
 
-        this.vertexHandle = new GeometryHandle{addressIndex = vertAddress};
+        this.vertexHandle = new GeometryHandle{addressIndex = vertAddress, memory = this.settings.memoryBuffer};
     }
 
 
     public void OffloadTrisToGPU(int triCounter, int triStart, int dictStart, int matIndex)
     {
-        ReleaseGeometry(triHandles[matIndex]);
+        triHandles[matIndex]?.Release();
 
         //Transcribe data to memory heap for GPU-forward render
         uint geoHeapMemoryAddress = this.settings.memoryBuffer.AllocateMemory(UtilityBuffers.GenerationBuffer, TRI_STRIDE_WORD, triCounter);
@@ -101,7 +94,7 @@ public class AsyncMeshReadback
         //All buffers that are created by helper functions must enqueue to a buffer handle for consistency
         //Thus to indicate that they aren't being handled, initialize persistant buffers here
         RenderParams rp = GetRenderParams(this.settings.memoryBuffer.AccessStorage(), this.settings.memoryBuffer.AccessAddresses(), (int)geoHeapMemoryAddress, (int)this.vertexHandle.addressIndex, matIndex);
-        triHandles[matIndex] = new GeometryHandle(rp, geoHeapMemoryAddress, drawArgsAddress, matIndex);
+        triHandles[matIndex] = new GeometryHandle(rp, this.settings.memoryBuffer, geoHeapMemoryAddress, drawArgsAddress, matIndex);
 
         MainLoopUpdateTasks.Enqueue(triHandles[matIndex]);
         ReleaseTempBuffers();
@@ -137,7 +130,7 @@ public class AsyncMeshReadback
         uint2 memAddress = request.GetData<uint2>().ToArray()[0];
 
         if (memAddress.x == 0) { //No geometry to readback
-            ReleaseGeometry(geoHandle);
+            geoHandle.Release();
             RBTask.onRBRecieved();
             return; 
         }
@@ -153,7 +146,7 @@ public class AsyncMeshReadback
         uint2 memAddress = request.GetData<uint2>().ToArray()[0];
 
         if(memAddress.x == 0){
-            ReleaseGeometry(geoHandle);
+            geoHandle.Release();
             RBTask.onRBRecieved();
             return;
         }
@@ -356,26 +349,37 @@ public class AsyncMeshReadback
     public class GeometryHandle : UpdateTask
     {
         public RenderParams rp = default;
+        public MemoryBufferSettings memory = default;
         public int matIndex = -1;
         public uint addressIndex = 0;
         public uint argsAddress = 0;
+        public bool initialized;
 
-        public GeometryHandle(RenderParams rp, uint addressIndex, uint argsAddress, int matIndex)
+        public GeometryHandle(RenderParams rp, MemoryBufferSettings memory, uint addressIndex, uint argsAddress, int matIndex)
         {
             this.addressIndex = addressIndex;
+            this.memory = memory;
             this.rp = rp;
             this.matIndex = matIndex;
             this.argsAddress = argsAddress;
             this.initialized = true;
+            this.active = true;
         }
 
         public GeometryHandle()
         {
             this.initialized = true;
+            this.active = true;
         }
 
-        public void Release(MemoryBufferSettings memory){
+        ~GeometryHandle(){
+            Release();
+        }
+
+        public void Release(){
+            if(!this.initialized) return;
             this.initialized = false;
+            this.active = false;
 
             //Release geometry memory
             if(this.addressIndex != 0)
@@ -384,9 +388,11 @@ public class AsyncMeshReadback
                 UtilityBuffers.ReleaseArgs(this.argsAddress);
         }
 
+        public void Disable(){ this.active = false;}
+
         public override void Update()
         {
-            if (!initialized)
+            if (!initialized || !active)
                 return;
                 
             //Offset in bytes = address * 4 args per address * 4 bytes per arg

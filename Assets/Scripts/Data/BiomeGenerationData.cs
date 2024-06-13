@@ -10,7 +10,6 @@ public class BiomeGenerationData : ScriptableObject
 {
     [SerializeField]
     public List<BiomeInfo> biomes;
-    public List<BiomeConditionsData> biomeConds;
     [HideInInspector]
     public int StructureChecksPerChunk;
     [Range(1, 5)]
@@ -58,9 +57,9 @@ public class BiomeGenerationData : ScriptableObject
             biomeCaveData.Add(new Vector3(biomes[i].caveSize, biomes[i].caveShape, biomes[i].caveFrequency));
             biomeGroundMaterial.AddRange(biomes[i].GroundMaterials);
             biomeSurfaceMaterial.AddRange(biomes[i].SurfaceMaterials);
-        }//
+        }
 
-        BiomeDictionary.RNodeFlat[] RTree = new BiomeDictionary(biomeConds).FlattenTree();
+        BiomeDictionary.RNodeFlat[] RTree = new BiomeDictionary(biomes).FlattenTree();
 
         int matStride = sizeof(int) + sizeof(float) + sizeof(float) + (sizeof(int) * 3 + sizeof(float) * 2);
         biomeRTreeBuffer = new ComputeBuffer(RTree.Length, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
@@ -116,7 +115,7 @@ public class BiomeDictionary
         return node.biome;
     }
 
-    public BiomeDictionary(List<BiomeConditionsData> biomes)
+    public BiomeDictionary(List<BiomeInfo> biomes)
     {
         List<RNode> leaves = InitializeBiomeRegions(biomes);
         _rTree = ConstructRTree(leaves);
@@ -186,12 +185,14 @@ public class BiomeDictionary
             RNode cur = treeNodes.Dequeue();
             treeSize++;
 
+            if(cur == null)
+                continue;
             if (cur.GetType() == typeof(LeafNode))
                 continue;
 
             BranchNode branch = (BranchNode)cur;
-            if(branch.childOne != null) treeNodes.Enqueue(branch.childOne);
-            if(branch.childTwo != null) treeNodes.Enqueue(branch.childTwo);
+            treeNodes.Enqueue(branch.childOne);
+            treeNodes.Enqueue(branch.childTwo);
         }
         return treeSize;
     }
@@ -257,13 +258,13 @@ public class BiomeDictionary
         return ConstructRTree(ret);
     }
 
-    List<RNode> InitializeBiomeRegions(List<BiomeConditionsData> biomes)
+    List<RNode> InitializeBiomeRegions(List<BiomeInfo> biomes)
     {
         int numOfBiomes = biomes.Count;
         List<RNode> biomeRegions = new List<RNode>();
         for (int i = 0; i < numOfBiomes; i++)
         {
-            BiomeConditionsData conditions = biomes[i];
+            BiomeInfo.BiomeConditionsData conditions = biomes[i].BiomeConditions;
             regionBound bounds = new regionBound(6);
             bounds.SetDimensions(conditions);
             bounds.CalculateArea();
@@ -271,10 +272,10 @@ public class BiomeDictionary
             for (int u = i - 1; u >= 0; u--)
             {
                 if (RegionIntersects(bounds, biomeRegions[u].bounds, 6))
-                    throw new ArgumentException($"Biome {conditions.biome}'s generation intersects with {conditions.biome}");
+                    throw new ArgumentException($"Biome {biomes[i].name}'s generation intersects with {biomes[u].name}");
             }
 
-            biomeRegions.Add(new LeafNode(bounds, conditions.biome));
+            biomeRegions.Add(new LeafNode(bounds, i));
         }
 
         return biomeRegions;
@@ -331,7 +332,7 @@ public class BiomeDictionary
             maxCorner[dimension] = max;
         }
 
-        public void SetDimensions(BiomeConditionsData conditions)
+        public void SetDimensions(BiomeInfo.BiomeConditionsData conditions)
         {
             this.SetBoundDimension(0, conditions.TerrainStart, conditions.TerrainEnd);
             this.SetBoundDimension(1, conditions.ContinentalStart, conditions.ContinentalEnd);

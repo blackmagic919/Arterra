@@ -9,17 +9,20 @@ public class ProceduralFoliageRenderer : SpecialShader
     [Tooltip("A mesh to create foliage from")]
     [SerializeField] private FoliageSettings foliageSettings = default; 
 
-    private Transform objTransform;
-
-    private int idFoliageKernel;
-    private int idIndirectArgsKernel;
+    [System.Serializable]
+    public class FoliageSettings
+    {
+        [Tooltip("Size of Quad Images")]
+        public float QuadSize = 1.0f;
+        [Tooltip("Distance Extruded Along Normal")]
+        public float Inflation = 0f;
+        
+        [Tooltip("The grass geometry creating compute shader")]
+        public ComputeShader foliageComputeShader = default;
+        public Material material;
+    }
 
     private Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
-
-    public override void Instantiate(Transform transform)
-    {
-        this.objTransform = transform;
-    }
 
     public override Material GetMaterial()
     {
@@ -27,10 +30,9 @@ public class ProceduralFoliageRenderer : SpecialShader
     }
 
     public override void ProcessGeoShader(Transform transform, MemoryBufferSettings memoryHandle, int vertAddress, int triAddress, 
-                        int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart)
+                        int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
     {
-        idFoliageKernel = foliageSettings.foliageComputeShader.FindKernel("Main");
-        idIndirectArgsKernel = foliageSettings.indirectArgsShader.FindKernel("Main");
+        int idFoliageKernel = foliageSettings.foliageComputeShader.FindKernel("Main");
 
         ComputeBuffer memory = memoryHandle.AccessStorage();
         ComputeBuffer addresses = memoryHandle.AccessAddresses();

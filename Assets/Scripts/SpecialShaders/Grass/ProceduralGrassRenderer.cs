@@ -9,10 +9,23 @@ public class ProceduralGrassRenderer : SpecialShader
 {
     public GrassSettings grassSettings = default;
 
+    [System.Serializable]
+    public class GrassSettings 
+    {
+        [Tooltip("Total height of grass layer stack")]
+        public float grassHeight = 0.5f;
+        [Tooltip("Maximum # of grass layers")]
+        public int maxLayers = 16;
+        [Tooltip("Multiplier on World Position if using world position as UV")]
+        public float worldPositionUVScale;
+
+        [Tooltip("The grass geometry creating compute shader")]
+        public ComputeShader grassComputeShader = default;
+        public Material material;
+    }
+
     private Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
-    private int idGrassKernel;
-    private int idIndirectArgsKernel;
 
     public override Material GetMaterial()
     {
@@ -20,10 +33,9 @@ public class ProceduralGrassRenderer : SpecialShader
     }
 
     public override void ProcessGeoShader(Transform transform, MemoryBufferSettings memoryHandle, int vertAddress, int triAddress, 
-                        int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart)
+                        int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
     {
-        idGrassKernel = grassSettings.grassComputeShader.FindKernel("Main");
-        idIndirectArgsKernel = grassSettings.indirectArgsShader.FindKernel("Main");
+        int idGrassKernel = grassSettings.grassComputeShader.FindKernel("Main");
         ComputeBuffer memory = memoryHandle.AccessStorage();
         ComputeBuffer addresses = memoryHandle.AccessAddresses();
 

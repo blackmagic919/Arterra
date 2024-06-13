@@ -12,12 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49bee82ffcb1d4036a871bcb04d33c57, type: 3}
   m_Name: Ocean
   m_EditorClassIdentifier: 
-  BiomeName: Ocean
+  BiomeConditions:
+    biome: 0
+    TerrainStart: 0
+    TerrainEnd: 0.3875
+    ContinentalStart: 0
+    ContinentalEnd: 1
+    ErosionStart: 0
+    ErosionEnd: 1
+    SquashStart: 0
+    SquashEnd: 1
+    AtmosphereStart: 0
+    AtmosphereEnd: 1
+    HumidStart: 0
+    HumidEnd: 1
   caveSize: 0.654
   caveShape: 0.304
   caveFrequency: 0.2
   GroundMaterials:
-  - materialIndex: 9
+  - materialIndex: 7
     genSize: 0.614
     genShape: 0.217
     VerticalPreference:
@@ -26,7 +39,7 @@ MonoBehaviour:
       center: -300
       multiplier: 1
       power: 2
-  - materialIndex: 8
+  - materialIndex: 6
     genSize: 0.397
     genShape: 0.708
     VerticalPreference:

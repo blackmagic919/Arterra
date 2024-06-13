@@ -41,38 +41,12 @@ int _MaxLayers;
 float _WorldPositionToUVScale;
 float4x4 _LocalToWorld;
 
-float2 mapCoordinates(float3 worldPos)
-{
-    float2 projXY = worldPos.xy;
-    float2 projXZ = worldPos.xz;
-    float2 projYZ = worldPos.yz;
-
-    float2 worldUV = (projXY + projXZ + projYZ) / 3;
-
-    return worldUV;
-}
-
-//Experimented a lot with this
-/*
-    Conventional triplanar:
-    float3 blendAxes = abs(worldNormal);
-    blendAxes /= blendAxes.x + blendAxes.y + blendAxes.z;
-
-    float2 projXY = worldPos.xy * blendAxes.z;
-    float2 projXZ = worldPos.xz * blendAxes.y;
-    float2 projYZ = worldPos.yz * blendAxes.x;
-
-    return (projXY+projXZ+projYZ);
-
-    As length(xyz) increases, the coordinates change more as normals change
-*/
-
 DrawVertex MakeBaseDrawVertex(SourceVertex v){
     DrawVertex o;
 
     o.normalWS = mul(_LocalToWorld, float4(v.normalOS, 0)).xyz;
     o.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
-    o.uv = float2(0, 0);
+    o.uv = 0;
 
     return o;
 }

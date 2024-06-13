@@ -1,7 +1,6 @@
 using System;
 using Unity.Collections;
 using Unity.Mathematics;
-using UnityEditorInternal;
 using UnityEngine;
 using Utils;
 using static EndlessTerrain;
@@ -122,7 +121,7 @@ public class TerrainChunk : ChunkData
 
             timeRequestQueue.Enqueue(new EndlessTerrain.GenTask{
                 valid = () => this.prevMeshLOD == meshLoD,
-                task = () => {ClearCollider(); LODMeshHandle.CreateMesh(meshLoD, onChunkCreated);}, 
+                task = () => {LODMeshHandle.CreateMesh(meshLoD, onChunkCreated);}, 
                 load = taskLoadTable[(int)Utils.priorities.mesh]
             });
         }
@@ -169,22 +168,10 @@ public class TerrainChunk : ChunkData
     
     public void RecalculateChunkImmediate(int offset, ref NativeArray<CPUDensityManager.MapData> mapData){
         LODMeshHandle.SetChunkData(0, offset, mapData, () =>{
-            ClearCollider(); 
             LODMeshHandle.CreateMesh(0, onChunkCreated);
         });
     }
 
     private void ClearFilter(){ meshFilter.sharedMesh = null; }
-    private void ClearCollider(){ meshCollider.sharedMesh = null; }
-    
-
-
-    public void processEvent(Action callback)
-    {
-        if (!active)
-            return;
-        
-        callback();
-    }
 
 }

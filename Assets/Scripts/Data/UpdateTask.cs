@@ -4,7 +4,7 @@ using UnityEngine;
 
 public abstract class UpdateTask
 {
-    public bool initialized = false;
+    public bool active = false;
     public virtual void Update(){
 
     }

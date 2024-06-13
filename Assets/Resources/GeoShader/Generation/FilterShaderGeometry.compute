@@ -16,10 +16,14 @@ struct vertex{
     int2 material; 
 };
 
+struct pInfo{
+    uint axis[3];
+};
+
 StructuredBuffer<matTerrain> _MatTerrainData;
 
 StructuredBuffer<vertex> vertices;
-StructuredBuffer<uint3> triangles;
+StructuredBuffer<pInfo> triangles;
 StructuredBuffer<uint2> _AddressDict;
 uint vertAddress;
 uint triAddress;
@@ -40,14 +44,17 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     if(id.x >= counter[bCOUNTER_base])
         return;
 
-    int firstVertexAddress = triangles[_AddressDict[triAddress].y + id.x].x;
-    int material = vertices[_AddressDict[vertAddress].y + firstVertexAddress].material.x;
-    int shaderInd = _MatTerrainData[material].geoShaderInd;
+    uint shaderIndex = asuint(-1);
+    pInfo vIndex = triangles[_AddressDict[triAddress].y + id.x];
+    [unroll] for(uint i = 0; i < 3; i++) {
+        int material = vertices[_AddressDict[vertAddress].y + vIndex.axis[i]].material.x; // Only consider solid material
+        shaderIndex = min(shaderIndex, asuint(_MatTerrainData[material].geoShaderInd));
+    }
 
-    if(shaderInd == -1)
+    if(shaderIndex == asuint(-1)) 
         return;
 
-    uint shaderOffset = shaderPrefix[bSTART_scount + shaderInd];
+    uint shaderOffset = shaderPrefix[bSTART_scount + shaderIndex];
     uint triangleOffset = triangleIndexOffset[bSTART_tri + id.x];
     uint offset = shaderOffset + triangleOffset; 
 

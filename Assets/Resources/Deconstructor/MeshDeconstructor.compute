@@ -91,7 +91,7 @@ void GetSDF (uint3 id : SV_DispatchThreadID)
 {
     if(id.x >= GridSize.x || id.y >= GridSize.y || id.z >= GridSize.z) return;
     
-    float3 p = id - float3(12, -1, 9); 
+    float3 p = id - float3(3, -1, 4); 
     float dist = 1E10; uint3 intersections = 0; 
 
     for(uint tri = 0; tri < numInds; tri += 3){
