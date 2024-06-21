@@ -21,17 +21,11 @@ struct BMaterial{
     DensityFunc density;
 };
 
-struct CaveGen{
-    float coarse;
-    float shape;
-    float frequency;
-};
-
 float IsoLevel;
 float waterHeight;
 int waterMat;
 
-StructuredBuffer<CaveGen> _BiomeCaveData;
+StructuredBuffer<float> _BiomeAtmosphereData;
 StructuredBuffer<uint2> _BiomeMaterialCount;
 StructuredBuffer<BMaterial> _BiomeGroundMaterials;
 StructuredBuffer<BMaterial> _BiomeSurfaceMaterials;
@@ -45,8 +39,10 @@ float offsetY;
 struct surfData{
     float terrain;
     float squash;
-    float atmosphere;
     int biome;
+    float cFreq;
+    float cSize;
+    float cShape;
 };
 
 StructuredBuffer<surfData> _SurfMemoryBuffer;
@@ -71,20 +67,16 @@ struct mapData{
 
 RWStructuredBuffer<mapData> BaseMap;
 
-float GetNoiseCentered(float val, float center){
-    float clamped = clamp(val, 0, 1);
-    float ret = (clamped > center) ? 1-invLerp(center, 1, clamped)
-                : invLerp(0, center, clamped);
-                
-    return ret;
-}
 
 float GetNoiseCentered(float val, float center, float bottom, float top){
-    float clamped = clamp(val, bottom, top);
-    float ret = (clamped > center) ? 1-invLerp(center, top, clamped)
-                : invLerp(bottom, center, clamped);
+    float clamped = clamp(val, bottom, top);//
                 
-    return ret;
+    return (clamped > center) ? 1-smoothstep(center, top, clamped)
+    : smoothstep(bottom, center, clamped);
+}
+
+float GetNoiseCentered(float val, float center){
+    return GetNoiseCentered(val, center, 0, 1);
 }
 
 float GetHeightPref(BMaterial material, float posY){
@@ -169,21 +161,18 @@ void Generate (uint3 id : SV_DispatchThreadID)
     float groundHeight = actualHeight - data.terrain;
 
     //Get Base Density
-    CaveGen caveData = _BiomeCaveData[data.biome];
-
     float coarseCaveNoise = GetNoise(id, coarseCaveSampler);
     float fineCaveNoise = GetNoise(id, fineCaveSampler);
 
-    float coarseCaveCentered = GetNoiseCentered(coarseCaveNoise, caveData.shape);
-    float fineCaveCentered = GetNoiseCentered(fineCaveNoise, caveData.shape);
+    float coarseCaveCentered = GetNoiseCentered(coarseCaveNoise, data.cShape);
+    float fineCaveCentered = GetNoiseCentered(fineCaveNoise, data.cShape);
 
-    float centereCavedNoise = caveData.coarse * coarseCaveCentered + (1.0f - caveData.coarse) * fineCaveCentered;
-    float baseDensity = pow(abs(1.0f-centereCavedNoise), caveData.frequency); //We do 1-noise because cave means low density
+    float centereCavedNoise = lerp(fineCaveCentered, coarseCaveCentered, data.cSize);
+    float baseDensity = pow(abs(1.0f-centereCavedNoise), data.cFreq); //We do 1-noise because cave means low density
 
     //Blend with Terrain Height
-    float squashFactor = clamp((data.terrain - actualHeight) / (data.squash + Epsilon), 0, 1);
-    float terrainFactor = squashFactor * (1-IsoLevel) + IsoLevel;
-    float atmosphereFactor = exp(-max(actualHeight - data.terrain, 0) * data.atmosphere);
+    float terrainFactor = clamp((data.terrain - actualHeight) / (data.squash + Epsilon), 0, 1) * (1-IsoLevel) + IsoLevel;
+    float atmosphereFactor = exp(-max(actualHeight - data.terrain, 0) * _BiomeAtmosphereData[biome]);
     float density = baseDensity * terrainFactor * atmosphereFactor;
 
     //Generate Water

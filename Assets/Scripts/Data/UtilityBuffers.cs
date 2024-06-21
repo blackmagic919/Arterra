@@ -155,20 +155,6 @@ public class UtilityBuffers : ScriptableObject
         return args;
     }
 
-    public static void SetNoiseData(ComputeShader noiseGen, int chunkSize, int meshSkipInc, NoiseData noiseData, Vector3 offset)
-    {
-        noiseGen.SetVectorArray("offsets", noiseData.offsets.Select(e => new Vector4(e.x, e.y, e.z, 0)).ToArray()); //mapped to float3, so reinterpretation
-        noiseGen.SetVectorArray("SplinePoints", noiseData.splinePoints);
-        noiseGen.SetFloats("sOffset", new float[]{offset.x, offset.y, offset.z});
-        noiseGen.SetInt("numSplinePoints", noiseData.splinePoints.Length);
-        noiseGen.SetInt("chunkSize", chunkSize);
-        noiseGen.SetInt("octaves", noiseData.octaves);
-        noiseGen.SetInt("meshSkipInc", meshSkipInc);
-        noiseGen.SetFloat("persistence", noiseData.persistance);
-        noiseGen.SetFloat("lacunarity", noiseData.lacunarity);
-        noiseGen.SetFloat("noiseScale", noiseData.noiseScale);
-        noiseGen.SetFloat("maxPossibleHeight", noiseData.maxPossibleHeight);
-    }
 
     public static void SetSampleData(ComputeShader noiseGen, Vector3 offset, int chunkSize, int meshSkipInc){
         noiseGen.SetFloats("sOffset", new float[]{offset.x, offset.y, offset.z});

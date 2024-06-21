@@ -13,22 +13,19 @@ MonoBehaviour:
   m_Name: Ocean
   m_EditorClassIdentifier: 
   BiomeConditions:
-    biome: 0
     TerrainStart: 0
-    TerrainEnd: 0.3875
-    ContinentalStart: 0
-    ContinentalEnd: 1
+    TerrainEnd: 0.325
     ErosionStart: 0
     ErosionEnd: 1
     SquashStart: 0
     SquashEnd: 1
-    AtmosphereStart: 0
-    AtmosphereEnd: 1
-    HumidStart: 0
-    HumidEnd: 1
-  caveSize: 0.654
-  caveShape: 0.304
-  caveFrequency: 0.2
+    CaveFreqStart: 0
+    CaveFreqEnd: 1
+    CaveSizeStart: 0
+    CaveSizeEnd: 1
+    CaveShapeStart: 0
+    CaveShapeEnd: 1
+  AtmosphereFalloff: 0.02
   GroundMaterials:
   - materialIndex: 7
     genSize: 0.614
@@ -77,5 +74,3 @@ MonoBehaviour:
       multiplier: 1
       power: 3
   Structures: []
-  structurePointDensity: 0
-  seed: 0

@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   noiseScale: 500
   octaves: 9
-  persistance: 0.75
+  persistance: 0.25
   lacunarity: 1.25
-  seed: 6
+  seedOffset: 9
   interpolation:
     serializedVersion: 2
     m_Curve:
@@ -39,15 +39,6 @@ MonoBehaviour:
       inWeight: 0.33333334
       outWeight: 0.25841004
     - serializedVersion: 3
-      time: 0.49971765
-      value: 0.49997845
-      inSlope: 0.16748263
-      outSlope: 0.16748263
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.2689154
-    - serializedVersion: 3
       time: 0.73088396
       value: 0.8793888
       inSlope: 1.3737327
@@ -68,20 +59,3 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  splinePoints:
-  - {x: 0, y: 0, z: 0, w: 0}
-  - {x: 0.2545889, y: 0.1269986, z: 0.9226054, w: 0.9226054}
-  - {x: 0.49971765, y: 0.49997845, z: 0.16748263, w: 0.16748263}
-  - {x: 0.73088396, y: 0.8793888, z: 1.3737327, w: 1.3737327}
-  - {x: 1, y: 1, z: 0, w: 0}
-  offsets:
-  - {x: 721590, y: 155674, z: 923901}
-  - {x: 677637, y: 829895, z: 604543}
-  - {x: 188734, y: -95432, z: 439699}
-  - {x: -27578, y: 424578, z: -696798}
-  - {x: 514730, y: 182086, z: -636036}
-  - {x: 554984, y: -230951, z: 430686}
-  - {x: 679206, y: 275642, z: 228262}
-  - {x: -359857, y: -988136, z: -742600}
-  - {x: -424048, y: -229236, z: -814784}
-  maxPossibleHeight: 3.6996613

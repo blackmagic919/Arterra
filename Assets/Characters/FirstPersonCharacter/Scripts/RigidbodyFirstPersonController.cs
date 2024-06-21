@@ -196,12 +196,6 @@ namespace UnityStandardAssets.Characters.FirstPerson
             m_Jump = false;
         }
 
-        private void ApplyHorizontalDrag(float drag){
-            Vector3 velocity = m_RigidBody.velocity;
-            velocity.x *= Mathf.Pow(1f/(drag+1), Time.fixedDeltaTime);
-            velocity.z *= Mathf.Pow(1f/(drag+1), Time.fixedDeltaTime);
-            m_RigidBody.velocity = velocity;
-        }
 
         private float SlopeMultiplier()
         {

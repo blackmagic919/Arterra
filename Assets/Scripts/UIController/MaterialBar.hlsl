@@ -51,7 +51,6 @@ SamplerState sampler_LiquidCoarseWave;
 
 float4 _Tint;
 float _TintFrequency;
-float _AuxFadeEnd;
 
 v2f vert (appdata v)
 {
@@ -68,9 +67,7 @@ struct invMat {
 
 
 StructuredBuffer<invMat> MainInventoryMaterial;
-StructuredBuffer<invMat> AuxInventoryMaterial;
 int MainMaterialCount;
-int AuxMaterialCount;
 uint UseSolid;
 
 int BinarySearch(float key, int arraySize, StructuredBuffer<invMat> inventory) {
@@ -128,7 +125,7 @@ fixed3 GetLiquidColor(float2 uv, int index){
             
 fixed3 frag (v2f IN) : SV_Target
 {
-    fixed3 MainColor; fixed3 AuxColor;
+    fixed3 MainColor;
 
     int mainIndex = BinarySearch(IN.uv.x, MainMaterialCount, MainInventoryMaterial);
     MainColor = UseSolid == 1 ? GetMatColor(IN.uv, mainIndex) : GetLiquidColor(IN.uv, mainIndex);
@@ -137,18 +134,6 @@ fixed3 frag (v2f IN) : SV_Target
         float tintStrength = abs((_Time.y % _TintFrequency)/_TintFrequency * 2 - 1) * _Tint.a;
         MainColor =  MainColor*(1-tintStrength) + _Tint.rgb*tintStrength;
     }
-    
-    if(AuxMaterialCount == 0) 
-        AuxColor = MainColor;
-    else
-    {
-        int auxIndex = BinarySearch(IN.uv.x, AuxMaterialCount, AuxInventoryMaterial);
-        AuxColor = UseSolid == 1 ? GetLiquidColor(IN.uv, auxIndex) : GetMatColor(IN.uv, auxIndex);
-    }
 
-    fixed3 OUT;
-    if(IN.uv.y < _AuxFadeEnd) OUT = AuxColor;
-    else OUT = MainColor;
-
-    return OUT;
+    return MainColor;
 }

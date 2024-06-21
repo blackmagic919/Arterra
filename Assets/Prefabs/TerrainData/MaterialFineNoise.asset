@@ -12,16 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5a55167b9f07403db285acd197bbc09, type: 3}
   m_Name: MaterialFineNoise
   m_EditorClassIdentifier: 
-  autoUpdate: 0
   noiseScale: 25
   octaves: 4
-  persistance: 0.5
+  persistance: 0.25
   lacunarity: 2
-  lerpScale: 4
-  seed: 5
-  splinePoints:
-  - {x: 0, y: 0, z: 1, w: 1}
-  - {x: 1, y: 1, z: 1, w: 1}
+  seedOffset: 8
   interpolation:
     serializedVersion: 2
     m_Curve:

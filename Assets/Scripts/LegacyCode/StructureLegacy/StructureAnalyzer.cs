@@ -15,6 +15,7 @@ public class StructureAnalyzer
     public ComputeShader terrainCombiner;
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
+    /*
     public ComputeBuffer AnalyzeBase(Vector3[] points, NoiseData undergroundNoise, Vector3 offset, int chunkSize, ref Queue<ComputeBuffer> bufferHandle)
     {
         int numPoints = points.Length;
@@ -40,7 +41,7 @@ public class StructureAnalyzer
         undergroundAnalyzer.Dispatch(0, numThreadsPerAxis, 1, 1);
 
         return results;
-    }
+    }*/
 
     public float[] AnalyzeTerrain(float[] yPos, ComputeBuffer baseBuffer, ComputeBuffer heightBuffer, ComputeBuffer squashBuffer)
     {

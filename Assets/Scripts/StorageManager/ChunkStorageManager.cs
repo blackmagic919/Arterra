@@ -17,7 +17,7 @@ public static class ChunkStorageManager
     public delegate void OnReadComplete(bool isComplete, CPUDensityManager.MapData[] chunk = default);
     public delegate void OnWriteComplete(bool isComplete);
 
-    private static string filePath = Application.persistentDataPath + "/MapData/";
+    public static string filePath;
     private const string fileExtension = ".bin";
     private static readonly int numLODs;
     private static readonly int headerSize;
@@ -27,10 +27,11 @@ public static class ChunkStorageManager
         numLODs = meshSkipTable.Length;
         maxChunkSize = mapChunkSize;
         headerSize = (numLODs + 1) * 4;
+        filePath = WorldStorageHandler.WORLD_OPTIONS.Path + "/MapData/";
     }
 
     public static void SaveChunkToBin(NativeArray<CPUDensityManager.MapData> chunk, int offset, int3 CCoord, OnWriteComplete OnSaveComplete = null){
-         string fileAdd = filePath + "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
+        string fileAdd = filePath + "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
 
         if (!Directory.Exists(filePath))
             Directory.CreateDirectory(filePath);

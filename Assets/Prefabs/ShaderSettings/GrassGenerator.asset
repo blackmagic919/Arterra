@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: GrassGenerator
   m_EditorClassIdentifier: 
   grassSettings:
-    grassHeight: 0.5
+    grassHeight: 0.25
     maxLayers: 15
     worldPositionUVScale: 0.1
     grassComputeShader: {fileID: 7200000, guid: 8f05bdc49c0834c6eb32c2d28279e0d0, type: 3}

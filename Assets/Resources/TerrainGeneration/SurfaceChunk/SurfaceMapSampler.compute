@@ -9,20 +9,23 @@ uint continentalSampler;
 uint PVSampler;
 uint erosionSampler;
 uint squashSampler;
-uint atmosphereSampler;
-uint humiditySampler;
+uint caveFreqSampler;
+uint caveSizeSampler;
+uint caveShapeSampler;
 
 float maxTerrainHeight;
-float heightInfluence;
 float squashHeight;
 
 float heightOffset;
 
+
 struct surfData{
     float terrain;
     float squash;
-    float atmosphere;
     int biome;
+    float cFreq;
+    float cSize;
+    float cShape;
 };
 
 RWStructuredBuffer<surfData> surfMap;
@@ -41,27 +44,29 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     int3 pos3D = int3(id.x, 0, id.y);
 
     float rawMaps[6];
-    rawMaps[0] = GetRawNoise(pos3D, PVSampler);
-    rawMaps[1] = GetRawNoise(pos3D, continentalSampler);
-    rawMaps[2] = GetRawNoise(pos3D, erosionSampler);
-    rawMaps[3] = GetRawNoise(pos3D, squashSampler);
-    rawMaps[4] = GetRawNoise(pos3D, atmosphereSampler);
-    rawMaps[5] = GetRawNoise(pos3D, humiditySampler);
+    rawMaps[1] = GetRawNoise(pos3D, erosionSampler);
+    rawMaps[2] = GetRawNoise(pos3D, squashSampler);
+    rawMaps[3] = GetRawNoise(pos3D, PVSampler);
+    rawMaps[4] = GetRawNoise(pos3D, continentalSampler);
 
-    float PVNoise = interpolateValue(rawMaps[0], PVSampler) * precisionOffset;
-    float continentalNoise = interpolateValue(rawMaps[1], continentalSampler) * precisionOffset;
-    float erosionNoise = interpolateValue(rawMaps[2], erosionSampler);
-    float squashNoise = interpolateValue(rawMaps[3], squashSampler) * precisionOffset;
-    float atmosphereNoise = interpolateValue(rawMaps[4], atmosphereSampler);
-    float humidityNoise = interpolateValue(rawMaps[5], humiditySampler);
+    float PVNoise = interpolateValue(rawMaps[3], PVSampler);
+    float continentalNoise = interpolateValue(rawMaps[4], continentalSampler);
+    float erosionNoise = interpolateValue(rawMaps[1], erosionSampler);
+    float squashNoise = interpolateValue(rawMaps[2], squashSampler) * precisionOffset;
 
     surfData data;
-    data.terrain = (continentalNoise * (1 - heightInfluence) + erosionNoise * PVNoise * heightInfluence) * (maxTerrainHeight / precisionOffset) + heightOffset;
+    rawMaps[0] = continentalNoise + PVNoise * erosionNoise;
+    data.terrain = rawMaps[0] * maxTerrainHeight + heightOffset;
     data.squash = squashNoise * (squashHeight / precisionOffset);
-    data.atmosphere = atmosphereNoise;
 
-    rawMaps[0] = (data.terrain - heightOffset) / maxTerrainHeight;
+    rawMaps[3] = GetRawNoise(pos3D, caveFreqSampler);
+    rawMaps[4] = GetRawNoise(pos3D, caveSizeSampler);
+    rawMaps[5] = GetRawNoise(pos3D, caveShapeSampler);
+    
     data.biome = GetBiome(rawMaps);
+    data.cFreq = interpolateValue(rawMaps[3], caveFreqSampler);
+    data.cSize = interpolateValue(rawMaps[4], caveSizeSampler);
+    data.cShape = interpolateValue(rawMaps[5], caveShapeSampler);
 
     surfMap[index] = data;
 }

@@ -13,21 +13,19 @@ MonoBehaviour:
   m_Name: Tundra
   m_EditorClassIdentifier: 
   BiomeConditions:
-    TerrainStart: 0.3875
+    TerrainStart: 0.325
     TerrainEnd: 1
-    ContinentalStart: 0
-    ContinentalEnd: 1
     ErosionStart: 0
     ErosionEnd: 0.65
     SquashStart: 0
     SquashEnd: 1
-    AtmosphereStart: 0
-    AtmosphereEnd: 1
-    HumidStart: 0.5
-    HumidEnd: 1
-  caveSize: 0.4
-  caveShape: 0
-  caveFrequency: 0.4
+    CaveFreqStart: 0
+    CaveFreqEnd: 1
+    CaveSizeStart: 0
+    CaveSizeEnd: 1
+    CaveShapeStart: 0.5
+    CaveShapeEnd: 1
+  AtmosphereFalloff: 0.02
   GroundMaterials:
   - materialIndex: 7
     genSize: 1

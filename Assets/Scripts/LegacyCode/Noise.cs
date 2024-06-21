@@ -26,7 +26,7 @@ public static class Noise
 
 
         float scale = Mathf.Max(epsilon, noiseData.noiseScale);
-        System.Random prng = new System.Random(noiseData.seed);
+        System.Random prng = new System.Random(noiseData.seedOffset);
 
         float maxPossibleHeight = 0;
         float amplitude = 1;
@@ -87,7 +87,7 @@ public static class Noise
         float epsilon = (float)10E-9;
 
         float scale = Mathf.Max(epsilon, noiseData.noiseScale);
-        System.Random prng = new System.Random(noiseData.seed);
+        System.Random prng = new System.Random(noiseData.seedOffset);
 
         Vector3[] octaveOffsets = new Vector3[noiseData.octaves];
 

@@ -4,7 +4,8 @@ using UnityEngine;
 using Unity.Mathematics;
 using System.Linq;
 
-public class TerraformController : MonoBehaviour
+[System.Serializable]
+public class TerraformController
 {
     public float terraformRadius = 5;
     public LayerMask objectLayer;
@@ -31,25 +32,25 @@ public class TerraformController : MonoBehaviour
     public MaterialInventory AuxInventory = new MaterialInventory(materialCapacity);
 
     // Start is called before the first frame update
-    void Start()
+    public void Activate()
     {
         cam = Camera.main.transform;
-        barController = FindAnyObjectByType<MaterialBarController>();
-        EndlessTerrain terrain = FindAnyObjectByType<EndlessTerrain>();
+        barController = UnityEngine.Object.FindAnyObjectByType<MaterialBarController>();
+        EndlessTerrain terrain = UnityEngine.Object.FindAnyObjectByType<EndlessTerrain>();
         IsoLevel = Mathf.RoundToInt(terrain.settings.IsoLevel * 255);
         useSolid = true;
     }
 
-    bool RayTestSolid(CPUDensityManager.MapData pointInfo){
-        return (pointInfo.density * pointInfo.viscosity / 255.0f) >= IsoLevel;
-    }
-
-    bool RayTestLiquid(CPUDensityManager.MapData pointInfo){
-        return (pointInfo.density * (1 - pointInfo.viscosity / 255.0f)) >= IsoLevel || (pointInfo.density * pointInfo.viscosity / 255.0f) >= IsoLevel;
-    }
-
-    void Update()
+    public void Update()
     {
+        bool RayTestSolid(CPUDensityManager.MapData pointInfo){
+            return (pointInfo.density * pointInfo.viscosity / 255.0f) >= IsoLevel;
+        }
+
+        bool RayTestLiquid(CPUDensityManager.MapData pointInfo){
+            return (pointInfo.density * (1 - pointInfo.viscosity / 255.0f)) >= IsoLevel || (pointInfo.density * pointInfo.viscosity / 255.0f) >= IsoLevel;
+        }
+        
         if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, maxTerraformDistance, useSolid ? RayTestSolid : RayTestLiquid, out hitPoint))
             Terraform(hitPoint);
 
@@ -91,7 +92,7 @@ public class TerraformController : MonoBehaviour
         }
         else if(!MainInventory.cleared) MainInventory.ClearSmallMaterials(minInvMatThresh);
 
-        barController.OnInventoryChanged();
+        barController.OnInventoryChanged(this);
     }
 
     int GetStaggeredDelta(int baseDensity, float deltaDensity){

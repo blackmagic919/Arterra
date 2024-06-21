@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   noiseScale: 1000
   octaves: 9
-  persistance: 0.5
+  persistance: 0.25
   lacunarity: 2
-  seed: 7
+  seedOffset: 10
   interpolation:
     serializedVersion: 2
     m_Curve:
@@ -59,19 +59,3 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  splinePoints:
-  - {x: 0.000074853306, y: 0.0020688113, z: 0, w: 0}
-  - {x: 0.49833125, y: 0.05007317, z: 0.09173089, w: 0.09173089}
-  - {x: 0.97403395, y: 0.10497157, z: -0.046432313, w: -0.046432313}
-  - {x: 1.0015774, y: 1, z: 0, w: 0}
-  offsets:
-  - {x: -233560, y: 742511, z: 321877}
-  - {x: -895477, y: -267134, z: 352338}
-  - {x: -915153, y: 907937, z: 687133}
-  - {x: 709924, y: -101961, z: 864631}
-  - {x: -110368, y: -777403, z: 763908}
-  - {x: -195974, y: 609767, z: -329316}
-  - {x: 733347, y: -949949, z: 494003}
-  - {x: 130817, y: -650126, z: -43908}
-  - {x: -228037, y: -942870, z: 904746}
-  maxPossibleHeight: 1.9960938

@@ -17,7 +17,7 @@ public class BiomeGenerationData : ScriptableObject
     public int maxLoD;
 
     ComputeBuffer biomeRTreeBuffer;
-    ComputeBuffer biomeCaveDataBuffer;
+    ComputeBuffer biomeAtmosphereBuffer;
     ComputeBuffer biomeMatCountBuffer;
     ComputeBuffer biomeGroundMatBuffer;
     ComputeBuffer biomeSurfaceMatBuffer;
@@ -35,7 +35,7 @@ public class BiomeGenerationData : ScriptableObject
     {
         biomeRTreeBuffer?.Release();
         biomeMatCountBuffer?.Release();
-        biomeCaveDataBuffer?.Release();
+        biomeAtmosphereBuffer?.Release();
         biomeGroundMatBuffer?.Release();
         biomeSurfaceMatBuffer?.Release();
 
@@ -47,14 +47,14 @@ public class BiomeGenerationData : ScriptableObject
     {
         int numBiomes = biomes.Count;
         uint2[] biomeMatCount = new uint2[numBiomes + 1]; //Prefix sum
-        List<Vector3> biomeCaveData = new List<Vector3>();
+        float[] atmosphereData = new float[numBiomes];
         List<BiomeInfo.BMaterial> biomeGroundMaterial = new List<BiomeInfo.BMaterial>();
         List<BiomeInfo.BMaterial> biomeSurfaceMaterial = new List<BiomeInfo.BMaterial>();
 
         for (int i = 0; i < numBiomes; i++)
         {
             biomeMatCount[i+1] = new uint2((uint)biomes[i].GroundMaterials.Count + biomeMatCount[i].x, (uint)biomes[i].SurfaceMaterials.Count + biomeMatCount[i].y);
-            biomeCaveData.Add(new Vector3(biomes[i].caveSize, biomes[i].caveShape, biomes[i].caveFrequency));
+            atmosphereData[i] = biomes[i].AtmosphereFalloff;
             biomeGroundMaterial.AddRange(biomes[i].GroundMaterials);
             biomeSurfaceMaterial.AddRange(biomes[i].SurfaceMaterials);
         }
@@ -64,19 +64,19 @@ public class BiomeGenerationData : ScriptableObject
         int matStride = sizeof(int) + sizeof(float) + sizeof(float) + (sizeof(int) * 3 + sizeof(float) * 2);
         biomeRTreeBuffer = new ComputeBuffer(RTree.Length, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
         biomeMatCountBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint) * 2, ComputeBufferType.Structured);
-        biomeCaveDataBuffer = new ComputeBuffer(numBiomes, sizeof(float) * 3, ComputeBufferType.Structured);
+        biomeAtmosphereBuffer = new ComputeBuffer(numBiomes, sizeof(float), ComputeBufferType.Structured);
         biomeGroundMatBuffer = new ComputeBuffer(biomeGroundMaterial.Count, matStride, ComputeBufferType.Structured);
         biomeSurfaceMatBuffer = new ComputeBuffer(biomeSurfaceMaterial.Count, matStride, ComputeBufferType.Structured);
 
         biomeRTreeBuffer.SetData(RTree);
         biomeMatCountBuffer.SetData(biomeMatCount);
-        biomeCaveDataBuffer.SetData(biomeCaveData);
+        biomeAtmosphereBuffer.SetData(atmosphereData);
         biomeGroundMatBuffer.SetData(biomeGroundMaterial);
         biomeSurfaceMatBuffer.SetData(biomeSurfaceMaterial);
 
         Shader.SetGlobalBuffer("_BiomeRTree", biomeRTreeBuffer);
         Shader.SetGlobalBuffer("_BiomeMaterialCount", biomeMatCountBuffer);
-        Shader.SetGlobalBuffer("_BiomeCaveData", biomeCaveDataBuffer);
+        Shader.SetGlobalBuffer("_BiomeAtmosphereData", biomeAtmosphereBuffer);
         Shader.SetGlobalBuffer("_BiomeGroundMaterials", biomeGroundMatBuffer);
         Shader.SetGlobalBuffer("_BiomeSurfaceMaterials", biomeSurfaceMatBuffer);
 
@@ -335,11 +335,11 @@ public class BiomeDictionary
         public void SetDimensions(BiomeInfo.BiomeConditionsData conditions)
         {
             this.SetBoundDimension(0, conditions.TerrainStart, conditions.TerrainEnd);
-            this.SetBoundDimension(1, conditions.ContinentalStart, conditions.ContinentalEnd);
-            this.SetBoundDimension(2, conditions.ErosionStart, conditions.ErosionEnd);
-            this.SetBoundDimension(3, conditions.SquashStart, conditions.SquashEnd);
-            this.SetBoundDimension(4, conditions.AtmosphereStart, conditions.AtmosphereEnd);
-            this.SetBoundDimension(5, conditions.HumidStart, conditions.HumidEnd);
+            this.SetBoundDimension(1, conditions.ErosionStart, conditions.ErosionEnd);
+            this.SetBoundDimension(2, conditions.SquashStart, conditions.SquashEnd);
+            this.SetBoundDimension(3, conditions.CaveFreqStart, conditions.CaveFreqEnd);
+            this.SetBoundDimension(4, conditions.CaveSizeStart, conditions.CaveSizeEnd);
+            this.SetBoundDimension(5, conditions.CaveShapeStart, conditions.CaveShapeEnd);
         }
 
         public void CalculateArea()

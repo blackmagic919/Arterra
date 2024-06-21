@@ -4,58 +4,37 @@ using UnityEngine;
 using System.Linq;
 using UnityEngine.UI;
 
-[ExecuteInEditMode]
 public class MaterialBarController : MonoBehaviour
 {
-    TerraformController terraform;
     public RectTransform panelRectTransform;
     public Image inventoryMat;
 
     private ComputeBuffer MainInventoryData;
-    private ComputeBuffer AuxInventoryData;
 
     [Range(0, 1)]
     public float size;
 
-    private void OnEnable()
-    {
-        MainInventoryData = new ComputeBuffer(100, sizeof(int) + sizeof(float));
-        AuxInventoryData = new ComputeBuffer(100, sizeof(int) + sizeof(float));
-    }
+    private void OnEnable() { MainInventoryData = new ComputeBuffer(100, sizeof(int) + sizeof(float)); }
 
-    private void OnDisable()
-    {
-        MainInventoryData?.Release();
-        AuxInventoryData?.Release();
-    }
+    private void OnDisable() { MainInventoryData?.Release(); }
 
     void Start()
     {
         // Get the RectTransform component of the UI panel.
         panelRectTransform = GetComponent<RectTransform>();
-        terraform = FindFirstObjectByType<TerraformController>();
         inventoryMat.materialForRendering.SetBuffer("MainInventoryMaterial", MainInventoryData);
-        inventoryMat.materialForRendering.SetBuffer("AuxInventoryMaterial", AuxInventoryData);
+        size = 0;
     }
 
     // Update is called once per frame
-    void Update()
+    void Update() { panelRectTransform.transform.localScale = new Vector3(size, 1, 1); }
+
+    public void OnInventoryChanged(TerraformController terraform) //DO NOT DO THIS IN ONENABLE, Shader is compiled later than OnEnabled is called
     {
-        if (Application.isPlaying)
-            size = (float)terraform.MainInventory.totalMaterialAmount / terraform.MainInventory.materialCapacity;
-        else
-            OnInventoryChanged();
-
-        panelRectTransform.transform.localScale = new Vector3(size, 1, 1);
-
-    }
-
-    public void OnInventoryChanged() //DO NOT DO THIS IN ONENABLE, Shader is compiled later than OnEnabled is called
-    {
+        size = (float)terraform.MainInventory.totalMaterialAmount / terraform.MainInventory.materialCapacity;
         int totalmaterials_M = terraform.MainInventory.inventory.Count;
         int totalMaterials_A = terraform.AuxInventory.inventory.Count;
         MainInventoryData.SetData(MaterialData.GetInventoryData(terraform.MainInventory), 0, 0, totalmaterials_M);
-        AuxInventoryData.SetData(MaterialData.GetInventoryData(terraform.AuxInventory), 0, 0, totalMaterials_A);
         inventoryMat.materialForRendering.SetInt("MainMaterialCount", totalmaterials_M);
         inventoryMat.materialForRendering.SetInt("AuxMaterialCount", totalMaterials_A);
         inventoryMat.materialForRendering.SetInt("UseSolid", terraform.useSolid ? 1 : 0);

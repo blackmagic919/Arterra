@@ -4,8 +4,10 @@ const static uint numthread = 128;
 struct surfData{
     float terrain;
     float squash;
-    float atmosphere;
     int biome;
+    float cFreq;
+    float cSize;
+    float cShape;
 };
 
 StructuredBuffer<surfData> SurfaceMap;

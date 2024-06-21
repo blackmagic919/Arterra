@@ -8,8 +8,6 @@ using static TerrainGenerator;
 public class SurfaceCreatorSettings : ScriptableObject{
     public float terrainOffset = 0;
     public float MaxTerrainHeight;
-    [Range(0, 1)] //0: Continental, 1: PV
-    public float fineHeightInfluence;
 
     [Header("Continental Detail")]
     [Tooltip("Base Terrain Height")]
@@ -50,15 +48,12 @@ public class SurfaceCreatorSettings : ScriptableObject{
     public float MaxSquashHeight;
 
     [Space(10)]
-    [Header("Atmosphere Map")]
+    [Header("3D Noise Data")]
     [Tooltip("How quickly the atmosphere fades off")]
-    public int AtmosphereDetail;
+    public int CaveFreqDetail;
+    public int CaveSizeDetail;
+    public int CaveShapeDetail;
 
-    [Space(10)]
-    [Header("Biome Maps")]
-    [Tooltip("Extra details to add variation to biomes")]
-    //Any curve form
-    public int HumidityDetail;
 
     [Space(10)]
     [Header("Dependencies")]
@@ -73,7 +68,7 @@ public class SurfaceCreator
     public SurfaceCreatorSettings settings;
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
-    const uint SURFDATA_STRIDE_4BYTE = 3 + 1;
+    const uint SURFDATA_STRIDE_4BYTE = 6;
 
     public void OnDisable()
     {
@@ -102,7 +97,7 @@ public class SurfaceCreator
         return mapAddressIndex;
     }
 
-    
+    /*
     public ComputeBuffer SimplifyMap(int addressIndex, int sourceLOD, int destLOD, int chunkSize, bool isFloat)
     {
         int sourceSkipInc = meshSkipTable[sourceLOD];
@@ -112,7 +107,7 @@ public class SurfaceCreator
                                                 addressIndex, chunkSize, sourceSkipInc, destSkipInc, isFloat, null);
 
         return simplified;
-    }
+    }*/
 
     /*
     //Small error at edges--someone fix

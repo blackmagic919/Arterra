@@ -12,15 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f67e18118f5594c60a3185bba687bef3, type: 3}
   m_Name: SurfaceSettings
   m_EditorClassIdentifier: 
-  terrainOffset: -150
+  terrainOffset: -120
   MaxTerrainHeight: 400
-  fineHeightInfluence: 0.5
   TerrainContinentalDetail: 4
   TerrainErosionDetail: 5
   TerrainPVDetail: 6
   SquashMapDetail: 7
   MaxSquashHeight: 100
-  AtmosphereDetail: 8
-  HumidityDetail: 9
+  CaveFreqDetail: 8
+  CaveSizeDetail: 9
+  CaveShapeDetail: 10
   surfaceMemoryBuffer: {fileID: 11400000, guid: 743280fd1911d428e99f1d63657bfdaf, type: 2}
   biomeData: {fileID: 0}

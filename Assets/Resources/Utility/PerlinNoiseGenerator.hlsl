@@ -11,7 +11,6 @@ uint meshSkipInc;
 float persistence;
 float lacunarity;
 float noiseScale;
-float maxPossibleHeight;
 
 float3 sOffset; //Short for sample offset
 //We use arrays instead of buffers because faster and no need to manage
@@ -41,12 +40,8 @@ uint Search(float targetValue)
 }
 
 float interpolateValue(float value){
-    float ret = value;
-
     uint upperBoundIndex = Search(value);
-
-    if(SplinePoints[upperBoundIndex].x < value || upperBoundIndex == 0) 
-        ret = SplinePoints[upperBoundIndex].y;
+    if(SplinePoints[upperBoundIndex].x < value || upperBoundIndex == 0) return SplinePoints[upperBoundIndex].y;
     else{
         uint lowerBoundIndex = upperBoundIndex - 1;//
 
@@ -56,12 +51,12 @@ float interpolateValue(float value){
         float lowerAnchor = SplinePoints[lowerBoundIndex].y + SplinePoints[lowerBoundIndex].w * dt;
         float upperAnchor = SplinePoints[upperBoundIndex].y - SplinePoints[upperBoundIndex].z * dt;
 
-        float l1 = lerp(SplinePoints[lowerBoundIndex].y, lowerAnchor, progress);
-        float l2 = lerp(upperAnchor, SplinePoints[upperBoundIndex].y, progress);
-
-        ret = lerp(l1, l2, progress);
+        return lerp(
+            lerp(SplinePoints[lowerBoundIndex].y, lowerAnchor, progress),
+            lerp(upperAnchor, SplinePoints[upperBoundIndex].y, progress),
+            progress
+        );
     }
-    return ret;
 }
 
 float GetRawNoise(int3 id){
@@ -81,16 +76,15 @@ float GetRawNoise(int3 id){
         float sampleY = (y-center + offsets[i].y + sOffset.y) / noiseScale * frequency;
         float sampleZ = (z-center + offsets[i].z + sOffset.z) / noiseScale * frequency;
 
-        float perlinValue = snoise(float3(sampleX, sampleY, sampleZ)); //Default range -1 to 1
-        noiseHeight += perlinValue * amplitude;
+        float perlinValue = (snoise(float3(sampleX, sampleY, sampleZ)) + 1) / 2.0f; //Default range -1 to 1
+        noiseHeight = (1 - amplitude) * noiseHeight + perlinValue * amplitude;
         
         amplitude *= persistence; //amplitude decreases -> effect of samples decreases 
         frequency *= lacunarity; //frequency increases -> size of noise sampling increases -> more random
     }
 
-    float smoothNoise = (sign(noiseHeight) * pow(abs(noiseHeight / maxPossibleHeight), _SPREAD_FACTOR) + 1) / 2;
     //float smoothNoise = invLerp(-maxPossibleHeight, maxPossibleHeight, noiseHeight);
-    return smoothNoise;
+    return noiseHeight;
 }
 
 float GetRawNoise(float3 id){

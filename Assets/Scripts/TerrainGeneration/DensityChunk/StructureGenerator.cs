@@ -70,15 +70,16 @@ public static class StructureGenerator
 
         StructureIdentifier.SetInt("caveCoarseSampler", meshSettings.CoarseTerrainNoise);
         StructureIdentifier.SetInt("caveFineSampler", meshSettings.FineTerrainNoise);
+
         StructureIdentifier.SetInt("continentalSampler", surfSettings.TerrainContinentalDetail);
         StructureIdentifier.SetInt("erosionSampler", surfSettings.TerrainErosionDetail);
         StructureIdentifier.SetInt("PVSampler", surfSettings.TerrainPVDetail);
         StructureIdentifier.SetInt("squashSampler", surfSettings.SquashMapDetail);
-        StructureIdentifier.SetInt("atmosphereSampler", surfSettings.AtmosphereDetail);
-        StructureIdentifier.SetInt("humiditySampler", surfSettings.HumidityDetail);
+        StructureIdentifier.SetInt("caveFreqSampler", surfSettings.CaveFreqDetail);
+        StructureIdentifier.SetInt("caveSizeSampler", surfSettings.CaveSizeDetail);
+        StructureIdentifier.SetInt("caveShapeSampler", surfSettings.CaveShapeDetail);
 
         StructureIdentifier.SetFloat("maxTerrainHeight", surfSettings.MaxTerrainHeight);
-        StructureIdentifier.SetFloat("heightInfluence", surfSettings.fineHeightInfluence);
         StructureIdentifier.SetFloat("squashHeight", surfSettings.MaxSquashHeight);
         StructureIdentifier.SetFloat("heightOffset", surfSettings.terrainOffset);
 

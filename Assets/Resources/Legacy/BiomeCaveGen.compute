@@ -22,8 +22,8 @@ RWStructuredBuffer<float> densityMap;
 
 float GetNoiseCentered(float val, float center){
     float clamped = clamp(val, 0, 1);
-    float ret = (clamped > center) ? 1-invLerp(center, 1, clamped)
-                : invLerp(0, center, clamped);
+    float ret = (clamped > center) ? 1-smoothstep(center, 1, clamped)
+                : smoothstep(0, center, clamped);
                 
     return ret;
 }

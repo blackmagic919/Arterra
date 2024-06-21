@@ -22,11 +22,11 @@ public static class TerrainGenerator
         surfaceDataSampler.SetInt("PVSampler", surfSettings.TerrainPVDetail);
         surfaceDataSampler.SetInt("erosionSampler", surfSettings.TerrainErosionDetail);
         surfaceDataSampler.SetInt("squashSampler", surfSettings.SquashMapDetail);
-        surfaceDataSampler.SetInt("atmosphereSampler", surfSettings.AtmosphereDetail);
-        surfaceDataSampler.SetInt("humiditySampler", surfSettings.HumidityDetail);
+        surfaceDataSampler.SetInt("caveFreqSampler", surfSettings.CaveFreqDetail);
+        surfaceDataSampler.SetInt("caveSizeSampler", surfSettings.CaveSizeDetail);
+        surfaceDataSampler.SetInt("caveShapeSampler", surfSettings.CaveShapeDetail);
 
         surfaceDataSampler.SetFloat("maxTerrainHeight", surfSettings.MaxTerrainHeight);
-        surfaceDataSampler.SetFloat("heightInfluence", surfSettings.fineHeightInfluence);
         surfaceDataSampler.SetFloat("squashHeight", surfSettings.MaxSquashHeight);
         surfaceDataSampler.SetFloat("heightOffset", surfSettings.terrainOffset);
     }

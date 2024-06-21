@@ -19,13 +19,11 @@ public class EndlessTerrain : MonoBehaviour
     int chunksVisibleInViewDistance;
 
     [Header("Viewer Information")]
-    public Transform viewer;
+    public GameObject viewer;
     //Pause Viewer until terrain is generated
-    public RigidbodyFirstPersonController viewerRigidBody;
     public int maxFrameLoad = 50; //GPU load
     public static Vector3 viewerPosition;
     Vector3 oldViewerPos = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
-    public bool viewerActive = false;
 
 
     [Header("Dependencies")]
@@ -58,7 +56,7 @@ public class EndlessTerrain : MonoBehaviour
 
     private void Update()
     {
-        viewerPosition = viewer.position / lerpScale;
+        viewerPosition = viewer.transform.position / lerpScale;
         if ((oldViewerPos - viewerPosition).sqrMagnitude > sqrChunkUpdateThresh)
         {
             oldViewerPos = viewerPosition;
@@ -103,13 +101,6 @@ public class EndlessTerrain : MonoBehaviour
             task.Update();
             MainLoopUpdateTasks.Enqueue(task);
         }
-
-        if (viewerActive)
-            return;
-        if (timeRequestQueue.Count > 0)
-            return;
-        viewerActive = true;
-        viewerRigidBody.ActivateCharacter();
     }
 
 
