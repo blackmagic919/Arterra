@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityStandardAssets.Characters.FirstPerson;
+using System.IO;
 
 public class PlayerHandler : MonoBehaviour
 {
     public TerraformController terrController;
     private RigidbodyFirstPersonController PlayerController;
+    private PlayerData info;
     private bool active = false;
     // Start is called before the first frame update
 
@@ -17,30 +19,60 @@ public class PlayerHandler : MonoBehaviour
     }
     void OnEnable(){
         PlayerController = this.GetComponent<RigidbodyFirstPersonController>();
+
+        info = LoadPlayerData();
+        transform.SetPositionAndRotation(info.position.GetVector(), info.rotation.GetQuaternion());
+        this.terrController.MainInventory = info.inventory;
         this.terrController.Activate();
     }
 
-    void Start(){
-        active = false;
-    }
     // Update is called once per frame
     void Update() { 
         if(EndlessTerrain.timeRequestQueue.Count == 0 && !active) Activate();
         if(!active) return;
-
+        
         terrController.Update(); 
     }
 
-    async Task<PlayerData> LoadPlayerData(){
-        string path = WorldStorageHandler.WORLD_OPTIONS.Path + "/playerData.json";
-        if(!System.IO.File.Exists(path)) return new PlayerData();
+    void OnDisable(){
+        info.position = new Vec3(transform.position);
+        info.rotation = new Vec4(transform.rotation);
+        info.inventory = terrController.MainInventory;
+        Task.Run(() => SavePlayerData(info));
+        active = false;
+    }
 
-        string[] data = await System.IO.File.ReadAllLinesAsync(path);
-        return JsonUtility.FromJson<PlayerData>(data[0]);
+    async Task SavePlayerData(PlayerData playerInfo){
+        string path = WorldStorageHandler.WORLD_OPTIONS.Path + "/PlayerData.json";
+        using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)){
+            using StreamWriter writer = new StreamWriter(fs);
+            string data = Newtonsoft.Json.JsonConvert.SerializeObject(playerInfo);
+            await writer.WriteAsync(data);
+            await writer.FlushAsync();
+        };
+    }
+
+    void OnDrawGizmos(){
+        terrController.OnDrawGizmos();
+    }
+
+     PlayerData LoadPlayerData(){
+        string path = WorldStorageHandler.WORLD_OPTIONS.Path + "/PlayerData.json";
+        if(!File.Exists(path)) {
+            return new PlayerData{
+                position = new Vec3((new Vector3(0, 0, 0) + Vector3.up * (CPUNoiseSampler.SampleTerrainHeight(new (0, 0, 0)) + 5)) * EndlessTerrain.lerpScale),
+                rotation = new Vec4(Quaternion.LookRotation(Vector3.forward, Vector3.up)),
+                inventory = new MaterialInventory(TerraformController.materialCapacity)
+            };
+        }
+
+        string data = System.IO.File.ReadAllText(path);
+        return  Newtonsoft.Json.JsonConvert.DeserializeObject<PlayerData>(data);
     }
 
     struct PlayerData{
-        public Vector3 position;
-        public Quaternion rotation;
+        public Vec3 position;
+        public Vec4 rotation;
+        public MaterialInventory inventory;
     }
 }

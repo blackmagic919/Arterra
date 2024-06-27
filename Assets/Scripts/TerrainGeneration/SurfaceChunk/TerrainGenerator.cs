@@ -15,20 +15,21 @@ public static class TerrainGenerator
         surfaceDataSampler = Resources.Load<ComputeShader>("TerrainGeneration/SurfaceChunk/SurfaceMapSampler");
     }
 
-    public static void PresetData(SurfaceCreatorSettings surfSettings){
+    public static void PresetData(){
+        SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.Surface.value;
         surfaceDataSampler.SetBuffer(0, "surfMap", UtilityBuffers.GenerationBuffer);
 
-        surfaceDataSampler.SetInt("continentalSampler", surfSettings.TerrainContinentalDetail);
-        surfaceDataSampler.SetInt("PVSampler", surfSettings.TerrainPVDetail);
-        surfaceDataSampler.SetInt("erosionSampler", surfSettings.TerrainErosionDetail);
-        surfaceDataSampler.SetInt("squashSampler", surfSettings.SquashMapDetail);
-        surfaceDataSampler.SetInt("caveFreqSampler", surfSettings.CaveFreqDetail);
-        surfaceDataSampler.SetInt("caveSizeSampler", surfSettings.CaveSizeDetail);
-        surfaceDataSampler.SetInt("caveShapeSampler", surfSettings.CaveShapeDetail);
+        surfaceDataSampler.SetInt("continentalSampler", surface.TerrainContinentalDetail);
+        surfaceDataSampler.SetInt("PVSampler", surface.TerrainPVDetail);
+        surfaceDataSampler.SetInt("erosionSampler", surface.TerrainErosionDetail);
+        surfaceDataSampler.SetInt("squashSampler", surface.SquashMapDetail);
+        surfaceDataSampler.SetInt("caveFreqSampler", surface.CaveFreqDetail);
+        surfaceDataSampler.SetInt("caveSizeSampler", surface.CaveSizeDetail);
+        surfaceDataSampler.SetInt("caveShapeSampler", surface.CaveShapeDetail);
 
-        surfaceDataSampler.SetFloat("maxTerrainHeight", surfSettings.MaxTerrainHeight);
-        surfaceDataSampler.SetFloat("squashHeight", surfSettings.MaxSquashHeight);
-        surfaceDataSampler.SetFloat("heightOffset", surfSettings.terrainOffset);
+        surfaceDataSampler.SetFloat("maxTerrainHeight", surface.MaxTerrainHeight);
+        surfaceDataSampler.SetFloat("squashHeight", surface.MaxSquashHeight);
+        surfaceDataSampler.SetFloat("heightOffset", surface.terrainOffset);
     }
 
     //The wonder shader that does everything (This way more parallelization is achieved)

@@ -22,7 +22,7 @@ public class EditorMesh : MonoBehaviour
 
     [Header("Dependencies")]
     public GameObject mesh;
-    public StructureGenerationData structureData;
+    //public StructureGenerationData structureData;
     static EditorMesh instance;
 
     Queue<ThreadInfo> ThreadInfoQueue = new Queue<ThreadInfo>();

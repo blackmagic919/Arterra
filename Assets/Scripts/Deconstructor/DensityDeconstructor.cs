@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityEditor;
 using Utils;
 using System.Linq;
-using UnityEngine.EventSystems;
 
 [ExecuteInEditMode]
 public class DensityDeconstructor : MonoBehaviour
@@ -15,7 +14,7 @@ public class DensityDeconstructor : MonoBehaviour
     public string savePath;
     public float IsoLevel = 0.5f;
     [SerializeField]
-    public Structure.Data Structure;
+    public StructureData Structure;
     SelectionArray SelectedArray;
     Queue<uint> Selected;
     GridManager gridManager;
@@ -24,12 +23,12 @@ public class DensityDeconstructor : MonoBehaviour
     private bool showGrid = false;
     private bool showModel = false;
 
-    private Structure.PointInfo curData;
-    private Structure.PointInfo prevData;
+    private StructureData.PointInfo curData;
+    private StructureData.PointInfo prevData;
 
     //Don't ask me why the conversion is like this..
     private Vector2 _MousePos{ get{ return new Vector2(Event.current.mousePosition.x*2, Camera.current.scaledPixelHeight - Event.current.mousePosition.y*2); }}
-    private uint3 GridSize{get{return Structure.settings.GridSize;}}
+    private uint3 GridSize{get{return Structure.settings.value.GridSize;}}
     readonly int3[] adjDelta = new int3[6] { 
         new int3(-1, 0, 0), 
         new int3(1, 0, 0),
@@ -51,7 +50,6 @@ public class DensityDeconstructor : MonoBehaviour
         if(!initialized) return;
         initialized = false;
 
-        Structure.Clear();
         gridManager.Release();
         modelManager.Release();
         Selected.Clear();
@@ -60,7 +58,9 @@ public class DensityDeconstructor : MonoBehaviour
     public void InitializeGrid(){
         if(GridSize.x == 0 || GridSize.y == 0 || GridSize.z == 0)
             throw new Exception("Grid size cannot be zero");
-        if(initialized) Release();
+        if(initialized) Release(); 
+        if(!GenerationPreset.active) GenerationPreset.Initialize();
+        if(!UtilityBuffers.active) UtilityBuffers.Initialize();
 
         Structure.Initialize();
         int numPoints = (int)(GridSize.x * GridSize.y * GridSize.z);
@@ -82,7 +82,7 @@ public class DensityDeconstructor : MonoBehaviour
         if(showModel) this.modelManager.Render();
     }
     
-    public void UpdateMapData(ref Structure.PointInfo[] mapData){ UtilityBuffers.TransferBuffer.SetData(mapData); }
+    public void UpdateMapData(List<StructureData.PointInfo> mapData){ UtilityBuffers.TransferBuffer.SetData(mapData); }
     public void OnSceneGUI(SceneView sceneView){
         if(!initialized) return;
 
@@ -126,13 +126,13 @@ public class DensityDeconstructor : MonoBehaviour
                 return e;
             });
 
-            this.UpdateMapData(ref this.Structure.map);
+            this.UpdateMapData(this.Structure.map.value);
             this.modelManager.GenerateModel();
             prevData = curData;
         }
     }
 
-    void SetDisplayMapData(Structure.PointInfo data){
+    void SetDisplayMapData(StructureData.PointInfo data){
         curData = data; prevData = data;
     }
 
@@ -176,7 +176,7 @@ public class DensityDeconstructor : MonoBehaviour
                     if(RayIntersectsSphere(SelectionOS, new Vector3(point.x, point.y, point.z), 0.05f)){
                         int index = CustomUtility.irregularIndexFromCoord(point, new int2(GridSize.xy));
                         SelectedArray[index] = Event.current.shift ? !SelectedArray[index] : true;
-                        SetDisplayMapData(Structure.map[index]);
+                        SetDisplayMapData(Structure.map.value[index]);
                     }
                 }
             }
@@ -185,7 +185,7 @@ public class DensityDeconstructor : MonoBehaviour
 
     private void FlushSelection(){
         Selected.Clear();
-        for(uint i = 0; i < Structure.map.Length; i++){
+        for(uint i = 0; i < Structure.map.value.Count; i++){
             if(SelectedArray[(int)i]) Selected.Enqueue(i);
         }
     }
@@ -196,7 +196,7 @@ public class DensityDeconstructor : MonoBehaviour
     }
     
     private void InvertSelection(){
-        for(int i = 0; i < Structure.map.Length; i++)
+        for(int i = 0; i < Structure.map.value.Count; i++)
             SelectedArray[i] = !SelectedArray[i];
     }
 
@@ -208,14 +208,14 @@ public class DensityDeconstructor : MonoBehaviour
             for(int i = 0; i < 6; i++){
                 int newInd = (int)ind + CustomUtility.irregularIndexFromCoord(adjDelta[i], new int2(GridSize.xy));
                 if(newInd >= numPoints || newInd < 0) return;
-                SelectedArray[newInd] = Structure.map[newInd].material != Structure.map[ind].material;
+                SelectedArray[newInd] = Structure.map.value[newInd].material != Structure.map.value[(int)ind].material;
             }
         });
     }
 
     private void SelectDensity(){
         FloodFill((ind) => {
-            if((Structure.map[ind].density < IsoLevel * 255) != (curData.density < IsoLevel * 255)) return false;
+            if((Structure.map.value[ind].density < IsoLevel * 255) != (curData.density < IsoLevel * 255)) return false;
             if(SelectedArray[ind]) return false;
             SelectedArray[ind] = true;
             return true;
@@ -223,17 +223,17 @@ public class DensityDeconstructor : MonoBehaviour
     }
     private void SelectMaterial(){
         FloodFill((ind) => {
-            if(Structure.map[ind].material != curData.material) return false;
+            if(Structure.map.value[ind].material != curData.material) return false;
             if(SelectedArray[ind]) return false;
             SelectedArray[ind] = true;
             return true;
         });
     }
 
-    void UpdateSelected(Func<Structure.PointInfo, Structure.PointInfo> action){
+    void UpdateSelected(Func<StructureData.PointInfo, StructureData.PointInfo> action){
         for(int i = 0, count = Selected.Count; i < count; i++){
             uint index = Selected.Dequeue();
-            Structure.map[index] = action.Invoke(Structure.map[index]);
+            Structure.map.value[(int)index] = action.Invoke(Structure.map.value[(int)index]);
             Selected.Enqueue(index);
         }
     }
@@ -293,20 +293,15 @@ public class DensityDeconstructor : MonoBehaviour
 
     public void SaveData()
     {
-        Structure obj = ScriptableObject.CreateInstance<Structure>();
-        obj.This = Structure;
-
-        AssetDatabase.CreateAsset(obj, "Assets/" + savePath + ".asset");
+        AssetDatabase.CreateAsset(Structure, "Assets/" + savePath + ".asset");
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
     }
 
     public void LoadData(){
-        Structure obj = AssetDatabase.LoadAssetAtPath<Structure>("Assets/" + savePath + ".asset");
-        this.Structure = obj.This;
         InitializeGrid();
         //Immediately Render Model
-        this.UpdateMapData(ref this.Structure.map);
+        this.UpdateMapData(this.Structure.map.value);
         this.modelManager.GenerateModel();
     }
 
@@ -316,7 +311,7 @@ public class DensityDeconstructor : MonoBehaviour
         InitializeGrid();
 
         GetDataFromMesh(mesh);
-        this.UpdateMapData(ref this.Structure.map);
+        this.UpdateMapData(this.Structure.map.value);
         this.modelManager.GenerateModel();
     }
 
@@ -355,7 +350,9 @@ public class DensityDeconstructor : MonoBehaviour
         threadsPerAxis.x = (uint)Mathf.CeilToInt((float)numPoints/ threadsPerAxis.x);
         SDFConstructor.Dispatch(kernel, (int)threadsPerAxis.x, 1, 1);
 
-        UtilityBuffers.TransferBuffer.GetData(Structure.map);
+        StructureData.PointInfo[] newMap =  Structure.map.value.ToArray();
+        UtilityBuffers.TransferBuffer.GetData(newMap);
+        Structure.map.value = newMap.ToList();
     }
 
     private class ModelManager{
@@ -477,7 +474,7 @@ public class DensityDeconstructor : MonoBehaviour
             rp.matProps.SetInt("vertAddress", vertStart);
             rp.matProps.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
 
-            return new AsyncMeshReadback.GeometryHandle(rp, null, 0, drawArgs, matInd);
+            return new AsyncMeshReadback.GeometryHandle(rp, default, 0, drawArgs, matInd);
         }
 
         void PresetData(){

@@ -1,13 +1,16 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Mathematics;
+using Newtonsoft.Json;
 
 
 [CreateAssetMenu(menuName = "Generation/MaterialData")]
 public class MaterialData : ScriptableObject
 {
     public string Name;
-    public Texture2D texture;
+    [UIgnore][JsonIgnore]
+    public Option<Texture2D> texture;
     public TerrainData terrainData;
     public AtmosphericData AtmosphereScatter;
     public LiquidData liquidData;
@@ -15,7 +18,7 @@ public class MaterialData : ScriptableObject
     [System.Serializable]
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public struct TerrainData{
-        public Color color;
+        public Vec4 color;
         public float textureScale;
         [Range(0,1)]
         public float baseColorStrength;
@@ -27,15 +30,15 @@ public class MaterialData : ScriptableObject
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public struct AtmosphericData
     {
-        public Vector3 ScatterCoeffs;
-        public Vector3 GroundExtinction;
+        public Vec3 ScatterCoeffs;
+        public Vec3 GroundExtinction;
     }
 
     [System.Serializable]
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public struct LiquidData{
-        public Vector3 shallowCol;
-        public Vector3 deepCol;
+        public Vec3 shallowCol;
+        public Vec3 deepCol;
         [Range(0,1)]
         public float colFalloff;
         [Range(0,1)]
@@ -46,7 +49,7 @@ public class MaterialData : ScriptableObject
         public float waveBlend;
         [Range(0,1)]
         public float waveStrength;
-        public Vector2 waveScale;
-        public Vector2 waveSpeed;
+        public Vec2 waveScale;
+        public Vec2 waveSpeed;
     }
 }

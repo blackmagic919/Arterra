@@ -9,96 +9,12 @@ using Utils;
 public class BiomeGenerationData : ScriptableObject
 {
     [SerializeField]
-    public List<BiomeInfo> biomes;
+    public Option<List<Option<BiomeInfo> > > biomes;
     [HideInInspector]
     public int StructureChecksPerChunk;
     [Range(1, 5)]
     public float LoDFalloff;
     public int maxLoD;
-
-    ComputeBuffer biomeRTreeBuffer;
-    ComputeBuffer biomeAtmosphereBuffer;
-    ComputeBuffer biomeMatCountBuffer;
-    ComputeBuffer biomeGroundMatBuffer;
-    ComputeBuffer biomeSurfaceMatBuffer;
-
-    ComputeBuffer biomeStructBuffer;
-    ComputeBuffer structGenBuffer;
-    //
-
-    private void OnEnable()
-    {
-        SetGlobalBuffers();
-    }
-
-    void OnDisable()
-    {
-        biomeRTreeBuffer?.Release();
-        biomeMatCountBuffer?.Release();
-        biomeAtmosphereBuffer?.Release();
-        biomeGroundMatBuffer?.Release();
-        biomeSurfaceMatBuffer?.Release();
-
-        biomeStructBuffer?.Release();
-        structGenBuffer?.Release();//
-    }
-
-   public void SetGlobalBuffers()
-    {
-        int numBiomes = biomes.Count;
-        uint2[] biomeMatCount = new uint2[numBiomes + 1]; //Prefix sum
-        float[] atmosphereData = new float[numBiomes];
-        List<BiomeInfo.BMaterial> biomeGroundMaterial = new List<BiomeInfo.BMaterial>();
-        List<BiomeInfo.BMaterial> biomeSurfaceMaterial = new List<BiomeInfo.BMaterial>();
-
-        for (int i = 0; i < numBiomes; i++)
-        {
-            biomeMatCount[i+1] = new uint2((uint)biomes[i].GroundMaterials.Count + biomeMatCount[i].x, (uint)biomes[i].SurfaceMaterials.Count + biomeMatCount[i].y);
-            atmosphereData[i] = biomes[i].AtmosphereFalloff;
-            biomeGroundMaterial.AddRange(biomes[i].GroundMaterials);
-            biomeSurfaceMaterial.AddRange(biomes[i].SurfaceMaterials);
-        }
-
-        BiomeDictionary.RNodeFlat[] RTree = new BiomeDictionary(biomes).FlattenTree();
-
-        int matStride = sizeof(int) + sizeof(float) + sizeof(float) + (sizeof(int) * 3 + sizeof(float) * 2);
-        biomeRTreeBuffer = new ComputeBuffer(RTree.Length, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
-        biomeMatCountBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint) * 2, ComputeBufferType.Structured);
-        biomeAtmosphereBuffer = new ComputeBuffer(numBiomes, sizeof(float), ComputeBufferType.Structured);
-        biomeGroundMatBuffer = new ComputeBuffer(biomeGroundMaterial.Count, matStride, ComputeBufferType.Structured);
-        biomeSurfaceMatBuffer = new ComputeBuffer(biomeSurfaceMaterial.Count, matStride, ComputeBufferType.Structured);
-
-        biomeRTreeBuffer.SetData(RTree);
-        biomeMatCountBuffer.SetData(biomeMatCount);
-        biomeAtmosphereBuffer.SetData(atmosphereData);
-        biomeGroundMatBuffer.SetData(biomeGroundMaterial);
-        biomeSurfaceMatBuffer.SetData(biomeSurfaceMaterial);
-
-        Shader.SetGlobalBuffer("_BiomeRTree", biomeRTreeBuffer);
-        Shader.SetGlobalBuffer("_BiomeMaterialCount", biomeMatCountBuffer);
-        Shader.SetGlobalBuffer("_BiomeAtmosphereData", biomeAtmosphereBuffer);
-        Shader.SetGlobalBuffer("_BiomeGroundMaterials", biomeGroundMatBuffer);
-        Shader.SetGlobalBuffer("_BiomeSurfaceMaterials", biomeSurfaceMatBuffer);
-
-        uint[] biomeStructCount = new uint[numBiomes + 1]; 
-        List<BiomeInfo.TerrainStructure> biomeStructures = new List<BiomeInfo.TerrainStructure>();
-
-        for (int i = 0; i < numBiomes; i++)
-        {
-            biomeStructCount[i+1] = (uint)biomes[i].Structures.Count + biomeStructCount[i];
-            biomeStructures.AddRange(biomes[i].Structures);
-        }
-
-        int structStride = sizeof(uint) + sizeof(float) + (sizeof(int) * 3 + sizeof(float) * 2);
-        biomeStructBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint), ComputeBufferType.Structured);
-        structGenBuffer = new ComputeBuffer(biomeStructures.Count, structStride, ComputeBufferType.Structured);
-
-        biomeStructBuffer.SetData(biomeStructCount);
-        structGenBuffer.SetData(biomeStructures);
-
-        Shader.SetGlobalBuffer("_BiomeStructurePrefix", biomeStructBuffer);
-        Shader.SetGlobalBuffer("_BiomeStructureData", structGenBuffer);
-    }
 }
 
 
@@ -115,7 +31,7 @@ public class BiomeDictionary
         return node.biome;
     }
 
-    public BiomeDictionary(List<BiomeInfo> biomes)
+    public BiomeDictionary(List<Option<BiomeInfo> > biomes)
     {
         List<RNode> leaves = InitializeBiomeRegions(biomes);
         _rTree = ConstructRTree(leaves);
@@ -258,13 +174,13 @@ public class BiomeDictionary
         return ConstructRTree(ret);
     }
 
-    List<RNode> InitializeBiomeRegions(List<BiomeInfo> biomes)
+    List<RNode> InitializeBiomeRegions(List<Option<BiomeInfo> > biomes)
     {
         int numOfBiomes = biomes.Count;
         List<RNode> biomeRegions = new List<RNode>();
         for (int i = 0; i < numOfBiomes; i++)
         {
-            BiomeInfo.BiomeConditionsData conditions = biomes[i].BiomeConditions;
+            BiomeInfo.BiomeConditionsData conditions = biomes[i].value.BiomeConditions.value;
             regionBound bounds = new regionBound(6);
             bounds.SetDimensions(conditions);
             bounds.CalculateArea();
@@ -272,7 +188,7 @@ public class BiomeDictionary
             for (int u = i - 1; u >= 0; u--)
             {
                 if (RegionIntersects(bounds, biomeRegions[u].bounds, 6))
-                    throw new ArgumentException($"Biome {biomes[i].name}'s generation intersects with {biomes[u].name}");
+                    throw new ArgumentException($"Biome {biomes[i].value.name}'s generation intersects with {biomes[u].value.name}");
             }
 
             biomeRegions.Add(new LeafNode(bounds, i));

@@ -38,9 +38,9 @@ public class AsyncMeshReadback
 
     //Readback Task
 
-    public AsyncMeshReadback(ReadbackSettings settings, Transform transform, Bounds boundsOS)
+    public AsyncMeshReadback(Transform transform, Bounds boundsOS)
     {   
-        this.settings = settings;
+        this.settings = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.ReadBackSettings.value;
         this.transform = transform;
         this.numMeshes = (uint)settings.indirectTerrainMats.Length;
         this.triHandles = new GeometryHandle[numMeshes];
@@ -71,10 +71,10 @@ public class AsyncMeshReadback
     {
         this.vertexHandle?.Release();
 
-        uint vertAddress = this.settings.memoryBuffer.AllocateMemory(UtilityBuffers.GenerationBuffer, MESH_VERTEX_STRIDE_WORD, bufferOffsets.vertexCounter);
-        TranscribeVertices(this.settings.memoryBuffer.AccessStorage(), this.settings.memoryBuffer.AccessAddresses(), (int)vertAddress, bufferOffsets.vertexCounter, bufferOffsets.vertStart);
+        uint vertAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, MESH_VERTEX_STRIDE_WORD, bufferOffsets.vertexCounter);
+        TranscribeVertices(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(), (int)vertAddress, bufferOffsets.vertexCounter, bufferOffsets.vertStart);
 
-        this.vertexHandle = new GeometryHandle{addressIndex = vertAddress, memory = this.settings.memoryBuffer};
+        this.vertexHandle = new GeometryHandle{addressIndex = vertAddress, memory = GenerationPreset.memoryHandle};
     }
 
 
@@ -83,18 +83,18 @@ public class AsyncMeshReadback
         triHandles[matIndex]?.Release();
 
         //Transcribe data to memory heap for GPU-forward render
-        uint geoHeapMemoryAddress = this.settings.memoryBuffer.AllocateMemory(UtilityBuffers.GenerationBuffer, TRI_STRIDE_WORD, triCounter);
+        uint geoHeapMemoryAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, TRI_STRIDE_WORD, triCounter);
 
         uint drawArgsAddress = UtilityBuffers.AllocateArgs(); //Allocates 4 bytes
         CreateDispArg(UtilityBuffers.ArgumentBuffer, triCounter, (int)drawArgsAddress);
 
-        TranscribeTriangles(this.settings.memoryBuffer.AccessStorage(), this.settings.memoryBuffer.AccessAddresses(),
+        TranscribeTriangles(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(),
                            (int)geoHeapMemoryAddress, triCounter, triStart, dictStart);
 
         //All buffers that are created by helper functions must enqueue to a buffer handle for consistency
         //Thus to indicate that they aren't being handled, initialize persistant buffers here
-        RenderParams rp = GetRenderParams(this.settings.memoryBuffer.AccessStorage(), this.settings.memoryBuffer.AccessAddresses(), (int)geoHeapMemoryAddress, (int)this.vertexHandle.addressIndex, matIndex);
-        triHandles[matIndex] = new GeometryHandle(rp, this.settings.memoryBuffer, geoHeapMemoryAddress, drawArgsAddress, matIndex);
+        RenderParams rp = GetRenderParams(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(), (int)geoHeapMemoryAddress, (int)this.vertexHandle.addressIndex, matIndex);
+        triHandles[matIndex] = new GeometryHandle(rp, GenerationPreset.memoryHandle, geoHeapMemoryAddress, drawArgsAddress, matIndex);
 
         MainLoopUpdateTasks.Enqueue(triHandles[matIndex]);
         ReleaseTempBuffers();
@@ -108,7 +108,7 @@ public class AsyncMeshReadback
         GeometryHandle vertHandle = this.vertexHandle; //Get reference here so that it doesn't change when lambda evaluates
         if(vertHandle == null || !vertHandle.initialized)
             return;
-        AsyncGPUReadback.Request(this.settings.memoryBuffer.AccessAddresses(), size: 8, offset: 8*(int)vertHandle.addressIndex, ret => onVertAddressRecieved(ret, vertHandle, RBTask));
+        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.AccessAddresses(), size: 8, offset: 8*(int)vertHandle.addressIndex, ret => onVertAddressRecieved(ret, vertHandle, RBTask));
         RBTask.AddTask();
 
         //Readback mesh triangles
@@ -117,7 +117,7 @@ public class AsyncMeshReadback
             if(geoHandle == null || !geoHandle.initialized)
                 continue;
             //Begin readback of data
-            AsyncGPUReadback.Request(this.settings.memoryBuffer.AccessAddresses(), size: 8, offset: 8*(int)geoHandle.addressIndex, ret => onTriAddressRecieved(ret, geoHandle, RBTask));
+            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.AccessAddresses(), size: 8, offset: 8*(int)geoHandle.addressIndex, ret => onTriAddressRecieved(ret, geoHandle, RBTask));
             RBTask.AddTask();
         }
     }
@@ -136,7 +136,7 @@ public class AsyncMeshReadback
         }
 
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
-        AsyncGPUReadback.Request(this.settings.memoryBuffer.AccessStorage(), size: 4, offset: 4 * ((int)memAddress.x - 1), ret => onTriSizeRecieved(ret, memAddress, geoHandle, RBTask));
+        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.AccessStorage(), size: 4, offset: 4 * ((int)memAddress.x - 1), ret => onTriSizeRecieved(ret, memAddress, geoHandle, RBTask));
     }
 
     void onVertAddressRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, ReadbackTask RBTask){
@@ -151,7 +151,7 @@ public class AsyncMeshReadback
             return;
         }
 
-        AsyncGPUReadback.Request(this.settings.memoryBuffer.AccessStorage(), size: 4, offset: 4 * ((int)memAddress.x - 1), ret => onVertSizeRecieved(ret, memAddress, geoHandle, RBTask));
+        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.AccessStorage(), size: 4, offset: 4 * ((int)memAddress.x - 1), ret => onVertSizeRecieved(ret, memAddress, geoHandle, RBTask));
     }
 
     void onTriSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask RBTask)
@@ -164,7 +164,7 @@ public class AsyncMeshReadback
 
         RBTask.RBMesh.IndexBuffer[geoHandle.matIndex] = new NativeArray<uint>(memSize, Allocator.Persistent);
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[geoHandle.matIndex], this.settings.memoryBuffer.AccessStorage(), size: 4 * memSize, offset: 4 * triStartWord, ret => onTriDataRecieved(geoHandle, RBTask));
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[geoHandle.matIndex], GenerationPreset.memoryHandle.AccessStorage(), size: 4 * memSize, offset: 4 * triStartWord, ret => onTriDataRecieved(geoHandle, RBTask));
     }
 
     void onVertSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask RBTask){
@@ -178,7 +178,7 @@ public class AsyncMeshReadback
         RBTask.RBMesh.VertexBuffer = new NativeArray<Vertex>(vertCount, Allocator.Persistent);
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
         //Async says async but is run on main thread(kind of confusing)
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, this.settings.memoryBuffer.AccessStorage(), size: 4 * memSize, offset: 4 * vertStartWord, ret => onVertDataRecieved(geoHandle, RBTask));
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, GenerationPreset.memoryHandle.AccessStorage(), size: 4 * memSize, offset: 4 * vertStartWord, ret => onVertDataRecieved(geoHandle, RBTask));
     }
 
     void onTriDataRecieved(GeometryHandle geoHandle, ReadbackTask RBTask)
@@ -349,13 +349,13 @@ public class AsyncMeshReadback
     public class GeometryHandle : UpdateTask
     {
         public RenderParams rp = default;
-        public MemoryBufferSettings memory = default;
+        public GenerationPreset.MemoryHandle memory = default;
         public int matIndex = -1;
         public uint addressIndex = 0;
         public uint argsAddress = 0;
         public bool initialized;
 
-        public GeometryHandle(RenderParams rp, MemoryBufferSettings memory, uint addressIndex, uint argsAddress, int matIndex)
+        public GeometryHandle(RenderParams rp, GenerationPreset.MemoryHandle memory, uint addressIndex, uint argsAddress, int matIndex)
         {
             this.addressIndex = addressIndex;
             this.memory = memory;
@@ -383,7 +383,7 @@ public class AsyncMeshReadback
 
             //Release geometry memory
             if(this.addressIndex != 0)
-                memory.ReleaseMemory(this.addressIndex);
+                GenerationPreset.memoryHandle.ReleaseMemory(this.addressIndex);
             if(this.argsAddress != 0)
                 UtilityBuffers.ReleaseArgs(this.argsAddress);
         }

@@ -25,9 +25,6 @@ public class EndlessTerrain : MonoBehaviour
     public static Vector3 viewerPosition;
     Vector3 oldViewerPos = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
 
-
-    [Header("Dependencies")]
-    public GenerationResources resources;
     //Ideally specialShaders should be in materialData, but can't compile monobehavior in an asset 
 
     public static readonly int[] meshSkipTable = { 1, 2, 4, 8, 16 }; //has to be 2x for proper stitching
@@ -40,7 +37,10 @@ public class EndlessTerrain : MonoBehaviour
     public static Dictionary<int3, TerrainChunk> terrainChunkDict = new Dictionary<int3, TerrainChunk>();
     public static Dictionary<int2, SurfaceChunk> surfaceChunkDict = new Dictionary<int2, SurfaceChunk>();
 
-
+    void OnEnable(){
+        GenerationPreset.Initialize();
+        UtilityBuffers.Initialize();
+    }
     void Start()
     {
         renderDistance = settings.detailLevels[^1].distanceThresh;
@@ -48,9 +48,9 @@ public class EndlessTerrain : MonoBehaviour
 
         GPUDensityManager.Initialize(settings.detailLevels, mapChunkSize, lerpScale);
         CPUDensityManager.Intiialize(settings.detailLevels[0], mapChunkSize);
-        StructureGenerator.PresetData(resources.meshCreator, resources.surfaceSettings);
-        TerrainGenerator.PresetData(resources.surfaceSettings);
-        DensityGenerator.PresetData(resources.meshCreator, mapChunkSize);
+        StructureGenerator.PresetData();
+        TerrainGenerator.PresetData();
+        DensityGenerator.PresetData(mapChunkSize);
         ShaderGenerator.PresetData(mapChunkSize);
     }
 
@@ -74,19 +74,18 @@ public class EndlessTerrain : MonoBehaviour
     {
         TerrainChunk[] chunks = new TerrainChunk[terrainChunkDict.Count];
         terrainChunkDict.Values.CopyTo(chunks, 0);
-        GPUDensityManager.Release();
-        CPUDensityManager.Release();
         foreach(TerrainChunk chunk in chunks)
-        {
             chunk.DestroyChunk();
-        }
 
         SurfaceChunk[] schunks = new SurfaceChunk[surfaceChunkDict.Count];
         surfaceChunkDict.Values.CopyTo(schunks, 0);
         foreach (SurfaceChunk chunk in schunks)
-        {
             chunk.DestroyChunk();
-        }
+
+        UtilityBuffers.Release();
+        GPUDensityManager.Release();
+        CPUDensityManager.Release();
+        GenerationPreset.Release();
     }
 
     private void LateUpdate()
@@ -143,7 +142,7 @@ public class EndlessTerrain : MonoBehaviour
                     curSChunk.Update();
                 }
                 else {
-                    curSChunk = new SurfaceChunk(resources.surfaceSettings, viewedSC);
+                    curSChunk = new SurfaceChunk(viewedSC);
                     surfaceChunkDict.Add(viewedSC, curSChunk);
                 }
 
@@ -151,7 +150,7 @@ public class EndlessTerrain : MonoBehaviour
                 {
                     int3 viewedCC = new int3(xOffset, yOffset, zOffset) + CCCoord;
                     if (terrainChunkDict.ContainsKey(viewedCC)) terrainChunkDict[viewedCC].Update();
-                    else terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, settings.IsoLevel, transform, curSChunk, settings.detailLevels, resources));
+                    else terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, settings.IsoLevel, transform, curSChunk, settings.detailLevels));
                 }
             }
         }

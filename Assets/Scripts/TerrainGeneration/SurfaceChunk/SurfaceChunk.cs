@@ -13,11 +13,11 @@ public class SurfaceChunk : ChunkData
     bool active = true;
 
     // Start is called before the first frame update
-    public SurfaceChunk(SurfaceCreatorSettings surfSettings, int2 coord)
+    public SurfaceChunk(int2 coord)
     {
         this.SCoord = coord;
         this.position = CustomUtility.AsVector(coord) * mapChunkSize - Vector2.one * (mapChunkSize / 2f);
-        baseMap = new BaseMap(surfSettings, position);
+        baseMap = new BaseMap(position);
 
         CreateBaseChunk();
         Update();
@@ -88,8 +88,8 @@ public class SurfaceChunk : ChunkData
 
         Vector2 position;
 
-        public BaseMap(SurfaceCreatorSettings mapCreator, Vector2 position){
-            this.mapCreator = new SurfaceCreator(mapCreator);
+        public BaseMap(Vector2 position){
+            this.mapCreator = new SurfaceCreator();
             this.position = position;
         }
 
@@ -102,31 +102,15 @@ public class SurfaceChunk : ChunkData
             hasChunk = true;
         }
 
-        public SurfData GetMap()
-        {  
-            return new SurfData(mapCreator.settings.surfaceMemoryBuffer.AccessStorage(), 
-                                mapCreator.settings.surfaceMemoryBuffer.AccessAddresses(), 
-                                this.surfAddress);
-        }
+        public uint GetMap(){  return surfAddress; }
 
         public void ReleaseSurfaceMap()
         {
             if(!hasChunk)
                 return;
+            hasChunk = false;
             
-            mapCreator.settings.surfaceMemoryBuffer.ReleaseMemory(this.surfAddress);
-        }
-    }
-
-    public struct SurfData{
-        public ComputeBuffer Memory;
-        public ComputeBuffer Addresses;
-        public uint addressIndex;
-
-        public SurfData(ComputeBuffer memory, ComputeBuffer addresses, uint addressIndex){
-            this.Memory = memory;
-            this.Addresses = addresses;
-            this.addressIndex = addressIndex;
+            GenerationPreset.memoryHandle.ReleaseMemory(this.surfAddress);
         }
     }
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Utils;
@@ -7,57 +8,59 @@ using Utils;
 public class ProceduralFoliageRenderer : SpecialShader
 {
     [Tooltip("A mesh to create foliage from")]
-    [SerializeField] private FoliageSettings foliageSettings = default; 
+    [SerializeField] public FoliageSettings foliageSettings = default; 
 
     [System.Serializable]
-    public class FoliageSettings
+    public struct FoliageSettings
     {
         [Tooltip("Size of Quad Images")]
-        public float QuadSize = 1.0f;
+        public float QuadSize; //1.0f
         [Tooltip("Distance Extruded Along Normal")]
-        public float Inflation = 0f;
+        public float Inflation; //0f
         
-        [Tooltip("The grass geometry creating compute shader")]
-        public ComputeShader foliageComputeShader = default;
-        public Material material;
+        [Tooltip("The grass geometry creating compute shader")][JsonIgnore][UIgnore]
+        public Option<ComputeShader> foliageComputeShader;
+        [JsonIgnore][UIgnore]
+        public Option<Material> material;
     }
 
     private Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
     public override Material GetMaterial()
     {
-        return foliageSettings.material;
+        return foliageSettings.material.value;
     }
 
-    public override void ProcessGeoShader(Transform transform, MemoryBufferSettings memoryHandle, int vertAddress, int triAddress, 
+    public override void ProcessGeoShader(Transform transform, GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, 
                         int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
     {
-        int idFoliageKernel = foliageSettings.foliageComputeShader.FindKernel("Main");
+        ComputeShader foliageCompute = foliageSettings.foliageComputeShader.value;
 
+        int idFoliageKernel = foliageCompute.FindKernel("Main");
         ComputeBuffer memory = memoryHandle.AccessStorage();
         ComputeBuffer addresses = memoryHandle.AccessAddresses();
 
-        ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(foliageSettings.foliageComputeShader, UtilityBuffers.GenerationBuffer, baseGeoCount);
+        ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(foliageCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
-        foliageSettings.foliageComputeShader.SetBuffer(idFoliageKernel, "SourceVertices", memory);
-        foliageSettings.foliageComputeShader.SetBuffer(idFoliageKernel, "SourceTriangles", memory);
-        foliageSettings.foliageComputeShader.SetBuffer(idFoliageKernel, "_AddressDict", addresses); 
-        foliageSettings.foliageComputeShader.SetInt("vertAddress", vertAddress);
-        foliageSettings.foliageComputeShader.SetInt("triAddress", triAddress);
+        foliageCompute.SetBuffer(idFoliageKernel, "SourceVertices", memory);
+        foliageCompute.SetBuffer(idFoliageKernel, "SourceTriangles", memory);
+        foliageCompute.SetBuffer(idFoliageKernel, "_AddressDict", addresses); 
+        foliageCompute.SetInt("vertAddress", vertAddress);
+        foliageCompute.SetInt("triAddress", triAddress);
 
-        foliageSettings.foliageComputeShader.SetBuffer(idFoliageKernel, "counters", UtilityBuffers.GenerationBuffer);
-        foliageSettings.foliageComputeShader.SetBuffer(idFoliageKernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
-        foliageSettings.foliageComputeShader.SetBuffer(idFoliageKernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
-        foliageSettings.foliageComputeShader.SetInt("bSTART_base", baseGeoStart);
-        foliageSettings.foliageComputeShader.SetInt("bCOUNT_base", baseGeoCount);
-        foliageSettings.foliageComputeShader.SetInt("bSTART_oGeo", geoStart);
-        foliageSettings.foliageComputeShader.SetInt("bCOUNT_oGeo", geoCounter);
+        foliageCompute.SetBuffer(idFoliageKernel, "counters", UtilityBuffers.GenerationBuffer);
+        foliageCompute.SetBuffer(idFoliageKernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
+        foliageCompute.SetBuffer(idFoliageKernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
+        foliageCompute.SetInt("bSTART_base", baseGeoStart);
+        foliageCompute.SetInt("bCOUNT_base", baseGeoCount);
+        foliageCompute.SetInt("bSTART_oGeo", geoStart);
+        foliageCompute.SetInt("bCOUNT_oGeo", geoCounter);
 
-        foliageSettings.foliageComputeShader.SetFloat("_QuadSize", foliageSettings.QuadSize);
-        foliageSettings.foliageComputeShader.SetFloat("_InflationFactor", foliageSettings.Inflation);
-        foliageSettings.foliageComputeShader.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
+        foliageCompute.SetFloat("_QuadSize", foliageSettings.QuadSize);
+        foliageCompute.SetFloat("_InflationFactor", foliageSettings.Inflation);
+        foliageCompute.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
 
-        foliageSettings.foliageComputeShader.DispatchIndirect(idFoliageKernel, args);
+        foliageCompute.DispatchIndirect(idFoliageKernel, args);
     }
 
 

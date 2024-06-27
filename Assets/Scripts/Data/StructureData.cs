@@ -3,27 +3,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 
-
-public class Structure : ScriptableObject{
-    public Data This;
-
-    [System.Serializable] 
-    public struct Data
-    {
-        public Settings settings;
-        public PointInfo[] map;
-        [SerializeField]
-        public List<CheckPoint> checks;
-        
-        public void Initialize(){
-            map ??= new PointInfo[settings.GridSize.x * settings.GridSize.y * settings.GridSize.z];
-            checks ??= new List<CheckPoint>();
-        }
-
-        public void Clear(){
-            map = null;
-            checks = null;
-        }
+public class StructureData : ScriptableObject
+{
+    public Option<Settings> settings;
+    public Option<List<PointInfo>> map;
+    [SerializeField]
+    public Option<List<CheckPoint>> checks;
+    
+    public void Initialize(){
+        map.value ??= new List<PointInfo>((int)(settings.value.GridSize.x * settings.value.GridSize.y * settings.value.GridSize.z));
+        checks.value ??= new List<CheckPoint>();
     }
 
     [System.Serializable]
@@ -80,4 +69,3 @@ public class Structure : ScriptableObject{
         }
     }
 }
-

@@ -4,8 +4,7 @@ using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "Settings/UtilityBuffers")]
-public class UtilityBuffers : ScriptableObject
+public static class UtilityBuffers 
 {
     public static ComputeBuffer indirectArgs;
     public static ComputeBuffer appendCount;
@@ -25,6 +24,8 @@ public class UtilityBuffers : ScriptableObject
     public static ComputeBuffer GenerationBuffer;
     public static ComputeBuffer TransferBuffer;
     const int GEN_BYTE_SIZE = 200000000; //200MB
+
+    public static bool active = false;
 
 
     public static uint AllocateArgs(){
@@ -54,6 +55,9 @@ public class UtilityBuffers : ScriptableObject
     }
     
     public static void Initialize(){
+        if(active) return;
+        active = true;
+
         indirectArgs = new ComputeBuffer(3, sizeof(int), ComputeBufferType.IndirectArguments);
         appendCount = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
         int maxPoints = (EndlessTerrain.mapChunkSize+1) * (EndlessTerrain.mapChunkSize+1) * (EndlessTerrain.mapChunkSize+1);
@@ -79,10 +83,8 @@ public class UtilityBuffers : ScriptableObject
         ArgumentBuffer?.Release();
         GenerationBuffer?.Release();
         TransferBuffer?.Release();
+        active = false;
     }
-    public void OnEnable(){ Initialize();}
-
-    public void OnDisable(){ Release();}
 
     public static void ClearRange(ComputeBuffer buffer, int length, int start){
         clearRange.SetBuffer(0, "counters", buffer);

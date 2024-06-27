@@ -7,31 +7,15 @@ using Unity.Mathematics;
 
 public class StructureCreator
 {
-    public MeshCreatorSettings meshSettings;
-    public SurfaceCreatorSettings surfSettings;
+    
     uint structureDataIndex;
-    Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
     const int STRUCTURE_STRIDE_WORD = 3 + 2 + 1;
     const int SAMPLE_STRIDE_WORD = 3 + 1;
     const int structCounter = 1;
 
-    public StructureCreator(MeshCreatorSettings mSettings, SurfaceCreatorSettings sSettings){
-        this.meshSettings = mSettings;
-        this.surfSettings = sSettings;
-    }
-
     public void ReleaseStructure()
     {
-        if(meshSettings.structureMemory != null)
-            meshSettings.structureMemory.ReleaseMemory(this.structureDataIndex);
-    }
-
-    public void ReleaseTempBuffers()
-    {
-        while (tempBuffers.Count > 0)
-        {
-            tempBuffers.Dequeue()?.Release();
-        }
+        GenerationPreset.memoryHandle.ReleaseMemory(this.structureDataIndex);
     }
     public int[] calculateLoDPoints(int maxLoD, int maxStructurePoints, float falloffFactor)
     {
@@ -68,17 +52,16 @@ public class StructureCreator
         ReleaseStructure();
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 2, 0);
 
-        SampleStructureLoD(meshSettings.biomeData.maxLoD, chunkSize, chunkCoord);
+        SampleStructureLoD(WorldStorageHandler.WORLD_OPTIONS.WorldOptions.Biomes.value.maxLoD, chunkSize, chunkCoord);
 
         //ComputeBuffer planCount = UtilityBuffers.CopyCount(planPointsAppend, tempBuffers);
         IdentifyStructures(chunkCoord, offset, IsoLevel, chunkSize);
 
         //ComputeBuffer structureCount = UtilityBuffers.CopyCount(structureBuffer, tempBuffers);
         //ComputeBuffer structByteSize = CalculateStructureSize(structureCount, STRUCTURE_STRIDE_4BYTE, ref tempBuffers);
-        this.structureDataIndex = meshSettings.structureMemory.AllocateMemory(UtilityBuffers.GenerationBuffer, STRUCTURE_STRIDE_WORD, structCounter);
-        TranscribeStructures(meshSettings.structureMemory.AccessStorage(), meshSettings.structureMemory.AccessAddresses(), (int)this.structureDataIndex);
+        this.structureDataIndex = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, STRUCTURE_STRIDE_WORD, structCounter);
+        TranscribeStructures(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(), (int)this.structureDataIndex);
 
-        ReleaseTempBuffers();
         return;
     }
 
@@ -86,11 +69,10 @@ public class StructureCreator
     {
         int meshSkipInc = meshSkipTable[LOD];
         
-        ComputeBuffer structCount = GetStructCount(meshSettings.structureMemory.AccessStorage(), meshSettings.structureMemory.AccessAddresses(), (int)structureDataIndex, STRUCTURE_STRIDE_WORD);
-        ApplyStructures(meshSettings.structureMemory.AccessStorage(), meshSettings.structureMemory.AccessAddresses(), structCount, 
+        ComputeBuffer structCount = GetStructCount(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(), (int)structureDataIndex, STRUCTURE_STRIDE_WORD);
+        ApplyStructures(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(), structCount, 
                         (int)structureDataIndex, chunkSize, meshSkipInc, IsoLevel);
 
-        ReleaseTempBuffers();
         return;
     }
 

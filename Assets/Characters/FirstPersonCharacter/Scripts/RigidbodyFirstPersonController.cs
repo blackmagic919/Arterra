@@ -124,7 +124,6 @@ namespace UnityStandardAssets.Characters.FirstPerson
             mouseLook.Init (transform, cam.transform);
             m_RigidBody.isKinematic = true;
         }
-
         public void ActivateCharacter()
         {
             m_RigidBody.isKinematic = false;
@@ -133,7 +132,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
         private void Update()
         {
-
+            if(m_RigidBody.isKinematic) return;
 			if (Input.GetKeyDown (KeyCode.Escape)) {
 				Debug.Break ();
 			}

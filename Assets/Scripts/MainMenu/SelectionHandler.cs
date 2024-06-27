@@ -1,11 +1,11 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Threading.Tasks;
 using UnityEngine.UI;
 using TMPro;
 using static WorldStorageHandler;
+
 public class SelectionHandler : MonoBehaviour
 {
     private static RectTransform sTransform;
@@ -79,8 +79,12 @@ public class SelectionHandler : MonoBehaviour
     }
 
     private static void InitializeSelectionInfo(){
-        worlds = LoadMeta();
-        initialized = false;
+        Task<WorldData[]> loadTask = LoadMeta();
+
+        loadTask.ContinueWith(task => {
+            worlds = task.Result;
+            initialized = false;
+        });
     }
 
     private static void ReleaseSelectionInfo(){

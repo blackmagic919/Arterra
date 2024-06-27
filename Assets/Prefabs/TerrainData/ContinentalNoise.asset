@@ -18,44 +18,46 @@ MonoBehaviour:
   lacunarity: 2
   seedOffset: 5
   interpolation:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0.4713615
-      outSlope: 0.4713615
-      tangentMode: 34
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 0.14759219
-      value: 0.069569275
-      inSlope: 0.28028414
-      outSlope: 0.28028414
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.8283152
-      outWeight: 0.087925464
-    - serializedVersion: 3
-      time: 0.71697277
-      value: 0.82224375
-      inSlope: 0.20637119
-      outSlope: 0.20637119
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.19816734
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0.62805355
-      outSlope: 0.62805355
-      tangentMode: 34
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
+    value:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0.8013854
+        outSlope: 0.8013854
+        tangentMode: 34
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 0.10971306
+        value: 0.08792245
+        inSlope: 0.50979465
+        outSlope: 0.50979465
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.19864966
+      - serializedVersion: 3
+        time: 0.7028493
+        value: 0.82517296
+        inSlope: 0.2552892
+        outSlope: 0.2552892
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.3467322
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0.58834475
+        outSlope: 0.58834475
+        tangentMode: 34
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    isDirty: 0

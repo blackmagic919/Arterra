@@ -13,9 +13,15 @@ MonoBehaviour:
   m_Name: Water
   m_EditorClassIdentifier: 
   Name: Water
-  texture: {fileID: 2800000, guid: 68036d40e53ca46ccb8662552a0ea939, type: 3}
+  texture:
+    value: {fileID: 2800000, guid: 68036d40e53ca46ccb8662552a0ea939, type: 3}
+    isDirty: 0
   terrainData:
-    color: {r: 0.25882354, g: 0.29411766, b: 1, a: 0}
+    color:
+      x: 0.259
+      y: 0.294
+      z: 1
+      w: 1
     textureScale: 5
     baseColorStrength: 0.1
     GeoShaderIndex: -1

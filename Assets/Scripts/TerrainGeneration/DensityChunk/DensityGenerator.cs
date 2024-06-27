@@ -10,7 +10,6 @@ public static class DensityGenerator
     [Header("Terrain Generation Shaders")]
     static ComputeShader baseGenCompute;//
     static ComputeShader meshGenerator;//
-    static ComputeShader densitySimplification;//
 
     public const int VERTEX_STRIDE_WORD = 3 * 2 + 2;
     public const int TRI_STRIDE_WORD = 3;
@@ -25,14 +24,15 @@ public static class DensityGenerator
         indirectCountToArgs = Resources.Load<ComputeShader>("Utility/CountToArgs");
     }
 
-    public static void PresetData(MeshCreatorSettings meshSettings, int maxChunkSize){
-        baseGenCompute.SetInt("coarseCaveSampler", meshSettings.CoarseTerrainNoise);
-        baseGenCompute.SetInt("fineCaveSampler", meshSettings.FineTerrainNoise);
-        baseGenCompute.SetInt("coarseMatSampler", meshSettings.CoarseMaterialNoise);
-        baseGenCompute.SetInt("fineMatSampler", meshSettings.FineMaterialNoise);
+    public static void PresetData(int maxChunkSize){
+        MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.Terrain.value;
+        baseGenCompute.SetInt("coarseCaveSampler", mesh.CoarseTerrainNoise);
+        baseGenCompute.SetInt("fineCaveSampler", mesh.FineTerrainNoise);
+        baseGenCompute.SetInt("coarseMatSampler", mesh.CoarseMaterialNoise);
+        baseGenCompute.SetInt("fineMatSampler", mesh.FineMaterialNoise);
 
-        baseGenCompute.SetFloat("waterHeight", meshSettings.waterHeight);
-        baseGenCompute.SetInt("waterMat", meshSettings.waterMat);
+        baseGenCompute.SetFloat("waterHeight", mesh.waterHeight);
+        baseGenCompute.SetInt("waterMat", mesh.waterMat);
 
         baseGenCompute.SetBuffer(0, "BaseMap", UtilityBuffers.GenerationBuffer);
 
@@ -77,14 +77,14 @@ public static class DensityGenerator
         UtilityBuffers.GenerationBuffer.EndWrite<TerrainChunk.MapData>(numPoints);
     }*/
        
-    public static void GenerateBaseData( SurfaceChunk.SurfData surfaceData, float IsoLevel, int chunkSize, int meshSkipInc, Vector3 offset)
+    public static void GenerateBaseData( uint surfaceData, float IsoLevel, int chunkSize, int meshSkipInc, Vector3 offset)
     {
         int numPointsAxes = chunkSize / meshSkipInc;
 
         baseGenCompute.SetFloat("IsoLevel", IsoLevel);
-        baseGenCompute.SetBuffer(0, "_SurfMemoryBuffer", surfaceData.Memory);
-        baseGenCompute.SetBuffer(0, "_SurfAddressDict", surfaceData.Addresses);
-        baseGenCompute.SetInt("surfAddress", (int)surfaceData.addressIndex);
+        baseGenCompute.SetBuffer(0, "_SurfMemoryBuffer", GenerationPreset.memoryHandle.AccessStorage());
+        baseGenCompute.SetBuffer(0, "_SurfAddressDict", GenerationPreset.memoryHandle.AccessAddresses());
+        baseGenCompute.SetInt("surfAddress", (int)surfaceData);
         baseGenCompute.SetInt("numPointsPerAxis", numPointsAxes);
 
         baseGenCompute.SetFloat("meshSkipInc", meshSkipInc);

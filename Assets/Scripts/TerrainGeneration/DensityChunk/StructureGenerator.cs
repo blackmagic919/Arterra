@@ -55,33 +55,36 @@ public static class StructureGenerator
     }
 
 
-    public static void PresetData(MeshCreatorSettings meshSettings, SurfaceCreatorSettings surfSettings)
+    public static void PresetData()
     {
-        int maxStructurePoints = calculateMaxStructurePoints(meshSettings.biomeData.maxLoD, meshSettings.biomeData.StructureChecksPerChunk, meshSettings.biomeData.LoDFalloff);
+        MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.Terrain.value;
+        SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.Surface.value;
+        BiomeGenerationData biomes = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.Biomes.value;
+        int maxStructurePoints = calculateMaxStructurePoints(biomes.maxLoD, biomes.StructureChecksPerChunk, biomes.LoDFalloff);
         offsets = new StructureOffsets(maxStructurePoints, 0, SAMPLE_STRIDE_WORD, STRUCTURE_STRIDE_WORD);
 
-        StructureLoDSampler.SetInt("maxLOD", meshSettings.biomeData.maxLoD);
-        StructureLoDSampler.SetInt("numPoints0", meshSettings.biomeData.StructureChecksPerChunk);
-        StructureLoDSampler.SetFloat("LoDFalloff", meshSettings.biomeData.LoDFalloff);
+        StructureLoDSampler.SetInt("maxLOD", biomes.maxLoD);
+        StructureLoDSampler.SetInt("numPoints0", biomes.StructureChecksPerChunk);
+        StructureLoDSampler.SetFloat("LoDFalloff", biomes.LoDFalloff);
         StructureLoDSampler.SetBuffer(0, "structures", UtilityBuffers.GenerationBuffer);
         StructureLoDSampler.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
         StructureLoDSampler.SetInt("bSTART", offsets.sampleStart);
         StructureLoDSampler.SetInt("bCOUNTER", offsets.sampleCounter);
 
-        StructureIdentifier.SetInt("caveCoarseSampler", meshSettings.CoarseTerrainNoise);
-        StructureIdentifier.SetInt("caveFineSampler", meshSettings.FineTerrainNoise);
+        StructureIdentifier.SetInt("caveCoarseSampler", mesh.CoarseTerrainNoise);
+        StructureIdentifier.SetInt("caveFineSampler", mesh.FineTerrainNoise);
 
-        StructureIdentifier.SetInt("continentalSampler", surfSettings.TerrainContinentalDetail);
-        StructureIdentifier.SetInt("erosionSampler", surfSettings.TerrainErosionDetail);
-        StructureIdentifier.SetInt("PVSampler", surfSettings.TerrainPVDetail);
-        StructureIdentifier.SetInt("squashSampler", surfSettings.SquashMapDetail);
-        StructureIdentifier.SetInt("caveFreqSampler", surfSettings.CaveFreqDetail);
-        StructureIdentifier.SetInt("caveSizeSampler", surfSettings.CaveSizeDetail);
-        StructureIdentifier.SetInt("caveShapeSampler", surfSettings.CaveShapeDetail);
+        StructureIdentifier.SetInt("continentalSampler", surface.TerrainContinentalDetail);
+        StructureIdentifier.SetInt("erosionSampler", surface.TerrainErosionDetail);
+        StructureIdentifier.SetInt("PVSampler", surface.TerrainPVDetail);
+        StructureIdentifier.SetInt("squashSampler", surface.SquashMapDetail);
+        StructureIdentifier.SetInt("caveFreqSampler", surface.CaveFreqDetail);
+        StructureIdentifier.SetInt("caveSizeSampler", surface.CaveSizeDetail);
+        StructureIdentifier.SetInt("caveShapeSampler", surface.CaveShapeDetail);
 
-        StructureIdentifier.SetFloat("maxTerrainHeight", surfSettings.MaxTerrainHeight);
-        StructureIdentifier.SetFloat("squashHeight", surfSettings.MaxSquashHeight);
-        StructureIdentifier.SetFloat("heightOffset", surfSettings.terrainOffset);
+        StructureIdentifier.SetFloat("maxTerrainHeight", surface.MaxTerrainHeight);
+        StructureIdentifier.SetFloat("squashHeight", surface.MaxSquashHeight);
+        StructureIdentifier.SetFloat("heightOffset", surface.terrainOffset);
 
         StructureIdentifier.SetBuffer(0, "structurePlan", UtilityBuffers.GenerationBuffer);
         StructureIdentifier.SetInt("bSTART_plan", offsets.sampleStart);

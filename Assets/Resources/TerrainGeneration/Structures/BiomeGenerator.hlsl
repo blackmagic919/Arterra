@@ -13,7 +13,7 @@ int SampleBiome (float3 position)
     mapData[3] = GetRawNoise(position, PVSampler, sOffset2D);
     mapData[4] = GetRawNoise(position, continentalSampler, sOffset2D);
 
-    float PVNoise = interpolateValue(mapData[3], PVSampler);
+    float PVNoise = interpolateValue(mapData[3], PVSampler) * 2 - 1;
     float continentalNoise = interpolateValue(mapData[4], continentalSampler);
     float erosionNoise = interpolateValue(mapData[1], erosionSampler);
 

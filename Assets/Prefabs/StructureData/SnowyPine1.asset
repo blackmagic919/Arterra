@@ -9,11 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 42eaf1dfd0dbb42fdb87d5a5eba090f1, type: 3}
+  m_Script: {fileID: 11500000, guid: a0ed4b06c60c74eb3a1638cff170e3f8, type: 3}
   m_Name: SnowyPine1
   m_EditorClassIdentifier: 
-  This:
-    settings:
+  settings:
+    value:
       GridSize:
         x: 9
         y: 17
@@ -21,7 +21,9 @@ MonoBehaviour:
       minimumLOD: 0
       randThetaRot: 1
       randPhiRot: 0
-    map:
+    isDirty: 0
+  map:
+    value:
     - data: 65294
     - data: 65294
     - data: 65294
@@ -1399,7 +1401,9 @@ MonoBehaviour:
     - data: 65294
     - data: 65294
     - data: 65294
-    checks:
+    isDirty: 0
+  checks:
+    value:
     - position:
         x: 5
         y: 1
@@ -1415,3 +1419,4 @@ MonoBehaviour:
         y: 15
         z: 5
       isUnderGround: 0
+    isDirty: 0

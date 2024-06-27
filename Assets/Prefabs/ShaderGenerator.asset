@@ -13,8 +13,15 @@ MonoBehaviour:
   m_Name: ShaderGenerator
   m_EditorClassIdentifier: 
   shaderDictionary:
-  - {fileID: 11400000, guid: 416aff69279c14e2ebb1f76e050273ce, type: 2}
-  - {fileID: 11400000, guid: e11232fbec10841a4a488fcc70cc241f, type: 2}
-  - {fileID: 11400000, guid: aad37b9e5794849e98fbbc9c685c00d1, type: 2}
+    value:
+    - value: {fileID: 11400000, guid: 416aff69279c14e2ebb1f76e050273ce, type: 2}
+      isDirty: 0
+    - value: {fileID: 11400000, guid: e11232fbec10841a4a488fcc70cc241f, type: 2}
+      isDirty: 0
+    - value: {fileID: 11400000, guid: aad37b9e5794849e98fbbc9c685c00d1, type: 2}
+      isDirty: 0
+    isDirty: 0
   maxVertexPerBase: 3
-  memoryBuffer: {fileID: 11400000, guid: 743280fd1911d428e99f1d63657bfdaf, type: 2}
+  memoryBuffer:
+    value: {fileID: 11400000, guid: 743280fd1911d428e99f1d63657bfdaf, type: 2}
+    isDirty: 0

@@ -43,7 +43,7 @@ float interpolateValue(float value, uint samplerIndex){
     float4 upperBound = _NoiseSplinePoints[upperBoundIndex];
     float4 lowerBound = _NoiseSplinePoints[upperBoundIndex - 1];
 
-    float progress = smoothstep(lowerBound.x, upperBound.x, value);
+    float progress = invLerp(lowerBound.x, upperBound.x, value);
     float dt = upperBound.x - lowerBound.x;
 
     float lowerAnchor = lowerBound.y + lowerBound.w * dt;
@@ -57,9 +57,8 @@ float interpolateValue(float value, uint samplerIndex){
 }
 
 float GetRawNoise(int3 id, uint samplerIndex, float3 sOffset){
-
-    int3 sPos = id * meshSkipInc - chunkSize / 2;
     NoiseSetting settings = _NoiseSettings[samplerIndex];
+    int3 sPos = id * meshSkipInc;
 
     float amplitude = 1;
     float frequency = 1;

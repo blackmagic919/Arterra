@@ -53,19 +53,10 @@ public class SurfaceCreatorSettings : ScriptableObject{
     public int CaveFreqDetail;
     public int CaveSizeDetail;
     public int CaveShapeDetail;
-
-
-    [Space(10)]
-    [Header("Dependencies")]
-    public MemoryBufferSettings surfaceMemoryBuffer;
-
-    [HideInInspector]
-    public BiomeGenerationData biomeData;
 }
 
 public class SurfaceCreator
 {
-    public SurfaceCreatorSettings settings;
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
     const uint SURFDATA_STRIDE_4BYTE = 6;
@@ -73,10 +64,6 @@ public class SurfaceCreator
     public void OnDisable()
     {
         ReleaseTempBuffers();
-    }
-
-    public SurfaceCreator(SurfaceCreatorSettings settings){
-        this.settings = settings;
     }
     
     public void SampleSurfaceMaps(Vector2 offset, int chunkSize, int LOD){
@@ -89,9 +76,9 @@ public class SurfaceCreator
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxes = chunkSize / meshSkipInc;
         int numOfPoints = numPointsAxes * numPointsAxes;
-
-        uint mapAddressIndex = settings.surfaceMemoryBuffer.AllocateMemoryDirect(numOfPoints, (int)SURFDATA_STRIDE_4BYTE);
-        TranscribeSurfaceMap(settings.surfaceMemoryBuffer.AccessStorage(), settings.surfaceMemoryBuffer.AccessAddresses(),
+        
+        uint mapAddressIndex = GenerationPreset.memoryHandle.AllocateMemoryDirect(numOfPoints, (int)SURFDATA_STRIDE_4BYTE);
+        TranscribeSurfaceMap(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(),
                             (int)mapAddressIndex, numOfPoints);
 
         return mapAddressIndex;

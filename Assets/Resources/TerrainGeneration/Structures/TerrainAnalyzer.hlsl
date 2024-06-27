@@ -14,7 +14,7 @@ bool SampleTerrain (float3 position)
     float3 sOffset2D = float3(sOffset.x, 0, sOffset.z);
 
     //Get SurfaceData
-    float PV = GetNoise(position2D, PVSampler, sOffset2D);
+    float PV = GetNoise(position2D, PVSampler, sOffset2D) * 2 - 1;
     float continental = GetNoise(position2D, continentalSampler, sOffset2D);
     float erosion = GetNoise(position2D, erosionSampler, sOffset2D);
     float squashFactor = GetNoise(position2D, squashSampler, sOffset2D) * squashHeight;
@@ -22,7 +22,6 @@ bool SampleTerrain (float3 position)
     float terrainHeight = (continental + PV * erosion) * maxTerrainHeight + heightOffset;
 
     //Get Base Density
-
     float blendBase = lerp(
         GetNoise(position, caveFineSampler),
         GetNoise(position, caveCoarseSampler),
@@ -33,7 +32,7 @@ bool SampleTerrain (float3 position)
     float baseDensity = pow(abs(1.0f-centeredBase), GetNoise(position2D, caveFreqSampler, sOffset2D));
 
     //Solve for density
-    float actualHeight = position.y + sOffset.y - chunkSize / 2.0f;
+    float actualHeight = position.y + sOffset.y;
     float terrainFactor = clamp((terrainHeight - actualHeight) / (squashFactor + Epsilon), 0, 1) * (1-IsoLevel) + IsoLevel;
     float density = baseDensity * terrainFactor;
 

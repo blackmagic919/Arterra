@@ -13,9 +13,15 @@ MonoBehaviour:
   m_Name: CloudMat
   m_EditorClassIdentifier: 
   Name: Cloud
-  texture: {fileID: 2800000, guid: 68036d40e53ca46ccb8662552a0ea939, type: 3}
+  texture:
+    value: {fileID: 2800000, guid: 68036d40e53ca46ccb8662552a0ea939, type: 3}
+    isDirty: 0
   terrainData:
-    color: {r: 0.7294118, g: 0.8117648, b: 1, a: 0}
+    color:
+      x: 0.729
+      y: 0.812
+      z: 1
+      w: 1
     textureScale: 5
     baseColorStrength: 0.4
     GeoShaderIndex: -1

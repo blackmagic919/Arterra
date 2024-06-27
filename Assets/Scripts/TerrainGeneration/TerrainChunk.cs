@@ -27,7 +27,7 @@ public class TerrainChunk : ChunkData
     int prevMeshLOD = int.MaxValue;
     float closestDist;
 
-    public TerrainChunk(int3 coord, float IsoLevel, Transform parent, SurfaceChunk surfaceChunk,  LODInfo[] detailLevels, GenerationResources generation)
+    public TerrainChunk(int3 coord, float IsoLevel, Transform parent, SurfaceChunk surfaceChunk,  LODInfo[] detailLevels)
     {
         CCoord = coord;
         position = CustomUtility.AsVector(coord) * mapChunkSize;
@@ -44,10 +44,10 @@ public class TerrainChunk : ChunkData
         meshFilter = meshObject.AddComponent<MeshFilter>();
         meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshCollider = meshObject.AddComponent<MeshCollider>();
-        meshRenderer.sharedMaterials = new Material[2] {generation.terrainMat, generation.waterMat};
+        meshRenderer.sharedMaterials = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.ReadBackSettings.value.TerrainMats.ToArray();
 
         boundsOS = new Bounds(Vector3.one * (mapChunkSize / 2), Vector3.one * mapChunkSize);
-        LODMeshHandle = new LODMesh(this, generation, detailLevels, IsoLevel, ClearFilter);
+        LODMeshHandle = new LODMesh(this, detailLevels, IsoLevel, ClearFilter);
         
         //Plan Structures
         timeRequestQueue.Enqueue(new EndlessTerrain.GenTask{

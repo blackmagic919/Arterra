@@ -5,7 +5,7 @@ using Utils;
 public class DensityAdjuster : MonoBehaviour
 {
     #if UNITY_EDITOR
-    public Structure structure;
+    public StructureData structure;
     public StructureSettings settings;
     public float deltaDensity;
 
@@ -18,9 +18,9 @@ public class DensityAdjuster : MonoBehaviour
                 for (int z = 0; z < settings.sizeZ; z++)
                 {
                     int index = CustomUtility.irregularIndexFromCoord(x, y, z, settings.sizeY, settings.sizeZ);
-                    if (structure.This.map[index].density == 0)
+                    if (structure.map.value[index].density == 0)
                         continue;
-                    structure.This.map[index].density += (int)(deltaDensity * 255);
+                    //structure.map.value[index].density += (int)(deltaDensity * 255);
                 }
             }
         }

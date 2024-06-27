@@ -18,44 +18,46 @@ MonoBehaviour:
   lacunarity: 2
   seedOffset: 4
   interpolation:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0.032039873
-      outSlope: 0.032039873
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0.5471879
-    - serializedVersion: 3
-      time: 0.120238155
-      value: 0.037126705
-      inSlope: 1.2280915
-      outSlope: 1.2280915
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.18438026
-      outWeight: 0.45281184
-    - serializedVersion: 3
-      time: 0.2552433
-      value: 0.91372585
-      inSlope: 0.26702958
-      outSlope: 0.26702958
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.37884632
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0.11584206
-      outSlope: 0.11584206
-      tangentMode: 34
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
+    value:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: -0
+        outSlope: -0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 1
+      - serializedVersion: 3
+        time: 0.10134001
+        value: 0.033555515
+        inSlope: 0.79317987
+        outSlope: 0.79317987
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.42054123
+      - serializedVersion: 3
+        time: 0.27649522
+        value: 0.91132224
+        inSlope: 0.32079163
+        outSlope: 0.32079163
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.23180182
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: -0
+        outSlope: -0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.27067316
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    isDirty: 0

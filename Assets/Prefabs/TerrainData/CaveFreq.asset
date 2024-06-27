@@ -18,35 +18,37 @@ MonoBehaviour:
   lacunarity: 2
   seedOffset: 2
   interpolation:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0.0961603
-      outSlope: 0.0961603
-      tangentMode: 34
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 0.9040563
-      value: 0.08693433
-      inSlope: 0.0016567816
-      outSlope: 0.0016567816
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 1
-    - serializedVersion: 3
-      time: 0.9998344
-      value: 0.79585207
-      inSlope: 4.061323
-      outSlope: 4.061323
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.18792151
-      outWeight: 0.42519036
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
+    value:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0.06581835
+        outSlope: 0.06581835
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0.20512997
+      - serializedVersion: 3
+        time: 0.87342995
+        value: 0.07874516
+        inSlope: -0.023975585
+        outSlope: -0.023975585
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 1
+      - serializedVersion: 3
+        time: 1
+        value: 0.8018858
+        inSlope: 5.7133627
+        outSlope: 5.7133627
+        tangentMode: 34
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    isDirty: 0

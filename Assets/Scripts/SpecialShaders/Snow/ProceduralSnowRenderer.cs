@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "ShaderData/SnowShader/Generator")]
@@ -8,47 +9,50 @@ public class ProceduralSnowRenderer : SpecialShader
     public SnowSettings snowSettings = default;
 
     [System.Serializable]
-    public class SnowSettings
+    public struct SnowSettings
     {
         [Tooltip("How much to tesselate base mesh")]
-        public uint tesselationFactor = 3;
+        public uint tesselationFactor;//3
 
-        [Tooltip("The tesselation compute shader")]
-        public ComputeShader tesselComputeShader = default;
-        public Material material;
+        [Tooltip("The tesselation compute shader")][JsonIgnore][UIgnore]
+        public Option<ComputeShader> tesselComputeShader;
+        [JsonIgnore][UIgnore]
+        public Option<Material> material;
     }
     // Start is called before the first frame update
     public override Material GetMaterial()
     {
-        return snowSettings.material;
+        return snowSettings.material.value;
     }
-    public override void ProcessGeoShader(Transform transform, MemoryBufferSettings memoryHandle, int vertAddress, int triAddress, 
+    public override void ProcessGeoShader(Transform transform, GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, 
                         int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
     {
-        int idGrassKernel = snowSettings.tesselComputeShader.FindKernel("Main");
+        ComputeShader tesselCompute = snowSettings.tesselComputeShader.value;
+
+        int idGrassKernel = tesselCompute.FindKernel("Main");
         ComputeBuffer memory = memoryHandle.AccessStorage();
         ComputeBuffer addresses = memoryHandle.AccessAddresses();
 
-        ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(snowSettings.tesselComputeShader, UtilityBuffers.GenerationBuffer, baseGeoCount);
+        ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(tesselCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
-        snowSettings.tesselComputeShader.SetBuffer(idGrassKernel, "SourceVertices", memory);
-        snowSettings.tesselComputeShader.SetBuffer(idGrassKernel, "SourceTriangles", memory);
-        snowSettings.tesselComputeShader.SetBuffer(idGrassKernel, "_AddressDict", addresses); 
-        snowSettings.tesselComputeShader.SetInt("vertAddress", vertAddress);
-        snowSettings.tesselComputeShader.SetInt("triAddress", triAddress);
-        snowSettings.tesselComputeShader.SetInt("geoInd", geoInd);
+        tesselCompute.SetBuffer(idGrassKernel, "SourceVertices", memory);
+        tesselCompute.SetBuffer(idGrassKernel, "SourceTriangles", memory);
+        tesselCompute.SetBuffer(idGrassKernel, "_AddressDict", addresses); 
+        tesselCompute.SetInt("vertAddress", vertAddress);
+        tesselCompute.SetInt("triAddress", triAddress);
+        tesselCompute.SetInt("geoInd", geoInd);
 
-        snowSettings.tesselComputeShader.SetBuffer(idGrassKernel, "counters", UtilityBuffers.GenerationBuffer);
-        snowSettings.tesselComputeShader.SetBuffer(idGrassKernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
-        snowSettings.tesselComputeShader.SetBuffer(idGrassKernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
-        snowSettings.tesselComputeShader.SetInt("bSTART_base", baseGeoStart);
-        snowSettings.tesselComputeShader.SetInt("bCOUNT_base", baseGeoCount);
-        snowSettings.tesselComputeShader.SetInt("bSTART_oGeo", geoStart);
-        snowSettings.tesselComputeShader.SetInt("bCOUNT_oGeo", geoCounter);
+        tesselCompute.SetBuffer(idGrassKernel, "counters", UtilityBuffers.GenerationBuffer);
+        tesselCompute.SetBuffer(idGrassKernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
+        tesselCompute.SetBuffer(idGrassKernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
+        tesselCompute.SetInt("bSTART_base", baseGeoStart);
+        tesselCompute.SetInt("bCOUNT_base", baseGeoCount);
+        tesselCompute.SetInt("bSTART_oGeo", geoStart);
+        tesselCompute.SetInt("bCOUNT_oGeo", geoCounter);
 
-        snowSettings.tesselComputeShader.SetInt("tesselFactor", (int)snowSettings.tesselationFactor);
-        snowSettings.tesselComputeShader.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
+        tesselCompute.SetInt("tesselFactor", (int)snowSettings.tesselationFactor);
+        tesselCompute.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
 
-        snowSettings.tesselComputeShader.DispatchIndirect(idGrassKernel, args);
+        tesselCompute.DispatchIndirect(idGrassKernel, args);
     }
 }

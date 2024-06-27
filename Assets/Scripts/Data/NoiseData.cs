@@ -14,8 +14,8 @@ public class NoiseData : ScriptableObject
     public float persistance;
     public float lacunarity;
     public int seedOffset = 0;
-    [SerializeField]
-    private AnimationCurve interpolation;
+    [SerializeField][UIgnore][JsonIgnore]
+    public Option<AnimationCurve> interpolation;
 
     private void OnValidate()
     {
@@ -27,14 +27,14 @@ public class NoiseData : ScriptableObject
     [JsonIgnore][HideInInspector]
     public Vector4[] SplineKeys{
         get{
-            return interpolation.keys.Select(e => new Vector4(e.time, e.value, e.inTangent, e.outTangent)).ToArray();
+            return interpolation.value.keys.Select(e => new Vector4(e.time, e.value, e.inTangent, e.outTangent)).ToArray();
         }
     }
     
     [JsonIgnore][HideInInspector]
     public Vector3[] OctaveOffsets{
         get{
-            System.Random prng = new System.Random(WorldStorageHandler.WORLD_OPTIONS.WorldOptions.seed.value + seedOffset);
+            System.Random prng = new System.Random(WorldStorageHandler.WORLD_OPTIONS.WorldOptions.seed + seedOffset);
             Vector3[] octaveOffsets = new Vector3[octaves]; //Vector Array is processed as float4
 
             float maxPossibleHeight = 0;

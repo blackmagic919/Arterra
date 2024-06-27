@@ -60,8 +60,6 @@ float interpolateValue(float value){
 }
 
 float GetRawNoise(int3 id){
-    float center = chunkSize / 2;
-
     int x = id.x * meshSkipInc;
     int y = id.y * meshSkipInc;
     int z = id.z * meshSkipInc;
@@ -72,9 +70,9 @@ float GetRawNoise(int3 id){
                     
     for(uint i = 0; i < octaves; i++)
     {
-        float sampleX = (x-center + offsets[i].x + sOffset.x) / noiseScale * frequency;
-        float sampleY = (y-center + offsets[i].y + sOffset.y) / noiseScale * frequency;
-        float sampleZ = (z-center + offsets[i].z + sOffset.z) / noiseScale * frequency;
+        float sampleX = (x + offsets[i].x + sOffset.x) / noiseScale * frequency;
+        float sampleY = (y + offsets[i].y + sOffset.y) / noiseScale * frequency;
+        float sampleZ = (z + offsets[i].z + sOffset.z) / noiseScale * frequency;
 
         float perlinValue = (snoise(float3(sampleX, sampleY, sampleZ)) + 1) / 2.0f; //Default range -1 to 1
         noiseHeight = (1 - amplitude) * noiseHeight + perlinValue * amplitude;

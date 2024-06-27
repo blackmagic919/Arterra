@@ -23,7 +23,6 @@ public class MaterialBarController : MonoBehaviour
         // Get the RectTransform component of the UI panel.
         panelRectTransform = GetComponent<RectTransform>();
         inventoryMat.materialForRendering.SetBuffer("MainInventoryMaterial", MainInventoryData);
-        size = 0;
     }
 
     // Update is called once per frame
@@ -33,23 +32,19 @@ public class MaterialBarController : MonoBehaviour
     {
         size = (float)terraform.MainInventory.totalMaterialAmount / terraform.MainInventory.materialCapacity;
         int totalmaterials_M = terraform.MainInventory.inventory.Count;
-        int totalMaterials_A = terraform.AuxInventory.inventory.Count;
         MainInventoryData.SetData(MaterialData.GetInventoryData(terraform.MainInventory), 0, 0, totalmaterials_M);
         inventoryMat.materialForRendering.SetInt("MainMaterialCount", totalmaterials_M);
-        inventoryMat.materialForRendering.SetInt("AuxMaterialCount", totalMaterials_A);
-        inventoryMat.materialForRendering.SetInt("UseSolid", terraform.useSolid ? 1 : 0);
-
-        inventoryMat.materialForRendering.SetInt("selectedMat", (int)terraform.MainInventory.selected);
+        inventoryMat.materialForRendering.SetInt("selectedMat", (int)terraform.MainInventory.selected.material);
         inventoryMat.materialForRendering.SetFloat("InventorySize", size);
     }
 
     struct MaterialData
     {
-        public int index;
+        public uint index;
         public float percentage;
 
         public static MaterialData[] GetInventoryData(MaterialInventory inventory){
-            int[] indexes = inventory.GetInventoryKeys;
+            uint[] indexes = inventory.GetInventoryKeys;
             int[] amounts = inventory.GetInventoryValues;
             int totalMaterials = inventory.inventory.Count;
 

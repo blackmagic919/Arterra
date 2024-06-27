@@ -15,5 +15,9 @@ MonoBehaviour:
   foliageSettings:
     QuadSize: 3
     Inflation: 0
-    foliageComputeShader: {fileID: 7200000, guid: 92ccc8e35df9942849493d4f1ea6dbcd, type: 3}
-    material: {fileID: 2100000, guid: 6b7b7953cf23d455387bef629745f60a, type: 2}
+    foliageComputeShader:
+      value: {fileID: 7200000, guid: 92ccc8e35df9942849493d4f1ea6dbcd, type: 3}
+      isDirty: 0
+    material:
+      value: {fileID: 2100000, guid: 6b7b7953cf23d455387bef629745f60a, type: 2}
+      isDirty: 0

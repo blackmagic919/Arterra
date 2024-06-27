@@ -49,7 +49,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     rawMaps[3] = GetRawNoise(pos3D, PVSampler);
     rawMaps[4] = GetRawNoise(pos3D, continentalSampler);
 
-    float PVNoise = interpolateValue(rawMaps[3], PVSampler);
+    float PVNoise = interpolateValue(rawMaps[3], PVSampler) * 2 - 1;
     float continentalNoise = interpolateValue(rawMaps[4], continentalSampler);
     float erosionNoise = interpolateValue(rawMaps[1], erosionSampler);
     float squashNoise = interpolateValue(rawMaps[2], squashSampler) * precisionOffset;

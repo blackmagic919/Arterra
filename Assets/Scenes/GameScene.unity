@@ -1611,17 +1611,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   savePath: prefabs/StructureData/cactus1
   IsoLevel: 0.5
-  Structure:
-    settings:
-      GridSize:
-        x: 10
-        y: 10
-        z: 10
-      minimumLOD: 0
-      randThetaRot: 1
-      randPhiRot: 0
-    map: []
-    checks: []
+  Structure: {fileID: 11400000, guid: 49bbfac31bd4d49bda439a6be79dd6c3, type: 2}
 --- !u!1 &2123683925 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100006, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}

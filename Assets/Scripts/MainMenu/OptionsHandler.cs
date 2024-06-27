@@ -7,8 +7,6 @@ using static WorldStorageHandler;
 using UnityEngine.UI;
 using TMPro;
 using System.Reflection;
-using UnityEditor.UIElements;
-using UnityEngine.PlayerLoop;
 
 public class OptionsHandler : MonoBehaviour
 {
@@ -94,82 +92,6 @@ public class OptionsHandler : MonoBehaviour
 
         CreateOptionDisplay(cWorld.WorldOptions, infoContent);
     }
-    
-
-
-    static void CreateOptionDisplay(object setting,  GameObject content, Func<object> OnUpdate = null){
-        System.Reflection.FieldInfo[] fields = setting.GetType().GetFields();
-        SetUpLayout(content);
-
-        for(int i = 0; i < fields.Length; i++){
-            if(Attribute.IsDefined(fields[i], typeof(HideInInspector))) continue;
-            
-            System.Reflection.FieldInfo field = fields[i]; FieldInfo oField = field;
-            object value = field.GetValue(setting); object cObject = setting; Func<object> nUpdate = OnUpdate;
-            GameObject newOption = Instantiate(Resources.Load<GameObject>("Prefabs/Option"), content.transform);
-            RectTransform transform = newOption.GetComponent<RectTransform>();
-            newOption.GetComponent<TextMeshProUGUI>().text = field.Name;
-            
-            //Extract the value of the option
-            //cObject is the Option Field(value type)
-            //setting is the class containing the option
-            //value is the class held by the option
-            if(field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(WorldOptions.Option<>)) {
-                cObject = field.GetValue(setting); //Would prefer if GetValueDirect was implemented 
-                field = value.GetType().GetField("value"); 
-                value = field.GetValue(value);
-                object UpdateCopy() {
-                    if(OnUpdate != null) setting = OnUpdate();
-                    ((WorldOptions.IOption)cObject).Clone(); 
-                    oField.SetValue(setting, cObject);
-                    return field.GetValue(cObject); 
-                    //because value is a class, the value set to setting from cObject is a reference
-                    //which can be directly achieved from cObject
-                } nUpdate = UpdateCopy;
-            }
-
-            CreateInputField(field, newOption, value, nUpdate);
-        }  
-    }
-
-    public static void CreateInputField(FieldInfo field, GameObject parent, object value, Func<object> OnUpdate = null){
-        switch (field.FieldType){
-            case Type t when t == typeof(int):
-                TMP_InputField inputField = Instantiate(Resources.Load<GameObject>("Prefabs/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
-                inputField.onEndEdit.AddListener((string value) => { field.SetValue(OnUpdate(), int.Parse(value)); });
-                break;
-            case Type t when t == typeof(float):
-                TMP_InputField inputField2 = Instantiate(Resources.Load<GameObject>("Prefabs/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField2.text = value.ToString();
-                inputField2.onEndEdit.AddListener((string value) => { field.SetValue(OnUpdate(), float.Parse(value)); });
-                break;
-            case Type t when t == typeof(string):
-                TMP_InputField inputField3 = Instantiate(Resources.Load<GameObject>("Prefabs/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField3.text = value.ToString();
-                inputField3.onEndEdit.AddListener((string value) => { field.SetValue(OnUpdate(), value); });
-                break;
-            case Type t when t == typeof(bool):
-                Toggle toggleField = Instantiate(Resources.Load<GameObject>("Prefabs/Bool_Input"), parent.transform).GetComponent<Toggle>(); toggleField.isOn = (bool)value;
-                toggleField.onValueChanged.AddListener((bool value) => { field.SetValue(OnUpdate(), value); });
-                break;
-            case Type t when t.IsGenericType && t.GetGenericTypeDefinition() == typeof(List<>):
-                Button buttonField1 = Instantiate(Resources.Load<GameObject>("Prefabs/Drop_Arrow"), parent.transform).GetComponent<Button>(); bool isOpen1 = false;
-                buttonField1.onClick.AddListener(() => { 
-                    isOpen1 = !isOpen1;
-                    if(isOpen1) CreateList(field, (IList)value, parent, OnUpdate);
-                    else ReleaseDisplay(parent); 
-                    ForceLayoutRefresh(parent.transform);
-                });
-                break;
-            default:
-                Button buttonField = Instantiate(Resources.Load<GameObject>("Prefabs/Drop_Arrow"), parent.transform).GetComponent<Button>(); bool isOpen = false;
-                buttonField.onClick.AddListener(() => {
-                    isOpen = !isOpen;
-                    if(isOpen) CreateOptionDisplay(value, parent, OnUpdate);
-                    else { ReleaseDisplay(parent); }
-                    ForceLayoutRefresh(parent.transform);
-                });
-                break;
-        }
-    }
 
     private static void SetUpLayout(GameObject content){
         VerticalLayoutGroup layout = content.GetComponent<VerticalLayoutGroup>();
@@ -181,26 +103,197 @@ public class OptionsHandler : MonoBehaviour
         filter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
     }
 
-    private static void CreateList(FieldInfo oField, IList list, GameObject parent, Func<object> OnUpdate){
+    public delegate void ChildUpdate(ref object obj);
+    public delegate void ParentUpdate(ChildUpdate cb);
+
+    static void CreateOptionDisplay(object setting,  GameObject content, ParentUpdate OnUpdate = null){
+        System.Reflection.FieldInfo[] fields = setting.GetType().GetFields();
+        SetUpLayout(content);
+
+        for(int i = 0; i < fields.Length; i++){
+            if(Attribute.IsDefined(fields[i], typeof(UIgnore))) continue;
+            
+            System.Reflection.FieldInfo field = fields[i]; 
+            object value = field.GetValue(setting); object cObject = setting; ParentUpdate nUpdate = OnUpdate;
+            GameObject newOption = Instantiate(Resources.Load<GameObject>("Prefabs/Option"), content.transform);
+            RectTransform transform = newOption.GetComponent<RectTransform>();
+            newOption.GetComponent<TextMeshProUGUI>().text = field.Name;
+            
+            //Extract the value of the option
+            //cObject is the Option Field(value type)
+            //setting is the class containing the option
+            //value is the class held by the option
+            if(field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Option<>)) {
+                FieldInfo oField = field;
+                cObject = field.GetValue(setting); //Would prefer if GetValueDirect was implemented 
+                field = value.GetType().GetField("value"); 
+                value = field.GetValue(value);
+                if(value == null){ //If it's null, create a new object and mark field as dirty
+                    ((IOption)cObject).Clone(); //clones nothing and marks dirty
+                    value = Activator.CreateInstance(field.FieldType);
+                    field.SetValue(cObject, value);
+                    oField.SetValue(setting, cObject);
+                }
+                
+                void ChildRequest(ChildUpdate childCallback) { 
+                    void ParentReceive(ref object parentObject){
+                        ((IOption)cObject).Clone();
+                        value = field.GetValue(cObject);
+                        childCallback(ref value);
+
+                        field.SetValue(cObject, value); //if class this does nothing
+                        oField.SetValue(parentObject, cObject);
+                    }
+                    if(OnUpdate == null) ParentReceive(ref setting);
+                    else OnUpdate(ParentReceive);
+                } nUpdate = ChildRequest;
+            } else if(field.FieldType.IsValueType && !field.FieldType.IsPrimitive){
+                void ChildRequest(ChildUpdate childCallback) { 
+                    void ParentReceive(ref object parentObject){
+                        value = field.GetValue(parentObject);
+                        childCallback(ref value);
+                        field.SetValue(parentObject, value); 
+                    }
+                    if(OnUpdate == null) ParentReceive(ref setting);
+                    else OnUpdate(ParentReceive);
+                } nUpdate = ChildRequest;
+            } else if(!field.FieldType.IsPrimitive && field.FieldType != typeof(string)) 
+                throw new Exception("Settings objects must contain either only value types or options");
+
+            CreateInputField(field, newOption, value, nUpdate);
+        }  
+    }
+
+    public static void CreateInputField(FieldInfo field, GameObject parent, object value, ParentUpdate OnUpdate = null){
+        switch (field.FieldType){
+            case Type t when t == typeof(int):
+                TMP_InputField inputField = Instantiate(Resources.Load<GameObject>("Prefabs/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
+                inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, int.Parse(value));}); });
+                break;
+            case Type t when t == typeof(uint):
+                inputField = Instantiate(Resources.Load<GameObject>("Prefabs/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
+                inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, uint.Parse(value));}); });
+                break;
+            case Type t when t == typeof(float):
+                inputField = Instantiate(Resources.Load<GameObject>("Prefabs/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
+                inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, float.Parse(value));}); });
+                break;
+            case Type t when t == typeof(string):
+                inputField = Instantiate(Resources.Load<GameObject>("Prefabs/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
+                inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, value);}); });
+                break;
+            case Type t when t == typeof(bool):
+                Toggle toggleField = Instantiate(Resources.Load<GameObject>("Prefabs/Bool_Input"), parent.transform).GetComponent<Toggle>(); toggleField.isOn = (bool)value;
+                toggleField.onValueChanged.AddListener((bool value) => { OnUpdate((ref object parent) => {field.SetValue(parent, value);}); });
+                break;
+            case Type t when t.IsGenericType && t.GetGenericTypeDefinition() == typeof(List<>):
+                Button buttonField1 = Instantiate(Resources.Load<GameObject>("Prefabs/Drop_Arrow"), parent.transform.GetChild(0)).GetComponent<Button>(); bool isOpen1 = false;
+                IList list = (IList)value; //capture list so all updates will be streamed to all event handlers
+                buttonField1.onClick.AddListener(() => { 
+                    isOpen1 = !isOpen1;
+                    if(isOpen1) CreateList(list, parent, OnUpdate);
+                    else ReleaseDisplay(parent); 
+                    ForceLayoutRefresh(parent.transform);
+                }); 
+                Button listAdd = Instantiate(Resources.Load<GameObject>("Prefabs/ListAdd"), parent.transform.GetChild(0)).GetComponent<Button>();
+                Button listRemove = Instantiate(Resources.Load<GameObject>("Prefabs/ListRemove"), parent.transform.GetChild(0)).GetComponent<Button>();
+                listAdd.onClick.AddListener(() => {
+                    if(!isOpen1) return;
+                    OnUpdate((ref object parentObj) => {
+                        list = (IList)parentObj; list.Add(Activator.CreateInstance(t.GetGenericArguments()[0]));
+                        ReleaseDisplay(parent); CreateList(list, parent, OnUpdate);
+                        ForceLayoutRefresh(parent.transform);
+                    });
+                });
+                listRemove.onClick.AddListener(() => {
+                    if(!isOpen1) return;
+                    if(list.Count == 0) return;
+                    OnUpdate((ref object parentObj) => {
+                        list = (IList)parentObj; list.RemoveAt(list.Count - 1);
+                        ReleaseDisplay(parent); CreateList(list, parent, OnUpdate);
+                        ForceLayoutRefresh(parent.transform);
+                    }); list.RemoveAt(list.Count - 1);
+                });
+                break;
+            default:
+                Button buttonField = Instantiate(Resources.Load<GameObject>("Prefabs/Drop_Arrow"), parent.transform.GetChild(0)).GetComponent<Button>(); bool isOpen = false;
+                buttonField.onClick.AddListener(() => {
+                    isOpen = !isOpen;
+                    if(isOpen) CreateOptionDisplay(value, parent, OnUpdate);
+                    else { ReleaseDisplay(parent); }
+                    ForceLayoutRefresh(parent.transform);
+                });
+                break;
+        }
+    }
+
+    private static void CreateList(IList list, GameObject parent, ParentUpdate OnUpdate){
         SetUpLayout(parent);
         for(int i = 0; i < list.Count; i++) {
             GameObject key = Instantiate(Resources.Load<GameObject>("Prefabs/Option"), parent.transform);
             key.GetComponent<TextMeshProUGUI>().text = "Element " + i.ToString() + ": ";
 
-            object cObject = list[i]; int index = i;
-            FieldInfo field = cObject.GetType().GetField("value");
-            object value = field.GetValue(cObject);
+            object cObject = list[i]; object value = cObject; 
+            FieldInfo field = null; ParentUpdate nUpdate = OnUpdate; 
+            int index = i;
+            if(cObject.GetType().IsGenericType && cObject.GetType().GetGenericTypeDefinition() == typeof(Option<>)){
+                field = cObject.GetType().GetField("value"); 
+                value = field.GetValue(cObject);
+                if(value == null){
+                    value = Activator.CreateInstance(field.FieldType);
+                    field.SetValue(cObject, value);
+                } 
 
-            object NewUpdate() {
-                object setting = OnUpdate();
-                WorldOptions.IOption lOption = (WorldOptions.IOption)cObject; lOption.Clone(); 
-                list[index] = lOption; oField.SetValue(setting, list);
+                void ChildRequest(ChildUpdate childCallback) { 
+                    void ParentReceive(ref object parentObject){
+                        IList newList = (IList)parentObject;
+                        IOption lOption = (IOption)cObject; 
+                        lOption.Clone(); value = field.GetValue(lOption);
 
-                return field.GetValue(lOption); 
+                        childCallback(ref value);
+                        field.SetValue(lOption, value);
+                        newList[index] = lOption; 
+                    }
+                    OnUpdate(ParentReceive);
+                } nUpdate = ChildRequest;
+            } 
+            //You can't get a field to represent an index in a list so we create a
+            //temporary option to fake a field so that the architecture is consistent
+            else if(cObject.GetType().IsPrimitive || cObject.GetType() == typeof(string)){ 
+                cObject = Activator.CreateInstance(typeof(Option<>).MakeGenericType(cObject.GetType()));
+                field = cObject.GetType().GetField("value");
+                
+                void ChildRequest(ChildUpdate childCallback) { 
+                    void ParentReceive(ref object parentObject){
+                        IList newList = (IList)parentObject;
+                        ((IOption)cObject).Clone();
+
+                        childCallback(ref cObject); 
+                        newList[index] = field.GetValue(cObject); 
+                    }
+                    OnUpdate(ParentReceive);
+                } nUpdate = ChildRequest;
+            } else if(cObject.GetType().IsValueType){
+                cObject = Activator.CreateInstance(typeof(Option<>).MakeGenericType(cObject.GetType()));
+                field = cObject.GetType().GetField("value");
+
+                void ChildRequest(ChildUpdate childCallback) { 
+                    void ParentReceive(ref object parentObject){
+                        IList newList = (IList)parentObject;
+
+                        childCallback(ref value); 
+                        newList[index] = value; 
+                    }
+                    OnUpdate(ParentReceive);
+                } nUpdate = ChildRequest;
             }
+            
+            else if(!field.FieldType.IsPrimitive && field.FieldType != typeof(string)) 
+                throw new Exception("Setting objects must contain either only value types or options");
 
-            CreateInputField(field, key, value, NewUpdate);
+            CreateInputField(field, key, value, nUpdate);
         }
     }
+
 
 }

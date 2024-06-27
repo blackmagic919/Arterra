@@ -19,13 +19,13 @@ public struct LODMesh
     Action clearMesh;
     float IsoLevel;
 
-    public LODMesh(TerrainChunk terrainChunk, GenerationResources generation, LODInfo[] detailLevels, float IsoLevel, Action clearMesh)
+    public LODMesh(TerrainChunk terrainChunk, LODInfo[] detailLevels, float IsoLevel, Action clearMesh)
     {
         this.terrainChunk = terrainChunk;
-        this.meshCreator = new MeshCreator(generation.meshCreator);
-        this.structCreator = new StructureCreator(generation.meshCreator, generation.surfaceSettings);
-        this.geoShaders = new ShaderGenerator(generation.geoSettings, terrainChunk.meshObject.transform, terrainChunk.boundsOS);
-        this.meshReadback = new AsyncMeshReadback(generation.readbackSettings, terrainChunk.meshObject.transform, terrainChunk.boundsOS);
+        this.meshCreator = new MeshCreator();
+        this.structCreator = new StructureCreator();
+        this.geoShaders = new ShaderGenerator(terrainChunk.meshObject.transform, terrainChunk.boundsOS);
+        this.meshReadback = new AsyncMeshReadback(terrainChunk.meshObject.transform, terrainChunk.boundsOS);
         this.surfaceMap = terrainChunk.surfaceMap;
 
         this.detailLevels = detailLevels;
@@ -69,9 +69,7 @@ public struct LODMesh
 
     public void GenerateMap(int LOD, Action callback = null)
     {
-        SurfaceChunk.SurfData surfData = surfaceMap.GetMap();
-
-        meshCreator.GenerateBaseChunk(surfData, this.terrainChunk.origin, LOD, mapChunkSize, IsoLevel);
+        meshCreator.GenerateBaseChunk(surfaceMap.GetMap(), this.terrainChunk.origin, LOD, mapChunkSize, IsoLevel);
         structCreator.GenerateStrucutresGPU(mapChunkSize, LOD, IsoLevel);
         GPUDensityManager.SubscribeChunk(this.terrainChunk.CCoord, LOD, UtilityBuffers.GenerationBuffer);
         
@@ -92,7 +90,7 @@ public struct LODMesh
         meshReadback.BeginMeshReadback(UpdateCallback);
 
         if (detailLevels[LOD].useForGeoShaders)
-            geoShaders.ComputeGeoShaderGeometry(meshReadback.settings.memoryBuffer, meshReadback.vertexHandle, meshReadback.triHandles[(int)ReadbackMaterial.terrain]);
+            geoShaders.ComputeGeoShaderGeometry(meshReadback.vertexHandle, meshReadback.triHandles[(int)ReadbackMaterial.terrain]);
         else
             geoShaders.ReleaseGeometry();
 

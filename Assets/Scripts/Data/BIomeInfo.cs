@@ -6,20 +6,20 @@ using Utils;
 [CreateAssetMenu(menuName = "Generation/BiomeInfo")]
 public class BiomeInfo : ScriptableObject
 {
-    public BiomeConditionsData BiomeConditions;
+    public Option<BiomeConditionsData> BiomeConditions;
 
     [Header("Underground Generation")]
     [Range(0, 1)]
     public float AtmosphereFalloff;
 
     [Header("Material Layers")]
-    public List<BMaterial> GroundMaterials;
-    public List<BMaterial> SurfaceMaterials;
+    public Option<List<Option<BMaterial> > > GroundMaterials;
+    public Option<List<Option<BMaterial> > > SurfaceMaterials;
 
     [Header("Structures")]
-    public List<TerrainStructure> Structures;
+    public Option<List<Option<TerrainStructure> > > Structures;
 
-    public void OnValidate(){ BiomeConditions.Validate(); }
+    public void OnValidate(){ BiomeConditions.value.Validate(); }
 
     [System.Serializable]
     public class DensityGrad
@@ -78,7 +78,7 @@ public class BiomeInfo : ScriptableObject
     }
 
     [System.Serializable]
-    public class BiomeConditionsData
+    public struct BiomeConditionsData
     {
 
         [Space(10)]

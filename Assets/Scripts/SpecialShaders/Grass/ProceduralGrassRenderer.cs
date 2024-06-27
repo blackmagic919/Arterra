@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Utils;
@@ -10,64 +11,57 @@ public class ProceduralGrassRenderer : SpecialShader
     public GrassSettings grassSettings = default;
 
     [System.Serializable]
-    public class GrassSettings 
+    public struct GrassSettings 
     {
         [Tooltip("Total height of grass layer stack")]
-        public float grassHeight = 0.5f;
+        public float grassHeight; //0.5f
         [Tooltip("Maximum # of grass layers")]
-        public int maxLayers = 16;
+        public int maxLayers; //15f
         [Tooltip("Multiplier on World Position if using world position as UV")]
         public float worldPositionUVScale;
 
-        [Tooltip("The grass geometry creating compute shader")]
-        public ComputeShader grassComputeShader = default;
-        public Material material;
+        [Tooltip("The grass geometry creating compute shader")][JsonIgnore][UIgnore]
+        public Option<ComputeShader> grassComputeShader;
+        [JsonIgnore][UIgnore]
+        public Option<Material> material;
     }
-
-    private Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
 
     public override Material GetMaterial()
     {
-        return grassSettings.material;
+        return grassSettings.material.value;
     }
 
-    public override void ProcessGeoShader(Transform transform, MemoryBufferSettings memoryHandle, int vertAddress, int triAddress, 
+    public override void ProcessGeoShader(Transform transform, GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, 
                         int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
     {
-        int idGrassKernel = grassSettings.grassComputeShader.FindKernel("Main");
+        ComputeShader grassCompute = grassSettings.grassComputeShader.value;
+
+        int idGrassKernel = grassCompute.FindKernel("Main");
         ComputeBuffer memory = memoryHandle.AccessStorage();
         ComputeBuffer addresses = memoryHandle.AccessAddresses();
 
-        ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(grassSettings.grassComputeShader, UtilityBuffers.GenerationBuffer, baseGeoCount);
+        ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(grassCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
-        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "SourceVertices", memory);
-        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "SourceTriangles", memory);
-        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "_AddressDict", addresses); 
-        grassSettings.grassComputeShader.SetInt("vertAddress", vertAddress);
-        grassSettings.grassComputeShader.SetInt("triAddress", triAddress);
+        grassCompute.SetBuffer(idGrassKernel, "SourceVertices", memory);
+        grassCompute.SetBuffer(idGrassKernel, "SourceTriangles", memory);
+        grassCompute.SetBuffer(idGrassKernel, "_AddressDict", addresses); 
+        grassCompute.SetInt("vertAddress", vertAddress);
+        grassCompute.SetInt("triAddress", triAddress);
 
-        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "counters", UtilityBuffers.GenerationBuffer);
-        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
-        grassSettings.grassComputeShader.SetBuffer(idGrassKernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
-        grassSettings.grassComputeShader.SetInt("bSTART_base", baseGeoStart);
-        grassSettings.grassComputeShader.SetInt("bCOUNT_base", baseGeoCount);
-        grassSettings.grassComputeShader.SetInt("bSTART_oGeo", geoStart);
-        grassSettings.grassComputeShader.SetInt("bCOUNT_oGeo", geoCounter);
+        grassCompute.SetBuffer(idGrassKernel, "counters", UtilityBuffers.GenerationBuffer);
+        grassCompute.SetBuffer(idGrassKernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
+        grassCompute.SetBuffer(idGrassKernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
+        grassCompute.SetInt("bSTART_base", baseGeoStart);
+        grassCompute.SetInt("bCOUNT_base", baseGeoCount);
+        grassCompute.SetInt("bSTART_oGeo", geoStart);
+        grassCompute.SetInt("bCOUNT_oGeo", geoCounter);
 
-        grassSettings.grassComputeShader.SetFloat("_TotalHeight", grassSettings.grassHeight);
-        grassSettings.grassComputeShader.SetFloat("_WorldPositionToUVScale", grassSettings.worldPositionUVScale);
-        grassSettings.grassComputeShader.SetInt("_MaxLayers", grassSettings.maxLayers);
-        grassSettings.grassComputeShader.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
+        grassCompute.SetFloat("_TotalHeight", grassSettings.grassHeight);
+        grassCompute.SetFloat("_WorldPositionToUVScale", grassSettings.worldPositionUVScale);
+        grassCompute.SetInt("_MaxLayers", grassSettings.maxLayers);
+        grassCompute.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
 
-        grassSettings.grassComputeShader.DispatchIndirect(idGrassKernel, args);
-    }
-
-    public override void ReleaseTempBuffers()
-    {
-        while (tempBuffers.Count > 0)
-        {
-            tempBuffers.Dequeue().Release();
-        }
+        grassCompute.DispatchIndirect(idGrassKernel, args);
     }
 }

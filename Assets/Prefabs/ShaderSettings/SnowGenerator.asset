@@ -14,5 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   snowSettings:
     tesselationFactor: 3
-    tesselComputeShader: {fileID: 7200000, guid: c1daa69beb72c417ea8fd9e8b7741457, type: 3}
-    material: {fileID: 2100000, guid: a1430010796b74a4ea620880b197fa93, type: 2}
+    tesselComputeShader:
+      value: {fileID: 7200000, guid: c1daa69beb72c417ea8fd9e8b7741457, type: 3}
+      isDirty: 0
+    material:
+      value: {fileID: 2100000, guid: a1430010796b74a4ea620880b197fa93, type: 2}
+      isDirty: 0

@@ -13,9 +13,15 @@ MonoBehaviour:
   m_Name: DirtMat
   m_EditorClassIdentifier: 
   Name: 
-  texture: {fileID: 2800000, guid: fe82516aeb2e047188993ea733648af7, type: 3}
+  texture:
+    value: {fileID: 2800000, guid: fe82516aeb2e047188993ea733648af7, type: 3}
+    isDirty: 0
   terrainData:
-    color: {r: 0.21568629, g: 0.12941177, b: 0.058823533, a: 0}
+    color:
+      x: 0.216
+      y: 0.129
+      z: 0.059
+      w: 1
     textureScale: 5
     baseColorStrength: 0.15
     GeoShaderIndex: -1

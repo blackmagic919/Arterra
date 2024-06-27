@@ -68,7 +68,6 @@ struct invMat {
 
 StructuredBuffer<invMat> MainInventoryMaterial;
 int MainMaterialCount;
-uint UseSolid;
 
 int BinarySearch(float key, int arraySize, StructuredBuffer<invMat> inventory) {
     int left = 0;
@@ -127,8 +126,10 @@ fixed3 frag (v2f IN) : SV_Target
 {
     fixed3 MainColor;
 
-    int mainIndex = BinarySearch(IN.uv.x, MainMaterialCount, MainInventoryMaterial);
-    MainColor = UseSolid == 1 ? GetMatColor(IN.uv, mainIndex) : GetLiquidColor(IN.uv, mainIndex);
+    uint binOut = BinarySearch(IN.uv.x, MainMaterialCount, MainInventoryMaterial);
+    int mainIndex = binOut & 0x7FFFFFFF;
+    bool isSolid = binOut & 0x80000000;
+    MainColor = isSolid ? GetMatColor(IN.uv, mainIndex) : GetLiquidColor(IN.uv, mainIndex);
 
     if(mainIndex == selectedMat){
         float tintStrength = abs((_Time.y % _TintFrequency)/_TintFrequency * 2 - 1) * _Tint.a;

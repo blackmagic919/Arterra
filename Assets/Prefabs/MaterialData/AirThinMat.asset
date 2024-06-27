@@ -13,9 +13,15 @@ MonoBehaviour:
   m_Name: AirThinMat
   m_EditorClassIdentifier: 
   Name: AirThin
-  texture: {fileID: 2800000, guid: 68036d40e53ca46ccb8662552a0ea939, type: 3}
+  texture:
+    value: {fileID: 2800000, guid: 68036d40e53ca46ccb8662552a0ea939, type: 3}
+    isDirty: 0
   terrainData:
-    color: {r: 0.27450982, g: 0.48627454, b: 0.9921569, a: 0}
+    color:
+      x: 0.275
+      y: 0.486
+      z: 0.992
+      w: 1
     textureScale: 5
     baseColorStrength: 0.2
     GeoShaderIndex: -1

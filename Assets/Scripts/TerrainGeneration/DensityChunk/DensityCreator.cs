@@ -15,27 +15,16 @@ public class MeshCreatorSettings : ScriptableObject{
     [Header("Underground Generation Noise")]
     public int CoarseTerrainNoise; //For underground terrain generation
     public int FineTerrainNoise;
-    public BiomeGenerationData biomeData;
     
-    [Header("Water Generation Data")]
+    [Header("Water Generation Data")]   
     public float waterHeight;
     public int waterMat;
-
-    [Header("Dependencies")]
-    public MemoryBufferSettings structureMemory;
-    public TextureData textureData;
 }
 public class MeshCreator
 {
-    MeshCreatorSettings settings; //Funny it's not used...
-
     Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
-    public MeshCreator(MeshCreatorSettings settings){
-        this.settings = settings;
-    }
-
-    public CPUDensityManager.MapData[] GetChunkInfo(StructureCreator structCreator, SurfaceChunk.SurfData surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
+    public CPUDensityManager.MapData[] GetChunkInfo(StructureCreator structCreator, uint surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
     {
         int numPointsAxes = chunkSize + 1;
         int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
@@ -51,7 +40,7 @@ public class MeshCreator
         return chunkMap;
     }
 
-    public void GenerateBaseChunk(SurfaceChunk.SurfData surfaceData, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
+    public void GenerateBaseChunk(uint surfaceData, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
     {
         int meshSkipInc = meshSkipTable[LOD];
         GenerateBaseData(surfaceData, IsoLevel, chunkSize, meshSkipInc, offset);

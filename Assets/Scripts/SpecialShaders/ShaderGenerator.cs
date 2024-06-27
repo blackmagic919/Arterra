@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Mathematics;
@@ -95,12 +96,12 @@ public class ShaderGenerator
         geoTranscriber.SetInt("bSTART_oGeo", shadGeoStart);
     }
 
-    public ShaderGenerator(GeneratorSettings settings, Transform transform, Bounds boundsOS)
+    public ShaderGenerator(Transform transform, Bounds boundsOS)
     {
-        this.settings = settings;
+        this.settings = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.GeoShaders.value;
         this.transform = transform;
         this.shaderBounds = CustomUtility.TransformBounds(transform, boundsOS);
-        this.shaderUpdateTasks = new ShaderUpdateTask[this.settings.shaderDictionary.Count];
+        this.shaderUpdateTasks = new ShaderUpdateTask[this.settings.shaderDictionary.value.Count];
     }
 
     public void ReleaseGeometry()
@@ -110,7 +111,7 @@ public class ShaderGenerator
                 continue;
             task.active = false;
 
-            task.Release(this.settings.memoryBuffer);
+            task.Release(GenerationPreset.memoryHandle);
         }
     }
 
@@ -122,22 +123,22 @@ public class ShaderGenerator
         }
     }
 
-    public void ComputeGeoShaderGeometry(MemoryBufferSettings geoMem, AsyncMeshReadback.GeometryHandle vertHandle, AsyncMeshReadback.GeometryHandle triHandle)
+    public void ComputeGeoShaderGeometry(AsyncMeshReadback.GeometryHandle vertHandle, AsyncMeshReadback.GeometryHandle triHandle)
     { 
         ReleaseGeometry();
         int triAddress = (int)triHandle.addressIndex;
         int vertAddress = (int)vertHandle.addressIndex;
 
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, triIndDictStart, 0);
-        FilterGeometry(geoMem, triAddress, vertAddress);
+        FilterGeometry(GenerationPreset.memoryHandle, triAddress, vertAddress);
 
-        ProcessGeoShaders(geoMem, vertAddress, triAddress);
+        ProcessGeoShaders(GenerationPreset.memoryHandle, vertAddress, triAddress);
         
         uint[] geoShaderMemAdds = TranscribeGeometries();
         uint[] geoShaderDispArgs = GetShaderDrawArgs();
-        RenderParams[] geoShaderParams = SetupShaderMaterials(this.settings.memoryBuffer.AccessStorage(), this.settings.memoryBuffer.AccessAddresses(), geoShaderMemAdds);
+        RenderParams[] geoShaderParams = SetupShaderMaterials(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(), geoShaderMemAdds);
         
-        for(int i = 0; i < this.settings.shaderDictionary.Count; i++){
+        for(int i = 0; i < this.settings.shaderDictionary.value.Count; i++){
             this.shaderUpdateTasks[i] = new ShaderUpdateTask(geoShaderMemAdds[i], geoShaderDispArgs[i], geoShaderParams[i]);
             MainLoopUpdateTasks.Enqueue(this.shaderUpdateTasks[i]);
         }
@@ -146,12 +147,12 @@ public class ShaderGenerator
     }
 
 
-    public void FilterGeometry(MemoryBufferSettings geoMem, int triAddress, int vertAddress)
+    public void FilterGeometry(GenerationPreset.MemoryHandle memory, int triAddress, int vertAddress)
     {
 
-        int numShaders = this.settings.shaderDictionary.Count;
-        ComputeBuffer memStorage = geoMem.AccessStorage();
-        ComputeBuffer memAddresses = geoMem.AccessAddresses();
+        int numShaders = this.settings.shaderDictionary.value.Count;
+        ComputeBuffer memStorage = memory.AccessStorage();
+        ComputeBuffer memAddresses = memory.AccessAddresses();
 
         LoadBaseGeoInfo(memStorage, memAddresses, triAddress);
 
@@ -162,13 +163,13 @@ public class ShaderGenerator
         FilterShaderGeometry(memStorage, memAddresses, vertAddress, triAddress);
     }
 
-    public void ProcessGeoShaders(MemoryBufferSettings memSettings, int vertAddress, int triAddress)
+    public void ProcessGeoShaders(GenerationPreset.MemoryHandle memory, int vertAddress, int triAddress)
     {
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 1, 0); //clear base count
-        for (int i = 0; i < this.settings.shaderDictionary.Count; i++){
-            SpecialShader geoShader = this.settings.shaderDictionary[i];
+        for (int i = 0; i < this.settings.shaderDictionary.value.Count; i++){
+            SpecialShader geoShader = this.settings.shaderDictionary.value[i].value;
             
-            geoShader.ProcessGeoShader(transform, memSettings, vertAddress, triAddress, fBaseGeoStart, matSizeCStart + i, baseGeoCounter, shadGeoStart, i);
+            geoShader.ProcessGeoShader(transform, memory, vertAddress, triAddress, fBaseGeoStart, matSizeCStart + i, baseGeoCounter, shadGeoStart, i);
             UtilityBuffers.CopyCount(source: UtilityBuffers.GenerationBuffer, dest: UtilityBuffers.GenerationBuffer, readOffset: baseGeoCounter, writeOffset: shadGeoCStart + i + 1);
             geoShader.ReleaseTempBuffers();
         }
@@ -187,16 +188,16 @@ public class ShaderGenerator
 
     public uint[] TranscribeGeometries()
     {
-        int numShaders = this.settings.shaderDictionary.Count;
+        int numShaders = this.settings.shaderDictionary.value.Count;
 
         uint[] geoShaderAddresses = new uint[numShaders];
-        ComputeBuffer memoryReference = settings.memoryBuffer.AccessStorage();
-        ComputeBuffer addressesReference = settings.memoryBuffer.AccessAddresses();
+        ComputeBuffer memoryReference = GenerationPreset.memoryHandle.AccessStorage();
+        ComputeBuffer addressesReference = GenerationPreset.memoryHandle.AccessAddresses();
 
         for (int i = 0; i < numShaders; i++)
         {
             CopyGeoCount(shadGeoCStart + i);
-            geoShaderAddresses[i] = settings.memoryBuffer.AllocateMemory(UtilityBuffers.GenerationBuffer, GEO_VERTEX_STRIDE * 3, baseGeoCounter);
+            geoShaderAddresses[i] = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, GEO_VERTEX_STRIDE * 3, baseGeoCounter);
             TranscribeGeometry(memoryReference, addressesReference, (int)geoShaderAddresses[i], shadGeoCStart + i);
         }
 
@@ -205,10 +206,10 @@ public class ShaderGenerator
 
     public RenderParams[] SetupShaderMaterials(ComputeBuffer storageBuffer, ComputeBuffer addressBuffer, uint[] address)
     {
-        RenderParams[] rps = new RenderParams[this.settings.shaderDictionary.Count];
-        for(int i = 0; i < this.settings.shaderDictionary.Count; i++)
+        RenderParams[] rps = new RenderParams[this.settings.shaderDictionary.value.Count];
+        for(int i = 0; i < this.settings.shaderDictionary.value.Count; i++)
         {
-            RenderParams rp = new RenderParams(settings.shaderDictionary[i].GetMaterial())
+            RenderParams rp = new RenderParams(settings.shaderDictionary.value[i].value.GetMaterial())
             {
                 worldBounds = shaderBounds,
                 shadowCastingMode = ShadowCastingMode.Off,
@@ -226,7 +227,7 @@ public class ShaderGenerator
 
     public uint[] GetShaderDrawArgs()
     {
-        int numShaders = this.settings.shaderDictionary.Count;
+        int numShaders = this.settings.shaderDictionary.value.Count;
         uint[] shaderDrawArgs = new uint[numShaders];
 
         for (int i = 0; i < numShaders; i++)
@@ -321,8 +322,8 @@ public class ShaderGenerator
             Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)dispArgs);
         }
 
-        public void Release(MemoryBufferSettings memoryBuffer){
-            memoryBuffer.ReleaseMemory(address);
+        public void Release(GenerationPreset.MemoryHandle memory){
+            memory.ReleaseMemory(address);
             UtilityBuffers.ReleaseArgs(dispArgs);
         }
     }

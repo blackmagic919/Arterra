@@ -10,9 +10,6 @@ public class ReadbackSettings : ScriptableObject
     [HideInInspector]
     public Material[] indirectTerrainMats;
 
-    [Header("Buffer Space")]
-    public MemoryBufferSettings memoryBuffer;
-
     public void OnEnable(){
         indirectTerrainMats = new Material[TerrainMats.Count];
         for(int i = 0; i < TerrainMats.Count; i++){

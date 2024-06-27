@@ -13,9 +13,15 @@ MonoBehaviour:
   m_Name: GrassMat
   m_EditorClassIdentifier: 
   Name: Grass
-  texture: {fileID: 2800000, guid: 9a32d08edbf8447c88139bfb43dfbe1a, type: 3}
+  texture:
+    value: {fileID: 2800000, guid: 9a32d08edbf8447c88139bfb43dfbe1a, type: 3}
+    isDirty: 0
   terrainData:
-    color: {r: 0.050980397, g: 0.34117648, b: 0, a: 0}
+    color:
+      x: 0.051
+      y: 0.341
+      z: 0
+      w: 1
     textureScale: 5
     baseColorStrength: 0.25
     GeoShaderIndex: 1

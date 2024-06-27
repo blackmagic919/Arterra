@@ -13,9 +13,15 @@ MonoBehaviour:
   m_Name: LeavesMat
   m_EditorClassIdentifier: 
   Name: 
-  texture: {fileID: 2800000, guid: b07e3afae6c5e40bd804ac3f1397c1b7, type: 3}
+  texture:
+    value: {fileID: 2800000, guid: b07e3afae6c5e40bd804ac3f1397c1b7, type: 3}
+    isDirty: 0
   terrainData:
-    color: {r: 0.0627451, g: 0.3019608, b: 0.015686275, a: 0}
+    color:
+      x: 0.063
+      y: 0.302
+      z: 0.015
+      w: 1
     textureScale: 5
     baseColorStrength: 0.4
     GeoShaderIndex: 2
