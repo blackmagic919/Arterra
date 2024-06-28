@@ -41,7 +41,7 @@ public class AtmosphereBake : ScriptableObject
         //3D texture to store SunRayOpticalDepth
         //We can't use RenderTexture-Texture2DArray because SAMPLER2DARRAY does not terminate in a timely fashion
         int numCubicTexels = BakedTextureSizePX * BakedTextureSizePX * NumInScatterPoints;
-        this.OpticalInfo = new ComputeBuffer(numCubicTexels, sizeof(float) * (1 + 3 + 3 + 3), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+        this.OpticalInfo = new ComputeBuffer(numCubicTexels, sizeof(float) * (2 + 3 + 3 + 3), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
     }
 
     public void OnDisable(){

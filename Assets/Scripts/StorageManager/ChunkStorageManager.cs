@@ -27,7 +27,7 @@ public static class ChunkStorageManager
         numLODs = meshSkipTable.Length;
         maxChunkSize = mapChunkSize;
         headerSize = (numLODs + 1) * 4;
-        filePath = WorldStorageHandler.WORLD_OPTIONS.Path + "/MapData/";
+        filePath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/MapData/";
     }
 
     public static void SaveChunkToBin(NativeArray<CPUDensityManager.MapData> chunk, int offset, int3 CCoord, OnWriteComplete OnSaveComplete = null){
@@ -96,6 +96,60 @@ public static class ChunkStorageManager
             fs.Close();
         }
         OnSaveComplete?.Invoke(true);
+    }
+
+    public static void SaveChunkToBinSync(NativeArray<CPUDensityManager.MapData> chunk, int offset, int3 CCoord){
+        string fileAdd = filePath + "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
+
+        if (!Directory.Exists(filePath))
+            Directory.CreateDirectory(filePath);
+
+        SaveChunkToBinSync(fileAdd, chunk, offset); //fire and forget
+    }
+
+    public static void SaveChunkToBinSync(string fileAdd, NativeArray<CPUDensityManager.MapData> chunk, int offset)
+    {
+        using (FileStream fs = File.Create(fileAdd))
+        {
+            byte[] fBuffer = new byte[(numLODs+1) * 4]; uint fBPos = 0;
+            WriteUInt32(fBuffer, ref fBPos, 0);
+
+            using(MemoryStream ms = new MemoryStream())
+            {
+                for(int LoD = numLODs-1; LoD >= 0; LoD--)
+                {
+                    int skipInc = meshSkipTable[LoD];
+                    int numPointsAxis = maxChunkSize / skipInc + 1;
+                    int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
+
+                    var mBuffer = new byte[numPoints * 4]; uint mBPos = 0;
+                    for(int x = 0; x < maxChunkSize; x += skipInc){
+                        for(int y = 0; y < maxChunkSize; y += skipInc){
+                            for(int z = 0; z < maxChunkSize; z += skipInc){
+                                int readPos = CustomUtility.indexFromCoord(x, y, z, maxChunkSize);
+                                CPUDensityManager.MapData mapPt = chunk[offset + readPos];
+
+                                //if(!mapPt.isDirty) mapPt.data = 0;
+                                WriteUInt32(mBuffer, ref mBPos, mapPt.data);
+                            }
+                        }
+                    }
+
+                    //Deals with memory so it's better to not hog all the threads
+                    using(GZipStream zs = new GZipStream(ms, CompressionMode.Compress, true)){ 
+                        zs.Write(mBuffer); 
+                        zs.Flush(); 
+                    }
+                    WriteUInt32(fBuffer, ref fBPos, (uint)ms.Length);
+                }
+
+                ms.Seek(0, SeekOrigin.Begin);
+                fs.Write(fBuffer);
+                ms.CopyTo(fs);
+            }
+            fs.Flush();
+            fs.Close();
+        }
     }
 
     public static void ReadChunkBin(int3 CCoord, int LoD, OnReadComplete ReadCallback = null){

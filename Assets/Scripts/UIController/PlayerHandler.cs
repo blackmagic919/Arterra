@@ -43,7 +43,7 @@ public class PlayerHandler : MonoBehaviour
     }
 
     async Task SavePlayerData(PlayerData playerInfo){
-        string path = WorldStorageHandler.WORLD_OPTIONS.Path + "/PlayerData.json";
+        string path = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
         using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)){
             using StreamWriter writer = new StreamWriter(fs);
             string data = Newtonsoft.Json.JsonConvert.SerializeObject(playerInfo);
@@ -57,7 +57,7 @@ public class PlayerHandler : MonoBehaviour
     }
 
      PlayerData LoadPlayerData(){
-        string path = WorldStorageHandler.WORLD_OPTIONS.Path + "/PlayerData.json";
+        string path = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
         if(!File.Exists(path)) {
             return new PlayerData{
                 position = new Vec3((new Vector3(0, 0, 0) + Vector3.up * (CPUNoiseSampler.SampleTerrainHeight(new (0, 0, 0)) + 5)) * EndlessTerrain.lerpScale),

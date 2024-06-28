@@ -25,7 +25,7 @@ public static class DensityGenerator
     }
 
     public static void PresetData(int maxChunkSize){
-        MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.Terrain.value;
+        MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.Terrain.value;
         baseGenCompute.SetInt("coarseCaveSampler", mesh.CoarseTerrainNoise);
         baseGenCompute.SetInt("fineCaveSampler", mesh.FineTerrainNoise);
         baseGenCompute.SetInt("coarseMatSampler", mesh.CoarseMaterialNoise);

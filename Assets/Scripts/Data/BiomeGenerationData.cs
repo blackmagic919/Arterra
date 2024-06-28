@@ -10,7 +10,6 @@ public class BiomeGenerationData : ScriptableObject
 {
     [SerializeField]
     public Option<List<Option<BiomeInfo> > > biomes;
-    [HideInInspector]
     public int StructureChecksPerChunk;
     [Range(1, 5)]
     public float LoDFalloff;

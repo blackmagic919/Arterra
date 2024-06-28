@@ -45,25 +45,15 @@ public static class CPUDensityManager
         if(!initialized) return;
         initialized = false;
         
-        SaveAllChunks((bool success)=>{
-            _SectionedMemory.Dispose();
-            _AddressDict.Dispose();
-        });
+        SaveAllChunksSync();
+        _SectionedMemory.Dispose();
+        _AddressDict.Dispose();
     }
 
-    static void SaveAllChunks(ChunkStorageManager.OnWriteComplete OnSaveComplete = null){
-        uint pendingSaveTasks = 0;
-
-        void OnChunkSaveComplete(bool isComplete){ if (--pendingSaveTasks == 0) OnSaveComplete?.Invoke(true); }
-
+    static void SaveAllChunksSync(){
         for(int i = 0; i < _ChunkManagers.Length; i++){
-            if(_AddressDict[i].isDirty){
-                pendingSaveTasks++;
-                ChunkStorageManager.SaveChunkToBin(_SectionedMemory, (int)_AddressDict[i].address, _ChunkManagers[i].CCoord, OnChunkSaveComplete);
-            }
+            if(_AddressDict[i].isDirty) ChunkStorageManager.SaveChunkToBinSync(_SectionedMemory, (int)_AddressDict[i].address, _ChunkManagers[i].CCoord);
         }
-        
-        if(pendingSaveTasks == 0) OnSaveComplete?.Invoke(true);
     }
 
     public static int HashCoord(int3 CCoord){
@@ -307,7 +297,7 @@ public static class CPUDensityManager
                 return true; 
             }
 
-            /*Test adjacent points 
+            //Test adjacent points 
             int3 adjPts = new int3(mCoord.x + step.x, mCoord.y + step.y, mCoord.z + step.z);
             if(adjPts.x >= 0 && adjPts.x <= mapChunkSize){
                 index = CustomUtility.indexFromCoord(adjPts.x, mCoord.y, mCoord.z, mapChunkSize); 
@@ -318,7 +308,7 @@ public static class CPUDensityManager
             } if (adjPts.z >= 0 && adjPts.z <= mapChunkSize){
                 index = CustomUtility.indexFromCoord(mCoord.x, mCoord.y, adjPts.z, mapChunkSize);
                 if(callback(_SectionedMemory[addressIndex + index])) { hitPoint = chunk.LocalToWorld(new Vector3(mCoord.x, mCoord.y, adjPts.z)); return true; } 
-            }*/
+            }
             
             if(tMax.x < tMax.y){
                 if(tMax.x < tMax.z){

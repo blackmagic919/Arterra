@@ -40,7 +40,7 @@ public class AsyncMeshReadback
 
     public AsyncMeshReadback(Transform transform, Bounds boundsOS)
     {   
-        this.settings = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.ReadBackSettings.value;
+        this.settings = WorldStorageHandler.WORLD_OPTIONS.ReadBackSettings.value;
         this.transform = transform;
         this.numMeshes = (uint)settings.indirectTerrainMats.Length;
         this.triHandles = new GeometryHandle[numMeshes];

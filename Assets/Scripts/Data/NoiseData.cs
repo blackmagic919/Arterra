@@ -34,7 +34,7 @@ public class NoiseData : ScriptableObject
     [JsonIgnore][HideInInspector]
     public Vector3[] OctaveOffsets{
         get{
-            System.Random prng = new System.Random(WorldStorageHandler.WORLD_OPTIONS.WorldOptions.seed + seedOffset);
+            System.Random prng = new System.Random(WorldStorageHandler.WORLD_OPTIONS.seed + seedOffset);
             Vector3[] octaveOffsets = new Vector3[octaves]; //Vector Array is processed as float4
 
             float maxPossibleHeight = 0;

@@ -60,7 +60,8 @@ public class TerraformController
 
     void Terraform()
     {
-        if (Input.GetMouseButton(1)) //Don't add if there is an object in the way
+        if(Input.GetMouseButtonUp(1) || Input.GetMouseButtonUp(0)) MainInventory.ClearSmallMaterials(minInvMatThresh);
+        else if (Input.GetMouseButton(1)) //Don't add if there is an object in the way
         {
             if(MainInventory.selected.isSolid){
                 if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, maxTerraformDistance, RayTestSolid, out hitPoint))
@@ -81,7 +82,6 @@ public class TerraformController
                     CPUDensityManager.Terraform(hitPoint, terraformRadius, HandleRemoveSolid);
             }
         }
-        else if(Input.GetMouseButtonUp(1) || Input.GetMouseButton(0)) MainInventory.ClearSmallMaterials(minInvMatThresh);
         else return; 
         barController.OnInventoryChanged(this);
     }

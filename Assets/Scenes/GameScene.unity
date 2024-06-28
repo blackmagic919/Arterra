@@ -155,7 +155,6 @@ MonoBehaviour:
   settings: {fileID: 11400000, guid: 20f244f85582c4ac2858ece976b58a49, type: 2}
   viewer: {fileID: 2123683925}
   maxFrameLoad: 250
-  resources: {fileID: 11400000, guid: 8463e8da89c2e4af1b4b8d2f1d5dc137, type: 2}
 --- !u!4 &258622662
 Transform:
   m_ObjectHideFlags: 0
@@ -1683,12 +1682,10 @@ MonoBehaviour:
     terraformRadius: 2
     objectLayer:
       serializedVersion: 2
-      m_Bits: 0
-    terraformSpeedNear: 4
-    terraformSpeedFar: 2
+      m_Bits: 8
+    terraformSpeed: 4
     maxTerraformDistance: 60
     minInvMatThresh: 1
-    useSolid: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

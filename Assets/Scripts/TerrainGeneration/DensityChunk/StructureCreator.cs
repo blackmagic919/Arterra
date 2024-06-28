@@ -52,7 +52,7 @@ public class StructureCreator
         ReleaseStructure();
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 2, 0);
 
-        SampleStructureLoD(WorldStorageHandler.WORLD_OPTIONS.WorldOptions.Biomes.value.maxLoD, chunkSize, chunkCoord);
+        SampleStructureLoD(WorldStorageHandler.WORLD_OPTIONS.Biomes.value.maxLoD, chunkSize, chunkCoord);
 
         //ComputeBuffer planCount = UtilityBuffers.CopyCount(planPointsAppend, tempBuffers);
         IdentifyStructures(chunkCoord, offset, IsoLevel, chunkSize);

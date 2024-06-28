@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -28,11 +29,7 @@ public class MenuHandler : MonoBehaviour
     }
 
     public void Quit(){ Application.Quit(); }
-    public void Play() { 
-        SelectionHandler.LoadWorld();
-        SceneManager.LoadScene("GameScene");
-    }
-
+    public void Play() { _ = WorldStorageHandler.SaveOptions(); SceneManager.LoadScene("GameScene"); }
     public void Select(){ OptionsHandler.Deactivate(); Deactivate(() => SelectionHandler.Activate()); }
     
     public void Options(){ OptionsHandler.TogglePanel(); }

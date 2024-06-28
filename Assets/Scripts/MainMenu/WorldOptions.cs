@@ -40,9 +40,9 @@ public class WorldOptions : ScriptableObject{
 
     [OnDeserialized]
     internal void OnDeserialized(StreamingContext context = default){
-        object defaultOptions = Resources.Load<WorldOptions>("Prefabs/DefaultOptions"); 
+        object defaultOptions = WorldStorageHandler.OPTIONS_TEMPLATE; 
         object thisRef = this;
-        WorldOptions.SupplementTree(ref thisRef, ref defaultOptions);
+        SupplementTree(ref thisRef, ref defaultOptions);
     }
 
     //To Do: Flatten Options into a list and store index if it isn't dirty to the template list
@@ -95,10 +95,10 @@ public class WorldOptions : ScriptableObject{
         }
     }
 
-    //Only used by the editor
-    public void Create(){
-        this.seed = 0;
-        this.OnDeserialized();
+    public static WorldOptions Create(){
+        WorldOptions newOptions = WorldStorageHandler.OPTIONS_TEMPLATE.MemberwiseClone() as WorldOptions;
+        newOptions.seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+        return newOptions;
     }
 }
 

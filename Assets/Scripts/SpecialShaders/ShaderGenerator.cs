@@ -98,7 +98,7 @@ public class ShaderGenerator
 
     public ShaderGenerator(Transform transform, Bounds boundsOS)
     {
-        this.settings = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.GeoShaders.value;
+        this.settings = WorldStorageHandler.WORLD_OPTIONS.GeoShaders.value;
         this.transform = transform;
         this.shaderBounds = CustomUtility.TransformBounds(transform, boundsOS);
         this.shaderUpdateTasks = new ShaderUpdateTask[this.settings.shaderDictionary.value.Count];

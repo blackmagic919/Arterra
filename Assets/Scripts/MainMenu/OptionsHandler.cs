@@ -30,7 +30,7 @@ public class OptionsHandler : MonoBehaviour
     }
     public static void Deactivate(Action callback = null){ 
         if(!active) return;
-        SelectionHandler.GetSelected().Save();
+        _ = SaveOptions();
         SetPanel(false, () => {
             ReleaseDisplay(infoContent); 
             callback?.Invoke();
@@ -56,7 +56,11 @@ public class OptionsHandler : MonoBehaviour
 
     public static void EditName(){
         TMP_InputField inputField = sTransform.GetChild(0).GetComponent<TMP_InputField>();
-        WorldData world = SelectionHandler.GetSelected(); world.Name = inputField.text;
+        WORLD_SELECTION.First.Value = new WorldMeta{
+            Id = WORLD_SELECTION.First.Value.Id,
+            Name = inputField.text, 
+            Path = WORLD_SELECTION.First.Value.Path
+        }; Task.Run(() => SaveMeta());
     }
 
     public static void Delete(){
@@ -81,16 +85,15 @@ public class OptionsHandler : MonoBehaviour
     }
 
     public static void InitializeDisplay(){
-        WorldData cWorld = SelectionHandler.GetSelected();
+        WorldMeta cWorld = WORLD_SELECTION.First.Value;
         TMP_InputField inputField = sTransform.GetChild(0).GetComponent<TMP_InputField>();
         inputField.text = cWorld.Name;
         inputField.onEndEdit.AddListener((string value) => {
             cWorld.Name = value;
             inputField.text = value;
-            SelectionHandler.SetSelected(cWorld);
         });
 
-        CreateOptionDisplay(cWorld.WorldOptions, infoContent);
+        CreateOptionDisplay(WORLD_OPTIONS, infoContent);
     }
 
     private static void SetUpLayout(GameObject content){

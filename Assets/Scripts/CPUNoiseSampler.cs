@@ -9,8 +9,8 @@ public static class CPUNoiseSampler
     public static float SampleTerrainHeight(float3 pos){
         float3 pos2D = new (pos.x, 0, pos.z);
 
-        List<Option<NoiseData> > NoiseDict = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.Noise.value;
-        SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.Surface.value;
+        List<Option<NoiseData> > NoiseDict = WorldStorageHandler.WORLD_OPTIONS.Noise.value;
+        SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.Surface.value;
 
         float PVNoise = SampleNoise(NoiseDict[surface.TerrainPVDetail].value, pos2D) * 2 - 1;
         float continental = SampleNoise(NoiseDict[surface.TerrainContinentalDetail].value, pos2D);

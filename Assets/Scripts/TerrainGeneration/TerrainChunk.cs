@@ -44,7 +44,7 @@ public class TerrainChunk : ChunkData
         meshFilter = meshObject.AddComponent<MeshFilter>();
         meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshCollider = meshObject.AddComponent<MeshCollider>();
-        meshRenderer.sharedMaterials = WorldStorageHandler.WORLD_OPTIONS.WorldOptions.ReadBackSettings.value.TerrainMats.ToArray();
+        meshRenderer.sharedMaterials = WorldStorageHandler.WORLD_OPTIONS.ReadBackSettings.value.TerrainMats.ToArray();
 
         boundsOS = new Bounds(Vector3.one * (mapChunkSize / 2), Vector3.one * mapChunkSize);
         LODMeshHandle = new LODMesh(this, detailLevels, IsoLevel, ClearFilter);
