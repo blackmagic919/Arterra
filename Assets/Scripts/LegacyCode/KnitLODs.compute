@@ -1,6 +1,9 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Knit
-#include "/Includes/GetIndex.compute"
+uint numPointsPerAxis; 
+uint indexFromCoord(uint3 pos) {
+    return pos.x * numPointsPerAxis * numPointsPerAxis + pos.y * numPointsPerAxis + pos.z;
+}
 
 RWStructuredBuffer<float> points;
 const static int numThreads = 8;
@@ -62,12 +65,12 @@ void Knit (uint3 id : SV_DispatchThreadID)
         return;
     
     uint3 coord = GetCoord(id.x, id.y);
-    uint pointIndex = indexFromCoord(coord.x, coord.y, coord.z);
+    uint pointIndex = indexFromCoord(coord);
     GetCorners(id.x, id.y);
 
     float density = 0;
     for(uint i = 0; i < 4; i++){
-       float cornerDensity = points[indexFromCoord(corners[i].x, corners[i].y, corners[i].z)];
+       float cornerDensity = points[indexFromCoord(corners[i])];
        float intensity = getArea((float3)coord, (float3)corners[(i+2)%4]);
 
        density += cornerDensity * intensity;

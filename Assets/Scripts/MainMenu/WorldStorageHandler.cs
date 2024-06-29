@@ -36,7 +36,7 @@ public static class WorldStorageHandler
                 string data = Newtonsoft.Json.JsonConvert.SerializeObject(WORLD_SELECTION);
                 await writer.WriteAsync(data);
                 await writer.FlushAsync();
-            }
+            };
         };
     }
 
@@ -55,10 +55,11 @@ public static class WorldStorageHandler
         string location = WORLD_SELECTION.First.Value.Path + "/WorldOptions.json";
         if(!Directory.Exists(WORLD_SELECTION.First.Value.Path)) Directory.CreateDirectory(WORLD_SELECTION.First.Value.Path);
         using (FileStream fs = new FileStream(location, FileMode.Create, FileAccess.Write, FileShare.None)){
-            using StreamWriter writer = new StreamWriter(fs);
-            string data = Newtonsoft.Json.JsonConvert.SerializeObject(WORLD_OPTIONS);
-            await writer.WriteAsync(data);
-            await writer.FlushAsync();
+            using(StreamWriter writer = new StreamWriter(fs)){
+                string data = Newtonsoft.Json.JsonConvert.SerializeObject(WORLD_OPTIONS);
+                await writer.WriteAsync(data);
+                await writer.FlushAsync();
+            };
         };
     }
 
@@ -78,7 +79,7 @@ public static class WorldStorageHandler
                 string data = Newtonsoft.Json.JsonConvert.SerializeObject(WORLD_SELECTION);
                 writer.Write(data);
                 writer.Flush();
-            }
+            };
         };
     }
 
@@ -97,10 +98,11 @@ public static class WorldStorageHandler
         string location = WORLD_SELECTION.First.Value.Path + "/WorldOptions.json";
         if(!Directory.Exists(WORLD_SELECTION.First.Value.Path)) Directory.CreateDirectory(WORLD_SELECTION.First.Value.Path);
         using (FileStream fs = new FileStream(location, FileMode.Create, FileAccess.Write, FileShare.None)){
-            using StreamWriter writer = new StreamWriter(fs);
-            string data = Newtonsoft.Json.JsonConvert.SerializeObject(WORLD_OPTIONS);
-            writer.Write(data);
-            writer.Flush();
+            using(StreamWriter writer = new StreamWriter(fs)){
+                string data = Newtonsoft.Json.JsonConvert.SerializeObject(WORLD_OPTIONS);
+                writer.Write(data);
+                writer.Flush();
+            };
         };
     }
     public static void SelectWorld(WorldMeta meta){
@@ -119,7 +121,7 @@ public static class WorldStorageHandler
 
     public static void DeleteWorld(){
         if(WORLD_SELECTION.Count == 0) return;
-
+        
         if(Directory.Exists(WORLD_SELECTION.First.Value.Path))
             Directory.Delete(WORLD_SELECTION.First.Value.Path, true);
         WORLD_SELECTION.RemoveFirst();

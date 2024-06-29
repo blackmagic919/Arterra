@@ -31,7 +31,7 @@ public class SelectionHandler : MonoBehaviour
 
     private static float hidePos = -1680; //px
     private static float showPos = 0; //px
-    private static float deltaP = 10;
+    private static float deltaP = 2400;
 
     public static void Activate(Action callback = null){
         SetPanel(true, callback);
@@ -48,7 +48,7 @@ public class SelectionHandler : MonoBehaviour
     private static async void SetPanel(bool active, Action callback = null){
         Vector2 position = sTransform.anchoredPosition;
         while(active ? position.y < showPos : position.y > hidePos){
-            position.y = Mathf.Clamp(position.y + deltaP * (active ? 1 : -1), hidePos, showPos);
+            position.y = Mathf.Clamp(position.y + deltaP * (active ? 1 : -1) * Time.deltaTime, hidePos, showPos);
             sTransform.anchoredPosition = position;
             await Task.Yield();
         }

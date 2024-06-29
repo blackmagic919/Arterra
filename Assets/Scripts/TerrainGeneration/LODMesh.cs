@@ -44,11 +44,12 @@ public struct LODMesh
 
         //This code will be called on a background thread
         ChunkStorageManager.ReadChunkBin(this.terrainChunk.CCoord, LoD, (bool isComplete, CPUDensityManager.MapData[] chunk) => 
-            timeRequestQueue.Enqueue(new GenTask{
+            timeRequestQueue.Enqueue(new GenTask{ //REMINDER: This queue should be locked
                 valid = () => handle.terrainChunk.active,
                 task = () => OnReadComplete(isComplete, chunk),
                 load = taskLoadTable[(int)priorities.generation],
-            }));
+            })
+        );
 
         //This code will run on main thread
         void OnReadComplete(bool isComplete, CPUDensityManager.MapData[] chunk){

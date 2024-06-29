@@ -76,7 +76,6 @@ public class TerrainChunk : ChunkData
             } else LODMeshHandle.ReadMapData(mapLoD, onMapGenerated); 
             //Readmap data starts a CPU background thread to read data and re-synchronizes by adding to the queue
             //Therefore we need to call it directly to maintain it's on the same call-cycle as the rest of generation
-
             prevMapLOD = mapLoD;
         }
         else timeRequestQueue.Enqueue(new EndlessTerrain.GenTask{

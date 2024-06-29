@@ -19,7 +19,7 @@ public class OptionsHandler : MonoBehaviour
 
     private static readonly float hidePos = 640; //px
     private static readonly float showPos = -100; //px
-    private static readonly float deltaP = 10;
+    private static readonly float deltaP = 2400;//px/s
     private static bool active = false;
 
     public static void Activate(Action callback = null){ 
@@ -46,7 +46,7 @@ public class OptionsHandler : MonoBehaviour
     public async static void SetPanel(bool active, Action callback = null){
         Vector2 position = sTransform.anchoredPosition;
         while(active ? position.x > showPos : position.x < hidePos){
-            position.x = Mathf.Clamp(position.x + deltaP * (active ? -1 : 1), showPos, hidePos);
+            position.x = Mathf.Clamp(position.x + deltaP * (active ? -1 : 1) * Time.deltaTime, showPos, hidePos);
             sTransform.anchoredPosition = position;
             await Task.Yield();
         }
@@ -64,8 +64,8 @@ public class OptionsHandler : MonoBehaviour
     }
 
     public static void Delete(){
-        Deactivate(() => MenuHandler.Activate());
         SelectionHandler.DeleteSelected(); 
+        Deactivate(() => MenuHandler.Activate());
     }
 
     private static void ReleaseDisplay(GameObject content){
