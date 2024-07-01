@@ -21,7 +21,7 @@ public class EndlessTerrain : MonoBehaviour
     [Header("Viewer Information")]
     public GameObject viewer;
     //Pause Viewer until terrain is generated
-    public int maxFrameLoad = 50; //GPU load
+    public static int maxFrameLoad = 250; //GPU load
     public static Vector3 viewerPosition;
     Vector3 oldViewerPos = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
 
@@ -48,6 +48,7 @@ public class EndlessTerrain : MonoBehaviour
 
         GPUDensityManager.Initialize(settings.detailLevels, mapChunkSize, lerpScale);
         CPUDensityManager.Intiialize(settings.detailLevels[0], mapChunkSize);
+        WorldStorageHandler.WORLD_OPTIONS.Atmosphere.value.pass.Initialize();
         StructureGenerator.PresetData();
         TerrainGenerator.PresetData();
         DensityGenerator.PresetData(mapChunkSize);
@@ -86,6 +87,7 @@ public class EndlessTerrain : MonoBehaviour
         GPUDensityManager.Release();
         CPUDensityManager.Release();
         GenerationPreset.Release();
+        WorldStorageHandler.WORLD_OPTIONS.Atmosphere.value.pass.Release();
     }
 
     private void LateUpdate()

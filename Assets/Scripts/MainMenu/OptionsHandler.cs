@@ -65,7 +65,13 @@ public class OptionsHandler : MonoBehaviour
 
     public static void Delete(){
         SelectionHandler.DeleteSelected(); 
-        Deactivate(() => MenuHandler.Activate());
+        //Don't call deactivate because it will save the options
+        //Which Delete already does
+        SetPanel(false, () => {
+            ReleaseDisplay(infoContent); 
+            MenuHandler.Activate();
+        });
+        active = false;
     }
 
     private static void ReleaseDisplay(GameObject content){

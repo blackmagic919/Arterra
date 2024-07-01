@@ -8,12 +8,12 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using static EndlessTerrain;
 
-public class TemplatePass : ScriptableRenderPass
+public class AtmospherePass : ScriptableRenderPass
 {
 #pragma warning disable 0618
     const string ProfilerTag = "Atmosphere Pass";
 
-    TemplateFeature.PassSettings passSettings;
+    AtmosphereFeature.PassSettings passSettings;
 
     RenderTargetIdentifier temporaryBuffer;
     RTHandle colorBuffer; RTHandle depthBuffer;
@@ -24,28 +24,39 @@ public class TemplatePass : ScriptableRenderPass
     // It is good to cache the shader property IDs here.
     static readonly int AtmosphereRadiusProperty = Shader.PropertyToID("_AtmosphereRadius");
     static readonly int inScatterProperty = Shader.PropertyToID("_NumInScatterPoints");
+    static bool initialized = false;
 
     // The constructor of the pass. Here you can set any material properties that do not need to be updated on a per-frame basis.
-    public TemplatePass(TemplateFeature.PassSettings passSettings)
+    public AtmospherePass(AtmosphereFeature.PassSettings passSettings)
     {
         this.passSettings = passSettings;
-
         renderPassEvent = passSettings.renderPassEvent;
-        
+        initialized = false;
+    }
+
+    public void Initialize(){
         if (material == null) material = CoreUtils.CreateEngineMaterial("Hidden/Fog");
-        
         float atmosphereRadius = lerpScale * passSettings.generationSettings.detailLevels[^1].distanceThresh;
         material.SetFloat(AtmosphereRadiusProperty, atmosphereRadius);
         material.SetInt(inScatterProperty, passSettings.luminanceBake.NumInScatterPoints);
-
         GPUDensityManager.SetDensitySampleData(material);
+        passSettings.luminanceBake.Initialize(passSettings);
+        passSettings.luminanceBake.SetBakedData(material);
+        initialized = true;
+    }
+
+    public void Release(){
+        if(material != null) UnityEngine.Object.Destroy(material);
+        passSettings.luminanceBake.ReleaseData();
+        initialized = false;
     }
 
     public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
     {
+        if(!initialized) return;
         RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
         descriptor.depthBufferBits = 0;
-        
+
         ConfigureInput(ScriptableRenderPassInput.Color);
         colorBuffer = renderingData.cameraData.renderer.cameraColorTargetHandle;
         //We need copy from depth buffer because transparent pass needs depth texture of opaque pass, and fog needs depth texture of transparent pass
@@ -53,14 +64,12 @@ public class TemplatePass : ScriptableRenderPass
 
         cmd.GetTemporaryRT(temporaryBufferID, descriptor, FilterMode.Bilinear);
         temporaryBuffer = new RenderTargetIdentifier(temporaryBufferID);
-
-        passSettings.luminanceBake.SetSettings(passSettings);
-        passSettings.luminanceBake.SetBakedData(material);
     }
 
     // The actual execution of the pass. This is where custom rendering occurs.
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
+        if(!initialized) return;
         passSettings.luminanceBake.Execute();
         if(GPUDensityManager.initialized && passSettings.luminanceBake.initialized){
             CommandBuffer cmd = CommandBufferPool.Get();

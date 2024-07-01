@@ -38,6 +38,7 @@ public class PlayerHandler : MonoBehaviour
         info.position = new Vec3(transform.position);
         info.rotation = new Vec4(transform.rotation);
         info.inventory = terrController.MainInventory;
+        PlayerController.mouseLook.SetCursorLock(false); //Release Cursor Lock
         Task.Run(() => SavePlayerData(info));
         active = false;
     }

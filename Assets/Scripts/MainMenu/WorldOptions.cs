@@ -37,6 +37,8 @@ public class WorldOptions : ScriptableObject{
 
     [UIgnore]
     public Option<ReadbackSettings> ReadBackSettings;
+    [UIgnore]
+    public Option<AtmosphereFeature> Atmosphere; 
 
     [OnDeserialized]
     internal void OnDeserialized(StreamingContext context = default){

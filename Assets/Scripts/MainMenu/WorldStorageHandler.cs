@@ -49,6 +49,7 @@ public static class WorldStorageHandler
         }
         string data = await File.ReadAllTextAsync(location);
         WORLD_OPTIONS = Newtonsoft.Json.JsonConvert.DeserializeObject<WorldOptions>(data); //Does not call constructor
+        
     }
 
     public static async Task SaveOptions(){

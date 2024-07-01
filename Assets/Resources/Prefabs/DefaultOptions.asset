@@ -80,3 +80,6 @@ MonoBehaviour:
   ReadBackSettings:
     value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
     isDirty: 0
+  Atmosphere:
+    value: {fileID: 5841424627466265696, guid: a68e5a5c7b47d422f98e7de77dcca5f6, type: 2}
+    isDirty: 0

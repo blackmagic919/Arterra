@@ -25,7 +25,6 @@ public static class CPUDensityManager
 
     public static void Intiialize(LODInfo maxLOD, int mapChunkSize){
         Release();
-
         int numPointsAxis = mapChunkSize;
         numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 
@@ -164,8 +163,8 @@ public static class CPUDensityManager
     }
 
     static unsafe void onChunkAddressRecieved(AsyncGPUReadbackRequest request, int chunkHash){
+        if(!initialized) return;
         uint2 memHandle = request.GetData<uint2>().ToArray()[0];
-
         ChunkMapInfo destChunk = _AddressDict[chunkHash];
         if(!destChunk.valid) return;
 

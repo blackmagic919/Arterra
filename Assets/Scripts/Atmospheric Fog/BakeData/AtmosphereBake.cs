@@ -11,7 +11,7 @@ public class AtmosphereBake : ScriptableObject
     private ComputeBuffer rayInfo;
     private ComputeBuffer OpticalInfo;
 
-    private TemplateFeature.PassSettings passSettings;
+    private AtmosphereFeature.PassSettings passSettings;
 
     private ComputeShader RaySetupCompute;
     private ComputeShader OpticalDataCompute;
@@ -22,33 +22,25 @@ public class AtmosphereBake : ScriptableObject
 
     [HideInInspector]
     public bool initialized = false;
-    [HideInInspector]
 
-    public void SetSettings(TemplateFeature.PassSettings passSettings)
-    {
-        this.passSettings = passSettings;
-    }
-
-    public void OnEnable(){
+    public void Initialize(AtmosphereFeature.PassSettings passSettings){
         ReleaseData();
         
         RaySetupCompute = Resources.Load<ComputeShader>("Atmosphere/RayMarchSetup");
         OpticalDataCompute = Resources.Load<ComputeShader>("Atmosphere/OpticalData");
 
         int numPixels = BakedTextureSizePX * BakedTextureSizePX;
+        this.passSettings = passSettings;
         rayInfo = new ComputeBuffer(numPixels, sizeof(float) * (3 + 2), ComputeBufferType.Structured, ComputeBufferMode.Immutable); //Floating point 3 channel
 
         //3D texture to store SunRayOpticalDepth
         //We can't use RenderTexture-Texture2DArray because SAMPLER2DARRAY does not terminate in a timely fashion
         int numCubicTexels = BakedTextureSizePX * BakedTextureSizePX * NumInScatterPoints;
         this.OpticalInfo = new ComputeBuffer(numCubicTexels, sizeof(float) * (2 + 3 + 3 + 3), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+        SetupData();
     }
 
-    public void OnDisable(){
-        ReleaseData();
-    }
-
-    private void ReleaseData(){
+    public void ReleaseData(){
         initialized = false;
         rayInfo?.Release();
         OpticalInfo?.Release();
@@ -59,7 +51,7 @@ public class AtmosphereBake : ScriptableObject
         if(!GPUDensityManager.initialized)
             return;
         if(!initialized)
-            SetupData();
+            return;
         if (Shader.GetGlobalTexture("_CameraDepthTexture") == null)
             return;
         if (BakedTextureSizePX == 0)
