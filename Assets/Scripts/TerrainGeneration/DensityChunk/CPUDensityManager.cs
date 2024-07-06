@@ -21,14 +21,20 @@ public static class CPUDensityManager
     private static Stack<int> addressStack;
     private static int numChunksAxis;
     private static int numPoints;
+    private static int mapChunkSize;
+    private static float lerpScale;
     private static bool initialized = false;
 
-    public static void Intiialize(LODInfo maxLOD, int mapChunkSize){
+    public static void Intiialize(){
         Release();
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        mapChunkSize = rSettings.mapChunkSize;
+        lerpScale = rSettings.lerpScale;
+
         int numPointsAxis = mapChunkSize;
         numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 
-        numChunksAxis = 2 * Mathf.CeilToInt(maxLOD.distanceThresh / mapChunkSize);
+        numChunksAxis = 2 * Mathf.CeilToInt(rSettings.detailLevels.value[0].distanceThresh / mapChunkSize);
         int numChunks = (numChunksAxis+1) * (numChunksAxis+1) * (numChunksAxis+1);
 
         _ChunkManagers = new TerrainChunk[numChunks];
@@ -135,7 +141,6 @@ public static class CPUDensityManager
         int CCCoordZ = Mathf.RoundToInt(terraformPoint.z / (mapChunkSize*lerpScale));
 
         int chunkTerraformRadius = Mathf.CeilToInt(terraformRadius / (mapChunkSize* lerpScale));
-
         for(int x = -chunkTerraformRadius; x <= chunkTerraformRadius; x++)
         {
             for (int y = -chunkTerraformRadius; y <= chunkTerraformRadius; y++)
@@ -235,8 +240,9 @@ public static class CPUDensityManager
         tMax.y *= rayDir.y >= 0 ? 1 - (oCoord.y - Mathf.Floor(oCoord.y)) : (oCoord.y - Mathf.Floor(oCoord.y));
         tMax.z *= rayDir.z >= 0 ? 1 - (oCoord.z - Mathf.Floor(oCoord.z)) : (oCoord.z - Mathf.Floor(oCoord.z));
 
-        int chunkHash = HashCoord(CCoord);
+        int chunkHash;
         do{
+            chunkHash = HashCoord(CCoord);
             if(_AddressDict[chunkHash].valid)
                 if(RayCastChunk(chunkHash, rayOrigin, rayDir, rayLength, callback, out hitPoint)) return true; //if hits, return
 
@@ -277,7 +283,7 @@ public static class CPUDensityManager
         rayOrigin = chunk.WorldToLocal(rayOrigin);
         rayDir = chunk.WorldToLocalDir(rayDir);
         chunk.GetRayIntersect(new Ray(rayOrigin, rayDir), out float dist); //Direction is same as world space
-        rayOrigin = rayOrigin + rayDir * Mathf.Max(dist, 0); //Move to intersection point
+        rayOrigin += rayDir * Mathf.Max(dist, 0); //Move to intersection point
         rayLength /= lerpScale; //Convert to local space
 
         //Ray origin is chunk aligned therefore positive so equivalent to floor

@@ -80,7 +80,8 @@ public class AtmosphereBake : ScriptableObject
     }
 
     void SetupRayData(){
-        float atmosphereRadius = lerpScale * passSettings.generationSettings.detailLevels[^1].distanceThresh;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        float atmosphereRadius = rSettings.lerpScale * rSettings.detailLevels.value[^1].distanceThresh;
         RaySetupCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
         
         RaySetupCompute.SetInt("screenHeight", BakedTextureSizePX);
@@ -89,9 +90,10 @@ public class AtmosphereBake : ScriptableObject
         RaySetupCompute.SetBuffer(0, "rayInfo", rayInfo);
     }
     void SetupOpticalMarch(){
-        float atmosphereRadius = lerpScale * passSettings.generationSettings.detailLevels[^1].distanceThresh;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        float atmosphereRadius = rSettings.lerpScale * rSettings.detailLevels.value[^1].distanceThresh;
         OpticalDataCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
-        OpticalDataCompute.SetFloat("_IsoLevel", passSettings.generationSettings.IsoLevel);
+        OpticalDataCompute.SetFloat("_IsoLevel", rSettings.IsoLevel);
 
         OpticalDataCompute.SetInt("_NumInScatterPoints", NumInScatterPoints);
         OpticalDataCompute.SetInt("_NumOpticalDepthPoints", NumOpticalDepthPoints);

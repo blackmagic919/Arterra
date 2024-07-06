@@ -25,7 +25,7 @@ public static class ChunkStorageManager
 
     static ChunkStorageManager(){
         numLODs = meshSkipTable.Length;
-        maxChunkSize = mapChunkSize;
+        maxChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
         headerSize = (numLODs + 1) * 4;
         filePath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/MapData/";
     }

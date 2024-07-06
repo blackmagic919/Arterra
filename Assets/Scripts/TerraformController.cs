@@ -4,15 +4,20 @@ using UnityEngine;
 using Unity.Mathematics;
 using System.Linq;
 
+
+[System.Serializable]
+public class TerraformSettings{
+    public float terraformRadius = 5;
+    public float terraformSpeed = 4;
+    public float maxTerraformDistance = 60;
+    public int materialCapacity = 51000;
+    public float minInvMatThresh = 1f;
+}
 [System.Serializable]
 public class TerraformController
 {
-    public float terraformRadius = 5;
+    private TerraformSettings settings;
     public LayerMask objectLayer;
-    public float terraformSpeed = 4;
-    public float maxTerraformDistance = 60;
-    public float minInvMatThresh = 1f;
-    public const int materialCapacity = 51000;
     private bool shiftPressed = false;
 
     int IsoLevel;
@@ -31,9 +36,9 @@ public class TerraformController
     {
         cam = Camera.main.transform;
         barController = UnityEngine.Object.FindAnyObjectByType<MaterialBarController>();
-        EndlessTerrain terrain = UnityEngine.Object.FindAnyObjectByType<EndlessTerrain>();
-        IsoLevel = Mathf.RoundToInt(terrain.settings.IsoLevel * 255);
+        IsoLevel = Mathf.RoundToInt(WorldStorageHandler.WORLD_OPTIONS.Rendering.value.IsoLevel * 255);
         barController.OnInventoryChanged(this);
+        settings = WorldStorageHandler.WORLD_OPTIONS.Terraforming.value;
     }
 
     public void Update()
@@ -60,26 +65,26 @@ public class TerraformController
 
     void Terraform()
     {
-        if(Input.GetMouseButtonUp(1) || Input.GetMouseButtonUp(0)) MainInventory.ClearSmallMaterials(minInvMatThresh);
+        if(Input.GetMouseButtonUp(1) || Input.GetMouseButtonUp(0)) MainInventory.ClearSmallMaterials(settings.minInvMatThresh);
         else if (Input.GetMouseButton(1)) //Don't add if there is an object in the way
         {
             if(MainInventory.selected.isSolid){
-                if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, maxTerraformDistance, RayTestSolid, out hitPoint))
-                    if(!Physics.CheckSphere(hitPoint, terraformRadius, objectLayer)) CPUDensityManager.Terraform(hitPoint, terraformRadius, HandleAddSolid);
+                if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, settings.maxTerraformDistance, RayTestSolid, out hitPoint))
+                    if(!Physics.CheckSphere(hitPoint, settings.terraformRadius, objectLayer)) CPUDensityManager.Terraform(hitPoint, settings.terraformRadius, HandleAddSolid);
             } else{ 
-                if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, maxTerraformDistance, RayTestLiquid, out hitPoint))
-                    CPUDensityManager.Terraform(hitPoint, terraformRadius, HandleAddLiquid);
+                if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, settings.maxTerraformDistance, RayTestLiquid, out hitPoint))
+                    CPUDensityManager.Terraform(hitPoint, settings.terraformRadius, HandleAddLiquid);
             }
         }
         // Subtract terrain
         else if (Input.GetMouseButton(0))
         {
             if(shiftPressed) {
-                if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, maxTerraformDistance, RayTestLiquid, out hitPoint))
-                    CPUDensityManager.Terraform(hitPoint, terraformRadius, HandleRemoveLiquid);
+                if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, settings.maxTerraformDistance, RayTestLiquid, out hitPoint))
+                    CPUDensityManager.Terraform(hitPoint, settings.terraformRadius, HandleRemoveLiquid);
             }else {
-                if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, maxTerraformDistance, RayTestSolid, out hitPoint))
-                    CPUDensityManager.Terraform(hitPoint, terraformRadius, HandleRemoveSolid);
+                if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, settings.maxTerraformDistance, RayTestSolid, out hitPoint))
+                    CPUDensityManager.Terraform(hitPoint, settings.terraformRadius, HandleRemoveSolid);
             }
         }
         else return; 
@@ -95,7 +100,7 @@ public class TerraformController
     }
 
     CPUDensityManager.MapData HandleAddSolid(CPUDensityManager.MapData pointInfo, float brushStrength){
-        brushStrength *= terraformSpeed;
+        brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int selected = MainInventory.selected.material;
@@ -115,7 +120,7 @@ public class TerraformController
     }
 
     CPUDensityManager.MapData HandleAddLiquid(CPUDensityManager.MapData pointInfo, float brushStrength){
-        brushStrength *= terraformSpeed;
+        brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int selected = MainInventory.selected.material;
@@ -138,7 +143,7 @@ public class TerraformController
 
 
     CPUDensityManager.MapData HandleRemoveSolid(CPUDensityManager.MapData pointInfo, float brushStrength){
-        brushStrength *= terraformSpeed;
+        brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int solidDensity = Mathf.RoundToInt(pointInfo.density * (pointInfo.viscosity / 255.0f));
@@ -155,7 +160,7 @@ public class TerraformController
     }
 
     CPUDensityManager.MapData HandleRemoveLiquid(CPUDensityManager.MapData pointInfo, float brushStrength){
-        brushStrength *= terraformSpeed;
+        brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int liquidDensity = Mathf.RoundToInt(pointInfo.density * (1 - (pointInfo.viscosity / 255.0f)));

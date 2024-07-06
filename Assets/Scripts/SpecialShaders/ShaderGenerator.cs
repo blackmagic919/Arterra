@@ -53,8 +53,8 @@ public class ShaderGenerator
     private static int shadGeoStart;
 
 
-    public static void PresetData(int maxChunkSize){
-        
+    public static void PresetData(){
+        int maxChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
         int numPointsPerAxis = maxChunkSize + 1;
         int numOfTris = (numPointsPerAxis - 1) * (numPointsPerAxis - 1) * (numPointsPerAxis - 1) * 5;
         /* Gen Buffer Organization

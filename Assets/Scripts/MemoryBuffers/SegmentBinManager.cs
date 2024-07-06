@@ -48,7 +48,7 @@ public class SegmentBinManager
         _AddressRet?.Release();
     }
 
-    public SegmentBinManager(int mapChunkSize, LODInfo[] detailLevels, int PointStride4Bytes = 1)
+    public SegmentBinManager(int mapChunkSize, List<LODInfo> detailLevels, int PointStride4Bytes = 1)
     {
         ChunkLLConstructor = Resources.Load<ComputeShader>("MemoryStructures/SegmentBin/ChunkLLConstructor");
         SectionConstructor = Resources.Load<ComputeShader>("MemoryStructures/SegmentBin/SectionConstructor");
@@ -59,7 +59,7 @@ public class SegmentBinManager
         int numChunks = 0;
         int num4Bytes = 0;
 
-        int numLoDs = detailLevels.Length;
+        int numLoDs = detailLevels.Count;
         BufferSections = new BinSection[numLoDs];
         for (int i = 0; i < numLoDs; i++)
         {

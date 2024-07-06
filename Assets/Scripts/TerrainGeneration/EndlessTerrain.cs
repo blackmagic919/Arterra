@@ -9,13 +9,7 @@ using Unity.Mathematics;
 
 public class EndlessTerrain : MonoBehaviour
 {
-    [Header("Map Generic Information")]
-    public GenerationSettings settings;
     public static float renderDistance;
-    public const int mapChunkSize = 64; //Number of cubes;
-    const float chunkUpdateThresh = 24f;
-    const float sqrChunkUpdateThresh = chunkUpdateThresh * chunkUpdateThresh;
-    public const float lerpScale = 2f;
     int chunksVisibleInViewDistance;
 
     [Header("Viewer Information")]
@@ -36,6 +30,7 @@ public class EndlessTerrain : MonoBehaviour
 
     public static Dictionary<int3, TerrainChunk> terrainChunkDict = new Dictionary<int3, TerrainChunk>();
     public static Dictionary<int2, SurfaceChunk> surfaceChunkDict = new Dictionary<int2, SurfaceChunk>();
+    private RenderSettings rSettings;
 
     void OnEnable(){
         GenerationPreset.Initialize();
@@ -43,28 +38,40 @@ public class EndlessTerrain : MonoBehaviour
     }
     void Start()
     {
-        renderDistance = settings.detailLevels[^1].distanceThresh;
-        chunksVisibleInViewDistance = Mathf.CeilToInt(renderDistance / mapChunkSize) + 1;
+        rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        renderDistance = rSettings.detailLevels.value[^1].distanceThresh;
+        chunksVisibleInViewDistance = Mathf.CeilToInt(renderDistance / rSettings.mapChunkSize) + 1;
 
-        GPUDensityManager.Initialize(settings.detailLevels, mapChunkSize, lerpScale);
-        CPUDensityManager.Intiialize(settings.detailLevels[0], mapChunkSize);
+        GPUDensityManager.Initialize();
+        CPUDensityManager.Intiialize();
         WorldStorageHandler.WORLD_OPTIONS.Atmosphere.value.pass.Initialize();
         StructureGenerator.PresetData();
         TerrainGenerator.PresetData();
-        DensityGenerator.PresetData(mapChunkSize);
-        ShaderGenerator.PresetData(mapChunkSize);
+        DensityGenerator.PresetData();
+        ShaderGenerator.PresetData();
     }
 
     private void Update()
     {
-        viewerPosition = viewer.transform.position / lerpScale;
-        if ((oldViewerPos - viewerPosition).sqrMagnitude > sqrChunkUpdateThresh)
+        viewerPosition = viewer.transform.position / rSettings.lerpScale;
+        if ((oldViewerPos - viewerPosition).magnitude > rSettings.chunkUpdateThresh)
         {
             oldViewerPos = viewerPosition;
             UpdateVisibleChunks();
         }
         StartGeneration();
     }
+
+    public static void AppendGenTask(GenTask task){
+        lock(timeRequestQueue){ timeRequestQueue.Enqueue(task); }
+    }
+
+    public static bool DequeueGenTask(out GenTask task){
+        lock(timeRequestQueue){ 
+            return timeRequestQueue.TryDequeue(out task);
+        }
+    }
+    
     
     /*void OnDrawGizmos(){
         foreach(KeyValuePair<int3, TerrainChunk> chunk in terrainChunkDict){
@@ -110,7 +117,7 @@ public class EndlessTerrain : MonoBehaviour
         int FrameGPULoad = 0;
         while(FrameGPULoad < maxFrameLoad)
         {
-            if (!timeRequestQueue.TryDequeue(out GenTask gen))
+            if (!DequeueGenTask(out GenTask gen))
                 return;
 
             //Profiler.BeginSample($"Time Request Queue: {Enum.GetName(typeof(priorities), gen.load))}");
@@ -123,9 +130,9 @@ public class EndlessTerrain : MonoBehaviour
 
     void UpdateVisibleChunks()
     {
-        int CCCoordX = Mathf.RoundToInt(viewerPosition.x / mapChunkSize); //CurrentChunkCoord
-        int CCCoordY = Mathf.RoundToInt(viewerPosition.y / mapChunkSize);
-        int CCCoordZ = Mathf.RoundToInt(viewerPosition.z / mapChunkSize);
+        int CCCoordX = Mathf.RoundToInt(viewerPosition.x / rSettings.mapChunkSize); //CurrentChunkCoord
+        int CCCoordY = Mathf.RoundToInt(viewerPosition.y / rSettings.mapChunkSize);
+        int CCCoordZ = Mathf.RoundToInt(viewerPosition.z / rSettings.mapChunkSize);
         int3 CCCoord = new int3(CCCoordX, CCCoordY, CCCoordZ);
         int2 CSCoord = new int2(CCCoordX, CCCoordZ);
 
@@ -152,7 +159,7 @@ public class EndlessTerrain : MonoBehaviour
                 {
                     int3 viewedCC = new int3(xOffset, yOffset, zOffset) + CCCoord;
                     if (terrainChunkDict.ContainsKey(viewedCC)) terrainChunkDict[viewedCC].Update();
-                    else terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, settings.IsoLevel, transform, curSChunk, settings.detailLevels));
+                    else terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, transform, curSChunk));
                 }
             }
         }

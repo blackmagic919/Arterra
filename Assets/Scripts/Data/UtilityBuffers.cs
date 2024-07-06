@@ -60,7 +60,8 @@ public static class UtilityBuffers
 
         indirectArgs = new ComputeBuffer(3, sizeof(int), ComputeBufferType.IndirectArguments);
         appendCount = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
-        int maxPoints = (EndlessTerrain.mapChunkSize+1) * (EndlessTerrain.mapChunkSize+1) * (EndlessTerrain.mapChunkSize+1);
+        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
+        int maxPoints = (mapChunkSize+1) * (mapChunkSize+1) * (mapChunkSize+1);
 
         ArgumentBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _MaxArgsCount+1, sizeof(uint) * ARGS_STRIDE_4BYTES);
         addressLL = new uint2[_MaxArgsCount+1];

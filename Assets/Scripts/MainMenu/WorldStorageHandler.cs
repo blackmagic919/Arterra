@@ -17,6 +17,7 @@ public static class WorldStorageHandler
 
     public static void Activate(){ 
         OPTIONS_TEMPLATE = Resources.Load<WorldOptions>("Prefabs/DefaultOptions");
+        WORLD_OPTIONS = WorldOptions.Create();
         LoadMetaSync(); LoadOptionsSync();
     }
 

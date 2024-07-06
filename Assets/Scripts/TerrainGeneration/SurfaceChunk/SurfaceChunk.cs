@@ -16,7 +16,8 @@ public class SurfaceChunk : ChunkData
     public SurfaceChunk(int2 coord)
     {
         this.SCoord = coord;
-        this.position = CustomUtility.AsVector(coord) * mapChunkSize - Vector2.one * (mapChunkSize / 2f);
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        this.position = CustomUtility.AsVector(coord) * rSettings.mapChunkSize - Vector2.one * (rSettings.mapChunkSize / 2f);
         baseMap = new BaseMap(position);
 
         CreateBaseChunk();
@@ -53,7 +54,7 @@ public class SurfaceChunk : ChunkData
                 task = () => baseMap.GetChunk(), 
                 load = taskLoadTable[(int)priorities.planning]
             };
-            timeRequestQueue.Enqueue(surfChunkTask);
+            AppendGenTask(surfChunkTask);
         }
     }
 
@@ -95,10 +96,8 @@ public class SurfaceChunk : ChunkData
 
         public void GetChunk()
         {
-            mapCreator.SampleSurfaceMaps(position, mapChunkSize, 0);
-            this.surfAddress = mapCreator.StoreSurfaceMap(mapChunkSize, 0);
-
-            mapCreator.ReleaseTempBuffers();
+            mapCreator.SampleSurfaceMaps(position, 0);
+            this.surfAddress = mapCreator.StoreSurfaceMap(0);
             hasChunk = true;
         }
 

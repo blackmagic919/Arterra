@@ -59,6 +59,7 @@ public class DensityDeconstructor : MonoBehaviour
         if(GridSize.x == 0 || GridSize.y == 0 || GridSize.z == 0)
             throw new Exception("Grid size cannot be zero");
         if(initialized) Release(); 
+        if(WorldStorageHandler.WORLD_OPTIONS == null) WorldStorageHandler.Activate();
         if(!GenerationPreset.active) GenerationPreset.Initialize();
         if(!UtilityBuffers.active) UtilityBuffers.Initialize();
 

@@ -99,7 +99,7 @@ public class OptionsHandler : MonoBehaviour
             inputField.text = value;
         });
 
-        CreateOptionDisplay(WORLD_OPTIONS, infoContent);
+        CreateOptionDisplay(WORLD_OPTIONS, infoContent, (ChildUpdate cb) => { object wo = WORLD_OPTIONS; cb.Invoke(ref wo);});
     }
 
     private static void SetUpLayout(GameObject content){
@@ -153,8 +153,7 @@ public class OptionsHandler : MonoBehaviour
                         field.SetValue(cObject, value); //if class this does nothing
                         oField.SetValue(parentObject, cObject);
                     }
-                    if(OnUpdate == null) ParentReceive(ref setting);
-                    else OnUpdate(ParentReceive);
+                    OnUpdate(ParentReceive);
                 } nUpdate = ChildRequest;
             } else if(field.FieldType.IsValueType && !field.FieldType.IsPrimitive){
                 void ChildRequest(ChildUpdate childCallback) { 
@@ -174,6 +173,15 @@ public class OptionsHandler : MonoBehaviour
     }
 
     public static void CreateInputField(FieldInfo field, GameObject parent, object value, ParentUpdate OnUpdate = null){
+        object cValue = value; //Capture the object to streamline changes
+        void ChildRequest(ChildUpdate childCallback) { 
+            void ParentReceive(ref object parentObject){
+                childCallback(ref parentObject); 
+                cValue = parentObject;
+            }
+            OnUpdate(ParentReceive);
+        }
+
         switch (field.FieldType){
             case Type t when t == typeof(int):
                 TMP_InputField inputField = Instantiate(Resources.Load<GameObject>("Prefabs/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
@@ -197,10 +205,9 @@ public class OptionsHandler : MonoBehaviour
                 break;
             case Type t when t.IsGenericType && t.GetGenericTypeDefinition() == typeof(List<>):
                 Button buttonField1 = Instantiate(Resources.Load<GameObject>("Prefabs/Drop_Arrow"), parent.transform.GetChild(0)).GetComponent<Button>(); bool isOpen1 = false;
-                IList list = (IList)value; //capture list so all updates will be streamed to all event handlers
                 buttonField1.onClick.AddListener(() => { 
                     isOpen1 = !isOpen1;
-                    if(isOpen1) CreateList(list, parent, OnUpdate);
+                    if(isOpen1) CreateList((IList)cValue, parent, ChildRequest);
                     else ReleaseDisplay(parent); 
                     ForceLayoutRefresh(parent.transform);
                 }); 
@@ -209,26 +216,26 @@ public class OptionsHandler : MonoBehaviour
                 listAdd.onClick.AddListener(() => {
                     if(!isOpen1) return;
                     OnUpdate((ref object parentObj) => {
-                        list = (IList)parentObj; list.Add(Activator.CreateInstance(t.GetGenericArguments()[0]));
-                        ReleaseDisplay(parent); CreateList(list, parent, OnUpdate);
+                        cValue = parentObj; ((IList)cValue).Add(Activator.CreateInstance(t.GetGenericArguments()[0]));
+                        ReleaseDisplay(parent); CreateList((IList)cValue, parent, ChildRequest);
                         ForceLayoutRefresh(parent.transform);
                     });
                 });
                 listRemove.onClick.AddListener(() => {
                     if(!isOpen1) return;
-                    if(list.Count == 0) return;
+                    if(((IList)cValue).Count == 0) return;
                     OnUpdate((ref object parentObj) => {
-                        list = (IList)parentObj; list.RemoveAt(list.Count - 1);
-                        ReleaseDisplay(parent); CreateList(list, parent, OnUpdate);
+                        cValue = (IList)parentObj; ((IList)cValue).RemoveAt(((IList)cValue).Count - 1);
+                        ReleaseDisplay(parent); CreateList((IList)cValue, parent, ChildRequest);
                         ForceLayoutRefresh(parent.transform);
-                    }); list.RemoveAt(list.Count - 1);
+                    });
                 });
                 break;
             default:
                 Button buttonField = Instantiate(Resources.Load<GameObject>("Prefabs/Drop_Arrow"), parent.transform.GetChild(0)).GetComponent<Button>(); bool isOpen = false;
                 buttonField.onClick.AddListener(() => {
                     isOpen = !isOpen;
-                    if(isOpen) CreateOptionDisplay(value, parent, OnUpdate);
+                    if(isOpen) CreateOptionDisplay(cValue, parent, ChildRequest);
                     else { ReleaseDisplay(parent); }
                     ForceLayoutRefresh(parent.transform);
                 });

@@ -5,12 +5,13 @@ using static EndlessTerrain;
 using Unity.Mathematics;
 using System.Threading;
 using Utils;
+using System.Collections.Generic;
 
 public struct LODMesh
 {
     TerrainChunk terrainChunk;
     SurfaceChunk.BaseMap surfaceMap;
-    LODInfo[] detailLevels;
+    List<LODInfo> detailLevels;
 
     ShaderGenerator geoShaders;
     AsyncMeshReadback meshReadback;
@@ -18,8 +19,9 @@ public struct LODMesh
     StructureCreator structCreator;
     Action clearMesh;
     float IsoLevel;
+    int mapChunkSize;
 
-    public LODMesh(TerrainChunk terrainChunk, LODInfo[] detailLevels, float IsoLevel, Action clearMesh)
+    public LODMesh(TerrainChunk terrainChunk, List<LODInfo> detailLevels, Action clearMesh)
     {
         this.terrainChunk = terrainChunk;
         this.meshCreator = new MeshCreator();
@@ -31,7 +33,9 @@ public struct LODMesh
         this.detailLevels = detailLevels;
         this.clearMesh = clearMesh;
 
-        this.IsoLevel = IsoLevel;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        this.IsoLevel = rSettings.IsoLevel;
+        this.mapChunkSize = rSettings.mapChunkSize;
     }
 
     public void PlanStructures(Action callback = null){
@@ -44,7 +48,7 @@ public struct LODMesh
 
         //This code will be called on a background thread
         ChunkStorageManager.ReadChunkBin(this.terrainChunk.CCoord, LoD, (bool isComplete, CPUDensityManager.MapData[] chunk) => 
-            timeRequestQueue.Enqueue(new GenTask{ //REMINDER: This queue should be locked
+            AppendGenTask(new GenTask{ //REMINDER: This queue should be locked
                 valid = () => handle.terrainChunk.active,
                 task = () => OnReadComplete(isComplete, chunk),
                 load = taskLoadTable[(int)priorities.generation],

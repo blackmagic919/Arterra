@@ -57,24 +57,18 @@ public class SurfaceCreatorSettings : ScriptableObject{
 
 public class SurfaceCreator
 {
-    Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
-
-    const uint SURFDATA_STRIDE_4BYTE = 6;
-
-    public void OnDisable()
-    {
-        ReleaseTempBuffers();
-    }
-    
-    public void SampleSurfaceMaps(Vector2 offset, int chunkSize, int LOD){
+    const uint SURFDATA_STRIDE_4BYTE = 6;   
+    public void SampleSurfaceMaps(Vector2 offset, int LOD){
         int meshSkipInc = meshSkipTable[LOD];
-        SampleSurfaceData(offset, chunkSize, meshSkipInc);
+        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
+        SampleSurfaceData(offset, mapChunkSize, meshSkipInc);
     }
 
-    public uint StoreSurfaceMap(int chunkSize, int LOD)
+    public uint StoreSurfaceMap(int LOD)
     {
+        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
         int meshSkipInc = meshSkipTable[LOD];
-        int numPointsAxes = chunkSize / meshSkipInc;
+        int numPointsAxes = mapChunkSize / meshSkipInc;
         int numOfPoints = numPointsAxes * numPointsAxes;
         
         uint mapAddressIndex = GenerationPreset.memoryHandle.AllocateMemoryDirect(numOfPoints, (int)SURFDATA_STRIDE_4BYTE);
@@ -123,13 +117,6 @@ public class SurfaceCreator
 
         return destMap;
     }*/
-    public void ReleaseTempBuffers()
-    {
-        while (tempBuffers.Count > 0)
-        {
-            tempBuffers.Dequeue().Release();
-        }
-    }
 
      /*
     public ComputeBuffer GenerateTerrainMaps(int chunkSize, int LOD, Vector2 offset, out ComputeBuffer continentalNoise, out ComputeBuffer erosionNoise, out ComputeBuffer PVNoise)

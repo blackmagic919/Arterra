@@ -19,23 +19,22 @@ public static class GPUDensityManager
     public static Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();//
     public static bool initialized = false;
 
-    public static void Initialize(LODInfo[] detaiLevels, int mapChunkSize, float lerpScale)
+    public static void Initialize()
     {
         Release();
-        
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
         dictReplaceKey = Resources.Load<ComputeShader>("MapData/ReplaceDictChunk");
         transcribeMapInfo = Resources.Load<ComputeShader>("MapData/TranscribeMapInfo");
         simplifyMap = Resources.Load<ComputeShader>("MapData/DensitySimplificator");
-
-        GPUDensityManager.lerpScale = lerpScale;
-
-        GPUDensityManager.mapChunkSize = mapChunkSize;
-        GPUDensityManager.numChunksAxis = 2 * (Mathf.RoundToInt(detaiLevels[^1].distanceThresh / mapChunkSize) + 1);
+        
+        GPUDensityManager.lerpScale = rSettings.lerpScale;
+        GPUDensityManager.mapChunkSize = rSettings.mapChunkSize;
+        GPUDensityManager.numChunksAxis = 2 * (Mathf.RoundToInt(rSettings.detailLevels.value[^1].distanceThresh / mapChunkSize) + 1);
         int numChunks = numChunksAxis * numChunksAxis * numChunksAxis;
 
         GPUDensityManager._ChunkAddressDict = new ComputeBuffer(numChunks, sizeof(uint) * 2, ComputeBufferType.Structured);
         GPUDensityManager._ChunkAddressDict.SetData(Enumerable.Repeat(0u, numChunks * 2).ToArray());
-        GPUDensityManager.memorySpace = new SegmentBinManager(mapChunkSize, detaiLevels, pointStride4Byte);
+        GPUDensityManager.memorySpace = new SegmentBinManager(mapChunkSize, rSettings.detailLevels.value, pointStride4Byte);
 
         initialized = true;
     }

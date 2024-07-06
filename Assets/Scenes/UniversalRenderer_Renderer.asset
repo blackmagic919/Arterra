@@ -72,4 +72,3 @@ MonoBehaviour:
   passSettings:
     renderPassEvent: 500
     luminanceBake: {fileID: 11400000, guid: 871b8f4841c1e455f9f0e07616307f87, type: 2}
-    generationSettings: {fileID: 11400000, guid: 20f244f85582c4ac2858ece976b58a49, type: 2}

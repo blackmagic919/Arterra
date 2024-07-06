@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: DefaultOptions
   m_EditorClassIdentifier: 
   seed: 0
+  Rendering:
+    value: {fileID: 11400000, guid: 20f244f85582c4ac2858ece976b58a49, type: 2}
+    isDirty: 0
   Biomes:
     value: {fileID: 11400000, guid: a50efbb6521ad475786885000f19947c, type: 2}
     isDirty: 0
@@ -76,6 +79,14 @@ MonoBehaviour:
     isDirty: 0
   Memory:
     value: {fileID: 11400000, guid: 743280fd1911d428e99f1d63657bfdaf, type: 2}
+    isDirty: 0
+  Terraforming:
+    value:
+      terraformRadius: 2
+      terraformSpeed: 200
+      maxTerraformDistance: 60
+      materialCapacity: 51000
+      minInvMatThresh: 1
     isDirty: 0
   ReadBackSettings:
     value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}

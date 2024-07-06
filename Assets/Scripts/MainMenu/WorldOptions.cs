@@ -26,6 +26,7 @@ public sealed class UIgnore : Attribute{}
 [CreateAssetMenu(menuName = "Generation/WorldOptions")]
 public class WorldOptions : ScriptableObject{
     public int seed;
+    public Option<RenderSettings> Rendering;
     public Option<BiomeGenerationData> Biomes;
     public Option<List<Option<StructureData> > > Structures;
     public Option<TextureData> Materials;
@@ -34,6 +35,7 @@ public class WorldOptions : ScriptableObject{
     public Option<MeshCreatorSettings> Terrain;
     public Option<SurfaceCreatorSettings> Surface;
     public Option<MemoryBufferSettings> Memory;
+    public Option<TerraformSettings> Terraforming;
 
     [UIgnore]
     public Option<ReadbackSettings> ReadBackSettings;

@@ -14,23 +14,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   IsoLevel: 0.5
   detailLevels:
-  - LOD: 0
-    distanceThresh: 200
-    useForCollider: 1
-    useForGeoShaders: 1
-  - LOD: 1
-    distanceThresh: 300
-    useForCollider: 0
-    useForGeoShaders: 0
-  - LOD: 2
-    distanceThresh: 400
-    useForCollider: 0
-    useForGeoShaders: 0
-  - LOD: 3
-    distanceThresh: 500
-    useForCollider: 0
-    useForGeoShaders: 0
-  - LOD: 4
-    distanceThresh: 600
-    useForCollider: 0
-    useForGeoShaders: 0
+    value:
+    - LOD: 0
+      distanceThresh: 200
+      useForCollider: 1
+      useForGeoShaders: 1
+    - LOD: 1
+      distanceThresh: 300
+      useForCollider: 0
+      useForGeoShaders: 0
+    - LOD: 2
+      distanceThresh: 400
+      useForCollider: 0
+      useForGeoShaders: 0
+    - LOD: 3
+      distanceThresh: 500
+      useForCollider: 0
+      useForGeoShaders: 0
+    - LOD: 4
+      distanceThresh: 600
+      useForCollider: 0
+      useForGeoShaders: 0
+    isDirty: 0
+  mapChunkSize: 64
+  chunkUpdateThresh: 24
+  lerpScale: 2

@@ -4,11 +4,14 @@ using UnityEngine;
 
 
 [CreateAssetMenu(menuName = "Generation/Settings Wrapper")]
-public class GenerationSettings : ScriptableObject
+public class RenderSettings : ScriptableObject
 {
     [Range(0, 1)]
     public float IsoLevel;
-    public LODInfo[] detailLevels;
+    public Option<List<LODInfo>> detailLevels;
+    public int mapChunkSize = 64; //Number of cubes; Please don't change
+    public float chunkUpdateThresh = 24f;
+    public  float lerpScale = 2f;
 
     private void OnEnable()
     {

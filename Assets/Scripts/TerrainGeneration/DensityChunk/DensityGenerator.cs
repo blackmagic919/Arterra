@@ -24,7 +24,7 @@ public static class DensityGenerator
         indirectCountToArgs = Resources.Load<ComputeShader>("Utility/CountToArgs");
     }
 
-    public static void PresetData(int maxChunkSize){
+    public static void PresetData(){
         MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.Terrain.value;
         baseGenCompute.SetInt("coarseCaveSampler", mesh.CoarseTerrainNoise);
         baseGenCompute.SetInt("fineCaveSampler", mesh.FineTerrainNoise);
@@ -37,7 +37,7 @@ public static class DensityGenerator
         baseGenCompute.SetBuffer(0, "BaseMap", UtilityBuffers.GenerationBuffer);
 
         //Set Marching Cubes Data
-        int numPointsAxes = maxChunkSize + 1;
+        int numPointsAxes = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize + 1;
         bufferOffsets = new GeoGenOffsets(new int3(numPointsAxes, numPointsAxes, numPointsAxes), 0, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD);
 
         //They're all the same buffer lol

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -20,25 +22,26 @@ public class TerrainChunk : ChunkData
     readonly MeshCollider meshCollider;
 
     readonly LODMesh LODMeshHandle;
-    readonly LODInfo[] detailLevels;
+    readonly List<LODInfo> detailLevels;
 
     public bool active = true;
     public int prevMapLOD = int.MaxValue;
     int prevMeshLOD = int.MaxValue;
     float closestDist;
 
-    public TerrainChunk(int3 coord, float IsoLevel, Transform parent, SurfaceChunk surfaceChunk,  LODInfo[] detailLevels)
+    public TerrainChunk(int3 coord, Transform parent, SurfaceChunk surfaceChunk)
     {
         CCoord = coord;
-        position = CustomUtility.AsVector(coord) * mapChunkSize;
-        origin = position - Vector3.one * (mapChunkSize / 2f); //Shift mesh so it is aligned with center
-        bounds = new Bounds(origin, Vector3.one * mapChunkSize);  
-        this.detailLevels = detailLevels;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        position = CustomUtility.AsVector(coord) * rSettings.mapChunkSize;
+        origin = position - Vector3.one * (rSettings.mapChunkSize / 2f); //Shift mesh so it is aligned with center
+        bounds = new Bounds(origin, Vector3.one * rSettings.mapChunkSize);  
+        this.detailLevels = rSettings.detailLevels.value;
         this.surfaceMap = surfaceChunk.baseMap;
 
         meshObject = new GameObject("Terrain Chunk");
-        meshObject.transform.position = origin * lerpScale;
-        meshObject.transform.localScale = Vector3.one * lerpScale;
+        meshObject.transform.position = origin * rSettings.lerpScale;
+        meshObject.transform.localScale = Vector3.one * rSettings.lerpScale;
         meshObject.transform.parent = parent;
 
         meshFilter = meshObject.AddComponent<MeshFilter>();
@@ -46,11 +49,11 @@ public class TerrainChunk : ChunkData
         meshCollider = meshObject.AddComponent<MeshCollider>();
         meshRenderer.sharedMaterials = WorldStorageHandler.WORLD_OPTIONS.ReadBackSettings.value.TerrainMats.ToArray();
 
-        boundsOS = new Bounds(Vector3.one * (mapChunkSize / 2), Vector3.one * mapChunkSize);
-        LODMeshHandle = new LODMesh(this, detailLevels, IsoLevel, ClearFilter);
+        boundsOS = new Bounds(Vector3.one * (rSettings.mapChunkSize / 2), Vector3.one * rSettings.mapChunkSize);
+        LODMeshHandle = new LODMesh(this, detailLevels, ClearFilter);
         
         //Plan Structures
-        timeRequestQueue.Enqueue(new EndlessTerrain.GenTask{
+        AppendGenTask(new EndlessTerrain.GenTask{
             valid = () => this.active,
             task = () => LODMeshHandle.PlanStructures(Update), 
             load = taskLoadTable[(int)Utils.priorities.structure]
@@ -62,13 +65,13 @@ public class TerrainChunk : ChunkData
         closestDist = Mathf.Sqrt(bounds.SqrDistance(viewerPosition));
         
         int mapLoD = 0;
-        for (int i = 0; i < detailLevels.Length; i++)
+        for (int i = 0; i < detailLevels.Count; i++)
             if ( closestDist > detailLevels[i].distanceThresh) mapLoD = i + 1;
         //Map may have different resolution than mesh--solve out-of-bound normals etc. 
 
-        if(mapLoD != prevMapLOD && mapLoD < detailLevels.Length){
+        if(mapLoD != prevMapLOD && mapLoD < detailLevels.Count){
             if(prevMapLOD <= mapLoD) {
-                timeRequestQueue.Enqueue(new EndlessTerrain.GenTask{ 
+                AppendGenTask(new EndlessTerrain.GenTask{ 
                     valid = () => this.prevMapLOD == mapLoD,
                     task = () => LODMeshHandle.SimplifyMap(mapLoD, onMapGenerated),
                     load = taskLoadTable[(int)Utils.priorities.generation],
@@ -78,7 +81,7 @@ public class TerrainChunk : ChunkData
             //Therefore we need to call it directly to maintain it's on the same call-cycle as the rest of generation
             prevMapLOD = mapLoD;
         }
-        else timeRequestQueue.Enqueue(new EndlessTerrain.GenTask{
+        else AppendGenTask(new EndlessTerrain.GenTask{
             valid = () => this.prevMapLOD == mapLoD,
             task = onMapGenerated,
             load = 0,
@@ -115,10 +118,10 @@ public class TerrainChunk : ChunkData
         float farthestDistance = FarthestDist(viewerPosition);
         if (farthestDistance > detailLevels[meshLoD].distanceThresh) meshLoD++;
 
-        if(meshLoD != prevMeshLOD && meshLoD < detailLevels.Length){
+        if(meshLoD != prevMeshLOD && meshLoD < detailLevels.Count){
             prevMeshLOD = meshLoD;
 
-            timeRequestQueue.Enqueue(new EndlessTerrain.GenTask{
+            AppendGenTask(new EndlessTerrain.GenTask{
                 valid = () => this.prevMeshLOD == meshLoD,
                 task = () => {LODMeshHandle.CreateMesh(meshLoD, onChunkCreated);}, 
                 load = taskLoadTable[(int)Utils.priorities.mesh]
@@ -129,12 +132,22 @@ public class TerrainChunk : ChunkData
     private void onChunkCreated(AsyncMeshReadback.SharedMeshInfo meshInfo)
     {
         meshFilter.sharedMesh = meshInfo.GenerateMesh(UnityEngine.Rendering.IndexFormat.UInt32);;
-        if(detailLevels[prevMeshLOD].useForCollider){
-            meshCollider.sharedMesh = meshInfo.GetSubmesh(0, UnityEngine.Rendering.IndexFormat.UInt32);
-        }
+        if(detailLevels[prevMeshLOD].useForCollider) BakeMesh(meshInfo.GetSubmesh(0, UnityEngine.Rendering.IndexFormat.UInt32));
         meshInfo.Release();
     }
 
+    private void BakeMesh(Mesh mesh){
+        if(mesh == null) return;
+        int meshID = mesh.GetInstanceID();
+        Task.Run(() => {
+            Physics.BakeMesh(meshID, false);
+            AppendGenTask(new EndlessTerrain.GenTask{
+                valid = () => this.active,
+                task = () => meshCollider.sharedMesh = mesh,
+                load = 0
+            });
+        });
+    }
     public override void UpdateVisibility(int3 CCCoord, float maxRenderDistance)
     {
         int3 distance = CCoord - CCCoord;

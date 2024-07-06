@@ -57,7 +57,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint structureAddress = _AddressDict[addressIndex].y + id.x;
     structureInfo structure = _MemoryBuffer[structureAddress];
     //can't use implicit concatenation because -1.5 -> -1 while 1.5 -> 1, positive ints for current chunk, negative for adjacent ones
-    int3 origin = int3(floor(structure.structurePos.x), floor(structure.structurePos.y), floor(structure.structurePos.z));
+    int3 origin = int3(floor(structure.structurePos));
     uint2 rotation = structure.rotation;
     uint structureIndex = structure.structureIndex;
 
@@ -65,7 +65,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint3 sizes = StructureSettings.size;
 
     //Where in the chunk to start generation
-    uint3 chunkOrigin = uint3(max(0, origin.x), max(0, origin.y), max(0, origin.z));
+    uint3 chunkOrigin = uint3(max(0, origin));
 
     int3 xAxis = int3(mul(RotationLookupTable[rotation.x][rotation.y], float3(1, 0, 0)));
     int3 xDir = abs(xAxis);
@@ -89,8 +89,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint indexOffset = _StructureIndexes[structureIndex].x;
 
     //Evaluate chunk coord with LoD
-    uint3 chunkOriginLoD = uint3(ceil(chunkOrigin.x / (float)meshSkipInc), ceil(chunkOrigin.y / (float)meshSkipInc), ceil(chunkOrigin.z / (float)meshSkipInc));
-    uint3 chunkEndLoD = uint3(min(numPointsPerAxis, chunkEnd.x / meshSkipInc), min(numPointsPerAxis, chunkEnd.y / meshSkipInc), min(numPointsPerAxis, chunkEnd.z / meshSkipInc));
+    uint3 chunkOriginLoD = uint3(ceil(chunkOrigin / (float)meshSkipInc));
+    uint3 chunkEndLoD = uint3(min(numPointsPerAxis, chunkEnd / meshSkipInc));
     chunkOriginLoD = min(chunkOriginLoD, chunkEndLoD);
 
     uint3 originDist = chunkOriginLoD*meshSkipInc - origin;
@@ -102,9 +102,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     structOrigin += (zFlipped ? (dot(sizes-1, zDir) - originDist.z) : originDist.z) * zDir;
 
     uint3 structLength = uint3(0, 0, 0);
-    structLength.x = max(chunkEndLoD.x - chunkOriginLoD.x, 0);
-    structLength.y = max(chunkEndLoD.y - chunkOriginLoD.y, 0);
-    structLength.z = max(chunkEndLoD.z - chunkOriginLoD.z, 0);
+    structLength = max(chunkEndLoD - chunkOriginLoD, 0);
     uint structLength0 = structLength.x * structLength.y * structLength.z;
 
     //I hope it doesn't complain about the triple loop *nervous laugh*
