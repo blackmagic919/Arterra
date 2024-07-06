@@ -21,8 +21,10 @@ public class LoadingHandler : MonoBehaviour
         }
 
         float totalRemainingLoad = 0; 
-        foreach(EndlessTerrain.GenTask task in EndlessTerrain.timeRequestQueue){
-            totalRemainingLoad += task.load;
+        lock(EndlessTerrain.timeRequestQueue){
+            foreach(EndlessTerrain.GenTask task in EndlessTerrain.timeRequestQueue){
+                totalRemainingLoad += task.load;
+            }
         }
 
         slider.value = finishedLoad / (totalRemainingLoad + finishedLoad);
