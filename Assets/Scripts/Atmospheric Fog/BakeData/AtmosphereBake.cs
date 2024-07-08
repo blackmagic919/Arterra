@@ -46,7 +46,7 @@ public class AtmosphereBake : ScriptableObject
         OpticalInfo?.Release();
     }
 
-    public void Execute()
+    public void Execute(CommandBuffer cmd)
     {
         if(!GPUDensityManager.initialized)
             return;
@@ -57,8 +57,8 @@ public class AtmosphereBake : ScriptableObject
         if (BakedTextureSizePX == 0)
             return;
         
-        CalculateRayData();
-        ExecuteOpticalMarch();
+        CalculateRayData(cmd);
+        ExecuteOpticalMarch(cmd);
     }
 
     public void SetupData(){
@@ -107,21 +107,21 @@ public class AtmosphereBake : ScriptableObject
         GPUDensityManager.SetDensitySampleData(OpticalDataCompute);
     }
 
-    void CalculateRayData()
+    void CalculateRayData(CommandBuffer cmd)
     {
         RaySetupCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsPerAxisX = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
         int numThreadsPerAxisY = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
-        RaySetupCompute.Dispatch(0, numThreadsPerAxisX, numThreadsPerAxisY, 1);
+        cmd.DispatchCompute(RaySetupCompute, 0, numThreadsPerAxisX, numThreadsPerAxisY, 1);
     }
 
-    void ExecuteOpticalMarch(){
+    void ExecuteOpticalMarch(CommandBuffer cmd){
 
         OpticalDataCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsPerAxisX = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
         int numThreadsPerAxisY = Mathf.CeilToInt(BakedTextureSizePX / (float)threadGroupSize);
         int numThreadsPerAxisZ = Mathf.CeilToInt(NumInScatterPoints / (float)threadGroupSize);
-        OpticalDataCompute.Dispatch(0, numThreadsPerAxisX, numThreadsPerAxisY, numThreadsPerAxisZ);
+        cmd.DispatchCompute(OpticalDataCompute, 0, numThreadsPerAxisX, numThreadsPerAxisY, numThreadsPerAxisZ);
 
     }
 

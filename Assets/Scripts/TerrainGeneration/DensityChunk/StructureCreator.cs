@@ -50,17 +50,13 @@ public class StructureCreator
     public void PlanStructuresGPU(int3 chunkCoord, Vector3 offset, int chunkSize, float IsoLevel)
     {
         ReleaseStructure();
-        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 2, 0);
+        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 4, 0);
 
         SampleStructureLoD(WorldStorageHandler.WORLD_OPTIONS.Biomes.value.maxLoD, chunkSize, chunkCoord);
 
-        //ComputeBuffer planCount = UtilityBuffers.CopyCount(planPointsAppend, tempBuffers);
         IdentifyStructures(chunkCoord, offset, IsoLevel, chunkSize);
-
-        //ComputeBuffer structureCount = UtilityBuffers.CopyCount(structureBuffer, tempBuffers);
-        //ComputeBuffer structByteSize = CalculateStructureSize(structureCount, STRUCTURE_STRIDE_4BYTE, ref tempBuffers);
-        this.structureDataIndex = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, STRUCTURE_STRIDE_WORD, structCounter);
-        TranscribeStructures(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(), (int)this.structureDataIndex);
+        
+        this.structureDataIndex = TranscribeStructures(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses());
 
         return;
     }

@@ -1,10 +1,7 @@
 using System.Collections.Generic;
 using System;
 using UnityEngine;
-using UnityStandardAssets.Characters.FirstPerson;
-using UnityEngine.Profiling;
-using Utils;
-using UnityEngine.Rendering;
+using System.Diagnostics;
 using Unity.Mathematics;
 
 public class EndlessTerrain : MonoBehaviour
@@ -120,9 +117,7 @@ public class EndlessTerrain : MonoBehaviour
             if (!DequeueGenTask(out GenTask gen))
                 return;
 
-            //Profiler.BeginSample($"Time Request Queue: {Enum.GetName(typeof(priorities), gen.load))}");
             if(gen.valid()) gen.task();
-            //Profiler.EndSample();
 
             FrameGPULoad += gen.load;
         }

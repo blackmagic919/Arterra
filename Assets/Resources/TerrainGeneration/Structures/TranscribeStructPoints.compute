@@ -15,9 +15,9 @@ StructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
 
 StructuredBuffer<structureInfo> structPoints;
-uint bSTART;
-StructuredBuffer<uint> counter;
-uint bCOUNTER;
+RWStructuredBuffer<uint> counter;
+uint bSTART_struct;
+uint bCOUNTER_struct;
 
 
 [numthreads(numThreads,1,1)]
@@ -26,10 +26,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     if(_AddressDict[addressIndex].x == 0) //Invalid
         return;
 
-    if(id.x >= counter[bCOUNTER])
+    if(id.x >= counter[bCOUNTER_struct])
         return;
 
+    structureInfo structPoint = structPoints[bSTART_struct + id.x];
     uint pointAddress = _AddressDict[addressIndex].y + id.x;
-    _MemoryBuffer[pointAddress] = structPoints[bSTART + id.x];
-
+    _MemoryBuffer[pointAddress] = structPoint;
 }
+

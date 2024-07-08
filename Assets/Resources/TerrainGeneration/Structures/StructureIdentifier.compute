@@ -1,4 +1,6 @@
-#pragma kernel CSMain
+#pragma kernel Identify
+#pragma kernel Check
+#pragma kernel Prune
 
 #include "Assets/Resources/Utility/RotationTables.hlsl"
 #include "Assets/Resources/TerrainGeneration/Structures/StructIDSettings.hlsl"
@@ -29,6 +31,11 @@ struct biomeStructure{
     uint structIndex;
 };
 
+struct structInfo{
+    float3 position;
+    uint LoD; 
+};
+
 struct structureData{
     float3 structurePos;
     uint structureIndex;
@@ -38,6 +45,11 @@ struct structureData{
 struct checkData{
     float3 position;
     uint value;
+};
+
+struct checkInfo{
+    uint checkIndex;
+    uint structureIndex;
 };
 
 // Global references
@@ -51,14 +63,18 @@ int3 CCoord;
 
 //All 3 of these buffers are the same entity assigned with different bindings
 StructuredBuffer<structInfo> structurePlan;
-uint bSTART_plan;
-
+RWStructuredBuffer<checkInfo> structureChecks;
 RWStructuredBuffer<structureData> genStructures;
-uint bSTART_out;
+uint bSTART_plan;
+uint bSTART_check;
+uint bSTART_struct;
+uint bSTART_prune;
 
 RWStructuredBuffer<uint> counter;
 uint bCOUNTER_plan;
-uint bCOUNTER_out;
+uint bCOUNTER_check;
+uint bCOUNTER_struct;
+uint bCOUNTER_prune;
 
 float random(float seed){
     float hash = frac(sin(seed) * 43758.5453);
@@ -113,7 +129,7 @@ int determineStructure(uint LoD, int biome, float seed, float yPos){
     while(structureIndex >= (int)biomeStart){
         biomeStructure currentStructure = _BiomeStructureData[structureIndex];
         if(currentStructure.frequency > seed && getDensity(currentStructure, yPos) > random(seed))
-                break;
+            break;
         seed = random(random(seed));
         structureIndex--;
     }
@@ -122,7 +138,7 @@ int determineStructure(uint LoD, int biome, float seed, float yPos){
 }
 
 [numthreads(numThreads,1,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void Identify (uint3 id : SV_DispatchThreadID)
 {
     //Note, operations are better if ordered from less expensive to more
     if(id.x >= counter[bCOUNTER_plan])
@@ -160,22 +176,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     //If doesn't intersect
     if(any(origin + abs(length) < 0)) 
         return;
-
-//ANALYZE STRUCTURE CHECKS
-    uint checkStart = _StructureIndexes[structureIndex].y;
-    uint checkEnd = _StructureIndexes[structureIndex+1].y;
-
-    //Origin is always located at the least point, so there is one consistent direction of generation
-    float3 newOrigin = min(length, 0); //old origin at (0,0,0)
-    for(uint i = checkStart; i < checkEnd; i++){
-        checkData data = _StructureChecks[i];
-
-        float3 rotatedPos = mul(rotMatrix, data.position);
-        float3 transformedPos = rotatedPos - newOrigin;
-
-        float3 checkPosition = transformedPos + structPlan.position;
-        if(SampleTerrain(checkPosition) != (data.value != 0)) return;
-    }
     
 //ADD STRUCTURE
     structureData newStructure;
@@ -184,6 +184,59 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     newStructure.rotation = uint2(rotTheta, rotPhi);
 
     int appendInd = 0;
-    InterlockedAdd(counter[bCOUNTER_out], 1, appendInd);
-    genStructures[appendInd + bSTART_out] = newStructure;
+    InterlockedAdd(counter[bCOUNTER_struct], 1, appendInd);
+    genStructures[appendInd + bSTART_struct] = newStructure;
+
+//ADD STRUCTURE CHECKS
+    checkInfo newCheck;
+    newCheck.structureIndex = appendInd;
+    
+    uint checkStart = _StructureIndexes[structureIndex].y;
+    uint checkEnd = _StructureIndexes[structureIndex+1].y;
+
+    for(uint i = checkStart; i < checkEnd; i++){
+        newCheck.checkIndex = i;
+        InterlockedAdd(counter[bCOUNTER_check], 1, appendInd);
+        structureChecks[appendInd + bSTART_check] = newCheck;
+    }
+}
+
+//Process structure checks
+[numthreads(numThreads,1,1)]
+void Check (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= counter[bCOUNTER_check])
+        return;
+    
+    checkInfo check = structureChecks[id.x + bSTART_check];
+    structureData structure = genStructures[check.structureIndex + bSTART_struct];
+
+    if(structure.structureIndex == asuint(-1)) return; //some other thread already invalidated this structure
+    settings structureSettings = _StructureSettings[structure.structureIndex];
+
+    //Origin is always located at the least point, so there is one consistent direction of generation
+    float3x3 rotMatrix = RotationLookupTable[structure.rotation.x][structure.rotation.y];
+    float3 length = mul(rotMatrix, structureSettings.size);
+    float3 newOrigin = min(length, 0);
+
+    checkData data = _StructureChecks[check.checkIndex];
+    float3 rotatedPos = mul(rotMatrix, data.position);
+    float3 transformedPos = rotatedPos - newOrigin;
+
+    float3 checkPosition = transformedPos + structure.structurePos;
+    if(SampleTerrain(checkPosition) != (data.value != 0)) genStructures[check.structureIndex + bSTART_struct].structureIndex = asuint(-1);
+}
+
+[numthreads(numThreads,1,1)]
+void Prune(uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= counter[bCOUNTER_struct])
+        return;
+
+    structureData structure = genStructures[id.x + bSTART_struct];
+    if(structure.structureIndex == asuint(-1)) return;
+
+    uint appendInd = 0;
+    InterlockedAdd(counter[bCOUNTER_prune], 1, appendInd);
+    genStructures[appendInd + bSTART_prune] = structure;
 }

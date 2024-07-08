@@ -73,12 +73,12 @@ public class AtmospherePass : ScriptableRenderPass
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
         if(!initialized) return;
-        passSettings.luminanceBake.Execute();
         if(GPUDensityManager.initialized && passSettings.luminanceBake.initialized){
             CommandBuffer cmd = CommandBufferPool.Get();
             
             using (new ProfilingScope(cmd, new ProfilingSampler(ProfilerTag)))
             {
+                passSettings.luminanceBake.Execute(cmd);
                 // Blit from the color buffer to a temporary buffer and back. This is needed for a two-pass shader.
                 Blit(cmd, depthBuffer, Shader.GetGlobalTexture("_CameraDepthTexture")); //Make sure camera depth is available in shader
                 Blit(cmd, colorBuffer, temporaryBuffer, material, 0); // shader pass 0

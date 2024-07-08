@@ -1,11 +1,6 @@
 #ifndef STRUCTID_SETTINGS
 #define STRUCTID_SETTINGS
 
-struct structInfo{
-    float3 position;
-    //Various data may be contained here, treat as padding
-    uint LoD; 
-};
 
 //Biome 
 uint continentalSampler;

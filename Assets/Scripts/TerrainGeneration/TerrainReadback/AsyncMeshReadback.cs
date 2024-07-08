@@ -106,7 +106,7 @@ public class AsyncMeshReadback
 
         //Readback shared vertices
         GeometryHandle vertHandle = this.vertexHandle; //Get reference here so that it doesn't change when lambda evaluates
-        if(vertHandle == null || !vertHandle.initialized)
+        if(vertHandle == null || !vertHandle.active)
             return;
         AsyncGPUReadback.Request(GenerationPreset.memoryHandle.AccessAddresses(), size: 8, offset: 8*(int)vertHandle.addressIndex, ret => onVertAddressRecieved(ret, vertHandle, RBTask));
         RBTask.AddTask();
@@ -114,7 +114,7 @@ public class AsyncMeshReadback
         //Readback mesh triangles
         for(int matIndex = 0; matIndex < numMeshes; matIndex++){
             GeometryHandle geoHandle = triHandles[matIndex];
-            if(geoHandle == null || !geoHandle.initialized)
+            if(geoHandle == null || !geoHandle.active)
                 continue;
             //Begin readback of data
             AsyncGPUReadback.Request(GenerationPreset.memoryHandle.AccessAddresses(), size: 8, offset: 8*(int)geoHandle.addressIndex, ret => onTriAddressRecieved(ret, geoHandle, RBTask));
@@ -124,7 +124,7 @@ public class AsyncMeshReadback
 
     void onTriAddressRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, ReadbackTask RBTask)
     {
-        if (geoHandle == null || !geoHandle.initialized) //Info was depreceated
+        if (geoHandle == null || !geoHandle.active) //Info was depreceated
             return;
 
         uint2 memAddress = request.GetData<uint2>().ToArray()[0];
@@ -140,7 +140,7 @@ public class AsyncMeshReadback
     }
 
     void onVertAddressRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, ReadbackTask RBTask){
-        if (geoHandle == null || !geoHandle.initialized) //Info was depreceated
+        if (geoHandle == null || !geoHandle.active) //Info was depreceated
             return;
         
         uint2 memAddress = request.GetData<uint2>().ToArray()[0];
@@ -156,7 +156,7 @@ public class AsyncMeshReadback
 
     void onTriSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask RBTask)
     {
-        if (geoHandle == null || !geoHandle.initialized)  //Info was depreceated
+        if (geoHandle == null || !geoHandle.active)  //Info was depreceated
             return;
 
         int memSize = (int)(request.GetData<uint>().ToArray()[0] - TRI_STRIDE_WORD); //subtract one triangle for padding
@@ -168,7 +168,7 @@ public class AsyncMeshReadback
     }
 
     void onVertSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask RBTask){
-        if (geoHandle == null || !geoHandle.initialized) 
+        if (geoHandle == null || !geoHandle.active) 
             return;
 
         int memSize = (int)(request.GetData<uint>().ToArray()[0] - MESH_VERTEX_STRIDE_WORD); //subtract one triangle for padding
@@ -183,14 +183,14 @@ public class AsyncMeshReadback
 
     void onTriDataRecieved(GeometryHandle geoHandle, ReadbackTask RBTask)
     {
-        if (geoHandle == null || !geoHandle.initialized)  //Info was depreceated
+        if (geoHandle == null || !geoHandle.active)  //Info was depreceated
             return;
             
         RBTask.onRBRecieved();
     }
 
     void onVertDataRecieved(GeometryHandle geoHandle, ReadbackTask RBTask){
-        if (geoHandle == null || !geoHandle.initialized)  //Info was depreceated
+        if (geoHandle == null || !geoHandle.active)  //Info was depreceated
             return;
         
         RBTask.onRBRecieved();
@@ -353,7 +353,6 @@ public class AsyncMeshReadback
         public int matIndex = -1;
         public uint addressIndex = 0;
         public uint argsAddress = 0;
-        public bool initialized;
 
         public GeometryHandle(RenderParams rp, GenerationPreset.MemoryHandle memory, uint addressIndex, uint argsAddress, int matIndex)
         {
@@ -362,13 +361,11 @@ public class AsyncMeshReadback
             this.rp = rp;
             this.matIndex = matIndex;
             this.argsAddress = argsAddress;
-            this.initialized = true;
             this.active = true;
         }
 
         public GeometryHandle()
         {
-            this.initialized = true;
             this.active = true;
         }
 
@@ -377,8 +374,7 @@ public class AsyncMeshReadback
         }
 
         public void Release(){
-            if(!this.initialized) return;
-            this.initialized = false;
+            if(!this.active) return;
             this.active = false;
 
             //Release geometry memory
@@ -392,7 +388,7 @@ public class AsyncMeshReadback
 
         public override void Update()
         {
-            if (!initialized || !active)
+            if (!active)
                 return;
                 
             //Offset in bytes = address * 4 args per address * 4 bytes per arg

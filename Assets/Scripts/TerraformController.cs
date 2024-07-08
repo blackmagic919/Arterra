@@ -60,8 +60,8 @@ public class TerraformController
         barController.OnInventoryChanged(this);
     }
 
-    bool RayTestSolid(CPUDensityManager.MapData pointInfo){ return (pointInfo.density * pointInfo.viscosity / 255.0f) >= IsoLevel; }
-    bool RayTestLiquid(CPUDensityManager.MapData pointInfo){ return (pointInfo.density * (1 - pointInfo.viscosity / 255.0f)) >= IsoLevel || (pointInfo.density * pointInfo.viscosity / 255.0f) >= IsoLevel;}
+    bool RayTestSolid(CPUDensityManager.MapData pointInfo){ return (pointInfo.density * (pointInfo.viscosity / 255.0f)) >= IsoLevel; }
+    bool RayTestLiquid(CPUDensityManager.MapData pointInfo){ return (pointInfo.density * (1 - (pointInfo.viscosity / 255.0f))) >= IsoLevel || (pointInfo.density * (pointInfo.viscosity / 255.0f)) >= IsoLevel;}
 
     void Terraform()
     {
@@ -164,7 +164,7 @@ public class TerraformController
         if(brushStrength == 0) return pointInfo;
 
         int liquidDensity = Mathf.RoundToInt(pointInfo.density * (1 - (pointInfo.viscosity / 255.0f)));
-        if (liquidDensity > IsoLevel){
+        if (liquidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(liquidDensity, -brushStrength);
             deltaDensity = MainInventory.AddMaterialToInventory(new MaterialInventory.InvMat{material = pointInfo.material, isSolid = false}, deltaDensity);
 
