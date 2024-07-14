@@ -101,7 +101,7 @@ void GetSDF (uint3 id : SV_DispatchThreadID)
         if(RayIntersectsTriangle(p, float3(0, 0, 1), tri)) intersections.z++;
     }
     dist *= min(intersections.x, min(intersections.y, intersections.z)) % 2 == 0 ? -1 : 1; //if even intersections, point is outside
-    Distance[indexFromCoordIrregular(id, GridSize.xy)] = dist;
+    Distance[indexFromCoordIrregular(id, GridSize.yz)] = dist;
 }
 
 RWStructuredBuffer<uint> MapData;

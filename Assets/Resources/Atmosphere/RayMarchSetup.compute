@@ -59,6 +59,6 @@ void Bake (uint3 id : SV_DispatchThreadID)
     rInfo.length = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, rayOrigin, rInfo.direction);
     //dstThroughAtmosphere = min(dstThroughAtmosphere, linearDepth-dstToAtmosphere);
     
-    uint pixelIndex = indexFromCoord2DManual(screenX, screenY, screenWidth);
+    uint pixelIndex = indexFromCoord2DManual(screenX, screenY, screenHeight);
     rayInfo[pixelIndex] = rInfo; 
 }

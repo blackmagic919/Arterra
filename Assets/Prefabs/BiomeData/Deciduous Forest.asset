@@ -123,3 +123,10 @@ MonoBehaviour:
         structureIndex: 1
       isDirty: 0
     isDirty: 0
+  Entities:
+    value:
+    - value:
+        entityIndex: 0
+        ChancePerCoord: 0.5
+      isDirty: 0
+    isDirty: 0

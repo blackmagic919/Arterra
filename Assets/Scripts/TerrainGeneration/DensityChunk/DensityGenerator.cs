@@ -86,8 +86,8 @@ public static class DensityGenerator
         baseGenCompute.SetBuffer(0, "_SurfAddressDict", GenerationPreset.memoryHandle.AccessAddresses());
         baseGenCompute.SetInt("surfAddress", (int)surfaceData);
         baseGenCompute.SetInt("numPointsPerAxis", numPointsAxes);
+        baseGenCompute.SetInt("meshSkipInc", meshSkipInc);
 
-        baseGenCompute.SetFloat("meshSkipInc", meshSkipInc);
         baseGenCompute.SetFloat("chunkSize", chunkSize);
         baseGenCompute.SetFloat("offsetY", offset.y);
         
@@ -112,7 +112,7 @@ public static class DensityGenerator
         meshGenerator.SetFloat("IsoLevel", IsoLevel);
         meshGenerator.SetInt("numCubesPerAxis", numCubesAxes);
         meshGenerator.SetInt("numPointsPerAxis", numPointsAxes);
-        meshGenerator.SetFloat("meshSkipInc", meshSkipInc);
+        meshGenerator.SetInt("meshSkipInc", meshSkipInc);
 
         meshGenerator.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);

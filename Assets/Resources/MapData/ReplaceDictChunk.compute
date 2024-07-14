@@ -2,7 +2,8 @@
 #pragma kernel CSMain
 
 RWStructuredBuffer<uint2> chunkAddressDict;
-RWStructuredBuffer<uint2> nAddress;
+RWStructuredBuffer<uint2> _AddressDict;
+uint addressIndex;
 int3 CCoord;
 uint meshSkipInc;
 
@@ -11,7 +12,7 @@ uint meshSkipInc;
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     uint hash = HashCoord(CCoord);
-    uint2 oldData = chunkAddressDict[hash];
-    chunkAddressDict[hash] = uint2(nAddress[0].x, meshSkipInc);
-    nAddress[0] = oldData;
+    uint2 oldData = chunkAddressDict[hash]; 
+    chunkAddressDict[hash] = uint2(_AddressDict[addressIndex].y, meshSkipInc);
+    _AddressDict[addressIndex] = oldData;
 }

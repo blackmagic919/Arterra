@@ -82,7 +82,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     uint rNode = FindSmallestBlock(1u, allocSize + InitBlockSize);
     uint2 root = _Heap[rNode]; uint rAddress = root.x; uint rBlockSize = root.y;
-    uint padding = stride - (rAddress % stride);
+    uint padding = (stride - (rAddress % stride)) % stride; //we mod again so there is no padding if rAddress is a multiple of stride
 
 
     _AddressDict[addressIndex] = uint2(rAddress, (rAddress + padding)/stride);

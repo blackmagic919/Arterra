@@ -133,3 +133,6 @@ MonoBehaviour:
         structureIndex: 8
       isDirty: 0
     isDirty: 0
+  Entities:
+    value: []
+    isDirty: 0

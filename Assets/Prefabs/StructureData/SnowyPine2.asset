@@ -2031,15 +2031,18 @@ MonoBehaviour:
         x: 5
         y: 1
         z: 5
-      isUnderGround: 1
+      checkInfo:
+        data: 4278255488
     - position:
         x: 5
         y: 5
         z: 5
-      isUnderGround: 0
+      checkInfo:
+        data: 4278222592
     - position:
         x: 5
         y: 15
         z: 5
-      isUnderGround: 0
+      checkInfo:
+        data: 4278222592
     isDirty: 0

@@ -8,7 +8,7 @@ float GetNoiseCentered(float val, float center){
     return ret;
 }
 
-bool SampleTerrain (float3 position)
+uint SampleTerrain (float3 position)
 {
     float3 position2D = float3(position.x, 0, position.z);
     float3 sOffset2D = float3(sOffset.x, 0, sOffset.z);
@@ -36,5 +36,9 @@ bool SampleTerrain (float3 position)
     float terrainFactor = clamp((terrainHeight - actualHeight) / (squashFactor + Epsilon), 0, 1) * (1-IsoLevel) + IsoLevel;
     float density = baseDensity * terrainFactor;
 
-    return density >= IsoLevel;
+    uint mapInfo = ((uint)round(density * 255.0f)) | 0xFF00;
+    if(actualHeight > (terrainHeight - squashFactor) && actualHeight < waterHeight && density < IsoLevel)
+        mapInfo = ((mapInfo << 8) & 0xFFFF) | 0xFF; //swap density and viscosity
+    
+    return mapInfo;
 }

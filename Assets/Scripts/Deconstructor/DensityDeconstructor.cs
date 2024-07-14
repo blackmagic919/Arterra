@@ -175,7 +175,7 @@ public class DensityDeconstructor : MonoBehaviour
             for(point.y = 0; point.y < GridSize.y; point.y++){
                 for(point.z = 0; point.z < GridSize.z; point.z++){
                     if(RayIntersectsSphere(SelectionOS, new Vector3(point.x, point.y, point.z), 0.05f)){
-                        int index = CustomUtility.irregularIndexFromCoord(point, new int2(GridSize.xy));
+                        int index = CustomUtility.irregularIndexFromCoord(point, new int2(GridSize.yz));
                         SelectedArray[index] = Event.current.shift ? !SelectedArray[index] : true;
                         SetDisplayMapData(Structure.map.value[index]);
                     }
@@ -207,7 +207,7 @@ public class DensityDeconstructor : MonoBehaviour
         uint numPoints = GridSize.x * GridSize.y * GridSize.z;
         UpdateSelectionState((ind) =>{
             for(int i = 0; i < 6; i++){
-                int newInd = (int)ind + CustomUtility.irregularIndexFromCoord(adjDelta[i], new int2(GridSize.xy));
+                int newInd = (int)ind + CustomUtility.irregularIndexFromCoord(adjDelta[i], new int2(GridSize.yz));
                 if(newInd >= numPoints || newInd < 0) return;
                 SelectedArray[newInd] = Structure.map.value[newInd].material != Structure.map.value[(int)ind].material;
             }
@@ -265,7 +265,7 @@ public class DensityDeconstructor : MonoBehaviour
                 if(newPoint.x < 0 || newPoint.x >= GridSize.x || 
                     newPoint.y < 0 || newPoint.y >= GridSize.y || 
                     newPoint.z < 0 || newPoint.z >= GridSize.z) continue;
-                if(action.Invoke(CustomUtility.irregularIndexFromCoord(newPoint, new int2(GridSize.xy)))) 
+                if(action.Invoke(CustomUtility.irregularIndexFromCoord(newPoint, new int2(GridSize.yz)))) 
                     queue.Enqueue(newPoint);
             }
         }
@@ -295,6 +295,7 @@ public class DensityDeconstructor : MonoBehaviour
     public void SaveData()
     {
         AssetDatabase.CreateAsset(Structure, "Assets/" + savePath + ".asset");
+        EditorUtility.SetDirty(Structure);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
     }

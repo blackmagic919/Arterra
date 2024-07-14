@@ -4,11 +4,11 @@ uint numPointsPerAxis;
 
 //Irregular(these two are reversed)
 uint indexFromCoordIrregular(uint3 pos, uint2 size) {
-    return pos.x + pos.y * size.x + pos.z * size.x * size.y;
+    return pos.x * size.x * size.y + pos.y * size.y + pos.z;
 }
 
-uint indexFromCoordIrregular(uint x, uint y, uint z, uint sizeX, uint sizeY) {
-    return x + y * sizeX + z * sizeX * sizeY;
+uint indexFromCoordIrregular(uint x, uint y, uint z, uint sizeY, uint sizeZ) {
+    return x * sizeY * sizeZ + y * sizeZ + z;
 }
 
 //Manual

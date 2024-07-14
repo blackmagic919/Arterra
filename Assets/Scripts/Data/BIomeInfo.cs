@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 using Utils;
 
@@ -13,11 +14,14 @@ public class BiomeInfo : ScriptableObject
     public float AtmosphereFalloff;
 
     [Header("Material Layers")]
-    public Option<List<Option<BMaterial> > > GroundMaterials;
-    public Option<List<Option<BMaterial> > > SurfaceMaterials;
+    public Option<List<Option<BMaterial> > > GroundMaterials = new();
+    public Option<List<Option<BMaterial> > > SurfaceMaterials = new ();
 
     [Header("Structures")]
-    public Option<List<Option<TerrainStructure> > > Structures;
+    public Option<List<Option<TerrainStructure> > > Structures = new ();
+
+    [Header("Entities")]
+    public Option<List<Option<EntityGen> > > Entities = new ();
 
     public void OnValidate(){ BiomeConditions.value.Validate(); }
 
@@ -75,6 +79,11 @@ public class BiomeInfo : ScriptableObject
         [Range(0, 1)]
         public float ChancePerStructurePoint;
         public uint structureIndex;
+    }
+    [Serializable]
+    public struct EntityGen{
+        public uint entityIndex;
+        public float ChancePerCoord;
     }
 
     [System.Serializable]

@@ -110,7 +110,7 @@ void Bake (uint3 id : SV_DispatchThreadID)
     if(viewX >= screenWidth || viewY >= screenHeight || depth >= _NumInScatterPoints)
         return;
     
-    uint pixelIndex = indexFromCoord2DManual(viewX, viewY, screenWidth);
+    uint pixelIndex = indexFromCoord2DManual(viewX, viewY, screenHeight);
     RayInfo rInfo = rayInfo[pixelIndex];
 
     float3 rayOrigin = _WorldSpaceCameraPos + rInfo.direction * rInfo.length.x;
@@ -122,6 +122,6 @@ void Bake (uint3 id : SV_DispatchThreadID)
     float sunRayLength = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, inScatterPoint, _LightDirection).y;    
     opticalInfo.opticalDepth = opticalDepth(inScatterPoint, _LightDirection, sunRayLength);
 
-    uint texelIndex = indexFromCoordIrregular(viewX, viewY, depth, screenWidth, screenHeight);
+    uint texelIndex = indexFromCoordIrregular(viewX, viewY, depth, screenHeight, _NumInScatterPoints);
     mapData[texelIndex] = opticalInfo;
 }

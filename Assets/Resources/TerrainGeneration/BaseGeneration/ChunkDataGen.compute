@@ -26,7 +26,7 @@ float waterHeight;
 int waterMat;
 
 StructuredBuffer<float> _BiomeAtmosphereData;
-StructuredBuffer<uint2> _BiomeMaterialCount;
+StructuredBuffer<uint4> _BiomePrefCount;
 StructuredBuffer<BMaterial> _BiomeGroundMaterials;
 StructuredBuffer<BMaterial> _BiomeSurfaceMaterials;
 
@@ -100,8 +100,8 @@ float GetMaterialWeight(BMaterial material, float coarse, float fine, float posY
 
 //It's better to make 2 funcs rather than do extra comparisons
 int GetGroundMaterial(float coarse, float fine, uint biome, float posY){
-    uint biomeStartIndex = _BiomeMaterialCount[biome].x;
-    uint biomeEndIndex = _BiomeMaterialCount[biome+1].x;
+    uint biomeStartIndex = _BiomePrefCount[biome].x;
+    uint biomeEndIndex = _BiomePrefCount[biome+1].x;
 
     int bestMat = _BiomeGroundMaterials[biomeStartIndex].materialIndex;
     float maxWeight = -1.0f;
@@ -120,8 +120,8 @@ int GetGroundMaterial(float coarse, float fine, uint biome, float posY){
 }
 
 int GetSurfaceMaterial(float coarse, float fine, uint biome, float posY){
-    uint biomeStartIndex = _BiomeMaterialCount[biome].y;
-    uint biomeEndIndex = _BiomeMaterialCount[biome+1].y;
+    uint biomeStartIndex = _BiomePrefCount[biome].y;
+    uint biomeEndIndex = _BiomePrefCount[biome+1].y;
 
     int bestMat = _BiomeSurfaceMaterials[biomeStartIndex].materialIndex;
     float maxWeight = -1.0f;

@@ -19,13 +19,12 @@ public class StructureData : ScriptableObject
     public struct CheckPoint
     {
         public float3 position;
-        [Range(0, 1)]
-        public uint isUnderGround; //bool is not yet blittable in shader 5.0
+        public CheckInfo checkInfo; //bool is not yet blittable in shader 5.0
 
-        public CheckPoint(float3 position, uint isUnderGround)
+        public CheckPoint(float3 position, CheckInfo checkInfo)
         {
             this.position = position;
-            this.isUnderGround = isUnderGround;
+            this.checkInfo = checkInfo;
         }
     }
 
@@ -37,6 +36,29 @@ public class StructureData : ScriptableObject
         public uint randThetaRot;
         [Range(0, 1)]
         public uint randPhiRot;
+    }
+    [System.Serializable]
+    public struct CheckInfo{
+        public uint data;
+        public uint MinDensity{
+            readonly get => data & 0xFF;
+            set => data = (data & 0xFFFFFF00) | (value & 0xFF);
+        }
+
+        public uint MaxDensity{
+            readonly get => (data >> 8) & 0xFF;
+            set => data = (data & 0xFFFF00FF) | ((value & 0xFF) << 8);
+        }
+
+        public uint MinViscosity{
+            readonly get => (data >> 16) & 0xFF;
+            set => data = (data & 0xFF00FFFF) | ((value & 0xFF) << 16);
+        }
+
+        public uint MaxViscosity{
+            readonly get => (data >> 24) & 0xFF;
+            set => data = (data & 0x00FFFFFF) | ((value & 0xFF) << 24);
+        }
     }
 
     [System.Serializable]

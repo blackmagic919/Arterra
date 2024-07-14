@@ -81,7 +81,7 @@ Shader "Unlit/GridShader"
                 [unroll]for(uint i = 0; i < 8; i++){
                     float dist = distance(offset, cubeCorners[i]);
                     if(dist < _VertexSize){
-                        uint index = indexFromCoordIrregular(floor(IN.positionOS) + cubeCorners[i], uint2(MapSizeX, MapSizeY));
+                        uint index = indexFromCoordIrregular(floor(IN.positionOS) + cubeCorners[i], uint2(MapSizeY, MapSizeZ));
                         return ((SelectionBuffer[index/32] >> (index % 32)) & 0x1) ? _SelectedColor : _VertexColor;
                     }
                 }

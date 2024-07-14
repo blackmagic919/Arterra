@@ -12,14 +12,14 @@ namespace Utils {
         static int[] zThetaRot = new int[] { 2, 0, 2, 0 };
         static int[] zThetaDir = new int[] { 1, 1, -1, -1 };
 
-        public static int irregularIndexFromCoord(int x, int y, int z, int sizeX, int sizeY)
+        public static int irregularIndexFromCoord(int x, int y, int z, int sizeY, int sizeZ)
         {
-            return x + y * sizeX + z * sizeX * sizeY;
+            return x * sizeY * sizeZ + y * sizeZ + z;
         }
 
         public static int irregularIndexFromCoord(int3 pos, int2 size)
         {
-            return pos.x + pos.y * size.x + pos.z * size.x * size.y;
+            return pos.x * size.x * size.y + pos.y * size.y + pos.z;
         }
 
         public static int indexFromCoord(int x, int y, int z, int numPointsAxis)

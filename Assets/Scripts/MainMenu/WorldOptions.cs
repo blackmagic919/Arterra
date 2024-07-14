@@ -29,6 +29,7 @@ public class WorldOptions : ScriptableObject{
     public Option<RenderSettings> Rendering;
     public Option<BiomeGenerationData> Biomes;
     public Option<List<Option<StructureData> > > Structures;
+    public Option<List<Option<EntityAuthoring> > > Entities;
     public Option<TextureData> Materials;
     public Option<List<Option<NoiseData> > > Noise;
     public Option<GeneratorSettings> GeoShaders;
@@ -100,7 +101,7 @@ public class WorldOptions : ScriptableObject{
     }
 
     public static WorldOptions Create(){
-        WorldOptions newOptions = WorldStorageHandler.OPTIONS_TEMPLATE.MemberwiseClone() as WorldOptions;
+        WorldOptions newOptions = Instantiate(WorldStorageHandler.OPTIONS_TEMPLATE);
         newOptions.seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
         return newOptions;
     }

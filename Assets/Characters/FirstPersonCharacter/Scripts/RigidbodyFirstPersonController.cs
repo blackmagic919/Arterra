@@ -156,10 +156,8 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 // always move along the camera forward as it is the direction that it being aimed at
                 Vector3 desiredMove = cam.transform.forward*input.y + cam.transform.right*input.x;
                 desiredMove = Vector3.ProjectOnPlane(desiredMove, m_GroundContactNormal).normalized;
-
-                desiredMove.x = desiredMove.x*movementSettings.CurrentTargetSpeed;
-                desiredMove.z = desiredMove.z*movementSettings.CurrentTargetSpeed;
-                desiredMove.y = desiredMove.y*movementSettings.CurrentTargetSpeed;
+                desiredMove *= movementSettings.CurrentTargetSpeed;
+                
                 if (m_RigidBody.velocity.sqrMagnitude <
                     (movementSettings.CurrentTargetSpeed*movementSettings.CurrentTargetSpeed))
                 {
@@ -174,7 +172,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 {
                     m_RigidBody.drag = 0f;
                     m_RigidBody.velocity = new Vector3(m_RigidBody.velocity.x, 0f, m_RigidBody.velocity.z);
-                    m_RigidBody.AddForce(new Vector3(0f, movementSettings.JumpForce, 0f), ForceMode.Impulse);
+                    m_RigidBody.AddForce(transform.up * movementSettings.JumpForce, ForceMode.Impulse);
                     m_Jumping = true;
                 }
 
@@ -222,10 +220,10 @@ namespace UnityStandardAssets.Characters.FirstPerson
         {
             
             Vector2 input = new Vector2
-                {
-				x = Input.GetAxis("Horizontal"),
-				y = Input.GetAxis("Vertical")
-                };
+            {
+                x = Input.GetAxis("Horizontal"),
+                y = Input.GetAxis("Vertical")
+            };
 			movementSettings.UpdateDesiredTargetSpeed(input);
             return input;
         }

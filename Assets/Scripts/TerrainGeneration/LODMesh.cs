@@ -77,7 +77,6 @@ public struct LODMesh
         meshCreator.GenerateBaseChunk(surfaceMap.GetMap(), this.terrainChunk.origin, LOD, mapChunkSize, IsoLevel);
         structCreator.GenerateStrucutresGPU(mapChunkSize, LOD, IsoLevel);
         GPUDensityManager.SubscribeChunk(this.terrainChunk.CCoord, LOD, UtilityBuffers.GenerationBuffer);
-        
         if(LOD == 0) CopyDataToCPU();
         
         meshCreator.ReleaseTempBuffers();

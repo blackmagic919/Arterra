@@ -109,9 +109,9 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     //It crashed cause of the triple loop :(
     for(uint pos = 0; pos < structLength0; pos++){
 
-        uint x = pos % structLength.x;
-        uint y = (pos / structLength.x) % structLength.y;
-        uint z = pos / (structLength.x * structLength.y);
+        uint x = pos / (structLength.y * structLength.z);
+        uint y = (pos / structLength.z) % structLength.y;
+        uint z = pos % structLength.z;
 
         uint xReal = x * meshSkipInc;
         uint yReal = y * meshSkipInc;
@@ -122,7 +122,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
         //structCoord = min(structCoord, sizes - 1);
         uint chunkIndex = indexFromCoordManual(chunkCoord.x, chunkCoord.y, chunkCoord.z, numPointsPerAxis);
-        uint structIndex = indexFromCoordIrregular(structCoord.x, structCoord.y, structCoord.z, sizes.x, sizes.y) + indexOffset;
+        uint structIndex = indexFromCoordIrregular(structCoord.x, structCoord.y, structCoord.z, sizes.y, sizes.z) + indexOffset;
 
         //This section will have racing issues, but it's negligable
         //If < IsoLevel, don't override ground, but otherwise override

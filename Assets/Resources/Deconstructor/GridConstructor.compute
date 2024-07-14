@@ -40,33 +40,33 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     if(id.x >= GridSize.x || id.y >= GridSize.y || id.z >= GridSize.z)
         return;
     
-    int index = indexFromCoordIrregular(id, GridSize.xy);
+    int index = indexFromCoordIrregular(id, GridSize.yz);
     VertexBuffer[bSTART_vertex + index] = id;
     
     if(id.x < GridSize.x - 1 && id.z < GridSize.z - 1){
         AppendQuad(uint4(
-            indexFromCoordIrregular(id + uint3(0, 0, 0), GridSize.xy),
-            indexFromCoordIrregular(id + uint3(1, 0, 0), GridSize.xy),
-            indexFromCoordIrregular(id + uint3(1, 0, 1), GridSize.xy),
-            indexFromCoordIrregular(id + uint3(0, 0, 1), GridSize.xy)
+            indexFromCoordIrregular(id + uint3(0, 0, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(1, 0, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(1, 0, 1), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(0, 0, 1), GridSize.yz)
         ));
     }
 
     if(id.y < GridSize.y - 1 && id.z < GridSize.z - 1){
         AppendQuad(uint4(
-            indexFromCoordIrregular(id + uint3(0, 0, 0), GridSize.xy),
-            indexFromCoordIrregular(id + uint3(0, 1, 0), GridSize.xy),
-            indexFromCoordIrregular(id + uint3(0, 1, 1), GridSize.xy),
-            indexFromCoordIrregular(id + uint3(0, 0, 1), GridSize.xy)
+            indexFromCoordIrregular(id + uint3(0, 0, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(0, 1, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(0, 1, 1), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(0, 0, 1), GridSize.yz)
         ));
     }
 
     if(id.x < GridSize.x - 1 && id.y < GridSize.y - 1){
         AppendQuad(uint4(
-            indexFromCoordIrregular(id + uint3(0, 0, 0), GridSize.xy),
-            indexFromCoordIrregular(id + uint3(1, 0, 0), GridSize.xy),
-            indexFromCoordIrregular(id + uint3(1, 1, 0), GridSize.xy),
-            indexFromCoordIrregular(id + uint3(0, 1, 0), GridSize.xy)
+            indexFromCoordIrregular(id + uint3(0, 0, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(1, 0, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(1, 1, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(0, 1, 0), GridSize.yz)
         ));
     }
 

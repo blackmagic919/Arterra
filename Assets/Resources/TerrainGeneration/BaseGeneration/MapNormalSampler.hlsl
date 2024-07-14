@@ -6,33 +6,30 @@
 StructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
 int3 CCoord;
-float meshSkipInc;
+uint meshSkipInc;
 int numCubesPerAxis;
 
 const static int POINT_STRIDE_4BYTE = 1;
 #endif
 
-//mem access, if statement, operations, vector operations
-int3 GetSampleCCoord(int3 coord){//(-inf, -1] => -1, [0, numCubesPerAxis-1] => 0, [numCubesPerAxis, inf) => 1
-    return sign(sign(coord + 1) + sign(coord - numCubesPerAxis));
-}
-
 //Water is 1, terrain is 0
-uint ReadMapData(int3 coord, int3 CCoord){
-    int3 dCC = GetSampleCCoord(coord);
+uint ReadMapData(int3 coord){
+    int3 dCC = floor(coord / (float)numCubesPerAxis);
     coord = abs(dCC * numCubesPerAxis - coord);
-    CCoord += dCC;
+    int3 sCCoord = dCC + CCoord;
 
-    uint2 chunkHandle = _AddressDict[HashCoord(CCoord)];
-    if(chunkHandle.x == 0) return 0; else{
+    uint2 chunkHandle = _AddressDict[HashCoord(sCCoord)];
+    if(chunkHandle.x == 0 || chunkHandle.y > meshSkipInc) return 0; 
+    else{//
     uint chunkResize = meshSkipInc / (float)chunkHandle.y;
     uint address = indexFromCoordManual(coord * chunkResize, numCubesPerAxis * chunkResize) * POINT_STRIDE_4BYTE + chunkHandle.x;
 
-    return _MemoryBuffer[address];}
+    return _MemoryBuffer[address];
+    }
 }
 
 float SampleDensity(int3 coord, uint isWater) {
-    uint mapData = ReadMapData(coord, CCoord);
+    uint mapData = ReadMapData(coord);
     return ((mapData & 0xFF) / 255.0f) * max(isWater, (mapData >> 8 & 0xFF) / 255.0f);
 }
 

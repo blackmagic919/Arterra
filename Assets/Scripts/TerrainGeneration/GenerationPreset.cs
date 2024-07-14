@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Unity.Mathematics;
+using System;
+using Unity.Collections;
+using System.Runtime.InteropServices;
 
 public static class GenerationPreset
 {
@@ -10,6 +13,7 @@ public static class GenerationPreset
     private static NoiseHandle noiseHandle;
     private static BiomeHandle biomeHandle;
     private static StructHandle structHandle;
+    private static EntityHandle entityHandle;
     public static MemoryHandle memoryHandle;
     public static bool active;
 
@@ -21,6 +25,7 @@ public static class GenerationPreset
         noiseHandle.Initialize();
         biomeHandle.Initialize();
         structHandle.Initialize();
+        entityHandle.Initialize();
         memoryHandle.Intiialize();
     }
 
@@ -32,6 +37,7 @@ public static class GenerationPreset
         noiseHandle.Release();
         biomeHandle.Release();
         structHandle.Release();
+        entityHandle.Release();
         memoryHandle.Release();
     }
 
@@ -144,26 +150,25 @@ public static class GenerationPreset
             }
         }
     }
+    
 
     struct BiomeHandle{
         ComputeBuffer biomeRTreeBuffer;
         ComputeBuffer biomeAtmosphereBuffer;
-        ComputeBuffer biomeMatCountBuffer;
+        ComputeBuffer biomePrefCountBuffer;
         ComputeBuffer biomeGroundMatBuffer;
         ComputeBuffer biomeSurfaceMatBuffer;
-
-        ComputeBuffer biomeStructBuffer;
+        ComputeBuffer biomeEntityBuffer;
         ComputeBuffer structGenBuffer;
 
         public void Release()
         {
             biomeRTreeBuffer?.Release();
-            biomeMatCountBuffer?.Release();
+            biomePrefCountBuffer?.Release();
             biomeAtmosphereBuffer?.Release();
+            biomeEntityBuffer?.Release();
             biomeGroundMatBuffer?.Release();
             biomeSurfaceMatBuffer?.Release();
-
-            biomeStructBuffer?.Release();
             structGenBuffer?.Release();//
         }
 
@@ -172,58 +177,54 @@ public static class GenerationPreset
             Release();
             List<Option<BiomeInfo> > biomes = WorldStorageHandler.WORLD_OPTIONS.Biomes.value.biomes.value;
             int numBiomes = biomes.Count;
-            uint2[] biomeMatCount = new uint2[numBiomes + 1]; //Prefix sum
+            uint4[] biomePrefSum = new uint4[numBiomes + 1]; //Prefix sum
             float[] atmosphereData = new float[numBiomes];
-            List<BiomeInfo.BMaterial> biomeGroundMaterial = new List<BiomeInfo.BMaterial>();
-            List<BiomeInfo.BMaterial> biomeSurfaceMaterial = new List<BiomeInfo.BMaterial>();
+            List<BiomeInfo.BMaterial> biomeGroundMaterial = new();
+            List<BiomeInfo.BMaterial> biomeSurfaceMaterial = new();
+            List<BiomeInfo.TerrainStructure> biomeStructures = new();
+            List<BiomeInfo.EntityGen> biomeEntities = new();
 
             for (int i = 0; i < numBiomes; i++)
             {
-                biomeMatCount[i+1] = new uint2((uint)biomes[i].value.GroundMaterials.value.Count + biomeMatCount[i].x, (uint)biomes[i].value.SurfaceMaterials.value.Count + biomeMatCount[i].y);
+                biomePrefSum[i+1] = new uint4((uint)biomes[i].value.GroundMaterials.value?.Count + biomePrefSum[i].x, 
+                                            (uint)biomes[i].value.SurfaceMaterials.value?.Count + biomePrefSum[i].y,
+                                            (uint)biomes[i].value.Structures.value?.Count + biomePrefSum[i].z,
+                                            (uint)biomes[i].value.Entities.value?.Count + biomePrefSum[i].w);
                 atmosphereData[i] = biomes[i].value.AtmosphereFalloff;
-                biomeGroundMaterial.AddRange(biomes[i].value.GroundMaterials.value.Select((Option<BiomeInfo.BMaterial> b) => b.value));
-                biomeSurfaceMaterial.AddRange(biomes[i].value.SurfaceMaterials.value.Select((Option<BiomeInfo.BMaterial> b) => b.value));
+                biomeGroundMaterial.AddRange(biomes[i].value.GroundMaterials.value?.Select((Option<BiomeInfo.BMaterial> b) => b.value));
+                biomeSurfaceMaterial.AddRange(biomes[i].value.SurfaceMaterials.value?.Select((Option<BiomeInfo.BMaterial> b) => b.value));
+                biomeStructures.AddRange(biomes[i].value.Structures.value?.Select((Option<BiomeInfo.TerrainStructure> b) => b.value));
+                biomeEntities.AddRange(biomes[i].value.Entities.value?.Select((Option<BiomeInfo.EntityGen> b) => b.value));
             }
 
             BiomeDictionary.RNodeFlat[] RTree = new BiomeDictionary(biomes).FlattenTree();
 
             int matStride = sizeof(int) + sizeof(float) + sizeof(float) + (sizeof(int) * 3 + sizeof(float) * 2);
+            int structStride = sizeof(uint) + sizeof(float) + (sizeof(int) * 3 + sizeof(float) * 2);
+            int entityStride = sizeof(uint) + sizeof(float);
             biomeRTreeBuffer = new ComputeBuffer(RTree.Length, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
-            biomeMatCountBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint) * 2, ComputeBufferType.Structured);
+            biomePrefCountBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint) * 4, ComputeBufferType.Structured);
             biomeAtmosphereBuffer = new ComputeBuffer(numBiomes, sizeof(float), ComputeBufferType.Structured);
-            biomeGroundMatBuffer = new ComputeBuffer(biomeGroundMaterial.Count, matStride, ComputeBufferType.Structured);
-            biomeSurfaceMatBuffer = new ComputeBuffer(biomeSurfaceMaterial.Count, matStride, ComputeBufferType.Structured);
+            if(biomeGroundMaterial.Count > 0) biomeGroundMatBuffer = new ComputeBuffer(biomeGroundMaterial.Count, matStride, ComputeBufferType.Structured);
+            if(biomeSurfaceMaterial.Count > 0) biomeSurfaceMatBuffer = new ComputeBuffer(biomeSurfaceMaterial.Count, matStride, ComputeBufferType.Structured);
+            if(biomeStructures.Count > 0) structGenBuffer = new ComputeBuffer(biomeStructures.Count, structStride, ComputeBufferType.Structured);
+            if(biomeEntities.Count > 0) biomeEntityBuffer = new ComputeBuffer(biomeEntities.Count, entityStride, ComputeBufferType.Structured);
 
-            biomeRTreeBuffer.SetData(RTree);
-            biomeMatCountBuffer.SetData(biomeMatCount);
-            biomeAtmosphereBuffer.SetData(atmosphereData);
-            biomeGroundMatBuffer.SetData(biomeGroundMaterial);
-            biomeSurfaceMatBuffer.SetData(biomeSurfaceMaterial);
+            biomeRTreeBuffer?.SetData(RTree);
+            biomePrefCountBuffer?.SetData(biomePrefSum);
+            biomeAtmosphereBuffer?.SetData(atmosphereData);
+            biomeGroundMatBuffer?.SetData(biomeGroundMaterial);
+            biomeSurfaceMatBuffer?.SetData(biomeSurfaceMaterial);
+            biomeEntityBuffer?.SetData(biomeEntities);
+            structGenBuffer?.SetData(biomeStructures);
 
             Shader.SetGlobalBuffer("_BiomeRTree", biomeRTreeBuffer);
-            Shader.SetGlobalBuffer("_BiomeMaterialCount", biomeMatCountBuffer);
+            Shader.SetGlobalBuffer("_BiomePrefCount", biomePrefCountBuffer);
             Shader.SetGlobalBuffer("_BiomeAtmosphereData", biomeAtmosphereBuffer);
-            Shader.SetGlobalBuffer("_BiomeGroundMaterials", biomeGroundMatBuffer);
-            Shader.SetGlobalBuffer("_BiomeSurfaceMaterials", biomeSurfaceMatBuffer);
-
-            uint[] biomeStructCount = new uint[numBiomes + 1]; 
-            List<BiomeInfo.TerrainStructure> biomeStructures = new List<BiomeInfo.TerrainStructure>();
-
-            for (int i = 0; i < numBiomes; i++)
-            {
-                biomeStructCount[i+1] = (uint)biomes[i].value.Structures.value.Count + biomeStructCount[i];
-                biomeStructures.AddRange(biomes[i].value.Structures.value.Select((Option<BiomeInfo.TerrainStructure> b) => b.value));
-            }
-
-            int structStride = sizeof(uint) + sizeof(float) + (sizeof(int) * 3 + sizeof(float) * 2);
-            biomeStructBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint), ComputeBufferType.Structured);
-            structGenBuffer = new ComputeBuffer(biomeStructures.Count, structStride, ComputeBufferType.Structured);
-
-            biomeStructBuffer.SetData(biomeStructCount);
-            structGenBuffer.SetData(biomeStructures);
-
-            Shader.SetGlobalBuffer("_BiomeStructurePrefix", biomeStructBuffer);
-            Shader.SetGlobalBuffer("_BiomeStructureData", structGenBuffer);
+            if(biomeGroundMatBuffer != null) Shader.SetGlobalBuffer("_BiomeGroundMaterials", biomeGroundMatBuffer);
+            if(biomeSurfaceMatBuffer != null) Shader.SetGlobalBuffer("_BiomeSurfaceMaterials", biomeSurfaceMatBuffer);
+            if(structGenBuffer != null) Shader.SetGlobalBuffer("_BiomeStructureData", structGenBuffer);
+            if(biomeEntityBuffer != null) Shader.SetGlobalBuffer("_BiomeEntities", biomeEntityBuffer);
         }
     }
 
@@ -275,6 +276,47 @@ public static class GenerationPreset
             mapBuffer?.Release();
             checksBuffer?.Release();
             settingsBuffer?.Release();
+        }
+    }
+
+    struct EntityHandle{
+        private ComputeBuffer entityInfoBuffer;
+        private ComputeBuffer entityProfileBuffer; //used by gpu placement
+        public NativeArray<uint2> entityProfileArray; //used by jobs
+
+        public void Release(){
+            entityInfoBuffer?.Release();
+            entityProfileBuffer?.Release();
+            if(entityProfileArray.IsCreated) entityProfileArray.Dispose();
+        }
+
+        public void Initialize()
+        {
+            Release();
+
+            List<Option<EntityAuthoring> > EntityDictionary = WorldStorageHandler.WORLD_OPTIONS.Entities.value;
+            int numEntities = EntityDictionary.Count;
+            IEntity.Info[] entityInfo = new IEntity.Info[numEntities];
+            List<uint2> entityProfile = new List<uint2>();
+
+            for(int i = 0; i < numEntities; i++)
+            {
+                IEntity.Info info = EntityDictionary[i].value.Entity.info;
+                entityProfile.AddRange(EntityDictionary[i].value.Profile);
+                entityInfo[i] = info;
+
+                EntityDictionary[i].value.Entity.info = info;
+            }
+
+            entityInfoBuffer = new ComputeBuffer(numEntities, sizeof(uint) * 4, ComputeBufferType.Structured);
+            entityProfileBuffer = new ComputeBuffer(entityProfile.Count, sizeof(uint) * 2, ComputeBufferType.Structured);
+            entityProfileArray = new NativeArray<uint2>(entityProfile.ToArray(), Allocator.Persistent);
+
+            entityInfoBuffer.SetData(entityInfo);
+            entityProfileBuffer.SetData(entityProfile.ToArray());
+
+            Shader.SetGlobalBuffer("_EntityInfo", entityInfoBuffer);
+            Shader.SetGlobalBuffer("_EntityProfile", entityProfileBuffer);
         }
     }
 

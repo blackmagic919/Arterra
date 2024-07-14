@@ -11,12 +11,11 @@ public static class GPUDensityManager
     private static ComputeShader transcribeMapInfo;
     private static ComputeShader simplifyMap;
     private static ComputeBuffer _ChunkAddressDict;
-    private static SegmentBinManager memorySpace;
+    private static GenerationPreset.MemoryHandle memorySpace;
     private static int numChunksAxis;
     private static int mapChunkSize;
     private static float lerpScale;
     private const int pointStride4Byte = 1; //Only density for now
-    public static Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();//
     public static bool initialized = false;
 
     public static void Initialize()
@@ -34,7 +33,7 @@ public static class GPUDensityManager
 
         GPUDensityManager._ChunkAddressDict = new ComputeBuffer(numChunks, sizeof(uint) * 2, ComputeBufferType.Structured);
         GPUDensityManager._ChunkAddressDict.SetData(Enumerable.Repeat(0u, numChunks * 2).ToArray());
-        GPUDensityManager.memorySpace = new SegmentBinManager(mapChunkSize, rSettings.detailLevels.value, pointStride4Byte);
+        GPUDensityManager.memorySpace = GenerationPreset.memoryHandle;
 
         initialized = true;
     }
@@ -59,7 +58,6 @@ public static class GPUDensityManager
     public static void Release()
     {
         _ChunkAddressDict?.Release();
-        memorySpace?.Release();
         initialized = false;
     }
 
@@ -69,33 +67,34 @@ public static class GPUDensityManager
         int numPointsAxis = mapChunkSize / meshSkipInc;
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 
-        ComputeBuffer address = memorySpace.AllocateChunk(LOD);
-        TranscribeData(memorySpace.AccessStorage(), address, mapData, numPoints, compressed);
-
-        ReplaceAddress(address, CCoord, meshSkipInc);
-        memorySpace.ReleaseChunk(address);
+        uint address = memorySpace.AllocateMemoryDirect(numPoints, 1);
+        TranscribeData(memorySpace.AccessStorage(), memorySpace.AccessAddresses(), mapData, address, numPoints, compressed);
+        ReplaceAddress(memorySpace.AccessAddresses(), address, CCoord, meshSkipInc);
+        memorySpace.ReleaseMemory(address);
     }
 
 
-    static void TranscribeData(ComputeBuffer memory, ComputeBuffer address, ComputeBuffer mapData, int numPoints, bool compressed)
+    static void TranscribeData(ComputeBuffer memory, ComputeBuffer addressDict, ComputeBuffer mapData, uint address, int numPoints, bool compressed)
     {
         if(compressed) transcribeMapInfo.EnableKeyword("COMPRESSED");
         else transcribeMapInfo.DisableKeyword("COMPRESSED");
 
         transcribeMapInfo.SetBuffer(0, "_MemoryBuffer", memory);
-        transcribeMapInfo.SetBuffer(0, "chunkData", mapData);
-        transcribeMapInfo.SetBuffer(0, "startAddress", address); 
+        transcribeMapInfo.SetBuffer(0, "_AddressDict", addressDict);
+        transcribeMapInfo.SetBuffer(0, "chunkData", mapData); 
         transcribeMapInfo.SetInt("numPoints", numPoints);
+        transcribeMapInfo.SetInt("addressIndex", (int)address);
 
         transcribeMapInfo.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsAxis = Mathf.CeilToInt(numPoints / (float)threadGroupSize);
         transcribeMapInfo.Dispatch(0, numThreadsAxis, 1, 1);
     }
 
-    static void ReplaceAddress(ComputeBuffer memoryAddress, int3 CCoord, int meshSkipInc)
+    static void ReplaceAddress(ComputeBuffer addressDict, uint address, int3 CCoord, int meshSkipInc)
     {
         dictReplaceKey.SetBuffer(0, "chunkAddressDict", _ChunkAddressDict);
-        dictReplaceKey.SetBuffer(0, "nAddress", memoryAddress);
+        dictReplaceKey.SetBuffer(0, "_AddressDict", addressDict);
+        dictReplaceKey.SetInt("addressIndex", (int)address);
         dictReplaceKey.SetInts("CCoord", new int[3] { CCoord.x, CCoord.y, CCoord.z });
         dictReplaceKey.SetInt("meshSkipInc", meshSkipInc);
 
@@ -107,20 +106,23 @@ public static class GPUDensityManager
     //Caller guarantees LoD is greater than the LoD of the chunk at CCoord
     public static void SimplifyChunk(int3 CCoord, int LOD){
         int meshSkipInc = meshSkipTable[LOD];
+        int numPointsAxis = mapChunkSize / meshSkipInc;
+        int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 
-        ComputeBuffer address = memorySpace.AllocateChunk(LOD);
+        uint address = memorySpace.AllocateMemoryDirect(numPoints, 1);
         
-        ReplaceAddress(address, CCoord, meshSkipInc);
-        SimplifyDataDirect(memorySpace.AccessStorage(), address, CCoord, meshSkipInc);
-        memorySpace.ReleaseChunk(address);
+        ReplaceAddress(memorySpace.AccessAddresses(), address, CCoord, meshSkipInc);
+        SimplifyDataDirect(memorySpace.AccessStorage(), memorySpace.AccessAddresses(), address, CCoord, meshSkipInc);
+        memorySpace.ReleaseMemory(address);
     }
 
-    static void SimplifyDataDirect(ComputeBuffer memory, ComputeBuffer oAddress, int3 CCoord, int meshSkipInc){
+    static void SimplifyDataDirect(ComputeBuffer memory, ComputeBuffer addressDict, uint address, int3 CCoord, int meshSkipInc){
         int numPointsAxis = mapChunkSize / meshSkipInc;
 
         simplifyMap.SetBuffer(0, "_MemoryBuffer", memory);
         simplifyMap.SetBuffer(0, "chunkAddressDict", _ChunkAddressDict);
-        simplifyMap.SetBuffer(0, "oAddress", oAddress);
+        simplifyMap.SetBuffer(0, "_AddressDict", addressDict);
+        simplifyMap.SetInt("addressIndex", (int)address);
         simplifyMap.SetInts("CCoord", new int[3] { CCoord.x, CCoord.y, CCoord.z });
         simplifyMap.SetInt("numPointsPerAxis", numPointsAxis);
 

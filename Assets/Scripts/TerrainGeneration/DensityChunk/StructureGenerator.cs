@@ -86,6 +86,7 @@ public static class StructureGenerator
         StructureIdentifier.SetFloat("maxTerrainHeight", surface.MaxTerrainHeight);
         StructureIdentifier.SetFloat("squashHeight", surface.MaxSquashHeight);
         StructureIdentifier.SetFloat("heightOffset", surface.terrainOffset);
+        StructureIdentifier.SetFloat("waterHeight", mesh.waterHeight);
 
         StructureIdentifier.SetBuffer(0, "structurePlan", UtilityBuffers.GenerationBuffer);
         StructureIdentifier.SetBuffer(0, "genStructures", UtilityBuffers.GenerationBuffer);

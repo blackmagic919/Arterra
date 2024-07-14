@@ -99,7 +99,7 @@ MarchCube ReadCube(int3 coord){
     [unroll]for(uint i = 0; i < 8; i++){
         CubeCorner corner;
 
-        int rIndex = indexFromCoordIrregular(coord + positionFromIndex[i], GridSize.xy);
+        int rIndex = indexFromCoordIrregular(coord + positionFromIndex[i], GridSize.yz);
         uint mapData = MapInfo[rIndex];
         float density = ((mapData & 0xFF) / 255.0f);
         float viscosity = ((mapData >> 8) & 0xFF) / 255.0f;
@@ -121,7 +121,7 @@ void March (uint3 id : SV_DispatchThreadID)
         return;
 
     int3 oCoord = int3(id.xyz);
-    int oIndex = indexFromCoordIrregular(id, GridSize.xy);
+    int oIndex = indexFromCoordIrregular(id, GridSize.yz);
     MarchCube cube = ReadCube(oCoord);
 
     uint baseIndex = 0; uint waterIndex = 0;
@@ -209,7 +209,7 @@ void March (uint3 id : SV_DispatchThreadID)
         pInfo baseTri;
         [unroll] for(uint v = 0; v < 3; v++){ //Get the dict index locations of the vertices
             int3 cornerInfo = cornerIndexFromEdge[triangulation[baseIndex][i + v]];
-            baseTri.axis[v] = indexFromCoordIrregular(oCoord + positionFromIndex[cornerInfo.x], GridSize.xy) * 3 + cornerInfo.z;
+            baseTri.axis[v] = indexFromCoordIrregular(oCoord + positionFromIndex[cornerInfo.x], GridSize.yz) * 3 + cornerInfo.z;
         }
 
         //Append Base Triangle
@@ -222,7 +222,7 @@ void March (uint3 id : SV_DispatchThreadID)
         pInfo waterTri;
         [unroll] for(uint v = 0; v < 3; v++){ //Get the dict index locations of the vertices
             int3 cornerInfo = cornerIndexFromEdge[triangulation[waterIndex][i + v]];
-            waterTri.axis[v] = indexFromCoordIrregular(oCoord + positionFromIndex[cornerInfo.x], GridSize.xy) * 3 + cornerInfo.z;
+            waterTri.axis[v] = indexFromCoordIrregular(oCoord + positionFromIndex[cornerInfo.x], GridSize.yz) * 3 + cornerInfo.z;
         }
 
         //Append Base Triangle

@@ -28,9 +28,6 @@ MonoBehaviour:
     - data: 65280
     - data: 65280
     - data: 65280
-    - data: 65346
-    - data: 65391
-    - data: 65321
     - data: 65280
     - data: 65280
     - data: 65280
@@ -38,9 +35,6 @@ MonoBehaviour:
     - data: 65280
     - data: 65280
     - data: 65280
-    - data: 65356
-    - data: 65387
-    - data: 65311
     - data: 65280
     - data: 65280
     - data: 65280
@@ -48,99 +42,129 @@ MonoBehaviour:
     - data: 65280
     - data: 65280
     - data: 65280
-    - data: 65360
-    - data: 65383
-    - data: 65304
     - data: 65280
     - data: 65280
     - data: 65280
     - data: 65280
     - data: 65280
     - data: 65280
-    - data: 65281
-    - data: 65365
-    - data: 65380
-    - data: 65297
+    - data: 65280
+    - data: 65328
+    - data: 65293
     - data: 65280
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65283
-    - data: 65369
-    - data: 65376
+    - data: 65348
     - data: 65292
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
     - data: 65280
     - data: 65280
     - data: 65280
     - data: 65280
     - data: 65296
-    - data: 65330
-    - data: 65327
-    - data: 65377
-    - data: 65378
-    - data: 65291
-    - data: 65280
-    - data: 65280
-    - data: 65280
+    - data: 65368
+    - data: 65343
     - data: 65280
     - data: 65356
-    - data: 65361
-    - data: 65298
-    - data: 65387
-    - data: 65389
-    - data: 65307
-    - data: 65290
-    - data: 65280
-    - data: 65280
+    - data: 786318
+    - data: 65405
     - data: 65280
     - data: 65342
-    - data: 65334
-    - data: 65313
-    - data: 65398
-    - data: 65398
-    - data: 65315
-    - data: 65315
-    - data: 65322
+    - data: 786325
+    - data: 65397
+    - data: 65285
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65318
-    - data: 65402
-    - data: 65403
-    - data: 65328
-    - data: 65304
-    - data: 65348
-    - data: 65283
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65317
-    - data: 65401
-    - data: 65404
     - data: 65333
-    - data: 65282
-    - data: 65324
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65298
-    - data: 65389
-    - data: 65396
-    - data: 65316
+    - data: 65285
     - data: 65280
     - data: 65280
     - data: 65280
     - data: 65280
     - data: 65280
     - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65333
+    - data: 65296
+    - data: 65280
+    - data: 65330
+    - data: 786314
+    - data: 65402
     - data: 65280
     - data: 65361
-    - data: 65373
-    - data: 65292
+    - data: 786360
+    - data: 65403
+    - data: 65283
+    - data: 65334
+    - data: 65407
+    - data: 65401
+    - data: 65280
+    - data: 65280
+    - data: 65324
+    - data: 65282
+    - data: 65280
+    - data: 65280
     - data: 65280
     - data: 65280
     - data: 65280
@@ -158,258 +182,311 @@ MonoBehaviour:
     - data: 65280
     - data: 65280
     - data: 65304
-    - data: 786311
-    - data: 786403
-    - data: 65403
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
+    - data: 65285
     - data: 65280
     - data: 65280
     - data: 65326
-    - data: 786330
-    - data: 786398
-    - data: 65397
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
+    - data: 65298
     - data: 65280
     - data: 65280
     - data: 65336
-    - data: 786339
-    - data: 786394
-    - data: 65390
+    - data: 65307
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
+    - data: 65281
     - data: 65346
-    - data: 786348
-    - data: 786386
-    - data: 65382
+    - data: 65316
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65333
+    - data: 65283
     - data: 65374
-    - data: 786357
-    - data: 786377
-    - data: 65374
+    - data: 65351
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65368
-    - data: 786314
+    - data: 65327
     - data: 786343
-    - data: 786368
-    - data: 786374
-    - data: 786314
-    - data: 65288
-    - data: 65280
-    - data: 65280
-    - data: 65328
-    - data: 786318
-    - data: 786360
+    - data: 65399
+    - data: 65281
+    - data: 65298
     - data: 65376
-    - data: 786376
-    - data: 786382
-    - data: 786333
-    - data: 786320
-    - data: 65354
+    - data: 65360
     - data: 65280
-    - data: 65348
-    - data: 786325
-    - data: 65407
+    - data: 65313
     - data: 65383
-    - data: 786393
-    - data: 786398
-    - data: 65386
-    - data: 786320
-    - data: 786313
-    - data: 65326
-    - data: 65280
-    - data: 65333
-    - data: 65324
+    - data: 65358
+    - data: 65281
+    - data: 65318
     - data: 65388
-    - data: 786400
-    - data: 786408
-    - data: 65395
-    - data: 65407
-    - data: 786355
-    - data: 65371
-    - data: 65280
-    - data: 65280
-    - data: 65280
+    - data: 65364
+    - data: 65284
+    - data: 65317
     - data: 65386
-    - data: 786396
-    - data: 786412
-    - data: 65398
-    - data: 65384
-    - data: 786331
-    - data: 65363
-    - data: 65280
-    - data: 65280
-    - data: 65280
+    - data: 65362
+    - data: 65284
+    - data: 65298
     - data: 65367
-    - data: 786373
-    - data: 786398
-    - data: 65387
-    - data: 65297
-    - data: 65346
-    - data: 65287
-    - data: 65280
+    - data: 65340
     - data: 65280
     - data: 65280
     - data: 65332
+    - data: 65307
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65346
+    - data: 786311
+    - data: 65407
+    - data: 65291
+    - data: 65356
+    - data: 786330
+    - data: 786312
+    - data: 65299
+    - data: 65360
+    - data: 786339
+    - data: 786316
+    - data: 65303
+    - data: 65365
+    - data: 786348
     - data: 786319
+    - data: 65306
+    - data: 65369
+    - data: 786357
+    - data: 786322
+    - data: 65311
+    - data: 65377
+    - data: 786368
+    - data: 786328
+    - data: 65317
+    - data: 65387
+    - data: 786376
     - data: 786335
-    - data: 65363
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
+    - data: 65325
+    - data: 65398
+    - data: 786393
+    - data: 786349
+    - data: 65341
+    - data: 65402
+    - data: 786400
+    - data: 786357
+    - data: 65348
+    - data: 65401
+    - data: 786396
+    - data: 786356
+    - data: 65348
+    - data: 65389
+    - data: 786373
+    - data: 786336
+    - data: 65328
+    - data: 65361
+    - data: 786319
+    - data: 786305
+    - data: 65299
     - data: 65280
     - data: 65334
-    - data: 65342
+    - data: 65316
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65285
-    - data: 65407
+    - data: 65391
+    - data: 786403
     - data: 786342
-    - data: 65386
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65298
-    - data: 786312
+    - data: 65332
+    - data: 65387
+    - data: 786398
     - data: 786340
+    - data: 65330
+    - data: 65383
+    - data: 786394
+    - data: 786335
+    - data: 65326
+    - data: 65380
+    - data: 786386
+    - data: 786331
+    - data: 65321
+    - data: 65376
+    - data: 786377
+    - data: 786328
+    - data: 65317
+    - data: 65378
+    - data: 786374
+    - data: 786328
+    - data: 65317
+    - data: 65389
+    - data: 786382
+    - data: 786336
+    - data: 65327
+    - data: 65398
+    - data: 786398
+    - data: 786350
+    - data: 65342
+    - data: 65403
+    - data: 786408
+    - data: 786361
+    - data: 65352
+    - data: 65404
+    - data: 786412
+    - data: 786364
+    - data: 65356
+    - data: 65396
+    - data: 786398
+    - data: 786345
+    - data: 65338
+    - data: 65373
+    - data: 786335
+    - data: 786308
+    - data: 65309
+    - data: 65280
+    - data: 65342
+    - data: 65323
+    - data: 65280
+    - data: 65321
+    - data: 65403
+    - data: 65386
+    - data: 65281
+    - data: 65311
+    - data: 65397
     - data: 65376
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65307
-    - data: 786316
-    - data: 786335
+    - data: 65304
+    - data: 65390
     - data: 65366
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65316
-    - data: 786319
-    - data: 786331
+    - data: 65297
+    - data: 65382
     - data: 65355
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65296
-    - data: 65351
-    - data: 786322
-    - data: 786328
+    - data: 65292
+    - data: 65374
     - data: 65345
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65343
-    - data: 65402
-    - data: 65399
-    - data: 786328
-    - data: 786328
+    - data: 65291
+    - data: 786314
     - data: 65347
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65293
-    - data: 65405
-    - data: 65403
-    - data: 65360
-    - data: 786335
-    - data: 786336
+    - data: 65307
+    - data: 786333
     - data: 65406
+    - data: 65280
+    - data: 65315
+    - data: 65386
+    - data: 65362
+    - data: 65282
+    - data: 65328
+    - data: 65395
+    - data: 65374
+    - data: 65287
+    - data: 65333
+    - data: 65398
+    - data: 65379
+    - data: 65289
+    - data: 65316
+    - data: 65387
+    - data: 65364
+    - data: 65282
+    - data: 65292
+    - data: 65363
+    - data: 65336
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65288
+    - data: 65280
+    - data: 65280
+    - data: 65290
+    - data: 786320
     - data: 65404
+    - data: 65280
+    - data: 65315
+    - data: 786320
+    - data: 65407
+    - data: 65280
+    - data: 65304
+    - data: 65407
+    - data: 786307
+    - data: 65280
+    - data: 65282
+    - data: 65384
+    - data: 65356
+    - data: 65280
+    - data: 65280
+    - data: 65297
+    - data: 65281
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65354
     - data: 65327
     - data: 65280
-    - data: 65292
-    - data: 65397
-    - data: 65401
-    - data: 65358
-    - data: 786349
-    - data: 786350
-    - data: 65362
-    - data: 65407
+    - data: 65322
+    - data: 786313
     - data: 65402
-    - data: 65301
     - data: 65280
-    - data: 65285
-    - data: 65282
-    - data: 65364
-    - data: 786357
-    - data: 786361
-    - data: 65374
-    - data: 786307
+    - data: 65348
+    - data: 786355
     - data: 786320
-    - data: 65345
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65362
-    - data: 786356
-    - data: 786364
-    - data: 65379
-    - data: 65356
+    - data: 65293
+    - data: 65324
+    - data: 786331
     - data: 65407
-    - data: 65338
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65340
-    - data: 786336
-    - data: 786345
-    - data: 65364
     - data: 65281
+    - data: 65280
+    - data: 65346
     - data: 65320
     - data: 65280
     - data: 65280
     - data: 65280
     - data: 65280
-    - data: 65307
-    - data: 786305
-    - data: 786308
-    - data: 65336
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65316
-    - data: 65323
     - data: 65280
     - data: 65280
     - data: 65280
@@ -418,18 +495,6 @@ MonoBehaviour:
     - data: 65280
     - data: 65280
     - data: 65280
-    - data: 65291
-    - data: 65332
-    - data: 65281
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65299
-    - data: 65330
     - data: 65280
     - data: 65280
     - data: 65280
@@ -438,102 +503,37 @@ MonoBehaviour:
     - data: 65280
     - data: 65280
     - data: 65280
-    - data: 65303
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
+    - data: 65280
     - data: 65326
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65306
-    - data: 65321
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65311
-    - data: 65317
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65281
-    - data: 65317
-    - data: 65317
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
+    - data: 65301
     - data: 65280
     - data: 65283
-    - data: 65280
-    - data: 65325
-    - data: 65327
-    - data: 65280
+    - data: 65371
+    - data: 65345
     - data: 65280
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65285
-    - data: 65280
-    - data: 65281
-    - data: 65341
-    - data: 65342
-    - data: 65282
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65284
-    - data: 65348
-    - data: 65352
-    - data: 65287
-    - data: 65280
-    - data: 65293
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65284
-    - data: 65348
-    - data: 65356
-    - data: 65289
-    - data: 65280
-    - data: 65281
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65328
+    - data: 65363
     - data: 65338
-    - data: 65282
     - data: 65280
     - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65299
-    - data: 65309
-    - data: 65280
-    - data: 65280
-    - data: 65280
-    - data: 65280
+    - data: 65287
     - data: 65280
     - data: 65280
     - data: 65280
@@ -551,10 +551,12 @@ MonoBehaviour:
         x: 5
         y: 1
         z: 1
-      isUnderGround: 1
+      checkInfo:
+        data: 4278255488
     - position:
         x: 5
         y: 4
         z: 1
-      isUnderGround: 0
+      checkInfo:
+        data: 4278222592
     isDirty: 0

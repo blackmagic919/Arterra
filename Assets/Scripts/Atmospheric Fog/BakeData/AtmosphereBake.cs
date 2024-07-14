@@ -11,8 +11,6 @@ public class AtmosphereBake : ScriptableObject
     private ComputeBuffer rayInfo;
     private ComputeBuffer OpticalInfo;
 
-    private AtmosphereFeature.PassSettings passSettings;
-
     private ComputeShader RaySetupCompute;
     private ComputeShader OpticalDataCompute;
     
@@ -30,7 +28,6 @@ public class AtmosphereBake : ScriptableObject
         OpticalDataCompute = Resources.Load<ComputeShader>("Atmosphere/OpticalData");
 
         int numPixels = BakedTextureSizePX * BakedTextureSizePX;
-        this.passSettings = passSettings;
         rayInfo = new ComputeBuffer(numPixels, sizeof(float) * (3 + 2), ComputeBufferType.Structured, ComputeBufferMode.Immutable); //Floating point 3 channel
 
         //3D texture to store SunRayOpticalDepth

@@ -92,3 +92,6 @@ MonoBehaviour:
   Structures:
     value: []
     isDirty: 0
+  Entities:
+    value: []
+    isDirty: 0

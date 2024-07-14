@@ -7,6 +7,8 @@ const static int POINT_STRIDE_4BYTE = 1;
 
 
 RWStructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+uint addressIndex;
 #ifdef COMPRESSED
 StructuredBuffer<uint> chunkData;
 #else
@@ -20,18 +22,17 @@ StructuredBuffer<mapData> chunkData;
 #endif
 uint numPoints;
 
-StructuredBuffer<uint> startAddress;
 
 [numthreads(numThreads,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    if(startAddress[0] == 0) //Invalid
+    if(_AddressDict[addressIndex].x == 0) //Invalid
         return;
 
     if(id.x >= numPoints)
         return;
 
-    uint wAddress = startAddress[0] + id.x * POINT_STRIDE_4BYTE;
+    uint wAddress = _AddressDict[addressIndex].y + id.x * POINT_STRIDE_4BYTE;
     
 #ifdef COMPRESSED
     _MemoryBuffer[wAddress] = chunkData[id.x];

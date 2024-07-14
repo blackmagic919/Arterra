@@ -22,7 +22,6 @@ public class ShaderGenerator
 
 
     private Transform transform;
-    //                          Color                  Position & Normal        UV
     const int GEO_VERTEX_STRIDE = 3 * 2 + 2;
     const int TRI_STRIDE_WORD = 3;
 
