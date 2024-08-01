@@ -24,14 +24,14 @@ public class ProceduralSnowRenderer : SpecialShader
     {
         return snowSettings.material.value;
     }
-    public override void ProcessGeoShader(Transform transform, GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, 
-                        int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
+    public override void ProcessGeoShader(GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, 
+                                           int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
     {
         ComputeShader tesselCompute = snowSettings.tesselComputeShader.value;
 
         int idGrassKernel = tesselCompute.FindKernel("Main");
-        ComputeBuffer memory = memoryHandle.AccessStorage();
-        ComputeBuffer addresses = memoryHandle.AccessAddresses();
+        ComputeBuffer memory = memoryHandle.Storage;
+        ComputeBuffer addresses = memoryHandle.Address;
 
         ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(tesselCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
@@ -51,7 +51,6 @@ public class ProceduralSnowRenderer : SpecialShader
         tesselCompute.SetInt("bCOUNT_oGeo", geoCounter);
 
         tesselCompute.SetInt("tesselFactor", (int)snowSettings.tesselationFactor);
-        tesselCompute.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
 
         tesselCompute.DispatchIndirect(idGrassKernel, args);
     }

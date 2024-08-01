@@ -54,7 +54,7 @@ public class SurfaceChunk : ChunkData
                 task = () => baseMap.GetChunk(), 
                 load = taskLoadTable[(int)priorities.planning]
             };
-            AppendGenTask(surfChunkTask);
+            RequestQueue.Enqueue(surfChunkTask);
         }
     }
 

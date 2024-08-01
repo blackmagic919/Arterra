@@ -108,12 +108,12 @@ Shader "Hidden/Fog"
             OpticalInfo sampleOpticalInfo(Influences2D sampleIndex, uint sampleDepth){
                 OpticalInfo info = (OpticalInfo)0;
                 [unroll]for(int i = 0; i < 4; i++){
-                    uint index = GetTextureIndex(sampleIndex.corner[i].mapCoord, sampleDepth);
-                    info.opticalDensity += _OpticalInfo[index].opticalDensity * sampleIndex.corner[i].influence;
-                    info.scatterCoeffs += _OpticalInfo[index].scatterCoeffs * sampleIndex.corner[i].influence;
-                    info.extinctionCoeff += _OpticalInfo[index].extinctionCoeff * sampleIndex.corner[i].influence;
-                    info.opticalDepth += _OpticalInfo[index].opticalDepth * sampleIndex.corner[i].influence;
-                    info.occlusionFactor += _OpticalInfo[index].occlusionFactor * sampleIndex.corner[i].influence;
+                    OpticalInfo opticalInfo = _OpticalInfo[GetTextureIndex(sampleIndex.corner[i].mapCoord, sampleDepth)];
+                    info.opticalDensity += opticalInfo.opticalDensity * sampleIndex.corner[i].influence;
+                    info.scatterCoeffs += opticalInfo.scatterCoeffs * sampleIndex.corner[i].influence;
+                    info.extinctionCoeff += opticalInfo.extinctionCoeff * sampleIndex.corner[i].influence;
+                    info.opticalDepth += opticalInfo.opticalDepth * sampleIndex.corner[i].influence;
+                    info.occlusionFactor += opticalInfo.occlusionFactor * sampleIndex.corner[i].influence;
                 }
                 return info;
             }

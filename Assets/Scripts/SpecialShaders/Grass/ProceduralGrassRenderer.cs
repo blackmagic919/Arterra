@@ -32,14 +32,14 @@ public class ProceduralGrassRenderer : SpecialShader
         return grassSettings.material.value;
     }
 
-    public override void ProcessGeoShader(Transform transform, GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, 
-                        int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
+    public override void ProcessGeoShader(GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, 
+                                          int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
     {
         ComputeShader grassCompute = grassSettings.grassComputeShader.value;
 
         int idGrassKernel = grassCompute.FindKernel("Main");
-        ComputeBuffer memory = memoryHandle.AccessStorage();
-        ComputeBuffer addresses = memoryHandle.AccessAddresses();
+        ComputeBuffer memory = memoryHandle.Storage;
+        ComputeBuffer addresses = memoryHandle.Address;
 
         ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(grassCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
@@ -58,9 +58,7 @@ public class ProceduralGrassRenderer : SpecialShader
         grassCompute.SetInt("bCOUNT_oGeo", geoCounter);
 
         grassCompute.SetFloat("_TotalHeight", grassSettings.grassHeight);
-        grassCompute.SetFloat("_WorldPositionToUVScale", grassSettings.worldPositionUVScale);
         grassCompute.SetInt("_MaxLayers", grassSettings.maxLayers);
-        grassCompute.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
 
         grassCompute.DispatchIndirect(idGrassKernel, args);
     }

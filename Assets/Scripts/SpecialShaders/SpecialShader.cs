@@ -26,7 +26,7 @@ public abstract class SpecialShader : ScriptableObject
         
     }
 
-    public virtual void ProcessGeoShader(Transform transform, GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, 
+    public virtual void ProcessGeoShader(GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, 
                                          int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
     {
 

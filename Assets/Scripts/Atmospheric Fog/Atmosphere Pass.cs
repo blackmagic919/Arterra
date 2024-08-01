@@ -38,7 +38,7 @@ public class AtmospherePass : ScriptableRenderPass
         if (material == null) material = CoreUtils.CreateEngineMaterial("Hidden/Fog");
 
         RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
-        float atmosphereRadius = rSettings.lerpScale * rSettings.detailLevels.value[^1].distanceThresh;
+        float atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * rSettings.detailLevels.value[^1].chunkDistThresh;
 
         material.SetFloat(AtmosphereRadiusProperty, atmosphereRadius);
         material.SetInt(inScatterProperty, passSettings.luminanceBake.NumInScatterPoints);

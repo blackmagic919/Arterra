@@ -15,16 +15,14 @@ public class LoadingHandler : MonoBehaviour
     }
     void Update()
     {
-        if(EndlessTerrain.timeRequestQueue.Count == 0){
+        if(EndlessTerrain.RequestQueue.IsEmpty){
             this.gameObject.SetActive(false);
             return;
         }
 
         float totalRemainingLoad = 0; 
-        lock(EndlessTerrain.timeRequestQueue){
-            foreach(EndlessTerrain.GenTask task in EndlessTerrain.timeRequestQueue){
-                totalRemainingLoad += task.load;
-            }
+        foreach(EndlessTerrain.GenTask task in EndlessTerrain.RequestQueue){
+            totalRemainingLoad += task.load;
         }
 
         slider.value = finishedLoad / (totalRemainingLoad + finishedLoad);

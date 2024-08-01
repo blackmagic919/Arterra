@@ -48,10 +48,10 @@ float interpolateValue(float value, uint samplerIndex){
 
     float lowerAnchor = lowerBound.y + lowerBound.w * dt;
     float upperAnchor = upperBound.y - upperBound.z * dt;
-
+    float anchor = (lowerAnchor + upperAnchor) / 2;
     return lerp(
-        lerp(lowerBound.y, lowerAnchor, progress), 
-        lerp(upperAnchor, upperBound.y, progress), 
+        lerp(lowerBound.y, anchor, progress), 
+        lerp(anchor, upperBound.y, progress), 
         progress
     );
 }

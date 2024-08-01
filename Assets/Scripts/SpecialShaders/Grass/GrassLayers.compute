@@ -12,8 +12,8 @@ struct SourceVertex{
 
 
 struct DrawVertex{
-    float3 positionWS;
-    float3 normalWS;
+    float3 positionOS;
+    float3 normalOS;
     float2 uv;
 };
 
@@ -38,14 +38,12 @@ int bCOUNT_oGeo;
 
 float _TotalHeight;
 int _MaxLayers;
-float _WorldPositionToUVScale;
-float4x4 _LocalToWorld;
 
 DrawVertex MakeBaseDrawVertex(SourceVertex v){
     DrawVertex o;
 
-    o.normalWS = mul(_LocalToWorld, float4(v.normalOS, 0)).xyz;
-    o.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
+    o.normalOS = v.normalOS;
+    o.positionOS = v.positionOS;
     o.uv = 0;
 
     return o;
@@ -53,8 +51,8 @@ DrawVertex MakeBaseDrawVertex(SourceVertex v){
 
 DrawVertex ExtrudeVertex(DrawVertex v, float height){
     DrawVertex o;
-    o.positionWS = v.positionWS + v.normalWS * (height * _TotalHeight);
-    o.normalWS = v.normalWS;
+    o.positionOS = v.positionOS + v.normalOS * (height * _TotalHeight);
+    o.normalOS = v.normalOS;
 
     o.uv = v.uv;
     return o;
@@ -85,7 +83,7 @@ void Main(uint3 id : SV_DispatchThreadID){
         DrawTriangle tri = (DrawTriangle)0;
         [unroll] for(int p = 0; p < 3; p++){
             tri.vertices[p] = ExtrudeVertex(inputs[p], texHeight);
-            tri.vertices[p].uv = float2(texHeight, colorHeight); 
+            tri.vertices[p].uv = half2(texHeight, colorHeight); 
         }
 
         int appendInd = 0;

@@ -127,6 +127,6 @@ MonoBehaviour:
     value:
     - value:
         entityIndex: 0
-        ChancePerCoord: 0.5
+        ChancePerCoord: 2147483
       isDirty: 0
     isDirty: 0

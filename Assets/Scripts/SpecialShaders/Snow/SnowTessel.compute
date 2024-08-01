@@ -9,8 +9,8 @@ struct SourceVertex{
 };
 
 struct DrawVertex{
-    float3 positionWS;
-    float3 normalWS;
+    float3 positionOS;
+    float3 normalOS;
     float2 uv;
 };
 
@@ -43,28 +43,27 @@ int bSTART_oGeo;
 int bCOUNT_oGeo;
 
 uint tesselFactor;
-float4x4 _LocalToWorld;
 
 DrawVertex MakeBaseDrawVertex(SourceVertex v){
     DrawVertex o = (DrawVertex)0;
-    o.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
-    o.normalWS = mul(_LocalToWorld, float4(v.normalOS, 0)).xyz;
+    o.positionOS = v.positionOS;
+    o.normalOS = v.normalOS;
     o.uv = _MatTerrainData[v.material.x].geoShaderInd == geoInd ? 1 : 0;
     return o;
 }
 
 DrawVertex Interpolate(DrawVertex a, DrawVertex b, float t){
     DrawVertex v = (DrawVertex)0;
-    v.positionWS = a.positionWS * (1 - t) + b.positionWS * t;
-    v.normalWS = a.normalWS * (1 - t) + b.normalWS * t;
+    v.positionOS = a.positionOS * (1 - t) + b.positionOS * t;
+    v.normalOS = a.normalOS * (1 - t) + b.normalOS * t;
     v.uv = a.uv * (1 - t) + b.uv * t;
     return v;
 }
 
 DrawVertex BlendCenter(DrawTriangle base){
     DrawVertex v = (DrawVertex)0;
-    v.positionWS = (base.vertices[0].positionWS + base.vertices[1].positionWS + base.vertices[2].positionWS) / 3;
-    v.normalWS = (base.vertices[0].normalWS + base.vertices[1].normalWS + base.vertices[2].normalWS) / 3;
+    v.positionOS = (base.vertices[0].positionOS + base.vertices[1].positionOS + base.vertices[2].positionOS) / 3;
+    v.normalOS = (base.vertices[0].normalOS + base.vertices[1].normalOS + base.vertices[2].normalOS) / 3;
     v.uv = (base.vertices[0].uv + base.vertices[1].uv + base.vertices[2].uv) / 3;
     return v;
 }

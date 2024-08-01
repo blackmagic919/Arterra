@@ -21,10 +21,10 @@ RenderSettings:
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
   m_AmbientSkyColor: {r: 0.212, g: 0.227, b: 0.259, a: 1}
-  m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
-  m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
+  m_AmbientEquatorColor: {r: 0.11372549, g: 0.1254902, b: 0.13333334, a: 1}
+  m_AmbientGroundColor: {r: 0.13333334, g: 0.12156863, b: 0.09803922, a: 1}
   m_AmbientIntensity: 0.1
-  m_AmbientMode: 0
+  m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
   m_SkyboxMaterial: {fileID: 2100000, guid: 2d056ac30ecc9e542b26e06133f23602, type: 2}
   m_HaloStrength: 0.5
@@ -303,7 +303,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2f7387339b2a496eb8f0feec6244c76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  timeMultiplier: 288
+  timeMultiplier: 72
   startHour: 8
   timeText: {fileID: 1248746679}
   sunriseHour: 7
@@ -1051,7 +1051,10 @@ PrefabInstance:
       propertyPath: movementSettings.SlopeCurveModifier.m_Curve.Array.data[1].tangentMode
       value: 34
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 11400004, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}
+    - {fileID: 13600000, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}
+    - {fileID: 5400000, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -1064,7 +1067,18 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 100006, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2123683930}
+    - targetCorrespondingSourceObject: {fileID: 100006, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2123683932}
+    - targetCorrespondingSourceObject: {fileID: 100006, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2123683931}
   m_SourcePrefab: {fileID: 100100000, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}
+--- !u!20 &913041918 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 34467644572550482, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}
+  m_PrefabInstance: {fileID: 913041917}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &913041919 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400002, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}
@@ -1817,7 +1831,7 @@ Light:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RenderingLayerMask: 1
-  m_Lightmapping: 2
+  m_Lightmapping: 4
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
   m_BounceIntensity: 1
@@ -2083,7 +2097,7 @@ Light:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RenderingLayerMask: 1
-  m_Lightmapping: 2
+  m_Lightmapping: 4
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
   m_BounceIntensity: 1
@@ -2409,6 +2423,59 @@ MonoBehaviour:
     objectLayer:
       serializedVersion: 2
       m_Bits: 8
+--- !u!114 &2123683931
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2123683925}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5de76747a36a44cb79d09d10d461e0f0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  size:
+    x: 1
+    y: 1
+    z: 1
+  offset:
+    x: -0.5
+    y: -0.5
+    z: -0.5
+  velocity:
+    x: 0
+    y: 0
+    z: 0
+  useGravity: 1
+--- !u!114 &2123683932
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2123683925}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd5493448437349ffab6b0e1b6b5cab2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cam: {fileID: 913041918}
+  mouseLook:
+    XSensitivity: 2
+    YSensitivity: 2
+    clampVerticalRotation: 1
+    MinimumX: -90
+    MaximumX: 90
+    smooth: 0
+    smoothTime: 5
+    lockCursor: 1
+  GroundFriction: 0.075
+  runSpeed: 10
+  jumpForce: 8
+  acceleration: 50
+  groundStickDist: 0.05
+  active: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -65,12 +65,12 @@ public class SegmentBinManager
         {
             LODInfo detailLevel = detailLevels[i];
 
-            int meshSkipInc = meshSkipTable[detailLevel.LOD];
+            int meshSkipInc = meshSkipTable[i];
             int numPointsAxes = mapChunkSize / meshSkipInc;
             int chunkStride4Bytes = numPointsAxes * numPointsAxes * numPointsAxes * PointStride4Bytes;
 
-            int sideLength = 2 * Mathf.CeilToInt(detailLevel.distanceThresh / mapChunkSize);
-            int pSideLength = i == 0 ? 0 : 2 * Mathf.CeilToInt(detailLevels[i - 1].distanceThresh / mapChunkSize);
+            int sideLength = 2 * detailLevel.chunkDistThresh;
+            int pSideLength = i == 0 ? 0 : 2 * detailLevels[i - 1].chunkDistThresh;
             int maxChunks = UpdateContingencyFactor * ((sideLength * sideLength * sideLength) - (pSideLength * pSideLength * pSideLength));
 
             BufferSections[i] = new BinSection(chunkStride4Bytes, maxChunks, num4Bytes);

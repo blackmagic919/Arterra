@@ -31,14 +31,14 @@ public class ProceduralFoliageRenderer : SpecialShader
         return foliageSettings.material.value;
     }
 
-    public override void ProcessGeoShader(Transform transform, GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, 
-                        int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
+    public override void ProcessGeoShader(GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, 
+                                          int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
     {
         ComputeShader foliageCompute = foliageSettings.foliageComputeShader.value;
 
         int idFoliageKernel = foliageCompute.FindKernel("Main");
-        ComputeBuffer memory = memoryHandle.AccessStorage();
-        ComputeBuffer addresses = memoryHandle.AccessAddresses();
+        ComputeBuffer memory = memoryHandle.Storage;
+        ComputeBuffer addresses = memoryHandle.Address;
 
         ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(foliageCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
@@ -58,7 +58,6 @@ public class ProceduralFoliageRenderer : SpecialShader
 
         foliageCompute.SetFloat("_QuadSize", foliageSettings.QuadSize);
         foliageCompute.SetFloat("_InflationFactor", foliageSettings.Inflation);
-        foliageCompute.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
 
         foliageCompute.DispatchIndirect(idFoliageKernel, args);
     }

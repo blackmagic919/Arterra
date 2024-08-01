@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FoliageGenerator
   m_EditorClassIdentifier: 
   foliageSettings:
-    QuadSize: 3
+    QuadSize: 1.5
     Inflation: 0
     foliageComputeShader:
       value: {fileID: 7200000, guid: 92ccc8e35df9942849493d4f1ea6dbcd, type: 3}

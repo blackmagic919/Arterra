@@ -18,6 +18,7 @@ public class AtmosphereBake : ScriptableObject
     public int NumInScatterPoints = 5;
     public int NumOpticalDepthPoints = 5;
 
+    private float atmosphereRadius;
     [HideInInspector]
     public bool initialized = false;
 
@@ -29,6 +30,8 @@ public class AtmosphereBake : ScriptableObject
 
         int numPixels = BakedTextureSizePX * BakedTextureSizePX;
         rayInfo = new ComputeBuffer(numPixels, sizeof(float) * (3 + 2), ComputeBufferType.Structured, ComputeBufferMode.Immutable); //Floating point 3 channel
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        this.atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * rSettings.detailLevels.value[^1].chunkDistThresh;
 
         //3D texture to store SunRayOpticalDepth
         //We can't use RenderTexture-Texture2DArray because SAMPLER2DARRAY does not terminate in a timely fashion
@@ -77,8 +80,6 @@ public class AtmosphereBake : ScriptableObject
     }
 
     void SetupRayData(){
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
-        float atmosphereRadius = rSettings.lerpScale * rSettings.detailLevels.value[^1].distanceThresh;
         RaySetupCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
         
         RaySetupCompute.SetInt("screenHeight", BakedTextureSizePX);
@@ -88,7 +89,6 @@ public class AtmosphereBake : ScriptableObject
     }
     void SetupOpticalMarch(){
         RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
-        float atmosphereRadius = rSettings.lerpScale * rSettings.detailLevels.value[^1].distanceThresh;
         OpticalDataCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
         OpticalDataCompute.SetFloat("_IsoLevel", rSettings.IsoLevel);
 

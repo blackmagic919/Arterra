@@ -5,7 +5,7 @@ using UnityEngine;
 public abstract class UpdateTask
 {
     public bool active = false;
-    public virtual void Update(){
+    public virtual void Update(MonoBehaviour mono = null){
 
     }
 }

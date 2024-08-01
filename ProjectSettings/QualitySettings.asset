@@ -152,8 +152,7 @@ QualitySettings:
     terrainBillboardStart: 50
     terrainFadeLength: 5
     terrainMaxTrees: 50
-    excludedTargetPlatforms:
-    - Standalone
+    excludedTargetPlatforms: []
   - serializedVersion: 3
     name: High
     pixelLightCount: 2
@@ -303,7 +302,7 @@ QualitySettings:
     excludedTargetPlatforms: []
   m_TextureMipmapLimitGroupNames: []
   m_PerPlatformDefaultQuality:
-    Android: 0
-    Server: 0
-    Standalone: 0
-    WebGL: 0
+    Android: 2
+    Server: 2
+    Standalone: 2
+    WebGL: 2

@@ -48,7 +48,7 @@ public struct LODMesh
 
         //This code will be called on a background thread
         ChunkStorageManager.ReadChunkBin(this.terrainChunk.CCoord, LoD, (bool isComplete, CPUDensityManager.MapData[] chunk) => 
-            AppendGenTask(new GenTask{ //REMINDER: This queue should be locked
+            RequestQueue.Enqueue(new GenTask{ //REMINDER: This queue should be locked
                 valid = () => handle.terrainChunk.active,
                 task = () => OnReadComplete(isComplete, chunk),
                 load = taskLoadTable[(int)priorities.generation],
@@ -66,18 +66,21 @@ public struct LODMesh
         callback?.Invoke();
     }
 
-    void CopyDataToCPU(){
+    void CopyMapToCPU(){
         int3 CCoord = this.terrainChunk.CCoord;
+        uint entityAddress = EntityManager.PlanEntities(surfaceMap.GetMap(), this.terrainChunk.CCoord, mapChunkSize);
+        EntityManager.BeginEntityReadback(entityAddress, this.terrainChunk.CCoord);
         CPUDensityManager.AllocateChunk(terrainChunk, CCoord, 
         (bool isComplete) => CPUDensityManager.BeginMapReadback(CCoord));
     }
+
 
     public void GenerateMap(int LOD, Action callback = null)
     {
         meshCreator.GenerateBaseChunk(surfaceMap.GetMap(), this.terrainChunk.origin, LOD, mapChunkSize, IsoLevel);
         structCreator.GenerateStrucutresGPU(mapChunkSize, LOD, IsoLevel);
         GPUDensityManager.SubscribeChunk(this.terrainChunk.CCoord, LOD, UtilityBuffers.GenerationBuffer);
-        if(LOD == 0) CopyDataToCPU();
+        if(LOD == 0) CopyMapToCPU();
         
         meshCreator.ReleaseTempBuffers();
         callback?.Invoke();
@@ -112,7 +115,7 @@ public struct LODMesh
     public void SetChunkData(int LOD, int offset, CPUDensityManager.MapData[] mapData, Action callback = null){
         meshCreator.SetMapInfo(LOD, mapChunkSize, offset, mapData);
         GPUDensityManager.SubscribeChunk(this.terrainChunk.CCoord, LOD, UtilityBuffers.TransferBuffer, true);
-        if(LOD == 0) CopyDataToCPU();
+        if(LOD == 0) CopyMapToCPU();
 
         meshCreator.ReleaseTempBuffers();
         callback?.Invoke();
@@ -133,8 +136,6 @@ public enum ReadbackMaterial{
 [System.Serializable]
 public struct LODInfo
 {
-    public int LOD;
-    public float distanceThresh;
-    public bool useForCollider;
+    public int chunkDistThresh;
     public bool useForGeoShaders;
 }

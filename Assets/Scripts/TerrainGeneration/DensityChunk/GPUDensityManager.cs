@@ -26,34 +26,26 @@ public static class GPUDensityManager
         transcribeMapInfo = Resources.Load<ComputeShader>("MapData/TranscribeMapInfo");
         simplifyMap = Resources.Load<ComputeShader>("MapData/DensitySimplificator");
         
-        GPUDensityManager.lerpScale = rSettings.lerpScale;
-        GPUDensityManager.mapChunkSize = rSettings.mapChunkSize;
-        GPUDensityManager.numChunksAxis = 2 * (Mathf.RoundToInt(rSettings.detailLevels.value[^1].distanceThresh / mapChunkSize) + 1);
+        lerpScale = rSettings.lerpScale;
+        mapChunkSize = rSettings.mapChunkSize;
+        numChunksAxis = 2 * rSettings.detailLevels.value[^1].chunkDistThresh;
         int numChunks = numChunksAxis * numChunksAxis * numChunksAxis;
 
-        GPUDensityManager._ChunkAddressDict = new ComputeBuffer(numChunks, sizeof(uint) * 2, ComputeBufferType.Structured);
-        GPUDensityManager._ChunkAddressDict.SetData(Enumerable.Repeat(0u, numChunks * 2).ToArray());
-        GPUDensityManager.memorySpace = GenerationPreset.memoryHandle;
+        _ChunkAddressDict = new ComputeBuffer(numChunks, sizeof(uint) * 2, ComputeBufferType.Structured);
+        _ChunkAddressDict.SetData(Enumerable.Repeat(0u, numChunks * 2).ToArray());
+        memorySpace = GenerationPreset.memoryHandle;
 
         initialized = true;
     }
 
     public static int HashCoord(int3 CCoord){
-        float xHash = CCoord.x < 0 ? numChunksAxis - (Mathf.Abs(CCoord.x) % numChunksAxis) : Mathf.Abs(CCoord.x) % numChunksAxis;
-        float yHash = CCoord.y < 0 ? numChunksAxis - (Mathf.Abs(CCoord.y) % numChunksAxis) : Mathf.Abs(CCoord.y) % numChunksAxis;
-        float zHash = CCoord.z < 0 ? numChunksAxis - (Mathf.Abs(CCoord.z) % numChunksAxis) : Mathf.Abs(CCoord.z) % numChunksAxis;
-
-        int hash = ((int)xHash * numChunksAxis * numChunksAxis) + ((int)yHash * numChunksAxis) + (int)zHash;
+        int3 hashCoord = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
+        int hash = (hashCoord.x * numChunksAxis * numChunksAxis) + (hashCoord.y * numChunksAxis) + hashCoord.z;
         return hash;
     }
 
-    public static ComputeBuffer AccessStorage(){
-        return memorySpace.AccessStorage();
-    }
-
-    public static ComputeBuffer AccessAddresses(){
-        return _ChunkAddressDict;
-    }
+    public static ComputeBuffer Storage => memorySpace.Storage;
+    public static ComputeBuffer Address => _ChunkAddressDict;
 
     public static void Release()
     {
@@ -68,8 +60,8 @@ public static class GPUDensityManager
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 
         uint address = memorySpace.AllocateMemoryDirect(numPoints, 1);
-        TranscribeData(memorySpace.AccessStorage(), memorySpace.AccessAddresses(), mapData, address, numPoints, compressed);
-        ReplaceAddress(memorySpace.AccessAddresses(), address, CCoord, meshSkipInc);
+        TranscribeData(memorySpace.Storage, memorySpace.Address, mapData, address, numPoints, compressed);
+        ReplaceAddress(memorySpace.Address, address, CCoord, meshSkipInc);
         memorySpace.ReleaseMemory(address);
     }
 
@@ -111,8 +103,8 @@ public static class GPUDensityManager
 
         uint address = memorySpace.AllocateMemoryDirect(numPoints, 1);
         
-        ReplaceAddress(memorySpace.AccessAddresses(), address, CCoord, meshSkipInc);
-        SimplifyDataDirect(memorySpace.AccessStorage(), memorySpace.AccessAddresses(), address, CCoord, meshSkipInc);
+        ReplaceAddress(memorySpace.Address, address, CCoord, meshSkipInc);
+        SimplifyDataDirect(memorySpace.Storage, memorySpace.Address, address, CCoord, meshSkipInc);
         memorySpace.ReleaseMemory(address);
     }
 
@@ -142,7 +134,7 @@ public static class GPUDensityManager
         SetWSCCoordHelper(shader);
 
         shader.SetBuffer(0, "_ChunkAddressDict", _ChunkAddressDict);
-        shader.SetBuffer(0, "_ChunkInfoBuffer", memorySpace.AccessStorage());
+        shader.SetBuffer(0, "_ChunkInfoBuffer", memorySpace.Storage);
     }
 
     public static void SetDensitySampleData(Material material){
@@ -153,7 +145,7 @@ public static class GPUDensityManager
         SetWSCCoordHelper(material);
 
         material.SetBuffer("_ChunkAddressDict", _ChunkAddressDict);
-        material.SetBuffer("_ChunkInfoBuffer", memorySpace.AccessStorage());
+        material.SetBuffer("_ChunkInfoBuffer", memorySpace.Storage);
     }
 
     static void SetWSCCoordHelper(ComputeShader shader) { 

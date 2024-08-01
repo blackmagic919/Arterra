@@ -1,0 +1,25 @@
+#pragma kernel CSMain
+const static int numThreads = 256;
+
+struct entityInfo {
+    int3 position;
+    uint entityIndex;
+};
+
+StructuredBuffer<uint> counter;
+StructuredBuffer<entityInfo> chunkEntities;
+uint bSTART_entities;
+uint bCOUNTER_entities;
+
+RWStructuredBuffer<entityInfo> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+uint addressIndex;
+
+[numthreads(numThreads, 1, 1)]
+void CSMain (uint3 id : SV_DispatchThreadID){
+    if(id.x >= counter[bCOUNTER_entities])
+        return;
+    
+    uint address = _AddressDict[addressIndex].y + id.x;
+    _MemoryBuffer[address] = chunkEntities[bSTART_entities + id.x];
+}

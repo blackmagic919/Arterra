@@ -56,7 +56,7 @@ public class StructureCreator
 
         IdentifyStructures(chunkCoord, offset, IsoLevel, chunkSize);
         
-        this.structureDataIndex = TranscribeStructures(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses());
+        this.structureDataIndex = TranscribeStructures(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address);
 
         return;
     }
@@ -65,8 +65,8 @@ public class StructureCreator
     {
         int meshSkipInc = meshSkipTable[LOD];
         
-        ComputeBuffer structCount = GetStructCount(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(), (int)structureDataIndex, STRUCTURE_STRIDE_WORD);
-        ApplyStructures(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(), structCount, 
+        ComputeBuffer structCount = GetStructCount(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, (int)structureDataIndex, STRUCTURE_STRIDE_WORD);
+        ApplyStructures(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, structCount, 
                         (int)structureDataIndex, chunkSize, meshSkipInc, IsoLevel);
 
         return;

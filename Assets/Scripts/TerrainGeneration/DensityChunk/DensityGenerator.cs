@@ -82,8 +82,8 @@ public static class DensityGenerator
         int numPointsAxes = chunkSize / meshSkipInc;
 
         baseGenCompute.SetFloat("IsoLevel", IsoLevel);
-        baseGenCompute.SetBuffer(0, "_SurfMemoryBuffer", GenerationPreset.memoryHandle.AccessStorage());
-        baseGenCompute.SetBuffer(0, "_SurfAddressDict", GenerationPreset.memoryHandle.AccessAddresses());
+        baseGenCompute.SetBuffer(0, "_SurfMemoryBuffer", GenerationPreset.memoryHandle.Storage);
+        baseGenCompute.SetBuffer(0, "_SurfAddressDict", GenerationPreset.memoryHandle.Address);
         baseGenCompute.SetInt("surfAddress", (int)surfaceData);
         baseGenCompute.SetInt("numPointsPerAxis", numPointsAxes);
         baseGenCompute.SetInt("meshSkipInc", meshSkipInc);
@@ -104,8 +104,8 @@ public static class DensityGenerator
         int numPointsAxes = numCubesAxes + 1;
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 3, 0);
 
-        meshGenerator.SetBuffer(0, "_MemoryBuffer", GPUDensityManager.AccessStorage());
-        meshGenerator.SetBuffer(0, "_AddressDict", GPUDensityManager.AccessAddresses());
+        meshGenerator.SetBuffer(0, "_MemoryBuffer", GPUDensityManager.Storage);
+        meshGenerator.SetBuffer(0, "_AddressDict", GPUDensityManager.Address);
         meshGenerator.SetInts("CCoord", new int[] { CCoord.x, CCoord.y, CCoord.z });
         GPUDensityManager.SetCCoordHash(meshGenerator);
 

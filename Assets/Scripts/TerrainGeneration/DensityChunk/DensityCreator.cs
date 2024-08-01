@@ -63,14 +63,6 @@ public class MeshCreator
         UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
     }
 
-    struct structurInfo
-    {
-        public float3 structurePos;
-        public uint structureInd;
-        public uint2 rotation;
-    }
-
-
     public void GenerateMapData(int3 CCoord, float IsoLevel, int LOD, int chunkSize)
     {
         int meshSkipInc = meshSkipTable[LOD];

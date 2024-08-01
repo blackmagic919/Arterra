@@ -29,8 +29,8 @@
 #include "NMGGrassLayersHelpers.hlsl"
 
 struct DrawVertex{
-    float3 positionWS;
-    float3 normalWS;
+    float3 positionOS;
+    float3 normalOS;
     float2 uv;
 };
 
@@ -50,6 +50,7 @@ struct VertexOutput {
 
 StructuredBuffer<DrawTriangle> _StorageMemory;
 StructuredBuffer<uint2> _AddressDict;
+float4x4 _LocalToWorld;
 uint addressIndex;
 
 
@@ -93,9 +94,9 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
     uint vertexIndex = vertexID % 3;
     DrawVertex input = _StorageMemory[triAddress].vertex[vertexIndex];
 
-    output.positionWS = input.positionWS.xyz;
-    output.normalWS = input.normalWS.xyz;
-    output.uv = mapCoordinates(input.positionWS) * _WSToUVScale;
+    output.positionWS = mul(_LocalToWorld, float4(input.positionOS, 1)).xyz;
+    output.normalWS = normalize(mul(_LocalToWorld, float4(input.normalOS, 0)).xyz);
+    output.uv = mapCoordinates(output.positionWS) * _WSToUVScale;
     output.height = input.uv;
 
     output.positionCS = CalculatePositionCSWithShadowCasterLogic(output.positionWS, output.normalWS);
@@ -105,7 +106,7 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
 
 // Fragment functions
 
-half4 Fragment(VertexOutput input) : SV_Target {
+half3 Fragment(VertexOutput input) : SV_Target {
 
     float2 uv = input.uv;
     float height = input.height.x;
@@ -152,7 +153,7 @@ half4 Fragment(VertexOutput input) : SV_Target {
     // The URP simple lit algorithm
     // The arguments are lighting input data, albedo color, specular color, smoothness, emission color, and alpha
     //return UniversalFragmentBlinnPhong(lightingInput, albedo, 1, 0, 0, 1); <-- code has been depreciated
-    return UniversalFragmentBlinnPhong(lightingInput, surfaceInput);
+    return max(UniversalFragmentPBR(lightingInput, surfaceInput).rgb, surfaceInput.albedo * unity_AmbientEquator);
 #endif
 }
 

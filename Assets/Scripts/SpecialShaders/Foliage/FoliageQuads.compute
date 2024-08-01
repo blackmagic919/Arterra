@@ -17,8 +17,8 @@ struct SourceVertex{
 };
 
 struct DrawVertex{
-    float3 positionWS;
-    float3 normalWS;
+    float3 positionOS;
+    float3 normalOS;
     float2 uv;
 };
 
@@ -42,21 +42,20 @@ int bCOUNT_oGeo;
 
 float _QuadSize;
 float _InflationFactor;
-float4x4 _LocalToWorld;
 
 DrawVertex MakeBaseDrawVertex(SourceVertex v){
     DrawVertex o = (DrawVertex)0;
-    o.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
-    o.normalWS = mul(_LocalToWorld, float4(v.normalOS, 0)).xyz;
+    o.positionOS = v.positionOS;
+    o.normalOS = v.normalOS;
 
     return o;
 }
 
 
-DrawVertex InitializeDrawVertex(float3 positionWS, float3 normalWS, float2 uv){
+DrawVertex InitializeDrawVertex(float3 positionOS, float3 normalOS, float2 uv){
     DrawVertex o = (DrawVertex)0;
-    o.positionWS = positionWS;
-    o.normalWS = normalWS;
+    o.positionOS = positionOS;
+    o.normalOS = normalOS;
     o.uv = uv;
 
     return o;
@@ -91,30 +90,30 @@ void AppendTri(DrawTriangle tri){
     DrawTriangles[bSTART_oGeo + appendInd] = tri;
 }
 
-void AppendQuad(Quad quad, float3 normalWS){
+void AppendQuad(Quad quad, float3 normalOS){
     //Bottom triangle
     DrawTriangle lowerTri = (DrawTriangle)0;
-    lowerTri.vertices[0] = InitializeDrawVertex(quad.topLeft + _InflationFactor*normalWS, normalWS, float2(0, 1));
-    lowerTri.vertices[2] = InitializeDrawVertex(quad.bottomLeft + _InflationFactor*normalWS, normalWS, float2(0, 0));
-    lowerTri.vertices[1] = InitializeDrawVertex(quad.bottomRight + _InflationFactor*normalWS, normalWS, float2(1, 0)); //Add this first because clockwise winding
+    lowerTri.vertices[0] = InitializeDrawVertex(quad.topLeft + _InflationFactor*normalOS, normalOS, float2(0, 1));
+    lowerTri.vertices[2] = InitializeDrawVertex(quad.bottomLeft + _InflationFactor*normalOS, normalOS, float2(0, 0));
+    lowerTri.vertices[1] = InitializeDrawVertex(quad.bottomRight + _InflationFactor*normalOS, normalOS, float2(1, 0)); //Add this first because clockwise winding
     AppendTri(lowerTri);
     
     //Top triangle
     DrawTriangle topTri = (DrawTriangle)0;
-    topTri.vertices[0] = InitializeDrawVertex(quad.topLeft + _InflationFactor*normalWS, normalWS, float2(0, 1));
-    topTri.vertices[2] = InitializeDrawVertex(quad.bottomRight + _InflationFactor*normalWS, normalWS, float2(1, 0));
-    topTri.vertices[1] = InitializeDrawVertex(quad.topRight + _InflationFactor*normalWS, normalWS, float2(1, 1));
+    topTri.vertices[0] = InitializeDrawVertex(quad.topLeft + _InflationFactor*normalOS, normalOS, float2(0, 1));
+    topTri.vertices[2] = InitializeDrawVertex(quad.bottomRight + _InflationFactor*normalOS, normalOS, float2(1, 0));
+    topTri.vertices[1] = InitializeDrawVertex(quad.topRight + _InflationFactor*normalOS, normalOS, float2(1, 1));
     AppendTri(topTri);
 }
 
-void CreateQuadIntersects(float3 center, float3 normalWS) {
-    float3 forward = normalize(normalWS);
+void CreateQuadIntersects(float3 center, float3 normalOS) {
+    float3 forward = normalize(normalOS);
     float3 right = normalize(float3(-forward.y, forward.x, forward.z)); //90 deg rotation in 2 axis
     float3 up = cross(forward, right);
 
-    AppendQuad(GetQuad(center, forward, right), normalWS);
-    AppendQuad(GetQuad(center, right, up), normalWS);
-    AppendQuad(GetQuad(center, up, forward), normalWS);
+    AppendQuad(GetQuad(center, forward, right), normalOS);
+    AppendQuad(GetQuad(center, right, up), normalOS);
+    AppendQuad(GetQuad(center, up, forward), normalOS);
 }
 
 [numthreads(numThreads,1,1)]
@@ -133,8 +132,8 @@ void Main (uint3 id : SV_DispatchThreadID)
     inputs[1] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.y]);
     inputs[2] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.z]);
 
-    float3 center = GetTriangleCenter(inputs[0].positionWS, inputs[1].positionWS, inputs[2].positionWS);
-    float3 normal = GetTriangleCenter(inputs[0].normalWS, inputs[1].normalWS, inputs[2].normalWS);// If not want to inherit -> normalize(_CameraPosition - center);
+    float3 center = GetTriangleCenter(inputs[0].positionOS, inputs[1].positionOS, inputs[2].positionOS);
+    float3 normal = GetTriangleCenter(inputs[0].normalOS, inputs[1].normalOS, inputs[2].normalOS);// If not want to inherit -> normalize(_CameraPosition - center);
     CreateQuadIntersects(center, normal);
   
 }

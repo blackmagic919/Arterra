@@ -3,10 +3,10 @@ using System;
 using UnityEngine;
 using System.Diagnostics;
 using Unity.Mathematics;
+using System.Collections.Concurrent;
 
 public class EndlessTerrain : MonoBehaviour
 {
-    public static float renderDistance;
     int chunksVisibleInViewDistance;
 
     [Header("Viewer Information")]
@@ -21,7 +21,7 @@ public class EndlessTerrain : MonoBehaviour
     public static readonly int[] meshSkipTable = { 1, 2, 4, 8, 16 }; //has to be 2x for proper stitching
     public static readonly int[] taskLoadTable = { 5, 5, 2, 3 };
     public static Queue<UpdateTask> MainLoopUpdateTasks = new Queue<UpdateTask>();
-    public static Queue<GenTask> timeRequestQueue = new Queue<GenTask>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
+    public static ConcurrentQueue<GenTask> RequestQueue = new ConcurrentQueue<GenTask>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
 
     public static Queue<ChunkData> lastUpdateChunks = new Queue<ChunkData>();
 
@@ -32,25 +32,23 @@ public class EndlessTerrain : MonoBehaviour
     void OnEnable(){
         GenerationPreset.Initialize();
         UtilityBuffers.Initialize();
-    }
-    void Start()
-    {
+
         rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
-        renderDistance = rSettings.detailLevels.value[^1].distanceThresh;
-        chunksVisibleInViewDistance = Mathf.CeilToInt(renderDistance / rSettings.mapChunkSize) + 1;
+        chunksVisibleInViewDistance = rSettings.detailLevels.value[^1].chunkDistThresh;
 
         GPUDensityManager.Initialize();
         CPUDensityManager.Intiialize();
-        WorldStorageHandler.WORLD_OPTIONS.Atmosphere.value.pass.Initialize();
+        EntityManager.Initialize();
         StructureGenerator.PresetData();
         TerrainGenerator.PresetData();
         DensityGenerator.PresetData();
         ShaderGenerator.PresetData();
+        WorldStorageHandler.WORLD_OPTIONS.Atmosphere.value.pass.Initialize();
     }
 
     private void Update()
     {
-        viewerPosition = viewer.transform.position / rSettings.lerpScale;
+        viewerPosition = CPUDensityManager.WSToGS(viewer.transform.position);
         if ((oldViewerPos - viewerPosition).magnitude > rSettings.chunkUpdateThresh)
         {
             oldViewerPos = viewerPosition;
@@ -59,22 +57,14 @@ public class EndlessTerrain : MonoBehaviour
         StartGeneration();
     }
 
-    public static void AppendGenTask(GenTask task){
-        lock(timeRequestQueue){ timeRequestQueue.Enqueue(task); }
-    }
-
-    public static bool DequeueGenTask(out GenTask task){
-        lock(timeRequestQueue){ 
-            return timeRequestQueue.TryDequeue(out task);
-        }
-    }
     
     
-    /*void OnDrawGizmos(){
-        foreach(KeyValuePair<int3, TerrainChunk> chunk in terrainChunkDict){
+    void OnDrawGizmos(){
+        /*foreach(KeyValuePair<int3, TerrainChunk> chunk in terrainChunkDict){
             if(chunk.Value.prevMapLOD == 4) Gizmos.DrawWireCube(chunk.Value.position * lerpScale, mapChunkSize * lerpScale * Vector3.one);
-        }
-    }*/
+        }*/
+        EntityManager.OnDrawGizmos();
+    }
     private void OnDisable()
     {
         TerrainChunk[] chunks = new TerrainChunk[terrainChunkDict.Count];
@@ -90,6 +80,7 @@ public class EndlessTerrain : MonoBehaviour
         UtilityBuffers.Release();
         GPUDensityManager.Release();
         CPUDensityManager.Release();
+        EntityManager.Release();
         GenerationPreset.Release();
         WorldStorageHandler.WORLD_OPTIONS.Atmosphere.value.pass.Release();
     }
@@ -103,7 +94,7 @@ public class EndlessTerrain : MonoBehaviour
             if(!task.active)
                 continue;
 
-            task.Update();
+            task.Update(this);
             MainLoopUpdateTasks.Enqueue(task);
         }
     }
@@ -114,7 +105,7 @@ public class EndlessTerrain : MonoBehaviour
         int FrameGPULoad = 0;
         while(FrameGPULoad < maxFrameLoad)
         {
-            if (!DequeueGenTask(out GenTask gen))
+            if (!RequestQueue.TryDequeue(out GenTask gen))
                 return;
 
             if(gen.valid()) gen.task();

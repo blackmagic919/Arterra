@@ -72,7 +72,7 @@ public class SurfaceCreator
         int numOfPoints = numPointsAxes * numPointsAxes;
         
         uint mapAddressIndex = GenerationPreset.memoryHandle.AllocateMemoryDirect(numOfPoints, (int)SURFDATA_STRIDE_4BYTE);
-        TranscribeSurfaceMap(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(),
+        TranscribeSurfaceMap(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address,
                             (int)mapAddressIndex, numOfPoints);
 
         return mapAddressIndex;

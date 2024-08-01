@@ -15,25 +15,15 @@ MonoBehaviour:
   IsoLevel: 0.5
   detailLevels:
     value:
-    - LOD: 0
-      distanceThresh: 200
-      useForCollider: 1
+    - chunkDistThresh: 3
       useForGeoShaders: 1
-    - LOD: 1
-      distanceThresh: 300
-      useForCollider: 0
+    - chunkDistThresh: 5
       useForGeoShaders: 0
-    - LOD: 2
-      distanceThresh: 400
-      useForCollider: 0
+    - chunkDistThresh: 7
       useForGeoShaders: 0
-    - LOD: 3
-      distanceThresh: 500
-      useForCollider: 0
+    - chunkDistThresh: 8
       useForGeoShaders: 0
-    - LOD: 4
-      distanceThresh: 600
-      useForCollider: 0
+    - chunkDistThresh: 10
       useForGeoShaders: 0
     isDirty: 0
   mapChunkSize: 64

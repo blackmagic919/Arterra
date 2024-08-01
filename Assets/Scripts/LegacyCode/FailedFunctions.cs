@@ -40,12 +40,12 @@ public class FailedFunctions
             int lodInd = 0;
             for (int u = 0; u < detailLevels.Length - 1; u++)
             {
-                if (closestDist > detailLevels[u].distanceThresh)
+                if (closestDist > detailLevels[u].chunkDistThresh * size)
                     lodInd = u + 1;
                 else
                     break;
             }
-            ret[i] = detailLevels[lodInd].LOD;
+            ret[i] = lodInd;
         }
         return ret;
     }

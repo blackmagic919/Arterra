@@ -8,7 +8,7 @@ using System.IO;
 public class PlayerHandler : MonoBehaviour
 {
     public TerraformController terrController;
-    private RigidbodyFirstPersonController PlayerController;
+    private RigidFPController PlayerController;
     private PlayerData info;
     private bool active = false;
     // Start is called before the first frame update
@@ -18,7 +18,7 @@ public class PlayerHandler : MonoBehaviour
         PlayerController.ActivateCharacter();
     }
     void OnEnable(){
-        PlayerController = this.GetComponent<RigidbodyFirstPersonController>();
+        PlayerController = this.GetComponent<RigidFPController>();
 
         info = LoadPlayerData();
         transform.SetPositionAndRotation(info.position.GetVector(), info.rotation.GetQuaternion());
@@ -28,7 +28,7 @@ public class PlayerHandler : MonoBehaviour
 
     // Update is called once per frame
     void Update() { 
-        if(EndlessTerrain.timeRequestQueue.Count == 0 && !active) Activate();
+        if(EndlessTerrain.RequestQueue.IsEmpty && !active) Activate();
         if(!active) return;
         
         terrController.Update(); 

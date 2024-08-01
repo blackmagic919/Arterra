@@ -9,7 +9,7 @@ const static int numThreadsFlat = 256;
 
 struct enititySetting{
     uint entityIndex;
-    float freq;
+    uint freq;
 };
 
 struct entityBound{
@@ -36,13 +36,13 @@ struct entityInfo {
     uint entityIndex;
 };
 
-StructuredBuffer<entityCheck> _EntityChecks;
-StructuredBuffer<entityBound> _EntityProfile;
+StructuredBuffer<entityBound> _EntityInfo;
+StructuredBuffer<entityCheck> _EntityProfile;
 StructuredBuffer<uint4> _BiomePrefCount;
 StructuredBuffer<enititySetting> _BiomeEntities;
 
-StructuredBuffer<surfData> _SurfMemoryBuffer;
-StructuredBuffer<uint2> _SurfAddressDict;
+StructuredBuffer<surfData> _SurfMemory;
+StructuredBuffer<uint2> _SurfAddress;
 StructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
 uint surfAddress;
@@ -56,14 +56,23 @@ RWStructuredBuffer<entityInfo> chunkEntities;
 uint bSTART_entities;
 uint bSTART_prune;
 
-float random(float seed){
-    float hash = frac(sin(seed) * 43758.5453);
-    return frac(hash * seed);
-};
+uint Hash(uint x)
+{
+    x ^= x >> 16;
+    x *= 0x85ebca6b;
+    x ^= x >> 13;
+    x *= 0xc2b2ae35;
+    x ^= x >> 16;
+    return x;
+}
+
+uint random(int3 coord){
+    return Hash(coord.x) ^ Hash(coord.y) ^ Hash(coord.z);
+}
 
 surfData ReadSurfData(uint2 coord){
-    uint address = _SurfAddressDict[surfAddress].y + indexFromCoord2DManual(coord, numPointsPerAxis);
-    return _SurfMemoryBuffer[address];
+    uint address = _SurfAddress[surfAddress].y + indexFromCoord2DManual(coord, numPointsPerAxis);
+    return _SurfMemory[address];
 };
 
 [numthreads(numThreads,numThreads,numThreads)]
@@ -73,7 +82,7 @@ void Identify (uint3 id : SV_DispatchThreadID)
         return;
     
     int3 pointCoord = id + (CCoord - 0.5f) * numPointsPerAxis; 
-    float seedEntity = random(dot(pointCoord, float3(723.5, 192.3, 567.8))); 
+    uint seedEntity = random(pointCoord); 
     
     surfData data = ReadSurfData(id.xz);
     uint biome = max(0, (uint)data.biome);
@@ -118,10 +127,11 @@ uint SampleMapData(uint3 coord){
     coord -= dCC * numPointsPerAxis;
     uint2 chunkHandle = _AddressDict[HashCoord(CCoord + dCC)];
     if(chunkHandle.x == 0 || chunkHandle.y > 1)
-        return 0;
-    
-    uint address = chunkHandle.x + indexFromCoord(coord);
-    return _MemoryBuffer[address];
+        return asuint(-1);
+    else{
+        uint address = chunkHandle.x + indexFromCoord(coord);
+        return _MemoryBuffer[address];
+    }
 }
 
 uint density(uint data) { return data & 0x000000FF; }
@@ -138,7 +148,7 @@ void Prune(uint3 id : SV_DispatchThreadID){
         return;
     
     entityInfo entity = chunkEntities[bSTART_entities + id.x];
-    entityBound bounds = _EntityProfile[entity.entityIndex];
+    entityBound bounds = _EntityInfo[entity.entityIndex];
     uint entityLength = bounds.boundSize.x * bounds.boundSize.y * bounds.boundSize.z;
 
     bool allC = true; bool anyC = false; bool any0 = false;
@@ -146,12 +156,12 @@ void Prune(uint3 id : SV_DispatchThreadID){
         uint3 offsetCoord = uint3(i / (bounds.boundSize.y * bounds.boundSize.z), 
                                 (i / bounds.boundSize.z) % bounds.boundSize.y, 
                                 i % bounds.boundSize.z);
-        entityCheck check = _EntityChecks[bounds.boundStart + i];
+        entityCheck check = _EntityProfile[bounds.boundStart + i];
 
         bool valid = InBounds(SampleMapData(entity.position + offsetCoord), check.bounds);
-        allC = allC && (valid || (check.flags & 0x1));
+        allC = allC && (valid || !(check.flags & 0x1));
         anyC = anyC || (valid && (check.flags & 0x2));
-        any0 = any0 || check.flags & 0x2;
+        any0 = any0 || (check.flags & 0x2);
     }  if(!allC || (any0 && !anyC)) return;
     
     uint appendInd = 0;

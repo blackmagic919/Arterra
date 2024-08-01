@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Luminance
   m_EditorClassIdentifier: 
   BakedTextureSizePX: 128
-  NumInScatterPoints: 50
-  NumOpticalDepthPoints: 10
+  NumInScatterPoints: 64
+  NumOpticalDepthPoints: 8
   initialized: 0

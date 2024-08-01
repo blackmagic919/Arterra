@@ -10,19 +10,34 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 346b3105d71cf4c878de54fbbf5115c4, type: 3}
-  m_Name: Pig
+  m_Name: Rabbit
   m_EditorClassIdentifier: 
   _Controller:
-    value: {fileID: 3994323161861338284, guid: 58992e9de6f064310b26941a98184723, type: 3}
+    value: {fileID: 6566630002428273918, guid: 195ebb10c364e4d08ae29d9e0a8332b8, type: 3}
     isDirty: 0
   _Entity:
     value:
-      _info:
+      GCoord:
+        x: 0
+        y: 0
+        z: 0
+      pathDistance: 32
+      random:
+        state: 0
+    isDirty: 0
+  _Info:
+    value:
+      profile:
         bounds:
-          x: 3
+          x: 2
           y: 3
-          z: 3
+          z: 2
         profileStart: 0
+      chunkHandle:
+        chunkHash: 0
+        prevEntity: 0
+        nextEntity: 0
+        entityIndex: 0
     isDirty: 0
   _Profile:
     value:
@@ -30,30 +45,6 @@ MonoBehaviour:
       y: 2
     - x: 4286644096
       y: 2
-    - x: 4286644096
-      y: 2
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4286644096
-      y: 2
-    - x: 4286644096
-      y: 2
-    - x: 4286644096
-      y: 2
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
     - x: 4278222592
       y: 1
     - x: 4278222592
@@ -66,12 +57,6 @@ MonoBehaviour:
       y: 2
     - x: 4286644096
       y: 2
-    - x: 4286644096
-      y: 2
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
     - x: 4278222592
       y: 1
     - x: 4278222592

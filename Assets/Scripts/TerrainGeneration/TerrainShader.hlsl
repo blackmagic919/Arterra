@@ -8,7 +8,6 @@ struct matTerrain{
 };
 
 StructuredBuffer<matTerrain> _MatTerrainData;
-
 Texture2DArray _Textures;
 SamplerState sampler_Textures;
 
@@ -112,9 +111,5 @@ float3 frag (v2f IN) : SV_Target
 	SurfaceData surfaceInput = (SurfaceData)0;
 	surfaceInput.albedo = baseColor * colorStrength + textureColor * (1-colorStrength);
 
-#if UNITY_VERSION >= 202120
-	return UniversalFragmentBlinnPhong(lightingInput, surfaceInput);
-#else
-	return UniversalFragmentBlinnPhong(lightingInput, surfaceInput.albedo, float4(surfaceInput.specular, 1), surfaceInput.smoothness, 0, surfaceInput.alpha);
-#endif
+	return max(UniversalFragmentPBR(lightingInput, surfaceInput).rgb, surfaceInput.albedo * unity_AmbientGround);
 }

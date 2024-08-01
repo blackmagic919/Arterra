@@ -28,7 +28,6 @@ public class ShaderGenerator
     private Bounds shaderBounds;
     private ShaderUpdateTask[] shaderUpdateTasks;
 
-    Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
 
     static ShaderGenerator(){
         matSizeCounter = Resources.Load<ComputeShader>("GeoShader/Generation/ShaderMatSizeCounter");
@@ -114,13 +113,6 @@ public class ShaderGenerator
         }
     }
 
-    private void ReleaseTempBuffers()
-    {
-        while(tempBuffers.Count > 0)
-        {
-            tempBuffers.Dequeue().Release();
-        }
-    }
 
     public void ComputeGeoShaderGeometry(AsyncMeshReadback.GeometryHandle vertHandle, AsyncMeshReadback.GeometryHandle triHandle)
     { 
@@ -135,14 +127,12 @@ public class ShaderGenerator
         
         uint[] geoShaderMemAdds = TranscribeGeometries();
         uint[] geoShaderDispArgs = GetShaderDrawArgs();
-        RenderParams[] geoShaderParams = SetupShaderMaterials(GenerationPreset.memoryHandle.AccessStorage(), GenerationPreset.memoryHandle.AccessAddresses(), geoShaderMemAdds);
+        RenderParams[] geoShaderParams = SetupShaderMaterials(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, geoShaderMemAdds);
         
         for(int i = 0; i < this.settings.shaderDictionary.value.Count; i++){
             this.shaderUpdateTasks[i] = new ShaderUpdateTask(geoShaderMemAdds[i], geoShaderDispArgs[i], geoShaderParams[i]);
             MainLoopUpdateTasks.Enqueue(this.shaderUpdateTasks[i]);
         }
-
-        ReleaseTempBuffers();
     }
 
 
@@ -150,8 +140,8 @@ public class ShaderGenerator
     {
 
         int numShaders = this.settings.shaderDictionary.value.Count;
-        ComputeBuffer memStorage = memory.AccessStorage();
-        ComputeBuffer memAddresses = memory.AccessAddresses();
+        ComputeBuffer memStorage = memory.Storage;
+        ComputeBuffer memAddresses = memory.Address;
 
         LoadBaseGeoInfo(memStorage, memAddresses, triAddress);
 
@@ -168,7 +158,7 @@ public class ShaderGenerator
         for (int i = 0; i < this.settings.shaderDictionary.value.Count; i++){
             SpecialShader geoShader = this.settings.shaderDictionary.value[i].value;
             
-            geoShader.ProcessGeoShader(transform, memory, vertAddress, triAddress, fBaseGeoStart, matSizeCStart + i, baseGeoCounter, shadGeoStart, i);
+            geoShader.ProcessGeoShader(memory, vertAddress, triAddress, fBaseGeoStart, matSizeCStart + i, baseGeoCounter, shadGeoStart, i);
             UtilityBuffers.CopyCount(source: UtilityBuffers.GenerationBuffer, dest: UtilityBuffers.GenerationBuffer, readOffset: baseGeoCounter, writeOffset: shadGeoCStart + i + 1);
             geoShader.ReleaseTempBuffers();
         }
@@ -190,8 +180,8 @@ public class ShaderGenerator
         int numShaders = this.settings.shaderDictionary.value.Count;
 
         uint[] geoShaderAddresses = new uint[numShaders];
-        ComputeBuffer memoryReference = GenerationPreset.memoryHandle.AccessStorage();
-        ComputeBuffer addressesReference = GenerationPreset.memoryHandle.AccessAddresses();
+        ComputeBuffer memoryReference = GenerationPreset.memoryHandle.Storage;
+        ComputeBuffer addressesReference = GenerationPreset.memoryHandle.Address;
 
         for (int i = 0; i < numShaders; i++)
         {
@@ -217,6 +207,7 @@ public class ShaderGenerator
 
             rp.matProps.SetBuffer("_StorageMemory", storageBuffer);
             rp.matProps.SetBuffer("_AddressDict", addressBuffer);
+            rp.matProps.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
             rp.matProps.SetInt("addressIndex", (int)address[i]);
 
             rps[i] = rp;
@@ -316,7 +307,7 @@ public class ShaderGenerator
             this.active = true;
         }
 
-        public override void Update()
+        public override void Update(MonoBehaviour mono = null)
         {
             Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)dispArgs);
         }

@@ -7,7 +7,7 @@ using System.Linq;
 
 [System.Serializable]
 public class TerraformSettings{
-    public float terraformRadius = 5;
+    public int terraformRadius = 5;
     public float terraformSpeed = 4;
     public float maxTerraformDistance = 60;
     public int materialCapacity = 51000;
@@ -25,7 +25,7 @@ public class TerraformController
 
     MaterialBarController barController;
     Transform cam;
-    Vector3 hitPoint;
+    int3 hitPoint;
 
 
     [HideInInspector]
@@ -65,14 +65,15 @@ public class TerraformController
 
     void Terraform()
     {
+        float3 camPosGC = CPUDensityManager.WSToGS(cam.position);
         if(Input.GetMouseButtonUp(1) || Input.GetMouseButtonUp(0)) MainInventory.ClearSmallMaterials(settings.minInvMatThresh);
         else if (Input.GetMouseButton(1)) //Don't add if there is an object in the way
         {
             if(MainInventory.selected.isSolid){
-                if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, settings.maxTerraformDistance, RayTestSolid, out hitPoint))
-                    if(!Physics.CheckSphere(hitPoint, settings.terraformRadius, objectLayer)) CPUDensityManager.Terraform(hitPoint, settings.terraformRadius, HandleAddSolid);
+                if(CPUDensityManager.RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestSolid, out hitPoint))
+                    CPUDensityManager.Terraform(hitPoint, settings.terraformRadius, HandleAddSolid);
             } else{ 
-                if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, settings.maxTerraformDistance, RayTestLiquid, out hitPoint))
+                if(CPUDensityManager.RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestLiquid, out hitPoint))
                     CPUDensityManager.Terraform(hitPoint, settings.terraformRadius, HandleAddLiquid);
             }
         }
@@ -80,10 +81,10 @@ public class TerraformController
         else if (Input.GetMouseButton(0))
         {
             if(shiftPressed) {
-                if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, settings.maxTerraformDistance, RayTestLiquid, out hitPoint))
+                if(CPUDensityManager.RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestLiquid, out hitPoint))
                     CPUDensityManager.Terraform(hitPoint, settings.terraformRadius, HandleRemoveLiquid);
             }else {
-                if(CPUDensityManager.RayCastTerrain(cam.position, cam.forward, settings.maxTerraformDistance, RayTestSolid, out hitPoint))
+                if(CPUDensityManager.RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestSolid, out hitPoint))
                     CPUDensityManager.Terraform(hitPoint, settings.terraformRadius, HandleRemoveSolid);
             }
         }
@@ -179,7 +180,7 @@ public class TerraformController
     public void OnDrawGizmos()
     {
         Gizmos.color = Color.green;
-        Gizmos.DrawSphere(hitPoint, 0.25f);
+        Gizmos.DrawSphere((Vector3)CPUDensityManager.GSToWS(hitPoint), 0.25f);
     }
 }
 

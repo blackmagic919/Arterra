@@ -30,8 +30,8 @@ Shader "Unlit/Snow"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             struct DrawVertex{
-                float3 positionWS;
-                float3 normalWS;
+                float3 positionOS;
+                float3 normalOS;
                 float2 uv;
             };
             
@@ -42,6 +42,7 @@ Shader "Unlit/Snow"
             
             StructuredBuffer<DrawTriangle> _StorageMemory;
             StructuredBuffer<uint2> _AddressDict;
+            float4x4 _LocalToWorld;
             uint addressIndex;
 
             TEXTURE2D(_OffsetTexture); SAMPLER(sampler_OffsetTexture); float4 _OffsetTexture_ST;
@@ -102,21 +103,24 @@ Shader "Unlit/Snow"
 
                 uint triAddress = vertexID / 3 + _AddressDict[addressIndex].y;
                 uint vertexIndex = vertexID % 3;
-                DrawVertex input = _StorageMemory[triAddress].vertex[vertexIndex];       
+                DrawVertex input = _StorageMemory[triAddress].vertex[vertexIndex];   
+                
+                float3 positionWS = mul(_LocalToWorld, float4(input.positionOS, 1)).xyz;
+                float3 normalWS = normalize(mul(_LocalToWorld, float4(input.normalOS, 0)).xyz);
                 
                 float snowHeight = input.uv.x * _OffsetHeight;
-                float2 snowUV = TRANSFORM_TEX(mapCoordinates(input.positionWS), _OffsetTexture);
+                float2 snowUV = TRANSFORM_TEX(mapCoordinates(positionWS), _OffsetTexture);
                 float snowNoise = SAMPLE_TEXTURE2D_LOD(_OffsetTexture, sampler_OffsetTexture, snowUV, 0).r * 2 - 1;
                 snowHeight += snowNoise * _OffsetStrength * snowHeight;
                 
-                output.positionWS = input.positionWS + input.normalWS * snowHeight;
-                output.normalWS = input.normalWS;
+                output.positionWS = positionWS + normalWS * snowHeight;
+                output.normalWS = normalWS;
 
                 output.positionCS = TransformWorldToHClip(output.positionWS);
                 return output;
             }
 
-            float4 frag (VertexOutput IN) : SV_Target
+            float3 frag (VertexOutput IN) : SV_Target
             {
                 float3 blendAxes = abs(IN.normalWS); blendAxes /= dot(blendAxes, 1);
                 float3 albedo = triplanar(_OffsetTexture, sampler_OffsetTexture, _OffsetTexture_ST, IN.positionWS, blendAxes);
@@ -137,7 +141,7 @@ Shader "Unlit/Snow"
                 surfaceInput.albedo = albedo;
                 surfaceInput.alpha = 1;
 
-                return UniversalFragmentBlinnPhong(lightingInput, surfaceInput);
+                return max(UniversalFragmentPBR(lightingInput, surfaceInput).rgb, surfaceInput.albedo * unity_AmbientEquator);
             }
             ENDHLSL
         }

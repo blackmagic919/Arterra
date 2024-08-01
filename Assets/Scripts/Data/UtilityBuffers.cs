@@ -115,17 +115,13 @@ public static class UtilityBuffers
         return count;
     }
 
-    public static ComputeBuffer CountToArgs(ComputeShader shader, ComputeBuffer count, int countOffset = 0, Queue<ComputeBuffer> bufferQueue = null) {
-        shader.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
-        return CountToArgs((int)threadGroupSize, count, countOffset, bufferQueue);
+    public static ComputeBuffer CountToArgs(ComputeShader shader, ComputeBuffer count, int countOffset = 0, int kernel = 0) {
+        shader.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
+        return CountToArgs((int)threadGroupSize, count, countOffset);
     }
 
-    public static ComputeBuffer CountToArgs(int threadGroupSize, ComputeBuffer count, int countOffset = 0, Queue<ComputeBuffer> bufferQueue = null) {
+    public static ComputeBuffer CountToArgs(int threadGroupSize, ComputeBuffer count, int countOffset = 0) {
         ComputeBuffer args = indirectArgs;
-        if(bufferQueue != null){
-            args = new ComputeBuffer(3, sizeof(int), ComputeBufferType.IndirectArguments);
-            bufferQueue.Enqueue(args);
-        }
         
         indirectCountToArgs.SetBuffer(0, "count", count);
         indirectCountToArgs.SetBuffer(0, "args", args);

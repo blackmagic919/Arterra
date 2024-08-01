@@ -13,7 +13,7 @@ public static class GenerationPreset
     private static NoiseHandle noiseHandle;
     private static BiomeHandle biomeHandle;
     private static StructHandle structHandle;
-    private static EntityHandle entityHandle;
+    public static EntityHandle entityHandle;
     public static MemoryHandle memoryHandle;
     public static bool active;
 
@@ -279,7 +279,7 @@ public static class GenerationPreset
         }
     }
 
-    struct EntityHandle{
+    public struct EntityHandle{
         private ComputeBuffer entityInfoBuffer;
         private ComputeBuffer entityProfileBuffer; //used by gpu placement
         public NativeArray<uint2> entityProfileArray; //used by jobs
@@ -296,16 +296,17 @@ public static class GenerationPreset
 
             List<Option<EntityAuthoring> > EntityDictionary = WorldStorageHandler.WORLD_OPTIONS.Entities.value;
             int numEntities = EntityDictionary.Count;
-            IEntity.Info[] entityInfo = new IEntity.Info[numEntities];
+            Entity.Info.ProfileInfo[] entityInfo = new Entity.Info.ProfileInfo[numEntities];
             List<uint2> entityProfile = new List<uint2>();
 
             for(int i = 0; i < numEntities; i++)
             {
-                IEntity.Info info = EntityDictionary[i].value.Entity.info;
-                entityProfile.AddRange(EntityDictionary[i].value.Profile);
-                entityInfo[i] = info;
+                Entity.Info info = EntityDictionary[i].value.info;
+                info.profile.profileStart = (uint)entityProfile.Count;
+                entityInfo[i] = info.profile;
+                EntityDictionary[i].value.info = info;
 
-                EntityDictionary[i].value.Entity.info = info;
+                entityProfile.AddRange(EntityDictionary[i].value.Profile);
             }
 
             entityInfoBuffer = new ComputeBuffer(numEntities, sizeof(uint) * 4, ComputeBufferType.Structured);
@@ -347,7 +348,7 @@ public static class GenerationPreset
 
             addressLL = new uint2[settings._MaxAddressSize+1];
             addressLL[0].y = 1;
-
+            
             initialized = true;
             PrepareMemory();
         }
@@ -457,22 +458,13 @@ public static class GenerationPreset
             addressLL[pAddress].y = addressIndex;
             addressLL[nAddress].x = addressIndex;
             addressLL[addressIndex] = new uint2(pAddress, nAddress);
-
-            /*if(_BufferSize4Bytes == 500000000){
-                uint[] heap = new uint[4];
-                _EmptyBlockHeap.GetData(heap);
-                Debug.Log(heap[3]/250000 + "MB");
-            }*/
+            
+            //uint[] heap = new uint[4];
+            //_EmptyBlockHeap.GetData(heap);
+            //Debug.Log(heap[3]/250000 + "MB");
         }
 
-        public ComputeBuffer AccessStorage()
-        {
-            return _GPUMemorySource;
-        }
-
-        public ComputeBuffer AccessAddresses()
-        {
-            return _AddressBuffer;
-        }
+        public readonly ComputeBuffer Storage => _GPUMemorySource;
+        public readonly ComputeBuffer Address => _AddressBuffer;
     }
 }
