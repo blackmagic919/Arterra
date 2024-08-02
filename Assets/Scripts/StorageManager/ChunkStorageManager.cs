@@ -19,11 +19,11 @@ public static class ChunkStorageManager
 
     public static string filePath;
     private const string fileExtension = ".bin";
-    private static readonly int numLODs;
-    private static readonly int headerSize;
-    private static readonly int maxChunkSize;
+    private static int numLODs;
+    private static int headerSize;
+    private static int maxChunkSize;
 
-    static ChunkStorageManager(){
+    public static void Initialize(){
         numLODs = meshSkipTable.Length;
         maxChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
         headerSize = (numLODs + 1) * 4;

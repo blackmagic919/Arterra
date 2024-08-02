@@ -2,16 +2,20 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
-using static CPUDensityManager;
 using System;
+using Unity.Burst;
+using static EntityJob;
 
 /*
 Future Note: Make this done on a job system
 (Someone good at math do this) ->
 Sample from a simplex rather than a grid(should be faster)
 */
-public class TerrainCollider : MonoBehaviour
+
+[BurstCompile][System.Serializable]
+public struct TerrainColliderJob
 {
+    public Transform transform;
     public float3 size;
     public float3 offset;
     private int isoValue;
@@ -20,27 +24,29 @@ public class TerrainCollider : MonoBehaviour
     public float LerpScale => lerpScale;
     private int chunkSize;
     public int ChunkSize => chunkSize;
-    private bool active = true;
+    private bool active;
     public bool Active{get => active; set => active = value;}
 
 
     public float3 velocity;
     public bool useGravity;
+    private float3 Gravity;
 
-    public float3 TrilinearDisplacement(float3 posGS){
+    [BurstCompile]
+    public float3 TrilinearDisplacement(in float3 posGS, in Context context){
         //Calculate Density
         int x0 = (int)Math.Floor(posGS.x); int x1 = x0 + 1;
         int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
         int z0 = (int)Math.Floor(posGS.z); int z1 = z0 + 1;
 
-        int c000 = SampleTerrain(new int3(x0, y0, z0));
-        int c100 = SampleTerrain(new int3(x1, y0, z0));
-        int c010 = SampleTerrain(new int3(x0, y1, z0));
-        int c110 = SampleTerrain(new int3(x1, y1, z0));
-        int c001 = SampleTerrain(new int3(x0, y0, z1));
-        int c101 = SampleTerrain(new int3(x1, y0, z1));
-        int c011 = SampleTerrain(new int3(x0, y1, z1));
-        int c111 = SampleTerrain(new int3(x1, y1, z1));
+        int c000 = SampleTerrain(new int3(x0, y0, z0), context);
+        int c100 = SampleTerrain(new int3(x1, y0, z0), context);
+        int c010 = SampleTerrain(new int3(x0, y1, z0), context);
+        int c110 = SampleTerrain(new int3(x1, y1, z0), context);
+        int c001 = SampleTerrain(new int3(x0, y0, z1), context);
+        int c101 = SampleTerrain(new int3(x1, y0, z1), context);
+        int c011 = SampleTerrain(new int3(x0, y1, z1), context);
+        int c111 = SampleTerrain(new int3(x1, y1, z1), context);
 
         float xd = posGS.x - x0;
         float yd = posGS.y - y0;
@@ -74,17 +80,18 @@ public class TerrainCollider : MonoBehaviour
         else return math.normalize(normal) * GDist(density);
     }
 
-    public float2 BilinearDisplacement(float x, float y, Func<int, int, int> SampleTerrain){
-        int x0 = (int)Math.Floor(x); int x1 = x0 + 1;
-        int y0 = (int)Math.Floor(y); int y1 = y0 + 1;
+    [BurstCompile]
+    public float2 BilinearDisplacement(in float2 posGS, in int3x3 transform, int axis, in Context context){
+        int x0 = (int)Math.Floor(posGS.x); int x1 = x0 + 1;
+        int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
 
-        int c00 = SampleTerrain(x0, y0);
-        int c10 = SampleTerrain(x1, y0);
-        int c01 = SampleTerrain(x0, y1);
-        int c11 = SampleTerrain(x1, y1);
+        int c00 = SampleTerrain(math.mul(transform, new int3(x0, y0, axis)), context);
+        int c10 = SampleTerrain(math.mul(transform, new int3(x1, y0, axis)), context);
+        int c01 = SampleTerrain(math.mul(transform, new int3(x0, y1, axis)), context);
+        int c11 = SampleTerrain(math.mul(transform, new int3(x1, y1, axis)), context);
 
-        float xd = x - x0;
-        float yd = y - y0;
+        float xd = posGS.x - x0;
+        float yd = posGS.y - y0;
 
         float c0 = c00 * (1 - xd) + c10 * xd;
         float c1 = c01 * (1 - xd) + c11 * xd;
@@ -100,13 +107,13 @@ public class TerrainCollider : MonoBehaviour
         else return math.normalize(normal) * GDist(density);
     }
 
-
-    public float LinearDisplacement(float t, Func<int, int> SampleTerrain){
+    [BurstCompile]
+    public float LinearDisplacement(float t, in int3 axis, in int3 plane, in Context context){
         int t0 = (int)Math.Floor(t); 
         int t1 = t0 + 1;
 
-        int c0 = SampleTerrain(t0);
-        int c1 = SampleTerrain(t1);
+        int c0 = SampleTerrain(t0 * axis + plane, context);
+        int c1 = SampleTerrain(t1 * axis + plane, context);
         float td = t - t0;
 
         int density = (int)Math.Round(c0 * (1 - td) + c1 * td);
@@ -114,7 +121,7 @@ public class TerrainCollider : MonoBehaviour
         else return math.sign(-(c1-c0)) * GDist(density); //Normal
     }
 
-    public float GDist(int density) => (density - isoValue) / (255.0f - isoValue);
+    public readonly float GDist(int density) => (density - isoValue) / (255.0f - isoValue);
 
     /*z
     * ^     .---3----.
@@ -137,7 +144,16 @@ public class TerrainCollider : MonoBehaviour
     * |  1________2/  /
     * +---------> x  /
     */
-    public bool SampleCollision(float3 originGS, float3 boundsGS, out float3 displacement){
+
+    private readonly int3 AxisX => new(1, 0, 0);
+    private readonly int3 AxisY => new(0, 1, 0);
+    private readonly int3 AxisZ => new(0, 0, 1);
+    
+    private readonly int3x3 XZPlane => new (1, 0, 0, 0, 0, 1, 0, 1, 0);
+    private readonly int3x3 XYPlane => new (1, 0, 0, 0, 1, 0, 0, 0, 1);
+    private readonly int3x3 YZPlane => new (0, 0, 1, 1, 0, 0, 0, 1, 0);
+    
+    public bool SampleCollision(in float3 originGS, in float3 boundsGS, in Context context, out float3 displacement){
         float3 min = math.min(originGS, originGS + boundsGS);
         float3 max = math.max(originGS, originGS + boundsGS);
         displacement = float3.zero; 
@@ -145,17 +161,17 @@ public class TerrainCollider : MonoBehaviour
         for(int i = 0; i < 8; i++) {
             int3 index = new (i%2, i/2%2, i/4);
             float3 corner = min * index + max * (1 - index);
-            displacement += TrilinearDisplacement(corner);
+            displacement += TrilinearDisplacement(corner, context);
         }
         int3 minC = (int3)math.ceil(min);
         int3 maxC = (int3)math.floor(max);
-
+        
         //3*4 = 12 edges
         for(int x = minC.x; x <= maxC.x; x++){
             for(int i = 0; i < 4; i++){
                 int2 index = new (i%2, i/2%2);
                 float2 corner = min.yz * index + max.yz * (1 - index);
-                displacement.yz += BilinearDisplacement(corner.x, corner.y, (int y, int z) => SampleTerrain(new int3(x, y, z)));
+                displacement.yz += BilinearDisplacement(corner, YZPlane, x, context);
             }
         }
 
@@ -163,7 +179,7 @@ public class TerrainCollider : MonoBehaviour
             for(int i = 0; i < 4; i++){
                 int2 index = new (i%2, i/2%2);
                 float2 corner = min.xz * index + max.xz * (1 - index);
-                displacement.xz += BilinearDisplacement(corner.x, corner.y, (int x, int z) => SampleTerrain(new int3(x, y, z)));
+                displacement.xz += BilinearDisplacement(corner, XZPlane, y, context);
             }
         }
 
@@ -171,61 +187,71 @@ public class TerrainCollider : MonoBehaviour
             for(int i = 0; i < 4; i++){
                 int2 index = new (i%2, i/2%2);
                 float2 corner = min.xy * index + max.xy * (1 - index);
-                displacement.xy += BilinearDisplacement(corner.x, corner.y, (int x, int y) => SampleTerrain(new int3(x, y, z)));
+                displacement.xy += BilinearDisplacement(corner, XYPlane, z, context);
             }
         }
 
         //3*2 = 6 faces
         for(int x = minC.x; x <= maxC.x; x++){
             for(int y = minC.y; y <= maxC.y; y++){
-                displacement.z += LinearDisplacement(min.z, (int z) => SampleTerrain(new int3(x,y,z)));
-                displacement.z += LinearDisplacement(max.z, (int z) => SampleTerrain(new int3(x,y,z)));
+                displacement.z += LinearDisplacement(min.z, AxisZ, AxisX * x + AxisY * y, context);
+                displacement.z += LinearDisplacement(max.z, AxisZ, AxisX * x + AxisY * y, context);
             }
         }
 
         for(int x = minC.x; x <= maxC.x; x++){
             for(int z = minC.z; z <= maxC.z; z++){
-                displacement.y += LinearDisplacement(min.y, (int y) => SampleTerrain(new int3(x,y,z)));
-                displacement.y += LinearDisplacement(max.y, (int y) => SampleTerrain(new int3(x,y,z)));
+                displacement.y += LinearDisplacement(min.y, AxisY, AxisX * x + AxisZ * z, context);
+                displacement.y += LinearDisplacement(max.y, AxisY, AxisX * x + AxisZ * z, context);
             }
         }
 
         for(int y = minC.y; y <= maxC.y; y++){
             for(int z = minC.z; z <= maxC.z; z++){
-                displacement.x += LinearDisplacement(min.x, (int x) => SampleTerrain(new int3(x,y,z)));
-                displacement.x += LinearDisplacement(max.x, (int x) => SampleTerrain(new int3(x,y,z)));
+                displacement.x += LinearDisplacement(min.x, AxisX, AxisY * y + AxisZ * z, context);
+                displacement.x += LinearDisplacement(max.x, AxisX, AxisY * y + AxisZ * z, context);
             }
         }
 
         return math.any(displacement != float3.zero);
     }
 
-    float3 CancelVel(float3 vel, float3 dir){
-        dir = math.normalize(dir);
+    public unsafe bool IsGrounded(float GroundStickDist, in Context context) => SampleCollision(transform.position, new float3(size.x, -GroundStickDist, size.z), context, out _);
+    
+    [BurstCompile]
+    float3 CancelVel(in float3 vel, in float3 norm){
+        float3 dir = math.normalize(norm);
         return vel - math.dot(vel, dir) * dir;
     }
 
-
-    public void Start(){
+    public void Intialize(){
         this.isoValue = (int)Math.Round(WorldStorageHandler.WORLD_OPTIONS.Rendering.value.IsoLevel * 255.0);
         this.lerpScale = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.lerpScale;
         this.chunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
+        this.Gravity = Physics.gravity / lerpScale;
+        this.active = true;
     }
 
-    public void FixedUpdate(){
+    [BurstCompile]
+    public void Update(in Context context){
         if(!active) return;
 
-        float3 posWS = transform.position;
-        posWS += velocity * Time.fixedDeltaTime;
-        if(useGravity) velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
+        transform.position += velocity * context.deltaTime;
+        if(useGravity) velocity += Gravity * context.deltaTime;
 
-        float3 originGS = WSToGS(posWS) + offset;
-        if(SampleCollision(originGS, size, out float3 displacement)){
+        if(SampleCollision(transform.position, size, context, out float3 displacement)){
             velocity = CancelVel(velocity, displacement);
-            originGS += displacement;
+            transform.position += displacement;
         };
+    }
 
-        posWS = GSToWS(originGS - offset);
-        transform.position = posWS;
+    [BurstCompile]
+    public struct Transform{
+        public float3 position;
+        public Quaternion rotation;
+        public Transform(float3 position, Quaternion rotation){
+            this.position = position;
+            this.rotation = rotation;
+        }
     }
 }

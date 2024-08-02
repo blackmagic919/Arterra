@@ -62,9 +62,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1bc0e8a91dde54ff4a90450bc6e40962, type: 3}
       insertIndex: -1
       addedObject: {fileID: -1811951921740051632}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1bc0e8a91dde54ff4a90450bc6e40962, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: -3560830128215178328}
   m_SourcePrefab: {fileID: 100100000, guid: 1bc0e8a91dde54ff4a90450bc6e40962, type: 3}
 --- !u!1 &6566630002428273918 stripped
 GameObject:
@@ -109,28 +106,3 @@ MonoBehaviour:
   acceleration: 50
   friction: 0.075
   rotSpeed: 180
---- !u!114 &-3560830128215178328
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6566630002428273918}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5de76747a36a44cb79d09d10d461e0f0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  size:
-    x: 0.5
-    y: 0.5
-    z: 0.5
-  offset:
-    x: -0.25
-    y: -0.25
-    z: -0.25
-  velocity:
-    x: 0
-    y: 0
-    z: 0
-  useGravity: 1

@@ -89,7 +89,7 @@ public class AsyncMeshReadback
         RenderParams rp = GetRenderParams(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, (int)geoHeapMemoryAddress, (int)this.vertexHandle.addressIndex, matIndex);
         triHandles[matIndex] = new GeometryHandle(rp, GenerationPreset.memoryHandle, geoHeapMemoryAddress, drawArgsAddress, matIndex);
 
-        MainLoopUpdateTasks.Enqueue(triHandles[matIndex]);
+        MainLateUpdateTasks.Enqueue(triHandles[matIndex]);
     }
 
     public void BeginMeshReadback(Action<SharedMeshInfo> callback){

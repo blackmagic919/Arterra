@@ -20,7 +20,8 @@ public class EndlessTerrain : MonoBehaviour
 
     public static readonly int[] meshSkipTable = { 1, 2, 4, 8, 16 }; //has to be 2x for proper stitching
     public static readonly int[] taskLoadTable = { 5, 5, 2, 3 };
-    public static Queue<UpdateTask> MainLoopUpdateTasks = new Queue<UpdateTask>();
+    public static Queue<UpdateTask> MainLateUpdateTasks = new Queue<UpdateTask>();
+    public static Queue<UpdateTask> MainFixedUpdateTasks = new Queue<UpdateTask>();
     public static ConcurrentQueue<GenTask> RequestQueue = new ConcurrentQueue<GenTask>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
 
     public static Queue<ChunkData> lastUpdateChunks = new Queue<ChunkData>();
@@ -36,6 +37,7 @@ public class EndlessTerrain : MonoBehaviour
         rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
         chunksVisibleInViewDistance = rSettings.detailLevels.value[^1].chunkDistThresh;
 
+        ChunkStorageManager.Initialize();
         GPUDensityManager.Initialize();
         CPUDensityManager.Intiialize();
         EntityManager.Initialize();
@@ -55,6 +57,30 @@ public class EndlessTerrain : MonoBehaviour
             UpdateVisibleChunks();
         }
         StartGeneration();
+    }
+    
+    private void LateUpdate()
+    {
+        int UpdateTaskCount = MainLateUpdateTasks.Count;
+        for(int i = 0; i < UpdateTaskCount; i++){
+            UpdateTask task = MainLateUpdateTasks.Dequeue();
+            if(!task.active)
+                continue;
+            task.Update(this);
+            MainLateUpdateTasks.Enqueue(task);
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        int UpdateTaskCount = MainFixedUpdateTasks.Count;
+        for(int i = 0; i < UpdateTaskCount; i++){
+            UpdateTask task = MainFixedUpdateTasks.Dequeue();
+            if(!task.active)
+                continue;
+            task.Update(this);
+            MainFixedUpdateTasks.Enqueue(task);
+        }
     }
 
     
@@ -83,20 +109,6 @@ public class EndlessTerrain : MonoBehaviour
         EntityManager.Release();
         GenerationPreset.Release();
         WorldStorageHandler.WORLD_OPTIONS.Atmosphere.value.pass.Release();
-    }
-
-    private void LateUpdate()
-    {
-        int UpdateTaskCount = MainLoopUpdateTasks.Count;
-        for(int i = 0; i < UpdateTaskCount; i++){
-            UpdateTask task = MainLoopUpdateTasks.Dequeue();
-            
-            if(!task.active)
-                continue;
-
-            task.Update(this);
-            MainLoopUpdateTasks.Enqueue(task);
-        }
     }
 
 

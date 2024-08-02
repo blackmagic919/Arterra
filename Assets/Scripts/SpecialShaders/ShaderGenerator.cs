@@ -131,7 +131,7 @@ public class ShaderGenerator
         
         for(int i = 0; i < this.settings.shaderDictionary.value.Count; i++){
             this.shaderUpdateTasks[i] = new ShaderUpdateTask(geoShaderMemAdds[i], geoShaderDispArgs[i], geoShaderParams[i]);
-            MainLoopUpdateTasks.Enqueue(this.shaderUpdateTasks[i]);
+            MainLateUpdateTasks.Enqueue(this.shaderUpdateTasks[i]);
         }
     }
 

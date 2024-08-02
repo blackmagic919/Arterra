@@ -22,8 +22,27 @@ MonoBehaviour:
         y: 0
         z: 0
       pathDistance: 32
+      tCollider:
+        size:
+          x: 1
+          y: 1
+          z: 1
+        offset:
+          x: -0.25
+          y: -0.25
+          z: -0.25
+        velocity:
+          x: 0
+          y: 0
+          z: 0
+        useGravity: 1
       random:
         state: 0
+      GroundStickDist: 0.025
+      moveSpeed: 5
+      acceleration: 25
+      friction: 0.075
+      rotSpeed: 180
     isDirty: 0
   _Info:
     value:
@@ -33,11 +52,8 @@ MonoBehaviour:
           y: 3
           z: 2
         profileStart: 0
-      chunkHandle:
-        chunkHash: 0
-        prevEntity: 0
-        nextEntity: 0
-        entityIndex: 0
+      SpatialId: 0
+      entityId: 0
     isDirty: 0
   _Profile:
     value:
