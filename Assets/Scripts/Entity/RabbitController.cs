@@ -31,7 +31,7 @@ public class RabbitController : EntityController
         this.transform.position = CPUDensityManager.GSToWS(GCoord - tCollider.offset) + (float3)Vector3.up * 1;
     }
 
-    public unsafe bool IsGrounded(){return tCollider.IsCollided(CPUDensityManager.WSToGS(this.transform.position), new float3(tCollider.size.x, -GroundStickDist, tCollider.size.z));}
+    public unsafe bool IsGrounded => tCollider.SampleCollision(CPUDensityManager.WSToGS(this.transform.position), new float3(tCollider.size.x, -GroundStickDist, tCollider.size.z), out _);
 
     public unsafe void FixedUpdate(){
         if(!entity->active) return;
@@ -48,7 +48,7 @@ public class RabbitController : EntityController
         //This is synchronous so it's safe to access the entity's GCoord
 
         if(Rabbit->pathFinder.hasPath != 0) FollowPath(&Rabbit->pathFinder);
-        else if(IsGrounded()){
+        else if(IsGrounded){
             tCollider.velocity *= 1 - friction;
             tCollider.useGravity = false;
         } else tCollider.useGravity = true;
