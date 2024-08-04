@@ -169,9 +169,9 @@ void Generate (uint3 id : SV_DispatchThreadID)
     float baseDensity = pow(abs(1.0f-centereCavedNoise), data.cFreq); //We do 1-noise because cave means low density
 
     //Blend with Terrain Height
-    float terrainFactor = clamp((data.terrain - actualHeight) / (data.squash + Epsilon), 0, 1) * (1-IsoLevel) + IsoLevel;
+    float terrainFactor = clamp((data.terrain - actualHeight) / (data.squash + Epsilon), 0, 1);
     float atmosphereFactor = exp(-max(actualHeight - data.terrain, 0) * _BiomeAtmosphereData[biome]);
-    float density = baseDensity * terrainFactor * atmosphereFactor;
+    float density = baseDensity * (terrainFactor * (1-IsoLevel) + atmosphereFactor * IsoLevel);
 
     //Generate Water
     if(actualHeight > (data.terrain - data.squash) && actualHeight < waterHeight && density < IsoLevel){

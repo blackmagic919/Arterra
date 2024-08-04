@@ -39,15 +39,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    uint index = indexFromCoord2D(id.x, id.y);
-
-    int3 pos3D = int3(id.x, 0, id.y);
-
     float rawMaps[6];
-    rawMaps[1] = GetRawNoise(pos3D, erosionSampler);
-    rawMaps[2] = GetRawNoise(pos3D, squashSampler);
-    rawMaps[3] = GetRawNoise(pos3D, PVSampler);
-    rawMaps[4] = GetRawNoise(pos3D, continentalSampler);
+    rawMaps[1] = GetRawNoise2D(id.xy, erosionSampler);
+    rawMaps[2] = GetRawNoise2D(id.xy, squashSampler);
+    rawMaps[3] = GetRawNoise2D(id.xy, PVSampler);
+    rawMaps[4] = GetRawNoise2D(id.xy, continentalSampler);
 
     float PVNoise = interpolateValue(rawMaps[3], PVSampler) * 2 - 1;
     float continentalNoise = interpolateValue(rawMaps[4], continentalSampler);
@@ -59,14 +55,15 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     data.terrain = rawMaps[0] * maxTerrainHeight + heightOffset;
     data.squash = squashNoise * (squashHeight / precisionOffset);
 
-    rawMaps[3] = GetRawNoise(pos3D, caveFreqSampler);
-    rawMaps[4] = GetRawNoise(pos3D, caveSizeSampler);
-    rawMaps[5] = GetRawNoise(pos3D, caveShapeSampler);
+    rawMaps[3] = GetRawNoise2D(id.xy, caveFreqSampler);
+    rawMaps[4] = GetRawNoise2D(id.xy, caveSizeSampler);
+    rawMaps[5] = GetRawNoise2D(id.xy, caveShapeSampler);
     
     data.biome = GetBiome(rawMaps);
     data.cFreq = interpolateValue(rawMaps[3], caveFreqSampler);
     data.cSize = interpolateValue(rawMaps[4], caveSizeSampler);
     data.cShape = interpolateValue(rawMaps[5], caveShapeSampler);
 
+    uint index = indexFromCoord2D(id.x, id.y);
     surfMap[index] = data;
 }

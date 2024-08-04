@@ -68,7 +68,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec125bd958bc94d5ab0c8080aa7f5605, type: 3}
   m_Name: Atmosphere
   m_EditorClassIdentifier: 
-  m_Active: 0
+  m_Active: 1
   passSettings:
     renderPassEvent: 500
     luminanceBake: {fileID: 11400000, guid: 871b8f4841c1e455f9f0e07616307f87, type: 2}

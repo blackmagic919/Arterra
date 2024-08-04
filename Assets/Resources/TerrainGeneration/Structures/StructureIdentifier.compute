@@ -16,7 +16,7 @@ struct settings{
     uint randPhiRot;
 };
 
-struct density{
+struct DensityFunc{
     int lowerLimit;
     int upperLimit;
     int center;
@@ -26,7 +26,7 @@ struct density{
 };
 
 struct biomeStructure{
-    density verticalPref;
+    DensityFunc density;
     float frequency;
     uint structIndex;
 };
@@ -81,14 +81,17 @@ float random(float seed){
     return frac(hash * seed);
 }
 
-
-float getDensity(biomeStructure structure, float y){ //Same as in C#
-    density structVertPref = structure.verticalPref; //copy
-    float height = clamp(y, structVertPref.lowerLimit, structVertPref.upperLimit);
-    float percent = y > structVertPref.center ?
-                1-invLerp(structVertPref.center, structVertPref.upperLimit, y) :
-                invLerp(structVertPref.lowerLimit, structVertPref.center, y);
-    return pow(abs(percent), structVertPref.power) * structVertPref.multiplier;
+float GetNoiseCentered(float val, float center, float bottom, float top){
+    float clamped = clamp(val, bottom, top);//
+                
+    return (clamped > center) ? 1-smoothstep(center, top, clamped)
+    : smoothstep(bottom, center, clamped);
+}
+float GetHeightPref(biomeStructure structure, float posY){
+    DensityFunc pref = structure.density;
+    float heightFactor = GetNoiseCentered(posY, pref.center, pref.lowerLimit, pref.upperLimit);
+    float densityValue = pow(abs(heightFactor), pref.power);
+    return densityValue * pref.multiplier;
 }
 
 int BinSearchStructures(uint startIndex, uint arraySize, uint searchLoD) //Returns smallest LoD structure closest to it
@@ -128,7 +131,7 @@ int determineStructure(uint LoD, int biome, float seed, float yPos){
     //Because of this, each frequency isn't fixed, but multiplicative, however, it allows for more structures for less cost
     while(structureIndex >= (int)biomeStart){
         biomeStructure currentStructure = _BiomeStructureData[structureIndex];
-        if(currentStructure.frequency > seed && getDensity(currentStructure, yPos) > random(seed))
+        if(currentStructure.frequency > seed && GetHeightPref(currentStructure, yPos) > random(seed))
             break;
         seed = random(random(seed));
         structureIndex--;
@@ -150,9 +153,10 @@ void Identify (uint3 id : SV_DispatchThreadID)
     int structBiome = SampleBiome(structPlan.position);
 
     //This is what makes this function deterministic, pointCoord is same no matter which chunk samples the poin
-    float3 pointCoord = structPlan.position + (CCoord - 0.5f) * chunkSize; 
+    float3 pointCoord = structPlan.position + sOffset; 
+    float groundHeight = pointCoord.y - SampleTerrainHeight(structPlan.position);
     float seedStruct = random(dot(pointCoord, float3(456.7, 789.2, 123.4))); 
-    int structureIndex = determineStructure(structPlan.LoD, structBiome, seedStruct, pointCoord.y);
+    int structureIndex = determineStructure(structPlan.LoD, structBiome, seedStruct, groundHeight);
 
     //No structure found
     if(structureIndex < (int)_BiomePrefCount[structBiome].z)

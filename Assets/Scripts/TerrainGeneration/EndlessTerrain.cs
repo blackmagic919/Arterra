@@ -19,7 +19,7 @@ public class EndlessTerrain : MonoBehaviour
     //Ideally specialShaders should be in materialData, but can't compile monobehavior in an asset 
 
     public static readonly int[] meshSkipTable = { 1, 2, 4, 8, 16 }; //has to be 2x for proper stitching
-    public static readonly int[] taskLoadTable = { 5, 5, 2, 3 };
+    public static readonly int[] taskLoadTable = { 5, 3, 2, 3 };
     public static Queue<UpdateTask> MainLateUpdateTasks = new Queue<UpdateTask>();
     public static Queue<UpdateTask> MainFixedUpdateTasks = new Queue<UpdateTask>();
     public static ConcurrentQueue<GenTask> RequestQueue = new ConcurrentQueue<GenTask>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished

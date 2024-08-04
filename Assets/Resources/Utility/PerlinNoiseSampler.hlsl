@@ -77,29 +77,38 @@ float GetRawNoise(int3 id, uint samplerIndex, float3 sOffset){
     return noiseHeight;
 }
 
-float GetRawNoise(int3 id, uint samplerIndex){
-    return GetRawNoise(id, samplerIndex, sOffset);
+float GetRawNoise2D(int2 id, uint samplerIndex, float2 sOffset){
+    NoiseSetting settings = _NoiseSettings[samplerIndex];
+    int2 sPos = id * meshSkipInc;
+
+    float amplitude = 1;
+    float frequency = 1;
+    float noiseHeight = 0;
+                    
+    for(uint i = _NoiseIndexes[samplerIndex].x; i < _NoiseIndexes[samplerIndex + 1].x; i++)
+    {
+        float2 sample = (sPos + _NoiseOffsets[i].xy + sOffset) / settings.noiseScale * frequency;
+        float perlinValue = (snoise2D(sample) + 1) / 2.0f; //Default range -1 to 1
+        noiseHeight = lerp(noiseHeight, perlinValue, amplitude);
+        
+        amplitude *= settings.persistence; //amplitude decreases -> effect of samples decreases 
+        frequency *= settings.lacunarity; //frequency increases -> size of noise sampling increases -> more random
+    }
+
+    return noiseHeight;
 }
 
-float GetRawNoise(float3 id, uint samplerIndex){
-    //Implicit conversion eliminates decimal
-    return GetRawNoise(int3(floor(id)), samplerIndex);
-}
 
-float GetRawNoise(float3 id, uint samplerIndex, float3 sOffset){
-    return GetRawNoise(int3(floor(id)), samplerIndex, sOffset);
-}
 
-float GetNoise(uint3 id, uint samplerIndex) {
-    return interpolateValue(GetRawNoise(id, samplerIndex), samplerIndex);
-}
+float GetRawNoise(int3 id, uint samplerIndex){ return GetRawNoise(id, samplerIndex, sOffset); }
+float GetRawNoise(float3 id, uint samplerIndex){ return GetRawNoise(int3(floor(id)), samplerIndex); }
 
-float GetNoise(float3 id, uint samplerIndex) {
-    return interpolateValue(GetRawNoise(id, samplerIndex), samplerIndex);
-}
+float GetRawNoise2D(uint2 id, uint samplerIndex){ return GetRawNoise2D(id, samplerIndex, sOffset.xz); }
+float GetRawNoise2D(float2 id, uint samplerIndex){ return GetRawNoise2D(int2(floor(id)), samplerIndex, sOffset.xz); }
+float GetNoise2D(uint2 id, uint samplerIndex){ return interpolateValue(GetRawNoise2D(id, samplerIndex, sOffset.xz), samplerIndex); }
+float GetNoise2D(float2 id, uint samplerIndex){ return interpolateValue(GetRawNoise2D(int2(floor(id)), samplerIndex, sOffset.xz), samplerIndex); }
 
-float GetNoise(float3 id, uint samplerIndex, float3 sOffset){
-    return interpolateValue(GetRawNoise(id, samplerIndex, sOffset), samplerIndex);
-}
+float GetNoise(uint3 id, uint samplerIndex) { return interpolateValue(GetRawNoise(id, samplerIndex), samplerIndex); }
+float GetNoise(float3 id, uint samplerIndex) { return interpolateValue(GetRawNoise(id, samplerIndex), samplerIndex); }
 
 #endif

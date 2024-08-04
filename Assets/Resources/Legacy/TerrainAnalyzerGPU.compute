@@ -63,8 +63,6 @@ void Terrain (uint3 id : SV_DispatchThreadID)
     
     checkPoint check = checks[id.x];
     float3 position = check.position;
-    float3 position2D = float3(position.x, 0, position.z);
-    float3 sOffset2D = float3(sOffset.x, 0, sOffset.z);
 
     //Get Base Density
     int biome = structs[check.index].biome;
@@ -80,10 +78,10 @@ void Terrain (uint3 id : SV_DispatchThreadID)
     float baseDensity = pow(abs(1.0f-centeredNoise), caveData.frequency);
 
     //Get SurfaceData
-    float continental = GetNoise(position2D, continentalSampler, sOffset2D) * continentalHeight;
-    float erosion = GetNoise(position2D, erosionSampler, sOffset2D);
-    float PV = GetNoise(position2D, PVSampler, sOffset2D) * PVHeight;
-    float squashFactor = GetNoise(position2D, squashSampler, sOffset2D) * squashHeight;
+    float continental = GetNoise2D(position.xz, continentalSampler) * continentalHeight;
+    float erosion = GetNoise2D(position.xz, erosionSampler);
+    float PV = GetNoise2D(position.xz, PVSampler) * PVHeight;
+    float squashFactor = GetNoise2D(position.xz, squashSampler) * squashHeight;
 
     float terrainHeight = continental + erosion * PV + heightOffset;
 

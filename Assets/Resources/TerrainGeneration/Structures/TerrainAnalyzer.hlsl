@@ -10,14 +10,12 @@ float GetNoiseCentered(float val, float center){
 
 uint SampleTerrain (float3 position)
 {
-    float3 position2D = float3(position.x, 0, position.z);
-    float3 sOffset2D = float3(sOffset.x, 0, sOffset.z);
 
     //Get SurfaceData
-    float PV = GetNoise(position2D, PVSampler, sOffset2D) * 2 - 1;
-    float continental = GetNoise(position2D, continentalSampler, sOffset2D);
-    float erosion = GetNoise(position2D, erosionSampler, sOffset2D);
-    float squashFactor = GetNoise(position2D, squashSampler, sOffset2D) * squashHeight;
+    float PV = GetNoise2D(position.xz, PVSampler) * 2 - 1;
+    float continental = GetNoise2D(position.xz, continentalSampler);
+    float erosion = GetNoise2D(position.xz, erosionSampler);
+    float squashFactor = GetNoise2D(position.xz, squashSampler) * squashHeight;
 
     float terrainHeight = (continental + PV * erosion) * maxTerrainHeight + heightOffset;
 
@@ -25,20 +23,29 @@ uint SampleTerrain (float3 position)
     float blendBase = lerp(
         GetNoise(position, caveFineSampler),
         GetNoise(position, caveCoarseSampler),
-        GetNoise(position2D, caveSizeSampler, sOffset2D)
+        GetNoise2D(position.xz, caveSizeSampler)
     );
     
-    float centeredBase = GetNoiseCentered(blendBase,  GetNoise(position2D, caveShapeSampler, sOffset2D));
-    float baseDensity = pow(abs(1.0f-centeredBase), GetNoise(position2D, caveFreqSampler, sOffset2D));
+    float centeredBase = GetNoiseCentered(blendBase,  GetNoise2D(position.xz, caveShapeSampler));
+    float baseDensity = pow(abs(1.0f-centeredBase), GetNoise2D(position.xz, caveFreqSampler));
 
     //Solve for density
     float actualHeight = position.y + sOffset.y;
-    float terrainFactor = clamp((terrainHeight - actualHeight) / (squashFactor + Epsilon), 0, 1) * (1-IsoLevel) + IsoLevel;
-    float density = baseDensity * terrainFactor;
+    float terrainFactor = clamp((terrainHeight - actualHeight) / (squashFactor + Epsilon), 0, 1);
+    float density = baseDensity * (terrainFactor * (1-IsoLevel) + IsoLevel);
 
     uint mapInfo = ((uint)round(density * 255.0f)) | 0xFF00;
     if(actualHeight > (terrainHeight - squashFactor) && actualHeight < waterHeight && density < IsoLevel)
         mapInfo = ((mapInfo << 8) & 0xFFFF) | 0xFF; //swap density and viscosity
     
     return mapInfo;
+}
+
+
+float SampleTerrainHeight(float3 position){
+    float PV = GetNoise2D(position.xz, PVSampler) * 2 - 1;
+    float continental = GetNoise2D(position.xz, continentalSampler);
+    float erosion = GetNoise2D(position.xz, erosionSampler);
+
+    return (continental + PV * erosion) * maxTerrainHeight + heightOffset;
 }
