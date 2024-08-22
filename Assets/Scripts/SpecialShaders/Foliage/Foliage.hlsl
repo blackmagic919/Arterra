@@ -88,7 +88,7 @@ half3 Fragment(VertexOutput IN) : SV_TARGET{
 	surfaceInput.alpha = 1;
     clip(SAMPLE_TEXTURE2D(_AlphaMap, sampler_AlphaMap, IN.uv).a - _AlphaClip);
 
-    return max(UniversalFragmentPBR(lightingInput, surfaceInput).rgb, surfaceInput.albedo * unity_AmbientEquator);
+    return max(UniversalFragmentPBR(lightingInput, surfaceInput), surfaceInput.albedo * unity_AmbientEquator).rgb;
 }
 
 #endif

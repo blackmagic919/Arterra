@@ -76,6 +76,10 @@ public class DensityDeconstructor : MonoBehaviour
         showModel = true;
     }
 
+    public void Start() {
+        if(Application.isPlaying) this.gameObject.SetActive(false);
+    }
+
     public void Update(){
         if(!initialized) return;
 

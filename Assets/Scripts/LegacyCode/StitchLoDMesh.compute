@@ -95,12 +95,12 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     
     float density = 0;
     [unroll] for(uint i = 0; i < 4; i++){ 
-        uint2 cornerCoord = min(blendInfo.corner[i].mapCoord * nToChunk, numPointsPerAxis-1); //Guaranteed to be an integer
+        uint2 cornerCoord = min((floor(nChunkUV) + uint2(i & 1u, (1 & 2u) >> 1)) * nToChunk, numPointsPerAxis-1); //Guaranteed to be an integer
         uint3 cAlignedCoord = mul(chunkAlign[id.z], uint3(cornerCoord, numPointsPerAxis-1));
         uint cornerAddress = chunkAddress + indexFromCoord(cAlignedCoord) * POINT_STRIDE_4BYTE;
         
         PointInfo cornerPoint = ReadMap(cornerAddress);
-        density += cornerPoint.density * blendInfo.corner[i].influence;  
+        density += cornerPoint.density * blendInfo.corner[i];  
     }    
     _MemoryBuffer[wAddress] = asuint(density); //First position is density
 }

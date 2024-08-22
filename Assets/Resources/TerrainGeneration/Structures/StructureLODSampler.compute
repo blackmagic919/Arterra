@@ -2,9 +2,10 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
+#include "Assets/Resources/Utility/Random.hlsl"
+
 const static int numLoDThreads = 8;
 const static int numChunkThreads = 64;
-const static float3 float3One = {1, 1, 1};
 
 //You can't seperate these values into different append buffers
 //because there is no way to gaurantee they're appended in same order
@@ -28,29 +29,6 @@ uint chunkSize;
 uint numPoints0;
 float LoDFalloff;
 
-
-float3 random(float3 seed)
-{
-    seed = float3(dot(seed, float3(127.1, 311.7, 531.5)),
-                dot(seed, float3(269.5, 183.3, 246.1)),
-                dot(seed, float3(419.2, 371.9, 619.8)));
-    return frac(sin(seed) * 43758.5453123);
-}
-
-float random(int seed)
-{
-    seed = (seed ^ 12345) * 6789;
-    return frac((seed & 0x7FFFFFFF) * (1.0 / 2147483648.0));
-}
-
-float3 random(int3 seed){
-    return random(float3(random(seed.x), random(seed.y), random(seed.z)));
-}
-
-float random(float seed){
-    float hash = frac(sin(seed) * 43758.5453);
-    return frac(hash * seed);
-}
 
 //Rationale: Instead of every chunk managing multiple LoD's, we have a single LoD per chunk
 //This allows us to map multiple threads to low LoDs, which is better 
@@ -78,11 +56,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     //Obtain random seed
     int3 chunkCoord = originChunkCoord - offsetCoord;
-    float3 seed3 = random(chunkCoord) + float3One * (random(LoD) + overlapOffset);
-    uint numPoints = uint((numPoints0 * pow(abs(LoDFalloff), -LoD)) / chunkOverlap + random(dot(seed3, float3One))); //Random to process fractional points 
+    uint seed = Random(chunkCoord) + Random(LoD) + overlapOffset;
+    uint numPoints = uint((numPoints0 * pow(abs(LoDFalloff), -LoD)) / chunkOverlap + RandomFloat(seed)); //Random to process fractional points 
 
     for(uint i = 0; i < numPoints; i++){
-        float3 position =  (random(seed3) * chunkSize) - offsetCoord * chunkSize;
+        float3 position =  (Random3(seed) * chunkSize) - offsetCoord * chunkSize;
 
         structurePoint newStructure;
         newStructure.position = position;
@@ -94,6 +72,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
         //Increment seed3 by one instead of random 
         //so it's value is independent of the number of threads running it
-        seed3 += float3One * chunkOverlap; 
+        seed += chunkOverlap; 
     }
 }

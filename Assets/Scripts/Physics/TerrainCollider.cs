@@ -114,7 +114,8 @@ public class TerrainCollider : MonoBehaviour
         else return math.sign(-(c1-c0)) * GDist(density); //Normal
     }
 
-    public float GDist(int density) => (density - isoValue) / (255.0f - isoValue);
+    //Add 1 to always move the player if collided
+    public float GDist(int density) => (density - isoValue + 1) / (255.0f - isoValue);
 
     /*z
     * ^     .---3----.

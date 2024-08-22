@@ -153,7 +153,7 @@ half3 Fragment(VertexOutput input) : SV_Target {
     // The URP simple lit algorithm
     // The arguments are lighting input data, albedo color, specular color, smoothness, emission color, and alpha
     //return UniversalFragmentBlinnPhong(lightingInput, albedo, 1, 0, 0, 1); <-- code has been depreciated
-    return max(UniversalFragmentPBR(lightingInput, surfaceInput).rgb, surfaceInput.albedo * unity_AmbientEquator);
+    return max(UniversalFragmentPBR(lightingInput, surfaceInput), surfaceInput.albedo * unity_AmbientEquator).rgb;
 #endif
 }
 

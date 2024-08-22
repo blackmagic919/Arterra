@@ -27,14 +27,15 @@ SurMapData SampleMapData(float3 samplePointWS){
     SurMapData mapData = (SurMapData)0;
     
     if(chunkHandle.x == 0) return mapData; else{
+    uint chunkSize = mapChunkSize/chunkHandle.y;
     Influences blendInfo = GetBlendInfo(WSToMS(samplePointWS) / chunkHandle.y); //Blend pos using grid-fixed cube
     [unroll]for(uint i = 0; i < 8; i++){
         //unfortunately we have to clamp here
         //if you store duplice edge data in the map you don't have to do this
-        uint3 MSCoord = clamp(blendInfo.corner[i].mapCoord, 0, mapChunkSize/chunkHandle.y - 1); 
-        uint pointAddress = chunkHandle.x + indexFromCoordManual(MSCoord, mapChunkSize / chunkHandle.y) * POINT_STRIDE_4BYTE;
+        uint3 MSCoord = clamp(blendInfo.origin + uint3(i & 1u, (i & 2u) >> 1, (i & 4u) >> 2), 0, chunkSize - 1); 
+        uint pointAddress = chunkHandle.x + indexFromCoordManual(MSCoord, chunkSize) * POINT_STRIDE_4BYTE;
 
-        mapData.weight[i] = blendInfo.corner[i].influence;
+        mapData.weight[i] = blendInfo.corner[i];
         mapData.info[i] = _ChunkInfoBuffer[pointAddress];
     }
 

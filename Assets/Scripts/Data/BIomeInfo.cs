@@ -83,7 +83,8 @@ public class BiomeInfo : ScriptableObject
     [Serializable]
     public struct EntityGen{
         public uint entityIndex;
-        public uint ChancePerCoord;
+        [Range(0,1)]
+        public float ChancePerCoord;
     }
 
     [System.Serializable]

@@ -50,18 +50,18 @@ public class RigidFPController : MonoBehaviour
 
         float2 input = GetInput();
         mouseLook.LookRotation (transform, cam.transform);
-        float3 desiredMove = cam.transform.forward*input.y + cam.transform.right*input.x;
-        float3 deltaV = acceleration * Time.deltaTime * desiredMove;
+        float2 desiredMove = ((float3)(cam.transform.forward*input.y + cam.transform.right*input.x)).xz;
+        float2 deltaV = acceleration * Time.deltaTime * desiredMove;
 
         float3 posGS = CPUDensityManager.WSToGS(this.transform.position) + tCollider.offset;
         if(tCollider.SampleCollision(posGS, new float3(tCollider.size.x, -groundStickDist, tCollider.size.z), out float3 normal)){
             if(Input.GetKeyDown(KeyCode.Space)) tCollider.velocity += jumpForce * (float3)Vector3.up;
-            else deltaV = Vector3.ProjectOnPlane(deltaV, normal);
-            tCollider.velocity *= 1 - GroundFriction;
+            tCollider.velocity.y *= 1 - GroundFriction;
             tCollider.useGravity = false;
         }else tCollider.useGravity = true;
+        tCollider.velocity.xz *= 1 - GroundFriction;
 
-        if(math.length(tCollider.velocity) < runSpeed) 
-            tCollider.velocity += deltaV;
+        if(math.length(tCollider.velocity.xz) < runSpeed) 
+            tCollider.velocity.xz += deltaV;
     }
 }

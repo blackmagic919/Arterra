@@ -2,6 +2,7 @@
 #pragma kernel Check
 #pragma kernel Prune
 
+#include "Assets/Resources/Utility/Random.hlsl"
 #include "Assets/Resources/Utility/RotationTables.hlsl"
 #include "Assets/Resources/TerrainGeneration/Structures/StructIDSettings.hlsl"
 #include "Assets/Resources/TerrainGeneration/Structures/BiomeGenerator.hlsl"
@@ -76,10 +77,6 @@ uint bCOUNTER_check;
 uint bCOUNTER_struct;
 uint bCOUNTER_prune;
 
-float random(float seed){
-    float hash = frac(sin(seed) * 43758.5453);
-    return frac(hash * seed);
-}
 
 float GetNoiseCentered(float val, float center, float bottom, float top){
     float clamped = clamp(val, bottom, top);//
@@ -131,9 +128,9 @@ int determineStructure(uint LoD, int biome, float seed, float yPos){
     //Because of this, each frequency isn't fixed, but multiplicative, however, it allows for more structures for less cost
     while(structureIndex >= (int)biomeStart){
         biomeStructure currentStructure = _BiomeStructureData[structureIndex];
-        if(currentStructure.frequency > seed && GetHeightPref(currentStructure, yPos) > random(seed))
+        if(currentStructure.frequency > seed && GetHeightPref(currentStructure, yPos) > RandomFloat(seed))
             break;
-        seed = random(random(seed));
+        seed = RandomFloat(Random(seed));
         structureIndex--;
     }
 
@@ -155,8 +152,8 @@ void Identify (uint3 id : SV_DispatchThreadID)
     //This is what makes this function deterministic, pointCoord is same no matter which chunk samples the poin
     float3 pointCoord = structPlan.position + sOffset; 
     float groundHeight = pointCoord.y - SampleTerrainHeight(structPlan.position);
-    float seedStruct = random(dot(pointCoord, float3(456.7, 789.2, 123.4))); 
-    int structureIndex = determineStructure(structPlan.LoD, structBiome, seedStruct, groundHeight);
+    uint seedStruct = Random(pointCoord); 
+    int structureIndex = determineStructure(structPlan.LoD, structBiome, RandomFloat(seedStruct), groundHeight);
 
     //No structure found
     if(structureIndex < (int)_BiomePrefCount[structBiome].z)
@@ -168,11 +165,10 @@ void Identify (uint3 id : SV_DispatchThreadID)
     //Determine if it Intersects with current generating chunk
     float3 origin = structPlan.position; //structure origin
     uint rotTheta = 0; uint rotPhi = 0;
-    float seedRot = random(seedStruct * 2); 
+    float seedRot = RandomFloat(Random(seedStruct)); 
 
     if(structureSettings.randThetaRot != 0) rotTheta = uint(seedRot * 4); //0 -> 3
-    seedRot = random(seedRot);
-    if(structureSettings.randPhiRot != 0) rotPhi = uint(seedRot * 3); //0 -> 2
+    if(structureSettings.randPhiRot != 0) rotPhi = uint(RandomFloat(seedRot) * 3); //0 -> 2
 
     float3x3 rotMatrix = RotationLookupTable[rotTheta][rotPhi];
     float3 length = mul(rotMatrix, structureSettings.size);

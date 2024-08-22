@@ -141,7 +141,7 @@ Shader "Unlit/Snow"
                 surfaceInput.albedo = albedo;
                 surfaceInput.alpha = 1;
 
-                return max(UniversalFragmentPBR(lightingInput, surfaceInput).rgb, surfaceInput.albedo * unity_AmbientEquator);
+                return max(UniversalFragmentPBR(lightingInput, surfaceInput), surfaceInput.albedo * unity_AmbientEquator).rgb;
             }
             ENDHLSL
         }

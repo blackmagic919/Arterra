@@ -165,8 +165,8 @@ void Generate (uint3 id : SV_DispatchThreadID)
     float coarseCaveCentered = GetNoiseCentered(coarseCaveNoise, data.cShape);
     float fineCaveCentered = GetNoiseCentered(fineCaveNoise, data.cShape);
 
-    float centereCavedNoise = lerp(fineCaveCentered, coarseCaveCentered, data.cSize);
-    float baseDensity = pow(abs(1.0f-centereCavedNoise), data.cFreq); //We do 1-noise because cave means low density
+    float centeredCaveNoise = lerp(fineCaveCentered, coarseCaveCentered, data.cSize);
+    float baseDensity = pow(abs(1.0f-centeredCaveNoise), data.cFreq); //We do 1-noise because cave means low density
 
     //Blend with Terrain Height
     float terrainFactor = clamp((data.terrain - actualHeight) / (data.squash + Epsilon), 0, 1);

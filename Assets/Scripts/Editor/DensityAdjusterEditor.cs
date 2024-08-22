@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(DensityAdjuster)), CanEditMultipleObjects]
+[CustomEditor(typeof(DensityAdjuster))]
 public class DensityAdjusterEditor : Editor
 {
     public override void OnInspectorGUI()

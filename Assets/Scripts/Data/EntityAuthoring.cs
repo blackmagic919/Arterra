@@ -9,11 +9,10 @@ using Unity.Burst;
 public abstract class EntityAuthoring : ScriptableObject{
     //Managed Memory
     public virtual EntityController Controller{get; }
-    //Allocated in buffer/memory block
     public virtual IEntity Entity{get; set;}
-    public virtual Entity.Info info{get; set;}
-    //Allocated in buffer/memory block
+    public virtual IEntitySetting Setting{get; set;}
     public virtual uint2[] Profile{get; set;}
+    public virtual Entity.Info.ProfileInfo Info{get; set;}
 }
 
 
@@ -38,6 +37,7 @@ public unsafe struct Entity{
         public ProfileInfo profile;
         public uint SpatialId;
         public uint entityId;
+        public uint entityType;
 
         //Node in chunk's LL for all entity's belonging to chunk
         [System.Serializable]
@@ -53,9 +53,12 @@ public unsafe struct Entity{
 
 //Structures implementing IEntity will be placed in unmanaged memory so they can be used in Jobs
 public interface IEntity{
+    public abstract unsafe void Preset(IEntitySetting Settings);
     public abstract unsafe IntPtr Initialize(ref Entity entity, int3 GCoord);
     public unsafe delegate void UpdateDelegate(Entity* entity, EntityJob.Context* context);
     public unsafe delegate void DisableDelegate(Entity* entity);
 }
+
+public interface IEntitySetting{} 
 
 

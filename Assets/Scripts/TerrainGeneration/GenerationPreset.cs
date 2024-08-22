@@ -301,10 +301,11 @@ public static class GenerationPreset
 
             for(int i = 0; i < numEntities; i++)
             {
-                Entity.Info info = EntityDictionary[i].value.info;
-                info.profile.profileStart = (uint)entityProfile.Count;
-                entityInfo[i] = info.profile;
-                EntityDictionary[i].value.info = info;
+                Entity.Info.ProfileInfo info = EntityDictionary[i].value.Info;
+                info.profileStart = (uint)entityProfile.Count;
+                entityInfo[i] = info;
+                EntityDictionary[i].value.Info = info;
+                EntityDictionary[i].value.Entity.Preset(EntityDictionary[i].value.Setting);
 
                 entityProfile.AddRange(EntityDictionary[i].value.Profile);
             }

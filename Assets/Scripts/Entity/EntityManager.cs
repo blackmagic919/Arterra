@@ -7,6 +7,8 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Burst;
 using System.Collections;
+using System.Threading;
+using System.Collections.Generic;
 
 
 
@@ -55,6 +57,7 @@ public static class EntityManager
     }*/
 
     public unsafe static void Release(){
+        Executor.Complete();
         EntityHandler.Dispose(); //Controllers will automatically release 
         ESTree.Dispose();
     }
@@ -88,9 +91,11 @@ public static class EntityManager
         int mapSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
         
-        IEntity entityData = WorldStorageHandler.WORLD_OPTIONS.Entities.value[(int)genInfo.entityIndex].value.Entity;
-        newEntity.info = WorldStorageHandler.WORLD_OPTIONS.Entities.value[(int)genInfo.entityIndex].value.info;
+        EntityAuthoring authoring = WorldStorageHandler.WORLD_OPTIONS.Entities.value[(int)genInfo.entityIndex].value;
+        IEntity entityData = authoring.Entity;
+        newEntity.info.profile = authoring.Info;
         newEntity.info.entityId = (uint)entityId;
+        newEntity.info.entityType = genInfo.entityIndex;
         newEntity.active = true;
         
         IntPtr entity = entityData.Initialize(ref newEntity, GCoord);
@@ -98,7 +103,7 @@ public static class EntityManager
         ((Entity*)entity)->info.SpatialId = ESTree.Insert(GCoord, entity);
 
         //Add controller
-        EntityController controller = UnityEngine.Object.Instantiate(WorldStorageHandler.WORLD_OPTIONS.Entities.value[(int)genInfo.entityIndex].value.Controller).GetComponent<EntityController>();
+        EntityController controller = UnityEngine.Object.Instantiate(authoring.Controller).GetComponent<EntityController>();
         if(controller == null) throw new Exception("Entity Controller is null");
         controller.Initialize(entity);
 
@@ -133,7 +138,7 @@ public static class EntityManager
         STree.TreeNode.Bounds bounds = new STree.TreeNode.Bounds{Min = CCoord * mapChunkSize, Max = (CCoord + 1) * mapChunkSize};
 
         AddHandlerEvent(() => {
-            ESTree.Query(bounds, (IntPtr entity) => {
+            ESTree.Query(bounds, (UIntPtr entity) => {
                 ReleaseEntity((int)((Entity*)entity)->info.entityId);
             });
         });
@@ -290,11 +295,31 @@ public static class EntityManager
 public class EntityJob : UpdateTask{
     public bool dispatched = false;
     private JobHandle handle;
+    private Context job;
 
-    public EntityJob(){
+    public unsafe EntityJob(){
         active = true;
         dispatched = false;
+        job = new Context{
+            Entities = (Entity**)EntityManager.EntityHandler.GetPtr(0),
+            MapData = (CPUDensityManager.MapData*)CPUDensityManager.SectionedMemory.GetUnsafePtr(),
+            AddressDict = (CPUDensityManager.ChunkMapInfo*)CPUDensityManager.AddressDict.GetUnsafePtr(),
+            Profile = (uint2*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
+            sTree = EntityManager.ESTree,
+
+            mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize,
+            IsoValue = (int)Math.Round(WorldStorageHandler.WORLD_OPTIONS.Rendering.value.IsoLevel * 255.0),
+            gravity = Physics.gravity / WorldStorageHandler.WORLD_OPTIONS.Rendering.value.lerpScale,
+            numChunksAxis = CPUDensityManager.numChunksAxis,
+            deltaTime = Time.fixedDeltaTime
+        };
     }
+
+    public void Complete(){
+        if(dispatched) handle.Complete();
+        dispatched = false;
+    }
+
     public override void Update(MonoBehaviour mono){
         if(dispatched) handle.Complete();
         dispatched = false;
@@ -306,19 +331,7 @@ public class EntityJob : UpdateTask{
             return;
         }
 
-        Context job;
-        unsafe{
-            job = new Context{
-                Entities = (Entity**)EntityManager.EntityHandler.GetPtr(0),
-                MapData = (CPUDensityManager.MapData*)CPUDensityManager.SectionedMemory.GetUnsafePtr(),
-                AddressDict = (CPUDensityManager.ChunkMapInfo*)CPUDensityManager.AddressDict.GetUnsafePtr(),
-                Profile = (uint2*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
-                mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize,
-                numChunksAxis = CPUDensityManager.numChunksAxis,
-                deltaTime = Time.fixedDeltaTime
-            };
-        }
-
+        job.deltaTime = Time.fixedDeltaTime;
         int length = EntityManager.EntityHandler.Length;
         handle = job.Schedule(EntityManager.EntityHandler.Length, length);
         dispatched = true;
@@ -334,9 +347,12 @@ public class EntityJob : UpdateTask{
         [ReadOnly] public unsafe CPUDensityManager.MapData* MapData;
         [NativeDisableUnsafePtrRestriction]
         [ReadOnly] public unsafe CPUDensityManager.ChunkMapInfo* AddressDict;
-        public int numChunksAxis;
-        public int mapChunkSize;
-        public float deltaTime;
+        public STree sTree;
+        [ReadOnly] public int numChunksAxis;
+        [ReadOnly] public int mapChunkSize;
+        [ReadOnly] public float IsoValue;
+        [ReadOnly] public float3 gravity; 
+        [ReadOnly] public float deltaTime;
         public unsafe void Execute(int index){
             Context cxt = this; //copy to stack so that address is fixed
             Entity.Update(*(Entities + index), &cxt);
@@ -344,7 +360,7 @@ public class EntityJob : UpdateTask{
     }
 
     [BurstCompile]
-    public unsafe static bool VerifyProfile(in int3 GCoord, in Entity.Info.ProfileInfo info, in Context context){
+    public unsafe static bool VerifyProfile(in int3 GCoord, in Entity.Info.ProfileInfo info, in Context context, bool UseExFlag = true){
         bool allC = true; bool anyC = false; bool any0 = false;
         uint3 dC = new (0);
         for(dC.x = 0; dC.x < info.bounds.x; dC.x++){
@@ -352,6 +368,7 @@ public class EntityJob : UpdateTask{
                 for(dC.z = 0; dC.z < info.bounds.z; dC.z++){
                     uint index = dC.x * info.bounds.y * info.bounds.z + dC.y * info.bounds.z + dC.z;
                     uint2 profile = context.Profile[index + info.profileStart];
+                    if((profile.y & 0x4) != 0 && UseExFlag) continue;
                     bool valid = InBounds(SampleMap(GCoord + (int3)dC, context), profile.x);
                     allC = allC && (valid || !((profile.y & 0x1) != 0));
                     anyC = anyC || (valid && ((profile.y & 0x2) != 0));
@@ -394,6 +411,17 @@ public class EntityJob : UpdateTask{
 }
 [BurstCompile]
 public unsafe struct PathFinder{
+
+    public struct PathInfo{
+        public int3 currentPos; 
+        public int currentInd;
+        public int pathLength;
+        [NativeDisableUnsafePtrRestriction]
+        public unsafe byte* path;
+        public bool hasPath; //Resource isn't bound
+        //0x4 -> Controller Released, 0x2 -> Job Released, 0x1 -> Resource Released
+    }
+    
     public int PathMapSize;
     public int PathDistance;
     public int HeapEnd;
@@ -510,6 +538,12 @@ public unsafe struct PathFinder{
         return minDist * 17 + (midDist - minDist) * 14 + (maxDist - midDist) * 10;
     }
 
+    private static float3 CubicNorm(float3 v){
+        if(math.length(v) == 0) return math.forward();
+        else return v / math.cmax(math.abs(v));
+        //This norm guarantees the vector will be on the edge of a cube
+    }
+
     [BurstCompile]
     //Simplified A* algorithm for maximum performance
     //End Coord is relative to the start coord. Start Coord is always PathDistance
@@ -563,9 +597,104 @@ public unsafe struct PathFinder{
             }
         }
 
+        byte* path = RetracePath(ref finder, bestEnd.x, startInd, out PathLength);
+        finder.Release();
+        return path;
+    }
+
+    //Find point that matches raw-profile along the path to destination
+    public static byte* FindClosestAlongPath(in int3 Origin, in int3 iEnd, int PathDistance, in Entity.Info.ProfileInfo info, in EntityJob.Context context, out int PathLength, out bool ReachedEnd){
+        PathFinder finder = new (PathDistance);
+        int3 End = math.clamp(iEnd + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
+        int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
+
+        //Find the closest point to the end
+        int3 pathStart = new (PathDistance, PathDistance, PathDistance);
+        int startInd = pathStart.x * finder.PathMapSize * finder.PathMapSize + pathStart.y * finder.PathMapSize + pathStart.z;
+        int hCost = Get3DDistance(math.abs(End - pathStart)); 
+        int2 bestEnd = new (startInd, hCost);
+    
+        ReachedEnd = false;
+        finder.AddNode(pathStart, hCost, 13); //13 means dP = (0, 0, 0)
+        while(finder.HeapEnd > 1){
+            int2 current = finder.RemoveNode();
+            int3 ECoord = new (current.y / (finder.PathMapSize * finder.PathMapSize), 
+                                current.y / finder.PathMapSize % finder.PathMapSize, 
+                                current.y % finder.PathMapSize);
+            hCost = Get3DDistance(math.abs(End - ECoord));
+
+            //Always assume the first point is valid
+            if(current.y != startInd && !EntityJob.VerifyProfile(Origin + ECoord - PathDistance, info, context)) 
+                continue;
+            ReachedEnd = EntityJob.VerifyProfile(Origin + ECoord - PathDistance, info, context, false);
+            if(hCost < bestEnd.y || ReachedEnd) bestEnd = new (current.y, hCost);
+            if(current.y == pathEndInd || ReachedEnd) break;
+
+            for(int i = 0; i < 24; i++){
+                int4 delta = dP[i];
+                int3 nCoord = ECoord + delta.xyz;
+                if(math.any(nCoord < 0) || math.any(nCoord >= finder.PathMapSize)) continue;
+                int FScore = current.x + Get3DDistance(math.abs(End - nCoord)) - hCost + delta.w;
+                int dirEnc = (delta.x + 1) * 9 + (delta.y + 1) * 3 + delta.z + 1;
+                finder.AddNode(nCoord, FScore, dirEnc);
+            }
+        }
+
+        byte* path = RetracePath(ref finder, bestEnd.x, startInd, out PathLength);
+        finder.Release();
+        return path;
+    }
+
+    public static byte* FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, in Entity.Info.ProfileInfo info, in EntityJob.Context context, out int PathLength){
+        PathFinder finder = new (PathDistance);
+        int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
+
+        //Find the closest point to the end
+        int3 pathStart = new (PathDistance, PathDistance, PathDistance);
+        int startInd = pathStart.x * finder.PathMapSize * finder.PathMapSize + pathStart.y * finder.PathMapSize + pathStart.z;
+        int hCost = Get3DDistance(math.abs(End - pathStart)); 
+        int bestEnd = startInd;
+    
+        finder.AddNode(pathStart, hCost, 13); //13 means dP = (0, 0, 0)
+        while(finder.HeapEnd > 1){
+            int2 current = finder.RemoveNode();
+            int3 ECoord = new (current.y / (finder.PathMapSize * finder.PathMapSize), 
+                                current.y / finder.PathMapSize % finder.PathMapSize, 
+                                current.y % finder.PathMapSize);
+            hCost = Get3DDistance(math.abs(End - ECoord));
+
+            //Always assume the first point is valid
+            if(current.y != startInd && !EntityJob.VerifyProfile(Origin + ECoord - PathDistance, info, context)) 
+                continue;
+            //                 FScore - HScore = GScore
+            if(current.x - hCost >= PathDistance * 10){
+                rayDir = math.normalize(ECoord - pathStart);
+                bestEnd = current.y;
+                break;
+            } 
+
+            for(int i = 0; i < 24; i++){
+                int4 delta = dP[i];
+                int3 nCoord = ECoord + delta.xyz;
+                if(math.any(nCoord < 0) || math.any(nCoord >= finder.PathMapSize)) continue;
+                int FScore = current.x + Get3DDistance(math.abs(End - nCoord)) - hCost + delta.w;
+                int dirEnc = (delta.x + 1) * 9 + (delta.y + 1) * 3 + delta.z + 1;
+                finder.AddNode(nCoord, FScore, dirEnc);
+            }
+        }
+
+        byte* path = RetracePath(ref finder, bestEnd, startInd, out PathLength);
+        finder.Release();
+        return path;
+    }
+
+
+
+    [BurstCompile]
+    public static byte* RetracePath(ref PathFinder finder, int dest, int start, out int PathLength){
         PathLength = 0; 
-        int currentInd = bestEnd.x;
-        while(currentInd != startInd){ 
+        int currentInd = dest;
+        while(currentInd != start){ 
             PathLength++; 
             byte dir = (byte)finder.MapPtr[currentInd].w;
             currentInd -= ((dir / 9) - 1) * finder.PathMapSize * finder.PathMapSize + 
@@ -573,8 +702,8 @@ public unsafe struct PathFinder{
         }
 
         byte* path = (byte*)UnsafeUtility.Malloc(PathLength, 4, Allocator.Persistent);
-        currentInd = bestEnd.x; int index = PathLength - 1;
-        while(currentInd != startInd){
+        currentInd = dest; int index = PathLength - 1;
+        while(currentInd != start){
             byte dir = (byte)finder.MapPtr[currentInd].w;
             currentInd -= ((dir / 9) - 1) * finder.PathMapSize * finder.PathMapSize + 
                             ((dir / 3 % 3) - 1) * finder.PathMapSize + ((dir % 3) - 1);
@@ -582,16 +711,17 @@ public unsafe struct PathFinder{
             index--;
         }
 
-        finder.Release();
         return path;
-
     }
 }
 
 //More like a BVH, or a dynamic R-Tree with no overlap
-public struct STree{
-    public NativeArray<TreeNode> tree;
-    public uint length;
+public unsafe struct STree{
+    public NativeArray<TreeNode> _tree;
+    [NativeDisableUnsafePtrRestriction]
+    public TreeNode* tree;
+    //mark as volatile so we get the latest value
+    public uint length; 
     public readonly uint Length => length - 1;
     public readonly uint Root{
         get{return tree[0].Right;}
@@ -610,21 +740,22 @@ public struct STree{
 
     public readonly ref TreeNode GetRef(int index)
     {
-        if (index < 0 || index >= length)
+        //Allow tree to access nodes outside Length to workaround threads, it seems unsafe, but is not catastrophic
+        if (index < 0 || index >= _tree.Length)
             throw new ArgumentOutOfRangeException(nameof(index));
-        unsafe { return ref UnsafeUtility.ArrayElementAsRef<TreeNode>(tree.GetUnsafePtr(), index); }
+        unsafe { return ref UnsafeUtility.ArrayElementAsRef<TreeNode>(tree, index); }
     }
 
     public readonly unsafe TreeNode* GetPtr(int index)
     {
-        if (index < 0 || index >= length)
+        if (index < 0 || index >= _tree.Length)
             throw new ArgumentOutOfRangeException(nameof(index));
-        void* basePtr = NativeArrayUnsafeUtility.GetUnsafePtr(tree);
-        return (TreeNode*)basePtr + index;
+        return tree + index;
     }
 
     public STree(int capacity){
-        tree = new NativeArray<TreeNode>(capacity, Allocator.Persistent);
+        _tree = new NativeArray<TreeNode>(capacity, Allocator.Persistent);
+        tree = (TreeNode*)_tree.GetUnsafePtr();
         tree[0] = new TreeNode{
             bounds = new TreeNode.Bounds{
                 Min = new int3(int.MinValue),
@@ -637,7 +768,8 @@ public struct STree{
     }
 
     public void Dispose(){
-        tree.Dispose();
+        _tree.Dispose();
+        length = 0;
     }
 
     public uint Insert(int3 position, IntPtr ptr){
@@ -686,7 +818,7 @@ public struct STree{
     public void Delete(int index){
         if(length <= 1) return;
         if(index > length - 1 || index == 0) return;
-        if(tree == null || !tree.IsCreated) return;
+        if(tree == null) return;
 
         ref TreeNode node = ref GetRef(index);
         ref TreeNode parent = ref GetRef((int)node.Parent);
@@ -728,7 +860,7 @@ public struct STree{
 
 
     //The callback should not change STree as this will cause unpredictable behavior when query continues
-    public readonly void Query(TreeNode.Bounds bounds, Action<IntPtr> action, int current = -1){
+    public readonly void Query(TreeNode.Bounds bounds, Action<UIntPtr> action, int current = -1){
         if(current == -1) current = (int)Root;
         if(current == 0) return;
         ref TreeNode node = ref GetRef(current);
@@ -741,31 +873,54 @@ public struct STree{
         if(bounds.Intersects(GetRef((int)node.Right).bounds)) Query(bounds, action, (int)node.Right);
     }
 
+    //Note: This function is not thread-safe, TreeNode is not predictable and may be a combination of
+    //multiple nodes, however Ptr is 64-bit and is atomic on 64-bit systems, which this query assumes is true
+    //Bounds may also be inaccurate, but that failure is not catastrophic.
+    public readonly unsafe void QueryAsync(TreeNode.Bounds bounds, FunctionPointer<Action<UIntPtr, UIntPtr>> Action, UIntPtr entity, int current = -1){
+        if(current == -1) current = (int)Root;
+        if(current == 0) return;
+        
+        //copy from cache/memory--this is not thread-safe
+        TreeNode node = tree[current]; 
+        if(node.IsLeaf){
+            //This is the only place for catastrophic failure, Leaf MUST be a valid pointer.
+            Action.Invoke(node.GetLeaf, entity);
+            return;
+        }
+
+        //The values obtained here may be inaccurate, but that's okay
+        if(bounds.Intersects(tree[(int)node.Left].bounds)) QueryAsync(bounds, Action, entity, (int)node.Left);
+        if(bounds.Intersects(tree[(int)node.Right].bounds)) QueryAsync(bounds, Action, entity, (int)node.Right);
+    }
+
 
     public struct TreeNode{
         public Bounds bounds;
-        public uint Left;
-        public uint Right;
-        public uint _parent;
-        public readonly bool IsLeaf => (_parent & 0x80000000) != 0;
-        public readonly IntPtr GetLeaf => new (((long)Left << 32) | Right);
-        public uint Parent{
-            readonly get{return _parent & 0x7FFFFFFF;}
-            set{_parent = value | (_parent & 0x80000000);}
+        //64-bit systems guarantee 64-bit copies are atomic for properly aligned elements
+        //If 32-bit systems are used, this will not work
+        public ulong Ptr;
+        public uint Parent;
+        public readonly bool IsLeaf => (Ptr & 0x8000000000000000) != 0;
+        public readonly UIntPtr GetLeaf => new (Ptr & 0x7FFFFFFFFFFFFFFF);
+        public uint Left{
+            readonly get{return (uint)(Ptr & 0xFFFFFFFF);}
+            set{Ptr = (Ptr & 0xFFFFFFFF00000000) | (value & 0xFFFFFFFF);}
         }
 
+        public uint Right{
+            readonly get{return (uint)((Ptr >> 32) & 0x7FFFFFFF);}
+            set{Ptr = (Ptr & 0x80000000FFFFFFFF) | ((ulong)value & 0x7FFFFFFF) << 32;}
+        }
         public TreeNode(int3 position){
             bounds = new Bounds(position);
-            Left = 0;
-            Right = 0;
-            _parent = 0;
+            Ptr = 0ul;
+            Parent = 0;
         }
 
         public static TreeNode MakeLeaf(int3 position, IntPtr ptr){
             TreeNode node = new(position){ 
-                Left = (uint)((long)ptr >> 32),
-                Right = (uint)((long)ptr & 0xFFFFFFFF),
-                _parent = 0x80000000
+                Ptr = 0x8000000000000000 | (ulong)ptr,
+                Parent = 0,
             };
             return node;
         }

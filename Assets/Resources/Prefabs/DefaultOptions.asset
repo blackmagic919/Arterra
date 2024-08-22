@@ -44,6 +44,8 @@ MonoBehaviour:
     value:
     - value: {fileID: 11400000, guid: 638124de4470742c79535a5f0092eb27, type: 2}
       isDirty: 0
+    - value: {fileID: 11400000, guid: 74688da9677534740874b306e18e916d, type: 2}
+      isDirty: 0
     isDirty: 0
   Materials:
     value: {fileID: 11400000, guid: 68574011324274a58acce0da69b5d4f7, type: 2}

@@ -1,6 +1,7 @@
 #pragma kernel Identify
 #pragma kernel Prune
 
+#include "Assets/Resources/Utility/Random.hlsl"
 #include "Assets/Resources/Utility/GetIndex.hlsl"
 #include "Assets/Resources/MapData/CCoordHash.hlsl"
 
@@ -9,7 +10,7 @@ const static int numThreadsFlat = 256;
 
 struct enititySetting{
     uint entityIndex;
-    uint freq;
+    float freq;
 };
 
 struct entityBound{
@@ -56,20 +57,6 @@ RWStructuredBuffer<entityInfo> chunkEntities;
 uint bSTART_entities;
 uint bSTART_prune;
 
-uint Hash(uint x)
-{
-    x ^= x >> 16;
-    x *= 0x85ebca6b;
-    x ^= x >> 13;
-    x *= 0xc2b2ae35;
-    x ^= x >> 16;
-    return x;
-}
-
-uint random(int3 coord){
-    return Hash(coord.x) ^ Hash(coord.y) ^ Hash(coord.z);
-}
-
 surfData ReadSurfData(uint2 coord){
     uint address = _SurfAddress[surfAddress].y + indexFromCoord2DManual(coord, numPointsPerAxis);
     return _SurfMemory[address];
@@ -82,7 +69,7 @@ void Identify (uint3 id : SV_DispatchThreadID)
         return;
     
     int3 pointCoord = id + (CCoord - 0.5f) * numPointsPerAxis; 
-    uint seedEntity = random(pointCoord); 
+    uint seedEntity = Random(pointCoord); 
     
     surfData data = ReadSurfData(id.xz);
     uint biome = max(0, (uint)data.biome);
@@ -91,7 +78,7 @@ void Identify (uint3 id : SV_DispatchThreadID)
 
     for(uint index = entityStart; index < entityEnd; index++){
         enititySetting setting = _BiomeEntities[index];
-        if(seedEntity < setting.freq){
+        if(RandomFloat(seedEntity) < setting.freq){
             entityInfo newOrigin;
             newOrigin.position = id;
             newOrigin.entityIndex = setting.entityIndex; 
@@ -101,7 +88,7 @@ void Identify (uint3 id : SV_DispatchThreadID)
             chunkEntities[bSTART_entities + appendInd] = newOrigin;
             return;
         }
-        seedEntity = random(seedEntity);
+        seedEntity = Random(seedEntity);
     }   
 }
 

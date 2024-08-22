@@ -8,28 +8,27 @@ public class RabbitController : EntityController
 {
     private Animator animator;
     private unsafe Entity* entity;
-    private unsafe Rabbit.RabbitEntity* Rabbit => (Rabbit.RabbitEntity*)entity->obj;
+    private unsafe Rabbit.RabbitEntity* rabbit => (Rabbit.RabbitEntity*)entity->obj;
+    private Rabbit.RabbitSetting settings => Rabbit.RabbitEntity.settings;
     private bool active = false;
-
-    private bool IsMoving = false;
 
     public override unsafe void Initialize(IntPtr Entity)
     {
         this.entity = (Entity*)Entity;
         this.active = true;
 
-        float3 GCoord = new (Rabbit->GCoord);
+        float3 GCoord = new (rabbit->GCoord);
         float lerpScale = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.lerpScale;
         int chunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
         animator = this.GetComponent<Animator>();
-        this.transform.position = CPUDensityManager.GSToWS(GCoord - Rabbit->tCollider.offset) + (float3)Vector3.up * 1;
+        this.transform.position = CPUDensityManager.GSToWS(GCoord - settings.collider.offset) + (float3)Vector3.up * 1;
     }
 
     public unsafe void FixedUpdate(){
         if(!entity->active) return;
-        EntityManager.AssertEntityLocation(entity, Rabbit->GCoord);    
-        TerrainColliderJob.Transform rTransform = Rabbit->tCollider.transform;
-        rTransform.position = CPUDensityManager.GSToWS(rTransform.position - Rabbit->tCollider.offset);
+        EntityManager.AssertEntityLocation(entity, rabbit->GCoord);    
+        TerrainColliderJob.Transform rTransform = rabbit->tCollider.transform;
+        rTransform.position = CPUDensityManager.GSToWS(rTransform.position - settings.collider.offset);
         this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
     }
     public override unsafe void Update()
@@ -39,10 +38,13 @@ public class RabbitController : EntityController
             return;
         }
 
-        if(Rabbit->pathFinder.hasPath && !IsMoving) 
-            animator.SetBool("IsMoving", IsMoving = true);
-        else if(!Rabbit->pathFinder.hasPath && IsMoving)
-            animator.SetBool("IsMoving", IsMoving = false);
+        if(rabbit->TaskIndex == 2) 
+            animator.SetBool("IsMoving", true);
+        else {
+            animator.SetBool("IsMoving", false);
+            if(rabbit->TaskDuration > 2.0f) animator.SetBool("IsScratching", true);
+            else animator.SetBool("IsScratching", false);
+        }
         
     }
 
@@ -55,9 +57,9 @@ public class RabbitController : EntityController
         if(!active) return;
         active = false;
 
-        if(Rabbit->pathFinder.hasPath) UnsafeUtility.Free(Rabbit->pathFinder.path, Unity.Collections.Allocator.Persistent);
+        if(rabbit->pathFinder.hasPath) UnsafeUtility.Free(rabbit->pathFinder.path, Unity.Collections.Allocator.Persistent);
         EntityManager.ESTree.Delete((int)entity->info.SpatialId);
-        Marshal.FreeHGlobal((IntPtr)Rabbit);
+        Marshal.FreeHGlobal((IntPtr)rabbit);
         Marshal.FreeHGlobal((IntPtr)entity);
         Destroy(gameObject);
     }
@@ -65,15 +67,14 @@ public class RabbitController : EntityController
     public unsafe void OnDrawGizmos(){
         if(!active) return;
         Gizmos.color = Color.red; 
-        TerrainColliderJob tCollider = Rabbit->tCollider;
-        Gizmos.DrawWireCube(transform.position, new Vector3(tCollider.size.x, tCollider.size.y, tCollider.size.z) * 2);
-        if(Rabbit->pathFinder.hasPath){
-            Rabbit.RabbitEntity.PathInfo pathFinder = Rabbit->pathFinder;
+        Gizmos.DrawWireCube(transform.position, settings.collider.size * 2);
+        if(rabbit->pathFinder.hasPath){
+            PathFinder.PathInfo pathFinder = rabbit->pathFinder;
             int ind = pathFinder.currentInd;
             while(ind != pathFinder.pathLength){
                 int dir = pathFinder.path[ind];
                 int3 dest = pathFinder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
-                Gizmos.DrawLine(CPUDensityManager.GSToWS(pathFinder.currentPos - tCollider.offset), CPUDensityManager.GSToWS(dest - tCollider.offset));
+                Gizmos.DrawLine(CPUDensityManager.GSToWS(pathFinder.currentPos - settings.collider.offset), CPUDensityManager.GSToWS(dest - settings.collider.offset));
                 pathFinder.currentPos = dest;
                 ind++;
             }

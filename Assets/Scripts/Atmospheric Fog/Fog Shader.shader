@@ -60,11 +60,8 @@ Shader "Hidden/Fog"
             float3 opticalDepth;
         };
 
-        StructuredBuffer<float3> _LuminanceLookup;
         StructuredBuffer<OpticalInfo> _OpticalInfo;
-
         float4 _MainTex_TexelSize;
-        float4 _MainTex_ST;
         float _AtmosphereRadius;
     
         int _NumInScatterPoints;
@@ -107,13 +104,14 @@ Shader "Hidden/Fog"
 
             OpticalInfo sampleOpticalInfo(Influences2D sampleIndex, uint sampleDepth){
                 OpticalInfo info = (OpticalInfo)0;
-                [unroll]for(int i = 0; i < 4; i++){
-                    OpticalInfo opticalInfo = _OpticalInfo[GetTextureIndex(sampleIndex.corner[i].mapCoord, sampleDepth)];
-                    info.opticalDensity += opticalInfo.opticalDensity * sampleIndex.corner[i].influence;
-                    info.scatterCoeffs += opticalInfo.scatterCoeffs * sampleIndex.corner[i].influence;
-                    info.extinctionCoeff += opticalInfo.extinctionCoeff * sampleIndex.corner[i].influence;
-                    info.opticalDepth += opticalInfo.opticalDepth * sampleIndex.corner[i].influence;
-                    info.occlusionFactor += opticalInfo.occlusionFactor * sampleIndex.corner[i].influence;
+                [unroll]for(uint i = 0; i < 4; i++){
+                    OpticalInfo opticalInfo = _OpticalInfo[GetTextureIndex(sampleIndex.origin + uint2(i & 1u, (i >> 1) & 1u), sampleDepth)];
+                    float cornerWeight = sampleIndex.corner[i];
+                    info.opticalDensity += opticalInfo.opticalDensity * cornerWeight;
+                    info.scatterCoeffs += opticalInfo.scatterCoeffs * cornerWeight;
+                    info.extinctionCoeff += opticalInfo.extinctionCoeff * cornerWeight;
+                    info.opticalDepth += opticalInfo.opticalDepth * cornerWeight;
+                    info.occlusionFactor += opticalInfo.occlusionFactor * cornerWeight;
                 }
                 return info;
             }
@@ -124,17 +122,15 @@ Shader "Hidden/Fog"
                                             float sampleDist, Influences2D rayInfluences){
                 int NumInScatterPoints = max(1, ceil(rayLength / sampleDist));
                 ScatterData scatterData = (ScatterData)0;
-                float3 inScatterPoint = rayOrigin;
 
                 for(int depth = 0; depth < NumInScatterPoints; depth++){
                     float stepSize = min(rayLength - sampleDist*depth, sampleDist);
                     OpticalInfo opticalInfo = sampleOpticalInfo(rayInfluences, depth); 
 
                     float3 transmittance = exp((-(opticalInfo.opticalDepth + scatterData.opticalDepth))); // exp(-t(PPc, lambda)-t(PPa, lambda))
-                    scatterData.inScatteredLight += opticalInfo.scatterCoeffs * opticalInfo.opticalDensity * transmittance * opticalInfo.occlusionFactor * stepSize;
+                    scatterData.inScatteredLight += opticalInfo.occlusionFactor * stepSize * opticalInfo.scatterCoeffs * opticalInfo.opticalDensity * transmittance;
                     scatterData.opticalDepth += opticalInfo.scatterCoeffs * opticalInfo.opticalDensity * stepSize;
                     scatterData.extinction += opticalInfo.extinctionCoeff * opticalInfo.opticalDensity * stepSize;
-                    inScatterPoint += rayDir * stepSize;
                 }
                 return scatterData;
             }
