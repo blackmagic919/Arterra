@@ -13,87 +13,107 @@ MonoBehaviour:
   m_Name: DefaultOptions
   m_EditorClassIdentifier: 
   seed: 0
-  Rendering:
-    value: {fileID: 11400000, guid: 20f244f85582c4ac2858ece976b58a49, type: 2}
-    isDirty: 0
-  Biomes:
-    value: {fileID: 11400000, guid: a50efbb6521ad475786885000f19947c, type: 2}
-    isDirty: 0
-  Structures:
+  Quality:
     value:
-    - value: {fileID: 11400000, guid: 223a31f324fab4c83ab64f10979b618f, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: db047a8eca3694f298f672e5fb810709, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: 5cf56ca1d2b1e4adf950b740e522c47e, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: c393766b615194cf983fec462dae4706, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: ebcb9324d40584b2b98158e9ad1832f2, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: f57a3ff4c55b74f3181b05d46c96e6aa, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: 49bbfac31bd4d49bda439a6be79dd6c3, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: b0b24da144a9e49cb82c871e70f40ad3, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: 3b15969d5cb414c4c8bccb5c0bbe68b8, type: 2}
-      isDirty: 0
+      Atmosphere:
+        value: {fileID: 11400000, guid: 871b8f4841c1e455f9f0e07616307f87, type: 2}
+        isDirty: 0
+      Rendering:
+        value: {fileID: 11400000, guid: 20f244f85582c4ac2858ece976b58a49, type: 2}
+        isDirty: 0
+      GeoShaders:
+        value: {fileID: 11400000, guid: 91b568ecd9e304c998bf7c49cf668984, type: 2}
+        isDirty: 0
+      Memory:
+        value: {fileID: 11400000, guid: 743280fd1911d428e99f1d63657bfdaf, type: 2}
+        isDirty: 0
     isDirty: 0
-  Entities:
+  Generation:
     value:
-    - value: {fileID: 11400000, guid: 638124de4470742c79535a5f0092eb27, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: 74688da9677534740874b306e18e916d, type: 2}
-      isDirty: 0
+      Noise:
+        value:
+        - value: {fileID: 11400000, guid: 1b8dfa9e7f67f40ceae6a82733b8c9fd, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: e03d286ba66aa46238fedf83be699d0b, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: 59376b1bd76944978a461173821c7078, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: 7cfb22d5ff9cf40f1a397544e3c84704, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: 9c045f93b50334808b6154737c67175b, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: 1a8cb70f57d0f4d0aa53c6806a8d38f1, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: 4cfde776cdfbf4e21b8e32f76d99eb95, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: d7d6a8b31e97345e48f8fe95e523f5be, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: 9b2a2490aae0a404db8553ff56a7d66b, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: 06bcbe453e4ae4863ae0cd8a454b2940, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: 1215862d59a644ecdb716b81d2f64c7f, type: 2}
+          isDirty: 0
+        isDirty: 0
+      Terrain:
+        value: {fileID: 11400000, guid: fc195e1f82d9f4b2c99d80b428b8935f, type: 2}
+        isDirty: 0
+      Surface:
+        value: {fileID: 11400000, guid: 9fe9d4253698c402d8b2f4c56d0eb093, type: 2}
+        isDirty: 0
+      Biomes:
+        value: {fileID: 11400000, guid: a50efbb6521ad475786885000f19947c, type: 2}
+        isDirty: 0
+      Structures:
+        value:
+        - value: {fileID: 11400000, guid: 223a31f324fab4c83ab64f10979b618f, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: db047a8eca3694f298f672e5fb810709, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: 5cf56ca1d2b1e4adf950b740e522c47e, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: c393766b615194cf983fec462dae4706, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: ebcb9324d40584b2b98158e9ad1832f2, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: f57a3ff4c55b74f3181b05d46c96e6aa, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: 49bbfac31bd4d49bda439a6be79dd6c3, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: b0b24da144a9e49cb82c871e70f40ad3, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: 3b15969d5cb414c4c8bccb5c0bbe68b8, type: 2}
+          isDirty: 0
+        isDirty: 0
+      Materials:
+        value: {fileID: 11400000, guid: 68574011324274a58acce0da69b5d4f7, type: 2}
+        isDirty: 0
+      Entities:
+        value:
+        - value: {fileID: 11400000, guid: 638124de4470742c79535a5f0092eb27, type: 2}
+          isDirty: 0
+        - value: {fileID: 11400000, guid: 74688da9677534740874b306e18e916d, type: 2}
+          isDirty: 0
+        isDirty: 0
     isDirty: 0
-  Materials:
-    value: {fileID: 11400000, guid: 68574011324274a58acce0da69b5d4f7, type: 2}
-    isDirty: 0
-  Noise:
+  GamePlay:
     value:
-    - value: {fileID: 11400000, guid: 1b8dfa9e7f67f40ceae6a82733b8c9fd, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: e03d286ba66aa46238fedf83be699d0b, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: 59376b1bd76944978a461173821c7078, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: 7cfb22d5ff9cf40f1a397544e3c84704, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: 9c045f93b50334808b6154737c67175b, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: 1a8cb70f57d0f4d0aa53c6806a8d38f1, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: 4cfde776cdfbf4e21b8e32f76d99eb95, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: d7d6a8b31e97345e48f8fe95e523f5be, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: 9b2a2490aae0a404db8553ff56a7d66b, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: 06bcbe453e4ae4863ae0cd8a454b2940, type: 2}
-      isDirty: 0
-    - value: {fileID: 11400000, guid: 1215862d59a644ecdb716b81d2f64c7f, type: 2}
-      isDirty: 0
-    isDirty: 0
-  GeoShaders:
-    value: {fileID: 11400000, guid: 91b568ecd9e304c998bf7c49cf668984, type: 2}
-    isDirty: 0
-  Terrain:
-    value: {fileID: 11400000, guid: fc195e1f82d9f4b2c99d80b428b8935f, type: 2}
-    isDirty: 0
-  Surface:
-    value: {fileID: 11400000, guid: 9fe9d4253698c402d8b2f4c56d0eb093, type: 2}
-    isDirty: 0
-  Memory:
-    value: {fileID: 11400000, guid: 743280fd1911d428e99f1d63657bfdaf, type: 2}
-    isDirty: 0
-  Terraforming:
-    value:
-      terraformRadius: 2
-      terraformSpeed: 200
-      maxTerraformDistance: 60
-      materialCapacity: 51000
-      minInvMatThresh: 1
+      Terraforming:
+        value:
+          terraformRadius: 5
+          terraformSpeed: 4
+          maxTerraformDistance: 60
+          materialCapacity: 51000
+          minInvMatThresh: 1
+        isDirty: 0
+      Movement:
+        value:
+          GroundFriction: 0.05
+          runSpeed: 10
+          jumpForce: 8
+          acceleration: 50
+          groundStickDist: 0.05
+        isDirty: 0
     isDirty: 0
   ReadBackSettings:
     value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}

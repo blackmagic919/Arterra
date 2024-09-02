@@ -5,21 +5,14 @@
 #include "Assets/Resources/Utility/GetIndex.hlsl"
 #include "Assets/Resources/MapData/WSDensitySampler.hlsl"
 
-struct OpticalInfo{
-    float opticalDensity;
-    float occlusionFactor;
-    float3 scatterCoeffs;
-    float3 extinctionCoeff;
-    float3 opticalDepth;
+struct ScatterData{
+    float3 inScatteredLight;
+    float3 extinction;
 };
 
-struct RayInfo{
-    float3 direction;
-    float2 length;
-};
-
-RWStructuredBuffer<OpticalInfo> mapData;
-StructuredBuffer<RayInfo> rayInfo;
+RWStructuredBuffer<ScatterData> mapData;
+RWStructuredBuffer<uint> treeLocks;
+StructuredBuffer<float3> rayInfo;
 uint screenHeight;
 uint screenWidth;
 
@@ -62,22 +55,22 @@ float calculateOcclusionFactor(float3 rayOrigin, float3 rayDir, float rayLength)
 }
 
 OpticalInfo CumulativeMapInfo(float3 rayOrigin, float3 rayDir, float rayLength){
-    float3 densitySamplePoint = rayOrigin;
+    float3 densitySamplePoint = rayOrigin; 
     float stepSize = rayLength / (_NumOpticalDepthPoints - 1);
     OpticalInfo info = (OpticalInfo)0;
     for(uint i = 0; i < _NumOpticalDepthPoints; i++){
-        SurMapData sampleData = SampleMapData(densitySamplePoint);
+        OpticalInfo sampleData = SampleMapData(densitySamplePoint);
 
-        info.opticalDensity += GetDensity(sampleData) / _IsoLevel;
-        info.scatterCoeffs += GetScatterCoeffs(sampleData);
-        info.extinctionCoeff += GetExtinction(sampleData);
+        info.opticalDensity += sampleData.opticalDensity / (_IsoLevel * 255.0f);
+        info.scatterCoeffs += sampleData.scatterCoeffs;
+        info.extinctionCoeff += sampleData.extinctionCoeff;
 
         densitySamplePoint += rayDir * stepSize;
     }
-    info.opticalDensity /= (_NumOpticalDepthPoints-1);
-    info.scatterCoeffs /= (_NumOpticalDepthPoints-1);
-    info.extinctionCoeff /= (_NumOpticalDepthPoints-1);
-    info.occlusionFactor = calculateOcclusionFactor(rayOrigin, rayDir, rayLength);
+    info.opticalDensity /= _NumOpticalDepthPoints;
+    info.scatterCoeffs /= _NumOpticalDepthPoints;
+    info.extinctionCoeff /= _NumOpticalDepthPoints;
+    info.scatterCoeffs *= calculateOcclusionFactor(rayOrigin, rayDir, rayLength);
     
     return info;
 }
@@ -88,14 +81,35 @@ float3 opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
     float3 opticalDepth = 0;
 
     for(uint i = 0; i < _NumOpticalDepthPoints; i++){
-        SurMapData mapData = SampleMapData(densitySamplePoint);
-        float localDensity = GetDensity(mapData) / _IsoLevel;
-        float3 localScatterCoeffs = GetScatterCoeffs(mapData);
-        opticalDepth += localScatterCoeffs * localDensity * stepSize;
+        OpticalDepth mapData = SampleOpticalDepth(densitySamplePoint);
+        opticalDepth += mapData.scatterCoeffs * (mapData.opticalDensity / (_IsoLevel * 255.0f)) * stepSize;
         densitySamplePoint += rayDir * stepSize;
     }
 
     return opticalDepth;
+}
+
+void ConstructSampleTree(ScatterData cNode, uint pixelIndex, uint depth){
+    depth += _NumInScatterPoints; uint parent = depth >> 1;
+    uint numTreeLocks = ceil(_NumInScatterPoints / 32.0f);
+    uint lockHandle = 0xFFFFFFFF;
+
+    //Parallel Binary Index Tree Construction
+    while(depth != 0){//>> 5 means / 32
+        uint lockIndex = pixelIndex * numTreeLocks + (parent >> 5);
+        uint texelIndex = pixelIndex * _NumInScatterPoints * 2 + depth;
+        mapData[texelIndex] = cNode;
+
+        InterlockedXor(treeLocks[lockIndex], 1 << (parent & 0x1F), lockHandle);
+        if((lockHandle >> (parent & 0x1F)) & 0x1 == 0) return; 
+        //If lock bit is 0, its sibling is second and has not completed yet
+        //If lock bit is 1, its sibling is first, so we can safely access it 
+
+        ScatterData sibling = mapData[texelIndex ^ 0x1];
+        cNode.inScatteredLight += sibling.inScatteredLight;
+        cNode.extinction += sibling.extinction;
+        depth >>= 1; parent >>= 1;
+    }
 }
 
 
@@ -111,17 +125,21 @@ void Bake (uint3 id : SV_DispatchThreadID)
         return;
     
     uint pixelIndex = indexFromCoord2DManual(viewX, viewY, screenHeight);
-    RayInfo rInfo = rayInfo[pixelIndex];
+    float3 direction = rayInfo[pixelIndex];
 
-    float3 rayOrigin = _WorldSpaceCameraPos + rInfo.direction * rInfo.length.x;
-    float stepSize = rInfo.length.y / (_NumInScatterPoints - 1);
-    float3 inScatterPoint = rayOrigin + rInfo.direction * stepSize * depth;
+    float stepSize = _AtmosphereRadius / (_NumInScatterPoints - 1);
+    float3 inScatterPoint = _WorldSpaceCameraPos + direction * stepSize * depth;
+    float sunRayLength = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, inScatterPoint, _LightDirection).y; 
 
-    OpticalInfo opticalInfo = CumulativeMapInfo(inScatterPoint, rInfo.direction, stepSize); 
+    ScatterData scatterData = (ScatterData)0;
+    OpticalInfo opticalInfo = CumulativeMapInfo(inScatterPoint, direction, stepSize); 
 
-    float sunRayLength = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, inScatterPoint, _LightDirection).y;    
-    opticalInfo.opticalDepth = opticalDepth(inScatterPoint, _LightDirection, sunRayLength);
-
-    uint texelIndex = indexFromCoordIrregular(viewX, viewY, depth, screenHeight, _NumInScatterPoints);
-    mapData[texelIndex] = opticalInfo;
+    //Calculate Scatter Data
+    float3 sunDepth = opticalDepth(inScatterPoint, _LightDirection, sunRayLength);
+    float3 cameraDepth = opticalDepth(inScatterPoint, -direction, stepSize * depth); 
+    float3 transmittance =  exp(-(sunDepth + cameraDepth)); // exp(-t(PPc, lambda)-t(PPa, lambda)) 
+    scatterData.inScatteredLight = opticalInfo.scatterCoeffs * opticalInfo.opticalDensity * transmittance;
+    scatterData.extinction = opticalInfo.extinctionCoeff * opticalInfo.opticalDensity;
+   
+    ConstructSampleTree(scatterData, pixelIndex, depth);
 }

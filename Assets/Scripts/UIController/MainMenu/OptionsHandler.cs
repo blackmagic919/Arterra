@@ -78,6 +78,7 @@ public class OptionsHandler : MonoBehaviour
         foreach(Transform child in content.transform){ 
             if(child.gameObject.name.Contains("Option")) Destroy(child.gameObject); 
         }
+        content.GetComponent<VerticalLayoutGroup>().padding.left = 0;
     }
 
 
@@ -100,6 +101,7 @@ public class OptionsHandler : MonoBehaviour
         });
 
         CreateOptionDisplay(WORLD_OPTIONS, infoContent, (ChildUpdate cb) => { object wo = WORLD_OPTIONS; cb.Invoke(ref wo);});
+        infoContent.GetComponent<VerticalLayoutGroup>().padding.left = 0;
     }
 
     private static void SetUpLayout(GameObject content){
@@ -108,6 +110,8 @@ public class OptionsHandler : MonoBehaviour
         if(layout == null) layout = content.AddComponent<VerticalLayoutGroup>();
         if(filter == null) filter = content.AddComponent<ContentSizeFitter>();
         layout.childControlHeight = false;
+        layout.childControlWidth = false;
+        layout.padding.left = 25;
         layout.childAlignment = TextAnchor.UpperCenter;
         filter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
     }
@@ -127,7 +131,6 @@ public class OptionsHandler : MonoBehaviour
             GameObject newOption = Instantiate(Resources.Load<GameObject>("Prefabs/Option"), content.transform);
             RectTransform transform = newOption.GetComponent<RectTransform>();
             newOption.GetComponent<TextMeshProUGUI>().text = field.Name;
-            
             //Extract the value of the option
             //cObject is the Option Field(value type)
             //setting is the class containing the option
@@ -236,7 +239,7 @@ public class OptionsHandler : MonoBehaviour
                 buttonField.onClick.AddListener(() => {
                     isOpen = !isOpen;
                     if(isOpen) CreateOptionDisplay(cValue, parent, ChildRequest);
-                    else { ReleaseDisplay(parent); }
+                    else ReleaseDisplay(parent);
                     ForceLayoutRefresh(parent.transform);
                 });
                 break;

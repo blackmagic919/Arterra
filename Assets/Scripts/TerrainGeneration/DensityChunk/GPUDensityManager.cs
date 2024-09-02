@@ -21,7 +21,7 @@ public static class GPUDensityManager
     public static void Initialize()
     {
         Release();
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
         dictReplaceKey = Resources.Load<ComputeShader>("MapData/ReplaceDictChunk");
         transcribeMapInfo = Resources.Load<ComputeShader>("MapData/TranscribeMapInfo");
         simplifyMap = Resources.Load<ComputeShader>("MapData/DensitySimplificator");

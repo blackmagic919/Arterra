@@ -31,7 +31,7 @@ public class TerrainChunk : ChunkData
     public TerrainChunk(int3 coord, Transform parent, SurfaceChunk surfaceChunk)
     {
         CCoord = coord;
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
         position = CustomUtility.AsVector(coord) * rSettings.mapChunkSize;
         origin = position - Vector3.one * (rSettings.mapChunkSize / 2f); //Shift mesh so it is aligned with center
         this.detailLevels = rSettings.detailLevels.value;
@@ -58,7 +58,7 @@ public class TerrainChunk : ChunkData
     }
 
     private uint ChunkDist3D(float3 GCoord){
-        int chunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
+        int chunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
         float3 cPt = math.clamp(GCoord, CCoord * chunkSize, (CCoord + 1) * chunkSize);
         float3 cDist = math.abs(cPt - GCoord);
         //We add 0.5 because normally this returns an odd number, but even numbers have better cubes

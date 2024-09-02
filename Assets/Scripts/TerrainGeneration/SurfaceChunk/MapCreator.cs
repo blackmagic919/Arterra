@@ -60,13 +60,13 @@ public class SurfaceCreator
     const uint SURFDATA_STRIDE_4BYTE = 6;   
     public void SampleSurfaceMaps(Vector2 offset, int LOD){
         int meshSkipInc = meshSkipTable[LOD];
-        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
+        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
         SampleSurfaceData(offset, mapChunkSize, meshSkipInc);
     }
 
     public uint StoreSurfaceMap(int LOD)
     {
-        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
+        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxes = mapChunkSize / meshSkipInc;
         int numOfPoints = numPointsAxes * numPointsAxes;

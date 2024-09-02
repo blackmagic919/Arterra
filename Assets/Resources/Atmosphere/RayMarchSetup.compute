@@ -6,12 +6,7 @@
 
 #include "Assets/Resources/Utility/GetIndex.hlsl"
 
-struct RayInfo{
-    float3 direction;
-    float2 length;
-};
-
-RWStructuredBuffer<RayInfo> rayInfo;
+RWStructuredBuffer<float3> rayInfo;
 
 float _AtmosphereRadius;
 
@@ -46,19 +41,10 @@ void Bake (uint3 id : SV_DispatchThreadID)
     if(screenX >= screenWidth || screenY >= screenHeight)
         return;
     
-    RayInfo rInfo;
     float2 screenUV = id.xy / float2(screenWidth-1, screenHeight-1);
     float3 viewVectorCS = mul(unity_CameraInvProjection, float4(screenUV * 2 - 1, 0, -1)).xyz;
-    rInfo.direction = mul(unity_CameraToWorld, float4(viewVectorCS, 0)).xyz; //viewVectorWS
-
-    //float screenDepth = _CameraDepthTexture[screenUV * _ScreenParams.xy].r; 
-    //float linearDepth = LinearEyeDepth(screenDepth, _ZBufferParams) * length(rayDir);
-
-    float3 rayOrigin = _WorldSpaceCameraPos;
-
-    rInfo.length = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, rayOrigin, rInfo.direction);
-    //dstThroughAtmosphere = min(dstThroughAtmosphere, linearDepth-dstToAtmosphere);
+    float3 direction = normalize(mul(unity_CameraToWorld, float4(viewVectorCS, 0)).xyz); //viewVectorWS
     
     uint pixelIndex = indexFromCoord2DManual(screenX, screenY, screenHeight);
-    rayInfo[pixelIndex] = rInfo; 
+    rayInfo[pixelIndex] = direction; 
 }

@@ -10,14 +10,9 @@ Influences GetTextureInfluences(float3 UVZ){ //z = depth
     return GetBlendInfo(fixedUVZ);
 }
 
-uint GetTextureIndex(uint3 mapCoord){
-    mapCoord = min(mapCoord, uint3(SampleTextureWidth - 1, SampleTextureHeight - 1, SampleDepth - 1));
-    return indexFromCoordIrregular(mapCoord, uint2(SampleTextureHeight, SampleDepth));
-}
-
 uint GetTextureIndex(uint2 sampleCoord, uint depth){
-    uint3 mapCoord = min(uint3(sampleCoord, depth), uint3(SampleTextureWidth - 1, SampleTextureHeight - 1, SampleDepth - 1));
-    return indexFromCoordIrregular(mapCoord, uint2(SampleTextureHeight, SampleDepth));
+    uint3 mapCoord = min(uint3(sampleCoord, depth), uint3(SampleTextureWidth - 1, SampleTextureHeight - 1, 2 * SampleDepth - 1));
+    return indexFromCoordIrregular(mapCoord, uint2(SampleTextureHeight, 2 * SampleDepth));
 }
 
 Influences2D GetLookupBlend(float2 UV){

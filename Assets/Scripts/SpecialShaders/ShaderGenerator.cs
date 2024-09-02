@@ -52,7 +52,7 @@ public class ShaderGenerator
 
 
     public static void PresetData(){
-        int maxChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
+        int maxChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
         int numPointsPerAxis = maxChunkSize + 1;
         int numOfTris = (numPointsPerAxis - 1) * (numPointsPerAxis - 1) * (numPointsPerAxis - 1) * 5;
         /* Gen Buffer Organization
@@ -96,7 +96,7 @@ public class ShaderGenerator
 
     public ShaderGenerator(Transform transform, Bounds boundsOS)
     {
-        this.settings = WorldStorageHandler.WORLD_OPTIONS.GeoShaders.value;
+        this.settings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.GeoShaders.value;
         this.transform = transform;
         this.shaderBounds = CustomUtility.TransformBounds(transform, boundsOS);
         this.shaderUpdateTasks = new ShaderUpdateTask[this.settings.shaderDictionary.value.Count];

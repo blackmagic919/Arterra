@@ -36,9 +36,9 @@ public class TerraformController
     {
         cam = Camera.main.transform;
         barController = UnityEngine.Object.FindAnyObjectByType<MaterialBarController>();
-        IsoLevel = Mathf.RoundToInt(WorldStorageHandler.WORLD_OPTIONS.Rendering.value.IsoLevel * 255);
+        IsoLevel = Mathf.RoundToInt(WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.IsoLevel * 255);
         barController.OnInventoryChanged(this);
-        settings = WorldStorageHandler.WORLD_OPTIONS.Terraforming.value;
+        settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.value.Terraforming.value;
     }
 
     public void Update()

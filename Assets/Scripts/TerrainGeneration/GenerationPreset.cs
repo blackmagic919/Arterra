@@ -53,7 +53,7 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            TextureData data = WorldStorageHandler.WORLD_OPTIONS.Materials.value;
+            TextureData data = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Materials.value;
             List<Option<MaterialData> > MaterialDictionary = data.MaterialDictionary.value;
             int numMats = MaterialDictionary.Count;
             terrainData = new ComputeBuffer(numMats, sizeof(float) * 6 + sizeof(int), ComputeBufferType.Structured);
@@ -101,7 +101,7 @@ public static class GenerationPreset
         
         public void Initialize(){
             Release();
-            List<Option<NoiseData> > samplerDict = WorldStorageHandler.WORLD_OPTIONS.Noise.value;
+            List<Option<NoiseData> > samplerDict = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Noise.value;
             uint[] indexPrefixSum = new uint[(samplerDict.Count + 1) * 2];
             NoiseSettings[] settings = new NoiseSettings[samplerDict.Count];
             List<Vector3> offsets = new List<Vector3>();
@@ -175,7 +175,7 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            List<Option<BiomeInfo> > biomes = WorldStorageHandler.WORLD_OPTIONS.Biomes.value.biomes.value;
+            List<Option<BiomeInfo> > biomes = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Biomes.value.biomes.value;
             int numBiomes = biomes.Count;
             uint4[] biomePrefSum = new uint4[numBiomes + 1]; //Prefix sum
             float[] atmosphereData = new float[numBiomes];
@@ -237,7 +237,7 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            List<Option<StructureData> > StructureDictionary = WorldStorageHandler.WORLD_OPTIONS.Structures.value;
+            List<Option<StructureData> > StructureDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Structures.value;
             uint[] indexPrefixSum = new uint[(StructureDictionary.Count+1)*2];
             List<StructureData.PointInfo> map = new List<StructureData.PointInfo>();
             List<StructureData.CheckPoint> checks = new List<StructureData.CheckPoint>();
@@ -294,7 +294,7 @@ public static class GenerationPreset
         {
             Release();
 
-            List<Option<EntityAuthoring> > EntityDictionary = WorldStorageHandler.WORLD_OPTIONS.Entities.value;
+            List<Option<EntityAuthoring> > EntityDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Entities.value;
             int numEntities = EntityDictionary.Count;
             Entity.Info.ProfileInfo[] entityInfo = new Entity.Info.ProfileInfo[numEntities];
             List<uint2> entityProfile = new List<uint2>();
@@ -337,7 +337,7 @@ public static class GenerationPreset
         {
             if(initialized) Release();
 
-            MemoryBufferSettings settings = WorldStorageHandler.WORLD_OPTIONS.Memory.value;
+            MemoryBufferSettings settings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Memory.value;
             HeapSetupShader = Resources.Load<ComputeShader>("MemoryStructures/Heap/PrepareHeap");
             AllocateShader = Resources.Load<ComputeShader>("MemoryStructures/Heap/AllocateData");
             DeallocateShader = Resources.Load<ComputeShader>("MemoryStructures/Heap/DeallocateData");
@@ -364,7 +364,7 @@ public static class GenerationPreset
 
         void PrepareMemory()
         {
-            MemoryBufferSettings settings = WorldStorageHandler.WORLD_OPTIONS.Memory.value;
+            MemoryBufferSettings settings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Memory.value;
             HeapSetupShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
             HeapSetupShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
             HeapSetupShader.SetInt("_BufferSize4Bytes", settings._BufferSize4Bytes);

@@ -34,7 +34,7 @@ public class EndlessTerrain : MonoBehaviour
         GenerationPreset.Initialize();
         UtilityBuffers.Initialize();
 
-        rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
         chunksVisibleInViewDistance = rSettings.detailLevels.value[^1].chunkDistThresh;
 
         ChunkStorageManager.Initialize();

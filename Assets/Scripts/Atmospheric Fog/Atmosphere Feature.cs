@@ -7,7 +7,6 @@ public class AtmosphereFeature : ScriptableRendererFeature
     public class PassSettings
     {
         public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
-        public AtmosphereBake luminanceBake;
     }
 
 

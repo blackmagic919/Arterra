@@ -33,7 +33,7 @@ public struct LODMesh
         this.detailLevels = detailLevels;
         this.clearMesh = clearMesh;
 
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
         this.IsoLevel = rSettings.IsoLevel;
         this.mapChunkSize = rSettings.mapChunkSize;
     }

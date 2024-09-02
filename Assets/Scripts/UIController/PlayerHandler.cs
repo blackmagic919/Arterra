@@ -22,6 +22,7 @@ public class PlayerHandler : MonoBehaviour
 
         info = LoadPlayerData();
         transform.SetPositionAndRotation(info.position.GetVector(), info.rotation.GetQuaternion());
+        PlayerController.Initialize(WorldStorageHandler.WORLD_OPTIONS.GamePlay.value.Movement.value);
         this.terrController.MainInventory = info.inventory;
         this.terrController.Activate();
     }
@@ -61,9 +62,9 @@ public class PlayerHandler : MonoBehaviour
         string path = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
         if(!File.Exists(path)) {
             return new PlayerData{
-                position = new Vec3((new Vector3(0, 0, 0) + Vector3.up * (CPUNoiseSampler.SampleTerrainHeight(new (0, 0, 0)) + 5)) * WorldStorageHandler.WORLD_OPTIONS.Rendering.value.lerpScale),
+                position = new Vec3((new Vector3(0, 0, 0) + Vector3.up * (CPUNoiseSampler.SampleTerrainHeight(new (0, 0, 0)) + 5)) * WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.lerpScale),
                 rotation = new Vec4(Quaternion.LookRotation(Vector3.forward, Vector3.up)),
-                inventory = new MaterialInventory(WorldStorageHandler.WORLD_OPTIONS.Terraforming.value.materialCapacity)
+                inventory = new MaterialInventory(WorldStorageHandler.WORLD_OPTIONS.GamePlay.value.Terraforming.value.materialCapacity)
             };
         }
 

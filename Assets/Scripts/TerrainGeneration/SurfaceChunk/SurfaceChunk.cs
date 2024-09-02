@@ -16,7 +16,7 @@ public class SurfaceChunk : ChunkData
     public SurfaceChunk(int2 coord)
     {
         this.SCoord = coord;
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
         this.position = CustomUtility.AsVector(coord) * rSettings.mapChunkSize - Vector2.one * (rSettings.mapChunkSize / 2f);
         baseMap = new BaseMap(position);
 

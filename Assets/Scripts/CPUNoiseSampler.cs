@@ -8,14 +8,14 @@ public static class CPUNoiseSampler
 {
 
     public static float SampleTerrainHeight(float3 pos){
-        List<Option<NoiseData> > NoiseDict = WorldStorageHandler.WORLD_OPTIONS.Noise.value;
-        SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.Surface.value;
+        List<Option<NoiseData> > NoiseDict = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Noise.value;
+        SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Surface.value;
 
         float PVNoise = SampleNoise(NoiseDict[surface.TerrainPVDetail].value, pos.xz) * 2 - 1;
         float continental = SampleNoise(NoiseDict[surface.TerrainContinentalDetail].value, pos.xz);
         float erosion = SampleNoise(NoiseDict[surface.TerrainErosionDetail].value, pos.xz);
         float terrainHeight = (continental + PVNoise * erosion) * surface.MaxTerrainHeight + surface.terrainOffset;
-
+        
         return terrainHeight;
     }
 

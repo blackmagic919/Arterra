@@ -26,17 +26,34 @@ public sealed class UIgnore : Attribute{}
 [CreateAssetMenu(menuName = "Generation/WorldOptions")]
 public class WorldOptions : ScriptableObject{
     public int seed;
-    public Option<RenderSettings> Rendering;
-    public Option<BiomeGenerationData> Biomes;
-    public Option<List<Option<StructureData> > > Structures;
-    public Option<List<Option<EntityAuthoring> > > Entities;
-    public Option<TextureData> Materials;
-    public Option<List<Option<NoiseData> > > Noise;
-    public Option<GeneratorSettings> GeoShaders;
-    public Option<MeshCreatorSettings> Terrain;
-    public Option<SurfaceCreatorSettings> Surface;
-    public Option<MemoryBufferSettings> Memory;
-    public Option<TerraformSettings> Terraforming;
+    public Option<QualitySettings> Quality;
+    public Option<GenerationSettings> Generation;
+    public Option<GamePlaySettings> GamePlay;
+
+    [Serializable]
+    public struct QualitySettings{
+        public Option<AtmosphereBake> Atmosphere;
+        public Option<RenderSettings> Rendering;
+        public Option<GeneratorSettings> GeoShaders;
+        public Option<MemoryBufferSettings> Memory;
+    }
+
+    [Serializable]
+    public struct GenerationSettings{
+        public Option<List<Option<NoiseData> > > Noise;
+        public Option<MeshCreatorSettings> Terrain;
+        public Option<SurfaceCreatorSettings> Surface;
+        public Option<BiomeGenerationData> Biomes;
+        public Option<List<Option<StructureData> > > Structures;
+        public Option<TextureData> Materials;
+        public Option<List<Option<EntityAuthoring> > > Entities;
+    }
+
+    [Serializable]
+    public struct GamePlaySettings{
+        public Option<TerraformSettings> Terraforming;
+        public Option<RigidFPController.RigidFPControllerSettings> Movement;
+    }
 
     [UIgnore]
     public Option<ReadbackSettings> ReadBackSettings;

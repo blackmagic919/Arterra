@@ -88,10 +88,10 @@ public static class EntityManager
         Entity newEntity = new ();
         
         int entityId = EntityHandler.Length;
-        int mapSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
+        int mapSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
         
-        EntityAuthoring authoring = WorldStorageHandler.WORLD_OPTIONS.Entities.value[(int)genInfo.entityIndex].value;
+        EntityAuthoring authoring = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Entities.value[(int)genInfo.entityIndex].value;
         IEntity entityData = authoring.Entity;
         newEntity.info.profile = authoring.Info;
         newEntity.info.entityId = (uint)entityId;
@@ -131,7 +131,7 @@ public static class EntityManager
     }
 
     private static unsafe void ReleaseChunkEntities(int cHash){
-        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
+        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
         CPUDensityManager.ChunkMapInfo mapInfo = CPUDensityManager.AddressDict[cHash];
         if(!mapInfo.valid) return;
         int3 CCoord = mapInfo.CCoord;
@@ -149,7 +149,7 @@ public static class EntityManager
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
         Executor = new EntityJob{active = false};
 
-        int numPointsPerAxis = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize;
+        int numPointsPerAxis = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
         int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
 
         bufferOffsets = new EntityGenOffsets(0, numPoints, ENTITY_STRIDE_WORD);
@@ -307,9 +307,9 @@ public class EntityJob : UpdateTask{
             Profile = (uint2*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
             sTree = EntityManager.ESTree,
 
-            mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Rendering.value.mapChunkSize,
-            IsoValue = (int)Math.Round(WorldStorageHandler.WORLD_OPTIONS.Rendering.value.IsoLevel * 255.0),
-            gravity = Physics.gravity / WorldStorageHandler.WORLD_OPTIONS.Rendering.value.lerpScale,
+            mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize,
+            IsoValue = (int)Math.Round(WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.IsoLevel * 255.0),
+            gravity = Physics.gravity / WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.lerpScale,
             numChunksAxis = CPUDensityManager.numChunksAxis,
             deltaTime = Time.fixedDeltaTime
         };

@@ -13,7 +13,7 @@ public class AtmospherePass : ScriptableRenderPass
 #pragma warning disable 0618
     const string ProfilerTag = "Atmosphere Pass";
 
-    AtmosphereFeature.PassSettings passSettings;
+    AtmosphereBake AtmosphereSettings;
 
     RenderTargetIdentifier temporaryBuffer;
     RTHandle colorBuffer; RTHandle depthBuffer;
@@ -22,14 +22,11 @@ public class AtmospherePass : ScriptableRenderPass
     Material material;
 
     // It is good to cache the shader property IDs here.
-    static readonly int AtmosphereRadiusProperty = Shader.PropertyToID("_AtmosphereRadius");
-    static readonly int inScatterProperty = Shader.PropertyToID("_NumInScatterPoints");
     static bool initialized = false;
 
     // The constructor of the pass. Here you can set any material properties that do not need to be updated on a per-frame basis.
     public AtmospherePass(AtmosphereFeature.PassSettings passSettings)
     {
-        this.passSettings = passSettings;
         renderPassEvent = passSettings.renderPassEvent;
         initialized = false;
     }
@@ -37,20 +34,21 @@ public class AtmospherePass : ScriptableRenderPass
     public void Initialize(){
         if (material == null) material = CoreUtils.CreateEngineMaterial("Hidden/Fog");
 
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        AtmosphereSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Atmosphere.value;
         float atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * rSettings.detailLevels.value[^1].chunkDistThresh;
 
-        material.SetFloat(AtmosphereRadiusProperty, atmosphereRadius);
-        material.SetInt(inScatterProperty, passSettings.luminanceBake.NumInScatterPoints);
+        material.SetFloat("_AtmosphereRadius", atmosphereRadius);
+        material.SetInt("_NumInScatterPoints", AtmosphereSettings.NumInScatterPoints);
         GPUDensityManager.SetDensitySampleData(material);
-        passSettings.luminanceBake.Initialize(passSettings);
-        passSettings.luminanceBake.SetBakedData(material);
+        AtmosphereSettings.Initialize();
+        AtmosphereSettings.SetBakedData(material);
         initialized = true;
     }
 
     public void Release(){
         if(material != null) UnityEngine.Object.Destroy(material);
-        passSettings.luminanceBake.ReleaseData();
+        if(AtmosphereSettings != null) AtmosphereSettings.ReleaseData();
         initialized = false;
     }
 
@@ -73,12 +71,12 @@ public class AtmospherePass : ScriptableRenderPass
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
         if(!initialized) return;
-        if(GPUDensityManager.initialized && passSettings.luminanceBake.initialized){
+        if(GPUDensityManager.initialized && AtmosphereSettings.initialized){
             CommandBuffer cmd = CommandBufferPool.Get();
             
             using (new ProfilingScope(cmd, new ProfilingSampler(ProfilerTag)))
             {
-                passSettings.luminanceBake.Execute(cmd);
+                AtmosphereSettings.Execute(cmd);
                 // Blit from the color buffer to a temporary buffer and back. This is needed for a two-pass shader.
                 cmd.SetGlobalTexture("_CameraDepthTexture", depthBuffer); //Make sure camera depth is available in shader
                 cmd.Blit(colorBuffer, temporaryBuffer, material, 0); // shader pass 0

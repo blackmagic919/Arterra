@@ -45,10 +45,8 @@ float3 opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
     float3 opticalDepth = 0;
 
     for(uint i = 0; i < _NumOpticalDepthPoints; i++){
-        SurMapData mapData = SampleMapData(densitySamplePoint);
-        float localDensity = GetDensity(mapData) / _IsoLevel;
-        float3 localScatterCoeffs = GetScatterCoeffs(mapData);
-        opticalDepth += localScatterCoeffs * localDensity * stepSize;
+        OpticalDepth mapData = SampleOpticalDepth(densitySamplePoint);
+        opticalDepth += mapData.scatterCoeffs * (mapData.opticalDensity / (_IsoLevel * 255.0f)) * stepSize;
         densitySamplePoint += rayDir * stepSize;
     }
 

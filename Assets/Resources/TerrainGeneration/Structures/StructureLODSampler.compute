@@ -56,7 +56,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     //Obtain random seed
     int3 chunkCoord = originChunkCoord - offsetCoord;
-    uint seed = Random(chunkCoord) + Random(LoD) + overlapOffset;
+    uint seed = (Random(chunkCoord) ^ Random(LoD)) + overlapOffset;
     uint numPoints = uint((numPoints0 * pow(abs(LoDFalloff), -LoD)) / chunkOverlap + RandomFloat(seed)); //Random to process fractional points 
 
     for(uint i = 0; i < numPoints; i++){
@@ -70,8 +70,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         InterlockedAdd(counter[bCOUNTER], 1u, appendInd);
         structures[appendInd + bSTART] = newStructure;
 
-        //Increment seed3 by one instead of random 
-        //so it's value is independent of the number of threads running it
         seed += chunkOverlap; 
     }
 }

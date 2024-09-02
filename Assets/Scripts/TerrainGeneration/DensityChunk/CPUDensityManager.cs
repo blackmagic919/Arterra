@@ -27,7 +27,7 @@ public static class CPUDensityManager
 
     public static void Intiialize(){
         Release();
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
         mapChunkSize = rSettings.mapChunkSize;
         lerpScale = rSettings.lerpScale;
 
