@@ -2457,11 +2457,12 @@ MonoBehaviour:
     smooth: 0
     smoothTime: 5
     lockCursor: 1
-  GroundFriction: 0.075
-  runSpeed: 10
-  jumpForce: 8
-  acceleration: 50
-  groundStickDist: 0.05
+  setting:
+    GroundFriction: 0.25
+    runSpeed: 10
+    jumpForce: 8
+    acceleration: 50
+    groundStickDist: 0.05
   active: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

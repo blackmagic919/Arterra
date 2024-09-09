@@ -8,6 +8,7 @@ using UnityEngine.Rendering;
 using Utils;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Linq;
+using System.IO;
 
 //Benefits of unified chunk map memory
 //1. No runtime allocation of native memory
@@ -23,6 +24,7 @@ public static class CPUDensityManager
     private static int numPoints;
     private static int mapChunkSize;
     private static float lerpScale;
+    private static uint IsoValue;
     private static bool initialized = false;
 
     public static void Intiialize(){
@@ -30,6 +32,7 @@ public static class CPUDensityManager
         RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
         mapChunkSize = rSettings.mapChunkSize;
         lerpScale = rSettings.lerpScale;
+        IsoValue = (uint)Math.Round(rSettings.IsoLevel * 255.0f);
 
         int numPointsAxis = mapChunkSize;
         numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
@@ -108,51 +111,89 @@ public static class CPUDensityManager
     }
 
     //Algorithm here -> http://www.cse.yorku.ca/~amana/research/grid.pdf
-    public static bool RayCastTerrain(float3 oGS, float3 rayDir, float rayLength, Func<MapData, bool> callback, out int3 GCoord){
-        GCoord = new (Mathf.FloorToInt(oGS.x), Mathf.FloorToInt(oGS.y), Mathf.FloorToInt(oGS.z));
-        int3 step = new ((int)Mathf.Sign(rayDir.x), (int)Mathf.Sign(rayDir.y), (int)Mathf.Sign(rayDir.z));
+    public static bool RayCastTerrain(float3 oGS, float3 rayDir, float rayLength, Func<int3, uint> callback, out float3 hit){
+        int3 step = (int3)math.sign(rayDir);
+        int3 GCoord = (int3)math.floor(oGS);
+        int3 sPlane = math.max(step, 0);
+        //If rayDir is negative, then GCoord is the next plane
+        //Otherwise GCoord + sPlane is the next plane
 
         float3 tDelta = 1.0f / math.abs(rayDir); float3 tMax = tDelta;
         tMax.x *= rayDir.x >= 0 ? 1 - (oGS.x - GCoord.x) : (oGS.x - GCoord.x);
         tMax.y *= rayDir.y >= 0 ? 1 - (oGS.y - GCoord.y) : (oGS.y - GCoord.y);
         tMax.z *= rayDir.z >= 0 ? 1 - (oGS.z - GCoord.z) : (oGS.z - GCoord.z);
 
+        uint density = 0;
+        uint nDensity = density;
+        hit = oGS; 
         do{
-            if(callback(SampleMap(GCoord))) //If the Raycast Hits
-                return true; 
-            //Test adjacent points
-            if(callback(SampleMap(GCoord + step * new int3(1, 0, 0)))){ 
-                GCoord += step * new int3(1, 0, 0);
-                return true; 
-            }
-            if(callback(SampleMap(GCoord + step * new int3(0, 1, 0)))){ 
-                GCoord += step * new int3(0, 1, 0);
-                return true; 
-            }
-            if(callback(SampleMap(GCoord + step * new int3(0, 0, 1)))){ 
-                GCoord += step * new int3(0, 0, 1);
-                return true; 
-            }
-
             if(tMax.x < tMax.y){
                 if(tMax.x < tMax.z){
                     tMax.x += tDelta.x;
+                    nDensity = GetRayPlaneIntersectionX(ref hit, rayDir, GCoord.x + sPlane.x, callback);
                     GCoord.x += step.x;
                 } else {
                     tMax.z += tDelta.z;
+                    nDensity = GetRayPlaneIntersectionZ(ref hit, rayDir, GCoord.z + sPlane.z, callback);
                     GCoord.z += step.z;
                 }
             } else {
                 if(tMax.y < tMax.z){
                     tMax.y += tDelta.y;
+                    nDensity = GetRayPlaneIntersectionY(ref hit, rayDir, GCoord.y + sPlane.y, callback);
                     GCoord.y += step.y;
                 } else {
                     tMax.z += tDelta.z;
+                    nDensity = GetRayPlaneIntersectionZ(ref hit, rayDir, GCoord.z + sPlane.z, callback);
                     GCoord.z += step.z;
                 }
             }
+
+            if(nDensity >= IsoValue){ 
+                float t = Mathf.InverseLerp(density, nDensity, IsoValue);
+                hit = oGS * (1 - t) + hit * t;
+                return true;
+            }
+
+            density = nDensity;
+            oGS = hit;
         } while(Mathf.Min(tMax.x, tMax.y, tMax.z) < rayLength);
         return false;
+    }
+
+    public static uint GetRayPlaneIntersectionX(ref float3 rayOrigin, float3 rayDir, int XPlane, Func<int3, uint> SampleMap){
+        float t = (XPlane - rayOrigin.x) / rayDir.x;
+        rayOrigin = new (XPlane, rayOrigin.y + t * rayDir.y, rayOrigin.z + t * rayDir.z);
+        return BilinearDensity(rayOrigin.y, rayOrigin.z, (int y, int z) => SampleMap(new int3(XPlane, y, z)));
+    }
+
+    public static uint GetRayPlaneIntersectionY(ref float3 rayOrigin, float3 rayDir, int YPlane, Func<int3, uint> SampleMap){
+        float t = (YPlane - rayOrigin.y) / rayDir.y;
+        rayOrigin = new (rayOrigin.x + t * rayDir.x, YPlane, rayOrigin.z + t * rayDir.z);
+        return BilinearDensity(rayOrigin.x, rayOrigin.z, (int x, int z) => SampleMap(new int3(x, YPlane, z)));
+    }
+
+    public static uint GetRayPlaneIntersectionZ(ref float3 rayOrigin, float3 rayDir, int ZPlane, Func<int3, uint> SampleMap){
+        float t = (ZPlane - rayOrigin.z) / rayDir.z;
+        rayOrigin = new (rayOrigin.x + t * rayDir.x, rayOrigin.y + t * rayDir.y, ZPlane);
+        return BilinearDensity(rayOrigin.x, rayOrigin.y, (int x, int y) => SampleMap(new int3(x, y, ZPlane)));
+    }
+
+    public static uint BilinearDensity(float x, float y, Func<int, int, uint> SampleMap){
+        int x0 = (int)Math.Floor(x); int x1 = x0 + 1;
+        int y0 = (int)Math.Floor(y); int y1 = y0 + 1;
+
+        uint c00 = SampleMap(x0, y0);
+        uint c10 = SampleMap(x1, y0);
+        uint c01 = SampleMap(x0, y1);
+        uint c11 = SampleMap(x1, y1);
+
+        float xd = x - x0;
+        float yd = y - y0;
+
+        float c0 = c00 * (1 - xd) + c10 * xd;
+        float c1 = c01 * (1 - xd) + c11 * xd;
+        return (uint)Math.Round(c0 * (1 - yd) + c1 * yd);
     }
 
     //Terraforming
@@ -165,12 +206,13 @@ public static class CPUDensityManager
         return sqrDstToBox < sphereRadius * sphereRadius;
     }
 
-    public static void Terraform(int3 tPointGS, int terraformRadius, Func<MapData, float, MapData> handleTerraform)
+    public static void Terraform(float3 tPointGS, int terraformRadius, Func<MapData, float, MapData> handleTerraform)
     {
-        int3 MCoord = ((tPointGS % mapChunkSize) + mapChunkSize) % mapChunkSize;
-        int3 CCoord = (tPointGS - MCoord) / mapChunkSize;
+        int3 tPointGSInt = (int3)math.floor(tPointGS);
+        int3 MCoord = ((tPointGSInt % mapChunkSize) + mapChunkSize) % mapChunkSize;
+        int3 CCoord = (tPointGSInt - MCoord) / mapChunkSize;
 
-        int chunkTerraformRadius = Mathf.CeilToInt(terraformRadius / (mapChunkSize * lerpScale));
+        int chunkTerraformRadius = Mathf.CeilToInt((terraformRadius+1) / (mapChunkSize * lerpScale));
         for(int x = -chunkTerraformRadius; x <= chunkTerraformRadius; x++)
         {
             for (int y = -chunkTerraformRadius; y <= chunkTerraformRadius; y++)
@@ -182,7 +224,7 @@ public static class CPUDensityManager
                     if (!terrainChunkDict.ContainsKey(viewedCC))
                         continue;
                     //For some reason terraformRadius itself isn't updating all the chunks properly
-                    if (SphereIntersectsBox((float3)tPointGS, terraformRadius+1, (float3)viewedCC * mapChunkSize, (mapChunkSize+1) * Vector3.one)) { 
+                    if (SphereIntersectsBox(tPointGS, terraformRadius+1, (float3)viewedCC * mapChunkSize, (mapChunkSize+1) * Vector3.one)) { 
                         TerraformChunk(viewedCC, tPointGS, terraformRadius, handleTerraform);
                     }
                 }
@@ -190,7 +232,7 @@ public static class CPUDensityManager
         }
     }
 
-    public static void TerraformChunk(int3 CCoord, int3 tPosGS, int terraformRadius, Func<MapData, float, MapData> handleTerraform)
+    public static void TerraformChunk(int3 CCoord, float3 tPosGS, int terraformRadius, Func<MapData, float, MapData> handleTerraform)
     {
         int cHash = HashCoord(CCoord);
         ChunkMapInfo mapInfo = AddressDict[cHash];
@@ -198,22 +240,23 @@ public static class CPUDensityManager
         if(!mapInfo.valid) return;
 
         tPosGS -= CCoord * mapChunkSize;  //Local Position
-        int3 mapPt = math.clamp(tPosGS, 0, mapChunkSize);
-        for (int x = -terraformRadius; x <= terraformRadius; x++)
+        float3 mapPt = math.clamp(tPosGS, 0, mapChunkSize);
+        int3 mapCoord = (int3)math.floor(mapPt);
+        for (int x = -terraformRadius; x <= terraformRadius + 1; x++)
         {
-            for (int y = -terraformRadius; y <= terraformRadius; y++)
+            for (int y = -terraformRadius; y <= terraformRadius + 1; y++)
             {
-                for (int z = -terraformRadius; z <= terraformRadius; z++)
+                for (int z = -terraformRadius; z <= terraformRadius + 1; z++)
                 {
-                    int3 vertPosition = new int3(x, y, z) + mapPt;
-                    if (Mathf.Max(vertPosition.x, vertPosition.y, vertPosition.z) > mapChunkSize)
+                    int3 vertPosition = new int3(x, y, z) + mapCoord;
+                    if (math.any(vertPosition > mapChunkSize))
                         continue;
-                    if (Mathf.Min(vertPosition.x, vertPosition.y, vertPosition.z) < 0)
+                    if (math.any(vertPosition < 0))
                         continue;
 
                     int index = CustomUtility.indexFromCoord(vertPosition.x, vertPosition.y, vertPosition.z, mapChunkSize);
 
-                    int3 dR = vertPosition - tPosGS;
+                    float3 dR = vertPosition - tPosGS;
                     float sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
                     float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
                     SectionedMemory[addressIndex + index] = handleTerraform(SectionedMemory[addressIndex + index], brushStrength);
@@ -242,7 +285,7 @@ public static class CPUDensityManager
         int memAddress = (int)memHandle.x;
         int meshSkipInc = (int)memHandle.y;
         
-        NativeArray<CPUDensityManager.MapData> dest = AccessChunk(chunkHash);
+        NativeArray<MapData> dest = AccessChunk(chunkHash);
         AsyncGPUReadback.RequestIntoNativeArray(ref dest, GPUDensityManager.Storage, size: 4 * numPoints, offset: 4 * memAddress);
 
         /*Currently broken because safety checks operate on the object level (i.e. SectionedMemory can only be read to one at a time)

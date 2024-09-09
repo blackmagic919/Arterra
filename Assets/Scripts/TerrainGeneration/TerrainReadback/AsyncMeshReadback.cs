@@ -382,7 +382,6 @@ public class AsyncMeshReadback
         {
             if (!active)
                 return;
-                
             //Offset in bytes = address * 4 args per address * 4 bytes per arg
             Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)argsAddress);
         }

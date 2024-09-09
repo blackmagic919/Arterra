@@ -11,14 +11,12 @@ public class TerrainChunk : ChunkData
 {
     public GameObject meshObject;
     public Vector3 origin;
-    public Vector3 position;
     public int3 CCoord;
     public Bounds boundsOS;
     public SurfaceChunk.BaseMap surfaceMap;
 
     readonly MeshRenderer meshRenderer;
     readonly MeshFilter meshFilter;
-    readonly MeshCollider meshCollider;
 
     readonly LODMesh LODMeshHandle;
     readonly List<LODInfo> detailLevels;
@@ -32,7 +30,7 @@ public class TerrainChunk : ChunkData
     {
         CCoord = coord;
         RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
-        position = CustomUtility.AsVector(coord) * rSettings.mapChunkSize;
+        Vector3 position = CustomUtility.AsVector(coord) * rSettings.mapChunkSize;
         origin = position - Vector3.one * (rSettings.mapChunkSize / 2f); //Shift mesh so it is aligned with center
         this.detailLevels = rSettings.detailLevels.value;
         this.surfaceMap = surfaceChunk.baseMap;
@@ -87,7 +85,7 @@ public class TerrainChunk : ChunkData
             //Therefore we need to call it directly to maintain it's on the same call-cycle as the rest of generation
             prevMapLOD = mapLoD;
         }
-        else RequestQueue.Enqueue(new EndlessTerrain.GenTask{
+        else RequestQueue.Enqueue(new GenTask{
             valid = () => this.prevMapLOD == mapLoD,
             task = onMapGenerated,
             load = 0,
@@ -105,7 +103,7 @@ public class TerrainChunk : ChunkData
         if(meshLoD != prevMeshLOD && meshLoD < detailLevels.Count){
             prevMeshLOD = meshLoD;
 
-            RequestQueue.Enqueue(new EndlessTerrain.GenTask{
+            RequestQueue.Enqueue(new GenTask{
                 valid = () => this.prevMeshLOD == meshLoD,
                 task = () => {LODMeshHandle.CreateMesh(meshLoD, onChunkCreated);}, 
                 load = taskLoadTable[(int)Utils.priorities.mesh]
@@ -122,6 +120,8 @@ public class TerrainChunk : ChunkData
         //I'm proud to say we're no longer relying on Unity's mesh collider
     }
 
+    /*
+    readonly MeshCollider meshCollider;
     private void BakeMesh(Mesh mesh){
         if(mesh == null) return;
         int meshID = mesh.GetInstanceID();
@@ -133,7 +133,7 @@ public class TerrainChunk : ChunkData
                 load = 0
             });
         });
-    }
+    }*/
     public override void UpdateVisibility(int3 CCCoord, float maxRenderDistance)
     {
         int3 distance = CCoord - CCCoord;

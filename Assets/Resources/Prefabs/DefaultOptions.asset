@@ -100,8 +100,8 @@ MonoBehaviour:
     value:
       Terraforming:
         value:
-          terraformRadius: 5
-          terraformSpeed: 4
+          terraformRadius: 2
+          terraformSpeed: 100
           maxTerraformDistance: 60
           materialCapacity: 51000
           minInvMatThresh: 1

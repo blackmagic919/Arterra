@@ -25,4 +25,4 @@ MonoBehaviour:
     isDirty: 0
   StructureChecksPerChunk: 1000
   LoDFalloff: 3
-  maxLoD: 1
+  maxLoD: 3

@@ -20,7 +20,7 @@ uint ReadMapData(int3 coord){
 
     uint2 chunkHandle = _AddressDict[HashCoord(sCCoord)];
     if(chunkHandle.x == 0 || chunkHandle.y > meshSkipInc) return 0; 
-    else{//
+    else{
     uint chunkResize = meshSkipInc / (float)chunkHandle.y;
     uint address = indexFromCoordManual(coord * chunkResize, numCubesPerAxis * chunkResize) * POINT_STRIDE_4BYTE + chunkHandle.x;
 

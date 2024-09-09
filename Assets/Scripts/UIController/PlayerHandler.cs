@@ -43,6 +43,7 @@ public class PlayerHandler : MonoBehaviour
         Task.Run(() => SavePlayerData(info));
         active = false;
     }
+    
 
     async Task SavePlayerData(PlayerData playerInfo){
         string path = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";

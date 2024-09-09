@@ -15,9 +15,8 @@ public class AtmospherePass : ScriptableRenderPass
 
     AtmosphereBake AtmosphereSettings;
 
-    RenderTargetIdentifier temporaryBuffer;
+    RTHandle temporaryBuffer;
     RTHandle colorBuffer; RTHandle depthBuffer;
-    int temporaryBufferID = Shader.PropertyToID("_TemporaryBuffer");
 
     Material material;
 
@@ -62,9 +61,7 @@ public class AtmospherePass : ScriptableRenderPass
         colorBuffer = renderingData.cameraData.renderer.cameraColorTargetHandle;
         //We need copy from depth buffer because transparent pass needs depth texture of opaque pass, and fog needs depth texture of transparent pass
         depthBuffer = renderingData.cameraData.renderer.cameraDepthTargetHandle; 
-
-        cmd.GetTemporaryRT(temporaryBufferID, descriptor, FilterMode.Bilinear);
-        temporaryBuffer = new RenderTargetIdentifier(temporaryBufferID);
+        temporaryBuffer = RTHandles.Alloc(descriptor, FilterMode.Bilinear);
     }
 
     // The actual execution of the pass. This is where custom rendering occurs.
@@ -97,6 +94,6 @@ public class AtmospherePass : ScriptableRenderPass
         if (cmd == null) throw new ArgumentNullException("cmd");
 
         // Since we created a temporary render texture in OnCameraSetup, we need to release the memory here to avoid a leak.
-        cmd.ReleaseTemporaryRT(temporaryBufferID);
+        temporaryBuffer?.Release();
     }
 }
