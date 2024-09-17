@@ -14,7 +14,7 @@ public class NoiseData : ScriptableObject
     public float persistance;
     public float lacunarity;
     public int seedOffset = 0;
-    [SerializeField][UIgnore][JsonIgnore]
+    [SerializeField][UISetting(Ignore = true)][JsonIgnore]
     public Option<AnimationCurve> interpolation;
 
     private void OnValidate()

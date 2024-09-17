@@ -124,13 +124,29 @@ public class OptionsHandler : MonoBehaviour
         SetUpLayout(content);
 
         for(int i = 0; i < fields.Length; i++){
-            if(Attribute.IsDefined(fields[i], typeof(UIgnore))) continue;
+            string name = fields[i].Name;
+            if(Attribute.IsDefined(fields[i], typeof(UISetting))){
+                UISetting UITag = Attribute.GetCustomAttribute(fields[i], typeof(UISetting)) as UISetting;
+                if(UITag.Ignore) continue;
+                if(UITag.Warning != null) {
+                    GameObject message = Instantiate(Resources.Load<GameObject>("Prefabs/Option_Warning"), content.transform);
+                    message.GetComponent<TextMeshProUGUI>().text = UITag.Warning;
+                }
+                if(UITag.Message != null) {
+                    GameObject message = Instantiate(Resources.Load<GameObject>("Prefabs/Option_Message"), content.transform);
+                    message.GetComponent<TextMeshProUGUI>().text = UITag.Message;
+                }
+                if(UITag.Alias != null){
+                    name = UITag.Alias;
+                }
+            } 
             
             System.Reflection.FieldInfo field = fields[i]; 
             object value = field.GetValue(setting); object cObject = setting; ParentUpdate nUpdate = OnUpdate;
             GameObject newOption = Instantiate(Resources.Load<GameObject>("Prefabs/Option"), content.transform);
             RectTransform transform = newOption.GetComponent<RectTransform>();
-            newOption.GetComponent<TextMeshProUGUI>().text = field.Name;
+            newOption.GetComponent<TextMeshProUGUI>().text = name;
+
             //Extract the value of the option
             //cObject is the Option Field(value type)
             //setting is the class containing the option

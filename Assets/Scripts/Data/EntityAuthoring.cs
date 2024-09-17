@@ -43,7 +43,7 @@ public unsafe struct Entity{
         [System.Serializable]
         public struct ProfileInfo{
             public uint3 bounds;
-            [HideInInspector][UIgnore][JsonIgnore]
+            [HideInInspector][UISetting(Ignore = true)][JsonIgnore]
             public uint profileStart;
         }
     }

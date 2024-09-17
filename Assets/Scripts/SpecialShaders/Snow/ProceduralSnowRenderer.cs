@@ -14,9 +14,9 @@ public class ProceduralSnowRenderer : SpecialShader
         [Tooltip("How much to tesselate base mesh")]
         public uint tesselationFactor;//3
 
-        [Tooltip("The tesselation compute shader")][JsonIgnore][UIgnore]
+        [Tooltip("The tesselation compute shader")][JsonIgnore][UISetting(Ignore = true)]
         public Option<ComputeShader> tesselComputeShader;
-        [JsonIgnore][UIgnore]
+        [JsonIgnore][UISetting(Ignore = true)]
         public Option<Material> material;
     }
     // Start is called before the first frame update

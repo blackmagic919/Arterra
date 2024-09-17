@@ -10,6 +10,7 @@ public class BiomeGenerationData : ScriptableObject
 {
     [SerializeField]
     public Option<List<Option<BiomeInfo> > > biomes;
+    [UISetting(Message = "Describes How Dense & Large Structures Generate At the Cost of Performance")]
     public int StructureChecksPerChunk;
     [Range(1, 5)]
     public float LoDFalloff;

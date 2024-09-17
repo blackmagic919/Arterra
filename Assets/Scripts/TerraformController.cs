@@ -246,7 +246,7 @@ public class TerraformController
         if(brushStrength == 0) return pointInfo;
 
         int selected = MainInventory.selected.material;
-        int solidDensity = Mathf.RoundToInt(pointInfo.density * (pointInfo.viscosity / 255.0f));
+        int solidDensity = pointInfo.SolidDensity;
         if(solidDensity < IsoLevel || pointInfo.material == selected){
             //If adding solid density, override water
             int deltaDensity = GetStaggeredDelta(solidDensity, brushStrength);
@@ -266,7 +266,7 @@ public class TerraformController
         if(brushStrength == 0) return pointInfo;
 
         int selected = MainInventory.selected.material;
-        int liquidDensity = Mathf.RoundToInt(pointInfo.density * (1 - (pointInfo.viscosity / 255.0f)));
+        int liquidDensity = pointInfo.LiquidDensity;
         if(liquidDensity < IsoLevel || pointInfo.material == selected){
             //If adding liquid density, only change if not solid
             int deltaDensity = GetStaggeredDelta(pointInfo.density, brushStrength);
@@ -288,7 +288,7 @@ public class TerraformController
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
-        int solidDensity = Mathf.RoundToInt(pointInfo.density * (pointInfo.viscosity / 255.0f));
+        int solidDensity = pointInfo.SolidDensity;
         if(solidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
             deltaDensity = MainInventory.AddMaterialToInventory(new MaterialInventory.InvMat{material = pointInfo.material, isSolid = true}, deltaDensity);
@@ -305,7 +305,7 @@ public class TerraformController
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
-        int liquidDensity = Mathf.RoundToInt(pointInfo.density * (1 - (pointInfo.viscosity / 255.0f)));
+        int liquidDensity = pointInfo.LiquidDensity;
         if (liquidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(liquidDensity, -brushStrength);
             deltaDensity = MainInventory.AddMaterialToInventory(new MaterialInventory.InvMat{material = pointInfo.material, isSolid = false}, deltaDensity);

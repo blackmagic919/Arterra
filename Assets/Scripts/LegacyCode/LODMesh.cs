@@ -1,4 +1,4 @@
-using System;
+/*using System;
 using UnityEngine;
 using Unity.Collections;
 using static EndlessTerrain;
@@ -9,7 +9,6 @@ using System.Collections.Generic;
 
 public struct LODMesh
 {
-    TerrainChunk terrainChunk;
     SurfaceChunk.BaseMap surfaceMap;
     List<LODInfo> detailLevels;
 
@@ -21,14 +20,18 @@ public struct LODMesh
     float IsoLevel;
     int mapChunkSize;
 
+    int3 CCoord;
+    float3 Origin;
+
     public LODMesh(TerrainChunk terrainChunk, List<LODInfo> detailLevels, Action clearMesh)
     {
-        this.terrainChunk = terrainChunk;
         this.meshCreator = new MeshCreator();
         this.structCreator = new StructureCreator();
         this.geoShaders = new ShaderGenerator(terrainChunk.meshObject.transform, terrainChunk.boundsOS);
         this.meshReadback = new AsyncMeshReadback(terrainChunk.meshObject.transform, terrainChunk.boundsOS);
         this.surfaceMap = terrainChunk.surfaceMap;
+        this.CCoord = terrainChunk.CCoord;
+        this.Origin = terrainChunk.origin;
 
         this.detailLevels = detailLevels;
         this.clearMesh = clearMesh;
@@ -37,9 +40,10 @@ public struct LODMesh
         this.IsoLevel = rSettings.IsoLevel;
         this.mapChunkSize = rSettings.mapChunkSize;
     }
+    
 
     public void PlanStructures(Action callback = null){
-        structCreator.PlanStructuresGPU(this.terrainChunk.CCoord, this.terrainChunk.origin, mapChunkSize, IsoLevel);
+        structCreator.PlanStructuresGPU(CCoord, Origin, mapChunkSize, IsoLevel);
         callback?.Invoke();
     }
 
@@ -47,7 +51,7 @@ public struct LODMesh
         LODMesh handle = this;
 
         //This code will be called on a background thread
-        ChunkStorageManager.ReadChunkBin(this.terrainChunk.CCoord, LoD, (bool isComplete, CPUDensityManager.MapData[] chunk) => 
+        ChunkStorageManager.ReadChunkBin(CCoord, LoD, (bool isComplete, CPUDensityManager.MapData[] chunk) => 
             RequestQueue.Enqueue(new GenTask{ //REMINDER: This queue should be locked
                 valid = () => handle.terrainChunk.active,
                 task = () => OnReadComplete(isComplete, chunk),
@@ -139,3 +143,4 @@ public struct LODInfo
     public int chunkDistThresh;
     public bool useForGeoShaders;
 }
+*/

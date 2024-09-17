@@ -18,9 +18,9 @@ public class ProceduralFoliageRenderer : SpecialShader
         [Tooltip("Distance Extruded Along Normal")]
         public float Inflation; //0f
         
-        [Tooltip("The grass geometry creating compute shader")][JsonIgnore][UIgnore]
+        [Tooltip("The grass geometry creating compute shader")][JsonIgnore][UISetting(Ignore = true)]
         public Option<ComputeShader> foliageComputeShader;
-        [JsonIgnore][UIgnore]
+        [JsonIgnore][UISetting(Ignore = true)]
         public Option<Material> material;
     }
 

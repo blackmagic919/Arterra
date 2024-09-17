@@ -6,12 +6,17 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Generation/Settings Wrapper")]
 public class RenderSettings : ScriptableObject
 {
-    [Range(0, 1)]
-    public float IsoLevel;
+
+    [UISetting(Alias = "Render Distances")]
     public Option<List<LODInfo>> detailLevels;
-    public int mapChunkSize = 64; //Number of cubes; Please don't change
+    [UISetting(Alias = "Update Frequency")]
     public float chunkUpdateThresh = 24f;
-    public  float lerpScale = 2f;
+    [UISetting(Alias = "Terrain Scale")]
+    public float lerpScale = 2f;
+    [Range(0, 1)]
+    [UISetting(Warning = "Dangerous Parameters")]
+    public float IsoLevel;
+    public int mapChunkSize = 64; //Number of cubes; Please don't change
 
     private void OnEnable()
     {

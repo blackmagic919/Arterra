@@ -249,46 +249,47 @@ public static class EntityManager
         public int3 position;
         public uint entityIndex;
     }
+}
 
-    public struct NativeList<T> where T: unmanaged{
-        public NativeArray<T> array;
-        private int _length;
-        public int Length{get{return _length;}}
-        public T this[int index]{get{return array[index];} set{array[index] = value;}}
-        public NativeList(int length, Allocator allocator, NativeArrayOptions options){
-            array = new NativeArray<T>(length, allocator, options);
-            _length = 0;
-        }
 
-        public ref T GetRef(int index)
-        {
-            if (index < 0 || index >= array.Length)
-                throw new ArgumentOutOfRangeException(nameof(index));
-            unsafe { return ref UnsafeUtility.ArrayElementAsRef<T>(array.GetUnsafePtr(), index); }
-        }
+public struct NativeList<T> where T: unmanaged{
+    public NativeArray<T> array;
+    private int _length;
+    public int Length{get{return _length;}}
+    public T this[int index]{get{return array[index];} set{array[index] = value;}}
+    public NativeList(int length, Allocator allocator, NativeArrayOptions options){
+        array = new NativeArray<T>(length, allocator, options);
+        _length = 0;
+    }
 
-        public unsafe T* GetPtr(int index)
-        {
-            if (index < 0 || index >= array.Length)
-                throw new ArgumentOutOfRangeException(nameof(index));
-            void* basePtr = NativeArrayUnsafeUtility.GetUnsafePtr(array);
-            return (T*)basePtr + index;
-        }
+    public ref T GetRef(int index)
+    {
+        if (index < 0 || index >= array.Length)
+            throw new ArgumentOutOfRangeException(nameof(index));
+        unsafe { return ref UnsafeUtility.ArrayElementAsRef<T>(array.GetUnsafePtr(), index); }
+    }
 
-        public void Add(T item){
-            if(_length == array.Length) return;
-            array[_length] = item;
-            _length++;
-        }
+    public unsafe T* GetPtr(int index)
+    {
+        if (index < 0 || index >= array.Length)
+            throw new ArgumentOutOfRangeException(nameof(index));
+        void* basePtr = NativeArrayUnsafeUtility.GetUnsafePtr(array);
+        return (T*)basePtr + index;
+    }
 
-        public void RemoveLast(){
-            if(_length == 0) return; 
-            _length--;
-        }
+    public void Add(T item){
+        if(_length == array.Length) return;
+        array[_length] = item;
+        _length++;
+    }
 
-        public void Dispose(){
-            array.Dispose();
-        }
+    public void RemoveLast(){
+        if(_length == 0) return; 
+        _length--;
+    }
+
+    public void Dispose(){
+        array.Dispose();
     }
 }
 
@@ -409,6 +410,8 @@ public class EntityJob : UpdateTask{
     }
 
 }
+
+
 [BurstCompile]
 public unsafe struct PathFinder{
 

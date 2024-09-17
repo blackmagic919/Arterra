@@ -7,23 +7,22 @@ using Unity.Collections;
 
 
 [CreateAssetMenu(menuName = "Containers/Mesh Creator Settings")]
-public class MeshCreatorSettings : ScriptableObject{
+public class MeshCreatorSettings : ScriptableObject{ 
+    public float waterHeight;
     [Header("Material Generation Noise")]
+    [UISetting(Message = "Indexes in Noise Generation List")]
     public int CoarseMaterialNoise;
     public int FineMaterialNoise;
 
     [Header("Underground Generation Noise")]
     public int CoarseTerrainNoise; //For underground terrain generation
     public int FineTerrainNoise;
-    
-    [Header("Water Generation Data")]   
-    public float waterHeight;
+
+    [UISetting(Message = "Index in Material Property List")]
     public int waterMat;
 }
 public class MeshCreator
 {
-    Queue<ComputeBuffer> tempBuffers = new Queue<ComputeBuffer>();
-
     public CPUDensityManager.MapData[] GetChunkInfo(StructureCreator structCreator, uint surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
     {
         int numPointsAxes = chunkSize + 1;
@@ -35,8 +34,6 @@ public class MeshCreator
         CPUDensityManager.MapData[] chunkMap = new CPUDensityManager.MapData[numOfPoints];
 
         UtilityBuffers.GenerationBuffer.GetData(chunkMap);
-        ReleaseTempBuffers();
-
         return chunkMap;
     }
 
@@ -69,13 +66,6 @@ public class MeshCreator
         GenerateMesh(CCoord, chunkSize, meshSkipInc, IsoLevel);
     }
 
-    public void ReleaseTempBuffers()
-    {
-        while (tempBuffers.Count > 0)
-        {
-            tempBuffers.Dequeue()?.Release();
-        }
-    }
 }
 
 /*

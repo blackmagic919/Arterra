@@ -20,9 +20,9 @@ public class ProceduralGrassRenderer : SpecialShader
         [Tooltip("Multiplier on World Position if using world position as UV")]
         public float worldPositionUVScale;
 
-        [Tooltip("The grass geometry creating compute shader")][JsonIgnore][UIgnore]
+        [Tooltip("The grass geometry creating compute shader")][JsonIgnore][UISetting(Ignore = true)]
         public Option<ComputeShader> grassComputeShader;
-        [JsonIgnore][UIgnore]
+        [JsonIgnore][UISetting(Ignore = true)]
         public Option<Material> material;
     }
 

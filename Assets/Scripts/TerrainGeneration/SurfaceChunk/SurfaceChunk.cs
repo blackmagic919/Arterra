@@ -4,7 +4,7 @@ using static EndlessTerrain;
 using Utils;
 using Unity.Mathematics;
 
-public class SurfaceChunk : ChunkData
+public class SurfaceChunk
 {
     public BaseMap baseMap;
 
@@ -16,19 +16,45 @@ public class SurfaceChunk : ChunkData
     public SurfaceChunk(int2 coord)
     {
         this.SCoord = coord;
+        RecreateChunk();
+    }
+
+    private uint ChunkDist2D(float2 GPos){
+        int2 GCoord = (int2)GPos;
         RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
-        this.position = CustomUtility.AsVector(coord) * rSettings.mapChunkSize - Vector2.one * (rSettings.mapChunkSize / 2f);
+        float2 cPt = math.clamp(GCoord, SCoord * rSettings.mapChunkSize, (SCoord + 1) * rSettings.mapChunkSize);
+        float2 cDist = math.abs(math.floor((cPt - GCoord) / rSettings.mapChunkSize + 0.5f));
+        //We add 0.5 because normally this returns an odd number, but even numbers have better cubes
+        return (uint)math.max(cDist.x, cDist.y);
+    }
+
+    public void ValidateChunk(){
+        float closestDist = ChunkDist2D(((float3)viewerPosition).xz);
+
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        if(closestDist >= rSettings.detailLevels.value[^1].chunkDistThresh) {
+            RecreateChunk();
+            return;
+        };
+    }
+
+    private void RecreateChunk(){
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        int maxChunkDist = rSettings.detailLevels.value[^1].chunkDistThresh;
+        int numChunksAxis = maxChunkDist * 2;
+        
+        int2 vGCoord = (int2)((float3)viewerPosition).xz;
+        int2 vMCoord = ((vGCoord % rSettings.mapChunkSize) + rSettings.mapChunkSize) % rSettings.mapChunkSize;
+        int2 vOCoord = (vGCoord - vMCoord) / rSettings.mapChunkSize - maxChunkDist + math.select(new int2(0), new int2(1), vMCoord > (rSettings.mapChunkSize / 2)); 
+        int2 HCoord = (((SCoord - vOCoord) % numChunksAxis) + numChunksAxis) % numChunksAxis;
+        SCoord = vOCoord + HCoord;
+
+        baseMap?.ReleaseSurfaceMap();
+        this.position = CustomUtility.AsVector(SCoord) * rSettings.mapChunkSize - Vector2.one * (rSettings.mapChunkSize / 2f);
         baseMap = new BaseMap(position);
 
         CreateBaseChunk();
-        Update();
     }
-
-    public void Update()
-    {
-        lastUpdateChunks.Enqueue(this);
-    }
-
     /*y
      *^ 5      1      6
      *|    _ _ _ _ _ 
@@ -43,38 +69,20 @@ public class SurfaceChunk : ChunkData
 
     public void CreateBaseChunk()
     {
-        if (baseMap.hasChunk)
-            return;
-        
-        if (!baseMap.hasRequestedChunk)
-        {
-            baseMap.hasRequestedChunk = true;
-            EndlessTerrain.GenTask surfChunkTask = new EndlessTerrain.GenTask{
-                valid = () => this.active,
-                task = () => baseMap.GetChunk(), 
-                load = taskLoadTable[(int)priorities.planning]
-            };
-            RequestQueue.Enqueue(surfChunkTask);
-        }
+        EndlessTerrain.GenTask surfChunkTask = new EndlessTerrain.GenTask{
+            task = () => baseMap.GetChunk(), 
+            load = taskLoadTable[(int)priorities.planning]
+        };
+        RequestQueue.Enqueue(surfChunkTask);
     }
 
-    public override void UpdateVisibility(int3 CSCoord, float maxRenderDistance)
-    {
-        int2 distance = SCoord - new int2(CSCoord.x, CSCoord.z);
-        bool visible = Mathf.Max(Mathf.Abs(distance.x), Mathf.Abs(distance.y)) <= maxRenderDistance;
-
-        if (!visible)
-            DestroyChunk();
-    }
-
-    public override void DestroyChunk()
+    public void DestroyChunk()
     {
         if (!active)
             return;
 
         active = false;
         baseMap.ReleaseSurfaceMap();
-        surfaceChunkDict.Remove(SCoord);
     }
 
     public class BaseMap
@@ -85,7 +93,6 @@ public class SurfaceChunk : ChunkData
         uint surfAddress;
 
         public bool hasChunk = false;
-        public bool hasRequestedChunk = false;
 
         Vector2 position;
 
@@ -113,13 +120,4 @@ public class SurfaceChunk : ChunkData
         }
     }
 
-    public struct NoiseMaps
-    {
-        public ComputeBuffer continental;
-        public ComputeBuffer erosion;
-        public ComputeBuffer pvNoise;
-        public ComputeBuffer squash;
-        public ComputeBuffer atmosphere;
-        public ComputeBuffer humidity;
-    }
 }

@@ -3,17 +3,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 using Newtonsoft.Json;
+using System;
 
 
-[CreateAssetMenu(menuName = "Generation/MaterialData")]
-public class MaterialData : ScriptableObject
+
+public abstract class MaterialData : ScriptableObject
 {
     public string Name;
-    [UIgnore][JsonIgnore]
+    [UISetting(Ignore = true)][JsonIgnore]
     public Option<Texture2D> texture;
     public TerrainData terrainData;
     public AtmosphericData AtmosphereScatter;
     public LiquidData liquidData;
+
+    public abstract void UpdateMat(int3 GCoord);
 
     [System.Serializable]
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
@@ -53,3 +56,4 @@ public class MaterialData : ScriptableObject
         public Vec2 waveSpeed;
     }
 }
+

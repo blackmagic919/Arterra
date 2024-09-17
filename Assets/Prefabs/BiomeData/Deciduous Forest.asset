@@ -27,7 +27,7 @@ MonoBehaviour:
       CaveShapeStart: 0
       CaveShapeEnd: 0.5
     isDirty: 0
-  AtmosphereFalloff: 0.02
+  AtmosphereFalloff: 0.01
   GroundMaterials:
     value:
     - value:

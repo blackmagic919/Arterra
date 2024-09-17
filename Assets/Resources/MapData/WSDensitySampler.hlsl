@@ -3,6 +3,7 @@
 #include "Assets/Resources/MapData/WSChunkCoord.hlsl"
 #include "Assets/Resources/Utility/BlendHelper.hlsl"
 
+//Information stored for every material
 struct AtmosphericData{
     float3 scatterCoeffs;
     float3 extinctCoeff;

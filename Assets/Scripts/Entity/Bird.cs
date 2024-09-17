@@ -10,9 +10,9 @@ using System;
 [CreateAssetMenu(menuName = "Entity/Bird")]
 public class Bird : EntityAuthoring
 {
-    [UIgnore]
+    [UISetting(Ignore = true)]
     public Option<GameObject> _Controller;
-    [UIgnore]
+    [UISetting(Ignore = true)]
     public Option<BirdEntity> _Entity;
     public Option<BirdSetting> _Setting;
     public Option<List<uint2> > _Profile;

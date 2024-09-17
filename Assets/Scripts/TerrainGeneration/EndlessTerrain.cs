@@ -4,10 +4,10 @@ using UnityEngine;
 using System.Diagnostics;
 using Unity.Mathematics;
 using System.Collections.Concurrent;
+using Utils;
 
 public class EndlessTerrain : MonoBehaviour
 {
-    int chunksVisibleInViewDistance;
 
     [Header("Viewer Information")]
     public GameObject viewer;
@@ -23,11 +23,8 @@ public class EndlessTerrain : MonoBehaviour
     public static Queue<UpdateTask> MainLateUpdateTasks = new Queue<UpdateTask>();
     public static Queue<UpdateTask> MainFixedUpdateTasks = new Queue<UpdateTask>();
     public static ConcurrentQueue<GenTask> RequestQueue = new ConcurrentQueue<GenTask>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
-
-    public static Queue<ChunkData> lastUpdateChunks = new Queue<ChunkData>();
-
-    public static Dictionary<int3, TerrainChunk> terrainChunkDict = new Dictionary<int3, TerrainChunk>();
-    public static Dictionary<int2, SurfaceChunk> surfaceChunkDict = new Dictionary<int2, SurfaceChunk>();
+    public static TerrainChunk[] TerrainChunks;
+    public static SurfaceChunk[] SurfaceChunks;
     private RenderSettings rSettings;
 
     void OnEnable(){
@@ -35,12 +32,13 @@ public class EndlessTerrain : MonoBehaviour
         UtilityBuffers.Initialize();
 
         rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
-        chunksVisibleInViewDistance = rSettings.detailLevels.value[^1].chunkDistThresh;
+        viewerPosition = CPUDensityManager.WSToGS(viewer.transform.position);
 
         ChunkStorageManager.Initialize();
         GPUDensityManager.Initialize();
         CPUDensityManager.Intiialize();
         EntityManager.Initialize();
+        TerrainUpdateManager.Initialize();
         StructureGenerator.PresetData();
         TerrainGenerator.PresetData();
         DensityGenerator.PresetData();
@@ -48,14 +46,36 @@ public class EndlessTerrain : MonoBehaviour
         WorldStorageHandler.WORLD_OPTIONS.Atmosphere.value.pass.Initialize();
     }
 
+    private void Start()
+    {
+        viewerPosition = CPUDensityManager.WSToGS(viewer.transform.position);
+        InitializeAllChunks();
+    }
+
+    private void InitializeAllChunks(){
+        int numChunksAxis = rSettings.detailLevels.value[^1].chunkDistThresh * 2;
+        int numChunks2D = numChunksAxis * numChunksAxis;
+        int numChunks = numChunks2D * numChunksAxis;
+        TerrainChunks = new TerrainChunk[numChunks];
+        SurfaceChunks = new SurfaceChunk[numChunks2D];
+
+        for(int x = 0; x < numChunksAxis; x++){
+            for(int z = 0; z < numChunksAxis; z++){
+                int index2D = CustomUtility.indexFromCoord2D(x, z, numChunksAxis);
+                SurfaceChunks[index2D] = new SurfaceChunk(new int2(x,z));
+                for(int y = 0; y < numChunksAxis; y++){
+                    int3 CCoord = new (x,y,z);
+                    int index = CustomUtility.indexFromCoord(CCoord, numChunksAxis);
+                    TerrainChunks[index] = new TerrainChunk(CCoord, transform, SurfaceChunks[index2D]);
+                }
+            }
+        }
+    }
+
     private void Update()
     {
         viewerPosition = CPUDensityManager.WSToGS(viewer.transform.position);
-        if ((oldViewerPos - viewerPosition).magnitude > rSettings.chunkUpdateThresh)
-        {
-            oldViewerPos = viewerPosition;
-            UpdateVisibleChunks();
-        }
+        UpdateChunks();
         StartGeneration();
     }
     
@@ -93,14 +113,9 @@ public class EndlessTerrain : MonoBehaviour
     }
     private void OnDisable()
     {
-        TerrainChunk[] chunks = new TerrainChunk[terrainChunkDict.Count];
-        terrainChunkDict.Values.CopyTo(chunks, 0);
-        foreach(TerrainChunk chunk in chunks)
+        foreach(TerrainChunk chunk in TerrainChunks)
             chunk.DestroyChunk();
-
-        SurfaceChunk[] schunks = new SurfaceChunk[surfaceChunkDict.Count];
-        surfaceChunkDict.Values.CopyTo(schunks, 0);
-        foreach (SurfaceChunk chunk in schunks)
+        foreach (SurfaceChunk chunk in SurfaceChunks)
             chunk.DestroyChunk();
 
         UtilityBuffers.Release();
@@ -120,56 +135,29 @@ public class EndlessTerrain : MonoBehaviour
             if (!RequestQueue.TryDequeue(out GenTask gen))
                 return;
 
-            if(gen.valid()) gen.task();
-
+            gen.task();
             FrameGPULoad += gen.load;
         }
     }
 
-    void UpdateVisibleChunks()
+    void UpdateChunks()
     {
-        int CCCoordX = Mathf.RoundToInt(viewerPosition.x / rSettings.mapChunkSize); //CurrentChunkCoord
-        int CCCoordY = Mathf.RoundToInt(viewerPosition.y / rSettings.mapChunkSize);
-        int CCCoordZ = Mathf.RoundToInt(viewerPosition.z / rSettings.mapChunkSize);
-        int3 CCCoord = new int3(CCCoordX, CCCoordY, CCCoordZ);
-        int2 CSCoord = new int2(CCCoordX, CCCoordZ);
-
-        while (lastUpdateChunks.Count > 0)
+        if ((oldViewerPos - viewerPosition).magnitude > rSettings.chunkUpdateThresh)
         {
-            lastUpdateChunks.Dequeue().UpdateVisibility(CCCoord, chunksVisibleInViewDistance);
+            oldViewerPos = viewerPosition;
+            for(int i = 0; i < SurfaceChunks.Length; i++)
+                SurfaceChunks[i].ValidateChunk();
+            for(int i = 0; i < TerrainChunks.Length; i++)
+                TerrainChunks[i].ValidateChunk();
         }
-
-        for (int xOffset = -chunksVisibleInViewDistance; xOffset <= chunksVisibleInViewDistance; xOffset++)
-        {
-            for (int zOffset = -chunksVisibleInViewDistance; zOffset <= chunksVisibleInViewDistance; zOffset++)
-            {
-                int2 viewedSC = new int2(xOffset, zOffset) + CSCoord;
-                SurfaceChunk curSChunk;
-                if (surfaceChunkDict.TryGetValue(viewedSC, out curSChunk)) {
-                    curSChunk.Update();
-                }
-                else {
-                    curSChunk = new SurfaceChunk(viewedSC);
-                    surfaceChunkDict.Add(viewedSC, curSChunk);
-                }
-
-                for (int yOffset = -chunksVisibleInViewDistance; yOffset <= chunksVisibleInViewDistance; yOffset++)
-                {
-                    int3 viewedCC = new int3(xOffset, yOffset, zOffset) + CCCoord;
-                    if (terrainChunkDict.ContainsKey(viewedCC)) terrainChunkDict[viewedCC].Update();
-                    else terrainChunkDict.Add(viewedCC, new TerrainChunk(viewedCC, transform, curSChunk));
-                }
-            }
-        }
+        for(int i = 0; i < TerrainChunks.Length; i++)
+            TerrainChunks[i].Update();
     }
 
-
     public struct GenTask{
-        public Func<bool> valid;
         public Action task;
         public int load;
         public GenTask(Func<bool> valid, Action task, int genLoad){
-            this.valid = valid;
             this.task = task;
             this.load = genLoad;
         }

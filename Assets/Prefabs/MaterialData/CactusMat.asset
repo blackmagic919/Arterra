@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 957bdd82243d4447fbab41e0462ba1d5, type: 3}
+  m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: CactusMat
   m_EditorClassIdentifier: 
   Name: Cactus
@@ -26,15 +26,31 @@ MonoBehaviour:
     baseColorStrength: 0.5
     GeoShaderIndex: -1
   AtmosphereScatter:
-    ScatterCoeffs: {x: 0, y: 0, z: 0}
-    GroundExtinction: {x: 0, y: 0, z: 0}
+    ScatterCoeffs:
+      x: 0
+      y: 0
+      z: 0
+    GroundExtinction:
+      x: 0
+      y: 0
+      z: 0
   liquidData:
-    shallowCol: {x: 0, y: 0, z: 0}
-    deepCol: {x: 0, y: 0, z: 0}
+    shallowCol:
+      x: 0
+      y: 0
+      z: 0
+    deepCol:
+      x: 0
+      y: 0
+      z: 0
     colFalloff: 0
     depthOpacity: 0
     smoothness: 0
     waveBlend: 0
     waveStrength: 0
-    waveScale: {x: 0, y: 0}
-    waveSpeed: {x: 0, y: 0}
+    waveScale:
+      x: 0
+      y: 0
+    waveSpeed:
+      x: 0
+      y: 0

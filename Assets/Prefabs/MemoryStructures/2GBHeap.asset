@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: 2GBHeap
   m_EditorClassIdentifier: 
   _BufferSize4Bytes: 500000000
-  _MaxHeapSize: 5000
+  _MaxHeapSize: 50000
   _MaxAddressSize: 50000

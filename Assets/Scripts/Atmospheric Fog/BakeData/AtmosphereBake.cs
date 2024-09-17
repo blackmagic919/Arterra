@@ -16,13 +16,13 @@ public class AtmosphereBake : ScriptableObject
 
     private ComputeShader RaySetupCompute;
     private ComputeShader OpticalDataCompute;
-    
     public int BakedTextureSizePX = 128;
-    public int NumInScatterPoints = 64;
+    public int InScatterDetail = 6;
+    public int NumInScatterPoints => 1 << InScatterDetail;
     public int NumOpticalDepthPoints = 8;
 
     private float atmosphereRadius;
-    [HideInInspector] [UIgnore]
+    [HideInInspector] [UISetting(Ignore = true)]
     public bool initialized = false;
 
     public void Initialize(){

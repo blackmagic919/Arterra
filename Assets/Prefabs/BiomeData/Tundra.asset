@@ -27,7 +27,7 @@ MonoBehaviour:
       CaveShapeStart: 0.5
       CaveShapeEnd: 1
     isDirty: 0
-  AtmosphereFalloff: 0.02
+  AtmosphereFalloff: 0.01
   GroundMaterials:
     value:
     - value:
@@ -91,7 +91,7 @@ MonoBehaviour:
     - value:
         materialIndex: 1
         genSize: 1
-        genShape: 0.791
+        genShape: 1
         VerticalPreference:
           lowerLimit: 50
           upperLimit: 300

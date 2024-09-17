@@ -11,9 +11,9 @@ using System.Threading.Tasks;
 [CreateAssetMenu(menuName = "Entity/Rabbit")]
 public class Rabbit : EntityAuthoring
 {
-    [UIgnore]
+    [UISetting(Ignore = true)]
     public Option<GameObject> _Controller;
-    [UIgnore]
+    [UISetting(Ignore = true)]
     public Option<RabbitEntity> _Entity;
     public Option<RabbitSetting> _Setting;
     public Option<List<uint2> > _Profile;

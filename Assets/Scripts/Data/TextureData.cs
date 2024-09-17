@@ -10,8 +10,8 @@ public class TextureData : ScriptableObject
 {
     [SerializeField]
     public Option<List<Option<MaterialData> > > MaterialDictionary;
-    [UIgnore]
+    [UISetting(Ignore = true)]
     public Option<Texture2D>liquidFineWave;
-    [UIgnore]
+    [UISetting(Ignore = true)]
     public Option<Texture2D> liquidCoarseWave;
 }

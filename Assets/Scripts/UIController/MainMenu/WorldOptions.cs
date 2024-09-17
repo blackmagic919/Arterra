@@ -21,7 +21,15 @@ Purpose:
 - Option represents a lazy-store break-node, where unless the object
   held by the option is changed it is not stored. 
 */
-public sealed class UIgnore : Attribute{}
+
+[AttributeUsage(AttributeTargets.Field)]
+public sealed class UISetting : Attribute{
+    public bool Ignore{get; set;}
+    public string Message{get; set;}
+    public string Warning{get; set;}
+    public string Alias{get; set;}
+
+}
 
 [CreateAssetMenu(menuName = "Generation/WorldOptions")]
 public class WorldOptions : ScriptableObject{
@@ -32,6 +40,7 @@ public class WorldOptions : ScriptableObject{
 
     [Serializable]
     public struct QualitySettings{
+        [UISetting(Message = "Improve Performance By Reducing Quality")]
         public Option<AtmosphereBake> Atmosphere;
         public Option<RenderSettings> Rendering;
         public Option<GeneratorSettings> GeoShaders;
@@ -40,6 +49,7 @@ public class WorldOptions : ScriptableObject{
 
     [Serializable]
     public struct GenerationSettings{
+        [UISetting(Message = "Controls How The World Is Generated")]
         public Option<List<Option<NoiseData> > > Noise;
         public Option<MeshCreatorSettings> Terrain;
         public Option<SurfaceCreatorSettings> Surface;
@@ -51,13 +61,14 @@ public class WorldOptions : ScriptableObject{
 
     [Serializable]
     public struct GamePlaySettings{
+        [UISetting(Message = "Controls How The Player Interacts With The World")]
         public Option<TerraformSettings> Terraforming;
         public Option<RigidFPController.RigidFPControllerSettings> Movement;
     }
 
-    [UIgnore]
+    [UISetting(Ignore = true)]
     public Option<ReadbackSettings> ReadBackSettings;
-    [UIgnore]
+    [UISetting(Ignore = true)]
     public Option<AtmosphereFeature> Atmosphere; 
 
     [OnDeserialized]
@@ -130,7 +141,7 @@ public interface IOption{ bool IsDirty { get; } void Clone();}
     public struct Option<T> : IOption{
         [SerializeField]
         public T value;
-        [HideInInspector][UIgnore]
+        [HideInInspector][UISetting(Ignore = true)]
         public bool isDirty;
 
         public bool ShouldSerializevalue() { return isDirty; }

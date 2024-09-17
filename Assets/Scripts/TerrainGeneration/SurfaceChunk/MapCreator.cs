@@ -8,9 +8,10 @@ using static TerrainGenerator;
 public class SurfaceCreatorSettings : ScriptableObject{
     public float terrainOffset = 0;
     public float MaxTerrainHeight;
+    public float MaxSquashHeight;
 
     [Header("Continental Detail")]
-    [Tooltip("Base Terrain Height")]
+    [UISetting(Message = "Indexes in Noise Generation List")]
     /* General Curve Form:
      *            __
      *          _/
@@ -32,12 +33,10 @@ public class SurfaceCreatorSettings : ScriptableObject{
      */
     [Space(10)]
     [Header("Erosion Detail")]
-    [Tooltip("Influence of PV Map")]
     public int TerrainErosionDetail;
 
     [Space(10)]
     [Header("Peaks and Values")]
-    [Tooltip("Fine detail of terrain")]
     //Any curve form
     public int TerrainPVDetail;
 
@@ -45,11 +44,9 @@ public class SurfaceCreatorSettings : ScriptableObject{
     [Header("Squash Map")]
     //Low Values: More terrain-like, High Values: More overhangs
     public int SquashMapDetail;
-    public float MaxSquashHeight;
 
     [Space(10)]
     [Header("3D Noise Data")]
-    [Tooltip("How quickly the atmosphere fades off")]
     public int CaveFreqDetail;
     public int CaveSizeDetail;
     public int CaveShapeDetail;

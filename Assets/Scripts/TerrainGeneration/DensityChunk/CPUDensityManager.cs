@@ -9,6 +9,7 @@ using Utils;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Linq;
 using System.IO;
+using UnityEditor.PackageManager.UI;
 
 //Benefits of unified chunk map memory
 //1. No runtime allocation of native memory
@@ -80,7 +81,7 @@ public static class CPUDensityManager
         };
 
         //Release Previous Chunk
-        if(prevChunk.isDirty) ChunkStorageManager.SaveChunkToBin(SectionedMemory, chunkHash * numPoints, _ChunkManagers[chunkHash].CCoord, OnReleaseComplete); //Write to disk
+        if(prevChunk.isDirty) ChunkStorageManager.SaveChunkToBin(SectionedMemory, chunkHash * numPoints, prevChunk.CCoord, OnReleaseComplete); //Write to disk
         else OnReleaseComplete(true);
 
         AddressDict[chunkHash] = newChunk;
@@ -197,76 +198,27 @@ public static class CPUDensityManager
     }
 
     //Terraforming
-    static bool SphereIntersectsBox(float3 sphereCentre, float sphereRadius, float3 origin, float3 bounds)
-    {
-        float3 closestPt = math.clamp(sphereCentre, origin, origin + bounds);
-        float3 dP = closestPt - sphereCentre;
-
-        float sqrDstToBox = dP.x * dP.x + dP.y * dP.y + dP.z * dP.z;
-        return sqrDstToBox < sphereRadius * sphereRadius;
-    }
-
     public static void Terraform(float3 tPointGS, int terraformRadius, Func<MapData, float, MapData> handleTerraform)
     {
         int3 tPointGSInt = (int3)math.floor(tPointGS);
-        int3 MCoord = ((tPointGSInt % mapChunkSize) + mapChunkSize) % mapChunkSize;
-        int3 CCoord = (tPointGSInt - MCoord) / mapChunkSize;
 
-        int chunkTerraformRadius = Mathf.CeilToInt((terraformRadius+1) / (mapChunkSize * lerpScale));
-        for(int x = -chunkTerraformRadius; x <= chunkTerraformRadius; x++)
-        {
-            for (int y = -chunkTerraformRadius; y <= chunkTerraformRadius; y++)
-            {
-                for (int z = -chunkTerraformRadius; z <= chunkTerraformRadius; z++)
-                {
-                    int3 viewedCC = new int3(x, y, z) + CCoord;
-
-                    if (!terrainChunkDict.ContainsKey(viewedCC))
-                        continue;
-                    //For some reason terraformRadius itself isn't updating all the chunks properly
-                    if (SphereIntersectsBox(tPointGS, terraformRadius+1, (float3)viewedCC * mapChunkSize, (mapChunkSize+1) * Vector3.one)) { 
-                        TerraformChunk(viewedCC, tPointGS, terraformRadius, handleTerraform);
-                    }
-                }
-            }
-        }
-    }
-
-    public static void TerraformChunk(int3 CCoord, float3 tPosGS, int terraformRadius, Func<MapData, float, MapData> handleTerraform)
-    {
-        int cHash = HashCoord(CCoord);
-        ChunkMapInfo mapInfo = AddressDict[cHash];
-        int addressIndex = cHash * numPoints;
-        if(!mapInfo.valid) return;
-
-        tPosGS -= CCoord * mapChunkSize;  //Local Position
-        float3 mapPt = math.clamp(tPosGS, 0, mapChunkSize);
-        int3 mapCoord = (int3)math.floor(mapPt);
-        for (int x = -terraformRadius; x <= terraformRadius + 1; x++)
+        for(int x = -terraformRadius; x <= terraformRadius + 1; x++)
         {
             for (int y = -terraformRadius; y <= terraformRadius + 1; y++)
             {
                 for (int z = -terraformRadius; z <= terraformRadius + 1; z++)
                 {
-                    int3 vertPosition = new int3(x, y, z) + mapCoord;
-                    if (math.any(vertPosition > mapChunkSize))
-                        continue;
-                    if (math.any(vertPosition < 0))
-                        continue;
+                    int3 GCoord = tPointGSInt + new int3(x, y, z);
 
-                    int index = CustomUtility.indexFromCoord(vertPosition.x, vertPosition.y, vertPosition.z, mapChunkSize);
-
-                    float3 dR = vertPosition - tPosGS;
+                    //Calculate Brush Strength
+                    float3 dR = GCoord - tPointGS;
                     float sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
                     float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
-                    SectionedMemory[addressIndex + index] = handleTerraform(SectionedMemory[addressIndex + index], brushStrength);
+                    SetMap(handleTerraform(SampleMap(GCoord), brushStrength), GCoord);
+                    TerrainUpdateManager.AddUpdate(GCoord);
                 }
             }
         }
-
-        //Regenerate The Chunk
-        _ChunkManagers[cHash].RecalculateChunkImmediate(addressIndex, ref SectionedMemory);
-        mapInfo.isDirty = true; AddressDict[cHash] = mapInfo;
     }
 
     public static void BeginMapReadback(int3 CCoord){ //Need a wrapper class to maintain reference to the native array
@@ -322,10 +274,45 @@ public static class CPUDensityManager
             readonly get => (int)((data >> 16) & 0x7FFF);
             set => data = (data & 0x8000FFFF) | (uint)((value & 0x7FFF) << 16) | 0x80000000;
         }
+
+        public readonly int SolidDensity{
+            get => Mathf.RoundToInt(density * (viscosity / 255.0f));
+        }
+        public readonly int LiquidDensity{
+            get => Mathf.RoundToInt(density * (1 - (viscosity / 255.0f)));
+        }
+        public readonly bool IsSolid{
+            get => SolidDensity >= IsoValue;
+        }
+        public readonly bool IsLiquid{
+            get => LiquidDensity >= IsoValue;
+        }
+        public readonly bool IsGaseous{
+            get => !IsSolid && !IsLiquid;
+        }
     }
 
     public static float3 WSToGS(float3 WSPos){return WSPos / lerpScale + mapChunkSize / 2;}
     public static float3 GSToWS(float3 GSPos){return (GSPos - mapChunkSize / 2) * lerpScale;}
+    public static void SetMap(MapData data, int3 GCoord){
+        int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
+        int3 CCoord = (GCoord - MCoord) / mapChunkSize;
+        int3 HCoord = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
+
+        int PIndex = MCoord.x * mapChunkSize * mapChunkSize + MCoord.y * mapChunkSize + MCoord.z;
+        int CIndex = HCoord.x * numChunksAxis * numChunksAxis + HCoord.y * numChunksAxis + HCoord.z;
+        ChunkMapInfo mapInfo = AddressDict[CIndex];
+        //Not available(currently readingback) || Out of Bounds
+        if(!mapInfo.valid || math.any(mapInfo.CCoord != CCoord)) 
+            return;
+
+        //Update Handles
+        SectionedMemory[CIndex * numPoints + PIndex] = data;
+        var chunkMapInfo = AddressDict[CIndex];
+        chunkMapInfo.isDirty = true;
+        AddressDict[CIndex] = chunkMapInfo;
+        _ChunkManagers[CIndex].ReflectChunk();
+    }
     public static MapData SampleMap(int3 GCoord){
         int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
         int3 CCoord = (GCoord - MCoord) / mapChunkSize;
@@ -336,7 +323,7 @@ public static class CPUDensityManager
         ChunkMapInfo mapInfo = AddressDict[CIndex];
         //Not available(currently readingback) || Out of Bounds
         if(!mapInfo.valid || math.any(mapInfo.CCoord != CCoord)) 
-            return new MapData{data = 4294967295};
+            return new MapData{data = 0xFFFFFFFF};
 
         return SectionedMemory[CIndex * numPoints + PIndex];
     }

@@ -95,11 +95,8 @@ float3 frag (v2f IN) : SV_Target
     blendAxes /= blendAxes.x + blendAxes.y + blendAxes.z;
 
     int material = IN.material;
-
     float3 baseColor = _MatTerrainData[material].baseColor.xyz;
-
     float3 textureColor = triplanar(IN.positionWS, _MatTerrainData[material].baseTextureScale, blendAxes, material);
-
     float colorStrength = _MatTerrainData[material].baseColorStrength;
 
     InputData lightingInput = (InputData)0;
