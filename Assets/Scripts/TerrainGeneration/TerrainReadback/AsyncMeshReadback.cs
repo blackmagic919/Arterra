@@ -207,7 +207,6 @@ public class AsyncMeshReadback
             shadowCastingMode = ShadowCastingMode.On,
             matProps = new MaterialPropertyBlock()
         };
-
         rp.matProps.SetBuffer("Vertices", storage);
         rp.matProps.SetBuffer("Triangles", storage);
         rp.matProps.SetBuffer("_AddressDict", addresses);
@@ -382,6 +381,7 @@ public class AsyncMeshReadback
         {
             if (!active)
                 return;
+
             //Offset in bytes = address * 4 args per address * 4 bytes per arg
             Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)argsAddress);
         }

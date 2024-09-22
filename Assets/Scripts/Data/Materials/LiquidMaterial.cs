@@ -33,11 +33,9 @@ public class LiquidMaterial : MaterialData
         MapData b0 = b1; 
         int amount = a1.LiquidDensity; //Amount that's transferred
         b1.density = math.min(255, b1.density + amount);
-        if(b1.density != 0) b1.viscosity = Mathf.FloorToInt(b0.viscosity * b0.density / ((float)b1.density));
 
         amount = b1.density - b0.density;
         a1.density = math.max(a1.density - amount, 0);
-        if(a1.density != 0) a1.viscosity = Mathf.FloorToInt(a0.viscosity * a0.density / ((float)a1.density));
     }
     
     [BurstCompile]
@@ -54,11 +52,9 @@ public class LiquidMaterial : MaterialData
         //Rounds down to the nearest integer
         int amount = (max1.LiquidDensity - min1.LiquidDensity) >> 1;
         min1.density = math.min(255, min1.density + amount);
-        if(min1.density != 0) min1.viscosity = Mathf.FloorToInt(min0.viscosity * min0.density / ((float)min1.density));
 
         amount = min1.density - min0.density;
         max1.density = math.max(max1.density - amount, 0);
-        if(max1.density != 0) max1.viscosity = Mathf.FloorToInt(max0.viscosity * max0.density / ((float)max1.density));
     }
 
     [BurstCompile]
@@ -69,7 +65,7 @@ public class LiquidMaterial : MaterialData
 
         int material = cur.material;
         MapData[] map = {SampleMap(GCoord + dP[0]), SampleMap(GCoord + dP[1]), SampleMap(GCoord + dP[2]), 
-                         SampleMap(GCoord + dP[3]), SampleMap(GCoord + dP[3]), SampleMap(GCoord + dP[4])};
+                         SampleMap(GCoord + dP[3]), SampleMap(GCoord + dP[4]), SampleMap(GCoord + dP[5])};
         
         for(int i = 0; i < 6; i++){
             ChangeState ^= (byte)((map[i].IsLiquid ? 1 : 0) << i);

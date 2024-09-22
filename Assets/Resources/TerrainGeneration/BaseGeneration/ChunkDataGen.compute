@@ -190,6 +190,6 @@ void Generate (uint3 id : SV_DispatchThreadID)
     
     //Generate Land
     BaseMap[index].density = (uint)round(density * 255.0f);
-    BaseMap[index].viscosity = 255;
+    BaseMap[index].viscosity = BaseMap[index].density;
     BaseMap[index].material = matInd;
 }

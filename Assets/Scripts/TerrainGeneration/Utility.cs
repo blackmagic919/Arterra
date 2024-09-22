@@ -190,5 +190,6 @@ namespace Utils {
         structure = 1,
         generation = 2,
         mesh = 3,
+        propogation = 4,
     };
 }

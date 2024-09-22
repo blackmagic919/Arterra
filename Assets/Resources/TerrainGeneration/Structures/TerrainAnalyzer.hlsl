@@ -34,9 +34,10 @@ uint SampleTerrain (float3 position)
     float terrainFactor = clamp((terrainHeight - actualHeight) / (squashFactor + Epsilon), 0, 1);
     float density = baseDensity * (terrainFactor * (1-IsoLevel) + IsoLevel);
 
-    uint mapInfo = ((uint)round(density * 255.0f)) | 0xFF00;
+    uint mapInfo = (uint)round(density * 255.0f);
+    mapInfo = mapInfo << 8 | mapInfo; //Set viscosity to density
     if(actualHeight > (terrainHeight - squashFactor) && actualHeight < waterHeight && density < IsoLevel)
-        mapInfo = ((mapInfo << 8) & 0xFFFF) | 0xFF; //swap density and viscosity
+        mapInfo = (mapInfo & 0xFFFF) | 0xFF; //set density to one
     
     return mapInfo;
 }

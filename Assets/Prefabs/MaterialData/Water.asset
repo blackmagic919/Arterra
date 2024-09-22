@@ -31,9 +31,9 @@ MonoBehaviour:
       y: 0
       z: 0.0005
     GroundExtinction:
-      x: 0.025
-      y: 0.025
-      z: 0.025
+      x: 0.005
+      y: 0.005
+      z: 0.005
   liquidData:
     shallowCol:
       x: 0.19

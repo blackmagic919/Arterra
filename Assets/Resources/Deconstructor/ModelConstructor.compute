@@ -104,8 +104,8 @@ MarchCube ReadCube(int3 coord){
         float density = ((mapData & 0xFF) / 255.0f);
         float viscosity = ((mapData >> 8) & 0xFF) / 255.0f;
 
-        corner.solid = density * viscosity;
-        corner.liquid = density * (1 - viscosity);
+        corner.solid = viscosity;
+        corner.liquid = density - viscosity;
         corner.material = ((mapData  >> 16) & 0x7FFF);
         cube.corners[i] = corner;
     }

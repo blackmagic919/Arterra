@@ -30,7 +30,11 @@ uint ReadMapData(int3 coord){
 
 float SampleDensity(int3 coord, uint isWater) {
     uint mapData = ReadMapData(coord);
-    return ((mapData & 0xFF) / 255.0f) * max(isWater, (mapData >> 8 & 0xFF) / 255.0f);
+    float density = (mapData & 0xFF) / 255.0f;
+    float viscosity = ((mapData >> 8) & 0xFF) / 255.0f;
+
+    if(isWater) return (density - viscosity);
+    else return viscosity;
 }
 
 float3 CalculateNormal(int3 cCoord, uint isWater) {

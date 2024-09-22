@@ -19,7 +19,7 @@ public class EndlessTerrain : MonoBehaviour
     //Ideally specialShaders should be in materialData, but can't compile monobehavior in an asset 
 
     public static readonly int[] meshSkipTable = { 1, 2, 4, 8, 16 }; //has to be 2x for proper stitching
-    public static readonly int[] taskLoadTable = { 5, 3, 2, 3 };
+    public static readonly int[] taskLoadTable = { 5, 3, 2, 3, 0 };
     public static Queue<UpdateTask> MainLateUpdateTasks = new Queue<UpdateTask>();
     public static Queue<UpdateTask> MainFixedUpdateTasks = new Queue<UpdateTask>();
     public static ConcurrentQueue<GenTask> RequestQueue = new ConcurrentQueue<GenTask>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
@@ -36,7 +36,7 @@ public class EndlessTerrain : MonoBehaviour
 
         ChunkStorageManager.Initialize();
         GPUDensityManager.Initialize();
-        CPUDensityManager.Intiialize();
+        CPUDensityManager.Initialize();
         EntityManager.Initialize();
         TerrainUpdateManager.Initialize();
         StructureGenerator.PresetData();
@@ -44,6 +44,7 @@ public class EndlessTerrain : MonoBehaviour
         DensityGenerator.PresetData();
         ShaderGenerator.PresetData();
         WorldStorageHandler.WORLD_OPTIONS.Atmosphere.value.pass.Initialize();
+        WorldStorageHandler.WORLD_OPTIONS.ReadBackSettings.value.Initialize();
     }
 
     private void Start()
@@ -124,6 +125,7 @@ public class EndlessTerrain : MonoBehaviour
         EntityManager.Release();
         GenerationPreset.Release();
         WorldStorageHandler.WORLD_OPTIONS.Atmosphere.value.pass.Release();
+        WorldStorageHandler.WORLD_OPTIONS.ReadBackSettings.value.Release();
     }
 
 
@@ -136,7 +138,7 @@ public class EndlessTerrain : MonoBehaviour
                 return;
 
             gen.task();
-            FrameGPULoad += gen.load;
+            FrameGPULoad += taskLoadTable[gen.id];
         }
     }
 
@@ -156,10 +158,10 @@ public class EndlessTerrain : MonoBehaviour
 
     public struct GenTask{
         public Action task;
-        public int load;
-        public GenTask(Func<bool> valid, Action task, int genLoad){
+        public int id;
+        public GenTask(Action task, int id){
             this.task = task;
-            this.load = genLoad;
+            this.id = id;
         }
     }
 

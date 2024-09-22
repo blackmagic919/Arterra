@@ -10,18 +10,19 @@ public class ReadbackSettings : ScriptableObject
     [HideInInspector]
     public Material[] indirectTerrainMats;
 
-    public void OnEnable(){
+    public void Initialize(){
         indirectTerrainMats = new Material[TerrainMats.Count];
         for(int i = 0; i < TerrainMats.Count; i++){
+            if(indirectTerrainMats[i] != null) continue;
             indirectTerrainMats[i] = Object.Instantiate(TerrainMats[i]);
             indirectTerrainMats[i].EnableKeyword("INDIRECT");
         }
     }
 
-    public void OnDisable(){
+    public void Release(){
         for(int i = 0; i < indirectTerrainMats.Length; i++){
-            if(Application.isPlaying) Object.Destroy(indirectTerrainMats[i]);
-            else Object.DestroyImmediate(indirectTerrainMats[i]);
+            if(indirectTerrainMats[i] == null) continue;
+            Object.Destroy(indirectTerrainMats[i]);
         }
     }
 }

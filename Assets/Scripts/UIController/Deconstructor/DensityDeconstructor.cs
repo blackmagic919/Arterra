@@ -125,7 +125,7 @@ public class DensityDeconstructor : MonoBehaviour
 
             UpdateSelected((e) => {
                 e.density = Mathf.Clamp(e.density + deltaDensity, 0, 255);
-                e.viscosity = Mathf.Clamp(e.viscosity + deltaViscosity, 0, 255);
+                e.viscosity = Mathf.Clamp(e.viscosity + deltaViscosity, 0, e.density);
                 e.material = curData.material == prevData.material ? e.material : curData.material;
                 e.preserve = curData.preserve == prevData.preserve ? e.preserve : curData.preserve;
                 return e;

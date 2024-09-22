@@ -5,6 +5,7 @@ using Unity.Mathematics;
 using System;
 using Unity.Burst;
 using static EntityJob;
+using static CPUDensityManager;
 
 /*
 Future Note: Make this done on a job system
@@ -19,7 +20,7 @@ public struct TerrainColliderJob
     public float3 velocity;
 
     [BurstCompile]
-    public float3 TrilinearDisplacement(in float3 posGS, in Context cxt){
+    public float3 TrilinearDisplacement(in float3 posGS, in MapContext cxt){
         //Calculate Density
         int x0 = (int)Math.Floor(posGS.x); int x1 = x0 + 1;
         int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
@@ -67,7 +68,7 @@ public struct TerrainColliderJob
     }
 
     [BurstCompile]
-    public float2 BilinearDisplacement(in float2 posGS, in int3x3 transform, int axis, in Context cxt){
+    public float2 BilinearDisplacement(in float2 posGS, in int3x3 transform, int axis, in MapContext cxt){
         int x0 = (int)Math.Floor(posGS.x); int x1 = x0 + 1;
         int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
 
@@ -94,7 +95,7 @@ public struct TerrainColliderJob
     }
 
     [BurstCompile]
-    public float LinearDisplacement(float t, in int3 axis, in int3 plane, in Context cxt){
+    public float LinearDisplacement(float t, in int3 axis, in int3 plane, in MapContext cxt){
         int t0 = (int)Math.Floor(t); 
         int t1 = t0 + 1;
 
@@ -138,7 +139,7 @@ public struct TerrainColliderJob
     private readonly int3x3 XYPlane => new (1, 0, 0, 0, 1, 0, 0, 0, 1);
     private readonly int3x3 YZPlane => new (0, 0, 1, 1, 0, 0, 0, 1, 0);
     
-    public bool SampleCollision(in float3 originGS, in float3 boundsGS, in Context context, out float3 displacement){
+    public bool SampleCollision(in float3 originGS, in float3 boundsGS, in MapContext context, out float3 displacement){
         float3 min = math.min(originGS, originGS + boundsGS);
         float3 max = math.max(originGS, originGS + boundsGS);
         displacement = float3.zero; 
@@ -201,7 +202,7 @@ public struct TerrainColliderJob
         return math.any(displacement != float3.zero);
     }
 
-    public unsafe bool IsGrounded(float stickDist, in Settings settings, in Context cxt) => SampleCollision(transform.position, new float3(settings.size.x, -stickDist, settings.size.z), cxt, out _);
+    public unsafe bool IsGrounded(float stickDist, in Settings settings, in MapContext cxt) => SampleCollision(transform.position, new float3(settings.size.x, -stickDist, settings.size.z), cxt, out _);
     
     [BurstCompile]
     float3 CancelVel(in float3 vel, in float3 norm){
@@ -214,7 +215,7 @@ public struct TerrainColliderJob
         transform.position += velocity * cxt.deltaTime;
         if(settings.useGravity) velocity += cxt.gravity * cxt.deltaTime;
 
-        if(SampleCollision(transform.position, settings.size, cxt, out float3 displacement)){
+        if(SampleCollision(transform.position, settings.size, cxt.mapContext, out float3 displacement)){
             velocity = CancelVel(velocity, displacement);
             transform.position += displacement;
         };

@@ -87,7 +87,7 @@ public class Rabbit : EntityAuthoring
             rabbit->GCoord = (int3)rabbit->tCollider.transform.position;
             rabbit->Task.Invoke(entity, context);
 
-            if(rabbit->tCollider.IsGrounded(settings.movement.GroundStickDist, settings.collider, *context))
+            if(rabbit->tCollider.IsGrounded(settings.movement.GroundStickDist, settings.collider, context->mapContext))
                 rabbit->tCollider.velocity.y *= 1 - settings.movement.friction;
             rabbit->tCollider.velocity.xz *= 1 - settings.movement.friction;
 

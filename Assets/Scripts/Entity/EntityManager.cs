@@ -6,9 +6,7 @@ using UnityEngine.Rendering;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Burst;
-using System.Collections;
-using System.Threading;
-using System.Collections.Generic;
+using static CPUDensityManager;
 
 
 
@@ -303,15 +301,17 @@ public class EntityJob : UpdateTask{
         dispatched = false;
         job = new Context{
             Entities = (Entity**)EntityManager.EntityHandler.GetPtr(0),
-            MapData = (CPUDensityManager.MapData*)CPUDensityManager.SectionedMemory.GetUnsafePtr(),
-            AddressDict = (CPUDensityManager.ChunkMapInfo*)CPUDensityManager.AddressDict.GetUnsafePtr(),
             Profile = (uint2*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
             sTree = EntityManager.ESTree,
+            mapContext = new MapContext{
+                MapData = (MapData*)SectionedMemory.GetUnsafePtr(),
+                AddressDict = (ChunkMapInfo*)AddressDict.GetUnsafePtr(),
+                mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize,
+                numChunksAxis = numChunksAxis,
+                IsoValue = (int)Math.Round(WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.IsoLevel * 255.0)
+            },
 
-            mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize,
-            IsoValue = (int)Math.Round(WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.IsoLevel * 255.0),
             gravity = Physics.gravity / WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.lerpScale,
-            numChunksAxis = CPUDensityManager.numChunksAxis,
             deltaTime = Time.fixedDeltaTime
         };
     }
@@ -334,7 +334,7 @@ public class EntityJob : UpdateTask{
 
         job.deltaTime = Time.fixedDeltaTime;
         int length = EntityManager.EntityHandler.Length;
-        handle = job.Schedule(EntityManager.EntityHandler.Length, length);
+        handle = job.Schedule(EntityManager.EntityHandler.Length, 16);
         dispatched = true;
     }
 
@@ -344,14 +344,8 @@ public class EntityJob : UpdateTask{
         public unsafe Entity** Entities;
         [NativeDisableUnsafePtrRestriction]
         [ReadOnly] public unsafe uint2* Profile;
-        [NativeDisableUnsafePtrRestriction]
-        [ReadOnly] public unsafe CPUDensityManager.MapData* MapData;
-        [NativeDisableUnsafePtrRestriction]
-        [ReadOnly] public unsafe CPUDensityManager.ChunkMapInfo* AddressDict;
+        [ReadOnly] public unsafe MapContext mapContext;
         public STree sTree;
-        [ReadOnly] public int numChunksAxis;
-        [ReadOnly] public int mapChunkSize;
-        [ReadOnly] public float IsoValue;
         [ReadOnly] public float3 gravity; 
         [ReadOnly] public float deltaTime;
         public unsafe void Execute(int index){
@@ -370,7 +364,7 @@ public class EntityJob : UpdateTask{
                     uint index = dC.x * info.bounds.y * info.bounds.z + dC.y * info.bounds.z + dC.z;
                     uint2 profile = context.Profile[index + info.profileStart];
                     if((profile.y & 0x4) != 0 && UseExFlag) continue;
-                    bool valid = InBounds(SampleMap(GCoord + (int3)dC, context), profile.x);
+                    bool valid = InBounds(SampleMap(GCoord + (int3)dC, context.mapContext), profile.x);
                     allC = allC && (valid || !((profile.y & 0x1) != 0));
                     anyC = anyC || (valid && ((profile.y & 0x2) != 0));
                     any0 = any0 || ((profile.y & 0x2) != 0);
@@ -387,27 +381,6 @@ public class EntityJob : UpdateTask{
                data.viscosity >= ((bounds >> 16) & 0xFF) && data.viscosity <= ((bounds >> 24) & 0xFF);
     }
 
-    [BurstCompile]
-    public unsafe static CPUDensityManager.MapData SampleMap(in int3 GCoord, in Context context){
-        int3 MCoord = ((GCoord % context.mapChunkSize) + context.mapChunkSize) % context.mapChunkSize;
-        int3 CCoord = (GCoord - MCoord) / context.mapChunkSize;
-        int3 HCoord = ((CCoord % context.numChunksAxis) + context.numChunksAxis) % context.numChunksAxis;
-
-        int PIndex = MCoord.x * context.mapChunkSize * context.mapChunkSize + MCoord.y * context.mapChunkSize + MCoord.z;
-        int CIndex = HCoord.x * context.numChunksAxis * context.numChunksAxis + HCoord.y * context.numChunksAxis + HCoord.z;
-        int numPoints = context.mapChunkSize * context.mapChunkSize * context.mapChunkSize;
-        CPUDensityManager.ChunkMapInfo mapInfo = context.AddressDict[CIndex];
-        if(!mapInfo.valid) return new CPUDensityManager.MapData{data = 4294967295};//Not available(currently readingback)
-        if(math.any(mapInfo.CCoord != CCoord)) return new CPUDensityManager.MapData{data = 4294967295}; //Out of bounds
-
-        return context.MapData[CIndex * numPoints + PIndex];
-    }
-
-    [BurstCompile]
-    public static int SampleTerrain(in int3 GCoord, in Context context){
-        CPUDensityManager.MapData mapData = SampleMap(GCoord, context);
-        return (int)Math.Round(mapData.density * (mapData.viscosity / 255.0f));
-    }
 
 }
 

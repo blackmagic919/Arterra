@@ -71,7 +71,7 @@ public class SurfaceChunk
     {
         EndlessTerrain.GenTask surfChunkTask = new EndlessTerrain.GenTask{
             task = () => baseMap.GetChunk(), 
-            load = taskLoadTable[(int)priorities.planning]
+            id = (int)priorities.planning
         };
         RequestQueue.Enqueue(surfChunkTask);
     }

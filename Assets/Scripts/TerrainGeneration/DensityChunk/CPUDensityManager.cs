@@ -7,9 +7,7 @@ using static EndlessTerrain;
 using UnityEngine.Rendering;
 using Utils;
 using Unity.Collections.LowLevel.Unsafe;
-using System.Linq;
-using System.IO;
-using UnityEditor.PackageManager.UI;
+using Unity.Burst;
 
 //Benefits of unified chunk map memory
 //1. No runtime allocation of native memory
@@ -18,7 +16,7 @@ using UnityEditor.PackageManager.UI;
 //4. Cleaner management and writing to storage(disk/ssd)
 public static class CPUDensityManager
 {
-    private static TerrainChunk[] _ChunkManagers;
+    public static TerrainChunk[] _ChunkManagers;
     public static NativeArray<MapData> SectionedMemory;
     public static NativeArray<ChunkMapInfo> AddressDict;
     public static int numChunksAxis;
@@ -28,7 +26,7 @@ public static class CPUDensityManager
     private static uint IsoValue;
     private static bool initialized = false;
 
-    public static void Intiialize(){
+    public static void Initialize(){
         Release();
         RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
         mapChunkSize = rSettings.mapChunkSize;
@@ -44,7 +42,6 @@ public static class CPUDensityManager
         _ChunkManagers = new TerrainChunk[numChunks];
         SectionedMemory = new NativeArray<MapData>((numChunks + 1) * numPoints, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
         AddressDict = new NativeArray<ChunkMapInfo>(numChunks + 1, Allocator.Persistent, NativeArrayOptions.ClearMemory);
-
         initialized = true;
     } 
 
@@ -68,6 +65,7 @@ public static class CPUDensityManager
         int hash = (hashCoord.x * numChunksAxis * numChunksAxis) + (hashCoord.y * numChunksAxis) + hashCoord.z;
         return hash;
     }
+
 
     public static void AllocateChunk(TerrainChunk chunk, int3 CCoord, ChunkStorageManager.OnWriteComplete OnReleaseComplete){
         int chunkHash = HashCoord(CCoord);
@@ -260,13 +258,19 @@ public static class CPUDensityManager
         public int density
         {
             readonly get => (int)data & 0xFF;
-            set => data = (data & 0xFFFFFF00) | ((uint)value & 0xFF) | 0x80000000;
+            set{
+                data = (data & 0xFFFF00FF) | ((uint)math.min(viscosity, value & 0xFF) << 8);
+                data = (data & 0xFFFFFF00) | ((uint)value & 0xFF) | 0x80000000;
+            }
         }
 
         public int viscosity
         {
             readonly get => (int)(data >> 8) & 0xFF;
-            set => data = (data & 0xFFFF00FF) | (((uint)value & 0xFF) << 8) | 0x80000000;
+            set{
+                data = (data & 0xFFFFFF00) | ((uint)math.max(density, value & 0xFF));
+                data = (data & 0xFFFF00FF) | (((uint)value  & 0xFF) << 8) | 0x80000000;
+            }
         }
 
         public int material
@@ -276,10 +280,10 @@ public static class CPUDensityManager
         }
 
         public readonly int SolidDensity{
-            get => Mathf.RoundToInt(density * (viscosity / 255.0f));
+            get => viscosity;
         }
         public readonly int LiquidDensity{
-            get => Mathf.RoundToInt(density * (1 - (viscosity / 255.0f)));
+            get => density - viscosity;
         }
         public readonly bool IsSolid{
             get => SolidDensity >= IsoValue;
@@ -330,7 +334,7 @@ public static class CPUDensityManager
 
     public static int SampleTerrain(int3 GCoord){
         MapData mapData = SampleMap(GCoord);
-        return (int)Math.Round(mapData.density * (mapData.viscosity / 255.0f));
+        return mapData.viscosity;
     }
     
 
@@ -338,6 +342,43 @@ public static class CPUDensityManager
         public int3 CCoord;
         public bool valid;
         public bool isDirty;
+    }
+
+    public unsafe struct MapContext{
+        [NativeDisableUnsafePtrRestriction]
+        public MapData* MapData;
+        [NativeDisableUnsafePtrRestriction]
+        public ChunkMapInfo* AddressDict;
+        public int mapChunkSize;
+        public int numChunksAxis;
+        public int IsoValue;
+    }
+
+    public static unsafe void ReflectChunkJob(TerrainChunk.ChunkStatus* status){
+        status->SetMap = true;
+        status->UpdateMesh = true;
+    }
+
+    [BurstCompile]
+    public unsafe static MapData SampleMap(in int3 GCoord, in MapContext context){
+        int3 MCoord = ((GCoord % context.mapChunkSize) + context.mapChunkSize) % context.mapChunkSize;
+        int3 CCoord = (GCoord - MCoord) / context.mapChunkSize;
+        int3 HCoord = ((CCoord % context.numChunksAxis) + context.numChunksAxis) % context.numChunksAxis;
+
+        int PIndex = MCoord.x * context.mapChunkSize * context.mapChunkSize + MCoord.y * context.mapChunkSize + MCoord.z;
+        int CIndex = HCoord.x * context.numChunksAxis * context.numChunksAxis + HCoord.y * context.numChunksAxis + HCoord.z;
+        int numPoints = context.mapChunkSize * context.mapChunkSize * context.mapChunkSize;
+        ChunkMapInfo mapInfo = context.AddressDict[CIndex];
+        if(!mapInfo.valid) return new MapData{data = 4294967295};//Not available(currently readingback)
+        if(math.any(mapInfo.CCoord != CCoord)) return new MapData{data = 4294967295}; //Out of bounds
+
+        return context.MapData[CIndex * numPoints + PIndex];
+    }
+
+    [BurstCompile]
+    public static int SampleTerrain(in int3 GCoord, in MapContext context){
+        MapData mapData = SampleMap(GCoord, context);
+        return mapData.viscosity;
     }
 
     /*    

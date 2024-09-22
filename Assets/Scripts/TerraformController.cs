@@ -198,11 +198,11 @@ public class TerraformController
     void RayTest(){
         uint RayTestSolid(int3 coord){ 
             MapData pointInfo = SampleMap(coord);
-            return (uint)Mathf.RoundToInt(pointInfo.density * (pointInfo.viscosity / 255.0f)); 
+            return (uint)pointInfo.viscosity; 
         }
         uint RayTestLiquid(int3 coord){ 
             MapData pointInfo = SampleMap(coord);
-            return (uint)Mathf.RoundToInt(Mathf.Max(pointInfo.density * (1 - (pointInfo.viscosity / 255.0f)), pointInfo.density * (pointInfo.viscosity / 255.0f)));
+            return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
         }
 
         //if(Input.GetMouseButton(1) || Input.GetMouseButton(0)) return;
@@ -253,10 +253,9 @@ public class TerraformController
             deltaDensity = MainInventory.RemoveMaterialFromInventory(deltaDensity);
 
             solidDensity += deltaDensity;
-            pointInfo.density = Mathf.Min(pointInfo.density + deltaDensity, 255);
+            pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
+            pointInfo.viscosity = math.min(pointInfo.viscosity + deltaDensity, 255);
             if(solidDensity >= IsoLevel) pointInfo.material = selected;
-
-            pointInfo.viscosity = Mathf.RoundToInt(((float)solidDensity) / pointInfo.density * 255);
         }
         return pointInfo;
     }
@@ -272,12 +271,9 @@ public class TerraformController
             int deltaDensity = GetStaggeredDelta(pointInfo.density, brushStrength);
             deltaDensity = MainInventory.RemoveMaterialFromInventory(deltaDensity);
 
-            if(pointInfo.density + deltaDensity > 255) Debug.Log(pointInfo.density + " " + deltaDensity);
             pointInfo.density += deltaDensity;
             liquidDensity += deltaDensity;
             if(liquidDensity >= IsoLevel) pointInfo.material = selected;
-
-            pointInfo.viscosity = Mathf.RoundToInt((1 - (((float)liquidDensity) / pointInfo.density)) * 255);
         }
         return pointInfo;
     }
@@ -293,10 +289,8 @@ public class TerraformController
             int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
             deltaDensity = MainInventory.AddMaterialToInventory(new MaterialInventory.InvMat{material = pointInfo.material, isSolid = true}, deltaDensity);
 
+            pointInfo.viscosity -= deltaDensity;
             pointInfo.density -= deltaDensity;
-            solidDensity -= deltaDensity;
-            
-            if(pointInfo.density != 0) pointInfo.viscosity = Mathf.RoundToInt(((float)solidDensity) / pointInfo.density * 255);
         }
         return pointInfo;
     }
@@ -311,9 +305,6 @@ public class TerraformController
             deltaDensity = MainInventory.AddMaterialToInventory(new MaterialInventory.InvMat{material = pointInfo.material, isSolid = false}, deltaDensity);
 
             pointInfo.density -= deltaDensity;
-            liquidDensity -= deltaDensity;
-            
-            if(pointInfo.density != 0) pointInfo.viscosity = Mathf.RoundToInt((1 - (((float)liquidDensity) / pointInfo.density)) * 255);
         }
         return pointInfo;
     }

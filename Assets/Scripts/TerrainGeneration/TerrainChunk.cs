@@ -119,7 +119,7 @@ public class TerrainChunk
         //Plan Structures
         RequestQueue.Enqueue(new GenTask{
             task = () => PlanStructures(), 
-            load = taskLoadTable[(int)priorities.structure]
+            id = (int)priorities.structure,
         });
     }
     
@@ -167,13 +167,13 @@ public class TerrainChunk
             status.UpdateMap = false;
             RequestQueue.Enqueue(new GenTask{ 
                 task = () => SimplifyMap(mapLoD),
-                load = taskLoadTable[(int)Utils.priorities.generation],
+                id =(int)priorities.generation,
             });
         } else if(status.SetMap){
             status.UpdateMap = false;
             RequestQueue.Enqueue(new GenTask{ 
                 task = () => SetChunkData(),
-                load = taskLoadTable[(int)Utils.priorities.generation],
+                id = (int)priorities.generation,
             });
         }
 
@@ -181,14 +181,14 @@ public class TerrainChunk
             status.UpdateMesh = false;
             RequestQueue.Enqueue(new GenTask{ 
                 task = () => status.CanUpdateMesh = true,
-                load = 0,
+                id = (int)priorities.propogation,
             });
         }
         if(status.CanUpdateMesh){
             status.CanUpdateMesh = false;
             RequestQueue.Enqueue(new GenTask{
                 task = () => {CreateMesh(meshLoD, OnChunkCreated);}, 
-                load = taskLoadTable[(int)Utils.priorities.mesh]
+                id = (int)priorities.mesh
             });
         }
     }
@@ -249,7 +249,7 @@ public class TerrainChunk
         ChunkStorageManager.ReadChunkBin(CCoord, LoD, (bool isComplete, CPUDensityManager.MapData[] chunk) => 
             RequestQueue.Enqueue(new GenTask{ //REMINDER: This queue should be locked
                 task = () => OnReadComplete(isComplete, chunk),
-                load = taskLoadTable[(int)priorities.generation],
+                id = (int)priorities.generation,
             })
         );
 
