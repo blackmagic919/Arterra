@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System;
 using UnityEngine;
-using System.Diagnostics;
 using Unity.Mathematics;
 using System.Collections.Concurrent;
 using Utils;
@@ -20,19 +19,28 @@ public class EndlessTerrain : MonoBehaviour
 
     public static readonly int[] meshSkipTable = { 1, 2, 4, 8, 16 }; //has to be 2x for proper stitching
     public static readonly int[] taskLoadTable = { 5, 3, 2, 3, 0 };
-    public static Queue<UpdateTask> MainLateUpdateTasks = new Queue<UpdateTask>();
-    public static Queue<UpdateTask> MainFixedUpdateTasks = new Queue<UpdateTask>();
-    public static ConcurrentQueue<GenTask> RequestQueue = new ConcurrentQueue<GenTask>(); //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
+    public static Queue<UpdateTask> MainLoopUpdateTasks;
+    public static Queue<UpdateTask> MainLateUpdateTasks;
+    public static Queue<UpdateTask> MainFixedUpdateTasks;
+    public static ConcurrentQueue<GenTask> RequestQueue; //As GPU dispatch must happen linearly, queue to call them sequentially as prev is finished
     public static TerrainChunk[] TerrainChunks;
     public static SurfaceChunk[] SurfaceChunks;
     private RenderSettings rSettings;
 
     void OnEnable(){
+        MainLoopUpdateTasks = new Queue<UpdateTask>();
+        MainLateUpdateTasks = new Queue<UpdateTask>();
+        MainFixedUpdateTasks = new Queue<UpdateTask>();
+        RequestQueue = new ConcurrentQueue<GenTask>();
+        
         GenerationPreset.Initialize();
         UtilityBuffers.Initialize();
 
         rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
         viewerPosition = CPUDensityManager.WSToGS(viewer.transform.position);
+
+        InputPoller.Initialize();
+        UIOrigin.Initialize();
 
         ChunkStorageManager.Initialize();
         GPUDensityManager.Initialize();
@@ -43,8 +51,25 @@ public class EndlessTerrain : MonoBehaviour
         TerrainGenerator.PresetData();
         DensityGenerator.PresetData();
         ShaderGenerator.PresetData();
-        WorldStorageHandler.WORLD_OPTIONS.Atmosphere.value.pass.Initialize();
+        AtmospherePass.Initialize();
         WorldStorageHandler.WORLD_OPTIONS.ReadBackSettings.value.Initialize();
+    }
+
+    private void OnDisable()
+    {
+        foreach(TerrainChunk chunk in TerrainChunks)
+            chunk.DestroyChunk();
+        foreach (SurfaceChunk chunk in SurfaceChunks)
+            chunk.DestroyChunk();
+
+        UIOrigin.Release();
+        UtilityBuffers.Release();
+        GPUDensityManager.Release();
+        CPUDensityManager.Release();
+        EntityManager.Release();
+        GenerationPreset.Release();
+        AtmospherePass.Release();
+        WorldStorageHandler.WORLD_OPTIONS.ReadBackSettings.value.Release();
     }
 
     private void Start()
@@ -78,29 +103,29 @@ public class EndlessTerrain : MonoBehaviour
         viewerPosition = CPUDensityManager.WSToGS(viewer.transform.position);
         UpdateChunks();
         StartGeneration();
+
+        ProcessUpdateTasks(MainLoopUpdateTasks);
     }
     
     private void LateUpdate()
     {
-        int UpdateTaskCount = MainLateUpdateTasks.Count;
-        for(int i = 0; i < UpdateTaskCount; i++){
-            UpdateTask task = MainLateUpdateTasks.Dequeue();
-            if(!task.active)
-                continue;
-            task.Update(this);
-            MainLateUpdateTasks.Enqueue(task);
-        }
+        ProcessUpdateTasks(MainLateUpdateTasks);
     }
 
     private void FixedUpdate()
     {
-        int UpdateTaskCount = MainFixedUpdateTasks.Count;
+        ProcessUpdateTasks(MainFixedUpdateTasks);
+    }
+
+    private void ProcessUpdateTasks(Queue<UpdateTask> taskQueue)
+    {
+        int UpdateTaskCount = taskQueue.Count;
         for(int i = 0; i < UpdateTaskCount; i++){
-            UpdateTask task = MainFixedUpdateTasks.Dequeue();
+            UpdateTask task = taskQueue.Dequeue();
             if(!task.active)
                 continue;
             task.Update(this);
-            MainFixedUpdateTasks.Enqueue(task);
+            taskQueue.Enqueue(task);
         }
     }
 
@@ -111,21 +136,6 @@ public class EndlessTerrain : MonoBehaviour
             if(chunk.Value.prevMapLOD == 4) Gizmos.DrawWireCube(chunk.Value.position * lerpScale, mapChunkSize * lerpScale * Vector3.one);
         }*/
         EntityManager.OnDrawGizmos();
-    }
-    private void OnDisable()
-    {
-        foreach(TerrainChunk chunk in TerrainChunks)
-            chunk.DestroyChunk();
-        foreach (SurfaceChunk chunk in SurfaceChunks)
-            chunk.DestroyChunk();
-
-        UtilityBuffers.Release();
-        GPUDensityManager.Release();
-        CPUDensityManager.Release();
-        EntityManager.Release();
-        GenerationPreset.Release();
-        WorldStorageHandler.WORLD_OPTIONS.Atmosphere.value.pass.Release();
-        WorldStorageHandler.WORLD_OPTIONS.ReadBackSettings.value.Release();
     }
 
 

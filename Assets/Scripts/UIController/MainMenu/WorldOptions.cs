@@ -41,7 +41,7 @@ public class WorldOptions : ScriptableObject{
     [Serializable]
     public struct QualitySettings{
         [UISetting(Message = "Improve Performance By Reducing Quality")]
-        public Option<AtmosphereBake> Atmosphere;
+        public Option<AtmosphereBakeSettings> Atmosphere;
         public Option<RenderSettings> Rendering;
         public Option<GeneratorSettings> GeoShaders;
         public Option<MemoryBufferSettings> Memory;
@@ -64,12 +64,11 @@ public class WorldOptions : ScriptableObject{
         [UISetting(Message = "Controls How The Player Interacts With The World")]
         public Option<TerraformSettings> Terraforming;
         public Option<RigidFPController.RigidFPControllerSettings> Movement;
+        public Option<CraftingMenuController.CraftingMenuSettings> Crafting;
     }
 
     [UISetting(Ignore = true)]
     public Option<ReadbackSettings> ReadBackSettings;
-    [UISetting(Ignore = true)]
-    public Option<AtmosphereFeature> Atmosphere; 
 
     [OnDeserialized]
     internal void OnDeserialized(StreamingContext context = default){

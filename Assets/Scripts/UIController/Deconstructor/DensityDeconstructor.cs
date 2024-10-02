@@ -298,7 +298,7 @@ public class DensityDeconstructor : MonoBehaviour
 
     public void SaveData()
     {
-        AssetDatabase.CreateAsset(Structure, "Assets/" + savePath + ".asset");
+        //AssetDatabase.CreateAsset(Structure, "Assets/" + savePath + ".asset");
         EditorUtility.SetDirty(Structure);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();

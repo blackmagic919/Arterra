@@ -6,12 +6,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using static EndlessTerrain;
 
-public class LoadingHandler : MonoBehaviour
+public class LoadingHandler : UpdateTask
 {
-    public Image Background;
-    public Slider slider;
-    public TextMeshProUGUI taskText;
-    private float finishedLoad;
+    public static GameObject LoadingScreen;
+    public static Image Background;
+    public static Slider slider;
+    public static TextMeshProUGUI taskText;
+    private static float finishedLoad;
     public static string[] taskDescriptions = {
         "Generating Surface Data",
         "Planning Structures",
@@ -21,15 +22,24 @@ public class LoadingHandler : MonoBehaviour
     };
 
     //Please improve loading screen one day
-    void Start(){
-        //Random background
+    public static void Initialize(){
+        LoadingScreen = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Loading"), UIOrigin.UIHandle.transform);
+        Background = LoadingScreen.transform.GetComponent<Image>();
+        slider = LoadingScreen.transform.GetChild(0).GetComponent<Slider>();
+        taskText = LoadingScreen.transform.GetChild(1).GetComponent<TextMeshProUGUI>();
+        LoadingScreen.SetActive(true);
+
         Background.sprite = Resources.Load<Sprite>($"Textures/BackgroundImages/Background_{Random.Range(1, 9)}");
         finishedLoad = 0;
+
+        MainLoopUpdateTasks.Enqueue(new LoadingHandler{active = true});
     }
-    void Update()
+
+    public override void Update(MonoBehaviour mono)
     {
         if(RequestQueue.IsEmpty){
-            this.gameObject.SetActive(false);
+            LoadingScreen.SetActive(false);
+            active = false;
             return;
         }
 

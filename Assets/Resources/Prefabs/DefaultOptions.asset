@@ -16,7 +16,10 @@ MonoBehaviour:
   Quality:
     value:
       Atmosphere:
-        value: {fileID: 11400000, guid: 871b8f4841c1e455f9f0e07616307f87, type: 2}
+        value:
+          BakedTextureSizePX: 128
+          InScatterDetail: 6
+          NumOpticalDepthPoints: 8
         isDirty: 0
       Rendering:
         value: {fileID: 11400000, guid: 20f244f85582c4ac2858ece976b58a49, type: 2}
@@ -105,6 +108,13 @@ MonoBehaviour:
           maxTerraformDistance: 60
           materialCapacity: 51000
           minInvMatThresh: 1
+          CursorSize: 2
+          CursorColor:
+            x: 0
+            y: 1
+            z: 0
+            w: 0.5
+          ShowCursor: 1
         isDirty: 0
       Movement:
         value:
@@ -114,10 +124,13 @@ MonoBehaviour:
           acceleration: 50
           groundStickDist: 0.05
         isDirty: 0
+      Crafting:
+        value:
+          CraftSpeed: 400
+          PointSizeMultiplier: 2
+          CraftingIsoValue: 128
+        isDirty: 0
     isDirty: 0
   ReadBackSettings:
     value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
-    isDirty: 0
-  Atmosphere:
-    value: {fileID: 5841424627466265696, guid: a68e5a5c7b47d422f98e7de77dcca5f6, type: 2}
     isDirty: 0

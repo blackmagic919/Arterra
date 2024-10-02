@@ -13,12 +13,12 @@ public class AtmospherePass : ScriptableRenderPass
 #pragma warning disable 0618
     const string ProfilerTag = "Atmosphere Pass";
 
-    AtmosphereBake AtmosphereSettings;
+    static AtmosphereBake AtmosphereSettings;
 
-    RTHandle temporaryBuffer;
-    RTHandle colorBuffer; RTHandle depthBuffer;
+    static RTHandle temporaryBuffer;
+    static RTHandle colorBuffer; static RTHandle depthBuffer;
 
-    Material material;
+    static Material material;
 
     // It is good to cache the shader property IDs here.
     static bool initialized = false;
@@ -30,24 +30,23 @@ public class AtmospherePass : ScriptableRenderPass
         initialized = false;
     }
 
-    public void Initialize(){
+    public static void Initialize(){
         if (material == null) material = CoreUtils.CreateEngineMaterial("Hidden/Fog");
 
         RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
-        AtmosphereSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Atmosphere.value;
+        AtmosphereSettings = new AtmosphereBake();
         float atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * rSettings.detailLevels.value[^1].chunkDistThresh;
 
         material.SetFloat("_AtmosphereRadius", atmosphereRadius);
         material.SetInt("_NumInScatterPoints", AtmosphereSettings.NumInScatterPoints);
         GPUDensityManager.SetDensitySampleData(material);
-        AtmosphereSettings.Initialize();
         AtmosphereSettings.SetBakedData(material);
         initialized = true;
     }
 
-    public void Release(){
+    public static void Release(){
         if(material != null) UnityEngine.Object.Destroy(material);
-        if(AtmosphereSettings != null) AtmosphereSettings.ReleaseData();
+        AtmosphereSettings.ReleaseData();
         initialized = false;
     }
 
@@ -75,9 +74,9 @@ public class AtmospherePass : ScriptableRenderPass
             {
                 AtmosphereSettings.Execute(cmd);
                 // Blit from the color buffer to a temporary buffer and back. This is needed for a two-pass shader.
-                cmd.SetGlobalTexture("_CameraDepthTexture", depthBuffer); //Make sure camera depth is available in shader
-                cmd.Blit(colorBuffer, temporaryBuffer, material, 0); // shader pass 0
-                cmd.Blit(temporaryBuffer, colorBuffer);
+                Blit(cmd, depthBuffer, Shader.GetGlobalTexture("_CameraDepthTexture")); //Make sure camera depth is available in shader
+                Blit(cmd, colorBuffer, temporaryBuffer.rt, material, 0); // shader pass 0
+                Blit(cmd, temporaryBuffer.rt, colorBuffer);
             }
 
             // Execute the command buffer and release it.

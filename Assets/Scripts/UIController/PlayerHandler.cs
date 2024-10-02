@@ -7,7 +7,8 @@ using System.IO;
 
 public class PlayerHandler : MonoBehaviour
 {
-    public TerraformController terrController;
+    public static MaterialInventory Inventory;
+    public static TerraformController terrController;
     private RigidFPController PlayerController;
     private PlayerData info;
     private bool active = false;
@@ -23,8 +24,9 @@ public class PlayerHandler : MonoBehaviour
         info = LoadPlayerData();
         transform.SetPositionAndRotation(info.position.GetVector(), info.rotation.GetQuaternion());
         PlayerController.Initialize(WorldStorageHandler.WORLD_OPTIONS.GamePlay.value.Movement.value);
-        this.terrController.MainInventory = info.inventory;
-        this.terrController.Activate();
+
+        Inventory = info.inventory;
+        terrController = new TerraformController();
     }
 
     // Update is called once per frame
@@ -32,16 +34,19 @@ public class PlayerHandler : MonoBehaviour
         if(EndlessTerrain.RequestQueue.IsEmpty && !active) Activate();
         if(!active) return;
         
-        terrController.Update(); 
+        terrController.Update();
+        Inventory.Update();
     }
 
     void OnDisable(){
         info.position = new Vec3(transform.position);
         info.rotation = new Vec4(transform.rotation);
-        info.inventory = terrController.MainInventory;
-        PlayerController.mouseLook.SetCursorLock(false); //Release Cursor Lock
+        info.inventory = Inventory;
+        InputPoller.SetCursorLock(false); //Release Cursor Lock
         Task.Run(() => SavePlayerData(info));
         active = false;
+
+        Inventory.Release();
     }
     
 
@@ -53,10 +58,6 @@ public class PlayerHandler : MonoBehaviour
             await writer.WriteAsync(data);
             await writer.FlushAsync();
         };
-    }
-
-    void OnDrawGizmos(){
-        terrController.OnDrawGizmos();
     }
 
      PlayerData LoadPlayerData(){

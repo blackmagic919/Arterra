@@ -13,9 +13,6 @@ struct v2f
     float2 uv : TEXCOORD0;
 };
 
-sampler2D _MaterialData;
-float4 _MaterialData_ST;
-
 struct matTerrain{
     float4 baseColor;
     float baseTextureScale;

@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using Unity.Mathematics;
 using System.Linq;
 using UnityEngine.Rendering;
 using static CPUDensityManager;
+using static PlayerHandler;
+using Newtonsoft.Json;
 
 
-[System.Serializable]
+[Serializable]
 public class TerraformSettings : ICloneable{
     public int terraformRadius = 5;
     public float terraformSpeed = 4;
@@ -29,11 +32,10 @@ public class TerraformSettings : ICloneable{
         };
     }
 }
-[System.Serializable]
+
 public class TerraformController
 {
     private TerraformSettings settings;
-    public LayerMask objectLayer;
     private bool shiftPressed = false;
     private bool hasHit;
     float3 hitPoint;
@@ -42,33 +44,32 @@ public class TerraformController
 
     Material OverlayMaterial;
     Mesh SphereMesh;
-    MaterialBarController barController;
     Transform cam;
 
 
-    [HideInInspector]
-    public MaterialInventory MainInventory;
 
     // Start is called before the first frame update
-    public void Activate()
+    public TerraformController()
     {
-        cam = Camera.main.transform;
-        barController = UnityEngine.Object.FindAnyObjectByType<MaterialBarController>();
-        IsoLevel = Mathf.RoundToInt(WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.IsoLevel * 255);
-        barController.OnInventoryChanged(this);
         settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.value.Terraforming.value;
+        cam = Camera.main.transform;
+
+        Inventory.Initialize(GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/MaterialBar"), UIOrigin.UIHandle.transform));
+        IsoLevel = Mathf.RoundToInt(WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.IsoLevel * 255);
         SetUpOverlay();
+
+        InputPoller.AddBinding(new InputPoller.Binding("Place Liquid", "GamePlay", InputPoller.BindPoll.Down, (_) => shiftPressed = true));
+        InputPoller.AddBinding(new InputPoller.Binding("Place Liquid", "GamePlay", InputPoller.BindPoll.Up, (_) => shiftPressed = false));
+        InputPoller.AddBinding(new InputPoller.Binding("Place Terrain", "GamePlay", InputPoller.BindPoll.Hold, PlaceTerrain));
+        InputPoller.AddBinding(new InputPoller.Binding("Remove Terrain", "GamePlay", InputPoller.BindPoll.Hold, RemoveTerrain));
+        InputPoller.AddBinding(new InputPoller.Binding("Next Material", "UI", InputPoller.BindPoll.Down, NextMaterial));
+        InputPoller.AddBinding(new InputPoller.Binding("Previous Material", "UI", InputPoller.BindPoll.Down, PreviousMaterial));
     }
+
 
     public void Update()
     {
-        if(Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift)) shiftPressed = true;
-        if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) shiftPressed = false;
-        
         RayTest();
-        Terraform();
-        HandleMaterialSwitch();
-
         DrawOverlays();
     }
 
@@ -184,17 +185,6 @@ public class TerraformController
         Graphics.RenderMesh(rp, SphereMesh, 0, transform);
     }
 
-
-    void HandleMaterialSwitch()
-    {
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-            MainInventory.PreviousMaterial();
-        else if (Input.GetKeyDown(KeyCode.Alpha2))
-            MainInventory.NextMaterial();
-        else return;
-        barController.OnInventoryChanged(this);
-    }
-
     void RayTest(){
         uint RayTestSolid(int3 coord){ 
             MapData pointInfo = SampleMap(coord);
@@ -205,32 +195,37 @@ public class TerraformController
             return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
         }
 
-        //if(Input.GetMouseButton(1) || Input.GetMouseButton(0)) return;
         float3 camPosGC = WSToGS(cam.position);
         if(shiftPressed) hasHit = RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestLiquid, out hitPoint);
         else hasHit = RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestSolid, out hitPoint);
     }
 
-    void Terraform()
-    {
-        if(Input.GetMouseButtonUp(1) || Input.GetMouseButtonUp(0)) MainInventory.ClearSmallMaterials(settings.minInvMatThresh);
-        else if (Input.GetMouseButton(1)) //Don't add if there is an object in the way
-        {
-            if(MainInventory.selected.isSolid)
-                CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleAddSolid);
-            else
-                CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleAddLiquid);
-        }
-        // Subtract terrain
-        else if (Input.GetMouseButton(0))
-        {
-            if(shiftPressed)
-                CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleRemoveLiquid);
-            else 
-                CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleRemoveSolid);
-        }
-        else return; 
-        barController.OnInventoryChanged(this);
+    private void NextMaterial(float _){
+        Inventory.NextMaterial();
+        Inventory.Rendering.IsDirty = true;
+    }
+
+    private void PreviousMaterial(float _){
+        Inventory.PreviousMaterial();
+        Inventory.Rendering.IsDirty = true;
+    }
+
+    private void PlaceTerrain(float _){
+        if (!hasHit) return;
+        if(Inventory.selected.isSolid)
+            CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleAddSolid);
+        else
+            CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleAddLiquid);
+        Inventory.Rendering.IsDirty = true;
+    }
+
+    private void RemoveTerrain(float _){
+        if (!hasHit) return;
+        if(shiftPressed)
+            CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleRemoveLiquid);
+        else 
+            CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleRemoveSolid);
+        Inventory.Rendering.IsDirty = true;
     }
 
     int GetStaggeredDelta(int baseDensity, float deltaDensity){
@@ -245,12 +240,12 @@ public class TerraformController
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
-        int selected = MainInventory.selected.material;
+        int selected = Inventory.selected.material;
         int solidDensity = pointInfo.SolidDensity;
         if(solidDensity < IsoLevel || pointInfo.material == selected){
             //If adding solid density, override water
             int deltaDensity = GetStaggeredDelta(solidDensity, brushStrength);
-            deltaDensity = MainInventory.RemoveMaterialFromInventory(deltaDensity);
+            deltaDensity = Inventory.RemoveMaterialFromInventory(deltaDensity);
 
             solidDensity += deltaDensity;
             pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
@@ -264,12 +259,12 @@ public class TerraformController
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
-        int selected = MainInventory.selected.material;
+        int selected = Inventory.selected.material;
         int liquidDensity = pointInfo.LiquidDensity;
         if(liquidDensity < IsoLevel || pointInfo.material == selected){
             //If adding liquid density, only change if not solid
             int deltaDensity = GetStaggeredDelta(pointInfo.density, brushStrength);
-            deltaDensity = MainInventory.RemoveMaterialFromInventory(deltaDensity);
+            deltaDensity = Inventory.RemoveMaterialFromInventory(deltaDensity);
 
             pointInfo.density += deltaDensity;
             liquidDensity += deltaDensity;
@@ -280,14 +275,14 @@ public class TerraformController
 
 
 
-    CPUDensityManager.MapData HandleRemoveSolid(CPUDensityManager.MapData pointInfo, float brushStrength){
+    MapData HandleRemoveSolid(MapData pointInfo, float brushStrength){
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int solidDensity = pointInfo.SolidDensity;
         if(solidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
-            deltaDensity = MainInventory.AddMaterialToInventory(new MaterialInventory.InvMat{material = pointInfo.material, isSolid = true}, deltaDensity);
+            deltaDensity = Inventory.AddMaterialToInventory(new MaterialInventory.InvMat{material = pointInfo.material, isSolid = true}, deltaDensity);
 
             pointInfo.viscosity -= deltaDensity;
             pointInfo.density -= deltaDensity;
@@ -295,24 +290,18 @@ public class TerraformController
         return pointInfo;
     }
 
-    CPUDensityManager.MapData HandleRemoveLiquid(CPUDensityManager.MapData pointInfo, float brushStrength){
+    MapData HandleRemoveLiquid(CPUDensityManager.MapData pointInfo, float brushStrength){
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int liquidDensity = pointInfo.LiquidDensity;
         if (liquidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(liquidDensity, -brushStrength);
-            deltaDensity = MainInventory.AddMaterialToInventory(new MaterialInventory.InvMat{material = pointInfo.material, isSolid = false}, deltaDensity);
+            deltaDensity = Inventory.AddMaterialToInventory(new MaterialInventory.InvMat{material = pointInfo.material, isSolid = false}, deltaDensity);
 
             pointInfo.density -= deltaDensity;
         }
         return pointInfo;
-    }
-
-    public void OnDrawGizmos()
-    {
-        Gizmos.color = Color.green;
-        Gizmos.DrawSphere((Vector3)CPUDensityManager.GSToWS(hitPoint), 0.25f);
     }
 }
 
@@ -325,6 +314,16 @@ public struct MaterialInventory{
     public int materialCapacity;
     public int selectedPos;
     public InvMat selected;
+    [JsonIgnore]
+    public MaterialDisplay Rendering;
+    public struct MaterialDisplay{
+        public RectTransform panelRectTransform;
+        public Image inventoryMat;
+        public ComputeBuffer buffer;
+        [Range(0, 1)]
+        public float size;
+        public bool IsDirty;
+    }
 
     public MaterialInventory(int capacity){
         inventory = new Dictionary<uint, int>();
@@ -332,6 +331,7 @@ public struct MaterialInventory{
         totalMaterialAmount = 0;
         selectedPos = 0;
         selected = new InvMat{isNull = true};
+        Rendering = new MaterialDisplay();
     }
 
     public uint[] GetInventoryKeys
@@ -351,6 +351,32 @@ public struct MaterialInventory{
             inventory.Values.CopyTo(values, 0);
             return values;
         }
+    }
+
+    public readonly void Release() { Rendering.buffer?.Release(); }
+    public void Initialize(GameObject materialBar)
+    {
+        Rendering.buffer = new ComputeBuffer(100, sizeof(int) + sizeof(float));
+        // Get the RectTransform component of the UI panel.
+        Rendering.panelRectTransform = materialBar.GetComponent<RectTransform>();
+        Rendering.inventoryMat = materialBar.transform.GetChild(0).GetComponent<Image>();
+        Rendering.inventoryMat.materialForRendering.SetBuffer("MainInventoryMaterial", Rendering.buffer);
+        Rendering.IsDirty = true;
+        Update();
+    }
+    public void Update() //DO NOT DO THIS IN ONENABLE, Shader is compiled later than OnEnabled is called
+    {
+        if(!Rendering.IsDirty) return;
+        Rendering.IsDirty = false;
+
+        Rendering.size = (float)totalMaterialAmount / materialCapacity;
+        Rendering.panelRectTransform.transform.localScale = new Vector3(Rendering.size, 1, 1);
+
+        int totalmaterials_M = inventory.Count;
+        Rendering.buffer.SetData(MaterialData.GetInventoryData(this), 0, 0, totalmaterials_M);
+        Rendering.inventoryMat.materialForRendering.SetInt("MainMaterialCount", totalmaterials_M);
+        Rendering.inventoryMat.materialForRendering.SetInt("selectedMat", selected.material);
+        Rendering.inventoryMat.materialForRendering.SetFloat("InventorySize", Rendering.size);
     }
 
 
@@ -381,6 +407,7 @@ public struct MaterialInventory{
 
     public int AddMaterialToInventory(InvMat materialIndex, int delta)
     {
+        if(delta == 0) return 0;
         delta = Mathf.Min(totalMaterialAmount + delta, materialCapacity) - totalMaterialAmount;
         uint key = materialIndex.key;
 
@@ -397,6 +424,7 @@ public struct MaterialInventory{
 
     public int RemoveMaterialFromInventory(int delta)
     {
+        if(delta == 0) return 0;
         delta = totalMaterialAmount - Mathf.Max(totalMaterialAmount - delta, 0);
         uint key = selected.key;
 
@@ -433,4 +461,25 @@ public struct MaterialInventory{
             set => key = value ? 0xFFFFFFFF : key;
         }
     }
+
+    struct MaterialData
+        {
+            public uint index;
+            public float percentage;
+
+            public static MaterialData[] GetInventoryData(MaterialInventory inventory){
+                uint[] indexes = inventory.GetInventoryKeys;
+                int[] amounts = inventory.GetInventoryValues;
+                int totalMaterials = inventory.inventory.Count;
+
+                MaterialData[] materialInfo = new MaterialData[totalMaterials+1];
+                materialInfo[0].percentage = 0;
+                for (int i = 1; i <= totalMaterials; i++)
+                {
+                    materialInfo[i-1].index = indexes[i-1];
+                    materialInfo[i].percentage = ((float)amounts[i-1]) / inventory.totalMaterialAmount + materialInfo[i - 1].percentage;
+                }
+                return materialInfo;
+            }
+        }
 }
