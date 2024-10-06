@@ -3,14 +3,8 @@
 
 const static uint numThreads = 256;
 
-struct DrawVertex{
-    float3 positionWS;
-    float3 normalWS;
-    float2 uv;
-};
-
 struct DrawTriangle{
-    DrawVertex vertices[3];
+    uint2 vertices[3];
 };
 
 StructuredBuffer<DrawTriangle> DrawTriangles;

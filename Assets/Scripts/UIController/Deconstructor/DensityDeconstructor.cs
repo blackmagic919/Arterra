@@ -11,10 +11,14 @@ public class DensityDeconstructor : MonoBehaviour
 {
 #if UNITY_EDITOR
     [Header("Misc")]
-    public string savePath;
     public float IsoLevel = 0.5f;
     [SerializeField]
     public StructureData Structure;
+
+    [Header("Create")]
+    public string savePath;
+    public float3 SDFoffset;
+
     SelectionArray SelectedArray;
     Queue<uint> Selected;
     GridManager gridManager;
@@ -55,7 +59,7 @@ public class DensityDeconstructor : MonoBehaviour
         Selected.Clear();
     }
 
-    public void InitializeGrid(){
+    private void InitializeGrid(){
         if(GridSize.x == 0 || GridSize.y == 0 || GridSize.z == 0)
             throw new Exception("Grid size cannot be zero");
         if(initialized) Release(); 
@@ -298,7 +302,6 @@ public class DensityDeconstructor : MonoBehaviour
 
     public void SaveData()
     {
-        //AssetDatabase.CreateAsset(Structure, "Assets/" + savePath + ".asset");
         EditorUtility.SetDirty(Structure);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -331,6 +334,7 @@ public class DensityDeconstructor : MonoBehaviour
         SDFConstructor.SetBuffer(kernel, "Vertices", vertexBuffer); //Assume one data stream
         SDFConstructor.SetBuffer(kernel, "Indices", indexBuffer);
         SDFConstructor.SetInt("numInds", (int)mesh.GetIndexCount(0)); //Assume one submesh
+        SDFConstructor.SetFloats("offset", SDFoffset.x, SDFoffset.y, SDFoffset.z);
 
         SDFConstructor.SetBuffer(kernel, "Distance", UtilityBuffers.TransferBuffer);
         SDFConstructor.SetInts("GridSize", new int[]{(int)GridSize.x, (int)GridSize.y, (int)GridSize.z});

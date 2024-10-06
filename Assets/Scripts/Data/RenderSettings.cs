@@ -14,8 +14,9 @@ public class RenderSettings : ScriptableObject
     [UISetting(Alias = "Terrain Scale")]
     public float lerpScale = 2f;
     [Range(0, 1)]
-    [UISetting(Warning = "Dangerous Parameters")]
     public float IsoLevel;
+    [UISetting(Ignore = true)]
+    [Range(0, 64)]
     public int mapChunkSize = 64; //Number of cubes; Please don't change
 
     private void OnEnable()

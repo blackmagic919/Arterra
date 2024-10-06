@@ -27,15 +27,10 @@
 // Include some helper functions
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "NMGGrassLayersHelpers.hlsl"
-
-struct DrawVertex{
-    float3 positionOS;
-    float3 normalOS;
-    float2 uv;
-};
+#include "Assets/Resources/GeoShader/VertexPacker.hlsl"
 
 struct DrawTriangle{
-    DrawVertex vertex[3];
+    uint2 vertex[3];
 };
 
 // Vertex function output and geometry function input
@@ -92,12 +87,17 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
 
     uint triAddress = vertexID / 3 + _AddressDict[addressIndex].y;
     uint vertexIndex = vertexID % 3;
-    DrawVertex input = _StorageMemory[triAddress].vertex[vertexIndex];
+    uint2 input = _StorageMemory[triAddress].vertex[vertexIndex];
 
-    output.positionWS = mul(_LocalToWorld, float4(input.positionOS, 1)).xyz;
-    output.normalWS = normalize(mul(_LocalToWorld, float4(input.normalOS, 0)).xyz);
+    VertexInfo v = UnpackVertex(input);
+    
+    output.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
+    output.normalWS = normalize(mul(_LocalToWorld, float4(v.normalOS, 0)).xyz);
     output.uv = mapCoordinates(output.positionWS) * _WSToUVScale;
-    output.height = input.uv;
+
+    float height = (uint)((input.x >> 30) & 0x3 | ((input.y >> 28) & 0xC));
+    height /= 15.0f;
+    output.height.xy = height;
 
     output.positionCS = CalculatePositionCSWithShadowCasterLogic(output.positionWS, output.normalWS);
     

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 
+[CreateAssetMenu(fileName = "Structure_Data", menuName = "Generation/Structure/Structure Data")]
 public class StructureData : ScriptableObject
 {
     public Option<Settings> settings;

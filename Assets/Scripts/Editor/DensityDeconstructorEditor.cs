@@ -11,11 +11,6 @@ public class DensityDeconstructorEditor : Editor
     {
         DensityDeconstructor deconstructor = (DensityDeconstructor)target;
 
-        if(GUILayout.Button("Initialize Grid"))
-        {
-            deconstructor.InitializeGrid();
-        }
-
         if(GUILayout.Button("Exit")){
             deconstructor.Release();
         }
@@ -31,8 +26,6 @@ public class DensityDeconstructorEditor : Editor
         }*/
 
         base.OnInspectorGUI(); 
-        
-        GUILayout.Label("Transfer");
 
         if (GUILayout.Button("Save"))
         {

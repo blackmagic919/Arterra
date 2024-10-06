@@ -28,15 +28,10 @@ Shader "Unlit/Snow"
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-
-            struct DrawVertex{
-                float3 positionOS;
-                float3 normalOS;
-                float2 uv;
-            };
+            #include "Assets/Resources/GeoShader/VertexPacker.hlsl"
             
             struct DrawTriangle{
-                DrawVertex vertex[3];
+                uint2 vertex[3];
             };
             
             
@@ -103,12 +98,14 @@ Shader "Unlit/Snow"
 
                 uint triAddress = vertexID / 3 + _AddressDict[addressIndex].y;
                 uint vertexIndex = vertexID % 3;
-                DrawVertex input = _StorageMemory[triAddress].vertex[vertexIndex];   
+                uint2 input = _StorageMemory[triAddress].vertex[vertexIndex];  
+                VertexInfo v = UnpackVertex(input);
+                float snowHeight = (uint)((input.x >> 30) & 0x3 | ((input.y >> 28) & 0xC)) / 15.0f;
+                snowHeight *= _OffsetHeight;
                 
-                float3 positionWS = mul(_LocalToWorld, float4(input.positionOS, 1)).xyz;
-                float3 normalWS = normalize(mul(_LocalToWorld, float4(input.normalOS, 0)).xyz);
+                float3 positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
+                float3 normalWS = normalize(mul(_LocalToWorld, float4(v.normalOS, 0)).xyz);
                 
-                float snowHeight = input.uv.x * _OffsetHeight;
                 float2 snowUV = TRANSFORM_TEX(mapCoordinates(positionWS), _OffsetTexture);
                 float snowNoise = SAMPLE_TEXTURE2D_LOD(_OffsetTexture, sampler_OffsetTexture, snowUV, 0).r * 2 - 1;
                 snowHeight += snowNoise * _OffsetStrength * snowHeight;

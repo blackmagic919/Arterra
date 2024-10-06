@@ -1,5 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Main
+#include "Assets/Resources/GeoShader/VertexPacker.hlsl"
 
 const static int numThreads = 256;
 
@@ -16,14 +17,8 @@ struct SourceVertex{
     int2 material; 
 };
 
-struct DrawVertex{
-    float3 positionOS;
-    float3 normalOS;
-    float2 uv;
-};
-
 struct DrawTriangle{
-    DrawVertex vertices[3];
+    uint2 vertices[3];
 };
 
 StructuredBuffer<SourceVertex> SourceVertices;
@@ -43,22 +38,13 @@ int bCOUNT_oGeo;
 float _QuadSize;
 float _InflationFactor;
 
-DrawVertex MakeBaseDrawVertex(SourceVertex v){
-    DrawVertex o = (DrawVertex)0;
-    o.positionOS = v.positionOS;
-    o.normalOS = v.normalOS;
 
-    return o;
-}
+uint2 InitializeDrawVertex(float3 positionOS, float3 normalOS, uint2 uv){
 
+    uint2 data = PackVertices(positionOS, normalOS);
+    data.x = data.x | uv.x << 30 | uv.y << 31;
 
-DrawVertex InitializeDrawVertex(float3 positionOS, float3 normalOS, float2 uv){
-    DrawVertex o = (DrawVertex)0;
-    o.positionOS = positionOS;
-    o.normalOS = normalOS;
-    o.uv = uv;
-
-    return o;
+    return data;
 }
 
 
@@ -93,16 +79,16 @@ void AppendTri(DrawTriangle tri){
 void AppendQuad(Quad quad, float3 normalOS){
     //Bottom triangle
     DrawTriangle lowerTri = (DrawTriangle)0;
-    lowerTri.vertices[0] = InitializeDrawVertex(quad.topLeft + _InflationFactor*normalOS, normalOS, float2(0, 1));
-    lowerTri.vertices[2] = InitializeDrawVertex(quad.bottomLeft + _InflationFactor*normalOS, normalOS, float2(0, 0));
-    lowerTri.vertices[1] = InitializeDrawVertex(quad.bottomRight + _InflationFactor*normalOS, normalOS, float2(1, 0)); //Add this first because clockwise winding
+    lowerTri.vertices[0] = InitializeDrawVertex(quad.topLeft + _InflationFactor*normalOS, normalOS, uint2(0, 1));
+    lowerTri.vertices[2] = InitializeDrawVertex(quad.bottomLeft + _InflationFactor*normalOS, normalOS, uint2(0, 0));
+    lowerTri.vertices[1] = InitializeDrawVertex(quad.bottomRight + _InflationFactor*normalOS, normalOS, uint2(1, 0)); //Add this first because clockwise winding
     AppendTri(lowerTri);
     
     //Top triangle
     DrawTriangle topTri = (DrawTriangle)0;
-    topTri.vertices[0] = InitializeDrawVertex(quad.topLeft + _InflationFactor*normalOS, normalOS, float2(0, 1));
-    topTri.vertices[2] = InitializeDrawVertex(quad.bottomRight + _InflationFactor*normalOS, normalOS, float2(1, 0));
-    topTri.vertices[1] = InitializeDrawVertex(quad.topRight + _InflationFactor*normalOS, normalOS, float2(1, 1));
+    topTri.vertices[0] = InitializeDrawVertex(quad.topLeft + _InflationFactor*normalOS, normalOS, uint2(0, 1));
+    topTri.vertices[2] = InitializeDrawVertex(quad.bottomRight + _InflationFactor*normalOS, normalOS, uint2(1, 0));
+    topTri.vertices[1] = InitializeDrawVertex(quad.topRight + _InflationFactor*normalOS, normalOS, uint2(1, 1));
     AppendTri(topTri);
 }
 
@@ -127,10 +113,10 @@ void Main (uint3 id : SV_DispatchThreadID)
     uint triIndex = BaseTriangles[bSTART_base + startIndex + id.x];
     uint3 sourceTri = SourceTriangles[_AddressDict[triAddress].y + triIndex];
 
-    DrawVertex inputs[3];
-    inputs[0] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.x]);
-    inputs[1] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.y]);
-    inputs[2] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.z]);
+    SourceVertex inputs[3];
+    inputs[0] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.x];
+    inputs[1] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.y];
+    inputs[2] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.z];
 
     float3 center = GetTriangleCenter(inputs[0].positionOS, inputs[1].positionOS, inputs[2].positionOS);
     float3 normal = GetTriangleCenter(inputs[0].normalOS, inputs[1].normalOS, inputs[2].normalOS);// If not want to inherit -> normalize(_CameraPosition - center);

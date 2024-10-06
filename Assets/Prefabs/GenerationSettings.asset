@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 042c647c6590a46049f02ed827103e9a, type: 3}
   m_Name: GenerationSettings
   m_EditorClassIdentifier: 
-  IsoLevel: 0.5
   detailLevels:
     value:
     - chunkDistThresh: 3
@@ -26,6 +25,7 @@ MonoBehaviour:
     - chunkDistThresh: 10
       useForGeoShaders: 0
     isDirty: 0
-  mapChunkSize: 64
   chunkUpdateThresh: 24
   lerpScale: 2
+  IsoLevel: 0.5
+  mapChunkSize: 64

@@ -2,6 +2,7 @@
 #pragma kernel Main
 
 const static int numThreads = 256;
+#include "Assets/Resources/GeoShader/VertexPacker.hlsl"
 
 
 struct SourceVertex{
@@ -11,14 +12,8 @@ struct SourceVertex{
 };
 
 
-struct DrawVertex{
-    float3 positionOS;
-    float3 normalOS;
-    float2 uv;
-};
-
 struct DrawTriangle{
-    DrawVertex vertices[3];
+    uint2 vertices[3];
 };
 
 
@@ -39,23 +34,15 @@ int bCOUNT_oGeo;
 float _TotalHeight;
 int _MaxLayers;
 
-DrawVertex MakeBaseDrawVertex(SourceVertex v){
-    DrawVertex o;
+uint2 ExtrudeVertex(SourceVertex v, int layerIndex){
+    float height = (float)layerIndex / _MaxLayers;
+    uint2 data = PackVertices(v.positionOS + v.normalOS * (height * _TotalHeight), v.normalOS);
 
-    o.normalOS = v.normalOS;
-    o.positionOS = v.positionOS;
-    o.uv = 0;
+    uint layerHeight = clamp(height * 15, 0, 15);
+    data.x |= (layerHeight & 0x3) << 30;
+    data.y |= (layerHeight & 0xC) << 28;
 
-    return o;
-}
-
-DrawVertex ExtrudeVertex(DrawVertex v, float height){
-    DrawVertex o;
-    o.positionOS = v.positionOS + v.normalOS * (height * _TotalHeight);
-    o.normalOS = v.normalOS;
-
-    o.uv = v.uv;
-    return o;
+    return data;
 }
 
 [numthreads(numThreads, 1, 1)]
@@ -69,21 +56,17 @@ void Main(uint3 id : SV_DispatchThreadID){
     uint triIndex = BaseTriangles[bSTART_base + startIndex + id.x];
     uint3 sourceTri = SourceTriangles[_AddressDict[triAddress].y + triIndex];
 
-    DrawVertex inputs[3];
-    inputs[0] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.x]);
-    inputs[1] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.y]);
-    inputs[2] = MakeBaseDrawVertex(SourceVertices[_AddressDict[vertAddress].y + sourceTri.z]);
+    SourceVertex inputs[3];
+    inputs[0] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.x];
+    inputs[1] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.y];
+    inputs[2] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.z];
     
 
     for(int i = 0; i < _MaxLayers; i++)
     {
-        float texHeight = (float) i / _MaxLayers;
-        float colorHeight = (float)(i) / (_MaxLayers - 1.0); // Use (float)(colorOffset + i) / (_MaxLayers - 1.0); if topColor priority
-
         DrawTriangle tri = (DrawTriangle)0;
         [unroll] for(int p = 0; p < 3; p++){
-            tri.vertices[p] = ExtrudeVertex(inputs[p], texHeight);
-            tri.vertices[p].uv = half2(texHeight, colorHeight); 
+            tri.vertices[p] = ExtrudeVertex(inputs[p], i);
         }
 
         int appendInd = 0;

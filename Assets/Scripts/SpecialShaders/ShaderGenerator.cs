@@ -22,7 +22,7 @@ public class ShaderGenerator
 
 
     private Transform transform;
-    const int GEO_VERTEX_STRIDE = 3 * 2 + 2;
+    const int GEO_VERTEX_STRIDE = 2;
     const int TRI_STRIDE_WORD = 3;
 
     private Bounds shaderBounds;
@@ -30,13 +30,13 @@ public class ShaderGenerator
 
 
     static ShaderGenerator(){
-        matSizeCounter = Resources.Load<ComputeShader>("GeoShader/Generation/ShaderMatSizeCounter");
-        filterGeometry = Resources.Load<ComputeShader>("GeoShader/Generation/FilterShaderGeometry");
-        sizePrefixSum = Resources.Load<ComputeShader>("GeoShader/Generation/ShaderPrefixConstructor");
-        geoSizeCalculator = Resources.Load<ComputeShader>("GeoShader/Generation/GeometryMemorySize");
-        geoTranscriber = Resources.Load<ComputeShader>("GeoShader/Generation/TranscribeGeometry");
-        shaderDrawArgs = Resources.Load<ComputeShader>("GeoShader/Generation/GeoDrawArgs");
-        geoInfoLoader = Resources.Load<ComputeShader>("GeoShader/Generation/GeoInfoLoader");
+        matSizeCounter = Resources.Load<ComputeShader>("GeoShader/ShaderMatSizeCounter");
+        filterGeometry = Resources.Load<ComputeShader>("GeoShader/FilterShaderGeometry");
+        sizePrefixSum = Resources.Load<ComputeShader>("GeoShader/ShaderPrefixConstructor");
+        geoSizeCalculator = Resources.Load<ComputeShader>("GeoShader/GeometryMemorySize");
+        geoTranscriber = Resources.Load<ComputeShader>("GeoShader/TranscribeGeometry");
+        shaderDrawArgs = Resources.Load<ComputeShader>("GeoShader/GeoDrawArgs");
+        geoInfoLoader = Resources.Load<ComputeShader>("GeoShader/GeoInfoLoader");
 
         indirectThreads = Resources.Load<ComputeShader>("Utility/DivideByThreads");
     }
@@ -66,7 +66,6 @@ public class ShaderGenerator
         fBaseGeoStart = numOfTris + triIndDictStart;
         shadGeoStart = Mathf.CeilToInt(((float)numOfTris + fBaseGeoStart) / (GEO_VERTEX_STRIDE*3.0f));
 
-        //Lol look a
         geoInfoLoader.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
         geoInfoLoader.SetInt("bCOUNTER_tri", baseGeoCounter);
 

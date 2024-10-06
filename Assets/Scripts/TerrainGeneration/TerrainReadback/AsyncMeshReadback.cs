@@ -94,7 +94,7 @@ public class AsyncMeshReadback
 
     public void BeginMeshReadback(Action<SharedMeshInfo> callback){
 
-        ReadbackTask RBTask = new ReadbackTask((SharedMeshInfo ret) => {ReleaseAllGeometry(); callback(ret);}, (int)numMeshes);
+        ReadbackTask RBTask = new ReadbackTask((SharedMeshInfo ret) => { callback(ret);}, (int)numMeshes);
 
         //Readback shared vertices
         GeometryHandle vertHandle = this.vertexHandle; //Get reference here so that it doesn't change when lambda evaluates

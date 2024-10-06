@@ -3,15 +3,11 @@
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "NMGFoliageHelpers.hlsl"
-
-struct DrawVertex{
-    float3 positionOS;
-    float3 normalOS;
-    float2 uv;
-};
+#include "NMGFoliageHelpers.hlsl"
+#include "Assets/Resources/GeoShader/VertexPacker.hlsl"
 
 struct DrawTriangle{
-    DrawVertex vertex[3];
+    uint2 vertex[3];
 };
 
 struct VertexOutput {
@@ -43,11 +39,17 @@ VertexOutput Vertex(uint vertexID: SV_VertexID){
 
     uint triAddress = vertexID / 3 + _AddressDict[addressIndex].y;
     uint vertexIndex = vertexID % 3;
-    DrawVertex input = _StorageMemory[triAddress].vertex[vertexIndex];
+    uint2 input = _StorageMemory[triAddress].vertex[vertexIndex];
 
-    output.positionWS = mul(_LocalToWorld, float4(input.positionOS, 1)).xyz;
-    output.normalWS = normalize(mul(_LocalToWorld, float4(input.normalOS, 0)).xyz);
-    output.uv = input.uv;
+    VertexInfo v = UnpackVertex(input);
+    
+    float2 uv;
+    uv.x = (input >> 30) & 1;
+    uv.y = (input >> 31) & 1;
+
+    output.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
+    output.normalWS = normalize(mul(_LocalToWorld, float4(v.normalOS, 0)).xyz);
+    output.uv = uv;
     output.positionCS = CalculatePositionCSWithShadowCasterLogic(output.positionWS, output.normalWS);
 
     return output;

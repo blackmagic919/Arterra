@@ -1,5 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Main
+#include "Assets/Resources/GeoShader/VertexPacker.hlsl"
+
 const static int numThreads = 256;
 
 struct SourceVertex{
@@ -16,6 +18,10 @@ struct DrawVertex{
 
 struct DrawTriangle{
     DrawVertex vertices[3];
+};
+
+struct PackedTriangle{
+    uint2 vertices[3];
 };
 
 struct matTerrain{
@@ -36,7 +42,7 @@ uint triAddress;
 
 RWStructuredBuffer<uint> counters;
 StructuredBuffer<uint> BaseTriangles;
-RWStructuredBuffer<DrawTriangle> DrawTriangles;
+RWStructuredBuffer<PackedTriangle> DrawTriangles;
 int bSTART_base;
 int bCOUNT_base;
 int bSTART_oGeo;
@@ -79,9 +85,18 @@ DrawTriangle GetBaseTriangle(DrawTriangle base, float tessel){
 }
 
 void AppendTri(DrawTriangle tri){
+    PackedTriangle packedTri = (PackedTriangle)0;
+    [unroll]for(uint i = 0; i < 3; i++){
+        uint2 data = PackVertices(tri.vertices[i].positionOS, tri.vertices[i].normalOS);
+        uint depth = clamp(tri.vertices[i].uv.x * 15, 0, 15);
+        data.x |= (depth & 0x3) << 30;
+        data.y |= (depth & 0xC) << 28;
+        packedTri.vertices[i] = data;
+    }
+
     int appendInd = 0;
     InterlockedAdd(counters[bCOUNT_oGeo], 1, appendInd);
-    DrawTriangles[bSTART_oGeo + appendInd] = tri;
+    DrawTriangles[bSTART_oGeo + appendInd] = packedTri;
 }
 
 

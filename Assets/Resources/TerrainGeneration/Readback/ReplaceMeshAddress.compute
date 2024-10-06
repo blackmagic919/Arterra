@@ -1,0 +1,32 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel MeshAddress
+#pragma kernel ChunkOffset
+
+RWStructuredBuffer<uint3> MeshAddresses;
+StructuredBuffer<uint2> _AddressDict;
+uint3 geoAddress; //vertex, baseTri, waterTri
+
+uint dictAddress;
+uint hashIndex;
+
+[numthreads(1,1,1)]
+void MeshAddress (uint3 id : SV_DispatchThreadID)
+{
+    uint wAddress = _AddressDict[dictAddress].y + hashIndex;
+    MeshAddresses[wAddress] = uint3(
+        _AddressDict[geoAddress.x].y,
+        _AddressDict[geoAddress.y].y,
+        _AddressDict[geoAddress.z].y
+    );
+}
+
+RWStructuredBuffer<int3> ChunkOffsets;
+int3 chunkOffset;
+
+[numthreads(1,1,1)]
+void ChunkOffset (uint3 id : SV_DispatchThreadID)
+{
+    uint wAddress = _AddressDict[dictAddress].y + hashIndex;
+    ChunkOffsets[wAddress] = chunkOffset;
+}
+
