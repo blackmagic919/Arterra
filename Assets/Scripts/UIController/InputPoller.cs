@@ -29,11 +29,13 @@ public class InputPoller : UpdateTask
             {"Remove Terrain", KeyCode.Mouse0},
             {"Place Terrain", KeyCode.Mouse1},
             {"Place Liquid", KeyCode.LeftShift},
-            {"Previous Material", KeyCode.Alpha1},
-            {"Next Material", KeyCode.Alpha2},
-            {"Toggle Crafting", KeyCode.C},
             {"Pause", KeyCode.Escape},
             {"Quit", KeyCode.Return},
+            {"Select", KeyCode.Mouse0},
+
+            {"Open Inventory", KeyCode.Tab},
+            {"Craft", KeyCode.Return},
+
 
             {"Move Horizontal", KeyCode.Alpha3},
             {"Move Vertical", KeyCode.Alpha4},

@@ -1440,9 +1440,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae7e31fadc365438eb6353b62af08f78, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  savePath: Prefabs/StructureData/Tree2
   IsoLevel: 0.5
-  Structure: {fileID: 11400000, guid: f57a3ff4c55b74f3181b05d46c96e6aa, type: 2}
+  Structure: {fileID: 11400000, guid: cde026b0a525940f8b34740b235d9ea4, type: 2}
+  savePath: ~
+  SDFoffset:
+    x: 0
+    y: 0
+    z: 0
 --- !u!20 &2116822346 stripped
 Camera:
   m_CorrespondingSourceObject: {fileID: 34467644572550482, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}

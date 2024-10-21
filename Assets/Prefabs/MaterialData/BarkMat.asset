@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Bark
   texture:
-    value: {fileID: 2800000, guid: 3e30a42e52755488789c9c1cbb471854, type: 3}
+    value: {fileID: 21300000, guid: 3e30a42e52755488789c9c1cbb471854, type: 3}
     isDirty: 0
   terrainData:
     color:

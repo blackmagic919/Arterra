@@ -16,13 +16,13 @@ public class Rabbit : EntityAuthoring
     [UISetting(Ignore = true)]
     public Option<RabbitEntity> _Entity;
     public Option<RabbitSetting> _Setting;
-    public Option<List<uint2> > _Profile;
+    public Option<List<ProfileE> > _Profile;
      public Option<Entity.Info.ProfileInfo> _Info;
     public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
     public override IEntity Entity { get => _Entity.value; set => _Entity.value = (RabbitEntity)value; }
     public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (RabbitSetting)value; }
     public override Entity.Info.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
-    public override uint2[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
+    public override ProfileE[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
 
     [Serializable]
     public struct RabbitSetting : IEntitySetting{

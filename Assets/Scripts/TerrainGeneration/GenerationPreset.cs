@@ -18,9 +18,7 @@ public static class GenerationPreset
     public static bool active;
 
     public static void Initialize(){
-        if(active) return;
         active = true;
-        
         materialHandle.Initialize();
         noiseHandle.Initialize();
         biomeHandle.Initialize();
@@ -63,8 +61,8 @@ public static class GenerationPreset
             terrainData.SetData(MaterialDictionary.Select(e => e.value.terrainData).ToArray());
             atmosphericData.SetData(MaterialDictionary.Select(e => e.value.AtmosphereScatter).ToArray());
             liquidData.SetData(MaterialDictionary.Select(e => e.value.liquidData).ToArray());
-
-            Texture2DArray textures = GenerateTextureArray(MaterialDictionary.Select(x => x.value.texture.value).ToArray());
+            //Bad naming scheme -> (value.texture.value.texture)
+            Texture2DArray textures = GenerateTextureArray(MaterialDictionary.Select(e => e.value.texture.value.texture).ToArray());
             Shader.SetGlobalTexture("_Textures", textures); 
             Shader.SetGlobalBuffer("_MatTerrainData", terrainData);
             Shader.SetGlobalBuffer("_MatAtmosphericData", atmosphericData);
@@ -282,7 +280,7 @@ public static class GenerationPreset
     public struct EntityHandle{
         private ComputeBuffer entityInfoBuffer;
         private ComputeBuffer entityProfileBuffer; //used by gpu placement
-        public NativeArray<uint2> entityProfileArray; //used by jobs
+        public NativeArray<ProfileE> entityProfileArray; //used by jobs
 
         public void Release(){
             entityInfoBuffer?.Release();
@@ -297,7 +295,7 @@ public static class GenerationPreset
             List<Option<EntityAuthoring> > EntityDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Entities.value;
             int numEntities = EntityDictionary.Count;
             Entity.Info.ProfileInfo[] entityInfo = new Entity.Info.ProfileInfo[numEntities];
-            List<uint2> entityProfile = new List<uint2>();
+            List<ProfileE> entityProfile = new List<ProfileE>();
 
             for(int i = 0; i < numEntities; i++)
             {
@@ -312,7 +310,7 @@ public static class GenerationPreset
 
             entityInfoBuffer = new ComputeBuffer(numEntities, sizeof(uint) * 4, ComputeBufferType.Structured);
             entityProfileBuffer = new ComputeBuffer(entityProfile.Count, sizeof(uint) * 2, ComputeBufferType.Structured);
-            entityProfileArray = new NativeArray<uint2>(entityProfile.ToArray(), Allocator.Persistent);
+            entityProfileArray = new NativeArray<ProfileE>(entityProfile.ToArray(), Allocator.Persistent);
 
             entityInfoBuffer.SetData(entityInfo);
             entityProfileBuffer.SetData(entityProfile.ToArray());

@@ -7,7 +7,6 @@ using System.IO;
 
 public class PlayerHandler : MonoBehaviour
 {
-    public static MaterialInventory Inventory;
     public static TerraformController terrController;
     private RigidFPController PlayerController;
     private PlayerData info;
@@ -25,7 +24,8 @@ public class PlayerHandler : MonoBehaviour
         transform.SetPositionAndRotation(info.position.GetVector(), info.rotation.GetQuaternion());
         PlayerController.Initialize(WorldStorageHandler.WORLD_OPTIONS.GamePlay.value.Movement.value);
 
-        Inventory = info.inventory;
+        InventoryController.Primary = info.PrimaryI;
+        InventoryController.Secondary = info.SecondaryI;
         terrController = new TerraformController();
     }
 
@@ -35,18 +35,18 @@ public class PlayerHandler : MonoBehaviour
         if(!active) return;
         
         terrController.Update();
-        Inventory.Update();
     }
 
     void OnDisable(){
         info.position = new Vec3(transform.position);
         info.rotation = new Vec4(transform.rotation);
-        info.inventory = Inventory;
+
+        info.PrimaryI = InventoryController.Serialize(InventoryController.Primary);
+        info.SecondaryI = InventoryController.Serialize(InventoryController.Secondary);
+
         InputPoller.SetCursorLock(false); //Release Cursor Lock
         Task.Run(() => SavePlayerData(info));
         active = false;
-
-        Inventory.Release();
     }
     
 
@@ -66,7 +66,8 @@ public class PlayerHandler : MonoBehaviour
             return new PlayerData{
                 position = new Vec3((new Vector3(0, 0, 0) + Vector3.up * (CPUNoiseSampler.SampleTerrainHeight(new (0, 0, 0)) + 5)) * WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.lerpScale),
                 rotation = new Vec4(Quaternion.LookRotation(Vector3.forward, Vector3.up)),
-                inventory = new MaterialInventory(WorldStorageHandler.WORLD_OPTIONS.GamePlay.value.Terraforming.value.materialCapacity)
+                PrimaryI = new InventoryController.Inventory(WorldStorageHandler.WORLD_OPTIONS.GamePlay.value.Inventory.value.PrimarySlotCount),
+                SecondaryI = new InventoryController.Inventory(WorldStorageHandler.WORLD_OPTIONS.GamePlay.value.Inventory.value.SecondarySlotCount)
             };
         }
 
@@ -77,6 +78,7 @@ public class PlayerHandler : MonoBehaviour
     struct PlayerData{
         public Vec3 position;
         public Vec4 rotation;
-        public MaterialInventory inventory;
+        public InventoryController.Inventory PrimaryI;
+        public InventoryController.Inventory SecondaryI;
     }
 }

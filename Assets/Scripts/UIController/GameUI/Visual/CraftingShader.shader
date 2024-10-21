@@ -43,12 +43,14 @@ Shader "Unlit/CraftingShader"
             {
                 float4 positionOS : POSITION;
                 float2 uv : TEXCOORD0;
+                float4 color : COLOR;
             };
 
             struct v2f
             {
                 float4 positionCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
+                float offset : TEXCOORD1;
             };
 
             struct matTerrain{
@@ -72,7 +74,7 @@ Shader "Unlit/CraftingShader"
 
             StructuredBuffer<matTerrain> _MatTerrainData;
             StructuredBuffer<liquidMat> _MatLiquidData;
-            uint IsoValue;
+            uint IsoValue; float GridWidth;
 
             //A lot of global textures
             Texture2DArray _Textures;
@@ -90,6 +92,7 @@ Shader "Unlit/CraftingShader"
                 v2f o;
                 o.positionCS = UnityObjectToClipPos(v.positionOS);
                 o.uv = v.uv;
+                o.offset = v.color.r * 255.0f;
                 return o;
             }
 
@@ -132,21 +135,22 @@ Shader "Unlit/CraftingShader"
 
             fixed3 frag (v2f IN) : SV_Target
             {
-                float2 gridPos = min(IN.uv * 3.0f, 2.9999f);
+                float2 gridPos = min(IN.uv * GridWidth, GridWidth - 0.0001);
                 float2 distToEdge = min(frac(gridPos), 1 - frac(gridPos));
                 if(any(distToEdge < _GridSize))
                     return _GridColor;
 
-                float pDensity = 0; uint parent = 0;
+                float pDensity = 0; uint parent = 0; 
+                int offset = IN.offset * (GridWidth + 1) * (GridWidth + 1);
                 Influences2D blend = GetBlendInfo(gridPos);
 
                 [unroll]for(int i = 0; i < 4; i++){
                     int2 cCoord = blend.origin + int2(i % 2, i / 2);
-                    int index = cCoord.x * 4 + cCoord.y;
+                    int index = cCoord.x * (GridWidth + 1) + cCoord.y;
 
-                    uint mapData = CraftingInfo[index];
+                    uint mapData = CraftingInfo[index + offset];
                     float nDensity = density(mapData) * blend.corner[i];
-                    if(density(mapData) > IsoValue && nDensity >= density(parent)) 
+                    if(density(mapData) >= IsoValue && nDensity >= density(parent)) 
                         parent = mapData & 0xFFFFFF00 | (uint)nDensity;
                     pDensity += nDensity;
                 }

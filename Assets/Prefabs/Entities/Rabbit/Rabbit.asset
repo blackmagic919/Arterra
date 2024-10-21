@@ -21,6 +21,8 @@ MonoBehaviour:
         x: 0
         y: 0
         z: 0
+      TaskIndex: 0
+      TaskDuration: 0
       tCollider:
         velocity:
           x: 0
@@ -52,30 +54,30 @@ MonoBehaviour:
     isDirty: 0
   _Profile:
     value:
-    - x: 4286644096
-      y: 2
-    - x: 4286644096
-      y: 2
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4286644096
-      y: 2
-    - x: 4286644096
-      y: 2
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
     isDirty: 0
   _Info:
     value:

@@ -15,13 +15,13 @@ public class Bird : EntityAuthoring
     [UISetting(Ignore = true)]
     public Option<BirdEntity> _Entity;
     public Option<BirdSetting> _Setting;
-    public Option<List<uint2> > _Profile;
+    public Option<List<ProfileE> > _Profile;
     public Option<Entity.Info.ProfileInfo> _Info;
     public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
     public override IEntity Entity { get => _Entity.value; set => _Entity.value = (BirdEntity)value; }
     public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (BirdSetting)value; }
     public override Entity.Info.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
-    public override uint2[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
+    public override ProfileE[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
 
     [System.Serializable]
     public struct BirdSetting : IEntitySetting{

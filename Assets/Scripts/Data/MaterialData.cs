@@ -11,7 +11,7 @@ public abstract class MaterialData : ScriptableObject
 {
     public string Name;
     [UISetting(Ignore = true)][JsonIgnore]
-    public Option<Texture2D> texture;
+    public Option<Sprite> texture;
     public TerrainData terrainData;
     public AtmosphericData AtmosphereScatter;
     public LiquidData liquidData;

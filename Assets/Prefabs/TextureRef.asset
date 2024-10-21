@@ -38,6 +38,8 @@ MonoBehaviour:
       isDirty: 0
     - value: {fileID: 11400000, guid: 7e6bad03ed2784be1b60360b46eb8e19, type: 2}
       isDirty: 0
+    - value: {fileID: 11400000, guid: b04a7904e687b4c758cd8ecaf397bfde, type: 2}
+      isDirty: 0
     isDirty: 0
   liquidFineWave:
     value: {fileID: 2800000, guid: 0a658634b9a994b12b7ee75cb511ac02, type: 3}

@@ -1,0 +1,199 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2b1fc2151f544d899d2863fbc6c828b, type: 3}
+  m_Name: CraftingSettings
+  m_EditorClassIdentifier: 
+  GridWidth: 3
+  CraftSpeed: 200
+  PointSizeMultiplier: 2
+  CraftingIsoValue: 128
+  MaxRecipeDistance: 12
+  NumMaxSelections: 5
+  Recipes:
+    value:
+    - Name: Plank
+      entry:
+        value:
+        - data: 561039
+        - data: 561039
+        - data: 0
+        - data: 0
+        - data: 561039
+        - data: 561039
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        isDirty: 0
+      result:
+        data: 0
+    - Name: Hardwood
+      entry:
+        value:
+        - data: 561039
+        - data: 561039
+        - data: 561039
+        - data: 0
+        - data: 561039
+        - data: 561039
+        - data: 561039
+        - data: 0
+        - data: 561039
+        - data: 561039
+        - data: 561039
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        isDirty: 0
+      result:
+        data: 0
+    - Name: Furnace
+      entry:
+        value:
+        - data: 495503
+        - data: 495503
+        - data: 495503
+        - data: 495503
+        - data: 495503
+        - data: 20303
+        - data: 20303
+        - data: 495503
+        - data: 495503
+        - data: 20303
+        - data: 20303
+        - data: 495503
+        - data: 495503
+        - data: 495503
+        - data: 495503
+        - data: 495503
+        isDirty: 0
+      result:
+        data: 0
+    - Name: Chest
+      entry:
+        value:
+        - data: 561039
+        - data: 561039
+        - data: 561039
+        - data: 561039
+        - data: 561039
+        - data: 20303
+        - data: 20303
+        - data: 561039
+        - data: 561039
+        - data: 20303
+        - data: 20303
+        - data: 561039
+        - data: 561039
+        - data: 561039
+        - data: 561039
+        - data: 561039
+        isDirty: 0
+      result:
+        data: 0
+    - Name: Compost
+      entry:
+        value:
+        - data: 298895
+        - data: 298895
+        - data: 0
+        - data: 0
+        - data: 298895
+        - data: 298895
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        isDirty: 0
+      result:
+        data: 0
+    - Name: SandStone
+      entry:
+        value:
+        - data: 233359
+        - data: 233359
+        - data: 0
+        - data: 0
+        - data: 233359
+        - data: 233359
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        isDirty: 0
+      result:
+        data: 0
+    - Name: Cement
+      entry:
+        value:
+        - data: 233359
+        - data: 131215
+        - data: 0
+        - data: 0
+        - data: 131215
+        - data: 233359
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        isDirty: 0
+      result:
+        data: 0
+    - Name: Brick
+      entry:
+        value:
+        - data: 495503
+        - data: 233359
+        - data: 495503
+        - data: 233359
+        - data: 495503
+        - data: 233359
+        - data: 495503
+        - data: 233359
+        - data: 495503
+        - data: 233359
+        - data: 495503
+        - data: 233359
+        - data: 495503
+        - data: 233359
+        - data: 495503
+        - data: 233359
+        isDirty: 0
+      result:
+        data: 0
+    isDirty: 0

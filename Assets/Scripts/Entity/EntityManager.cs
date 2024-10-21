@@ -301,7 +301,7 @@ public class EntityJob : UpdateTask{
         dispatched = false;
         job = new Context{
             Entities = (Entity**)EntityManager.EntityHandler.GetPtr(0),
-            Profile = (uint2*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
+            Profile = (ProfileE*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
             sTree = EntityManager.ESTree,
             mapContext = new MapContext{
                 MapData = (MapData*)SectionedMemory.GetUnsafePtr(),
@@ -343,7 +343,7 @@ public class EntityJob : UpdateTask{
         [NativeDisableUnsafePtrRestriction]
         public unsafe Entity** Entities;
         [NativeDisableUnsafePtrRestriction]
-        [ReadOnly] public unsafe uint2* Profile;
+        [ReadOnly] public unsafe ProfileE* Profile;
         [ReadOnly] public unsafe MapContext mapContext;
         public STree sTree;
         [ReadOnly] public float3 gravity; 
@@ -362,12 +362,12 @@ public class EntityJob : UpdateTask{
             for(dC.y = 0; dC.y < info.bounds.y; dC.y++){
                 for(dC.z = 0; dC.z < info.bounds.z; dC.z++){
                     uint index = dC.x * info.bounds.y * info.bounds.z + dC.y * info.bounds.z + dC.z;
-                    uint2 profile = context.Profile[index + info.profileStart];
-                    if((profile.y & 0x4) != 0 && UseExFlag) continue;
-                    bool valid = InBounds(SampleMap(GCoord + (int3)dC, context.mapContext), profile.x);
-                    allC = allC && (valid || !((profile.y & 0x1) != 0));
-                    anyC = anyC || (valid && ((profile.y & 0x2) != 0));
-                    any0 = any0 || ((profile.y & 0x2) != 0);
+                    ProfileE profile = context.Profile[index + info.profileStart];
+                    if(profile.ExFlag && UseExFlag) continue;
+                    bool valid = InBounds(SampleMap(GCoord + (int3)dC, context.mapContext), profile.bounds);
+                    allC = allC && (valid || !profile.AndFlag);
+                    anyC = anyC || (valid && profile.OrFlag);
+                    any0 = any0 || profile.OrFlag;
                 }
             }
         } 

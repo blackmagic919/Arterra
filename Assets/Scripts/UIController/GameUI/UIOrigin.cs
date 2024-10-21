@@ -11,10 +11,10 @@ public static class UIOrigin
         UIHandle = GameObject.Find("MainUI");
         LoadingHandler.Initialize();
         PauseHandler.Initialize();
-        CraftingMenuController.Initialize();
+        InventoryController.Initialize();
     }
 
     public static void Release(){
-        CraftingMenuController.Release();
+        InventoryController.Release();
     }
 }

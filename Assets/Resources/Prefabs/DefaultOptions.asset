@@ -125,10 +125,12 @@ MonoBehaviour:
           groundStickDist: 0.05
         isDirty: 0
       Crafting:
+        value: {fileID: 11400000, guid: b6eb14945e6ce4e35a36d2502ba1cf4f, type: 2}
+        isDirty: 0
+      Inventory:
         value:
-          CraftSpeed: 400
-          PointSizeMultiplier: 2
-          CraftingIsoValue: 128
+          PrimarySlotCount: 4
+          SecondarySlotCount: 24
         isDirty: 0
     isDirty: 0
   ReadBackSettings:

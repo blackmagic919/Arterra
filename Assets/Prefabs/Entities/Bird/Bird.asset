@@ -46,30 +46,30 @@ MonoBehaviour:
     isDirty: 0
   _Profile:
     value:
-    - x: 4286644096
-      y: 6
-    - x: 4286644096
-      y: 6
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4286644096
-      y: 6
-    - x: 4286644096
-      y: 6
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
-    - x: 4278222592
-      y: 1
+    - bounds: 4286644096
+      flags: 6
+    - bounds: 4286644096
+      flags: 6
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 4286644096
+      flags: 6
+    - bounds: 4286644096
+      flags: 6
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
     isDirty: 0
   _Info:
     value:

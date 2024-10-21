@@ -8,6 +8,7 @@ using UnityEngine.Rendering;
 using Utils;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Burst;
+using UnityEditor;
 
 //Benefits of unified chunk map memory
 //1. No runtime allocation of native memory
@@ -244,58 +245,6 @@ public static class CPUDensityManager
         AsyncGPUReadback.RequestIntoNativeSlice(ref dest, GPUDensityManager.AccessStorage(), size: 4 * numPoints, offset: 4 * memAddress);*/
     }
 
-    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    public struct MapData
-    {
-        public uint data;
-
-        public bool isDirty{ 
-            readonly get => (data & 0x80000000) != 0;
-            //Should not edit, but some functions need to
-            set => data = value ? data | 0x80000000 : data & 0x7FFFFFFF;
-        }
-
-        public int density
-        {
-            readonly get => (int)data & 0xFF;
-            set{
-                data = (data & 0xFFFF00FF) | ((uint)math.min(viscosity, value & 0xFF) << 8);
-                data = (data & 0xFFFFFF00) | ((uint)value & 0xFF) | 0x80000000;
-            }
-        }
-
-        public int viscosity
-        {
-            readonly get => (int)(data >> 8) & 0xFF;
-            set{
-                data = (data & 0xFFFFFF00) | ((uint)math.max(density, value & 0xFF));
-                data = (data & 0xFFFF00FF) | (((uint)value  & 0xFF) << 8) | 0x80000000;
-            }
-        }
-
-        public int material
-        {
-            readonly get => (int)((data >> 16) & 0x7FFF);
-            set => data = (data & 0x8000FFFF) | (uint)((value & 0x7FFF) << 16) | 0x80000000;
-        }
-
-        public readonly int SolidDensity{
-            get => viscosity;
-        }
-        public readonly int LiquidDensity{
-            get => density - viscosity;
-        }
-        public readonly bool IsSolid{
-            get => SolidDensity >= IsoValue;
-        }
-        public readonly bool IsLiquid{
-            get => LiquidDensity >= IsoValue;
-        }
-        public readonly bool IsGaseous{
-            get => !IsSolid && !IsLiquid;
-        }
-    }
-
     public static float3 WSToGS(float3 WSPos){return WSPos / lerpScale + mapChunkSize / 2;}
     public static float3 GSToWS(float3 GSPos){return (GSPos - mapChunkSize / 2) * lerpScale;}
     public static void SetMap(MapData data, int3 GCoord){
@@ -379,6 +328,96 @@ public static class CPUDensityManager
     public static int SampleTerrain(in int3 GCoord, in MapContext context){
         MapData mapData = SampleMap(GCoord, context);
         return mapData.viscosity;
+    }
+
+    [Serializable]
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    public struct MapData
+    {
+        [HideInInspector] public uint data;
+
+        public bool isDirty{ 
+            readonly get => (data & 0x80000000) != 0;
+            //Should not edit, but some functions need to
+            set => data = value ? data | 0x80000000 : data & 0x7FFFFFFF;
+        }
+
+        public int density
+        {
+            readonly get => (int)data & 0xFF;
+            set{
+                data = (data & 0xFFFF00FF) | ((uint)math.min(viscosity, value & 0xFF) << 8);
+                data = (data & 0xFFFFFF00) | ((uint)value & 0xFF) | 0x80000000;
+            }
+        }
+
+        public int viscosity
+        {
+            readonly get => (int)(data >> 8) & 0xFF;
+            set{
+                data = (data & 0xFFFFFF00) | ((uint)math.max(density, value & 0xFF));
+                data = (data & 0xFFFF00FF) | (((uint)value  & 0xFF) << 8) | 0x80000000;
+            }
+        }
+
+        public int material
+        {
+            readonly get => (int)((data >> 16) & 0x7FFF);
+            set => data = (data & 0x8000FFFF) | (uint)((value & 0x7FFF) << 16) | 0x80000000;
+        }
+
+        public readonly int SolidDensity{
+            get => viscosity;
+        }
+        public readonly int LiquidDensity{
+            get => density - viscosity;
+        }
+        public readonly bool IsSolid{
+            get => SolidDensity >= IsoValue;
+        }
+        public readonly bool IsLiquid{
+            get => LiquidDensity >= IsoValue;
+        }
+        public readonly bool IsGaseous{
+            get => !IsSolid && !IsLiquid;
+        }
+    }
+    [CustomPropertyDrawer(typeof(MapData))]
+    public class MapDataDrawer : PropertyDrawer{
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        {
+            SerializedProperty dataProp = property.FindPropertyRelative("data");
+            uint data = dataProp.uintValue;
+
+            //bool isDirty = (data & 0x80000000) != 0;
+            uint material = (data >> 16) & 0x7FFF;
+            uint viscosity = (data >> 8) & 0xFF;
+            uint density = data & 0xFF;
+
+            Rect rect = new (position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+            
+            material = (uint)EditorGUI.IntField(rect, "Material", (int)material);
+            rect.y += EditorGUIUtility.singleLineHeight;
+            viscosity = (uint)EditorGUI.IntField(rect, "Viscosity", (int)viscosity);
+            rect.y += EditorGUIUtility.singleLineHeight;
+            density = (uint)EditorGUI.IntField(rect, "Density", (int)density);
+            rect.y += EditorGUIUtility.singleLineHeight;
+            //isDirty = EditorGUI.Toggle(rect, "Is Dirty", isDirty);
+            //rect.y += EditorGUIUtility.singleLineHeight;
+
+            //data = (isDirty ? data | 0x80000000 : data & 0x7FFFFFFF);
+            data = (data & 0x8000FFFF) | (material << 16);
+            data = (data & 0xFFFF00FF) | ((viscosity & 0xFF) << 8);
+            data = (data & 0xFFFFFF00) | (density & 0xFF);
+
+            dataProp.uintValue = data;
+        }
+
+        // Override this method to make space for the custom fields
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+        {
+            return EditorGUIUtility.singleLineHeight * 3;
+        }
     }
 
     /*    

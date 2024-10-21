@@ -64,7 +64,8 @@ public class WorldOptions : ScriptableObject{
         [UISetting(Message = "Controls How The Player Interacts With The World")]
         public Option<TerraformSettings> Terraforming;
         public Option<RigidFPController.RigidFPControllerSettings> Movement;
-        public Option<CraftingMenuController.CraftingMenuSettings> Crafting;
+        public Option<CraftingMenuSettings> Crafting;
+        public Option<InventoryController.Settings> Inventory;
     }
 
     [UISetting(Ignore = true)]

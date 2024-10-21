@@ -87,7 +87,8 @@ DrawTriangle GetBaseTriangle(DrawTriangle base, float tessel){
 void AppendTri(DrawTriangle tri){
     PackedTriangle packedTri = (PackedTriangle)0;
     [unroll]for(uint i = 0; i < 3; i++){
-        uint2 data = PackVertices(tri.vertices[i].positionOS, tri.vertices[i].normalOS);
+        uint2 data = PackVertices(tri.vertices[i].positionOS, 
+                     normalize(tri.vertices[i].normalOS));
         uint depth = clamp(tri.vertices[i].uv.x * 15, 0, 15);
         data.x |= (depth & 0x3) << 30;
         data.y |= (depth & 0xC) << 28;

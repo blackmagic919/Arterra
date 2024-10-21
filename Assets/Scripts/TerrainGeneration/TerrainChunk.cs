@@ -206,7 +206,7 @@ public class TerrainChunk
 #if UNITY_EDITOR
        GameObject.DestroyImmediate(meshObject);
 #else
-        Destroy(meshObject);
+        GameObject.Destroy(meshObject);
 #endif
     }
 

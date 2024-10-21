@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
+using UnityEditor;
 
 [CreateAssetMenu(fileName = "Structure_Data", menuName = "Generation/Structure/Structure Data")]
 public class StructureData : ScriptableObject
@@ -90,5 +91,86 @@ public class StructureData : ScriptableObject
             readonly get => (int)((data >> 16) & 0x7FFF);
             set => data = (data & 0x8000FFFF) | (uint)((value & 0x7FFF) << 16);
         }
+    }
+}
+
+[CustomPropertyDrawer(typeof(StructureData.PointInfo))]
+public class StructPointDrawer : PropertyDrawer{
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        SerializedProperty dataProp = property.FindPropertyRelative("data");
+        uint data = dataProp.uintValue;
+
+        //bool isDirty = (data & 0x80000000) != 0;
+        bool preserve = (data & 0x80000000) != 0;
+        uint material = (data >> 16) & 0x7FFF;
+        uint viscosity = (data >> 8) & 0xFF;
+        uint density = data & 0xFF;
+
+        Rect rect = new (position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+        
+        material = (uint)EditorGUI.IntField(rect, "Material", (int)material);
+        rect.y += EditorGUIUtility.singleLineHeight;
+        viscosity = (uint)EditorGUI.IntField(rect, "Viscosity", (int)viscosity);
+        rect.y += EditorGUIUtility.singleLineHeight;
+        density = (uint)EditorGUI.IntField(rect, "Density", (int)density);
+        rect.y += EditorGUIUtility.singleLineHeight;
+        preserve = EditorGUI.Toggle(rect, "Preserve", preserve);
+        rect.y += EditorGUIUtility.singleLineHeight;
+        //isDirty = EditorGUI.Toggle(rect, "Is Dirty", isDirty);
+        //rect.y += EditorGUIUtility.singleLineHeight;
+
+        //data = (isDirty ? data | 0x80000000 : data & 0x7FFFFFFF);
+        data = preserve ? data | 0x80000000 : data & 0x7FFFFFFF;
+        data = (data & 0x8000FFFF) | (material << 16);
+        data = (data & 0xFFFF00FF) | ((viscosity & 0xFF) << 8);
+        data = (data & 0xFFFFFF00) | (density & 0xFF);
+
+        dataProp.uintValue = data;
+    }
+
+    // Override this method to make space for the custom fields
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        return EditorGUIUtility.singleLineHeight * 4;
+    }
+}
+
+
+[CustomPropertyDrawer(typeof(StructureData.CheckInfo))]
+public class StructCheckDrawer : PropertyDrawer{
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        SerializedProperty dataProp = property.FindPropertyRelative("data");
+        uint data = dataProp.uintValue;
+
+        int[] densityB = new int[2]{
+            (int)(data & 0xFF),
+            (int)((data >> 8) & 0xFF)
+        };
+        int[] viscosityB = new int[2]{
+            (int)((data >> 16) & 0xFF),
+            (int)((data >> 24) & 0xFF)
+        };
+
+        Rect rect = new (position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+        
+        EditorGUI.MultiIntField(rect, new GUIContent[] { new ("Density L"), new ("Density U") }, densityB);
+        rect.y += EditorGUIUtility.singleLineHeight;
+        EditorGUI.MultiIntField(rect, new GUIContent[] { new ("Viscosity L"), new ("Viscosity U") }, viscosityB);
+        rect.y += EditorGUIUtility.singleLineHeight;
+
+
+        data = (data & 0xFFFFFF00) | ((uint)densityB[0] & 0xFF);
+        data = (data & 0xFFFF00FF) | (((uint)densityB[1] & 0xFF) << 8);
+        data = (data & 0xFF00FFFF) | (((uint)viscosityB[0] & 0xFF) << 16);
+        data = (data & 0x00FFFFFF) | (((uint)viscosityB[1] & 0xFF) << 24);
+        dataProp.uintValue = data;
+    }
+
+    // Override this method to make space for the custom fields
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        return EditorGUIUtility.singleLineHeight * 2;
     }
 }

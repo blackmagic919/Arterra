@@ -3,8 +3,7 @@ Shader "Unlit/Snow"
     Properties
     {
         _OffsetTexture("Detail Noise Texture", 2D) = "white" {}
-        _OffsetStrength("Offset Strength", Range(0,1)) = 1
-        _OffsetHeight("Offset Height", float) = 0.5
+        _OffsetHeight("Offset Height", Range(0,1)) = 0.5
 
         _SnowNormal("Snow Normal", 2D) = "white" {}
         _SnowColor("Snow Color", Color) = (1, 1, 1, 1)
@@ -43,8 +42,8 @@ Shader "Unlit/Snow"
             TEXTURE2D(_OffsetTexture); SAMPLER(sampler_OffsetTexture); float4 _OffsetTexture_ST;
             TEXTURE2D(_SparkleTexture); SAMPLER(sampler_SparkleTexture); float4 _SparkleTexture_ST;
             TEXTURE2D(_SnowNormal); SAMPLER(sampler_SnowNormal); float4 _SnowNormal_ST;
-            float _NormalStrength; float _OffsetStrength; float _OffsetHeight;
-            float4 _SnowColor; float _TexOpacity; float _SparkleCutoff;
+            float _NormalStrength;  float _OffsetHeight; float4 _SnowColor;
+            float _TexOpacity; float _SparkleCutoff;
 
             struct VertexOutput
             {
@@ -100,7 +99,7 @@ Shader "Unlit/Snow"
                 uint vertexIndex = vertexID % 3;
                 uint2 input = _StorageMemory[triAddress].vertex[vertexIndex];  
                 VertexInfo v = UnpackVertex(input);
-                float snowHeight = (uint)((input.x >> 30) & 0x3 | ((input.y >> 28) & 0xC)) / 15.0f;
+                float snowHeight = (uint)(((input.x >> 30) & 0x3) | ((input.y >> 28) & 0xC)) / 15.0f;
                 snowHeight *= _OffsetHeight;
                 
                 float3 positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
@@ -108,7 +107,7 @@ Shader "Unlit/Snow"
                 
                 float2 snowUV = TRANSFORM_TEX(mapCoordinates(positionWS), _OffsetTexture);
                 float snowNoise = SAMPLE_TEXTURE2D_LOD(_OffsetTexture, sampler_OffsetTexture, snowUV, 0).r * 2 - 1;
-                snowHeight += snowNoise * _OffsetStrength * snowHeight;
+                snowHeight += snowNoise  * snowHeight;
                 
                 output.positionWS = positionWS + normalWS * snowHeight;
                 output.normalWS = normalWS;
