@@ -19,11 +19,11 @@ public static class StructureGenerator
     public static StructureOffsets offsets;
     
     static StructureGenerator(){
-        StructureLoDSampler = Resources.Load<ComputeShader>("TerrainGeneration/Structures/StructureLODSampler");
-        StructureIdentifier = Resources.Load<ComputeShader>("TerrainGeneration/Structures/StructureIdentifier");
-        structureChunkGenerator = Resources.Load<ComputeShader>("TerrainGeneration/Structures/StructureChunkGenerator");
-        structureDataTranscriber = Resources.Load<ComputeShader>("TerrainGeneration/Structures/TranscribeStructPoints");
-        structureSizeCounter = Resources.Load<ComputeShader>("TerrainGeneration/Structures/StructureSizeCounter");
+        StructureLoDSampler = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Structures/StructureLODSampler");
+        StructureIdentifier = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Structures/StructureIdentifier");
+        structureChunkGenerator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Structures/StructureChunkGenerator");
+        structureDataTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Structures/TranscribeStructPoints");
+        structureSizeCounter = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Structures/StructureSizeCounter");
     }
 
     static int[] calculateLoDPoints(int maxLoD, int maxStructurePoints, float falloffFactor)
@@ -58,9 +58,9 @@ public static class StructureGenerator
 
     public static void PresetData()
     {
-        MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Terrain.value;
-        SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Surface.value;
-        BiomeGenerationData biomes = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Biomes.value;
+        MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.Generation.Terrain.value;
+        SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.Generation.Surface.value;
+        BiomeGenerationData biomes = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value;
         int maxStructurePoints = calculateMaxStructurePoints(biomes.maxLoD, biomes.StructureChecksPerChunk, biomes.LoDFalloff);
         offsets = new StructureOffsets(maxStructurePoints, 0);
 
@@ -72,16 +72,16 @@ public static class StructureGenerator
         StructureLoDSampler.SetInt("bSTART", offsets.sampleStart);
         StructureLoDSampler.SetInt("bCOUNTER", offsets.sampleCounter);
 
-        StructureIdentifier.SetInt("caveCoarseSampler", mesh.CoarseTerrainNoise);
-        StructureIdentifier.SetInt("caveFineSampler", mesh.FineTerrainNoise);
+        StructureIdentifier.SetInt("caveCoarseSampler", mesh.CoarseTerrainIndex);
+        StructureIdentifier.SetInt("caveFineSampler", mesh.FineTerrainIndex);
 
-        StructureIdentifier.SetInt("continentalSampler", surface.TerrainContinentalDetail);
-        StructureIdentifier.SetInt("erosionSampler", surface.TerrainErosionDetail);
-        StructureIdentifier.SetInt("PVSampler", surface.TerrainPVDetail);
-        StructureIdentifier.SetInt("squashSampler", surface.SquashMapDetail);
-        StructureIdentifier.SetInt("caveFreqSampler", surface.CaveFreqDetail);
-        StructureIdentifier.SetInt("caveSizeSampler", surface.CaveSizeDetail);
-        StructureIdentifier.SetInt("caveShapeSampler", surface.CaveShapeDetail);
+        StructureIdentifier.SetInt("continentalSampler", surface.ContinentalIndex);
+        StructureIdentifier.SetInt("erosionSampler", surface.ErosionIndex);
+        StructureIdentifier.SetInt("PVSampler", surface.PVIndex);
+        StructureIdentifier.SetInt("squashSampler", surface.SquashIndex);
+        StructureIdentifier.SetInt("caveFreqSampler", surface.CaveFreqIndex);
+        StructureIdentifier.SetInt("caveSizeSampler", surface.CaveSizeIndex);
+        StructureIdentifier.SetInt("caveShapeSampler", surface.CaveShapeIndex);
 
         StructureIdentifier.SetFloat("maxTerrainHeight", surface.MaxTerrainHeight);
         StructureIdentifier.SetFloat("squashHeight", surface.MaxSquashHeight);

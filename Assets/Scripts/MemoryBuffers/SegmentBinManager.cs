@@ -50,10 +50,10 @@ public class SegmentBinManager
 
     public SegmentBinManager(int mapChunkSize, List<LODInfo> detailLevels, int PointStride4Bytes = 1)
     {
-        ChunkLLConstructor = Resources.Load<ComputeShader>("MemoryStructures/SegmentBin/ChunkLLConstructor");
-        SectionConstructor = Resources.Load<ComputeShader>("MemoryStructures/SegmentBin/SectionConstructor");
-        AllocateChunkShader = Resources.Load<ComputeShader>("MemoryStructures/SegmentBin/AllocateChunk");
-        DeAllocateChunkShader = Resources.Load<ComputeShader>("MemoryStructures/SegmentBin/DeAllocateChunk");
+        ChunkLLConstructor = Resources.Load<ComputeShader>("Compute/MemoryStructures/SegmentBin/ChunkLLConstructor");
+        SectionConstructor = Resources.Load<ComputeShader>("Compute/MemoryStructures/SegmentBin/SectionConstructor");
+        AllocateChunkShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/SegmentBin/AllocateChunk");
+        DeAllocateChunkShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/SegmentBin/DeAllocateChunk");
         _AddressRet = new ComputeBuffer(2, sizeof(uint), ComputeBufferType.Structured);
 
         int numChunks = 0;

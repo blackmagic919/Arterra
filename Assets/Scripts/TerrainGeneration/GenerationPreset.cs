@@ -41,7 +41,7 @@ public static class GenerationPreset
 
     public struct MaterialHandle{
         const int textureSize = 512;
-        const TextureFormat textureFormat = TextureFormat.RGB565;
+        const TextureFormat textureFormat = TextureFormat.RGBA32;
 
         Texture2DArray textureArray;
         ComputeBuffer terrainData;
@@ -51,18 +51,18 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            TextureData data = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Materials.value;
-            List<Option<MaterialData> > MaterialDictionary = data.MaterialDictionary.value;
-            int numMats = MaterialDictionary.Count;
+            TextureData data = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value;
+            MaterialData[] MaterialDictionary = data.MaterialDictionary.SerializedData;
+            int numMats = MaterialDictionary.Length;
             terrainData = new ComputeBuffer(numMats, sizeof(float) * 6 + sizeof(int), ComputeBufferType.Structured);
             atmosphericData = new ComputeBuffer(numMats, sizeof(float) * 6, ComputeBufferType.Structured);
             liquidData = new ComputeBuffer(numMats, sizeof(float) * (3 * 2 + 2 * 2 + 5), ComputeBufferType.Structured);
 
-            terrainData.SetData(MaterialDictionary.Select(e => e.value.terrainData).ToArray());
-            atmosphericData.SetData(MaterialDictionary.Select(e => e.value.AtmosphereScatter).ToArray());
-            liquidData.SetData(MaterialDictionary.Select(e => e.value.liquidData).ToArray());
+            terrainData.SetData(MaterialDictionary.Select(e => e.terrainData).ToArray());
+            atmosphericData.SetData(MaterialDictionary.Select(e => e.AtmosphereScatter).ToArray());
+            liquidData.SetData(MaterialDictionary.Select(e => e.liquidData).ToArray());
             //Bad naming scheme -> (value.texture.value.texture)
-            Texture2DArray textures = GenerateTextureArray(MaterialDictionary.Select(e => e.value.texture.value.texture).ToArray());
+            Texture2DArray textures = GenerateTextureArray(MaterialDictionary.Select(e => e.texture.value.texture).ToArray());
             Shader.SetGlobalTexture("_Textures", textures); 
             Shader.SetGlobalBuffer("_MatTerrainData", terrainData);
             Shader.SetGlobalBuffer("_MatAtmosphericData", atmosphericData);
@@ -99,21 +99,21 @@ public static class GenerationPreset
         
         public void Initialize(){
             Release();
-            List<Option<NoiseData> > samplerDict = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Noise.value;
-            uint[] indexPrefixSum = new uint[(samplerDict.Count + 1) * 2];
-            NoiseSettings[] settings = new NoiseSettings[samplerDict.Count];
+            NoiseData[] samplerDict = WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.SerializedData;
+            uint[] indexPrefixSum = new uint[(samplerDict.Length + 1) * 2];
+            NoiseSettings[] settings = new NoiseSettings[samplerDict.Length];
             List<Vector3> offsets = new List<Vector3>();
             List<Vector4> splinePoints = new List<Vector4>();
-            for(int i = 0; i < samplerDict.Count; i++){
-                indexPrefixSum[2 * (i+1)] = (uint)samplerDict[i].value.OctaveOffsets.Length + indexPrefixSum[2*i];
-                indexPrefixSum[2 * (i+1) + 1] = (uint)samplerDict[i].value.SplineKeys.Length + indexPrefixSum[2*i+1];
-                settings[i] = new NoiseSettings(samplerDict[i].value);
-                offsets.AddRange(samplerDict[i].value.OctaveOffsets);
-                splinePoints.AddRange(samplerDict[i].value.SplineKeys);
+            for(int i = 0; i < samplerDict.Length; i++){
+                indexPrefixSum[2 * (i+1)] = (uint)samplerDict[i].OctaveOffsets.Length + indexPrefixSum[2*i];
+                indexPrefixSum[2 * (i+1) + 1] = (uint)samplerDict[i].SplineKeys.Length + indexPrefixSum[2*i+1];
+                settings[i] = new NoiseSettings(samplerDict[i]);
+                offsets.AddRange(samplerDict[i].OctaveOffsets);
+                splinePoints.AddRange(samplerDict[i].SplineKeys);
             }
             
-            indexBuffer = new ComputeBuffer(samplerDict.Count + 1, sizeof(uint) * 2, ComputeBufferType.Structured);
-            settingsBuffer = new ComputeBuffer(samplerDict.Count, sizeof(float) * 3, ComputeBufferType.Structured);
+            indexBuffer = new ComputeBuffer(samplerDict.Length + 1, sizeof(uint) * 2, ComputeBufferType.Structured);
+            settingsBuffer = new ComputeBuffer(samplerDict.Length, sizeof(float) * 3, ComputeBufferType.Structured);
             offsetsBuffer = new ComputeBuffer(offsets.Count, sizeof(float) * 3, ComputeBufferType.Structured);
             splinePointsBuffer = new ComputeBuffer(splinePoints.Count, sizeof(float) * 4, ComputeBufferType.Structured);
 
@@ -173,8 +173,8 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            List<Option<BiomeInfo> > biomes = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Biomes.value.biomes.value;
-            int numBiomes = biomes.Count;
+            BiomeInfo[] biomes = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.biomes.SerializedData;
+            int numBiomes = biomes.Length;
             uint4[] biomePrefSum = new uint4[numBiomes + 1]; //Prefix sum
             float[] atmosphereData = new float[numBiomes];
             List<BiomeInfo.BMaterial> biomeGroundMaterial = new();
@@ -184,15 +184,15 @@ public static class GenerationPreset
 
             for (int i = 0; i < numBiomes; i++)
             {
-                biomePrefSum[i+1] = new uint4((uint)biomes[i].value.GroundMaterials.value?.Count + biomePrefSum[i].x, 
-                                            (uint)biomes[i].value.SurfaceMaterials.value?.Count + biomePrefSum[i].y,
-                                            (uint)biomes[i].value.Structures.value?.Count + biomePrefSum[i].z,
-                                            (uint)biomes[i].value.Entities.value?.Count + biomePrefSum[i].w);
-                atmosphereData[i] = biomes[i].value.AtmosphereFalloff;
-                biomeGroundMaterial.AddRange(biomes[i].value.GroundMaterials.value?.Select((Option<BiomeInfo.BMaterial> b) => b.value));
-                biomeSurfaceMaterial.AddRange(biomes[i].value.SurfaceMaterials.value?.Select((Option<BiomeInfo.BMaterial> b) => b.value));
-                biomeStructures.AddRange(biomes[i].value.Structures.value?.Select((Option<BiomeInfo.TerrainStructure> b) => b.value));
-                biomeEntities.AddRange(biomes[i].value.Entities.value?.Select((Option<BiomeInfo.EntityGen> b) => b.value));
+                biomePrefSum[i+1] = new uint4((uint)biomes[i].GroundMaterials.value?.Count + biomePrefSum[i].x, 
+                                            (uint)biomes[i].SurfaceMaterials.value?.Count + biomePrefSum[i].y,
+                                            (uint)biomes[i].Structures.value?.Count + biomePrefSum[i].z,
+                                            (uint)biomes[i].Entities.value?.Count + biomePrefSum[i].w);
+                atmosphereData[i] = biomes[i].AtmosphereFalloff;
+                biomeGroundMaterial.AddRange(biomes[i].MaterialSerial(biomes[i].GroundMaterials));
+                biomeSurfaceMaterial.AddRange(biomes[i].MaterialSerial(biomes[i].SurfaceMaterials));
+                biomeStructures.AddRange(biomes[i].StructureSerial);
+                biomeEntities.AddRange(biomes[i].EntitySerial);
             }
 
             BiomeDictionary.RNodeFlat[] RTree = new BiomeDictionary(biomes).FlattenTree();
@@ -235,26 +235,26 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            List<Option<StructureData> > StructureDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Structures.value;
-            uint[] indexPrefixSum = new uint[(StructureDictionary.Count+1)*2];
+            StructureData[] StructureDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.Structures.SerializedData;
+            uint[] indexPrefixSum = new uint[(StructureDictionary.Length+1)*2];
             List<StructureData.PointInfo> map = new List<StructureData.PointInfo>();
             List<StructureData.CheckPoint> checks = new List<StructureData.CheckPoint>();
-            StructureData.Settings[] settings = new StructureData.Settings[StructureDictionary.Count];
+            StructureData.Settings[] settings = new StructureData.Settings[StructureDictionary.Length];
 
-            for(int i = 0; i < StructureDictionary.Count; i++)
+            for(int i = 0; i < StructureDictionary.Length; i++)
             {
-                StructureData data = StructureDictionary[i].value;
+                StructureData data = StructureDictionary[i];
                 indexPrefixSum[2 * (i + 1)] = (uint)data.map.value.Count + indexPrefixSum[2*i]; //Density is same length as materials
                 indexPrefixSum[2 * (i + 1) + 1] = (uint)data.checks.value.Count + indexPrefixSum[2 * i + 1];
                 settings[i] = data.settings.value;
-                map.AddRange(data.map.value);
+                map.AddRange(data.SerializePoints);
                 checks.AddRange(data.checks.value);
             }
 
-            indexBuffer = new ComputeBuffer(StructureDictionary.Count + 1, sizeof(uint) * 2, ComputeBufferType.Structured); //By doubling stride, we compress the prefix sums
+            indexBuffer = new ComputeBuffer(StructureDictionary.Length + 1, sizeof(uint) * 2, ComputeBufferType.Structured); //By doubling stride, we compress the prefix sums
             mapBuffer = new ComputeBuffer(map.Count, sizeof(uint), ComputeBufferType.Structured);
             checksBuffer = new ComputeBuffer(checks.Count, sizeof(float) * 3 + sizeof(uint), ComputeBufferType.Structured);
-            settingsBuffer = new ComputeBuffer(StructureDictionary.Count, sizeof(int) * 4 + sizeof(uint) * 2, ComputeBufferType.Structured);
+            settingsBuffer = new ComputeBuffer(StructureDictionary.Length, sizeof(int) * 4 + sizeof(uint) * 2, ComputeBufferType.Structured);
 
             indexBuffer.SetData(indexPrefixSum);
             mapBuffer.SetData(map.ToArray());
@@ -292,20 +292,20 @@ public static class GenerationPreset
         {
             Release();
 
-            List<Option<EntityAuthoring> > EntityDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Entities.value;
-            int numEntities = EntityDictionary.Count;
+            EntityAuthoring[] EntityDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities.SerializedData;
+            int numEntities = EntityDictionary.Length;
             Entity.Info.ProfileInfo[] entityInfo = new Entity.Info.ProfileInfo[numEntities];
             List<ProfileE> entityProfile = new List<ProfileE>();
 
             for(int i = 0; i < numEntities; i++)
             {
-                Entity.Info.ProfileInfo info = EntityDictionary[i].value.Info;
+                Entity.Info.ProfileInfo info = EntityDictionary[i].Info;
                 info.profileStart = (uint)entityProfile.Count;
                 entityInfo[i] = info;
-                EntityDictionary[i].value.Info = info;
-                EntityDictionary[i].value.Entity.Preset(EntityDictionary[i].value.Setting);
+                EntityDictionary[i].Info = info;
+                EntityDictionary[i].Entity.Preset(EntityDictionary[i].Setting);
 
-                entityProfile.AddRange(EntityDictionary[i].value.Profile);
+                entityProfile.AddRange(EntityDictionary[i].Profile);
             }
 
             entityInfoBuffer = new ComputeBuffer(numEntities, sizeof(uint) * 4, ComputeBufferType.Structured);
@@ -335,10 +335,10 @@ public static class GenerationPreset
         {
             if(initialized) Release();
 
-            MemoryBufferSettings settings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Memory.value;
-            HeapSetupShader = Resources.Load<ComputeShader>("MemoryStructures/Heap/PrepareHeap");
-            AllocateShader = Resources.Load<ComputeShader>("MemoryStructures/Heap/AllocateData");
-            DeallocateShader = Resources.Load<ComputeShader>("MemoryStructures/Heap/DeallocateData");
+            MemoryBufferSettings settings = WorldStorageHandler.WORLD_OPTIONS.Quality.Memory.value;
+            HeapSetupShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/PrepareHeap");
+            AllocateShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/AllocateData");
+            DeallocateShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/DeallocateData");
 
             _GPUMemorySource = new ComputeBuffer(settings._BufferSize4Bytes, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             //2 channels, 1 for size, 2 for memory address
@@ -362,7 +362,7 @@ public static class GenerationPreset
 
         void PrepareMemory()
         {
-            MemoryBufferSettings settings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Memory.value;
+            MemoryBufferSettings settings = WorldStorageHandler.WORLD_OPTIONS.Quality.Memory.value;
             HeapSetupShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
             HeapSetupShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
             HeapSetupShader.SetInt("_BufferSize4Bytes", settings._BufferSize4Bytes);

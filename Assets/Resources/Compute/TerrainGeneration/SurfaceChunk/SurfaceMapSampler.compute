@@ -1,0 +1,68 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#include "Assets/Resources/Compute/TerrainGeneration/SurfaceChunk/BiomeSampler.hlsl"
+#include "Assets/Resources/Compute/Utility/PerlinNoiseSampler.hlsl"
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+
+uint continentalSampler;
+uint PVSampler;
+uint erosionSampler;
+uint squashSampler;
+uint caveFreqSampler;
+uint caveSizeSampler;
+uint caveShapeSampler;
+
+float maxTerrainHeight;
+float squashHeight;
+
+float heightOffset;
+
+
+struct surfData{
+    float terrain;
+    float squash;
+    int biome;
+    float cFreq;
+    float cSize;
+    float cShape;
+};
+
+RWStructuredBuffer<surfData> surfMap;
+
+const static int numThreads = 8;
+
+[numthreads(numThreads,numThreads,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis) {
+        return;
+    }
+
+    float rawMaps[6];
+    rawMaps[1] = GetRawNoise2D(id.xy, erosionSampler);
+    rawMaps[2] = GetRawNoise2D(id.xy, squashSampler);
+    rawMaps[3] = GetRawNoise2D(id.xy, PVSampler);
+    rawMaps[4] = GetRawNoise2D(id.xy, continentalSampler);
+
+    float PVNoise = interpolateValue(rawMaps[3], PVSampler) * 2 - 1;
+    float continentalNoise = interpolateValue(rawMaps[4], continentalSampler);
+    float erosionNoise = interpolateValue(rawMaps[1], erosionSampler);
+    float squashNoise = interpolateValue(rawMaps[2], squashSampler) * squashHeight;
+
+    surfData data;
+    rawMaps[0] = continentalNoise + PVNoise * erosionNoise;
+    data.terrain = rawMaps[0] * maxTerrainHeight + heightOffset;
+    data.squash = squashNoise;
+
+    rawMaps[3] = GetRawNoise2D(id.xy, caveFreqSampler);
+    rawMaps[4] = GetRawNoise2D(id.xy, caveSizeSampler);
+    rawMaps[5] = GetRawNoise2D(id.xy, caveShapeSampler);
+    
+    data.biome = GetBiome(rawMaps);
+    data.cFreq = interpolateValue(rawMaps[3], caveFreqSampler);
+    data.cSize = interpolateValue(rawMaps[4], caveSizeSampler);
+    data.cShape = interpolateValue(rawMaps[5], caveShapeSampler);
+
+    uint index = indexFromCoord2D(id.x, id.y);
+    surfMap[index] = data;
+}

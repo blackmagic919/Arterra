@@ -1,0 +1,266 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2b1fc2151f544d899d2863fbc6c828b, type: 3}
+  m_Name: CraftingSettings
+  m_EditorClassIdentifier: 
+  GridWidth: 3
+  CraftSpeed: 200
+  PointSizeMultiplier: 2
+  CraftingIsoValue: 128
+  MaxRecipeDistance: 64
+  NumMaxSelections: 5
+  Recipes:
+    Reg:
+      value:
+      - value:
+          Name: Plank
+          Value:
+            Names:
+              value:
+              - Plank
+              - Bark
+              isDirty: 0
+            entry:
+              value:
+              - data: 104086
+              - data: 104086
+              - data: 2147483648
+              - data: 2147483648
+              - data: 104086
+              - data: 104086
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              isDirty: 0
+            result:
+              data: 1073742844
+        isDirty: 0
+      - value:
+          Name: Hardwood
+          Value:
+            Names:
+              value:
+              - Hardwood
+              - Bark
+              isDirty: 0
+            entry:
+              value:
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 2147483648
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 2147483648
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              isDirty: 0
+            result:
+              data: 1073742015
+        isDirty: 0
+      - value:
+          Name: Furnace
+          Value:
+            Names:
+              value:
+              - Furnace
+              - Stone
+              isDirty: 0
+            entry:
+              value:
+              - data: 65536
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 2147502923
+              - data: 2147502923
+              - data: 104086
+              - data: 104086
+              - data: 2147502923
+              - data: 2147502923
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              isDirty: 0
+            result:
+              data: 1073742079
+        isDirty: 0
+      - value:
+          Name: Chest
+          Value:
+            Names:
+              value:
+              - Chest
+              - Plank
+              isDirty: 0
+            entry:
+              value:
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 2147502923
+              - data: 2147502923
+              - data: 104086
+              - data: 104086
+              - data: 2147502923
+              - data: 2147502923
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              isDirty: 0
+            result:
+              data: 1073741952
+        isDirty: 0
+      - value:
+          Name: Sandstone
+          Value:
+            Names:
+              value:
+              - Sandstone
+              - Sand
+              isDirty: 0
+            entry:
+              value:
+              - data: 104086
+              - data: 104086
+              - data: 2147483648
+              - data: 2147483648
+              - data: 104086
+              - data: 104086
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              isDirty: 0
+            result:
+              data: 1073742079
+        isDirty: 0
+      - value:
+          Name: Compost
+          Value:
+            Names:
+              value:
+              - Compost
+              - Grass
+              isDirty: 0
+            entry:
+              value:
+              - data: 104086
+              - data: 104086
+              - data: 2147483648
+              - data: 2147483648
+              - data: 104086
+              - data: 104086
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              isDirty: 0
+            result:
+              data: 1073742079
+        isDirty: 0
+      - value:
+          Name: Cement
+          Value:
+            Names:
+              value:
+              - Cement
+              - Sand
+              - Water
+              isDirty: 0
+            entry:
+              value:
+              - data: 104086
+              - data: 131222
+              - data: 2147483648
+              - data: 2147483648
+              - data: 131222
+              - data: 104086
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147483648
+              isDirty: 0
+            result:
+              data: 1073742334
+        isDirty: 0
+      - value:
+          Name: Brick
+          Value:
+            Names:
+              value:
+              - Brick
+              - Stone
+              - Cement
+              isDirty: 0
+            entry:
+              value:
+              - data: 104086
+              - data: 169622
+              - data: 104086
+              - data: 169622
+              - data: 104086
+              - data: 169622
+              - data: 104086
+              - data: 169622
+              - data: 104086
+              - data: 169622
+              - data: 104086
+              - data: 169622
+              - data: 104086
+              - data: 169622
+              - data: 104086
+              - data: 169622
+              isDirty: 0
+            result:
+              data: 1073742079
+        isDirty: 0
+      isDirty: 0

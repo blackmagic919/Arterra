@@ -70,6 +70,7 @@ public struct ProfileE {
     public readonly bool ExFlag => (flags & 0x4) != 0;
 }
 
+#if UNITY_EDITOR
 [CustomPropertyDrawer(typeof(ProfileE))]
 public class MapDataDrawer : PropertyDrawer{
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
@@ -130,5 +131,6 @@ public class MapDataDrawer : PropertyDrawer{
         return EditorGUIUtility.singleLineHeight * 3;
     }
 }
+#endif
 
 

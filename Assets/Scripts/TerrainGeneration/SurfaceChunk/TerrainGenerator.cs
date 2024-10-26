@@ -10,22 +10,22 @@ public static class TerrainGenerator
     static ComputeShader surfaceDataSampler;
 
     static TerrainGenerator(){
-        mapSimplifier = Resources.Load<ComputeShader>("TerrainGeneration/SurfaceChunk/SimplifyMap");
-        surfaceTranscriber = Resources.Load<ComputeShader>("TerrainGeneration/SurfaceChunk/TranscribeSurfaceMap");
-        surfaceDataSampler = Resources.Load<ComputeShader>("TerrainGeneration/SurfaceChunk/SurfaceMapSampler");
+        mapSimplifier = Resources.Load<ComputeShader>("Compute/TerrainGeneration/SurfaceChunk/SimplifyMap");
+        surfaceTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/SurfaceChunk/TranscribeSurfaceMap");
+        surfaceDataSampler = Resources.Load<ComputeShader>("Compute/TerrainGeneration/SurfaceChunk/SurfaceMapSampler");
     }
 
     public static void PresetData(){
-        SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Surface.value;
+        SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.Generation.Surface.value;
         surfaceDataSampler.SetBuffer(0, "surfMap", UtilityBuffers.GenerationBuffer);
 
-        surfaceDataSampler.SetInt("continentalSampler", surface.TerrainContinentalDetail);
-        surfaceDataSampler.SetInt("PVSampler", surface.TerrainPVDetail);
-        surfaceDataSampler.SetInt("erosionSampler", surface.TerrainErosionDetail);
-        surfaceDataSampler.SetInt("squashSampler", surface.SquashMapDetail);
-        surfaceDataSampler.SetInt("caveFreqSampler", surface.CaveFreqDetail);
-        surfaceDataSampler.SetInt("caveSizeSampler", surface.CaveSizeDetail);
-        surfaceDataSampler.SetInt("caveShapeSampler", surface.CaveShapeDetail);
+        surfaceDataSampler.SetInt("continentalSampler", surface.ContinentalIndex);
+        surfaceDataSampler.SetInt("PVSampler", surface.PVIndex);
+        surfaceDataSampler.SetInt("erosionSampler", surface.ErosionIndex);
+        surfaceDataSampler.SetInt("squashSampler", surface.SquashIndex);
+        surfaceDataSampler.SetInt("caveFreqSampler", surface.CaveFreqIndex);
+        surfaceDataSampler.SetInt("caveSizeSampler", surface.CaveSizeIndex);
+        surfaceDataSampler.SetInt("caveShapeSampler", surface.CaveShapeIndex);
 
         surfaceDataSampler.SetFloat("maxTerrainHeight", surface.MaxTerrainHeight);
         surfaceDataSampler.SetFloat("squashHeight", surface.MaxSquashHeight);

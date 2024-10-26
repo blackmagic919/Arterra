@@ -1,0 +1,136 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#include "Assets/Resources/Compute/Utility/RotationTables.hlsl"
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+
+
+const static int numThreads = 8;
+const static uint POINT_STRIDE_4BYTES = 3 + 1 + 2;
+
+struct structureInfo{
+    float3 structurePos;
+    uint structureIndex;
+    uint2 rotation;
+};
+
+struct settings{
+    uint3 size;
+    int minimumLOD;
+    uint randThetaRot;
+    uint randPhiRot;
+};
+
+uint density(uint data) { return data & 0x000000FF; }
+uint viscosity(uint data) { return (data & 0x0000FF00) >> 8; }
+uint material(uint data) { return (data & 0x7FFF0000) >> 16; }
+bool preserve(uint data) { return (data & 0x80000000) >> 31; }
+
+StructuredBuffer<structureInfo> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+uint addressIndex;
+
+StructuredBuffer<settings> _StructureSettings; //settings for structure
+StructuredBuffer<uint2> _StructureIndexes;
+StructuredBuffer<uint> _StructureMap;
+
+struct mapData{
+    uint density;
+    uint viscosity;
+    uint material;
+};
+
+RWStructuredBuffer<mapData> chunkData;
+
+StructuredBuffer<uint> numPoints;
+
+uint chunkSize;
+uint meshSkipInc;
+float IsoLevel;
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numPoints[0])
+        return;
+
+    uint structureAddress = _AddressDict[addressIndex].y + id.x;
+    structureInfo structure = _MemoryBuffer[structureAddress];
+    //can't use implicit concatenation because -1.5 -> -1 while 1.5 -> 1, positive ints for current chunk, negative for adjacent ones
+    int3 origin = int3(floor(structure.structurePos));
+    uint2 rotation = structure.rotation;
+    uint structureIndex = structure.structureIndex;
+
+    settings StructureSettings = _StructureSettings[structureIndex];
+    uint3 sizes = StructureSettings.size;
+
+    //Where in the chunk to start generation
+    uint3 chunkOrigin = uint3(max(0, origin));
+
+    int3 xAxis = int3(mul(RotationLookupTable[rotation.x][rotation.y], float3(1, 0, 0)));
+    int3 xDir = abs(xAxis);
+    bool xFlipped = dot(xAxis, float3(1, 1, 1)) < 0;
+
+    int3 yAxis = int3(mul(RotationLookupTable[rotation.x][rotation.y], float3(0, 1, 0)));
+    int3 yDir = abs(yAxis);
+    bool yFlipped = dot(yAxis, float3(1, 1, 1)) < 0;
+
+    int3 zAxis = int3(mul(RotationLookupTable[rotation.x][rotation.y], float3(0, 0, 1)));
+    int3 zDir = abs(zAxis);
+    bool zFlipped = dot(zAxis, float3(1, 1, 1)) < 0;
+
+    uint xLength = dot(sizes, xDir);
+    uint yLength = dot(sizes, yDir);
+    uint zLength = dot(sizes, zDir);
+
+    int3 chunkEnd = int3((origin.x + xLength), (origin.y + yLength), (origin.z + zLength));
+    uint numPointsPerAxis = chunkSize / meshSkipInc;
+
+    uint indexOffset = _StructureIndexes[structureIndex].x;
+
+    //Evaluate chunk coord with LoD
+    uint3 chunkOriginLoD = uint3(ceil(chunkOrigin / (float)meshSkipInc));
+    uint3 chunkEndLoD = uint3(min(numPointsPerAxis, chunkEnd / meshSkipInc));
+    chunkOriginLoD = min(chunkOriginLoD, chunkEndLoD);
+
+    uint3 originDist = chunkOriginLoD*meshSkipInc - origin;
+    int3 structOrigin = int3(0, 0, 0);
+
+    //if Flipped ? (Reverse Index: Get xSize, - distXOrigin, Use Regular Index) * xDirection
+    structOrigin += (xFlipped ? (dot(sizes-1, xDir) - originDist.x) : originDist.x) * xDir;
+    structOrigin += (yFlipped ? (dot(sizes-1, yDir) - originDist.y) : originDist.y) * yDir;
+    structOrigin += (zFlipped ? (dot(sizes-1, zDir) - originDist.z) : originDist.z) * zDir;
+
+    uint3 structLength = uint3(0, 0, 0);
+    structLength = max(chunkEndLoD - chunkOriginLoD, 0);
+    uint structLength0 = structLength.x * structLength.y * structLength.z;
+
+    //I hope it doesn't complain about the triple loop *nervous laugh*
+    //It crashed cause of the triple loop :(
+    for(uint pos = 0; pos < structLength0; pos++){
+
+        uint x = pos / (structLength.y * structLength.z);
+        uint y = (pos / structLength.z) % structLength.y;
+        uint z = pos % structLength.z;
+
+        uint xReal = x * meshSkipInc;
+        uint yReal = y * meshSkipInc;
+        uint zReal = z * meshSkipInc;
+        
+        uint3 structCoord = structOrigin + xAxis * xReal + yAxis * yReal + zAxis * zReal;
+        uint3 chunkCoord = chunkOriginLoD + uint3(x,y,z);
+
+        //structCoord = min(structCoord, sizes - 1);
+        uint chunkIndex = indexFromCoordManual(chunkCoord.x, chunkCoord.y, chunkCoord.z, numPointsPerAxis);
+        uint structIndex = indexFromCoordIrregular(structCoord.x, structCoord.y, structCoord.z, sizes.y, sizes.z) + indexOffset;
+
+        //This section will have racing issues, but it's negligable
+        //If < IsoLevel, don't override ground, but otherwise override
+        uint mapInfo = _StructureMap[structIndex]; 
+        uint force = preserve(mapInfo) ? 1 << 31 : 0;
+        InterlockedMax(chunkData[chunkIndex].density, force | density(mapInfo));
+        InterlockedMax(chunkData[chunkIndex].viscosity, 
+            force | (preserve(mapInfo)? viscosity(mapInfo) : density(mapInfo)));
+        InterlockedMax(chunkData[chunkIndex].material, force | material(mapInfo));
+    }
+}

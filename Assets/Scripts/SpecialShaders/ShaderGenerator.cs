@@ -30,15 +30,15 @@ public class ShaderGenerator
 
 
     static ShaderGenerator(){
-        matSizeCounter = Resources.Load<ComputeShader>("GeoShader/ShaderMatSizeCounter");
-        filterGeometry = Resources.Load<ComputeShader>("GeoShader/FilterShaderGeometry");
-        sizePrefixSum = Resources.Load<ComputeShader>("GeoShader/ShaderPrefixConstructor");
-        geoSizeCalculator = Resources.Load<ComputeShader>("GeoShader/GeometryMemorySize");
-        geoTranscriber = Resources.Load<ComputeShader>("GeoShader/TranscribeGeometry");
-        shaderDrawArgs = Resources.Load<ComputeShader>("GeoShader/GeoDrawArgs");
-        geoInfoLoader = Resources.Load<ComputeShader>("GeoShader/GeoInfoLoader");
+        matSizeCounter = Resources.Load<ComputeShader>("Compute/GeoShader/ShaderMatSizeCounter");
+        filterGeometry = Resources.Load<ComputeShader>("Compute/GeoShader/FilterShaderGeometry");
+        sizePrefixSum = Resources.Load<ComputeShader>("Compute/GeoShader/ShaderPrefixConstructor");
+        geoSizeCalculator = Resources.Load<ComputeShader>("Compute/GeoShader/GeometryMemorySize");
+        geoTranscriber = Resources.Load<ComputeShader>("Compute/GeoShader/TranscribeGeometry");
+        shaderDrawArgs = Resources.Load<ComputeShader>("Compute/GeoShader/GeoDrawArgs");
+        geoInfoLoader = Resources.Load<ComputeShader>("Compute/GeoShader/GeoInfoLoader");
 
-        indirectThreads = Resources.Load<ComputeShader>("Utility/DivideByThreads");
+        indirectThreads = Resources.Load<ComputeShader>("Compute/Utility/DivideByThreads");
     }
 
     const int MAX_SHADERS = 4;
@@ -52,7 +52,7 @@ public class ShaderGenerator
 
 
     public static void PresetData(){
-        int maxChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
+        int maxChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         int numPointsPerAxis = maxChunkSize + 1;
         int numOfTris = (numPointsPerAxis - 1) * (numPointsPerAxis - 1) * (numPointsPerAxis - 1) * 5;
         /* Gen Buffer Organization
@@ -95,7 +95,7 @@ public class ShaderGenerator
 
     public ShaderGenerator(Transform transform, Bounds boundsOS)
     {
-        this.settings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.GeoShaders.value;
+        this.settings = WorldStorageHandler.WORLD_OPTIONS.Quality.GeoShaders.value;
         this.transform = transform;
         this.shaderBounds = CustomUtility.TransformBounds(transform, boundsOS);
         this.shaderUpdateTasks = new ShaderUpdateTask[this.settings.shaderDictionary.value.Count];

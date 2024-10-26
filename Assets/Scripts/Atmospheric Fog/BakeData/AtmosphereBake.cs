@@ -28,13 +28,13 @@ public class AtmosphereBake
     public bool initialized = false;
 
     public AtmosphereBake(){
-        this.settings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Atmosphere.value;
-        RaySetupCompute = Resources.Load<ComputeShader>("Atmosphere/RayMarchSetup");
-        OpticalDataCompute = Resources.Load<ComputeShader>("Atmosphere/OpticalData");
+        this.settings = WorldStorageHandler.WORLD_OPTIONS.Quality.Atmosphere.value;
+        RaySetupCompute = Resources.Load<ComputeShader>("Compute/Atmosphere/RayMarchSetup");
+        OpticalDataCompute = Resources.Load<ComputeShader>("Compute/Atmosphere/OpticalData");
 
         int numPixels = settings.BakedTextureSizePX * settings.BakedTextureSizePX;
         rayInfo = new ComputeBuffer(numPixels, sizeof(float) * 3, ComputeBufferType.Structured, ComputeBufferMode.Immutable); //Floating point 3 channel
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         this.atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * rSettings.detailLevels.value[^1].chunkDistThresh;
 
         //3D texture to store SunRayOpticalDepth
@@ -94,7 +94,7 @@ public class AtmosphereBake
         RaySetupCompute.SetBuffer(0, "rayInfo", rayInfo);
     }
     void SetupOpticalMarch(){
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         OpticalDataCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
         OpticalDataCompute.SetFloat("_IsoLevel", rSettings.IsoLevel);
 

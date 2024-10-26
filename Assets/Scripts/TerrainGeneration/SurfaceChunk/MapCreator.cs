@@ -10,46 +10,26 @@ public class SurfaceCreatorSettings : ScriptableObject{
     public float MaxTerrainHeight;
     public float MaxSquashHeight;
 
-    [Header("Continental Detail")]
-    [UISetting(Message = "Indexes in Noise Generation List")]
-    /* General Curve Form:
-     *            __
-     *          _/
-     *        _/
-     *     __/
-     *   _/
-     *__/
-     * Low Values: Low Altitude, High Values: High Altitude 
-     */
-    public int TerrainContinentalDetail;
-    /* General Curve Form:
-     *_
-     * \_
-     *   \_
-     *     \_
-     *       \_
-     *         \_
-     * Low Values: High PV Noise, High Values: Low PV Noise
-     */
-    [Space(10)]
-    [Header("Erosion Detail")]
-    public int TerrainErosionDetail;
-
-    [Space(10)]
-    [Header("Peaks and Values")]
+    [UISetting(Message = "Surface Generation")]
+    public string ContinentalNoise;
+    public string ErosionNoise;
     //Any curve form
-    public int TerrainPVDetail;
-
-    [Space(10)]
-    [Header("Squash Map")]
+    public string PVNoise;
     //Low Values: More terrain-like, High Values: More overhangs
-    public int SquashMapDetail;
+    public string SquashNoise;
 
-    [Space(10)]
-    [Header("3D Noise Data")]
-    public int CaveFreqDetail;
-    public int CaveSizeDetail;
-    public int CaveShapeDetail;
+    [UISetting(Message = "3D Generation")]
+    public string CaveFreqNoise;
+    public string CaveSizeNoise;
+    public string CaveShapeNoise;
+
+    public int ContinentalIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(ContinentalNoise);
+    public int ErosionIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(ErosionNoise);
+    public int PVIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(PVNoise);
+    public int SquashIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(SquashNoise);
+    public int CaveFreqIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CaveFreqNoise);
+    public int CaveSizeIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CaveSizeNoise);
+    public int CaveShapeIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CaveShapeNoise);
 }
 
 public class SurfaceCreator
@@ -57,13 +37,13 @@ public class SurfaceCreator
     const uint SURFDATA_STRIDE_4BYTE = 6;   
     public void SampleSurfaceMaps(Vector2 offset, int LOD){
         int meshSkipInc = meshSkipTable[LOD];
-        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
+        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         SampleSurfaceData(offset, mapChunkSize, meshSkipInc);
     }
 
     public uint StoreSurfaceMap(int LOD)
     {
-        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
+        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         int meshSkipInc = meshSkipTable[LOD];
         int numPointsAxes = mapChunkSize / meshSkipInc;
         int numOfPoints = numPointsAxes * numPointsAxes;

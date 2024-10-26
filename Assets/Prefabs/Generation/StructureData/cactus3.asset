@@ -1,0 +1,307 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0ed4b06c60c74eb3a1638cff170e3f8, type: 3}
+  m_Name: cactus3
+  m_EditorClassIdentifier: 
+  settings:
+    value:
+      GridSize:
+        x: 4
+        y: 13
+        z: 5
+      minimumLOD: 0
+      randThetaRot: 1
+      randPhiRot: 0
+    isDirty: 0
+  map:
+    value:
+    - data: 5911
+    - data: 31354
+    - data: 31097
+    - data: 5140
+    - data: 0
+    - data: 257
+    - data: 27242
+    - data: 31868
+    - data: 12593
+    - data: 0
+    - data: 0
+    - data: 21845
+    - data: 31354
+    - data: 14906
+    - data: 0
+    - data: 0
+    - data: 16191
+    - data: 30840
+    - data: 15420
+    - data: 0
+    - data: 0
+    - data: 13107
+    - data: 29812
+    - data: 15677
+    - data: 0
+    - data: 0
+    - data: 10023
+    - data: 28013
+    - data: 15677
+    - data: 0
+    - data: 0
+    - data: 7196
+    - data: 25700
+    - data: 16191
+    - data: 0
+    - data: 0
+    - data: 8481
+    - data: 26985
+    - data: 19532
+    - data: 0
+    - data: 0
+    - data: 8738
+    - data: 27499
+    - data: 21845
+    - data: 771
+    - data: 0
+    - data: 8224
+    - data: 26985
+    - data: 22359
+    - data: 1285
+    - data: 0
+    - data: 5911
+    - data: 24672
+    - data: 20817
+    - data: 1028
+    - data: 0
+    - data: 0
+    - data: 11565
+    - data: 8481
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 22616
+    - data: 116679
+    - data: 116679
+    - data: 22359
+    - data: 0
+    - data: 12079
+    - data: 106399
+    - data: 124903
+    - data: 29812
+    - data: 0
+    - data: 5140
+    - data: 101002
+    - data: 127730
+    - data: 31868
+    - data: 0
+    - data: 1028
+    - data: 32639
+    - data: 127216
+    - data: 32639
+    - data: 514
+    - data: 0
+    - data: 32382
+    - data: 125674
+    - data: 98689
+    - data: 1799
+    - data: 0
+    - data: 31354
+    - data: 123104
+    - data: 99974
+    - data: 4112
+    - data: 0
+    - data: 29298
+    - data: 120791
+    - data: 102287
+    - data: 6939
+    - data: 0
+    - data: 29812
+    - data: 122076
+    - data: 106656
+    - data: 12079
+    - data: 0
+    - data: 29812
+    - data: 122590
+    - data: 110511
+    - data: 16191
+    - data: 0
+    - data: 29041
+    - data: 122076
+    - data: 112824
+    - data: 18247
+    - data: 0
+    - data: 26985
+    - data: 117964
+    - data: 110768
+    - data: 17476
+    - data: 0
+    - data: 13621
+    - data: 99974
+    - data: 98432
+    - data: 6168
+    - data: 0
+    - data: 0
+    - data: 12593
+    - data: 10537
+    - data: 0
+    - data: 6939
+    - data: 32639
+    - data: 32639
+    - data: 7453
+    - data: 0
+    - data: 1542
+    - data: 32382
+    - data: 99460
+    - data: 17990
+    - data: 0
+    - data: 0
+    - data: 32382
+    - data: 103058
+    - data: 24929
+    - data: 0
+    - data: 0
+    - data: 30583
+    - data: 107684
+    - data: 29812
+    - data: 0
+    - data: 0
+    - data: 29555
+    - data: 109483
+    - data: 32125
+    - data: 0
+    - data: 0
+    - data: 28013
+    - data: 110511
+    - data: 32639
+    - data: 1028
+    - data: 0
+    - data: 26471
+    - data: 112053
+    - data: 99974
+    - data: 4112
+    - data: 0
+    - data: 28013
+    - data: 115908
+    - data: 104343
+    - data: 9766
+    - data: 0
+    - data: 28784
+    - data: 118992
+    - data: 108969
+    - data: 14392
+    - data: 0
+    - data: 28527
+    - data: 120020
+    - data: 112053
+    - data: 17476
+    - data: 0
+    - data: 26471
+    - data: 117193
+    - data: 110511
+    - data: 16962
+    - data: 0
+    - data: 13621
+    - data: 99974
+    - data: 98432
+    - data: 6168
+    - data: 0
+    - data: 0
+    - data: 12850
+    - data: 10537
+    - data: 0
+    - data: 0
+    - data: 257
+    - data: 257
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 3598
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 7453
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 257
+    - data: 11051
+    - data: 257
+    - data: 0
+    - data: 0
+    - data: 514
+    - data: 13878
+    - data: 1542
+    - data: 0
+    - data: 0
+    - data: 1028
+    - data: 15934
+    - data: 4112
+    - data: 0
+    - data: 0
+    - data: 1542
+    - data: 17476
+    - data: 7710
+    - data: 0
+    - data: 0
+    - data: 3855
+    - data: 21588
+    - data: 13364
+    - data: 0
+    - data: 0
+    - data: 5911
+    - data: 24158
+    - data: 17990
+    - data: 0
+    - data: 0
+    - data: 6425
+    - data: 25186
+    - data: 20560
+    - data: 771
+    - data: 0
+    - data: 5140
+    - data: 23901
+    - data: 19789
+    - data: 771
+    - data: 0
+    - data: 0
+    - data: 11308
+    - data: 8224
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    isDirty: 0
+  checks:
+    value:
+    - position:
+        x: 1
+        y: 1
+        z: 1
+      checkInfo:
+        data: 4278255488
+    - position:
+        x: 4
+        y: 1
+        z: 4
+      checkInfo:
+        data: 4278222592
+    isDirty: 0
+  Materials:
+    value:
+    - Air
+    - Cactus
+    isDirty: 0

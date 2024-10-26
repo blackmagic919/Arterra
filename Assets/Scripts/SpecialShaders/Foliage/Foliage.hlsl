@@ -4,7 +4,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "NMGFoliageHelpers.hlsl"
 #include "NMGFoliageHelpers.hlsl"
-#include "Assets/Resources/GeoShader/VertexPacker.hlsl"
+#include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
 
 struct DrawTriangle{
     uint2 vertex[3];

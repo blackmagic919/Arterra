@@ -1,0 +1,50 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Bake
+
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+
+RWStructuredBuffer<float3> rayInfo;
+
+float _AtmosphereRadius;
+
+//Sadly we can't use this because of aliasing artifacts from upsampling
+//uniform Texture2D<float4> _CameraDepthTexture;
+
+const static uint numThreads = 32;
+uint screenHeight;
+uint screenWidth;
+
+float2 raySphere(float3 s0, float sr, float3 r0, float3 rd) {
+    float a = dot(rd, rd);
+    float3 s0_r0 = r0 - s0;
+    float b = 2.0 * dot(rd, s0_r0);
+    float c = dot(s0_r0, s0_r0) - (sr * sr);
+	float disc = b * b - 4.0 * a* c;
+                    
+    if (disc < 0.0) {
+        return float2(-1.0, -1.0);
+    }else{
+        float t1 = max((-b - sqrt(disc)) / (2.0 * a), 0);
+        float t2 = max((-b + sqrt(disc)) / (2.0 * a), 0);
+        return float2(t1, t2-t1);
+	}
+}
+
+[numthreads(numThreads,numThreads,1)]
+void Bake (uint3 id : SV_DispatchThreadID)
+{
+    uint screenX = id.x;
+    uint screenY = id.y;
+    if(screenX >= screenWidth || screenY >= screenHeight)
+        return;
+    
+    float2 screenUV = id.xy / float2(screenWidth-1, screenHeight-1);
+    float3 viewVectorCS = mul(unity_CameraInvProjection, float4(screenUV * 2 - 1, 0, -1)).xyz;
+    float3 direction = normalize(mul(unity_CameraToWorld, float4(viewVectorCS, 0)).xyz); //viewVectorWS
+    
+    uint pixelIndex = indexFromCoord2DManual(screenX, screenY, screenHeight);
+    rayInfo[pixelIndex] = direction; 
+}

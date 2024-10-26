@@ -1,0 +1,105 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49bee82ffcb1d4036a871bcb04d33c57, type: 3}
+  m_Name: Ocean
+  m_EditorClassIdentifier: 
+  BiomeConditions:
+    value:
+      TerrainStart: 0
+      TerrainEnd: 0.325
+      ErosionStart: 0
+      ErosionEnd: 1
+      SquashStart: 0
+      SquashEnd: 1
+      CaveFreqStart: 0
+      CaveFreqEnd: 1
+      CaveSizeStart: 0
+      CaveSizeEnd: 1
+      CaveShapeStart: 0
+      CaveShapeEnd: 1
+    isDirty: 0
+  NameRegister:
+    value:
+    - Stone
+    - Rock
+    - Sand
+    - Air
+    - Cloud
+    isDirty: 0
+  AtmosphereFalloff: 0.01
+  GroundMaterials:
+    value:
+    - value:
+        Material: 0
+        genSize: 0.614
+        genShape: 0.217
+        VerticalPreference:
+          lowerLimit: -400
+          upperLimit: 200
+          center: -300
+          multiplier: 1
+          power: 2
+      isDirty: 0
+    - value:
+        Material: 1
+        genSize: 0.397
+        genShape: 0.708
+        VerticalPreference:
+          lowerLimit: -400
+          upperLimit: 200
+          center: -200
+          multiplier: 1
+          power: 2
+      isDirty: 0
+    - value:
+        Material: 2
+        genSize: 0.533
+        genShape: 0.062
+        VerticalPreference:
+          lowerLimit: -200
+          upperLimit: 200
+          center: 0
+          multiplier: 2
+          power: 0.5
+      isDirty: 0
+    isDirty: 0
+  SurfaceMaterials:
+    value:
+    - value:
+        Material: 3
+        genSize: 0.3
+        genShape: 0.508
+        VerticalPreference:
+          lowerLimit: -400
+          upperLimit: 600
+          center: 100
+          multiplier: 1
+          power: 2
+      isDirty: 0
+    - value:
+        Material: 4
+        genSize: 1
+        genShape: 1
+        VerticalPreference:
+          lowerLimit: 50
+          upperLimit: 300
+          center: 150
+          multiplier: 1
+          power: 3
+      isDirty: 0
+    isDirty: 0
+  Structures:
+    value: []
+    isDirty: 0
+  Entities:
+    value: []
+    isDirty: 0

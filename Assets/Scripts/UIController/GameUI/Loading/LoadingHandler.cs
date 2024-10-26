@@ -29,7 +29,7 @@ public class LoadingHandler : UpdateTask
         taskText = LoadingScreen.transform.GetChild(1).GetComponent<TextMeshProUGUI>();
         LoadingScreen.SetActive(true);
 
-        Background.sprite = Resources.Load<Sprite>($"Textures/BackgroundImages/Background_{Random.Range(1, 9)}");
+        Background.sprite = Resources.Load<Sprite>($"Textures/BackgroundImages/Background_{Random.Range(1, 10)}");
         finishedLoad = 0;
 
         MainLoopUpdateTasks.Enqueue(new LoadingHandler{active = true});

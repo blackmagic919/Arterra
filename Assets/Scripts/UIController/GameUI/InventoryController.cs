@@ -3,11 +3,13 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using NUnit.Framework;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.PlayerLoop;
 using UnityEngine.UI;
+
 
 public class InventoryController : UpdateTask
 {
@@ -26,7 +28,8 @@ public class InventoryController : UpdateTask
     public static Settings settings;
 
     private static Queue<(string, uint)> Fences;
-    private static List<Option<MaterialData>> textures;
+    private static MaterialData[] textures;
+    public static Inventory.Slot Selected=>Primary.Info[0];
 
     public struct SlotDisplay{
         public GameObject Object;
@@ -50,7 +53,7 @@ public class InventoryController : UpdateTask
     }
 
     public static void Initialize(){
-        settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.value.Inventory.value;
+        settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.Inventory.value;
         Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory"), UIOrigin.UIHandle.transform);
         PrimaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(0).GetChild(0).gameObject);
         SecondaryArea = new InventDisplay(Menu.transform.GetChild(1).GetChild(0).GetChild(0).gameObject);
@@ -74,7 +77,7 @@ public class InventoryController : UpdateTask
         InputPoller.AddBinding(new InputPoller.Binding("Open Inventory", "Control", InputPoller.BindPoll.Down, Activate));
         CraftingMenuController.Initialize();
 
-        textures = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Materials.value.MaterialDictionary.value;
+        textures = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary.SerializedData;
     }
 
     public static void Release(){ CraftingMenuController.Release(); }
@@ -98,34 +101,6 @@ public class InventoryController : UpdateTask
         InputPoller.SetCursorLock(false);
     }
 
-    public static Inventory.Slot Selected=>Primary.Info[0];
-
-    //Place the material in the hotbar if in hotbar
-    //otherwise place it in the inventory
-    public static int AddMaterial(Inventory.Slot mat){
-        int delta = 0;
-        if(Primary.EntryDict.ContainsKey(mat.Id)){
-            delta = Primary.AddMaterial(mat);
-            if(mat.AmountRaw == delta) 
-                return delta;
-            mat.AmountRaw -= delta;
-        }
-        return Secondary.AddMaterial(mat) + delta;
-    }
-    public static int RemoveMaterial(int delta){
-        if(Primary.Info[0].IsNull) return 0;
-        if(Primary.Info[0].IsItem) return 0;
-        return Primary.RemoveMaterial(0, delta);
-    }
-
-    public static Inventory Serialize(Inventory a){
-        for(int i = 0; i < a.Info.Length; i++){
-            if(a.Info[i].data != 0)
-                a.MakeDirty((uint)i);
-        }
-        return a;
-    }
-
     private static void Deactivate(float _){
         InputPoller.AddKeyBindChange(() => {
             while(Fences.Count > 0){
@@ -137,6 +112,41 @@ public class InventoryController : UpdateTask
         Instance.active = false;
         Menu.SetActive(false);
         InputPoller.SetCursorLock(true);
+    }
+
+    private static void SelectDrag(float _){
+        if (!GetMouseSlot(out Inventory inv, out int index))
+            return;
+
+        //Swap the cursor with the selected slot
+        Cursor = inv.Info[index];
+        if(Cursor.IsNull) return;
+        inv.RemoveEntry(index);
+        CursorDisplay.Icon.sprite = textures[(int)Cursor.Index].texture.value;
+        CursorDisplay.Amount.text = Cursor.Amount.ToString();
+        CursorDisplay.Object.SetActive(true);
+    }
+
+     private static void DeselectDrag(float _){
+        if(Cursor.IsNull) return;
+        CursorDisplay.Object.SetActive(false);
+
+        bool HasSlot = GetMouseSlot(out Inventory inv, out int index);
+        if (HasSlot && inv.Info[index].IsNull){
+            int prevSlot = index;
+            if(inv.EntryDict.ContainsKey(Cursor.Id)) 
+                prevSlot = (int)inv.EntryDict[Cursor.Id];
+            inv.AddEntry(Cursor, (uint)index, (uint)prevSlot);   
+        } else if(HasSlot && inv.Info[index].IsStackable && Cursor.Id == inv.Info[index].Id){ 
+            //If we're trying to merge slots of same type
+            inv.AddStackable(Cursor, (uint)index);
+        } else{ 
+            //If the slot is occupied, or not in inventory, just add to next available slot
+            if(inv.EntryDict.ContainsKey(Cursor.Id)) 
+                Secondary.AddEntry(Cursor, inv.EntryDict[Cursor.Id]);
+            else Secondary.AddEntry(Cursor);
+        }
+        Cursor.IsNull = true;
     }
 
     private static int2 GetSlotIndex(InventDisplay display, float2 pos){
@@ -165,44 +175,39 @@ public class InventoryController : UpdateTask
     }
 
 
-    private static void SelectDrag(float _){
-        if (!GetMouseSlot(out Inventory inv, out int index))
-            return;
-
-        //Swap the cursor with the selected slot
-        Cursor = inv.Info[index];
-        if(Cursor.IsNull) return;
-        inv.RemoveEntry(index);
-        CursorDisplay.Icon.sprite = textures[(int)Cursor.Index].value.texture.value;
-        CursorDisplay.Amount.text = Cursor.Amount.ToString();
-        CursorDisplay.Object.SetActive(true);
-    }
-
-     private static void DeselectDrag(float _){
-        if(Cursor.IsNull) return;
-        CursorDisplay.Object.SetActive(false);
-
-        if (GetMouseSlot(out Inventory inv, out int index) && 
-            inv.Info[index].IsNull){
-            int prevSlot = index;
-            if(inv.EntryDict.ContainsKey(Cursor.Id)) 
-                prevSlot = (int)inv.EntryDict[Cursor.Id];
-            inv.AddEntry(Cursor, (uint)index, (uint)prevSlot);
-        } else { 
-            //If the slot is occupied, or not in inventory, just add to next available slot
-            if(inv.EntryDict.ContainsKey(Cursor.Id)) 
-                Secondary.AddEntry(Cursor, inv.EntryDict[Cursor.Id]);
-            else Secondary.AddEntry(Cursor);
-        }
-        Cursor.IsNull = true;
-    }
-
     private static void CraftEntry(float _){
         if(!CraftingMenuController.CraftRecipe(out Inventory.Slot result))
             return;
-        if(Secondary.AddEntry(result) != -1){
+        if((result.IsStackable && Secondary.AddStackable(result) != -1) || 
+            (!result.IsStackable && Secondary.AddEntry(result) != -1)){
             CraftingMenuController.Clear();
         };
+    }
+
+    //Place the material in the hotbar if in hotbar
+    //otherwise place it in the inventory
+    public static int AddMaterial(Inventory.Slot mat){
+        int delta = 0;
+        if(Primary.EntryDict.ContainsKey(mat.Id)){
+            delta = Primary.AddStackable(mat);
+            if(mat.AmountRaw == delta) 
+                return delta;
+            mat.AmountRaw -= delta;
+        }
+        return Secondary.AddStackable(mat) + delta;
+    }
+    public static int RemoveMaterial(int delta){
+        if(Primary.Info[0].IsNull) return 0;
+        if(Primary.Info[0].IsItem) return 0;
+        return Primary.RemoveStackable(0, delta);
+    }
+
+    public static Inventory Serialize(Inventory a){
+        for(int i = 0; i < a.Info.Length; i++){
+            if(a.Info[i].data != 0)
+                a.MakeDirty((uint)i);
+        }
+        return a;
     }
 
     public override void Update(MonoBehaviour mono){
@@ -214,7 +219,7 @@ public class InventoryController : UpdateTask
                     disp.Icon.sprite = null;
                     disp.Amount.text = "";
                 } else {
-                    disp.Icon.sprite = textures[(int)slot.Index].value.texture.value;
+                    disp.Icon.sprite = textures[(int)slot.Index].texture.value;
                     disp.Amount.text = slot.Amount.ToString();
                 }
             } inventory.Dirty.Clear();
@@ -256,9 +261,31 @@ public class InventoryController : UpdateTask
             } 
         }
 
+        //Input: The material id, amount to add, and index to add at
+        //Returns: The actual amount added
+        public int AddStackable(Slot mat, uint index){
+            int delta = mat.AmountRaw; 
+            if(Info[index].Id != mat.Id) return 0;
+            if(!Info[index].IsStackable) return 0;
+
+            delta = math.min(Info[index].AmountRaw + delta, 0x7FFF) 
+                    - Info[index].AmountRaw;
+            Info[index].AmountRaw += delta;
+            mat.AmountRaw -= delta;
+            MakeDirty(index);
+
+            if(mat.AmountRaw <= 0) return (int)delta; 
+            if(length == capacity-1) return (int)delta;
+            //Add new entry and clear its contents
+            Info[AddEntry(mat, index)].AmountRaw = 0;
+            return AddMaterial(mat) + (int)delta;
+        }
+
+
         //Input: The material id and amount to add
         //Returns: The actual amount added
-        public int AddMaterial(Slot mat){
+        public int AddStackable(Slot mat){
+            if(!mat.IsStackable) return 0;
             int delta = mat.AmountRaw; uint slotN = tail;
             if(EntryDict.ContainsKey(mat.Id)){
                 slotN = EntryDict[mat.Id];
@@ -278,7 +305,7 @@ public class InventoryController : UpdateTask
 
         //Input: Request removing from a slot of a certain amount
         //Returns: The actual amount removed
-        public int RemoveMaterial(int SlotIndex, int delta){
+        public int RemoveStackable(int SlotIndex, int delta){
             Slot mat = Info[SlotIndex];
             delta = mat.AmountRaw - math.max(mat.AmountRaw - delta, 0);
             Info[SlotIndex].AmountRaw -= delta;
@@ -291,13 +318,13 @@ public class InventoryController : UpdateTask
         }
 
         public void RemoveEntry(int SlotIndex){
-            LLRemove((uint)SlotIndex);
             uint Id = Info[SlotIndex].Id;
             if(SlotIndex == EntryDict[Id]){
                 EntryDict[Id] = EntryLL[SlotIndex].n;
                 if(SlotIndex == EntryDict[Id])
                     EntryDict.Remove(Id);
             }
+            LLRemove((uint)SlotIndex);
             LLAdd((uint)SlotIndex, tail);
             MakeDirty((uint)SlotIndex);
             Info[SlotIndex].IsNull = true;
@@ -353,11 +380,13 @@ public class InventoryController : UpdateTask
             2 flag bits in beginning:
             00 -> Is a Liquid Material
             01 -> Is a Solid Material
-            10 -> Is an Item
-            11 -> Is Null
+            10 -> Is an Unstackable Item
+            11 -> Is a Stackable Item
         */
         public struct Slot{
             public uint data;
+            [JsonIgnore]
+            public readonly bool IsStackable => !IsItem || (IsItem && IsSolid);
             [JsonIgnore]
             public bool IsItem{
                 readonly get => (data & 0x80000000) != 0;
@@ -375,8 +404,8 @@ public class InventoryController : UpdateTask
             }
             [JsonIgnore]
             public bool IsNull{
-                readonly get => (data & 0xC0000000) == 0xC0000000;
-                set => data = value ? data | 0xC0000000 : data & 0x3FFFFFFF;
+                readonly get => data == 0xFFFFFFFF;
+                set => data = value ? 0xFFFFFFFF : 0;
             }
 
             //Slot-Type Specific Accessors

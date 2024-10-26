@@ -18,26 +18,26 @@ public static class DensityGenerator
     
 
     static DensityGenerator(){ //That's a lot of Compute Shaders XD
-        baseGenCompute = Resources.Load<ComputeShader>("TerrainGeneration/BaseGeneration/ChunkDataGen");
-        meshGenerator = Resources.Load<ComputeShader>("TerrainGeneration/BaseGeneration/MarchingCubes");
+        baseGenCompute = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/ChunkDataGen");
+        meshGenerator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/MarchingCubes");
 
-        indirectCountToArgs = Resources.Load<ComputeShader>("Utility/CountToArgs");
+        indirectCountToArgs = Resources.Load<ComputeShader>("Compute/Utility/CountToArgs");
     }
 
     public static void PresetData(){
-        MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Terrain.value;
-        baseGenCompute.SetInt("coarseCaveSampler", mesh.CoarseTerrainNoise);
-        baseGenCompute.SetInt("fineCaveSampler", mesh.FineTerrainNoise);
-        baseGenCompute.SetInt("coarseMatSampler", mesh.CoarseMaterialNoise);
-        baseGenCompute.SetInt("fineMatSampler", mesh.FineMaterialNoise);
+        MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.Generation.Terrain.value;
+        baseGenCompute.SetInt("coarseCaveSampler", mesh.CoarseTerrainIndex);
+        baseGenCompute.SetInt("fineCaveSampler", mesh.FineTerrainIndex);
+        baseGenCompute.SetInt("coarseMatSampler", mesh.CoarseMaterialIndex);
+        baseGenCompute.SetInt("fineMatSampler", mesh.FineMaterialIndex);
 
         baseGenCompute.SetFloat("waterHeight", mesh.waterHeight);
-        baseGenCompute.SetInt("waterMat", mesh.waterMat);
+        baseGenCompute.SetInt("waterMat", mesh.WaterIndex);
 
         baseGenCompute.SetBuffer(0, "BaseMap", UtilityBuffers.GenerationBuffer);
 
         //Set Marching Cubes Data
-        int numPointsAxes = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize + 1;
+        int numPointsAxes = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize + 1;
         bufferOffsets = new GeoGenOffsets(new int3(numPointsAxes, numPointsAxes, numPointsAxes), 0, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD);
 
         //They're all the same buffer lol

@@ -64,10 +64,12 @@ public class DensityDeconstructor : MonoBehaviour
             throw new Exception("Grid size cannot be zero");
         if(initialized) Release(); 
         if(WorldStorageHandler.WORLD_OPTIONS == null) WorldStorageHandler.Activate();
-        if(!GenerationPreset.active) GenerationPreset.Initialize();
-        if(!UtilityBuffers.active) UtilityBuffers.Initialize();
-
+        RegisterBuilder.Initialize(); //Initialize Register LUTS
+        if(!GenerationPreset.active) GenerationPreset.Initialize(); // Initialize Material Information
+        if(!UtilityBuffers.active) UtilityBuffers.Initialize(); //Initialize Utility Buffers Which Stores Geometry
         Structure.Initialize();
+        DeserializeMaterials();
+
         int numPoints = (int)(GridSize.x * GridSize.y * GridSize.z);
         SelectedArray = new SelectionArray(numPoints);
         Selected = new Queue<uint>();
@@ -78,6 +80,31 @@ public class DensityDeconstructor : MonoBehaviour
         initialized = true;
         showGrid = true;
         showModel = true;
+    }
+
+    public void SaveData()
+    {
+        SerializeMaterials();
+        EditorUtility.SetDirty(Structure);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+    }
+
+    public void LoadData(){
+        InitializeGrid();
+        //Immediately Render Model
+        this.UpdateMapData();
+        this.modelManager.GenerateModel();
+    }
+
+    public void ConvertMesh(){
+        Mesh mesh = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + savePath + ".fbx").GetComponent<MeshFilter>().sharedMesh;
+        if(mesh == null) throw new Exception("Mesh not found");
+        InitializeGrid();
+
+        GetDataFromMesh(mesh);
+        this.UpdateMapData();
+        this.modelManager.GenerateModel();
     }
 
     public void Start() {
@@ -91,7 +118,7 @@ public class DensityDeconstructor : MonoBehaviour
         if(showModel) this.modelManager.Render();
     }
     
-    public void UpdateMapData(List<StructureData.PointInfo> mapData){ UtilityBuffers.TransferBuffer.SetData(mapData); }
+    public void UpdateMapData(){UtilityBuffers.TransferBuffer.SetData(Structure.map.value.ToArray()); }
     public void OnSceneGUI(SceneView sceneView){
         if(!initialized) return;
 
@@ -135,7 +162,7 @@ public class DensityDeconstructor : MonoBehaviour
                 return e;
             });
 
-            this.UpdateMapData(this.Structure.map.value);
+            this.UpdateMapData();
             this.modelManager.GenerateModel();
             prevData = curData;
         }
@@ -279,6 +306,37 @@ public class DensityDeconstructor : MonoBehaviour
         }
     }
 
+    private void SerializeMaterials(){
+        Dictionary<int, int> MaterialDict = new Dictionary<int, int>();
+        for(int i = 0; i < Structure.map.value.Count; i++){
+            StructureData.PointInfo p = Structure.map.value[i];
+            MaterialDict.TryAdd(p.material, MaterialDict.Count);
+            p.material = MaterialDict[p.material];
+            Structure.map.value[i] = p;
+        }
+        string[] materials = new string[MaterialDict.Count];
+        var reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+        foreach(var pair in MaterialDict){
+            materials[pair.Value] = reg.RetrieveName(pair.Key);
+        }
+        Structure.Materials.value = materials.ToList();
+    }
+
+    private void DeserializeMaterials(){
+        List<int> MaterialLUT = new List<int>();
+        var reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+        if(Structure.Materials.value == null || Structure.Materials.value.Count == 0) 
+            return;
+        for(int i = 0; i < Structure.Materials.value.Count; i++){
+            MaterialLUT.Add(reg.RetrieveIndex(Structure.Materials.value[i]));
+        }
+        for(int i = 0; i < Structure.map.value.Count; i++){
+            StructureData.PointInfo p = Structure.map.value[i];
+            p.material = MaterialLUT[p.material];
+            Structure.map.value[i] = p;
+        }
+    }
+
     public struct SelectionArray{
         public uint[] SelectionData;
         public SelectionArray(int size)
@@ -300,32 +358,8 @@ public class DensityDeconstructor : MonoBehaviour
         }
     }
 
-    public void SaveData()
-    {
-        EditorUtility.SetDirty(Structure);
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
-    }
-
-    public void LoadData(){
-        InitializeGrid();
-        //Immediately Render Model
-        this.UpdateMapData(this.Structure.map.value);
-        this.modelManager.GenerateModel();
-    }
-
-    public void ConvertMesh(){
-        Mesh mesh = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + savePath + ".fbx").GetComponent<MeshFilter>().sharedMesh;
-        if(mesh == null) throw new Exception("Mesh not found");
-        InitializeGrid();
-
-        GetDataFromMesh(mesh);
-        this.UpdateMapData(this.Structure.map.value);
-        this.modelManager.GenerateModel();
-    }
-
     void GetDataFromMesh(Mesh mesh){
-        ComputeShader SDFConstructor = Resources.Load<ComputeShader>("Deconstructor/MeshDeconstructor");
+        ComputeShader SDFConstructor = Resources.Load<ComputeShader>("Compute/Deconstructor/MeshDeconstructor");
         ComputeBuffer vertexBuffer = new ComputeBuffer(mesh.vertexCount, sizeof(float)*3);
         ComputeBuffer indexBuffer = new ComputeBuffer(mesh.triangles.Length, sizeof(uint));
         vertexBuffer.SetData(mesh.vertices); indexBuffer.SetData(mesh.triangles);
@@ -385,9 +419,9 @@ public class DensityDeconstructor : MonoBehaviour
         public const int TRI_STRIDE_WORD = 3;
 
         public ModelManager(uint3 GridSize, Transform transform, float IsoLevel, ComputeBuffer MapBuffer, ComputeBuffer GeoBuffer, int bufferStart){
-            this.ModelConstructor = Resources.Load<ComputeShader>("Deconstructor/ModelConstructor");
-            this.IndexLinker = Resources.Load<ComputeShader>("Deconstructor/ModelIndexLinker");
-            this.DrawArgsConstructor = Resources.Load<ComputeShader>("TerrainGeneration/Readback/MeshDrawArgs");
+            this.ModelConstructor = Resources.Load<ComputeShader>("Compute/Deconstructor/ModelConstructor");
+            this.IndexLinker = Resources.Load<ComputeShader>("Compute/Deconstructor/ModelIndexLinker");
+            this.DrawArgsConstructor = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
             this.GeoBuffer = GeoBuffer;
             this.MapBuffer = MapBuffer;
             this.GridSize = GridSize;
@@ -532,7 +566,7 @@ public class DensityDeconstructor : MonoBehaviour
 
         public GridManager(uint3 GridSize, Transform transform, ComputeBuffer GeoBuffer, ref SelectionArray SelectionArray, int bufferStart) {
             this.GridMaterial = new Material(Shader.Find("Unlit/GridShader"));
-            this.GridConstructor = Resources.Load<ComputeShader>("Deconstructor/GridConstructor");
+            this.GridConstructor = Resources.Load<ComputeShader>("Compute/Deconstructor/GridConstructor");
             this.offsets = new GridOffsets(new int3(GridSize), bufferStart, 4, 3);
             this.SelectionBuffer = new ComputeBuffer(SelectionArray.SelectionData.Length, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
             this.GeoBuffer = GeoBuffer;

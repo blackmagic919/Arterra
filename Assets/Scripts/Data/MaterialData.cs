@@ -9,7 +9,6 @@ using System;
 
 public abstract class MaterialData : ScriptableObject
 {
-    public string Name;
     [UISetting(Ignore = true)][JsonIgnore]
     public Option<Sprite> texture;
     public TerrainData terrainData;

@@ -9,7 +9,7 @@ using Utils;
 public class BiomeGenerationData : ScriptableObject
 {
     [SerializeField]
-    public Option<List<Option<BiomeInfo> > > biomes;
+    public Registry<BiomeInfo> biomes;
     [UISetting(Message = "Describes How Dense & Large Structures Generate At the Cost of Performance")]
     public int StructureChecksPerChunk;
     [Range(1, 5)]
@@ -31,7 +31,7 @@ public class BiomeDictionary
         return node.biome;
     }
 
-    public BiomeDictionary(List<Option<BiomeInfo> > biomes)
+    public BiomeDictionary(BiomeInfo[] biomes)
     {
         List<RNode> leaves = InitializeBiomeRegions(biomes);
         _rTree = ConstructRTree(leaves);
@@ -174,13 +174,13 @@ public class BiomeDictionary
         return ConstructRTree(ret);
     }
 
-    List<RNode> InitializeBiomeRegions(List<Option<BiomeInfo> > biomes)
+    List<RNode> InitializeBiomeRegions(BiomeInfo[] biomes)
     {
-        int numOfBiomes = biomes.Count;
+        int numOfBiomes = biomes.Length;
         List<RNode> biomeRegions = new List<RNode>();
         for (int i = 0; i < numOfBiomes; i++)
         {
-            BiomeInfo.BiomeConditionsData conditions = biomes[i].value.BiomeConditions.value;
+            BiomeInfo.BiomeConditionsData conditions = biomes[i].BiomeConditions.value;
             regionBound bounds = new regionBound(6);
             bounds.SetDimensions(conditions);
             bounds.CalculateArea();
@@ -188,7 +188,7 @@ public class BiomeDictionary
             for (int u = i - 1; u >= 0; u--)
             {
                 if (RegionIntersects(bounds, biomeRegions[u].bounds, 6))
-                    throw new ArgumentException($"Biome {biomes[i].value.name}'s generation intersects with {biomes[u].value.name}");
+                    throw new ArgumentException($"Biome {biomes[i].name}'s generation intersects with {biomes[u].name}");
             }
 
             biomeRegions.Add(new LeafNode(bounds, i));

@@ -39,7 +39,7 @@ public class AsyncMeshReadback
 
     public AsyncMeshReadback(Transform transform, Bounds boundsOS)
     {   
-        this.settings = WorldStorageHandler.WORLD_OPTIONS.ReadBackSettings.value;
+        this.settings = WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value;
         this.transform = transform;
         this.numMeshes = (uint)settings.indirectTerrainMats.Length;
         this.triHandles = new GeometryHandle[numMeshes];
@@ -47,10 +47,10 @@ public class AsyncMeshReadback
     }
 
     static AsyncMeshReadback(){
-        memorySizeCalculator = Resources.Load<ComputeShader>("TerrainGeneration/Readback/BaseMemorySize");
-        meshDrawArgsCreator = Resources.Load<ComputeShader>("TerrainGeneration/Readback/MeshDrawArgs");
-        triangleTranscriber = Resources.Load<ComputeShader>("TerrainGeneration/Readback/TranscribeTriangles");
-        vertexTranscriber = Resources.Load<ComputeShader>("TerrainGeneration/Readback/TranscribeVertices");
+        memorySizeCalculator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/BaseMemorySize");
+        meshDrawArgsCreator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
+        triangleTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/TranscribeTriangles");
+        vertexTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/TranscribeVertices");
     }
 
     public void ReleaseAllGeometry()

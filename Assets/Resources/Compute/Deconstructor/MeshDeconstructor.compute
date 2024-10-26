@@ -1,0 +1,119 @@
+
+#pragma kernel GetSDF
+#pragma kernel GetMap
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+
+const static int numThreads0 = 8;
+const static int numThreads1 = 128;
+const static float Epsilon = 1E-6f;
+
+StructuredBuffer<float3> Vertices;
+StructuredBuffer<uint> Indices;
+uint numInds;
+
+RWStructuredBuffer<float> Distance;
+uint3 GridSize;
+float3 offset;
+
+//For some absurd reason even if index is 2 byte it is still 4 byte aligned
+
+
+float3 GetBarycentricCoordinates(float3 p, float3 a, float3 b, float3 c){
+    float3 v0 = b - a;
+    float3 v1 = c - a;
+    float3 v2 = p - a;
+
+    float d00 = dot(v0, v0);
+    float d01 = dot(v0, v1);
+    float d11 = dot(v1, v1);
+    float d20 = dot(v2, v0);
+    float d21 = dot(v2, v1);
+
+    float denom = d00 * d11 - d01 * d01;
+
+    float3 coords;
+    coords.y = (d11 * d20 - d01 * d21) / denom;
+    coords.z = (d00 * d21 - d01 * d20) / denom;
+    coords.x = 1.0f - coords.y - coords.z;
+    return coords;
+}
+
+float closestDistToSeg(float3 p, float3 a, float3 b) {
+    float3 ab = b - a;
+    float t = dot(p - a, ab) / dot(ab, ab);
+    t = clamp(t, 0.0f, 1.0f); //Clamp to vertices of segment
+    return length((a + t * ab) - p);
+}
+
+float GetDistanceToTri(float3 p, uint triStart){
+    float3 a = Vertices[Indices[triStart]];
+    float3 b = Vertices[Indices[triStart + 1]];
+    float3 c = Vertices[Indices[triStart + 2]];
+
+    float3 n = normalize(cross(b - a, c - a));
+
+    float3 proj = p - dot(p - a, n) * n; 
+    float3 bary = GetBarycentricCoordinates(proj, a, b, c);
+    if(all(bary >= 0.0f)) return length(proj - p); //Inside Triangle
+    else return min(closestDistToSeg(p, a, b), min(closestDistToSeg(p, b, c), closestDistToSeg(p, c, a)));
+}
+
+//Möller-Trumbore Algorithm
+//Solve for intersection point
+bool RayIntersectsTriangle(float3 orig, float3 dir, uint triStart) {
+    float3 a = Vertices[Indices[triStart]];
+    float3 b = Vertices[Indices[triStart + 1]];
+    float3 c = Vertices[Indices[triStart + 2]];
+
+    float3 ab = b - a;
+    float3 ac = c - a;
+    float3 pvec = cross(dir, ac);
+    float det = dot(ab, pvec);
+
+    if (abs(det) < Epsilon) return false; else{// Ray is parallel to the plane of the triangle
+    float invDet = 1.0f / det;
+    float3 tvec = orig - a;
+
+    float u = dot(tvec, pvec) * invDet;
+    if (u < 0.0f || u > 1.0f) return false; else{// Ray misses the triangle
+
+    float3 qvec = cross(tvec, ab);
+    float v = dot(dir, qvec) * invDet;
+    if (v < 0.0f || u + v > 1.0f) return false; else{ // Ray misses the triangle
+
+    float t = dot(ac, qvec) * invDet;
+    if (t < Epsilon) return false; else{// Ray goes in the opposite direction
+    return true; // No valid intersection
+    }}}};
+}
+
+[numthreads(numThreads0, numThreads0, numThreads0)]
+void GetSDF (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= GridSize.x || id.y >= GridSize.y || id.z >= GridSize.z) return;
+    
+    float3 p = id - offset; 
+    float dist = 1E10; uint3 intersections = 0; 
+
+    for(uint tri = 0; tri < numInds; tri += 3){
+        dist = min(GetDistanceToTri(p, tri), dist);
+        if(RayIntersectsTriangle(p, float3(0, 1, 0), tri)) intersections.x++;
+        if(RayIntersectsTriangle(p, float3(1, 0, 0), tri)) intersections.y++;
+        if(RayIntersectsTriangle(p, float3(0, 0, 1), tri)) intersections.z++;
+    }
+    dist *= min(intersections.x, min(intersections.y, intersections.z)) % 2 == 0 ? -1 : 1; //if even intersections, point is outside
+    Distance[indexFromCoordIrregular(id, GridSize.yz)] = dist;
+}
+
+RWStructuredBuffer<uint> MapData;
+float IsoLevel;
+
+[numthreads(numThreads1, 1, 1)]
+void GetMap(uint3 id : SV_DispatchThreadID){
+    if(id.x >= (GridSize.x * GridSize.y * GridSize.z)) return;
+
+    float density = Distance[id.x] <= 0 ? smoothstep(-1, 0, Distance[id.x]) * IsoLevel : 
+                    smoothstep(0, 1, Distance[id.x]) * (1 - IsoLevel) + IsoLevel;
+
+    MapData[id.x] = (uint)(density * 255);
+}

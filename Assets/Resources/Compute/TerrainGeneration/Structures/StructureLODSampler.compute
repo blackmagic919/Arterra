@@ -1,0 +1,75 @@
+
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#include "Assets/Resources/Compute/Utility/Random.hlsl"
+
+const static int numLoDThreads = 8;
+const static int numChunkThreads = 64;
+
+//You can't seperate these values into different append buffers
+//because there is no way to gaurantee they're appended in same order
+struct structurePoint{
+    float3 position;
+    uint LoD;
+    //Padding to keep same stride as terrain checks
+};
+
+RWStructuredBuffer<structurePoint> structures;
+uint bSTART;
+
+RWStructuredBuffer<uint> counter;
+uint bCOUNTER;
+
+int maxLOD;
+int3 originChunkCoord;
+uint chunkSize;
+
+//The average number of structures at minimum LoD(not collective LoD)
+uint numPoints0;
+float LoDFalloff;
+
+
+//Rationale: Instead of every chunk managing multiple LoD's, we have a single LoD per chunk
+//This allows us to map multiple threads to low LoDs, which is better 
+//because low LoDs will generate more structures
+
+//          chunk offset    LoD
+[numthreads(numChunkThreads,numLoDThreads,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    int LoD = id.y; //This means range from max->LoD 
+    uint numChunkAxis = LoD + 2;
+    uint numChunks = numChunkAxis * numChunkAxis * numChunkAxis;
+    uint numChunksMax = (maxLOD+2) * (maxLOD+2) * (maxLOD+2); //This is the number of chunks in the max LoD
+
+    if(LoD > maxLOD || id.x >= numChunksMax)
+        return;
+    
+    int3 offsetCoord;
+    offsetCoord.x = id.x % numChunkAxis;
+    offsetCoord.y = (id.x / numChunkAxis) % numChunkAxis;
+    offsetCoord.z = (id.x / (numChunkAxis * numChunkAxis)) % numChunkAxis;
+    int overlapOffset = id.x / numChunks;
+    int chunkOverlap = numChunksMax / numChunks + ((id.x % numChunks) < numChunksMax % numChunks ? 1 : 0); 
+    //ie numChunkMax = 3*3*3 = 27, numChunks = 2*2*2 = 8, offset = 3, overlap = 27 / 8 + 1 = 4 <-- it will be mapped to 4 times
+
+    //Obtain random seed
+    int3 chunkCoord = originChunkCoord - offsetCoord;
+    uint seed = (Random(chunkCoord) ^ Random(LoD)) + overlapOffset;
+    uint numPoints = uint((numPoints0 * pow(abs(LoDFalloff), -LoD)) / chunkOverlap + RandomFloat(seed)); //Random to process fractional points 
+
+    for(uint i = 0; i < numPoints; i++){
+        float3 position =  (Random3(seed) * chunkSize) - offsetCoord * chunkSize;
+
+        structurePoint newStructure;
+        newStructure.position = position;
+        newStructure.LoD = (uint)LoD;
+        
+        uint appendInd = 0;
+        InterlockedAdd(counter[bCOUNTER], 1u, appendInd);
+        structures[appendInd + bSTART] = newStructure;
+
+        seed += chunkOverlap; 
+    }
+}

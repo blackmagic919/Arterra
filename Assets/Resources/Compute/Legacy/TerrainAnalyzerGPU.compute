@@ -1,0 +1,98 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Terrain
+#include "Assets/Resources/Compute/Utility/PerlinNoiseSampler.hlsl"
+
+const static int numThreads = 64;
+const static int Epsilon = 0.0001;
+
+struct checkPoint{
+    float3 position;
+    uint index;
+    uint value;
+};
+
+struct structInfo{
+    float3 structurePos;
+    uint structureIndex;
+    uint2 rotation;
+    //Used for analyzing terrain checks
+    uint valid; 
+    int biome; 
+};
+
+struct CaveGen{
+    float coarse;
+    float shape;
+    float frequency;
+};
+
+float GetNoiseCentered(float val, float center){
+    float clamped = clamp(val, 0, 1);
+    float ret = (clamped > center) ? 1-smoothstep(center, 1, clamped)
+                : smoothstep(0, center, clamped);
+                
+    return ret;
+}
+
+StructuredBuffer<CaveGen> _BiomeCaveData;
+StructuredBuffer<checkPoint> checks;
+
+float IsoLevel;
+uint caveCoarseSampler;
+uint caveFineSampler;
+uint continentalSampler;
+uint erosionSampler;
+uint PVSampler;
+uint squashSampler;
+
+float continentalHeight;
+float PVHeight;
+float squashHeight;
+
+float heightOffset;
+
+RWStructuredBuffer<structInfo> structs;
+StructuredBuffer<uint> numPoints;
+
+
+[numthreads(numThreads,1,1)]
+void Terrain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numPoints[0])
+        return;
+    
+    checkPoint check = checks[id.x];
+    float3 position = check.position;
+
+    //Get Base Density
+    int biome = structs[check.index].biome;
+    CaveGen caveData = _BiomeCaveData[biome];
+
+    float coarseCave = GetNoise(position, caveCoarseSampler);
+    float fineCave = GetNoise(position, caveFineSampler);
+
+    float coarseCentered = GetNoiseCentered(coarseCave, caveData.shape);
+    float fineCentered = GetNoiseCentered(fineCave, caveData.shape);
+
+    float centeredNoise = caveData.coarse * coarseCentered + (1.0f - caveData.coarse) * fineCentered;
+    float baseDensity = pow(abs(1.0f-centeredNoise), caveData.frequency);
+
+    //Get SurfaceData
+    float continental = GetNoise2D(position.xz, continentalSampler) * continentalHeight;
+    float erosion = GetNoise2D(position.xz, erosionSampler);
+    float PV = GetNoise2D(position.xz, PVSampler) * PVHeight;
+    float squashFactor = GetNoise2D(position.xz, squashSampler) * squashHeight;
+
+    float terrainHeight = continental + erosion * PV + heightOffset;
+
+    //Solve for density
+    float actualHeight = position.y + (sOffset.y - chunkSize / 2.0f);
+    float terrainFactor = clamp((terrainHeight - actualHeight) / (squashFactor + Epsilon), 0, 1) * (1-IsoLevel) + IsoLevel;
+    float density = baseDensity * terrainFactor;
+
+    bool isUnderground = density >= IsoLevel;
+    bool checkUnderground = check.value != 0;
+
+    if(isUnderground != checkUnderground)
+        structs[check.index].valid = 0;
+}

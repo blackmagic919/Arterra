@@ -21,7 +21,7 @@ public class SurfaceChunk
 
     private uint ChunkDist2D(float2 GPos){
         int2 GCoord = (int2)GPos;
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         float2 cPt = math.clamp(GCoord, SCoord * rSettings.mapChunkSize, (SCoord + 1) * rSettings.mapChunkSize);
         float2 cDist = math.abs(math.floor((cPt - GCoord) / rSettings.mapChunkSize + 0.5f));
         //We add 0.5 because normally this returns an odd number, but even numbers have better cubes
@@ -31,7 +31,7 @@ public class SurfaceChunk
     public void ValidateChunk(){
         float closestDist = ChunkDist2D(((float3)viewerPosition).xz);
 
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         if(closestDist >= rSettings.detailLevels.value[^1].chunkDistThresh) {
             RecreateChunk();
             return;
@@ -39,7 +39,7 @@ public class SurfaceChunk
     }
 
     private void RecreateChunk(){
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         int maxChunkDist = rSettings.detailLevels.value[^1].chunkDistThresh;
         int numChunksAxis = maxChunkDist * 2;
         

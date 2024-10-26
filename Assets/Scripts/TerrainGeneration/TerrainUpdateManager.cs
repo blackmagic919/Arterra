@@ -13,20 +13,20 @@ public static class TerrainUpdateManager
     included so we don't include them again*/
     public static FlagList IncludedCoords;
     public static TerrainUpdate Executor;
-    private static List<Option<MaterialData>> MaterialDictionary;
+    private static MaterialData[] MaterialDictionary;
 
     const int MAX_UPDATE_COUNT = 5000; //10k
     const int UPDATE_FREQ = 4;
     private static int numPointsAxis;
     private static int UpdateTick;
     public static void Initialize(){
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         int numPointsChunk = rSettings.mapChunkSize;
         int numChunksAxis = 2 * rSettings.detailLevels.value[0].chunkDistThresh;
         numPointsAxis = numChunksAxis * numPointsChunk;
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
         
-        MaterialDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Materials.value.MaterialDictionary.value;
+        MaterialDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary.SerializedData;
         UpdateCoordinates = new ConstrainedQueue<int3>(MAX_UPDATE_COUNT);
         IncludedCoords = new FlagList(numPoints);
         Executor = new TerrainUpdate{active = false};
@@ -69,7 +69,7 @@ public static class TerrainUpdateManager
 
                 MapData mapData = SampleMap(coord);
                 if(mapData.data == 0xFFFFFFFF) continue; //Invalid Data
-                MaterialDictionary[mapData.material].value.UpdateMat(coord);
+                MaterialDictionary[mapData.material].UpdateMat(coord);
             }
         }
     }

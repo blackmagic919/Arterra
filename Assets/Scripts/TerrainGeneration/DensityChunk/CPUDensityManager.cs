@@ -29,7 +29,7 @@ public static class CPUDensityManager
 
     public static void Initialize(){
         Release();
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         mapChunkSize = rSettings.mapChunkSize;
         lerpScale = rSettings.lerpScale;
         IsoValue = (uint)Math.Round(rSettings.IsoLevel * 255.0f);
@@ -382,6 +382,8 @@ public static class CPUDensityManager
             get => !IsSolid && !IsLiquid;
         }
     }
+
+#if UNITY_EDITOR
     [CustomPropertyDrawer(typeof(MapData))]
     public class MapDataDrawer : PropertyDrawer{
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
@@ -390,25 +392,27 @@ public static class CPUDensityManager
             uint data = dataProp.uintValue;
 
             //bool isDirty = (data & 0x80000000) != 0;
-            uint material = (data >> 16) & 0x7FFF;
-            uint viscosity = (data >> 8) & 0xFF;
-            uint density = data & 0xFF;
+            int[] values = new int[3]{
+                (int)((data >> 16) & 0x7FFF),
+                (int)((data >> 8) & 0xFF),
+                (int)(data & 0xFF)
+            };
+            bool isDirty = (data & 0x80000000) != 0;
 
             Rect rect = new (position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
             
-            material = (uint)EditorGUI.IntField(rect, "Material", (int)material);
+            EditorGUI.MultiIntField(rect, new GUIContent[]{new ("Material"), new ("Viscosity"), new ("Density")}, values);
             rect.y += EditorGUIUtility.singleLineHeight;
-            viscosity = (uint)EditorGUI.IntField(rect, "Viscosity", (int)viscosity);
-            rect.y += EditorGUIUtility.singleLineHeight;
-            density = (uint)EditorGUI.IntField(rect, "Density", (int)density);
+            isDirty = EditorGUI.Toggle(rect, "Is Dirty", isDirty);
             rect.y += EditorGUIUtility.singleLineHeight;
             //isDirty = EditorGUI.Toggle(rect, "Is Dirty", isDirty);
             //rect.y += EditorGUIUtility.singleLineHeight;
 
             //data = (isDirty ? data | 0x80000000 : data & 0x7FFFFFFF);
-            data = (data & 0x8000FFFF) | (material << 16);
-            data = (data & 0xFFFF00FF) | ((viscosity & 0xFF) << 8);
-            data = (data & 0xFFFFFF00) | (density & 0xFF);
+            data = (data & 0x8000FFFF) | ((uint)values[0] << 16);
+            data = (data & 0xFFFF00FF) | (((uint)values[1] & 0xFF) << 8);
+            data = (data & 0xFFFFFF00) | ((uint)values[2] & 0xFF);
+            data = isDirty ? data | 0x80000000 : data & 0x7FFFFFFF;
 
             dataProp.uintValue = data;
         }
@@ -416,9 +420,10 @@ public static class CPUDensityManager
         // Override this method to make space for the custom fields
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            return EditorGUIUtility.singleLineHeight * 3;
+            return EditorGUIUtility.singleLineHeight * 2;
         }
     }
+#endif
 
     /*    
     public static bool RayCastTerrain(Vector3 rayOrigin, Vector3 rayDir, float rayLength, Func<MapData, bool> callback, out Vector3 hitPoint){

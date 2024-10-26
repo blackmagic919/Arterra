@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 public class TextureData : ScriptableObject
 {
     [SerializeField]
-    public Option<List<Option<MaterialData> > > MaterialDictionary;
+    public Registry<MaterialData> MaterialDictionary;
     [UISetting(Ignore = true)]
     public Option<Texture2D>liquidFineWave;
     [UISetting(Ignore = true)]

@@ -13,13 +13,33 @@ public class CraftingMenuSettings : ScriptableObject{
 
     public int MaxRecipeDistance; //64
     public int NumMaxSelections; //5
-    public Option<List<Recipe>> Recipes; 
+    public Registry<Recipe> Recipes; 
 
     [Serializable]
     public struct Recipe{
-        public string Name;
+        public Option<List<string>> Names;
         public Option<List<CPUDensityManager.MapData> > entry;
         public Result result;
+
+
+        public readonly CPUDensityManager.MapData EntrySerial(int Index){
+            Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+            CPUDensityManager.MapData p = entry.value[Index];
+            p.material = reg.RetrieveIndex(Names.value[p.material]);
+            return p;
+        }
+        public readonly int ResultMat{
+            get {
+                Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+                return reg.RetrieveIndex(Names.value[(int)result.Index]);
+            }
+        }
+        public readonly int EntryMat(int index){
+            if(entry.value[index].isDirty) return -1;
+            if(Names.value == null) return entry.value[index].material;
+            Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+            return reg.RetrieveIndex(Names.value[entry.value[index].material]);
+        }
 
         [Serializable]
         public struct Result{
@@ -46,6 +66,7 @@ public class CraftingMenuSettings : ScriptableObject{
         }
     }
 
+#if UNITY_EDITOR
     [CustomPropertyDrawer(typeof(Recipe.Result))]
     public class RecipeResultDrawer : PropertyDrawer{
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
@@ -83,5 +104,5 @@ public class CraftingMenuSettings : ScriptableObject{
             return EditorGUIUtility.singleLineHeight * 4;
         }
     }
-
+#endif
 }

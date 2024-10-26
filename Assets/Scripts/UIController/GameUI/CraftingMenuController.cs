@@ -46,7 +46,7 @@ public class CraftingMenuController : UpdateTask
     // Start is called before the first frame update
     public static void Initialize()
     {
-        settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.value.Crafting.value;
+        settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.Crafting.value;
         craftingMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/CraftingMenu"), UIOrigin.UIHandle.transform);
         GridWidth = settings.GridWidth;
 
@@ -54,7 +54,7 @@ public class CraftingMenuController : UpdateTask
         craftingData = new MapData[numMapTotal];
         Rendering.craftingBuffer = new ComputeBuffer(numMapTotal, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
 
-        Recipe.ConstructTree(settings.Recipes.value.ToArray());
+        Recipe.ConstructTree(settings.Recipes.Reg.value.ToArray().Select(x => x.value.Value).ToArray());
         InitializeCraftingArea();
         InitializeSelections();
         craftingMenu.SetActive(false);
@@ -140,6 +140,37 @@ public class CraftingMenuController : UpdateTask
         });
     }
 
+    public static bool CraftRecipe(out InventoryController.Inventory.Slot result){
+        result = new InventoryController.Inventory.Slot();
+        if(FitRecipe == -1) return false;
+
+        Recipe recipe = Recipe.Table[FitRecipe];
+        for(int i = 0; i < GridCount; i++){
+            int material = craftingData[i].material;
+            if(craftingData[i].density < settings.CraftingIsoValue)
+                material = -1;
+            if(material != recipe.EntryMat(i)) 
+                return false;
+        }
+        if(recipe.result.IsItem){
+            result = new InventoryController.Inventory.Slot{
+                IsItem = true,
+                Index = recipe.ResultMat,
+                AmountRaw = (int)math.round(recipe.result.Multiplier)
+            };
+        } else {
+            int amount = 0;
+            for(int i = 0; i < GridCount; i++){ amount += craftingData[i].density; }
+            result = new InventoryController.Inventory.Slot{
+                IsItem = false,
+                IsSolid = recipe.result.IsSolid,
+                Index = recipe.ResultMat,
+                AmountRaw = (int)math.min(math.round(recipe.result.Multiplier * amount), 0x7FFF)
+            };
+        }
+        return true;
+    }
+
     private static void UpdateCrafting(int index, MapData map){
         MapData oldMap = craftingData[index];
         craftingData[index] = map;
@@ -155,9 +186,10 @@ public class CraftingMenuController : UpdateTask
     private static void RefreshSelections(){
         Recipe target = new Recipe{entry = new Option<List<MapData>>{ value = craftingData.ToList() }};
         for(int i = 0; i < craftingData.Length; i++){
-            if(craftingData[i].density < settings.CraftingIsoValue) 
-                target.entry.value[i] = new MapData{data = 0};
-        }
+            MapData p = target.entry.value[i];
+            p.isDirty = craftingData[i].density < settings.CraftingIsoValue;
+            target.entry.value[i] = p;
+        } target.Names = null;
 
         List<int> recipes = Recipe.QueryNearestLimit(target, settings.MaxRecipeDistance, settings.NumMaxSelections);
         FitRecipe = recipes.Count > 0 ? recipes[0] : -1;
@@ -165,7 +197,7 @@ public class CraftingMenuController : UpdateTask
         for(int r = 0; r < recipes.Count; r++){
             Recipe recipe = Recipe.Table[recipes[r]];
             for(int i = 0; i < GridCount; i++){
-                craftingData[GridCount * (r + 1) + i] = recipe.entry.value[i];
+                craftingData[GridCount * (r + 1) + i] = recipe.EntrySerial(i);
             }
         }
         for(int i = 0; i < Rendering.selections.Length; i++){
@@ -263,36 +295,6 @@ public class CraftingMenuController : UpdateTask
         return pointInfo;
     }
 
-    public static bool CraftRecipe(out InventoryController.Inventory.Slot result){
-        result = new InventoryController.Inventory.Slot();
-        if(FitRecipe == -1) return false;
-
-        Recipe recipe = Recipe.Table[FitRecipe];
-        for(int i = 0; i < GridCount; i++){
-            int material = craftingData[i].density < settings.CraftingIsoValue ? 
-                           0 : craftingData[i].material;
-            if(material!= recipe.entry.value[i].material) 
-                return false;
-        }
-        if(recipe.result.IsItem){
-            result = new InventoryController.Inventory.Slot{
-                IsItem = true,
-                Index = (int)recipe.result.Index,
-                AmountRaw = (int)math.round(recipe.result.Multiplier)
-            };
-        } else {
-            int amount = 0;
-            for(int i = 0; i < GridCount; i++){ amount += craftingData[i].density; }
-            result = new InventoryController.Inventory.Slot{
-                IsItem = false,
-                IsSolid = recipe.result.IsSolid,
-                Index = (int)recipe.result.Index,
-                AmountRaw = (int)math.min(math.round(recipe.result.Multiplier * amount), 0x7FFF)
-            };
-        }
-        return true;
-    }
-
     public struct KTree{
         public Recipe[] Table;
         public List<Node> tree;
@@ -317,7 +319,7 @@ public class CraftingMenuController : UpdateTask
         static int GetL1Dist(Recipe a, Recipe b){
             int sum = 0;
             for(int i = 0; i < a.entry.value.Count; i++){
-                sum += math.abs(a.entry.value[i].material - b.entry.value[i].material);
+                sum += math.abs(a.EntryMat(i) - b.EntryMat(i));
             }
             return sum;
         }
@@ -342,7 +344,7 @@ public class CraftingMenuController : UpdateTask
 
                 Node n = tree[node];
                 Recipe recipe = Table[n.Split];
-                int targetDist = tg.entry.value[n.Axis].material - recipe.entry.value[n.Axis].material;
+                int targetDist = tg.EntryMat(n.Axis) - recipe.EntryMat(n.Axis);
                 if(math.abs(targetDist) <= dist){
                     if(GetL1Dist(recipe, tg) <= dist) 
                         cb(n.Split);
@@ -360,7 +362,7 @@ public class CraftingMenuController : UpdateTask
                 foreach((int, Recipe) rep in layer){
                     Recipe recipe = rep.Item2;
                     for(int i = 0; i < dim; i++){
-                        dimLens.Add((i, (uint)recipe.entry.value[i].material));
+                        dimLens.Add((i, (uint)recipe.EntryMat(i)));
                     }
                 }
 
@@ -370,9 +372,9 @@ public class CraftingMenuController : UpdateTask
             }
 
             if(layer.Length <= 0) return -1;
-            
             int maxDim = GetMaximumDimensions();
-            Array.Sort(layer, (a, b) => a.Item2.entry.value[maxDim].material - b.Item2.entry.value[maxDim].material);
+            Array.Sort(layer, (a, b) => a.Item2.EntryMat(maxDim) - b.Item2.EntryMat(maxDim));
+            
             int mid = layer.Length / 2;
             tree.Add(new Node{
                 Split = layer[mid].Item1,

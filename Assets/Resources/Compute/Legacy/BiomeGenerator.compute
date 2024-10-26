@@ -1,0 +1,44 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Compute
+#include "Assets/Resources/Compute/TerrainGeneration/SurfaceChunk/BiomeSampler.hlsl"
+#include "Assets/Resources/Compute/Utility/PerlinNoiseSampler.hlsl"
+
+const static uint numThreads = 64;
+
+struct structInfo{
+    float3 position;
+    //Various data may be contained here, treat as padding
+    uint padding1; 
+};
+
+StructuredBuffer<structInfo> structOrigins;
+StructuredBuffer<uint> numPoints;
+
+uint continentalSampler;
+uint erosionSampler;
+uint PVSampler;
+uint squashSampler;
+uint atmosphereSampler;
+uint humiditySampler;
+
+RWStructuredBuffer<int> biomeMap;
+
+[numthreads(numThreads,1,1)]
+void Compute (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numPoints[0])
+        return;
+
+    float3 position = structOrigins[id.x].position;
+    position.y = 0.0f;
+
+    float continentalRaw = GetRawNoise(position, continentalSampler);
+    float erosionRaw = GetRawNoise(position, erosionSampler);
+    float peaksValleysRaw = GetRawNoise(position, PVSampler);
+    float squashRaw = GetRawNoise(position, squashSampler);
+    float atmosphereRaw = GetRawNoise(position, atmosphereSampler);
+    float humidityRaw = GetRawNoise(position, humiditySampler);
+
+    float mapData[6] = {continentalRaw, erosionRaw, peaksValleysRaw, squashRaw, atmosphereRaw, humidityRaw};
+    biomeMap[id.x] = GetBiome(mapData);
+}

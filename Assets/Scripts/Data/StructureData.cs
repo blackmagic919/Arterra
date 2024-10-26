@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 using UnityEditor;
+using System.Linq;
 
 [CreateAssetMenu(fileName = "Structure_Data", menuName = "Generation/Structure/Structure Data")]
 public class StructureData : ScriptableObject
@@ -11,10 +12,24 @@ public class StructureData : ScriptableObject
     public Option<List<PointInfo>> map;
     [SerializeField]
     public Option<List<CheckPoint>> checks;
+    public Option<List<string>> Materials;
+
+    public IEnumerable<PointInfo> SerializePoints{
+        get{
+            Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+            return map.value.Select(x => Serialize(x, reg.RetrieveIndex(Materials.value[x.material])));
+        }
+    }
+
+    PointInfo Serialize(PointInfo x, int Index){
+        x.material = Index;
+        return x;
+    }
     
     public void Initialize(){
         map.value ??= new List<PointInfo>((int)(settings.value.GridSize.x * settings.value.GridSize.y * settings.value.GridSize.z));
         checks.value ??= new List<CheckPoint>();
+        Materials.value ??= new List<string>();
     }
 
     [System.Serializable]
@@ -93,7 +108,7 @@ public class StructureData : ScriptableObject
         }
     }
 }
-
+#if UNITY_EDITOR
 [CustomPropertyDrawer(typeof(StructureData.PointInfo))]
 public class StructPointDrawer : PropertyDrawer{
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
@@ -174,3 +189,4 @@ public class StructCheckDrawer : PropertyDrawer{
         return EditorGUIUtility.singleLineHeight * 2;
     }
 }
+#endif

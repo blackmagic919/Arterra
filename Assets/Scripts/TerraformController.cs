@@ -47,10 +47,10 @@ public class TerraformController
     // Start is called before the first frame update
     public TerraformController()
     {
-        settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.value.Terraforming.value;
+        settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.Terraforming.value;
         cam = Camera.main.transform;
 
-        IsoLevel = Mathf.RoundToInt(WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.IsoLevel * 255);
+        IsoLevel = Mathf.RoundToInt(WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.IsoLevel * 255);
         SetUpOverlay();
 
         InputPoller.AddBinding(new InputPoller.Binding("Place Liquid", "GamePlay", InputPoller.BindPoll.Down, (_) => shiftPressed = true));

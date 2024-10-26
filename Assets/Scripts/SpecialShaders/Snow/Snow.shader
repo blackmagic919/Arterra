@@ -27,7 +27,7 @@ Shader "Unlit/Snow"
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-            #include "Assets/Resources/GeoShader/VertexPacker.hlsl"
+            #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
             
             struct DrawTriangle{
                 uint2 vertex[3];

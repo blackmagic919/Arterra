@@ -60,7 +60,7 @@ public static class UtilityBuffers
 
         indirectArgs = new ComputeBuffer(3, sizeof(int), ComputeBufferType.IndirectArguments);
         appendCount = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
-        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
+        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         int maxPoints = (mapChunkSize+1) * (mapChunkSize+1) * (mapChunkSize+1);
 
         ArgumentBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _MaxArgsCount+1, sizeof(uint) * ARGS_STRIDE_4BYTES);
@@ -72,10 +72,10 @@ public static class UtilityBuffers
         //This buffer will be slower but will be written to a lot by CPU
         TransferBuffer = new ComputeBuffer(maxPoints, 4, ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
 
-        indirectCopyCount = Resources.Load<ComputeShader>("Utility/CopyCount");
-        indirectCountToArgs = Resources.Load<ComputeShader>("Utility/CountToArgs");
-        clearRange = Resources.Load<ComputeShader>("Utility/ClearCounters");
-        prefixCountToArgs = Resources.Load<ComputeShader>("Utility/PrefixArgsCreator");
+        indirectCopyCount = Resources.Load<ComputeShader>("Compute/Utility/CopyCount");
+        indirectCountToArgs = Resources.Load<ComputeShader>("Compute/Utility/CountToArgs");
+        clearRange = Resources.Load<ComputeShader>("Compute/Utility/ClearCounters");
+        prefixCountToArgs = Resources.Load<ComputeShader>("Compute/Utility/PrefixArgsCreator");
     }
 
     public static void Release(){

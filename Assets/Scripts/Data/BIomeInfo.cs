@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using Utils;
@@ -8,6 +9,11 @@ using Utils;
 public class BiomeInfo : ScriptableObject
 {
     public Option<BiomeConditionsData> BiomeConditions;
+
+    //This is the name register for this biome
+    //As long as the names here are valid, the biome will
+    //maintain its global register accesses
+    public Option<List<string> > NameRegister;
 
     [Header("Underground Generation")]
     [Range(0, 1)]
@@ -22,6 +28,40 @@ public class BiomeInfo : ScriptableObject
 
     [Header("Entities")]
     public Option<List<Option<EntityGen> > > Entities = new ();
+
+    public IEnumerable<TerrainStructure> StructureSerial{
+        get{
+            Registry<StructureData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Structures;
+            return Structures.value.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Structure])));
+        }
+    }
+
+    public IEnumerable<EntityGen> EntitySerial{
+        get{
+            Registry<EntityAuthoring> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities;
+            return Entities.value.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Entity])));
+        }
+    }
+
+    public IEnumerable<BMaterial> MaterialSerial(List<Option<BMaterial> > Materials){
+        Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+        return Materials.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Material])));
+    }
+
+    TerrainStructure Serialize(TerrainStructure x, int Index){
+        x.Structure = Index;
+        return x;
+    }
+    EntityGen Serialize(EntityGen x, int Index){
+        x.Entity = Index;
+        return x;
+    }
+
+    BMaterial Serialize(BMaterial x, int Index){
+        x.Material = Index;
+        return x;
+    }
+
 
     public void OnValidate(){ BiomeConditions.value.Validate(); }
 
@@ -58,7 +98,7 @@ public class BiomeInfo : ScriptableObject
     [System.Serializable]
     public struct BMaterial
     {
-        public int materialIndex;
+        public int Material;
 
         [Range(0, 1)]
         [Tooltip("What type of generation to prefer, 0 = fine, 1 = coarse")]
@@ -78,11 +118,11 @@ public class BiomeInfo : ScriptableObject
 
         [Range(0, 1)]
         public float ChancePerStructurePoint;
-        public uint structureIndex;
+        public int Structure;
     }
     [Serializable]
     public struct EntityGen{
-        public uint entityIndex;
+        public int Entity;
         [Range(0,1)]
         public float ChancePerCoord;
     }

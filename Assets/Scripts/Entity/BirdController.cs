@@ -18,8 +18,8 @@ public class BirdController : EntityController
         this.active = true;
 
         float3 GCoord = new (bird->GCoord);
-        float lerpScale = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.lerpScale;
-        int chunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
+        float lerpScale = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.lerpScale;
+        int chunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         animator = this.GetComponent<Animator>();
         this.transform.position = CPUDensityManager.GSToWS(GCoord - settings.collider.offset) + (float3)Vector3.up * 1;
     }

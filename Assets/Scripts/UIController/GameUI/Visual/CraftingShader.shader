@@ -37,7 +37,7 @@ Shader "Unlit/CraftingShader"
 
             #include "UnityCG.cginc"
             #include "UnityUI.cginc"
-            #include "Assets/Resources/Utility/BlendHelper.hlsl"
+            #include "Assets/Resources/Compute/Utility/BlendHelper.hlsl"
 
             struct appdata
             {

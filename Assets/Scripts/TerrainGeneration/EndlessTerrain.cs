@@ -33,10 +33,11 @@ public class EndlessTerrain : MonoBehaviour
         MainFixedUpdateTasks = new Queue<UpdateTask>();
         RequestQueue = new ConcurrentQueue<GenTask>();
         
+        RegisterBuilder.Initialize();
         GenerationPreset.Initialize();
         UtilityBuffers.Initialize();
 
-        rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         viewerPosition = CPUDensityManager.WSToGS(viewer.transform.position);
 
         InputPoller.Initialize();
@@ -52,7 +53,7 @@ public class EndlessTerrain : MonoBehaviour
         DensityGenerator.PresetData();
         ShaderGenerator.PresetData();
         AtmospherePass.Initialize();
-        WorldStorageHandler.WORLD_OPTIONS.ReadBackSettings.value.Initialize();
+        WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.Initialize();
     }
 
     private void OnDisable()
@@ -69,7 +70,7 @@ public class EndlessTerrain : MonoBehaviour
         EntityManager.Release();
         GenerationPreset.Release();
         AtmospherePass.Release();
-        WorldStorageHandler.WORLD_OPTIONS.ReadBackSettings.value.Release();
+        WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.Release();
     }
 
     private void Start()

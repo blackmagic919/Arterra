@@ -1441,7 +1441,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   IsoLevel: 0.5
-  Structure: {fileID: 11400000, guid: cde026b0a525940f8b34740b235d9ea4, type: 2}
+  Structure: {fileID: 11400000, guid: 49bbfac31bd4d49bda439a6be79dd6c3, type: 2}
   savePath: ~
   SDFoffset:
     x: 0

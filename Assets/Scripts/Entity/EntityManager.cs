@@ -86,10 +86,10 @@ public static class EntityManager
         Entity newEntity = new ();
         
         int entityId = EntityHandler.Length;
-        int mapSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
+        int mapSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
         
-        EntityAuthoring authoring = WorldStorageHandler.WORLD_OPTIONS.Generation.value.Entities.value[(int)genInfo.entityIndex].value;
+        EntityAuthoring authoring = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities.Reg.value[(int)genInfo.entityIndex].value.Value;
         IEntity entityData = authoring.Entity;
         newEntity.info.profile = authoring.Info;
         newEntity.info.entityId = (uint)entityId;
@@ -129,7 +129,7 @@ public static class EntityManager
     }
 
     private static unsafe void ReleaseChunkEntities(int cHash){
-        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
+        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         CPUDensityManager.ChunkMapInfo mapInfo = CPUDensityManager.AddressDict[cHash];
         if(!mapInfo.valid) return;
         int3 CCoord = mapInfo.CCoord;
@@ -147,12 +147,12 @@ public static class EntityManager
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
         Executor = new EntityJob{active = false};
 
-        int numPointsPerAxis = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize;
+        int numPointsPerAxis = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
 
         bufferOffsets = new EntityGenOffsets(0, numPoints, ENTITY_STRIDE_WORD);
-        entityGenShader = Resources.Load<ComputeShader>("TerrainGeneration/Entities/EntityIdentifier");
-        entityTranscriber = Resources.Load<ComputeShader>("TerrainGeneration/Entities/EntityTranscriber");
+        entityGenShader = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/EntityIdentifier");
+        entityTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/EntityTranscriber");
 
         entityGenShader.SetBuffer(0, "chunkEntities", UtilityBuffers.GenerationBuffer);
         entityGenShader.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
@@ -306,12 +306,12 @@ public class EntityJob : UpdateTask{
             mapContext = new MapContext{
                 MapData = (MapData*)SectionedMemory.GetUnsafePtr(),
                 AddressDict = (ChunkMapInfo*)AddressDict.GetUnsafePtr(),
-                mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.mapChunkSize,
+                mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize,
                 numChunksAxis = numChunksAxis,
-                IsoValue = (int)Math.Round(WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.IsoLevel * 255.0)
+                IsoValue = (int)Math.Round(WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.IsoLevel * 255.0)
             },
 
-            gravity = Physics.gravity / WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value.lerpScale,
+            gravity = Physics.gravity / WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.lerpScale,
             deltaTime = Time.fixedDeltaTime
         };
     }

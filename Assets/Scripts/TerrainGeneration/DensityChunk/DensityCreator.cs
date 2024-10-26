@@ -9,17 +9,19 @@ using Unity.Collections;
 [CreateAssetMenu(menuName = "Containers/Mesh Creator Settings")]
 public class MeshCreatorSettings : ScriptableObject{ 
     public float waterHeight;
-    [Header("Material Generation Noise")]
-    [UISetting(Message = "Indexes in Noise Generation List")]
-    public int CoarseMaterialNoise;
-    public int FineMaterialNoise;
 
-    [Header("Underground Generation Noise")]
-    public int CoarseTerrainNoise; //For underground terrain generation
-    public int FineTerrainNoise;
+    [UISetting(Message = "Name In Registries")]
+    public string waterMat;
+    public string CoarseMaterialNoise;
+    public string FineMaterialNoise;
+    public string CoarseTerrainNoise; //For underground terrain generation
+    public string FineTerrainNoise;
 
-    [UISetting(Message = "Index in Material Property List")]
-    public int waterMat;
+    public int CoarseMaterialIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CoarseMaterialNoise);
+    public int FineMaterialIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(FineMaterialNoise);
+    public int CoarseTerrainIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CoarseTerrainNoise);
+    public int FineTerrainIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(FineTerrainNoise);
+    public int WaterIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary.RetrieveIndex(waterMat);
 }
 public class MeshCreator
 {

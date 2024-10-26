@@ -34,9 +34,19 @@ public sealed class UISetting : Attribute{
 [CreateAssetMenu(menuName = "Generation/WorldOptions")]
 public class WorldOptions : ScriptableObject{
     public int seed;
-    public Option<QualitySettings> Quality;
-    public Option<GenerationSettings> Generation;
-    public Option<GamePlaySettings> GamePlay;
+    public Option<QualitySettings> _Quality;
+    public Option<GenerationSettings> _Generation;
+    public Option<GamePlaySettings> _GamePlay;
+    [UISetting(Ignore = true)]
+    public Option<SystemSettings> _System;
+    public QualitySettings Quality => _Quality;
+
+    [JsonIgnore]
+    public ref GenerationSettings Generation => ref _Generation.value;
+    [JsonIgnore]
+    public ref GamePlaySettings GamePlay => ref _GamePlay.value;
+    [JsonIgnore]
+    public ref SystemSettings System => ref _System.value;
 
     [Serializable]
     public struct QualitySettings{
@@ -50,13 +60,13 @@ public class WorldOptions : ScriptableObject{
     [Serializable]
     public struct GenerationSettings{
         [UISetting(Message = "Controls How The World Is Generated")]
-        public Option<List<Option<NoiseData> > > Noise;
+        public Registry<NoiseData> Noise;
         public Option<MeshCreatorSettings> Terrain;
         public Option<SurfaceCreatorSettings> Surface;
         public Option<BiomeGenerationData> Biomes;
-        public Option<List<Option<StructureData> > > Structures;
+        public Registry<StructureData> Structures;
         public Option<TextureData> Materials;
-        public Option<List<Option<EntityAuthoring> > > Entities;
+        public Registry<EntityAuthoring> Entities;
     }
 
     [Serializable]
@@ -68,8 +78,10 @@ public class WorldOptions : ScriptableObject{
         public Option<InventoryController.Settings> Inventory;
     }
 
-    [UISetting(Ignore = true)]
-    public Option<ReadbackSettings> ReadBackSettings;
+    [Serializable]
+    public struct SystemSettings{
+        public Option<ReadbackSettings> ReadBack;
+    }
 
     [OnDeserialized]
     internal void OnDeserialized(StreamingContext context = default){
@@ -136,35 +148,37 @@ public class WorldOptions : ScriptableObject{
 }
 
 public interface IOption{ bool IsDirty { get; } void Clone();}
-    //Option is struct but the types
-    [Serializable]
-    public struct Option<T> : IOption{
-        [SerializeField]
-        public T value;
-        [HideInInspector][UISetting(Ignore = true)]
-        public bool isDirty;
+//Option is struct but the types
+[Serializable]
+public struct Option<T> : IOption{
+    [SerializeField]
+    public T value;
+    [HideInInspector][UISetting(Ignore = true)]
+    public bool isDirty;
 
-        public bool ShouldSerializevalue() { return isDirty; }
-        //Default value is false so it's the same if we don't store it
+    public static implicit operator T(Option<T> option) => option.value;
+    public static implicit operator Option<T>(T val) => new Option<T> { value = val };
+    public bool ShouldSerializevalue() { return isDirty; }
+    //Default value is false so it's the same if we don't store it
 
-        [JsonIgnore]
-        public readonly bool IsDirty{
-            get { return isDirty; }
-        }
+    [JsonIgnore]
+    public readonly bool IsDirty{
+        get { return isDirty; }
+    }
 
-        public void Clone() { 
-            if(isDirty) return;
-            isDirty = true;
+    public void Clone() { 
+        if(isDirty) return;
+        isDirty = true;
 
-            if(value is UnityEngine.Object)
-                value = (T)(object)UnityEngine.Object.Instantiate((UnityEngine.Object)(object)value);
-            else if(value is ICloneable cloneable)
-                value = (T)cloneable.Clone();
-            else if (value is IList list){
-                value = (T)Activator.CreateInstance(list.GetType(), list);
-            }
+        if(value is UnityEngine.Object)
+            value = (T)(object)UnityEngine.Object.Instantiate((UnityEngine.Object)(object)value);
+        else if(value is ICloneable cloneable)
+            value = (T)cloneable.Clone();
+        else if (value is IList list){
+            value = (T)Activator.CreateInstance(list.GetType(), list);
         }
     }
+}
 
 [System.Serializable]
 public struct Vec2{

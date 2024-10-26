@@ -1,0 +1,19 @@
+#pragma kernel Generate
+
+#include "Assets/Resources/Compute/Utility/PerlinNoiseGenerator.hlsl"
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+
+const static int numThreads = 8;
+RWStructuredBuffer<float> points;
+
+[numthreads(numThreads,numThreads,numThreads)]
+void Generate (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis) {
+        return;
+    }
+
+    uint index = indexFromCoord(id.x,id.y,id.z);
+
+    points[index] = GetNoise(id);
+}

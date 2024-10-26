@@ -1,0 +1,27 @@
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
+#pragma kernel Simplify
+
+const static int numThreads = 8;
+
+RWStructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint2> chunkAddressDict;
+StructuredBuffer<uint2> _AddressDict;
+uint addressIndex;
+int3 CCoord;
+
+[numthreads(numThreads,numThreads,numThreads)]
+void Simplify (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis)
+        return;
+    //
+    uint wHash = HashCoord(CCoord);
+    uint2 wHandle = chunkAddressDict[wHash];//x = address, y = meshSkipInc(>= rSkipInc)
+    uint2 rHandle = _AddressDict[addressIndex];
+    uint sFac = wHandle.y / rHandle.y; //guaranteed to be an int
+
+    uint rIndex = indexFromCoordManual(id * sFac, numPointsPerAxis * sFac) + rHandle.x;
+    uint wIndex = indexFromCoord(id) + wHandle.x;
+    _MemoryBuffer[wIndex] = _MemoryBuffer[rIndex];
+}

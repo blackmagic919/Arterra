@@ -61,7 +61,7 @@ public class TerrainChunk
 
     public TerrainChunk(int3 coord, Transform parent, SurfaceChunk surfaceChunk)
     {
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         this.detailLevels = rSettings.detailLevels.value;
         this.surfaceMap = surfaceChunk;
         this.IsoLevel = rSettings.IsoLevel;
@@ -73,7 +73,7 @@ public class TerrainChunk
 
         meshFilter = meshObject.AddComponent<MeshFilter>();
         meshRenderer = meshObject.AddComponent<MeshRenderer>();
-        meshRenderer.sharedMaterials = WorldStorageHandler.WORLD_OPTIONS.ReadBackSettings.value.TerrainMats.ToArray();
+        meshRenderer.sharedMaterials = WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.TerrainMats.ToArray();
 
         CCoord = coord;
         RecreateChunk();
@@ -103,7 +103,7 @@ public class TerrainChunk
         meshLoD = int.MinValue;
 
         ReleaseChunk(); ClearFilter();
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.value.Rendering.value;
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         Vector3 position = CustomUtility.AsVector(CCoord) * rSettings.mapChunkSize;
         origin = position - Vector3.one * (rSettings.mapChunkSize / 2f);
         meshObject.transform.position = origin * rSettings.lerpScale;
@@ -184,7 +184,7 @@ public class TerrainChunk
                 id = (int)priorities.propogation,
             });
         }
-        if(status.CanUpdateMesh){
+        if(status.CanUpdateMesh && meshLoD < detailLevels.Count){
             status.CanUpdateMesh = false;
             RequestQueue.Enqueue(new GenTask{
                 task = () => {CreateMesh(meshLoD, OnChunkCreated);}, 

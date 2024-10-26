@@ -1,0 +1,40 @@
+#pragma kernel Underground
+#pragma multi_compile _ INTERP
+#pragma multi_compile _ SAMPLE_2D//
+
+#include "Assets/Resources/Compute/Utility/PerlinNoiseGenerator.hlsl"
+
+const static uint numThreads = 64;
+
+struct check{
+    float3 position;
+    //Various data may be contained here, treat as padding
+    uint padding1; 
+    uint padding2;
+};
+
+StructuredBuffer<check> CheckPoints;
+StructuredBuffer<uint> numPoints;
+RWStructuredBuffer<float> Results;
+float influenceHeight;
+
+[numthreads(numThreads,1,1)]
+void Underground (uint3 id : SV_DispatchThreadID)//
+{
+    if(id.x >= numPoints[0])
+        return;
+
+#ifdef SAMPLE_2D
+    float rawNoise = GetRawNoise(float3(CheckPoints[id.x].position.x, 0, CheckPoints[id.x].position.z));
+#else
+    float rawNoise = GetRawNoise(CheckPoints[id.x].position);
+#endif
+
+#ifndef INTERP
+    float interpNoise = rawNoise;
+#else
+    float interpNoise = interpolateValue(rawNoise);
+#endif
+
+    Results[id.x] = interpNoise * influenceHeight;
+}

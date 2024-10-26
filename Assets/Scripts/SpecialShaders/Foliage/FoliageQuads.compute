@@ -1,6 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Main
-#include "Assets/Resources/GeoShader/VertexPacker.hlsl"
+#include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
 
 const static int numThreads = 256;
 

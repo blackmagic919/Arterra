@@ -25,8 +25,8 @@ Shader "Hidden/Fog"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
-        #include "Assets/Resources/MapData/WSDensitySampler.hlsl"
-        #include "Assets/Resources/Atmosphere/TextureInterpHelper.hlsl"
+        #include "Assets/Resources/Compute/MapData/WSDensitySampler.hlsl"
+        #include "Assets/Resources/Compute/Atmosphere/TextureInterpHelper.hlsl"
 
         struct Attributes
         {

@@ -1,0 +1,73 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+
+#pragma kernel CSMain
+const static int numThreads = 8;
+
+//Output
+RWStructuredBuffer<uint> counter;
+uint bCOUNTER_index;
+
+RWStructuredBuffer<uint4> IndexBuffer; //Process as quads
+RWStructuredBuffer<int3> VertexBuffer;
+uint bSTART_index;
+uint bSTART_vertex;
+
+uint3 GridSize;
+
+/*
+* z
+* ^     5--------.
+* |    /|       /|
+* |   / |      / |    y
+* |  3--+-----6  |   /\
+* |  |  |     |  |   /
+* |  |  2-----+--4 /
+* |  | /      | /  /
+* |  0_______1/   /
+* +---------> x  /
+*/
+
+void AppendQuad(uint4 Quad){
+    int appendInd = 0;
+    InterlockedAdd(counter[bCOUNTER_index], 1, appendInd);
+    IndexBuffer[bSTART_index + appendInd] = Quad;
+}
+
+[numthreads(numThreads, numThreads, numThreads)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= GridSize.x || id.y >= GridSize.y || id.z >= GridSize.z)
+        return;
+    
+    int index = indexFromCoordIrregular(id, GridSize.yz);
+    VertexBuffer[bSTART_vertex + index] = id;
+    
+    if(id.x < GridSize.x - 1 && id.z < GridSize.z - 1){
+        AppendQuad(uint4(
+            indexFromCoordIrregular(id + uint3(0, 0, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(1, 0, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(1, 0, 1), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(0, 0, 1), GridSize.yz)
+        ));
+    }
+
+    if(id.y < GridSize.y - 1 && id.z < GridSize.z - 1){
+        AppendQuad(uint4(
+            indexFromCoordIrregular(id + uint3(0, 0, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(0, 1, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(0, 1, 1), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(0, 0, 1), GridSize.yz)
+        ));
+    }
+
+    if(id.x < GridSize.x - 1 && id.y < GridSize.y - 1){
+        AppendQuad(uint4(
+            indexFromCoordIrregular(id + uint3(0, 0, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(1, 0, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(1, 1, 0), GridSize.yz),
+            indexFromCoordIrregular(id + uint3(0, 1, 0), GridSize.yz)
+        ));
+    }
+
+}

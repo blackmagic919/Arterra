@@ -27,7 +27,7 @@
 // Include some helper functions
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "NMGGrassLayersHelpers.hlsl"
-#include "Assets/Resources/GeoShader/VertexPacker.hlsl"
+#include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
 
 struct DrawTriangle{
     uint2 vertex[3];

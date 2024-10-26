@@ -2,7 +2,7 @@
 #pragma kernel Main
 
 const static int numThreads = 256;
-#include "Assets/Resources/GeoShader/VertexPacker.hlsl"
+#include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
 
 
 struct SourceVertex{
