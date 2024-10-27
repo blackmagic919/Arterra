@@ -72,7 +72,9 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 /Assets/Real Stars Skybox/*
 
-.DS_Store
+**/.DS_Store
 
 .vscode
+
+mono_crash.*
 
