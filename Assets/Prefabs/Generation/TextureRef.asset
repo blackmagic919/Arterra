@@ -28,16 +28,16 @@ MonoBehaviour:
           Value: {fileID: 11400000, guid: db0066818616147b9bd124a81c0ff506, type: 2}
         isDirty: 0
       - value:
-          Name: Sand
-          Value: {fileID: 11400000, guid: 481b2c054900b455eb9738ef2d48a56d, type: 2}
-        isDirty: 0
-      - value:
           Name: Dirt
           Value: {fileID: 11400000, guid: cc518bf484c014189af0984e24ba783b, type: 2}
         isDirty: 0
       - value:
           Name: Grass
           Value: {fileID: 11400000, guid: 22cceaf6003ce4a4f9383ea91772ddd8, type: 2}
+        isDirty: 0
+      - value:
+          Name: Sand
+          Value: {fileID: 11400000, guid: 481b2c054900b455eb9738ef2d48a56d, type: 2}
         isDirty: 0
       - value:
           Name: Bark

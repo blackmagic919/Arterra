@@ -54,7 +54,6 @@ public interface IRegister{
     public abstract void Construct();
     public abstract string RetrieveName(int index);
     public abstract int RetrieveIndex(string name);
-    
 }
 
 

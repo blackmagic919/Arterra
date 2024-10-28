@@ -151,7 +151,7 @@ MonoBehaviour:
       Terraforming:
         value:
           terraformRadius: 2
-          terraformSpeed: 4
+          terraformSpeed: 100
           maxTerraformDistance: 60
           CursorSize: 2
           CursorColor:

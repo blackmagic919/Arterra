@@ -15,8 +15,8 @@ using System.Linq;
 
 /*
 Chunk File Layout:
-Header: [Material Offset][Entity Offset]
-//Material List
+Header: [Material Size][Entity Offset]
+//Material List 
 +Material Offset:
 //Entity List
 +Entity Offset: [LOD0 Offset]...[LODn Offset]
