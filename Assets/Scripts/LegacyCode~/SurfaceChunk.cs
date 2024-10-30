@@ -99,6 +99,7 @@ public class SurfaceChunk
         public BaseMap(Vector2 position){
             this.mapCreator = new SurfaceCreator();
             this.position = position;
+            this.hasChunk = false;
         }
 
         public void GetChunk()

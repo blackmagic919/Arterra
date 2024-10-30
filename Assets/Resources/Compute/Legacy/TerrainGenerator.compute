@@ -16,7 +16,8 @@ struct CaveGen{
 StructuredBuffer<CaveGen> _BiomeCaveData;
 uint coarseSampler;
 uint fineSampler;
-
+uint meshSkipInc;
+uint chunkSize;
 float offsetY;
 float IsoLevel;
 RWStructuredBuffer<float> points;

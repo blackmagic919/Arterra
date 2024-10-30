@@ -7,10 +7,14 @@ using UnityEngine;
 public class RenderSettings : ScriptableObject
 {
 
-    [UISetting(Alias = "Render Distances")]
-    public Option<List<LODInfo>> detailLevels;
+    public int MaxDepth;
+    public int MinChunkRadius;
+    [Range(1, 8)]
+    public int Balance;
+    [Range(1, 100)]
+    public int MapExtendDist;
     [UISetting(Alias = "Update Frequency")]
-    public float chunkUpdateThresh = 24f;
+    public uint MaxGeoShaderDepth;
     [UISetting(Alias = "Terrain Scale")]
     public float lerpScale = 2f;
     [Range(0, 1)]

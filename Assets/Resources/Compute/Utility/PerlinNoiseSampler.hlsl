@@ -7,8 +7,7 @@
 static const float _SPREAD_FACTOR = 0.5f;
 
 //SamplerData
-uint chunkSize;
-uint meshSkipInc;
+uint skipInc;
 float3 sOffset; //Short for sample offset
 
 struct NoiseSetting{
@@ -58,7 +57,7 @@ float interpolateValue(float value, uint samplerIndex){
 
 float GetRawNoise(int3 id, uint samplerIndex, float3 sOffset){
     NoiseSetting settings = _NoiseSettings[samplerIndex];
-    int3 sPos = id * meshSkipInc;
+    int3 sPos = id * skipInc;
 
     float amplitude = 1;
     float frequency = 1;
@@ -79,7 +78,7 @@ float GetRawNoise(int3 id, uint samplerIndex, float3 sOffset){
 
 float GetRawNoise2D(int2 id, uint samplerIndex, float2 sOffset){
     NoiseSetting settings = _NoiseSettings[samplerIndex];
-    int2 sPos = id * meshSkipInc;
+    int2 sPos = id * skipInc;
 
     float amplitude = 1;
     float frequency = 1;

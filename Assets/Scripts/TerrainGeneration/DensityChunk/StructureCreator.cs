@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using static EndlessTerrain;
 using static StructureGenerator;
 using Unity.Mathematics;
 
@@ -47,7 +46,7 @@ public class StructureCreator
     }
 
     //All Done Without Readback!
-    public void PlanStructuresGPU(int3 chunkCoord, Vector3 offset, int chunkSize, float IsoLevel)
+    public void PlanStructuresGPU(int3 chunkCoord, float3 offset, int chunkSize, float IsoLevel)
     {
         ReleaseStructure();
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 4, 0);
@@ -61,13 +60,12 @@ public class StructureCreator
         return;
     }
 
-    public void GenerateStrucutresGPU(int chunkSize, int LOD, float IsoLevel)
+    public void GenerateStrucutresGPU(int chunkSize, int skipInc, int mapStart, float IsoLevel)
     {
-        int meshSkipInc = meshSkipTable[LOD];
         
         ComputeBuffer structCount = GetStructCount(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, (int)structureDataIndex, STRUCTURE_STRIDE_WORD);
         ApplyStructures(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, structCount, 
-                        (int)structureDataIndex, chunkSize, meshSkipInc, IsoLevel);
+                        (int)structureDataIndex, mapStart, chunkSize, skipInc, IsoLevel);
 
         return;
     }

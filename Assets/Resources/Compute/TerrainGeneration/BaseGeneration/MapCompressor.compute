@@ -1,0 +1,24 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+const static uint numThreads = 128;
+
+struct mapData{
+    uint density;
+    uint viscosity;
+    uint material;
+};
+
+RWStructuredBuffer<uint> chunkData;
+RWStructuredBuffer<mapData> rawData;
+uint bSTART_raw;
+uint bSTART_chunk;
+uint numPoints;
+
+[numthreads(numThreads,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= numPoints)
+        return;
+    mapData data = rawData[id.x + bSTART_raw];
+    chunkData[id.x + bSTART_chunk] = (data.density & 0xFF) | ((data.viscosity & 0xFF) << 8) | ((data.material & 0x7FFF) << 16);
+}

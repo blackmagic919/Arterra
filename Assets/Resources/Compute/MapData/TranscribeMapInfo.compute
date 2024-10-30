@@ -1,45 +1,36 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
-#pragma multi_compile _ COMPRESSED
 
-const static uint numThreads = 128;
+const static uint numThreads = 8;
 const static int POINT_STRIDE_4BYTE = 1;
 
 
 RWStructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
-#ifdef COMPRESSED
-StructuredBuffer<uint> chunkData;
-#else
-struct mapData{
-    uint density;
-    uint viscosity;
-    uint material;
-};
 
-StructuredBuffer<mapData> chunkData;
-#endif
-uint numPoints;
+StructuredBuffer<uint> chunkData;//
+uint bSTART_read;
+
+uint sizeWrAxis;
+uint sizeRdAxis;
+uint sqRdOffset;
 
 
-[numthreads(numThreads,1,1)]
+[numthreads(numThreads,numThreads,numThreads)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     if(_AddressDict[addressIndex].x == 0) //Invalid
         return;
 
-    if(id.x >= numPoints)
+    if(id.x >= sizeWrAxis || id.y > sizeWrAxis || id.z > sizeWrAxis)
         return;
-
-    uint wAddress = _AddressDict[addressIndex].y + id.x * POINT_STRIDE_4BYTE;
     
-#ifdef COMPRESSED
-    _MemoryBuffer[wAddress] = chunkData[id.x];
+    uint wAddress = id.x * sizeWrAxis * sizeWrAxis + id.y * sizeWrAxis + id.z;
+    int3 rdPos = int3(id.x, id.y, id.z);
+    rdPos += sqRdOffset;
+    uint readAdd = rdPos.x * sizeRdAxis * sizeRdAxis + rdPos.y * sizeRdAxis + rdPos.z;
 
-#else
-    mapData data = chunkData[id.x];
-
-    _MemoryBuffer[wAddress] = (data.density & 0xFF) | ((data.viscosity & 0xFF) << 8) | ((data.material & 0x7FFF) << 16);
-#endif
+    wAddress = _AddressDict[addressIndex].y + wAddress;
+    _MemoryBuffer[wAddress] = chunkData[readAdd + bSTART_read];
 }

@@ -51,9 +51,7 @@ uint surfAddress;
 
 
 surfData ReadSurfData(uint2 coord){
-    uint2 fullCoord = coord * meshSkipInc;
-    uint address = _SurfAddressDict[surfAddress].y + indexFromCoord2DManual(fullCoord, numPointsPerAxis * meshSkipInc);
-    
+    uint address = _SurfAddressDict[surfAddress].y + indexFromCoord2DManual(coord, numPointsPerAxis);
     return _SurfMemoryBuffer[address];
 }
 
@@ -66,6 +64,7 @@ struct mapData{
 };
 
 RWStructuredBuffer<mapData> BaseMap;
+uint bSTART_map;
 
 
 float GetNoiseCentered(float val, float center, float bottom, float top){
@@ -148,14 +147,12 @@ void Generate (uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    uint index = indexFromCoord(id);
-
     surfData data = ReadSurfData(id.xz);
     uint biome = max(0, (uint)data.biome);
     float coarseMatNoise = GetNoise(id, coarseMatSampler);
     float fineMatNoise = GetNoise(id, fineMatSampler);
 
-    float actualHeight = id.y * meshSkipInc + offsetY;
+    float actualHeight = id.y + offsetY;
     float groundHeight = actualHeight - data.terrain;
 
     //Get Base Density
@@ -173,7 +170,9 @@ void Generate (uint3 id : SV_DispatchThreadID)
     float atmosphereFactor = exp(-max(actualHeight - data.terrain, 0) * _BiomeAtmosphereData[biome]);
     float density = baseDensity * (terrainFactor * (1-IsoLevel) + atmosphereFactor * IsoLevel);
 
+
     //Generate Water
+    uint index = indexFromCoord(id) + bSTART_map;
     if(actualHeight > (data.terrain - data.squash) && actualHeight < waterHeight && density < IsoLevel){
         BaseMap[index].density = 255;
         BaseMap[index].viscosity = (uint)round(density * 255.0f);

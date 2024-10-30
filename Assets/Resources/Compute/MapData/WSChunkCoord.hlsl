@@ -9,7 +9,7 @@ int3 WSToCS(float3 positionWS){ return round(positionWS / lerpScale / mapChunkSi
 
 //object space to map space
 float3 WSToMS(float3 positionWS){
-    float3 positionMS = positionWS / lerpScale + mapChunkSize / 2;
+    float3 positionMS = positionWS / lerpScale;
     return fmod((mapChunkSize + fmod(positionMS, mapChunkSize)), mapChunkSize);
 }
 #endif

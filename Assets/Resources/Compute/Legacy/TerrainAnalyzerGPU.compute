@@ -44,6 +44,8 @@ uint continentalSampler;
 uint erosionSampler;
 uint PVSampler;
 uint squashSampler;
+uint chunkSize;
+uint meshSkipInc;
 
 float continentalHeight;
 float PVHeight;

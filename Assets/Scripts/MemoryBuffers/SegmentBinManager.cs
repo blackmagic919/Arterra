@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using static EndlessTerrain;
+using static OctreeTerrain;
 
 public class SegmentBinManager
 {
@@ -65,7 +65,7 @@ public class SegmentBinManager
         {
             LODInfo detailLevel = detailLevels[i];
 
-            int meshSkipInc = meshSkipTable[i];
+            int meshSkipInc = 1 << i;
             int numPointsAxes = mapChunkSize / meshSkipInc;
             int chunkStride4Bytes = numPointsAxes * numPointsAxes * numPointsAxes * PointStride4Bytes;
 

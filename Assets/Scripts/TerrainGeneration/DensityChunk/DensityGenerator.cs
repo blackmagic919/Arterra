@@ -9,23 +9,33 @@ public static class DensityGenerator
 {
     [Header("Terrain Generation Shaders")]
     static ComputeShader baseGenCompute;//
+    static ComputeShader mapCompressor;//
     static ComputeShader meshGenerator;//
+    static ComputeShader dMeshGenerator;//
 
     public const int VERTEX_STRIDE_WORD = 3 * 2 + 2;
     public const int TRI_STRIDE_WORD = 3;
+    public const int RAW_MAP_WORD = 3;
 
     public static GeoGenOffsets bufferOffsets;
     
 
     static DensityGenerator(){ //That's a lot of Compute Shaders XD
         baseGenCompute = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/ChunkDataGen");
+        mapCompressor = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/MapCompressor");
         meshGenerator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/MarchingCubes");
+        dMeshGenerator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/CMarchingCubes");
 
         indirectCountToArgs = Resources.Load<ComputeShader>("Compute/Utility/CountToArgs");
     }
 
     public static void PresetData(){
         MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.Generation.Terrain.value;
+
+        //Set Marching Cubes Data
+        int numPointsAxes = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
+        bufferOffsets = new GeoGenOffsets(new int3(numPointsAxes, numPointsAxes, numPointsAxes), 0, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD, RAW_MAP_WORD);
+
         baseGenCompute.SetInt("coarseCaveSampler", mesh.CoarseTerrainIndex);
         baseGenCompute.SetInt("fineCaveSampler", mesh.FineTerrainIndex);
         baseGenCompute.SetInt("coarseMatSampler", mesh.CoarseMaterialIndex);
@@ -35,11 +45,13 @@ public static class DensityGenerator
         baseGenCompute.SetInt("waterMat", mesh.WaterIndex);
 
         baseGenCompute.SetBuffer(0, "BaseMap", UtilityBuffers.GenerationBuffer);
+        baseGenCompute.SetInt("bSTART_map", bufferOffsets.rawMapStart);
 
-        //Set Marching Cubes Data
-        int numPointsAxes = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize + 1;
-        bufferOffsets = new GeoGenOffsets(new int3(numPointsAxes, numPointsAxes, numPointsAxes), 0, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD);
-
+        mapCompressor.SetBuffer(0, "rawData", UtilityBuffers.GenerationBuffer);
+        mapCompressor.SetBuffer(0, "chunkData", UtilityBuffers.GenerationBuffer);
+        mapCompressor.SetInt("bSTART_raw", bufferOffsets.rawMapStart);
+        mapCompressor.SetInt("bSTART_chunk", bufferOffsets.mapStart);
+        
         //They're all the same buffer lol
         meshGenerator.SetBuffer(0, "vertexes", UtilityBuffers.GenerationBuffer);
         meshGenerator.SetBuffer(0, "triangles", UtilityBuffers.GenerationBuffer);
@@ -51,6 +63,18 @@ public static class DensityGenerator
         meshGenerator.SetInt("bSTART_verts", bufferOffsets.vertStart);    
         meshGenerator.SetInt("bSTART_baseT", bufferOffsets.baseTriStart);
         meshGenerator.SetInt("bSTART_waterT", bufferOffsets.waterTriStart);
+
+        dMeshGenerator.SetBuffer(0, "vertexes", UtilityBuffers.GenerationBuffer);
+        dMeshGenerator.SetBuffer(0, "triangles", UtilityBuffers.GenerationBuffer);
+        dMeshGenerator.SetBuffer(0, "triangleDict", UtilityBuffers.GenerationBuffer);
+        dMeshGenerator.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
+        dMeshGenerator.SetInts("counterInd", new int[3]{bufferOffsets.vertexCounter, bufferOffsets.baseTriCounter, bufferOffsets.waterTriCounter});
+
+        dMeshGenerator.SetInt("bSTART_map", bufferOffsets.mapStart);
+        dMeshGenerator.SetInt("bSTART_dict", bufferOffsets.dictStart);
+        dMeshGenerator.SetInt("bSTART_verts", bufferOffsets.vertStart);
+        dMeshGenerator.SetInt("bSTART_baseT", bufferOffsets.baseTriStart);
+        dMeshGenerator.SetInt("bSTART_waterT", bufferOffsets.waterTriStart);
     }
 
     //TODO: Rewrite using BeginWrite() for parallel writing
@@ -77,25 +101,31 @@ public static class DensityGenerator
         UtilityBuffers.GenerationBuffer.EndWrite<TerrainChunk.MapData>(numPoints);
     }*/
        
-    public static void GenerateBaseData( uint surfaceData, float IsoLevel, int chunkSize, int meshSkipInc, Vector3 offset)
+    public static void GenerateBaseData( Vector3 offset, uint surfaceData, int chunkSize, int mapSkip, float IsoLevel)
     {
-        int numPointsAxes = chunkSize / meshSkipInc;
-
+        int numPointsAxes = chunkSize;
         baseGenCompute.SetFloat("IsoLevel", IsoLevel);
         baseGenCompute.SetBuffer(0, "_SurfMemoryBuffer", GenerationPreset.memoryHandle.Storage);
         baseGenCompute.SetBuffer(0, "_SurfAddressDict", GenerationPreset.memoryHandle.Address);
         baseGenCompute.SetInt("surfAddress", (int)surfaceData);
         baseGenCompute.SetInt("numPointsPerAxis", numPointsAxes);
-        baseGenCompute.SetInt("meshSkipInc", meshSkipInc);
-
-        baseGenCompute.SetFloat("chunkSize", chunkSize);
         baseGenCompute.SetFloat("offsetY", offset.y);
         
-        SetSampleData(baseGenCompute, offset, chunkSize, meshSkipInc);
+        SetSampleData(baseGenCompute, offset, mapSkip);
 
         baseGenCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);
         baseGenCompute.Dispatch(0, numThreadsAxis, numThreadsAxis, numThreadsAxis);
+    }
+
+    public static void CompressMapData(int chunkSize){
+        int numPointsAxes = chunkSize;
+        int numPoints = numPointsAxes * numPointsAxes * numPointsAxes;
+
+        mapCompressor.SetInt("numPoints", numPoints);
+        mapCompressor.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+        int numThreadsAxis = Mathf.CeilToInt(numPoints / (float)threadGroupSize);
+        mapCompressor.Dispatch(0, numThreadsAxis, 1, 1);
     }
 
     public static void GenerateMesh(int3 CCoord, int chunkSize, int meshSkipInc, float IsoLevel)
@@ -120,10 +150,29 @@ public static class DensityGenerator
         meshGenerator.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
     }
 
+    public static void GenerateMeshInPlace(int chunkSize, int meshSkipInc, float IsoLevel)
+    {
+        int numCubesAxes = chunkSize / meshSkipInc;
+        int numPointsAxes = numCubesAxes + 1;
+        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 3, 0);
+
+        dMeshGenerator.SetBuffer(0, "MapData", UtilityBuffers.GenerationBuffer);
+        dMeshGenerator.SetFloat("IsoLevel", IsoLevel);
+        dMeshGenerator.SetInt("numCubesPerAxis", numCubesAxes);
+        dMeshGenerator.SetInt("numPointsPerAxis", numPointsAxes);
+        dMeshGenerator.SetInt("meshSkipInc", meshSkipInc);
+
+        dMeshGenerator.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+        int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);
+
+        dMeshGenerator.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+    }
     public struct GeoGenOffsets : BufferOffsets{
         public int vertexCounter;
         public int baseTriCounter;
         public int waterTriCounter;
+        public int mapStart;
+        public int rawMapStart;
         public int dictStart;
         public int vertStart;
         public int baseTriStart;
@@ -131,14 +180,20 @@ public static class DensityGenerator
         private int offsetStart; private int offsetEnd;
         public int bufferStart{get{return offsetStart;}} public int bufferEnd{get{return offsetEnd;}}
 
-        public GeoGenOffsets(int3 GridSize, int bufferStart, int VertexStride, int TriStride){
+        public GeoGenOffsets(int3 GridSize, int bufferStart, int VertexStride, int TriStride, int MapStride){
             this.offsetStart = bufferStart;
             vertexCounter = bufferStart; baseTriCounter = bufferStart + 1; waterTriCounter = bufferStart + 2;
-            dictStart = bufferStart + 3;
-
             int numOfPoints = GridSize.x * GridSize.y * GridSize.z;
+            int numOfPointsO = (GridSize.x + 3) * (GridSize.y + 3) * (GridSize.z + 3);
             int numOfTris = (GridSize.x - 1) * (GridSize.y - 1) * (GridSize.z - 1) * 5;
+            
+            //This is cached map, only used for visual chunks, real chunks
+            //have their maps stored in the GPUDensityManager
+            mapStart = bufferStart + 3;
+            int mapEnd_W = mapStart + numOfPointsO;
+            rawMapStart = Mathf.CeilToInt((float)mapEnd_W / MapStride); 
 
+            dictStart = mapEnd_W;
             int dictEnd_W = dictStart + numOfPoints * TriStride;
 
             vertStart = Mathf.CeilToInt((float)dictEnd_W / VertexStride);

@@ -107,7 +107,7 @@ public static class EntityManager
 
         if(!Executor.active){
             Executor = new EntityJob(); //make new one to reset
-            EndlessTerrain.MainFixedUpdateTasks.Enqueue(Executor);
+            OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
         }
     }
 

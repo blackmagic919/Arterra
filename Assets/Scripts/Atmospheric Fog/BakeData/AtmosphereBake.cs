@@ -27,15 +27,15 @@ public class AtmosphereBake
     private float atmosphereRadius;
     public bool initialized = false;
 
-    public AtmosphereBake(){
+    public AtmosphereBake(float atmosphereRadius){
         this.settings = WorldStorageHandler.WORLD_OPTIONS.Quality.Atmosphere.value;
+        this.atmosphereRadius = atmosphereRadius;
+        
         RaySetupCompute = Resources.Load<ComputeShader>("Compute/Atmosphere/RayMarchSetup");
         OpticalDataCompute = Resources.Load<ComputeShader>("Compute/Atmosphere/OpticalData");
 
         int numPixels = settings.BakedTextureSizePX * settings.BakedTextureSizePX;
         rayInfo = new ComputeBuffer(numPixels, sizeof(float) * 3, ComputeBufferType.Structured, ComputeBufferMode.Immutable); //Floating point 3 channel
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
-        this.atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * rSettings.detailLevels.value[^1].chunkDistThresh;
 
         //3D texture to store SunRayOpticalDepth
         //We can't use RenderTexture-Texture2DArray because SAMPLER2DARRAY does not terminate in a timely fashion

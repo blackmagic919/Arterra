@@ -25,7 +25,5 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         return;
     
     uint pointAddress = _AddressDict[addressIndex].y + id.x;
-    surfData data = SurfaceMap[id.x];
-
     _MemoryBuffer[pointAddress] =  SurfaceMap[id.x];
 }

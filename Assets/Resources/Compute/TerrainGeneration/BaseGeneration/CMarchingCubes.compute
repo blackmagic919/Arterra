@@ -1,8 +1,7 @@
 #pragma kernel March
-#include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/MarchingTables.hlsl"
-#include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/MapDataSampler.hlsl"
+#include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/CMapDataSampler.hlsl"
 #define SAMPLE_TERRAIN 0
 #define SAMPLE_WATER 1
 
@@ -89,7 +88,7 @@ uint bSTART_waterT;
 MarchCube ReadCube(int3 coord){
     MarchCube cube;
     [unroll]for(int i = 0; i < 8; i++){
-        int3 sCoord = clamp(coord + positionFromIndex[i], 0, numCubesPerAxis);
+        int3 sCoord = clamp(coord + positionFromIndex[i], 0, numCubesPerAxis + 3);
         uint mapData = ReadMapData(sCoord);
         float density = (mapData & 0xFF) / 255.0f;
         float viscosity = ((mapData >> 8) & 0xFF) / 255.0f;

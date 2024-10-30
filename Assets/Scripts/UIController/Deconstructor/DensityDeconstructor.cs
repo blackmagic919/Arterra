@@ -428,7 +428,7 @@ public class DensityDeconstructor : MonoBehaviour
             this.IsoLevel = IsoLevel;
             this.transform = transform;
 
-            this.offsets = new DensityGenerator.GeoGenOffsets(new int3(GridSize), bufferStart, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD);
+            this.offsets = new DensityGenerator.GeoGenOffsets(new int3(GridSize), bufferStart, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD, 3);
             PresetData();
         }
 

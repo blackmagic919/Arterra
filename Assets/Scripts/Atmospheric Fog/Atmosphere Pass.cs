@@ -6,7 +6,6 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using static EndlessTerrain;
 
 public class AtmospherePass : ScriptableRenderPass
 {
@@ -34,8 +33,8 @@ public class AtmospherePass : ScriptableRenderPass
         if (material == null) material = CoreUtils.CreateEngineMaterial("Hidden/Fog");
 
         RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
-        AtmosphereSettings = new AtmosphereBake();
-        float atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * rSettings.detailLevels.value[^1].chunkDistThresh;
+        float atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * GPUDensityManager.numChunksRadius;
+        AtmosphereSettings = new AtmosphereBake(atmosphereRadius);
 
         material.SetFloat("_AtmosphereRadius", atmosphereRadius);
         material.SetInt("_NumInScatterPoints", AtmosphereSettings.NumInScatterPoints);

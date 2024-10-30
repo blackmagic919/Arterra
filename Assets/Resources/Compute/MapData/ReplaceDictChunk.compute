@@ -1,18 +1,34 @@
 #include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
 #pragma kernel CSMain
+const static uint numThreads = 2;
 
-RWStructuredBuffer<uint2> chunkAddressDict;
-RWStructuredBuffer<uint2> _AddressDict;
+RWStructuredBuffer<uint2> ChunkDict;
+StructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
-int3 CCoord;
-uint meshSkipInc;
+int3 oCoord;
+uint3 dimension;
+uint bOffset;
+//origin offset
+//x,y,z -> read offset, w -> scale
 
+uint chunkInc;
+uint skipInc;
 
-[numthreads(1,1,1)]
+[numthreads(numThreads,numThreads,numThreads)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    uint hash = HashCoord(CCoord);
-    uint2 oldData = chunkAddressDict[hash]; 
-    chunkAddressDict[hash] = uint2(_AddressDict[addressIndex].y, meshSkipInc);
-    _AddressDict[addressIndex] = oldData;
+    if(_AddressDict[addressIndex].x == 0) //Invalid
+        return;
+    if(id.x >= dimension.x || id.y >= dimension.y || id.z >= dimension.z) 
+        return;
+    
+    uint address = _AddressDict[addressIndex].y;
+    uint offset = (bOffset & 0xFFFFFF00) + 
+                  ((((id.x * chunkInc) & 0xFF) << 24) | 
+                  (((id.y * chunkInc) & 0xFF) << 16) | 
+                  (((id.z * chunkInc) & 0xFF) << 8) | 
+                  (skipInc & 0xFF));
+
+    int3 CCoord = oCoord + id;
+    ChunkDict[HashCoord(CCoord)] = uint2(address, offset);
 }

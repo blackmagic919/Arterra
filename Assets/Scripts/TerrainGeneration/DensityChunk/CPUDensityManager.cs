@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 using Unity.Mathematics;
-using static EndlessTerrain;
 using UnityEngine.Rendering;
 using Utils;
 using Unity.Collections.LowLevel.Unsafe;
@@ -37,7 +36,7 @@ public static class CPUDensityManager
         int numPointsAxis = mapChunkSize;
         numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 
-        numChunksAxis = 2 * rSettings.detailLevels.value[0].chunkDistThresh;
+        numChunksAxis = Octree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
         int numChunks = numChunksAxis * numChunksAxis * numChunksAxis;
 
         _ChunkManagers = new TerrainChunk[numChunks];

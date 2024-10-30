@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Mathematics;
 using UnityEngine;
-using static EndlessTerrain;
 using static TerrainGenerator;
 
 [CreateAssetMenu(menuName = "Containers/Surface Settings")]
@@ -32,20 +32,16 @@ public class SurfaceCreatorSettings : ScriptableObject{
     public int CaveShapeIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CaveShapeNoise);
 }
 
-public class SurfaceCreator
+public static class SurfaceCreator
 {
     const uint SURFDATA_STRIDE_4BYTE = 6;   
-    public void SampleSurfaceMaps(Vector2 offset, int LOD){
-        int meshSkipInc = meshSkipTable[LOD];
-        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
-        SampleSurfaceData(offset, mapChunkSize, meshSkipInc);
+    public static void SampleSurfaceMaps(float2 offset, int ChunkSize, int SkipInc){
+        SampleSurfaceData(offset, ChunkSize, SkipInc);
     }
 
-    public uint StoreSurfaceMap(int LOD)
+    public static uint StoreSurfaceMap(int SampleSize)
     {
-        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
-        int meshSkipInc = meshSkipTable[LOD];
-        int numPointsAxes = mapChunkSize / meshSkipInc;
+        int numPointsAxes = SampleSize;
         int numOfPoints = numPointsAxes * numPointsAxes;
         
         uint mapAddressIndex = GenerationPreset.memoryHandle.AllocateMemoryDirect(numOfPoints, (int)SURFDATA_STRIDE_4BYTE);

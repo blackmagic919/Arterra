@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
-using static EndlessTerrain;
 using static DensityGenerator;
 using Unity.Collections;
 
@@ -25,13 +24,37 @@ public class MeshCreatorSettings : ScriptableObject{
 }
 public class MeshCreator
 {
-    public CPUDensityManager.MapData[] GetChunkInfo(StructureCreator structCreator, uint surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
+
+    public void GenerateBaseChunk(float3 offset, uint surfaceData, int chunkSize, int mapSkip, float IsoLevel)
+    {
+        GenerateBaseData(offset, surfaceData, chunkSize, mapSkip, IsoLevel);
+    }
+    public void CompressMap(int chunkSize) => CompressMapData(chunkSize);
+
+    public void SetMapInfo(int numChunksAxis, int offset, CPUDensityManager.MapData[] chunkData){
+        int numPoints = numChunksAxis * numChunksAxis * numChunksAxis;
+        UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
+    }
+    public void SetMapInfo(int chunkSize, int offset, ref NativeArray<CPUDensityManager.MapData> chunkData)
+    {
+        int numPoints = chunkSize * chunkSize * chunkSize;
+        UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
+    }
+
+    public void GenerateMapData(int3 CCoord, float IsoLevel, int skipInc, int chunkSize) => GenerateMesh(CCoord, chunkSize, skipInc, IsoLevel);
+    public void GenerateMapDataInPlace(float IsoLevel, int skipInc, int chunkSize) => GenerateMeshInPlace(chunkSize, skipInc, IsoLevel);
+
+}
+
+/*
+
+public CPUDensityManager.MapData[] GetChunkInfo(StructureCreator structCreator, uint surfaceData, Vector3 offset, float IsoLevel, int chunkSize)
     {
         int numPointsAxes = chunkSize + 1;
         int numOfPoints = numPointsAxes * numPointsAxes * numPointsAxes;
 
-        GenerateBaseChunk(surfaceData, offset, 0, chunkSize, IsoLevel);
-        structCreator.GenerateStrucutresGPU(chunkSize, 0, IsoLevel);
+        GenerateBaseChunk(offset, surfaceData, chunkSize, 1, IsoLevel);
+        structCreator.GenerateStrucutresGPU(chunkSize, 0, 0, IsoLevel);
 
         CPUDensityManager.MapData[] chunkMap = new CPUDensityManager.MapData[numOfPoints];
 
@@ -39,38 +62,6 @@ public class MeshCreator
         return chunkMap;
     }
 
-    public void GenerateBaseChunk(uint surfaceData, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
-    {
-        int meshSkipInc = meshSkipTable[LOD];
-        GenerateBaseData(surfaceData, IsoLevel, chunkSize, meshSkipInc, offset);
-    }
-
-    public void SetMapInfo(int LOD, int chunkSize, int offset, CPUDensityManager.MapData[] chunkData){
-        int meshSkipInc = meshSkipTable[LOD];
-        int numPointsAxes = chunkSize / meshSkipInc;
-        int numPoints = numPointsAxes * numPointsAxes * numPointsAxes;
-
-        UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
-    }
-    public void SetMapInfo(int LOD, int chunkSize, int offset, ref NativeArray<CPUDensityManager.MapData> chunkData)
-    {
-        int meshSkipInc = meshSkipTable[LOD];
-        int numPointsAxes = chunkSize / meshSkipInc;
-        int numPoints = numPointsAxes * numPointsAxes * numPointsAxes;
-        
-
-        UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
-    }
-
-    public void GenerateMapData(int3 CCoord, float IsoLevel, int LOD, int chunkSize)
-    {
-        int meshSkipInc = meshSkipTable[LOD];
-        GenerateMesh(CCoord, chunkSize, meshSkipInc, IsoLevel);
-    }
-
-}
-
-/*
 public ComputeBuffer GenerateDensity(SurfaceChunk.SurfData surfaceData, Vector3 offset, int LOD, int chunkSize, float IsoLevel)
 {
     int meshSkipInc = meshSkipTable[LOD];

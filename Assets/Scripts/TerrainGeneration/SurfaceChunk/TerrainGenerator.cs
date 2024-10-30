@@ -33,12 +33,11 @@ public static class TerrainGenerator
     }
 
     //The wonder shader that does everything (This way more parallelization is achieved)
-    public static void SampleSurfaceData(Vector2 offset, int chunkSize, int meshSkipInc){
-        int numPointsAxes = chunkSize / meshSkipInc;
-
+    public static void SampleSurfaceData(Vector2 offset, int chunkSize, int mapSkipInc){
+        int numPointsAxes = chunkSize;
         Vector3 offset3D = new Vector3(offset.x, 0, offset.y);
         surfaceDataSampler.SetInt("numPointsPerAxis", numPointsAxes);
-        SetSampleData(surfaceDataSampler, offset3D, chunkSize, meshSkipInc);
+        SetSampleData(surfaceDataSampler, offset3D, mapSkipInc);
 
         surfaceDataSampler.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);

@@ -56,7 +56,7 @@ public class InputPoller : UpdateTask
         LayerHeads = new Dictionary<string, uint>();
         KeyBinds = new SharedLinkedList<KeyBind>(10000); 
         KeyBindChanges = new Queue<Action>();
-        EndlessTerrain.MainLoopUpdateTasks.Enqueue(new InputPoller{active = true});
+        OctreeTerrain.MainLoopUpdateTasks.Enqueue(new InputPoller{active = true});
     }
 
     public static void SetCursorLock(bool value)

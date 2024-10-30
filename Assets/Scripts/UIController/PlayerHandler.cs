@@ -12,12 +12,17 @@ public class PlayerHandler : MonoBehaviour
     private PlayerData info;
     private bool active = false;
     // Start is called before the first frame update
+    public static PlayerHandler Instance;
 
     public void Activate(){
         active = true;
         PlayerController.ActivateCharacter();
     }
     void OnEnable(){
+        Instance = this;
+    }
+
+    public void Initialize(){
         PlayerController = this.GetComponent<RigidFPController>();
 
         info = LoadPlayerData();
@@ -31,7 +36,7 @@ public class PlayerHandler : MonoBehaviour
 
     // Update is called once per frame
     void Update() { 
-        if(EndlessTerrain.RequestQueue.IsEmpty && !active) Activate();
+        if(OctreeTerrain.RequestQueue.IsEmpty && !active) Activate();
         if(!active) return;
         
         terrController.Update();

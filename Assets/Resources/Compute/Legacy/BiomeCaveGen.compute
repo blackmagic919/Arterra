@@ -17,6 +17,8 @@ uint fineSampler;
 StructuredBuffer<uint> _SurfMemoryBuffer;
 StructuredBuffer<uint> _SurfAddressDict;
 uint surfAddress;
+uint meshSkipInc;
+uint chunkSize;
 
 RWStructuredBuffer<float> densityMap;
 

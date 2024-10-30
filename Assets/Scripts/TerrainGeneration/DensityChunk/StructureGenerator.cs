@@ -134,7 +134,7 @@ public static class StructureGenerator
 
         StructureIdentifier.SetFloat("IsoLevel", IsoLevel);
         StructureIdentifier.SetInts("CCoord", new int[] { chunkCoord.x, chunkCoord.y, chunkCoord.z });
-        SetSampleData(StructureIdentifier, offset, chunkSize, 1);
+        SetSampleData(StructureIdentifier, offset, 1);
 
         int kernel = StructureIdentifier.FindKernel("Identify");
         StructureIdentifier.DispatchIndirect(kernel, args);//byte offset
@@ -177,7 +177,7 @@ public static class StructureGenerator
         return structCount;
     }
     
-    public static void ApplyStructures(ComputeBuffer memory, ComputeBuffer addresses, ComputeBuffer count, int addressIndex, int chunkSize, int meshSkipInc, float IsoLevel)
+    public static void ApplyStructures(ComputeBuffer memory, ComputeBuffer addresses, ComputeBuffer count, int addressIndex, int mapStart, int chunkSize, int meshSkipInc, float IsoLevel)
     {
         ComputeBuffer args = UtilityBuffers.CountToArgs(structureChunkGenerator, count);
 
@@ -188,6 +188,7 @@ public static class StructureGenerator
         structureChunkGenerator.SetBuffer(0, "numPoints", count);
 
         structureChunkGenerator.SetBuffer(0, "chunkData", UtilityBuffers.GenerationBuffer);
+        structureChunkGenerator.SetInt("bSTART_map", mapStart);
         structureChunkGenerator.SetInt("chunkSize", chunkSize);
         structureChunkGenerator.SetInt("meshSkipInc", meshSkipInc);
         structureChunkGenerator.SetFloat("IsoLevel", IsoLevel);

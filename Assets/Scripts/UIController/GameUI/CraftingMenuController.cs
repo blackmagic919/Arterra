@@ -220,7 +220,7 @@ public class CraftingMenuController : UpdateTask
 
     public static void Activate(){
         Instance = new CraftingMenuController{active = true};
-        EndlessTerrain.MainLoopUpdateTasks.Enqueue(Instance);
+        OctreeTerrain.MainLoopUpdateTasks.Enqueue(Instance);
 
         Clear();
         UpdateDisplay();//

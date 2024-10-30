@@ -94,7 +94,7 @@ public class InventoryController : UpdateTask
             InputPoller.AddBinding(new InputPoller.Binding("Remove Terrain", "GamePlay", InputPoller.BindPoll.Hold, CraftingMenuController.RemoveMaterial));
         });
         Instance = new InventoryController{active = true};
-        EndlessTerrain.MainLoopUpdateTasks.Enqueue(Instance);
+        OctreeTerrain.MainLoopUpdateTasks.Enqueue(Instance);
         CraftingMenuController.Activate();
         CursorDisplay.Object.SetActive(false);
         Menu.SetActive(true);

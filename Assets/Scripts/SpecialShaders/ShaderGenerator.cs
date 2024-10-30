@@ -5,7 +5,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Utils;
-using static EndlessTerrain;
+using static OctreeTerrain;
 using static UtilityBuffers;
 
 public class ShaderGenerator

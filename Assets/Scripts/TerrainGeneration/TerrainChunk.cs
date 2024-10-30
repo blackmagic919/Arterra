@@ -5,26 +5,33 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Utils;
-using static EndlessTerrain;
+using static OctreeTerrain;
 
 public class TerrainChunk
 {
-    public GameObject meshObject;
-    public Vector3 origin;
-    public int3 CCoord;
-    public Bounds boundsOS;
-    public SurfaceChunk surfaceMap;
+    //Octree index
+    public uint index;
+    public bool active;
 
+    public GameObject meshObject;
+    public int3 origin;
+    public int3 CCoord;
+    public int size;
+    public int depth;
+    public Bounds boundsOS;
+    public bool IsRealChunk => depth == 0;
+    
+    public GeneratorInfo Generator;
+    public RenderSettings rSettings;
+    public uint surfAddress;
     readonly MeshRenderer meshRenderer;
     readonly MeshFilter meshFilter;
-    readonly List<LODInfo> detailLevels;
-    GeneratorInfo Generator;
 
     public readonly float IsoLevel;
     public readonly int mapChunkSize;
 
-    public int mapLoD;
-    public int meshLoD;
+    public int mapSkipInc => 1 << depth;
+    public int meshSkipInc;
     public ChunkStatus status;
     
     public struct ChunkStatus{
@@ -59,116 +66,112 @@ public class TerrainChunk
         }
     }
 
-    public TerrainChunk(int3 coord, Transform parent, SurfaceChunk surfaceChunk)
+    public TerrainChunk(Transform parent, int3 origin, int size, uint octreeIndex)
     {
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
-        this.detailLevels = rSettings.detailLevels.value;
-        this.surfaceMap = surfaceChunk;
+        rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         this.IsoLevel = rSettings.IsoLevel;
         this.mapChunkSize = rSettings.mapChunkSize;
+        this.origin = origin;
+        this.size = size;
+        this.index = octreeIndex;
+        this.active = true;
+
+        //This is ok because origin is guaranteed to be a multiple of mapChunkSize by the Octree
+        CCoord = origin / rSettings.mapChunkSize;
+        depth = math.floorlog2(size / rSettings.mapChunkSize);
 
         meshObject = new GameObject("Terrain Chunk");
-        meshObject.transform.localScale = Vector3.one * rSettings.lerpScale;
+        meshObject.transform.localScale = Vector3.one * rSettings.lerpScale * (1 << depth);
         meshObject.transform.parent = parent;
+        meshObject.transform.position = (float3)origin * rSettings.lerpScale;
+
+        boundsOS = new Bounds(Vector3.one * (rSettings.mapChunkSize / 2), Vector3.one * rSettings.mapChunkSize);
+        Generator = new GeneratorInfo(this);
+        status = new ChunkStatus{CreateMap = true, UpdateMesh = true, CanUpdateMesh = false};
 
         meshFilter = meshObject.AddComponent<MeshFilter>();
         meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshRenderer.sharedMaterials = WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.TerrainMats.ToArray();
-
-        CCoord = coord;
-        RecreateChunk();
+        meshSkipInc = GetMeshSkip();
+        SetupChunk();
     }
 
-    private uint ChunkDist3D(float3 GPos){
-        int3 GCoord = (int3)GPos;
-        float3 cPt = math.clamp(GCoord, CCoord * mapChunkSize, (CCoord + 1) * mapChunkSize);
-        float3 cDist = math.abs(math.floor((cPt - GCoord) / mapChunkSize + 0.5f));
-        //We add 0.5 because normally this returns an odd number, but even numbers have better cubes
-        return (uint)math.max(cDist.x, math.max(cDist.y, cDist.z)); 
-        //can't add 0.5f here because of VERY complicated reasons
-        //(basically it'll round up in both positive and negative making it impossible to contain only numchunk
+    private int GetMeshSkip(){
+        if(!IsRealChunk) return 1;
+        if(!OctreeTerrain.IsBordering(ref OctreeTerrain.octree.nodes[index]))
+            return 1;
+        return 1 << rSettings.Balance;
     }
 
-    private void RecreateChunk(){
-        //Recalculate CCoord
-        int maxChunkDist = detailLevels[^1].chunkDistThresh;
-        int numChunksAxis = maxChunkDist * 2;
-
-        int3 vGCoord = (int3)(float3)viewerPosition;
-        int3 vMCoord = ((vGCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
-        int3 vOCoord = (vGCoord - vMCoord) / mapChunkSize - maxChunkDist + math.select(new int3(0), new int3(1), vMCoord > (mapChunkSize / 2)); 
-        int3 HCoord = (((CCoord - vOCoord) % numChunksAxis) + numChunksAxis) % numChunksAxis;
-        CCoord = vOCoord + HCoord;
-        mapLoD = int.MaxValue;
-        meshLoD = int.MinValue;
-
-        ReleaseChunk(); ClearFilter();
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
-        Vector3 position = CustomUtility.AsVector(CCoord) * rSettings.mapChunkSize;
-        origin = position - Vector3.one * (rSettings.mapChunkSize / 2f);
-        meshObject.transform.position = origin * rSettings.lerpScale;
-
-        boundsOS = new Bounds(Vector3.one * (rSettings.mapChunkSize / 2), Vector3.one * rSettings.mapChunkSize);
-        Generator = new GeneratorInfo(this);
-        status = new ChunkStatus(0);
-
-        int3 GCoord = (int3)(float3)viewerPosition;
-        float3 cPt = math.clamp(GCoord, CCoord * mapChunkSize, (CCoord + 1) * mapChunkSize);
-        float3 cDist = math.abs(cPt - GCoord) / mapChunkSize;
-
-        //Plan Structures
+    private void SetupChunk(){
+        RequestQueue.Enqueue(new GenTask{
+            task = () => GetSurface(), 
+            id = (int)priorities.planning
+        });
         RequestQueue.Enqueue(new GenTask{
             task = () => PlanStructures(), 
             id = (int)priorities.structure,
         });
     }
-    
-    public void ValidateChunk(){
-        float closestDist = ChunkDist3D(viewerPosition);
-        if(closestDist >= detailLevels[^1].chunkDistThresh) {
-            RecreateChunk();
-            closestDist = ChunkDist3D(viewerPosition);
-        }
-        if(closestDist >= detailLevels[^1].chunkDistThresh) {
-            Debug.Log("Crash");
-            return;
-        }
 
-        int mapLoD = 0;
-        int meshLoD = 0;
-        for (int i = 0; i < detailLevels.Count; i++){
-            if ( closestDist >= detailLevels[i].chunkDistThresh) mapLoD = i + 1;
-            if ( closestDist + 1 >= detailLevels[i].chunkDistThresh) meshLoD = i + 1;
-            else break;
-        }
-
-        if(mapLoD != this.mapLoD){
-            status.CreateMap = true;
-            status.ShrinkMap = mapLoD > this.mapLoD;
-            this.mapLoD = mapLoD;
-        }
-
-        if(meshLoD != this.meshLoD && meshLoD < detailLevels.Count){
+    public void VerifyChunk(){
+        //These two functions are self-verifying, so they will only execute if necessary
+        OctreeTerrain.SubdivideLeaf(index);
+        OctreeTerrain.MergeSiblings(index);
+        if(GetMeshSkip() != meshSkipInc){
             status.UpdateMesh = true;
-            status.CanUpdateMesh = false;
-            this.meshLoD = meshLoD;
-        };
+            meshSkipInc = GetMeshSkip();
+        }
     }
 
-    public void Update()
+    public void OnChunkCreated(AsyncMeshReadback.SharedMeshInfo meshInfo)
+    {
+        meshFilter.sharedMesh = meshInfo.GenerateMesh(UnityEngine.Rendering.IndexFormat.UInt32);;
+        meshInfo.Release();
+    }
+
+    public void DestroyChunk()
+    {
+        if(!active) return;
+        active = false;
+
+        ReleaseChunk();
+#if UNITY_EDITOR
+       GameObject.DestroyImmediate(meshObject);
+#else
+        GameObject.Destroy(meshObject);
+#endif
+    }
+
+    public void ReflectChunk(){
+        if(!active) return; //Can't reflect a chunk that hasn't been read yet
+        status.SetMap = true;
+        status.UpdateMesh = true;
+    }
+
+    public void ClearFilter(){ meshFilter.sharedMesh = null; }
+    public virtual void Update(){}
+    public virtual void GetSurface(){}
+    public virtual void PlanStructures(Action callback = null){}
+
+    public void ReleaseChunk(){
+        Generator.GeoShaders?.ReleaseGeometry(); //Release geoShader Geometry
+        Generator.MeshReadback?.ReleaseAllGeometry(); //Release base geometry on GPU
+        Generator.StructCreator?.ReleaseStructure(); //Release structure data
+        if(this.surfAddress != 0) GenerationPreset.memoryHandle.ReleaseMemory(surfAddress); //Release surface data
+    }
+}
+
+//depth = 0
+public class RealChunk : TerrainChunk{
+    public RealChunk(Transform parent, int3 origin, int size, uint octreeIndex) : base(parent, origin, size, octreeIndex){}
+    public override void Update()
     {
         if(status.CreateMap){
             //Readmap data starts a CPU background thread to read data and re-synchronizes by adding to the queue
             //Therefore we need to call it directly to maintain it's on the same call-cycle as the rest of generation
             status.UpdateMap = false;
-            ReadMapData(mapLoD); 
-        }
-        else if (status.ShrinkMap){
-            status.UpdateMap = false;
-            RequestQueue.Enqueue(new GenTask{ 
-                task = () => SimplifyMap(mapLoD),
-                id =(int)priorities.generation,
-            });
+            ReadMapData(); 
         } else if(status.SetMap){
             status.UpdateMap = false;
             RequestQueue.Enqueue(new GenTask{ 
@@ -184,69 +187,51 @@ public class TerrainChunk
                 id = (int)priorities.propogation,
             });
         }
-        if(status.CanUpdateMesh && meshLoD < detailLevels.Count){
+        if(status.CanUpdateMesh){
             status.CanUpdateMesh = false;
             RequestQueue.Enqueue(new GenTask{
-                task = () => {CreateMesh(meshLoD, OnChunkCreated);}, 
+                task = () => {CreateMesh(OnChunkCreated);}, 
                 id = (int)priorities.mesh
             });
         }
     }
-
-
-    private void OnChunkCreated(AsyncMeshReadback.SharedMeshInfo meshInfo)
+    public override void GetSurface()
     {
-        meshFilter.sharedMesh = meshInfo.GenerateMesh(UnityEngine.Rendering.IndexFormat.UInt32);;
-        meshInfo.Release();
+        SurfaceCreator.SampleSurfaceMaps(origin.xz, mapChunkSize, mapSkipInc);
+        this.surfAddress = SurfaceCreator.StoreSurfaceMap(mapChunkSize);
     }
 
-    public void DestroyChunk()
-    {
-        ReleaseChunk();
-#if UNITY_EDITOR
-       GameObject.DestroyImmediate(meshObject);
-#else
-        GameObject.Destroy(meshObject);
-#endif
-    }
-
-    public void ReflectChunk(){
-        if(mapLoD != 0) return; //Can't reflect a chunk that hasn't been read yet
-        status.SetMap = true;
-        status.UpdateMesh = true;
-    }
-
-    private void ClearFilter(){ meshFilter.sharedMesh = null; }
-    
-    public void PlanStructures(Action callback = null){
+    public override void PlanStructures(Action callback = null){
         Generator.StructCreator.PlanStructuresGPU(CCoord, origin, mapChunkSize, IsoLevel);
         callback?.Invoke();
     }
 
-    void CopyMapToCPU(){
-        uint entityAddress = EntityManager.PlanEntities(surfaceMap.baseMap.GetMap(), CCoord, mapChunkSize);
+    public void CopyMapToCPU(){
+        uint entityAddress = EntityManager.PlanEntities(surfAddress, CCoord, mapChunkSize);
         EntityManager.BeginEntityReadback(entityAddress, CCoord);
         int3 CCoord_Captured = CCoord;
         CPUDensityManager.AllocateChunk(this, CCoord, (bool isComplete) => CPUDensityManager.BeginMapReadback(CCoord_Captured));
     }
 
-    public void ReadMapData(int LoD, Action callback = null){
-        void SetChunkData(int LOD, int offset, CPUDensityManager.MapData[] mapData, Action callback = null){
-            Generator.MeshCreator.SetMapInfo(LOD, mapChunkSize, offset, mapData);
-            GPUDensityManager.SubscribeChunk(CCoord, LOD, UtilityBuffers.TransferBuffer, true);
-            if(LOD == 0) CopyMapToCPU();
-        }
+    public void ReadMapData(Action callback = null){
+        void SetChunkData(int offset, CPUDensityManager.MapData[] mapData, Action callback = null){
+            Generator.MeshCreator.SetMapInfo(mapChunkSize, offset, mapData);
+            GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.TransferBuffer);
+            CopyMapToCPU();
+        }//
 
-        void GenerateMap(int LOD, Action callback = null)
+        void GenerateMap(Action callback = null)
         {
-            Generator.MeshCreator.GenerateBaseChunk(surfaceMap.baseMap.GetMap(), origin, LOD, mapChunkSize, IsoLevel);
-            Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize, LOD, IsoLevel);
-            GPUDensityManager.SubscribeChunk(CCoord, LOD, UtilityBuffers.GenerationBuffer);
-            if(LOD == 0) CopyMapToCPU();
+            DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
+            Generator.MeshCreator.GenerateBaseChunk(origin, surfAddress, mapChunkSize, mapSkipInc, IsoLevel);
+            Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel);
+            Generator.MeshCreator.CompressMap(mapChunkSize);
+            GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.GenerationBuffer, DensityGenerator.bufferOffsets.mapStart);
+            CopyMapToCPU();
         }
 
         //This code will be called on a background thread
-        ChunkStorageManager.ReadChunkBin(CCoord, LoD, (bool isComplete, CPUDensityManager.MapData[] chunk) => 
+        ChunkStorageManager.ReadChunkBin(CCoord, (bool isComplete, CPUDensityManager.MapData[] chunk) => 
             RequestQueue.Enqueue(new GenTask{ //REMINDER: This queue should be locked
                 task = () => OnReadComplete(isComplete, chunk),
                 id = (int)priorities.generation,
@@ -255,31 +240,27 @@ public class TerrainChunk
 
         //This code will run on main thread
         void OnReadComplete(bool isComplete, CPUDensityManager.MapData[] chunk){
-            if(!isComplete) GenerateMap(LoD, callback);
-            else SetChunkData(LoD, 0, chunk, callback);
+            if(!isComplete) GenerateMap(callback);
+            else SetChunkData(0, chunk, callback);
             callback?.Invoke();
         }
     }
 
-    public void SimplifyMap(int LoD, Action callback = null){
-        GPUDensityManager.SimplifyChunk(CCoord, LoD);
-        callback?.Invoke();
-    }
-
-    public void CreateMesh(int LoD, Action<AsyncMeshReadback.SharedMeshInfo> UpdateCallback = null){
-        Generator.MeshCreator.GenerateMapData(CCoord, IsoLevel, LoD, mapChunkSize);
+    public void CreateMesh( Action<AsyncMeshReadback.SharedMeshInfo> UpdateCallback = null){
+        Generator.MeshCreator.GenerateMapData(CCoord, IsoLevel, meshSkipInc, mapChunkSize);
         ClearFilter();
-
+        
         DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
         Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets);
         Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, bufferOffsets.dictStart, (int)GeneratorInfo.ReadbackMaterial.terrain);
         Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, bufferOffsets.dictStart, (int)GeneratorInfo.ReadbackMaterial.water);
-        Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
+        /*Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
 
-        if (detailLevels[LoD].useForGeoShaders)
+        if (depth >= rSettings.MaxGeoShaderDepth)
             Generator.GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)GeneratorInfo.ReadbackMaterial.terrain]);
         else
-            Generator.GeoShaders.ReleaseGeometry();
+            Generator.GeoShaders.ReleaseGeometry();*/
+        UpdateCallback?.Invoke(null);
     }
 
     public void SetChunkData(Action callback = null){
@@ -287,15 +268,96 @@ public class TerrainChunk
         int offset = CPUDensityManager.HashCoord(CCoord) * numPoints;
         NativeArray<CPUDensityManager.MapData> mapData = CPUDensityManager.SectionedMemory;
 
-        Generator.MeshCreator.SetMapInfo(0, mapChunkSize, offset, ref mapData);
-        GPUDensityManager.SubscribeChunk(CCoord, 0, UtilityBuffers.TransferBuffer, true);
+        Generator.MeshCreator.SetMapInfo(mapChunkSize, offset, ref mapData);
+        GPUDensityManager.RegisterChunkReal(CCoord,  depth, UtilityBuffers.TransferBuffer);
         callback?.Invoke();
     }
 
-    public void ReleaseChunk(){
-        Generator.GeoShaders?.ReleaseGeometry(); //Release geoShader Geometry
-        Generator.MeshReadback?.ReleaseAllGeometry(); //Release base geometry on GPU
-        Generator.StructCreator?.ReleaseStructure(); //Release structure data
+    public void SimplifyMap(int skipInc, Action callback = null){
+        GPUDensityManager.SimplifyChunk(CCoord, skipInc);
+        callback?.Invoke();
+    }
+}
+
+//depth >= 1
+public class VisualChunk : TerrainChunk{
+    private int3 sOrigin;
+    private int sChunkSize; 
+    public VisualChunk(Transform parent, int3 origin, int size, uint octreeIndex) : base(parent, origin, size, octreeIndex){
+        sOrigin = origin - mapSkipInc;
+        sChunkSize = mapChunkSize + 3;
+    }
+
+    public override void Update()
+    {
+        if(status.CreateMap){
+            //Readmap data starts a CPU background thread to read data and re-synchronizes by adding to the queue
+            //Therefore we need to call it directly to maintain it's on the same call-cycle as the rest of generation
+            status.UpdateMap = false;
+            RequestQueue.Enqueue(new GenTask{
+                task = () => {ReadMapData(OnChunkCreated);}, 
+                id = (int)priorities.generation
+            });
+        } 
+        //Set chunk data will only be used if info is modified, which 
+        //it shouldn't be for visual chunks
+        
+        //Visual chunks cannot independently update their mesh because
+        //their map data may not be cached, so it must be done immediately
+    }
+    
+    public override void GetSurface()
+    {
+        SurfaceCreator.SampleSurfaceMaps(sOrigin.xz, sChunkSize, mapSkipInc);
+        this.surfAddress = SurfaceCreator.StoreSurfaceMap(sChunkSize);
+    }
+    public override void PlanStructures(Action callback = null){
+        //Implement this later
+    }
+    
+    public void ReadMapData(Action<AsyncMeshReadback.SharedMeshInfo> callback = null){
+        void SetChunkData(int offset, CPUDensityManager.MapData[] mapData, Action<AsyncMeshReadback.SharedMeshInfo> callback){
+            Generator.MeshCreator.SetMapInfo(sChunkSize, offset, mapData);
+        }
+
+        void GenerateMap(Action<AsyncMeshReadback.SharedMeshInfo> callback)
+        {
+            Generator.MeshCreator.GenerateBaseChunk(sOrigin, surfAddress, sChunkSize, mapSkipInc, IsoLevel);
+            //Generator.StructCreator.GenerateStrucutresGPU(sChunkSize, mapSkipInc, IsoLevel);
+            Generator.MeshCreator.CompressMap(sChunkSize);
+            GPUDensityManager.RegisterChunkVisual(CCoord, depth, UtilityBuffers.GenerationBuffer, DensityGenerator.bufferOffsets.mapStart);
+            //CreateMeshImmediate(callback);
+        }
+
+        //This code will be called on a background thread
+        ChunkStorageManager.ReadChunkBin(CCoord, (bool isComplete, CPUDensityManager.MapData[] chunk) => 
+            RequestQueue.Enqueue(new GenTask{  
+                task = () => OnReadComplete(isComplete, chunk),
+                id = (int)priorities.generation,
+            })
+        );
+
+        //This code will run on main thread
+        void OnReadComplete(bool isComplete, CPUDensityManager.MapData[] chunk){
+            //if(isComplete) SetChunkData(0, chunk, callback);
+            GenerateMap(callback);
+        }
+    }
+
+    private void CreateMeshImmediate(Action<AsyncMeshReadback.SharedMeshInfo> UpdateCallback = null){
+        Generator.MeshCreator.GenerateMapDataInPlace(IsoLevel, meshSkipInc, mapChunkSize);
+        ClearFilter();
+
+        DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
+        Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets);
+        Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, bufferOffsets.dictStart, (int)GeneratorInfo.ReadbackMaterial.terrain);
+        Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, bufferOffsets.dictStart, (int)GeneratorInfo.ReadbackMaterial.water);
+        /*Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
+
+        if (depth >= rSettings.MaxGeoShaderDepth)
+            Generator.GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)GeneratorInfo.ReadbackMaterial.terrain]);
+        else
+            Generator.GeoShaders.ReleaseGeometry();*/
     }
 }
 

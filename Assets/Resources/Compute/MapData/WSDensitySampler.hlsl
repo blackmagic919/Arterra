@@ -34,13 +34,17 @@ OpticalInfo SampleMapData(float3 samplePointWS){
     OpticalInfo mapData = (OpticalInfo)0;
     
     if(chunkHandle.x == 0) return mapData; else{
-    uint chunkSize = mapChunkSize/chunkHandle.y;
-    Influences blendInfo = GetBlendInfo(WSToMS(samplePointWS) / chunkHandle.y); //Blend pos using grid-fixed cube
+    float3 MSPoint = WSToMS(samplePointWS) / (chunkHandle.y & 0xFF);
+    MSPoint.x += (chunkHandle.y >> 24) & 0xFF;
+    MSPoint.y += (chunkHandle.y >> 16) & 0xFF;
+    MSPoint.z += (chunkHandle.y >> 8) & 0xFF;
+
+    Influences blendInfo = GetBlendInfo(MSPoint); //Blend pos using grid-fixed cube
     [unroll]for(uint i = 0; i < 8; i++){
         //unfortunately we have to clamp here
         //if you store duplice edge data in the map you don't have to do this
-        uint3 MSCoord = clamp(blendInfo.origin + uint3(i & 1u, (i & 2u) >> 1, (i & 4u) >> 2), 0, chunkSize - 1); 
-        uint pointAddress = chunkHandle.x + indexFromCoordManual(MSCoord, chunkSize) * POINT_STRIDE_4BYTE;
+        uint3 MSCoord = clamp(blendInfo.origin + uint3(i & 1u, (i & 2u) >> 1, (i & 4u) >> 2), 0, mapChunkSize - 1); 
+        uint pointAddress = chunkHandle.x + indexFromCoordManual(MSCoord, mapChunkSize) * POINT_STRIDE_4BYTE;
 
         uint info = _ChunkInfoBuffer[pointAddress];
         int material = info >> 16 & 0x7FFF;
@@ -57,13 +61,17 @@ OpticalDepth SampleOpticalDepth(float3 samplePointWS){
     OpticalDepth depth = (OpticalDepth)0;
     
     if(chunkHandle.x == 0) return depth; else{
-    uint chunkSize = mapChunkSize/chunkHandle.y;
-    Influences blendInfo = GetBlendInfo(WSToMS(samplePointWS) / chunkHandle.y); //Blend pos using grid-fixed cube
+    float3 MSPoint = WSToMS(samplePointWS) / (chunkHandle.y & 0xFF);
+    MSPoint.x += (chunkHandle.y >> 24) & 0xFF;
+    MSPoint.y += (chunkHandle.y >> 16) & 0xFF;
+    MSPoint.z += (chunkHandle.y >> 8) & 0xFF;
+
+    Influences blendInfo = GetBlendInfo(MSPoint); //Blend pos using grid-fixed cube
     [unroll]for(uint i = 0; i < 8; i++){
         //unfortunately we have to clamp here
         //if you store duplice edge data in the map you don't have to do this
-        uint3 MSCoord = clamp(blendInfo.origin + uint3(i & 1u, (i & 2u) >> 1, (i & 4u) >> 2), 0, chunkSize - 1); 
-        uint pointAddress = chunkHandle.x + indexFromCoordManual(MSCoord, chunkSize) * POINT_STRIDE_4BYTE;
+        uint3 MSCoord = clamp(blendInfo.origin + uint3(i & 1u, (i & 2u) >> 1, (i & 4u) >> 2), 0, mapChunkSize - 1); 
+        uint pointAddress = chunkHandle.x + indexFromCoordManual(MSCoord, mapChunkSize) * POINT_STRIDE_4BYTE;
 
         uint info = _ChunkInfoBuffer[pointAddress];
         int material = info >> 16 & 0x7FFF;
@@ -73,15 +81,19 @@ OpticalDepth SampleOpticalDepth(float3 samplePointWS){
 
     return depth;
 }}
-
+//
 OpticalDepth SampleOpticalDepthRaw(float3 samplePointWS){
     uint2 chunkHandle = _ChunkAddressDict[HashCoord(WSToCS(samplePointWS))];
     OpticalDepth depth = (OpticalDepth)0;
     
-    if(chunkHandle.x == 0) return depth; else{
-    uint chunkSize = mapChunkSize/chunkHandle.y;
-    uint3 MSCoord = clamp(round(WSToMS(samplePointWS) / chunkHandle.y), 0, chunkSize - 1); 
-    uint pointAddress = chunkHandle.x + indexFromCoordManual(MSCoord, chunkSize) * POINT_STRIDE_4BYTE;
+    if(chunkHandle.x == 0) return depth; 
+    float3 MSPoint = WSToMS(samplePointWS) / (chunkHandle.y & 0xFF);
+    MSPoint.x += (chunkHandle.y >> 24) & 0xFF;
+    MSPoint.y += (chunkHandle.y >> 16) & 0xFF;
+    MSPoint.z += (chunkHandle.y >> 8) & 0xFF;
+
+    uint3 MSCoord = clamp(round(WSToMS(MSPoint)), 0, mapChunkSize - 1); 
+    uint pointAddress = chunkHandle.x + indexFromCoordManual(MSCoord, mapChunkSize) * POINT_STRIDE_4BYTE;
 
     uint info = _ChunkInfoBuffer[pointAddress];
     int material = info >> 16 & 0x7FFF;
@@ -89,4 +101,4 @@ OpticalDepth SampleOpticalDepthRaw(float3 samplePointWS){
     depth.scatterCoeffs = _MatAtmosphericData[material].scatterCoeffs;
 
     return depth;
-}}
+}

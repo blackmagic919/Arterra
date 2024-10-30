@@ -1,16 +1,11 @@
 #include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 
-#ifndef MAP_SAMPLER
-#define MAP_SAMPLER
 StructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
 int3 CCoord;
 uint meshSkipInc;
 int numCubesPerAxis;
-
-const static int POINT_STRIDE_4BYTE = 1;
-#endif
 
 //Water is 1, terrain is 0
 uint ReadMapData(int3 coord){
@@ -19,10 +14,13 @@ uint ReadMapData(int3 coord){
     int3 sCCoord = dCC + CCoord;
 
     uint2 chunkHandle = _AddressDict[HashCoord(sCCoord)];
-    if(chunkHandle.x == 0 || chunkHandle.y > meshSkipInc) return 0; 
+    if(chunkHandle.x == 0) return 0; 
     else{
-    uint chunkResize = meshSkipInc / (float)chunkHandle.y;
-    uint address = indexFromCoordManual(coord * chunkResize, numCubesPerAxis * chunkResize) * POINT_STRIDE_4BYTE + chunkHandle.x;
+    coord = (coord * meshSkipInc / (chunkHandle.y & 0xFF));
+    coord.x += (chunkHandle.y >> 24) & 0xFF;
+    coord.y += (chunkHandle.y >> 16) & 0xFF;
+    coord.z += (chunkHandle.y >> 8) & 0xFF;
+    uint address = indexFromCoordManual(coord, numCubesPerAxis) + chunkHandle.x;
 
     return _MemoryBuffer[address];
     }

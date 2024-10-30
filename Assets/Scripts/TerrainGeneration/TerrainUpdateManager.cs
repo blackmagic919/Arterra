@@ -22,7 +22,7 @@ public static class TerrainUpdateManager
     public static void Initialize(){
         RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         int numPointsChunk = rSettings.mapChunkSize;
-        int numChunksAxis = 2 * rSettings.detailLevels.value[0].chunkDistThresh;
+        int numChunksAxis = Octree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
         numPointsAxis = numChunksAxis * numPointsChunk;
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
         
@@ -46,7 +46,7 @@ public static class TerrainUpdateManager
 
         if(!Executor.active){
             Executor = new TerrainUpdate();
-            EndlessTerrain.MainFixedUpdateTasks.Enqueue(Executor);
+            OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
         };
     }
 

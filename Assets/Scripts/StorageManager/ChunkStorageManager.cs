@@ -4,7 +4,6 @@ using System.IO;
 using Unity.Mathematics;
 using Unity.Collections;
 using UnityEngine;
-using static EndlessTerrain;
 using System.Threading.Tasks;
 using System.Text;
 using System;
@@ -33,11 +32,9 @@ public static class ChunkStorageManager
 
     public static string filePath;
     private const string fileExtension = ".bin";
-    private static int numLODs;
     private static int maxChunkSize;
 
     public static void Initialize(){
-        numLODs = meshSkipTable.Length;
         maxChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         filePath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/MapData/";
     }
@@ -101,7 +98,7 @@ public static class ChunkStorageManager
         }
     }
 
-    public static void ReadChunkBin(int3 CCoord, int LoD, OnReadComplete ReadCallback = null){
+    public static void ReadChunkBin(int3 CCoord, OnReadComplete ReadCallback = null){
         string fileAdd = filePath + "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
         if(!File.Exists(fileAdd))
         {
@@ -109,10 +106,10 @@ public static class ChunkStorageManager
             return;
         }
 
-        Task.Run(() => ReadChunkBinAsync(fileAdd, LoD, ReadCallback)); //fire and forget
+        Task.Run(() => ReadChunkBinAsync(fileAdd, ReadCallback)); //fire and forget
     }
 
-    public static async void ReadChunkBinAsync(string fileAdd, int LoD, OnReadComplete ReadCallback = null)
+    public static async void ReadChunkBinAsync(string fileAdd, OnReadComplete ReadCallback = null)
     {
         CPUDensityManager.MapData[] map;
         //Caller has to copy for persistence
@@ -120,7 +117,7 @@ public static class ChunkStorageManager
         {
             uint size = ReadChunkHeader(fs, out ChunkHeader header);
             fs.Seek(size, SeekOrigin.Begin);
-            map = await ReadChunkMap(fs, LoD);
+            map = await ReadChunkMap(fs);
             DeserializeMaterials(ref map, ref header);
         }
         ReadCallback?.Invoke(true, map);
@@ -206,54 +203,36 @@ public static class ChunkStorageManager
     //IT IS CALLERS RESPONSIBILITY TO DISPOSE MEMORY STREAM
     private static MemoryStream WriteChunkMaps(NativeArray<CPUDensityManager.MapData> chunk, int offset){
         MemoryStream ms = new MemoryStream();
-        uint headerSize = (uint)(numLODs + 1) * 4;
 
-        byte[] fBuffer = new byte[headerSize]; uint fBPos = 0;
-        ms.Write(fBuffer, 0, fBuffer.Length);
-        WriteUInt32(fBuffer, ref fBPos, 0);
-        for(int LoD = numLODs-1; LoD >= 0; LoD--)
-        {
-            int skipInc = meshSkipTable[LoD];
-            int numPointsAxis = maxChunkSize / skipInc + 1;
-            int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 
-            var mBuffer = new byte[numPoints * 4]; uint mBPos = 0;
-            for(int x = 0; x < maxChunkSize; x += skipInc){
-                for(int y = 0; y < maxChunkSize; y += skipInc){
-                    for(int z = 0; z < maxChunkSize; z += skipInc){
-                        int readPos = CustomUtility.indexFromCoord(x, y, z, maxChunkSize);
-                        CPUDensityManager.MapData mapPt = chunk[offset + readPos];
+        int numPointsAxis = maxChunkSize;
+        int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 
-                        //if(!mapPt.isDirty) mapPt.data = 0;
-                        WriteUInt32(mBuffer, ref mBPos, mapPt.data);
-                    }
+        var mBuffer = new byte[numPoints * 4]; uint mBPos = 0;
+        for(int x = 0; x < maxChunkSize; x++){
+            for(int y = 0; y < maxChunkSize; y++){
+                for(int z = 0; z < maxChunkSize; z++){
+                    int readPos = CustomUtility.indexFromCoord(x, y, z, maxChunkSize);
+                    CPUDensityManager.MapData mapPt = chunk[offset + readPos];
+
+                    //if(!mapPt.isDirty) mapPt.data = 0;
+                    WriteUInt32(mBuffer, ref mBPos, mapPt.data);
                 }
             }
-
-            //Deals with memory so it's better to not hog all the threads
-            using(GZipStream zs = new GZipStream(ms, CompressionMode.Compress, true)){ 
-                zs.Write(mBuffer); 
-                zs.Flush(); 
-            }
-            WriteUInt32(fBuffer, ref fBPos, (uint)ms.Length - headerSize);
         }
-        ms.Seek(0, SeekOrigin.Begin);
-        ms.Write(fBuffer);
+        //Deals with memory so it's better to not hog all the threads
+        using(GZipStream zs = new GZipStream(ms, CompressionMode.Compress, true)){ 
+            zs.Write(mBuffer); 
+            zs.Flush(); 
+        }
         ms.Flush();
         return ms;
     }
 
-    private async static Task<CPUDensityManager.MapData[]> ReadChunkMap(FileStream fs, int LoD){
-        int skipInc = meshSkipTable[LoD];
-        int numPointsAxis = maxChunkSize / skipInc;
+    private async static Task<CPUDensityManager.MapData[]> ReadChunkMap(FileStream fs){
+        int numPointsAxis = maxChunkSize;
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
         CPUDensityManager.MapData[] outStream = new CPUDensityManager.MapData[numPoints];
-
-        uint headerSize = (uint)(numLODs + 1) * 4;
-        byte[] readOffsets = new byte[headerSize];
-        fs.Read(readOffsets);
-        uint readStart = ReadUInt32(readOffsets, (uint)(numLODs - (LoD + 1)) * 4);
-        fs.Seek(readStart, SeekOrigin.Current);
     
         using(GZipStream zs = new GZipStream(fs, CompressionMode.Decompress, true))
         {

@@ -4,7 +4,7 @@ using System.Reflection;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using static EndlessTerrain;
+using static OctreeTerrain;
 
 public class LoadingHandler : UpdateTask
 {

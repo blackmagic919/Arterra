@@ -1,12 +1,11 @@
 using System;
-using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using static EndlessTerrain;
 using System.Linq;
 using Unity.Collections;
 using Utils;
+using static OctreeTerrain;
 
 //Purpose: Render geometry directly from GPU until it is readback async.
 
