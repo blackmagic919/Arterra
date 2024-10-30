@@ -91,7 +91,7 @@ public static class DensityGenerator
         baseGenCompute.SetFloat("chunkSize", chunkSize);
         baseGenCompute.SetFloat("offsetY", offset.y);
         
-        SetSampleData(baseGenCompute, offset, chunkSize, meshSkipInc);
+        SetSampleData(baseGenCompute, offset, meshSkipInc);
 
         baseGenCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);

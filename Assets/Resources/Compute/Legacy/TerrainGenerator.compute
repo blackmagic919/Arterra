@@ -16,6 +16,7 @@ struct CaveGen{
 StructuredBuffer<CaveGen> _BiomeCaveData;
 uint coarseSampler;
 uint fineSampler;
+uint chunkSize;
 
 float offsetY;
 float IsoLevel;

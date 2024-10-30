@@ -50,6 +50,7 @@ float PVHeight;
 float squashHeight;
 
 float heightOffset;
+uint chunkSize;
 
 RWStructuredBuffer<structInfo> structs;
 StructuredBuffer<uint> numPoints;

@@ -38,7 +38,7 @@ public static class TerrainGenerator
 
         Vector3 offset3D = new Vector3(offset.x, 0, offset.y);
         surfaceDataSampler.SetInt("numPointsPerAxis", numPointsAxes);
-        SetSampleData(surfaceDataSampler, offset3D, chunkSize, meshSkipInc);
+        SetSampleData(surfaceDataSampler, offset3D, meshSkipInc);
 
         surfaceDataSampler.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);

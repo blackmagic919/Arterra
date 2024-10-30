@@ -155,10 +155,9 @@ public static class UtilityBuffers
     }
 
 
-    public static void SetSampleData(ComputeShader noiseGen, Vector3 offset, int chunkSize, int meshSkipInc){
+    public static void SetSampleData(ComputeShader noiseGen, Vector3 offset, int meshSkipInc){
         noiseGen.SetFloats("sOffset", new float[]{offset.x, offset.y, offset.z});
         noiseGen.SetInt("meshSkipInc", meshSkipInc);
-        noiseGen.SetInt("chunkSize", chunkSize);
     }
 }
 

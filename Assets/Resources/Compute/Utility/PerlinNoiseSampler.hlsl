@@ -7,7 +7,6 @@
 static const float _SPREAD_FACTOR = 0.5f;
 
 //SamplerData
-uint chunkSize;
 uint meshSkipInc;
 float3 sOffset; //Short for sample offset
 

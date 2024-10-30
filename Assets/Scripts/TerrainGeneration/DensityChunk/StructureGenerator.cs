@@ -134,7 +134,7 @@ public static class StructureGenerator
 
         StructureIdentifier.SetFloat("IsoLevel", IsoLevel);
         StructureIdentifier.SetInts("CCoord", new int[] { chunkCoord.x, chunkCoord.y, chunkCoord.z });
-        SetSampleData(StructureIdentifier, offset, chunkSize, 1);
+        SetSampleData(StructureIdentifier, offset, 1);
 
         int kernel = StructureIdentifier.FindKernel("Identify");
         StructureIdentifier.DispatchIndirect(kernel, args);//byte offset
