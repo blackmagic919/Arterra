@@ -12,7 +12,6 @@ uint bOffset;
 //x,y,z -> read offset, w -> scale
 
 uint chunkInc;
-uint skipInc;
 
 [numthreads(numThreads,numThreads,numThreads)]
 void CSMain (uint3 id : SV_DispatchThreadID)
@@ -22,13 +21,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     if(id.x >= dimension.x || id.y >= dimension.y || id.z >= dimension.z) 
         return;
     
-    uint address = _AddressDict[addressIndex].y;
-    uint offset = (bOffset & 0xFFFFFF00) + 
-                  ((((id.x * chunkInc) & 0xFF) << 24) | 
+    uint offset = bOffset + ((((id.x * chunkInc) & 0xFF) << 24) | 
                   (((id.y * chunkInc) & 0xFF) << 16) | 
-                  (((id.z * chunkInc) & 0xFF) << 8) | 
-                  (skipInc & 0xFF));
+                  (((id.z * chunkInc) & 0xFF) << 8));
 
-    int3 CCoord = oCoord + id;
-    ChunkDict[HashCoord(CCoord)] = uint2(address, offset);
+    int3 CCoord = oCoord + int3(id.x, id.y, id.z);
+    ChunkDict[HashCoord(CCoord)] = uint2(_AddressDict[addressIndex].y, offset);
 }

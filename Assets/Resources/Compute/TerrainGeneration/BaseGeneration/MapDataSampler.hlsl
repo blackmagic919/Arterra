@@ -20,7 +20,7 @@ uint ReadMapData(int3 coord){
     coord.x += (chunkHandle.y >> 24) & 0xFF;
     coord.y += (chunkHandle.y >> 16) & 0xFF;
     coord.z += (chunkHandle.y >> 8) & 0xFF;
-    uint address = indexFromCoordManual(coord, numCubesPerAxis) + chunkHandle.x;
+    uint address = indexFromCoordManual(coord, numCubesPerAxis * meshSkipInc) + chunkHandle.x;
 
     return _MemoryBuffer[address];
     }

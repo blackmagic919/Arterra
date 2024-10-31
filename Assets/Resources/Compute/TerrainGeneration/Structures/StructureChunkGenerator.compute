@@ -41,6 +41,7 @@ struct mapData{
 };
 
 RWStructuredBuffer<mapData> chunkData;
+uint bSTART_map;
 
 StructuredBuffer<uint> numPoints;
 
@@ -121,7 +122,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         uint3 chunkCoord = chunkOriginLoD + uint3(x,y,z);
 
         //structCoord = min(structCoord, sizes - 1);
-        uint chunkIndex = indexFromCoordManual(chunkCoord.x, chunkCoord.y, chunkCoord.z, numPointsPerAxis);
+        uint chunkIndex = indexFromCoordManual(chunkCoord.x, chunkCoord.y, chunkCoord.z, numPointsPerAxis) + bSTART_map;
         uint structIndex = indexFromCoordIrregular(structCoord.x, structCoord.y, structCoord.z, sizes.y, sizes.z) + indexOffset;
 
         //This section will have racing issues, but it's negligable

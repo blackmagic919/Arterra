@@ -152,7 +152,7 @@ void Generate (uint3 id : SV_DispatchThreadID)
     float coarseMatNoise = GetNoise(id, coarseMatSampler);
     float fineMatNoise = GetNoise(id, fineMatSampler);
 
-    float actualHeight = id.y + offsetY;
+    float actualHeight = id.y * skipInc + offsetY;
     float groundHeight = actualHeight - data.terrain;
 
     //Get Base Density

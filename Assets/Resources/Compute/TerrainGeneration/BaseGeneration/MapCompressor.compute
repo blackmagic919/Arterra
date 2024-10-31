@@ -9,7 +9,7 @@ struct mapData{
 };
 
 RWStructuredBuffer<uint> chunkData;
-RWStructuredBuffer<mapData> rawData;
+StructuredBuffer<mapData> rawData;
 uint bSTART_raw;
 uint bSTART_chunk;
 uint numPoints;

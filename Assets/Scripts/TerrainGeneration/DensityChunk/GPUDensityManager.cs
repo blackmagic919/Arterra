@@ -70,7 +70,7 @@ public static class GPUDensityManager
         //Request Memory Address
         int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
         uint address = memorySpace.AllocateMemoryDirect(numPoints, 1);
-        Transcribe(address);
+        Transcribe.Invoke(address);
 
         uint handleAddress = AllocateHandle();
         uint count = (uint)(dim.x * dim.y * dim.z);
@@ -155,8 +155,7 @@ public static class GPUDensityManager
 
         int skipInc = 1 << depth;
         int chunkInc = mapChunkSize / skipInc;
-        int offset = ((offC.x * chunkInc & 0xFF) << 24) | ((offC.y * chunkInc & 0xFF) << 16) | ((offC.z * chunkInc & 0xFF) << 8);
-        dictReplaceKey.SetInt("skipInc", skipInc);
+        int offset = ((offC.x * chunkInc & 0xFF) << 24) | ((offC.y * chunkInc & 0xFF) << 16) | ((offC.z * chunkInc & 0xFF) << 8) | (skipInc & 0xFF);
         dictReplaceKey.SetInt("chunkInc", chunkInc);
         dictReplaceKey.SetInt("bOffset", offset);
 

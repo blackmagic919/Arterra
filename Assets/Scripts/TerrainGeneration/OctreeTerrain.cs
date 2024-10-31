@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 
 public class OctreeTerrain : MonoBehaviour
 {
-    public static readonly int[] taskLoadTable = { 5, 3, 2, 3, 0 };
+    public static readonly int[] taskLoadTable = { 2, 2, 2, 3, 8, 0 };
     public static Queue<UpdateTask> MainLoopUpdateTasks;
     public static Queue<UpdateTask> MainLateUpdateTasks;
     public static Queue<UpdateTask> MainFixedUpdateTasks;
@@ -22,9 +22,7 @@ public class OctreeTerrain : MonoBehaviour
     private static int rootDim => s.Balance == 1 ? 3 : 2;
     // Start is called before the first frame update
 
-    public Transform viewer;
-    void Start()
-    {
+    private void OnEnable(){
         s = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         origin = this.transform; //This means origin in Unity's scene heiharchy
         octree = new Octree(s.MaxDepth, s.Balance, s.MinChunkRadius);
@@ -36,9 +34,9 @@ public class OctreeTerrain : MonoBehaviour
         MainFixedUpdateTasks = new Queue<UpdateTask>();
         RequestQueue = new ConcurrentQueue<GenTask>();
 
+        UtilityBuffers.Initialize();
         RegisterBuilder.Initialize();
         GenerationPreset.Initialize();
-        UtilityBuffers.Initialize();
 
         InputPoller.Initialize();
         UIOrigin.Initialize();
@@ -57,7 +55,11 @@ public class OctreeTerrain : MonoBehaviour
         DensityGenerator.PresetData();
         ShaderGenerator.PresetData();
         WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.Initialize();
-        PlayerHandler.Instance.Initialize();
+    }
+    public Transform viewer;
+    void Start()
+    {
+        UpdateViewerPos();
         ConstructAroundPoint();
     }
 
@@ -75,7 +77,7 @@ public class OctreeTerrain : MonoBehaviour
         WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.Release();
     }
 
-    /* void OnDrawGizmos(){
+     /*void OnDrawGizmos(){
         uint curChunk = chunks.Head();
         int count = 0;
         do{
@@ -83,6 +85,7 @@ public class OctreeTerrain : MonoBehaviour
             curChunk = chunks.Next(curChunk);
 
             if(chunk == null) continue;
+            if(chunk.depth != 0) continue;
             else {
                 Gizmos.color = Color.white;
                 Gizmos.DrawWireCube(((float3)chunk.origin + (float3)chunk.size/2) * s.lerpScale, (float3)chunk.size * s.lerpScale);
@@ -108,8 +111,9 @@ public class OctreeTerrain : MonoBehaviour
         }
 
         ForEachChunk((uint chunk) => chunks.nodes[chunk].Value.Update());
-        ProcessUpdateTasks(MainLoopUpdateTasks);
         StartGeneration();
+
+        ProcessUpdateTasks(MainLoopUpdateTasks);
     }
 
     private void LateUpdate(){ ProcessUpdateTasks(MainLateUpdateTasks); }
@@ -132,7 +136,9 @@ public class OctreeTerrain : MonoBehaviour
         {
             if (!RequestQueue.TryDequeue(out GenTask gen))
                 return;
-
+            if(gen.chunk == null || !gen.chunk.active) 
+                continue;
+                
             gen.task();
             FrameGPULoad += taskLoadTable[gen.id];
         }
@@ -284,9 +290,11 @@ public class OctreeTerrain : MonoBehaviour
     public struct GenTask{
         public Action task;
         public int id;
-        public GenTask(Action task, int id){
+        public TerrainChunk chunk;
+        public GenTask(Action task, int id, TerrainChunk chunk){
             this.task = task;
             this.id = id;
+            this.chunk = chunk;
         }
     }
 

@@ -83,16 +83,17 @@ public class TerrainChunk
         meshObject = new GameObject("Terrain Chunk");
         meshObject.transform.localScale = Vector3.one * rSettings.lerpScale * (1 << depth);
         meshObject.transform.parent = parent;
-        meshObject.transform.position = (float3)origin * rSettings.lerpScale;
+        meshObject.transform.position = (float3)(origin - (float3)Vector3.one * (rSettings.mapChunkSize / 2f)) * rSettings.lerpScale;
 
         boundsOS = new Bounds(Vector3.one * (rSettings.mapChunkSize / 2), Vector3.one * rSettings.mapChunkSize);
-        Generator = new GeneratorInfo(this);
-        status = new ChunkStatus{CreateMap = true, UpdateMesh = true, CanUpdateMesh = false};
 
         meshFilter = meshObject.AddComponent<MeshFilter>();
         meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshRenderer.sharedMaterials = WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.TerrainMats.ToArray();
         meshSkipInc = GetMeshSkip();
+
+        status = new ChunkStatus{CreateMap = true, UpdateMesh = true, CanUpdateMesh = false};
+        Generator = new GeneratorInfo(this);
         SetupChunk();
     }
 
@@ -106,11 +107,13 @@ public class TerrainChunk
     private void SetupChunk(){
         RequestQueue.Enqueue(new GenTask{
             task = () => GetSurface(), 
-            id = (int)priorities.planning
+            id = (int)priorities.planning,
+            chunk = this,
         });
         RequestQueue.Enqueue(new GenTask{
             task = () => PlanStructures(), 
             id = (int)priorities.structure,
+            chunk = this,
         });
     }
 
@@ -177,6 +180,7 @@ public class RealChunk : TerrainChunk{
             RequestQueue.Enqueue(new GenTask{ 
                 task = () => SetChunkData(),
                 id = (int)priorities.generation,
+                chunk = this
             });
         }
 
@@ -185,13 +189,15 @@ public class RealChunk : TerrainChunk{
             RequestQueue.Enqueue(new GenTask{ 
                 task = () => status.CanUpdateMesh = true,
                 id = (int)priorities.propogation,
+                chunk = this
             });
         }
         if(status.CanUpdateMesh){
             status.CanUpdateMesh = false;
             RequestQueue.Enqueue(new GenTask{
                 task = () => {CreateMesh(OnChunkCreated);}, 
-                id = (int)priorities.mesh
+                id = (int)priorities.mesh,
+                chunk = this
             });
         }
     }
@@ -218,7 +224,7 @@ public class RealChunk : TerrainChunk{
             Generator.MeshCreator.SetMapInfo(mapChunkSize, offset, mapData);
             GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.TransferBuffer);
             CopyMapToCPU();
-        }//
+        }
 
         void GenerateMap(Action callback = null)
         {
@@ -235,6 +241,7 @@ public class RealChunk : TerrainChunk{
             RequestQueue.Enqueue(new GenTask{ //REMINDER: This queue should be locked
                 task = () => OnReadComplete(isComplete, chunk),
                 id = (int)priorities.generation,
+                chunk = this,
             })
         );
 
@@ -251,16 +258,16 @@ public class RealChunk : TerrainChunk{
         ClearFilter();
         
         DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
+
         Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets);
         Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, bufferOffsets.dictStart, (int)GeneratorInfo.ReadbackMaterial.terrain);
         Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, bufferOffsets.dictStart, (int)GeneratorInfo.ReadbackMaterial.water);
-        /*Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
+        Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
 
-        if (depth >= rSettings.MaxGeoShaderDepth)
+        if (depth <= rSettings.MaxGeoShaderDepth)
             Generator.GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)GeneratorInfo.ReadbackMaterial.terrain]);
         else
-            Generator.GeoShaders.ReleaseGeometry();*/
-        UpdateCallback?.Invoke(null);
+            Generator.GeoShaders.ReleaseGeometry();
     }
 
     public void SetChunkData(Action callback = null){
@@ -296,7 +303,8 @@ public class VisualChunk : TerrainChunk{
             status.UpdateMap = false;
             RequestQueue.Enqueue(new GenTask{
                 task = () => {ReadMapData(OnChunkCreated);}, 
-                id = (int)priorities.generation
+                id = (int)priorities.visual,
+                chunk = this,
             });
         } 
         //Set chunk data will only be used if info is modified, which 
@@ -326,7 +334,7 @@ public class VisualChunk : TerrainChunk{
             //Generator.StructCreator.GenerateStrucutresGPU(sChunkSize, mapSkipInc, IsoLevel);
             Generator.MeshCreator.CompressMap(sChunkSize);
             GPUDensityManager.RegisterChunkVisual(CCoord, depth, UtilityBuffers.GenerationBuffer, DensityGenerator.bufferOffsets.mapStart);
-            //CreateMeshImmediate(callback);
+            CreateMeshImmediate(callback);
         }
 
         //This code will be called on a background thread
@@ -334,6 +342,7 @@ public class VisualChunk : TerrainChunk{
             RequestQueue.Enqueue(new GenTask{  
                 task = () => OnReadComplete(isComplete, chunk),
                 id = (int)priorities.generation,
+                chunk = this,
             })
         );
 
@@ -347,17 +356,17 @@ public class VisualChunk : TerrainChunk{
     private void CreateMeshImmediate(Action<AsyncMeshReadback.SharedMeshInfo> UpdateCallback = null){
         Generator.MeshCreator.GenerateMapDataInPlace(IsoLevel, meshSkipInc, mapChunkSize);
         ClearFilter();
-
+        
         DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
         Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets);
         Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, bufferOffsets.dictStart, (int)GeneratorInfo.ReadbackMaterial.terrain);
         Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, bufferOffsets.dictStart, (int)GeneratorInfo.ReadbackMaterial.water);
-        /*Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
+        Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
 
-        if (depth >= rSettings.MaxGeoShaderDepth)
+        if (depth <= rSettings.MaxGeoShaderDepth)
             Generator.GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)GeneratorInfo.ReadbackMaterial.terrain]);
         else
-            Generator.GeoShaders.ReleaseGeometry();*/
+            Generator.GeoShaders.ReleaseGeometry();
     }
 }
 

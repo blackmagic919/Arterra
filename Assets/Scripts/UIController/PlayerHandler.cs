@@ -19,10 +19,6 @@ public class PlayerHandler : MonoBehaviour
         PlayerController.ActivateCharacter();
     }
     void OnEnable(){
-        Instance = this;
-    }
-
-    public void Initialize(){
         PlayerController = this.GetComponent<RigidFPController>();
 
         info = LoadPlayerData();

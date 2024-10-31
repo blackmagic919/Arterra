@@ -531,6 +531,10 @@ PrefabInstance:
       propertyPath: movementSettings.SlopeCurveModifier.m_Curve.Array.data[1].tangentMode
       value: 34
       objectReference: {fileID: 0}
+    - target: {fileID: 34467644572550482, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}
+      propertyPath: far clip plane
+      value: 5000
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 11400004, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}
     - {fileID: 13600000, guid: c6453f8e1f814744d8b94e5a6d1f9942, type: 3}

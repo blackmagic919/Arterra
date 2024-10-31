@@ -18,6 +18,7 @@ public class LoadingHandler : UpdateTask
         "Planning Structures",
         "Combining Map Infomation",
         "Generating Terrain",
+        "Filling Hills and Clouds",
         "Facilitating Generation"
     };
 

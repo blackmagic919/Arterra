@@ -184,17 +184,18 @@ public static class DensityGenerator
             this.offsetStart = bufferStart;
             vertexCounter = bufferStart; baseTriCounter = bufferStart + 1; waterTriCounter = bufferStart + 2;
             int numOfPoints = GridSize.x * GridSize.y * GridSize.z;
-            int numOfPointsO = (GridSize.x + 3) * (GridSize.y + 3) * (GridSize.z + 3);
+            int numOfPointsDict = (GridSize.x + 1) * (GridSize.y + 1) * (GridSize.z + 1);
+            int numOfPointsOOB = (GridSize.x + 3) * (GridSize.y + 3) * (GridSize.z + 3);
             int numOfTris = (GridSize.x - 1) * (GridSize.y - 1) * (GridSize.z - 1) * 5;
             
             //This is cached map, only used for visual chunks, real chunks
             //have their maps stored in the GPUDensityManager
             mapStart = bufferStart + 3;
-            int mapEnd_W = mapStart + numOfPointsO;
+            int mapEnd_W = mapStart + numOfPointsOOB;
             rawMapStart = Mathf.CeilToInt((float)mapEnd_W / MapStride); 
 
             dictStart = mapEnd_W;
-            int dictEnd_W = dictStart + numOfPoints * TriStride;
+            int dictEnd_W = dictStart + numOfPointsDict * TriStride;
 
             vertStart = Mathf.CeilToInt((float)dictEnd_W / VertexStride);
             int vertexEnd_W = vertStart * VertexStride + (numOfPoints * 3) * VertexStride;

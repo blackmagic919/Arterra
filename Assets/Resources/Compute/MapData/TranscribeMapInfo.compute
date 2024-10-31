@@ -23,14 +23,13 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     if(_AddressDict[addressIndex].x == 0) //Invalid
         return;
 
-    if(id.x >= sizeWrAxis || id.y > sizeWrAxis || id.z > sizeWrAxis)
+    if(id.x >= sizeWrAxis || id.y >= sizeWrAxis || id.z >= sizeWrAxis)
         return;
     
     uint wAddress = id.x * sizeWrAxis * sizeWrAxis + id.y * sizeWrAxis + id.z;
-    int3 rdPos = int3(id.x, id.y, id.z);
-    rdPos += sqRdOffset;
+    int3 rdPos = int3(id.x, id.y, id.z) + sqRdOffset;
     uint readAdd = rdPos.x * sizeRdAxis * sizeRdAxis + rdPos.y * sizeRdAxis + rdPos.z;
 
-    wAddress = _AddressDict[addressIndex].y + wAddress;
+    wAddress += _AddressDict[addressIndex].y;
     _MemoryBuffer[wAddress] = chunkData[readAdd + bSTART_read];
 }
