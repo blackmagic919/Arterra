@@ -16,7 +16,7 @@ uint ReadMapData(int3 coord){
     uint2 chunkHandle = _AddressDict[HashCoord(sCCoord)];
     if(chunkHandle.x == 0) return 0; 
     else{
-    coord = (coord * meshSkipInc / (chunkHandle.y & 0xFF));
+    coord = (coord * meshSkipInc) / (chunkHandle.y & 0xFF);
     coord.x += (chunkHandle.y >> 24) & 0xFF;
     coord.y += (chunkHandle.y >> 16) & 0xFF;
     coord.z += (chunkHandle.y >> 8) & 0xFF;

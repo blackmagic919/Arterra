@@ -35,7 +35,7 @@ MonoBehaviour:
     - Air
     - Cloud
     isDirty: 0
-  AtmosphereFalloff: 0.01
+  AtmosphereFalloff: 0.005
   GroundMaterials:
     value:
     - value:
@@ -80,7 +80,7 @@ MonoBehaviour:
         genShape: 0.508
         VerticalPreference:
           lowerLimit: -400
-          upperLimit: 600
+          upperLimit: 1000
           center: 100
           multiplier: 1
           power: 2
@@ -88,13 +88,24 @@ MonoBehaviour:
     - value:
         Material: 4
         genSize: 1
-        genShape: 1
+        genShape: 0.75
         VerticalPreference:
           lowerLimit: 50
           upperLimit: 300
           center: 150
           multiplier: 1
           power: 3
+      isDirty: 0
+    - value:
+        Material: 4
+        genSize: 0.9
+        genShape: 1
+        VerticalPreference:
+          lowerLimit: 300
+          upperLimit: 600
+          center: 500
+          multiplier: 0.5
+          power: 1
       isDirty: 0
     isDirty: 0
   Structures:

@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: CloudMat
   m_EditorClassIdentifier: 
-  Name: Cloud
   texture:
     value: {fileID: 21300000, guid: 68036d40e53ca46ccb8662552a0ea939, type: 3}
     isDirty: 0
@@ -27,13 +26,13 @@ MonoBehaviour:
     GeoShaderIndex: -1
   AtmosphereScatter:
     ScatterCoeffs:
-      x: 0.0125
-      y: 0.0125
-      z: 0.0125
+      x: 0.00625
+      y: 0.00625
+      z: 0.00625
     GroundExtinction:
-      x: 0.05
-      y: 0.05
-      z: 0.05
+      x: 0.025
+      y: 0.025
+      z: 0.025
   liquidData:
     shallowCol:
       x: 0

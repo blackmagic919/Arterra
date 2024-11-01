@@ -6,14 +6,16 @@ using System.Collections.Concurrent;
 
 public class OctreeTerrain : MonoBehaviour
 {
-    public static readonly int[] taskLoadTable = { 2, 2, 2, 3, 8, 0 };
+    public static readonly int[] taskLoadTable = { 1, 2, 5, 2, 8, 0 };
     public static Queue<UpdateTask> MainLoopUpdateTasks;
     public static Queue<UpdateTask> MainLateUpdateTasks;
     public static Queue<UpdateTask> MainFixedUpdateTasks;
     public static ConcurrentQueue<GenTask> RequestQueue;
     public static Transform origin;
     public static RenderSettings s;
-    public static int maxFrameLoad = 250; //GPU load
+    public static int maxFrameLoad = 50; //GPU load
+    public static int viewDistUpdate = 32;
+    private int3 prevViewerPos;
 
     public static Octree octree;
     public static ConstrainedLL<TerrainChunk> chunks;
@@ -138,7 +140,7 @@ public class OctreeTerrain : MonoBehaviour
                 return;
             if(gen.chunk == null || !gen.chunk.active) 
                 continue;
-                
+
             gen.task();
             FrameGPULoad += taskLoadTable[gen.id];
         }
@@ -154,7 +156,10 @@ public class OctreeTerrain : MonoBehaviour
     }
 
     private void UpdateViewerPos(){
-        int3 ViewerPosition = (int3)(float3)viewer.position;
+        int3 ViewerPosition = (int3)((float3)viewer.position / s.lerpScale);
+        if(math.distance(prevViewerPos, ViewerPosition) < viewDistUpdate) return;
+        prevViewerPos = ViewerPosition;
+
         int3 intraOffset = ((ViewerPosition % s.mapChunkSize) + s.mapChunkSize) % s.mapChunkSize;
         ChunkPos = (ViewerPosition - intraOffset) / s.mapChunkSize;
     }

@@ -101,7 +101,7 @@ public class TerrainChunk
         if(!IsRealChunk) return 1;
         if(!OctreeTerrain.IsBordering(ref OctreeTerrain.octree.nodes[index]))
             return 1;
-        return 1 << rSettings.Balance;
+        return 1;
     }
 
     private void SetupChunk(){
@@ -301,11 +301,7 @@ public class VisualChunk : TerrainChunk{
             //Readmap data starts a CPU background thread to read data and re-synchronizes by adding to the queue
             //Therefore we need to call it directly to maintain it's on the same call-cycle as the rest of generation
             status.UpdateMap = false;
-            RequestQueue.Enqueue(new GenTask{
-                task = () => {ReadMapData(OnChunkCreated);}, 
-                id = (int)priorities.visual,
-                chunk = this,
-            });
+            ReadMapData(OnChunkCreated);
         } 
         //Set chunk data will only be used if info is modified, which 
         //it shouldn't be for visual chunks
@@ -341,7 +337,7 @@ public class VisualChunk : TerrainChunk{
         ChunkStorageManager.ReadChunkBin(CCoord, (bool isComplete, CPUDensityManager.MapData[] chunk) => 
             RequestQueue.Enqueue(new GenTask{  
                 task = () => OnReadComplete(isComplete, chunk),
-                id = (int)priorities.generation,
+                id = (int)priorities.visual,
                 chunk = this,
             })
         );

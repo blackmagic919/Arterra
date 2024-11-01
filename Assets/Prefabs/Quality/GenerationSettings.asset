@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: GenerationSettings
   m_EditorClassIdentifier: 
   MaxDepth: 5
-  MinChunkRadius: 0
-  Balance: 1
+  MinChunkRadius: 1
+  Balance: 2
   MapExtendDist: 26
   MaxGeoShaderDepth: 0
   lerpScale: 2

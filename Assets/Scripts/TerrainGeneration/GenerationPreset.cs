@@ -458,9 +458,9 @@ public static class GenerationPreset
             addressLL[nAddress].x = addressIndex;
             addressLL[addressIndex] = new uint2(pAddress, nAddress);
             
-            //uint[] heap = new uint[4];
-            //_EmptyBlockHeap.GetData(heap);
-            //Debug.Log(heap[3]/250000 + "MB");
+            uint[] heap = new uint[6];
+            _EmptyBlockHeap.GetData(heap);
+            //Debug.Log("Primary: " + heap[3]/250000 + "MB");
         }
 
         public readonly ComputeBuffer Storage => _GPUMemorySource;
