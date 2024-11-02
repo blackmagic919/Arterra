@@ -90,18 +90,11 @@ public class TerrainChunk
         meshFilter = meshObject.AddComponent<MeshFilter>();
         meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshRenderer.sharedMaterials = WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.TerrainMats.ToArray();
-        meshSkipInc = GetMeshSkip();
+        meshSkipInc = 1;
 
         status = new ChunkStatus{CreateMap = true, UpdateMesh = true, CanUpdateMesh = false};
         Generator = new GeneratorInfo(this);
         SetupChunk();
-    }
-
-    private int GetMeshSkip(){
-        if(!IsRealChunk) return 1;
-        if(!OctreeTerrain.IsBordering(ref OctreeTerrain.octree.nodes[index]))
-            return 1;
-        return 1;
     }
 
     private void SetupChunk(){
@@ -117,14 +110,10 @@ public class TerrainChunk
         });
     }
 
-    public void VerifyChunk(){
+    public virtual void VerifyChunk(){
         //These two functions are self-verifying, so they will only execute if necessary
         OctreeTerrain.SubdivideLeaf(index);
         OctreeTerrain.MergeSiblings(index);
-        if(GetMeshSkip() != meshSkipInc){
-            status.UpdateMesh = true;
-            meshSkipInc = GetMeshSkip();
-        }
     }
 
     public void OnChunkCreated(AsyncMeshReadback.SharedMeshInfo meshInfo)
@@ -167,7 +156,19 @@ public class TerrainChunk
 
 //depth = 0
 public class RealChunk : TerrainChunk{
-    public RealChunk(Transform parent, int3 origin, int size, uint octreeIndex) : base(parent, origin, size, octreeIndex){}
+    private bool IsBordering = false;
+    public RealChunk(Transform parent, int3 origin, int size, uint octreeIndex) : base(parent, origin, size, octreeIndex){
+        IsBordering = OctreeTerrain.IsBordering(ref octree.nodes[index]);
+    }
+
+    public override void VerifyChunk(){
+        base.VerifyChunk();
+        if(!IsBordering) return;
+        IsBordering = OctreeTerrain.IsBordering(ref octree.nodes[index]);
+        if(IsBordering) return;
+        status.UpdateMesh = true;
+    }
+
     public override void Update()
     {
         if(status.CreateMap){

@@ -79,7 +79,7 @@ public class OctreeTerrain : MonoBehaviour
         WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.Release();
     }
 
-     /*void OnDrawGizmos(){
+    void OnDrawGizmos(){
         uint curChunk = chunks.Head();
         int count = 0;
         do{
@@ -90,28 +90,18 @@ public class OctreeTerrain : MonoBehaviour
             if(chunk.depth != 0) continue;
             else {
                 Gizmos.color = Color.white;
-                Gizmos.DrawWireCube(((float3)chunk.origin + (float3)chunk.size/2) * s.lerpScale, (float3)chunk.size * s.lerpScale);
+                Gizmos.DrawWireCube(((float3)chunk.origin) * s.lerpScale, (float3)chunk.size * s.lerpScale);
             }
             count++;
         } while(curChunk != chunks.Head());
         //Debug.Log(count);
         //Debug.Log(Octree.GetAxisChunksDepth(math.floorlog2(s.Layer), (int)s.balanceF, (uint)s.minChunkRadius));
-    }*/
+    }
 
     // Update is called once per frame
     void Update()
     {
-        UpdateViewerPos();
-
-        //This is buffered because Verifying Leaf Chunks may change octree structure
-        Queue<TerrainChunk> frameChunks = new Queue<TerrainChunk>();
-        ForEachChunk((uint chunk) => frameChunks.Enqueue(chunks.nodes[chunk].Value));
-        while(frameChunks.Count > 0){
-            TerrainChunk chunk = frameChunks.Dequeue();
-            if(!chunk.active) continue;
-            chunk.VerifyChunk();
-        }
-
+        VerifyChunks();
         ForEachChunk((uint chunk) => chunks.nodes[chunk].Value.Update());
         StartGeneration();
 
@@ -155,11 +145,24 @@ public class OctreeTerrain : MonoBehaviour
 
     }
 
-    private void UpdateViewerPos(){
+    private void VerifyChunks(){
         int3 ViewerPosition = (int3)((float3)viewer.position / s.lerpScale);
         if(math.distance(prevViewerPos, ViewerPosition) < viewDistUpdate) return;
         prevViewerPos = ViewerPosition;
+        UpdateViewerPos();
 
+        //This is buffered because Verifying Leaf Chunks may change octree structure
+        Queue<TerrainChunk> frameChunks = new Queue<TerrainChunk>();
+        ForEachChunk((uint chunk) => frameChunks.Enqueue(chunks.nodes[chunk].Value));
+        while(frameChunks.Count > 0){
+            TerrainChunk chunk = frameChunks.Dequeue();
+            if(!chunk.active) continue;
+            chunk.VerifyChunk();
+        }
+    }
+
+    private void UpdateViewerPos(){
+        int3 ViewerPosition = (int3)((float3)viewer.position / s.lerpScale + s.mapChunkSize/2);
         int3 intraOffset = ((ViewerPosition % s.mapChunkSize) + s.mapChunkSize) % s.mapChunkSize;
         ChunkPos = (ViewerPosition - intraOffset) / s.mapChunkSize;
     }
@@ -172,9 +175,10 @@ public class OctreeTerrain : MonoBehaviour
     public static bool IsBordering(ref Octree.Node node){
         //nOrigin is the origin of a neighbor in the direction away from the viewer of the same level's parent
         int3 nOrigin = node.origin + ((int3)math.sign(node.origin - vChunkPos)) * (int)node.size;
-        nOrigin -= ((nOrigin % 2) + 2) % 2; //make sure offset is not off -> get its parent's origin
+        int parentSize = (int)node.size * 2;
+        nOrigin -= ((nOrigin % parentSize) + parentSize) % parentSize; //make sure offset is not off -> get its parent's origin
 
-        Octree.Node neighbor = new Octree.Node{origin = nOrigin, size = node.size * 2};
+        Octree.Node neighbor = new Octree.Node{origin = nOrigin, size = (uint)parentSize};
         return IsBalanced(ref neighbor);
     }
 
