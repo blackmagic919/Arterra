@@ -24,6 +24,8 @@ public class OctreeTerrain : MonoBehaviour
     private static int rootDim => s.Balance == 1 ? 3 : 2;
     // Start is called before the first frame update
 
+    public int Layer = 1;
+
     private void OnEnable(){
         s = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         origin = this.transform; //This means origin in Unity's scene heiharchy
@@ -79,6 +81,7 @@ public class OctreeTerrain : MonoBehaviour
         WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.Release();
     }
 
+    /*
     void OnDrawGizmos(){
         uint curChunk = chunks.Head();
         int count = 0;
@@ -87,16 +90,16 @@ public class OctreeTerrain : MonoBehaviour
             curChunk = chunks.Next(curChunk);
 
             if(chunk == null) continue;
-            if(chunk.depth != 0) continue;
+            if(chunk.depth != Layer) continue;
             else {
                 Gizmos.color = Color.white;
-                Gizmos.DrawWireCube(((float3)chunk.origin) * s.lerpScale, (float3)chunk.size * s.lerpScale);
+                Gizmos.DrawWireCube(((float3)chunk.origin + s.mapChunkSize/2) * s.lerpScale, (float3)chunk.size * s.lerpScale);
             }
             count++;
         } while(curChunk != chunks.Head());
         //Debug.Log(count);
         //Debug.Log(Octree.GetAxisChunksDepth(math.floorlog2(s.Layer), (int)s.balanceF, (uint)s.minChunkRadius));
-    }
+    }*/
 
     // Update is called once per frame
     void Update()

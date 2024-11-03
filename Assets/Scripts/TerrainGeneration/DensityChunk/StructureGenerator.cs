@@ -36,17 +36,18 @@ public static class StructureGenerator
         return points;
     }
 
-    static int calculateMaxStructurePoints(int maxLoD, int maxStructurePoints, float falloffFactor)
+    static int calculateMaxStructurePoints(int maxLoD, uint maxDepthL, int maxStructurePoints, float falloffFactor)
     {
         int totalPoints = 0;
         int processedChunks = 0;
-        int maxDist = maxLoD + 2;
+        int baseDist = (1<<(int)maxDepthL) + 1;
+        int maxDist = maxLoD + baseDist;
         int[] pointsPerLoD = calculateLoDPoints(maxLoD, maxStructurePoints, falloffFactor);
 
-        for (int dist = 1; dist <= maxDist; dist++)
+        for (int dist = baseDist; dist <= maxDist; dist++)
         {
             int numChunks = dist * dist * dist - processedChunks;
-            int LoD = Mathf.Max(0, dist - 2);
+            int LoD = Mathf.Max(0, dist - baseDist);
             int maxPointsPerChunk = pointsPerLoD[LoD];
 
             totalPoints += maxPointsPerChunk * numChunks;
@@ -61,7 +62,8 @@ public static class StructureGenerator
         MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.Generation.Terrain.value;
         SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.Generation.Surface.value;
         BiomeGenerationData biomes = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value;
-        int maxStructurePoints = calculateMaxStructurePoints(biomes.maxLoD, biomes.StructureChecksPerChunk, biomes.LoDFalloff);
+        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
+        int maxStructurePoints = calculateMaxStructurePoints(biomes.maxLoD, rSettings.MaxStructureDepth, biomes.StructureChecksPerChunk, biomes.LoDFalloff);
         offsets = new StructureOffsets(maxStructurePoints, 0);
 
         StructureLoDSampler.SetInt("maxLOD", biomes.maxLoD);
@@ -114,13 +116,15 @@ public static class StructureGenerator
         structureDataTranscriber.SetInt("bCOUNTER_struct", offsets.prunedCounter);
     }
     
-    public static void SampleStructureLoD(int maxLoD, int chunkSize, int3 chunkCoord)
+    public static void SampleStructureLoD(int maxLoD, int chunkSize, int depth, int3 chunkCoord)
     {   
-        int numChunksPerAxis = maxLoD + 2;
+        //base depthL is the base chunk axis size to sample maximum detail
+        int numChunksPerAxis = maxLoD + (1<<depth) + 1;
         int numChunksMax = numChunksPerAxis * numChunksPerAxis * numChunksPerAxis;
 
         StructureLoDSampler.SetInts("originChunkCoord", new int[] { chunkCoord.x, chunkCoord.y, chunkCoord.z });
         StructureLoDSampler.SetInt("chunkSize", chunkSize);
+        StructureLoDSampler.SetInt("BaseDepthL", depth); 
 
         StructureLoDSampler.GetKernelThreadGroupSizes(0, out uint threadChunkSize, out uint threadLoDSize, out _);
         int numThreadsChunk = Mathf.CeilToInt(numChunksMax / (float)threadChunkSize);
@@ -128,12 +132,11 @@ public static class StructureGenerator
         StructureLoDSampler.Dispatch(0, numThreadsChunk, numThreadsLoD, 1);
     }
     
-    public static void IdentifyStructures(int3 chunkCoord, Vector3 offset, float IsoLevel, int chunkSize)
+    public static void IdentifyStructures(Vector3 offset, float IsoLevel)
     {
         ComputeBuffer args = UtilityBuffers.CountToArgs(StructureIdentifier, UtilityBuffers.GenerationBuffer, offsets.sampleCounter);
 
         StructureIdentifier.SetFloat("IsoLevel", IsoLevel);
-        StructureIdentifier.SetInts("CCoord", new int[] { chunkCoord.x, chunkCoord.y, chunkCoord.z });
         SetSampleData(StructureIdentifier, offset, 1);
 
         int kernel = StructureIdentifier.FindKernel("Identify");
@@ -177,7 +180,7 @@ public static class StructureGenerator
         return structCount;
     }
     
-    public static void ApplyStructures(ComputeBuffer memory, ComputeBuffer addresses, ComputeBuffer count, int addressIndex, int mapStart, int chunkSize, int meshSkipInc, float IsoLevel)
+    public static void ApplyStructures(ComputeBuffer memory, ComputeBuffer addresses, ComputeBuffer count, int addressIndex, int mapStart, int chunkSize, int meshSkipInc, int wOffset, int wChunkSize, float IsoLevel)
     {
         ComputeBuffer args = UtilityBuffers.CountToArgs(structureChunkGenerator, count);
 
@@ -192,6 +195,9 @@ public static class StructureGenerator
         structureChunkGenerator.SetInt("chunkSize", chunkSize);
         structureChunkGenerator.SetInt("meshSkipInc", meshSkipInc);
         structureChunkGenerator.SetFloat("IsoLevel", IsoLevel);
+
+        structureChunkGenerator.SetInt("wOffset", wOffset);
+        structureChunkGenerator.SetInt("numPointsPerAxis", wChunkSize);
 
         structureChunkGenerator.DispatchIndirect(0, args);
     }
@@ -224,7 +230,6 @@ public static class StructureGenerator
 
             checkStart = Mathf.CeilToInt((float)PrunedEndInd_W / CHECK_STRIDE_WORD);
             int CheckEndInd_W = checkStart * CHECK_STRIDE_WORD + (maxStructurePoints * 5) * CHECK_STRIDE_WORD;
-
             this.offsetEnd = CheckEndInd_W;
         }
     }

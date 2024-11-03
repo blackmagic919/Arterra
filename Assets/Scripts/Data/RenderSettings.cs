@@ -13,7 +13,7 @@ public class RenderSettings : ScriptableObject
     public int Balance;
     [Range(1, 100)]
     public int MapExtendDist;
-    [UISetting(Alias = "Update Frequency")]
+    public uint MaxStructureDepth; // >= 0 obviously
     public uint MaxGeoShaderDepth;
     [UISetting(Alias = "Terrain Scale")]
     public float lerpScale = 2f;

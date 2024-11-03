@@ -46,26 +46,23 @@ public class StructureCreator
     }
 
     //All Done Without Readback!
-    public void PlanStructuresGPU(int3 chunkCoord, float3 offset, int chunkSize, float IsoLevel)
+    public void PlanStructuresGPU(int3 chunkCoord, float3 offset, int chunkSize, float IsoLevel, int depth=0)
     {
         ReleaseStructure();
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 4, 0);
-
-        SampleStructureLoD(WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.maxLoD, chunkSize, chunkCoord);
-
-        IdentifyStructures(chunkCoord, offset, IsoLevel, chunkSize);
-        
+        SampleStructureLoD(WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.maxLoD, chunkSize, depth, chunkCoord);
+        IdentifyStructures(offset, IsoLevel);
         this.structureDataIndex = TranscribeStructures(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address);
 
         return;
     }
 
-    public void GenerateStrucutresGPU(int chunkSize, int skipInc, int mapStart, float IsoLevel)
+    public void GenerateStrucutresGPU(int chunkSize, int skipInc, int mapStart, float IsoLevel, int wChunkSize = -1, int wOffset = 0)
     {
-        
+        if(wChunkSize == -1) wChunkSize = chunkSize;
         ComputeBuffer structCount = GetStructCount(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, (int)structureDataIndex, STRUCTURE_STRIDE_WORD);
         ApplyStructures(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, structCount, 
-                        (int)structureDataIndex, mapStart, chunkSize, skipInc, IsoLevel);
+                        (int)structureDataIndex, mapStart, chunkSize, skipInc, wOffset, wChunkSize, IsoLevel);
 
         return;
     }

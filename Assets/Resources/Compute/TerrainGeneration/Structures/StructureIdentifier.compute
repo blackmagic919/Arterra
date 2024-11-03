@@ -60,7 +60,6 @@ StructuredBuffer<biomeStructure> _BiomeStructureData; //biome generation data fo
 StructuredBuffer<uint2> _StructureIndexes;
 StructuredBuffer<checkData> _StructureChecks;
 StructuredBuffer<settings> _StructureSettings; //settings for structure
-int3 CCoord;
 
 //All 3 of these buffers are the same entity assigned with different bindings
 StructuredBuffer<structInfo> structurePlan;

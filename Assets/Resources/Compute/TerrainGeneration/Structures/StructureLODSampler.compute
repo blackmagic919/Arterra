@@ -21,9 +21,11 @@ uint bSTART;
 RWStructuredBuffer<uint> counter;
 uint bCOUNTER;
 
+int BaseDepthL;
 int maxLOD;
 int3 originChunkCoord;
 uint chunkSize;
+
 
 //The average number of structures at minimum LoD(not collective LoD)
 uint numPoints0;
@@ -39,9 +41,10 @@ float LoDFalloff;
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     int LoD = id.y; //This means range from max->LoD 
-    uint numChunkAxis = LoD + 2;
+    uint bCLength = (1 << BaseDepthL) + 1;
+    uint numChunkAxis = LoD + bCLength;
     uint numChunks = numChunkAxis * numChunkAxis * numChunkAxis;
-    uint numChunksMax = (maxLOD+2) * (maxLOD+2) * (maxLOD+2); //This is the number of chunks in the max LoD
+    uint numChunksMax = (maxLOD + bCLength) * (maxLOD + bCLength) * (maxLOD + bCLength); //This is the number of chunks in the max LoD
 
     if(LoD > maxLOD || id.x >= numChunksMax)
         return;
@@ -50,6 +53,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     offsetCoord.x = id.x % numChunkAxis;
     offsetCoord.y = (id.x / numChunkAxis) % numChunkAxis;
     offsetCoord.z = (id.x / (numChunkAxis * numChunkAxis)) % numChunkAxis;
+    offsetCoord -= (1 << BaseDepthL) - 1;
+
     int overlapOffset = id.x / numChunks;
     int chunkOverlap = numChunksMax / numChunks + ((id.x % numChunks) < numChunksMax % numChunks ? 1 : 0); 
     //ie numChunkMax = 3*3*3 = 27, numChunks = 2*2*2 = 8, offset = 3, overlap = 27 / 8 + 1 = 4 <-- it will be mapped to 4 times
@@ -60,7 +65,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint numPoints = uint((numPoints0 * pow(abs(LoDFalloff), -LoD)) / chunkOverlap + RandomFloat(seed)); //Random to process fractional points 
 
     for(uint i = 0; i < numPoints; i++){
-        float3 position =  (Random3(seed) * chunkSize) - offsetCoord * chunkSize;
+        float3 position = (Random3(seed) * chunkSize) - offsetCoord * (int)chunkSize;
 
         structurePoint newStructure;
         newStructure.position = position;

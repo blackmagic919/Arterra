@@ -122,6 +122,11 @@ public class TerrainChunk
         meshInfo.Release();
     }
 
+    public void UnregisterChunk(){
+        //Chunk enters a state of limbo until it's hard deleted by its replacement
+        if(!active) return;
+        active = false;
+    }
     public void DestroyChunk()
     {
         if(!active) return;
@@ -317,7 +322,9 @@ public class VisualChunk : TerrainChunk{
         this.surfAddress = SurfaceCreator.StoreSurfaceMap(sChunkSize);
     }
     public override void PlanStructures(Action callback = null){
-        //Implement this later
+        if(depth > rSettings.MaxStructureDepth) return;
+        Generator.StructCreator.PlanStructuresGPU(CCoord, origin, mapChunkSize, IsoLevel, depth);
+        callback?.Invoke();
     }
     
     public void ReadMapData(Action<AsyncMeshReadback.SharedMeshInfo> callback = null){
@@ -327,10 +334,14 @@ public class VisualChunk : TerrainChunk{
 
         void GenerateMap(Action<AsyncMeshReadback.SharedMeshInfo> callback)
         {
+            DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
             Generator.MeshCreator.GenerateBaseChunk(sOrigin, surfAddress, sChunkSize, mapSkipInc, IsoLevel);
-            //Generator.StructCreator.GenerateStrucutresGPU(sChunkSize, mapSkipInc, IsoLevel);
+
+            if(depth <= rSettings.MaxStructureDepth)
+                Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize+1, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel, sChunkSize, 1);
+
             Generator.MeshCreator.CompressMap(sChunkSize);
-            GPUDensityManager.RegisterChunkVisual(CCoord, depth, UtilityBuffers.GenerationBuffer, DensityGenerator.bufferOffsets.mapStart);
+            GPUDensityManager.RegisterChunkVisual(CCoord, depth, UtilityBuffers.GenerationBuffer, bufferOffsets.mapStart);
             CreateMeshImmediate(callback);
         }
 

@@ -8,14 +8,20 @@ uint meshSkipInc;
 int numCubesPerAxis;
 
 //Water is 1, terrain is 0
-uint ReadMapData(int3 coord){
-    int3 dCC = floor(coord / (float)numCubesPerAxis);
-    coord = abs(dCC * numCubesPerAxis - coord);
+uint ReadMapData(int3 sCoord){
+    int3 dCC = floor(sCoord / (float)numCubesPerAxis);
+    int3 coord = abs(dCC * numCubesPerAxis - sCoord);
     int3 sCCoord = dCC + CCoord;
 
     uint2 chunkHandle = _AddressDict[HashCoord(sCCoord)];
     if(chunkHandle.x == 0) return 0; 
     else{
+    if(chunkHandle.y > meshSkipInc){ 
+        //If the chunk is too not detail, just extend the current map
+        coord = clamp(sCoord, 0, numCubesPerAxis - 1);
+        chunkHandle = _AddressDict[HashCoord(CCoord)];
+    }
+    
     coord = (coord * meshSkipInc) / (chunkHandle.y & 0xFF);
     coord.x += (chunkHandle.y >> 24) & 0xFF;
     coord.y += (chunkHandle.y >> 16) & 0xFF;

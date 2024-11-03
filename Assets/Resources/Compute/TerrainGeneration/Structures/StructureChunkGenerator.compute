@@ -45,9 +45,11 @@ uint bSTART_map;
 
 StructuredBuffer<uint> numPoints;
 
-uint chunkSize;
 uint meshSkipInc;
 float IsoLevel;
+
+uint wOffset; //1 for visual chunks
+uint chunkSize; //same as numPointsPerAxis for real chunks
 
 [numthreads(numThreads,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
@@ -85,13 +87,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint zLength = dot(sizes, zDir);
 
     int3 chunkEnd = int3((origin.x + xLength), (origin.y + yLength), (origin.z + zLength));
-    uint numPointsPerAxis = chunkSize / meshSkipInc;
-
     uint indexOffset = _StructureIndexes[structureIndex].x;
 
     //Evaluate chunk coord with LoD
     uint3 chunkOriginLoD = uint3(ceil(chunkOrigin / (float)meshSkipInc));
-    uint3 chunkEndLoD = uint3(min(numPointsPerAxis, chunkEnd / meshSkipInc));
+    uint3 chunkEndLoD = uint3(min(chunkSize, chunkEnd / meshSkipInc));
     chunkOriginLoD = min(chunkOriginLoD, chunkEndLoD);
 
     uint3 originDist = chunkOriginLoD*meshSkipInc - origin;
@@ -119,10 +119,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         uint zReal = z * meshSkipInc;
         
         uint3 structCoord = structOrigin + xAxis * xReal + yAxis * yReal + zAxis * zReal;
-        uint3 chunkCoord = chunkOriginLoD + uint3(x,y,z);
+        uint3 chunkCoord = chunkOriginLoD + uint3(x,y,z) + wOffset;
 
         //structCoord = min(structCoord, sizes - 1);
-        uint chunkIndex = indexFromCoordManual(chunkCoord.x, chunkCoord.y, chunkCoord.z, numPointsPerAxis) + bSTART_map;
+        uint chunkIndex = indexFromCoord(chunkCoord) + bSTART_map;
         uint structIndex = indexFromCoordIrregular(structCoord.x, structCoord.y, structCoord.z, sizes.y, sizes.z) + indexOffset;
 
         //This section will have racing issues, but it's negligable
