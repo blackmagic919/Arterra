@@ -111,8 +111,9 @@ public class TerrainChunk
     }
 
     public virtual void VerifyChunk(){
+        if(!active) return;
         //These two functions are self-verifying, so they will only execute if necessary
-        OctreeTerrain.SubdivideLeaf(index);
+        OctreeTerrain.SubdivideChunk(index);
         OctreeTerrain.MergeSiblings(index);
     }
 
@@ -122,16 +123,18 @@ public class TerrainChunk
         meshInfo.Release();
     }
 
-    public void UnregisterChunk(){
-        //Chunk enters a state of limbo until it's hard deleted by its replacement
-        if(!active) return;
-        active = false;
-    }
-    public void DestroyChunk()
+    //Chunk Becomes a Zombie
+    public void Kill()
     {
         if(!active) return;
         active = false;
 
+        ReapChunk(index);
+    }
+
+    public void Destroy()
+    {
+        active = false;
         ReleaseChunk();
 #if UNITY_EDITOR
        GameObject.DestroyImmediate(meshObject);
@@ -176,6 +179,7 @@ public class RealChunk : TerrainChunk{
 
     public override void Update()
     {
+        base.Update();
         if(status.CreateMap){
             //Readmap data starts a CPU background thread to read data and re-synchronizes by adding to the queue
             //Therefore we need to call it directly to maintain it's on the same call-cycle as the rest of generation
@@ -262,6 +266,7 @@ public class RealChunk : TerrainChunk{
     public void CreateMesh( Action<AsyncMeshReadback.SharedMeshInfo> UpdateCallback = null){
         Generator.MeshCreator.GenerateMapData(CCoord, IsoLevel, meshSkipInc, mapChunkSize);
         ClearFilter();
+        ReapChunk(index);
         
         DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
 
@@ -303,6 +308,7 @@ public class VisualChunk : TerrainChunk{
 
     public override void Update()
     {
+        base.Update();
         if(status.CreateMap){
             //Readmap data starts a CPU background thread to read data and re-synchronizes by adding to the queue
             //Therefore we need to call it directly to maintain it's on the same call-cycle as the rest of generation
@@ -364,6 +370,7 @@ public class VisualChunk : TerrainChunk{
     private void CreateMeshImmediate(Action<AsyncMeshReadback.SharedMeshInfo> UpdateCallback = null){
         Generator.MeshCreator.GenerateMapDataInPlace(IsoLevel, meshSkipInc, mapChunkSize);
         ClearFilter();
+        ReapChunk(index);
         
         DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
         Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets);

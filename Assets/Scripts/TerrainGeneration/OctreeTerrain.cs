@@ -3,6 +3,7 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 using System.Collections.Concurrent;
+using System.Numerics;
 
 public class OctreeTerrain : MonoBehaviour
 {
@@ -69,7 +70,7 @@ public class OctreeTerrain : MonoBehaviour
 
     private void OnDisable()
     {
-        ForEachChunk((uint chunk) => chunks.nodes[chunk].Value.DestroyChunk());
+        ForEachChunk((uint chunk) => chunks.nodes[chunk].Value.Destroy());
 
         UIOrigin.Release();
         UtilityBuffers.Release();
@@ -107,7 +108,8 @@ public class OctreeTerrain : MonoBehaviour
         VerifyChunks();
         ForEachChunk((uint chunk) => chunks.nodes[chunk].Value.Update());
         StartGeneration();
-
+        
+        Debug.Log("Total Chunks: " + chunks.length);
         ProcessUpdateTasks(MainLoopUpdateTasks);
     }
 
@@ -193,8 +195,8 @@ public class OctreeTerrain : MonoBehaviour
         } else {
             nChunk = new VisualChunk(origin, node.origin, (int)node.size, octreeIndex);
         }
-        node.child = chunks.Enqueue(nChunk); 
-        node.IsLeaf = true;
+        node.Chunk = chunks.Enqueue(nChunk); 
+        node.IsComplete = false;
     }
 
     private static void BuildTree(uint root){ BuildTree(new Queue<uint>(new uint[]{root})); }
@@ -216,7 +218,7 @@ public class OctreeTerrain : MonoBehaviour
         int3 LCoord = octree.FloorLCoord(vChunkPos - maxChunkSize/2, maxChunkSize);
 
         Queue<uint> tree = new Queue<uint>(); 
-        Octree.Node root = new Octree.Node{size = (uint)maxChunkSize*2, origin = -maxChunkSize};
+        Octree.Node root = new Octree.Node{size = (uint)maxChunkSize*2, origin = -maxChunkSize, child = 0, _chunk = 0};
         AddOctreeChildren(ref root, 0, (uint child) => tree.Enqueue(child), rootDim);
         BuildTree(tree);
     }
@@ -230,7 +232,8 @@ public class OctreeTerrain : MonoBehaviour
                 size = childSize,
                 sibling = sibling,
                 parent = parentIndex,
-                IsLeaf = false,
+                child = 0, //IsLeaf = true
+                _chunk = 0, //HasChunk = false
             });
             OnAddChild(sibling);
         } 
@@ -239,14 +242,12 @@ public class OctreeTerrain : MonoBehaviour
         octree.nodes[sibling].sibling = parent.child;
     }
 
-    public static void SubdivideLeaf(uint leafIndex){
+    public static void SubdivideChunk(uint leafIndex){
         ref Octree.Node node = ref octree.nodes[leafIndex];
         if(IsBalanced(ref node) || node.size <= s.mapChunkSize) return;
-        if(!node.IsLeaf) return;
 
-        chunks.nodes[node.child].Value.DestroyChunk();
-        chunks.RemoveNode(node.child);
-        node.IsLeaf = false;
+        //Unregistering chunk will delete subtree if it has a subtree
+        KillSubtree(leafIndex);
         BuildTree(leafIndex);
     }
 
@@ -257,27 +258,17 @@ public class OctreeTerrain : MonoBehaviour
         Octree.Node node = octree.nodes[leaf]; uint sibling = node.sibling;
         if(!IsBalanced(ref octree.nodes[node.parent])){ return true; }
         if(node.parent == 0) {return RemapRoot(leaf);}
-        for(; sibling != leaf; sibling = octree.nodes[sibling].sibling){
-            if(!octree.nodes[sibling].IsLeaf)
-                break;
-        } if(sibling != leaf) return true;
 
         sibling = leaf;
         do{
-            node = octree.nodes[sibling];
-            //This is conditional because the current leaf may be given recursively
-            //In which case it won't have a terrain chunk
-            if(node.IsLeaf) {
-                chunks.nodes[node.child].Value.DestroyChunk();
-                chunks.RemoveNode(node.child);
-            }
-            octree.RemoveNode(sibling);
+            KillSubtree(sibling);
             sibling = octree.nodes[sibling].sibling;
         } while(sibling != leaf);
         
         uint parent = octree.nodes[leaf].parent;
+        //If the parent is balanced, then it won't be subdivided
         if(MergeSiblings(parent)){
-            BuildTree(parent);
+            AddTerrainChunk(parent);
         }return false;
     }
 
@@ -290,10 +281,12 @@ public class OctreeTerrain : MonoBehaviour
         int3 newOrigin = (VCoord + offset) * maxChunkSize;
         if(newOrigin.Equals(node.origin)) return true;
 
-        if(node.IsLeaf){
-            chunks.nodes[node.child].Value.DestroyChunk();
-            chunks.RemoveNode(node.child);
-            node.IsLeaf = false;
+        //Force destroy it without creating zombies
+        if(!node.IsLeaf) DestroySubtree(node.child);
+        if(node.HasChunk) {
+            chunks.nodes[node.Chunk].Value.Destroy();
+            chunks.RemoveNode(node.Chunk);
+            node._chunk = 0;
         } node.origin = newOrigin;
         BuildTree(octreeNode);
         return false;
@@ -310,6 +303,76 @@ public class OctreeTerrain : MonoBehaviour
         }
     }
 
+    //Kills all chunks in the subtree turning them into zombies
+    private static void KillSubtree(uint octreeIndex){
+        ref Octree.Node node = ref octree.nodes[octreeIndex];
+        //This will automatically delete the subtree if it has one
+        if(node.HasChunk){ chunks.nodes[node.Chunk].Value.Kill(); } 
+        else if(!node.IsLeaf){ 
+            uint sibling = node.child;
+            do{
+                KillSubtree(sibling);
+                sibling = octree.nodes[sibling].sibling;
+            } while(sibling != node.child);
+        } 
+    }
+
+    //Reaps zombie chunks
+    // 1. Destroy all chunk's in its subtree
+    // 2. Remove all chunk's along its path to root until it reaches a node where it has an incomplete sibling
+    public static void ReapChunk(uint octreeIndex){
+        ref Octree.Node node = ref octree.nodes[octreeIndex];
+        //If the chunk has already been reaped, it will still travel up the root path
+        //but this in theory should do nothing
+        node.IsComplete = true;
+        if(!node.IsLeaf) DestroySubtree(node.child);
+        node.child = 0; //IsLeaf = true
+        MergeAncestry(node.parent);
+    }
+
+    //Input: The child node whose siblings and itself will be deleted
+    private static void DestroySubtree(uint octreeIndex){
+
+        uint sibling = octreeIndex;
+        do{
+            uint nSibling = octree.nodes[sibling].sibling;
+
+            ref Octree.Node node = ref octree.nodes[sibling];
+            if(!node.IsLeaf) DestroySubtree(node.child);
+            if(node.HasChunk){
+                chunks.nodes[node.Chunk].Value.Destroy();
+                chunks.RemoveNode(node.Chunk);
+                node._chunk = 0;
+            } 
+            octree.RemoveNode(sibling);
+            sibling = nSibling;
+        } while(sibling != octreeIndex);
+    }
+
+    private static void MergeAncestry(uint octreeIndex){
+        static bool IsSubtreeComplete(uint octreeIndex){
+            uint sibling = octreeIndex;
+            if(octreeIndex == 0) return true;
+            do{
+                ref Octree.Node node = ref octree.nodes[sibling];
+                if(node.HasChunk){
+                    if(!node.IsComplete) return false;
+                } else if(!IsSubtreeComplete(node.child))
+                    return false;
+                sibling = octree.nodes[sibling].sibling;
+            } while(sibling != octreeIndex);
+            return true;
+        }
+        ref Octree.Node node = ref octree.nodes[octreeIndex];
+        while(node.parent != 0){
+            if(node.HasChunk && IsSubtreeComplete(node.child)){
+                chunks.nodes[node.Chunk].Value.Destroy();
+                chunks.RemoveNode(node.Chunk);
+                node._chunk = 0;
+            }
+            node = ref octree.nodes[node.parent];
+        }
+    }
 }
 
 public struct Octree{
@@ -373,7 +436,18 @@ public struct Octree{
         //Circular LL of siblings
         public uint sibling;
         public uint parent;
-        public bool IsLeaf;
+        public readonly bool IsLeaf => child == 0;
+
+        public uint _chunk;
+        public readonly bool HasChunk => _chunk != 0;
+        public bool IsComplete{
+            readonly get => (_chunk & 0x80000000) != 0;
+            set => _chunk = value ? _chunk | 0x80000000 : _chunk & 0x7FFFFFFF;
+        }
+        public uint Chunk{
+            readonly get => _chunk & 0x7FFFFFFF;
+            set => _chunk = (value & 0x7FFFFFFF) | (_chunk & 0x80000000);
+        }
 
         public int GetL1Dist(int3 GCoord){
             int3 origin = this.origin;
