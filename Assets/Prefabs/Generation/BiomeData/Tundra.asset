@@ -39,6 +39,9 @@ MonoBehaviour:
     - Snow
     - Air
     - Cloud
+    - ArcticFox
+    - ArcticHare
+    - SnowyOwl
     isDirty: 0
   AtmosphereFalloff: 0.005
   GroundMaterials:
@@ -168,5 +171,17 @@ MonoBehaviour:
       isDirty: 0
     isDirty: 0
   Entities:
-    value: []
+    value:
+    - value:
+        Entity: 10
+        ChancePerCoord: 0.0001
+      isDirty: 0
+    - value:
+        Entity: 11
+        ChancePerCoord: 0.00025
+      isDirty: 0
+    - value:
+        Entity: 12
+        ChancePerCoord: 0.0001
+      isDirty: 0
     isDirty: 0

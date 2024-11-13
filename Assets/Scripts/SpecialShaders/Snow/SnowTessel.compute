@@ -90,8 +90,7 @@ void AppendTri(DrawTriangle tri){
         uint2 data = PackVertices(tri.vertices[i].positionOS, 
                      normalize(tri.vertices[i].normalOS));
         uint depth = clamp(tri.vertices[i].uv.x * 15, 0, 15);
-        data.x |= (depth & 0x3) << 30;
-        data.y |= (depth & 0xC) << 28;
+        data.x |= (depth & 0xF) << 28;
         packedTri.vertices[i] = data;
     }
 

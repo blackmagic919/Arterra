@@ -109,7 +109,6 @@ public class OctreeTerrain : MonoBehaviour
         ForEachChunk((uint chunk) => chunks.nodes[chunk].Value.Update());
         StartGeneration();
         
-        Debug.Log("Total Chunks: " + chunks.length);
         ProcessUpdateTasks(MainLoopUpdateTasks);
     }
 

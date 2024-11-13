@@ -43,13 +43,13 @@ MonoBehaviour:
         AverageIdleTime: 2.5
       collider:
         size:
-          x: 0.8
+          x: 0.5
           y: 0.8
-          z: 0.8
+          z: 0.5
         offset:
-          x: -0.4
-          y: -0.4
-          z: -0.4
+          x: -0.25
+          y: -0.3
+          z: -0.25
         useGravity: 1
     isDirty: 0
   _Profile:

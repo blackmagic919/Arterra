@@ -99,7 +99,7 @@ Shader "Unlit/Snow"
                 uint vertexIndex = vertexID % 3;
                 uint2 input = _StorageMemory[triAddress].vertex[vertexIndex];  
                 VertexInfo v = UnpackVertex(input);
-                float snowHeight = (uint)(((input.x >> 30) & 0x3) | ((input.y >> 28) & 0xC)) / 15.0f;
+                float snowHeight = (uint)((input.x >> 28) & 0xF) / 15.0f;
                 snowHeight *= _OffsetHeight;
                 
                 float3 positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;

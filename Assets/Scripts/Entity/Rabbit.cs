@@ -42,7 +42,6 @@ public class Rabbit : EntityAuthoring
     }
 
     [BurstCompile]
-    [System.Serializable]
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
     public struct RabbitEntity : IEntity
@@ -152,8 +151,9 @@ public class Rabbit : EntityAuthoring
                 finder.currentInd++;
             } else {
                 float3 aim = math.normalize(nextPos - rabbit->GCoord);
-                tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, 
-                                                Quaternion.LookRotation(aim), settings.movement.rotSpeed * context->deltaTime);
+                Quaternion rot = tCollider.transform.rotation;
+                if(math.any(aim.xz != 0)) rot = Quaternion.LookRotation(new Vector3(aim.x, 0, aim.z));
+                tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, settings.movement.rotSpeed * context->deltaTime);
                 if(math.length(rabbit->tCollider.velocity) < settings.movement.moveSpeed) 
                     tCollider.velocity += settings.movement.acceleration * context->deltaTime * aim;
             }

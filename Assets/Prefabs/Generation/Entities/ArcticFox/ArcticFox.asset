@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
+  m_Name: ArcticFox
+  m_EditorClassIdentifier: 
+  _Controller:
+    value: {fileID: 1869515680497457174, guid: 092657fe27da741e39e3487e750d3fc0, type: 3}
+    isDirty: 0
+  _Entity:
+    value:
+      GCoord:
+        x: 0
+        y: 0
+        z: 0
+      TaskIndex: 0
+      TaskDuration: 0
+      tCollider:
+        velocity:
+          x: 0
+          y: 0
+          z: 0
+      random:
+        state: 0
+    isDirty: 0
+  _Setting:
+    value:
+      movement:
+        GroundStickDist: 0.05
+        moveSpeed: 2
+        acceleration: 50
+        friction: 0.075
+        rotSpeed: 180
+        pathDistance: 31
+        AverageIdleTime: 2.5
+      collider:
+        size:
+          x: 0.5
+          y: 1
+          z: 0.5
+        offset:
+          x: -0.25
+          y: -0.6
+          z: -0.25
+        useGravity: 1
+    isDirty: 0
+  _Profile:
+    value:
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 0
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    isDirty: 0
+  _Info:
+    value:
+      bounds:
+        x: 2
+        y: 3
+        z: 2
+      profileStart: 36
+    isDirty: 0

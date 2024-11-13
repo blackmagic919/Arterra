@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecb8b00638df84e2ea7842ba42ac9d39, type: 3}
+  m_Name: SnowyOwl
+  m_EditorClassIdentifier: 
+  _Controller:
+    value: {fileID: 3473730546918308697, guid: 8bd9ce178a5d34ed4ba2f7cc7cd9b85e, type: 3}
+    isDirty: 0
+  _Entity:
+    isDirty: 0
+  _Setting:
+    value:
+      movement:
+        moveSpeed: 15
+        acceleration: 50
+        friction: 0.075
+        rotSpeed: 180
+      flight:
+        AverageIdleTime: 2.5
+        AverageFlightTime: 120
+        flightDistance: 24
+        FlyBiasWeight: 0.25
+      collider:
+        size:
+          x: 0.5
+          y: 0.5
+          z: 0.5
+        offset:
+          x: -0.25
+          y: -0.25
+          z: -0.25
+        useGravity: 0
+    isDirty: 0
+  _Profile:
+    value:
+    - bounds: 4286644096
+      flags: 6
+    - bounds: 4286644096
+      flags: 6
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 4286644096
+      flags: 6
+    - bounds: 4286644096
+      flags: 6
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    isDirty: 0
+  _Info:
+    value:
+      bounds:
+        x: 2
+        y: 3
+        z: 2
+      profileStart: 60
+    isDirty: 0

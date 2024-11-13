@@ -39,8 +39,7 @@ uint2 ExtrudeVertex(SourceVertex v, int layerIndex){
     uint2 data = PackVertices(v.positionOS + v.normalOS * (height * _TotalHeight), v.normalOS);
 
     uint layerHeight = clamp(height * 15, 0, 15);
-    data.x |= (layerHeight & 0x3) << 30;
-    data.y |= (layerHeight & 0xC) << 28;
+    data.x |= (layerHeight & 0xF) << 28;
 
     return data;
 }

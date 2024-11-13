@@ -144,6 +144,22 @@ MonoBehaviour:
               Name: Bird
               Value: {fileID: 11400000, guid: 74688da9677534740874b306e18e916d, type: 2}
             isDirty: 0
+          - value:
+              Name: Fox
+              Value: {fileID: 11400000, guid: 20291c96ec2b642818c85c16cbac8a1b, type: 2}
+            isDirty: 0
+          - value:
+              Name: ArcticFox
+              Value: {fileID: 11400000, guid: f96f21e1966384e588e53d9d3c37f0ce, type: 2}
+            isDirty: 0
+          - value:
+              Name: ArcticHare
+              Value: {fileID: 11400000, guid: 76df58cdcf20f4334b669984f650be56, type: 2}
+            isDirty: 0
+          - value:
+              Name: SnowyOwl
+              Value: {fileID: 11400000, guid: 70c868c5da748481e82692c56e502620, type: 2}
+            isDirty: 0
           isDirty: 0
     isDirty: 0
   _GamePlay:

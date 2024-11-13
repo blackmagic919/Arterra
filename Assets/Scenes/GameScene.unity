@@ -167,6 +167,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48b05e1669a6440dca4885d4eb707be2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Layer: 1
   viewer: {fileID: 913041919}
 --- !u!1 &466929788
 GameObject:
@@ -1445,7 +1446,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   IsoLevel: 0.5
-  Structure: {fileID: 11400000, guid: 49bbfac31bd4d49bda439a6be79dd6c3, type: 2}
+  Structure: {fileID: 11400000, guid: 223a31f324fab4c83ab64f10979b618f, type: 2}
   savePath: ~
   SDFoffset:
     x: 0

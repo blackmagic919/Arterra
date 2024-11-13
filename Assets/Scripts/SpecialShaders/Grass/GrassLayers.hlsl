@@ -95,7 +95,7 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
     output.normalWS = normalize(mul(_LocalToWorld, float4(v.normalOS, 0)).xyz);
     output.uv = mapCoordinates(output.positionWS) * _WSToUVScale;
 
-    float height = (uint)((input.x >> 30) & 0x3 | ((input.y >> 28) & 0xC));
+    float height = (uint)((input.x >> 28) & 0xF);
     height /= 15.0f;
     output.height.xy = height;
 

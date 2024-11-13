@@ -621,6 +621,7 @@ public unsafe struct PathFinder{
         return path;
     }
 
+    //Find point that matches raw-profile along the path to destination with the closest distance to the desired path distance
     public static byte* FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, in Entity.Info.ProfileInfo info, in EntityJob.Context context, out int PathLength){
         PathFinder finder = new (PathDistance);
         int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
