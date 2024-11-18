@@ -56,16 +56,26 @@ public static class CPUDensityManager
 
     static void SaveAllChunksSync(){
         for(int i = 0; i < _ChunkManagers.Length; i++){
-            ChunkPtr chunk = new ChunkPtr(SectionedMemory, i * numPoints, AddressDict[i].isDirty);
-            List<Entity> entities = EntityManager.GetChunkEntities(AddressDict[i].CCoord);
-            ChunkStorageManager.SaveChunkToBinSync(chunk, entities, _ChunkManagers[i].CCoord);
+            SaveChunk(i);
         }
     }
+    
 
     public static int HashCoord(int3 CCoord){
         int3 hashCoord = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
         int hash = (hashCoord.x * numChunksAxis * numChunksAxis) + (hashCoord.y * numChunksAxis) + hashCoord.z;
         return hash;
+    }
+
+    private static void SaveChunk(int chunkHash){
+        if(!AddressDict[chunkHash].valid) return;
+        int3 CCoord = AddressDict[chunkHash].CCoord;
+        
+        List<Entity> entities = EntityManager.GetChunkEntities(CCoord);
+        ChunkStorageManager.SaveEntitiesToJsonSync(entities, CCoord);
+        if(!AddressDict[chunkHash].isDirty) return;
+        ChunkPtr chunk = new ChunkPtr(SectionedMemory, chunkHash * numPoints);
+        ChunkStorageManager.SaveChunkToBinSync(chunk, CCoord);
     }
 
 
@@ -81,12 +91,8 @@ public static class CPUDensityManager
         };
 
         //Release Previous Chunk
-        if(prevChunk.valid) { //Saving async causes too many threads and timing is weird
-            ChunkPtr chunkPtr = new ChunkPtr(SectionedMemory, chunkHash * numPoints, prevChunk.isDirty);
-            List<Entity> entities = EntityManager.GetChunkEntities(prevChunk.CCoord);
-            ChunkStorageManager.SaveChunkToBinSync(chunkPtr, entities, prevChunk.CCoord); //Write to disk
-            OnReleaseComplete.Invoke();
-        } else OnReleaseComplete();
+        if(prevChunk.valid) SaveChunk(chunkHash);
+        OnReleaseComplete.Invoke();
 
         AddressDict[chunkHash] = newChunk;
         _ChunkManagers[chunkHash] = chunk;
@@ -293,13 +299,11 @@ public static class CPUDensityManager
     
 
     public struct ChunkPtr{
-        public bool isDirty;
         public NativeArray<MapData> data;
         public int offset;
-        public ChunkPtr(NativeArray<MapData> data, int offset, bool isDirty = false){
+        public ChunkPtr(NativeArray<MapData> data, int offset){
             this.data = data;
             this.offset = offset;
-            this.isDirty = isDirty;
         }
     }
 

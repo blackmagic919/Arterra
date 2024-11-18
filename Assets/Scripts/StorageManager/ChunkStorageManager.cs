@@ -13,18 +13,14 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 using UnityEngine;
+using System;
 
 /*
 Chunk File Layout:
 Header: [Material Size][Entity Offset]
 //Material List 
 +Material Offset:
-//Entity List
-+Entity Offset: [LOD0 Offset]...[LODn Offset]
-//LOD0 Data
-+LOD0 Offset: [Data]
-...
-+LODn Offset: [Data]
+//Chunk Data
 //Lists and headers are zipped, offsets are not zipped
 */
 
@@ -33,109 +29,112 @@ public static class ChunkStorageManager
     public delegate void OnReadComplete(ReadbackInfo info);
     public delegate void OnWriteComplete();
 
-    public static string filePath;
+    public static string chunkPath;
+    public static string entityPath;
     private const string fileExtension = ".bin";
     private static int maxChunkSize;
 
     public static void Initialize(){
         maxChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
-        filePath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/MapData/";
+        chunkPath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/MapData/";
+        entityPath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/EntityData/";
     }
 
-    public static void SaveChunkToBin(ChunkPtr chunk, List<Entity> entities, int3 CCoord, OnWriteComplete OnSaveComplete = null){
-        string fileAdd = filePath + "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
-
-        if (!Directory.Exists(filePath))
-            Directory.CreateDirectory(filePath);
-
-        Task.Run(() => SaveChunkToBinAsync(fileAdd, chunk, entities, OnSaveComplete)); //fire and forget
-    }
-
-    public static void SaveChunkToBinSync(ChunkPtr chunk, List<Entity> entities, int3 CCoord){
-        string fileAdd = filePath + "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
+    public static void SaveEntitiesToJsonSync(List<Entity> entities, int3 CCoord){
+        string fileAdd = entityPath + "EChunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
+        if(!Directory.Exists(entityPath))
+            Directory.CreateDirectory(entityPath);
         
-        if (!Directory.Exists(filePath))
-            Directory.CreateDirectory(filePath);
-
-        SaveChunkToBinSync(fileAdd, chunk, entities); //fire and forget
+        SaveEntityToJsonSync(fileAdd, entities);
     }
-    
-    // Start is called before the first frame update
-    public static async void SaveChunkToBinAsync(string fileAdd, ChunkPtr chunk, List<Entity> entities, OnWriteComplete OnSaveComplete = null)
+
+    public static void SaveChunkToBinSync(ChunkPtr chunk, int3 CCoord){
+        string fileAdd = chunkPath + "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
+        
+        if (!Directory.Exists(chunkPath))
+            Directory.CreateDirectory(chunkPath);
+
+        SaveChunkToBinSync(fileAdd, chunk); //fire and forget
+    }
+
+    public static void SaveChunkToBinSync(string fileAdd, ChunkPtr chunk)
     {
         using (FileStream fs = File.Create(fileAdd))
         {
-            MemoryStream headerStream = WriteChunkHeader(chunk, entities);
-            headerStream.Seek(0, SeekOrigin.Begin);
-            await headerStream.CopyToAsync(fs);
-            headerStream.Close();
-
-            if(chunk.isDirty){
-                MemoryStream mapStream = WriteChunkMaps(chunk.data, chunk.offset);
-                mapStream.Seek(0, SeekOrigin.Begin);
-                await mapStream.CopyToAsync(fs);
-                mapStream.Close();
-            }
-
-            await fs.FlushAsync();
-            fs.Close();
-        }
-        OnSaveComplete?.Invoke();
-    }
-
-    public static void SaveChunkToBinSync(string fileAdd, ChunkPtr chunk, List<Entity> entities)
-    {
-        using (FileStream fs = File.Create(fileAdd))
-        {
-            MemoryStream headerStream = WriteChunkHeader(chunk, entities);
+            MemoryStream headerStream = WriteChunkHeader(() => SerializeHeader(chunk));
             headerStream.Seek(0, SeekOrigin.Begin);
             headerStream.CopyTo(fs);
             headerStream.Close();
             fs.Flush();
 
-            if(chunk.isDirty){
-                MemoryStream mapStream = WriteChunkMaps(chunk.data, chunk.offset);
-                mapStream.Seek(0, SeekOrigin.Begin);
-                mapStream.CopyTo(fs);
-                mapStream.Close();
+            MemoryStream mapStream = WriteChunkMaps(chunk.data, chunk.offset);
+            mapStream.Seek(0, SeekOrigin.Begin);
+            mapStream.CopyTo(fs);
+            mapStream.Close();
 
-                fs.Flush();
-            }
+            fs.Flush();
             fs.Close();
         }
     }
 
-    public static void ReadChunkBin(int3 CCoord, OnReadComplete ReadCallback = null){
-        string fileAdd = filePath + "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
-        if(!File.Exists(fileAdd))
+    public static void SaveEntityToJsonSync(string fileAdd, List<Entity> entities){
+        using (FileStream fs = File.Create(fileAdd))
         {
-            ReadCallback?.Invoke(new ReadbackInfo(false));
-            return;
+            MemoryStream headerStream = WriteChunkHeader(() => SerializeEntities(entities));
+            headerStream.Seek(0, SeekOrigin.Begin);
+            headerStream.CopyTo(fs);
+            headerStream.Close();
+            fs.Flush();
+            fs.Close();
         }
-
-        Task.Run(() => ReadChunkBinAsync(fileAdd, ReadCallback)); //fire and forget
     }
 
-    public static async void ReadChunkBinAsync(string fileAdd, OnReadComplete ReadCallback = null)
-    {
-        ReadbackInfo info = new ReadbackInfo(true);
-        //Caller has to copy for persistence
-        using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read))
+    public static void ReadChunkInfo(int3 CCoord, OnReadComplete ReadCallback = null){
+        Task.Run(() => ReadChunkInfoAsync(CCoord, ReadCallback));
+    }
+
+    private static async void ReadChunkInfoAsync(int3 CCoord, OnReadComplete ReadCallback = null){
+        ReadbackInfo info = new ReadbackInfo(false);
+        string chunkAdd = chunkPath + "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
+        string entityAdd = entityPath + "EChunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
+        if(File.Exists(chunkAdd))
         {
-            uint size = ReadChunkHeader(fs, out ChunkHeader header);
-            if(header.RegisterNames != null){ //if it's null, the chunk isn't dirty
-                fs.Seek(size, SeekOrigin.Begin);
-                info.map = await ReadChunkMap(fs);
-                DeserializeHeader(ref info.map, ref header);
-            }
-            info.entities = header.Entities;
+            info.map = await ReadChunkBinAsync(chunkAdd);
+        }
+        if(File.Exists(entityAdd))
+        {
+            info.entities = ReadEntityJsonAsync(entityAdd);
         }
         ReadCallback?.Invoke(info);
     }
 
-    static ChunkHeader SerializeHeader(ChunkPtr chunk, List<Entity> entities){
+    public static async Task<MapData[]> ReadChunkBinAsync(string fileAdd)
+    {
+        MapData[] map = null;
+        //Caller has to copy for persistence
+        using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read))
+        {
+            uint size = ReadChunkHeader(fs, out ChunkHeader header);
+            fs.Seek(size, SeekOrigin.Begin);
+            map = await ReadChunkMap(fs);
+            DeserializeHeader(ref map, ref header);
+        }
+        return map;
+    }
 
-        //Serialize Entities
+    public static List<EntitySerial> ReadEntityJsonAsync(string fileAdd)
+    {
+        List<EntitySerial> entities = null;
+        //Caller has to copy for persistence
+        using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read))
+        {
+            ReadChunkHeader(fs, out entities);
+            //It's automatically deserialized by a custom json rule
+        }
+        return entities;
+    }
+
+    static List<EntitySerial> SerializeEntities(List<Entity> entities){
         List<EntitySerial> eSerial = new List<EntitySerial>();
         var eReg = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities;
         for(int i = 0; i < entities.Count; i++){
@@ -143,11 +142,11 @@ public static class ChunkStorageManager
             entity.type = eReg.RetrieveName((int)entities[i].info.entityType);
             entity.data = (IEntity)Marshal.PtrToStructure(entities[i].obj, eReg.Retrieve(entity.type).Entity.GetType());
             eSerial.Add(entity);
-            //Debug.Log("Serial");
         }
+        return eSerial;
+     }
 
-        if(!chunk.isDirty) return new ChunkHeader{ RegisterNames = null, Entities = eSerial };
-
+    static ChunkHeader SerializeHeader(ChunkPtr chunk){
         Dictionary<int, int> RegisterDict = new Dictionary<int, int>();
         int numPoints = maxChunkSize * maxChunkSize * maxChunkSize;
         for(int i = 0; i < numPoints; i++){
@@ -163,7 +162,7 @@ public static class ChunkStorageManager
             dict[pair.Value] = mReg.RetrieveName(pair.Key);
         }
 
-        return new ChunkHeader{ RegisterNames = dict.ToList(), Entities = eSerial };
+        return new ChunkHeader{ RegisterNames = dict.ToList() };
     }
 
     private static void DeserializeHeader(ref MapData[] map, ref ChunkHeader header){
@@ -171,10 +170,6 @@ public static class ChunkStorageManager
         for(int i = 0; i < map.Length; i++){
             map[i].material = mReg.RetrieveIndex(header.RegisterNames[(int)map[i].material]);
         }
-
-        //Entities are already deserialized by a custom JsonConverter.
-        //It needs to be done this way because to Newtonsoft needs to know the structure's real type(not interface)
-        //to even deserialize it into a ChunkHeader in the first place
     }
 
     static void WriteUInt32(byte[] buffer, ref uint offset, uint value){
@@ -189,10 +184,10 @@ public static class ChunkStorageManager
         return (uint)(buffer[offset + 0] | buffer[offset + 1] << 8 | buffer[offset + 2] << 16 | buffer[offset + 3] << 24);
     }
 
-    private static MemoryStream WriteChunkHeader(ChunkPtr chunk, List<Entity> entities = null){
+    private static MemoryStream WriteChunkHeader(Func<object> GetHeader){
         MemoryStream ms = new MemoryStream();
         ms.Seek(4, SeekOrigin.Begin);
-        ChunkHeader header = SerializeHeader(chunk, entities);
+        object header = GetHeader();
 
         string json = JsonConvert.SerializeObject(header, Formatting.Indented);
         byte[] buffer = Encoding.ASCII.GetBytes(json);
@@ -208,7 +203,7 @@ public static class ChunkStorageManager
         return ms;
     }
 
-    private static uint ReadChunkHeader(FileStream fs, out ChunkHeader header){
+    private static uint ReadChunkHeader<T>(FileStream fs, out T header){
         byte[] readSize = new byte[4]; fs.Read(readSize); 
         uint size = ReadUInt32(readSize, 0);
         byte[] buffer = new byte[size]; fs.Read(buffer);
@@ -216,7 +211,7 @@ public static class ChunkStorageManager
         using MemoryStream ms = new(buffer);
         using GZipStream zs = new(ms, CompressionMode.Decompress, true);
         using StreamReader sr = new(zs);
-        header = JsonConvert.DeserializeObject<ChunkHeader>(sr.ReadToEnd());
+        header = JsonConvert.DeserializeObject<T>(sr.ReadToEnd());
         return size; //add 4 for the size of the size of the header(yeah lol)
     }
 
@@ -277,7 +272,6 @@ public static class ChunkStorageManager
 
 public struct ChunkHeader{
     public List<string> RegisterNames;
-    public List<EntitySerial> Entities;
 }
 
 public class EntitySerial{
@@ -286,18 +280,15 @@ public class EntitySerial{
 }
 
 public struct ReadbackInfo{
-    public bool isComplete;
     public List<EntitySerial> entities;
     public MapData[] map;
 
-    public ReadbackInfo(bool isComplete){
-        this.isComplete = isComplete;
+    public ReadbackInfo(bool _){
         entities = null;
         map = null;
     }
 
-    public ReadbackInfo(bool isComplete, MapData[] map, List<EntitySerial> entities){
-        this.isComplete = isComplete;
+    public ReadbackInfo(MapData[] map, List<EntitySerial> entities){
         this.entities = entities;
         this.map = map;
     }

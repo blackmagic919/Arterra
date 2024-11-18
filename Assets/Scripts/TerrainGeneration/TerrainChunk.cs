@@ -224,7 +224,7 @@ public class RealChunk : TerrainChunk{
     
     public void ReadMapData(Action callback = null){
         //This code will be called on a background thread
-        ChunkStorageManager.ReadChunkBin(CCoord, (ReadbackInfo info) => 
+        ChunkStorageManager.ReadChunkInfo(CCoord, (ReadbackInfo info) => 
             RequestQueue.Enqueue(new GenTask{ //REMINDER: This queue should be locked
                 task = () => OnReadComplete(info),
                 id = (int)priorities.generation,
@@ -234,7 +234,7 @@ public class RealChunk : TerrainChunk{
 
         //This code will run on main thread
         void OnReadComplete(ReadbackInfo info){
-            if(info.isComplete && info.map != null){ //if the chunk has saved map data
+            if(info.map != null){ //if the chunk has saved map data
                 Generator.MeshCreator.SetMapInfo(mapChunkSize, 0, info.map);
                 GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.TransferBuffer);
             } else { //Otherwise create new data
@@ -246,7 +246,7 @@ public class RealChunk : TerrainChunk{
             }
 
             EntityManager.ReleaseChunkEntities(CCoord);//Clear previous chunk's entities
-            if(info.isComplete && info.entities != null) { //If the chunk has saved entities
+            if(info.entities != null) { //If the chunk has saved entities
                 EntityManager.DeserializeEntities(info.entities, CCoord);
             }else { //Otherwise create new entities
                 uint entityAddress = EntityManager.PlanEntities(surfAddress, CCoord, mapChunkSize);
@@ -349,7 +349,7 @@ public class VisualChunk : TerrainChunk{
         }
 
         //This code will be called on a background thread
-        ChunkStorageManager.ReadChunkBin(CCoord, (ReadbackInfo info) => 
+        ChunkStorageManager.ReadChunkInfo(CCoord, (ReadbackInfo info) => 
             RequestQueue.Enqueue(new GenTask{  
                 task = () => OnReadComplete(info),
                 id = (int)priorities.visual,
