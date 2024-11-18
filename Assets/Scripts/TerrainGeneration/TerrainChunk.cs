@@ -221,44 +221,41 @@ public class RealChunk : TerrainChunk{
         Generator.StructCreator.PlanStructuresGPU(CCoord, origin, mapChunkSize, IsoLevel);
         callback?.Invoke();
     }
-
-    public void CopyMapToCPU(){
-        uint entityAddress = EntityManager.PlanEntities(surfAddress, CCoord, mapChunkSize);
-        EntityManager.BeginEntityReadback(entityAddress, CCoord);
-        int3 CCoord_Captured = CCoord;
-        CPUDensityManager.AllocateChunk(this, CCoord, (bool isComplete) => CPUDensityManager.BeginMapReadback(CCoord_Captured));
-    }
-
+    
     public void ReadMapData(Action callback = null){
-        void SetChunkData(int offset, CPUDensityManager.MapData[] mapData, Action callback = null){
-            Generator.MeshCreator.SetMapInfo(mapChunkSize, offset, mapData);
-            GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.TransferBuffer);
-            CopyMapToCPU();
-        }
-
-        void GenerateMap(Action callback = null)
-        {
-            DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
-            Generator.MeshCreator.GenerateBaseChunk(origin, surfAddress, mapChunkSize, mapSkipInc, IsoLevel);
-            Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel);
-            Generator.MeshCreator.CompressMap(mapChunkSize);
-            GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.GenerationBuffer, DensityGenerator.bufferOffsets.mapStart);
-            CopyMapToCPU();
-        }
-
         //This code will be called on a background thread
-        ChunkStorageManager.ReadChunkBin(CCoord, (bool isComplete, CPUDensityManager.MapData[] chunk) => 
+        ChunkStorageManager.ReadChunkBin(CCoord, (ReadbackInfo info) => 
             RequestQueue.Enqueue(new GenTask{ //REMINDER: This queue should be locked
-                task = () => OnReadComplete(isComplete, chunk),
+                task = () => OnReadComplete(info),
                 id = (int)priorities.generation,
                 chunk = this,
             })
         );
 
         //This code will run on main thread
-        void OnReadComplete(bool isComplete, CPUDensityManager.MapData[] chunk){
-            if(!isComplete) GenerateMap(callback);
-            else SetChunkData(0, chunk, callback);
+        void OnReadComplete(ReadbackInfo info){
+            if(info.isComplete && info.map != null){ //if the chunk has saved map data
+                Generator.MeshCreator.SetMapInfo(mapChunkSize, 0, info.map);
+                GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.TransferBuffer);
+            } else { //Otherwise create new data
+                DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
+                Generator.MeshCreator.GenerateBaseChunk(origin, surfAddress, mapChunkSize, mapSkipInc, IsoLevel);
+                Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel);
+                Generator.MeshCreator.CompressMap(mapChunkSize);
+                GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.GenerationBuffer, DensityGenerator.bufferOffsets.mapStart);
+            }
+
+            EntityManager.ReleaseChunkEntities(CCoord);//Clear previous chunk's entities
+            if(info.isComplete && info.entities != null) { //If the chunk has saved entities
+                EntityManager.DeserializeEntities(info.entities, CCoord);
+            }else { //Otherwise create new entities
+                uint entityAddress = EntityManager.PlanEntities(surfAddress, CCoord, mapChunkSize);
+                EntityManager.BeginEntityReadback(entityAddress, CCoord);
+            }
+
+            //Copy real chunks to CPU
+            int3 CCoord_Captured = CCoord;
+            CPUDensityManager.AllocateChunk(this, CCoord, () => CPUDensityManager.BeginMapReadback(CCoord_Captured));
             callback?.Invoke();
         }
     }
@@ -352,16 +349,16 @@ public class VisualChunk : TerrainChunk{
         }
 
         //This code will be called on a background thread
-        ChunkStorageManager.ReadChunkBin(CCoord, (bool isComplete, CPUDensityManager.MapData[] chunk) => 
+        ChunkStorageManager.ReadChunkBin(CCoord, (ReadbackInfo info) => 
             RequestQueue.Enqueue(new GenTask{  
-                task = () => OnReadComplete(isComplete, chunk),
+                task = () => OnReadComplete(info),
                 id = (int)priorities.visual,
                 chunk = this,
             })
         );
 
         //This code will run on main thread
-        void OnReadComplete(bool isComplete, CPUDensityManager.MapData[] chunk){
+        void OnReadComplete(ReadbackInfo info){
             //if(isComplete) SetChunkData(0, chunk, callback);
             GenerateMap(callback);
         }

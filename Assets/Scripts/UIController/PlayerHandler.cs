@@ -1,9 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityStandardAssets.Characters.FirstPerson;
 using System.IO;
+using NSerializable;
 
 public class PlayerHandler : MonoBehaviour
 {
@@ -24,7 +23,7 @@ public class PlayerHandler : MonoBehaviour
         info = LoadPlayerData();
         transform.SetPositionAndRotation(info.position.GetVector(), info.rotation.GetQuaternion());
         PlayerController.Initialize(WorldStorageHandler.WORLD_OPTIONS.GamePlay.Movement.value);
-
+        
         InventoryController.Primary = info.PrimaryI;
         InventoryController.Secondary = info.SecondaryI;
         terrController = new TerraformController();

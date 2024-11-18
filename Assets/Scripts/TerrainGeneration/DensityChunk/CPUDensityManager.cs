@@ -56,7 +56,9 @@ public static class CPUDensityManager
 
     static void SaveAllChunksSync(){
         for(int i = 0; i < _ChunkManagers.Length; i++){
-            if(AddressDict[i].isDirty) ChunkStorageManager.SaveChunkToBinSync(SectionedMemory, i * numPoints, _ChunkManagers[i].CCoord);
+            ChunkPtr chunk = new ChunkPtr(SectionedMemory, i * numPoints, AddressDict[i].isDirty);
+            List<Entity> entities = EntityManager.GetChunkEntities(AddressDict[i].CCoord);
+            ChunkStorageManager.SaveChunkToBinSync(chunk, entities, _ChunkManagers[i].CCoord);
         }
     }
 
@@ -79,8 +81,12 @@ public static class CPUDensityManager
         };
 
         //Release Previous Chunk
-        if(prevChunk.isDirty) ChunkStorageManager.SaveChunkToBin(SectionedMemory, chunkHash * numPoints, prevChunk.CCoord, OnReleaseComplete); //Write to disk
-        else OnReleaseComplete(true);
+        if(prevChunk.valid) { //Saving async causes too many threads and timing is weird
+            ChunkPtr chunkPtr = new ChunkPtr(SectionedMemory, chunkHash * numPoints, prevChunk.isDirty);
+            List<Entity> entities = EntityManager.GetChunkEntities(prevChunk.CCoord);
+            ChunkStorageManager.SaveChunkToBinSync(chunkPtr, entities, prevChunk.CCoord); //Write to disk
+            OnReleaseComplete.Invoke();
+        } else OnReleaseComplete();
 
         AddressDict[chunkHash] = newChunk;
         _ChunkManagers[chunkHash] = chunk;
@@ -286,6 +292,17 @@ public static class CPUDensityManager
     }
     
 
+    public struct ChunkPtr{
+        public bool isDirty;
+        public NativeArray<MapData> data;
+        public int offset;
+        public ChunkPtr(NativeArray<MapData> data, int offset, bool isDirty = false){
+            this.data = data;
+            this.offset = offset;
+            this.isDirty = isDirty;
+        }
+    }
+
     public struct ChunkMapInfo{
         public int3 CCoord;
         public bool valid;
@@ -379,6 +396,12 @@ public static class CPUDensityManager
         }
         public readonly bool IsGaseous{
             get => !IsSolid && !IsLiquid;
+        }
+
+        public int _material //don't make dirty
+        { 
+            readonly get => (int)((data >> 16) & 0x7FFF);
+            set => data = (data & 0x8000FFFF) | (uint)((value & 0x7FFF) << 16);
         }
     }
 

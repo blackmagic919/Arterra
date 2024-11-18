@@ -7,6 +7,8 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Burst;
 using static CPUDensityManager;
+using System.Collections.Generic;
+using Newtonsoft.Json;
 
 
 
@@ -24,19 +26,17 @@ public static class EntityManager
 
 
     public static void OnDrawGizmos(){
-        /*
         if(ESTree.Length == 0) return;
-        DrawRecursive(ESTree.Root, 0);
-        Debug.Log("Average Depth: " + ((float)depth / sampleCount));*/
+        //DrawRecursive(ESTree.Root, 0);
+        //Debug.Log("Average Depth: " + ((float)depth / sampleCount));
 
-        /*
+        
         for(int i = 1; i < ESTree.Length; i++){
             STree.TreeNode region = ESTree[i];
             Vector3 center = CPUDensityManager.GSToWS(((float3)region.bounds.Min + region.bounds.Max) / 2);
             Vector3 size = (float3)(region.bounds.Max - region.bounds.Min) * 2;
             Gizmos.DrawWireCube(center, size);
-        }*/
-
+        }
     }
 
 
@@ -55,6 +55,7 @@ public static class EntityManager
     }*/
 
     public unsafe static void Release(){
+        //Debug.Log(EntityHandler.Length);
         Executor.Complete();
         EntityHandler.Dispose(); //Controllers will automatically release 
         ESTree.Dispose();
@@ -89,14 +90,13 @@ public static class EntityManager
         int mapSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
         
-        EntityAuthoring authoring = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities.Reg.value[(int)genInfo.entityIndex].value.Value;
-        IEntity entityData = authoring.Entity;
+        EntityAuthoring authoring = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities.Reg.value[(int)genInfo.entityIndex].Value;
         newEntity.info.profile = authoring.Info;
         newEntity.info.entityId = (uint)entityId;
         newEntity.info.entityType = genInfo.entityIndex;
         newEntity.active = true;
         
-        IntPtr entity = entityData.Initialize(ref newEntity, GCoord);
+        IntPtr entity = authoring.Entity.Initialize(ref newEntity, GCoord);
         EntityHandler.Add(entity);
         ((Entity*)entity)->info.SpatialId = ESTree.Insert(GCoord, entity);
 
@@ -105,10 +105,33 @@ public static class EntityManager
         if(controller == null) throw new Exception("Entity Controller is null");
         controller.Initialize(entity);
 
-        if(!Executor.active){
-            Executor = new EntityJob(); //make new one to reset
-            OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
-        }
+        if(Executor.active) return;
+        Executor = new EntityJob(); //make new one to reset
+        OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
+    }
+
+    public unsafe static void DeserializeEntity(EntitySerial sEntity){
+        Entity newEntity = new ();
+        int entityId = EntityHandler.Length;
+        
+        var reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities;
+        EntityAuthoring authoring = reg.Retrieve(sEntity.type);
+        newEntity.info.profile = authoring.Info;
+        newEntity.info.entityId = (uint)entityId;
+        newEntity.info.entityType = (uint)reg.RetrieveIndex(sEntity.type);
+        newEntity.active = true;
+
+        IntPtr entity = sEntity.data.Deserialize(ref newEntity, out int3 GCoord);
+        EntityHandler.Add(entity);
+        ((Entity*)entity)->info.SpatialId = ESTree.Insert(GCoord, entity);
+
+        EntityController controller = UnityEngine.Object.Instantiate(authoring.Controller).GetComponent<EntityController>();
+        if(controller == null) throw new Exception("Entity Controller is null");
+        controller.Initialize(entity);
+
+        if(Executor.active) return;
+        Executor = new EntityJob(); //make new one to reset
+        OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
     }
 
     public unsafe static void AssertEntityLocation(Entity* entity, int3 GCoord){
@@ -128,12 +151,19 @@ public static class EntityManager
         }
     }
 
-    private static unsafe void ReleaseChunkEntities(int cHash){
+    public static void DeserializeEntities(List<EntitySerial> entities, int3 CCoord){
+        if(entities == null) return;
+        foreach(EntitySerial sEntity in entities){
+            AddHandlerEvent(() => DeserializeEntity(sEntity));
+        }
+    }
+
+    public static unsafe void ReleaseChunkEntities(int3 CCoord){
         int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
-        CPUDensityManager.ChunkMapInfo mapInfo = CPUDensityManager.AddressDict[cHash];
-        if(!mapInfo.valid) return;
-        int3 CCoord = mapInfo.CCoord;
-        STree.TreeNode.Bounds bounds = new STree.TreeNode.Bounds{Min = CCoord * mapChunkSize, Max = (CCoord + 1) * mapChunkSize};
+        ChunkMapInfo mapInfo = AddressDict[HashCoord(CCoord)];
+        if(!mapInfo.valid) return; 
+        //mapinfo.CCoord is coord of previous chunk
+        STree.TreeNode.Bounds bounds = new STree.TreeNode.Bounds{Min = mapInfo.CCoord * mapChunkSize, Max = (mapInfo.CCoord + 1) * mapChunkSize - 1};
 
         AddHandlerEvent(() => {
             ESTree.Query(bounds, (UIntPtr entity) => {
@@ -141,6 +171,21 @@ public static class EntityManager
             });
         });
     }
+
+    public static unsafe List<Entity> GetChunkEntities(int3 CCoord){
+        int mapChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
+        ChunkMapInfo mapInfo = AddressDict[HashCoord(CCoord)];
+        if(!mapInfo.valid) return null;
+        List<Entity> entities = new List<Entity>();
+        STree.TreeNode.Bounds bounds = new() { Min = mapInfo.CCoord * mapChunkSize, Max = (mapInfo.CCoord + 1) * mapChunkSize - 1};
+        //This does not change the entity list so can be done directly
+        ESTree.Query(bounds, (UIntPtr entity) => {
+            entities.Add(*(Entity*)entity);
+        });
+
+        return entities;
+    } 
+    
 
     public static void Initialize(){
         EntityHandler = new NativeList<IntPtr>(MAX_ENTITY_COUNT, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
@@ -172,7 +217,6 @@ public static class EntityManager
     public static uint PlanEntities(uint surfAddress, int3 CCoord, int chunkSize){
         int numPointsAxes = chunkSize;
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 2, bufferOffsets.bufferStart);
-        ReleaseChunkEntities(CPUDensityManager.HashCoord(CCoord));//Clear previous chunk's entities
 
         int kernel = entityGenShader.FindKernel("Identify");
         entityGenShader.SetBuffer(kernel, "_SurfMemory", GenerationPreset.memoryHandle.Storage);
@@ -333,7 +377,6 @@ public class EntityJob : UpdateTask{
         }
 
         job.deltaTime = Time.fixedDeltaTime;
-        int length = EntityManager.EntityHandler.Length;
         handle = job.Schedule(EntityManager.EntityHandler.Length, 16);
         dispatched = true;
     }
@@ -392,7 +435,7 @@ public unsafe struct PathFinder{
         public int3 currentPos; 
         public int currentInd;
         public int pathLength;
-        [NativeDisableUnsafePtrRestriction]
+        [NativeDisableUnsafePtrRestriction][JsonIgnore]
         public unsafe byte* path;
         public bool hasPath; //Resource isn't bound
         //0x4 -> Controller Released, 0x2 -> Job Released, 0x1 -> Resource Released
@@ -780,15 +823,15 @@ public unsafe struct STree{
         if(B1.Contains(position)) RecursiveInsert(position, node.Left, ptr);
         else if(B2.Contains(position)) RecursiveInsert(position, node.Right, ptr); 
         else{
-        TreeNode.Bounds B1Prime, B2Prime;
-        B1Prime = B1.GetExpand(position);
-        B2Prime = B2.GetExpand(position);
+            TreeNode.Bounds B1Prime, B2Prime;
+            B1Prime = B1.GetExpand(position);
+            B2Prime = B2.GetExpand(position);
 
-        //I guarantee there's a configuration that does not intersect
-        if(B1Prime.Intersects(B2)) RecursiveInsert(position, node.Right, ptr);
-        else if(B2Prime.Intersects(B1)) RecursiveInsert(position, node.Left, ptr);
-        else if(B1Prime.Size() >= B2Prime.Size()) RecursiveInsert(position, node.Right, ptr);
-        else RecursiveInsert(position, node.Left, ptr);
+            //I guarantee there's a configuration that does not intersect
+            if(B1Prime.Intersects(B2)) RecursiveInsert(position, node.Right, ptr);
+            else if(B2Prime.Intersects(B1)) RecursiveInsert(position, node.Left, ptr);
+            else if(B1Prime.Size() >= B2Prime.Size()) RecursiveInsert(position, node.Right, ptr);
+            else RecursiveInsert(position, node.Left, ptr);
         }
     } 
 

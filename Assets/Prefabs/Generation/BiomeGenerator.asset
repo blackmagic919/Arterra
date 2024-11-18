@@ -15,22 +15,22 @@ MonoBehaviour:
   biomes:
     Reg:
       value:
-      - value:
-          Name: Ocean
-          Value: {fileID: 11400000, guid: e54c2c8b500f34955a388b21dcfdab08, type: 2}
-        isDirty: 0
-      - value:
-          Name: Deciduous Forst
-          Value: {fileID: 11400000, guid: 5582aeedae81942ea996b519b3c776f8, type: 2}
-        isDirty: 0
-      - value:
-          Name: Tundra
-          Value: {fileID: 11400000, guid: 6cb711037e54f4e5592e1dbab19362f6, type: 2}
-        isDirty: 0
-      - value:
-          Name: Desert
-          Value: {fileID: 11400000, guid: 6fe0fddde49374b5aa520722f3034fbe, type: 2}
-        isDirty: 0
+      - Name: Ocean
+        _value:
+          value: {fileID: 11400000, guid: e54c2c8b500f34955a388b21dcfdab08, type: 2}
+          isDirty: 0
+      - Name: DeciduousForest
+        _value:
+          value: {fileID: 11400000, guid: 5582aeedae81942ea996b519b3c776f8, type: 2}
+          isDirty: 0
+      - Name: Tundra
+        _value:
+          value: {fileID: 11400000, guid: 6cb711037e54f4e5592e1dbab19362f6, type: 2}
+          isDirty: 0
+      - Name: Desert
+        _value:
+          value: {fileID: 11400000, guid: 6fe0fddde49374b5aa520722f3034fbe, type: 2}
+          isDirty: 0
       isDirty: 0
   StructureChecksPerChunk: 1000
   LoDFalloff: 3

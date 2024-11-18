@@ -31,7 +31,6 @@ public unsafe struct Entity{
 
     public static void Update(Entity* entity, EntityJob.Context* context){ entity->_Update.Invoke(entity, context); }
     public static void Disable(Entity* entity){ entity->_Disable.Invoke(entity); }
-
     
     [System.Serializable]
     public struct Info{
@@ -54,7 +53,10 @@ public unsafe struct Entity{
 //Structures implementing IEntity will be placed in unmanaged memory so they can be used in Jobs
 public interface IEntity{
     public abstract unsafe void Preset(IEntitySetting Settings);
+    public abstract unsafe void Unset();
     public abstract unsafe IntPtr Initialize(ref Entity entity, int3 GCoord);
+    public abstract unsafe IntPtr Deserialize(ref Entity entity, out int3 GCoord);
+    //public abstract unsafe IntPtr Deserialize(ref Entity entity, out int3 GCoord);
     public unsafe delegate void UpdateDelegate(Entity* entity, EntityJob.Context* context);
     public unsafe delegate void DisableDelegate(Entity* entity);
 }

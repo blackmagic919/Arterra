@@ -285,6 +285,10 @@ public static class GenerationPreset
         public void Release(){
             entityInfoBuffer?.Release();
             entityProfileBuffer?.Release();
+
+            //Release Static Entity Data
+            EntityAuthoring[] EntityDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities.SerializedData;
+            foreach(EntityAuthoring entity in EntityDictionary) entity.Entity.Unset();
             if(entityProfileArray.IsCreated) entityProfileArray.Dispose();
         }
 

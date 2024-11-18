@@ -22,6 +22,7 @@ public class RabbitController : EntityController
         int chunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         animator = this.GetComponent<Animator>();
         this.transform.position = CPUDensityManager.GSToWS(GCoord - settings.collider.offset) + (float3)Vector3.up * 1;
+        base.Initialize(Entity);
     }
 
     public unsafe void FixedUpdate(){
@@ -48,11 +49,7 @@ public class RabbitController : EntityController
         
     }
 
-    public override void OnDisable()
-    {
-        Release();
-    }
-
+    public override void Disable(){ Release(); }
     private unsafe void Release(){
         if(!active) return;
         active = false;
@@ -66,6 +63,8 @@ public class RabbitController : EntityController
 
     public unsafe void OnDrawGizmos(){
         if(!active) return;
+        //Gizmos.color = Color.green;
+        //Gizmos.DrawSphere(CPUDensityManager.GSToWS(rabbit->GCoord), 0.1f);
         Gizmos.color = Color.red; 
         Gizmos.DrawWireCube(transform.position, settings.collider.size * 2);
         if(rabbit->pathFinder.hasPath){

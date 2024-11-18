@@ -41,6 +41,16 @@ public class InputPoller : UpdateTask
             {"Move Vertical", KeyCode.Alpha4},
             {"Mouse Horizontal", KeyCode.Alpha0},
             {"Mouse Vertical", KeyCode.Alpha1},
+
+            {"Hotbar1", KeyCode.Alpha1},
+            {"Hotbar2", KeyCode.Alpha2},
+            {"Hotbar3", KeyCode.Alpha3},
+            {"Hotbar4", KeyCode.Alpha4},
+            {"Hotbar5", KeyCode.Alpha5},
+            {"Hotbar6", KeyCode.Alpha6},
+            {"Hotbar7", KeyCode.Alpha7},
+            {"Hotbar8", KeyCode.Alpha8},
+            {"Hotbar9", KeyCode.Alpha9},
             
         };
 

@@ -1,14 +1,12 @@
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using NUnit.Framework;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.PlayerLoop;
 using UnityEngine.UI;
+using NSerializable;
 
 
 public class InventoryController : UpdateTask
@@ -20,7 +18,6 @@ public class InventoryController : UpdateTask
     public static SlotDisplay CursorDisplay;
 
     
-    public static GameObject Menu;
     public static InventDisplay PrimaryArea;
     public static SlotDisplay[] PrimaryDisplay;
     public static InventDisplay SecondaryArea;
@@ -29,7 +26,8 @@ public class InventoryController : UpdateTask
 
     private static Queue<(string, uint)> Fences;
     private static MaterialData[] textures;
-    public static Inventory.Slot Selected=>Primary.Info[0];
+    public static Inventory.Slot Selected=>Primary.Info[SelectedIndex];
+    private static int SelectedIndex = 0;
 
     public struct SlotDisplay{
         public GameObject Object;
@@ -42,23 +40,28 @@ public class InventoryController : UpdateTask
         }
     }
     public struct InventDisplay{
+        public GameObject Region;
+        public RectTransform RTransform;
         public GameObject Object;
         public RectTransform Transform;
         public GridLayoutGroup Grid;
         public InventDisplay(GameObject obj){
-            Object = obj;
-            Transform = obj.GetComponent<RectTransform>();
-            Grid = obj.GetComponent<GridLayoutGroup>();
+            Region = obj;
+            RTransform = obj.GetComponent<RectTransform>();
+            Object = obj.transform.GetChild(0).GetChild(0).gameObject;
+            Transform = Object.GetComponent<RectTransform>();
+            Grid = Object.GetComponent<GridLayoutGroup>();
         }
     }
 
     public static void Initialize(){
         settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.Inventory.value;
-        Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory"), UIOrigin.UIHandle.transform);
-        PrimaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(0).GetChild(0).gameObject);
-        SecondaryArea = new InventDisplay(Menu.transform.GetChild(1).GetChild(0).GetChild(0).gameObject);
+        GameObject Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory"), UIOrigin.UIHandle.transform);
+        PrimaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(0).gameObject);
+        SecondaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(1).gameObject);
         PrimaryDisplay = new SlotDisplay[settings.PrimarySlotCount];
         SecondaryDisplay = new SlotDisplay[settings.SecondarySlotCount];
+        textures = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary.SerializedData;
 
         GameObject slotDisplay = Resources.Load<GameObject>("Prefabs/GameUI/InventorySlot");
         for(int i = 0; i < settings.PrimarySlotCount; i++){
@@ -69,19 +72,18 @@ public class InventoryController : UpdateTask
             GameObject slot = GameObject.Instantiate(slotDisplay, SecondaryArea.Object.transform);
             SecondaryDisplay[i] = new SlotDisplay(slot);
         }
-        Menu.SetActive(false);
-        CursorDisplay = new SlotDisplay(GameObject.Instantiate(slotDisplay, Menu.transform));
-        Cursor.IsNull = true;
+        CursorDisplay = new SlotDisplay(GameObject.Instantiate(slotDisplay, Menu.transform)); Cursor.IsNull = true;
+        SecondaryArea.Region.SetActive(false);
+        CursorDisplay.Object.SetActive(false);
 
+        AddBaseKeybinds();
         Fences = new Queue<(string, uint)>();
-        InputPoller.AddBinding(new InputPoller.Binding("Open Inventory", "Control", InputPoller.BindPoll.Down, Activate));
         CraftingMenuController.Initialize();
-
-        textures = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary.SerializedData;
+        Instance = new InventoryController{active = true};
+        OctreeTerrain.MainLoopUpdateTasks.Enqueue(Instance);
     }
 
     public static void Release(){ CraftingMenuController.Release(); }
-
     private static void Activate(float _){
         InputPoller.AddKeyBindChange(() => {
             Fences.Enqueue(("Control", InputPoller.AddContextFence("Control")));
@@ -93,11 +95,10 @@ public class InventoryController : UpdateTask
             InputPoller.AddBinding(new InputPoller.Binding("Place Terrain", "GamePlay", InputPoller.BindPoll.Hold, CraftingMenuController.AddMaterial));
             InputPoller.AddBinding(new InputPoller.Binding("Remove Terrain", "GamePlay", InputPoller.BindPoll.Hold, CraftingMenuController.RemoveMaterial));
         });
-        Instance = new InventoryController{active = true};
-        OctreeTerrain.MainLoopUpdateTasks.Enqueue(Instance);
         CraftingMenuController.Activate();
         CursorDisplay.Object.SetActive(false);
-        Menu.SetActive(true);
+        SecondaryArea.Region.SetActive(true);
+        PrimaryArea.Transform.anchoredPosition = new Vector2(0, 0);
         InputPoller.SetCursorLock(false);
     }
 
@@ -109,9 +110,26 @@ public class InventoryController : UpdateTask
             }
         });
         CraftingMenuController.Deactivate();
-        Instance.active = false;
-        Menu.SetActive(false);
+        SecondaryArea.Region.SetActive(false);
         InputPoller.SetCursorLock(true);
+    }
+
+    private static void AddBaseKeybinds(){
+        static void ChangeSelected(int index){
+            Primary.MakeDirty((uint)SelectedIndex);
+            SelectedIndex = index % settings.PrimarySlotCount;
+        }
+        InputPoller.AddBinding(new InputPoller.Binding("Open Inventory", "Control", InputPoller.BindPoll.Down, Activate));
+
+        InputPoller.AddBinding(new InputPoller.Binding("Hotbar1", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(0)));
+        InputPoller.AddBinding(new InputPoller.Binding("Hotbar2", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(1)));
+        InputPoller.AddBinding(new InputPoller.Binding("Hotbar3", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(2)));
+        InputPoller.AddBinding(new InputPoller.Binding("Hotbar4", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(3)));
+        InputPoller.AddBinding(new InputPoller.Binding("Hotbar5", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(4)));
+        InputPoller.AddBinding(new InputPoller.Binding("Hotbar6", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(5)));
+        InputPoller.AddBinding(new InputPoller.Binding("Hotbar7", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(6)));
+        InputPoller.AddBinding(new InputPoller.Binding("Hotbar8", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(7)));
+        InputPoller.AddBinding(new InputPoller.Binding("Hotbar9", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(8)));
     }
 
     private static void SelectDrag(float _){
@@ -150,9 +168,9 @@ public class InventoryController : UpdateTask
     }
 
     private static int2 GetSlotIndex(InventDisplay display, float2 pos){
-        float2 pOff = pos - ((float3)display.Transform.position).xy;
-        pOff.x *= display.Transform.pivot.x * (-2) + 1;
-        pOff.y *= display.Transform.pivot.y * (-2) + 1;
+        float2 pOff = pos - ((float3)display.RTransform.position).xy;
+        pOff.x *= display.RTransform.pivot.x * (-2) + 1;
+        pOff.y *= display.RTransform.pivot.y * (-2) + 1;
         int2 slotInd = (int2)math.floor(pOff / (float2)(display.Grid.cellSize + display.Grid.spacing));
         return slotInd;
     }
@@ -162,16 +180,17 @@ public class InventoryController : UpdateTask
         int2 slot = GetSlotIndex(PrimaryArea, ((float3)Input.mousePosition).xy);
         if(math.any(slot < 0) || math.any(slot >= size)) {
             slot = GetSlotIndex(SecondaryArea, ((float3)Input.mousePosition).xy);
-            size = (int2)math.floor(SecondaryArea.Transform.rect.size / SecondaryArea.Grid.cellSize);
+            //Add 2 to size to account for the border
+            float2 rectSize = SecondaryArea.Transform.rect.size + 2 * SecondaryArea.Grid.spacing;
+            float2 gridSize = SecondaryArea.Grid.cellSize + SecondaryArea.Grid.spacing;
+            size = (int2)math.floor(rectSize / gridSize);
             inv = Secondary;
         } 
         if(math.any(slot < 0) || math.any(slot >= size)) 
             return false;
         //Encode this way because grid fills column first
         index = slot.y * size.x + slot.x;
-        if(index < inv.Info.Length) 
-            return true;
-        return false;
+        return index < inv.Info.Length;
     }
 
 
@@ -197,9 +216,9 @@ public class InventoryController : UpdateTask
         return Secondary.AddStackable(mat) + delta;
     }
     public static int RemoveMaterial(int delta){
-        if(Primary.Info[0].IsNull) return 0;
-        if(Primary.Info[0].IsItem) return 0;
-        return Primary.RemoveStackable(0, delta);
+        if(Selected.IsNull) return 0;
+        if(Selected.IsItem) return 0;
+        return Primary.RemoveStackable(SelectedIndex, delta);
     }
 
     public static Inventory Serialize(Inventory a){
@@ -209,30 +228,39 @@ public class InventoryController : UpdateTask
         }
         return a;
     }
-
     public override void Update(MonoBehaviour mono){
-        void ReflectInventory(SlotDisplay[] display, Inventory inventory){
-            foreach(uint i in inventory.Dirty){
-                SlotDisplay disp = display[i];
-                Inventory.Slot slot = inventory.Info[i];
-                if(slot.IsNull){
-                    disp.Icon.sprite = null;
-                    disp.Amount.text = "";
-                } else {
-                    disp.Icon.sprite = textures[(int)slot.Index].texture.value;
-                    disp.Amount.text = slot.Amount.ToString();
-                }
-            } inventory.Dirty.Clear();
-        }
-        ReflectInventory(PrimaryDisplay, Primary);
+        ReflectInventory(PrimaryDisplay, Primary); 
         ReflectInventory(SecondaryDisplay, Secondary);
         CursorDisplay.Object.transform.position = Input.mousePosition;
+        PrimaryDisplay[SelectedIndex].Icon.color = settings.SelectedColorC;
+    }
+
+    private static void ReflectInventory(SlotDisplay[] display, Inventory inventory){
+        foreach(uint i in inventory.Dirty){
+            SlotDisplay disp = display[i];
+            Inventory.Slot slot = inventory.Info[i];
+            if(slot.IsNull){
+                disp.Icon.sprite = null;
+                disp.Amount.text = "";
+                disp.Icon.color = settings.BaseColorC;
+            } else {
+                disp.Icon.sprite = textures[(int)slot.Index].texture.value;
+                disp.Icon.color = Color.white; //1,1,1,1
+                disp.Amount.text = slot.Amount.ToString();
+            } 
+        } inventory.Dirty.Clear();
     }
 
     [Serializable]
     public struct Settings{
         public int PrimarySlotCount;
         public int SecondarySlotCount;
+
+        //This is the theta angle the color is rotated by
+        public Vec4 SelectedSlotColor;
+        public Vec4 BaseColor;
+        public readonly Color BaseColorC => new Color(BaseColor.x, BaseColor.y, BaseColor.z, BaseColor.w);
+        public readonly Color SelectedColorC => new Color(SelectedSlotColor.x, SelectedSlotColor.y, SelectedSlotColor.z, SelectedSlotColor.w);
     }
 
 

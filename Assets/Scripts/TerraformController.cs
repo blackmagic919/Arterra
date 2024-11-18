@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using Unity.Mathematics;
-using System.Linq;
 using UnityEngine.Rendering;
 using static CPUDensityManager;
-using static PlayerHandler;
-using Newtonsoft.Json;
+using NSerializable;
 
 
 [Serializable]

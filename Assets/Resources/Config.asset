@@ -36,50 +36,50 @@ MonoBehaviour:
       Noise:
         Reg:
           value:
-          - value:
-              Name: CaveCoarse
-              Value: {fileID: 11400000, guid: 1b8dfa9e7f67f40ceae6a82733b8c9fd, type: 2}
-            isDirty: 0
-          - value:
-              Name: CaveFine
-              Value: {fileID: 11400000, guid: e03d286ba66aa46238fedf83be699d0b, type: 2}
-            isDirty: 0
-          - value:
-              Name: MaterialCoarse
-              Value: {fileID: 11400000, guid: 59376b1bd76944978a461173821c7078, type: 2}
-            isDirty: 0
-          - value:
-              Name: MaterialFine
-              Value: {fileID: 11400000, guid: 7cfb22d5ff9cf40f1a397544e3c84704, type: 2}
-            isDirty: 0
-          - value:
-              Name: Continental
-              Value: {fileID: 11400000, guid: 9c045f93b50334808b6154737c67175b, type: 2}
-            isDirty: 0
-          - value:
-              Name: Erosion
-              Value: {fileID: 11400000, guid: 1a8cb70f57d0f4d0aa53c6806a8d38f1, type: 2}
-            isDirty: 0
-          - value:
-              Name: PeakValley
-              Value: {fileID: 11400000, guid: 4cfde776cdfbf4e21b8e32f76d99eb95, type: 2}
-            isDirty: 0
-          - value:
-              Name: Squash
-              Value: {fileID: 11400000, guid: d7d6a8b31e97345e48f8fe95e523f5be, type: 2}
-            isDirty: 0
-          - value:
-              Name: CaveFreq
-              Value: {fileID: 11400000, guid: 9b2a2490aae0a404db8553ff56a7d66b, type: 2}
-            isDirty: 0
-          - value:
-              Name: CaveSize
-              Value: {fileID: 11400000, guid: 06bcbe453e4ae4863ae0cd8a454b2940, type: 2}
-            isDirty: 0
-          - value:
-              Name: CaveShape
-              Value: {fileID: 11400000, guid: 1215862d59a644ecdb716b81d2f64c7f, type: 2}
-            isDirty: 0
+          - Name: CaveCoarse
+            _value:
+              value: {fileID: 11400000, guid: 1b8dfa9e7f67f40ceae6a82733b8c9fd, type: 2}
+              isDirty: 0
+          - Name: CaveFine
+            _value:
+              value: {fileID: 11400000, guid: e03d286ba66aa46238fedf83be699d0b, type: 2}
+              isDirty: 0
+          - Name: MaterialCoarse
+            _value:
+              value: {fileID: 11400000, guid: 59376b1bd76944978a461173821c7078, type: 2}
+              isDirty: 0
+          - Name: MaterialFine
+            _value:
+              value: {fileID: 11400000, guid: 7cfb22d5ff9cf40f1a397544e3c84704, type: 2}
+              isDirty: 0
+          - Name: Continental
+            _value:
+              value: {fileID: 11400000, guid: 9c045f93b50334808b6154737c67175b, type: 2}
+              isDirty: 0
+          - Name: Erosion
+            _value:
+              value: {fileID: 11400000, guid: 1a8cb70f57d0f4d0aa53c6806a8d38f1, type: 2}
+              isDirty: 0
+          - Name: PeakValley
+            _value:
+              value: {fileID: 11400000, guid: 4cfde776cdfbf4e21b8e32f76d99eb95, type: 2}
+              isDirty: 0
+          - Name: Squash
+            _value:
+              value: {fileID: 11400000, guid: d7d6a8b31e97345e48f8fe95e523f5be, type: 2}
+              isDirty: 0
+          - Name: CaveFreq
+            _value:
+              value: {fileID: 11400000, guid: 9b2a2490aae0a404db8553ff56a7d66b, type: 2}
+              isDirty: 0
+          - Name: CaveSize
+            _value:
+              value: {fileID: 11400000, guid: 06bcbe453e4ae4863ae0cd8a454b2940, type: 2}
+              isDirty: 0
+          - Name: CaveShape
+            _value:
+              value: {fileID: 11400000, guid: 1215862d59a644ecdb716b81d2f64c7f, type: 2}
+              isDirty: 0
           isDirty: 0
       Terrain:
         value: {fileID: 11400000, guid: fc195e1f82d9f4b2c99d80b428b8935f, type: 2}
@@ -93,42 +93,42 @@ MonoBehaviour:
       Structures:
         Reg:
           value:
-          - value:
-              Name: Tree1
-              Value: {fileID: 11400000, guid: 223a31f324fab4c83ab64f10979b618f, type: 2}
-            isDirty: 0
-          - value:
-              Name: Tree2
-              Value: {fileID: 11400000, guid: db047a8eca3694f298f672e5fb810709, type: 2}
-            isDirty: 0
-          - value:
-              Name: Pine1
-              Value: {fileID: 11400000, guid: 5cf56ca1d2b1e4adf950b740e522c47e, type: 2}
-            isDirty: 0
-          - value:
-              Name: Pine2
-              Value: {fileID: 11400000, guid: c393766b615194cf983fec462dae4706, type: 2}
-            isDirty: 0
-          - value:
-              Name: SnowyPine1
-              Value: {fileID: 11400000, guid: ebcb9324d40584b2b98158e9ad1832f2, type: 2}
-            isDirty: 0
-          - value:
-              Name: SnowyPine2
-              Value: {fileID: 11400000, guid: f57a3ff4c55b74f3181b05d46c96e6aa, type: 2}
-            isDirty: 0
-          - value:
-              Name: Cactus1
-              Value: {fileID: 11400000, guid: 49bbfac31bd4d49bda439a6be79dd6c3, type: 2}
-            isDirty: 0
-          - value:
-              Name: Cactus2
-              Value: {fileID: 11400000, guid: b0b24da144a9e49cb82c871e70f40ad3, type: 2}
-            isDirty: 0
-          - value:
-              Name: Cactus3
-              Value: {fileID: 11400000, guid: 3b15969d5cb414c4c8bccb5c0bbe68b8, type: 2}
-            isDirty: 0
+          - Name: Tree1
+            _value:
+              value: {fileID: 11400000, guid: 223a31f324fab4c83ab64f10979b618f, type: 2}
+              isDirty: 0
+          - Name: Tree2
+            _value:
+              value: {fileID: 11400000, guid: db047a8eca3694f298f672e5fb810709, type: 2}
+              isDirty: 0
+          - Name: Pine1
+            _value:
+              value: {fileID: 11400000, guid: 5cf56ca1d2b1e4adf950b740e522c47e, type: 2}
+              isDirty: 0
+          - Name: Pine2
+            _value:
+              value: {fileID: 11400000, guid: c393766b615194cf983fec462dae4706, type: 2}
+              isDirty: 0
+          - Name: SnowyPine1
+            _value:
+              value: {fileID: 11400000, guid: ebcb9324d40584b2b98158e9ad1832f2, type: 2}
+              isDirty: 0
+          - Name: SnowyPine2
+            _value:
+              value: {fileID: 11400000, guid: f57a3ff4c55b74f3181b05d46c96e6aa, type: 2}
+              isDirty: 0
+          - Name: Cactus1
+            _value:
+              value: {fileID: 11400000, guid: 49bbfac31bd4d49bda439a6be79dd6c3, type: 2}
+              isDirty: 0
+          - Name: Cactus2
+            _value:
+              value: {fileID: 11400000, guid: b0b24da144a9e49cb82c871e70f40ad3, type: 2}
+              isDirty: 0
+          - Name: Cactus3
+            _value:
+              value: {fileID: 11400000, guid: 3b15969d5cb414c4c8bccb5c0bbe68b8, type: 2}
+              isDirty: 0
           isDirty: 0
       Materials:
         value: {fileID: 11400000, guid: 68574011324274a58acce0da69b5d4f7, type: 2}
@@ -136,30 +136,30 @@ MonoBehaviour:
       Entities:
         Reg:
           value:
-          - value:
-              Name: Rabbit
-              Value: {fileID: 11400000, guid: 638124de4470742c79535a5f0092eb27, type: 2}
-            isDirty: 0
-          - value:
-              Name: Bird
-              Value: {fileID: 11400000, guid: 74688da9677534740874b306e18e916d, type: 2}
-            isDirty: 0
-          - value:
-              Name: Fox
-              Value: {fileID: 11400000, guid: 20291c96ec2b642818c85c16cbac8a1b, type: 2}
-            isDirty: 0
-          - value:
-              Name: ArcticFox
-              Value: {fileID: 11400000, guid: f96f21e1966384e588e53d9d3c37f0ce, type: 2}
-            isDirty: 0
-          - value:
-              Name: ArcticHare
-              Value: {fileID: 11400000, guid: 76df58cdcf20f4334b669984f650be56, type: 2}
-            isDirty: 0
-          - value:
-              Name: SnowyOwl
-              Value: {fileID: 11400000, guid: 70c868c5da748481e82692c56e502620, type: 2}
-            isDirty: 0
+          - Name: Rabbit
+            _value:
+              value: {fileID: 11400000, guid: 638124de4470742c79535a5f0092eb27, type: 2}
+              isDirty: 0
+          - Name: Fox
+            _value:
+              value: {fileID: 11400000, guid: 20291c96ec2b642818c85c16cbac8a1b, type: 2}
+              isDirty: 0
+          - Name: Bird
+            _value:
+              value: {fileID: 11400000, guid: 74688da9677534740874b306e18e916d, type: 2}
+              isDirty: 0
+          - Name: ArcticHare
+            _value:
+              value: {fileID: 11400000, guid: 76df58cdcf20f4334b669984f650be56, type: 2}
+              isDirty: 0
+          - Name: ArcticFox
+            _value:
+              value: {fileID: 11400000, guid: f96f21e1966384e588e53d9d3c37f0ce, type: 2}
+              isDirty: 0
+          - Name: SnowyOwl
+            _value:
+              value: {fileID: 11400000, guid: 70c868c5da748481e82692c56e502620, type: 2}
+              isDirty: 0
           isDirty: 0
     isDirty: 0
   _GamePlay:
@@ -190,8 +190,18 @@ MonoBehaviour:
         isDirty: 0
       Inventory:
         value:
-          PrimarySlotCount: 4
-          SecondarySlotCount: 24
+          PrimarySlotCount: 5
+          SecondarySlotCount: 30
+          SelectedSlotColor:
+            x: 0.1960784
+            y: 0.6784314
+            z: 0.1960784
+            w: 0.7843137
+          BaseColor:
+            x: 0.6784314
+            y: 0.6784314
+            z: 0.6784314
+            w: 0.5882353
         isDirty: 0
     isDirty: 0
   _System:

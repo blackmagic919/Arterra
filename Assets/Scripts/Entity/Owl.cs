@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using System;
+using Unity.Collections;
 
 [CreateAssetMenu(menuName = "Entity/Owl")]
 public class Owl : EntityAuthoring
@@ -57,10 +58,23 @@ public class Owl : EntityAuthoring
         public float3 flightDirection;
         public float TaskDuration;
         public uint TaskIndex;
-        public FunctionPointer<IEntity.UpdateDelegate> Task;
+        public static readonly SharedStatic<NativeArray<FunctionPointer<IEntity.UpdateDelegate>>> _task = SharedStatic<NativeArray<FunctionPointer<IEntity.UpdateDelegate>>>.GetOrCreate<OwlEntity, NativeArray<FunctionPointer<IEntity.UpdateDelegate>>>();
+        public static NativeArray<FunctionPointer<IEntity.UpdateDelegate>> Task{get => _task.Data; set => _task.Data = value;}
         public static readonly SharedStatic<OwlSetting> _settings = SharedStatic<OwlSetting>.GetOrCreate<OwlEntity, OwlSetting>();
         public static OwlSetting settings{get => _settings.Data; set => _settings.Data = value;}
-        public readonly void Preset(IEntitySetting setting) => settings = (OwlSetting)setting;
+        public unsafe readonly void Preset(IEntitySetting setting){
+            settings = (OwlSetting)setting;
+            if(Task != default && Task.IsCreated) return;
+            var states = new NativeArray<FunctionPointer<IEntity.UpdateDelegate>>(3, Allocator.Persistent);
+            states[0] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
+            states[1] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(FollowPath);
+            states[2] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(FollowPath);
+            Task = states;
+        }
+        public unsafe readonly void Unset(){ 
+            if(Task != default) Task.Dispose(); 
+            Task = default; 
+        }
 
         public unsafe IntPtr Initialize(ref Entity entity, int3 GCoord)
         {
@@ -76,7 +90,6 @@ public class Owl : EntityAuthoring
             tCollider.transform.position = GCoord;
             flightDirection = RandomDirection();
             TaskDuration = settings.flight.AverageIdleTime * random.NextFloat(0f, 2f);
-            Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
             TaskIndex = 0;
 
             Marshal.StructureToPtr(this, entity.obj, false);
@@ -84,13 +97,29 @@ public class Owl : EntityAuthoring
             Marshal.StructureToPtr(entity, nEntity, false);
             return nEntity;
         }
+
+        public unsafe IntPtr Deserialize(ref Entity entity, out int3 GCoord)
+        {
+            entity._Update = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Update);
+            entity._Disable = BurstCompiler.CompileFunctionPointer<IEntity.DisableDelegate>(Disable);
+            entity.obj = Marshal.AllocHGlobal(Marshal.SizeOf(this));
+
+            GCoord = this.GCoord;
+
+            Marshal.StructureToPtr(this, entity.obj, false);
+            IntPtr nEntity = Marshal.AllocHGlobal(Marshal.SizeOf(entity));
+            Marshal.StructureToPtr(entity, nEntity, false);
+            return nEntity;
+        }
+
+
         [BurstCompile]
         public unsafe static void Update(Entity* entity, EntityJob.Context* context)
         {
             if(!entity->active) return;
             OwlEntity* bird = (OwlEntity*)entity->obj;
             bird->GCoord = (int3)math.floor(bird->tCollider.transform.position);
-            bird->Task.Invoke(entity, context);
+            Task[(int)bird->TaskIndex].Invoke(entity, context);
 
             bird->tCollider.velocity *= 1 - settings.movement.friction;
             bird->tCollider.Update(*context, settings.collider);
@@ -102,7 +131,7 @@ public class Owl : EntityAuthoring
             if(bird->TaskDuration <= 0) {
                 bird->TaskDuration = settings.flight.AverageFlightTime * bird->random.NextFloat(0f, 2f);
                 bird->flightDirection = bird->RandomDirection();
-                bird->Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(FollowPath);
+                bird->TaskIndex = 1;
                 RandomFly(entity, context);
             }
             else bird->TaskDuration -= context->deltaTime;
@@ -117,7 +146,6 @@ public class Owl : EntityAuthoring
         [BurstCompile]
         public static unsafe void RandomFly(Entity* entity, EntityJob.Context* context){
             OwlEntity* bird = (OwlEntity*)entity->obj;
-            bird->TaskIndex = 1;
 
             if(bird->TaskDuration <= 0) {
                 FindGround(entity, context);
@@ -161,7 +189,7 @@ public class Owl : EntityAuthoring
 
             //Verify the path is valid
             //Entity has fallen off path, Entity's next position is unreachable, Entity has reached destination
-            if(math.any((uint3)math.abs(tCollider.transform.position - finder.currentPos) > entity->info.profile.bounds)) finder.hasPath = false;
+            if(math.any(math.abs(tCollider.transform.position - finder.currentPos) > entity->info.profile.bounds)) finder.hasPath = false;
             else if(!EntityJob.VerifyProfile(nextPos, entity->info.profile, *context)) finder.hasPath = false;
             else if(finder.currentInd == finder.pathLength) finder.hasPath = false;
             if(!finder.hasPath) {
@@ -171,7 +199,6 @@ public class Owl : EntityAuthoring
                 else {
                     bird->TaskIndex = 0;
                     bird->TaskDuration = settings.flight.AverageIdleTime * bird->random.NextFloat(0f, 2f);
-                    bird->Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
                 }
                 return;
             }

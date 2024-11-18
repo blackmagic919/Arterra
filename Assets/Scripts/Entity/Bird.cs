@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using System;
+using Unity.Collections;
 
 [CreateAssetMenu(menuName = "Entity/Bird")]
 public class Bird : EntityAuthoring
@@ -61,10 +62,24 @@ public class Bird : EntityAuthoring
         public float3 flightDirection;
         public float TaskDuration;
         public uint TaskIndex;
-        public FunctionPointer<IEntity.UpdateDelegate> Task;
+        
+        public static readonly SharedStatic<NativeArray<FunctionPointer<IEntity.UpdateDelegate>>> _task = SharedStatic<NativeArray<FunctionPointer<IEntity.UpdateDelegate>>>.GetOrCreate<BirdEntity, NativeArray<FunctionPointer<IEntity.UpdateDelegate>>>();
         public static readonly SharedStatic<BirdSetting> _settings = SharedStatic<BirdSetting>.GetOrCreate<BirdEntity, BirdSetting>();
         public static BirdSetting settings{get => _settings.Data; set => _settings.Data = value;}
-        public readonly void Preset(IEntitySetting setting) => settings = (BirdSetting)setting;
+        public static NativeArray<FunctionPointer<IEntity.UpdateDelegate>> Task{get => _task.Data; set => _task.Data = value;}
+        public readonly unsafe void Preset(IEntitySetting setting){
+            settings = (BirdSetting)setting;
+            if(Task != default && Task.IsCreated) return;
+            var states = new NativeArray<FunctionPointer<IEntity.UpdateDelegate>>(3, Allocator.Persistent);
+            states[0] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
+            states[1] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(FollowPath);
+            states[2] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(FollowPath);
+            Task = states;
+        }
+        public readonly unsafe void Unset(){ 
+            if(Task != default) Task.Dispose(); 
+            Task = default; 
+        }
 
         public unsafe IntPtr Initialize(ref Entity entity, int3 GCoord)
         {
@@ -80,7 +95,6 @@ public class Bird : EntityAuthoring
             tCollider.transform.position = GCoord;
             flightDirection = RandomDirection();
             TaskDuration = settings.flight.AverageIdleTime * random.NextFloat(0f, 2f);
-            Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
             TaskIndex = 0;
 
             Marshal.StructureToPtr(this, entity.obj, false);
@@ -88,13 +102,30 @@ public class Bird : EntityAuthoring
             Marshal.StructureToPtr(entity, nEntity, false);
             return nEntity;
         }
+
+        public unsafe IntPtr Deserialize(ref Entity entity, out int3 GCoord)
+        {
+            entity._Update = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Update);
+            entity._Disable = BurstCompiler.CompileFunctionPointer<IEntity.DisableDelegate>(Disable);
+            entity.obj = Marshal.AllocHGlobal(Marshal.SizeOf(this));
+
+            GCoord = this.GCoord;
+
+            Marshal.StructureToPtr(this, entity.obj, false);
+            IntPtr nEntity = Marshal.AllocHGlobal(Marshal.SizeOf(entity));
+            Marshal.StructureToPtr(entity, nEntity, false);
+            return nEntity;
+        }
+
+
+
         [BurstCompile]
         public unsafe static void Update(Entity* entity, EntityJob.Context* context)
         {
             if(!entity->active) return;
             BirdEntity* bird = (BirdEntity*)entity->obj;
             bird->GCoord = (int3)math.floor(bird->tCollider.transform.position);
-            bird->Task.Invoke(entity, context);
+            Task[(int)bird->TaskIndex].Invoke(entity, context);
 
             bird->tCollider.velocity *= 1 - settings.movement.friction;
             bird->tCollider.Update(*context, settings.collider);
@@ -106,7 +137,7 @@ public class Bird : EntityAuthoring
             if(bird->TaskDuration <= 0) {
                 bird->TaskDuration = settings.flight.AverageFlightTime * bird->random.NextFloat(0f, 2f);
                 bird->flightDirection = bird->RandomDirection();
-                bird->Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(FollowPath);
+                bird->TaskIndex = 1;
                 BoidFly(entity, context);
             }
             else bird->TaskDuration -= context->deltaTime;
@@ -121,7 +152,6 @@ public class Bird : EntityAuthoring
         [BurstCompile]
         public static unsafe void BoidFly(Entity* entity, EntityJob.Context* context){
             BirdEntity* bird = (BirdEntity*)entity->obj;
-            bird->TaskIndex = 1;
 
             if(bird->TaskDuration <= 0) {
                 FindGround(entity, context);
@@ -208,7 +238,7 @@ public class Bird : EntityAuthoring
             ref TerrainColliderJob tCollider = ref bird->tCollider;
 
             //Entity has fallen off path
-            if(math.any((uint3)math.abs(tCollider.transform.position - finder.currentPos) > entity->info.profile.bounds)) finder.hasPath = false;
+            if(math.any(math.abs(tCollider.transform.position - finder.currentPos) > entity->info.profile.bounds)) finder.hasPath = false;
             //Next point is unreachable
             else if(!EntityJob.VerifyProfile(nextPos, entity->info.profile, *context)) finder.hasPath = false;
             //if it's a moving target check that the current point is closer than the destination
@@ -216,12 +246,11 @@ public class Bird : EntityAuthoring
             else if(finder.currentInd == finder.pathLength) finder.hasPath = false;
             if(!finder.hasPath) {
                 ReleasePath(bird);
-                if(bird->TaskIndex == 1) 
+                if(bird->TaskIndex == 1) {
                     BoidFly(entity, context);
-                else {
+                } else {
                     bird->TaskIndex = 0;
                     bird->TaskDuration = settings.flight.AverageIdleTime * bird->random.NextFloat(0f, 2f);
-                    bird->Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
                 }
 
                 return;
@@ -252,9 +281,9 @@ public class Bird : EntityAuthoring
         }
 
         [BurstCompile]
-        private static unsafe void ReleasePath(BirdEntity* rabbit){
-            if(rabbit->pathFinder.hasPath) UnsafeUtility.Free(rabbit->pathFinder.path, Unity.Collections.Allocator.Persistent);
-            rabbit->pathFinder.hasPath = false;
+        private static unsafe void ReleasePath(BirdEntity* bird){
+            if(bird->pathFinder.hasPath) UnsafeUtility.Free(bird->pathFinder.path, Unity.Collections.Allocator.Persistent);
+            bird->pathFinder.hasPath = false;
         }
 
         [BurstCompile]

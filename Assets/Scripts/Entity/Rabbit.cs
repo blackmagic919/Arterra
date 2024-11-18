@@ -7,6 +7,7 @@ using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using System;
 using System.Threading.Tasks;
+using Unity.Collections;
 
 [CreateAssetMenu(menuName = "Entity/Rabbit")]
 public class Rabbit : EntityAuthoring
@@ -50,13 +51,28 @@ public class Rabbit : EntityAuthoring
         public int3 GCoord; 
         public uint TaskIndex;
         public float TaskDuration;
-        private FunctionPointer<IEntity.UpdateDelegate> Task;
         public PathFinder.PathInfo pathFinder;
         public TerrainColliderJob tCollider;
         public Unity.Mathematics.Random random;
+
+        public static readonly SharedStatic<NativeArray<FunctionPointer<IEntity.UpdateDelegate>>> _task = SharedStatic<NativeArray<FunctionPointer<IEntity.UpdateDelegate>>>.GetOrCreate<RabbitSetting, NativeArray<FunctionPointer<IEntity.UpdateDelegate>>>();
         public static readonly SharedStatic<RabbitSetting> _settings = SharedStatic<RabbitSetting>.GetOrCreate<RabbitEntity, RabbitSetting>();
         public static RabbitSetting settings{get => _settings.Data; set => _settings.Data = value;}
-        public readonly void Preset(IEntitySetting setting) => settings = (RabbitSetting)setting;
+        public static NativeArray<FunctionPointer<IEntity.UpdateDelegate>> Task{get => _task.Data; set => _task.Data = value;}
+        public unsafe readonly void Preset(IEntitySetting setting){
+            settings = (RabbitSetting)setting;
+            if(Task != default && Task.IsCreated) return;
+            var states = new NativeArray<FunctionPointer<IEntity.UpdateDelegate>>(3, Allocator.Persistent);
+            states[0] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
+            states[1] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(GeneratePath);
+            states[2] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(FollowPath);
+            Task = states;
+        }
+        public unsafe readonly void Unset(){ 
+            if(Task != default) Task.Dispose(); 
+            Task = default;
+        }
+
         public unsafe IntPtr Initialize(ref Entity entity, int3 GCoord)
         {
             entity._Update = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Update);
@@ -71,20 +87,36 @@ public class Rabbit : EntityAuthoring
 
             //Start by Idling
             TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
-            Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
+            TaskIndex = 0;
 
             Marshal.StructureToPtr(this, entity.obj, false);
             IntPtr nEntity = Marshal.AllocHGlobal(Marshal.SizeOf(entity));
             Marshal.StructureToPtr(entity, nEntity, false);
             return nEntity;
         }
+
+        public unsafe IntPtr Deserialize(ref Entity entity, out int3 GCoord)
+        {
+            entity._Update = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Update);
+            entity._Disable = BurstCompiler.CompileFunctionPointer<IEntity.DisableDelegate>(Disable);
+            entity.obj = Marshal.AllocHGlobal(Marshal.SizeOf(this));
+
+            GCoord = this.GCoord;
+
+            Marshal.StructureToPtr(this, entity.obj, false);
+            IntPtr nEntity = Marshal.AllocHGlobal(Marshal.SizeOf(entity));
+            Marshal.StructureToPtr(entity, nEntity, false);
+            return nEntity;
+        }
+
+
         [BurstCompile]
         public unsafe static void Update(Entity* entity, EntityJob.Context* context)
         {
             if(!entity->active) return;
             RabbitEntity* rabbit = (RabbitEntity*)entity->obj;
             rabbit->GCoord = (int3)rabbit->tCollider.transform.position;
-            rabbit->Task.Invoke(entity, context);
+            Task[(int)rabbit->TaskIndex].Invoke(entity, context);
 
             if(rabbit->tCollider.IsGrounded(settings.movement.GroundStickDist, settings.collider, context->mapContext))
                 rabbit->tCollider.velocity.y *= 1 - settings.movement.friction;
@@ -98,7 +130,6 @@ public class Rabbit : EntityAuthoring
             RabbitEntity* rabbit = (RabbitEntity*)entity->obj;
             if(rabbit->TaskDuration <= 0){
                 rabbit->TaskIndex = 1;
-                rabbit->Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(GeneratePath);
             }
             else rabbit->TaskDuration -= context->deltaTime;
         }
@@ -116,7 +147,6 @@ public class Rabbit : EntityAuthoring
                 nPath.hasPath = true;
                 rabbit->pathFinder = nPath;
                 rabbit->TaskIndex = 2;
-                rabbit->Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(FollowPath);
             }
         }
 
@@ -131,7 +161,7 @@ public class Rabbit : EntityAuthoring
             ref TerrainColliderJob tCollider = ref rabbit->tCollider;
 
             //Entity has fallen off path
-            if(math.any((uint3)math.abs(tCollider.transform.position - finder.currentPos) > entity->info.profile.bounds)) finder.hasPath = false;
+            if(math.any(math.abs(tCollider.transform.position - finder.currentPos) > entity->info.profile.bounds)) finder.hasPath = false;
             //Next point is unreachable
             else if(!EntityJob.VerifyProfile(nextPos, entity->info.profile, *context)) finder.hasPath = false;
             //if it's a moving target check that the current point is closer than the destination
@@ -142,11 +172,10 @@ public class Rabbit : EntityAuthoring
 
                 rabbit->TaskIndex = 0;
                 rabbit->TaskDuration = settings.movement.AverageIdleTime * rabbit->random.NextFloat(0f, 2f);
-                rabbit->Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
                 return;
             }
 
-            if(math.all(rabbit->GCoord == nextPos)){
+            if(math.all(math.abs(rabbit->GCoord - nextPos) <= 1)){
                 finder.currentPos = nextPos;
                 finder.currentInd++;
             } else {

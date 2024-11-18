@@ -54,7 +54,7 @@ public class CraftingMenuController : UpdateTask
         craftingData = new MapData[numMapTotal];
         Rendering.craftingBuffer = new ComputeBuffer(numMapTotal, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
 
-        Recipe.ConstructTree(settings.Recipes.Reg.value.ToArray().Select(x => x.value.Value).ToArray());
+        Recipe.ConstructTree(settings.Recipes.Reg.value.ToArray().Select(x => x.Value).ToArray());
         InitializeCraftingArea();
         InitializeSelections();
         craftingMenu.SetActive(false);
@@ -254,6 +254,7 @@ public class CraftingMenuController : UpdateTask
         if(brushStrength == 0) return pointInfo;
 
         InventoryController.Inventory.Slot selected = InventoryController.Selected;
+        if(selected.IsItem || selected.IsNull) return pointInfo;
         if(pointInfo.IsGaseous && pointInfo.material != selected.Index){
             InventoryController.AddMaterial(new InventoryController.Inventory.Slot{
                 IsItem = false,

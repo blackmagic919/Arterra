@@ -4,10 +4,12 @@ using Unity.Mathematics;
 using System;
 using System.Collections.Concurrent;
 using System.Numerics;
+using UnityEngine.Events;
 
 public class OctreeTerrain : MonoBehaviour
 {
     public static readonly int[] taskLoadTable = { 1, 2, 5, 2, 8, 0 };
+    public static UnityEvent OrderedDisable;
     public static Queue<UpdateTask> MainLoopUpdateTasks;
     public static Queue<UpdateTask> MainLateUpdateTasks;
     public static Queue<UpdateTask> MainFixedUpdateTasks;
@@ -24,7 +26,6 @@ public class OctreeTerrain : MonoBehaviour
     public static int3 vChunkPos => ChunkPos * s.mapChunkSize + s.mapChunkSize/2;
     private static int rootDim => s.Balance == 1 ? 3 : 2;
     // Start is called before the first frame update
-
     public int Layer = 1;
 
     private void OnEnable(){
@@ -32,6 +33,7 @@ public class OctreeTerrain : MonoBehaviour
         origin = this.transform; //This means origin in Unity's scene heiharchy
         octree = new Octree(s.MaxDepth, s.Balance, s.MinChunkRadius);
         chunks = new ConstrainedLL<TerrainChunk>((uint)(Octree.GetNumChunks(s.MaxDepth, s.Balance, s.MinChunkRadius) + 1));
+        OrderedDisable = new UnityEvent();
         UpdateViewerPos();
 
         MainLoopUpdateTasks = new Queue<UpdateTask>();
@@ -80,6 +82,8 @@ public class OctreeTerrain : MonoBehaviour
         GenerationPreset.Release();
         AtmospherePass.Release();
         WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.Release();
+
+        OrderedDisable.Invoke();
     }
 
     /*

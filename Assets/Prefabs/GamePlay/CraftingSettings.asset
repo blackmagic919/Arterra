@@ -21,9 +21,9 @@ MonoBehaviour:
   Recipes:
     Reg:
       value:
-      - value:
-          Name: Plank
-          Value:
+      - Name: Plank
+        _value:
+          value:
             Names:
               value:
               - Plank
@@ -50,10 +50,10 @@ MonoBehaviour:
               isDirty: 0
             result:
               data: 1073742844
-        isDirty: 0
-      - value:
-          Name: Hardwood
-          Value:
+          isDirty: 0
+      - Name: Hardwood
+        _value:
+          value:
             Names:
               value:
               - Hardwood
@@ -80,10 +80,10 @@ MonoBehaviour:
               isDirty: 0
             result:
               data: 1073742015
-        isDirty: 0
-      - value:
-          Name: Furnace
-          Value:
+          isDirty: 0
+      - Name: Furnace
+        _value:
+          value:
             Names:
               value:
               - Furnace
@@ -110,10 +110,10 @@ MonoBehaviour:
               isDirty: 0
             result:
               data: 1073742079
-        isDirty: 0
-      - value:
-          Name: Chest
-          Value:
+          isDirty: 0
+      - Name: Chest
+        _value:
+          value:
             Names:
               value:
               - Chest
@@ -140,10 +140,10 @@ MonoBehaviour:
               isDirty: 0
             result:
               data: 1073741952
-        isDirty: 0
-      - value:
-          Name: Sandstone
-          Value:
+          isDirty: 0
+      - Name: Sandstone
+        _value:
+          value:
             Names:
               value:
               - Sandstone
@@ -170,10 +170,10 @@ MonoBehaviour:
               isDirty: 0
             result:
               data: 1073742079
-        isDirty: 0
-      - value:
-          Name: Compost
-          Value:
+          isDirty: 0
+      - Name: Compost
+        _value:
+          value:
             Names:
               value:
               - Compost
@@ -200,10 +200,10 @@ MonoBehaviour:
               isDirty: 0
             result:
               data: 1073742079
-        isDirty: 0
-      - value:
-          Name: Cement
-          Value:
+          isDirty: 0
+      - Name: Cement
+        _value:
+          value:
             Names:
               value:
               - Cement
@@ -231,10 +231,10 @@ MonoBehaviour:
               isDirty: 0
             result:
               data: 1073742334
-        isDirty: 0
-      - value:
-          Name: Brick
-          Value:
+          isDirty: 0
+      - Name: Brick
+        _value:
+          value:
             Names:
               value:
               - Brick
@@ -262,5 +262,5 @@ MonoBehaviour:
               isDirty: 0
             result:
               data: 1073742079
-        isDirty: 0
+          isDirty: 0
       isDirty: 0

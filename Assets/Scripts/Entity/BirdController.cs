@@ -22,6 +22,7 @@ public class BirdController : EntityController
         int chunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         animator = this.GetComponent<Animator>();
         this.transform.position = CPUDensityManager.GSToWS(GCoord - settings.collider.offset) + (float3)Vector3.up * 1;
+        base.Initialize(Entity);
     }
 
     public unsafe void FixedUpdate(){
@@ -50,10 +51,7 @@ public class BirdController : EntityController
         }
     }
 
-    public override void OnDisable()
-    {
-        Release();
-    }
+    public override void Disable() {Release(); }
 
     private unsafe void Release(){
         if(!active) return;

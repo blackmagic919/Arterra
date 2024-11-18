@@ -20,15 +20,15 @@ public static class RegisterBuilder{
 [Serializable]
 public struct Registry<T> : IRegister
 {
-    public Option<List<Option<Pair> > > Reg;
+    public Option<List<Pair > > Reg;
     [UISetting(Ignore = true)] 
     private Dictionary<string, int> Index;
-    public T[] SerializedData => Reg.value.Select(x => x.value.Value).ToArray();
+    public T[] SerializedData => Reg.value.Select(x => x.Value).ToArray();
 
     public void Construct(){
         Index = new Dictionary<string, int>();
         for(int i = 0; i < Reg.value.Count; i++){
-            Index.Add(Reg.value[i].value.Name, i);
+            Index.Add(Reg.value[i].Name, i);
         }
     }
 
@@ -36,16 +36,20 @@ public struct Registry<T> : IRegister
         return Index[name];
     }
     public readonly string RetrieveName(int index){
-        return Reg.value[index].value.Name;
+        return Reg.value[index].Name;
     }
 
     public readonly T Retrieve(string name){
-        return Reg.value[Index[name]].value.Value;
+        return Reg.value[Index[name]].Value;
+    }
+    public readonly T Retrieve(int index){
+        return Reg.value[index].Value;
     }
     [Serializable]
     public struct Pair{
         public string Name;
-        public T Value;
+        public Option<T> _value;
+        public T Value => _value.value;
     }
 }
 

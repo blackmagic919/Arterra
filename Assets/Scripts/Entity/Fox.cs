@@ -7,6 +7,7 @@ using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using System;
 using System.Threading.Tasks;
+using Unity.Collections;
 
 [CreateAssetMenu(menuName = "Entity/Fox")]
 public class Fox : EntityAuthoring
@@ -50,13 +51,28 @@ public class Fox : EntityAuthoring
         public int3 GCoord; 
         public uint TaskIndex;
         public float TaskDuration;
-        private FunctionPointer<IEntity.UpdateDelegate> Task;
         public PathFinder.PathInfo pathFinder;
         public TerrainColliderJob tCollider;
         public Unity.Mathematics.Random random;
+
+        public static readonly SharedStatic<NativeArray<FunctionPointer<IEntity.UpdateDelegate>>> _task = SharedStatic<NativeArray<FunctionPointer<IEntity.UpdateDelegate>>>.GetOrCreate<FoxSetting, NativeArray<FunctionPointer<IEntity.UpdateDelegate>>>();
         public static readonly SharedStatic<FoxSetting> _settings = SharedStatic<FoxSetting>.GetOrCreate<FoxSetting, FoxSetting>();
+        public static NativeArray<FunctionPointer<IEntity.UpdateDelegate>> Task{get => _task.Data; set => _task.Data = value;}
         public static FoxSetting settings{get => _settings.Data; set => _settings.Data = value;}
-        public readonly void Preset(IEntitySetting setting) => settings = (FoxSetting)setting;
+        public unsafe readonly void Preset(IEntitySetting setting){
+            settings = (FoxSetting)setting;
+            if(Task != default && Task.IsCreated) return;
+            var states = new NativeArray<FunctionPointer<IEntity.UpdateDelegate>>(3, Allocator.Persistent);
+            states[0] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
+            states[1] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(GeneratePath);
+            states[2] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(FollowPath);
+            Task = states;
+        }
+        public unsafe readonly void Unset(){
+            if(Task != default) Task.Dispose(); 
+            Task = default; 
+        }
+
         public unsafe IntPtr Initialize(ref Entity entity, int3 GCoord)
         {
             entity._Update = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Update);
@@ -71,20 +87,36 @@ public class Fox : EntityAuthoring
 
             //Start by Idling
             TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
-            Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
+            TaskIndex = 0;
 
             Marshal.StructureToPtr(this, entity.obj, false);
             IntPtr nEntity = Marshal.AllocHGlobal(Marshal.SizeOf(entity));
             Marshal.StructureToPtr(entity, nEntity, false);
             return nEntity;
         }
+
+        public unsafe IntPtr Deserialize(ref Entity entity, out int3 GCoord)
+        {
+            entity._Update = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Update);
+            entity._Disable = BurstCompiler.CompileFunctionPointer<IEntity.DisableDelegate>(Disable);
+            entity.obj = Marshal.AllocHGlobal(Marshal.SizeOf(this));
+
+            GCoord = this.GCoord;
+
+            Marshal.StructureToPtr(this, entity.obj, false);
+            IntPtr nEntity = Marshal.AllocHGlobal(Marshal.SizeOf(entity));
+            Marshal.StructureToPtr(entity, nEntity, false);
+            return nEntity;
+        }
+
+
         [BurstCompile]
         public unsafe static void Update(Entity* entity, EntityJob.Context* context)
         {
             if(!entity->active) return;
             FoxEntity* fox = (FoxEntity*)entity->obj;
             fox->GCoord = (int3)fox->tCollider.transform.position;
-            fox->Task.Invoke(entity, context);
+            Task[(int)fox->TaskIndex].Invoke(entity, context);
 
             if(fox->tCollider.IsGrounded(settings.movement.GroundStickDist, settings.collider, context->mapContext))
                 fox->tCollider.velocity.y *= 1 - settings.movement.friction;
@@ -98,7 +130,6 @@ public class Fox : EntityAuthoring
             FoxEntity* fox = (FoxEntity*)entity->obj;
             if(fox->TaskDuration <= 0){
                 fox->TaskIndex = 1;
-                fox->Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(GeneratePath);
             }
             else fox->TaskDuration -= context->deltaTime;
         }
@@ -116,7 +147,6 @@ public class Fox : EntityAuthoring
                 nPath.hasPath = true;
                 fox->pathFinder = nPath;
                 fox->TaskIndex = 2;
-                fox->Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(FollowPath);
             }
         }
 
@@ -131,7 +161,7 @@ public class Fox : EntityAuthoring
             ref TerrainColliderJob tCollider = ref fox->tCollider;
 
             //Entity has fallen off path
-            if(math.any((uint3)math.abs(tCollider.transform.position - finder.currentPos) > entity->info.profile.bounds)) finder.hasPath = false;
+            if(math.any(math.abs(tCollider.transform.position - finder.currentPos) > entity->info.profile.bounds)) finder.hasPath = false;
             //Next point is unreachable
             else if(!EntityJob.VerifyProfile(nextPos, entity->info.profile, *context)) finder.hasPath = false;
             //if it's a moving target check that the current point is closer than the destination
@@ -142,11 +172,10 @@ public class Fox : EntityAuthoring
 
                 fox->TaskIndex = 0;
                 fox->TaskDuration = settings.movement.AverageIdleTime * fox->random.NextFloat(0f, 2f);
-                fox->Task = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
                 return;
             }
 
-            if(math.all(fox->GCoord == nextPos)){
+            if(math.all(math.abs(fox->GCoord - nextPos) <= 1)){
                 finder.currentPos = nextPos;
                 finder.currentInd++;
             } else {
