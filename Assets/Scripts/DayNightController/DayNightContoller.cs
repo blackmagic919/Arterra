@@ -1,58 +1,51 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using TMPro;
-using UnityEditor;
+using UnityEngine.Animations;
+using static OctreeTerrain;
 
-public class DayNightContoller : MonoBehaviour
+public class DayNightContoller : UpdateTask
 {
-    [SerializeField]
-    private float timeMultiplier;
-    [SerializeField]
-    private float startHour;
+    [Serializable]
+    public struct Settings{
+        public float timeMultiplier;
+        public float startHour;
+        public float sunriseHour;
+        public float sunsetHour;
+        public float maxSunIntensity;
+        public float maxMoonIntensity;
+        [UISetting(Ignore = true)]
+        public Option<AnimationCurve> sunIntensityCurve;
+        [UISetting(Ignore = true)]
+        public Option<AnimationCurve> moonIntensityCurve;
+    }
+    private static Settings s;
 
-    [SerializeField]
-    private TextMeshProUGUI timeText;
-
-    [SerializeField]
-    private float sunriseHour;
-    [SerializeField]
-    private float sunsetHour;
-
-    [SerializeField]
-    private Light Sun;
-    [SerializeField]
-    private AnimationCurve sunIntensityCurve;
-    [SerializeField]
-    private float maxSunIntensity;
-
-    [SerializeField]
-    private Light Moon;
-    [SerializeField]
-    private AnimationCurve moonIntensityCurve;
-    [SerializeField]
-    private float maxMoonIntensity;
-
-    private DateTime currentTime;
-
-    private TimeSpan sunriseTime;
-    private TimeSpan sunsetTime;
+    public static DateTime currentTime;
+    private static TimeSpan sunriseTime;
+    private static TimeSpan sunsetTime;
+    private static Light Sun;
+    private static Light Moon;
 
     // Start is called before the first frame update
-    void Start()
+    public static void Initialize()
     {
-        currentTime = DateTime.Now.Date + TimeSpan.FromHours(startHour);
+        Sun = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Sun")).GetComponent<Light>();
+        Moon = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Moon")).GetComponent<Light>();
+        var constraintSource = new ConstraintSource { sourceTransform = OctreeTerrain.viewer, weight = 1 };
+        Sun.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
+        Moon.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
+        s = WorldStorageHandler.WORLD_OPTIONS.GamePlay.DayNightCycle;
 
-        sunriseTime = TimeSpan.FromHours(sunriseHour);
-        sunsetTime = TimeSpan.FromHours(sunsetHour);
+        sunriseTime = TimeSpan.FromHours(s.sunriseHour);
+        sunsetTime = TimeSpan.FromHours(s.sunsetHour);
         TimeOfDay.Initialize(sunriseTime, sunsetTime);
+        MainLoopUpdateTasks.Enqueue(new DayNightContoller{active = true});
     }
 
     // Update is called once per frame
-    void Update()
+    public override void Update(MonoBehaviour mono)
     {
-        UpdateTimeOfDay();
+        currentTime = currentTime.AddSeconds(Time.deltaTime * s.timeMultiplier);
         TimeOfDay.UpdateProgress(currentTime.TimeOfDay);
 
         float progress = TimeOfDay.GetProgress();
@@ -60,22 +53,13 @@ public class DayNightContoller : MonoBehaviour
         float rotation = Mathf.Lerp(0, 360, progress);
         Sun.transform.rotation = Quaternion.AngleAxis(rotation, Vector3.right);
         Moon.transform.rotation = Quaternion.AngleAxis((rotation + 180)%360, Vector3.right);
-
         UpdateLightSettings(progress);
-    }
-
-    private void UpdateTimeOfDay()
-    {
-        currentTime = currentTime.AddSeconds(Time.deltaTime * timeMultiplier);
-
-        if (timeText != null)
-            timeText.text = currentTime.ToString("HH:mm");
     }
 
     private void UpdateLightSettings(float progress)
     {
-        Sun.intensity = Mathf.Lerp(0, maxSunIntensity, sunIntensityCurve.Evaluate(progress));
-        Moon.intensity = Mathf.Lerp(0, maxMoonIntensity, moonIntensityCurve.Evaluate(progress));
+        Sun.intensity = Mathf.Lerp(0, s.maxSunIntensity, s.sunIntensityCurve.value.Evaluate(progress));
+        Moon.intensity = Mathf.Lerp(0, s.maxMoonIntensity, s.moonIntensityCurve.value.Evaluate(progress));
     }
 
     

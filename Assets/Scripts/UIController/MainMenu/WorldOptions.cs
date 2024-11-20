@@ -34,8 +34,11 @@ public sealed class UISetting : Attribute{
 [CreateAssetMenu(menuName = "Generation/WorldOptions")]
 public class WorldOptions : ScriptableObject{
     public int seed;
+    [UISetting(Alias = "Quality")]
     public Option<QualitySettings> _Quality;
+    [UISetting(Alias = "Generation")]
     public Option<GenerationSettings> _Generation;
+    [UISetting(Alias = "Gameplay")]
     public Option<GamePlaySettings> _GamePlay;
     [UISetting(Ignore = true)]
     public Option<SystemSettings> _System;
@@ -76,6 +79,7 @@ public class WorldOptions : ScriptableObject{
         public Option<RigidFPController.RigidFPControllerSettings> Movement;
         public Option<CraftingMenuSettings> Crafting;
         public Option<InventoryController.Settings> Inventory;
+        public Option<DayNightContoller.Settings> DayNightCycle;
     }
 
     [Serializable]

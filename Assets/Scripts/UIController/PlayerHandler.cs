@@ -1,56 +1,68 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using System.IO;
-using NSerializable;
+using static OctreeTerrain;
 
-public class PlayerHandler : MonoBehaviour
+
+public class PlayerHandler : UpdateTask
 {
+    public static GameObject player;
+    public static GameObject UIHandle;
     public static TerraformController terrController;
-    private RigidFPController PlayerController;
-    private PlayerData info;
-    private bool active = false;
-    // Start is called before the first frame update
-    public static PlayerHandler Instance;
-
-    public void Activate(){
-        active = true;
-        PlayerController.ActivateCharacter();
-    }
-    void OnEnable(){
-        PlayerController = this.GetComponent<RigidFPController>();
+    private static RigidFPController PlayerController;
+    private static PlayerData info;
+    public static void Initialize(){
+        UIHandle = GameObject.Find("MainUI");
+        player = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/PlayerController"));
+        PlayerController = player.GetComponent<RigidFPController>();
+        GameObject.DontDestroyOnLoad(player.gameObject); //This handler will destroy the player
 
         info = LoadPlayerData();
-        transform.SetPositionAndRotation(info.position.GetVector(), info.rotation.GetQuaternion());
+        player.transform.SetPositionAndRotation(info.position, info.rotation);
         PlayerController.Initialize(WorldStorageHandler.WORLD_OPTIONS.GamePlay.Movement.value);
         
         InventoryController.Primary = info.PrimaryI;
         InventoryController.Secondary = info.SecondaryI;
         terrController = new TerraformController();
+        DayNightContoller.currentTime = info.currentTime;
+
+        MainLoopUpdateTasks.Enqueue(new PlayerHandler{active = true});
+        viewer = player.transform; //set octree's viewer to current player
+
+        LoadingHandler.Initialize();
+        PauseHandler.Initialize();
+        InventoryController.Initialize();
+        DayNightContoller.Initialize();
     }
 
     // Update is called once per frame
-    void Update() { 
-        if(OctreeTerrain.RequestQueue.IsEmpty && !active) Activate();
+    public override void Update(MonoBehaviour mono) { 
         if(!active) return;
-        
-        terrController.Update();
+        if(OctreeTerrain.RequestQueue.IsEmpty) {
+            PlayerController.ActivateCharacter();
+            active = false;
+        }
     }
 
-    void OnDisable(){
-        info.position = new Vec3(transform.position);
-        info.rotation = new Vec4(transform.rotation);
+    public static void Release(){
+        info.position = player.transform.position;
+        info.rotation = player.transform.rotation;
 
         info.PrimaryI = InventoryController.Primary;
         info.SecondaryI = InventoryController.Secondary;
+        info.currentTime = DayNightContoller.currentTime;
 
         InputPoller.SetCursorLock(false); //Release Cursor Lock
         Task.Run(() => SavePlayerData(info));
-        active = false;
+
+        InventoryController.Release();
+        GameObject.Destroy(player);
     }
     
 
-    async Task SavePlayerData(PlayerData playerInfo){
+    static async Task SavePlayerData(PlayerData playerInfo){
         playerInfo.Serialize();
         string path = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
         using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)){
@@ -61,16 +73,9 @@ public class PlayerHandler : MonoBehaviour
         };
     }
 
-     PlayerData LoadPlayerData(){
+    static PlayerData LoadPlayerData(){
         string path = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
-        if(!File.Exists(path)) {
-            return new PlayerData{
-                position = new Vec3((new Vector3(0, 0, 0) + Vector3.up * (CPUNoiseSampler.SampleTerrainHeight(new (0, 0, 0)) + 5)) * WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.lerpScale),
-                rotation = new Vec4(Quaternion.LookRotation(Vector3.forward, Vector3.up)),
-                PrimaryI = new InventoryController.Inventory(WorldStorageHandler.WORLD_OPTIONS.GamePlay.Inventory.value.PrimarySlotCount),
-                SecondaryI = new InventoryController.Inventory(WorldStorageHandler.WORLD_OPTIONS.GamePlay.Inventory.value.SecondarySlotCount)
-            };
-        }
+        if(!File.Exists(path)) { return PlayerData.GetDefault(); }
 
         string data = System.IO.File.ReadAllText(path);
         PlayerData playerInfo = Newtonsoft.Json.JsonConvert.DeserializeObject<PlayerData>(data);
@@ -79,11 +84,12 @@ public class PlayerHandler : MonoBehaviour
     }
 
     struct PlayerData{
-        public Vec3 position;
-        public Vec4 rotation;
+        public Vector3 position;
+        public Quaternion rotation;
         public List<string> SerializedNames;
         public InventoryController.Inventory PrimaryI;
         public InventoryController.Inventory SecondaryI;
+        public DateTime currentTime;
 
         public void Serialize(){
             //Marks updated slots dirty so they are rendered properlly when deserialized
@@ -129,6 +135,16 @@ public class PlayerHandler : MonoBehaviour
                 int regInd = SecondaryI.Info[i].IsItem ? 1 : 0;
                 SecondaryI.Info[i].Index = registries[regInd].RetrieveIndex(SerializedNames[SecondaryI.Info[i].Index]);
             }
+        }
+
+        public static PlayerData GetDefault(){
+            return new PlayerData{
+                position = new Vector3(0, 0, 0) + (CPUNoiseSampler.SampleTerrainHeight(new (0, 0, 0)) + 5) * WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.lerpScale * Vector3.up,
+                rotation = Quaternion.LookRotation(Vector3.forward, Vector3.up),
+                PrimaryI = new InventoryController.Inventory(WorldStorageHandler.WORLD_OPTIONS.GamePlay.Inventory.value.PrimarySlotCount),
+                SecondaryI = new InventoryController.Inventory(WorldStorageHandler.WORLD_OPTIONS.GamePlay.Inventory.value.SecondarySlotCount),
+                currentTime = DateTime.Now.Date + TimeSpan.FromHours(WorldStorageHandler.WORLD_OPTIONS.GamePlay.DayNightCycle.value.startHour)
+            };
         }
     }
 }

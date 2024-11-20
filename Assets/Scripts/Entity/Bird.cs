@@ -24,7 +24,7 @@ public class Bird : EntityAuthoring
     public override Entity.Info.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
     public override ProfileE[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
 
-    [System.Serializable]
+    [Serializable]
     public struct BirdSetting : IEntitySetting{
         public Movement movement;
         public Flight flight;

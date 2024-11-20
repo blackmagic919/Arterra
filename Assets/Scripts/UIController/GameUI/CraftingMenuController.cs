@@ -47,7 +47,7 @@ public class CraftingMenuController : UpdateTask
     public static void Initialize()
     {
         settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.Crafting.value;
-        craftingMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/CraftingMenu"), UIOrigin.UIHandle.transform);
+        craftingMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/CraftingMenu"), UIHandle.transform);
         GridWidth = settings.GridWidth;
 
         int numMapTotal = GridCount * (settings.NumMaxSelections + 1);

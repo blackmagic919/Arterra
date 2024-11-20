@@ -36,7 +36,7 @@ public unsafe struct Entity{
     public struct Info{
         public ProfileInfo profile;
         public uint SpatialId;
-        public uint entityId;
+        public JGuid entityId;
         public uint entityType;
 
         //Node in chunk's LL for all entity's belonging to chunk
@@ -70,6 +70,53 @@ public struct ProfileE {
     public readonly bool AndFlag => (flags & 0x1) != 0;
     public readonly bool OrFlag => (flags & 0x2) != 0;
     public readonly bool ExFlag => (flags & 0x4) != 0;
+}
+
+[BurstCompile]
+public struct JGuid{
+    [NativeDisableUnsafePtrRestriction]
+    public unsafe fixed byte GuidData[16];
+    public static implicit operator JGuid (Guid guid){
+        JGuid jGuid = new JGuid();
+        unsafe{
+            byte* data = jGuid.GuidData;
+            byte[] bytes = guid.ToByteArray();
+            for(int i = 0; i < 16; i++) data[i] = bytes[i];
+        }
+        return jGuid;
+    }
+
+    public static implicit operator Guid (JGuid jGuid){
+        Guid guid;
+        unsafe{
+            byte* data = jGuid.GuidData;
+            byte[] bytes = new byte[16];
+            for(int i = 0; i < 16; i++) bytes[i] = data[i];
+            guid = new Guid(bytes);
+        }
+        return guid;
+    }
+
+    public static implicit operator JGuid (string guid){
+        JGuid jGuid = new JGuid();
+        unsafe{
+            byte* data = jGuid.GuidData;
+            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(guid);
+            for(int i = 0; i < 16; i++) data[i] = bytes[i];
+        }
+        return jGuid;
+    }
+
+    public static implicit operator string (JGuid jGuid){
+        string guid;
+        unsafe{
+            byte* data = jGuid.GuidData;
+            byte[] bytes = new byte[16];
+            for(int i = 0; i < 16; i++) bytes[i] = data[i];
+            guid = new Guid(bytes).ToString();
+        }
+        return guid;
+    }    
 }
 
 #if UNITY_EDITOR

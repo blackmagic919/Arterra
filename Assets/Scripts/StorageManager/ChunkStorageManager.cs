@@ -12,7 +12,6 @@ using static CPUDensityManager;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Newtonsoft.Json;
-using UnityEngine;
 using System;
 
 /*
@@ -274,7 +273,7 @@ public struct ChunkHeader{
     public List<string> RegisterNames;
 }
 
-public class EntitySerial{
+public struct EntitySerial{
     public string type;
     public IEntity data;
 }

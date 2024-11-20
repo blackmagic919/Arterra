@@ -24,7 +24,7 @@ public class LoadingHandler : UpdateTask
 
     //Please improve loading screen one day
     public static void Initialize(){
-        LoadingScreen = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Loading"), UIOrigin.UIHandle.transform);
+        LoadingScreen = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Loading"), PlayerHandler.UIHandle.transform);
         Background = LoadingScreen.transform.GetComponent<Image>();
         slider = LoadingScreen.transform.GetChild(0).GetComponent<Slider>();
         taskText = LoadingScreen.transform.GetChild(1).GetComponent<TextMeshProUGUI>();

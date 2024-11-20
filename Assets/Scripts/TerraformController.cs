@@ -4,7 +4,7 @@ using UnityEngine;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
 using static CPUDensityManager;
-using NSerializable;
+using static OctreeTerrain;
 
 
 [Serializable]
@@ -14,7 +14,7 @@ public class TerraformSettings : ICloneable{
     public float maxTerraformDistance = 60;
 
     public float CursorSize = 2;
-    public Vec4 CursorColor = new (0, 1, 0, 0.5f);
+    public Color CursorColor;
     public bool ShowCursor = true;
 
     public object Clone(){
@@ -26,7 +26,7 @@ public class TerraformSettings : ICloneable{
     }
 }
 
-public class TerraformController
+public class TerraformController : UpdateTask
 {
     private TerraformSettings settings;
     private bool shiftPressed = false;
@@ -46,6 +46,7 @@ public class TerraformController
     {
         settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.Terraforming.value;
         cam = Camera.main.transform;
+        active = true;
 
         IsoLevel = Mathf.RoundToInt(WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.IsoLevel * 255);
         SetUpOverlay();
@@ -54,10 +55,11 @@ public class TerraformController
         InputPoller.AddBinding(new InputPoller.Binding("Place Liquid", "GamePlay", InputPoller.BindPoll.Up, (_) => shiftPressed = false));
         InputPoller.AddBinding(new InputPoller.Binding("Place Terrain", "GamePlay", InputPoller.BindPoll.Hold, PlaceTerrain));
         InputPoller.AddBinding(new InputPoller.Binding("Remove Terrain", "GamePlay", InputPoller.BindPoll.Hold, RemoveTerrain));
+        MainLoopUpdateTasks.Enqueue(this);
     }
 
 
-    public void Update()
+    public override void Update(MonoBehaviour mono)
     {
         RayTest();
         DrawOverlays();
@@ -170,7 +172,7 @@ public class TerraformController
             matProps = new MaterialPropertyBlock(),
             renderingLayerMask = 1,
         }; 
-        rp.matProps.SetColor("_Color", settings.CursorColor.GetColor());
+        rp.matProps.SetColor("_Color", settings.CursorColor);
         Matrix4x4 transform = math.mul(Matrix4x4.Translate(GSToWS(hitPoint)), Matrix4x4.Scale(settings.CursorSize * Vector3.one));
         Graphics.RenderMesh(rp, SphereMesh, 0, transform);
     }

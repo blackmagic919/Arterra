@@ -6,7 +6,6 @@ using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using NSerializable;
 
 
 public class InventoryController : UpdateTask
@@ -56,7 +55,7 @@ public class InventoryController : UpdateTask
 
     public static void Initialize(){
         settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.Inventory.value;
-        GameObject Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory"), UIOrigin.UIHandle.transform);
+        GameObject Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory"), PlayerHandler.UIHandle.transform);
         PrimaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(0).gameObject);
         SecondaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(1).gameObject);
         PrimaryDisplay = new SlotDisplay[settings.PrimarySlotCount];
@@ -232,7 +231,7 @@ public class InventoryController : UpdateTask
         ReflectInventory(PrimaryDisplay, Primary); 
         ReflectInventory(SecondaryDisplay, Secondary);
         CursorDisplay.Object.transform.position = Input.mousePosition;
-        PrimaryDisplay[SelectedIndex].Icon.color = settings.SelectedColorC;
+        PrimaryDisplay[SelectedIndex].Icon.color = settings.SelectedColor;
     }
 
     private static void ReflectInventory(SlotDisplay[] display, Inventory inventory){
@@ -242,8 +241,9 @@ public class InventoryController : UpdateTask
             if(slot.IsNull){
                 disp.Icon.sprite = null;
                 disp.Amount.text = "";
-                disp.Icon.color = settings.BaseColorC;
+                disp.Icon.color = settings.BaseColor;
             } else {
+                if(slot.Index >= textures.Length || slot.Index < 0) Debug.Log(slot.Index);
                 disp.Icon.sprite = textures[(int)slot.Index].texture.value;
                 disp.Icon.color = Color.white; //1,1,1,1
                 disp.Amount.text = slot.Amount.ToString();
@@ -257,10 +257,8 @@ public class InventoryController : UpdateTask
         public int SecondarySlotCount;
 
         //This is the theta angle the color is rotated by
-        public Vec4 SelectedSlotColor;
-        public Vec4 BaseColor;
-        public readonly Color BaseColorC => new Color(BaseColor.x, BaseColor.y, BaseColor.z, BaseColor.w);
-        public readonly Color SelectedColorC => new Color(SelectedSlotColor.x, SelectedSlotColor.y, SelectedSlotColor.z, SelectedSlotColor.w);
+        public Color SelectedColor;
+        public Color BaseColor;
     }
 
 

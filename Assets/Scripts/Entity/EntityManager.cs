@@ -9,6 +9,7 @@ using Unity.Burst;
 using static CPUDensityManager;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using UnityEditor;
 
 
 
@@ -17,10 +18,11 @@ public static class EntityManager
     private static EntityGenOffsets bufferOffsets;
     private static ComputeShader entityGenShader;
     private static ComputeShader entityTranscriber;
-    public static NativeList<IntPtr> EntityHandler;
-    public static STree ESTree;
-    public static Action HandlerEvents;
-    private static EntityJob Executor;
+    public static NativeList<IntPtr> EntityHandler; //List of all entities placed adjacently
+    public static Dictionary<string, int> EntityIndex; //tracks location in handler of entityGUID
+    public static STree ESTree; //BVH of entities updated synchronously
+    public static Action HandlerEvents; //Buffered updates to modify entities(since it can't happen while job is executing)
+    private static EntityJob Executor; //Job that updates all entities
     const int ENTITY_STRIDE_WORD = 3 + 1;
     const int MAX_ENTITY_COUNT = 10000; //10k ~ 5mb
 
@@ -69,16 +71,17 @@ public static class EntityManager
     }
 
 
-    public unsafe static void ReleaseEntity(int index){
-        if(index < 0 || index >= EntityHandler.Length) return;
-        Entity* entity = (Entity*)EntityHandler[index];
+    public unsafe static void ReleaseEntity(JGuid entityId){
+        if(!EntityIndex.ContainsKey(entityId.ToString())) return;
+        int entityInd = EntityIndex[entityId];
+        Entity* entity = (Entity*)EntityHandler[entityInd];
         Entity.Disable(entity);
 
         //Fill in hole
-        if(index != EntityHandler.Length-1){
+        if(entityInd != EntityHandler.Length-1){
             entity = (Entity*)EntityHandler[EntityHandler.Length-1];
-            entity->info.entityId = (uint)index;
-            EntityHandler[index] = (IntPtr)entity;
+            EntityHandler[entityInd] = (IntPtr)entity;
+            EntityIndex[entity->info.entityId] = entityInd;
         }
         EntityHandler.RemoveLast();
     }
@@ -86,15 +89,16 @@ public static class EntityManager
     public unsafe static void InitializeEntity(GenPoint genInfo, int3 CCoord){
         Entity newEntity = new ();
         
-        int entityId = EntityHandler.Length;
+        int entityInd = EntityHandler.Length;
         int mapSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
         
         EntityAuthoring authoring = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities.Reg.value[(int)genInfo.entityIndex].Value;
         newEntity.info.profile = authoring.Info;
-        newEntity.info.entityId = (uint)entityId;
+        newEntity.info.entityId = Guid.NewGuid();
         newEntity.info.entityType = genInfo.entityIndex;
         newEntity.active = true;
+        EntityIndex.TryAdd(newEntity.info.entityId, entityInd);
         
         IntPtr entity = authoring.Entity.Initialize(ref newEntity, GCoord);
         EntityHandler.Add(entity);
@@ -112,14 +116,15 @@ public static class EntityManager
 
     public unsafe static void DeserializeEntity(EntitySerial sEntity){
         Entity newEntity = new ();
-        int entityId = EntityHandler.Length;
+        int entityInd = EntityHandler.Length;
         
         var reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities;
         EntityAuthoring authoring = reg.Retrieve(sEntity.type);
         newEntity.info.profile = authoring.Info;
-        newEntity.info.entityId = (uint)entityId;
+        newEntity.info.entityId = Guid.NewGuid();
         newEntity.info.entityType = (uint)reg.RetrieveIndex(sEntity.type);
         newEntity.active = true;
+        EntityIndex.TryAdd(newEntity.info.entityId, entityInd);
 
         IntPtr entity = sEntity.data.Deserialize(ref newEntity, out int3 GCoord);
         EntityHandler.Add(entity);
@@ -167,7 +172,7 @@ public static class EntityManager
 
         AddHandlerEvent(() => {
             ESTree.Query(bounds, (UIntPtr entity) => {
-                ReleaseEntity((int)((Entity*)entity)->info.entityId);
+                ReleaseEntity(((Entity*)entity)->info.entityId);
             });
         });
     }
@@ -190,6 +195,7 @@ public static class EntityManager
     public static void Initialize(){
         EntityHandler = new NativeList<IntPtr>(MAX_ENTITY_COUNT, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
+        EntityIndex = new Dictionary<string, int>();
         Executor = new EntityJob{active = false};
 
         int numPointsPerAxis = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;

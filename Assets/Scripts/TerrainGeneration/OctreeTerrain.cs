@@ -25,6 +25,7 @@ public class OctreeTerrain : MonoBehaviour
     public static int3 ChunkPos;
     public static int3 vChunkPos => ChunkPos * s.mapChunkSize + s.mapChunkSize/2;
     private static int rootDim => s.Balance == 1 ? 3 : 2;
+    public static Transform viewer; //set by PlayerHandler
     // Start is called before the first frame update
     public int Layer = 1;
 
@@ -34,7 +35,6 @@ public class OctreeTerrain : MonoBehaviour
         octree = new Octree(s.MaxDepth, s.Balance, s.MinChunkRadius);
         chunks = new ConstrainedLL<TerrainChunk>((uint)(Octree.GetNumChunks(s.MaxDepth, s.Balance, s.MinChunkRadius) + 1));
         OrderedDisable = new UnityEvent();
-        UpdateViewerPos();
 
         MainLoopUpdateTasks = new Queue<UpdateTask>();
         MainLateUpdateTasks = new Queue<UpdateTask>();
@@ -46,7 +46,7 @@ public class OctreeTerrain : MonoBehaviour
         GenerationPreset.Initialize();
 
         InputPoller.Initialize();
-        UIOrigin.Initialize();
+        PlayerHandler.Initialize();
 
         GPUDensityManager.Initialize();
         CPUDensityManager.Initialize();
@@ -63,7 +63,7 @@ public class OctreeTerrain : MonoBehaviour
         ShaderGenerator.PresetData();
         WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.Initialize();
     }
-    public Transform viewer;
+    
     void Start()
     {
         UpdateViewerPos();
@@ -74,7 +74,7 @@ public class OctreeTerrain : MonoBehaviour
     {
         ForEachChunk((uint chunk) => chunks.nodes[chunk].Value.Destroy());
 
-        UIOrigin.Release();
+        PlayerHandler.Release();
         UtilityBuffers.Release();
         GPUDensityManager.Release();
         CPUDensityManager.Release();

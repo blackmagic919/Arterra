@@ -2624,19 +2624,19 @@ MonoBehaviour:
         y: 1
         z: 4.5
       checkInfo:
-        data: 4278255488
+        data: 4286644096
     - position:
         x: 4.5
         y: 5
         z: 4.5
       checkInfo:
-        data: 4278222592
+        data: 2130738944
     - position:
         x: 4.5
         y: 15
         z: 4.5
       checkInfo:
-        data: 4278222592
+        data: 2130738944
     isDirty: 0
   Materials:
     value:

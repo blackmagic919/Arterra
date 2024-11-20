@@ -8,7 +8,7 @@ public class PauseHandler
     private static GameObject PauseMenu;
     private static Queue<(string, uint)> Fences;
     public static void Initialize() { 
-        PauseMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Pause"), UIOrigin.UIHandle.transform);
+        PauseMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Pause"), PlayerHandler.UIHandle.transform);
         PauseMenu.SetActive(false);
         InputPoller.SetCursorLock(true);
         Fences = new Queue<(string, uint)>();

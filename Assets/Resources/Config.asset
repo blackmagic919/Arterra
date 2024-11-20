@@ -170,11 +170,7 @@ MonoBehaviour:
           terraformSpeed: 100
           maxTerraformDistance: 60
           CursorSize: 2
-          CursorColor:
-            x: 0
-            y: 1
-            z: 0
-            w: 0.5
+          CursorColor: {r: 0.012440997, g: 0.5660378, b: 0, a: 1}
           ShowCursor: 1
         isDirty: 0
       Movement:
@@ -192,16 +188,159 @@ MonoBehaviour:
         value:
           PrimarySlotCount: 5
           SecondarySlotCount: 30
-          SelectedSlotColor:
-            x: 0.1960784
-            y: 0.6784314
-            z: 0.1960784
-            w: 0.7843137
-          BaseColor:
-            x: 0.6784314
-            y: 0.6784314
-            z: 0.6784314
-            w: 0.5882353
+          SelectedColor: {r: 0.3915094, g: 0.85984695, b: 1, a: 1}
+          BaseColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 0.39215687}
+        isDirty: 0
+      DayNightCycle:
+        value:
+          timeMultiplier: 72
+          startHour: 8
+          sunriseHour: 7
+          sunsetHour: 20.5
+          maxSunIntensity: 1.5
+          maxMoonIntensity: 0.5
+          sunIntensityCurve:
+            value:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0.5
+                inSlope: 3.3210192
+                outSlope: 3.3210192
+                tangentMode: 34
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0.33333334
+              - serializedVersion: 3
+                time: 0.1
+                value: 1
+                inSlope: -0.0013849546
+                outSlope: -0.0013849546
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.3060361
+              - serializedVersion: 3
+                time: 0.4
+                value: 1
+                inSlope: 0.0021330894
+                outSlope: 0.0021330894
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.522165
+                outWeight: 0.36489952
+              - serializedVersion: 3
+                time: 0.5
+                value: 0.5
+                inSlope: -3.8144307
+                outSlope: -3.8144307
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.44800943
+              - serializedVersion: 3
+                time: 0.6
+                value: 0
+                inSlope: 0.0022881324
+                outSlope: 0.0022881324
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.33333334
+              - serializedVersion: 3
+                time: 0.9
+                value: 0
+                inSlope: -0.009793245
+                outSlope: -0.009793245
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 1
+              - serializedVersion: 3
+                time: 1
+                value: 0.5
+                inSlope: 9.886918
+                outSlope: 9.886918
+                tangentMode: 34
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 4
+            isDirty: 0
+          moonIntensityCurve:
+            value:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0.5
+                inSlope: -3.3121212
+                outSlope: -3.3121212
+                tangentMode: 34
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0.33333334
+              - serializedVersion: 3
+                time: 0.1
+                value: 0
+                inSlope: 0.0010167407
+                outSlope: 0.0010167407
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.22038485
+              - serializedVersion: 3
+                time: 0.4
+                value: 0
+                inSlope: 0.002328521
+                outSlope: 0.002328521
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.10987958
+              - serializedVersion: 3
+                time: 0.5
+                value: 0.5
+                inSlope: 5.1831646
+                outSlope: 5.1831646
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.034921933
+              - serializedVersion: 3
+                time: 0.6
+                value: 1
+                inSlope: -0.013943582
+                outSlope: -0.013943582
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.22289018
+              - serializedVersion: 3
+                time: 0.9
+                value: 1
+                inSlope: 0.0049888487
+                outSlope: 0.0049888487
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.33333334
+              - serializedVersion: 3
+                time: 1
+                value: 0.5
+                inSlope: -3.3252885
+                outSlope: -3.3252885
+                tangentMode: 34
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 4
+            isDirty: 0
         isDirty: 0
     isDirty: 0
   _System:
