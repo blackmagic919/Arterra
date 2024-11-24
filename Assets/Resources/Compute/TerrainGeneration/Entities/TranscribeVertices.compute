@@ -3,9 +3,9 @@
 const static uint numThreads = 128;
 
 struct vertex{
-    float3 tri;
-    float3 norm;
-    int2 material;
+    float3 pos;
+    int material;
+    int uv;
 };
 
 StructuredBuffer<vertex> baseVertices; 

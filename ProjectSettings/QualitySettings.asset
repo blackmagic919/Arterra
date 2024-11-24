@@ -271,7 +271,7 @@ QualitySettings:
     softParticles: 1
     softVegetation: 1
     realtimeReflectionProbes: 1
-    billboardsFaceCameraPosition: 1
+    billboardsFaceCameraPosition: 0
     useLegacyDetailDistribution: 0
     vSyncCount: 1
     realtimeGICPUUsage: 100

@@ -72,10 +72,13 @@ public static class EntityManager
 
 
     public unsafe static void ReleaseEntity(JGuid entityId){
-        if(!EntityIndex.ContainsKey(entityId.ToString())) return;
+        if(!EntityIndex.ContainsKey(entityId)) {
+            return;
+        }
         int entityInd = EntityIndex[entityId];
         Entity* entity = (Entity*)EntityHandler[entityInd];
         Entity.Disable(entity);
+        EntityIndex.Remove(entityId);
 
         //Fill in hole
         if(entityInd != EntityHandler.Length-1){
@@ -98,7 +101,7 @@ public static class EntityManager
         newEntity.info.entityId = Guid.NewGuid();
         newEntity.info.entityType = genInfo.entityIndex;
         newEntity.active = true;
-        EntityIndex.TryAdd(newEntity.info.entityId, entityInd);
+        EntityIndex[newEntity.info.entityId] = entityInd;
         
         IntPtr entity = authoring.Entity.Initialize(ref newEntity, GCoord);
         EntityHandler.Add(entity);
@@ -114,17 +117,17 @@ public static class EntityManager
         OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
     }
 
-    public unsafe static void DeserializeEntity(EntitySerial sEntity){
+    public unsafe static void CreateEntity(EntitySerial sEntity){
         Entity newEntity = new ();
         int entityInd = EntityHandler.Length;
         
         var reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities;
         EntityAuthoring authoring = reg.Retrieve(sEntity.type);
         newEntity.info.profile = authoring.Info;
-        newEntity.info.entityId = Guid.NewGuid();
+        newEntity.info.entityId = sEntity.guid;
         newEntity.info.entityType = (uint)reg.RetrieveIndex(sEntity.type);
         newEntity.active = true;
-        EntityIndex.TryAdd(newEntity.info.entityId, entityInd);
+        EntityIndex[newEntity.info.entityId] = entityInd;
 
         IntPtr entity = sEntity.data.Deserialize(ref newEntity, out int3 GCoord);
         EntityHandler.Add(entity);
@@ -159,7 +162,7 @@ public static class EntityManager
     public static void DeserializeEntities(List<EntitySerial> entities, int3 CCoord){
         if(entities == null) return;
         foreach(EntitySerial sEntity in entities){
-            AddHandlerEvent(() => DeserializeEntity(sEntity));
+            AddHandlerEvent(() => CreateEntity(sEntity));
         }
     }
 
@@ -735,7 +738,10 @@ public unsafe struct PathFinder{
                             ((dir / 3 % 3) - 1) * finder.PathMapSize + ((dir % 3) - 1);
             path[index] = dir;
             index--;
-        }
+        } 
+        //First point is always 13(i.e. no move)
+        //This is so a path is always returned(i.e. path = null is impossible)
+        //path[0] = 13; //13 i.e. 0, 0, 0
 
         return path;
     }

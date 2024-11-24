@@ -275,8 +275,6 @@ static const int3 cornerIndexFromEdge[12] = {
     {3, 7, 2}
 };
 
-static const int cornerToDict[8] = {-1, 0, -1, 1, 2, -1, -1, -1};
-
 /*
 *  
 *
@@ -300,17 +298,6 @@ static const int cornerToDict[8] = {-1, 0, -1, 1, 2, -1, -1, -1};
 * | xyz_______./  /
 * +---------> x  /
 */
-/*
-static const float3 positionFromIndex[8] = {
-    float3(0, 0, 1),
-    float3(1, 0, 1),
-    float3(1, 0, 0),
-    float3(0, 0, 0),
-    float3(0, 1, 1),
-    float3(1, 1, 1),
-    float3(1, 1, 0),
-    float3(0, 1, 0)
-};*/
 
 
 static const int3 positionFromIndex[8] = {

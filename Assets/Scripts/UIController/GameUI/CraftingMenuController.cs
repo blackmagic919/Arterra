@@ -230,7 +230,7 @@ public class CraftingMenuController : UpdateTask
     public static void Deactivate(){
         Instance.active = false;
         for(int i = 0; i < GridCount; i++){
-            InventoryController.AddMaterial(new InventoryController.Inventory.Slot{
+            InventoryController.AddEntry(new InventoryController.Inventory.Slot{
                 IsItem = false,
                 IsSolid = craftingData[i].viscosity != 0,
                 Index = craftingData[i].material,
@@ -256,7 +256,7 @@ public class CraftingMenuController : UpdateTask
         InventoryController.Inventory.Slot selected = InventoryController.Selected;
         if(selected.IsItem || selected.IsNull) return pointInfo;
         if(pointInfo.IsGaseous && pointInfo.material != selected.Index){
-            InventoryController.AddMaterial(new InventoryController.Inventory.Slot{
+            InventoryController.AddEntry(new InventoryController.Inventory.Slot{
                 IsItem = false,
                 IsSolid = pointInfo.viscosity != 0,
                 Index = pointInfo.material,
@@ -283,7 +283,7 @@ public class CraftingMenuController : UpdateTask
         if(brushStrength == 0) return pointInfo;
 
         int deltaDensity = GetStaggeredDelta(pointInfo.density, -brushStrength);
-        int newDens = InventoryController.AddMaterial(new InventoryController.Inventory.Slot{
+        int newDens = InventoryController.AddEntry(new InventoryController.Inventory.Slot{
             IsItem = false,
             IsSolid = pointInfo.viscosity != 0,
             Index = pointInfo.material,

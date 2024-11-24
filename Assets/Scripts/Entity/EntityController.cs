@@ -9,5 +9,7 @@ public abstract class EntityController : MonoBehaviour
     }
     // Update is called once per frame
     public abstract void Update();
-    public abstract void Disable();
+    public virtual void Disable(){
+        OctreeTerrain.OrderedDisable.RemoveListener(Disable);
+    }
 }

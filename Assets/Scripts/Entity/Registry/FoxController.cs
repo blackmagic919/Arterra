@@ -35,7 +35,7 @@ public class FoxController : EntityController
     public override unsafe void Update()
     {
         if(!entity->active) {
-            Release();
+            Disable();
             return;
         }
 
@@ -49,9 +49,7 @@ public class FoxController : EntityController
         
     }
 
-    public override void Disable(){ Release(); }
-
-    private unsafe void Release(){
+    public unsafe override void Disable(){ 
         if(!active) return;
         active = false;
 
@@ -60,7 +58,8 @@ public class FoxController : EntityController
         Marshal.FreeHGlobal((IntPtr)fox);
         Marshal.FreeHGlobal((IntPtr)entity);
         Destroy(gameObject);
-    }
+        base.Disable();
+     }
 
     public unsafe void OnDrawGizmos(){
         if(!active) return;

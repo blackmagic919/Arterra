@@ -135,7 +135,7 @@ void March (uint3 id : SV_DispatchThreadID)
     for (i = 0; triangulation[waterIndex][i] != -1; i +=3) {
         [unroll] for(uint v = 0; v < 3; v++){
             //Get the point indexes
-            int2 pInd = cornerIndexFromEdge[triangulation[waterIndex][i + v]].xy;
+            int3 pInd = cornerIndexFromEdge[triangulation[waterIndex][i + v]];
 
             if(pInd.x != 0) continue; //Duplicate Vertex
 
@@ -162,14 +162,14 @@ void March (uint3 id : SV_DispatchThreadID)
             vertexes[bSTART_verts + appendInd] = newVert;
 
             //Set To Dictionary
-            triangleDict[3 * oIndex + cornerToDict[pInd.y] + bSTART_dict] = appendInd;
+            triangleDict[3 * oIndex + pInd.z + bSTART_dict] = appendInd;
         }
     }
 
     for (i = 0; triangulation[baseIndex][i] != -1; i +=3) {
         [unroll] for(uint v = 0; v < 3; v++){
             //Get the point indexes
-            int2 pInd = cornerIndexFromEdge[triangulation[baseIndex][i + v]].xy;
+            int3 pInd = cornerIndexFromEdge[triangulation[baseIndex][i + v]];
 
             if(pInd.x != 0) continue; //Duplicate Vertex
 
@@ -197,7 +197,7 @@ void March (uint3 id : SV_DispatchThreadID)
             vertexes[bSTART_verts + appendInd] = newVert;
 
             //Set To Dictionary
-            triangleDict[3 * oIndex + cornerToDict[pInd.y] + bSTART_dict] = appendInd;
+            triangleDict[3 * oIndex + pInd.z + bSTART_dict] = appendInd;
         }
     }
 

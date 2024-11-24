@@ -68,7 +68,6 @@ public class AtmospherePass : ScriptableRenderPass
         if(!initialized) return;
         if(GPUDensityManager.initialized && AtmosphereSettings.initialized){
             CommandBuffer cmd = CommandBufferPool.Get();
-            
             using (new ProfilingScope(cmd, new ProfilingSampler(ProfilerTag)))
             {
                 AtmosphereSettings.Execute(cmd);

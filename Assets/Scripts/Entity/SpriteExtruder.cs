@@ -1,0 +1,177 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using RBMeshes;
+using Unity.Collections;
+using Unity.Mathematics;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+public static class SpriteExtruder{
+    public static ComputeShader ImageExtruder;
+    public static ComputeShader triangleTranscriber;
+    public static ComputeShader vertexTranscriber;
+    private static ExtruderOffsets offsets;
+
+    private const int VERTEX_STRIDE_WORD = 3 + 2;
+    private const int TRI_STRIDE_WORD = 3;
+    private static readonly int2 MAX_SAMPLE_SIZE = new int2(128, 128);
+
+    public static void PresetData(){
+        ImageExtruder = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/SpriteExtruder");
+        triangleTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/TranscribeTriangles");
+        vertexTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/TranscribeVertices");
+        offsets = new ExtruderOffsets(MAX_SAMPLE_SIZE, 0, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD);
+
+        int kernel = ImageExtruder.FindKernel("March");
+        ImageExtruder.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+        ImageExtruder.SetBuffer(kernel, "triangles", UtilityBuffers.GenerationBuffer);
+        ImageExtruder.SetBuffer(kernel, "vertexes", UtilityBuffers.GenerationBuffer);
+        ImageExtruder.SetBuffer(kernel, "triangleDict", UtilityBuffers.GenerationBuffer);
+        ImageExtruder.SetInts("counterInd", new int[2]{offsets.vertexCounter, offsets.triangleCounter});
+        ImageExtruder.SetInt("bSTART_dict", offsets.dictStart);
+        ImageExtruder.SetInt("bSTART_verts", offsets.vertexStart);
+        ImageExtruder.SetInt("bSTART_tris", offsets.triangleStart);
+
+        kernel = triangleTranscriber.FindKernel("Transcribe");
+        triangleTranscriber.SetBuffer(kernel, "triDict", UtilityBuffers.GenerationBuffer);
+        triangleTranscriber.SetBuffer(kernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
+        triangleTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+        triangleTranscriber.SetInt("bCOUNTER_Tri", offsets.triangleCounter);
+        triangleTranscriber.SetInt("bSTART_Tri", offsets.triangleStart);
+        triangleTranscriber.SetInt("bSTART_Dict", offsets.dictStart);
+        triangleTranscriber.SetBuffer(kernel, "_MemoryBuffer", GenerationPreset.memoryHandle.Storage);
+        triangleTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
+        
+        kernel = vertexTranscriber.FindKernel("Transcribe");
+        vertexTranscriber.SetBuffer(kernel, "baseVertices", UtilityBuffers.GenerationBuffer);
+        vertexTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+        vertexTranscriber.SetInt("bCOUNTER", offsets.vertexCounter);
+        vertexTranscriber.SetInt("bSTART", offsets.vertexStart);
+        vertexTranscriber.SetBuffer(kernel, "_MemoryBuffer", GenerationPreset.memoryHandle.Storage);
+        vertexTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
+    }
+
+    public static void Extrude(ExtrudeSettings settings, Action<SharedMeshInfo<SVert>> OnMeshRecieved){
+        GenerateMesh(settings);
+
+        uint vertAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, VERTEX_STRIDE_WORD, offsets.vertexCounter);
+        uint triAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, TRI_STRIDE_WORD, offsets.triangleCounter);
+        TranscribeVertices((int)vertAddress, offsets.vertexCounter);
+        TranscribeTriangles((int)triAddress, offsets.triangleCounter);
+        BeginMeshReadback(vertAddress, triAddress, OnMeshRecieved);
+    }
+
+    public static void BeginMeshReadback(uint vertAddress, uint triAddress, Action<SharedMeshInfo<SVert>> OnMeshRecieved){
+        void ReleaseMemory(){
+            GenerationPreset.memoryHandle.ReleaseMemory(vertAddress);
+            GenerationPreset.memoryHandle.ReleaseMemory(triAddress);
+        }
+
+        ReadbackTask<SVert> RBTask = new ReadbackTask<SVert>((SharedMeshInfo<SVert> ret) => {
+            ReleaseMemory();
+            OnMeshRecieved(ret);
+        }, 1);
+        RBTask.AddTask(); RBTask.AddTask();
+        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)vertAddress, (ret) => OnAddressRecieved(ret, RBTask, onVertSizeRecieved));
+        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)triAddress, (ret) => OnAddressRecieved(ret, RBTask, onTriSizeRecieved));
+    }
+
+    static void OnAddressRecieved(AsyncGPUReadbackRequest request, ReadbackTask<SVert> RBTask, ReadbackSizeRecieved OnSizeRecieved){
+        uint2 memAddress = request.GetData<uint2>().ToArray()[0];
+
+        if(memAddress.x == 0){
+            RBTask.onRBRecieved();
+            return;
+        }
+        
+        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Storage, size: 4, offset: 4*((int)memAddress.x - 1), (ret) => OnSizeRecieved(ret, memAddress, RBTask));
+    }
+
+    private delegate void ReadbackSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, ReadbackTask<SVert> RBTask);
+    static void onVertSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, ReadbackTask<SVert> RBTask){
+        int memSize = request.GetData<int>().ToArray()[0] - VERTEX_STRIDE_WORD;
+        int vertCount = memSize / VERTEX_STRIDE_WORD;
+        int vertStartWord = (int)(address.y * VERTEX_STRIDE_WORD);
+
+        RBTask.RBMesh.VertexBuffer = new NativeArray<SVert>(vertCount, Allocator.Persistent);
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, GenerationPreset.memoryHandle.Storage, size: 4 * memSize, offset: 4 * vertStartWord, ret => RBTask.onRBRecieved());
+    }
+
+    static void onTriSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, ReadbackTask<SVert> RBTask){
+        int memSize = request.GetData<int>().ToArray()[0] - TRI_STRIDE_WORD;
+        int triStartWord = (int)(address.y * TRI_STRIDE_WORD);
+
+        RBTask.RBMesh.IndexBuffer[0] = new NativeArray<uint>(memSize, Allocator.Persistent);
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[0], GenerationPreset.memoryHandle.Storage, size: 4 * memSize, offset: 4 * triStartWord, ret => RBTask.onRBRecieved());
+    }
+
+    public static void GenerateMesh(ExtrudeSettings settings){
+        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 2, 0);
+        ImageExtruder.SetInts("SampleSize", new int[]{settings.SampleSize.x, settings.SampleSize.y});
+        ImageExtruder.SetFloat("AlphaClip", settings.AlphaClip);
+        ImageExtruder.SetFloat("ExtrudeHeight", settings.ExtrudeHeight);
+
+        ImageExtruder.SetInt("textureInd", settings.ImageIndex);
+        uint2 threadGroupSize;
+        int kernel = ImageExtruder.FindKernel("March");
+        ImageExtruder.GetKernelThreadGroupSizes(kernel, out threadGroupSize.x, out threadGroupSize.y, out uint _);
+        threadGroupSize.x = (uint)Mathf.CeilToInt(settings.SampleSize.x / (float)threadGroupSize.x);
+        threadGroupSize.y = (uint)Mathf.CeilToInt(settings.SampleSize.y / (float)threadGroupSize.y);
+        ImageExtruder.Dispatch(kernel, (int)threadGroupSize.x, (int)threadGroupSize.y, 1);
+    }
+
+    public static void TranscribeVertices(int address, int vertCounter){
+        ComputeBuffer args = UtilityBuffers.CountToArgs(vertexTranscriber, UtilityBuffers.GenerationBuffer, countOffset: vertCounter);
+        vertexTranscriber.SetInt("addressIndex", address);
+        
+        int kernel = vertexTranscriber.FindKernel("Transcribe");
+        vertexTranscriber.DispatchIndirect(kernel, args);
+    }
+
+    public static void TranscribeTriangles(int address, int triCounter){
+        ComputeBuffer args = UtilityBuffers.CountToArgs(triangleTranscriber, UtilityBuffers.GenerationBuffer, countOffset: triCounter);
+        triangleTranscriber.SetInt("triAddress", address);
+        
+        int kernel = triangleTranscriber.FindKernel("Transcribe");
+        triangleTranscriber.DispatchIndirect(kernel, args);
+    }
+
+    public struct ExtrudeSettings{
+        public int ImageIndex;
+        public int2 SampleSize;
+        public float AlphaClip;
+        public float ExtrudeHeight;
+    }
+
+    public struct ExtruderOffsets : BufferOffsets {
+        public int vertexCounter;
+        public int triangleCounter;
+        public int vertexStart;
+        public int dictStart;
+        public int triangleStart;
+        private int offsetStart; private int offsetEnd;
+        public int bufferStart{get{return offsetStart;}} public int bufferEnd{get{return offsetEnd;}}
+        public ExtruderOffsets(int2 MaxSampleSize, int bufferStart, int VertexStride, int TriangleStride){
+            this.offsetStart = bufferStart;
+            int numPoints = MaxSampleSize.x * MaxSampleSize.y;
+
+            this.vertexCounter = bufferStart;
+            this.triangleCounter = bufferStart + 1;
+
+            this.dictStart = bufferStart + 2;
+            int dictEnd_W = dictStart + numPoints * 6;
+
+            this.vertexStart = Mathf.CeilToInt((float)dictEnd_W / VertexStride);
+            //each grid square spawns at most 2 vertices, * 2 for bottom and top
+            int vertexEnd_W = (vertexStart + numPoints * 4) * VertexStride; 
+
+            this.triangleStart = Mathf.CeilToInt((float)vertexEnd_W / TriangleStride);
+            //each grid square has at most 4 trianlges, + 4 for bottom, +4 for sides
+            int triangleEnd_W = (triangleStart + numPoints * 12) * TriangleStride;
+
+            this.offsetEnd = triangleEnd_W;
+        }
+
+    }
+}

@@ -233,16 +233,8 @@ public class Bird : EntityAuthoring
             bird->TaskDuration -= context->deltaTime;
 
             ref PathFinder.PathInfo finder = ref bird->pathFinder;
-            byte dir = finder.path[finder.currentInd];
-            int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
             ref TerrainColliderJob tCollider = ref bird->tCollider;
-
-            //Entity has fallen off path
             if(math.any(math.abs(tCollider.transform.position - finder.currentPos) > entity->info.profile.bounds)) finder.hasPath = false;
-            //Next point is unreachable
-            else if(!EntityJob.VerifyProfile(nextPos, entity->info.profile, *context)) finder.hasPath = false;
-            //if it's a moving target check that the current point is closer than the destination
-            //if reached destination
             else if(finder.currentInd == finder.pathLength) finder.hasPath = false;
             if(!finder.hasPath) {
                 ReleasePath(bird);
@@ -252,9 +244,12 @@ public class Bird : EntityAuthoring
                     bird->TaskIndex = 0;
                     bird->TaskDuration = settings.flight.AverageIdleTime * bird->random.NextFloat(0f, 2f);
                 }
-
                 return;
             }
+
+            byte dir = finder.path[finder.currentInd];
+            int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
+            if(!EntityJob.VerifyProfile(nextPos, entity->info.profile, *context)) finder.hasPath = false;
 
             if(math.all(bird->GCoord == nextPos)){
                 finder.currentPos = nextPos;

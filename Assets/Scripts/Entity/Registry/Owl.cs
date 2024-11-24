@@ -183,15 +183,9 @@ public class Owl : EntityAuthoring
             bird->TaskDuration -= context->deltaTime;
 
             ref PathFinder.PathInfo finder = ref bird->pathFinder;
-            byte dir = finder.path[finder.currentInd];
-            int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
             ref TerrainColliderJob tCollider = ref bird->tCollider;
-
-            //Verify the path is valid
-            //Entity has fallen off path, Entity's next position is unreachable, Entity has reached destination
             if(math.any(math.abs(tCollider.transform.position - finder.currentPos) > entity->info.profile.bounds)) finder.hasPath = false;
-            else if(!EntityJob.VerifyProfile(nextPos, entity->info.profile, *context)) finder.hasPath = false;
-            else if(finder.currentInd == finder.pathLength) finder.hasPath = false;
+            if(finder.currentInd == finder.pathLength) finder.hasPath = false;
             if(!finder.hasPath) {
                 ReleasePath(bird);
                 if(bird->TaskIndex == 1) 
@@ -203,7 +197,11 @@ public class Owl : EntityAuthoring
                 return;
             }
 
-            //Follow the path
+
+            byte dir = finder.path[finder.currentInd];
+            int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
+            if(!EntityJob.VerifyProfile(nextPos, entity->info.profile, *context)) finder.hasPath = false;
+            
             if(math.all(bird->GCoord == nextPos)){
                 finder.currentPos = nextPos;
                 finder.currentInd++;

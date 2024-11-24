@@ -203,6 +203,7 @@ public struct TerrainColliderJob
     }
 
     public unsafe bool IsGrounded(float stickDist, in Settings settings, in MapContext cxt) => SampleCollision(transform.position, new float3(settings.size.x, -stickDist, settings.size.z), cxt, out _);
+    public unsafe bool GetGroundDir(float stickDist, in Settings settings, in MapContext cxt, out float3 dir) => SampleCollision(transform.position, new float3(settings.size.x, -stickDist, settings.size.z), cxt, out dir);
     
     [BurstCompile]
     float3 CancelVel(in float3 vel, in float3 norm){

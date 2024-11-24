@@ -12,6 +12,7 @@ public class TerraformSettings : ICloneable{
     public int terraformRadius = 5;
     public float terraformSpeed = 4;
     public float maxTerraformDistance = 60;
+    public int PickupRadius;
 
     public float CursorSize = 2;
     public Color CursorColor;
@@ -55,6 +56,7 @@ public class TerraformController : UpdateTask
         InputPoller.AddBinding(new InputPoller.Binding("Place Liquid", "GamePlay", InputPoller.BindPoll.Up, (_) => shiftPressed = false));
         InputPoller.AddBinding(new InputPoller.Binding("Place Terrain", "GamePlay", InputPoller.BindPoll.Hold, PlaceTerrain));
         InputPoller.AddBinding(new InputPoller.Binding("Remove Terrain", "GamePlay", InputPoller.BindPoll.Hold, RemoveTerrain));
+        InputPoller.AddBinding(new InputPoller.Binding("Pickup Item", "GamePlay", InputPoller.BindPoll.Down, PickupItems));
         MainLoopUpdateTasks.Enqueue(this);
     }
 
@@ -264,7 +266,7 @@ public class TerraformController : UpdateTask
         int solidDensity = pointInfo.SolidDensity;
         if(solidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
-            deltaDensity = InventoryController.AddMaterial(
+            deltaDensity = InventoryController.AddEntry(
             new InventoryController.Inventory.Slot{
                 IsItem = false,
                 IsSolid = true,
@@ -278,14 +280,14 @@ public class TerraformController : UpdateTask
         return pointInfo;
     }
 
-    MapData HandleRemoveLiquid(CPUDensityManager.MapData pointInfo, float brushStrength){
+    MapData HandleRemoveLiquid(MapData pointInfo, float brushStrength){
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int liquidDensity = pointInfo.LiquidDensity;
         if (liquidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(liquidDensity, -brushStrength);
-            deltaDensity = InventoryController.AddMaterial(
+            deltaDensity = InventoryController.AddEntry(
             new InventoryController.Inventory.Slot{
                 IsItem = false,
                 IsSolid = false,
@@ -296,5 +298,31 @@ public class TerraformController : UpdateTask
             pointInfo.density -= deltaDensity;
         }
         return pointInfo;
+    }
+
+    private void PickupItems(float _){
+        if(!shiftPressed) return;
+        var eReg = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities;
+        unsafe void OnEntityFound(UIntPtr entity){
+            Entity* e = (Entity*)entity;
+            if(e->info.entityType != eReg.RetrieveIndex("EntityItem")) return;
+            if(!e->active) return;
+            EItem.EItemEntity* item = (EItem.EItemEntity*)e->obj;
+            if(item->isPickedUp) return;
+
+            int amount = InventoryController.AddEntry(item->item);
+            item->item.AmountRaw -= amount;
+            if(item->item.IsItem && amount == 0) return;
+            else if(item->item.AmountRaw != 0) return;
+            item->isPickedUp = true; 
+            EntityManager.AddHandlerEvent(() => EntityManager.ReleaseEntity(e->info.entityId));
+        }
+
+        STree.TreeNode.Bounds bounds = new STree.TreeNode.Bounds{
+            Min = (int3)hitPoint - settings.PickupRadius,
+            Max = (int3)hitPoint + settings.PickupRadius
+        };
+
+        EntityManager.ESTree.Query(bounds, OnEntityFound);
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using RBMeshes;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -117,7 +118,7 @@ public class TerrainChunk
         OctreeTerrain.MergeSiblings(index);
     }
 
-    public void OnChunkCreated(AsyncMeshReadback.SharedMeshInfo meshInfo)
+    public void OnChunkCreated(SharedMeshInfo<TVert> meshInfo)
     {
         meshFilter.sharedMesh = meshInfo.GenerateMesh(UnityEngine.Rendering.IndexFormat.UInt32);;
         meshInfo.Release();
@@ -260,16 +261,16 @@ public class RealChunk : TerrainChunk{
         }
     }
 
-    public void CreateMesh( Action<AsyncMeshReadback.SharedMeshInfo> UpdateCallback = null){
+    public void CreateMesh( Action<SharedMeshInfo<TVert>> UpdateCallback = null){
         Generator.MeshCreator.GenerateMapData(CCoord, IsoLevel, meshSkipInc, mapChunkSize);
         ClearFilter();
         ReapChunk(index);
         
         DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
 
-        Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets);
-        Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, bufferOffsets.dictStart, (int)GeneratorInfo.ReadbackMaterial.terrain);
-        Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, bufferOffsets.dictStart, (int)GeneratorInfo.ReadbackMaterial.water);
+        Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets.vertexCounter);
+        Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, (int)GeneratorInfo.ReadbackMaterial.terrain);
+        Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, (int)GeneratorInfo.ReadbackMaterial.water);
         Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
 
         if (depth <= rSettings.MaxGeoShaderDepth)
@@ -330,12 +331,12 @@ public class VisualChunk : TerrainChunk{
         callback?.Invoke();
     }
     
-    public void ReadMapData(Action<AsyncMeshReadback.SharedMeshInfo> callback = null){
-        void SetChunkData(int offset, CPUDensityManager.MapData[] mapData, Action<AsyncMeshReadback.SharedMeshInfo> callback){
+    public void ReadMapData(Action<SharedMeshInfo<TVert>> callback = null){
+        void SetChunkData(int offset, CPUDensityManager.MapData[] mapData, Action<SharedMeshInfo<TVert>> callback){
             Generator.MeshCreator.SetMapInfo(sChunkSize, offset, mapData);
         }
 
-        void GenerateMap(Action<AsyncMeshReadback.SharedMeshInfo> callback)
+        void GenerateMap(Action<SharedMeshInfo<TVert>> callback)
         {
             DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
             Generator.MeshCreator.GenerateBaseChunk(sOrigin, surfAddress, sChunkSize, mapSkipInc, IsoLevel);
@@ -364,15 +365,15 @@ public class VisualChunk : TerrainChunk{
         }
     }
 
-    private void CreateMeshImmediate(Action<AsyncMeshReadback.SharedMeshInfo> UpdateCallback = null){
+    private void CreateMeshImmediate(Action<SharedMeshInfo<TVert> > UpdateCallback = null){
         Generator.MeshCreator.GenerateMapDataInPlace(IsoLevel, meshSkipInc, mapChunkSize);
         ClearFilter();
         ReapChunk(index);
         
         DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
-        Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets);
-        Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, bufferOffsets.dictStart, (int)GeneratorInfo.ReadbackMaterial.terrain);
-        Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, bufferOffsets.dictStart, (int)GeneratorInfo.ReadbackMaterial.water);
+        Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets.vertexCounter);
+        Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, (int)GeneratorInfo.ReadbackMaterial.terrain);
+        Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, (int)GeneratorInfo.ReadbackMaterial.water);
         Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
 
         if (depth <= rSettings.MaxGeoShaderDepth)

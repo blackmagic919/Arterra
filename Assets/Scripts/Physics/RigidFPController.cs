@@ -57,9 +57,6 @@ public class RigidFPController : MonoBehaviour
         active = true;
     }
 
-
-    
-
     public void Update(){
         if(!active) return;
         
@@ -77,5 +74,9 @@ public class RigidFPController : MonoBehaviour
         if(math.length(tCollider.velocity.xz) < setting.runSpeed) 
             tCollider.velocity.xz += deltaV;
         InputDir = float2.zero;
+    }
+
+    public void OnDisable(){
+        PlayerHandler.Release();
     }
 }

@@ -29,6 +29,7 @@ public class InputPoller : UpdateTask
             {"Remove Terrain", KeyCode.Mouse0},
             {"Place Terrain", KeyCode.Mouse1},
             {"Place Liquid", KeyCode.LeftShift},
+            {"Pickup Item", KeyCode.Mouse0},
             {"Pause", KeyCode.Escape},
             {"Quit", KeyCode.Return},
             {"Select", KeyCode.Mouse0},

@@ -61,6 +61,8 @@ public class OctreeTerrain : MonoBehaviour
         TerrainGenerator.PresetData();
         DensityGenerator.PresetData();
         ShaderGenerator.PresetData();
+        SpriteExtruder.PresetData();
+        AsyncMeshReadback.PresetData();
         WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.Initialize();
     }
     
@@ -74,7 +76,6 @@ public class OctreeTerrain : MonoBehaviour
     {
         ForEachChunk((uint chunk) => chunks.nodes[chunk].Value.Destroy());
 
-        PlayerHandler.Release();
         UtilityBuffers.Release();
         GPUDensityManager.Release();
         CPUDensityManager.Release();

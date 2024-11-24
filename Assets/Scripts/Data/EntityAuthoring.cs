@@ -22,12 +22,11 @@ Recreated polymorphism with explicit vtable
 Pls know what you're doing when using this
 */
 public unsafe struct Entity{
-    [NativeDisableUnsafePtrRestriction]
     public FunctionPointer<IEntity.UpdateDelegate> _Update;
     public FunctionPointer<IEntity.DisableDelegate> _Disable;
-    public IntPtr obj; //This is a struct that implements IEntity
     public Info info; 
     public bool active;
+    public IntPtr obj; //This is a struct that implements IEntity
 
     public static void Update(Entity* entity, EntityJob.Context* context){ entity->_Update.Invoke(entity, context); }
     public static void Disable(Entity* entity){ entity->_Disable.Invoke(entity); }
@@ -62,6 +61,12 @@ public interface IEntity{
 }
 
 public interface IEntitySetting{} 
+
+public struct EntitySerial{
+    public string type;
+    public string guid;
+    public IEntity data;
+}
 
 [Serializable]
 public struct ProfileE {

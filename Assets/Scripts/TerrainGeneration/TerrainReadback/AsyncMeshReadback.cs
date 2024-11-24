@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 using System.Linq;
 using Unity.Collections;
 using Utils;
+using RBMeshes;
 using static OctreeTerrain;
 
 //Purpose: Render geometry directly from GPU until it is readback async.
@@ -20,7 +21,6 @@ public class AsyncMeshReadback
     private Bounds shaderBounds = default;
 
     //Dependencies
-    public static ComputeShader memorySizeCalculator;
     public static ComputeShader meshDrawArgsCreator;
     public static ComputeShader triangleTranscriber;
     public static ComputeShader vertexTranscriber;
@@ -28,9 +28,9 @@ public class AsyncMeshReadback
     const int MESH_VERTEX_STRIDE_WORD = 3 * 2 + 2;
     const int TRI_STRIDE_WORD = 3;
 
-    private readonly uint numMeshes;
+    private static uint numMeshes;
 
-    public ReadbackSettings settings;
+    public static ReadbackSettings settings;
     public GeometryHandle[] triHandles = default;
     public GeometryHandle vertexHandle = default;
 
@@ -38,18 +38,39 @@ public class AsyncMeshReadback
 
     public AsyncMeshReadback(Transform transform, Bounds boundsOS)
     {   
-        this.settings = WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value;
         this.transform = transform;
-        this.numMeshes = (uint)settings.indirectTerrainMats.Length;
         this.triHandles = new GeometryHandle[numMeshes];
         this.shaderBounds = CustomUtility.TransformBounds(transform, boundsOS);
     }
 
-    static AsyncMeshReadback(){
-        memorySizeCalculator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/BaseMemorySize");
+    public static void PresetData(){
+        settings = WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value;
+        numMeshes = (uint)settings.indirectTerrainMats.Length;
         meshDrawArgsCreator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
         triangleTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/TranscribeTriangles");
         vertexTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/TranscribeVertices");
+
+        DensityGenerator.GeoGenOffsets offsets = DensityGenerator.bufferOffsets;
+        int kernel = meshDrawArgsCreator.FindKernel("CSMain");
+        meshDrawArgsCreator.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+        meshDrawArgsCreator.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.ArgumentBuffer);
+        
+
+        kernel = triangleTranscriber.FindKernel("Transcribe");
+        triangleTranscriber.SetBuffer(kernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
+        triangleTranscriber.SetBuffer(kernel, "triDict", UtilityBuffers.GenerationBuffer);
+        triangleTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+        triangleTranscriber.SetInt("bSTART_Dict", offsets.dictStart);
+        triangleTranscriber.SetBuffer(kernel, "_MemoryBuffer", GenerationPreset.memoryHandle.Storage);
+        triangleTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
+
+        kernel = vertexTranscriber.FindKernel("Transcribe");
+        vertexTranscriber.SetBuffer(kernel, "baseVertices", UtilityBuffers.GenerationBuffer);
+        vertexTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+        vertexTranscriber.SetInt("bCOUNTER", offsets.vertexCounter);
+        vertexTranscriber.SetInt("bSTART", offsets.vertStart);
+        vertexTranscriber.SetBuffer(kernel, "_MemoryBuffer", GenerationPreset.memoryHandle.Storage);
+        vertexTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
     }
 
     public void ReleaseAllGeometry()
@@ -59,18 +80,18 @@ public class AsyncMeshReadback
         this.vertexHandle?.Release();
     }
 
-    public void OffloadVerticesToGPU(DensityGenerator.GeoGenOffsets bufferOffsets)
+    public void OffloadVerticesToGPU(int vertexCounter)
     {
         this.vertexHandle?.Release();
 
-        uint vertAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, MESH_VERTEX_STRIDE_WORD, bufferOffsets.vertexCounter);
-        TranscribeVertices(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, (int)vertAddress, bufferOffsets.vertexCounter, bufferOffsets.vertStart);
+        uint vertAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, MESH_VERTEX_STRIDE_WORD, vertexCounter);
+        TranscribeVertices((int)vertAddress, vertexCounter);
 
         this.vertexHandle = new GeometryHandle{addressIndex = vertAddress, memory = GenerationPreset.memoryHandle};
     }
 
 
-    public void OffloadTrisToGPU(int triCounter, int triStart, int dictStart, int matIndex)
+    public void OffloadTrisToGPU(int triCounter, int triStart, int matIndex)
     {
         triHandles[matIndex]?.Release();
 
@@ -78,27 +99,26 @@ public class AsyncMeshReadback
         uint geoHeapMemoryAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, TRI_STRIDE_WORD, triCounter);
 
         uint drawArgsAddress = UtilityBuffers.AllocateArgs(); //Allocates 4 bytes
-        CreateDispArg(UtilityBuffers.ArgumentBuffer, triCounter, (int)drawArgsAddress);
+        CreateDispArg(triCounter, (int)drawArgsAddress);
 
-        TranscribeTriangles(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address,
-                           (int)geoHeapMemoryAddress, triCounter, triStart, dictStart);
+        TranscribeTriangles((int)geoHeapMemoryAddress, triCounter, triStart);
 
         //All buffers that are created by helper functions must enqueue to a buffer handle for consistency
         //Thus to indicate that they aren't being handled, initialize persistant buffers here
-        RenderParams rp = GetRenderParams(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, (int)geoHeapMemoryAddress, (int)this.vertexHandle.addressIndex, matIndex);
+        RenderParams rp = GetRenderParams((int)geoHeapMemoryAddress, (int)this.vertexHandle.addressIndex, matIndex);
         triHandles[matIndex] = new GeometryHandle(rp, GenerationPreset.memoryHandle, geoHeapMemoryAddress, drawArgsAddress, matIndex);
 
         MainLateUpdateTasks.Enqueue(triHandles[matIndex]);
     }
 
-    public void BeginMeshReadback(Action<SharedMeshInfo> callback){
-        ReadbackTask RBTask = new ReadbackTask((SharedMeshInfo ret) => { callback(ret); ReleaseAllGeometry();}, (int)numMeshes);
+    public void BeginMeshReadback(Action<SharedMeshInfo<TVert>> callback){
+        ReadbackTask<TVert> RBTask = new ReadbackTask<TVert>((SharedMeshInfo<TVert> ret) => { callback(ret); ReleaseAllGeometry();}, (int)numMeshes);
 
         //Readback shared vertices
         GeometryHandle vertHandle = this.vertexHandle; //Get reference here so that it doesn't change when lambda evaluates
         if(vertHandle == null || !vertHandle.active)
             return;
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)vertHandle.addressIndex, ret => onVertAddressRecieved(ret, vertHandle, RBTask));
+        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)vertHandle.addressIndex, ret => OnAddressRecieved(ret, vertHandle, RBTask, onVertSizeRecieved));
         RBTask.AddTask();
 
         //Readback mesh triangles
@@ -107,12 +127,12 @@ public class AsyncMeshReadback
             if(geoHandle == null || !geoHandle.active)
                 continue;
             //Begin readback of data
-            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)geoHandle.addressIndex, ret => onTriAddressRecieved(ret, geoHandle, RBTask));
+            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)geoHandle.addressIndex, ret => OnAddressRecieved(ret, geoHandle, RBTask, onTriSizeRecieved));
             RBTask.AddTask();
         }
     }
 
-    void onTriAddressRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, ReadbackTask RBTask)
+    void OnAddressRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, ReadbackTask<TVert> RBTask, ReadbackSizeRecieved onSizeRecieved)
     {
         if (geoHandle == null || !geoHandle.active) //Info was depreceated
             return;
@@ -126,25 +146,10 @@ public class AsyncMeshReadback
         }
 
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Storage, size: 4, offset: 4 * ((int)memAddress.x - 1), ret => onTriSizeRecieved(ret, memAddress, geoHandle, RBTask));
+        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Storage, size: 4, offset: 4 * ((int)memAddress.x - 1), ret => onSizeRecieved(ret, memAddress, geoHandle, RBTask));
     }
-
-    void onVertAddressRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, ReadbackTask RBTask){
-        if (geoHandle == null || !geoHandle.active) //Info was depreceated
-            return;
-        
-        uint2 memAddress = request.GetData<uint2>().ToArray()[0];
-
-        if(memAddress.x == 0){
-            geoHandle.Release();
-            RBTask.onRBRecieved();
-            return;
-        }
-
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Storage, size: 4, offset: 4 * ((int)memAddress.x - 1), ret => onVertSizeRecieved(ret, memAddress, geoHandle, RBTask));
-    }
-
-    void onTriSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask RBTask)
+    private delegate void ReadbackSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask<TVert> RBTask);
+    void onTriSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask<TVert> RBTask)
     {
         if (geoHandle == null || !geoHandle.active)  //Info was depreceated
             return;
@@ -154,10 +159,10 @@ public class AsyncMeshReadback
 
         RBTask.RBMesh.IndexBuffer[geoHandle.matIndex] = new NativeArray<uint>(memSize, Allocator.Persistent);
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[geoHandle.matIndex], GenerationPreset.memoryHandle.Storage, size: 4 * memSize, offset: 4 * triStartWord, ret => onTriDataRecieved(geoHandle, RBTask));
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[geoHandle.matIndex], GenerationPreset.memoryHandle.Storage, size: 4 * memSize, offset: 4 * triStartWord, ret => onDataRecieved(geoHandle, RBTask));
     }
 
-    void onVertSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask RBTask){
+    void onVertSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle,  ReadbackTask<TVert> RBTask){
         if (geoHandle == null || !geoHandle.active) 
             return;
 
@@ -165,13 +170,13 @@ public class AsyncMeshReadback
         int vertCount = memSize / MESH_VERTEX_STRIDE_WORD;
         int vertStartWord = (int)(address.y * MESH_VERTEX_STRIDE_WORD);
 
-        RBTask.RBMesh.VertexBuffer = new NativeArray<Vertex>(vertCount, Allocator.Persistent);
+        RBTask.RBMesh.VertexBuffer = new NativeArray<TVert>(vertCount, Allocator.Persistent);
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
         //Async says async but is run on main thread(kind of confusing)
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, GenerationPreset.memoryHandle.Storage, size: 4 * memSize, offset: 4 * vertStartWord, ret => onVertDataRecieved(geoHandle, RBTask));
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, GenerationPreset.memoryHandle.Storage, size: 4 * memSize, offset: 4 * vertStartWord, ret => onDataRecieved(geoHandle, RBTask));
     }
 
-    void onTriDataRecieved(GeometryHandle geoHandle, ReadbackTask RBTask)
+    void onDataRecieved(GeometryHandle geoHandle, ReadbackTask<TVert> RBTask)
     {
         if (geoHandle == null || !geoHandle.active)  //Info was depreceated
             return;
@@ -179,35 +184,24 @@ public class AsyncMeshReadback
         RBTask.onRBRecieved();
     }
 
-    void onVertDataRecieved(GeometryHandle geoHandle, ReadbackTask RBTask){
-        if (geoHandle == null || !geoHandle.active)  //Info was depreceated
-            return;
-        
-        RBTask.onRBRecieved();
-    }
-
-
-    void CreateDispArg(GraphicsBuffer argumentBuffer, int triCounter, int address)
+    void CreateDispArg(int triCounter, int address)
     {
-        meshDrawArgsCreator.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
         meshDrawArgsCreator.SetInt("bCOUNTER", triCounter);
         meshDrawArgsCreator.SetInt("argOffset", address);
-
-        meshDrawArgsCreator.SetBuffer(0, "_IndirectArgsBuffer", argumentBuffer);
         meshDrawArgsCreator.Dispatch(0, 1, 1, 1);
     }
 
-    RenderParams GetRenderParams(ComputeBuffer storage, ComputeBuffer addresses, int triAddress, int vertAddress, int matIndex)
+    RenderParams GetRenderParams(int triAddress, int vertAddress, int matIndex)
     {
-        RenderParams rp = new RenderParams(this.settings.indirectTerrainMats[matIndex])
+        RenderParams rp = new RenderParams(settings.indirectTerrainMats[matIndex])
         {
             worldBounds = this.shaderBounds,
             shadowCastingMode = ShadowCastingMode.On,
             matProps = new MaterialPropertyBlock()
         };
-        rp.matProps.SetBuffer("Vertices", storage);
-        rp.matProps.SetBuffer("Triangles", storage);
-        rp.matProps.SetBuffer("_AddressDict", addresses);
+        rp.matProps.SetBuffer("Vertices", GenerationPreset.memoryHandle.Storage);
+        rp.matProps.SetBuffer("Triangles", GenerationPreset.memoryHandle.Storage);
+        rp.matProps.SetBuffer("_AddressDict", GenerationPreset.memoryHandle.Address);
 
         rp.matProps.SetInt("triAddress", triAddress);
         rp.matProps.SetInt("vertAddress", vertAddress);
@@ -218,121 +212,23 @@ public class AsyncMeshReadback
         return rp;
     }
 
-    void TranscribeVertices(ComputeBuffer memoryBuffer, ComputeBuffer addressBuffer, int addressIndex, int vertCounter, int vertStart){
+    void TranscribeVertices(int addressIndex, int vertCounter){
         ComputeBuffer args = UtilityBuffers.CountToArgs(vertexTranscriber, UtilityBuffers.GenerationBuffer, countOffset: vertCounter);
-        
-        vertexTranscriber.SetBuffer(0, "baseVertices", UtilityBuffers.GenerationBuffer);
-        vertexTranscriber.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
-        vertexTranscriber.SetInt("bCOUNTER", vertCounter);
-        vertexTranscriber.SetInt("bSTART", vertStart);
 
-        vertexTranscriber.SetBuffer(0, "_MemoryBuffer", memoryBuffer);
-        vertexTranscriber.SetBuffer(0, "_AddressDict", addressBuffer);
         vertexTranscriber.SetInt("addressIndex", addressIndex);
         vertexTranscriber.DispatchIndirect(0, args);
     }
 
-    void TranscribeTriangles(ComputeBuffer memoryBuffer, ComputeBuffer addressBuffer, int addressIndex, int triCounter, int triStart, int dictStart)
+    void TranscribeTriangles(int addressIndex, int triCounter, int triStart)
     {
         ComputeBuffer args = UtilityBuffers.CountToArgs(triangleTranscriber, UtilityBuffers.GenerationBuffer, countOffset: triCounter);
-
-        triangleTranscriber.SetBuffer(0, "BaseTriangles", UtilityBuffers.GenerationBuffer);
-        triangleTranscriber.SetBuffer(0, "triDict", UtilityBuffers.GenerationBuffer);
-        triangleTranscriber.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
         triangleTranscriber.SetInt("bCOUNTER_Tri", triCounter);
         triangleTranscriber.SetInt("bSTART_Tri", triStart);
-        triangleTranscriber.SetInt("bSTART_Dict", dictStart);
-
-        triangleTranscriber.SetBuffer(0, "_MemoryBuffer", memoryBuffer);
-        triangleTranscriber.SetBuffer(0, "_AddressDict", addressBuffer);
         triangleTranscriber.SetInt("triAddress", addressIndex);
 
         triangleTranscriber.DispatchIndirect(0, args);
     }
-
-    public struct Vertex
-    {
-        public Vector3 pos;
-        public Vector3 norm;
-        public int2 material;
-
-        //Data is packed into one struct, so read to first stream
-        public static void SetVertexBufferParams(Mesh mesh, int count){
-            mesh.SetVertexBufferParams(count, 
-            new [] {
-                new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, stream: 0),
-                new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3, stream: 0),
-                new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.SInt32, 2, stream: 0)
-            });
-        }
-    }
-
-    //As data is read this way, reading to native array is significantly faster
-    public class SharedMeshInfo
-    {
-        public NativeArray<uint>[] IndexBuffer;
-        public NativeArray<Vertex> VertexBuffer;
-
-        public SharedMeshInfo(int numSubMeshes)
-        {
-            IndexBuffer = new NativeArray<uint>[numSubMeshes];
-        }
-
-        ~SharedMeshInfo(){
-            Release();
-        }
-
-        public void Release(){
-            for(int i = 0; i < IndexBuffer.Length; i++)
-                IndexBuffer[i].Dispose();
-            VertexBuffer.Dispose();
-        }
-
-        public Mesh GenerateMesh(UnityEngine.Rendering.IndexFormat meshIndexFormat)
-        {
-            Mesh mesh = new();
-            if(VertexBuffer == null || VertexBuffer.Length == 0) return null;
-
-            //Set Layouts
-            int totalIndices = IndexBuffer.Sum(x => x.Length);
-            Vertex.SetVertexBufferParams(mesh, VertexBuffer.Length);
-            mesh.SetIndexBufferParams(totalIndices, meshIndexFormat);
-
-            //Set Shared Vertex Data
-            mesh.SetVertexBufferData(VertexBuffer, 0, 0, VertexBuffer.Length, 0, MeshUpdateFlags.DontValidateIndices);
-            
-            //Set Indices and Submesh Data
-            int meshIndexStart = 0;
-            SubMeshDescriptor[] subMeshes = new SubMeshDescriptor[IndexBuffer.Length];
-            for(int i = 0; i < IndexBuffer.Length; i++){
-                NativeArray<uint> indices = IndexBuffer[i];
-                if(indices == null || indices.Length == 0) continue;
-
-                mesh.SetIndexBufferData(indices, 0, meshIndexStart, indices.Length, MeshUpdateFlags.DontValidateIndices);
-                subMeshes[i] = new SubMeshDescriptor(meshIndexStart, indices.Length, MeshTopology.Triangles);
-                meshIndexStart += indices.Length;
-            }
-            
-            mesh.SetSubMeshes(subMeshes);
-            return mesh;
-        }
-
-        public Mesh GetSubmesh(int submeshIndex, UnityEngine.Rendering.IndexFormat meshIndexFormat){
-            if(submeshIndex >= IndexBuffer.Length || IndexBuffer[submeshIndex].Length == 0) return null;
-            if(VertexBuffer == null || VertexBuffer.Length == 0) return null;
-
-            Mesh mesh = new Mesh();
-            NativeArray<uint> indices = IndexBuffer[submeshIndex];
-            Vertex.SetVertexBufferParams(mesh, VertexBuffer.Length);
-            mesh.SetIndexBufferParams(indices.Length, meshIndexFormat);
-
-            mesh.SetVertexBufferData(VertexBuffer, 0, 0, VertexBuffer.Length, 0, MeshUpdateFlags.DontValidateIndices);
-            mesh.SetIndexBufferData(indices, 0, 0, indices.Length, MeshUpdateFlags.DontValidateIndices);
-            mesh.SetSubMesh(0, new SubMeshDescriptor(0, indices.Length, MeshTopology.Triangles));
-            
-            return mesh;
-        }
-    }
+    
 
 
     public class GeometryHandle : UpdateTask
@@ -385,24 +281,6 @@ public class AsyncMeshReadback
         }
     }
 
-    class ReadbackTask{
-        private int numRBTasks;
-        private Action<SharedMeshInfo> RBMeshCallback;
-        public SharedMeshInfo RBMesh;
-
-        public ReadbackTask(Action<SharedMeshInfo> RBMeshCallback, int numMeshes){
-            this.numRBTasks = 0;
-            this.RBMeshCallback = RBMeshCallback;
-            this.RBMesh = new SharedMeshInfo(numMeshes);
-        }
-
-        public void AddTask(){ numRBTasks++; }
-
-        public void onRBRecieved(){
-            numRBTasks--;
-            if(numRBTasks == 0) RBMeshCallback(RBMesh);
-        }
-    }
 
     /*
     ComputeBuffer CalculateGeoSize(ComputeBuffer geoSize, ref Queue<ComputeBuffer> bufferHandle)
@@ -420,4 +298,132 @@ public class AsyncMeshReadback
         return memSize;
     }
     */
+}
+
+namespace RBMeshes{
+    public interface IVertFormat {
+        //Like to be static, but .NET 5 doesn't support
+        public void SetVertexBufferParams(Mesh mesh, int count);
+    }
+    
+    public struct TVert : IVertFormat
+    {
+        public Vector3 pos;
+        public Vector3 norm;
+        public int2 material;
+
+        //Data is packed into one struct, so read to first stream
+        public void SetVertexBufferParams(Mesh mesh, int count){
+            mesh.SetVertexBufferParams(count, 
+            new [] {
+                new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, stream: 0),
+                new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3, stream: 0),
+                new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.SInt32, 2, stream: 0)
+            });
+        }
+    }
+
+    public struct SVert : IVertFormat
+    {
+        public Vector3 pos;
+        public int material;
+        public int uv;
+
+        //Data is packed into one struct, so read to first stream
+        public void SetVertexBufferParams(Mesh mesh, int count){
+            mesh.SetVertexBufferParams(count, 
+            new [] {
+                new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, stream: 0),
+                new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.UInt32, 1, stream: 0),
+                new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.UInt32, 1, stream: 0)
+            });
+        }
+    }
+
+    //As data is read this way, reading to native array is significantly faster
+    public class SharedMeshInfo<Vert> where Vert : struct, IVertFormat
+    {
+        public NativeArray<uint>[] IndexBuffer;
+        public NativeArray<Vert> VertexBuffer;
+
+        public SharedMeshInfo(int numSubMeshes)
+        {
+            IndexBuffer = new NativeArray<uint>[numSubMeshes];
+        }
+
+        ~SharedMeshInfo(){
+            Release();
+        }
+
+        public void Release(){
+            for(int i = 0; i < IndexBuffer.Length; i++)
+                IndexBuffer[i].Dispose();
+            VertexBuffer.Dispose();
+        }
+
+        public Mesh GenerateMesh(UnityEngine.Rendering.IndexFormat meshIndexFormat)
+        {
+            Mesh mesh = new();
+            if(VertexBuffer == null || VertexBuffer.Length == 0) return null;
+
+            //Set Layouts
+            int totalIndices = IndexBuffer.Sum(x => x.Length);
+            new Vert().SetVertexBufferParams(mesh, VertexBuffer.Length);
+            mesh.SetIndexBufferParams(totalIndices, meshIndexFormat);
+
+            //Set Shared Vertex Data
+            mesh.SetVertexBufferData(VertexBuffer, 0, 0, VertexBuffer.Length, 0, MeshUpdateFlags.DontValidateIndices);
+            
+            //Set Indices and Submesh Data
+            int meshIndexStart = 0;
+            SubMeshDescriptor[] subMeshes = new SubMeshDescriptor[IndexBuffer.Length];
+            for(int i = 0; i < IndexBuffer.Length; i++){
+                NativeArray<uint> indices = IndexBuffer[i];
+                if(indices == null || indices.Length == 0) continue;
+
+                mesh.SetIndexBufferData(indices, 0, meshIndexStart, indices.Length, MeshUpdateFlags.DontValidateIndices);
+                subMeshes[i] = new SubMeshDescriptor(meshIndexStart, indices.Length, MeshTopology.Triangles);
+                meshIndexStart += indices.Length;
+            }
+            mesh.SetIndexBufferParams(meshIndexStart, meshIndexFormat);
+            
+            mesh.SetSubMeshes(subMeshes);
+            return mesh;
+        }
+
+        public Mesh GetSubmesh(int submeshIndex, UnityEngine.Rendering.IndexFormat meshIndexFormat){
+            if(submeshIndex >= IndexBuffer.Length || IndexBuffer[submeshIndex].Length == 0) return null;
+            if(VertexBuffer == null || VertexBuffer.Length == 0) return null;
+
+            Mesh mesh = new Mesh();
+            NativeArray<uint> indices = IndexBuffer[submeshIndex];
+            new Vert().SetVertexBufferParams(mesh, VertexBuffer.Length);
+            mesh.SetIndexBufferParams(indices.Length, meshIndexFormat);
+
+            mesh.SetVertexBufferData(VertexBuffer, 0, 0, VertexBuffer.Length, 0, MeshUpdateFlags.DontValidateIndices);
+            mesh.SetIndexBufferData(indices, 0, 0, indices.Length, MeshUpdateFlags.DontValidateIndices);
+            mesh.SetSubMesh(0, new SubMeshDescriptor(0, indices.Length, MeshTopology.Triangles));
+            
+            return mesh;
+        }
+    }
+
+    class ReadbackTask<Vert> where Vert : struct, IVertFormat{
+        private int numRBTasks;
+        private Action<SharedMeshInfo<Vert>> RBMeshCallback;
+        public SharedMeshInfo<Vert> RBMesh;
+
+        public ReadbackTask(Action<SharedMeshInfo<Vert>> RBMeshCallback, int numMeshes){
+            this.numRBTasks = 0;
+            this.RBMeshCallback = RBMeshCallback;
+            this.RBMesh = new SharedMeshInfo<Vert>(numMeshes);
+        }
+
+        public void AddTask(){ numRBTasks++; }
+
+        public void onRBRecieved(){
+            numRBTasks--;
+            if(numRBTasks == 0) RBMeshCallback(RBMesh);
+        }
+    }
 }

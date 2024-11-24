@@ -148,20 +148,25 @@ public class InventoryController : UpdateTask
         if(Cursor.IsNull) return;
         CursorDisplay.Object.SetActive(false);
 
-        bool HasSlot = GetMouseSlot(out Inventory inv, out int index);
-        if (HasSlot && inv.Info[index].IsNull){
-            int prevSlot = index;
-            if(inv.EntryDict.ContainsKey(Cursor.Id)) 
-                prevSlot = (int)inv.EntryDict[Cursor.Id];
-            inv.AddEntry(Cursor, (uint)index, (uint)prevSlot);   
-        } else if(HasSlot && inv.Info[index].IsStackable && Cursor.Id == inv.Info[index].Id){ 
-            //If we're trying to merge slots of same type
-            inv.AddStackable(Cursor, (uint)index);
-        } else{ 
-            //If the slot is occupied, or not in inventory, just add to next available slot
-            if(inv.EntryDict.ContainsKey(Cursor.Id)) 
-                Secondary.AddEntry(Cursor, inv.EntryDict[Cursor.Id]);
-            else Secondary.AddEntry(Cursor);
+        if (GetMouseSlot(out Inventory inv, out int index)){
+            if(inv.Info[index].IsNull)
+                inv.AddEntry(Cursor, (uint)index);   
+            else if(inv.Info[index].IsStackable && Cursor.Id == inv.Info[index].Id) 
+                inv.AddStackable(Cursor, (uint)index);
+            else{
+                if(inv.EntryDict.ContainsKey(Cursor.Id)) 
+                    Secondary.AddEntry(Cursor, inv.EntryDict[Cursor.Id]);
+                else Secondary.AddEntry(Cursor, out uint _);
+            }
+        } else {
+            EntitySerial Entity = new EntitySerial();
+            Entity.data = new EItem.EItemEntity(new TerrainColliderJob.Transform{
+                position = CPUDensityManager.WSToGS(PlayerHandler.player.transform.position),
+                rotation = PlayerHandler.player.transform.rotation,
+            }, Cursor);
+            Entity.type = "EntityItem";
+            Entity.guid = Guid.NewGuid().ToString();
+            EntityManager.AddHandlerEvent(() => EntityManager.CreateEntity(Entity));
         }
         Cursor.IsNull = true;
     }
@@ -196,23 +201,28 @@ public class InventoryController : UpdateTask
     private static void CraftEntry(float _){
         if(!CraftingMenuController.CraftRecipe(out Inventory.Slot result))
             return;
-        if((result.IsStackable && Secondary.AddStackable(result) != -1) || 
-            (!result.IsStackable && Secondary.AddEntry(result) != -1)){
+        if((result.IsStackable && Secondary.AddStackable(result) != 0) || 
+            (!result.IsStackable && Secondary.AddEntry(result, out uint _))){
             CraftingMenuController.Clear();
         };
     }
 
-    //Place the material in the hotbar if in hotbar
-    //otherwise place it in the inventory
-    public static int AddMaterial(Inventory.Slot mat){
+    //Returns the amount added, 0 if none added
+    //if stackable, add to primary then secondary, else add to secondary then primary
+    public static int AddEntry(Inventory.Slot e){
         int delta = 0;
-        if(Primary.EntryDict.ContainsKey(mat.Id)){
-            delta = Primary.AddStackable(mat);
-            if(mat.AmountRaw == delta) 
-                return delta;
-            mat.AmountRaw -= delta;
+        if(e.IsStackable){
+            if(Primary.EntryDict.ContainsKey(e.Id)){
+                delta = Primary.AddStackable(e);
+                if(e.AmountRaw == delta) 
+                    return delta;
+                e.AmountRaw -= delta;
+            }
+            return Secondary.AddStackable(e) + delta;
+        } else {
+            delta = Secondary.AddEntry(e, out uint _) || Primary.AddEntry(e, out uint _) ? 1 : 0;
+            return delta;
         }
-        return Secondary.AddStackable(mat) + delta;
     }
     public static int RemoveMaterial(int delta){
         if(Selected.IsNull) return 0;
@@ -222,11 +232,13 @@ public class InventoryController : UpdateTask
 
     public static Inventory Serialize(Inventory a){
         for(int i = 0; i < a.Info.Length; i++){
-            if(a.Info[i].data != 0)
+            if(!a.Info[i].IsNull){
                 a.MakeDirty((uint)i);
+            }
         }
         return a;
     }
+
     public override void Update(MonoBehaviour mono){
         ReflectInventory(PrimaryDisplay, Primary); 
         ReflectInventory(SecondaryDisplay, Secondary);
@@ -250,6 +262,7 @@ public class InventoryController : UpdateTask
             } 
         } inventory.Dirty.Clear();
     }
+
 
     [Serializable]
     public struct Settings{
@@ -290,21 +303,21 @@ public class InventoryController : UpdateTask
         //Input: The material id, amount to add, and index to add at
         //Returns: The actual amount added
         public int AddStackable(Slot mat, uint index){
-            int delta = mat.AmountRaw; 
             if(Info[index].Id != mat.Id) return 0;
             if(!Info[index].IsStackable) return 0;
-
-            delta = math.min(Info[index].AmountRaw + delta, 0x7FFF) 
+            
+            int delta = math.min(Info[index].AmountRaw + mat.AmountRaw, 0x7FFF) 
                     - Info[index].AmountRaw;
             Info[index].AmountRaw += delta;
             mat.AmountRaw -= delta;
             MakeDirty(index);
 
-            if(mat.AmountRaw <= 0) return (int)delta; 
-            if(length == capacity-1) return (int)delta;
+            if(mat.AmountRaw <= 0) return delta; 
+            if(length == capacity-1) return delta;
+            if(AddEntry(mat, out uint ind)) return delta;
             //Add new entry and clear its contents
-            Info[AddEntry(mat, index)].AmountRaw = 0;
-            return AddMaterial(mat) + (int)delta;
+            Info[ind].AmountRaw = 0;
+            return AddStackable(mat) + delta;
         }
 
 
@@ -312,21 +325,21 @@ public class InventoryController : UpdateTask
         //Returns: The actual amount added
         public int AddStackable(Slot mat){
             if(!mat.IsStackable) return 0;
-            int delta = mat.AmountRaw; uint slotN = tail;
+            int delta = 0; 
             if(EntryDict.ContainsKey(mat.Id)){
-                slotN = EntryDict[mat.Id];
-                delta = math.min(Info[slotN].AmountRaw + delta, 0x7FFF) 
+                uint slotN = EntryDict[mat.Id];
+                delta = math.min(Info[slotN].AmountRaw + mat.AmountRaw, 0x7FFF) 
                         - Info[slotN].AmountRaw;
                 Info[slotN].AmountRaw += delta;
                 mat.AmountRaw -= delta;
                 MakeDirty(slotN);
             }
-            if(mat.AmountRaw <= 0) return (int)delta; 
-            if(length == capacity-1) return (int)delta;
+            if(mat.AmountRaw <= 0) return delta; 
+            if(!AddEntry(mat, out uint ind)) return delta;
             //Add new entry and clear its contents
-            Info[AddEntry(mat, slotN)].AmountRaw = 0;
+            Info[ind].AmountRaw = 0;
 
-            return AddMaterial(mat) + (int)delta;
+            return AddStackable(mat) + delta;
         }
 
         //Input: Request removing from a slot of a certain amount
@@ -358,33 +371,41 @@ public class InventoryController : UpdateTask
             length--;
         }
 
-        public int AddEntry(Slot entry, uint prevSlot = 0xFFFFFFFF){
-            if(length == capacity-1) return -1;
-            if(prevSlot == 0xFFFFFFFF) prevSlot = tail;
-            uint head = tail;
+        public bool AddEntry(Slot entry, out uint head){
+            head = tail;
+            if(length == capacity-1) return false;
             tail = EntryLL[head].n; 
             length++;
 
+            uint prevSlot = head;
+            if(EntryDict.ContainsKey(entry.Id)) 
+                prevSlot = EntryDict[entry.Id];
+            
             LLRemove(head);
             LLAdd(head, prevSlot);
             Info[head] = entry;
             EntryDict[entry.Id] = head;
 
             MakeDirty(head);
-            return (int)head;
+            return true;
         }
 
-        public void AddEntry(Slot entry, uint index, uint prevSlot){
-            if(length == capacity-1) return;
-            if(!Info[index].IsNull) return;
+        public bool AddEntry(Slot entry, uint index){
+            if(length == capacity-1) return false;
+            if(!Info[index].IsNull) return false; //Slot has to be null
             if(index == tail) tail = EntryLL[tail].n;
             length++;
+
+            uint prevSlot = index;
+            if(EntryDict.ContainsKey(entry.Id)) 
+                prevSlot = EntryDict[entry.Id];
 
             LLRemove(index);
             LLAdd(index, prevSlot);
             Info[index] = entry;
             EntryDict[entry.Id] = index;
             MakeDirty(index);
+            return true;
         }
 
         private void LLAdd(uint index, uint prev){
@@ -421,7 +442,7 @@ public class InventoryController : UpdateTask
             [JsonIgnore]
             public int Index{
                 readonly get => (int)(data >> 15) & 0x7FFF;
-                set => data = (data & 0xC0007FFF) | ((uint)value << 15);
+                set => data = (data & 0xC0007FFF) | (((uint)value & 0x7FFF) << 15);
             }
             [JsonIgnore]
             public uint Id{

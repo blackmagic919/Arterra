@@ -230,6 +230,7 @@ public class EntityConverter : JsonConverter<EntitySerial>{
         JObject o = new JObject
         {
             new JProperty("type", value.type),
+            new JProperty("guid", value.guid),
             new JProperty("data", JToken.FromObject(value.data, serializer))
         };
         o.WriteTo(writer);
@@ -241,6 +242,7 @@ public class EntityConverter : JsonConverter<EntitySerial>{
         
         var reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities;
         entity.type = (string)obj["type"]; 
+        entity.guid = (string)obj["guid"];
         //Retrieve the type from the registry and deserialize the data
         Type entityType = reg.Retrieve(entity.type).Entity.GetType();
         entity.data = (IEntity)serializer.Deserialize(obj["data"].CreateReader(), entityType);

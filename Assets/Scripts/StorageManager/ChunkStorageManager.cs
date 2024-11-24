@@ -139,6 +139,7 @@ public static class ChunkStorageManager
         for(int i = 0; i < entities.Count; i++){
             EntitySerial entity = new ();
             entity.type = eReg.RetrieveName((int)entities[i].info.entityType);
+            entity.guid = entities[i].info.entityId;
             entity.data = (IEntity)Marshal.PtrToStructure(entities[i].obj, eReg.Retrieve(entity.type).Entity.GetType());
             eSerial.Add(entity);
         }
@@ -271,11 +272,6 @@ public static class ChunkStorageManager
 
 public struct ChunkHeader{
     public List<string> RegisterNames;
-}
-
-public struct EntitySerial{
-    public string type;
-    public IEntity data;
 }
 
 public struct ReadbackInfo{

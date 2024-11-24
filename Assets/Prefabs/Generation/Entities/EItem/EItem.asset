@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b034b027c96fe450b96e91acc87dbc1c, type: 3}
+  m_Name: EItem
+  m_EditorClassIdentifier: 
+  _Controller:
+    value: {fileID: 5653881121737289674, guid: cdde00980c1ea4ddea86e60f5d7f261c, type: 3}
+    isDirty: 0
+  _Entity:
+    isDirty: 0
+  _Setting:
+    value:
+      GroundStickDist: 0.05
+      StickFriction: 0.15
+      SpriteSampleSize:
+        x: 32
+        y: 32
+      AlphaClip: 0.2
+      ExtrudeHeight: 5
+      collider:
+        size:
+          x: 0.5
+          y: 0.5
+          z: 0.5
+        offset:
+          x: -0.25
+          y: -0.1
+          z: -0.25
+        useGravity: 1
+    isDirty: 0
+  _Profile:
+    value:
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    isDirty: 0
+  _Info:
+    value:
+      bounds:
+        x: 2
+        y: 2
+        z: 2
+      profileStart: 72
+    isDirty: 0

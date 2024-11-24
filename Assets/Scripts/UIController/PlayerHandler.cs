@@ -17,7 +17,6 @@ public class PlayerHandler : UpdateTask
         UIHandle = GameObject.Find("MainUI");
         player = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/PlayerController"));
         PlayerController = player.GetComponent<RigidFPController>();
-        GameObject.DontDestroyOnLoad(player.gameObject); //This handler will destroy the player
 
         info = LoadPlayerData();
         player.transform.SetPositionAndRotation(info.position, info.rotation);

@@ -1,0 +1,141 @@
+#include "Assets/Resources/Compute/TerrainGeneration/Entities/MarchSTables.hlsl"
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#include "UnityCG.cginc"
+#pragma kernel March
+const static int numThreads = 16;
+static const float3 Epsilon = float3(1E-6, 1E-6, 1E-6);
+
+struct vertex{
+    float3 position;
+    uint material;
+    uint uv; // 2 byte -> uv
+};
+
+struct tri{ uint vertex[3]; };
+struct MarchSquare{ float corners[4]; };
+
+Texture2DArray<float4> _Textures;
+SamplerState sampler_Textures{
+    Filter = MIN_MAG_MIP_POINT;
+    AddressU = Clamp;
+    AddressV = Clamp;
+};
+uint textureInd;
+
+//number of squares generated
+uint2 SampleSize; 
+float AlphaClip; 
+float ExtrudeHeight;
+
+RWStructuredBuffer<uint> counter;
+uint2 counterInd; //x -> vertex; y -> triangle
+
+RWStructuredBuffer<uint> triangleDict;
+RWStructuredBuffer<vertex> vertexes;
+RWStructuredBuffer<tri> triangles;
+uint bSTART_dict;
+uint bSTART_verts;
+uint bSTART_tris;
+
+MarchSquare ReadSquare(int2 Coord){
+    MarchSquare square;
+    [unroll]for(int i = 0; i < 4; i++){
+        uint2 sCoord = Coord + positionFromIndex[i];
+        if(any(sCoord == 0 || sCoord == SampleSize - 1)){
+            square.corners[i] = 0; //so that mesh always has edges
+        } else{
+            float2 UV = clamp(sCoord / (float2)SampleSize, 0, 1);
+            square.corners[i] = _Textures.SampleLevel(sampler_Textures, float3(UV, textureInd), 0).a;
+        }
+    }
+    return square;
+}
+
+float interpolate(float p1Val, float p2Val) {
+    //If p1Val != p2Val, Epsilon is lost through float conversion, otherwise Epsilon prevents Nan
+    if(p1Val > AlphaClip && p2Val > AlphaClip) return 0.5f;
+    else return ((AlphaClip - p1Val) / (p2Val - p1Val + Epsilon.x)); 
+}
+
+[numthreads(numThreads,numThreads,1)]
+void March (uint3 id : SV_DispatchThreadID)
+{
+    if (any(id.xy >= SampleSize))
+        return;
+    
+    int2 oCoord = int2(id.xy);
+    int oIndex = indexFromCoord2DManual(id.xy, SampleSize.y);
+    MarchSquare square = ReadSquare(oCoord);
+    uint sIndex = 0;
+    [unroll]for(int u = 0; u < 4; u++){
+        if(square.corners[u] > AlphaClip) sIndex |= 1 << u;
+    }
+
+    //Only evaluate vertices for first triangle
+    if(triangulation[sIndex][0] != -1){
+        [unroll]for(int v = 0; v < 3; v++){
+            int3 pInd = cornerIndexFromEdge[triangulation[sIndex][v]];
+            if(pInd.x != 0) continue; //Duplicate Vertex
+
+            int2 p1 = oCoord + positionFromIndex[pInd.x];
+            int2 p2 = oCoord + positionFromIndex[pInd.y];
+            if(any((uint)p2 >= SampleSize)) continue; //Out of Bounds
+            
+            vertex newVert;
+
+            float p1Val = square.corners[pInd.x];
+            float p2Val = square.corners[pInd.y];
+            float interpFactor = interpolate(p1Val, p2Val);
+            float height = p1Val * (1 - interpFactor) + p2Val * interpFactor;
+
+            newVert.position = float3((p1 + interpFactor * (p2 - p1)), height * ExtrudeHeight);
+            newVert.material = textureInd;
+            float2 UV = clamp(newVert.position.xy / SampleSize, 0, 1);
+            newVert.uv = (uint)(UV.x * 0xFFFF) | ((uint)(UV.y * 0xFFFF) << 16);
+            newVert.position.xy -= SampleSize.xy/2;
+            
+            int appendInd = 0;
+            InterlockedAdd(counter[counterInd.x], 2, appendInd);
+            vertexes[bSTART_verts + appendInd] = newVert;
+            newVert.position.z *= -1;
+            vertexes[bSTART_verts + appendInd + 1] = newVert;
+
+            triangleDict[bSTART_dict + 2*(3 * oIndex + pInd.z)] = appendInd;
+            triangleDict[bSTART_dict + 2*(3 * oIndex + pInd.z) + 1] = appendInd + 1;
+        }
+    }
+    
+    if(any(id.xy >= SampleSize - 1))
+        return;
+    
+    int i;
+    //Add top and bottom faces
+    for(i = 0; triangulation[sIndex][i] != -1; i += 3){
+        tri topTri; tri bottomTri;
+        [unroll]for(int v = 0; v < 3; v++){
+            int3 cornerInfo = cornerIndexFromEdge[triangulation[sIndex][i + v]];
+            int origin = indexFromCoord2DManual(oCoord + positionFromIndex[cornerInfo.x], SampleSize.y) * 3;
+            topTri.vertex[2-v] = 2*(origin + cornerInfo.z);
+            //Reverse winding because normals are opposite direction
+            bottomTri.vertex[v] = 2*(origin + cornerInfo.z) + 1; 
+        }
+
+        int appendInd = 0;
+        InterlockedAdd(counter[counterInd.y], 2, appendInd);
+        triangles[bSTART_tris + appendInd] = topTri;
+        triangles[bSTART_tris + appendInd + 1] = bottomTri;
+    }
+
+    for(i = 0; vertical_triangulation[sIndex][i] != -1; i += 3){
+        tri sideTri;
+        [unroll]for(int v = 0; v < 3; v++){
+            int3 cornerInfo = vertical_cornerIndexFromEdge[vertical_triangulation[sIndex][i + v]];
+            int origin = indexFromCoord2DManual(oCoord + vertical_positionFromIndex[cornerInfo.x], SampleSize.y) * 3;
+            sideTri.vertex[2-v] = 2*(origin + cornerInfo.y) + cornerInfo.z;
+        }
+
+        int appendInd = 0;
+        InterlockedAdd(counter[counterInd.y], 1, appendInd);
+        triangles[bSTART_tris + appendInd] = sideTri;
+    }
+}

@@ -12,45 +12,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: BarkMat
   m_EditorClassIdentifier: 
-  Name: Bark
   texture:
     value: {fileID: 21300000, guid: 3e30a42e52755488789c9c1cbb471854, type: 3}
     isDirty: 0
   terrainData:
-    color:
-      x: 0.302
-      y: 0.184
-      z: 0.082
-      w: 1
+    color: {x: 0.302, y: 0.184, z: 0.082, w: 1}
     textureScale: 5
     baseColorStrength: 0.1
     GeoShaderIndex: -1
   AtmosphereScatter:
-    ScatterCoeffs:
-      x: 0
-      y: 0
-      z: 0
-    GroundExtinction:
-      x: 0
-      y: 0
-      z: 0
+    ScatterCoeffs: {x: 0, y: 0, z: 0}
+    GroundExtinction: {x: 0, y: 0, z: 0}
   liquidData:
-    shallowCol:
-      x: 0
-      y: 0
-      z: 0
-    deepCol:
-      x: 0
-      y: 0
-      z: 0
+    shallowCol: {x: 0, y: 0, z: 0}
+    deepCol: {x: 0, y: 0, z: 0}
     colFalloff: 0
     depthOpacity: 0
     smoothness: 0
     waveBlend: 0
     waveStrength: 0
-    waveScale:
-      x: 0
-      y: 0
-    waveSpeed:
-      x: 0
-      y: 0
+    waveScale: {x: 0, y: 0}
+    waveSpeed: {x: 0, y: 0}
