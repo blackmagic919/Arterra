@@ -2,16 +2,15 @@
 const static uint numthread = 128;
 
 struct surfData{
+    int biome;
     float terrain;
     float squash;
-    int biome;
-    float cFreq;
-    float cSize;
-    float cShape;
+    float InfMax;
+    float InfMin;
+    float atmosphere;
 };
 
 StructuredBuffer<surfData> SurfaceMap;
-
 uint numSurfacePoints;
 
 RWStructuredBuffer<surfData> _MemoryBuffer;

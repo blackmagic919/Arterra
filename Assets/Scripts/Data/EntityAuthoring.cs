@@ -106,7 +106,7 @@ public struct JGuid{
         JGuid jGuid = new JGuid();
         unsafe{
             byte* data = jGuid.GuidData;
-            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(guid);
+            byte[] bytes = Guid.Parse(guid).ToByteArray();
             for(int i = 0; i < 16; i++) data[i] = bytes[i];
         }
         return jGuid;

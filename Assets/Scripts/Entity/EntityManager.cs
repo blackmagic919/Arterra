@@ -208,10 +208,13 @@ public static class EntityManager
         entityGenShader = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/EntityIdentifier");
         entityTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/EntityTranscriber");
 
-        entityGenShader.SetBuffer(0, "chunkEntities", UtilityBuffers.GenerationBuffer);
-        entityGenShader.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
-        entityGenShader.SetBuffer(1, "chunkEntities", UtilityBuffers.GenerationBuffer);
-        entityGenShader.SetBuffer(1, "counter", UtilityBuffers.GenerationBuffer);
+        int kernel = entityGenShader.FindKernel("Identify");
+        entityGenShader.SetBuffer(kernel, "chunkEntities", UtilityBuffers.GenerationBuffer);
+        entityGenShader.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+        entityGenShader.SetBuffer(kernel, "BiomeMap", UtilityBuffers.GenerationBuffer);
+        kernel = entityGenShader.FindKernel("Prune");
+        entityGenShader.SetBuffer(kernel, "chunkEntities", UtilityBuffers.GenerationBuffer);
+        entityGenShader.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
         entityGenShader.SetInt("bCOUNTER_entities", bufferOffsets.entityCounter);
         entityGenShader.SetInt("bCOUNTER_prune", bufferOffsets.prunedCounter);
         entityGenShader.SetInt("bSTART_entities", bufferOffsets.entityStart);
@@ -223,14 +226,12 @@ public static class EntityManager
         entityTranscriber.SetInt("bSTART_entities", bufferOffsets.prunedStart);
     }
 
-    public static uint PlanEntities(uint surfAddress, int3 CCoord, int chunkSize){
+    public static uint PlanEntities(int biomeStart, int3 CCoord, int chunkSize){
         int numPointsAxes = chunkSize;
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 2, bufferOffsets.bufferStart);
 
         int kernel = entityGenShader.FindKernel("Identify");
-        entityGenShader.SetBuffer(kernel, "_SurfMemory", GenerationPreset.memoryHandle.Storage);
-        entityGenShader.SetBuffer(kernel, "_SurfAddress", GenerationPreset.memoryHandle.Address);
-        entityGenShader.SetInt("surfAddress", (int)surfAddress);
+        entityGenShader.SetInt("bSTART_biome", biomeStart);
         entityGenShader.SetInt("numPointsPerAxis", numPointsAxes);
         entityGenShader.SetInts("CCoord", new int[] { CCoord.x, CCoord.y, CCoord.z });
         GPUDensityManager.SetCCoordHash(entityGenShader);

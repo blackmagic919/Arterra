@@ -7,15 +7,20 @@ uint continentalSampler;
 uint erosionSampler;
 uint PVSampler;
 uint squashSampler;
+uint InfHeightSampler;
+uint InfOffsetSampler;
+uint atmosphereSampler;
+
 uint caveFreqSampler;
 uint caveSizeSampler;
 uint caveShapeSampler;
-
-//Terrain
-float IsoLevel;
 uint caveCoarseSampler;
 uint caveFineSampler;
 
+//Terrain
+float IsoLevel;
+float heightSFalloff;
+float maxInfluenceHeight;
 float maxTerrainHeight;
 float squashHeight;
 float heightOffset;

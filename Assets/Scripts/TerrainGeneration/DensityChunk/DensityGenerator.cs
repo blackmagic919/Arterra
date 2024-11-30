@@ -35,17 +35,26 @@ public static class DensityGenerator
         //Set Marching Cubes Data
         int numPointsAxes = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
         bufferOffsets = new GeoGenOffsets(new int3(numPointsAxes, numPointsAxes, numPointsAxes), 0, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD, RAW_MAP_WORD);
-
+        
+        baseGenCompute.SetBuffer(0, "_SurfMemoryBuffer", GenerationPreset.memoryHandle.Storage);
+        baseGenCompute.SetBuffer(0, "_SurfAddressDict", GenerationPreset.memoryHandle.Address);
+        baseGenCompute.SetInt("caveFreqSampler", mesh.CaveFrequencyIndex);
+        baseGenCompute.SetInt("caveSizeSampler", mesh.CaveSizeIndex);
+        baseGenCompute.SetInt("caveShapeSampler", mesh.CaveShapeIndex);
         baseGenCompute.SetInt("coarseCaveSampler", mesh.CoarseTerrainIndex);
         baseGenCompute.SetInt("fineCaveSampler", mesh.FineTerrainIndex);
         baseGenCompute.SetInt("coarseMatSampler", mesh.CoarseMaterialIndex);
         baseGenCompute.SetInt("fineMatSampler", mesh.FineMaterialIndex);
 
+        baseGenCompute.SetFloat("heightSFalloff", mesh.heightFalloff);
+        baseGenCompute.SetFloat("atmoStrength", mesh.atmosphereFalloff);
         baseGenCompute.SetFloat("waterHeight", mesh.waterHeight);
         baseGenCompute.SetInt("waterMat", mesh.WaterIndex);
 
+        baseGenCompute.SetBuffer(0, "BiomeMap", UtilityBuffers.GenerationBuffer);
         baseGenCompute.SetBuffer(0, "BaseMap", UtilityBuffers.GenerationBuffer);
         baseGenCompute.SetInt("bSTART_map", bufferOffsets.rawMapStart);
+        baseGenCompute.SetInt("bSTART_biome", bufferOffsets.biomeMapStart);
 
         mapCompressor.SetBuffer(0, "rawData", UtilityBuffers.GenerationBuffer);
         mapCompressor.SetBuffer(0, "chunkData", UtilityBuffers.GenerationBuffer);
@@ -101,20 +110,16 @@ public static class DensityGenerator
         UtilityBuffers.GenerationBuffer.EndWrite<TerrainChunk.MapData>(numPoints);
     }*/
        
-    public static void GenerateBaseData( Vector3 offset, uint surfaceData, int chunkSize, int mapSkip, float IsoLevel)
+    public static void GenerateBaseData( Vector3 offset, uint surfaceData, int numPointsPerAxis, int mapSkip, float IsoLevel)
     {
-        int numPointsAxes = chunkSize;
         baseGenCompute.SetFloat("IsoLevel", IsoLevel);
-        baseGenCompute.SetBuffer(0, "_SurfMemoryBuffer", GenerationPreset.memoryHandle.Storage);
-        baseGenCompute.SetBuffer(0, "_SurfAddressDict", GenerationPreset.memoryHandle.Address);
         baseGenCompute.SetInt("surfAddress", (int)surfaceData);
-        baseGenCompute.SetInt("numPointsPerAxis", numPointsAxes);
-        baseGenCompute.SetFloat("offsetY", offset.y);
+        baseGenCompute.SetInt("numPointsPerAxis", numPointsPerAxis);
         
         SetSampleData(baseGenCompute, offset, mapSkip);
 
         baseGenCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
-        int numThreadsAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);
+        int numThreadsAxis = Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
         baseGenCompute.Dispatch(0, numThreadsAxis, numThreadsAxis, numThreadsAxis);
     }
 
@@ -173,6 +178,7 @@ public static class DensityGenerator
         public int waterTriCounter;
         public int mapStart;
         public int rawMapStart;
+        public int biomeMapStart;
         public int dictStart;
         public int vertStart;
         public int baseTriStart;
@@ -193,6 +199,7 @@ public static class DensityGenerator
             mapStart = bufferStart + 3;
             int mapEnd_W = mapStart + numOfPointsOOB;
             rawMapStart = Mathf.CeilToInt((float)mapEnd_W / MapStride); 
+            biomeMapStart = (rawMapStart + numOfPointsOOB) * MapStride;
 
             dictStart = mapEnd_W;
             int dictEnd_W = dictStart + numOfPointsDict * TriStride;

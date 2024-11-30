@@ -16,7 +16,7 @@ MonoBehaviour:
   octaves: 9
   persistance: 0.25
   lacunarity: 2
-  seedOffset: 10
+  seedOffset: 13
   interpolation:
     value:
       serializedVersion: 2

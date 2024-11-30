@@ -15,10 +15,11 @@ MonoBehaviour:
   terrainOffset: -120
   MaxTerrainHeight: 400
   MaxSquashHeight: 100
+  MaxInfluenceHeight: 100
   ContinentalNoise: Continental
   ErosionNoise: Erosion
   PVNoise: PeakValley
   SquashNoise: Squash
-  CaveFreqNoise: CaveFreq
-  CaveSizeNoise: CaveSize
-  CaveShapeNoise: CaveShape
+  InfHeightNoise: InfluenceHeight
+  InfOffsetNoise: InfluenceOffset
+  AtmosphereNoise: Atmosphere

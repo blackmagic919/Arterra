@@ -23,10 +23,11 @@ public static class TerrainGenerator
         surfaceDataSampler.SetInt("PVSampler", surface.PVIndex);
         surfaceDataSampler.SetInt("erosionSampler", surface.ErosionIndex);
         surfaceDataSampler.SetInt("squashSampler", surface.SquashIndex);
-        surfaceDataSampler.SetInt("caveFreqSampler", surface.CaveFreqIndex);
-        surfaceDataSampler.SetInt("caveSizeSampler", surface.CaveSizeIndex);
-        surfaceDataSampler.SetInt("caveShapeSampler", surface.CaveShapeIndex);
+        surfaceDataSampler.SetInt("InfHeightSampler", surface.InfHeightIndex);
+        surfaceDataSampler.SetInt("InfOffsetSampler", surface.InfOffsetIndex);
+        surfaceDataSampler.SetInt("atmosphereSampler", surface.AtmosphereIndex);
 
+        surfaceDataSampler.SetFloat("maxInfluenceHeight", surface.MaxInfluenceHeight);
         surfaceDataSampler.SetFloat("maxTerrainHeight", surface.MaxTerrainHeight);
         surfaceDataSampler.SetFloat("squashHeight", surface.MaxSquashHeight);
         surfaceDataSampler.SetFloat("heightOffset", surface.terrainOffset);

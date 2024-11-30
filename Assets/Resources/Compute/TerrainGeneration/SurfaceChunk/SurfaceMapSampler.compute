@@ -1,6 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
-#include "Assets/Resources/Compute/TerrainGeneration/SurfaceChunk/BiomeSampler.hlsl"
+#include "Assets/Resources/Compute/TerrainGeneration/SurfaceChunk/SurfBiomeSampler.hlsl"
 #include "Assets/Resources/Compute/Utility/PerlinNoiseSampler.hlsl"
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 
@@ -8,23 +8,23 @@ uint continentalSampler;
 uint PVSampler;
 uint erosionSampler;
 uint squashSampler;
-uint caveFreqSampler;
-uint caveSizeSampler;
-uint caveShapeSampler;
+uint InfHeightSampler;
+uint InfOffsetSampler;
+uint atmosphereSampler;
 
+float maxInfluenceHeight;
 float maxTerrainHeight;
 float squashHeight;
-
 float heightOffset;
 
 
 struct surfData{
+    int biome;
     float terrain;
     float squash;
-    int biome;
-    float cFreq;
-    float cSize;
-    float cShape;
+    float InfMax;
+    float InfMin;
+    float atmosphere;
 };
 
 RWStructuredBuffer<surfData> surfMap;
@@ -54,14 +54,17 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     data.terrain = rawMaps[0] * maxTerrainHeight + heightOffset;
     data.squash = squashNoise;
 
-    rawMaps[3] = GetRawNoise2D(id.xy, caveFreqSampler);
-    rawMaps[4] = GetRawNoise2D(id.xy, caveSizeSampler);
-    rawMaps[5] = GetRawNoise2D(id.xy, caveShapeSampler);
+    rawMaps[3] = GetRawNoise2D(id.xy, InfHeightSampler);
+    rawMaps[4] = GetRawNoise2D(id.xy, InfOffsetSampler);
+    rawMaps[5] = GetRawNoise2D(id.xy, atmosphereSampler);
     
     data.biome = GetBiome(rawMaps);
-    data.cFreq = interpolateValue(rawMaps[3], caveFreqSampler);
-    data.cSize = interpolateValue(rawMaps[4], caveSizeSampler);
-    data.cShape = interpolateValue(rawMaps[5], caveShapeSampler);
+    float infHeight = interpolateValue(rawMaps[3], InfHeightSampler);
+    float infOffset = interpolateValue(rawMaps[4], InfOffsetSampler);
+
+    data.InfMax = maxInfluenceHeight * (infHeight * (1 - infOffset));
+    data.InfMin = -maxInfluenceHeight * (infHeight * infOffset);
+    data.atmosphere = interpolateValue(rawMaps[5], atmosphereSampler);
 
     uint index = indexFromCoord2D(id.x, id.y);
     surfMap[index] = data;

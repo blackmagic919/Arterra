@@ -92,8 +92,6 @@ public class PlayerHandler : UpdateTask
 
         public void Serialize(){
             //Marks updated slots dirty so they are rendered properlly when deserialized
-            InventoryController.Serialize(PrimaryI); 
-            InventoryController.Serialize(SecondaryI);
             // (Register Name, Index) -> Name Index
             Dictionary<(int, int), int> lookup = new Dictionary<(int, int), int>();
             for(int i = 0; i < PrimaryI.Info.Length; i++){
@@ -124,14 +122,16 @@ public class PlayerHandler : UpdateTask
             IRegister[] registries = {
                 WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary
             };
-            for(int i = 0; i < PrimaryI.Info.Length; i++){
+            for(uint i = 0; i < PrimaryI.Info.Length; i++){
                 if(PrimaryI.Info[i].IsNull) continue;
                 int regInd = PrimaryI.Info[i].IsItem ? 1 : 0;
+                PrimaryI.MakeDirty(i);
                 PrimaryI.Info[i].Index = registries[regInd].RetrieveIndex(SerializedNames[PrimaryI.Info[i].Index]);
             }
-            for(int i = 0; i < SecondaryI.Info.Length; i++){
+            for(uint i = 0; i < SecondaryI.Info.Length; i++){
                 if(SecondaryI.Info[i].IsNull) continue;
                 int regInd = SecondaryI.Info[i].IsItem ? 1 : 0;
+                SecondaryI.MakeDirty(i);
                 SecondaryI.Info[i].Index = registries[regInd].RetrieveIndex(SerializedNames[SecondaryI.Info[i].Index]);
             }
         }

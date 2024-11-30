@@ -10,7 +10,6 @@ float GetNoiseCentered(float val, float center){
 
 uint SampleTerrain (float3 position)
 {
-
     //Get SurfaceData
     float PV = GetNoise2D(position.xz, PVSampler) * 2 - 1;
     float continental = GetNoise2D(position.xz, continentalSampler);
@@ -20,14 +19,14 @@ uint SampleTerrain (float3 position)
     float terrainHeight = (continental + PV * erosion) * maxTerrainHeight + heightOffset;
 
     //Get Base Density
-    float caveShape = GetNoise2D(position.xz, caveShapeSampler);
+    float caveShape = GetNoise(position, caveShapeSampler);
     float blendBase = lerp(
         GetNoiseCentered(GetNoise(position, caveFineSampler), caveShape),
         GetNoiseCentered(GetNoise(position, caveCoarseSampler), caveShape),
-        GetNoise2D(position.xz, caveSizeSampler)
+        GetNoise(position, caveSizeSampler)
     );
     
-    float baseDensity = pow(abs(1.0f-blendBase), GetNoise2D(position.xz, caveFreqSampler));
+    float baseDensity = pow(abs(1.0f-blendBase), GetNoise(position, caveFreqSampler));
 
     //Solve for density
     float actualHeight = position.y + sOffset.y;
@@ -40,13 +39,4 @@ uint SampleTerrain (float3 position)
         mapInfo = (mapInfo & 0xFFFF) | 0xFF; //set density to one
     
     return mapInfo;
-}
-
-
-float SampleTerrainHeight(float3 position){
-    float PV = GetNoise2D(position.xz, PVSampler) * 2 - 1;
-    float continental = GetNoise2D(position.xz, continentalSampler);
-    float erosion = GetNoise2D(position.xz, erosionSampler);
-
-    return (continental + PV * erosion) * maxTerrainHeight + heightOffset;
 }

@@ -61,7 +61,7 @@ public static class StructureGenerator
     {
         MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.Generation.Terrain.value;
         SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.Generation.Surface.value;
-        BiomeGenerationData biomes = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value;
+        Biome.GenerationData biomes = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value;
         RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         int maxStructurePoints = calculateMaxStructurePoints(biomes.maxLoD, rSettings.MaxStructureDepth, biomes.StructureChecksPerChunk, biomes.LoDFalloff);
         offsets = new StructureOffsets(maxStructurePoints, 0);
@@ -74,6 +74,9 @@ public static class StructureGenerator
         StructureLoDSampler.SetInt("bSTART", offsets.sampleStart);
         StructureLoDSampler.SetInt("bCOUNTER", offsets.sampleCounter);
 
+        StructureIdentifier.SetInt("caveFreqSampler", mesh.CaveFrequencyIndex);
+        StructureIdentifier.SetInt("caveSizeSampler", mesh.CaveSizeIndex);
+        StructureIdentifier.SetInt("caveShapeSampler", mesh.CaveShapeIndex);
         StructureIdentifier.SetInt("caveCoarseSampler", mesh.CoarseTerrainIndex);
         StructureIdentifier.SetInt("caveFineSampler", mesh.FineTerrainIndex);
 
@@ -81,13 +84,15 @@ public static class StructureGenerator
         StructureIdentifier.SetInt("erosionSampler", surface.ErosionIndex);
         StructureIdentifier.SetInt("PVSampler", surface.PVIndex);
         StructureIdentifier.SetInt("squashSampler", surface.SquashIndex);
-        StructureIdentifier.SetInt("caveFreqSampler", surface.CaveFreqIndex);
-        StructureIdentifier.SetInt("caveSizeSampler", surface.CaveSizeIndex);
-        StructureIdentifier.SetInt("caveShapeSampler", surface.CaveShapeIndex);
+        StructureIdentifier.SetInt("InfHeightSampler", surface.InfHeightIndex);
+        StructureIdentifier.SetInt("InfOffsetSampler", surface.InfOffsetIndex);
+        StructureIdentifier.SetInt("atmosphereSampler", surface.AtmosphereIndex);
 
+        StructureIdentifier.SetFloat("maxInfluenceHeight", surface.MaxInfluenceHeight);
         StructureIdentifier.SetFloat("maxTerrainHeight", surface.MaxTerrainHeight);
         StructureIdentifier.SetFloat("squashHeight", surface.MaxSquashHeight);
         StructureIdentifier.SetFloat("heightOffset", surface.terrainOffset);
+        StructureIdentifier.SetFloat("heightSFalloff", mesh.heightFalloff);
         StructureIdentifier.SetFloat("waterHeight", mesh.waterHeight);
 
         StructureIdentifier.SetBuffer(0, "structurePlan", UtilityBuffers.GenerationBuffer);

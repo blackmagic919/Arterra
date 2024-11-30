@@ -23,6 +23,7 @@ public static class JsonCustomSettings
             settings.Converters.Add(new Vec3Converter());
             settings.Converters.Add(new Vec2Converter());
             settings.Converters.Add(new QuaternionConverter());
+            settings.Converters.Add(new SObjConverter());
 
             settings.Converters.Add(new Int4Converter());
             settings.Converters.Add(new Int3Converter());
@@ -38,6 +39,7 @@ public static class JsonCustomSettings
     }
 }
 
+#if UNITY_EDITOR
 // this must be inside an Editor/ folder
 public static class EditorJsonSettings
 {
@@ -47,7 +49,7 @@ public static class EditorJsonSettings
       JsonCustomSettings.ConfigureJsonInternal();
     }
 }
-
+#endif
 public static class RuntimeJsonSettings
 {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -221,6 +223,23 @@ public class Float2Converter : JsonConverter<float2>
     {
         JArray array = JArray.Load(reader);
         return new float2((float)array[0], (float)array[1]);
+    }
+}
+
+public class SObjConverter : JsonConverter<ScriptableObject>
+{
+    public override void WriteJson(JsonWriter writer, ScriptableObject value, JsonSerializer serializer)
+    {
+        serializer.Converters.Remove(this);
+        JToken.FromObject(value, serializer).WriteTo(writer);
+        serializer.Converters.Add(this);
+    }
+
+    public override ScriptableObject ReadJson(JsonReader reader, Type objectType, ScriptableObject existingValue, bool hasExistingValue, JsonSerializer serializer)
+    {
+        ScriptableObject instance = ScriptableObject.CreateInstance(objectType);
+        serializer.Populate(reader, instance);
+        return instance;
     }
 }
 

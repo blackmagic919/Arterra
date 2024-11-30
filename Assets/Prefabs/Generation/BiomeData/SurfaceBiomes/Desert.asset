@@ -1,0 +1,92 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04a6111a713ec455cbfedb4173f40da6, type: 3}
+  m_Name: Desert
+  m_EditorClassIdentifier: 
+  NameRegister:
+    value:
+    - Cactus1
+    - Cactus2
+    - Cactus3
+    - Dirt
+    - Sand
+    - Air
+    - Camel
+    isDirty: 0
+  GroundMaterials:
+    value:
+    - value:
+        Material: 3
+        genSize: 0.8
+        genShape: 0.662
+        frequency: 1
+        multiplier: 1
+        height: 1
+      isDirty: 0
+    - value:
+        Material: 4
+        genSize: 0.2
+        genShape: 0.4
+        frequency: 2
+        multiplier: 2
+        height: 0
+      isDirty: 0
+    isDirty: 0
+  SurfaceMaterials:
+    value:
+    - value:
+        Material: 5
+        genSize: 0.182
+        genShape: 0
+        frequency: 1
+        multiplier: 1
+        height: 0
+      isDirty: 0
+    isDirty: 0
+  Structures:
+    value:
+    - value:
+        ChancePerStructurePoint: 0.002
+        Structure: 0
+      isDirty: 0
+    - value:
+        ChancePerStructurePoint: 0.004
+        Structure: 1
+      isDirty: 0
+    - value:
+        ChancePerStructurePoint: 0.005
+        Structure: 2
+      isDirty: 0
+    isDirty: 0
+  Entities:
+    value:
+    - value:
+        Entity: 6
+        ChancePerCoord: 0.0001
+      isDirty: 0
+    isDirty: 0
+  BiomeConditions:
+    value:
+      TerrainStart: 0.325
+      ErosionStart: 0.7
+      SquashStart: 0
+      InfluenceStart: 0
+      InfluenceOffStart: 0
+      AtmosphereStart: 0
+      TerrainEnd: 1
+      ErosionEnd: 1
+      SquashEnd: 1
+      InfluenceEnd: 1
+      InfluenceOffEnd: 1
+      AtmosphereEnd: 1
+      biome: 0
+    isDirty: 0

@@ -12,8 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd2c618eff9714d1b8dad6fccbcfbf1e, type: 3}
   m_Name: MeshCreator
   m_EditorClassIdentifier: 
-  waterHeight: 0
   waterMat: Water
+  waterHeight: 0
+  heightFalloff: 500
+  atmosphereFalloff: 0.005
+  CaveFrequencyNoise: CaveFrequency
+  CaveSizeNoise: CaveSize
+  CaveShapeNoise: CaveShape
   CoarseMaterialNoise: MaterialCoarse
   FineMaterialNoise: MaterialFine
   CoarseTerrainNoise: CaveCoarse

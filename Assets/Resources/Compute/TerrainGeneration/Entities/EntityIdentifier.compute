@@ -23,15 +23,6 @@ struct entityCheck{
     uint flags;
 };
 
-struct surfData{
-    float terrain;
-    float squash;
-    int biome;
-    float cFreq;
-    float cSize;
-    float cShape;
-};
-
 struct entityInfo {
     int3 position;
     uint entityIndex;
@@ -42,25 +33,20 @@ StructuredBuffer<entityCheck> _EntityProfile;
 StructuredBuffer<uint4> _BiomePrefCount;
 StructuredBuffer<enititySetting> _BiomeEntities;
 
-StructuredBuffer<surfData> _SurfMemory;
-StructuredBuffer<uint2> _SurfAddress;
 StructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
-uint surfAddress;
 int3 CCoord;
 
 RWStructuredBuffer<uint> counter;
 uint bCOUNTER_entities;
 uint bCOUNTER_prune;
 
+StructuredBuffer<int> BiomeMap;
+uint bSTART_biome;
 RWStructuredBuffer<entityInfo> chunkEntities;
 uint bSTART_entities;
 uint bSTART_prune;
 
-surfData ReadSurfData(uint2 coord){
-    uint address = _SurfAddress[surfAddress].y + indexFromCoord2DManual(coord, numPointsPerAxis);
-    return _SurfMemory[address];
-};
 
 [numthreads(numThreads,numThreads,numThreads)]
 void Identify (uint3 id : SV_DispatchThreadID)
@@ -71,8 +57,7 @@ void Identify (uint3 id : SV_DispatchThreadID)
     int3 pointCoord = id + (CCoord - 0.5f) * numPointsPerAxis; 
     uint seedEntity = Random(pointCoord); 
     
-    surfData data = ReadSurfData(id.xz);
-    uint biome = max(0, (uint)data.biome);
+    uint biome = BiomeMap[indexFromCoord(id) + bSTART_biome];
     uint entityStart = _BiomePrefCount[biome].w;
     uint entityEnd = _BiomePrefCount[biome+1].w;
 

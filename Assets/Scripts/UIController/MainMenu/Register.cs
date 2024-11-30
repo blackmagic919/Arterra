@@ -11,7 +11,9 @@ public static class RegisterBuilder{
     public static void Initialize(){
         //Create all registers, then convert their dependencies
         WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.Construct();
-        WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.biomes.Construct();
+        WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.SurfaceBiomes.Construct();
+        WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.CaveBiomes.Construct();
+        WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.SkyBiomes.Construct();
         WorldStorageHandler.WORLD_OPTIONS.Generation.Structures.Construct();
         WorldStorageHandler.WORLD_OPTIONS.Generation.Entities.Construct();
         WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary.Construct();

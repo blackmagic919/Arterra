@@ -250,7 +250,7 @@ public class RealChunk : TerrainChunk{
             if(info.entities != null) { //If the chunk has saved entities
                 EntityManager.DeserializeEntities(info.entities, CCoord);
             }else { //Otherwise create new entities
-                uint entityAddress = EntityManager.PlanEntities(surfAddress, CCoord, mapChunkSize);
+                uint entityAddress = EntityManager.PlanEntities(DensityGenerator.bufferOffsets.biomeMapStart, CCoord, mapChunkSize);
                 EntityManager.BeginEntityReadback(entityAddress, CCoord);
             }
 

@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Unity.Mathematics;
-using System;
 using Unity.Collections;
-using System.Runtime.InteropServices;
+using Biome;
 
 public static class GenerationPreset
 {
@@ -151,78 +150,82 @@ public static class GenerationPreset
     
 
     struct BiomeHandle{
-        ComputeBuffer biomeRTreeBuffer;
-        ComputeBuffer biomeAtmosphereBuffer;
+        ComputeBuffer SurfTreeBuffer;
+        ComputeBuffer CaveTreeBuffer;
         ComputeBuffer biomePrefCountBuffer;
-        ComputeBuffer biomeGroundMatBuffer;
-        ComputeBuffer biomeSurfaceMatBuffer;
+        ComputeBuffer biomeMatBuffer;
         ComputeBuffer biomeEntityBuffer;
         ComputeBuffer structGenBuffer;
 
         public void Release()
         {
-            biomeRTreeBuffer?.Release();
+            SurfTreeBuffer?.Release();
+            CaveTreeBuffer?.Release();
             biomePrefCountBuffer?.Release();
-            biomeAtmosphereBuffer?.Release();
             biomeEntityBuffer?.Release();
-            biomeGroundMatBuffer?.Release();
-            biomeSurfaceMatBuffer?.Release();
+            biomeMatBuffer?.Release();
             structGenBuffer?.Release();//
         }
 
         public void Initialize()
         {
             Release();
-            BiomeInfo[] biomes = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.biomes.SerializedData;
-            int numBiomes = biomes.Length;
+            CInfo<SurfaceBiome>[] surface = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.SurfaceBiomes.SerializedData;
+            CInfo<CaveBiome>[] cave = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.CaveBiomes.SerializedData;
+            CInfo<CaveBiome>[] sky = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.SkyBiomes.SerializedData;
+            List<Info> biomes = new List<Info>(); 
+            biomes.AddRange(surface);
+            biomes.AddRange(cave);
+            biomes.AddRange(sky);
+
+            int numBiomes = biomes.Count;
             uint4[] biomePrefSum = new uint4[numBiomes + 1]; //Prefix sum
-            float[] atmosphereData = new float[numBiomes];
-            List<BiomeInfo.BMaterial> biomeGroundMaterial = new();
-            List<BiomeInfo.BMaterial> biomeSurfaceMaterial = new();
-            List<BiomeInfo.TerrainStructure> biomeStructures = new();
-            List<BiomeInfo.EntityGen> biomeEntities = new();
+            List<Info.BMaterial> biomeMaterial = new();
+            List<Info.TerrainStructure> biomeStructures = new();
+            List<Info.EntityGen> biomeEntities = new();
 
             for (int i = 0; i < numBiomes; i++)
             {
-                biomePrefSum[i+1] = new uint4((uint)biomes[i].GroundMaterials.value?.Count + biomePrefSum[i].x, 
-                                            (uint)biomes[i].SurfaceMaterials.value?.Count + biomePrefSum[i].y,
-                                            (uint)biomes[i].Structures.value?.Count + biomePrefSum[i].z,
-                                            (uint)biomes[i].Entities.value?.Count + biomePrefSum[i].w);
-                atmosphereData[i] = biomes[i].AtmosphereFalloff;
-                biomeGroundMaterial.AddRange(biomes[i].MaterialSerial(biomes[i].GroundMaterials));
-                biomeSurfaceMaterial.AddRange(biomes[i].MaterialSerial(biomes[i].SurfaceMaterials));
+                biomePrefSum[i+1].x = (uint)biomes[i].GroundMaterials.value?.Count + biomePrefSum[i].y;
+                biomePrefSum[i+1].y = (uint)biomes[i].SurfaceMaterials.value?.Count + biomePrefSum[i + 1].x;
+                biomePrefSum[i+1].z = (uint)biomes[i].Structures.value?.Count + biomePrefSum[i].z;
+                biomePrefSum[i+1].w = (uint)biomes[i].Entities.value?.Count + biomePrefSum[i].w;
+                biomeMaterial.AddRange(biomes[i].MaterialSerial(biomes[i].GroundMaterials));
+                biomeMaterial.AddRange(biomes[i].MaterialSerial(biomes[i].SurfaceMaterials));
                 biomeStructures.AddRange(biomes[i].StructureSerial);
                 biomeEntities.AddRange(biomes[i].EntitySerial);
             }
 
-            BiomeDictionary.RNodeFlat[] RTree = new BiomeDictionary(biomes).FlattenTree();
-
-            int matStride = sizeof(int) + sizeof(float) + sizeof(float) + (sizeof(int) * 3 + sizeof(float) * 2);
-            int structStride = sizeof(uint) + sizeof(float) + (sizeof(int) * 3 + sizeof(float) * 2);
+            int matStride = sizeof(int) + sizeof(float) * 5;
+            int structStride = sizeof(uint) + sizeof(float);
             int entityStride = sizeof(uint) + sizeof(float);
-            biomeRTreeBuffer = new ComputeBuffer(RTree.Length, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
             biomePrefCountBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint) * 4, ComputeBufferType.Structured);
-            biomeAtmosphereBuffer = new ComputeBuffer(numBiomes, sizeof(float), ComputeBufferType.Structured);
-            if(biomeGroundMaterial.Count > 0) biomeGroundMatBuffer = new ComputeBuffer(biomeGroundMaterial.Count, matStride, ComputeBufferType.Structured);
-            if(biomeSurfaceMaterial.Count > 0) biomeSurfaceMatBuffer = new ComputeBuffer(biomeSurfaceMaterial.Count, matStride, ComputeBufferType.Structured);
+            if(biomeMaterial.Count > 0) biomeMatBuffer = new ComputeBuffer(biomeMaterial.Count, matStride, ComputeBufferType.Structured);
             if(biomeStructures.Count > 0) structGenBuffer = new ComputeBuffer(biomeStructures.Count, structStride, ComputeBufferType.Structured);
             if(biomeEntities.Count > 0) biomeEntityBuffer = new ComputeBuffer(biomeEntities.Count, entityStride, ComputeBufferType.Structured);
 
-            biomeRTreeBuffer?.SetData(RTree);
             biomePrefCountBuffer?.SetData(biomePrefSum);
-            biomeAtmosphereBuffer?.SetData(atmosphereData);
-            biomeGroundMatBuffer?.SetData(biomeGroundMaterial);
-            biomeSurfaceMatBuffer?.SetData(biomeSurfaceMaterial);
+            biomeMatBuffer?.SetData(biomeMaterial);
             biomeEntityBuffer?.SetData(biomeEntities);
             structGenBuffer?.SetData(biomeStructures);
 
-            Shader.SetGlobalBuffer("_BiomeRTree", biomeRTreeBuffer);
-            Shader.SetGlobalBuffer("_BiomePrefCount", biomePrefCountBuffer);
-            Shader.SetGlobalBuffer("_BiomeAtmosphereData", biomeAtmosphereBuffer);
-            if(biomeGroundMatBuffer != null) Shader.SetGlobalBuffer("_BiomeGroundMaterials", biomeGroundMatBuffer);
-            if(biomeSurfaceMatBuffer != null) Shader.SetGlobalBuffer("_BiomeSurfaceMaterials", biomeSurfaceMatBuffer);
+            if(biomeMatBuffer != null) Shader.SetGlobalBuffer("_BiomeMaterials", biomeMatBuffer);
             if(structGenBuffer != null) Shader.SetGlobalBuffer("_BiomeStructureData", structGenBuffer);
             if(biomeEntityBuffer != null) Shader.SetGlobalBuffer("_BiomeEntities", biomeEntityBuffer);
+            Shader.SetGlobalBuffer("_BiomePrefCount", biomePrefCountBuffer);
+
+            SurfaceBiome[] SurfTree = BDict.Create(surface).FlattenTree<SurfaceBiome>();
+            CaveBiome[] CaveTree = BDict.Create(cave, surface.Length).FlattenTree<CaveBiome>();
+            CaveBiome[] SkyTree = BDict.Create(sky, surface.Length + cave.Length).FlattenTree<CaveBiome>();
+            SurfTreeBuffer = new ComputeBuffer(SurfTree.Length, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
+            CaveTreeBuffer = new ComputeBuffer(CaveTree.Length + SkyTree.Length, sizeof(float) * 4 * 2 + sizeof(int), ComputeBufferType.Structured);
+
+            SurfTreeBuffer.SetData(SurfTree);
+            CaveTreeBuffer.SetData(CaveTree.Concat(SkyTree).ToArray());
+
+            Shader.SetGlobalBuffer("_BiomeSurfTree", SurfTreeBuffer);
+            Shader.SetGlobalBuffer("_BiomeCaveTree", CaveTreeBuffer);
+            Shader.SetGlobalInteger("_BSkyStart", CaveTree.Length);
         }
     }
 
@@ -328,6 +331,7 @@ public static class GenerationPreset
         private ComputeShader HeapSetupShader;
         private ComputeShader AllocateShader;
         private ComputeShader DeallocateShader;
+        private ComputeShader ClearMemShader;
 
         private ComputeBuffer _GPUMemorySource;
         private ComputeBuffer _EmptyBlockHeap;
@@ -465,6 +469,21 @@ public static class GenerationPreset
             //uint[] heap = new uint[6];
             //_EmptyBlockHeap.GetData(heap);
             //Debug.Log("Primary: " + heap[3]/250000 + "MB");
+        }
+
+        const int WorkerThreads = 64;
+        public void ClearMemory(int address, int count, int stride){
+            if(!initialized || address == 0) return;
+            ClearMemShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
+            ClearMemShader.SetBuffer(0, "_AddressDict", _AddressBuffer);
+            ClearMemShader.SetInt("addressIndex", address);
+            ClearMemShader.SetInt("freeCount", count);
+            ClearMemShader.SetInt("freeStride", stride);
+
+            ClearMemShader.SetInt("workerCount", WorkerThreads);
+            ClearMemShader.GetKernelThreadGroupSizes(0, out uint threadsAxis, out _, out _);
+            int threadGroups = Mathf.CeilToInt(WorkerThreads / (float)threadsAxis);
+            ClearMemShader.Dispatch(0, threadGroups, 1, 1);
         }
 
         public readonly ComputeBuffer Storage => _GPUMemorySource;

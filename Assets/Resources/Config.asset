@@ -22,7 +22,7 @@ MonoBehaviour:
           NumOpticalDepthPoints: 8
         isDirty: 0
       Rendering:
-        value: {fileID: 11400000, guid: 20f244f85582c4ac2858ece976b58a49, type: 2}
+        value: {fileID: 11400000, guid: 42017e3b5b1824df087b77161e2e61f3, type: 2}
         isDirty: 0
       GeoShaders:
         value: {fileID: 11400000, guid: 91b568ecd9e304c998bf7c49cf668984, type: 2}
@@ -68,7 +68,7 @@ MonoBehaviour:
             _value:
               value: {fileID: 11400000, guid: d7d6a8b31e97345e48f8fe95e523f5be, type: 2}
               isDirty: 0
-          - Name: CaveFreq
+          - Name: CaveFrequency
             _value:
               value: {fileID: 11400000, guid: 9b2a2490aae0a404db8553ff56a7d66b, type: 2}
               isDirty: 0
@@ -79,6 +79,18 @@ MonoBehaviour:
           - Name: CaveShape
             _value:
               value: {fileID: 11400000, guid: 1215862d59a644ecdb716b81d2f64c7f, type: 2}
+              isDirty: 0
+          - Name: InfluenceHeight
+            _value:
+              value: {fileID: 11400000, guid: e10045ff684ac425880a51d968bf317e, type: 2}
+              isDirty: 0
+          - Name: InfluenceOffset
+            _value:
+              value: {fileID: 11400000, guid: e675bf8565f3546efbf877710f603aa2, type: 2}
+              isDirty: 0
+          - Name: Atmosphere
+            _value:
+              value: {fileID: 11400000, guid: 3f622d307ed264ecb964727d0b44f77d, type: 2}
               isDirty: 0
           isDirty: 0
       Terrain:
@@ -164,6 +176,10 @@ MonoBehaviour:
             _value:
               value: {fileID: 11400000, guid: 113b6e9010faf40ed9549c22ffbaba03, type: 2}
               isDirty: 0
+          - Name: Camel
+            _value:
+              value: {fileID: 11400000, guid: bad7490808a414d4eb37230eae23f5af, type: 2}
+              isDirty: 0
           isDirty: 0
     isDirty: 0
   _GamePlay:
@@ -203,7 +219,7 @@ MonoBehaviour:
           sunriseHour: 7
           sunsetHour: 20.5
           maxSunIntensity: 1.5
-          maxMoonIntensity: 0.5
+          maxMoonIntensity: 0.75
           sunIntensityCurve:
             value:
               serializedVersion: 2

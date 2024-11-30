@@ -5,11 +5,16 @@ using UnityEngine;
 using Unity.Mathematics;
 using Utils;
 
+namespace Biome{
 [CreateAssetMenu(menuName = "Generation/BiomeGenerationData")]
-public class BiomeGenerationData : ScriptableObject
+public class GenerationData : ScriptableObject
 {
     [SerializeField]
-    public Registry<BiomeInfo> biomes;
+    public Registry<SBiomeInfo> SurfaceBiomes;
+    [SerializeField]
+    public Registry<CBiomeInfo> CaveBiomes;
+    [SerializeField]
+    public Registry<CBiomeInfo> SkyBiomes;
     [UISetting(Message = "Describes How Dense & Large Structures Generate At the Cost of Performance")]
     public int StructureChecksPerChunk;
     [Range(1, 5)]
@@ -19,9 +24,9 @@ public class BiomeGenerationData : ScriptableObject
 
 
 
-public class BiomeDictionary
+public class BDict
 {
-    readonly RNode _rTree;
+    public RNode _rTree;
 
     public int Query(float[] point)
     {
@@ -31,17 +36,19 @@ public class BiomeDictionary
         return node.biome;
     }
 
-    public BiomeDictionary(BiomeInfo[] biomes)
+    public static BDict Create<TCond>(CInfo<TCond>[] biomes, int offset = 0) where TCond : IBiomeCondition
     {
-        List<RNode> leaves = InitializeBiomeRegions(biomes);
-        _rTree = ConstructRTree(leaves);
+        BDict nDict = new BDict();
+        List<RNode> leaves = nDict.InitializeBiomeRegions(biomes, offset);
+        nDict._rTree = nDict.ConstructRTree(leaves, biomes[0].BiomeConditions.value.GetDimensions());
+        return nDict;
     }
 
-    public RNodeFlat[] FlattenTree()
+    public TCond[] FlattenTree<TCond>() where TCond : IBiomeCondition
     {
         int treeSize = GetTreeSize();
 
-        RNodeFlat[] flattenedNodes = new RNodeFlat[treeSize];
+        TCond[] flattenedNodes = new TCond[treeSize];
         Queue<RNode> treeNodes = new Queue<RNode>();
         treeNodes.Enqueue(_rTree);
 
@@ -49,16 +56,14 @@ public class BiomeDictionary
         {
             RNode cur = treeNodes.Dequeue();
             if(cur == null){
-                flattenedNodes[i] = new RNodeFlat(new LeafNode(regionBound.GetNoSpace(6), -1));
+                flattenedNodes[i].SetNode(RegionBound.GetNoSpace(flattenedNodes[i].GetDimensions()), -1);
                 continue;
             }
-
-            flattenedNodes[i] = new RNodeFlat(cur);
-
-            if (cur.GetType() == typeof(LeafNode)) { 
-                flattenedNodes[i].biome = ((LeafNode)cur).biome;
+            else if (cur.GetType() == typeof(LeafNode)) { 
+                flattenedNodes[i].SetNode(cur.bounds, ((LeafNode)cur).biome);
                 continue;//
             }
+            flattenedNodes[i].SetNode(cur.bounds, -1);
 
             BranchNode branch = (BranchNode)cur;
             treeNodes.Enqueue(branch.childOne);
@@ -67,28 +72,6 @@ public class BiomeDictionary
 
         return flattenedNodes;
         //Based on the nature of queues, it will be filled exactly in order of the array
-    }
-    //
-    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    public struct RNodeFlat
-    {
-        //Unfortunately, can't use fixed float minCond[6] because unsafe
-        //However, this can be redefined into float[6] because it's sequential
-        float min_1; float min_2; float min_3; float min_4; float min_5; float min_6;
-        float max_1; float max_2; float max_3; float max_4; float max_5; float max_6;
-        public int biome; 
-
-        public RNodeFlat(RNode rNode)
-        {
-
-            min_1 = rNode.bounds.minCorner[0]; min_2 =  rNode.bounds.minCorner[1]; min_3 = rNode.bounds.minCorner[2];
-            min_4 = rNode.bounds.minCorner[3]; min_5 = rNode.bounds.minCorner[4]; min_6 = rNode.bounds.minCorner[5];
-            
-            max_1 = rNode.bounds.maxCorner[0]; max_2 = rNode.bounds.maxCorner[1]; max_3 = rNode.bounds.maxCorner[2];
-            max_4 = rNode.bounds.maxCorner[3]; max_5 = rNode.bounds.maxCorner[4]; max_6 = rNode.bounds.maxCorner[5];
-
-            biome = -1;
-        }
     }
 
     public int GetTreeSize()
@@ -129,7 +112,7 @@ public class BiomeDictionary
         return OUT;
     }
 
-    RNode ConstructRTree(List<RNode> nodes)
+    RNode ConstructRTree(List<RNode> nodes, int dimensions)
     {
         int nodesInLayer = nodes.Count;
         HashSet<RNode> linked = new HashSet<RNode>();
@@ -143,7 +126,7 @@ public class BiomeDictionary
                 continue;
 
             BranchNode node = new BranchNode();
-            node.bounds = regionBound.GetAllSpace(6);
+            node.bounds = RegionBound.GetAllSpace(dimensions);
             node.childOne = nodes[i];
             node.childTwo = null;
 
@@ -154,7 +137,7 @@ public class BiomeDictionary
                 if (linked.Contains(matchNode))
                     continue;
 
-                regionBound newRegion = regionBound.mergeRegion(node.childOne.bounds, matchNode.bounds, 6);
+                RegionBound newRegion = RegionBound.mergeRegion(node.childOne.bounds, matchNode.bounds, dimensions);
                 if (newRegion.area <= node.bounds.area)
                 {
                     node.bounds = newRegion;
@@ -171,33 +154,33 @@ public class BiomeDictionary
 
         if (ret.Count == 1)
             return ret[0];
-        return ConstructRTree(ret);
+        return ConstructRTree(ret, dimensions);
     }
 
-    List<RNode> InitializeBiomeRegions(BiomeInfo[] biomes)
+    List<RNode> InitializeBiomeRegions<TCond>(CInfo<TCond>[] biomes, int offset) where TCond : IBiomeCondition
     {
         int numOfBiomes = biomes.Length;
         List<RNode> biomeRegions = new List<RNode>();
         for (int i = 0; i < numOfBiomes; i++)
         {
-            BiomeInfo.BiomeConditionsData conditions = biomes[i].BiomeConditions.value;
-            regionBound bounds = new regionBound(6);
-            bounds.SetDimensions(conditions);
+            int dimensions = biomes[i].BiomeConditions.value.GetDimensions();
+            RegionBound bounds = new RegionBound(dimensions);
+            biomes[i].BiomeConditions.value.GetBoundDimension(ref bounds);
             bounds.CalculateArea();
 
             for (int u = i - 1; u >= 0; u--)
             {
-                if (RegionIntersects(bounds, biomeRegions[u].bounds, 6))
+                if (RegionIntersects(bounds, biomeRegions[u].bounds, dimensions))
                     throw new ArgumentException($"Biome {biomes[i].name}'s generation intersects with {biomes[u].name}");
             }
 
-            biomeRegions.Add(new LeafNode(bounds, i));
+            biomeRegions.Add(new LeafNode(bounds, i + offset));
         }
 
         return biomeRegions;
     }
 
-    bool RegionIntersects(regionBound a, regionBound b, int dimensions)
+    bool RegionIntersects(RegionBound a, RegionBound b, int dimensions)
     {
         for (int i = 0; i < dimensions; i++)
         {
@@ -209,7 +192,7 @@ public class BiomeDictionary
 
     public abstract class RNode
     {
-        public regionBound bounds;
+        public RegionBound bounds;
     }
 
     public class BranchNode : RNode
@@ -222,20 +205,21 @@ public class BiomeDictionary
     {
         public int biome;
 
-        public LeafNode(regionBound bounds, int biome)
+        public LeafNode(RegionBound bounds, int biome)
         {
             this.bounds = bounds;
             this.biome = biome;
         }
     }
 
-    public struct regionBound
+
+    public struct RegionBound
     {
         public float[] maxCorner;
         public float[] minCorner;
         public double area;
 
-        public regionBound(int dimensions)
+        public RegionBound(int dimensions)
         {
             maxCorner = new float[dimensions];
             minCorner = new float[dimensions];
@@ -246,16 +230,6 @@ public class BiomeDictionary
         {
             minCorner[dimension] = min;
             maxCorner[dimension] = max;
-        }
-
-        public void SetDimensions(BiomeInfo.BiomeConditionsData conditions)
-        {
-            this.SetBoundDimension(0, conditions.TerrainStart, conditions.TerrainEnd);
-            this.SetBoundDimension(1, conditions.ErosionStart, conditions.ErosionEnd);
-            this.SetBoundDimension(2, conditions.SquashStart, conditions.SquashEnd);
-            this.SetBoundDimension(3, conditions.CaveFreqStart, conditions.CaveFreqEnd);
-            this.SetBoundDimension(4, conditions.CaveSizeStart, conditions.CaveSizeEnd);
-            this.SetBoundDimension(5, conditions.CaveShapeStart, conditions.CaveShapeEnd);
         }
 
         public void CalculateArea()
@@ -277,9 +251,9 @@ public class BiomeDictionary
             return true;
         }
 
-        public static regionBound mergeRegion(regionBound a, regionBound b, int dimensions)
+        public static RegionBound mergeRegion(RegionBound a, RegionBound b, int dimensions)
         {
-            regionBound ret = new regionBound(dimensions);
+            RegionBound ret = new RegionBound(dimensions);
             for (int i = 0; i < dimensions; i++)
             {
                 ret.maxCorner[i] = Mathf.Max(a.maxCorner[i], b.maxCorner[i]);
@@ -289,22 +263,24 @@ public class BiomeDictionary
             return ret;
         }
 
-        public static regionBound GetAllSpace(int dimensions)
+        public static RegionBound GetAllSpace(int dimensions)
         {
-            regionBound ret = new regionBound(dimensions);
+            RegionBound ret = new RegionBound(dimensions);
             for (int i = 0; i < dimensions; i++)
                 ret.SetBoundDimension(i, float.MinValue, float.MaxValue);
             ret.area = float.MaxValue;
             return ret;
         }
 
-        public static regionBound GetNoSpace(int dimensions)
+        public static RegionBound GetNoSpace(int dimensions)
         {
-            regionBound ret = new regionBound(dimensions);
+            RegionBound ret = new RegionBound(dimensions);
             for (int i = 0; i < dimensions; i++)
                 ret.SetBoundDimension(i, float.MaxValue, float.MinValue);
             ret.area = 0;
             return ret;
         }
     }
+}
+
 }

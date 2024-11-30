@@ -1,6 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Compute
-#include "Assets/Resources/Compute/TerrainGeneration/SurfaceChunk/BiomeSampler.hlsl"
+#include "Assets/Resources/Compute/TerrainGeneration/SurfaceChunk/SurfBiomeSampler.hlsl"
 #include "Assets/Resources/Compute/Utility/PerlinNoiseSampler.hlsl"
 
 const static uint numThreads = 64;

@@ -66,7 +66,7 @@ public class WorldOptions : ScriptableObject{
         public Registry<NoiseData> Noise;
         public Option<MeshCreatorSettings> Terrain;
         public Option<SurfaceCreatorSettings> Surface;
-        public Option<BiomeGenerationData> Biomes;
+        public Option<Biome.GenerationData> Biomes;
         public Registry<StructureData> Structures;
         public Option<TextureData> Materials;
         public Registry<EntityAuthoring> Entities;

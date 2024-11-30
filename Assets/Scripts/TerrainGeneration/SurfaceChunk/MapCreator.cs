@@ -9,6 +9,7 @@ public class SurfaceCreatorSettings : ScriptableObject{
     public float terrainOffset = 0;
     public float MaxTerrainHeight;
     public float MaxSquashHeight;
+    public float MaxInfluenceHeight;
 
     [UISetting(Message = "Surface Generation")]
     public string ContinentalNoise;
@@ -18,18 +19,18 @@ public class SurfaceCreatorSettings : ScriptableObject{
     //Low Values: More terrain-like, High Values: More overhangs
     public string SquashNoise;
 
-    [UISetting(Message = "3D Generation")]
-    public string CaveFreqNoise;
-    public string CaveSizeNoise;
-    public string CaveShapeNoise;
+    [UISetting(Message = "Surface Control")]
+    public string InfHeightNoise;
+    public string InfOffsetNoise;
+    public string AtmosphereNoise;
 
     public int ContinentalIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(ContinentalNoise);
     public int ErosionIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(ErosionNoise);
     public int PVIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(PVNoise);
     public int SquashIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(SquashNoise);
-    public int CaveFreqIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CaveFreqNoise);
-    public int CaveSizeIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CaveSizeNoise);
-    public int CaveShapeIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CaveShapeNoise);
+    public int InfHeightIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(InfHeightNoise);
+    public int InfOffsetIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(InfOffsetNoise);
+    public int AtmosphereIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(AtmosphereNoise);
 }
 
 public static class SurfaceCreator

@@ -108,7 +108,7 @@ public class OctreeTerrain : MonoBehaviour
     }*/
 
     // Update is called once per frame
-    void Update()
+    public void Update()
     {
         VerifyChunks();
         ForEachChunk((uint chunk) => chunks.nodes[chunk].Value.Update());
@@ -117,8 +117,8 @@ public class OctreeTerrain : MonoBehaviour
         ProcessUpdateTasks(MainLoopUpdateTasks);
     }
 
-    private void LateUpdate(){ ProcessUpdateTasks(MainLateUpdateTasks); }
-    private void FixedUpdate(){ ProcessUpdateTasks(MainFixedUpdateTasks); }
+    public void LateUpdate(){ ProcessUpdateTasks(MainLateUpdateTasks); }
+    public void FixedUpdate(){ ProcessUpdateTasks(MainFixedUpdateTasks); }
     private void ProcessUpdateTasks(Queue<UpdateTask> taskQueue)
     {
         int UpdateTaskCount = taskQueue.Count;

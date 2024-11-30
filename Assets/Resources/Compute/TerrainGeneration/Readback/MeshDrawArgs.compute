@@ -19,6 +19,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     _IndirectArgsBuffer[argOffset].numInstances = counter[bCOUNTER] == 0 ? 0 : 1;
     _IndirectArgsBuffer[argOffset].numVerticesPerInstance = counter[bCOUNTER] * 3;
     _IndirectArgsBuffer[argOffset].startVertexIndex = 0;
-    _IndirectArgsBuffer[argOffset].startInstanceIndex = 0;
+    _IndirectArgsBuffer[argOffset].startInstanceIndex = argOffset;
+    //Instance encodes the index of the command
 
 }

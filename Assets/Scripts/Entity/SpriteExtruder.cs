@@ -15,13 +15,14 @@ public static class SpriteExtruder{
 
     private const int VERTEX_STRIDE_WORD = 3 + 2;
     private const int TRI_STRIDE_WORD = 3;
-    private static readonly int2 MAX_SAMPLE_SIZE = new int2(128, 128);
+
 
     public static void PresetData(){
         ImageExtruder = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/SpriteExtruder");
         triangleTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/TranscribeTriangles");
         vertexTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/TranscribeVertices");
-        offsets = new ExtruderOffsets(MAX_SAMPLE_SIZE, 0, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD);
+        int2 maxSampleSize = ((EItem.EItemSetting)WorldStorageHandler.WORLD_OPTIONS.Generation.Entities.Retrieve("EntityItem").Setting).SpriteSampleSize;
+        offsets = new ExtruderOffsets(maxSampleSize, 0, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD);
 
         int kernel = ImageExtruder.FindKernel("March");
         ImageExtruder.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);

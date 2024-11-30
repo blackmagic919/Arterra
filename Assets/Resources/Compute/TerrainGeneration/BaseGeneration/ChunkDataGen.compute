@@ -1,48 +1,46 @@
 #pragma kernel Generate
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/Utility/PerlinNoiseSampler.hlsl"
+#include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/CaveBiomeSampler.hlsl"
 const static uint SURF_STRIDE_4BYTE = 4;
 const static int numThreads = 8;
 const static int Epsilon = 0.0001;
-
-struct DensityFunc{
-    int lowerLimit;
-    int upperLimit;
-    int center;
-
-    float multiplier;
-    float power;
-};
 
 struct BMaterial{
     int materialIndex;
     float genNoiseSize;
     float genNoiseShape;
-    DensityFunc density;
+    float frequency;
+    float multiplier;
+    float height;
 };
 
 float IsoLevel;
+float heightSFalloff;
+float atmoStrength;
 float waterHeight;
 int waterMat;
 
-StructuredBuffer<float> _BiomeAtmosphereData;
 StructuredBuffer<uint4> _BiomePrefCount;
-StructuredBuffer<BMaterial> _BiomeGroundMaterials;
-StructuredBuffer<BMaterial> _BiomeSurfaceMaterials;
+StructuredBuffer<BMaterial> _BiomeMaterials;
+int _BSkyStart;
+
+uint caveFreqSampler;
+uint caveSizeSampler;
+uint caveShapeSampler;
 
 uint coarseCaveSampler;
 uint fineCaveSampler;
 uint coarseMatSampler;
 uint fineMatSampler;
-float offsetY;
 
 struct surfData{
+    int biome;
     float terrain;
     float squash;
-    int biome;
-    float cFreq;
-    float cSize;
-    float cShape;
+    float InfMax;
+    float InfMin;
+    float atmosphere;
 };
 
 StructuredBuffer<surfData> _SurfMemoryBuffer;
@@ -64,7 +62,9 @@ struct mapData{
 };
 
 RWStructuredBuffer<mapData> BaseMap;
+RWStructuredBuffer<uint> BiomeMap;
 uint bSTART_map;
+uint bSTART_biome;
 
 
 float GetNoiseCentered(float val, float center, float bottom, float top){
@@ -78,14 +78,7 @@ float GetNoiseCentered(float val, float center){
     return GetNoiseCentered(val, center, 0, 1);
 }
 
-float GetHeightPref(BMaterial material, float posY){
-    DensityFunc pref = material.density;
-    float heightFactor = GetNoiseCentered(posY, pref.center, pref.lowerLimit, pref.upperLimit);
-    float densityValue = pow(abs(heightFactor), pref.power);
-    return densityValue * pref.multiplier;
-}
-
-float GetMaterialWeight(BMaterial material, float coarse, float fine, float posY){
+float GetMaterialWeight(BMaterial material, float coarse, float fine, float height){
     float coarsePref = material.genNoiseSize;
     float noiseCenter = material.genNoiseShape;
 
@@ -93,41 +86,19 @@ float GetMaterialWeight(BMaterial material, float coarse, float fine, float posY
     float fineCentered = GetNoiseCentered(fine, noiseCenter, 0, 1);
 
     float baseWeight = coarsePref * coarseCentered + (1.0f-coarsePref) * fineCentered;
-    float heightPref = GetHeightPref(material, posY);
-    return baseWeight * heightPref;
+    baseWeight = pow(abs(baseWeight), material.frequency) * material.multiplier;
+    if(height <= 1.0f) baseWeight *= 1 - abs(height - material.height);
+    return baseWeight;
 }
 
-//It's better to make 2 funcs rather than do extra comparisons
-int GetGroundMaterial(float coarse, float fine, uint biome, float posY){
-    uint biomeStartIndex = _BiomePrefCount[biome].x;
-    uint biomeEndIndex = _BiomePrefCount[biome+1].x;
 
-    int bestMat = _BiomeGroundMaterials[biomeStartIndex].materialIndex;
+int GetMaterial(int2 biomeBounds, float coarse, float fine, float height){
+    int bestMat = _BiomeMaterials[biomeBounds.x].materialIndex;
     float maxWeight = -1.0f;
     
-    for(uint matInd = biomeStartIndex; matInd < biomeEndIndex; matInd++){
-        BMaterial material = _BiomeGroundMaterials[matInd];
-        float weight = GetMaterialWeight(material, coarse, fine, posY);
-
-        if(weight > maxWeight){
-            maxWeight = weight;
-            bestMat = material.materialIndex;
-        }
-    }
-
-    return bestMat;
-}
-
-int GetSurfaceMaterial(float coarse, float fine, uint biome, float posY){
-    uint biomeStartIndex = _BiomePrefCount[biome].y;
-    uint biomeEndIndex = _BiomePrefCount[biome+1].y;
-
-    int bestMat = _BiomeSurfaceMaterials[biomeStartIndex].materialIndex;
-    float maxWeight = -1.0f;
-    
-    for(uint matInd = biomeStartIndex; matInd < biomeEndIndex; matInd++){
-        BMaterial material = _BiomeSurfaceMaterials[matInd];
-        float weight = GetMaterialWeight(material, coarse, fine, posY);
+    for(int matInd = biomeBounds.x; matInd < biomeBounds.y; matInd++){
+        BMaterial material = _BiomeMaterials[matInd];
+        float weight = GetMaterialWeight(material, coarse, fine, height);
 
         if(weight > maxWeight){
             maxWeight = weight;
@@ -146,33 +117,50 @@ void Generate (uint3 id : SV_DispatchThreadID)
     if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis ) {
         return;
     }
-
+    uint index = indexFromCoord(id);
     surfData data = ReadSurfData(id.xz);
-    uint biome = max(0, (uint)data.biome);
+    float actualHeight = id.y * skipInc + sOffset.y;
+    float groundHeight = actualHeight - data.terrain;
+
+    float rawMaps[4];
+    rawMaps[0] = GetRawNoise(id, caveFreqSampler);
+    rawMaps[1] = GetRawNoise(id, caveSizeSampler);
+    rawMaps[2] = GetRawNoise(id, caveShapeSampler);
+    rawMaps[3] = 1.0f - exp(-abs(groundHeight)/heightSFalloff);
+
+    int biome;
+    if(data.InfMin <= groundHeight && groundHeight <= data.InfMax)
+        biome = data.biome; //use surface biome
+    else {
+        int treeOff = groundHeight > 0 ? _BSkyStart : 0;
+        biome = GetBiome(rawMaps, treeOff); 
+    }
+    BiomeMap[index + bSTART_biome] = biome;
+
+    float caveFreq = interpolateValue(rawMaps[0], caveFreqSampler);
+    float caveSize = interpolateValue(rawMaps[1], caveSizeSampler);
+    float caveShape = interpolateValue(rawMaps[2], caveShapeSampler);
+
     float coarseMatNoise = GetNoise(id, coarseMatSampler);
     float fineMatNoise = GetNoise(id, fineMatSampler);
-
-    float actualHeight = id.y * skipInc + offsetY;
-    float groundHeight = actualHeight - data.terrain;
 
     //Get Base Density
     float coarseCaveNoise = GetNoise(id, coarseCaveSampler);
     float fineCaveNoise = GetNoise(id, fineCaveSampler);
 
-    float coarseCaveCentered = GetNoiseCentered(coarseCaveNoise, data.cShape);
-    float fineCaveCentered = GetNoiseCentered(fineCaveNoise, data.cShape);
+    float coarseCaveCentered = GetNoiseCentered(coarseCaveNoise, caveShape);
+    float fineCaveCentered = GetNoiseCentered(fineCaveNoise, caveShape);
 
-    float centeredCaveNoise = lerp(fineCaveCentered, coarseCaveCentered, data.cSize);
-    float baseDensity = pow(abs(1.0f-centeredCaveNoise), data.cFreq); //We do 1-noise because cave means low density
+    float centeredCaveNoise = lerp(fineCaveCentered, coarseCaveCentered, caveSize);
+    float baseDensity = pow(abs(1.0f-centeredCaveNoise), caveFreq); //We do 1-noise because cave means low density
 
     //Blend with Terrain Height
     float terrainFactor = clamp((data.terrain - actualHeight) / (data.squash + Epsilon), 0, 1);
-    float atmosphereFactor = exp(-max(actualHeight - data.terrain, 0) * _BiomeAtmosphereData[biome]);
+    float atmosphereFactor = exp(-max(actualHeight - data.terrain, 0) * data.atmosphere * atmoStrength);
     float density = baseDensity * (terrainFactor * (1-IsoLevel) + atmosphereFactor * IsoLevel);
 
-
+    index = indexFromCoord(id) + bSTART_map;
     //Generate Water
-    uint index = indexFromCoord(id) + bSTART_map;
     if(actualHeight > (data.terrain - data.squash) && actualHeight < waterHeight && density < IsoLevel){
         BaseMap[index].density = 255;
         BaseMap[index].viscosity = (uint)round(density * 255.0f);
@@ -181,11 +169,16 @@ void Generate (uint3 id : SV_DispatchThreadID)
     }
 
     //Get Material
-    int matInd = 0;
-    if(density > IsoLevel)
-        matInd = GetGroundMaterial(coarseMatNoise, fineMatNoise, biome, groundHeight);
-    else
-        matInd = GetSurfaceMaterial(coarseMatNoise, fineMatNoise, biome, groundHeight);
+    int2 bounds;
+    if(density >= IsoLevel){
+        bounds.x = _BiomePrefCount[biome].y;
+        bounds.y = _BiomePrefCount[biome+1].x;
+    }else{
+        bounds.x = _BiomePrefCount[biome+1].x;
+        bounds.y = _BiomePrefCount[biome+1].y;
+    }
+    float height = groundHeight > 0 ? groundHeight / data.InfMax : groundHeight / data.InfMin;
+    int matInd = GetMaterial(bounds, coarseMatNoise, fineMatNoise, height);
     
     //Generate Land
     BaseMap[index].density = (uint)round(density * 255.0f);

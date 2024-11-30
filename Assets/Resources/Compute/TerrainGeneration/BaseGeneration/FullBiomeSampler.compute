@@ -1,0 +1,61 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#include "Assets/Resources/Compute/Utility/PerlinNoiseSampler.hlsl"
+#include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/CaveBiomeSampler.hlsl"
+const static int numThreads = 8;
+
+struct surfData{
+    int biome;
+    float terrain;
+    float squash;
+    float atmosphere;
+    float InfMax;
+    float InfMin;
+};
+
+uint caveSizeSampler;
+uint caveShapeSampler;
+uint caveFreqSampler;
+float heightSFalloff;
+int _BSkyStart;
+
+StructuredBuffer<surfData> _SurfMemoryBuffer;
+StructuredBuffer<uint2> _SurfAddressDict;
+uint surfAddress;
+
+RWStructuredBuffer<uint> BiomeMap;
+uint bSTART_biome;
+
+surfData ReadSurfData(uint2 coord){
+    uint address = _SurfAddressDict[surfAddress].y + indexFromCoord2DManual(coord, numPointsPerAxis);
+    return _SurfMemoryBuffer[address];
+}
+
+[numthreads(numThreads,numThreads,numThreads)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(any(id >= numPointsPerAxis))
+        return;
+    
+    surfData data = ReadSurfData(id.xz);
+    float actualHeight = id.y * skipInc + sOffset.y;
+    float groundHeight = actualHeight - data.terrain;
+    
+    float rawMaps[4];
+    rawMaps[0] = GetRawNoise(id, caveSizeSampler);
+    rawMaps[1] = GetRawNoise(id, caveShapeSampler);
+    rawMaps[2] = GetRawNoise(id, caveFreqSampler);
+    rawMaps[3] = 1 - exp(-abs(groundHeight)/heightSFalloff);
+
+    uint biome;
+    if(data.InfMin <= groundHeight && groundHeight <= data.InfMax)
+        biome = data.biome; //use sky biome
+    else {
+        int treeOff = groundHeight > 0 ? _BSkyStart : 0;
+        biome = GetBiome(rawMaps, treeOff); 
+        //use cave biome, hopefully compiler removes this branch
+    }
+    uint index = indexFromCoord(id) + bSTART_biome;
+    BiomeMap[index] = biome;
+}

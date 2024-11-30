@@ -230,15 +230,6 @@ public class InventoryController : UpdateTask
         return Primary.RemoveStackable(SelectedIndex, delta);
     }
 
-    public static Inventory Serialize(Inventory a){
-        for(int i = 0; i < a.Info.Length; i++){
-            if(!a.Info[i].IsNull){
-                a.MakeDirty((uint)i);
-            }
-        }
-        return a;
-    }
-
     public override void Update(MonoBehaviour mono){
         ReflectInventory(PrimaryDisplay, Primary); 
         ReflectInventory(SecondaryDisplay, Secondary);
@@ -282,6 +273,7 @@ public class InventoryController : UpdateTask
         public readonly uint capacity;
         public uint length;
         public uint tail;
+        [JsonIgnore]
         public HashSet<uint> Dirty;    
 
         public Inventory(int SlotCount){
