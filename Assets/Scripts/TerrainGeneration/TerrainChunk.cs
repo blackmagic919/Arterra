@@ -238,6 +238,7 @@ public class RealChunk : TerrainChunk{
             if(info.map != null){ //if the chunk has saved map data
                 Generator.MeshCreator.SetMapInfo(mapChunkSize, 0, info.map);
                 GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.TransferBuffer);
+                if(info.entities == null) Generator.MeshCreator.PopulateBiomes(origin, surfAddress, mapChunkSize, mapSkipInc);
             } else { //Otherwise create new data
                 DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
                 Generator.MeshCreator.GenerateBaseChunk(origin, surfAddress, mapChunkSize, mapSkipInc, IsoLevel);

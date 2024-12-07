@@ -22,18 +22,10 @@ Purpose:
   held by the option is changed it is not stored. 
 */
 
-[AttributeUsage(AttributeTargets.Field)]
-public sealed class UISetting : Attribute{
-    public bool Ignore{get; set;}
-    public string Message{get; set;}
-    public string Warning{get; set;}
-    public string Alias{get; set;}
-
-}
 
 [CreateAssetMenu(menuName = "Generation/WorldOptions")]
 public class WorldOptions : ScriptableObject{
-    public int seed;
+    public int Seed;
     [UISetting(Alias = "Quality")]
     public Option<QualitySettings> _Quality;
     [UISetting(Alias = "Generation")]
@@ -91,62 +83,12 @@ public class WorldOptions : ScriptableObject{
     internal void OnDeserialized(StreamingContext context = default){
         object defaultOptions = WorldStorageHandler.OPTIONS_TEMPLATE; 
         object thisRef = this;
-        SupplementTree(ref thisRef, ref defaultOptions);
-    }
-
-    //To Do: Flatten Options into a list and store index if it isn't dirty to the template list
-    public static void SupplementTree(ref object dest, ref object src){
-        System.Reflection.FieldInfo[] fields = src.GetType().GetFields();
-        foreach(FieldInfo field in fields){
-            if(field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Option<>)){
-                if(((IOption)field.GetValue(dest)).IsDirty){
-                    FieldInfo nField = field.FieldType.GetField("value");
-                    if(nField.FieldType.IsGenericType && nField.FieldType.GetGenericTypeDefinition() == typeof(List<>)){
-                        object oDest = field.GetValue(dest), oSrc  = field.GetValue(src);
-                        IList nDest = (IList)nField.GetValue(oDest), nSrc = (IList)nField.GetValue(oSrc);
-                        CopyList(nDest, nSrc);
-                        nField.SetValue(oDest, nDest); field.SetValue(dest, oDest);
-                    } else {
-                        object oDest = field.GetValue(dest), oSrc  = field.GetValue(src);
-                        object nDest = nField.GetValue(oDest), nSrc = nField.GetValue(oSrc);
-                        SupplementTree(ref nDest, ref nSrc);
-                        nField.SetValue(oDest, nDest); field.SetValue(dest, oDest);
-                    }
-                } else field.SetValue(dest, field.GetValue(src)); //This is the only line that actually fills in anything
-            }
-            else if (field.FieldType.IsPrimitive || field.FieldType == typeof(string)) continue;
-            else if (field.FieldType.IsValueType) {
-                object nDest = field.GetValue(dest), nSrc = field.GetValue(src);
-                SupplementTree(ref nDest, ref nSrc);
-                field.SetValue(dest, nDest);
-            } else throw new Exception("Settings objects must contain either only value types or options");
-        }
-    }
-
-
-    static void CopyList(IList dest, IList src){
-        for(int i = 0; i < dest.Count && i < src.Count; i++){
-            object srcEl = src[i]; object destEl = dest[i]; Type destType = destEl.GetType();
-            if(destType.IsGenericType && destType.GetGenericTypeDefinition() == typeof(Option<>)){
-                if(((IOption)destEl).IsDirty) {
-                    object nDest, nSrc; 
-                    FieldInfo field = destType.GetField("value");
-                    nDest = field.GetValue(destEl); nSrc = field.GetValue(srcEl);
-                    SupplementTree(ref nDest, ref nSrc);
-                    field.SetValue(destEl, nDest); dest[i] = destEl;
-                } else dest[i] = src[i];
-            } 
-            else if(destType.IsPrimitive || destType == typeof(string)) continue;
-            else if(destType.IsValueType){
-                SupplementTree(ref destEl, ref srcEl);
-                dest[i] = destEl;
-            } else throw new Exception("Settings objects must contain either only value types or options");
-        }
+        ProceduralUIEditor.SupplementTree(ref thisRef, ref defaultOptions);
     }
 
     public static WorldOptions Create(){
         WorldOptions newOptions = Instantiate(WorldStorageHandler.OPTIONS_TEMPLATE);
-        newOptions.seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+        newOptions.Seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
         return newOptions;
     }
 }

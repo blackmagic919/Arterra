@@ -9,6 +9,7 @@ public static class DensityGenerator
 {
     [Header("Terrain Generation Shaders")]
     static ComputeShader baseGenCompute;//
+    static ComputeShader biomeGenCompute;//
     static ComputeShader mapCompressor;//
     static ComputeShader meshGenerator;//
     static ComputeShader dMeshGenerator;//
@@ -22,6 +23,7 @@ public static class DensityGenerator
 
     static DensityGenerator(){ //That's a lot of Compute Shaders XD
         baseGenCompute = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/ChunkDataGen");
+        biomeGenCompute = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/FullBiomeSampler");
         mapCompressor = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/MapCompressor");
         meshGenerator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/MarchingCubes");
         dMeshGenerator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/CMarchingCubes");
@@ -55,6 +57,15 @@ public static class DensityGenerator
         baseGenCompute.SetBuffer(0, "BaseMap", UtilityBuffers.GenerationBuffer);
         baseGenCompute.SetInt("bSTART_map", bufferOffsets.rawMapStart);
         baseGenCompute.SetInt("bSTART_biome", bufferOffsets.biomeMapStart);
+
+        biomeGenCompute.SetBuffer(0, "_SurfMemoryBuffer", GenerationPreset.memoryHandle.Storage);
+        biomeGenCompute.SetBuffer(0, "_SurfAddressDict", GenerationPreset.memoryHandle.Address);
+        biomeGenCompute.SetInt("caveSizeSampler", mesh.CaveSizeIndex);
+        biomeGenCompute.SetInt("caveShapeSampler", mesh.CaveShapeIndex);
+        biomeGenCompute.SetInt("caveFreqSampler", mesh.CaveFrequencyIndex);
+
+        biomeGenCompute.SetBuffer(0, "BiomeMap", UtilityBuffers.GenerationBuffer);
+        biomeGenCompute.SetInt("bSTART_biome", bufferOffsets.biomeMapStart);
 
         mapCompressor.SetBuffer(0, "rawData", UtilityBuffers.GenerationBuffer);
         mapCompressor.SetBuffer(0, "chunkData", UtilityBuffers.GenerationBuffer);
@@ -121,6 +132,16 @@ public static class DensityGenerator
         baseGenCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsAxis = Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
         baseGenCompute.Dispatch(0, numThreadsAxis, numThreadsAxis, numThreadsAxis);
+    }
+
+    public static void GenerateBiomeData(Vector3 offset, uint surfaceData, int numPointsPerAxis, int mapSkip){
+        biomeGenCompute.SetInt("numPointsPerAxis", numPointsPerAxis);
+        biomeGenCompute.SetInt("surfAddress", (int)surfaceData);
+        SetSampleData(biomeGenCompute, offset, mapSkip);
+
+        biomeGenCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+        int numThreadsAxis = Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
+        biomeGenCompute.Dispatch(0, numThreadsAxis, numThreadsAxis, numThreadsAxis);
     }
 
     public static void CompressMapData(int chunkSize){

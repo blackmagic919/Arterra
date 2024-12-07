@@ -8,21 +8,28 @@ using Unity.Collections.LowLevel.Unsafe;
 using System;
 using System.Threading.Tasks;
 using Unity.Collections;
+using Newtonsoft.Json;
 
 [CreateAssetMenu(menuName = "Entity/Rabbit")]
 public class Rabbit : EntityAuthoring
 {
-    [UISetting(Ignore = true)]
+    [UISetting(Ignore = true)][JsonIgnore]
     public Option<GameObject> _Controller;
-    [UISetting(Ignore = true)]
+    [UISetting(Ignore = true)][JsonIgnore]
     public Option<RabbitEntity> _Entity;
     public Option<RabbitSetting> _Setting;
     public Option<List<ProfileE> > _Profile;
-     public Option<Entity.Info.ProfileInfo> _Info;
+    public Option<Entity.Info.ProfileInfo> _Info;
+
+    [JsonIgnore]
     public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
+    [JsonIgnore]
     public override IEntity Entity { get => _Entity.value; set => _Entity.value = (RabbitEntity)value; }
+    [JsonIgnore]
     public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (RabbitSetting)value; }
+    [JsonIgnore]
     public override Entity.Info.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
+    [JsonIgnore]
     public override ProfileE[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
 
     [Serializable]

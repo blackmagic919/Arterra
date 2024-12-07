@@ -22,7 +22,7 @@ int GetBiome(float mapData[4], int offset){
     uint checkedChild = 0; //0<-unvisited, 1<-visited first child, 2 <- fully visited
 
     //    if not found     if biome is found
-    while(curInd > 0 && _BiomeCaveTree[curInd - 1 + offset].biome == -1){
+    while(curInd > 0 && _BiomeCaveTree[curInd - 1 + offset].biome < 0){
 
         if(checkedChild == 2){
             checkedChild = curInd % 2 + 1;
@@ -45,7 +45,7 @@ int GetBiome(float mapData[4], int offset){
                 checkedChild = 2;
         }
     };
-    return curInd <= 0 ? offset : _BiomeCaveTree[(curInd - 1) + offset].biome;
+    return abs(_BiomeCaveTree[max((int)curInd - 1, 0) + offset].biome) - 1;
 }
 
 

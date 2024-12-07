@@ -40,7 +40,7 @@ MonoBehaviour:
         genSize: 0.106
         genShape: 0.449
         frequency: 2
-        multiplier: 2
+        multiplier: 1.5
         height: 0
       isDirty: 0
     isDirty: 0

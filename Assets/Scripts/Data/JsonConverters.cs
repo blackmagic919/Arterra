@@ -17,7 +17,11 @@ public static class JsonCustomSettings
     {
         JsonConvert.DefaultSettings = () =>
         {
-            var settings = new JsonSerializerSettings();
+            var settings = new JsonSerializerSettings{
+                //So we track the name of the type with abstracts
+                TypeNameHandling = TypeNameHandling.Auto 
+            };
+
             settings.Converters.Add(new ColorConverter());
             settings.Converters.Add(new Vec4Converter());
             settings.Converters.Add(new Vec3Converter());
@@ -237,6 +241,12 @@ public class SObjConverter : JsonConverter<ScriptableObject>
 
     public override ScriptableObject ReadJson(JsonReader reader, Type objectType, ScriptableObject existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
+        if(objectType.IsAbstract || objectType.IsInterface){
+            JObject typeObject = JObject.Load(reader);
+            objectType = typeObject["$type"].ToObject<Type>();
+            reader = typeObject.CreateReader();
+        }
+
         ScriptableObject instance = ScriptableObject.CreateInstance(objectType);
         serializer.Populate(reader, instance);
         return instance;

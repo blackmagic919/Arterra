@@ -214,11 +214,14 @@ public static class GenerationPreset
             if(biomeEntityBuffer != null) Shader.SetGlobalBuffer("_BiomeEntities", biomeEntityBuffer);
             Shader.SetGlobalBuffer("_BiomePrefCount", biomePrefCountBuffer);
 
-            SurfaceBiome[] SurfTree = BDict.Create(surface).FlattenTree<SurfaceBiome>();
-            CaveBiome[] CaveTree = BDict.Create(cave, surface.Length).FlattenTree<CaveBiome>();
-            CaveBiome[] SkyTree = BDict.Create(sky, surface.Length + cave.Length).FlattenTree<CaveBiome>();
+            SurfaceBiome[] SurfTree = BDict.Create(surface, 1).FlattenTree<SurfaceBiome>();
+            CaveBiome[] CaveTree = BDict.Create(cave, surface.Length + 1).FlattenTree<CaveBiome>();
+            CaveBiome[] SkyTree = BDict.Create(sky, surface.Length + cave.Length + 1).FlattenTree<CaveBiome>();
             SurfTreeBuffer = new ComputeBuffer(SurfTree.Length, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
             CaveTreeBuffer = new ComputeBuffer(CaveTree.Length + SkyTree.Length, sizeof(float) * 4 * 2 + sizeof(int), ComputeBufferType.Structured);
+            SurfTree[0].biome = -1; //set defaults
+            CaveTree[0].biome = -1 * (surface.Length + 1); 
+            SkyTree[0].biome = -1 * (cave.Length + surface.Length + 1);
 
             SurfTreeBuffer.SetData(SurfTree);
             CaveTreeBuffer.SetData(CaveTree.Concat(SkyTree).ToArray());

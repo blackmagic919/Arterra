@@ -9,53 +9,60 @@ using UnityEditor;
 
 public class SelectionHandler : MonoBehaviour
 {
-    private static RectTransform sTransform;
+    private static Animator sAnimator;
     private static RectTransform infoContent;
-    private static bool initialized = true;
+    private static bool active = false;
 
     private void OnEnable() { 
-        sTransform = this.gameObject.GetComponent<RectTransform>(); 
-        infoContent = this.gameObject.transform.GetChild(0).GetComponent<ScrollRect>().content.GetComponent<RectTransform>();
+        sAnimator = this.gameObject.GetComponent<Animator>(); 
+        infoContent = this.gameObject.transform.GetChild(0).GetChild(0).GetComponent<ScrollRect>().content.GetComponent<RectTransform>();
         WorldStorageHandler.Activate();
-        initialized = true;
+        active = false;
     }
 
-    private void Update(){
-        if(initialized) return;
-
+    private static void InitializeDisplay(){
         ReleaseSelectionInfo();
         foreach(WorldMeta meta in WORLD_SELECTION) 
             CreateWorldSelection(meta, infoContent);
-        initialized = true;
     }
-
-    private static float hidePos = -1680; //px
-    private static float showPos = 0; //px
-    private static float deltaP = 2400;
 
     public static void Activate(Action callback = null){
-        SetPanel(true, callback);
-        initialized = false;
+        if(active) return;
+        active = true;
+
+        sAnimator.SetTrigger("Unmask");
+        TestState("MaskRockBreak", InitializeDisplay);
+        TestState("UnmaskedAnimation", () => {
+            sAnimator.ResetTrigger("Unmask");
+            callback?.Invoke();
+        }); 
     }
     public static void Deactivate(Action callback = null){
-        SetPanel(false, () => {
-            ReleaseSelectionInfo(); 
+        if(!active) return;
+        active = false;
+
+        sAnimator.SetTrigger("Mask");
+        TestState("MaskedAnimation", () => {
+            sAnimator.ResetTrigger("Mask");
+            ReleaseSelectionInfo();
             callback?.Invoke();
         });
     }
 
 
-    private static async void SetPanel(bool active, Action callback = null){
-        Vector2 position = sTransform.anchoredPosition;
-        while(active ? position.y < showPos : position.y > hidePos){
-            position.y = Mathf.Clamp(position.y + deltaP * (active ? 1 : -1) * Time.deltaTime, hidePos, showPos);
-            sTransform.anchoredPosition = position;
+    private async static void TestState(string state, Action callback = null){
+        while(true) {
+            if(sAnimator == null) return;
+            if(sAnimator.GetCurrentAnimatorStateInfo(0).IsName(state)) break;
             await Task.Yield();
         }
         callback?.Invoke();
     }
 
-    public static void Return() { Deactivate(() => MenuHandler.Activate()); }
+    public static void Return() { 
+        if(!active) return;
+        Deactivate(() => MenuHandler.Activate()); 
+    }
 
     private static void ReleaseSelectionInfo(){
         foreach(Transform child in infoContent){ 
@@ -65,13 +72,15 @@ public class SelectionHandler : MonoBehaviour
     }
 
     public static void AddWorld(){
+        if(!active) return;
         CreateWorld();
-        initialized = false;
+        InitializeDisplay();
     }
 
     public static void DeleteSelected(){
+        if(!active) return;
         DeleteWorld();
-        initialized = false;
+        InitializeDisplay();
     }
 
     private static GameObject CreateWorldSelection(WorldMeta meta, RectTransform content){
@@ -82,6 +91,7 @@ public class SelectionHandler : MonoBehaviour
         info.GetComponentInChildren<TextMeshProUGUI>().text = meta.Name;
 
         newSelection.GetComponent<Button>().onClick.AddListener(() => { 
+            if(!active) return;
             SelectWorld(meta);
             Deactivate(() => {OptionsHandler.Activate(); MenuHandler.Activate();});
         });

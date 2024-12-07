@@ -43,9 +43,9 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float groundHeight = actualHeight - data.terrain;
     
     float rawMaps[4];
-    rawMaps[0] = GetRawNoise(id, caveSizeSampler);
-    rawMaps[1] = GetRawNoise(id, caveShapeSampler);
-    rawMaps[2] = GetRawNoise(id, caveFreqSampler);
+    rawMaps[0] = GetRawNoise(id, caveFreqSampler);
+    rawMaps[1] = GetRawNoise(id, caveSizeSampler);
+    rawMaps[2] = GetRawNoise(id, caveShapeSampler);
     rawMaps[3] = 1 - exp(-abs(groundHeight)/heightSFalloff);
 
     uint biome;

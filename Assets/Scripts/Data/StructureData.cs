@@ -4,6 +4,7 @@ using UnityEngine;
 using Unity.Mathematics;
 using UnityEditor;
 using System.Linq;
+using Newtonsoft.Json;
 
 [CreateAssetMenu(fileName = "Structure_Data", menuName = "Generation/Structure/Structure Data")]
 public class StructureData : ScriptableObject
@@ -14,6 +15,7 @@ public class StructureData : ScriptableObject
     public Option<List<CheckPoint>> checks;
     public Option<List<string>> Materials;
 
+    [JsonIgnore]
     public IEnumerable<PointInfo> SerializePoints{
         get{
             Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;

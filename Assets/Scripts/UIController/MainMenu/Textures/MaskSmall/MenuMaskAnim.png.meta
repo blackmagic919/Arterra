@@ -1,0 +1,1737 @@
+fileFormatVersion: 2
+guid: 2da6e9f58204d4a9395500f502e94dd0
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 12
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 0
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 3
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 8192
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Server
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: MenuMaskAnim_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 6648
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 36136e0be63244948911b9a174b9f2a4
+      internalID: 891213742
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_1
+      rect:
+        serializedVersion: 2
+        x: 600
+        y: 6648
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d515ab9bbb8054608976e538b8b09a97
+      internalID: 1551984529
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_2
+      rect:
+        serializedVersion: 2
+        x: 1200
+        y: 6648
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 04d9248175b5b42cf8159f3d12261bed
+      internalID: 1783003381
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_3
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 6648
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 953bdabc662a941498042da061294e6c
+      internalID: -6223968
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_4
+      rect:
+        serializedVersion: 2
+        x: 2400
+        y: 6648
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: df012ff3b663a4ecb913bbef9c08405a
+      internalID: 2017477780
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_5
+      rect:
+        serializedVersion: 2
+        x: 3000
+        y: 6648
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a431c86b72e6f4e0fbb6be1c2a3157ba
+      internalID: -557886044
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_6
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 6648
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9c34fc5a193be4b77bb068a00645e561
+      internalID: -1035567897
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_7
+      rect:
+        serializedVersion: 2
+        x: 4200
+        y: 6648
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 93e70f23c06aa4c0f983177c91822899
+      internalID: 262128859
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_8
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 5817
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c0ee2d0ef573d45d6bcf98bcbbded083
+      internalID: -2038845274
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_9
+      rect:
+        serializedVersion: 2
+        x: 600
+        y: 5817
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d8923abef96ed447982d1b34513571e7
+      internalID: 2058679390
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_10
+      rect:
+        serializedVersion: 2
+        x: 1200
+        y: 5817
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ea7c37dfae0ed470d8f6894c39107188
+      internalID: -1475269730
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_11
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 5817
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3e398d5489b3540d0a038dce9508c127
+      internalID: -274585266
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_12
+      rect:
+        serializedVersion: 2
+        x: 2400
+        y: 5817
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c87c29c0d2bda49dca0dbfd47902922a
+      internalID: -150224118
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_13
+      rect:
+        serializedVersion: 2
+        x: 3000
+        y: 5817
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: add12e0ec1703445a92aadfec16a7be7
+      internalID: 1930517792
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_14
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 5817
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c724b594570464bf1bb30028b2369340
+      internalID: -1699936529
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_15
+      rect:
+        serializedVersion: 2
+        x: 4200
+        y: 5817
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 389a7ac0cf7dc4efd9e4474d307238df
+      internalID: 1821553689
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_16
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 4986
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 39dabf7eca55345df8a39fb241d19f57
+      internalID: 211966532
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_17
+      rect:
+        serializedVersion: 2
+        x: 600
+        y: 4986
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 27f8bd9d5e76c42c999d7c6408e44854
+      internalID: 402817202
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_18
+      rect:
+        serializedVersion: 2
+        x: 1200
+        y: 4986
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5c1fa2b2ab2bc4278be8717e4ff8d3c7
+      internalID: -378263953
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_19
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 4986
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3134ac0c5534044c2a08ba4111df5fc2
+      internalID: 2054542633
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_20
+      rect:
+        serializedVersion: 2
+        x: 2400
+        y: 4986
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ae2276bafdbdd4427873ac6532e62697
+      internalID: -1937788251
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_21
+      rect:
+        serializedVersion: 2
+        x: 3000
+        y: 4986
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d5cb7e597a84a48e99fa41bc23171399
+      internalID: -338106975
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_22
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 4986
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7498e19a2ec32432eb4ab6bcb973ebdb
+      internalID: 431004356
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_23
+      rect:
+        serializedVersion: 2
+        x: 4200
+        y: 4986
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7ce0a2493f70b498f9c21bd3a7eb041f
+      internalID: 810034449
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_24
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 4155
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7615671f945994c8f9e15fba9ce38a02
+      internalID: 1583647384
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_25
+      rect:
+        serializedVersion: 2
+        x: 600
+        y: 4155
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bb4f031e9a62e4556a5809c272d8f7a6
+      internalID: -1320109889
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_26
+      rect:
+        serializedVersion: 2
+        x: 1200
+        y: 4155
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a8165707e41b14eefb8c6a9b868070b4
+      internalID: 1547447535
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_27
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 4155
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cd30c358534764b15ac6528653bd2f4d
+      internalID: -1006283307
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_28
+      rect:
+        serializedVersion: 2
+        x: 2400
+        y: 4155
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 019572625ab5649e8afd13f7e8aa1ade
+      internalID: -617245173
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_29
+      rect:
+        serializedVersion: 2
+        x: 3000
+        y: 4155
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 15b49cdd24c224a5587885f183be9377
+      internalID: -1511112602
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_30
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 4155
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 69a2cff4ad1c24b7aa9e2d947df184db
+      internalID: 915303057
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_31
+      rect:
+        serializedVersion: 2
+        x: 4200
+        y: 4155
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c207d040d70d44fd5b81cd53c9159229
+      internalID: 162597764
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_32
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 3324
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 26cbab19a91a1434c851ee06f108e4ed
+      internalID: -256530845
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_33
+      rect:
+        serializedVersion: 2
+        x: 600
+        y: 3324
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6b8c6ad976cfe496aab1fd1e3b4bca13
+      internalID: -1630270768
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_34
+      rect:
+        serializedVersion: 2
+        x: 1200
+        y: 3324
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 57f7b69909e074ab69f5ecfdb0917a9e
+      internalID: 808834740
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_35
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 3324
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cca9f739939254bdb9efbcb2b2fa54f4
+      internalID: -1911815719
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_36
+      rect:
+        serializedVersion: 2
+        x: 2400
+        y: 3324
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a3f2b16f509cd4588b8c5b17034e2600
+      internalID: 674204071
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_37
+      rect:
+        serializedVersion: 2
+        x: 3000
+        y: 3324
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a1937efdac55c428e9c2e916058c249d
+      internalID: 2056254910
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_38
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 3324
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2a88c1c31f99e49549c3b88dc7adc901
+      internalID: -1297070237
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_39
+      rect:
+        serializedVersion: 2
+        x: 4200
+        y: 3324
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9b2eeaace54df418e9e5c0d7aa43a183
+      internalID: 1464560071
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_40
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 2493
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 54172ea5fe69840d789e67a763b03a97
+      internalID: 2059357675
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_41
+      rect:
+        serializedVersion: 2
+        x: 600
+        y: 2493
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e4ccaaaa08dcd48158fad11ab2b559c6
+      internalID: -463087212
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_42
+      rect:
+        serializedVersion: 2
+        x: 1200
+        y: 2493
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1025fc10494684259a2286f7f9cc1f49
+      internalID: 1332607715
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_43
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 2493
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d4ca28f2767ec40ffb1bf432e0bc5e91
+      internalID: -542204165
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_44
+      rect:
+        serializedVersion: 2
+        x: 2400
+        y: 2493
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5d520301bf2514a689b5ebb8b2f26c2c
+      internalID: -699216935
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_45
+      rect:
+        serializedVersion: 2
+        x: 3000
+        y: 2493
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4951f5e444b8a4a97a1ff7df5a22ecc4
+      internalID: -393423842
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_46
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 2493
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 21b4aa6698ecc4e2097edd40f19f1882
+      internalID: 536435892
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_47
+      rect:
+        serializedVersion: 2
+        x: 4200
+        y: 2493
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 456583c11240448da8e84eacb4424cc2
+      internalID: 877251812
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_48
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1662
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bb5eb89d496104fc7af3c96ee5c1c5dd
+      internalID: 550588918
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_49
+      rect:
+        serializedVersion: 2
+        x: 600
+        y: 1662
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 86562e3731fae4ebc9fac5af3306bcb2
+      internalID: 511692820
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_50
+      rect:
+        serializedVersion: 2
+        x: 1200
+        y: 1662
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2de4a0aabaca84caa9b5d356f5e5253c
+      internalID: -258084620
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_51
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 1662
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1bf59ffb019e447b1b781964b52656b7
+      internalID: 1699419395
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_52
+      rect:
+        serializedVersion: 2
+        x: 2400
+        y: 1662
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7a9ca75d00114400c9a2be776dd9fe2d
+      internalID: 805772305
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_53
+      rect:
+        serializedVersion: 2
+        x: 3000
+        y: 1662
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d552a6b684ad14adfb56ce430a7148d4
+      internalID: -70951110
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_54
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 1662
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 099bf931e2e3046a7a1b9d65ccdf5b05
+      internalID: -227941759
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_55
+      rect:
+        serializedVersion: 2
+        x: 4200
+        y: 1662
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 33d06185beab946dab1ecce4341430d9
+      internalID: 435585725
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_56
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 831
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0f475214fb4a846e8b4199aebf54563b
+      internalID: 411865668
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_57
+      rect:
+        serializedVersion: 2
+        x: 600
+        y: 831
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c33a23a9770ef4dd4a4356399b45a970
+      internalID: 32678758
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_58
+      rect:
+        serializedVersion: 2
+        x: 1200
+        y: 831
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f0b227e7b8d7f43f0a0d53fe4ac9dda4
+      internalID: 130772812
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_59
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 831
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 714dc7dcb88164172b9de46f72bd2e6d
+      internalID: 1499606989
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_60
+      rect:
+        serializedVersion: 2
+        x: 2400
+        y: 831
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 10d92329e02334b93b7b794053b1dba2
+      internalID: -486489423
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_61
+      rect:
+        serializedVersion: 2
+        x: 3000
+        y: 831
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ba132785abcd84ce5b46a226361dac8f
+      internalID: -1854036425
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_62
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 831
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bd9b6035dc68245f2b22425f56183dd6
+      internalID: -1208662051
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_63
+      rect:
+        serializedVersion: 2
+        x: 4200
+        y: 831
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b6ac67429e1814053bc87e2c95727989
+      internalID: 1953865728
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_64
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a8453e9212643428487992a855c8206b
+      internalID: 1813648178
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_65
+      rect:
+        serializedVersion: 2
+        x: 600
+        y: 0
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d36a66e6438ee4640bc51a48ef2ab796
+      internalID: -1256018725
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_66
+      rect:
+        serializedVersion: 2
+        x: 1200
+        y: 0
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0af3934e2832a46348d1e4e099820198
+      internalID: -553311169
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_67
+      rect:
+        serializedVersion: 2
+        x: 1800
+        y: 0
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f7194c30952c444aaab62518d66d26f5
+      internalID: 1084685061
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_68
+      rect:
+        serializedVersion: 2
+        x: 2400
+        y: 0
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 622f28adcc566428bae5c4cc4823237d
+      internalID: 1724596185
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_69
+      rect:
+        serializedVersion: 2
+        x: 3000
+        y: 0
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 38d27b97ec3324614afa2bcdbe58cd7f
+      internalID: -1997684394
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_70
+      rect:
+        serializedVersion: 2
+        x: 3600
+        y: 0
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dadd34185f5204a27b70231e9b794534
+      internalID: 313104582
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MenuMaskAnim_71
+      rect:
+        serializedVersion: 2
+        x: 4200
+        y: 0
+        width: 600
+        height: 831
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 91be64554ac6949adb6dc6324de8146a
+      internalID: -2057648828
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    physicsShape: []
+    bones: []
+    spriteID: c156299d4197846b4a0119a396f78874
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    nameFileIdTable:
+      MenuMaskAnim_0: 891213742
+      MenuMaskAnim_1: 1551984529
+      MenuMaskAnim_10: -1475269730
+      MenuMaskAnim_11: -274585266
+      MenuMaskAnim_12: -150224118
+      MenuMaskAnim_13: 1930517792
+      MenuMaskAnim_14: -1699936529
+      MenuMaskAnim_15: 1821553689
+      MenuMaskAnim_16: 211966532
+      MenuMaskAnim_17: 402817202
+      MenuMaskAnim_18: -378263953
+      MenuMaskAnim_19: 2054542633
+      MenuMaskAnim_2: 1783003381
+      MenuMaskAnim_20: -1937788251
+      MenuMaskAnim_21: -338106975
+      MenuMaskAnim_22: 431004356
+      MenuMaskAnim_23: 810034449
+      MenuMaskAnim_24: 1583647384
+      MenuMaskAnim_25: -1320109889
+      MenuMaskAnim_26: 1547447535
+      MenuMaskAnim_27: -1006283307
+      MenuMaskAnim_28: -617245173
+      MenuMaskAnim_29: -1511112602
+      MenuMaskAnim_3: -6223968
+      MenuMaskAnim_30: 915303057
+      MenuMaskAnim_31: 162597764
+      MenuMaskAnim_32: -256530845
+      MenuMaskAnim_33: -1630270768
+      MenuMaskAnim_34: 808834740
+      MenuMaskAnim_35: -1911815719
+      MenuMaskAnim_36: 674204071
+      MenuMaskAnim_37: 2056254910
+      MenuMaskAnim_38: -1297070237
+      MenuMaskAnim_39: 1464560071
+      MenuMaskAnim_4: 2017477780
+      MenuMaskAnim_40: 2059357675
+      MenuMaskAnim_41: -463087212
+      MenuMaskAnim_42: 1332607715
+      MenuMaskAnim_43: -542204165
+      MenuMaskAnim_44: -699216935
+      MenuMaskAnim_45: -393423842
+      MenuMaskAnim_46: 536435892
+      MenuMaskAnim_47: 877251812
+      MenuMaskAnim_48: 550588918
+      MenuMaskAnim_49: 511692820
+      MenuMaskAnim_5: -557886044
+      MenuMaskAnim_50: -258084620
+      MenuMaskAnim_51: 1699419395
+      MenuMaskAnim_52: 805772305
+      MenuMaskAnim_53: -70951110
+      MenuMaskAnim_54: -227941759
+      MenuMaskAnim_55: 435585725
+      MenuMaskAnim_56: 411865668
+      MenuMaskAnim_57: 32678758
+      MenuMaskAnim_58: 130772812
+      MenuMaskAnim_59: 1499606989
+      MenuMaskAnim_6: -1035567897
+      MenuMaskAnim_60: -486489423
+      MenuMaskAnim_61: -1854036425
+      MenuMaskAnim_62: -1208662051
+      MenuMaskAnim_63: 1953865728
+      MenuMaskAnim_64: 1813648178
+      MenuMaskAnim_65: -1256018725
+      MenuMaskAnim_66: -553311169
+      MenuMaskAnim_67: 1084685061
+      MenuMaskAnim_68: 1724596185
+      MenuMaskAnim_69: -1997684394
+      MenuMaskAnim_7: 262128859
+      MenuMaskAnim_70: 313104582
+      MenuMaskAnim_71: -2057648828
+      MenuMaskAnim_8: -2038845274
+      MenuMaskAnim_9: 2058679390
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

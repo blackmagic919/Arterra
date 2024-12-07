@@ -22,7 +22,7 @@ int GetBiome(float mapData[6]){
     uint checkedChild = 0; //0<-unvisited, 1<-visited first child, 2 <- fully visited
 
     //    if not found     if biome is found
-    while(curInd > 0 && _BiomeSurfTree[curInd-1].biome == -1){
+    while(curInd > 0 && _BiomeSurfTree[curInd-1].biome < 0){
 
         if(checkedChild == 2){
             checkedChild = curInd % 2 + 1;
@@ -45,6 +45,6 @@ int GetBiome(float mapData[6]){
                 checkedChild = 2;
         }
     }
-    return curInd <= 0 ? 0 : max(_BiomeSurfTree[curInd - 1].biome, 0);
+    return abs(_BiomeSurfTree[max((int)curInd - 1, 0)].biome) - 1;
 }
 

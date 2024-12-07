@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using Utils;
@@ -30,6 +31,7 @@ public class Info : ScriptableObject
     [Header("Entities")]
     public Option<List<Option<EntityGen> > > Entities = new ();
 
+    [JsonIgnore]
     public IEnumerable<TerrainStructure> StructureSerial{
         get{
             Registry<StructureData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Structures;
@@ -37,6 +39,7 @@ public class Info : ScriptableObject
         }
     }
 
+    [JsonIgnore]
     public IEnumerable<EntityGen> EntitySerial{
         get{
             Registry<EntityAuthoring> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities;

@@ -5,6 +5,7 @@ using System.Linq;
 using System.IO;
 using UnityEngine;
 using System.Reflection;
+using Newtonsoft.Json;
 
 
 public static class RegisterBuilder{
@@ -25,6 +26,7 @@ public struct Registry<T> : IRegister
     public Option<List<Pair > > Reg;
     [UISetting(Ignore = true)] 
     private Dictionary<string, int> Index;
+    [JsonIgnore]
     public T[] SerializedData => Reg.value.Select(x => x.Value).ToArray();
 
     public void Construct(){
@@ -50,6 +52,7 @@ public struct Registry<T> : IRegister
     [Serializable]
     public struct Pair{
         public string Name;
+        [UISetting(Alias = "Value")]
         public Option<T> _value;
         public T Value => _value.value;
     }

@@ -16,6 +16,7 @@ public static class WorldStorageHandler
     public static void Activate(){ 
         OPTIONS_TEMPLATE = Resources.Load<WorldOptions>("Config");
         WORLD_OPTIONS = WorldOptions.Create();
+        ProceduralUIEditor.Initialize();
         LoadMetaSync(); LoadOptionsSync();
     }
 

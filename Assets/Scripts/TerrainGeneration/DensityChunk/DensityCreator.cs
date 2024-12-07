@@ -35,6 +35,7 @@ public class MeshCreatorSettings : ScriptableObject{
 public class MeshCreator
 {
 
+    public void PopulateBiomes(float3 offset, uint surfaceData, int chunkSize, int mapSkip) => GenerateBiomeData(offset, surfaceData, chunkSize, mapSkip);
     public void GenerateBaseChunk(float3 offset, uint surfaceData, int chunkSize, int mapSkip, float IsoLevel) => GenerateBaseData(offset, surfaceData, chunkSize, mapSkip, IsoLevel);
     public void CompressMap(int chunkSize) => CompressMapData(chunkSize);
 

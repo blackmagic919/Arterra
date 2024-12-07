@@ -8,21 +8,28 @@ using Unity.Collections.LowLevel.Unsafe;
 using System;
 using System.Threading.Tasks;
 using Unity.Collections;
+using Newtonsoft.Json;
 
 [CreateAssetMenu(menuName = "Entity/Fox")]
 public class Fox : EntityAuthoring
 {
-    [UISetting(Ignore = true)]
+    [UISetting(Ignore = true)][JsonIgnore]
     public Option<GameObject> _Controller;
-    [UISetting(Ignore = true)]
+    [UISetting(Ignore = true)][JsonIgnore]
     public Option<FoxEntity> _Entity;
     public Option<FoxSetting> _Setting;
     public Option<List<ProfileE> > _Profile;
-     public Option<Entity.Info.ProfileInfo> _Info;
+    public Option<Entity.Info.ProfileInfo> _Info;
+
+    [JsonIgnore]
     public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
+    [JsonIgnore]
     public override IEntity Entity { get => _Entity.value; set => _Entity.value = (FoxEntity)value; }
+    [JsonIgnore]
     public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (FoxSetting)value; }
+    [JsonIgnore]
     public override Entity.Info.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
+    [JsonIgnore]
     public override ProfileE[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
 
     [Serializable]
