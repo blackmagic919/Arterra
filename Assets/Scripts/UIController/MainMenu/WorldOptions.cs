@@ -77,6 +77,7 @@ public class WorldOptions : ScriptableObject{
     [Serializable]
     public struct SystemSettings{
         public Option<ReadbackSettings> ReadBack;
+        public Registry<InputPoller.KeyBind> Input;
     }
 
     [OnDeserialized]

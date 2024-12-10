@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ccdb8be40d52447fb703bb0e4a2b7bd, type: 3}
   m_Name: Config
   m_EditorClassIdentifier: 
-  seed: 0
+  Seed: 0
   _Quality:
     value:
       Atmosphere:
@@ -197,8 +197,8 @@ MonoBehaviour:
       Movement:
         value:
           GroundFriction: 0.05
-          runSpeed: 10
-          jumpForce: 8
+          runSpeed: 6
+          jumpForce: 5
           acceleration: 50
           groundStickDist: 0.05
         isDirty: 0
@@ -369,4 +369,208 @@ MonoBehaviour:
       ReadBack:
         value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
         isDirty: 0
+      Input:
+        Reg:
+          value:
+          - Name: Jump
+            _value:
+              value:
+                Bindings:
+                - Key: 32
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Move Horizontal
+            _value:
+              value:
+                Bindings:
+                - Key: 51
+                  PollType: 1
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Move Vertical
+            _value:
+              value:
+                Bindings:
+                - Key: 52
+                  PollType: 1
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Mouse Horizontal
+            _value:
+              value:
+                Bindings:
+                - Key: 48
+                  PollType: 1
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Mouse Vertical
+            _value:
+              value:
+                Bindings:
+                - Key: 49
+                  PollType: 1
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Place Terrain
+            _value:
+              value:
+                Bindings:
+                - Key: 324
+                  PollType: 2
+                  IsAlias: 0
+                - Key: 304
+                  PollType: 0
+                  IsAlias: 0
+                - Key: 303
+                  PollType: 0
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Remove Terrain
+            _value:
+              value:
+                Bindings:
+                - Key: 323
+                  PollType: 2
+                  IsAlias: 0
+                - Key: 304
+                  PollType: 0
+                  IsAlias: 0
+                - Key: 303
+                  PollType: 0
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Pickup Item
+            _value:
+              value:
+                Bindings:
+                - Key: 324
+                  PollType: 2
+                  IsAlias: 0
+                - Key: 304
+                  PollType: 2
+                  IsAlias: 1
+                - Key: 303
+                  PollType: 2
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Remove Liquid
+            _value:
+              value:
+                Bindings:
+                - Key: 323
+                  PollType: 2
+                  IsAlias: 0
+                - Key: 304
+                  PollType: 2
+                  IsAlias: 1
+                - Key: 303
+                  PollType: 2
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Open Inventory
+            _value:
+              value:
+                Bindings:
+                - Key: 9
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Select
+            _value:
+              value:
+                Bindings:
+                - Key: 323
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Craft
+            _value:
+              value:
+                Bindings:
+                - Key: 13
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Pause
+            _value:
+              value:
+                Bindings:
+                - Key: 27
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Hotbar1
+            _value:
+              value:
+                Bindings:
+                - Key: 49
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Hotbar2
+            _value:
+              value:
+                Bindings:
+                - Key: 50
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Hotbar3
+            _value:
+              value:
+                Bindings:
+                - Key: 51
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Hotbar4
+            _value:
+              value:
+                Bindings:
+                - Key: 52
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Hotbar5
+            _value:
+              value:
+                Bindings:
+                - Key: 53
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Hotbar6
+            _value:
+              value:
+                Bindings:
+                - Key: 54
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Hotbar7
+            _value:
+              value:
+                Bindings:
+                - Key: 55
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Hotbar8
+            _value:
+              value:
+                Bindings:
+                - Key: 56
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          - Name: Hotbar9
+            _value:
+              value:
+                Bindings:
+                - Key: 57
+                  PollType: 3
+                  IsAlias: 0
+              isDirty: 0
+          isDirty: 0
     isDirty: 0

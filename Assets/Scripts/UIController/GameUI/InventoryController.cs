@@ -87,12 +87,12 @@ public class InventoryController : UpdateTask
         InputPoller.AddKeyBindChange(() => {
             Fences.Enqueue(("Control", InputPoller.AddContextFence("Control")));
             Fences.Enqueue(("GamePlay", InputPoller.AddContextFence("GamePlay")));
-            InputPoller.AddBinding(new InputPoller.Binding("Open Inventory", "GamePlay", InputPoller.BindPoll.Down, Deactivate));
-            InputPoller.AddBinding(new InputPoller.Binding("Select", "GamePlay", InputPoller.BindPoll.Down, SelectDrag));
-            InputPoller.AddBinding(new InputPoller.Binding("Select", "GamePlay", InputPoller.BindPoll.Up, DeselectDrag));
-            InputPoller.AddBinding(new InputPoller.Binding("Craft", "GamePlay", InputPoller.BindPoll.Hold, CraftEntry));
-            InputPoller.AddBinding(new InputPoller.Binding("Place Terrain", "GamePlay", InputPoller.BindPoll.Hold, CraftingMenuController.AddMaterial));
-            InputPoller.AddBinding(new InputPoller.Binding("Remove Terrain", "GamePlay", InputPoller.BindPoll.Hold, CraftingMenuController.RemoveMaterial));
+            InputPoller.AddBinding("Open Inventory", "GamePlay", Deactivate);
+            InputPoller.AddBinding("Select", "GamePlay", SelectDrag);
+            InputPoller.AddBinding("Deselect", "GamePlay", DeselectDrag);
+            InputPoller.AddBinding("Craft", "GamePlay", CraftEntry);
+            InputPoller.AddBinding("Place Terrain", "GamePlay", CraftingMenuController.AddMaterial);
+            InputPoller.AddBinding("Remove Terrain", "GamePlay", CraftingMenuController.RemoveMaterial);
         });
         CraftingMenuController.Activate();
         CursorDisplay.Object.SetActive(false);
@@ -118,17 +118,17 @@ public class InventoryController : UpdateTask
             Primary.MakeDirty((uint)SelectedIndex);
             SelectedIndex = index % settings.PrimarySlotCount;
         }
-        InputPoller.AddBinding(new InputPoller.Binding("Open Inventory", "Control", InputPoller.BindPoll.Down, Activate));
+        InputPoller.AddBinding("Open Inventory", "Control", Activate);
 
-        InputPoller.AddBinding(new InputPoller.Binding("Hotbar1", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(0)));
-        InputPoller.AddBinding(new InputPoller.Binding("Hotbar2", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(1)));
-        InputPoller.AddBinding(new InputPoller.Binding("Hotbar3", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(2)));
-        InputPoller.AddBinding(new InputPoller.Binding("Hotbar4", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(3)));
-        InputPoller.AddBinding(new InputPoller.Binding("Hotbar5", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(4)));
-        InputPoller.AddBinding(new InputPoller.Binding("Hotbar6", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(5)));
-        InputPoller.AddBinding(new InputPoller.Binding("Hotbar7", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(6)));
-        InputPoller.AddBinding(new InputPoller.Binding("Hotbar8", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(7)));
-        InputPoller.AddBinding(new InputPoller.Binding("Hotbar9", "UI", InputPoller.BindPoll.Down, (float _) => ChangeSelected(8)));
+        InputPoller.AddBinding("Hotbar1", "UI", (float _) => ChangeSelected(0));
+        InputPoller.AddBinding("Hotbar2", "UI", (float _) => ChangeSelected(1));
+        InputPoller.AddBinding("Hotbar3", "UI", (float _) => ChangeSelected(2));
+        InputPoller.AddBinding("Hotbar4", "UI", (float _) => ChangeSelected(3));
+        InputPoller.AddBinding("Hotbar5", "UI", (float _) => ChangeSelected(4));
+        InputPoller.AddBinding("Hotbar6", "UI", (float _) => ChangeSelected(5));
+        InputPoller.AddBinding("Hotbar7", "UI", (float _) => ChangeSelected(6));
+        InputPoller.AddBinding("Hotbar8", "UI", (float _) => ChangeSelected(7));
+        InputPoller.AddBinding("Hotbar9", "UI", (float _) => ChangeSelected(8));
     }
 
     private static void SelectDrag(float _){
@@ -144,7 +144,7 @@ public class InventoryController : UpdateTask
         CursorDisplay.Object.SetActive(true);
     }
 
-     private static void DeselectDrag(float _){
+    private static void DeselectDrag(float _){
         if(Cursor.IsNull) return;
         CursorDisplay.Object.SetActive(false);
 

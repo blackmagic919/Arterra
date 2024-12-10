@@ -49,6 +49,13 @@ public struct Registry<T> : IRegister
     public readonly T Retrieve(int index){
         return Reg.value[index].Value;
     }
+    public readonly bool Contains(string name){
+        return Index.ContainsKey(name);
+    }
+    public readonly bool Contains(int index){
+        return index >= 0 && index < Reg.value.Count;
+    }
+
     [Serializable]
     public struct Pair{
         public string Name;

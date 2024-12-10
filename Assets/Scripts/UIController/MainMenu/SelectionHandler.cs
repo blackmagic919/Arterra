@@ -72,15 +72,13 @@ public class SelectionHandler : MonoBehaviour
     }
 
     public static void AddWorld(){
-        if(!active) return;
         CreateWorld();
-        InitializeDisplay();
+        if(active) InitializeDisplay();
     }
 
     public static void DeleteSelected(){
-        if(!active) return;
         DeleteWorld();
-        InitializeDisplay();
+        if(active) InitializeDisplay();
     }
 
     private static GameObject CreateWorldSelection(WorldMeta meta, RectTransform content){

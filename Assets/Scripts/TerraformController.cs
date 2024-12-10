@@ -30,7 +30,6 @@ public class TerraformSettings : ICloneable{
 public class TerraformController : UpdateTask
 {
     private TerraformSettings settings;
-    private bool shiftPressed = false;
     private bool hasHit;
     float3 hitPoint;
 
@@ -52,11 +51,10 @@ public class TerraformController : UpdateTask
         IsoLevel = Mathf.RoundToInt(WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.IsoLevel * 255);
         SetUpOverlay();
 
-        InputPoller.AddBinding(new InputPoller.Binding("Place Liquid", "GamePlay", InputPoller.BindPoll.Down, (_) => shiftPressed = true));
-        InputPoller.AddBinding(new InputPoller.Binding("Place Liquid", "GamePlay", InputPoller.BindPoll.Up, (_) => shiftPressed = false));
-        InputPoller.AddBinding(new InputPoller.Binding("Place Terrain", "GamePlay", InputPoller.BindPoll.Hold, PlaceTerrain));
-        InputPoller.AddBinding(new InputPoller.Binding("Remove Terrain", "GamePlay", InputPoller.BindPoll.Hold, RemoveTerrain));
-        InputPoller.AddBinding(new InputPoller.Binding("Pickup Item", "GamePlay", InputPoller.BindPoll.Down, PickupItems));
+        InputPoller.AddBinding("Remove Liquid", "GamePlay", RemoveLiquid);
+        InputPoller.AddBinding("Pickup Item", "GamePlay", PickupItems);
+        InputPoller.AddBinding("Place Terrain", "GamePlay", PlaceTerrain);
+        InputPoller.AddBinding("Remove Terrain", "GamePlay", RemoveTerrain);
         MainLoopUpdateTasks.Enqueue(this);
     }
 
@@ -179,37 +177,40 @@ public class TerraformController : UpdateTask
         Graphics.RenderMesh(rp, SphereMesh, 0, transform);
     }
 
-    void RayTest(){
-        uint RayTestSolid(int3 coord){ 
+    uint RayTestSolid(int3 coord){ 
             MapData pointInfo = SampleMap(coord);
             return (uint)pointInfo.viscosity; 
         }
-        uint RayTestLiquid(int3 coord){ 
-            MapData pointInfo = SampleMap(coord);
-            return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
-        }
+    uint RayTestLiquid(int3 coord){ 
+        MapData pointInfo = SampleMap(coord);
+        return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
+    }
 
+    void RayTest(){
         float3 camPosGC = WSToGS(cam.position);
-        if(shiftPressed) hasHit = RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestLiquid, out hitPoint);
-        else hasHit = RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestSolid, out hitPoint);
+        hasHit = RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestSolid, out hitPoint);
     }
 
     private void PlaceTerrain(float _){
-        if (!hasHit) return;
         if(InventoryController.Selected.IsItem) return;
 
-        if(InventoryController.Selected.IsSolid)
+        if(InventoryController.Selected.IsSolid){
+            if (!hasHit) return;
             CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleAddSolid);
-        else
+        }else{
+            hasHit = RayCastTerrain(WSToGS(cam.position), cam.forward, settings.maxTerraformDistance, RayTestLiquid, out hitPoint);
+            if(!hasHit) return;
             CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleAddLiquid);
+        }
     }
 
     private void RemoveTerrain(float _){
         if (!hasHit) return;
-        if(shiftPressed)
-            CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleRemoveLiquid);
-        else 
-            CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleRemoveSolid);
+        CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleRemoveSolid);
+    }
+    private void RemoveLiquid(float _){
+        if(!hasHit) return;
+        CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleRemoveLiquid);
     }
 
     int GetStaggeredDelta(int baseDensity, float deltaDensity){
@@ -301,7 +302,6 @@ public class TerraformController : UpdateTask
     }
 
     private void PickupItems(float _){
-        if(!shiftPressed) return;
         var eReg = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities;
         unsafe void OnEntityFound(UIntPtr entity){
             Entity* e = (Entity*)entity;

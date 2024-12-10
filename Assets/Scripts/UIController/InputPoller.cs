@@ -5,39 +5,29 @@ using UnityEngine;
 
 public class InputPoller : UpdateTask
 {
-    private static Dictionary<string, KeyCode> KeyMappings;
-    private static Dictionary<KeyCode, string> AxisMappings;
-
+    private static Registry<KeyBind> KeyMappings;
     private static Dictionary<string, uint> LayerHeads;
-    private static SharedLinkedList<KeyBind> KeyBinds;
+    private static SharedLinkedList<ActionBind> KeyBinds;
     private static Queue<Action> KeyBindChanges;
     private static bool CursorLock = false;
-
-    private static Func<KeyCode, bool>[] PollTypes = {
-        null,
-        null,
-        Input.GetKey,
-        Input.GetKeyDown,
-        Input.GetKeyUp,
-    };
+    private const int MaxActionBinds = 10000;
 
     public static void Initialize()
     {
-        KeyMappings = new ()
+        /*KeyMappings = new ()
         {
-            {"Jump", KeyCode.Space},
-            {"Remove Terrain", KeyCode.Mouse0},
             {"Place Terrain", KeyCode.Mouse1},
+            {"Remove Terrain", KeyCode.Mouse0},
             {"Place Liquid", KeyCode.LeftShift},
             {"Pickup Item", KeyCode.Mouse0},
             {"Pause", KeyCode.Escape},
             {"Quit", KeyCode.Return},
+            
             {"Select", KeyCode.Mouse0},
-
             {"Open Inventory", KeyCode.Tab},
             {"Craft", KeyCode.Return},
 
-
+            {"Jump", KeyCode.Space},
             {"Move Horizontal", KeyCode.Alpha3},
             {"Move Vertical", KeyCode.Alpha4},
             {"Mouse Horizontal", KeyCode.Alpha0},
@@ -52,20 +42,12 @@ public class InputPoller : UpdateTask
             {"Hotbar7", KeyCode.Alpha7},
             {"Hotbar8", KeyCode.Alpha8},
             {"Hotbar9", KeyCode.Alpha9},
-            
-        };
-
-        AxisMappings = new ()
-        {
-            {KeyCode.Alpha0, "Mouse Y"},
-            {KeyCode.Alpha1, "Mouse X"},
-            {KeyCode.Alpha2, "Mouse ScrollWheel"},
-            {KeyCode.Alpha3, "Horizontal"},
-            {KeyCode.Alpha4, "Vertical"},
-        };
-
+        };*/
+        KeyMappings = WorldStorageHandler.WORLD_OPTIONS.System.Input;
+        KeyMappings.Construct();
+        
         LayerHeads = new Dictionary<string, uint>();
-        KeyBinds = new SharedLinkedList<KeyBind>(10000); 
+        KeyBinds = new SharedLinkedList<ActionBind>(MaxActionBinds); 
         KeyBindChanges = new Queue<Action>();
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(new InputPoller{active = true});
     }
@@ -89,12 +71,12 @@ public class InputPoller : UpdateTask
         foreach(uint head in LayerHeads.Values){
             uint current = head;
             do{
-                KeyBind bind = KeyBinds.Value(current);
-                if(bind.pollType == (byte)BindPoll.ContextFence) break; //Context Fence/Barrier
-                if(bind.pollType == (byte)BindPoll.Axis){
-                    bind.action.Invoke(Input.GetAxis(AxisMappings[bind.key]));
-                } else if(PollTypes[bind.pollType](bind.key))
-                    bind.action(float.NaN);
+                ActionBind BoundAction = KeyBinds.Value(current);
+                if(BoundAction.BindIndex == -1) break; //Context Fence/Barrier
+
+                KeyBind KeyBind = KeyMappings.Retrieve(BoundAction.BindIndex);
+                if(KeyBind.IsTriggered(out float axis))
+                    BoundAction.action.Invoke(axis);
                 current = KeyBinds.Next(current);
             } while(current != head);
         }
@@ -106,20 +88,18 @@ public class InputPoller : UpdateTask
         KeyBindChanges.Enqueue(action);
     }
 
-    public static uint AddBinding(Binding binding){
-        if(!KeyMappings.ContainsKey(binding.Key))
+    public static uint AddBinding(string Binding, string Layer, Action<float> action){
+        if(!KeyMappings.Contains(Binding))
             return 0;
-        return AddKeyBind(new KeyBind{
-            key = KeyMappings[binding.Key],
-            pollType = binding.PollType,
-            action = binding.action
-        }, binding.Layer);
+        return AddKeyBind(new ActionBind{
+            BindIndex = KeyMappings.RetrieveIndex(Binding),
+            action = action
+        }, Layer);
     }
 
     public static uint AddContextFence(string Layer){
-        return AddKeyBind(new KeyBind{
-            key = KeyCode.None,
-            pollType = (byte)BindPoll.ContextFence,
+        return AddKeyBind(new ActionBind{
+            BindIndex = -1,
             action = null,
         }, Layer);
     }
@@ -153,7 +133,7 @@ public class InputPoller : UpdateTask
         RemoveKeyBind(current, layer);
     }
 
-    private static uint AddKeyBind(KeyBind keyBind, string layer){
+    private static uint AddKeyBind(ActionBind keyBind, string layer){
         if(!LayerHeads.ContainsKey(layer))
             LayerHeads.Add(layer, KeyBinds.Enqueue(keyBind));
         else 
@@ -161,33 +141,71 @@ public class InputPoller : UpdateTask
         return LayerHeads[layer];
     }
 
-    public struct Binding{
-        public string Key;
-        public string Layer;
-        public byte PollType;
-        public Action<float> action;
-        public Binding(string key, string layer, BindPoll pollType, Action<float> action){
-            Key = key;
-            Layer = layer;
-            PollType = (byte)pollType;
-            this.action = action;
+    [Serializable]
+    public struct KeyBind{
+        public List<Binding> Bindings;
+        private static readonly Func<KeyCode, bool>[] PollTypes = {
+            null,
+            Input.GetKey, 
+            Input.GetKey,
+            Input.GetKeyDown,
+            Input.GetKeyUp,
+        };
+        private static readonly Dictionary<KeyCode, string> AxisMappings = new Dictionary<KeyCode, string>{
+            {KeyCode.Alpha0, "Mouse X"},
+            {KeyCode.Alpha1, "Mouse Y"},
+            {KeyCode.Alpha2, "Mouse ScrollWheel"},
+            {KeyCode.Alpha3, "Horizontal"},
+            {KeyCode.Alpha4, "Vertical"},
+        };
+        [Serializable]
+        public struct Binding
+        {
+            public KeyCode Key;
+            public BindPoll PollType;
+            public bool IsAlias; 
         }
+
+        public enum BindPoll{
+            Axis = 0,
+            Exclude = 1,
+            Hold = 2,
+            Down = 3,
+            Up = 4,
+        }
+        public enum BindCond{
+            And = 0,
+            Or = 1,
+            Exclude = 2,
+        }
+        public readonly bool IsTriggered(out float axis){
+            axis = 0; bool Pressed = false;
+            if(Bindings == null || Bindings.Count == 0) return false;
+            for(int i = 0; i < Bindings.Count; i++){
+                Binding bind = Bindings[i];
+                if(bind.PollType == BindPoll.Exclude) {
+                    Pressed |= !PollTypes[(int)bind.PollType](bind.Key);
+                } else if(bind.PollType == BindPoll.Axis){
+                    axis = Input.GetAxis(AxisMappings[bind.Key]);
+                    Pressed = true;
+                } else {
+                    Pressed |= PollTypes[(int)bind.PollType](bind.Key);
+                }
+                if(!bind.IsAlias && !Pressed) return false;
+                if(!bind.IsAlias) Pressed = false;
+            }
+            return true;
+        }
+
     }
 
-    public enum BindPoll{
-        ContextFence = 0,
-        Axis = 1,
-        Hold = 2,
-        Down = 3,
-        Up = 4,
-    }
-
-    private struct KeyBind
+    private struct ActionBind
     {
-        public KeyCode key;
-        public byte pollType; // 0 = Hold, 1 = Down, 2 = Up, 3 = Context Fence/Barrier
+        public int BindIndex;
         public Action<float> action;
     }
+
+    
     
 
     public struct SharedLinkedList<T>{

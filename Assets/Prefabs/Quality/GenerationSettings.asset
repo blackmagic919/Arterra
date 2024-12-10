@@ -18,6 +18,6 @@ MonoBehaviour:
   MapExtendDist: 26
   MaxStructureDepth: 2
   MaxGeoShaderDepth: 0
-  lerpScale: 2
+  lerpScale: 1
   IsoLevel: 0.5
   mapChunkSize: 64

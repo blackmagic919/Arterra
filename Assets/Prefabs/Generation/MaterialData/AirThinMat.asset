@@ -16,40 +16,20 @@ MonoBehaviour:
     value: {fileID: 21300000, guid: 68036d40e53ca46ccb8662552a0ea939, type: 3}
     isDirty: 0
   terrainData:
-    color:
-      x: 0.275
-      y: 0.486
-      z: 0.992
-      w: 1
+    color: {x: 0.275, y: 0.486, z: 0.992, w: 1}
     textureScale: 5
     baseColorStrength: 0.2
     GeoShaderIndex: -1
   AtmosphereScatter:
-    ScatterCoeffs:
-      x: 0.0003125
-      y: 0.000625
-      z: 0.00125
-    GroundExtinction:
-      x: 0.0025
-      y: 0.005
-      z: 0.01
+    ScatterCoeffs: {x: 0.000625, y: 0.00125, z: 0.0025}
+    GroundExtinction: {x: 0.005, y: 0.01, z: 0.02}
   liquidData:
-    shallowCol:
-      x: 0.19
-      y: 0.9
-      z: 1
-    deepCol:
-      x: 0
-      y: 0.36
-      z: 1
+    shallowCol: {x: 0.19, y: 0.9, z: 1}
+    deepCol: {x: 0, y: 0.36, z: 1}
     colFalloff: 0.05
     depthOpacity: 0.025
     smoothness: 0.25
     waveBlend: 0
     waveStrength: 0
-    waveScale:
-      x: 0
-      y: 0
-    waveSpeed:
-      x: 0
-      y: 0
+    waveScale: {x: 0, y: 0}
+    waveSpeed: {x: 0, y: 0}

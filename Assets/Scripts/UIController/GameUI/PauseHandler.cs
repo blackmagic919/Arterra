@@ -13,7 +13,7 @@ public class PauseHandler
         InputPoller.SetCursorLock(true);
         Fences = new Queue<(string, uint)>();
 
-        InputPoller.AddBinding(new InputPoller.Binding("Pause", "Master", InputPoller.BindPoll.Down, (_) => {Activate();}));
+        InputPoller.AddBinding("Pause", "Master", (_) => {Activate();});
         
     }
 
@@ -26,8 +26,8 @@ public class PauseHandler
             Fences.Enqueue(("UI", InputPoller.AddContextFence("UI")));
             Fences.Enqueue(("Control", InputPoller.AddContextFence("Control")));
             Fences.Enqueue(("Master", InputPoller.AddContextFence("Master")));
-            InputPoller.AddBinding(new InputPoller.Binding("Pause", "Master", InputPoller.BindPoll.Down, (_) => {Deactivate();}));
-            InputPoller.AddBinding(new InputPoller.Binding("Quit", "Master", InputPoller.BindPoll.Down, (_) => {Exit();}));
+            InputPoller.AddBinding("Pause", "Master", (_) => {Deactivate();});
+            InputPoller.AddBinding("Quit", "Master", (_) => {Exit();});
         });
     }
 
