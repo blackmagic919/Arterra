@@ -5,6 +5,7 @@ using static OctreeTerrain;
 
 public class DayNightContoller : UpdateTask
 {
+    private static Settings settings =>  WorldStorageHandler.WORLD_OPTIONS.GamePlay.DayNightCycle;
     [Serializable]
     public struct Settings{
         public float timeMultiplier;
@@ -18,11 +19,8 @@ public class DayNightContoller : UpdateTask
         [UISetting(Ignore = true)]
         public Option<AnimationCurve> moonIntensityCurve;
     }
-    private static Settings s;
 
     public static DateTime currentTime;
-    private static TimeSpan sunriseTime;
-    private static TimeSpan sunsetTime;
     private static Light Sun;
     private static Light Moon;
 
@@ -34,21 +32,14 @@ public class DayNightContoller : UpdateTask
         var constraintSource = new ConstraintSource { sourceTransform = OctreeTerrain.viewer, weight = 1 };
         Sun.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
         Moon.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
-        s = WorldStorageHandler.WORLD_OPTIONS.GamePlay.DayNightCycle;
-
-        sunriseTime = TimeSpan.FromHours(s.sunriseHour);
-        sunsetTime = TimeSpan.FromHours(s.sunsetHour);
-        TimeOfDay.Initialize(sunriseTime, sunsetTime);
         MainLoopUpdateTasks.Enqueue(new DayNightContoller{active = true});
     }
 
     // Update is called once per frame
     public override void Update(MonoBehaviour mono)
     {
-        currentTime = currentTime.AddSeconds(Time.deltaTime * s.timeMultiplier);
-        TimeOfDay.UpdateProgress(currentTime.TimeOfDay);
-
-        float progress = TimeOfDay.GetProgress();
+        currentTime = currentTime.AddSeconds(Time.deltaTime * settings.timeMultiplier);
+        float progress = GetDayProgress(currentTime.TimeOfDay);
 
         float rotation = Mathf.Lerp(0, 360, progress);
         Sun.transform.rotation = Quaternion.AngleAxis(rotation, Vector3.right);
@@ -58,9 +49,39 @@ public class DayNightContoller : UpdateTask
 
     private void UpdateLightSettings(float progress)
     {
-        Sun.intensity = Mathf.Lerp(0, s.maxSunIntensity, s.sunIntensityCurve.value.Evaluate(progress));
-        Moon.intensity = Mathf.Lerp(0, s.maxMoonIntensity, s.moonIntensityCurve.value.Evaluate(progress));
+        Sun.intensity = Mathf.Lerp(0, settings.maxSunIntensity, settings.sunIntensityCurve.value.Evaluate(progress));
+        Moon.intensity = Mathf.Lerp(0, settings.maxMoonIntensity, settings.moonIntensityCurve.value.Evaluate(progress));
     }
 
+    public static float GetDayProgress(TimeSpan TimeOfDay)
+    {
+        //These settings are volatile
+        TimeSpan sunriseTime = TimeSpan.FromHours(settings.sunriseHour);
+        TimeSpan sunsetTime = TimeSpan.FromHours(settings.sunsetHour);
+        if (TimeOfDay > sunriseTime && TimeOfDay < sunsetTime)
+        {
+            TimeSpan dayDuration = CalculateTimeDiff(sunriseTime, sunsetTime);
+            TimeSpan timeSinceSunrise = CalculateTimeDiff(sunriseTime, TimeOfDay);
+
+            return Mathf.Lerp(0, 0.5f, (float)(timeSinceSunrise.TotalSeconds / dayDuration.TotalSeconds));
+        }
+        else
+        {
+            TimeSpan nightDuration = CalculateTimeDiff(sunsetTime, sunriseTime);
+            TimeSpan timeSinceSunset = CalculateTimeDiff(sunsetTime, TimeOfDay);
+
+            return Mathf.Lerp(0.5f, 1, (float)(timeSinceSunset.TotalSeconds / nightDuration.TotalSeconds));
+        }
+    }
+
+    public static TimeSpan CalculateTimeDiff(TimeSpan from, TimeSpan to)
+    {
+        TimeSpan diff = to - from;
+
+        if (diff.TotalSeconds < 0)
+            diff += TimeSpan.FromHours(24);
+
+        return diff;
+    }
     
 }

@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class PauseHandler
 {
@@ -27,11 +29,26 @@ public class PauseHandler
             Fences.Enqueue(("Control", InputPoller.AddContextFence("Control")));
             Fences.Enqueue(("Master", InputPoller.AddContextFence("Master")));
             InputPoller.AddBinding("Pause", "Master", (_) => {Deactivate();});
-            InputPoller.AddBinding("Quit", "Master", (_) => {Exit();});
         });
+
+        Option<WorldOptions.GamePlaySettings> settings = WorldStorageHandler.WORLD_OPTIONS._GamePlay;
+        PaginatedUIEditor.CreateProceduralPagination(settings.value, PauseMenu, (ChildUpdate cb) => { 
+            settings.Clone(); object obj = settings.value;
+            cb.Invoke(ref obj); 
+            settings.value = (WorldOptions.GamePlaySettings)obj;
+            WorldStorageHandler.WORLD_OPTIONS._GamePlay = settings;
+            WorldStorageHandler.SaveOptionsSync();
+        }, () => {Exit();});
+
+        GameObject ExitButton = PauseMenu.transform.GetChild(0).Find("TopPanel").Find("Return").GetChild(0).gameObject;
+        TextMeshProUGUI ExitText = ExitButton.GetComponent<TextMeshProUGUI>();
+        ExitText.text = "Quit";
+        ExitText.color = Color.red;
+
     }
 
     public static void Deactivate(){
+        PaginatedUIEditor.ReleaseAllChildren(PauseMenu);
         PauseMenu.SetActive(false);
         InputPoller.SetCursorLock(true);
         InputPoller.AddKeyBindChange(() => {

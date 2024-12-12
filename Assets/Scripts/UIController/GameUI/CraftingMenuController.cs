@@ -10,8 +10,8 @@ using static CraftingMenuSettings;
 
 public class CraftingMenuController : UpdateTask
 {
-    private static KTree Recipe;
     private static CraftingMenuSettings settings;
+    private static KTree Recipe;
     private static GameObject craftingMenu;
     private static MapData[] craftingData;
     private static Display Rendering;

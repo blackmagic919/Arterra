@@ -5,9 +5,9 @@ using System.Reflection;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using static ProceduralUIEditor;
+using static SegmentedUIEditor;
 
-public class AbstractUISerializer : UIConverter
+public class SegmentAbstractSerializer : IConverter
 {
     public bool CanConvert(Type obj)
     {
@@ -38,7 +38,7 @@ public class AbstractUISerializer : UIConverter
         }
 
         bool isTypeOpen = false; bool isFieldOpen = false;
-        Button buttonField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Drop_Arrow"), parent.transform.GetChild(0)).GetComponent<Button>(); 
+        Button buttonField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Drop_Arrow"), parent.transform.GetChild(0)).GetComponent<Button>(); 
         buttonField.onClick.AddListener(() => {
             isFieldOpen = !isFieldOpen;
             if(isTypeOpen) {
@@ -51,7 +51,7 @@ public class AbstractUISerializer : UIConverter
             ForceLayoutRefresh(parent.transform);
         });
 
-        GameObject typeUI = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/ExtendedType"), parent.transform.GetChild(0));
+        GameObject typeUI = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/ExtendedType"), parent.transform.GetChild(0));
         Button tButton = typeUI.GetComponent<Button>();
         TextMeshProUGUI tText = typeUI.GetComponentInChildren<TextMeshProUGUI>();
         tText.text = cValue.GetType().Name;  
@@ -75,12 +75,12 @@ public class AbstractUISerializer : UIConverter
         Type[] ConcretTypes = assemblies.SelectMany(x => x.GetTypes()).Where(x => field.FieldType.IsAssignableFrom(x) && !x.IsAbstract).ToArray();
 
         foreach(Type cType in ConcretTypes){
-            GameObject newOption = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Option"), parent.transform);
+            GameObject newOption = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Option"), parent.transform);
             TextMeshProUGUI typeText = newOption.GetComponent<TextMeshProUGUI>();
             typeText.text = cType.Name;
             typeText.color = Color.green;
 
-            GameObject select = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/ListAdd"), newOption.transform);
+            GameObject select = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/ListAdd"), newOption.transform);
             Button selectButton = select.GetComponent<Button>();
             selectButton.onClick.AddListener(() => {
                 object newObject = CreateInstance(cType);

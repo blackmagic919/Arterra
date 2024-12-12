@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
@@ -20,19 +21,20 @@ public class CraftingMenuSettings : ScriptableObject{
         public Option<List<string>> Names;
         public Option<List<CPUDensityManager.MapData> > entry;
         public Result result;
-
+        
+        [JsonIgnore]
+        public readonly int ResultMat{
+            get {
+                Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+                return reg.RetrieveIndex(Names.value[(int)result.Index]);
+            }
+        }
 
         public readonly CPUDensityManager.MapData EntrySerial(int Index){
             Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
             CPUDensityManager.MapData p = entry.value[Index];
             p.material = reg.RetrieveIndex(Names.value[p.material]);
             return p;
-        }
-        public readonly int ResultMat{
-            get {
-                Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
-                return reg.RetrieveIndex(Names.value[(int)result.Index]);
-            }
         }
         public readonly int EntryMat(int index){
             if(entry.value[index].isDirty) return -1;
@@ -44,24 +46,29 @@ public class CraftingMenuSettings : ScriptableObject{
         [Serializable]
         public struct Result{
             [HideInInspector] public uint data;
+            [JsonIgnore]
             public bool IsItem{
                 readonly get => (data & 0x80000000) != 0;
                 set => data = value ? data | 0x80000000 : data & 0x7FFFFFFF;
             }
+            [JsonIgnore]
             public bool EntryType{
                 readonly get => (data & 0x40000000) != 0;
                 set => data = value ? data | 0x40000000 : data & 0xBFFFFFFF;
             }
+            [JsonIgnore]
             public uint Index{
                 readonly get => (data >> 15) & 0x7FFF;
                 set => data = (data & 0xC0007FFF) | (value << 15);
             }
+            [JsonIgnore]
             public float Multiplier{
                 readonly get => (data & 0x7FFF) / 0xFF;
                 set => data = (data & 0xFFFF8000) | (((uint)math.round(value * 0xFF)) & 0x7FFF);
             }
-
+            [JsonIgnore]
             public bool IsSolid => EntryType;
+            [JsonIgnore]            
             public bool IsUnstackable => EntryType;
         }
     }

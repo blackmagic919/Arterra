@@ -202,6 +202,278 @@ MonoBehaviour:
           acceleration: 50
           groundStickDist: 0.05
         isDirty: 0
+      Input:
+        value:
+        - Name: Jump
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 32
+                  PollType: 3
+                  IsAlias: 0
+                - Key: 32
+                  PollType: 3
+                  IsAlias: 0
+                - Key: 32
+                  PollType: 3
+                  IsAlias: 0
+                - Key: 32
+                  PollType: 3
+                  IsAlias: 0
+                - Key: 32
+                  PollType: 3
+                  IsAlias: 0
+                - Key: 32
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Move Horizontal
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 51
+                  PollType: 0
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Move Vertical
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 52
+                  PollType: 0
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Look Horizontal
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 49
+                  PollType: 0
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Look Vertical
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 48
+                  PollType: 0
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Place Terrain
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 324
+                  PollType: 2
+                  IsAlias: 0
+                - Key: 304
+                  PollType: 1
+                  IsAlias: 0
+                - Key: 303
+                  PollType: 1
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Remove Terrain
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 323
+                  PollType: 2
+                  IsAlias: 0
+                - Key: 304
+                  PollType: 1
+                  IsAlias: 0
+                - Key: 303
+                  PollType: 1
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Pickup Item
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 323
+                  PollType: 2
+                  IsAlias: 0
+                - Key: 304
+                  PollType: 2
+                  IsAlias: 0
+                - Key: 303
+                  PollType: 2
+                  IsAlias: 1
+                isDirty: 0
+            isDirty: 0
+        - Name: Remove Liquid
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 323
+                  PollType: 2
+                  IsAlias: 0
+                - Key: 304
+                  PollType: 2
+                  IsAlias: 0
+                - Key: 303
+                  PollType: 2
+                  IsAlias: 1
+                isDirty: 0
+            isDirty: 0
+        - Name: Open Inventory
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 9
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Select
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 323
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Deselect
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 323
+                  PollType: 4
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Craft
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 13
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Pause
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 27
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Hotbar1
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 49
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Hotbar2
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 50
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Hotbar3
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 51
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Hotbar4
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 52
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Hotbar5
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 53
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Hotbar6
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 54
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Hotbar7
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 55
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Hotbar8
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 56
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        - Name: Hotbar9
+          _value:
+            value:
+              bindings:
+                value:
+                - Key: 57
+                  PollType: 3
+                  IsAlias: 0
+                isDirty: 0
+            isDirty: 0
+        isDirty: 0
       Crafting:
         value: {fileID: 11400000, guid: b6eb14945e6ce4e35a36d2502ba1cf4f, type: 2}
         isDirty: 0
@@ -369,208 +641,4 @@ MonoBehaviour:
       ReadBack:
         value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
         isDirty: 0
-      Input:
-        Reg:
-          value:
-          - Name: Jump
-            _value:
-              value:
-                Bindings:
-                - Key: 32
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Move Horizontal
-            _value:
-              value:
-                Bindings:
-                - Key: 51
-                  PollType: 1
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Move Vertical
-            _value:
-              value:
-                Bindings:
-                - Key: 52
-                  PollType: 1
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Mouse Horizontal
-            _value:
-              value:
-                Bindings:
-                - Key: 48
-                  PollType: 1
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Mouse Vertical
-            _value:
-              value:
-                Bindings:
-                - Key: 49
-                  PollType: 1
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Place Terrain
-            _value:
-              value:
-                Bindings:
-                - Key: 324
-                  PollType: 2
-                  IsAlias: 0
-                - Key: 304
-                  PollType: 0
-                  IsAlias: 0
-                - Key: 303
-                  PollType: 0
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Remove Terrain
-            _value:
-              value:
-                Bindings:
-                - Key: 323
-                  PollType: 2
-                  IsAlias: 0
-                - Key: 304
-                  PollType: 0
-                  IsAlias: 0
-                - Key: 303
-                  PollType: 0
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Pickup Item
-            _value:
-              value:
-                Bindings:
-                - Key: 324
-                  PollType: 2
-                  IsAlias: 0
-                - Key: 304
-                  PollType: 2
-                  IsAlias: 1
-                - Key: 303
-                  PollType: 2
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Remove Liquid
-            _value:
-              value:
-                Bindings:
-                - Key: 323
-                  PollType: 2
-                  IsAlias: 0
-                - Key: 304
-                  PollType: 2
-                  IsAlias: 1
-                - Key: 303
-                  PollType: 2
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Open Inventory
-            _value:
-              value:
-                Bindings:
-                - Key: 9
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Select
-            _value:
-              value:
-                Bindings:
-                - Key: 323
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Craft
-            _value:
-              value:
-                Bindings:
-                - Key: 13
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Pause
-            _value:
-              value:
-                Bindings:
-                - Key: 27
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Hotbar1
-            _value:
-              value:
-                Bindings:
-                - Key: 49
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Hotbar2
-            _value:
-              value:
-                Bindings:
-                - Key: 50
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Hotbar3
-            _value:
-              value:
-                Bindings:
-                - Key: 51
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Hotbar4
-            _value:
-              value:
-                Bindings:
-                - Key: 52
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Hotbar5
-            _value:
-              value:
-                Bindings:
-                - Key: 53
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Hotbar6
-            _value:
-              value:
-                Bindings:
-                - Key: 54
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Hotbar7
-            _value:
-              value:
-                Bindings:
-                - Key: 55
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Hotbar8
-            _value:
-              value:
-                Bindings:
-                - Key: 56
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          - Name: Hotbar9
-            _value:
-              value:
-                Bindings:
-                - Key: 57
-                  PollType: 3
-                  IsAlias: 0
-              isDirty: 0
-          isDirty: 0
     isDirty: 0

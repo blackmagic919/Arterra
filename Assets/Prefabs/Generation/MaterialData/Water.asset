@@ -12,45 +12,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 592bdaa92f6a140bca28933503af75b9, type: 3}
   m_Name: Water
   m_EditorClassIdentifier: 
-  Name: Water
   texture:
     value: {fileID: 21300000, guid: 68036d40e53ca46ccb8662552a0ea939, type: 3}
     isDirty: 0
   terrainData:
-    color:
-      x: 0.259
-      y: 0.294
-      z: 1
-      w: 1
+    color: {x: 0.259, y: 0.294, z: 1, w: 1}
     textureScale: 5
     baseColorStrength: 0.1
     GeoShaderIndex: -1
   AtmosphereScatter:
-    ScatterCoeffs:
-      x: 0
-      y: 0
-      z: 0.0005
-    GroundExtinction:
-      x: 0.005
-      y: 0.005
-      z: 0.005
+    ScatterCoeffs: {x: 0, y: 0, z: 0.0005}
+    GroundExtinction: {x: 0.005, y: 0.005, z: 0.005}
   liquidData:
-    shallowCol:
-      x: 0.19
-      y: 0.9
-      z: 1
-    deepCol:
-      x: 0
-      y: 0.36
-      z: 1
+    shallowCol: {x: 0.19, y: 0.9, z: 1}
+    deepCol: {x: 0, y: 0.36, z: 1}
     colFalloff: 0.05
-    depthOpacity: 0.01
+    depthOpacity: 0.025
     smoothness: 0.25
     waveBlend: 0.5
-    waveStrength: 0.75
-    waveScale:
-      x: 0.2
-      y: 0.045
-    waveSpeed:
-      x: 2
-      y: 5
+    waveStrength: 0.5
+    waveScale: {x: 0.2, y: 0.045}
+    waveSpeed: {x: 2, y: 5}

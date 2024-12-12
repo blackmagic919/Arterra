@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using static WorldStorageHandler;
 using UnityEngine.UI;
 using TMPro;
-using static ProceduralUIEditor;
+using static SegmentedUIEditor;
 
 public class OptionsHandler : MonoBehaviour
 {

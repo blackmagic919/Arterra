@@ -12,7 +12,7 @@ public class TerraformSettings : ICloneable{
     public int terraformRadius = 5;
     public float terraformSpeed = 4;
     public float maxTerraformDistance = 60;
-    public int PickupRadius;
+    public int PickupRadius = 2;
 
     public float CursorSize = 2;
     public Color CursorColor;
@@ -23,13 +23,17 @@ public class TerraformSettings : ICloneable{
             terraformRadius = this.terraformRadius,
             terraformSpeed = this.terraformSpeed,
             maxTerraformDistance = this.maxTerraformDistance,
+            PickupRadius = this.PickupRadius,
+            CursorSize = this.CursorSize,
+            CursorColor = this.CursorColor,
+            ShowCursor = this.ShowCursor
         };
     }
 }
 
 public class TerraformController : UpdateTask
 {
-    private TerraformSettings settings;
+    private TerraformSettings settings => WorldStorageHandler.WORLD_OPTIONS.GamePlay.Terraforming.value;
     private bool hasHit;
     float3 hitPoint;
 
@@ -44,7 +48,6 @@ public class TerraformController : UpdateTask
     // Start is called before the first frame update
     public TerraformController()
     {
-        settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.Terraforming.value;
         cam = Camera.main.transform;
         active = true;
 

@@ -19,24 +19,25 @@ public sealed class UISetting : Attribute{
 public delegate void ChildUpdate(ref object obj);
 public delegate void ParentUpdate(ChildUpdate cb);
 
-public interface UIConverter{
-    public abstract bool CanConvert(Type obj);
-    public abstract void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate);
-    public abstract void Deserialize(ref object destination, ref object source);
-}
 
-public static class ProceduralUIEditor
+
+public static class SegmentedUIEditor
 {
-    public static List<UIConverter> UIConverterSettings;
+    public interface IConverter{
+        public abstract bool CanConvert(Type obj);
+        public abstract void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate);
+        public abstract void Deserialize(ref object destination, ref object source);
+    }
+    public static List<IConverter> UIConverterSettings;
 
     public static void Initialize(){
-        UIConverterSettings = new List<UIConverter>
+        UIConverterSettings = new List<IConverter>
         {
-            new ListUISerializer(),
-            new AbstractUISerializer()
+            new SegmentAbstractSerializer(),
+            new SegmentListSerializer()
         };
     }
-    public static UIConverter GetCustomSerializerSetting(Type type){
+    public static IConverter GetCustomSerializerSetting(Type type){
         if(UIConverterSettings == null) return null;
         for(int i = 0; i < UIConverterSettings.Count; i++){
             if(UIConverterSettings[i].CanConvert(type)) 
@@ -49,6 +50,33 @@ public static class ProceduralUIEditor
             if(child.gameObject.name.Contains("Option")) GameObject.Destroy(child.gameObject); 
         }
         content.GetComponent<VerticalLayoutGroup>().padding.left = 0;
+    }
+
+    //To Do: Flatten Options into a list and store index if it isn't dirty to the template list
+    public static void SupplementTree(ref object dest, ref object src){
+        System.Reflection.FieldInfo[] fields = src.GetType().GetFields();
+        foreach(FieldInfo field in fields){
+            if(field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Option<>)){
+                if(((IOption)field.GetValue(dest)).IsDirty){
+                    FieldInfo nField = field.FieldType.GetField("value");
+                    object oDest = field.GetValue(dest), oSrc  = field.GetValue(src);
+                    object nDest = nField.GetValue(oDest), nSrc = nField.GetValue(oSrc);
+                    
+                    IConverter CustomConvertor = GetCustomSerializerSetting(nField.FieldType);
+                    if(CustomConvertor != null) CustomConvertor.Deserialize(ref nDest, ref nSrc);
+                    else SupplementTree(ref nDest, ref nSrc);
+
+                    nField.SetValue(oDest, nDest); field.SetValue(dest, oDest);
+                } else field.SetValue(dest, field.GetValue(src)); //This is the only line that actually fills in anything
+            }
+            else if (field.FieldType.IsPrimitive || field.FieldType == typeof(string)) continue;
+            else if (field.FieldType.IsEnum) continue;
+            else if (field.FieldType.IsValueType) {
+                object nDest = field.GetValue(dest), nSrc = field.GetValue(src);
+                SupplementTree(ref nDest, ref nSrc);
+                field.SetValue(dest, nDest);
+            } else throw new Exception("Settings objects must contain either only value types or options");
+        }
     }
 
 
@@ -96,11 +124,11 @@ public static class ProceduralUIEditor
                 UISetting UITag = Attribute.GetCustomAttribute(fields[i], typeof(UISetting)) as UISetting;
                 if(UITag.Ignore) continue;
                 if(UITag.Warning != null) {
-                    GameObject message = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Option_Warning"), content.transform);
+                    GameObject message = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Option_Warning"), content.transform);
                     message.GetComponent<TextMeshProUGUI>().text = UITag.Warning;
                 }
                 if(UITag.Message != null) {
-                    GameObject message = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Option_Message"), content.transform);
+                    GameObject message = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Option_Message"), content.transform);
                     message.GetComponent<TextMeshProUGUI>().text = UITag.Message;
                 }
                 if(UITag.Alias != null){
@@ -110,7 +138,7 @@ public static class ProceduralUIEditor
             
             System.Reflection.FieldInfo field = fields[i]; 
             object value = field.GetValue(setting); object cObject = setting; ParentUpdate nUpdate = OnUpdate;
-            GameObject newOption = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Option"), content.transform);
+            GameObject newOption = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Option"), content.transform);
             RectTransform transform = newOption.GetComponent<RectTransform>();
             newOption.GetComponent<TextMeshProUGUI>().text = name;
 
@@ -150,7 +178,7 @@ public static class ProceduralUIEditor
     //Parent -> UI Parent of the field
     //OnUpdate -> Callback to parent to obtain new parent path when editing
     public static void CreateInputField(FieldInfo field, GameObject parent, object value, ParentUpdate OnUpdate = null){
-        UIConverter CustomConverter = GetCustomSerializerSetting(field.FieldType);
+        IConverter CustomConverter = GetCustomSerializerSetting(field.FieldType);
         if(CustomConverter != null){
             CustomConverter.Serialize(parent, field, value, OnUpdate);
             return;
@@ -169,27 +197,36 @@ public static class ProceduralUIEditor
 
         switch (field.FieldType){
             case Type t when t == typeof(int):
-                TMP_InputField inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
+                TMP_InputField inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
                 inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, int.Parse(value));}); });
                 break;
             case Type t when t == typeof(uint):
-                inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
+                inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
                 inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, uint.Parse(value));}); });
                 break;
             case Type t when t == typeof(float):
-                inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
+                inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
                 inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, float.Parse(value));}); });
                 break;
             case Type t when t == typeof(string):
-                inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value == null ? "New Entry" : value.ToString();
+                inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value == null ? "New Entry" : value.ToString();
                 inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, value);}); });
                 break;
             case Type t when t == typeof(bool):
-                Toggle toggleField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Bool_Input"), parent.transform).GetComponent<Toggle>(); toggleField.isOn = (bool)value;
+                Toggle toggleField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Bool_Input"), parent.transform).GetComponent<Toggle>(); toggleField.isOn = (bool)value;
                 toggleField.onValueChanged.AddListener((bool value) => { OnUpdate((ref object parent) => {field.SetValue(parent, value);}); });
                 break;
+            case Type t when t.IsEnum:
+                TMP_Dropdown dropdownField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Dropdown_Input"), parent.transform).GetComponent<TMP_Dropdown>();
+                dropdownField.ClearOptions(); 
+                dropdownField.AddOptions(Enum.GetNames(t).ToList());
+
+                Array enumValues = Enum.GetValues(t);
+                dropdownField.value = Array.IndexOf(enumValues, value);
+                dropdownField.onValueChanged.AddListener((int value) => { OnUpdate((ref object parent) => { field.SetValue(parent, enumValues.GetValue(value)); }); });
+                break;
             default:
-                Button buttonField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Drop_Arrow"), parent.transform.GetChild(0)).GetComponent<Button>(); bool isOpen = false;
+                Button buttonField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Drop_Arrow"), parent.transform.GetChild(0)).GetComponent<Button>(); bool isOpen = false;
                 buttonField.onClick.AddListener(() => {
                     isOpen = !isOpen;
                     if(isOpen) CreateOptionDisplay(cValue, parent, ChildRequest);
@@ -197,32 +234,6 @@ public static class ProceduralUIEditor
                     ForceLayoutRefresh(parent.transform);
                 });
                 break;
-        }
-    }
-
-    //To Do: Flatten Options into a list and store index if it isn't dirty to the template list
-    public static void SupplementTree(ref object dest, ref object src){
-        System.Reflection.FieldInfo[] fields = src.GetType().GetFields();
-        foreach(FieldInfo field in fields){
-            if(field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Option<>)){
-                if(((IOption)field.GetValue(dest)).IsDirty){
-                    FieldInfo nField = field.FieldType.GetField("value");
-                    object oDest = field.GetValue(dest), oSrc  = field.GetValue(src);
-                    object nDest = nField.GetValue(oDest), nSrc = nField.GetValue(oSrc);
-                    
-                    UIConverter CustomConvertor = GetCustomSerializerSetting(nField.FieldType);
-                    if(CustomConvertor != null) CustomConvertor.Deserialize(ref nDest, ref nSrc);
-                    else SupplementTree(ref nDest, ref nSrc);
-
-                    nField.SetValue(oDest, nDest); field.SetValue(dest, oDest);
-                } else field.SetValue(dest, field.GetValue(src)); //This is the only line that actually fills in anything
-            }
-            else if (field.FieldType.IsPrimitive || field.FieldType == typeof(string)) continue;
-            else if (field.FieldType.IsValueType) {
-                object nDest = field.GetValue(dest), nSrc = field.GetValue(src);
-                SupplementTree(ref nDest, ref nSrc);
-                field.SetValue(dest, nDest);
-            } else throw new Exception("Settings objects must contain either only value types or options");
         }
     }
 }

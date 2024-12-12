@@ -20,7 +20,7 @@ public class PlayerHandler : UpdateTask
 
         info = LoadPlayerData();
         player.transform.SetPositionAndRotation(info.position, info.rotation);
-        PlayerController.Initialize(WorldStorageHandler.WORLD_OPTIONS.GamePlay.Movement.value);
+        PlayerController.Initialize();
         
         InventoryController.Primary = info.PrimaryI;
         InventoryController.Secondary = info.SecondaryI;

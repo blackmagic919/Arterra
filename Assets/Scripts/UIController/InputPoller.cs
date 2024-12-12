@@ -1,53 +1,125 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Newtonsoft.Json;
+using NUnit.Framework;
 using UnityEngine;
 
 public class InputPoller : UpdateTask
 {
-    private static Registry<KeyBind> KeyMappings;
-    private static Dictionary<string, uint> LayerHeads;
-    private static SharedLinkedList<ActionBind> KeyBinds;
+    private class KeyBinder{
+        public Dictionary<string, int> KeyIndex;
+        public List<Registry<KeyBind>.Pair> KeyMappings;
+        public SharedLinkedList<ActionBind> KeyBinds;
+        public Dictionary<string, uint> LayerHeads;
+        public List<Registry<KeyBind>.Pair> RealMappings => WorldStorageHandler.WORLD_OPTIONS.GamePlay.Input.value;
+        public List<Registry<KeyBind>.Pair> DefaultMappings => WorldStorageHandler.OPTIONS_TEMPLATE.GamePlay.Input.value;
+
+        public KeyBinder(){
+            KeyMappings = RealMappings;
+            KeyIndex = new Dictionary<string, int>();
+            KeyBinds = new SharedLinkedList<ActionBind>(MaxActionBinds);
+            LayerHeads = new Dictionary<string, uint>();
+            ReconstructMappings();
+        }
+        private void AssertMapping(string name){
+            if(KeyIndex.ContainsKey(name)) return; //We are missing the binding
+            Registry<KeyBind>.Pair binding = DefaultMappings.FirstOrDefault((Registry<KeyBind>.Pair pair) => pair.Name == name);
+            if(binding.Equals(default)) throw new Exception("Cannot Find Keybind Name"); //There is no such binding
+            KeyMappings.Add(DefaultMappings[KeyIndex[name]]);
+            KeyIndex.Add(name, KeyMappings.Count);
+        }
+        
+        //We need to check if the mappings have been changed
+        //Because mappings can change at any time during runtime
+        private void ReconstructMappings(){
+            List<Registry<KeyBind>.Pair> oKeyMappings = KeyMappings;
+            KeyMappings = RealMappings; KeyIndex.Clear();
+            for(int i = 0; i < KeyMappings.Count; i++){
+                KeyIndex.Add(KeyMappings[i].Name, i);
+            } 
+
+            //Rebind all currently bound actions
+            foreach(uint head in LayerHeads.Values){
+                uint current = head;
+                do{
+                    ref ActionBind BoundAction = ref KeyBinds.RefVal(current);
+                    current = KeyBinds.Next(current);
+                    if(BoundAction.BindIndex == -1) continue; //Context Fence/Barrier
+                    AssertMapping(oKeyMappings[BoundAction.BindIndex].Name);
+                    BoundAction.BindIndex = KeyIndex[oKeyMappings[BoundAction.BindIndex].Name];
+                } while(current != head);
+            } 
+        }
+
+        public int RetrieveIndex(string name){
+            if(!KeyMappings.Equals(RealMappings)) ReconstructMappings();
+            AssertMapping(name);
+            return KeyIndex[name];
+        }
+        public KeyBind Retrieve(string name){
+            if(!KeyMappings.Equals(RealMappings)) ReconstructMappings();
+            AssertMapping(name);
+            return KeyMappings[KeyIndex[name]].Value;
+        }
+        public KeyBind Retrieve(int index){
+            if(!KeyMappings.Equals(RealMappings)) {
+                string name = KeyMappings[index].Name;
+                ReconstructMappings();
+                index = KeyIndex[name];
+            }
+            return KeyMappings[index].Value;
+        }
+
+        public bool Contains(string name){
+            return KeyIndex.ContainsKey(name);
+        }
+        public bool Contains(int index){
+            return index >= 0 && index < KeyMappings.Count;
+        }
+    }
+
+    private static KeyBinder Binder;
+    private static SharedLinkedList<ActionBind> KeyBinds => Binder.KeyBinds;
+    private static Dictionary<string, uint> LayerHeads => Binder.LayerHeads;
     private static Queue<Action> KeyBindChanges;
     private static bool CursorLock = false;
     private const int MaxActionBinds = 10000;
 
+
+    /*KeyMappings = new ()
+    {
+        {"Place Terrain", KeyCode.Mouse1},
+        {"Remove Terrain", KeyCode.Mouse0},
+        {"Place Liquid", KeyCode.LeftShift},
+        {"Pickup Item", KeyCode.Mouse0},
+        {"Pause", KeyCode.Escape},
+        {"Quit", KeyCode.Return},
+        
+        {"Select", KeyCode.Mouse0},
+        {"Open Inventory", KeyCode.Tab},
+        {"Craft", KeyCode.Return},
+
+        {"Jump", KeyCode.Space},
+        {"Move Horizontal", KeyCode.Alpha3},
+        {"Move Vertical", KeyCode.Alpha4},
+        {"Mouse Horizontal", KeyCode.Alpha0},
+        {"Mouse Vertical", KeyCode.Alpha1},
+
+        {"Hotbar1", KeyCode.Alpha1},
+        {"Hotbar2", KeyCode.Alpha2},
+        {"Hotbar3", KeyCode.Alpha3},
+        {"Hotbar4", KeyCode.Alpha4},
+        {"Hotbar5", KeyCode.Alpha5},
+        {"Hotbar6", KeyCode.Alpha6},
+        {"Hotbar7", KeyCode.Alpha7},
+        {"Hotbar8", KeyCode.Alpha8},
+        {"Hotbar9", KeyCode.Alpha9},
+    };*/
     public static void Initialize()
     {
-        /*KeyMappings = new ()
-        {
-            {"Place Terrain", KeyCode.Mouse1},
-            {"Remove Terrain", KeyCode.Mouse0},
-            {"Place Liquid", KeyCode.LeftShift},
-            {"Pickup Item", KeyCode.Mouse0},
-            {"Pause", KeyCode.Escape},
-            {"Quit", KeyCode.Return},
-            
-            {"Select", KeyCode.Mouse0},
-            {"Open Inventory", KeyCode.Tab},
-            {"Craft", KeyCode.Return},
-
-            {"Jump", KeyCode.Space},
-            {"Move Horizontal", KeyCode.Alpha3},
-            {"Move Vertical", KeyCode.Alpha4},
-            {"Mouse Horizontal", KeyCode.Alpha0},
-            {"Mouse Vertical", KeyCode.Alpha1},
-
-            {"Hotbar1", KeyCode.Alpha1},
-            {"Hotbar2", KeyCode.Alpha2},
-            {"Hotbar3", KeyCode.Alpha3},
-            {"Hotbar4", KeyCode.Alpha4},
-            {"Hotbar5", KeyCode.Alpha5},
-            {"Hotbar6", KeyCode.Alpha6},
-            {"Hotbar7", KeyCode.Alpha7},
-            {"Hotbar8", KeyCode.Alpha8},
-            {"Hotbar9", KeyCode.Alpha9},
-        };*/
-        KeyMappings = WorldStorageHandler.WORLD_OPTIONS.System.Input;
-        KeyMappings.Construct();
-        
-        LayerHeads = new Dictionary<string, uint>();
-        KeyBinds = new SharedLinkedList<ActionBind>(MaxActionBinds); 
+        Binder = new KeyBinder();
         KeyBindChanges = new Queue<Action>();
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(new InputPoller{active = true});
     }
@@ -74,7 +146,7 @@ public class InputPoller : UpdateTask
                 ActionBind BoundAction = KeyBinds.Value(current);
                 if(BoundAction.BindIndex == -1) break; //Context Fence/Barrier
 
-                KeyBind KeyBind = KeyMappings.Retrieve(BoundAction.BindIndex);
+                KeyBind KeyBind = Binder.Retrieve(BoundAction.BindIndex);
                 if(KeyBind.IsTriggered(out float axis))
                     BoundAction.action.Invoke(axis);
                 current = KeyBinds.Next(current);
@@ -89,10 +161,10 @@ public class InputPoller : UpdateTask
     }
 
     public static uint AddBinding(string Binding, string Layer, Action<float> action){
-        if(!KeyMappings.Contains(Binding))
+        if(!Binder.Contains(Binding))
             return 0;
         return AddKeyBind(new ActionBind{
-            BindIndex = KeyMappings.RetrieveIndex(Binding),
+            BindIndex = Binder.RetrieveIndex(Binding),
             action = action
         }, Layer);
     }
@@ -114,7 +186,6 @@ public class InputPoller : UpdateTask
             LayerHeads[layer] = KeyBinds.Next(bindIndex);
         if(LayerHeads[layer] == bindIndex)
             LayerHeads.Remove(layer);
-
         KeyBinds.Remove(bindIndex);
     }
 
@@ -143,7 +214,9 @@ public class InputPoller : UpdateTask
 
     [Serializable]
     public struct KeyBind{
-        public List<Binding> Bindings;
+        public Option<List<Binding> > bindings;
+        [JsonIgnore]
+        public readonly List<Binding> Bindings => bindings.value;
         private static readonly Func<KeyCode, bool>[] PollTypes = {
             null,
             Input.GetKey, 
@@ -165,7 +238,6 @@ public class InputPoller : UpdateTask
             public BindPoll PollType;
             public bool IsAlias; 
         }
-
         public enum BindPoll{
             Axis = 0,
             Exclude = 1,
@@ -173,20 +245,16 @@ public class InputPoller : UpdateTask
             Down = 3,
             Up = 4,
         }
-        public enum BindCond{
-            And = 0,
-            Or = 1,
-            Exclude = 2,
-        }
         public readonly bool IsTriggered(out float axis){
             axis = 0; bool Pressed = false;
             if(Bindings == null || Bindings.Count == 0) return false;
-            for(int i = 0; i < Bindings.Count; i++){
+            for(int i = Bindings.Count-1; i >= 0; i--){
                 Binding bind = Bindings[i];
                 if(bind.PollType == BindPoll.Exclude) {
                     Pressed |= !PollTypes[(int)bind.PollType](bind.Key);
                 } else if(bind.PollType == BindPoll.Axis){
-                    axis = Input.GetAxis(AxisMappings[bind.Key]);
+                    if(AxisMappings.ContainsKey(bind.Key)) 
+                        axis = Input.GetAxis(AxisMappings[bind.Key]);
                     Pressed = true;
                 } else {
                     Pressed |= PollTypes[(int)bind.PollType](bind.Key);
@@ -262,6 +330,10 @@ public class InputPoller : UpdateTask
 
         public readonly T Value(uint index){
             return array[index].value;
+        }
+
+        public readonly ref T RefVal(uint index){
+            return ref array[index].value;
         }
 
         public readonly uint Next(uint index){

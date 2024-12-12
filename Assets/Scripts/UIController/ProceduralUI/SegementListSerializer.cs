@@ -5,9 +5,9 @@ using System.Reflection;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using static ProceduralUIEditor;
+using static SegmentedUIEditor;
 
-public class ListUISerializer : UIConverter{
+public class SegmentListSerializer : IConverter{
     public bool CanConvert(Type type){ return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>); }
     public void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate){
         object cValue = value; //Capture the object to streamline changes
@@ -20,9 +20,9 @@ public class ListUISerializer : UIConverter{
             OnUpdate(ParentReceive);
         }
         
-        Button buttonField1 = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Drop_Arrow"), parent.transform.GetChild(0)).GetComponent<Button>(); bool isOpen1 = false;
-        Button listAdd = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/ListAdd"), parent.transform.GetChild(0)).GetComponent<Button>();
-        Button listRemove = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/ListRemove"), parent.transform.GetChild(0)).GetComponent<Button>();
+        Button buttonField1 = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Drop_Arrow"), parent.transform.GetChild(0)).GetComponent<Button>(); bool isOpen1 = false;
+        Button listAdd = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/ListAdd"), parent.transform.GetChild(0)).GetComponent<Button>();
+        Button listRemove = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/ListRemove"), parent.transform.GetChild(0)).GetComponent<Button>();
         buttonField1.onClick.AddListener(() => { 
             isOpen1 = !isOpen1;
             if(isOpen1) CreateList((IList)cValue, parent, ChildRequest);
@@ -62,6 +62,7 @@ public class ListUISerializer : UIConverter{
                 } else dest[i] = src[i];
             } 
             else if(destType.IsPrimitive || destType == typeof(string)) continue;
+            else if (destType.IsEnum) continue;
             else if(destType.IsValueType){
                 SupplementTree(ref destEl, ref srcEl);
                 dest[i] = destEl;
@@ -72,7 +73,7 @@ public class ListUISerializer : UIConverter{
     private static void CreateList(IList list, GameObject parent, ParentUpdate OnUpdate){
         SetUpLayout(parent);
         for(int i = 0; i < list.Count; i++) {
-            GameObject key = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/Option"), parent.transform);
+            GameObject key = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Option"), parent.transform);
             object cObject = list[i]; object value = cObject; Type cObjType = cObject.GetType();
 
             TextMeshProUGUI elementText = key.GetComponent<TextMeshProUGUI>();
@@ -81,7 +82,7 @@ public class ListUISerializer : UIConverter{
             else elementText.text = "Element " + i.ToString() + ": ";
 
             FieldInfo field = null; ParentUpdate nUpdate = OnUpdate; 
-            int index = i;
+            int index = i; //this is not useless--index is captured to streamline changes
             if(cObjType.IsGenericType && cObjType.GetGenericTypeDefinition() == typeof(Option<>)){
                 field = cObjType.GetField("value"); 
                 value = field.GetValue(cObject);
@@ -105,6 +106,7 @@ public class ListUISerializer : UIConverter{
             else if(cObjType.IsValueType || cObjType.IsPrimitive || cObjType == typeof(string)){
                 cObject = CreateInstance(typeof(Option<>).MakeGenericType(cObjType));
                 field = cObject.GetType().GetField("value");
+                field.SetValue(cObject, value);
 
                 void ChildRequest(ChildUpdate childCallback) { 
                     void ParentReceive(ref object parentObject){

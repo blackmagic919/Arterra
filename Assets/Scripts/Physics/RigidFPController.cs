@@ -6,6 +6,7 @@ using System;
 
 public class RigidFPController : MonoBehaviour
 {
+    public RigidFPControllerSettings Setting => WorldStorageHandler.WORLD_OPTIONS.GamePlay.Movement.value;
     [System.Serializable]
     public class RigidFPControllerSettings : ICloneable{
         public float GroundFriction = 0.25f;
@@ -27,15 +28,12 @@ public class RigidFPController : MonoBehaviour
     public Camera cam;
     public MouseLook mouseLook;
     private TerrainCollider tCollider;
-    [Range(0, 1)]
-    public RigidFPControllerSettings setting = null;
     public bool active;
     private float2 InputDir;
 
 
 
-    public void Initialize(RigidFPControllerSettings setting){
-        this.setting = setting;
+    public void Initialize(){
         mouseLook = new MouseLook(transform, cam.transform);
         tCollider = GetComponent<TerrainCollider>();
         tCollider.Active = false;
@@ -46,8 +44,8 @@ public class RigidFPController : MonoBehaviour
         InputPoller.AddBinding("Move Horizontal", "GamePlay", (float x) => InputDir.x = x);
         InputPoller.AddBinding("Jump", "GamePlay", (_null_) => {
             float3 posGS = CPUDensityManager.WSToGS(this.transform.position) + tCollider.offset;
-            if(tCollider.SampleCollision(posGS, new float3(tCollider.size.x, -setting.groundStickDist, tCollider.size.z), out _))
-                tCollider.velocity += setting.jumpForce * (float3)Vector3.up;
+            if(tCollider.SampleCollision(posGS, new float3(tCollider.size.x, -Setting.groundStickDist, tCollider.size.z), out _))
+                tCollider.velocity += Setting.jumpForce * (float3)Vector3.up;
         });
     }
 
@@ -62,16 +60,16 @@ public class RigidFPController : MonoBehaviour
         
         mouseLook.LookRotation (transform, cam.transform); 
         float2 desiredMove = ((float3)(cam.transform.forward*InputDir.y + cam.transform.right*InputDir.x)).xz;
-        float2 deltaV = setting.acceleration * Time.deltaTime * desiredMove;
+        float2 deltaV = Setting.acceleration * Time.deltaTime * desiredMove;
 
         float3 posGS = CPUDensityManager.WSToGS(this.transform.position) + tCollider.offset;
-        if(tCollider.SampleCollision(posGS, new float3(tCollider.size.x, -setting.groundStickDist, tCollider.size.z), out _)){
-            tCollider.velocity.y *= 1 - setting.GroundFriction;
+        if(tCollider.SampleCollision(posGS, new float3(tCollider.size.x, -Setting.groundStickDist, tCollider.size.z), out _)){
+            tCollider.velocity.y *= 1 - Setting.GroundFriction;
             tCollider.useGravity = false;
         }else tCollider.useGravity = true;
-        tCollider.velocity.xz *= 1 - setting.GroundFriction;
+        tCollider.velocity.xz *= 1 - Setting.GroundFriction;
 
-        if(math.length(tCollider.velocity.xz) < setting.runSpeed) 
+        if(math.length(tCollider.velocity.xz) < Setting.runSpeed) 
             tCollider.velocity.xz += deltaV;
         InputDir = float2.zero;
     }

@@ -21,9 +21,9 @@ public static class RegisterBuilder{
     }
 }
 [Serializable]
-public struct Registry<T> : IRegister
+public struct Registry<T> : IRegister, ICloneable
 {
-    public Option<List<Pair > > Reg;
+    public Option<List<Pair> > Reg;
     [UISetting(Ignore = true)] 
     private Dictionary<string, int> Index;
     [JsonIgnore]
@@ -56,12 +56,24 @@ public struct Registry<T> : IRegister
         return index >= 0 && index < Reg.value.Count;
     }
 
+    public object Clone(){
+        return new Registry<T>{Reg = Reg};
+    }
+
     [Serializable]
-    public struct Pair{
+    public struct Pair : ICloneable{
         public string Name;
         [UISetting(Alias = "Value")]
         public Option<T> _value;
+        [JsonIgnore]
         public T Value => _value.value;
+
+        public object Clone(){
+            return new Pair{
+                Name = Name, 
+                _value = _value
+            };
+        }
     }
 }
 

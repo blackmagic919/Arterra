@@ -4,8 +4,6 @@ using UnityEngine;
 using Newtonsoft.Json;
 using System;
 using System.Runtime.Serialization;
-using System.Reflection;
-using System.Linq;
 
 /*
 Rules of Usage:
@@ -34,8 +32,9 @@ public class WorldOptions : ScriptableObject{
     public Option<GamePlaySettings> _GamePlay;
     [UISetting(Ignore = true)]
     public Option<SystemSettings> _System;
-    public QualitySettings Quality => _Quality;
 
+    [JsonIgnore]
+    public QualitySettings Quality => _Quality;
     [JsonIgnore]
     public ref GenerationSettings Generation => ref _Generation.value;
     [JsonIgnore]
@@ -64,11 +63,13 @@ public class WorldOptions : ScriptableObject{
         public Registry<EntityAuthoring> Entities;
     }
 
+    //These settings may change during gameplay so reference through direct getter functions
     [Serializable]
     public struct GamePlaySettings{
         [UISetting(Message = "Controls How The Player Interacts With The World")]
         public Option<TerraformSettings> Terraforming;
         public Option<RigidFPController.RigidFPControllerSettings> Movement;
+        public Option<List<Registry<InputPoller.KeyBind>.Pair>> Input;
         public Option<CraftingMenuSettings> Crafting;
         public Option<InventoryController.Settings> Inventory;
         public Option<DayNightContoller.Settings> DayNightCycle;
@@ -77,14 +78,13 @@ public class WorldOptions : ScriptableObject{
     [Serializable]
     public struct SystemSettings{
         public Option<ReadbackSettings> ReadBack;
-        public Registry<InputPoller.KeyBind> Input;
     }
 
     [OnDeserialized]
     internal void OnDeserialized(StreamingContext context = default){
         object defaultOptions = WorldStorageHandler.OPTIONS_TEMPLATE; 
         object thisRef = this;
-        ProceduralUIEditor.SupplementTree(ref thisRef, ref defaultOptions);
+        SegmentedUIEditor.SupplementTree(ref thisRef, ref defaultOptions);
     }
 
     public static WorldOptions Create(){

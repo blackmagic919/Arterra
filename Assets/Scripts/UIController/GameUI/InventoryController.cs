@@ -10,6 +10,7 @@ using UnityEngine.UI;
 
 public class InventoryController : UpdateTask
 {
+    public static Settings settings => WorldStorageHandler.WORLD_OPTIONS.GamePlay.Inventory.value;
     public static Inventory Primary; //Hotbar
     public static Inventory Secondary; //Inventory
     public static InventoryController Instance;
@@ -21,7 +22,6 @@ public class InventoryController : UpdateTask
     public static SlotDisplay[] PrimaryDisplay;
     public static InventDisplay SecondaryArea;
     public static SlotDisplay[] SecondaryDisplay;
-    public static Settings settings;
 
     private static Queue<(string, uint)> Fences;
     private static MaterialData[] textures;
@@ -54,7 +54,6 @@ public class InventoryController : UpdateTask
     }
 
     public static void Initialize(){
-        settings = WorldStorageHandler.WORLD_OPTIONS.GamePlay.Inventory.value;
         GameObject Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory"), PlayerHandler.UIHandle.transform);
         PrimaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(0).gameObject);
         SecondaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(1).gameObject);
