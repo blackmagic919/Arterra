@@ -21,8 +21,8 @@ MonoBehaviour:
     baseColorStrength: 0.1
     GeoShaderIndex: -1
   AtmosphereScatter:
-    ScatterCoeffs: {x: 0, y: 0, z: 0.0005}
-    GroundExtinction: {x: 0.005, y: 0.005, z: 0.005}
+    ScatterCoeffs: {x: 0.00005, y: 0.0002, z: 0.0005}
+    GroundExtinction: {x: 0.03, y: 0.006, z: 0.003}
   liquidData:
     shallowCol: {x: 0.19, y: 0.9, z: 1}
     deepCol: {x: 0, y: 0.36, z: 1}

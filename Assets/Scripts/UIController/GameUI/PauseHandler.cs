@@ -8,6 +8,7 @@ using UnityEngine.UI;
 public class PauseHandler
 {
     private static GameObject PauseMenu;
+    private static GameObject PauseContent => PauseMenu.transform.Find("Content").gameObject;
     private static Queue<(string, uint)> Fences;
     public static void Initialize() { 
         PauseMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Pause"), PlayerHandler.UIHandle.transform);
@@ -32,7 +33,7 @@ public class PauseHandler
         });
 
         Option<WorldOptions.GamePlaySettings> settings = WorldStorageHandler.WORLD_OPTIONS._GamePlay;
-        PaginatedUIEditor.CreateProceduralPagination(settings.value, PauseMenu, (ChildUpdate cb) => { 
+        PaginatedUIEditor.CreateProceduralPagination(settings.value, PauseContent, (ChildUpdate cb) => { 
             settings.Clone(); object obj = settings.value;
             cb.Invoke(ref obj); 
             settings.value = (WorldOptions.GamePlaySettings)obj;
@@ -40,7 +41,7 @@ public class PauseHandler
             WorldStorageHandler.SaveOptionsSync();
         }, () => {Exit();});
 
-        GameObject ExitButton = PauseMenu.transform.GetChild(0).Find("TopPanel").Find("Return").GetChild(0).gameObject;
+        GameObject ExitButton = PauseContent.transform.GetChild(0).Find("TopPanel").Find("Return").GetChild(0).gameObject;
         TextMeshProUGUI ExitText = ExitButton.GetComponent<TextMeshProUGUI>();
         ExitText.text = "Quit";
         ExitText.color = Color.red;
@@ -48,7 +49,7 @@ public class PauseHandler
     }
 
     public static void Deactivate(){
-        PaginatedUIEditor.ReleaseAllChildren(PauseMenu);
+        PaginatedUIEditor.ReleaseAllChildren(PauseContent);
         PauseMenu.SetActive(false);
         InputPoller.SetCursorLock(true);
         InputPoller.AddKeyBindChange(() => {

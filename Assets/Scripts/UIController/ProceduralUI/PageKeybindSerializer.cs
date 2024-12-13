@@ -15,7 +15,7 @@ using static PaginatedUIEditor;
 public class PageKeybindSerializer : IConverter{
     private readonly Dictionary<KeyBind.BindPoll, Color> ConditionColors = new (){
         {KeyBind.BindPoll.Axis, Color.blue},
-        {KeyBind.BindPoll.Down, Color.white},
+        {KeyBind.BindPoll.Down, Color.gray},
         {KeyBind.BindPoll.Hold, Color.green},
         {KeyBind.BindPoll.Up, Color.red},
         {KeyBind.BindPoll.Exclude, Color.black}
@@ -43,12 +43,12 @@ public class PageKeybindSerializer : IConverter{
                 nKeyBind._value.isDirty = true;
 
                 field.SetValue(option, nKeyBind);
-                ReflectKeybind(parent, nKeyBind);
+                ReflectKeybind(parent, field, nKeyBind, OnUpdate);
                 ForceLayoutRefresh(parent.transform);
             });
         });
         
-        ReflectKeybind(parent, (Registry<KeyBind>.Pair)value);
+        ReflectKeybind(parent, field, (Registry<KeyBind>.Pair)value, OnUpdate);
         ForceLayoutRefresh(parent.transform);
     }
 
@@ -58,12 +58,21 @@ public class PageKeybindSerializer : IConverter{
                 GameObject.Destroy(child.gameObject); 
         }
     }
-
-    private void UpdateConfigKeybind(ref object option){}
     
-    private void ReflectKeybind(GameObject parent, Registry<KeyBind>.Pair keybind){
+    private void ReflectKeybind(GameObject parent, FieldInfo field, Registry<KeyBind>.Pair keybind, ParentUpdate OnUpdate){
         ClearKeybinds(parent.transform);
         List<KeyBind.Binding> bindings = keybind.Value.Bindings;
+
+        void GetKeyBind(int index, Func<KeyBind.Binding, KeyBind.Binding> cb){
+            OnUpdate((ref object option) => {
+                Registry<KeyBind>.Pair nKeyBind = (Registry<KeyBind>.Pair)field.GetValue(option);
+                KeyBind.Binding nBinding = nKeyBind._value.value.bindings.value[index];
+                nKeyBind._value.value.bindings.value[index] = cb.Invoke(nBinding);
+                field.SetValue(option, nKeyBind);
+            });
+        }
+        
+        if(bindings == null) return;
         for(int i = 0; i < bindings.Count; i++){
             KeyBind.Binding binding = bindings[i];
             GameObject bindConjunction = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Keybind_Conjunction"), parent.transform);
@@ -78,15 +87,24 @@ public class PageKeybindSerializer : IConverter{
                 keyName = AxisNames[binding.Key];
             keyText.text = keyName;
 
+            int index = i;//capture index
             Button pollTypeButton = bindKey.AddComponent<Button>();
             pollTypeButton.onClick.AddListener(() => {
                 binding.PollType = (KeyBind.BindPoll)(((int)binding.PollType + 1) % Enum.GetValues(typeof(KeyBind.BindPoll)).Length);
+                GetKeyBind(index, (KeyBind.Binding Binding) => {
+                    Binding.PollType = binding.PollType;
+                    return binding;
+                });
                 keyText.color = ConditionColors[binding.PollType];
             });
 
             Button conjButton = bindConjunction.AddComponent<Button>();
             conjButton.onClick.AddListener(() => {
                 binding.IsAlias = !binding.IsAlias;
+                GetKeyBind(index, (KeyBind.Binding Binding) => {
+                    Binding.IsAlias = !binding.IsAlias;
+                    return binding;
+                });
                 conjText.text = binding.IsAlias ? "/" : "+";
             });
 

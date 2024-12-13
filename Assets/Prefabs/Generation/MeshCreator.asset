@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: MeshCreator
   m_EditorClassIdentifier: 
   waterMat: Water
-  waterHeight: 0
+  waterHeight: -4
   heightFalloff: 500
   atmosphereFalloff: 0.005
   CaveFrequencyNoise: CaveFrequency

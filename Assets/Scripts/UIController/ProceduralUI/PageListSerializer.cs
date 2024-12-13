@@ -51,7 +51,7 @@ public class PageListSerializer : IConverter{
             listRemove.onClick.AddListener(() => {
                 if(((IList)cValue).Count == 0) return;
                 ChildRequest((ref object parentObj) => {
-                    cValue = (IList)parentObj; 
+                    cValue = parentObj; 
                     ((IList)cValue).RemoveAt(((IList)cValue).Count - 1);
                     ReleaseAllChildren(GetPageContent(newPage).gameObject); 
                     CreateList((IList)cValue, newPage, ChildRequest);

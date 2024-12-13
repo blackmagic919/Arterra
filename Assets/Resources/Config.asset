@@ -212,21 +212,6 @@ MonoBehaviour:
                 - Key: 32
                   PollType: 3
                   IsAlias: 0
-                - Key: 32
-                  PollType: 3
-                  IsAlias: 0
-                - Key: 32
-                  PollType: 3
-                  IsAlias: 0
-                - Key: 32
-                  PollType: 3
-                  IsAlias: 0
-                - Key: 32
-                  PollType: 3
-                  IsAlias: 0
-                - Key: 32
-                  PollType: 3
-                  IsAlias: 0
                 isDirty: 0
             isDirty: 0
         - Name: Move Horizontal

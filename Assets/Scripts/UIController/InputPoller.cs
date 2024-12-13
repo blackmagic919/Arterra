@@ -27,14 +27,13 @@ public class InputPoller : UpdateTask
             if(KeyIndex.ContainsKey(name)) return; //We are missing the binding
             Registry<KeyBind>.Pair binding = DefaultMappings.FirstOrDefault((Registry<KeyBind>.Pair pair) => pair.Name == name);
             if(binding.Equals(default)) throw new Exception("Cannot Find Keybind Name"); //There is no such binding
-            KeyMappings.Add(DefaultMappings[KeyIndex[name]]);
             KeyIndex.Add(name, KeyMappings.Count);
+            KeyMappings.Add(binding);
         }
         
         //We need to check if the mappings have been changed
         //Because mappings can change at any time during runtime
         private void ReconstructMappings(){
-            List<Registry<KeyBind>.Pair> oKeyMappings = KeyMappings;
             KeyMappings = RealMappings; KeyIndex.Clear();
             for(int i = 0; i < KeyMappings.Count; i++){
                 KeyIndex.Add(KeyMappings[i].Name, i);
@@ -46,29 +45,17 @@ public class InputPoller : UpdateTask
                 do{
                     ref ActionBind BoundAction = ref KeyBinds.RefVal(current);
                     current = KeyBinds.Next(current);
-                    if(BoundAction.BindIndex == -1) continue; //Context Fence/Barrier
-                    AssertMapping(oKeyMappings[BoundAction.BindIndex].Name);
-                    BoundAction.BindIndex = KeyIndex[oKeyMappings[BoundAction.BindIndex].Name];
+                    if(BoundAction.Binding == null) continue; //Context Fence/Barrier
+                    AssertMapping(BoundAction.Binding);
                 } while(current != head);
             } 
         }
 
-        public int RetrieveIndex(string name){
-            if(!KeyMappings.Equals(RealMappings)) ReconstructMappings();
-            AssertMapping(name);
-            return KeyIndex[name];
-        }
         public KeyBind Retrieve(string name){
             if(!KeyMappings.Equals(RealMappings)) ReconstructMappings();
-            AssertMapping(name);
-            return KeyMappings[KeyIndex[name]].Value;
-        }
-        public KeyBind Retrieve(int index){
-            if(!KeyMappings.Equals(RealMappings)) {
-                string name = KeyMappings[index].Name;
-                ReconstructMappings();
-                index = KeyIndex[name];
-            }
+            if(!KeyIndex.TryGetValue(name, out int index)) ReconstructMappings();
+            else if(index >= KeyMappings.Count || KeyMappings[index].Name != name) ReconstructMappings();
+
             return KeyMappings[index].Value;
         }
 
@@ -144,9 +131,9 @@ public class InputPoller : UpdateTask
             uint current = head;
             do{
                 ActionBind BoundAction = KeyBinds.Value(current);
-                if(BoundAction.BindIndex == -1) break; //Context Fence/Barrier
+                if(BoundAction.Binding == null) break; //Context Fence/Barrier
 
-                KeyBind KeyBind = Binder.Retrieve(BoundAction.BindIndex);
+                KeyBind KeyBind = Binder.Retrieve(BoundAction.Binding);
                 if(KeyBind.IsTriggered(out float axis))
                     BoundAction.action.Invoke(axis);
                 current = KeyBinds.Next(current);
@@ -161,17 +148,15 @@ public class InputPoller : UpdateTask
     }
 
     public static uint AddBinding(string Binding, string Layer, Action<float> action){
-        if(!Binder.Contains(Binding))
-            return 0;
         return AddKeyBind(new ActionBind{
-            BindIndex = Binder.RetrieveIndex(Binding),
+            Binding = Binding,
             action = action
         }, Layer);
     }
 
     public static uint AddContextFence(string Layer){
         return AddKeyBind(new ActionBind{
-            BindIndex = -1,
+            Binding = null,
             action = null,
         }, Layer);
     }
@@ -269,7 +254,7 @@ public class InputPoller : UpdateTask
 
     private struct ActionBind
     {
-        public int BindIndex;
+        public string Binding;
         public Action<float> action;
     }
 
