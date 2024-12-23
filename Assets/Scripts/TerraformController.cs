@@ -195,9 +195,10 @@ public class TerraformController : UpdateTask
     }
 
     private void PlaceTerrain(float _){
-        if(InventoryController.Selected.IsItem) return;
+        if(InventoryController.Selected is not MaterialItem) return;
+        MaterialItem Selected = (MaterialItem)InventoryController.Selected;
 
-        if(InventoryController.Selected.IsSolid){
+        if(Selected.IsSolid){
             if (!hasHit) return;
             CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleAddSolid);
         }else{
@@ -227,8 +228,9 @@ public class TerraformController : UpdateTask
     MapData HandleAddSolid(MapData pointInfo, float brushStrength){
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
+        if(InventoryController.Selected == null) return pointInfo;
 
-        int selected = (int)InventoryController.Selected.Index;
+        int selected = InventoryController.Selected.Index;
         int solidDensity = pointInfo.SolidDensity;
         if(solidDensity < IsoLevel || pointInfo.material == selected){
             //If adding solid density, override water
@@ -246,8 +248,9 @@ public class TerraformController : UpdateTask
     MapData HandleAddLiquid(MapData pointInfo, float brushStrength){
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
+        if(InventoryController.Selected == null) return pointInfo;
 
-        int selected = (int)InventoryController.Selected.Index;
+        int selected = InventoryController.Selected.Index;
         int liquidDensity = pointInfo.LiquidDensity;
         if(liquidDensity < IsoLevel || pointInfo.material == selected){
             //If adding liquid density, only change if not solid
@@ -270,13 +273,12 @@ public class TerraformController : UpdateTask
         int solidDensity = pointInfo.SolidDensity;
         if(solidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
-            deltaDensity = InventoryController.AddEntry(
-            new InventoryController.Inventory.Slot{
-                IsItem = false,
+            InventoryController.ISlot nMaterial = new MaterialItem{
                 IsSolid = true,
                 Index = pointInfo.material,
                 AmountRaw = deltaDensity
-            });
+            }; InventoryController.AddEntry(nMaterial);
+            deltaDensity -= nMaterial.AmountRaw;
 
             pointInfo.viscosity -= deltaDensity;
             pointInfo.density -= deltaDensity;
@@ -291,13 +293,12 @@ public class TerraformController : UpdateTask
         int liquidDensity = pointInfo.LiquidDensity;
         if (liquidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(liquidDensity, -brushStrength);
-            deltaDensity = InventoryController.AddEntry(
-            new InventoryController.Inventory.Slot{
-                IsItem = false,
+            InventoryController.ISlot nMaterial = new MaterialItem{
                 IsSolid = false,
                 Index = pointInfo.material,
                 AmountRaw = deltaDensity
-            });
+            }; InventoryController.AddEntry(nMaterial);
+            deltaDensity -= nMaterial.AmountRaw;
 
             pointInfo.density -= deltaDensity;
         }
@@ -313,10 +314,11 @@ public class TerraformController : UpdateTask
             EItem.EItemEntity* item = (EItem.EItemEntity*)e->obj;
             if(item->isPickedUp) return;
 
-            int amount = InventoryController.AddEntry(item->item);
-            item->item.AmountRaw -= amount;
-            if(item->item.IsItem && amount == 0) return;
-            else if(item->item.AmountRaw != 0) return;
+            InventoryController.ISlot slot = item->item.Slot;
+            if(slot == null) return;
+
+            InventoryController.AddEntry(slot);
+            if(slot.AmountRaw != 0) return;
             item->isPickedUp = true; 
             EntityManager.AddHandlerEvent(() => EntityManager.ReleaseEntity(e->info.entityId));
         }

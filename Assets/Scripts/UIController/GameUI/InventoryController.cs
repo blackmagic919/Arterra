@@ -10,11 +10,22 @@ using UnityEngine.UI;
 
 public class InventoryController : UpdateTask
 {
+    public interface ISlot : ICloneable{
+        public bool IsStackable { get; }
+        //The index within its register
+        public int Index { get; set; }
+        //The id that is unique to the slot
+        public uint Id { get; set; }
+        public float Amount{ get; set; }
+        public int AmountRaw{ get; set; }
+        public int TextureIndex{ get; }
+        public void Serialize(Func<string, int> dict);
+        public void Deserialize(Func<int, string> dict);
+    }
     public static Settings settings => WorldStorageHandler.WORLD_OPTIONS.GamePlay.Inventory.value;
     public static Inventory Primary; //Hotbar
     public static Inventory Secondary; //Inventory
     public static InventoryController Instance;
-    public static Inventory.Slot Cursor;
     public static SlotDisplay CursorDisplay;
 
     
@@ -25,7 +36,8 @@ public class InventoryController : UpdateTask
 
     private static Queue<(string, uint)> Fences;
     private static MaterialData[] textures;
-    public static Inventory.Slot Selected=>Primary.Info[SelectedIndex];
+    public static ISlot Selected=>Primary.Info[SelectedIndex];
+    public static ISlot Cursor;
     private static int SelectedIndex = 0;
 
     public struct SlotDisplay{
@@ -70,7 +82,8 @@ public class InventoryController : UpdateTask
             GameObject slot = GameObject.Instantiate(slotDisplay, SecondaryArea.Object.transform);
             SecondaryDisplay[i] = new SlotDisplay(slot);
         }
-        CursorDisplay = new SlotDisplay(GameObject.Instantiate(slotDisplay, Menu.transform)); Cursor.IsNull = true;
+        CursorDisplay = new SlotDisplay(GameObject.Instantiate(slotDisplay, Menu.transform)); 
+        Cursor = null;
         SecondaryArea.Region.SetActive(false);
         CursorDisplay.Object.SetActive(false);
 
@@ -136,7 +149,7 @@ public class InventoryController : UpdateTask
 
         //Swap the cursor with the selected slot
         Cursor = inv.Info[index];
-        if(Cursor.IsNull) return;
+        if(Cursor == null) return;
         inv.RemoveEntry(index);
         CursorDisplay.Icon.sprite = textures[(int)Cursor.Index].texture.value;
         CursorDisplay.Amount.text = Cursor.Amount.ToString();
@@ -144,11 +157,11 @@ public class InventoryController : UpdateTask
     }
 
     private static void DeselectDrag(float _){
-        if(Cursor.IsNull) return;
+        if(Cursor == null) return;
         CursorDisplay.Object.SetActive(false);
 
         if (GetMouseSlot(out Inventory inv, out int index)){
-            if(inv.Info[index].IsNull)
+            if(inv.Info[index] == null)
                 inv.AddEntry(Cursor, (uint)index);   
             else if(inv.Info[index].IsStackable && Cursor.Id == inv.Info[index].Id) 
                 inv.AddStackable(Cursor, (uint)index);
@@ -159,15 +172,17 @@ public class InventoryController : UpdateTask
             }
         } else {
             EntitySerial Entity = new EntitySerial();
+            Entity.type = "EntityItem";
+            Entity.guid = Guid.NewGuid().ToString();
+            
             Entity.data = new EItem.EItemEntity(new TerrainColliderJob.Transform{
                 position = CPUDensityManager.WSToGS(PlayerHandler.player.transform.position),
                 rotation = PlayerHandler.player.transform.rotation,
             }, Cursor);
-            Entity.type = "EntityItem";
-            Entity.guid = Guid.NewGuid().ToString();
+
             EntityManager.AddHandlerEvent(() => EntityManager.CreateEntity(Entity));
         }
-        Cursor.IsNull = true;
+        Cursor = null;
     }
 
     private static int2 GetSlotIndex(InventDisplay display, float2 pos){
@@ -198,34 +213,30 @@ public class InventoryController : UpdateTask
 
 
     private static void CraftEntry(float _){
-        if(!CraftingMenuController.CraftRecipe(out Inventory.Slot result))
+        if(!CraftingMenuController.CraftRecipe(out ISlot result) || result == null)
             return;
-        if((result.IsStackable && Secondary.AddStackable(result) != 0) || 
-            (!result.IsStackable && Secondary.AddEntry(result, out uint _))){
-            CraftingMenuController.Clear();
-        };
+        if(result.IsStackable) Secondary.AddStackable(result);
+        else Secondary.AddEntry(result, out uint _);
+        CraftingMenuController.Clear();
     }
 
-    //Returns the amount added, 0 if none added
+    //The Slot is changed to reflect what remains
     //if stackable, add to primary then secondary, else add to secondary then primary
-    public static int AddEntry(Inventory.Slot e){
-        int delta = 0;
+    public static void AddEntry(ISlot e){
         if(e.IsStackable){
             if(Primary.EntryDict.ContainsKey(e.Id)){
-                delta = Primary.AddStackable(e);
-                if(e.AmountRaw == delta) 
-                    return delta;
-                e.AmountRaw -= delta;
+                Primary.AddStackable(e);
+                if(e.AmountRaw == 0) return;
             }
-            return Secondary.AddStackable(e) + delta;
+            Secondary.AddStackable(e);
         } else {
-            delta = Secondary.AddEntry(e, out uint _) || Primary.AddEntry(e, out uint _) ? 1 : 0;
-            return delta;
+            if(!Secondary.AddEntry(e, out uint _))
+                Primary.AddEntry(e, out uint _);
         }
     }
     public static int RemoveMaterial(int delta){
-        if(Selected.IsNull) return 0;
-        if(Selected.IsItem) return 0;
+        if(Selected == null) return 0;
+        if(Selected is not MaterialItem) return 0;
         return Primary.RemoveStackable(SelectedIndex, delta);
     }
 
@@ -239,14 +250,13 @@ public class InventoryController : UpdateTask
     private static void ReflectInventory(SlotDisplay[] display, Inventory inventory){
         foreach(uint i in inventory.Dirty){
             SlotDisplay disp = display[i];
-            Inventory.Slot slot = inventory.Info[i];
-            if(slot.IsNull){
+            ISlot slot = inventory.Info[i];
+            if(slot == null){
                 disp.Icon.sprite = null;
                 disp.Amount.text = "";
                 disp.Icon.color = settings.BaseColor;
             } else {
-                if(slot.Index >= textures.Length || slot.Index < 0) Debug.Log(slot.Index);
-                disp.Icon.sprite = textures[(int)slot.Index].texture.value;
+                disp.Icon.sprite = textures[slot.TextureIndex].texture.value;
                 disp.Icon.color = Color.white; //1,1,1,1
                 disp.Amount.text = slot.Amount.ToString();
             } 
@@ -266,7 +276,7 @@ public class InventoryController : UpdateTask
 
 
     public class Inventory{
-        public Slot[] Info;
+        public ISlot[] Info;
         public LLNode[] EntryLL;
         public Dictionary<uint, uint> EntryDict;
         public readonly uint capacity;
@@ -276,7 +286,7 @@ public class InventoryController : UpdateTask
         public HashSet<uint> Dirty;    
 
         public Inventory(int SlotCount){
-            Info = new Slot[SlotCount];
+            Info = new ISlot[SlotCount];
             EntryDict = new Dictionary<uint, uint>();
             Dirty = new HashSet<uint>();
             EntryLL = new LLNode[SlotCount];
@@ -287,15 +297,14 @@ public class InventoryController : UpdateTask
                 int next = (i + 1) % SlotCount;
                 int prev = (((i - 1) % SlotCount) + SlotCount) % SlotCount;
                 EntryLL[i] = new LLNode((uint)prev, (uint)next);
-                Info[i].IsNull = true;
             } 
         }
 
         //Input: The material id, amount to add, and index to add at
-        //Returns: The actual amount added
-        public int AddStackable(Slot mat, uint index){
-            if(Info[index].Id != mat.Id) return 0;
-            if(!Info[index].IsStackable) return 0;
+        //Input is modified with the remaineder of the amount
+        public void AddStackable(ISlot mat, uint index){
+            if(Info[index].Id != mat.Id) return;
+            if(!Info[index].IsStackable) return;
             
             int delta = math.min(Info[index].AmountRaw + mat.AmountRaw, 0x7FFF) 
                     - Info[index].AmountRaw;
@@ -303,40 +312,34 @@ public class InventoryController : UpdateTask
             mat.AmountRaw -= delta;
             MakeDirty(index);
 
-            if(mat.AmountRaw <= 0) return delta; 
-            if(length == capacity-1) return delta;
-            if(AddEntry(mat, out uint ind)) return delta;
-            //Add new entry and clear its contents
-            Info[ind].AmountRaw = 0;
-            return AddStackable(mat) + delta;
+            if(mat.AmountRaw <= 0) return; 
+            if(length == capacity-1) return;
+            if(!AddEntry(mat, out uint ind)) return;
+            AddStackable(mat);
         }
 
 
         //Input: The material id and amount to add
-        //Returns: The actual amount added
-        public int AddStackable(Slot mat){
-            if(!mat.IsStackable) return 0;
-            int delta = 0; 
+        //Input is modified with the remaineder of the amount
+        public void AddStackable(ISlot mat){
+            if(!mat.IsStackable) return;
             if(EntryDict.ContainsKey(mat.Id)){
                 uint slotN = EntryDict[mat.Id];
-                delta = math.min(Info[slotN].AmountRaw + mat.AmountRaw, 0x7FFF) 
+                int delta = math.min(Info[slotN].AmountRaw + mat.AmountRaw, 0x7FFF) 
                         - Info[slotN].AmountRaw;
                 Info[slotN].AmountRaw += delta;
                 mat.AmountRaw -= delta;
                 MakeDirty(slotN);
             }
-            if(mat.AmountRaw <= 0) return delta; 
-            if(!AddEntry(mat, out uint ind)) return delta;
-            //Add new entry and clear its contents
-            Info[ind].AmountRaw = 0;
-
-            return AddStackable(mat) + delta;
+            if(mat.AmountRaw <= 0) return; 
+            if(!AddEntry(mat, out uint ind)) return;
+            AddStackable(mat);
         }
 
         //Input: Request removing from a slot of a certain amount
         //Returns: The actual amount removed
         public int RemoveStackable(int SlotIndex, int delta){
-            Slot mat = Info[SlotIndex];
+            ISlot mat = Info[SlotIndex];
             delta = mat.AmountRaw - math.max(mat.AmountRaw - delta, 0);
             Info[SlotIndex].AmountRaw -= delta;
             MakeDirty((uint)SlotIndex);
@@ -357,12 +360,12 @@ public class InventoryController : UpdateTask
             LLRemove((uint)SlotIndex);
             LLAdd((uint)SlotIndex, tail);
             MakeDirty((uint)SlotIndex);
-            Info[SlotIndex].IsNull = true;
+            Info[SlotIndex] = null;
             tail = SlotIndex < tail ? (uint)SlotIndex : tail;
             length--;
         }
 
-        public bool AddEntry(Slot entry, out uint head){
+        public bool AddEntry(ISlot entry, out uint head){
             head = tail;
             if(length == capacity-1) return false;
             tail = EntryLL[head].n; 
@@ -374,16 +377,17 @@ public class InventoryController : UpdateTask
             
             LLRemove(head);
             LLAdd(head, prevSlot);
-            Info[head] = entry;
             EntryDict[entry.Id] = head;
+            Info[head] = entry.Clone() as ISlot;
+            entry.AmountRaw = 0;
 
             MakeDirty(head);
             return true;
         }
 
-        public bool AddEntry(Slot entry, uint index){
+        public bool AddEntry(ISlot entry, uint index){
             if(length == capacity-1) return false;
-            if(!Info[index].IsNull) return false; //Slot has to be null
+            if(Info[index] != null) return false; //Slot has to be null
             if(index == tail) tail = EntryLL[tail].n;
             length++;
 
@@ -393,8 +397,10 @@ public class InventoryController : UpdateTask
 
             LLRemove(index);
             LLAdd(index, prevSlot);
-            Info[index] = entry;
             EntryDict[entry.Id] = index;
+            Info[index] = entry.Clone() as ISlot;
+            entry.AmountRaw = 0;
+
             MakeDirty(index);
             return true;
         }
@@ -421,53 +427,6 @@ public class InventoryController : UpdateTask
             10 -> Is an Unstackable Item
             11 -> Is a Stackable Item
         */
-        public struct Slot{
-            public uint data;
-            [JsonIgnore]
-            public readonly bool IsStackable => !IsItem || (IsItem && IsSolid);
-            [JsonIgnore]
-            public bool IsItem{
-                readonly get => (data & 0x80000000) != 0;
-                set => data = value ? data | 0x80000000 : data & 0x7FFFFFFF;
-            }
-            [JsonIgnore]
-            public int Index{
-                readonly get => (int)(data >> 15) & 0x7FFF;
-                set => data = (data & 0xC0007FFF) | (((uint)value & 0x7FFF) << 15);
-            }
-            [JsonIgnore]
-            public uint Id{
-                readonly get => data & 0xFFFF8000;
-                set => data = (data & 0x7FFF) | (value & 0xFFFF8000);
-            }
-            [JsonIgnore]
-            public bool IsNull{
-                readonly get => data == 0xFFFFFFFF;
-                set => data = value ? 0xFFFFFFFF : 0;
-            }
-
-            //Slot-Type Specific Accessors
-            [JsonIgnore]
-            public bool IsSolid{
-                readonly get => (data & 0x40000000) != 0;
-                set => data = value ? data | 0x40000000 : data & 0xBFFFFFFF;
-            }
-            [JsonIgnore]
-            public float Amount{
-                readonly get => (data & 0x7FFF) / (float)0xFF;
-                set => data = (data & 0xFFFF8000) | (((uint)Mathf.Round(value * 0xFF)) & 0x7FFF);
-            }
-            [JsonIgnore]
-            public int AmountRaw{
-                readonly get => (int)(data & 0x7FFF);
-                set => data = (data & 0xFFFF8000) | ((uint)value & 0x7FFF);
-            }
-            [JsonIgnore]
-            public float ItemAccuracy{
-                readonly get => (data & 0x7FFF) / 0x7FFF;
-                set => data = data & 0xFFFF8000 | (((uint)Mathf.Round(value * 0x7FFF)) & 0x7FFF);
-            }
-        }
         public struct LLNode{
             public uint p;
             public uint n;

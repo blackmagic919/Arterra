@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using System.IO;
 using static OctreeTerrain;
+using System.Linq;
 
 
 public class PlayerHandler : UpdateTask
@@ -93,46 +94,41 @@ public class PlayerHandler : UpdateTask
         public void Serialize(){
             //Marks updated slots dirty so they are rendered properlly when deserialized
             // (Register Name, Index) -> Name Index
-            Dictionary<(int, int), int> lookup = new Dictionary<(int, int), int>();
+            Dictionary<string, int> lookup = new Dictionary<string, int>();
+            int OnSerialize(string name){
+                lookup.TryAdd(name, lookup.Count);
+                return lookup[name];
+            }
+            
             for(int i = 0; i < PrimaryI.Info.Length; i++){
-                if(PrimaryI.Info[i].IsNull) continue;
-                //if(inv.Info[i].IsItem) --> Add when implementing items
-                //  lookup.TryAdd((1, inv.Info[i].Index), SerializedNames.Count);
-                //else 
-                lookup.TryAdd((0, PrimaryI.Info[i].Index), lookup.Count);
-                PrimaryI.Info[i].Index = lookup[(0, PrimaryI.Info[i].Index)];
+                if(PrimaryI.Info[i] == null) continue;
+                PrimaryI.Info[i].Serialize(OnSerialize);
             }
             for(int i = 0; i < SecondaryI.Info.Length; i++){
-                if(SecondaryI.Info[i].IsNull) continue;
-                lookup.TryAdd((0, SecondaryI.Info[i].Index), lookup.Count);
-                SecondaryI.Info[i].Index = lookup[(0, SecondaryI.Info[i].Index)];
+                if(SecondaryI.Info[i] == null) continue;
+                SecondaryI.Info[i].Serialize(OnSerialize);
             }
 
-            IRegister[] registries = {
-                WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary
-            };
-            string[] serialized = new string[lookup.Count];
-            foreach(var entry in lookup){
-                serialized[entry.Value] = registries[entry.Key.Item1].RetrieveName(entry.Key.Item2);
-            }
-            SerializedNames = new List<string>(serialized);
+            SerializedNames = lookup.Keys.ToList();
         }
 
         public void Deserialize(){
-            IRegister[] registries = {
-                WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary
-            };
+            List<string> names = SerializedNames;
+            string OnDeserialize(int name){
+                if(name < 0 || name >= names.Count) Debug.Log(name);
+                if(name < 0 || name >= names.Count) return "";
+                return names[name];
+            }
+            
             for(uint i = 0; i < PrimaryI.Info.Length; i++){
-                if(PrimaryI.Info[i].IsNull) continue;
-                int regInd = PrimaryI.Info[i].IsItem ? 1 : 0;
+                if(PrimaryI.Info[i] == null) continue;
+                PrimaryI.Info[i].Deserialize(OnDeserialize);
                 PrimaryI.MakeDirty(i);
-                PrimaryI.Info[i].Index = registries[regInd].RetrieveIndex(SerializedNames[PrimaryI.Info[i].Index]);
             }
             for(uint i = 0; i < SecondaryI.Info.Length; i++){
-                if(SecondaryI.Info[i].IsNull) continue;
-                int regInd = SecondaryI.Info[i].IsItem ? 1 : 0;
+                if(SecondaryI.Info[i] == null) continue;
+                SecondaryI.Info[i].Deserialize(OnDeserialize);
                 SecondaryI.MakeDirty(i);
-                SecondaryI.Info[i].Index = registries[regInd].RetrieveIndex(SerializedNames[SecondaryI.Info[i].Index]);
             }
         }
 

@@ -6,6 +6,9 @@ using System.Runtime.InteropServices;
 using Unity.Burst;
 using System;
 using Newtonsoft.Json;
+using static InventoryController;
+using System.Runtime.Serialization;
+using Unity.Services.Analytics;
 
 [CreateAssetMenu(menuName = "Entity/Item")]
 public class EItem : EntityAuthoring
@@ -28,7 +31,6 @@ public class EItem : EntityAuthoring
     public override Entity.Info.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
     [JsonIgnore]
     public override ProfileE[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
-
     [Serializable]
     public struct EItemSetting : IEntitySetting{
         public float GroundStickDist;
@@ -37,7 +39,6 @@ public class EItem : EntityAuthoring
         public float AlphaClip;
         public float ExtrudeHeight;
         public TerrainColliderJob.Settings collider;
-
     }
 
     [BurstCompile]
@@ -46,14 +47,15 @@ public class EItem : EntityAuthoring
     public struct EItemEntity : IEntity
     {  
         //This is the real-time position streamed by the controller
-        public int3 GCoord; 
-        public InventoryController.Inventory.Slot item;
         public TerrainColliderJob tCollider;
         public Unity.Mathematics.Random random;
+        public int3 GCoord; 
         public bool isPickedUp;
+        public ItemInfo item;
 
         public static readonly SharedStatic<EItemSetting> _settings = SharedStatic<EItemSetting>.GetOrCreate<EItemEntity, EItemSetting>();
         public static EItemSetting settings{get => _settings.Data; set => _settings.Data = value;}
+        
         public unsafe readonly void Preset(IEntitySetting setting){
             settings = (EItemSetting)setting;
         }
@@ -68,7 +70,6 @@ public class EItem : EntityAuthoring
             entity._Disable = BurstCompiler.CompileFunctionPointer<IEntity.DisableDelegate>(Disable);
             entity.obj = Marshal.AllocHGlobal(Marshal.SizeOf(this));
 
-            item = new InventoryController.Inventory.Slot();
             tCollider.transform.position = GCoord;
             isPickedUp = false;
 
@@ -78,12 +79,15 @@ public class EItem : EntityAuthoring
             return nEntity;
         }
 
-        public EItemEntity(TerrainColliderJob.Transform origin, InventoryController.Inventory.Slot item){
-            this.item = item; this.random = default;
+        public unsafe EItemEntity(TerrainColliderJob.Transform origin, ISlot item){
             tCollider.transform = origin;
             tCollider.velocity = 0;
             GCoord = (int3)origin.position;
+            
             isPickedUp = false;
+            this.random = default;
+            this.item = new ItemInfo(item);
+
         }
 
         public unsafe IntPtr Deserialize(ref Entity entity, out int3 GCoord)
@@ -116,11 +120,75 @@ public class EItem : EntityAuthoring
             item->tCollider.Update(*context, settings.collider);
         }
 
+
         [BurstCompile]
         public unsafe static void Disable(Entity* entity){
             entity->active = false;
         }
 
+        public unsafe struct ItemInfo{
+            [JsonIgnore]
+            public IntPtr info;
+            [JsonIgnore]
+            public IntPtr type;
+
+            [JsonIgnore]
+            public ISlot Slot{
+                readonly get{   
+                    ISlot nSlot = (ISlot)Marshal.PtrToStructure(info, typeof(MaterialItem));
+                    string type = Type; nSlot.Deserialize((int _) => type);
+                    return nSlot;
+                } 
+                set {
+                    string tType = ""; 
+                    value.Serialize((string name) => {
+                        tType = name; 
+                        return 0;
+                    }); Type = tType; 
+
+                    if(info != IntPtr.Zero) Marshal.FreeHGlobal(info);
+                    info = Marshal.AllocHGlobal(Marshal.SizeOf(value));
+                    Marshal.StructureToPtr(value, info, false);
+                }
+            }
+            public string Type{
+                readonly get => new((char*)type);
+                set {
+                    if(type != IntPtr.Zero) Marshal.FreeHGlobal(type);
+                    char* nType = (char*)Marshal.AllocHGlobal((value.Length+1) * sizeof(char));
+                    for(int i = 0; i < value.Length; i++){ nType[i] = value[i];}
+                    nType[value.Length] = '\0'; 
+                    type = (IntPtr)nType;
+                }
+            }
+
+            //Json Serialization of Slot
+            [JsonProperty("Slot")]
+            private ISlot SerialSlot{
+                readonly get{
+                    if(info == IntPtr.Zero) return null;
+                    return (ISlot)Marshal.PtrToStructure(info, typeof(MaterialItem));
+                } set {
+                    string type = Type;
+                    value.Deserialize((int _) => type);
+                    if(info != IntPtr.Zero) Marshal.FreeHGlobal(info);
+                    info = Marshal.AllocHGlobal(Marshal.SizeOf(value));
+                    Marshal.StructureToPtr(value, info, false);
+                }
+            }
+
+
+            public ItemInfo(ISlot slot){
+                info = IntPtr.Zero; type = IntPtr.Zero;
+                Slot = slot;
+            }
+
+            public void Dispose(){
+                if(info != IntPtr.Zero) Marshal.FreeHGlobal(info);
+                if(type != IntPtr.Zero) Marshal.FreeHGlobal((IntPtr)type);
+                info = IntPtr.Zero; type = IntPtr.Zero;
+            }
+        }
     }
 }
 

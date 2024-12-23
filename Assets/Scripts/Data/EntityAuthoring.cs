@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Burst;
 using UnityEditor;
+using System.Collections.Generic;
 
 public abstract class EntityAuthoring : ScriptableObject{
     //Managed Memory
@@ -60,7 +61,10 @@ public interface IEntity{
     public unsafe delegate void DisableDelegate(Entity* entity);
 }
 
-public interface IEntitySetting{} 
+public interface IEntitySetting
+{
+    
+}
 
 public struct EntitySerial{
     public string type;

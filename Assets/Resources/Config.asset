@@ -190,7 +190,7 @@ MonoBehaviour:
           terraformSpeed: 100
           maxTerraformDistance: 60
           PickupRadius: 2
-          CursorSize: 2
+          CursorSize: 1
           CursorColor: {r: 0.012440997, g: 0.5660378, b: 0, a: 1}
           ShowCursor: 1
         isDirty: 0
@@ -315,7 +315,7 @@ MonoBehaviour:
                   IsAlias: 0
                 - Key: 303
                   PollType: 2
-                  IsAlias: 1
+                  IsAlias: 0
                 isDirty: 0
             isDirty: 0
         - Name: Open Inventory

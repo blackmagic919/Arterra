@@ -22,7 +22,7 @@ MonoBehaviour:
       movement:
         GroundStickDist: 0.05
         moveSpeed: 1.25
-        acceleration: 50
+        acceleration: 200
         friction: 0.075
         rotSpeed: 180
         pathDistance: 31

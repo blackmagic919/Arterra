@@ -27,7 +27,7 @@ public class ItemController : EntityController
         meshRenderer = gameObject.GetComponent<MeshRenderer>();
         meshFilter = gameObject.GetComponent<MeshFilter>();
         SpriteExtruder.Extrude(new SpriteExtruder.ExtrudeSettings{
-            ImageIndex = item->item.Index,
+            ImageIndex = item->item.Slot.TextureIndex,
             SampleSize = settings.SpriteSampleSize,
             AlphaClip = settings.AlphaClip,
             ExtrudeHeight = settings.ExtrudeHeight,
@@ -61,6 +61,7 @@ public class ItemController : EntityController
         if(!active) return;
         active = false;
 
+        item->item.Dispose();
         EntityManager.ESTree.Delete((int)entity->info.SpatialId);
         Marshal.FreeHGlobal((IntPtr)item);
         Marshal.FreeHGlobal((IntPtr)entity);

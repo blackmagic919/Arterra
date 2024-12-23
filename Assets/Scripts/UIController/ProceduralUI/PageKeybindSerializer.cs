@@ -15,8 +15,8 @@ using static PaginatedUIEditor;
 public class PageKeybindSerializer : IConverter{
     private readonly Dictionary<KeyBind.BindPoll, Color> ConditionColors = new (){
         {KeyBind.BindPoll.Axis, Color.blue},
-        {KeyBind.BindPoll.Down, Color.gray},
-        {KeyBind.BindPoll.Hold, Color.green},
+        {KeyBind.BindPoll.Down, Color.green},
+        {KeyBind.BindPoll.Hold, Color.gray},
         {KeyBind.BindPoll.Up, Color.red},
         {KeyBind.BindPoll.Exclude, Color.black}
     };

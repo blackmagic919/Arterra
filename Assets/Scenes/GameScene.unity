@@ -168,7 +168,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Layer: 1
-  viewer: {fileID: 0}
 --- !u!1 &948652262
 GameObject:
   m_ObjectHideFlags: 0

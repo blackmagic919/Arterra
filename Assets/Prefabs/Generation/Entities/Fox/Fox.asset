@@ -16,27 +16,13 @@ MonoBehaviour:
     value: {fileID: 226241877390661924, guid: 1904b7349e8b640d7bb34de76d6ab011, type: 3}
     isDirty: 0
   _Entity:
-    value:
-      GCoord:
-        x: 0
-        y: 0
-        z: 0
-      TaskIndex: 0
-      TaskDuration: 0
-      tCollider:
-        velocity:
-          x: 0
-          y: 0
-          z: 0
-      random:
-        state: 0
     isDirty: 0
   _Setting:
     value:
       movement:
         GroundStickDist: 0.05
-        moveSpeed: 2
-        acceleration: 50
+        moveSpeed: 3
+        acceleration: 200
         friction: 0.075
         rotSpeed: 180
         pathDistance: 31
@@ -85,5 +71,5 @@ MonoBehaviour:
         x: 2
         y: 3
         z: 2
-      profileStart: 24
+      profileStart: 12
     isDirty: 0

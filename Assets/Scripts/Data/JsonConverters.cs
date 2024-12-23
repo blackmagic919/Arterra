@@ -314,7 +314,4 @@ public class PathConverter : JsonConverter<PathFinder.PathInfo>
         return path;
     }
 }
-
-
-
 }

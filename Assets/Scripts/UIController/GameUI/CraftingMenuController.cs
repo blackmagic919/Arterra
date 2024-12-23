@@ -140,8 +140,8 @@ public class CraftingMenuController : UpdateTask
         });
     }
 
-    public static bool CraftRecipe(out InventoryController.Inventory.Slot result){
-        result = new InventoryController.Inventory.Slot();
+    public static bool CraftRecipe(out InventoryController.ISlot result){
+        result = null;
         if(FitRecipe == -1) return false;
 
         Recipe recipe = Recipe.Table[FitRecipe];
@@ -153,16 +153,11 @@ public class CraftingMenuController : UpdateTask
                 return false;
         }
         if(recipe.result.IsItem){
-            result = new InventoryController.Inventory.Slot{
-                IsItem = true,
-                Index = recipe.ResultMat,
-                AmountRaw = (int)math.round(recipe.result.Multiplier)
-            };
+            //To Be Implemented
         } else {
             int amount = 0;
             for(int i = 0; i < GridCount; i++){ amount += craftingData[i].density; }
-            result = new InventoryController.Inventory.Slot{
-                IsItem = false,
+            result = new MaterialItem(){
                 IsSolid = recipe.result.IsSolid,
                 Index = recipe.ResultMat,
                 AmountRaw = (int)math.min(math.round(recipe.result.Multiplier * amount), 0x7FFF)
@@ -230,8 +225,8 @@ public class CraftingMenuController : UpdateTask
     public static void Deactivate(){
         Instance.active = false;
         for(int i = 0; i < GridCount; i++){
-            InventoryController.AddEntry(new InventoryController.Inventory.Slot{
-                IsItem = false,
+            if(craftingData[i].density == 0) continue;
+            InventoryController.AddEntry(new MaterialItem(){
                 IsSolid = craftingData[i].viscosity != 0,
                 Index = craftingData[i].material,
                 AmountRaw = craftingData[i].density
@@ -253,11 +248,11 @@ public class CraftingMenuController : UpdateTask
         brushStrength *= settings.CraftSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
-        InventoryController.Inventory.Slot selected = InventoryController.Selected;
-        if(selected.IsItem || selected.IsNull) return pointInfo;
+        InventoryController.ISlot sSlot = InventoryController.Selected;
+        if(sSlot == null || sSlot is not MaterialItem) return pointInfo;
+        MaterialItem selected = (MaterialItem)sSlot;
         if(pointInfo.IsGaseous && pointInfo.material != selected.Index){
-            InventoryController.AddEntry(new InventoryController.Inventory.Slot{
-                IsItem = false,
+            InventoryController.AddEntry(new MaterialItem{
                 IsSolid = pointInfo.viscosity != 0,
                 Index = pointInfo.material,
                 AmountRaw = pointInfo.density
@@ -272,7 +267,7 @@ public class CraftingMenuController : UpdateTask
             deltaDensity = InventoryController.RemoveMaterial(deltaDensity);
 
             pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
-            if(InventoryController.Selected.IsSolid) pointInfo.viscosity = pointInfo.density;
+            if(selected.IsSolid) pointInfo.viscosity = pointInfo.density;
             if(pointInfo.IsSolid || pointInfo.IsLiquid) pointInfo.material = (int)selected.Index;
         }
         return pointInfo;
@@ -283,13 +278,12 @@ public class CraftingMenuController : UpdateTask
         if(brushStrength == 0) return pointInfo;
 
         int deltaDensity = GetStaggeredDelta(pointInfo.density, -brushStrength);
-        int newDens = InventoryController.AddEntry(new InventoryController.Inventory.Slot{
-            IsItem = false,
+        InventoryController.ISlot nItem = new MaterialItem{
             IsSolid = pointInfo.viscosity != 0,
             Index = pointInfo.material,
             AmountRaw = deltaDensity
-        });
-        deltaDensity = newDens;
+        }; InventoryController.AddEntry(nItem);
+        deltaDensity -= nItem.AmountRaw;
 
         pointInfo.density -= deltaDensity;
         pointInfo.viscosity = math.min(pointInfo.viscosity, pointInfo.density);

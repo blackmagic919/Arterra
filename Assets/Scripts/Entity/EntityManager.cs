@@ -102,6 +102,7 @@ public static class EntityManager
         newEntity.info.entityType = genInfo.entityIndex;
         newEntity.active = true;
         EntityIndex[newEntity.info.entityId] = entityInd;
+        HandlerEvents = null;
         
         IntPtr entity = authoring.Entity.Initialize(ref newEntity, GCoord);
         EntityHandler.Add(entity);

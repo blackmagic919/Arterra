@@ -65,8 +65,7 @@ public class RigidFPController : MonoBehaviour
         float3 posGS = CPUDensityManager.WSToGS(this.transform.position) + tCollider.offset;
         if(tCollider.SampleCollision(posGS, new float3(tCollider.size.x, -Setting.groundStickDist, tCollider.size.z), out _)){
             tCollider.velocity.y *= 1 - Setting.GroundFriction;
-            tCollider.useGravity = false;
-        }else tCollider.useGravity = true;
+        }
         tCollider.velocity.xz *= 1 - Setting.GroundFriction;
 
         if(math.length(tCollider.velocity.xz) < Setting.runSpeed) 
