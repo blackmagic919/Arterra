@@ -18,6 +18,7 @@ public static class RegisterBuilder{
         WorldStorageHandler.WORLD_OPTIONS.Generation.Structures.Construct();
         WorldStorageHandler.WORLD_OPTIONS.Generation.Entities.Construct();
         WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary.Construct();
+        WorldStorageHandler.WORLD_OPTIONS.Generation.Items.Construct();
     }
 }
 [Serializable]
@@ -31,6 +32,7 @@ public struct Registry<T> : IRegister, ICloneable
 
     public void Construct(){
         Index = new Dictionary<string, int>();
+        Reg.value ??= new List<Pair>();
         for(int i = 0; i < Reg.value.Count; i++){
             Index.Add(Reg.value[i].Name, i);
         }
@@ -50,10 +52,39 @@ public struct Registry<T> : IRegister, ICloneable
         return Reg.value[index].Value;
     }
     public readonly bool Contains(string name){
+        if(Index == null) return false;
         return Index.ContainsKey(name);
     }
     public readonly bool Contains(int index){
         return index >= 0 && index < Reg.value.Count;
+    }
+    public void Add(string name, T value){
+        Reg.value ??= new List<Pair>();
+        Index ??= new Dictionary<string, int>();
+
+        Reg.value.Add(new Pair{Name = name, _value = new Option<T>{value = value}});
+        Index.Add(name, Reg.value.Count - 1);
+    }
+
+    public bool TryRemove(string name){
+        if(Reg.value == null || Index == null) return false;
+        if(!Index.ContainsKey(name)) return false;
+
+        Reg.value.RemoveAt(Index[name]);
+        Index.Remove(name);
+        Construct(); //Rebuild the index
+        return true;
+    }
+
+    public readonly bool TrySet(string name, T value){
+        if(Reg.value == null || Index == null) return false;
+        if(!Index.ContainsKey(name)) return false;
+
+        int index = Index[name];
+        var tPair = Reg.value[index];
+        tPair._value.value = value;
+        Reg.value[index] = tPair;
+        return true;
     }
 
     public object Clone(){
@@ -66,7 +97,7 @@ public struct Registry<T> : IRegister, ICloneable
         [UISetting(Alias = "Value")]
         public Option<T> _value;
         [JsonIgnore]
-        public T Value => _value.value;
+        public readonly T Value => _value.value;
 
         public object Clone(){
             return new Pair{
@@ -82,6 +113,10 @@ public interface IRegister{
     public abstract void Construct();
     public abstract string RetrieveName(int index);
     public abstract int RetrieveIndex(string name);
+    public abstract bool Contains(string name);
+    public abstract bool Contains(int index);
+    public abstract object Clone();
+    
 }
 
 

@@ -2641,7 +2641,7 @@ MonoBehaviour:
   Materials:
     value:
     - Air
-    - Bark
+    - Wood
     - Leaf
     - Grass
     isDirty: 0

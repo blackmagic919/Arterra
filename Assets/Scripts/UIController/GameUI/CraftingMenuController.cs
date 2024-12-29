@@ -140,7 +140,7 @@ public class CraftingMenuController : UpdateTask
         });
     }
 
-    public static bool CraftRecipe(out InventoryController.ISlot result){
+    public static bool CraftRecipe(out IItem result){
         result = null;
         if(FitRecipe == -1) return false;
 
@@ -152,17 +152,12 @@ public class CraftingMenuController : UpdateTask
             if(material != recipe.EntryMat(i)) 
                 return false;
         }
-        if(recipe.result.IsItem){
-            //To Be Implemented
-        } else {
-            int amount = 0;
-            for(int i = 0; i < GridCount; i++){ amount += craftingData[i].density; }
-            result = new MaterialItem(){
-                IsSolid = recipe.result.IsSolid,
-                Index = recipe.ResultMat,
-                AmountRaw = (int)math.min(math.round(recipe.result.Multiplier * amount), 0x7FFF)
-            };
-        }
+
+        int amount = 0;
+        for(int i = 0; i < GridCount; i++){ amount += craftingData[i].density; }
+        result = recipe.ResultItem;
+        result.Index = recipe.ResultIndex;
+        result.AmountRaw = (int)math.min(math.round(recipe.result.Multiplier * amount), 0x7FFF);
         return true;
     }
 
@@ -222,15 +217,23 @@ public class CraftingMenuController : UpdateTask
         craftingMenu.SetActive(true);
     }
 
+    private static IItem InventoryAddMapData(MapData data){
+        var matInfo = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+        var itemInfo = WorldStorageHandler.WORLD_OPTIONS.Generation.Items;
+        MaterialData material = matInfo.Retrieve(data.material);
+        string itemKey = data.viscosity != 0 ? material.SolidItem : material.LiquidItem;
+        IItem item = itemInfo.Retrieve(itemKey).Item;
+        item.Index = itemInfo.RetrieveIndex(itemKey);
+        item.AmountRaw = data.density;
+        InventoryController.AddEntry(item);
+        return item;
+    }
+
     public static void Deactivate(){
         Instance.active = false;
         for(int i = 0; i < GridCount; i++){
             if(craftingData[i].density == 0) continue;
-            InventoryController.AddEntry(new MaterialItem(){
-                IsSolid = craftingData[i].viscosity != 0,
-                Index = craftingData[i].material,
-                AmountRaw = craftingData[i].density
-            });
+            InventoryAddMapData(craftingData[i]);
         }
 
         craftingMenu.SetActive(false);
@@ -247,28 +250,26 @@ public class CraftingMenuController : UpdateTask
     static MapData HandleAddConservative(MapData pointInfo, float brushStrength){
         brushStrength *= settings.CraftSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
+        if(InventoryController.Selected == null) return pointInfo;
 
-        InventoryController.ISlot sSlot = InventoryController.Selected;
-        if(sSlot == null || sSlot is not MaterialItem) return pointInfo;
-        MaterialItem selected = (MaterialItem)sSlot;
-        if(pointInfo.IsGaseous && pointInfo.material != selected.Index){
-            InventoryController.AddEntry(new MaterialItem{
-                IsSolid = pointInfo.viscosity != 0,
-                Index = pointInfo.material,
-                AmountRaw = pointInfo.density
-            });
+        var matInfo = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+        ItemAuthoring sItemSetting = InventoryController.SelectedSetting;
+        int selected = matInfo.RetrieveIndex(sItemSetting.MaterialName);
+
+        if(pointInfo.IsGaseous && pointInfo.material != selected){
+            InventoryAddMapData(pointInfo);
 
             pointInfo.density = InventoryController.RemoveMaterial(pointInfo.density);
-            pointInfo.viscosity = selected.IsSolid ? pointInfo.density : 0;
-            pointInfo.material = (int)selected.Index;
-        }else if(pointInfo.material == selected.Index){
+            pointInfo.viscosity = sItemSetting.IsSolid ? pointInfo.density : 0;
+            pointInfo.material = selected;
+        }else if(pointInfo.material == selected){
             //If adding solid density, override water
             int deltaDensity = GetStaggeredDelta(pointInfo.density, brushStrength);
             deltaDensity = InventoryController.RemoveMaterial(deltaDensity);
 
             pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
-            if(selected.IsSolid) pointInfo.viscosity = pointInfo.density;
-            if(pointInfo.IsSolid || pointInfo.IsLiquid) pointInfo.material = (int)selected.Index;
+            if(sItemSetting.IsSolid) pointInfo.viscosity = pointInfo.density;
+            if(pointInfo.IsSolid || pointInfo.IsLiquid) pointInfo.material = selected;
         }
         return pointInfo;
     }
@@ -278,11 +279,7 @@ public class CraftingMenuController : UpdateTask
         if(brushStrength == 0) return pointInfo;
 
         int deltaDensity = GetStaggeredDelta(pointInfo.density, -brushStrength);
-        InventoryController.ISlot nItem = new MaterialItem{
-            IsSolid = pointInfo.viscosity != 0,
-            Index = pointInfo.material,
-            AmountRaw = deltaDensity
-        }; InventoryController.AddEntry(nItem);
+        IItem nItem = InventoryAddMapData(pointInfo);
         deltaDensity -= nItem.AmountRaw;
 
         pointInfo.density -= deltaDensity;

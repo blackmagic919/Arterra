@@ -1427,7 +1427,7 @@ MonoBehaviour:
     value:
     - Air
     - Leaf
-    - Bark
+    - Wood
     - Dirt
     - Grass
     isDirty: 0

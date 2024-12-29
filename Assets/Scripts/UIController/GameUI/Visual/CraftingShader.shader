@@ -54,6 +54,7 @@ Shader "Unlit/CraftingShader"
             };
 
             struct matTerrain{
+                int texIndex;
                 float4 baseColor;
                 float baseTextureScale;
                 float baseColorStrength;
@@ -106,7 +107,7 @@ Shader "Unlit/CraftingShader"
                 float textureU = uv.x / matData.baseTextureScale;
                 float textureV = uv.y / matData.baseTextureScale;
             
-                float3 textureColor = _Textures.Sample(sampler_Textures, float3(textureU, textureV, index));
+                float3 textureColor = _Textures.Sample(sampler_Textures, float3(textureU, textureV, matData.texIndex));
             
                 return color * colorStrength + textureColor * (1-colorStrength);
             }

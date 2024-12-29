@@ -40,13 +40,13 @@ public class RigidFPController : MonoBehaviour
         active = false;
 
         InputDir = float2.zero;
-        InputPoller.AddBinding("Move Vertical", "GamePlay", (float y) => InputDir.y = y);
-        InputPoller.AddBinding("Move Horizontal", "GamePlay", (float x) => InputDir.x = x);
-        InputPoller.AddBinding("Jump", "GamePlay", (_null_) => {
+        InputPoller.AddBinding(new InputPoller.ActionBind("Move Vertical",(float y) => InputDir.y = y), "4.0::Movement");
+        InputPoller.AddBinding(new InputPoller.ActionBind("Move Horizontal", (float x) => InputDir.x = x), "4.0::Movement");
+        InputPoller.AddBinding(new InputPoller.ActionBind("Jump", (_null_) => {
             float3 posGS = CPUDensityManager.WSToGS(this.transform.position) + tCollider.offset;
             if(tCollider.SampleCollision(posGS, new float3(tCollider.size.x, -Setting.groundStickDist, tCollider.size.z), out _))
                 tCollider.velocity += Setting.jumpForce * (float3)Vector3.up;
-        });
+        }), "4.0::Movement");
     }
 
     public void ActivateCharacter()

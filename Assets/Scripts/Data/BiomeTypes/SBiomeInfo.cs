@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace Biome{
-[CreateAssetMenu(menuName = "Generation/SurfaceBiome")]
+[CreateAssetMenu(menuName = "Generation/Biomes/SurfaceBiome")]
 public class SBiomeInfo : CInfo<SurfaceBiome> {}
 
 [Serializable][StructLayout(LayoutKind.Sequential)]

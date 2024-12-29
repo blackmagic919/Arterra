@@ -126,7 +126,7 @@ public class OctreeTerrain : MonoBehaviour
             UpdateTask task = taskQueue.Dequeue();
             if(!task.active)
                 continue;
-            task.Update(this);
+                task.Update(this);
             taskQueue.Enqueue(task);
         }
     }

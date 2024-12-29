@@ -27,7 +27,7 @@ public class ItemController : EntityController
         meshRenderer = gameObject.GetComponent<MeshRenderer>();
         meshFilter = gameObject.GetComponent<MeshFilter>();
         SpriteExtruder.Extrude(new SpriteExtruder.ExtrudeSettings{
-            ImageIndex = item->item.Slot.TextureIndex,
+            ImageIndex = item->item.Slot.TexIndex,
             SampleSize = settings.SpriteSampleSize,
             AlphaClip = settings.AlphaClip,
             ExtrudeHeight = settings.ExtrudeHeight,

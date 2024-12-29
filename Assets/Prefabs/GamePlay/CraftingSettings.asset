@@ -26,8 +26,8 @@ MonoBehaviour:
           value:
             Names:
               value:
-              - Plank
-              - Bark
+              - Plank:Solid
+              - Wood
               isDirty: 0
             entry:
               value:
@@ -49,15 +49,15 @@ MonoBehaviour:
               - data: 2147483648
               isDirty: 0
             result:
-              data: 1073742844
+              data: 1020
           isDirty: 0
       - Name: Hardwood
         _value:
           value:
             Names:
               value:
-              - Hardwood
-              - Bark
+              - Hardwood:Solid
+              - Wood
               isDirty: 0
             entry:
               value:
@@ -79,14 +79,14 @@ MonoBehaviour:
               - data: 2147483648
               isDirty: 0
             result:
-              data: 1073742015
+              data: 191
           isDirty: 0
       - Name: Furnace
         _value:
           value:
             Names:
               value:
-              - Furnace
+              - Furnace:Solid
               - Stone
               isDirty: 0
             entry:
@@ -109,14 +109,14 @@ MonoBehaviour:
               - data: 104086
               isDirty: 0
             result:
-              data: 1073742079
+              data: 255
           isDirty: 0
       - Name: Chest
         _value:
           value:
             Names:
               value:
-              - Chest
+              - Chest:Solid
               - Plank
               isDirty: 0
             entry:
@@ -139,14 +139,14 @@ MonoBehaviour:
               - data: 104086
               isDirty: 0
             result:
-              data: 1073741952
+              data: 128
           isDirty: 0
       - Name: Sandstone
         _value:
           value:
             Names:
               value:
-              - Sandstone
+              - Sandstone:Solid
               - Sand
               isDirty: 0
             entry:
@@ -169,14 +169,14 @@ MonoBehaviour:
               - data: 2147483648
               isDirty: 0
             result:
-              data: 1073742079
+              data: 255
           isDirty: 0
       - Name: Compost
         _value:
           value:
             Names:
               value:
-              - Compost
+              - Compost:Solid
               - Grass
               isDirty: 0
             entry:
@@ -199,14 +199,14 @@ MonoBehaviour:
               - data: 2147483648
               isDirty: 0
             result:
-              data: 1073742079
+              data: 255
           isDirty: 0
       - Name: Cement
         _value:
           value:
             Names:
               value:
-              - Cement
+              - Cement:Solid
               - Sand
               - Water
               isDirty: 0
@@ -230,14 +230,14 @@ MonoBehaviour:
               - data: 2147483648
               isDirty: 0
             result:
-              data: 1073742334
+              data: 510
           isDirty: 0
       - Name: Brick
         _value:
           value:
             Names:
               value:
-              - Brick
+              - Brick:Solid
               - Stone
               - Cement
               isDirty: 0
@@ -261,6 +261,67 @@ MonoBehaviour:
               - data: 169622
               isDirty: 0
             result:
-              data: 1073742079
+              data: 255
+          isDirty: 0
+      - Name: Bucket
+        _value:
+          value:
+            Names:
+              value:
+              - Bucket
+              - Wood
+              isDirty: 0
+            entry:
+              value:
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 2147490073
+              - data: 2147490073
+              - data: 2147490073
+              - data: 104086
+              - data: 2147490073
+              - data: 2147490073
+              - data: 2147490073
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              - data: 104086
+              isDirty: 0
+            result:
+              data: 255
+          isDirty: 0
+      - Name: Brush
+        _value:
+          value:
+            Names:
+              value:
+              - Brush
+              - Wood
+              - Sand
+              isDirty: 0
+            entry:
+              value:
+              - data: 104086
+              - data: 2147515773
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147515773
+              - data: 104086
+              - data: 2147515773
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147515773
+              - data: 104086
+              - data: 2147515773
+              - data: 2147483648
+              - data: 2147483648
+              - data: 2147515773
+              - data: 169622
+              isDirty: 0
+            result:
+              data: 255
           isDirty: 0
       isDirty: 0

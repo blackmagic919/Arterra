@@ -59,8 +59,9 @@ public class WorldOptions : ScriptableObject{
         public Option<SurfaceCreatorSettings> Surface;
         public Option<Biome.GenerationData> Biomes;
         public Registry<StructureData> Structures;
-        public Option<TextureData> Materials;
+        public Option<MaterialGeneration> Materials;
         public Registry<EntityAuthoring> Entities;
+        public Registry<ItemAuthoring> Items;
     }
 
     //These settings may change during gameplay so reference through direct getter functions
@@ -69,7 +70,7 @@ public class WorldOptions : ScriptableObject{
         [UISetting(Message = "Controls How The Player Interacts With The World")]
         public Option<TerraformSettings> Terraforming;
         public Option<RigidFPController.RigidFPControllerSettings> Movement;
-        public Option<List<Registry<InputPoller.KeyBind>.Pair>> Input;
+        public Registry<InputPoller.KeyBind> Input;
         public Option<CraftingMenuSettings> Crafting;
         public Option<InventoryController.Settings> Inventory;
         public Option<DayNightContoller.Settings> DayNightCycle;
@@ -78,6 +79,7 @@ public class WorldOptions : ScriptableObject{
     [Serializable]
     public struct SystemSettings{
         public Option<ReadbackSettings> ReadBack;
+        public Registry<int> LayerHeads;
     }
 
     [OnDeserialized]

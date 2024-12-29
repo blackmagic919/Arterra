@@ -1,6 +1,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
 struct matTerrain{
+    int textureIndex;
     float4 baseColor;
     float baseTextureScale;
     float baseColorStrength;
@@ -95,9 +96,10 @@ float3 frag (v2f IN) : SV_Target
     blendAxes /= blendAxes.x + blendAxes.y + blendAxes.z;
 
     int material = IN.material;
-    float3 baseColor = _MatTerrainData[material].baseColor.xyz;
-    float3 textureColor = triplanar(IN.positionWS, _MatTerrainData[material].baseTextureScale, blendAxes, material);
-    float colorStrength = _MatTerrainData[material].baseColorStrength;
+    matTerrain tInfo =  _MatTerrainData[material];
+    float3 baseColor = tInfo.baseColor.xyz;
+    float colorStrength = tInfo.baseColorStrength;
+    float3 textureColor = triplanar(IN.positionWS, tInfo.baseTextureScale, blendAxes, tInfo.textureIndex);
 
     InputData lightingInput = (InputData)0;
 	lightingInput.positionWS = IN.positionWS;

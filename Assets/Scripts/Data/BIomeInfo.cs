@@ -12,7 +12,7 @@ public class CInfo<TCond> : Info where TCond : IBiomeCondition{
     public Option<TCond> BiomeConditions;
     public void OnValidate(){ BiomeConditions.value.Validate(); }
 }
-[CreateAssetMenu(menuName = "Generation/BiomeInfo")]
+[CreateAssetMenu(menuName = "Generation/Biomes/BiomeInfo")]
 public class Info : ScriptableObject
 {
 

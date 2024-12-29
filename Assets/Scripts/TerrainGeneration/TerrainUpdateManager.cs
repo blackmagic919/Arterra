@@ -15,7 +15,7 @@ public static class TerrainUpdateManager
     public static TerrainUpdate Executor;
     private static MaterialData[] MaterialDictionary;
 
-    const int MAX_UPDATE_COUNT = 5000; //10k
+    const int MAX_UPDATE_COUNT = 5000; 
     const int UPDATE_FREQ = 4;
     private static int numPointsAxis;
     private static int UpdateTick;

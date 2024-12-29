@@ -115,7 +115,7 @@ public struct TerrainColliderJob
         int corner = (int)(math.floor(pos) + math.max(normal, 0));
         float cDen = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, corner)), cxt);
         if(cDen >= density) return 0;
-        return (cxt.IsoValue - density) / (cDen - density) * math.abs(corner - pos);
+        return math.clamp((cxt.IsoValue - density) / (cDen - density), 0, 1) * math.abs(corner - pos);
     }
     [BurstCompile]
     public readonly float BilinearGradientLength(float density, float2 pos, float2 normal, in int3x3 transform, int axis, in MapContext cxt){
@@ -131,7 +131,7 @@ public struct TerrainColliderJob
         else eDen = LinearDensity(pos.x, transform, new int2((int)pos.y, axis), cxt); 
         if(eDen >= density) return 0;
 
-        return  (cxt.IsoValue - density) / (eDen - density) * t;
+        return  math.clamp((cxt.IsoValue - density) / (eDen - density), 0, 1) * t;
     }
 
     [BurstCompile]
@@ -149,7 +149,7 @@ public struct TerrainColliderJob
         else{fDen = BilinearDensity(pos.x, pos.y, XYPlane, (int)pos.z, cxt);}
         if(fDen >= density) return 0;
 
-        return (cxt.IsoValue - density) / (fDen - density) * t;
+        return math.clamp((cxt.IsoValue - density) / (fDen - density), 0, 1) * t;
     }
     [BurstCompile]
     private readonly float LinearDensity(float t, in int3x3 transform, in int2 plane, in MapContext cxt){

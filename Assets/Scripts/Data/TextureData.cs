@@ -6,7 +6,7 @@ using static WorldOptions;
 using Newtonsoft.Json;
 
 [CreateAssetMenu(menuName = "Settings/TextureDict")]
-public class TextureData : ScriptableObject
+public class MaterialGeneration : ScriptableObject
 {
     [SerializeField]
     public Registry<MaterialData> MaterialDictionary;

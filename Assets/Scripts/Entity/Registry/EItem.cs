@@ -20,6 +20,7 @@ public class EItem : EntityAuthoring
     public Option<EItemSetting> _Setting;
     public Option<List<ProfileE> > _Profile;
     public Option<Entity.Info.ProfileInfo> _Info;
+    public static Registry<ItemAuthoring> ItemRegistry => WorldStorageHandler.WORLD_OPTIONS.Generation.Items;
     
     [JsonIgnore]
     public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
@@ -79,7 +80,7 @@ public class EItem : EntityAuthoring
             return nEntity;
         }
 
-        public unsafe EItemEntity(TerrainColliderJob.Transform origin, ISlot item){
+        public unsafe EItemEntity(TerrainColliderJob.Transform origin, IItem item){
             tCollider.transform = origin;
             tCollider.velocity = 0;
             GCoord = (int3)origin.position;
@@ -133,52 +134,62 @@ public class EItem : EntityAuthoring
             public IntPtr type;
 
             [JsonIgnore]
-            public ISlot Slot{
+            public IItem Slot{
                 readonly get{   
-                    ISlot nSlot = (ISlot)Marshal.PtrToStructure(info, typeof(MaterialItem));
-                    string type = Type; nSlot.Deserialize((int _) => type);
+                    string SerialType = Type; //first part of type is the actual type
+                    string tType = SerialType.Split("::")[0];
+                    if(!ItemRegistry.Contains(tType)) return null;
+                    Type itemType = ItemRegistry.Retrieve(tType).Item.GetType();
+                    IItem nSlot = JsonConvert.DeserializeObject(new string((char*)info), itemType) as IItem;
+                    nSlot.Deserialize((int _) => SerialType);
                     return nSlot;
                 } 
                 set {
-                    string tType = ""; 
+                    string SerialType = ""; 
                     value.Serialize((string name) => {
-                        tType = name; 
+                        SerialType = name; 
                         return 0;
-                    }); Type = tType; 
+                    }); Type = SerialType; 
 
                     if(info != IntPtr.Zero) Marshal.FreeHGlobal(info);
-                    info = Marshal.AllocHGlobal(Marshal.SizeOf(value));
-                    Marshal.StructureToPtr(value, info, false);
+                    info = (IntPtr)StrToUnmanaged(JsonConvert.SerializeObject(value));
+
                 }
             }
             public string Type{
                 readonly get => new((char*)type);
                 set {
                     if(type != IntPtr.Zero) Marshal.FreeHGlobal(type);
-                    char* nType = (char*)Marshal.AllocHGlobal((value.Length+1) * sizeof(char));
-                    for(int i = 0; i < value.Length; i++){ nType[i] = value[i];}
-                    nType[value.Length] = '\0'; 
-                    type = (IntPtr)nType;
+                    type = (IntPtr)StrToUnmanaged(value);
                 }
             }
 
             //Json Serialization of Slot
             [JsonProperty("Slot")]
-            private ISlot SerialSlot{
+            private IItem SerialSlot{
                 readonly get{
-                    if(info == IntPtr.Zero) return null;
-                    return (ISlot)Marshal.PtrToStructure(info, typeof(MaterialItem));
+                    //Json-Deserialization calls this, but we don't have enough info to call getter
+                    //without having called setter first, so we ignore it(if info is NULL)
+                    if(info == IntPtr.Zero) return null; 
+                    Type itemType = ItemRegistry.Retrieve(Type.Split("::")[0]).Item.GetType(); 
+                    return JsonConvert.DeserializeObject(new string((char*)info), itemType) as IItem;
                 } set {
-                    string type = Type;
-                    value.Deserialize((int _) => type);
+                    string SerialType = Type; //first part of type is the actual type
+                    value.Deserialize((int _) => SerialType);
                     if(info != IntPtr.Zero) Marshal.FreeHGlobal(info);
-                    info = Marshal.AllocHGlobal(Marshal.SizeOf(value));
-                    Marshal.StructureToPtr(value, info, false);
+                    info = (IntPtr)StrToUnmanaged(JsonConvert.SerializeObject(value));
                 }
             }
 
+            private readonly unsafe char* StrToUnmanaged(string str){
+                char* nType = (char*)Marshal.AllocHGlobal((str.Length+1) * sizeof(char));
+                for(int i = 0; i < str.Length; i++){ nType[i] = str[i];}
+                nType[str.Length] = '\0';
+                return nType;
+            }
 
-            public ItemInfo(ISlot slot){
+
+            public ItemInfo(IItem slot){
                 info = IntPtr.Zero; type = IntPtr.Zero;
                 Slot = slot;
             }

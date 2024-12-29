@@ -6,7 +6,7 @@ using Unity.Mathematics;
 using Utils;
 
 namespace Biome{
-[CreateAssetMenu(menuName = "Generation/BiomeGenerationData")]
+[CreateAssetMenu(menuName = "Generation/Biomes/BiomeGenerationData")]
 public class GenerationData : ScriptableObject
 {
     [SerializeField]

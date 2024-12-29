@@ -9,27 +9,21 @@ public class PauseHandler
 {
     private static GameObject PauseMenu;
     private static GameObject PauseContent => PauseMenu.transform.Find("Content").gameObject;
-    private static Queue<(string, uint)> Fences;
+    private static uint Fence;
     public static void Initialize() { 
         PauseMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Pause"), PlayerHandler.UIHandle.transform);
         PauseMenu.SetActive(false);
-        InputPoller.SetCursorLock(true);
-        Fences = new Queue<(string, uint)>();
 
-        InputPoller.AddBinding("Pause", "Master", (_) => {Activate();});
-        
+        InputPoller.AddBinding(new InputPoller.ActionBind("Pause", Activate), "1.0::Menu");
     }
 
-    public static void Activate(){
+    public static void Activate(float _null_){
         PauseMenu.SetActive(true);
-        InputPoller.SetCursorLock(false);
 
+        InputPoller.AddStackPoll(new InputPoller.ActionBind("Frame:Pause", (float _) => InputPoller.SetCursorLock(false)), "CursorLock");
         InputPoller.AddKeyBindChange(() => {
-            Fences.Enqueue(("GamePlay", InputPoller.AddContextFence("GamePlay")));
-            Fences.Enqueue(("UI", InputPoller.AddContextFence("UI")));
-            Fences.Enqueue(("Control", InputPoller.AddContextFence("Control")));
-            Fences.Enqueue(("Master", InputPoller.AddContextFence("Master")));
-            InputPoller.AddBinding("Pause", "Master", (_) => {Deactivate();});
+            Fence = InputPoller.AddContextFence("1.0::Menu", InputPoller.ActionBind.Exclusion.ExcludeAll);
+            InputPoller.AddBinding(new InputPoller.ActionBind("Pause", Deactivate), "1.0::Menu");
         });
 
         Option<WorldOptions.GamePlaySettings> settings = WorldStorageHandler.WORLD_OPTIONS._GamePlay;
@@ -48,16 +42,11 @@ public class PauseHandler
 
     }
 
-    public static void Deactivate(){
+    public static void Deactivate(float _null_){
         PaginatedUIEditor.ReleaseAllChildren(PauseContent);
+        InputPoller.RemoveStackPoll("Frame:Pause", "CursorLock");
+        InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence(Fence, "1.0::Menu"));
         PauseMenu.SetActive(false);
-        InputPoller.SetCursorLock(true);
-        InputPoller.AddKeyBindChange(() => {
-            while(Fences.Count > 0){
-                var (context, fence) = Fences.Dequeue();
-                InputPoller.RemoveContextFence(fence, context);
-            }
-        });
     }
 
     public static void Exit(){

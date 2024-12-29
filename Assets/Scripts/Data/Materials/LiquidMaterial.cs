@@ -29,13 +29,10 @@ public class LiquidMaterial : MaterialData
 
     [BurstCompile]
     private void TransferLiquid(ref MapData a1, ref MapData b1){
-        MapData a0 = a1; //Copy of original
-        MapData b0 = b1; 
         int amount = a1.LiquidDensity; //Amount that's transferred
-        b1.density = math.min(255, b1.density + amount);
-
-        amount = b1.density - b0.density;
-        a1.density = math.max(a1.density - amount, 0);
+        amount = math.min(b1.density + amount, 255) - b1.density;
+        b1.density += amount;
+        a1.density -= amount;
     }
     
     [BurstCompile]
@@ -46,15 +43,13 @@ public class LiquidMaterial : MaterialData
             min1 = ref max1;
             max1 = ref temp;
         }
-        
-        MapData min0 = min1; //Copy of original
-        MapData max0 = max1;
+
         //Rounds down to the nearest integer
         int amount = (max1.LiquidDensity - min1.LiquidDensity) >> 1;
-        min1.density = math.min(255, min1.density + amount);
-
-        amount = min1.density - min0.density;
-        max1.density = math.max(max1.density - amount, 0);
+        amount = math.min(min1.density + amount, 255) - min1.density;
+        amount = max1.density - math.max(max1.density - amount, 0);
+        min1.density += amount;
+        max1.density -= amount;
     }
 
     [BurstCompile]

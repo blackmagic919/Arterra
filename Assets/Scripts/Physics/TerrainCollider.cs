@@ -121,7 +121,7 @@ public class TerrainCollider : MonoBehaviour
         int corner = (int)(math.floor(pos) + math.max(normal, 0));
         float cDen = SampleTerrain(corner);
         if(cDen >= density) return 0;
-        return (IsoValue - density) / (cDen - density) * math.abs(corner - pos);
+        return math.clamp((IsoValue - density) / (cDen - density), 0, 1) * math.abs(corner - pos);
     }
     public float BilinearGradientLength(float density, float2 pos, float2 normal, Func<int, int, int> SampleTerrain){
         float2 tMax = 1.0f / math.abs(normal); float eDen;
@@ -135,7 +135,7 @@ public class TerrainCollider : MonoBehaviour
         else { eDen = LinearDensity(pos.x, (int x) => SampleTerrain(x, Mathf.RoundToInt(pos.y))); } 
         if(eDen >= density) return 0;
 
-        return  (IsoValue - density) / (eDen - density) * t;
+        return math.clamp((IsoValue - density) / (eDen - density), 0, 1) * t;
     }
 
     public float TrilinearGradientLength(float density, float3 pos, float3 normal){
@@ -152,7 +152,7 @@ public class TerrainCollider : MonoBehaviour
         else{fDen = BilinearDensity(pos.x, pos.y, (int x, int y) => SampleTerrain(new int3(x, y, Mathf.RoundToInt(pos.z))));}
         if(fDen >= density) return 0;
 
-        return (IsoValue - density) / (fDen - density) * t;
+        return math.clamp((IsoValue - density) / (fDen - density), 0, 1) * t;
     }
 
     private float LinearDensity(float t, Func<int, int> SampleTerrain){

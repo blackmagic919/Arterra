@@ -14,6 +14,7 @@ struct v2f
 };
 
 struct matTerrain{
+    int texIndex;
     float4 baseColor;
     float baseTextureScale;
     float baseColorStrength;
@@ -95,7 +96,7 @@ fixed3 GetMatColor(float2 uv, int index){
     float textureU = uv.x / matData.baseTextureScale * (InventorySize*25);
     float textureV = uv.y / matData.baseTextureScale;
 
-    float3 textureColor = _Textures.Sample(sampler_Textures, float3(textureU, textureV, index));
+    float3 textureColor = _Textures.Sample(sampler_Textures, float3(textureU, textureV, matData.texIndex));
 
     return color * colorStrength + textureColor * (1-colorStrength);
 }

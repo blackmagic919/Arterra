@@ -36,6 +36,7 @@ Shader "Unlit/ModelTerrain"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             struct matTerrain{
+                int textureIndex;
                 float4 baseColor;
                 float baseTextureScale;
                 float baseColorStrength;
@@ -112,11 +113,10 @@ Shader "Unlit/ModelTerrain"
 
                 int material = IN.material;
 
-                float3 baseColor = _MatTerrainData[material].baseColor.xyz;
-
-                float3 textureColor = triplanar(IN.positionWS, _MatTerrainData[material].baseTextureScale, blendAxes, material);
-
-                float colorStrength = _MatTerrainData[material].baseColorStrength;
+                matTerrain data = _MatTerrainData[material];
+                float3 baseColor = data.baseColor.xyz;
+                float colorStrength = data.baseColorStrength;
+                float3 textureColor = triplanar(IN.positionWS, data.baseTextureScale, blendAxes, data.textureIndex);
 
                 InputData lightingInput = (InputData)0;
                 lightingInput.positionWS = IN.positionWS;

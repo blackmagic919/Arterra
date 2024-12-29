@@ -6,108 +6,84 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEngine;
 
+/*
+1.0::Menu
+2.0::Subscene
+3.0::Window
+4.0::Movement
+5.0::Gameplay
+6.0::Process
+
+Design Rule: If a system adds keybinds on a listener input, 
+it should add those keybinds to the layer the original listener 
+was added(i.e. if an inventory pop-up is bound to tab on “Window” layer, 
+inputs related to that should be added to the pop-up “Window” layer as well). 
+Otherwise things can get very confusing and messy.
+*/
 public class InputPoller : UpdateTask
 {
     private class KeyBinder{
-        public Dictionary<string, int> KeyIndex;
-        public List<Registry<KeyBind>.Pair> KeyMappings;
         public SharedLinkedList<ActionBind> KeyBinds;
-        public Dictionary<string, uint> LayerHeads;
-        public List<Registry<KeyBind>.Pair> RealMappings => WorldStorageHandler.WORLD_OPTIONS.GamePlay.Input.value;
-        public List<Registry<KeyBind>.Pair> DefaultMappings => WorldStorageHandler.OPTIONS_TEMPLATE.GamePlay.Input.value;
+        public Registry<uint> LayerHeads;
+        public ref Registry<KeyBind> KeyMappings => ref WorldStorageHandler.WORLD_OPTIONS.GamePlay.Input;
+        public ref Registry<KeyBind> DefaultMappings => ref WorldStorageHandler.OPTIONS_TEMPLATE.GamePlay.Input;
 
         public KeyBinder(){
-            KeyMappings = RealMappings;
-            KeyIndex = new Dictionary<string, int>();
             KeyBinds = new SharedLinkedList<ActionBind>(MaxActionBinds);
-            LayerHeads = new Dictionary<string, uint>();
+            LayerHeads = new Registry<uint>();
+            LayerHeads.Construct();
+            DefaultMappings.Construct();
             ReconstructMappings();
         }
         private void AssertMapping(string name){
-            if(KeyIndex.ContainsKey(name)) return; //We are missing the binding
-            Registry<KeyBind>.Pair binding = DefaultMappings.FirstOrDefault((Registry<KeyBind>.Pair pair) => pair.Name == name);
+            if(KeyMappings.Contains(name)) return; //We are missing the binding
+            KeyBind binding = DefaultMappings.Retrieve(name);
             if(binding.Equals(default)) throw new Exception("Cannot Find Keybind Name"); //There is no such binding
-            KeyIndex.Add(name, KeyMappings.Count);
-            KeyMappings.Add(binding);
+            binding.bindings.Clone(); // We need to clone the bindings
+            KeyMappings.Add(name, binding);
         }
         
         //We need to check if the mappings have been changed
         //Because mappings can change at any time during runtime
         private void ReconstructMappings(){
-            KeyMappings = RealMappings; KeyIndex.Clear();
-            for(int i = 0; i < KeyMappings.Count; i++){
-                KeyIndex.Add(KeyMappings[i].Name, i);
-            } 
-
+            KeyMappings.Construct();
             //Rebind all currently bound actions
-            foreach(uint head in LayerHeads.Values){
-                uint current = head;
+            foreach(Registry<uint>.Pair head in LayerHeads.Reg.value){
+                uint current = head.Value;
                 do{
                     ref ActionBind BoundAction = ref KeyBinds.RefVal(current);
                     current = KeyBinds.Next(current);
                     if(BoundAction.Binding == null) continue; //Context Fence/Barrier
                     AssertMapping(BoundAction.Binding);
-                } while(current != head);
+                } while(current != head.Value);
             } 
         }
 
         public KeyBind Retrieve(string name){
-            if(!KeyMappings.Equals(RealMappings)) ReconstructMappings();
-            if(!KeyIndex.TryGetValue(name, out int index)) ReconstructMappings();
-            else if(index >= KeyMappings.Count || KeyMappings[index].Name != name) ReconstructMappings();
+            if(!KeyMappings.Contains(name)) AssertMapping(name);
+            int index = KeyMappings.RetrieveIndex(name);
+            if(!KeyMappings.Contains(index)) ReconstructMappings();
+            if(KeyMappings.RetrieveName(index).CompareTo(name) != 0) ReconstructMappings();
 
-            return KeyMappings[index].Value;
-        }
-
-        public bool Contains(string name){
-            return KeyIndex.ContainsKey(name);
-        }
-        public bool Contains(int index){
-            return index >= 0 && index < KeyMappings.Count;
+            return KeyMappings.Retrieve(name);
         }
     }
 
     private static KeyBinder Binder;
-    private static SharedLinkedList<ActionBind> KeyBinds => Binder.KeyBinds;
-    private static Dictionary<string, uint> LayerHeads => Binder.LayerHeads;
+    private static StateStack SStack;
+    //Getter is ref otherwise modification would be impossible as we have copy
+    private static ref SharedLinkedList<ActionBind> KeyBinds => ref Binder.KeyBinds;
+    private static ref Registry<uint> LayerHeads => ref Binder.LayerHeads;
     private static Queue<Action> KeyBindChanges;
     private static bool CursorLock = false;
     private const int MaxActionBinds = 10000;
 
-
-    /*KeyMappings = new ()
-    {
-        {"Place Terrain", KeyCode.Mouse1},
-        {"Remove Terrain", KeyCode.Mouse0},
-        {"Place Liquid", KeyCode.LeftShift},
-        {"Pickup Item", KeyCode.Mouse0},
-        {"Pause", KeyCode.Escape},
-        {"Quit", KeyCode.Return},
-        
-        {"Select", KeyCode.Mouse0},
-        {"Open Inventory", KeyCode.Tab},
-        {"Craft", KeyCode.Return},
-
-        {"Jump", KeyCode.Space},
-        {"Move Horizontal", KeyCode.Alpha3},
-        {"Move Vertical", KeyCode.Alpha4},
-        {"Mouse Horizontal", KeyCode.Alpha0},
-        {"Mouse Vertical", KeyCode.Alpha1},
-
-        {"Hotbar1", KeyCode.Alpha1},
-        {"Hotbar2", KeyCode.Alpha2},
-        {"Hotbar3", KeyCode.Alpha3},
-        {"Hotbar4", KeyCode.Alpha4},
-        {"Hotbar5", KeyCode.Alpha5},
-        {"Hotbar6", KeyCode.Alpha6},
-        {"Hotbar7", KeyCode.Alpha7},
-        {"Hotbar8", KeyCode.Alpha8},
-        {"Hotbar9", KeyCode.Alpha9},
-    };*/
     public static void Initialize()
     {
         Binder = new KeyBinder();
+        SStack = new StateStack();
         KeyBindChanges = new Queue<Action>();
+        AddStackPoll(new ActionBind("BASE", (float _) => SetCursorLock(true)), "CursorLock");
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(new InputPoller{active = true});
     }
 
@@ -116,8 +92,7 @@ public class InputPoller : UpdateTask
         if(CursorLock == value) return;
         CursorLock = value;
 
-        if(CursorLock)
-        {//we force unlock the cursor if the user disable the cursor locking helper
+        if(CursorLock){
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         } else {
@@ -126,75 +101,91 @@ public class InputPoller : UpdateTask
         }
     }
 
-    public override void Update(MonoBehaviour mono){
-        foreach(uint head in LayerHeads.Values){
-            uint current = head;
+    private void AnswerKeyBinds(){
+        //Explicit lexicographic-name ordering
+        HashSet<string> GlobalExclusion = new();
+        HashSet<string> LayerExclusion = new();
+        foreach(Registry<uint>.Pair head in LayerHeads.Reg.value){
+            uint current = head.Value; LayerExclusion.Clear();
             do{
                 ActionBind BoundAction = KeyBinds.Value(current);
-                if(BoundAction.Binding == null) break; //Context Fence/Barrier
+                current = KeyBinds.Next(current);
+
+                if(GlobalExclusion.Contains(BoundAction.Binding)) continue;
+                if(LayerExclusion.Contains(BoundAction.Binding)) continue;
+
+                if(BoundAction.Binding == null) { //Context Fence/Barrier
+                    if(BoundAction.exclusion == ActionBind.Exclusion.ExcludeAll) return;
+                    if(BoundAction.exclusion == ActionBind.Exclusion.ExcludeLayer) break;
+                    continue; //otherwise just a marker
+                } else if(BoundAction.exclusion != ActionBind.Exclusion.None){ 
+                    if(BoundAction.exclusion == ActionBind.Exclusion.ExcludeLayer) 
+                        LayerExclusion.Add(BoundAction.Binding);
+                    else GlobalExclusion.Add(BoundAction.Binding);
+                } 
 
                 KeyBind KeyBind = Binder.Retrieve(BoundAction.Binding);
                 if(KeyBind.IsTriggered(out float axis))
                     BoundAction.action.Invoke(axis);
-                current = KeyBinds.Next(current);
-            } while(current != head);
+            } while(current != head.Value);
         }
-        while(KeyBindChanges.Count > 0)
+    }
+    public override void Update(MonoBehaviour mono){
+        AnswerKeyBinds();
+        //Fulfill all keybind change requests
+        while(KeyBindChanges.Count > 0) 
             KeyBindChanges.Dequeue().Invoke();
     }
     
-    public static void AddKeyBindChange(Action action){
-        KeyBindChanges.Enqueue(action);
+    public static void AddKeyBindChange(Action action){ KeyBindChanges.Enqueue(action); }
+
+    public static uint AddBinding(ActionBind bind, string Layer){
+        return AddKeyBind(bind, Layer);
     }
 
-    public static uint AddBinding(string Binding, string Layer, Action<float> action){
-        return AddKeyBind(new ActionBind{
-            Binding = Binding,
-            action = action
-        }, Layer);
-    }
-
-    public static uint AddContextFence(string Layer){
+    public static uint AddContextFence(string Layer, ActionBind.Exclusion exclusion = ActionBind.Exclusion.ExcludeLayer){
         return AddKeyBind(new ActionBind{
             Binding = null,
             action = null,
+            exclusion = exclusion
         }, Layer);
-    }
-
-    //Do not call this with an invalid bindIndex not in the layer, or else it could corrupt all keybinds
-    public static void RemoveKeyBind(uint bindIndex, string layer){
-        if(!LayerHeads.ContainsKey(layer))
-            return;
-
-        //Move head if removed, if empty remove layer
-        if(LayerHeads[layer] == bindIndex)
-            LayerHeads[layer] = KeyBinds.Next(bindIndex);
-        if(LayerHeads[layer] == bindIndex)
-            LayerHeads.Remove(layer);
-        KeyBinds.Remove(bindIndex);
     }
 
     //Do not call this with an invalid bindIndex not in the layer, or else it could corrupt all keybinds
     public static void RemoveContextFence(uint bindIndex, string layer = "base"){
-        if(!LayerHeads.ContainsKey(layer))
+        if(!LayerHeads.Contains(layer))
             return;
 
-        uint current = LayerHeads[layer];
+        uint current = LayerHeads.Retrieve(layer);
         while(current != bindIndex){
             uint next = KeyBinds.Next(current);
             RemoveKeyBind(current, layer);
             current = next;
         }
-        LayerHeads[layer] = KeyBinds.Next(current);
+        LayerHeads.TrySet(layer, KeyBinds.Next(current));
         RemoveKeyBind(current, layer);
     }
 
+    //Do not call this with an invalid bindIndex not in the layer, or else it could corrupt all keybinds
+    public static void RemoveKeyBind(uint bindIndex, string layer = "base"){
+        if(!LayerHeads.Contains(layer))
+            return;
+
+        //Move head if removed, if empty remove layer
+        if(LayerHeads.Retrieve(layer) == bindIndex){
+            LayerHeads.TrySet(layer, KeyBinds.Next(bindIndex));
+        } if(LayerHeads.Retrieve(layer) == bindIndex){
+            LayerHeads.TryRemove(layer);
+        } KeyBinds.Remove(bindIndex);
+    }
+
     private static uint AddKeyBind(ActionBind keyBind, string layer){
-        if(!LayerHeads.ContainsKey(layer))
+        if(!LayerHeads.Contains(layer)){
             LayerHeads.Add(layer, KeyBinds.Enqueue(keyBind));
-        else 
-            LayerHeads[layer] = KeyBinds.Enqueue(keyBind, LayerHeads[layer]);
-        return LayerHeads[layer];
+            LayerHeads.Reg.value.Sort((a, b) => a.Name.CompareTo(b.Name));
+            LayerHeads.Construct(); //reconstruct because sorting breaks the dictionary's values
+        } else LayerHeads.TrySet(layer, KeyBinds.Enqueue(keyBind, LayerHeads.Retrieve(layer)));
+        return LayerHeads.Retrieve(layer);
     }
 
     [Serializable]
@@ -252,10 +243,21 @@ public class InputPoller : UpdateTask
 
     }
 
-    private struct ActionBind
+    public struct ActionBind
     {
         public string Binding;
         public Action<float> action;
+        public Exclusion exclusion;
+        public ActionBind(string Binding, Action<float> action, Exclusion exclusion = Exclusion.None){
+            this.Binding = Binding;
+            this.action = action;
+            this.exclusion = exclusion;
+        }
+        public enum Exclusion{
+            None = 0,
+            ExcludeLayer = 1,
+            ExcludeAll = 2,
+        }
     }
 
     
@@ -336,4 +338,50 @@ public class InputPoller : UpdateTask
             public T value;
         }
     }
+
+    public class StateStack{
+        private SharedLinkedList<ActionBind> StackBinds;
+        private Registry<uint> LayerHeads;
+        private Registry<uint> StackEntries;
+        private const int MaxStackBinds = 5000;
+
+        public StateStack(){
+            StackBinds = new (MaxStackBinds);
+            LayerHeads = new Registry<uint>();
+            StackEntries = new Registry<uint>();
+            LayerHeads.Construct();
+            StackEntries.Construct();
+        }
+        
+        public void AddStackPoll(ActionBind bind, string layer, string KeyName){
+            if(!LayerHeads.Contains(layer)) LayerHeads.Add(layer, StackBinds.Enqueue(bind));
+            else LayerHeads.TrySet(layer, StackBinds.Enqueue(bind, LayerHeads.Retrieve(layer)));
+
+            if(StackEntries.Contains(KeyName)) StackEntries.TryRemove(KeyName);
+            StackEntries.Add(KeyName, LayerHeads.Retrieve(layer));
+            bind.action.Invoke(0);
+        }
+        
+        public void RemoveStackPoll(string layer, string KeyName){
+            if(!StackEntries.Contains(KeyName)) return;
+            if(!LayerHeads.Contains(layer)) return;
+
+            uint bindIndex = StackEntries.Retrieve(KeyName);
+            //Move head if removed, if empty remove layer
+            if(LayerHeads.Retrieve(layer) == bindIndex){
+                LayerHeads.TrySet(layer, StackBinds.Next(bindIndex));
+            } if(LayerHeads.Retrieve(layer) == bindIndex){
+                LayerHeads.TryRemove(layer);
+            } 
+            StackBinds.Remove(bindIndex);
+            StackEntries.TryRemove(KeyName);
+            if(!LayerHeads.Contains(layer)) return;
+            //Invoke the top bind in the stack
+            bindIndex = LayerHeads.Retrieve(layer);
+            StackBinds.Value(bindIndex).action.Invoke(0);
+        }
+    }
+    public static void AddStackPoll(ActionBind bind, string Layer) => SStack.AddStackPoll(bind, Layer, bind.Binding);
+    public static void RemoveStackPoll(string BindName, string Layer) => SStack.RemoveStackPoll(Layer, BindName);
 }
+    

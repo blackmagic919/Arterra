@@ -120,15 +120,15 @@ public class PlayerHandler : UpdateTask
                 return names[name];
             }
             
-            for(uint i = 0; i < PrimaryI.Info.Length; i++){
+            for(int i = 0; i < PrimaryI.Info.Length; i++){
                 if(PrimaryI.Info[i] == null) continue;
                 PrimaryI.Info[i].Deserialize(OnDeserialize);
-                PrimaryI.MakeDirty(i);
+                PrimaryI.Info[i].IsDirty = true;
             }
-            for(uint i = 0; i < SecondaryI.Info.Length; i++){
+            for(int i = 0; i < SecondaryI.Info.Length; i++){
                 if(SecondaryI.Info[i] == null) continue;
                 SecondaryI.Info[i].Deserialize(OnDeserialize);
-                SecondaryI.MakeDirty(i);
+                SecondaryI.Info[i].IsDirty = true;
             }
         }
 

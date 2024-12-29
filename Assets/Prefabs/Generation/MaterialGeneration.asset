@@ -1,0 +1,104 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 040870a578bbf46179e139dc5e722edf, type: 3}
+  m_Name: MaterialGeneration
+  m_EditorClassIdentifier: 
+  MaterialDictionary:
+    Reg:
+      value:
+      - Name: Air
+        _value:
+          value: {fileID: 11400000, guid: 2a37c22a11b7a406da4fbaf59dceb18b, type: 2}
+          isDirty: 0
+      - Name: Cloud
+        _value:
+          value: {fileID: 11400000, guid: fdee68429400b4b5abd29d968d298d3d, type: 2}
+          isDirty: 0
+      - Name: Water
+        _value:
+          value: {fileID: 11400000, guid: db0066818616147b9bd124a81c0ff506, type: 2}
+          isDirty: 0
+      - Name: Dirt
+        _value:
+          value: {fileID: 11400000, guid: cc518bf484c014189af0984e24ba783b, type: 2}
+          isDirty: 0
+      - Name: Grass
+        _value:
+          value: {fileID: 11400000, guid: 22cceaf6003ce4a4f9383ea91772ddd8, type: 2}
+          isDirty: 0
+      - Name: Wood
+        _value:
+          value: {fileID: 11400000, guid: 72eb2a86f07ef473ca5c536aeec133ce, type: 2}
+          isDirty: 0
+      - Name: Sand
+        _value:
+          value: {fileID: 11400000, guid: 481b2c054900b455eb9738ef2d48a56d, type: 2}
+          isDirty: 0
+      - Name: Rock
+        _value:
+          value: {fileID: 11400000, guid: 8955b69172d2b4feb98c9a2d158c442c, type: 2}
+          isDirty: 0
+      - Name: Stone
+        _value:
+          value: {fileID: 11400000, guid: a379ea77d6f8543c58c09392df10b026, type: 2}
+          isDirty: 0
+      - Name: Leaf
+        _value:
+          value: {fileID: 11400000, guid: 78d4ae6a530564b959843399cfd956d3, type: 2}
+          isDirty: 0
+      - Name: Snow
+        _value:
+          value: {fileID: 11400000, guid: 648f75c635cbb4686a0e32aae0a17df7, type: 2}
+          isDirty: 0
+      - Name: Cactus
+        _value:
+          value: {fileID: 11400000, guid: 7e6bad03ed2784be1b60360b46eb8e19, type: 2}
+          isDirty: 0
+      - Name: Plank
+        _value:
+          value: {fileID: 11400000, guid: b04a7904e687b4c758cd8ecaf397bfde, type: 2}
+          isDirty: 0
+      - Name: Hardwood
+        _value:
+          value: {fileID: 11400000, guid: f685fed15df9a42eebfdf7102d8ab63d, type: 2}
+          isDirty: 0
+      - Name: Furnace
+        _value:
+          value: {fileID: 11400000, guid: 7b84727d25f894369ab30ceb9b60a22a, type: 2}
+          isDirty: 0
+      - Name: Chest
+        _value:
+          value: {fileID: 11400000, guid: d0db97a90a909415db01656599be5d42, type: 2}
+          isDirty: 0
+      - Name: Compost
+        _value:
+          value: {fileID: 11400000, guid: 170199e0e65c14e6d84b52caaa079d4f, type: 2}
+          isDirty: 0
+      - Name: Sandstone
+        _value:
+          value: {fileID: 11400000, guid: 6f97e17459d8d46dbae4d5ec0ecbc71d, type: 2}
+          isDirty: 0
+      - Name: Cement
+        _value:
+          value: {fileID: 11400000, guid: f59c26f6a7afe4b8da7d243b73968ab8, type: 2}
+          isDirty: 0
+      - Name: Brick
+        _value:
+          value: {fileID: 11400000, guid: e4cacdf2648e84cc5b2c91bdea6be97b, type: 2}
+          isDirty: 0
+      isDirty: 0
+  liquidFineWave:
+    value: {fileID: 2800000, guid: 0a658634b9a994b12b7ee75cb511ac02, type: 3}
+    isDirty: 0
+  liquidCoarseWave:
+    value: {fileID: 2800000, guid: 03ddc5285c7f24a009c3eff5304abb4e, type: 3}
+    isDirty: 0

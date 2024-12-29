@@ -7,8 +7,8 @@ using System;
 
 public abstract class MaterialData : ScriptableObject
 {
-    [UISetting(Ignore = true)][JsonIgnore]
-    public Option<Sprite> texture;
+    public string SolidItem;
+    public string LiquidItem;
     public TerrainData terrainData;
     public AtmosphericData AtmosphereScatter;
     public LiquidData liquidData;
@@ -18,6 +18,8 @@ public abstract class MaterialData : ScriptableObject
     [System.Serializable]
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public struct TerrainData{
+        [HideInInspector][UISetting(Ignore = true)]
+        public int SolidTextureIndex;
         public Vector4 color;
         public float textureScale;
         [Range(0,1)]

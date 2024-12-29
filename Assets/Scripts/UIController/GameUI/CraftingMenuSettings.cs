@@ -23,16 +23,25 @@ public class CraftingMenuSettings : ScriptableObject{
         public Result result;
         
         [JsonIgnore]
-        public readonly int ResultMat{
+        public readonly int ResultIndex{
             get {
-                Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+                Registry<ItemAuthoring> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Items;
                 return reg.RetrieveIndex(Names.value[(int)result.Index]);
+            }
+        }
+
+        [JsonIgnore]
+        public readonly IItem ResultItem{
+            get {
+                Registry<ItemAuthoring> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Items;
+                return reg.Retrieve(Names.value[(int)result.Index]).Item;
             }
         }
 
         public readonly CPUDensityManager.MapData EntrySerial(int Index){
             Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
             CPUDensityManager.MapData p = entry.value[Index];
+            if(!reg.Contains(Names.value[p.material])) return p;
             p.material = reg.RetrieveIndex(Names.value[p.material]);
             return p;
         }
@@ -47,29 +56,15 @@ public class CraftingMenuSettings : ScriptableObject{
         public struct Result{
             [HideInInspector] public uint data;
             [JsonIgnore]
-            public bool IsItem{
-                readonly get => (data & 0x80000000) != 0;
-                set => data = value ? data | 0x80000000 : data & 0x7FFFFFFF;
-            }
-            [JsonIgnore]
-            public bool EntryType{
-                readonly get => (data & 0x40000000) != 0;
-                set => data = value ? data | 0x40000000 : data & 0xBFFFFFFF;
-            }
-            [JsonIgnore]
             public uint Index{
-                readonly get => (data >> 15) & 0x7FFF;
-                set => data = (data & 0xC0007FFF) | (value << 15);
+                readonly get => (data >> 16) & 0xFFFF;
+                set => data = (data & 0x0000FFFF) | (value << 16);
             }
             [JsonIgnore]
             public float Multiplier{
-                readonly get => (data & 0x7FFF) / 0xFF;
-                set => data = (data & 0xFFFF8000) | (((uint)math.round(value * 0xFF)) & 0x7FFF);
+                readonly get => (data & 0xFFFF) / 0xFF;
+                set => data = (data & 0xFFFF0000) | (((uint)math.round(value * 0xFF)) & 0xFFFF);
             }
-            [JsonIgnore]
-            public bool IsSolid => EntryType;
-            [JsonIgnore]            
-            public bool IsUnstackable => EntryType;
         }
     }
 
@@ -81,10 +76,8 @@ public class CraftingMenuSettings : ScriptableObject{
             SerializedProperty dataProp = property.FindPropertyRelative("data");
             uint data = dataProp.uintValue;
 
-            bool isItem = (data & 0x80000000) != 0;
-            uint index = (data >> 15) & 0x7FFF;
-            float multiplier = (data & 0x7FFF) / 255f;
-            bool isSolid = (data & 0x40000000) != 0;
+            uint index = (data >> 16) & 0xFFFF;
+            float multiplier = (data & 0xFFFF) / 255f;
 
             Rect rect = new (position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
 
@@ -92,15 +85,9 @@ public class CraftingMenuSettings : ScriptableObject{
             rect.y += EditorGUIUtility.singleLineHeight;
             multiplier = EditorGUI.FloatField(rect, "Multiplier", multiplier);
             rect.y += EditorGUIUtility.singleLineHeight;
-            isSolid = EditorGUI.Toggle(rect, "Is Solid", isSolid);
-            rect.y += EditorGUIUtility.singleLineHeight;
-            isItem = EditorGUI.Toggle(rect, "Is Item", isItem);
-            rect.y += EditorGUIUtility.singleLineHeight;
 
-            data = (isItem ? data | 0x80000000 : data & 0x7FFFFFFF);
-            data = (data & 0xC0007FFF) | (index << 15);
-            data = (data & 0xFFFF8000) | ((uint)Mathf.Round(multiplier * 255f) & 0x7FFF);
-            data = (isSolid ? data | 0x40000000 : data & 0xBFFFFFFF);
+            data = (data & 0x0000FFFF) | (index << 16);
+            data = (data & 0xFFFF0000) | ((uint)Mathf.Round(multiplier * 255f) & 0xFFFF);
 
             dataProp.uintValue = data;
         }
@@ -108,7 +95,7 @@ public class CraftingMenuSettings : ScriptableObject{
         // Override this method to make space for the custom fields
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            return EditorGUIUtility.singleLineHeight * 4;
+            return EditorGUIUtility.singleLineHeight * 2;
         }
     }
 #endif

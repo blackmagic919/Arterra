@@ -12,44 +12,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: CloudMat
   m_EditorClassIdentifier: 
-  texture:
-    value: {fileID: 21300000, guid: 68036d40e53ca46ccb8662552a0ea939, type: 3}
-    isDirty: 0
+  SolidItem: Void
+  LiquidItem: Water:Liquid
   terrainData:
-    color:
-      x: 0.729
-      y: 0.812
-      z: 1
-      w: 1
+    SolidTextureIndex: 0
+    color: {x: 0.729, y: 0.812, z: 1, w: 1}
     textureScale: 5
     baseColorStrength: 0.4
     GeoShaderIndex: -1
   AtmosphereScatter:
-    ScatterCoeffs:
-      x: 0.00625
-      y: 0.00625
-      z: 0.00625
-    GroundExtinction:
-      x: 0.025
-      y: 0.025
-      z: 0.025
+    ScatterCoeffs: {x: 0.00625, y: 0.00625, z: 0.00625}
+    GroundExtinction: {x: 0.025, y: 0.025, z: 0.025}
   liquidData:
-    shallowCol:
-      x: 0
-      y: 0
-      z: 0
-    deepCol:
-      x: 0
-      y: 0
-      z: 0
+    shallowCol: {x: 0, y: 0, z: 0}
+    deepCol: {x: 0, y: 0, z: 0}
     colFalloff: 0
     depthOpacity: 0
     smoothness: 0
     waveBlend: 0
     waveStrength: 0
-    waveScale:
-      x: 0
-      y: 0
-    waveSpeed:
-      x: 0
-      y: 0
+    waveScale: {x: 0, y: 0}
+    waveSpeed: {x: 0, y: 0}

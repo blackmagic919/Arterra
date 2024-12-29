@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace Biome{
-[CreateAssetMenu(menuName = "Generation/CaveBiome")]
+[CreateAssetMenu(menuName = "Generation/Biomes/CaveBiome")]
 public class CBiomeInfo : CInfo<CaveBiome> {
 }
 

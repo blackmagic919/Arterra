@@ -50,25 +50,31 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            TextureData data = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value;
-            MaterialData[] MaterialDictionary = data.MaterialDictionary.SerializedData;
+            MaterialGeneration matInfo = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value;
+            Registry<ItemAuthoring> textureInfo = WorldStorageHandler.WORLD_OPTIONS.Generation.Items;
+            MaterialData[] MaterialDictionary = matInfo.MaterialDictionary.SerializedData;
             int numMats = MaterialDictionary.Length;
-            terrainData = new ComputeBuffer(numMats, sizeof(float) * 6 + sizeof(int), ComputeBufferType.Structured);
+            terrainData = new ComputeBuffer(numMats, sizeof(float) * 6 + sizeof(int) * 2, ComputeBufferType.Structured);
             atmosphericData = new ComputeBuffer(numMats, sizeof(float) * 6, ComputeBufferType.Structured);
             liquidData = new ComputeBuffer(numMats, sizeof(float) * (3 * 2 + 2 * 2 + 5), ComputeBufferType.Structured);
+
+            for(int i = 0; i < MaterialDictionary.Length; i++) {
+                ref MaterialData data = ref MaterialDictionary[i];
+                data.terrainData.SolidTextureIndex = textureInfo.RetrieveIndex(data.SolidItem);
+            }
 
             terrainData.SetData(MaterialDictionary.Select(e => e.terrainData).ToArray());
             atmosphericData.SetData(MaterialDictionary.Select(e => e.AtmosphereScatter).ToArray());
             liquidData.SetData(MaterialDictionary.Select(e => e.liquidData).ToArray());
             //Bad naming scheme -> (value.texture.value.texture)
-            Texture2DArray textures = GenerateTextureArray(MaterialDictionary.Select(e => e.texture.value.texture).ToArray());
+            Texture2DArray textures = GenerateTextureArray(textureInfo.SerializedData.Select(e => e.texture.value.texture).ToArray());
             Shader.SetGlobalTexture("_Textures", textures); 
             Shader.SetGlobalBuffer("_MatTerrainData", terrainData);
             Shader.SetGlobalBuffer("_MatAtmosphericData", atmosphericData);
             Shader.SetGlobalBuffer("_MatLiquidData", liquidData);
 
-            Shader.SetGlobalTexture("_LiquidFineWave", data.liquidFineWave.value);
-            Shader.SetGlobalTexture("_LiquidCoarseWave", data.liquidCoarseWave.value);
+            Shader.SetGlobalTexture("_LiquidFineWave", matInfo.liquidFineWave.value);
+            Shader.SetGlobalTexture("_LiquidCoarseWave", matInfo.liquidCoarseWave.value);
         }
 
         public void Release(){

@@ -26,8 +26,8 @@ public class MouseLook
         m_CameraTargetRot = camera.localRotation;
         active = true;
 
-        InputPoller.AddBinding("Look Horizontal", "GamePlay", LookX);
-        InputPoller.AddBinding("Look Vertical", "GamePlay", LookY);
+        InputPoller.AddBinding(new InputPoller.ActionBind("Look Horizontal", LookX), "4.0::Movement");
+        InputPoller.AddBinding(new InputPoller.ActionBind("Look Vertical", LookY), "4.0::Movement");
     }
 
     private void LookX(float x){

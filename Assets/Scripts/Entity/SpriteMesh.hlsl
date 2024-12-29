@@ -1,13 +1,5 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
-struct matTerrain{
-    float4 baseColor;
-    float baseTextureScale;
-    float baseColorStrength;
-    int geoShaderInd;
-};
-
-StructuredBuffer<matTerrain> _MatTerrainData;
 Texture2DArray _Textures;
 SamplerState sampler_Textures;
 
@@ -17,13 +9,13 @@ struct v2f
     float3 positionWS : TEXCOORD0;
     float3 normalWS : TEXCOORD1;
     float2 uv : TEXCOORD2;
-    nointerpolation int material: TEXCOORD3; //Materials are definate and can't be interpolated
+    nointerpolation int texInd: TEXCOORD3; //Materials are definate and can't be interpolated
 };
 
 struct appdata
 {
     float3 vertex : POSITION;
-    uint material: TEXCOORD0;
+    uint texInd: TEXCOORD0;
     uint uv : TEXCOORD1;
 };
 
@@ -41,18 +33,14 @@ v2f vert (appdata v)
         (v.uv & 0xFFFF) / 65535.0f,
         ((v.uv >> 16) & 0xFFFF) / 65535.0f
     );
-    o.material = v.material;
+    o.texInd = v.texInd;
     return o;
 }
 
 
 float3 frag (v2f IN) : SV_Target
 {
-    int material = IN.material;
-    matTerrain mInfo = _MatTerrainData[material];
-    float3 baseColor = mInfo.baseColor.xyz;
-    float3 textureColor = _Textures.Sample(sampler_Textures, float3(IN.uv, material)).xyz;
-    float colorStrength = mInfo.baseColorStrength;
+    float3 textureColor = _Textures.Sample(sampler_Textures, float3(IN.uv, IN.texInd)).xyz;
 
     InputData lightingInput = (InputData)0;
 	lightingInput.positionWS = IN.positionWS;
@@ -61,7 +49,7 @@ float3 frag (v2f IN) : SV_Target
 	lightingInput.shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
 
 	SurfaceData surfaceInput = (SurfaceData)0;
-	surfaceInput.albedo = baseColor * colorStrength + textureColor * (1-colorStrength);
+	surfaceInput.albedo = textureColor;
 
 	return UniversalFragmentPBR(lightingInput, surfaceInput);
 }

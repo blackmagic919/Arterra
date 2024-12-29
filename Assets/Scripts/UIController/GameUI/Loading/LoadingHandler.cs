@@ -43,7 +43,6 @@ public class LoadingHandler : UpdateTask
             active = false;
             return;
         }
-
         float totalRemainingLoad = 0; 
         foreach(GenTask task in RequestQueue){
             totalRemainingLoad += taskLoadTable[task.id];

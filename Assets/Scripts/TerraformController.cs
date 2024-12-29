@@ -33,11 +33,13 @@ public class TerraformSettings : ICloneable{
 
 public class TerraformController : UpdateTask
 {
-    private TerraformSettings settings => WorldStorageHandler.WORLD_OPTIONS.GamePlay.Terraforming.value;
-    private bool hasHit;
-    float3 hitPoint;
-
-    int IsoLevel;
+    private Registry<MaterialData> matInfo => WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+    private Registry<ItemAuthoring> itemInfo => WorldStorageHandler.WORLD_OPTIONS.Generation.Items;
+    public TerraformSettings settings => WorldStorageHandler.WORLD_OPTIONS.GamePlay.Terraforming.value;
+    public Func<float3> CursorPlace; //function describing where the cursor is placed
+    public bool hasHit;
+    public float3 hitPoint;
+    public int IsoLevel;
 
     Material OverlayMaterial;
     Mesh SphereMesh;
@@ -54,17 +56,17 @@ public class TerraformController : UpdateTask
         IsoLevel = Mathf.RoundToInt(WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.IsoLevel * 255);
         SetUpOverlay();
 
-        InputPoller.AddBinding("Remove Liquid", "GamePlay", RemoveLiquid);
-        InputPoller.AddBinding("Pickup Item", "GamePlay", PickupItems);
-        InputPoller.AddBinding("Place Terrain", "GamePlay", PlaceTerrain);
-        InputPoller.AddBinding("Remove Terrain", "GamePlay", RemoveTerrain);
+        InputPoller.AddStackPoll(new InputPoller.ActionBind("BASE", (float _) => CursorPlace = RayTestSolid), "CursorPlacement");
+        InputPoller.AddBinding(new InputPoller.ActionBind("Pickup Item", PickupItems), "5.0::GamePlay");
+        InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", PlaceTerrain), "5.0::GamePlay");
+        InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", RemoveTerrain), "5.0::GamePlay");
         MainLoopUpdateTasks.Enqueue(this);
     }
 
 
     public override void Update(MonoBehaviour mono)
     {
-        RayTest();
+        hitPoint = CursorPlace();
         DrawOverlays();
     }
 
@@ -180,57 +182,60 @@ public class TerraformController : UpdateTask
         Graphics.RenderMesh(rp, SphereMesh, 0, transform);
     }
 
-    uint RayTestSolid(int3 coord){ 
+    public float3 RayTestSolid(){
+        static uint RayTestSolid(int3 coord){ 
             MapData pointInfo = SampleMap(coord);
             return (uint)pointInfo.viscosity; 
-        }
-    uint RayTestLiquid(int3 coord){ 
-        MapData pointInfo = SampleMap(coord);
-        return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
-    }
-
-    void RayTest(){
+        } 
         float3 camPosGC = WSToGS(cam.position);
-        hasHit = RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestSolid, out hitPoint);
+        hasHit = RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestSolid, out float3 hit);
+        return hit;
     }
 
-    private void PlaceTerrain(float _){
-        if(InventoryController.Selected is not MaterialItem) return;
-        MaterialItem Selected = (MaterialItem)InventoryController.Selected;
-
-        if(Selected.IsSolid){
-            if (!hasHit) return;
-            CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleAddSolid);
-        }else{
-            hasHit = RayCastTerrain(WSToGS(cam.position), cam.forward, settings.maxTerraformDistance, RayTestLiquid, out hitPoint);
-            if(!hasHit) return;
-            CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleAddLiquid);
+    public float3 RayTestLiquid(){
+        static uint RayTestLiquid(int3 coord){ 
+            MapData pointInfo = SampleMap(coord);
+            return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
         }
+        float3 camPosGC = WSToGS(cam.position);
+        hasHit = RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestLiquid, out float3 hit);
+        return hit;
     }
 
-    private void RemoveTerrain(float _){
-        if (!hasHit) return;
-        CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleRemoveSolid);
-    }
-    private void RemoveLiquid(float _){
+    public void PlaceTerrain(float _){
         if(!hasHit) return;
-        CPUDensityManager.Terraform((int3)hitPoint, settings.terraformRadius, HandleRemoveLiquid);
+        if(InventoryController.Selected == null) return;
+        ItemAuthoring selMat = InventoryController.SelectedSetting;
+        if(selMat.MaterialName == null || !matInfo.Contains(selMat.MaterialName)) return;
+
+        if(selMat.IsSolid) Terraform(hitPoint, settings.terraformRadius, HandleAddSolid);
+        else Terraform(hitPoint, settings.terraformRadius, HandleAddLiquid);
     }
 
-    int GetStaggeredDelta(int baseDensity, float deltaDensity){
-        int staggeredDelta = Mathf.FloorToInt(deltaDensity);
-        staggeredDelta += (deltaDensity % 1) == 0 ? 0 : (Time.frameCount % Mathf.CeilToInt(1 / (deltaDensity % 1))) == 0 ? 1 : 0;
-        staggeredDelta = Mathf.Abs(Mathf.Clamp(baseDensity + staggeredDelta, 0, 255) - baseDensity);
+    public void RemoveTerrain(float _){
+        if (!hasHit) return;
+        CPUDensityManager.Terraform(hitPoint, settings.terraformRadius, HandleRemoveSolid);
+    }
 
-        return staggeredDelta;
+    public static int GetStaggeredDelta(float deltaDensity){
+        int remInvFreq = Mathf.CeilToInt(1 / math.frac(deltaDensity));
+        int staggeredDelta = Mathf.FloorToInt(deltaDensity);
+        return  staggeredDelta + math.frac(deltaDensity) == 0 ? 0 : 
+                (Time.frameCount % remInvFreq) == 0 ? 1 : 0;
+    }
+
+    public static int GetStaggeredDelta(int baseDensity, float deltaDensity){
+        int staggeredDelta = GetStaggeredDelta(deltaDensity);
+        return Mathf.Abs(Mathf.Clamp(baseDensity + staggeredDelta, 0, 255) - baseDensity);
     }
 
     MapData HandleAddSolid(MapData pointInfo, float brushStrength){
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
-        if(InventoryController.Selected == null) return pointInfo;
+        if(InventoryController.Selected == null || !InventoryController.SelectedSetting.IsSolid) 
+            return pointInfo;
 
-        int selected = InventoryController.Selected.Index;
+        int selected = matInfo.RetrieveIndex(InventoryController.SelectedSetting.MaterialName);
         int solidDensity = pointInfo.SolidDensity;
         if(solidDensity < IsoLevel || pointInfo.material == selected){
             //If adding solid density, override water
@@ -245,12 +250,13 @@ public class TerraformController : UpdateTask
         return pointInfo;
     }
 
-    MapData HandleAddLiquid(MapData pointInfo, float brushStrength){
+    public MapData HandleAddLiquid(MapData pointInfo, float brushStrength){
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
-        if(InventoryController.Selected == null) return pointInfo;
+        if(InventoryController.Selected == null || !InventoryController.SelectedSetting.IsLiquid) 
+            return pointInfo;
 
-        int selected = InventoryController.Selected.Index;
+        int selected = matInfo.RetrieveIndex(InventoryController.SelectedSetting.MaterialName);
         int liquidDensity = pointInfo.LiquidDensity;
         if(liquidDensity < IsoLevel || pointInfo.material == selected){
             //If adding liquid density, only change if not solid
@@ -273,11 +279,13 @@ public class TerraformController : UpdateTask
         int solidDensity = pointInfo.SolidDensity;
         if(solidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
-            InventoryController.ISlot nMaterial = new MaterialItem{
-                IsSolid = true,
-                Index = pointInfo.material,
-                AmountRaw = deltaDensity
-            }; InventoryController.AddEntry(nMaterial);
+
+            int itemIndex = itemInfo.RetrieveIndex(matInfo.Retrieve(pointInfo.material).SolidItem);
+            IItem nMaterial = itemInfo.Retrieve(itemIndex).Item;
+            nMaterial.Index = itemIndex;
+            nMaterial.AmountRaw = deltaDensity;
+
+            InventoryController.AddEntry(nMaterial);
             deltaDensity -= nMaterial.AmountRaw;
 
             pointInfo.viscosity -= deltaDensity;
@@ -293,13 +301,13 @@ public class TerraformController : UpdateTask
         int liquidDensity = pointInfo.LiquidDensity;
         if (liquidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(liquidDensity, -brushStrength);
-            InventoryController.ISlot nMaterial = new MaterialItem{
-                IsSolid = false,
-                Index = pointInfo.material,
-                AmountRaw = deltaDensity
-            }; InventoryController.AddEntry(nMaterial);
-            deltaDensity -= nMaterial.AmountRaw;
 
+            int itemIndex = itemInfo.RetrieveIndex(matInfo.Retrieve(pointInfo.material).LiquidItem);
+            IItem nMaterial = itemInfo.Retrieve(itemIndex).Item;
+            nMaterial.Index = itemIndex;
+            nMaterial.AmountRaw = deltaDensity;
+            
+            deltaDensity -= nMaterial.AmountRaw;
             pointInfo.density -= deltaDensity;
         }
         return pointInfo;
@@ -314,7 +322,7 @@ public class TerraformController : UpdateTask
             EItem.EItemEntity* item = (EItem.EItemEntity*)e->obj;
             if(item->isPickedUp) return;
 
-            InventoryController.ISlot slot = item->item.Slot;
+            IItem slot = item->item.Slot;
             if(slot == null) return;
 
             InventoryController.AddEntry(slot);
