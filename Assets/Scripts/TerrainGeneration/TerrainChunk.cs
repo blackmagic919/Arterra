@@ -32,7 +32,6 @@ public class TerrainChunk
     public readonly int mapChunkSize;
 
     public int mapSkipInc => 1 << depth;
-    public int meshSkipInc;
     public ChunkStatus status;
     
     public struct ChunkStatus{
@@ -91,7 +90,6 @@ public class TerrainChunk
         meshFilter = meshObject.AddComponent<MeshFilter>();
         meshRenderer = meshObject.AddComponent<MeshRenderer>();
         meshRenderer.sharedMaterials = WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.TerrainMats.ToArray();
-        meshSkipInc = 1;
 
         status = new ChunkStatus{CreateMap = true, UpdateMesh = true, CanUpdateMesh = false};
         Generator = new GeneratorInfo(this);
@@ -185,7 +183,11 @@ public class RealChunk : TerrainChunk{
             //Readmap data starts a CPU background thread to read data and re-synchronizes by adding to the queue
             //Therefore we need to call it directly to maintain it's on the same call-cycle as the rest of generation
             status.UpdateMap = false;
-            ReadMapData(); 
+            RequestQueue.Enqueue(new GenTask{
+                task =() => ReadMapData(),
+                id = (int)priorities.generation,
+                chunk = this
+            });
         } else if(status.SetMap){
             status.UpdateMap = false;
             RequestQueue.Enqueue(new GenTask{ 
@@ -225,45 +227,36 @@ public class RealChunk : TerrainChunk{
     
     public void ReadMapData(Action callback = null){
         //This code will be called on a background thread
-        ChunkStorageManager.ReadChunkInfo(CCoord, (ReadbackInfo info) => 
-            RequestQueue.Enqueue(new GenTask{ //REMINDER: This queue should be locked
-                task = () => OnReadComplete(info),
-                id = (int)priorities.generation,
-                chunk = this,
-            })
-        );
+        ChunkStorageManager.ReadbackInfo info = ChunkStorageManager.ReadChunkInfo(CCoord);
 
-        //This code will run on main thread
-        void OnReadComplete(ReadbackInfo info){
-            if(info.map != null){ //if the chunk has saved map data
-                Generator.MeshCreator.SetMapInfo(mapChunkSize, 0, info.map);
-                GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.TransferBuffer);
-                if(info.entities == null) Generator.MeshCreator.PopulateBiomes(origin, surfAddress, mapChunkSize, mapSkipInc);
-            } else { //Otherwise create new data
-                DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
-                Generator.MeshCreator.GenerateBaseChunk(origin, surfAddress, mapChunkSize, mapSkipInc, IsoLevel);
-                Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel);
-                Generator.MeshCreator.CompressMap(mapChunkSize);
-                GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.GenerationBuffer, DensityGenerator.bufferOffsets.mapStart);
-            }
-
-            EntityManager.ReleaseChunkEntities(CCoord);//Clear previous chunk's entities
-            if(info.entities != null) { //If the chunk has saved entities
-                EntityManager.DeserializeEntities(info.entities, CCoord);
-            }else { //Otherwise create new entities
-                uint entityAddress = EntityManager.PlanEntities(DensityGenerator.bufferOffsets.biomeMapStart, CCoord, mapChunkSize);
-                EntityManager.BeginEntityReadback(entityAddress, CCoord);
-            }
-
-            //Copy real chunks to CPU
-            int3 CCoord_Captured = CCoord;
-            CPUDensityManager.AllocateChunk(this, CCoord, () => CPUDensityManager.BeginMapReadback(CCoord_Captured));
-            callback?.Invoke();
+        if(info.map != null){ //if the chunk has saved map data
+            Generator.MeshCreator.SetMapInfo(mapChunkSize, 0, info.map);
+            GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.TransferBuffer);
+            if(info.entities == null) Generator.MeshCreator.PopulateBiomes(origin, surfAddress, mapChunkSize, mapSkipInc);
+        } else { //Otherwise create new data
+            DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
+            Generator.MeshCreator.GenerateBaseChunk(origin, surfAddress, mapChunkSize, mapSkipInc, IsoLevel);
+            Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel);
+            Generator.MeshCreator.CompressMap(mapChunkSize);
+            GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.GenerationBuffer, DensityGenerator.bufferOffsets.mapStart);
         }
+
+        EntityManager.ReleaseChunkEntities(CCoord);//Clear previous chunk's entities
+        if(info.entities != null) { //If the chunk has saved entities
+            EntityManager.DeserializeEntities(info.entities, CCoord);
+        }else { //Otherwise create new entities
+            uint entityAddress = EntityManager.PlanEntities(DensityGenerator.bufferOffsets.biomeMapStart, CCoord, mapChunkSize);
+            EntityManager.BeginEntityReadback(entityAddress, CCoord);
+        }
+
+        //Copy real chunks to CPU
+        int3 CCoord_Captured = CCoord;
+        CPUDensityManager.AllocateChunk(this, CCoord, () => CPUDensityManager.BeginMapReadback(CCoord_Captured));
+        callback?.Invoke();
     }
 
     public void CreateMesh( Action<SharedMeshInfo<TVert>> UpdateCallback = null){
-        Generator.MeshCreator.GenerateMapData(CCoord, IsoLevel, meshSkipInc, mapChunkSize);
+        Generator.MeshCreator.GenerateRealMesh(CCoord, IsoLevel, mapChunkSize);
         ClearFilter();
         ReapChunk(index);
         
@@ -300,9 +293,11 @@ public class RealChunk : TerrainChunk{
 public class VisualChunk : TerrainChunk{
     private int3 sOrigin;
     private int sChunkSize; 
+    private int mapHandle;
     public VisualChunk(Transform parent, int3 origin, int size, uint octreeIndex) : base(parent, origin, size, octreeIndex){
         sOrigin = origin - mapSkipInc;
         sChunkSize = mapChunkSize + 3;
+        mapHandle = -1;
     }
 
     public override void Update()
@@ -312,8 +307,28 @@ public class VisualChunk : TerrainChunk{
             //Readmap data starts a CPU background thread to read data and re-synchronizes by adding to the queue
             //Therefore we need to call it directly to maintain it's on the same call-cycle as the rest of generation
             status.UpdateMap = false;
-            ReadMapData(OnChunkCreated);
+            RequestQueue.Enqueue(new GenTask{
+                task =() => ReadMapData(),
+                id = (int)priorities.generation,
+                chunk = this
+            });
         } 
+        if(status.UpdateMesh) {
+            status.UpdateMesh = false;
+            RequestQueue.Enqueue(new GenTask{ 
+                task = () => status.CanUpdateMesh = true,
+                id = (int)priorities.propogation,
+                chunk = this
+            });
+        }
+        if(status.CanUpdateMesh){
+            status.CanUpdateMesh = false;
+            RequestQueue.Enqueue(new GenTask{
+                task = () => {CreateMesh(OnChunkCreated);}, 
+                id = (int)priorities.mesh,
+                chunk = this
+            });
+        }
         //Set chunk data will only be used if info is modified, which 
         //it shouldn't be for visual chunks
         
@@ -333,43 +348,40 @@ public class VisualChunk : TerrainChunk{
     }
     
     public void ReadMapData(Action<SharedMeshInfo<TVert>> callback = null){
-        void SetChunkData(int offset, CPUDensityManager.MapData[] mapData, Action<SharedMeshInfo<TVert>> callback){
-            Generator.MeshCreator.SetMapInfo(sChunkSize, offset, mapData);
+
+        if(!GPUDensityManager.IsChunkRegisterable(CCoord, depth)) { callback?.Invoke(null); return; }
+        DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
+        Generator.MeshCreator.GenerateBaseChunk(sOrigin, surfAddress, sChunkSize, mapSkipInc, IsoLevel);
+
+        if(depth <= rSettings.MaxStructureDepth){
+            Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize+1, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel, sChunkSize, 1);
         }
 
-        void GenerateMap(Action<SharedMeshInfo<TVert>> callback)
-        {
-            DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
-            Generator.MeshCreator.GenerateBaseChunk(sOrigin, surfAddress, sChunkSize, mapSkipInc, IsoLevel);
+        Generator.MeshCreator.CompressMap(sChunkSize);
+        if(mapHandle != -1) GPUDensityManager.UnsubscribeHandle((uint)mapHandle);
+        mapHandle = GPUDensityManager.RegisterChunkVisual(CCoord, depth, UtilityBuffers.GenerationBuffer, bufferOffsets.mapStart);
+        if(mapHandle == -1) return; 
 
-            if(depth <= rSettings.MaxStructureDepth)
-                Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize+1, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel, sChunkSize, 1);
-
-            Generator.MeshCreator.CompressMap(sChunkSize);
-            GPUDensityManager.RegisterChunkVisual(CCoord, depth, UtilityBuffers.GenerationBuffer, bufferOffsets.mapStart);
-            CreateMeshImmediate(callback);
-        }
-
-        //This code will be called on a background thread
-        ChunkStorageManager.ReadChunkInfo(CCoord, (ReadbackInfo info) => 
-            RequestQueue.Enqueue(new GenTask{  
-                task = () => OnReadComplete(info),
-                id = (int)priorities.visual,
-                chunk = this,
-            })
-        );
-
-        //This code will run on main thread
-        void OnReadComplete(ReadbackInfo info){
-            //if(isComplete) SetChunkData(0, chunk, callback);
-            GenerateMap(callback);
-        }
+        CPUDensityManager.MapData[] info = ChunkStorageManager.ReadVisualChunkMap(CCoord, depth);
+        Generator.MeshCreator.SetMapInfo(mapChunkSize, 0, info);
+        GPUDensityManager.TranscribeMultiMap(UtilityBuffers.TransferBuffer, CCoord, depth);
+        //Subscribe once more so the chunk can't be released while we hold its handle
+        GPUDensityManager.SubscribeHandle((uint)mapHandle);
     }
 
-    private void CreateMeshImmediate(Action<SharedMeshInfo<TVert> > UpdateCallback = null){
-        Generator.MeshCreator.GenerateMapDataInPlace(IsoLevel, meshSkipInc, mapChunkSize);
+
+    private void CreateMesh(Action<SharedMeshInfo<TVert> > UpdateCallback = null){
+        if(mapHandle == -1){
+            Generator.MeshCreator.GenerateFakeMesh(IsoLevel, mapChunkSize);
+        } else {
+            int directAddress = (int)GPUDensityManager.GetHandle(mapHandle).x;
+            Generator.MeshCreator.GenerateVisualMesh(CCoord, directAddress, IsoLevel, mapChunkSize, depth);
+            GPUDensityManager.UnsubscribeHandle((uint)mapHandle); 
+            mapHandle = -1;
+        }
+
+        ReapChunk(index); 
         ClearFilter();
-        ReapChunk(index);
         
         DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
         Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets.vertexCounter);

@@ -2,7 +2,7 @@
 #pragma kernel CSMain
 const static uint numThreads = 2;
 
-RWStructuredBuffer<uint2> ChunkDict;
+RWStructuredBuffer<CInfo> ChunkDict;
 StructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
 int3 oCoord;
@@ -16,15 +16,17 @@ uint chunkInc;
 [numthreads(numThreads,numThreads,numThreads)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    if(_AddressDict[addressIndex].x == 0) //Invalid
+    if(_AddressDict[addressIndex].y == 0) //Invalid
         return;
     if(id.x >= dimension.x || id.y >= dimension.y || id.z >= dimension.z) 
         return;
-    
-    uint offset = bOffset + ((((id.x * chunkInc) & 0xFF) << 24) | 
-                  (((id.y * chunkInc) & 0xFF) << 16) | 
-                  (((id.z * chunkInc) & 0xFF) << 8));
 
-    int3 CCoord = oCoord + int3(id.x, id.y, id.z);
-    ChunkDict[HashCoord(CCoord)] = uint2(_AddressDict[addressIndex].y, offset);
+    CInfo info;
+    info.address = _AddressDict[addressIndex].y;
+    info.offset = bOffset + ((((id.x * chunkInc) & 0xFF) << 24) | 
+    (((id.y * chunkInc) & 0xFF) << 16) | 
+    (((id.z * chunkInc) & 0xFF) << 8));
+    info.CCoord = oCoord + int3(id.x, id.y, id.z);
+
+    ChunkDict[HashCoord(info.CCoord)] = info;
 }

@@ -39,8 +39,8 @@ public class MeshCreator
     public void GenerateBaseChunk(float3 offset, uint surfaceData, int chunkSize, int mapSkip, float IsoLevel) => GenerateBaseData(offset, surfaceData, chunkSize, mapSkip, IsoLevel);
     public void CompressMap(int chunkSize) => CompressMapData(chunkSize);
 
-    public void SetMapInfo(int numChunksAxis, int offset, CPUDensityManager.MapData[] chunkData){
-        int numPoints = numChunksAxis * numChunksAxis * numChunksAxis;
+    public void SetMapInfo(int numPointsAxis, int offset, CPUDensityManager.MapData[] chunkData){
+        int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
         UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
     }
     public void SetMapInfo(int chunkSize, int offset, ref NativeArray<CPUDensityManager.MapData> chunkData)
@@ -49,8 +49,15 @@ public class MeshCreator
         UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
     }
 
-    public void GenerateMapData(int3 CCoord, float IsoLevel, int skipInc, int chunkSize) => GenerateMesh(CCoord, chunkSize, skipInc, IsoLevel);
-    public void GenerateMapDataInPlace(float IsoLevel, int skipInc, int chunkSize) => GenerateMeshInPlace(chunkSize, skipInc, IsoLevel);
+    public void GenerateRealMesh(int3 CCoord, float IsoLevel, int chunkSize){
+        CollectRealMap(CCoord, chunkSize);
+        GenerateMesh(chunkSize, IsoLevel);
+    }
+    public void GenerateVisualMesh(int3 CCoord, int defAddress, float IsoLevel, int chunkSize, int depth){
+        CollectVisualMap(CCoord, defAddress, chunkSize, depth);
+        GenerateMesh(chunkSize, IsoLevel);
+    }
+    public void GenerateFakeMesh(float IsoLevel, int chunkSize) => GenerateMesh(chunkSize, IsoLevel);
 
 }
 

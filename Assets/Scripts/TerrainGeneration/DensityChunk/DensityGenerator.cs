@@ -11,8 +11,8 @@ public static class DensityGenerator
     static ComputeShader baseGenCompute;//
     static ComputeShader biomeGenCompute;//
     static ComputeShader mapCompressor;//
-    static ComputeShader meshGenerator;//
     static ComputeShader dMeshGenerator;//
+    static ComputeShader meshInfoCollector;
 
     public const int VERTEX_STRIDE_WORD = 3 * 2 + 2;
     public const int TRI_STRIDE_WORD = 3;
@@ -25,8 +25,8 @@ public static class DensityGenerator
         baseGenCompute = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/ChunkDataGen");
         biomeGenCompute = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/FullBiomeSampler");
         mapCompressor = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/MapCompressor");
-        meshGenerator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/MarchingCubes");
         dMeshGenerator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/CMarchingCubes");
+        meshInfoCollector = Resources.Load<ComputeShader>("Compute/TerrainGeneration/BaseGeneration/BaseMapCollector");
 
         indirectCountToArgs = Resources.Load<ComputeShader>("Compute/Utility/CountToArgs");
     }
@@ -73,28 +73,29 @@ public static class DensityGenerator
         mapCompressor.SetInt("bSTART_chunk", bufferOffsets.mapStart);
         
         //They're all the same buffer lol
-        meshGenerator.SetBuffer(0, "vertexes", UtilityBuffers.GenerationBuffer);
-        meshGenerator.SetBuffer(0, "triangles", UtilityBuffers.GenerationBuffer);
-        meshGenerator.SetBuffer(0, "triangleDict", UtilityBuffers.GenerationBuffer);
-        meshGenerator.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
-        meshGenerator.SetInts("counterInd", new int[3]{bufferOffsets.vertexCounter, bufferOffsets.baseTriCounter, bufferOffsets.waterTriCounter});
-
-        meshGenerator.SetInt("bSTART_dict", bufferOffsets.dictStart);
-        meshGenerator.SetInt("bSTART_verts", bufferOffsets.vertStart);    
-        meshGenerator.SetInt("bSTART_baseT", bufferOffsets.baseTriStart);
-        meshGenerator.SetInt("bSTART_waterT", bufferOffsets.waterTriStart);
-
         dMeshGenerator.SetBuffer(0, "vertexes", UtilityBuffers.GenerationBuffer);
         dMeshGenerator.SetBuffer(0, "triangles", UtilityBuffers.GenerationBuffer);
         dMeshGenerator.SetBuffer(0, "triangleDict", UtilityBuffers.GenerationBuffer);
         dMeshGenerator.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
         dMeshGenerator.SetInts("counterInd", new int[3]{bufferOffsets.vertexCounter, bufferOffsets.baseTriCounter, bufferOffsets.waterTriCounter});
+        dMeshGenerator.SetInt("meshSkipInc", 1); //we are only dealing with same size chunks in this model
 
         dMeshGenerator.SetInt("bSTART_map", bufferOffsets.mapStart);
         dMeshGenerator.SetInt("bSTART_dict", bufferOffsets.dictStart);
         dMeshGenerator.SetInt("bSTART_verts", bufferOffsets.vertStart);
         dMeshGenerator.SetInt("bSTART_baseT", bufferOffsets.baseTriStart);
         dMeshGenerator.SetInt("bSTART_waterT", bufferOffsets.waterTriStart);
+
+        int kernel = meshInfoCollector.FindKernel("CollectReal");
+        meshInfoCollector.SetBuffer(kernel, "MapData", UtilityBuffers.GenerationBuffer);
+        meshInfoCollector.SetBuffer(kernel, "_MemoryBuffer", GPUDensityManager.Storage);
+        meshInfoCollector.SetBuffer(kernel, "_AddressDict", GPUDensityManager.Address);
+        kernel = meshInfoCollector.FindKernel("CollectVisual");
+        meshInfoCollector.SetBuffer(kernel, "MapData", UtilityBuffers.GenerationBuffer);
+        meshInfoCollector.SetBuffer(kernel, "_MemoryBuffer", GPUDensityManager.Storage);
+        meshInfoCollector.SetBuffer(kernel, "_AddressDict", GPUDensityManager.Address);
+        meshInfoCollector.SetBuffer(kernel, "_DirectAddress", GPUDensityManager.DirectAddress);
+        meshInfoCollector.SetInt("bSTART_map", bufferOffsets.mapStart);
     }
 
     //TODO: Rewrite using BeginWrite() for parallel writing
@@ -154,31 +155,37 @@ public static class DensityGenerator
         mapCompressor.Dispatch(0, numThreadsAxis, 1, 1);
     }
 
-    public static void GenerateMesh(int3 CCoord, int chunkSize, int meshSkipInc, float IsoLevel)
-    {
-        int numCubesAxes = chunkSize / meshSkipInc;
-        int numPointsAxes = numCubesAxes + 1;
-        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 3, 0);
+    public static void CollectRealMap(int3 CCoord, int chunkSize){
+        int fChunkSize = chunkSize + 3;
+        meshInfoCollector.SetInts("CCoord", new int[]{CCoord.x, CCoord.y, CCoord.z});
+        meshInfoCollector.SetInt("numPointsPerAxis", fChunkSize);
+        meshInfoCollector.SetInt("mapChunkSize", chunkSize);
+        GPUDensityManager.SetCCoordHash(meshInfoCollector);
 
-        meshGenerator.SetBuffer(0, "_MemoryBuffer", GPUDensityManager.Storage);
-        meshGenerator.SetBuffer(0, "_AddressDict", GPUDensityManager.Address);
-        meshGenerator.SetInts("CCoord", new int[] { CCoord.x, CCoord.y, CCoord.z });
-        GPUDensityManager.SetCCoordHash(meshGenerator);
-
-        meshGenerator.SetFloat("IsoLevel", IsoLevel);
-        meshGenerator.SetInt("numCubesPerAxis", numCubesAxes);
-        meshGenerator.SetInt("numPointsPerAxis", numPointsAxes);
-        meshGenerator.SetInt("meshSkipInc", meshSkipInc);
-
-        meshGenerator.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
-        int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);
-
-        meshGenerator.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+        int kernel = meshInfoCollector.FindKernel("CollectReal");
+        meshInfoCollector.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
+        int numThreadsAxis = Mathf.CeilToInt(fChunkSize / (float)threadGroupSize);
+        meshInfoCollector.Dispatch(kernel, numThreadsAxis, numThreadsAxis, numThreadsAxis);
     }
 
-    public static void GenerateMeshInPlace(int chunkSize, int meshSkipInc, float IsoLevel)
+    public static void CollectVisualMap(int3 CCoord, int defaultAddress, int chunkSize, int depth){
+        int fChunkSize = chunkSize + 3; int skipInc = 1 << depth;
+        meshInfoCollector.SetInts("CCoord", new int[]{CCoord.x, CCoord.y, CCoord.z});
+        meshInfoCollector.SetInt("numPointsPerAxis", fChunkSize);
+        meshInfoCollector.SetInt("mapChunkSize", chunkSize);
+        meshInfoCollector.SetInt("defAddress", defaultAddress);
+        meshInfoCollector.SetInt("chunkSkip", skipInc);
+        GPUDensityManager.SetCCoordHash(meshInfoCollector);
+
+        int kernel = meshInfoCollector.FindKernel("CollectVisual");
+        meshInfoCollector.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
+        int numThreadsAxis = Mathf.CeilToInt(fChunkSize / (float)threadGroupSize);
+        meshInfoCollector.Dispatch(kernel, numThreadsAxis, numThreadsAxis, numThreadsAxis);
+    }
+
+    public static void GenerateMesh(int chunkSize, float IsoLevel)
     {
-        int numCubesAxes = chunkSize / meshSkipInc;
+        int numCubesAxes = chunkSize;
         int numPointsAxes = numCubesAxes + 1;
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 3, 0);
 
@@ -186,7 +193,6 @@ public static class DensityGenerator
         dMeshGenerator.SetFloat("IsoLevel", IsoLevel);
         dMeshGenerator.SetInt("numCubesPerAxis", numCubesAxes);
         dMeshGenerator.SetInt("numPointsPerAxis", numPointsAxes);
-        dMeshGenerator.SetInt("meshSkipInc", meshSkipInc);
 
         dMeshGenerator.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);

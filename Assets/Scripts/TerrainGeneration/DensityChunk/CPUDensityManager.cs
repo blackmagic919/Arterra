@@ -257,7 +257,7 @@ public static class CPUDensityManager
         int GPUChunkHash = GPUDensityManager.HashCoord(CCoord);
         int CPUChunkHash = HashCoord(CCoord);
 
-        AsyncGPUReadback.Request(GPUDensityManager.Address, size: 8, offset: 8 * GPUChunkHash, ret => onChunkAddressRecieved(ret, CPUChunkHash));
+        AsyncGPUReadback.Request(GPUDensityManager.Address, size: 8, offset: 20 * GPUChunkHash, ret => onChunkAddressRecieved(ret, CPUChunkHash));
     }
 
     static unsafe void onChunkAddressRecieved(AsyncGPUReadbackRequest request, int chunkHash){

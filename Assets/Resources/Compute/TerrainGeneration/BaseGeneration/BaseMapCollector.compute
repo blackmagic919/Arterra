@@ -1,0 +1,117 @@
+#include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#pragma warning( disable: 3556) //stop warning about uint better than int
+#pragma warning( disable: 4000) //stop warning about short circuiting
+#pragma kernel CollectReal
+#pragma kernel CollectVisual
+const static int numThreads = 8;
+
+StructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<CInfo> _AddressDict;
+RWStructuredBuffer<uint> MapData;
+uint bSTART_map;
+
+int3 CCoord;
+int mapChunkSize;
+
+uint ReadMapData(int3 sCoord){
+    sCoord--; //shift such that 0 is the first entry in its own chunk
+    int3 remainder = ((sCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
+    int3 dCC = (sCoord - remainder) / mapChunkSize;
+    int3 coord = sCoord - dCC * mapChunkSize;
+    int3 sCCoord = dCC + CCoord;
+
+    CInfo cHandle = _AddressDict[HashCoord(sCCoord)];
+    int skipInc = (cHandle.offset & 0xFF);
+
+    //this shouldn't happen as long as mapExtend >= 1
+    if(!Exists(cHandle, sCCoord)) return 0;  
+    //If the chunk is too not detail, just extend the current map
+    else if(any(coord % skipInc != 0)){ 
+        coord = clamp(sCoord, 0, mapChunkSize - 1);
+        cHandle = _AddressDict[HashCoord(CCoord)];
+        skipInc = (cHandle.offset & 0xFF);
+    }
+    
+    coord /= skipInc;
+    coord.x += (cHandle.offset >> 24) & 0xFF;
+    coord.y += (cHandle.offset >> 16) & 0xFF;
+    coord.z += (cHandle.offset >> 8) & 0xFF;
+    uint address = indexFromCoordManual(coord, mapChunkSize) + cHandle.address;
+
+    return _MemoryBuffer[address];
+}
+
+[numthreads(numThreads,numThreads,numThreads)]
+void CollectReal (uint3 id : SV_DispatchThreadID)
+{
+    if(any(id >= numPointsPerAxis)) return;
+    int index = indexFromCoord(id);
+    MapData[index + bSTART_map] = ReadMapData(id);
+}
+
+StructuredBuffer<uint2> _DirectAddress;
+uint defAddress;
+int chunkSkip;
+
+//This function can fail, returns 0->fail, 1->success
+bool ReadRealMap(int3 sCoord, out uint info){
+    sCoord--; sCoord *= chunkSkip; info = 0;
+    int3 remainder = ((sCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
+    int3 dCC = (sCoord - remainder) / mapChunkSize;
+    int3 sCCoord = CCoord + dCC;
+    sCoord -= dCC * mapChunkSize;
+
+    CInfo cHandle = _AddressDict[HashCoord(sCCoord)];
+    int skipInc = (cHandle.offset & 0xFF);
+    if(!Exists(cHandle, sCCoord)) return false; 
+    else if(any(sCoord % skipInc) != 0) return false;
+    //bottom edge needs to check if adjacent chunk exists
+    //otherwise it'll have different data than the fake adjacent
+    //chunk that is created, even though it owns the data
+    else if(any(sCoord == 0)){ 
+        sCCoord += clamp(sCoord-1, -1, 0);
+        CInfo adjHandle = _AddressDict[HashCoord(sCCoord)];
+        if(!Exists( adjHandle, sCCoord)) return false;
+    } 
+
+    sCoord /= skipInc;
+    sCoord.x += (cHandle.offset >> 24) & 0xFF;
+    sCoord.y += (cHandle.offset >> 16) & 0xFF;
+    sCoord.z += (cHandle.offset >> 8) & 0xFF;
+    uint address = indexFromCoordManual(sCoord, mapChunkSize) + cHandle.address;
+    info = _MemoryBuffer[address];
+    return true;
+}
+
+uint ReadDefaultMap(int3 sCoord){
+    int address = _DirectAddress[defAddress].y;
+    if(address == 0) return 0; //this should never happen
+
+    int fChunkSize = mapChunkSize + 3;
+    int3 corner = sCoord % mapChunkSize + (sCoord / mapChunkSize);
+    corner.y += 4; corner.z += 8;
+    int index = mapChunkSize * mapChunkSize * mapChunkSize;
+    if (sCoord.x <= 1 || sCoord.x >= mapChunkSize + 1){
+        index += corner.x * fChunkSize * fChunkSize + sCoord.y * fChunkSize + sCoord.z;
+    } else if(sCoord.y <= 1 || sCoord.y >= mapChunkSize + 1){
+        index += corner.y * fChunkSize * fChunkSize + sCoord.x * fChunkSize + sCoord.z;
+    } else if(sCoord.z <= 1 || sCoord.z >= mapChunkSize + 1){
+        index += corner.z * fChunkSize * fChunkSize + sCoord.x * fChunkSize + sCoord.y;
+    } else index = indexFromCoordManual(sCoord-1, mapChunkSize);
+
+    return _MemoryBuffer[index + address];
+}
+
+[numthreads(numThreads,numThreads,numThreads)]
+void CollectVisual (uint3 id : SV_DispatchThreadID)
+{
+    if(any(id >= numPointsPerAxis)) return;
+    int index = indexFromCoord(id);
+
+    uint mapData;
+    if(ReadRealMap((int3)id, mapData)) 
+        MapData[index + bSTART_map] = mapData;
+    else 
+        MapData[index + bSTART_map] = ReadDefaultMap(id);
+}

@@ -1,0 +1,50 @@
+#include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#pragma kernel Transcribe
+const static int numThreads = 8;
+
+/*
+Purpose
+--------
+To Transcribe a map onto its default data which is
+referencable through the perfect dictionary _AddressDict.
+It only transcribes dirty data onto default data that is 
+accessible through the dictionary. If a chunk is partially registered
+then only the registered part can be replaced.
+*/
+
+//Contains a block with the default data
+RWStructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<CInfo> _AddressDict;
+//Contains a mix of dirty and default data
+StructuredBuffer<uint> MapData;
+uint bSTART_map;
+int3 oCCoord;
+
+bool IsDirty(uint data) { return (data & 0x80000000) >> 31; }
+//this is the size of the chunk in GridSpace
+//should be same as numPointsPerAxis
+int mapChunkSize;
+int skipInc;
+
+[numthreads(numThreads,numThreads,numThreads)]
+void Transcribe (uint3 id : SV_DispatchThreadID)
+{
+    if(any(id >= numPointsPerAxis)) return;
+    uint mapInfo = MapData[indexFromCoord(id) + bSTART_map];
+    if(!IsDirty(mapInfo)) return; //it is not dirty and is the same as default
+
+    int3 GCoord = int3(id.x, id.y, id.z) * skipInc;
+    int3 MCoord = (GCoord % mapChunkSize + mapChunkSize) % mapChunkSize;
+    int3 CCoord = (GCoord - MCoord) / mapChunkSize + oCCoord;
+
+    CInfo cHandle = _AddressDict[HashCoord(CCoord)];
+    if(!Exists(cHandle, CCoord)) return;
+    //should be the same as skipInc if used correctly
+    MCoord /= (cHandle.offset & 0xFF); 
+    MCoord.x += (cHandle.offset >> 24) & 0xFF;
+    MCoord.y += (cHandle.offset >> 16) & 0xFF;
+    MCoord.z += (cHandle.offset >> 8) & 0xFF;
+    uint address = indexFromCoord(MCoord) + cHandle.address;
+    _MemoryBuffer[address] = mapInfo;
+}

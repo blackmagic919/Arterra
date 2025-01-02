@@ -3,10 +3,9 @@
 #pragma kernel Simplify
 
 const static int numThreads = 8;
-
 RWStructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<uint2> chunkAddressDict;
-StructuredBuffer<uint2> _AddressDict;
+StructuredBuffer<CInfo> _AddressDict;
 uint addressIndex;
 int3 CCoord;
 
@@ -18,10 +17,10 @@ void Simplify (uint3 id : SV_DispatchThreadID)
     //
     uint wHash = HashCoord(CCoord);
     uint2 wHandle = chunkAddressDict[wHash];//x = address, y = meshSkipInc(>= rSkipInc)
-    uint2 rHandle = _AddressDict[addressIndex];
-    uint sFac = wHandle.y / rHandle.y; //guaranteed to be an int
+    CInfo rHandle = _AddressDict[addressIndex];
+    uint sFac = wHandle.y / (rHandle.offset & 0xFF); //guaranteed to be an int
 
-    uint rIndex = indexFromCoordManual(id * sFac, numPointsPerAxis * sFac) + rHandle.x;
+    uint rIndex = indexFromCoordManual(id * sFac, numPointsPerAxis * sFac) + rHandle.address;
     uint wIndex = indexFromCoord(id) + wHandle.x;
     _MemoryBuffer[wIndex] = _MemoryBuffer[rIndex];
 }

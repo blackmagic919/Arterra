@@ -34,7 +34,7 @@ StructuredBuffer<uint4> _BiomePrefCount;
 StructuredBuffer<enititySetting> _BiomeEntities;
 
 StructuredBuffer<uint> _MemoryBuffer;
-StructuredBuffer<uint2> _AddressDict;
+StructuredBuffer<CInfo> _AddressDict;
 int3 CCoord;
 
 RWStructuredBuffer<uint> counter;
@@ -97,11 +97,11 @@ void Identify (uint3 id : SV_DispatchThreadID)
 uint SampleMapData(uint3 coord){
     uint3 dCC = floor(coord / (float)numPointsPerAxis);
     coord -= dCC * numPointsPerAxis;
-    uint2 chunkHandle = _AddressDict[HashCoord(CCoord + dCC)];
-    if(chunkHandle.x == 0 || chunkHandle.y > 1)
+    CInfo chunkHandle = _AddressDict[HashCoord(CCoord + dCC)];
+    if(!Exists(chunkHandle, CCoord))
         return asuint(-1);
     else{
-        uint address = chunkHandle.x + indexFromCoord(coord);
+        uint address = chunkHandle.address + indexFromCoord(coord);
         return _MemoryBuffer[address];
     }
 }

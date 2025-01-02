@@ -266,7 +266,7 @@ MonoBehaviour:
               isDirty: 0
           - Name: Brush
             _value:
-              value: {fileID: 11400000, guid: cbf4b4326cf05495a98926211df61923, type: 2}
+              value: {fileID: 11400000, guid: 54b67afaa6ce54d7a903460a2615f54e, type: 2}
               isDirty: 0
           isDirty: 0
     isDirty: 0

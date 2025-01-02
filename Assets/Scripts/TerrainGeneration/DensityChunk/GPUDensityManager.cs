@@ -8,6 +8,7 @@ public static class GPUDensityManager
 {
     private static ComputeShader dictReplaceKey;
     private static ComputeShader transcribeMapInfo;
+    private static ComputeShader multiMapTranscribe;
     private static ComputeShader simplifyMap;
     private static uint[] MapLookup;
     private static uint2[] HandleDict;
@@ -26,6 +27,7 @@ public static class GPUDensityManager
         RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
         dictReplaceKey = Resources.Load<ComputeShader>("Compute/MapData/ReplaceDictChunk");
         transcribeMapInfo = Resources.Load<ComputeShader>("Compute/MapData/TranscribeMapInfo");
+        multiMapTranscribe = Resources.Load<ComputeShader>("Compute/MapData/MultiMapTranscriber");
         simplifyMap = Resources.Load<ComputeShader>("Compute/MapData/DensitySimplificator");
         
         lerpScale = rSettings.lerpScale;
@@ -33,7 +35,7 @@ public static class GPUDensityManager
         int MapDiameter = BaseMapLength + rSettings.MapExtendDist*2;
 
         mapChunkSize = rSettings.mapChunkSize;
-        numChunksRadius = (MapDiameter + MapDiameter % 1)/2;
+        numChunksRadius = (MapDiameter + MapDiameter % 2)/2;
         numChunksAxis = numChunksRadius * 2;
         int numChunks = numChunksAxis * numChunksAxis * numChunksAxis;
 
@@ -43,22 +45,48 @@ public static class GPUDensityManager
             HandleDict[i] = new(i - 1, (uint)((i + 1) % HandleDict.Length));
         } HandleDict[1].x = (uint)numChunks;
         HandleDict[0].y = 1; //Free position
-
-        _ChunkAddressDict = new ComputeBuffer(numChunks, sizeof(uint) * 2, ComputeBufferType.Structured);
-        _ChunkAddressDict.SetData(Enumerable.Repeat(0u, numChunks * 2).ToArray());
+        
+        _ChunkAddressDict = new ComputeBuffer(numChunks, sizeof(uint) * 5, ComputeBufferType.Structured);
+        _ChunkAddressDict.SetData(Enumerable.Repeat(0u, numChunks * 5).ToArray());
         memorySpace = GenerationPreset.memoryHandle;
 
         initialized = true;
     }
-    public static void RegisterChunkVisual(int3 oCCoord, int depth, ComputeBuffer mapData, int rdOff = 0){
-        RegisterChunk(oCCoord, depth, (uint address) => TranscribeData(memorySpace.Storage, memorySpace.Address, mapData, address, rdOff, mapChunkSize+3, mapChunkSize, 1));
+    public static int RegisterChunkVisual(int3 oCCoord, int depth, ComputeBuffer mapData, int rdOff = 0){
+        if(!IsChunkRegisterable(oCCoord, depth)) return -1;
+        int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
+        int numPointsFaces = (mapChunkSize+3) * (mapChunkSize+3) * 12;
+        uint address = memorySpace.AllocateMemoryDirect(numPoints + numPointsFaces, 1);
+        TranscribeMap(mapData, address, rdOff, mapChunkSize+3, mapChunkSize, 1);
+        TranscribeEdgeFaces(mapData, address, rdOff, mapChunkSize+3, mapChunkSize+3, numPoints);
+        uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new uint2(address, 0);
+
+        RegisterChunk(oCCoord, depth, handleAddress);
+        return (int)handleAddress;
     }
-    public static void RegisterChunkReal(int3 oCCoord, int depth, ComputeBuffer mapData, int rdOff = 0){
-        RegisterChunk(oCCoord, depth, (uint address) => TranscribeData(memorySpace.Storage, memorySpace.Address, mapData, address, rdOff, mapChunkSize, mapChunkSize));
+    public static int RegisterChunkReal(int3 oCCoord, int depth, ComputeBuffer mapData, int rdOff = 0){
+        if(!IsChunkRegisterable(oCCoord, depth)) return -1;
+        int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
+        uint address = memorySpace.AllocateMemoryDirect(numPoints, 1);
+        TranscribeMap(mapData, address, rdOff, mapChunkSize, mapChunkSize);
+        uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new uint2(address, 0);
+        
+        RegisterChunk(oCCoord, depth, handleAddress);
+        return (int)handleAddress;
+    }
+
+    public static uint2 GetHandle(int handleAddress) => HandleDict[handleAddress];
+    public static void SubscribeHandle(uint handleAddress) => HandleDict[handleAddress].y++;
+    public static void UnsubscribeHandle(uint handleAddress){
+        HandleDict[handleAddress].y--;
+        if(HandleDict[handleAddress].y > 0) return; 
+        //Release chunk if no one is subscribed
+        memorySpace.ReleaseMemory(HandleDict[handleAddress].x);
+        FreeHandle(handleAddress);
     }
 
     //Origin Chunk Coord, Viewer Chunk Coord(where the map is centered), depth
-    private static void RegisterChunk(int3 oCCoord, int depth, Action<uint> Transcribe){
+    private static void RegisterChunk(int3 oCCoord, int depth, uint handleAddress){
         int3 eCCoord = oCCoord + (1 << depth); int3 cOff = oCCoord;
         int3 vCCoord = OctreeTerrain.ChunkPos;
         oCCoord = math.clamp(oCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
@@ -68,32 +96,31 @@ public static class GPUDensityManager
         if(math.any(dim <= 0)) return; //We're not going to save it
         
         //Request Memory Address
-        int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
-        uint address = memorySpace.AllocateMemoryDirect(numPoints, 1);
-        Transcribe.Invoke(address);
-
-        uint handleAddress = AllocateHandle();
         uint count = (uint)(dim.x * dim.y * dim.z);
-        HandleDict[handleAddress] = new uint2(address, count);
+        HandleDict[handleAddress].y += count;
 
         int3 dCoord; 
         for(dCoord.x = 0; dCoord.x < dim.x; dCoord.x++){
-            for(dCoord.y = 0; dCoord.y < dim.y; dCoord.y++){
-                for(dCoord.z = 0; dCoord.z < dim.z; dCoord.z++){
-                    int hash = HashCoord(dCoord + oCCoord);
-                    uint prevAdd = MapLookup[hash];
-                    MapLookup[hash] = handleAddress;
-                    if(prevAdd == 0) continue;
-                    HandleDict[prevAdd].y--;
-                    if(HandleDict[prevAdd].y > 0) continue;
-                    //Release chunk
-                    memorySpace.ReleaseMemory(HandleDict[prevAdd].x);
-                    FreeHandle(prevAdd);
-                }
-            }
-        }
+        for(dCoord.y = 0; dCoord.y < dim.y; dCoord.y++){
+        for(dCoord.z = 0; dCoord.z < dim.z; dCoord.z++){
+            int hash = HashCoord(dCoord + oCCoord);
+            uint prevAdd = MapLookup[hash];
+            MapLookup[hash] = handleAddress;
+            if(prevAdd == 0) continue;
+            UnsubscribeHandle(prevAdd);
+        }}}
         //Fill out Compute Buffer Memory Handles
-        ReplaceAddress(memorySpace.Address, address, oCCoord, dim, cOff, depth);
+        ReplaceAddress(memorySpace.Address, HandleDict[handleAddress].x, oCCoord, dim, cOff, depth);
+    }
+
+    public static bool IsChunkRegisterable(int3 oCCoord, int depth){
+        int3 eCCoord = oCCoord + (1 << depth); 
+        int3 vCCoord = OctreeTerrain.ChunkPos;
+        oCCoord = math.clamp(oCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
+        eCCoord = math.clamp(eCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
+        int3 dim = eCCoord - oCCoord;
+        if(math.any(dim <= 0)) return false;
+        else return true;
     }
 
     private static uint AllocateHandle(){
@@ -120,6 +147,7 @@ public static class GPUDensityManager
 
     public static ComputeBuffer Storage => memorySpace.Storage;
     public static ComputeBuffer Address => _ChunkAddressDict;
+    public static ComputeBuffer DirectAddress => memorySpace.Address;
 
     public static void Release()
     {
@@ -128,21 +156,59 @@ public static class GPUDensityManager
     }
 
 
-    static void TranscribeData(ComputeBuffer memory, ComputeBuffer addressDict, ComputeBuffer mapData, uint address, int rStart, int readAxis, int writeAxis, int rdOff = 0)
+    static void TranscribeMap(ComputeBuffer mapData, uint address, int rStart, int readAxis, int writeAxis, int rdOff = 0)
     {
-        transcribeMapInfo.SetBuffer(0, "_MemoryBuffer", memory);
-        transcribeMapInfo.SetBuffer(0, "_AddressDict", addressDict);
-        transcribeMapInfo.SetBuffer(0, "chunkData", mapData); 
+        int kernel = transcribeMapInfo.FindKernel("TranscribeMap");
+        transcribeMapInfo.SetBuffer(kernel, "_MemoryBuffer", memorySpace.Storage);
+        transcribeMapInfo.SetBuffer(kernel, "_AddressDict", memorySpace.Address);
+        transcribeMapInfo.SetBuffer(kernel, "chunkData", mapData); 
         transcribeMapInfo.SetInt("addressIndex", (int)address);
         transcribeMapInfo.SetInt("bSTART_read", rStart);
         transcribeMapInfo.SetInt("sizeRdAxis", readAxis);
         transcribeMapInfo.SetInt("sizeWrAxis", writeAxis);
-        transcribeMapInfo.SetInt("sqRdOffset", rdOff);
+        transcribeMapInfo.SetInt("offset", rdOff);
 
         int numPointsAxis = writeAxis;
-        transcribeMapInfo.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+        transcribeMapInfo.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
         int numThreadsAxis = Mathf.CeilToInt(numPointsAxis / (float)threadGroupSize);
-        transcribeMapInfo.Dispatch(0, numThreadsAxis, numThreadsAxis, numThreadsAxis);
+        transcribeMapInfo.Dispatch(kernel, numThreadsAxis, numThreadsAxis, numThreadsAxis);
+    }
+
+    static void TranscribeEdgeFaces(ComputeBuffer mapData, uint address, int rStart, int readAxis, int writeAxis, int wrOff = 0){
+        int kernel = transcribeMapInfo.FindKernel("TranscribeFaces");
+        transcribeMapInfo.SetBuffer(kernel, "_MemoryBuffer",  memorySpace.Storage);
+        transcribeMapInfo.SetBuffer(kernel, "_AddressDict", memorySpace.Address);
+        transcribeMapInfo.SetBuffer(kernel, "chunkData", mapData); 
+        transcribeMapInfo.SetInt("addressIndex", (int)address);
+        transcribeMapInfo.SetInt("bSTART_read", rStart);
+
+        transcribeMapInfo.SetInt("sizeRdAxis", readAxis);
+        transcribeMapInfo.SetInt("sizeWrAxis", writeAxis);
+        transcribeMapInfo.SetInt("offset", wrOff);
+
+        int numPointsAxis = writeAxis;
+        transcribeMapInfo.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
+        int numThreadsAxis = Mathf.CeilToInt(numPointsAxis / (float)threadGroupSize);
+        transcribeMapInfo.Dispatch(kernel, numThreadsAxis, numThreadsAxis, 1);
+    }
+
+    public static void TranscribeMultiMap(ComputeBuffer mapData, int3 CCoord, int depth, int rStart = 0){
+        int skipInc = 1 << depth;
+        int numPointsPerAxis = mapChunkSize;
+
+        multiMapTranscribe.SetBuffer(0, "_MemoryBuffer", memorySpace.Storage);
+        multiMapTranscribe.SetBuffer(0, "_AddressDict", _ChunkAddressDict);
+        multiMapTranscribe.SetBuffer(0, "MapData", mapData);
+        multiMapTranscribe.SetInts("oCCoord", new int[3] { CCoord.x, CCoord.y, CCoord.z });
+        multiMapTranscribe.SetInt("numPointsPerAxis", numPointsPerAxis);
+        multiMapTranscribe.SetInt("bSTART_map", rStart);
+        multiMapTranscribe.SetInt("mapChunkSize", mapChunkSize);
+        multiMapTranscribe.SetInt("skipInc", skipInc);
+        SetCCoordHash(multiMapTranscribe);
+
+        multiMapTranscribe.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+        int numThreadsAxis = Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
+        multiMapTranscribe.Dispatch(0, numThreadsAxis, numThreadsAxis, numThreadsAxis);
     }
 
     static void ReplaceAddress(ComputeBuffer addressDict, uint address, int3 oCoord, int3 dimension, int3 offC, int depth)

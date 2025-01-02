@@ -13,6 +13,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 using System;
+using UnityEngine;
 
 /*
 Chunk File Layout:
@@ -28,31 +29,32 @@ public static class ChunkStorageManager
     public delegate void OnReadComplete(ReadbackInfo info);
     public delegate void OnWriteComplete();
 
-    public static string chunkPath;
-    public static string entityPath;
-    private const string fileExtension = ".bin";
     private static int maxChunkSize;
+    private static ChunkFinder chunkFinder;
 
     public static void Initialize(){
         maxChunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
-        chunkPath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/MapData/";
-        entityPath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/EntityData/";
+        chunkFinder = new ChunkFinder();
     }
 
     public static void SaveEntitiesToJsonSync(List<Entity> entities, int3 CCoord){
-        string fileAdd = entityPath + "EChunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
+        string entityPath = chunkFinder.GetEntityRegionPath(CCoord);
         if(!Directory.Exists(entityPath))
             Directory.CreateDirectory(entityPath);
-        
+
+        string fileAdd = chunkFinder.GetEntityPath(CCoord);
+        chunkFinder.TryAddEntity(CCoord);
         SaveEntityToJsonSync(fileAdd, entities);
     }
 
     public static void SaveChunkToBinSync(ChunkPtr chunk, int3 CCoord){
-        string fileAdd = chunkPath + "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
+        string mapPath = chunkFinder.GetMapRegionPath(CCoord);
         
-        if (!Directory.Exists(chunkPath))
-            Directory.CreateDirectory(chunkPath);
+        if (!Directory.Exists(mapPath))
+            Directory.CreateDirectory(mapPath);
 
+        string fileAdd = chunkFinder.GetMapPath(CCoord);
+        chunkFinder.TryAddMap(CCoord);
         SaveChunkToBinSync(fileAdd, chunk); //fire and forget
     }
 
@@ -60,13 +62,12 @@ public static class ChunkStorageManager
     {
         using (FileStream fs = File.Create(fileAdd))
         {
-            MemoryStream headerStream = WriteChunkHeader(() => SerializeHeader(chunk));
+            MemoryStream mapStream = WriteChunkMaps(chunk, out ChunkHeader header);
+            MemoryStream headerStream = WriteChunkHeader(header);
             headerStream.Seek(0, SeekOrigin.Begin);
             headerStream.CopyTo(fs);
             headerStream.Close();
-            fs.Flush();
-
-            MemoryStream mapStream = WriteChunkMaps(chunk.data, chunk.offset);
+            
             mapStream.Seek(0, SeekOrigin.Begin);
             mapStream.CopyTo(fs);
             mapStream.Close();
@@ -79,7 +80,7 @@ public static class ChunkStorageManager
     public static void SaveEntityToJsonSync(string fileAdd, List<Entity> entities){
         using (FileStream fs = File.Create(fileAdd))
         {
-            MemoryStream headerStream = WriteChunkHeader(() => SerializeEntities(entities));
+            MemoryStream headerStream = WriteChunkHeader(SerializeEntities(entities));
             headerStream.Seek(0, SeekOrigin.Begin);
             headerStream.CopyTo(fs);
             headerStream.Close();
@@ -88,47 +89,65 @@ public static class ChunkStorageManager
         }
     }
 
-    public static void ReadChunkInfo(int3 CCoord, OnReadComplete ReadCallback = null){
-        Task.Run(() => ReadChunkInfoAsync(CCoord, ReadCallback));
+    public static MapData[] ReadVisualChunkMap(int3 CCoord, int depth){
+        int numPoints = maxChunkSize * maxChunkSize * maxChunkSize;
+        MapData[] map = new MapData[numPoints]; //automatically zeored(not dirty)
+        int clampedDepth = math.min(depth, (int)math.log2(maxChunkSize));
+        int chunkSkip = math.max(maxChunkSize >> depth, 1); 
+        int3 dSC = new(); int3 dCC; 
+        for(dSC.x = 0; dSC.x < maxChunkSize; dSC.x += chunkSkip){
+        for(dSC.y = 0; dSC.y < maxChunkSize; dSC.y += chunkSkip){
+        for(dSC.z = 0; dSC.z < maxChunkSize; dSC.z += chunkSkip){
+            dCC = (dSC << depth) / maxChunkSize;
+            int3 sCC = CCoord + dCC;
+            if(!chunkFinder.TryGetMapChunk(sCC, out string chunkAdd)) continue;
+            MapData[] chunkMap = ReadChunkBin(chunkAdd, clampedDepth);
+            CopyTo(map, chunkMap, dSC, clampedDepth);
+        }}}
+        return map;
+
+        static void CopyTo(MapData[] map, MapData[] chunkMap, int3 oWC, int depth){
+            int3 rSC = new ();
+            int chunkSize = maxChunkSize >> depth;
+            for(rSC.x = 0; rSC.x < chunkSize; rSC.x++){
+            for(rSC.y = 0; rSC.y < chunkSize; rSC.y++){
+            for(rSC.z = 0; rSC.z < chunkSize; rSC.z++){
+                int wIndex = CustomUtility.indexFromCoord(oWC + rSC, maxChunkSize);
+                int rIndex = CustomUtility.indexFromCoord(rSC, chunkSize);
+                map[wIndex] = chunkMap[rIndex];
+            }}}
+        }
     }
 
-    private static async void ReadChunkInfoAsync(int3 CCoord, OnReadComplete ReadCallback = null){
+    public static ReadbackInfo ReadChunkInfo(int3 CCoord){
         ReadbackInfo info = new ReadbackInfo(false);
-        string chunkAdd = chunkPath + "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
-        string entityAdd = entityPath + "EChunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
-        if(File.Exists(chunkAdd))
-        {
-            info.map = await ReadChunkBinAsync(chunkAdd);
-        }
-        if(File.Exists(entityAdd))
-        {
-            info.entities = ReadEntityJsonAsync(entityAdd);
-        }
-        ReadCallback?.Invoke(info);
+        if(chunkFinder.TryGetMapChunk(CCoord, out string chunkAdd)) info.map = ReadChunkBin(chunkAdd, 0);
+        if(chunkFinder.TryGetEntityChunk(CCoord, out string entityAdd)) info.entities = ReadEntityJson(entityAdd);
+        return info;
     }
 
-    public static async Task<MapData[]> ReadChunkBinAsync(string fileAdd)
+    public static MapData[] ReadChunkBin(string fileAdd, int depth)
     {
         MapData[] map = null;
         //Caller has to copy for persistence
         using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read))
         {
-            uint size = ReadChunkHeader(fs, out ChunkHeader header);
-            fs.Seek(size, SeekOrigin.Begin);
-            map = await ReadChunkMap(fs);
+            uint mapStart = ReadChunkHeader(fs, out ChunkHeader header);
+            if(depth != 0) mapStart += (uint)header.ResolutionOffsets[depth - 1];
+            fs.Seek(mapStart, SeekOrigin.Begin);
+            map = ReadChunkMap(fs, maxChunkSize >> depth);
             DeserializeHeader(ref map, ref header);
         }
         return map;
     }
 
-    public static List<EntitySerial> ReadEntityJsonAsync(string fileAdd)
+    public static List<EntitySerial> ReadEntityJson(string fileAdd)
     {
         List<EntitySerial> entities = null;
         //Caller has to copy for persistence
-        using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read))
-        {
-            ReadChunkHeader(fs, out entities);
+        using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read)){
             //It's automatically deserialized by a custom json rule
+            ReadChunkHeader(fs, out entities);
         }
         return entities;
     }
@@ -184,10 +203,9 @@ public static class ChunkStorageManager
         return (uint)(buffer[offset + 0] | buffer[offset + 1] << 8 | buffer[offset + 2] << 16 | buffer[offset + 3] << 24);
     }
 
-    private static MemoryStream WriteChunkHeader(Func<object> GetHeader){
+    private static MemoryStream WriteChunkHeader(object header){
         MemoryStream ms = new MemoryStream();
         ms.Seek(4, SeekOrigin.Begin);
-        object header = GetHeader();
 
         string json = JsonConvert.SerializeObject(header, Formatting.Indented);
         byte[] buffer = Encoding.ASCII.GetBytes(json);
@@ -216,46 +234,51 @@ public static class ChunkStorageManager
     }
 
     //IT IS CALLERS RESPONSIBILITY TO DISPOSE MEMORY STREAM
-    private static MemoryStream WriteChunkMaps(NativeArray<MapData> chunk, int offset){
+    private static MemoryStream WriteChunkMaps(ChunkPtr chunk, out ChunkHeader header){
         MemoryStream ms = new MemoryStream();
+        header = SerializeHeader(chunk);
+        header.ResolutionOffsets = new List<int>();
 
-        int numPointsAxis = maxChunkSize;
-        int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
+        for(int skipInc = 1; skipInc <= maxChunkSize; skipInc <<= 1){
+            int numPointsAxis = maxChunkSize / skipInc;
+            int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 
-        var mBuffer = new byte[numPoints * 4]; uint mBPos = 0;
-        for(int x = 0; x < maxChunkSize; x++){
-            for(int y = 0; y < maxChunkSize; y++){
-                for(int z = 0; z < maxChunkSize; z++){
-                    int readPos = CustomUtility.indexFromCoord(x, y, z, maxChunkSize);
-                    MapData mapPt = chunk[offset + readPos];
+            var mBuffer = new byte[numPoints * 4]; uint mBPos = 0;
+            for(int x = 0; x < maxChunkSize; x += skipInc){
+                for(int y = 0; y < maxChunkSize; y += skipInc){
+                    for(int z = 0; z < maxChunkSize; z += skipInc){
+                        int readPos = CustomUtility.indexFromCoord(x, y, z, maxChunkSize);
+                        MapData mapPt = chunk.data[chunk.offset + readPos];
 
-                    //if(!mapPt.isDirty) mapPt.data = 0;
-                    WriteUInt32(mBuffer, ref mBPos, mapPt.data);
+                        //if(!mapPt.isDirty) mapPt.data = 0;
+                        WriteUInt32(mBuffer, ref mBPos, mapPt.data);
+                    }
                 }
             }
-        }
-        //Deals with memory so it's better to not hog all the threads
-        using(GZipStream zs = new GZipStream(ms, CompressionMode.Compress, true)){ 
-            zs.Write(mBuffer); 
-            zs.Flush(); 
+            //Deals with memory so it's better to not hog all the threads
+            using(GZipStream zs = new GZipStream(ms, CompressionMode.Compress, true)){ 
+                zs.Write(mBuffer); 
+                zs.Flush(); 
+            }   
+            header.ResolutionOffsets.Add((int)ms.Length);
         }
         ms.Flush();
         return ms;
     }
 
-    private static async Task<MapData[]> ReadChunkMap(FileStream fs){
-        int numPointsAxis = maxChunkSize;
+    private static MapData[] ReadChunkMap(FileStream fs, int chunkSize){
+        int numPointsAxis = chunkSize;
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
         MapData[] outStream = new MapData[numPoints];
     
         using(GZipStream zs = new GZipStream(fs, CompressionMode.Decompress, true))
         {
             byte[] buffer = new byte[4 * numPoints]; uint bufferPos = 0;
-            await zs.ReadAsync(buffer);
+            zs.Read(buffer);
 
             for(int index = 0; index < numPoints; index++)
             {
-                outStream[index] = new CPUDensityManager.MapData{
+                outStream[index] = new MapData{
                     data = (uint)(buffer[bufferPos + 0] | 
                     buffer[bufferPos + 1] << 8 | 
                     buffer[bufferPos + 2] << 16 | 
@@ -268,23 +291,162 @@ public static class ChunkStorageManager
         return outStream;
     }
 
-}
-
-public struct ChunkHeader{
-    public List<string> RegisterNames;
-}
-
-public struct ReadbackInfo{
-    public List<EntitySerial> entities;
-    public MapData[] map;
-
-    public ReadbackInfo(bool _){
-        entities = null;
-        map = null;
+    public struct ChunkHeader{
+        public List<string> RegisterNames;
+        public List<int> ResolutionOffsets;
     }
 
-    public ReadbackInfo(MapData[] map, List<EntitySerial> entities){
-        this.entities = entities;
-        this.map = map;
+    public struct ReadbackInfo{
+        public List<EntitySerial> entities;
+        public MapData[] map;
+
+        public ReadbackInfo(bool _){
+            entities = null;
+            map = null;
+        }
+
+        public ReadbackInfo(MapData[] map, List<EntitySerial> entities){
+            this.entities = entities;
+            this.map = map;
+        }
+    }
+
+    /*
+    Checking whether a file exists through the file system(i.e. File.Exists)
+    can be very slow because of exception handling, multi-path links, etc.
+    so we enumerate all files in our viewable region and cache it so we can
+    check whether it exists faster.
+
+    This is also why the file region architechture exists
+    */
+    private class ChunkFinder{
+        private readonly ChunkRegion[] regions;
+        private readonly int numChunksAxis;
+        private readonly int regionChunkSize;
+        public static string chunkPath;
+        public static string entityPath;
+        private const string fileExtension = ".bin";
+        public ChunkFinder(){
+            chunkPath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/MapData/";
+            entityPath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/EntityData/";
+
+            RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
+            numChunksAxis = Octree.GetAxisChunksDepth(rSettings.MaxDepth, rSettings.Balance, (uint)rSettings.MinChunkRadius);
+            numChunksAxis = math.max((numChunksAxis << rSettings.MaxDepth) >> rSettings.FileRegionDepth, 1);
+            regionChunkSize = 1 << rSettings.FileRegionDepth;
+
+            int numChunks = numChunksAxis * numChunksAxis * numChunksAxis;
+            regions = new ChunkRegion[numChunks];
+        }
+
+        private int HashCoord(int3 RCoord){
+            int3 hashCoord = ((RCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
+            int hash = (hashCoord.x * numChunksAxis * numChunksAxis) + (hashCoord.y * numChunksAxis) + hashCoord.z;
+            return hash;
+        }
+
+        private int3 CSToRS(int3 CCoord){
+            int3 MCoord = ((CCoord % regionChunkSize) + regionChunkSize) % regionChunkSize;
+            int3 RCoord = (CCoord - MCoord) / regionChunkSize;
+            return RCoord;
+        } 
+
+        public bool TryGetMapChunk(int3 CCoord, out string address){
+            address = null;
+            int3 RCoord = CSToRS(CCoord);
+            int hash = HashCoord(RCoord);
+
+            if(!regions[hash].active || math.any(regions[hash].RCoord != RCoord)) 
+                ReconstructRegion(RCoord);
+            if(!regions[hash].MapChunks.Contains(CCoord)) 
+                return false;
+            address = GetMapPath(CCoord);
+            return true;
+        }
+
+        public bool TryGetEntityChunk(int3 CCoord, out string address){
+            address = null;
+            int3 RCoord = CSToRS(CCoord);
+            int hash = HashCoord(RCoord);
+
+            if(!regions[hash].active || math.any(regions[hash].RCoord != RCoord)) 
+                ReconstructRegion(RCoord);
+            if(!regions[hash].EntityChunks.Contains(CCoord)) 
+                return false;
+            address = GetEntityPath(CCoord);
+            return true;
+        }
+
+        private void ReconstructRegion(int3 RCoord){
+            string RegionAddress = MapRegionPath(RCoord);
+            string EntityAddress = EntityRegionPath(RCoord);
+            ChunkRegion region = new (RCoord);
+            PopulateChunkDict(ref region.MapChunks, RegionAddress);
+            PopulateChunkDict(ref region.EntityChunks, EntityAddress);
+            regions[HashCoord(RCoord)] = region;
+
+            static void PopulateChunkDict(ref HashSet<int3> dict, string regionAddress){
+                if(!Directory.Exists(regionAddress)) return;
+                string[] chunkFiles = Directory.GetFiles(regionAddress, "Chunk*"+fileExtension);
+                foreach(string chunkFile in chunkFiles){
+                    try{
+                    string[] split = Path.GetRelativePath(regionAddress, chunkFile).Split('_', '.');
+                    int3 CCoord = new(int.Parse(split[1]), int.Parse(split[2]), int.Parse(split[3]));
+                    dict.Add(CCoord);
+                    } catch (Exception) { } 
+                    //We ignore the file if it's not in the correct format
+                }
+            }
+        }
+
+        public void TryAddMap(int3 CCoord){
+            int3 RCoord = CSToRS(CCoord); int hash = HashCoord(RCoord);
+
+            if(!regions[hash].active || math.any(regions[hash].RCoord != RCoord)) 
+                ReconstructRegion(RCoord);
+            if(!regions[hash].MapChunks.Contains(CCoord))
+                regions[hash].MapChunks.Add(CCoord);
+        }
+
+        public void TryAddEntity(int3 CCoord){
+            int3 RCoord = CSToRS(CCoord); int hash = HashCoord(RCoord);
+
+            if(!regions[hash].active || math.any(regions[hash].RCoord != RCoord)) 
+                ReconstructRegion(RCoord);
+            if(!regions[hash].EntityChunks.Contains(CCoord))
+                regions[hash].EntityChunks.Add(CCoord);
+        }
+
+        public string GetMapPath(int3 CCoord){
+            int3 RCoord = CSToRS(CCoord);
+            return chunkPath + "Region_" + RCoord.x + "_" + RCoord.y + "_" + RCoord.z + '/' +
+                   "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
+        }
+
+        public string GetEntityPath(int3 CCoord){
+            int3 RCoord = CSToRS(CCoord);
+            return entityPath + "Region_" + RCoord.x + "_" + RCoord.y + "_" + RCoord.z + '/' +
+                   "Chunk_" + CCoord.x + "_" + CCoord.y + "_" + CCoord.z + fileExtension;
+        }
+
+        public string GetMapRegionPath(int3 CCoord) => MapRegionPath(CSToRS(CCoord));
+        public string GetEntityRegionPath(int3 CCoord) => EntityRegionPath(CSToRS(CCoord));
+
+        private string MapRegionPath(int3 RCoord) => chunkPath + "Region_" + RCoord.x + "_" + RCoord.y + "_" + RCoord.z + '/';
+        private string EntityRegionPath(int3 RCoord) => entityPath + "Region_" + RCoord.x + "_" + RCoord.y + "_" + RCoord.z + '/';
+    }
+
+    private struct ChunkRegion{
+        public int3 RCoord;
+        public HashSet<int3> MapChunks;
+        public HashSet<int3> EntityChunks;
+        public bool active;
+
+        public ChunkRegion(int3 RCoord){
+            this.RCoord = RCoord;
+            MapChunks = new HashSet<int3>();
+            EntityChunks = new HashSet<int3>();
+            active = true;
+        }
     }
 }
