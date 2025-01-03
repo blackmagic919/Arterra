@@ -153,7 +153,7 @@ public class TerrainChunk
     public virtual void GetSurface(){}
     public virtual void PlanStructures(Action callback = null){}
 
-    public void ReleaseChunk(){
+    public virtual void ReleaseChunk(){
         Generator.GeoShaders?.ReleaseGeometry(); //Release geoShader Geometry
         Generator.MeshReadback?.ReleaseAllGeometry(); //Release base geometry on GPU
         Generator.StructCreator?.ReleaseStructure(); //Release structure data
@@ -335,6 +335,12 @@ public class VisualChunk : TerrainChunk{
         //Visual chunks cannot independently update their mesh because
         //their map data may not be cached, so it must be done immediately
     }
+
+    public override void ReleaseChunk(){
+        //if we are still holding onto the map handle, release it
+        if(mapHandle != -1) GPUDensityManager.UnsubscribeHandle((uint)mapHandle);
+        base.ReleaseChunk();
+    }
     
     public override void GetSurface()
     {
@@ -346,18 +352,21 @@ public class VisualChunk : TerrainChunk{
         Generator.StructCreator.PlanStructuresGPU(CCoord, origin, mapChunkSize, IsoLevel, depth);
         callback?.Invoke();
     }
+
+    private void GenerateDefaultMap(){
+        DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
+        Generator.MeshCreator.GenerateBaseChunk(sOrigin, surfAddress, sChunkSize, mapSkipInc, IsoLevel);
+        if(depth <= rSettings.MaxStructureDepth)
+            Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize+1, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel, sChunkSize, 1);
+        Generator.MeshCreator.CompressMap(sChunkSize);
+    }
     
     public void ReadMapData(Action<SharedMeshInfo<TVert>> callback = null){
 
         if(!GPUDensityManager.IsChunkRegisterable(CCoord, depth)) { callback?.Invoke(null); return; }
+        GenerateDefaultMap();
+
         DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
-        Generator.MeshCreator.GenerateBaseChunk(sOrigin, surfAddress, sChunkSize, mapSkipInc, IsoLevel);
-
-        if(depth <= rSettings.MaxStructureDepth){
-            Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize+1, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel, sChunkSize, 1);
-        }
-
-        Generator.MeshCreator.CompressMap(sChunkSize);
         if(mapHandle != -1) GPUDensityManager.UnsubscribeHandle((uint)mapHandle);
         mapHandle = GPUDensityManager.RegisterChunkVisual(CCoord, depth, UtilityBuffers.GenerationBuffer, bufferOffsets.mapStart);
         if(mapHandle == -1) return; 
@@ -372,6 +381,7 @@ public class VisualChunk : TerrainChunk{
 
     private void CreateMesh(Action<SharedMeshInfo<TVert> > UpdateCallback = null){
         if(mapHandle == -1){
+            GenerateDefaultMap(); //We need the default mesh to be immediately in the buffer
             Generator.MeshCreator.GenerateFakeMesh(IsoLevel, mapChunkSize);
         } else {
             int directAddress = (int)GPUDensityManager.GetHandle(mapHandle).x;

@@ -1,6 +1,7 @@
 #include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #pragma kernel Transcribe
+#pragma warning( disable: 3556) //stop warning about uint better than int
 const static int numThreads = 8;
 
 /*

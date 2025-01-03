@@ -122,87 +122,92 @@ void March (uint3 id : SV_DispatchThreadID)
         if ((cube.corners[u].solid) < IsoLevel) baseIndex |= (1 << u);
         if ((cube.corners[u].liquid) < IsoLevel) waterIndex |= (1 << u);
     }
-    
+
     uint i;
+    uint CClass = CellClass(waterIndex);
+    uint count = VertexCount(CClass); 
     //Generate Water first so terrain can override its geometry
-    for (i = 0; triangulation[waterIndex][i] != -1; i +=3) {
-        [unroll] for(uint v = 0; v < 3; v++){
-            //Get the point indexes
-            int3 pInd = cornerIndexFromEdge[triangulation[waterIndex][i + v]];
+    for (i = 0; i < count; i++) {
+        uint edgeIndex = Vertices(waterIndex, i);
+        int3 pInd = cornerIndexFromEdge[edgeIndex];
 
-            if(pInd.x != 0) continue; //Duplicate Vertex
+        if(pInd.x != 0) continue; //Duplicate Vertex
 
-            //Figure out point positions
-            int3 p1 = oCoord + positionFromIndex[pInd.x];
-            int3 p2 = oCoord + positionFromIndex[pInd.y];
+        //Figure out point positions
+        int3 p1 = oCoord + positionFromIndex[pInd.x];
+        int3 p2 = oCoord + positionFromIndex[pInd.y];
 
-            if(any((uint)p2 >= numPointsPerAxis)) continue; //Out of Bounds
+        if(any((uint)p2 >= numPointsPerAxis)) continue; //Out of Bounds
 
-            vertex newVert;
-            //Get point densities
-            float p1Val = cube.corners[pInd.x].liquid;
-            float p2Val = cube.corners[pInd.y].liquid;
-            float interpFactor = interpolate(p1Val, p2Val);
+        vertex newVert;
+        //Get point densities
+        float p1Val = cube.corners[pInd.x].liquid;
+        float p2Val = cube.corners[pInd.y].liquid;
+        float interpFactor = interpolate(p1Val, p2Val);
 
-            newVert.norm = normalize(GetVertexNormal(p1, p2, interpFactor, SAMPLE_WATER));
-            newVert.tri = (p1 + interpFactor * (p2 - p1)) * meshSkipInc;
-            newVert.material = uint2(cube.corners[p1Val > p2Val ? pInd.y: pInd.x].material, 
-                                     cube.corners[p1Val > p2Val ? pInd.x: pInd.y].material);
+        newVert.norm = normalize(GetVertexNormal(p1, p2, interpFactor, SAMPLE_WATER));
+        newVert.tri = (p1 + interpFactor * (p2 - p1)) * meshSkipInc;
+        newVert.material = uint2(cube.corners[p1Val > p2Val ? pInd.y: pInd.x].material, 
+                                    cube.corners[p1Val > p2Val ? pInd.x: pInd.y].material);
 
-            //Append Vertex
-            int appendInd = 0;
-            InterlockedAdd(counter[counterInd.x], 1, appendInd);
-            vertexes[bSTART_verts + appendInd] = newVert;
+        //Append Vertex
+        int appendInd = 0;
+        InterlockedAdd(counter[counterInd.x], 1, appendInd);
+        vertexes[bSTART_verts + appendInd] = newVert;
 
-            //Set To Dictionary
-            triangleDict[3 * oIndex + pInd.z + bSTART_dict] = appendInd;
-        }
+        //Set To Dictionary
+        triangleDict[3 * oIndex + pInd.z + bSTART_dict] = appendInd;
     }
 
-    for (i = 0; triangulation[baseIndex][i] != -1; i +=3) {
-        [unroll] for(uint v = 0; v < 3; v++){
-            //Get the point indexes
-            int3 pInd = cornerIndexFromEdge[triangulation[baseIndex][i + v]];
+    CClass = CellClass(baseIndex);
+    count = VertexCount(CClass);
+    for (i = 0; i < count; i++) {
+        uint edgeIndex = Vertices(baseIndex, i);
+        int3 pInd = cornerIndexFromEdge[edgeIndex];
 
-            if(pInd.x != 0) continue; //Duplicate Vertex
+        if(pInd.x != 0) continue; //Duplicate Vertex
 
-            //Figure out point positions
-            int3 p1 = oCoord + positionFromIndex[pInd.x];
-            int3 p2 = oCoord + positionFromIndex[pInd.y];
+        //Figure out point positions
+        int3 p1 = oCoord + positionFromIndex[pInd.x];
+        int3 p2 = oCoord + positionFromIndex[pInd.y];
 
-            if(any((uint)p2 >= numPointsPerAxis)) continue; //Out of Bounds
+        if(any((uint)p2 >= numPointsPerAxis)) continue; //Out of Bounds
 
-            vertex newVert;
-            //Get point densities
-            float p1Val = cube.corners[pInd.x].solid;
-            float p2Val = cube.corners[pInd.y].solid;
-            float interpFactor = interpolate(p1Val, p2Val);
+        vertex newVert;
+        //Get point densities
+        float p1Val = cube.corners[pInd.x].solid;
+        float p2Val = cube.corners[pInd.y].solid;
+        float interpFactor = interpolate(p1Val, p2Val);
 
-            newVert.norm = normalize(GetVertexNormal(p1, p2, interpFactor, SAMPLE_TERRAIN));
-            newVert.tri = (p1 + interpFactor * (p2 - p1)) * meshSkipInc;
-            //If it borders liquid, the liquid will always be in y channel
-            newVert.material = uint2(cube.corners[p1Val > p2Val ? pInd.x: pInd.y].material, 
-                                     cube.corners[p1Val > p2Val ? pInd.y: pInd.x].material);
-            
-            //Append Vertex
-            int appendInd = 0;
-            InterlockedAdd(counter[counterInd.x], 1, appendInd);
-            vertexes[bSTART_verts + appendInd] = newVert;
+        newVert.norm = normalize(GetVertexNormal(p1, p2, interpFactor, SAMPLE_TERRAIN));
+        newVert.tri = (p1 + interpFactor * (p2 - p1)) * meshSkipInc;
+        //If it borders liquid, the liquid will always be in y channel
+        newVert.material = uint2(cube.corners[p1Val > p2Val ? pInd.x: pInd.y].material, 
+                                    cube.corners[p1Val > p2Val ? pInd.y: pInd.x].material);
+        
+        //Append Vertex
+        int appendInd = 0;
+        InterlockedAdd(counter[counterInd.x], 1, appendInd);
+        vertexes[bSTART_verts + appendInd] = newVert;
 
-            //Set To Dictionary
-            triangleDict[3 * oIndex + pInd.z + bSTART_dict] = appendInd;
-        }
+        //Set To Dictionary
+        triangleDict[3 * oIndex + pInd.z + bSTART_dict] = appendInd;
     }
 
     //Only add triangles if a valid cube
     if(any(id >= (uint)numCubesPerAxis)) 
         return;
-
-    for (i = 0; triangulation[baseIndex][i] != -1; i +=3) {
+    
+    
+    //redundant but for clarity
+    CClass = CellClass(baseIndex); 
+    count = TriangleCount(CClass); 
+    for (i = 0; i < count; i++) {
         pInfo baseTri;
         [unroll] for(uint v = 0; v < 3; v++){ //Get the dict index locations of the vertices
-            int3 cornerInfo = cornerIndexFromEdge[triangulation[baseIndex][i + v]];
-            baseTri.axis[v] = indexFromCoord(oCoord + positionFromIndex[cornerInfo.x]) * 3 + cornerInfo.z;
+            uint vertexIndex = Triangulation(CClass, 3*i + v);
+            int3 cornerInfo = cornerIndexFromEdge[Vertices(baseIndex, vertexIndex)];
+            baseTri.axis[2-v] = indexFromCoord(oCoord + positionFromIndex[cornerInfo.x]) * 3 + cornerInfo.z;
         }
 
         //Append Base Triangle
@@ -211,11 +216,14 @@ void March (uint3 id : SV_DispatchThreadID)
         triangles[bSTART_baseT + appendInd] = baseTri;
     }
 
-    for (i = 0; triangulation[waterIndex][i] != -1; i +=3) {
+    CClass = CellClass(waterIndex);
+    count = TriangleCount(CClass); 
+    for (i = 0; i < count; i++) {
         pInfo waterTri;
         [unroll] for(uint v = 0; v < 3; v++){ //Get the dict index locations of the vertices
-            int3 cornerInfo = cornerIndexFromEdge[triangulation[waterIndex][i + v]];
-            waterTri.axis[v] = indexFromCoord(oCoord + positionFromIndex[cornerInfo.x]) * 3 + cornerInfo.z;
+            uint vertexIndex = Triangulation(CClass, 3*i + v);
+            int3 cornerInfo = cornerIndexFromEdge[Vertices(waterIndex, vertexIndex)];
+            waterTri.axis[2-v] = indexFromCoord(oCoord + positionFromIndex[cornerInfo.x]) * 3 + cornerInfo.z;
         }
 
         //Append Base Triangle
