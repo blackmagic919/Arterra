@@ -8,6 +8,7 @@ using Utils;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Burst;
 using UnityEditor;
+using TerrainGeneration;
 
 //Benefits of unified chunk map memory
 //1. No runtime allocation of native memory
@@ -28,7 +29,7 @@ public static class CPUDensityManager
 
     public static void Initialize(){
         Release();
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
+        RenderSettings rSettings = WorldOptions.CURRENT.Quality.Rendering.value;
         mapChunkSize = rSettings.mapChunkSize;
         lerpScale = rSettings.lerpScale;
         IsoValue = (uint)Math.Round(rSettings.IsoLevel * 255.0f);
@@ -36,7 +37,7 @@ public static class CPUDensityManager
         int numPointsAxis = mapChunkSize;
         numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 
-        numChunksAxis = Octree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
+        numChunksAxis = OctreeTerrain.Octree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
         int numChunks = numChunksAxis * numChunksAxis * numChunksAxis;
 
         _ChunkManagers = new TerrainChunk[numChunks];
@@ -225,7 +226,7 @@ public static class CPUDensityManager
                     float sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
                     float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
                     SetMap(handleTerraform(SampleMap(GCoord), brushStrength), GCoord);
-                    TerrainUpdateManager.AddUpdate(GCoord);
+                    TerrainUpdate.AddUpdate(GCoord);
                 }
             }
         }
@@ -247,7 +248,7 @@ public static class CPUDensityManager
                     float sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
                     float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
                     if(!handleInteraction(GCoord, brushStrength)) return; //Stop if interaction requests it
-                    TerrainUpdateManager.AddUpdate(GCoord);
+                    TerrainUpdate.AddUpdate(GCoord);
                 }
             }
         }

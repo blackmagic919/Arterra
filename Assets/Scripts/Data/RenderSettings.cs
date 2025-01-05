@@ -6,6 +6,9 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Generation/Settings Wrapper")]
 public class RenderSettings : ScriptableObject
 {
+    public int maxFrameLoad = 50; //GPU load
+    public int viewDistUpdate = 32;
+    
 
     public int MaxDepth;
     public int MinChunkRadius;

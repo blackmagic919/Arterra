@@ -34,7 +34,7 @@ public class Info : ScriptableObject
     [JsonIgnore]
     public IEnumerable<TerrainStructure> StructureSerial{
         get{
-            Registry<StructureData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Structures;
+            Registry<StructureData> reg = WorldOptions.CURRENT.Generation.Structures;
             return Structures.value.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Structure])));
         }
     }
@@ -42,13 +42,13 @@ public class Info : ScriptableObject
     [JsonIgnore]
     public IEnumerable<EntityGen> EntitySerial{
         get{
-            Registry<EntityAuthoring> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities;
+            Registry<EntityAuthoring> reg = WorldOptions.CURRENT.Generation.Entities;
             return Entities.value.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Entity])));
         }
     }
 
     public IEnumerable<BMaterial> MaterialSerial(List<Option<BMaterial> > Materials){
-        Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+        Registry<MaterialData> reg = WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary;
         return Materials.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Material])));
     }
 

@@ -89,7 +89,7 @@ public class LiquidMaterial : MaterialData
             SetMap(map[i], GCoord + dP[i]);
             //If state changed, add it to be updated
             if((((ChangeState >> i) & 0x1) ^ (map[i].IsLiquid ? 1 : 0)) != 0)
-                TerrainUpdateManager.AddUpdate(GCoord + dP[i]); 
+                TerrainGeneration.TerrainUpdate.AddUpdate(GCoord + dP[i]); 
         }
         
     }

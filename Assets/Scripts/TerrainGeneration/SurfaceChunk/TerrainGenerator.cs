@@ -16,7 +16,7 @@ public static class TerrainGenerator
     }
 
     public static void PresetData(){
-        SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.Generation.Surface.value;
+        SurfaceCreatorSettings surface = WorldOptions.CURRENT.Generation.Surface.value;
         surfaceDataSampler.SetBuffer(0, "surfMap", UtilityBuffers.GenerationBuffer);
 
         surfaceDataSampler.SetInt("continentalSampler", surface.ContinentalIndex);

@@ -78,3 +78,7 @@ crashlytics-build.properties
 
 mono_crash.*
 
+# Intermediate Documentation
+docs/api/*.yml
+docs/api/.manifest
+docs/_site/*

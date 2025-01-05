@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "../", 
+          "files": ["Assets/**/*.cs"],
+          "exclude": ["Assets/Plugins/**"]
+        }
+      ],
+      "output": "api",
+      "namespaceLayout": "nested", 
+      "allowCompilationErrors": true,
+      "properties": {
+        "AllowUnsafeBlocks" : "true"
+      }
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "**/*.{md,yml}"
+        ],
+        "exclude": [
+          "_site/**"
+        ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "images/**"
+        ]
+      }
+    ],
+    "output": "_site",
+    "template": [
+      "default",
+      "templates/unity"
+    ],
+    "globalMetadata": {
+      "_appName": "Arterra Documentation",
+      "_appTitle": "Arterra Documentation",
+      "_enableSearch": true,
+      "pdf": false
+    }
+  }
+}

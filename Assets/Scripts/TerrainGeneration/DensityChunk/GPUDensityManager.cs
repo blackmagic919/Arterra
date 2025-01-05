@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Unity.Mathematics;
+using TerrainGeneration;
 
 public static class GPUDensityManager
 {
@@ -24,14 +25,14 @@ public static class GPUDensityManager
     public static void Initialize()
     {
         Release();
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
+        RenderSettings rSettings = WorldOptions.CURRENT.Quality.Rendering.value;
         dictReplaceKey = Resources.Load<ComputeShader>("Compute/MapData/ReplaceDictChunk");
         transcribeMapInfo = Resources.Load<ComputeShader>("Compute/MapData/TranscribeMapInfo");
         multiMapTranscribe = Resources.Load<ComputeShader>("Compute/MapData/MultiMapTranscriber");
         simplifyMap = Resources.Load<ComputeShader>("Compute/MapData/DensitySimplificator");
         
         lerpScale = rSettings.lerpScale;
-        int BaseMapLength = Octree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
+        int BaseMapLength = OctreeTerrain.Octree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
         int MapDiameter = BaseMapLength + rSettings.MapExtendDist*2;
 
         mapChunkSize = rSettings.mapChunkSize;
@@ -88,7 +89,7 @@ public static class GPUDensityManager
     //Origin Chunk Coord, Viewer Chunk Coord(where the map is centered), depth
     private static void RegisterChunk(int3 oCCoord, int depth, uint handleAddress){
         int3 eCCoord = oCCoord + (1 << depth); int3 cOff = oCCoord;
-        int3 vCCoord = OctreeTerrain.ChunkPos;
+        int3 vCCoord = TerrainGeneration.OctreeTerrain.ViewPosCS;
         oCCoord = math.clamp(oCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
         eCCoord = math.clamp(eCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
         cOff = oCCoord - cOff;
@@ -115,7 +116,7 @@ public static class GPUDensityManager
 
     public static bool IsChunkRegisterable(int3 oCCoord, int depth){
         int3 eCCoord = oCCoord + (1 << depth); 
-        int3 vCCoord = OctreeTerrain.ChunkPos;
+        int3 vCCoord = TerrainGeneration.OctreeTerrain.ViewPosCS;
         oCCoord = math.clamp(oCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
         eCCoord = math.clamp(eCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
         int3 dim = eCCoord - oCCoord;

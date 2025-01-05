@@ -13,7 +13,7 @@ public class BrushItemAuthoring : ItemAuthoringTemplate<BrushItem> {}
 [Serializable]
 public struct BrushItem : IItem{
     public uint data;
-    public static IRegister Register => WorldStorageHandler.WORLD_OPTIONS.Generation.Items;
+    public static IRegister Register => WorldOptions.CURRENT.Generation.Items;
     public static TerraformController T => PlayerHandler.terrController;
     private static int SmoothBinding = -1;
     private static int TerraceBinding = -1;
@@ -143,7 +143,7 @@ public struct BrushItem : IItem{
             if(neighbor.IsSolid != isProcessingSolid) continue;
             if(isProcessingSolid) AverageSolid(ref cur, ref neighbor, delta);
             else AverageGaseous(ref cur, ref neighbor, delta);
-            TerrainUpdateManager.AddUpdate(GCoord + dP[i]);
+            TerrainGeneration.TerrainUpdate.AddUpdate(GCoord + dP[i]);
             SetMap(neighbor, GCoord + dP[i]);
         } SetMap(cur, GCoord);
 
@@ -152,7 +152,7 @@ public struct BrushItem : IItem{
 
     private static void OnTerrainSmooth(float _){
         if(!T.hasHit) return;
-        CPUDensityManager.TerrainInteract(T.hitPoint, T.settings.terraformRadius, SmoothTerrain);
+        TerrainInteract(T.hitPoint, T.settings.terraformRadius, SmoothTerrain);
     }
     private static bool SmoothTerrain(int3 GCoord, float brushStrength){
         brushStrength *= T.settings.terraformSpeed * Time.deltaTime;
@@ -167,7 +167,7 @@ public struct BrushItem : IItem{
             if(neighbor.IsGaseous) neighbor.material = cur.material;
 
             AverageSolid(ref cur, ref neighbor, delta);
-            TerrainUpdateManager.AddUpdate(GCoord + dP[i]);
+            TerrainGeneration.TerrainUpdate.AddUpdate(GCoord + dP[i]);
             SetMap(neighbor, GCoord + dP[i]);
         } SetMap(cur, GCoord);
 

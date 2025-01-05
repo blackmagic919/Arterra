@@ -24,13 +24,13 @@ public class SurfaceCreatorSettings : ScriptableObject{
     public string InfOffsetNoise;
     public string AtmosphereNoise;
 
-    public int ContinentalIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(ContinentalNoise);
-    public int ErosionIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(ErosionNoise);
-    public int PVIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(PVNoise);
-    public int SquashIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(SquashNoise);
-    public int InfHeightIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(InfHeightNoise);
-    public int InfOffsetIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(InfOffsetNoise);
-    public int AtmosphereIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(AtmosphereNoise);
+    public int ContinentalIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(ContinentalNoise);
+    public int ErosionIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(ErosionNoise);
+    public int PVIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(PVNoise);
+    public int SquashIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(SquashNoise);
+    public int InfHeightIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(InfHeightNoise);
+    public int InfOffsetIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(InfOffsetNoise);
+    public int AtmosphereIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(AtmosphereNoise);
 }
 
 public static class SurfaceCreator

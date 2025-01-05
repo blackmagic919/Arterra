@@ -59,10 +59,10 @@ public static class StructureGenerator
 
     public static void PresetData()
     {
-        MeshCreatorSettings mesh = WorldStorageHandler.WORLD_OPTIONS.Generation.Terrain.value;
-        SurfaceCreatorSettings surface = WorldStorageHandler.WORLD_OPTIONS.Generation.Surface.value;
-        Biome.GenerationData biomes = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value;
-        RenderSettings rSettings = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
+        MeshCreatorSettings mesh = WorldOptions.CURRENT.Generation.Terrain.value;
+        SurfaceCreatorSettings surface = WorldOptions.CURRENT.Generation.Surface.value;
+        Biome.GenerationData biomes = WorldOptions.CURRENT.Generation.Biomes.value;
+        RenderSettings rSettings = WorldOptions.CURRENT.Quality.Rendering.value;
         int maxStructurePoints = calculateMaxStructurePoints(biomes.maxLoD, rSettings.MaxStructureDepth, biomes.StructureChecksPerChunk, biomes.LoDFalloff);
         offsets = new StructureOffsets(maxStructurePoints, 0);
 

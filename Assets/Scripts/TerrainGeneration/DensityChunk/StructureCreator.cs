@@ -50,7 +50,7 @@ public class StructureCreator
     {
         ReleaseStructure();
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 4, 0);
-        SampleStructureLoD(WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.maxLoD, chunkSize, depth, chunkCoord);
+        SampleStructureLoD(WorldOptions.CURRENT.Generation.Biomes.value.maxLoD, chunkSize, depth, chunkCoord);
         IdentifyStructures(offset, IsoLevel);
         this.structureDataIndex = TranscribeStructures(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address);
 

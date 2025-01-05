@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+namespace TerrainGeneration.Readback{
 [CreateAssetMenu(menuName = "Settings/Readback")]
 public class ReadbackSettings : ScriptableObject
 {
@@ -25,4 +26,4 @@ public class ReadbackSettings : ScriptableObject
             Object.Destroy(indirectTerrainMats[i]);
         }
     }
-}
+}}

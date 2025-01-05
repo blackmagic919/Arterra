@@ -50,8 +50,8 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            MaterialGeneration matInfo = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value;
-            Registry<ItemAuthoring> textureInfo = WorldStorageHandler.WORLD_OPTIONS.Generation.Items;
+            MaterialGeneration matInfo = WorldOptions.CURRENT.Generation.Materials.value;
+            Registry<ItemAuthoring> textureInfo = WorldOptions.CURRENT.Generation.Items;
             MaterialData[] MaterialDictionary = matInfo.MaterialDictionary.SerializedData;
             int numMats = MaterialDictionary.Length;
             terrainData = new ComputeBuffer(numMats, sizeof(float) * 6 + sizeof(int) * 2, ComputeBufferType.Structured);
@@ -104,7 +104,7 @@ public static class GenerationPreset
         
         public void Initialize(){
             Release();
-            NoiseData[] samplerDict = WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.SerializedData;
+            NoiseData[] samplerDict = WorldOptions.CURRENT.Generation.Noise.SerializedData;
             uint[] indexPrefixSum = new uint[(samplerDict.Length + 1) * 2];
             NoiseSettings[] settings = new NoiseSettings[samplerDict.Length];
             List<Vector3> offsets = new List<Vector3>();
@@ -176,9 +176,9 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            CInfo<SurfaceBiome>[] surface = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.SurfaceBiomes.SerializedData;
-            CInfo<CaveBiome>[] cave = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.CaveBiomes.SerializedData;
-            CInfo<CaveBiome>[] sky = WorldStorageHandler.WORLD_OPTIONS.Generation.Biomes.value.SkyBiomes.SerializedData;
+            CInfo<SurfaceBiome>[] surface = WorldOptions.CURRENT.Generation.Biomes.value.SurfaceBiomes.SerializedData;
+            CInfo<CaveBiome>[] cave = WorldOptions.CURRENT.Generation.Biomes.value.CaveBiomes.SerializedData;
+            CInfo<CaveBiome>[] sky = WorldOptions.CURRENT.Generation.Biomes.value.SkyBiomes.SerializedData;
             List<Info> biomes = new List<Info>(); 
             biomes.AddRange(surface);
             biomes.AddRange(cave);
@@ -247,7 +247,7 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            StructureData[] StructureDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.Structures.SerializedData;
+            StructureData[] StructureDictionary = WorldOptions.CURRENT.Generation.Structures.SerializedData;
             uint[] indexPrefixSum = new uint[(StructureDictionary.Length+1)*2];
             List<StructureData.PointInfo> map = new List<StructureData.PointInfo>();
             List<StructureData.CheckPoint> checks = new List<StructureData.CheckPoint>();
@@ -299,7 +299,7 @@ public static class GenerationPreset
             entityProfileBuffer?.Release();
 
             //Release Static Entity Data
-            EntityAuthoring[] EntityDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities.SerializedData;
+            EntityAuthoring[] EntityDictionary = WorldOptions.CURRENT.Generation.Entities.SerializedData;
             foreach(EntityAuthoring entity in EntityDictionary) entity.Entity.Unset();
             if(entityProfileArray.IsCreated) entityProfileArray.Dispose();
         }
@@ -308,7 +308,7 @@ public static class GenerationPreset
         {
             Release();
 
-            EntityAuthoring[] EntityDictionary = WorldStorageHandler.WORLD_OPTIONS.Generation.Entities.SerializedData;
+            EntityAuthoring[] EntityDictionary = WorldOptions.CURRENT.Generation.Entities.SerializedData;
             int numEntities = EntityDictionary.Length;
             Entity.Info.ProfileInfo[] entityInfo = new Entity.Info.ProfileInfo[numEntities];
             List<ProfileE> entityProfile = new List<ProfileE>();
@@ -352,7 +352,7 @@ public static class GenerationPreset
         {
             if(initialized) Release();
 
-            MemoryBufferSettings settings = WorldStorageHandler.WORLD_OPTIONS.Quality.Memory.value;
+            MemoryBufferSettings settings = WorldOptions.CURRENT.Quality.Memory.value;
             HeapSetupShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/PrepareHeap");
             AllocateShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/AllocateData");
             DeallocateShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/DeallocateData");
@@ -379,7 +379,7 @@ public static class GenerationPreset
 
         void PrepareMemory()
         {
-            MemoryBufferSettings settings = WorldStorageHandler.WORLD_OPTIONS.Quality.Memory.value;
+            MemoryBufferSettings settings = WorldOptions.CURRENT.Quality.Memory.value;
             HeapSetupShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
             HeapSetupShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
             HeapSetupShader.SetInt("_BufferSize4Bytes", settings._BufferSize4Bytes);

@@ -5,8 +5,6 @@ using UnityEngine.Rendering;
 using System.Linq;
 using Unity.Collections;
 using Utils;
-using RBMeshes;
-using static OctreeTerrain;
 
 //Purpose: Render geometry directly from GPU until it is readback async.
 
@@ -14,6 +12,8 @@ using static OctreeTerrain;
  * If readback called on same geometry while it is not readback
  * overide previous asyncReadbackTask with new readback task.
  */
+namespace TerrainGeneration.Readback{
+using static OctreeTerrain;
 
 public class AsyncMeshReadback 
 {
@@ -44,7 +44,7 @@ public class AsyncMeshReadback
     }
 
     public static void PresetData(){
-        settings = WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value;
+        settings = WorldOptions.CURRENT.System.ReadBack.value;
         numMeshes = (uint)settings.indirectTerrainMats.Length;
         meshDrawArgsCreator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
         triangleTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/TranscribeTriangles");
@@ -111,8 +111,8 @@ public class AsyncMeshReadback
         MainLateUpdateTasks.Enqueue(triHandles[matIndex]);
     }
 
-    public void BeginMeshReadback(Action<SharedMeshInfo<TVert>> callback){
-        ReadbackTask<TVert> RBTask = new ReadbackTask<TVert>((SharedMeshInfo<TVert> ret) => { callback(ret); ReleaseAllGeometry();}, (int)numMeshes);
+    public void BeginMeshReadback(Action<ReadbackTask<IVertFormat.TVert>.SharedMeshInfo> callback){
+        ReadbackTask<IVertFormat.TVert> RBTask = new ReadbackTask<IVertFormat.TVert>((ReadbackTask<IVertFormat.TVert>.SharedMeshInfo ret) => { callback(ret); ReleaseAllGeometry();}, (int)numMeshes);
 
         //Readback shared vertices
         GeometryHandle vertHandle = this.vertexHandle; //Get reference here so that it doesn't change when lambda evaluates
@@ -132,7 +132,7 @@ public class AsyncMeshReadback
         }
     }
 
-    void OnAddressRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, ReadbackTask<TVert> RBTask, ReadbackSizeRecieved onSizeRecieved)
+    void OnAddressRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask, ReadbackSizeRecieved onSizeRecieved)
     {
         if (geoHandle == null || !geoHandle.active) //Info was depreceated
             return;
@@ -148,8 +148,8 @@ public class AsyncMeshReadback
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
         AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Storage, size: 4, offset: 4 * ((int)memAddress.x - 1), ret => onSizeRecieved(ret, memAddress, geoHandle, RBTask));
     }
-    private delegate void ReadbackSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask<TVert> RBTask);
-    void onTriSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask<TVert> RBTask)
+    private delegate void ReadbackSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask);
+    void onTriSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask)
     {
         if (geoHandle == null || !geoHandle.active)  //Info was depreceated
             return;
@@ -162,7 +162,7 @@ public class AsyncMeshReadback
         AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[geoHandle.matIndex], GenerationPreset.memoryHandle.Storage, size: 4 * memSize, offset: 4 * triStartWord, ret => onDataRecieved(geoHandle, RBTask));
     }
 
-    void onVertSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle,  ReadbackTask<TVert> RBTask){
+    void onVertSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle,  ReadbackTask<IVertFormat.TVert> RBTask){
         if (geoHandle == null || !geoHandle.active) 
             return;
 
@@ -170,13 +170,13 @@ public class AsyncMeshReadback
         int vertCount = memSize / MESH_VERTEX_STRIDE_WORD;
         int vertStartWord = (int)(address.y * MESH_VERTEX_STRIDE_WORD);
 
-        RBTask.RBMesh.VertexBuffer = new NativeArray<TVert>(vertCount, Allocator.Persistent);
+        RBTask.RBMesh.VertexBuffer = new NativeArray<IVertFormat.TVert>(vertCount, Allocator.Persistent);
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
         //Async says async but is run on main thread(kind of confusing)
         AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, GenerationPreset.memoryHandle.Storage, size: 4 * memSize, offset: 4 * vertStartWord, ret => onDataRecieved(geoHandle, RBTask));
     }
 
-    void onDataRecieved(GeometryHandle geoHandle, ReadbackTask<TVert> RBTask)
+    void onDataRecieved(GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask)
     {
         if (geoHandle == null || !geoHandle.active)  //Info was depreceated
             return;
@@ -229,91 +229,76 @@ public class AsyncMeshReadback
         triangleTranscriber.DispatchIndirect(0, args);
     }
     
-
-
-    public class GeometryHandle : UpdateTask
-    {
-        public RenderParams rp = default;
-        public GenerationPreset.MemoryHandle memory = default;
-        public int matIndex = -1;
-        public uint addressIndex = 0;
-        public uint argsAddress = 0;
-
-        public GeometryHandle(RenderParams rp, GenerationPreset.MemoryHandle memory, uint addressIndex, uint argsAddress, int matIndex)
-        {
-            this.addressIndex = addressIndex;
-            this.memory = memory;
-            this.rp = rp;
-            this.matIndex = matIndex;
-            this.argsAddress = argsAddress;
-            this.active = true;
-        }
-
-        public GeometryHandle()
-        {
-            this.active = true;
-        }
-
-        ~GeometryHandle(){
-            Release();
-        }
-
-        public void Release(){
-            if(!this.active) return;
-            this.active = false;
-
-            //Release geometry memory
-            if(this.addressIndex != 0)
-                GenerationPreset.memoryHandle.ReleaseMemory(this.addressIndex);
-            if(this.argsAddress != 0)
-                UtilityBuffers.ReleaseArgs(this.argsAddress);
-        }
-
-        public void Disable(){ this.active = false;}
-
-        public override void Update(MonoBehaviour mono = null)
-        {
-            if (!active)
-                return;
-
-            //Offset in bytes = address * 4 args per address * 4 bytes per arg
-            Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)argsAddress);
-        }
-    }
-
-
-    /*
-    ComputeBuffer CalculateGeoSize(ComputeBuffer geoSize, ref Queue<ComputeBuffer> bufferHandle)
-    {
-        ComputeBuffer memSize = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
-        bufferHandle.Enqueue(memSize);
-
-        this.settings.memorySizeCalculator.SetBuffer(0, "geoSize", geoSize);
-        this.settings.memorySizeCalculator.SetInt("stride4Bytes", MESH_VERTEX_STRIDE_4BYTE * 3);
-
-        this.settings.memorySizeCalculator.SetBuffer(0, "byteLength", memSize);
-
-        this.settings.memorySizeCalculator.Dispatch(0, 1, 1, 1);
-
-        return memSize;
-    }
-    */
 }
 
-namespace RBMeshes{
-    public interface IVertFormat {
-        //Like to be static, but .NET 5 doesn't support
-        public void SetVertexBufferParams(Mesh mesh, int count);
+public enum ReadbackMaterial{
+    terrain = 0,
+    water = 1,
+}
+
+
+public class GeometryHandle : UpdateTask
+{
+    public RenderParams rp = default;
+    public GenerationPreset.MemoryHandle memory = default;
+    public int matIndex = -1;
+    public uint addressIndex = 0;
+    public uint argsAddress = 0;
+
+    public GeometryHandle(RenderParams rp, GenerationPreset.MemoryHandle memory, uint addressIndex, uint argsAddress, int matIndex)
+    {
+        this.addressIndex = addressIndex;
+        this.memory = memory;
+        this.rp = rp;
+        this.matIndex = matIndex;
+        this.argsAddress = argsAddress;
+        this.active = true;
     }
+
+    public GeometryHandle()
+    {
+        this.active = true;
+    }
+
+    ~GeometryHandle(){
+        Release();
+    }
+
+    public void Release(){
+        if(!this.active) return;
+        this.active = false;
+
+        //Release geometry memory
+        if(this.addressIndex != 0)
+            GenerationPreset.memoryHandle.ReleaseMemory(this.addressIndex);
+        if(this.argsAddress != 0)
+            UtilityBuffers.ReleaseArgs(this.argsAddress);
+    }
+
+    public void Disable(){ this.active = false;}
+
+    public override void Update(MonoBehaviour mono = null)
+    {
+        if (!active)
+            return;
+
+        //Offset in bytes = address * 4 args per address * 4 bytes per arg
+        Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)argsAddress);
+    }
+}
+
+public interface IVertFormat {
+    //Like to be static, but .NET 5 doesn't support
+    public void SetVertexBufferParams(Mesh mesh, int count);
     
     public struct TVert : IVertFormat
-    {
-        public Vector3 pos;
-        public Vector3 norm;
-        public int2 material;
+{
+    public Vector3 pos;
+    public Vector3 norm;
+    public int2 material;
 
-        //Data is packed into one struct, so read to first stream
-        public void SetVertexBufferParams(Mesh mesh, int count){
+    //Data is packed into one struct, so read to first stream
+    public void SetVertexBufferParams(Mesh mesh, int count){
             mesh.SetVertexBufferParams(count, 
             new [] {
                 new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, stream: 0),
@@ -339,9 +324,28 @@ namespace RBMeshes{
             });
         }
     }
+}
+
+public class ReadbackTask<Vert> where Vert : struct, IVertFormat{
+    private int numRBTasks;
+    private Action<SharedMeshInfo> RBMeshCallback;
+    public SharedMeshInfo RBMesh;
+
+    public ReadbackTask(Action<SharedMeshInfo> RBMeshCallback, int numMeshes){
+        this.numRBTasks = 0;
+        this.RBMeshCallback = RBMeshCallback;
+        this.RBMesh = new SharedMeshInfo(numMeshes);
+    }
+
+    public void AddTask(){ numRBTasks++; }
+
+    public void onRBRecieved(){
+        numRBTasks--;
+        if(numRBTasks == 0) RBMeshCallback(RBMesh);
+    }
 
     //As data is read this way, reading to native array is significantly faster
-    public class SharedMeshInfo<Vert> where Vert : struct, IVertFormat
+    public class SharedMeshInfo
     {
         public NativeArray<uint>[] IndexBuffer;
         public NativeArray<Vert> VertexBuffer;
@@ -407,23 +411,4 @@ namespace RBMeshes{
             return mesh;
         }
     }
-
-    class ReadbackTask<Vert> where Vert : struct, IVertFormat{
-        private int numRBTasks;
-        private Action<SharedMeshInfo<Vert>> RBMeshCallback;
-        public SharedMeshInfo<Vert> RBMesh;
-
-        public ReadbackTask(Action<SharedMeshInfo<Vert>> RBMeshCallback, int numMeshes){
-            this.numRBTasks = 0;
-            this.RBMeshCallback = RBMeshCallback;
-            this.RBMesh = new SharedMeshInfo<Vert>(numMeshes);
-        }
-
-        public void AddTask(){ numRBTasks++; }
-
-        public void onRBRecieved(){
-            numRBTasks--;
-            if(numRBTasks == 0) RBMeshCallback(RBMesh);
-        }
-    }
-}
+}}

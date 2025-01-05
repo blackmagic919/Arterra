@@ -23,14 +23,14 @@ public class MeshCreatorSettings : ScriptableObject{
     public string CoarseTerrainNoise; //For underground terrain generation
     public string FineTerrainNoise;
 
-    public int CaveFrequencyIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CaveFrequencyNoise);
-    public int CaveSizeIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CaveSizeNoise);
-    public int CaveShapeIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CaveShapeNoise);
-    public int CoarseMaterialIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CoarseMaterialNoise);
-    public int FineMaterialIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(FineMaterialNoise);
-    public int CoarseTerrainIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(CoarseTerrainNoise);
-    public int FineTerrainIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Noise.RetrieveIndex(FineTerrainNoise);
-    public int WaterIndex => WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary.RetrieveIndex(waterMat);
+    public int CaveFrequencyIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(CaveFrequencyNoise);
+    public int CaveSizeIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(CaveSizeNoise);
+    public int CaveShapeIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(CaveShapeNoise);
+    public int CoarseMaterialIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(CoarseMaterialNoise);
+    public int FineMaterialIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(FineMaterialNoise);
+    public int CoarseTerrainIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(CoarseTerrainNoise);
+    public int FineTerrainIndex => WorldOptions.CURRENT.Generation.Noise.RetrieveIndex(FineTerrainNoise);
+    public int WaterIndex => WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary.RetrieveIndex(waterMat);
 }
 public class MeshCreator
 {

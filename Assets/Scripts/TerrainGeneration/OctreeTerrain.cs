@@ -6,34 +6,114 @@ using System.Collections.Concurrent;
 using System.Numerics;
 using UnityEngine.Events;
 
+namespace TerrainGeneration{
+/// <summary>
+/// Octree Terrain is a singleton class that drives all generation and generation
+/// based events in the game. It is responsible for scheduling when generation 
+/// tasks are executed and identifying when the current generation needs to update.
+/// 
+/// System tasks connected to the games frame-by-frame update loop should hook into either
+/// MainLoopUpdateTasks, MainLateUpdateTasks, or MainFixedUpdateTasks. This is so that
+/// these static systems can hook into the update loop without needing to be a MonoBehaviour.
+/// </summary>
 public class OctreeTerrain : MonoBehaviour
 {
+    /// <summary>
+    /// The load for each task as ordered in <see cref="Utils.priorities.planning"/>.
+    /// Each task's load is cumilated until the frame's load is exceeded at which point generation stops.
+    /// </summary>
     public static readonly int[] taskLoadTable = { 1, 2, 5, 2, 8, 0 };
+    /// <summary>
+    /// A subscribable event that allows for update-loop tasks outside of update containers
+    /// To subsribe to be disabled after static/singleton systems have been disabled.
+    /// </summary>
     public static UnityEvent OrderedDisable;
+    /// <summary>
+    /// A queue containing subscribed tasks that are executed
+    /// once every update loop. The update loop occurs
+    /// once every frame before the late update loop.
+    /// </summary>
     public static Queue<UpdateTask> MainLoopUpdateTasks;
+    /// <summary>
+    /// A queue containing subscribed tasks that are executed
+    /// once every late update loop. The late update loop
+    /// occurs once every frame after the update loop.
+    /// </summary>
     public static Queue<UpdateTask> MainLateUpdateTasks;
+    /// <summary>
+    /// A queue containing subscribed tasks that are executed
+    /// once every fixed update loop. The fixed update loop is
+    /// akin to a game-tick and is frame-independent. 
+    /// </summary>
     public static Queue<UpdateTask> MainFixedUpdateTasks;
+    /// <summary>
+    /// A queue of generation actions which are processed
+    /// sequentially and discarded once they are called. All tasks 
+    /// are channeled through this queue to manage the resource load
+    /// and facilitate expensive operations. 
+    /// </summary>
+    /// <remarks>
+    /// The concurrent queue may also be used to reinject tasks
+    /// on different threads back into the main thread.
+    /// </remarks>
     public static ConcurrentQueue<GenTask> RequestQueue;
-    public static Transform origin;
-    public static RenderSettings s;
-    public static int maxFrameLoad = 50; //GPU load
-    public static int viewDistUpdate = 32;
+    private static RenderSettings s;
     private int3 prevViewerPos;
-
-    public static Octree octree;
-    public static ConstrainedLL<TerrainChunk> chunks;
-    public static int3 ChunkPos;
-    public static int3 vChunkPos => ChunkPos * s.mapChunkSize + s.mapChunkSize/2;
+    private static Transform origin;
+    private static Octree octree;
+    private static ConstrainedLL<TerrainChunk> chunks;
+    /// <summary>
+    /// The last tracked position of the viewer in chunk space.
+    /// This value is only updated when the viewer's position
+    /// exceeds the viewDistUpdate threshold.
+    /// </summary>
+    public static int3 ViewPosCS;
+    /// <summary>
+    /// The last tracked position of the viewer in grid space.
+    /// This value is only updated when the viewer's position
+    /// exceeds the viewDistUpdate threshold.
+    /// </summary>
+    public static int3 ViewPosGS => ViewPosCS * s.mapChunkSize + s.mapChunkSize/2;
     private static int rootDim => s.Balance == 1 ? 3 : 2;
-    public static Transform viewer; //set by PlayerHandler
-    // Start is called before the first frame update
-    public int Layer = 1;
+    /// <summary> 
+    /// The transform of the viewer around which
+    /// generation(the octree) is centered.
+    /// </summary>
+    public static Transform viewer; 
+
+    /// <summary>
+    /// A struct that defines a generation process. GenTasks
+    /// are buffered into <see cref="RequestQueue"/> and processed sequentially.
+    /// GenTasks are called from main thread and allow for reinjection of async tasks.
+    /// </summary>
+    public struct GenTask{
+        /// <summary> The action that is executed when the task is processed.</summary>
+        public Action task;
+        /// <summary> 
+        /// The priority of the task as defined in <see cref="Utils.priorities.planning"/>. 
+        /// Used to identify the load and loading message of the task.
+        /// </summary>
+        public int id;
+        /// <summary>
+        /// The chunk that the task is associated with. If the chunk is destroyed,
+        /// deactivated, or null, the task will be ignored and discarded when answering.
+        /// </summary>
+        public TerrainChunk chunk;
+        /// <summary>
+        /// Constructs a new GenTask with the given action, id, and chunk.
+        /// </summary>
+        public GenTask(Action task, int id, TerrainChunk chunk){
+            this.task = task;
+            this.id = id;
+            this.chunk = chunk;
+        }
+    }
 
     private void OnEnable(){
-        s = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value;
+        s = WorldOptions.CURRENT.Quality.Rendering.value;
         origin = this.transform; //This means origin in Unity's scene heiharchy
         octree = new Octree(s.MaxDepth, s.Balance, s.MinChunkRadius);
-        chunks = new ConstrainedLL<TerrainChunk>((uint)(Octree.GetNumChunks(s.MaxDepth, s.Balance, s.MinChunkRadius) + 1));
+        chunks = new ConstrainedLL<TerrainChunk>((uint)(Octree.GetMaxNodes(s.MaxDepth, s.Balance, s.MinChunkRadius) + 1));
         OrderedDisable = new UnityEvent();
 
         MainLoopUpdateTasks = new Queue<UpdateTask>();
@@ -52,7 +132,7 @@ public class OctreeTerrain : MonoBehaviour
         CPUDensityManager.Initialize();
 
         EntityManager.Initialize();
-        TerrainUpdateManager.Initialize();
+        TerrainUpdate.Initialize();
 
         AtmospherePass.Initialize();
         ChunkStorageManager.Initialize();
@@ -62,8 +142,8 @@ public class OctreeTerrain : MonoBehaviour
         DensityGenerator.PresetData();
         ShaderGenerator.PresetData();
         SpriteExtruder.PresetData();
-        AsyncMeshReadback.PresetData();
-        WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.Initialize();
+        Readback.AsyncMeshReadback.PresetData();
+        WorldOptions.CURRENT.System.ReadBack.value.Initialize();
     }
     
     void Start()
@@ -82,13 +162,14 @@ public class OctreeTerrain : MonoBehaviour
         EntityManager.Release();
         GenerationPreset.Release();
         AtmospherePass.Release();
-        WorldStorageHandler.WORLD_OPTIONS.System.ReadBack.value.Release();
+        WorldOptions.CURRENT.System.ReadBack.value.Release();
 
         OrderedDisable.Invoke();
     }
 
-    /*
-    void OnDrawGizmos(){
+    
+    private void OnDrawGizmos(){
+        /*
         uint curChunk = chunks.Head();
         int count = 0;
         do{
@@ -96,19 +177,15 @@ public class OctreeTerrain : MonoBehaviour
             curChunk = chunks.Next(curChunk);
 
             if(chunk == null) continue;
-            if(chunk.depth != Layer) continue;
             else {
                 Gizmos.color = Color.white;
                 Gizmos.DrawWireCube(((float3)chunk.origin + s.mapChunkSize/2) * s.lerpScale, (float3)chunk.size * s.lerpScale);
             }
             count++;
-        } while(curChunk != chunks.Head());
-        //Debug.Log(count);
-        //Debug.Log(Octree.GetAxisChunksDepth(math.floorlog2(s.Layer), (int)s.balanceF, (uint)s.minChunkRadius));
-    }*/
+        } while(curChunk != chunks.Head());*/
+    }
 
-    // Update is called once per frame
-    public void Update()
+    private void Update()
     {
         VerifyChunks();
         ForEachChunk((uint chunk) => chunks.nodes[chunk].Value.Update());
@@ -116,9 +193,8 @@ public class OctreeTerrain : MonoBehaviour
         
         ProcessUpdateTasks(MainLoopUpdateTasks);
     }
-
-    public void LateUpdate(){ ProcessUpdateTasks(MainLateUpdateTasks); }
-    public void FixedUpdate(){ ProcessUpdateTasks(MainFixedUpdateTasks); }
+    private void LateUpdate(){ ProcessUpdateTasks(MainLateUpdateTasks); }
+    private void FixedUpdate(){ ProcessUpdateTasks(MainFixedUpdateTasks); }
     private void ProcessUpdateTasks(Queue<UpdateTask> taskQueue)
     {
         int UpdateTaskCount = taskQueue.Count;
@@ -130,10 +206,10 @@ public class OctreeTerrain : MonoBehaviour
             taskQueue.Enqueue(task);
         }
     }
-    void StartGeneration()
+    private void StartGeneration()
     {
         int FrameGPULoad = 0;
-        while(FrameGPULoad < maxFrameLoad)
+        while(FrameGPULoad < s.maxFrameLoad)
         {
             if (!RequestQueue.TryDequeue(out GenTask gen))
                 return;
@@ -145,6 +221,96 @@ public class OctreeTerrain : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Determines whether an octree node is balanced based on its current size
+    /// and distance from the viewer. A node is balanced if it obeys the balance factor
+    /// of the tree; if it is  1:(<see cref="RenderSettings.Balance">Balance</see> + 1) balanced.
+    /// </summary>
+    /// <param name="node">The octree node whose current state is tested to be balanced</param>
+    /// <returns>Whether or not the node is balanced</returns>
+    public static bool IsBalanced(ref Octree.Node node){
+        int balance = (int)(node.size / s.Balance);
+        return node.GetL1Dist(ViewPosGS) - s.mapChunkSize * s.MinChunkRadius >= balance;
+    }
+
+    /// <summary>
+    /// Determines whether an octree node is bordering a chunk of a larger size.
+    /// This is determined by checking if its neighbor farthest from the viewer is
+    /// balanced if it were of a larger size than the current chunk.
+    /// </summary>
+    /// <param name="index"> 
+    /// The index of the octree node within the
+    /// <see cref="octree">octree</see> structure.
+    /// </param>
+    /// <returns>Whether or not the node is bordering a larger chunk</returns>
+    public static bool IsBordering(int index){
+        Octree.Node node = octree.nodes[index];
+        int3 nOrigin = node.origin + ((int3)math.sign(node.origin - ViewPosGS)) * (int)node.size;
+        int parentSize = (int)node.size * 2;
+        nOrigin -= ((nOrigin % parentSize) + parentSize) % parentSize; //make sure offset is not off -> get its parent's origin
+
+        Octree.Node neighbor = new Octree.Node{origin = nOrigin, size = (uint)parentSize};
+        return IsBalanced(ref neighbor);
+    }
+
+    /// <summary>
+    /// Subdivides a chunk if it can be subdivided, otherwise does nothing.
+    /// A chunk can be subdivided if it is unbalanced and not of the minimal chunk size.
+    /// Subdividing a chunk will recursively subdivide it until all its children is balanced.
+    /// </summary>
+    /// <remarks>
+    /// Subdividing a chunk causes the chunk to become a zombie. If it is already a zombie
+    /// than it reaps all zombies in its local subtree before subdividing.
+    /// </remarks>
+    /// <param name="leafIndex">
+    /// The index of the octree node within the
+    /// <see cref="octree">octree</see> structure. 
+    /// </param>
+    public static void SubdivideChunk(uint leafIndex){
+        ref Octree.Node node = ref octree.nodes[leafIndex];
+        if(IsBalanced(ref node) || node.size <= s.mapChunkSize) return;
+
+        //Unregistering chunk will delete subtree if it has a subtree
+        KillSubtree(leafIndex);
+        BuildTree(leafIndex);
+    }
+
+    /// <summary>
+    /// Merges a chunk with its siblings if it can be merged, otherwise does nothing.
+    /// A chunk can be merged if its parent is balanced and all its siblings are leaf chunks.
+    /// Recursively merges all siblings until it reaches a parent that is unbalanced.
+    /// If it reaches the root, it will remap the root to wrap around the viewer.
+    /// </summary>
+    /// <remarks>
+    /// Merging a chunk causes the chunk to become a zombie. If it is already a zombie
+    /// than it reaps all zombies in its local subtree before merging.
+    /// </remarks>
+    /// <param name="leaf">
+    /// The index of the octree node within the
+    /// <see cref="octree">octree</see> structure.
+    /// </param>
+    /// <returns>
+    /// Whether or not the requested chunk was <b>unable</b> to be
+    /// merged. Used for internal recursion purposes.
+    /// </returns>
+    public static bool MergeSiblings(uint leaf){
+        Octree.Node node = octree.nodes[leaf]; uint sibling = node.sibling;
+        if(!IsBalanced(ref octree.nodes[node.parent])){ return true; }
+        if(node.parent == 0) {return RemapRoot(leaf);}
+
+        sibling = leaf;
+        do{
+            KillSubtree(sibling);
+            sibling = octree.nodes[sibling].sibling;
+        } while(sibling != leaf);
+        
+        uint parent = octree.nodes[leaf].parent;
+        //If the parent is balanced, then it won't be subdivided
+        if(MergeSiblings(parent)){
+            AddTerrainChunk(parent);
+        }return false;
+    }
+
     private void ForEachChunk(Action<uint> action){
         uint curChunk = chunks.Head();
         do{
@@ -153,10 +319,10 @@ public class OctreeTerrain : MonoBehaviour
         } while(curChunk != chunks.Head());
 
     }
-
+    
     private void VerifyChunks(){
         int3 ViewerPosition = (int3)((float3)viewer.position / s.lerpScale);
-        if(math.distance(prevViewerPos, ViewerPosition) < viewDistUpdate) return;
+        if(math.distance(prevViewerPos, ViewerPosition) < s.viewDistUpdate) return;
         prevViewerPos = ViewerPosition;
         UpdateViewerPos();
 
@@ -173,31 +339,16 @@ public class OctreeTerrain : MonoBehaviour
     private void UpdateViewerPos(){
         int3 ViewerPosition = (int3)((float3)viewer.position / s.lerpScale + s.mapChunkSize/2);
         int3 intraOffset = ((ViewerPosition % s.mapChunkSize) + s.mapChunkSize) % s.mapChunkSize;
-        ChunkPos = (ViewerPosition - intraOffset) / s.mapChunkSize;
-    }
-
-    public static bool IsBalanced(ref Octree.Node node){
-        int balance = (int)(node.size / s.Balance);
-        return node.GetL1Dist(vChunkPos) - s.mapChunkSize * s.MinChunkRadius >= balance;
-    }
-
-    public static bool IsBordering(ref Octree.Node node){
-        //nOrigin is the origin of a neighbor in the direction away from the viewer of the same level's parent
-        int3 nOrigin = node.origin + ((int3)math.sign(node.origin - vChunkPos)) * (int)node.size;
-        int parentSize = (int)node.size * 2;
-        nOrigin -= ((nOrigin % parentSize) + parentSize) % parentSize; //make sure offset is not off -> get its parent's origin
-
-        Octree.Node neighbor = new Octree.Node{origin = nOrigin, size = (uint)parentSize};
-        return IsBalanced(ref neighbor);
+        ViewPosCS = (ViewerPosition - intraOffset) / s.mapChunkSize;
     }
 
     private static void AddTerrainChunk(uint octreeIndex){
         ref Octree.Node node = ref octree.nodes[octreeIndex];
         TerrainChunk nChunk;
         if(node.size == s.mapChunkSize){
-            nChunk = new RealChunk(origin, node.origin, (int)node.size, octreeIndex);
+            nChunk = new TerrainChunk.RealChunk(origin, node.origin, (int)node.size, octreeIndex);
         } else {
-            nChunk = new VisualChunk(origin, node.origin, (int)node.size, octreeIndex);
+            nChunk = new TerrainChunk.VisualChunk(origin, node.origin, (int)node.size, octreeIndex);
         }
         node.Chunk = chunks.Enqueue(nChunk); 
         node.IsComplete = false;
@@ -219,10 +370,10 @@ public class OctreeTerrain : MonoBehaviour
 
     private void ConstructAroundPoint(){
         int maxChunkSize = (int)s.mapChunkSize * (1 << (int)s.MaxDepth);
-        int3 LCoord = octree.FloorLCoord(vChunkPos - maxChunkSize/2, maxChunkSize);
-
         Queue<uint> tree = new Queue<uint>(); 
-        Octree.Node root = new Octree.Node{size = (uint)maxChunkSize*2, origin = -maxChunkSize, child = 0, _chunk = 0};
+        Octree.Node root = new Octree.Node{size = (uint)maxChunkSize*2, origin = -maxChunkSize, child = 0};
+        root.ClearChunk();
+
         AddOctreeChildren(ref root, 0, (uint child) => tree.Enqueue(child), rootDim);
         BuildTree(tree);
     }
@@ -237,8 +388,8 @@ public class OctreeTerrain : MonoBehaviour
                 sibling = sibling,
                 parent = parentIndex,
                 child = 0, //IsLeaf = true
-                _chunk = 0, //HasChunk = false
             });
+            octree.nodes[sibling].ClearChunk();
             OnAddChild(sibling);
         } 
         parent.child = sibling;
@@ -246,40 +397,10 @@ public class OctreeTerrain : MonoBehaviour
         octree.nodes[sibling].sibling = parent.child;
     }
 
-    public static void SubdivideChunk(uint leafIndex){
-        ref Octree.Node node = ref octree.nodes[leafIndex];
-        if(IsBalanced(ref node) || node.size <= s.mapChunkSize) return;
-
-        //Unregistering chunk will delete subtree if it has a subtree
-        KillSubtree(leafIndex);
-        BuildTree(leafIndex);
-    }
-
-    //Input: the leaf we are trying to merge
-    //Returns: Whether it needs to create the leaf chunk(only for the recursive case, do not read outside function)
-    //Note: it is not possible for a leaf node to merge and then need to subdivide in the same frame
-    public static bool MergeSiblings(uint leaf){
-        Octree.Node node = octree.nodes[leaf]; uint sibling = node.sibling;
-        if(!IsBalanced(ref octree.nodes[node.parent])){ return true; }
-        if(node.parent == 0) {return RemapRoot(leaf);}
-
-        sibling = leaf;
-        do{
-            KillSubtree(sibling);
-            sibling = octree.nodes[sibling].sibling;
-        } while(sibling != leaf);
-        
-        uint parent = octree.nodes[leaf].parent;
-        //If the parent is balanced, then it won't be subdivided
-        if(MergeSiblings(parent)){
-            AddTerrainChunk(parent);
-        }return false;
-    }
-
     private static bool RemapRoot(uint octreeNode){
         ref Octree.Node node = ref octree.nodes[octreeNode];
         int maxChunkSize = (int)s.mapChunkSize * (1 << (int)s.MaxDepth);
-        int3 VCoord = octree.FloorLCoord(vChunkPos - maxChunkSize/2, maxChunkSize);
+        int3 VCoord = octree.FloorLCoord(ViewPosGS - maxChunkSize/2, maxChunkSize);
         int3 offset = ((node.origin / maxChunkSize - VCoord) % rootDim + rootDim) % rootDim;
 
         int3 newOrigin = (VCoord + offset) * maxChunkSize;
@@ -290,21 +411,10 @@ public class OctreeTerrain : MonoBehaviour
         if(node.HasChunk) {
             chunks.nodes[node.Chunk].Value.Destroy();
             chunks.RemoveNode(node.Chunk);
-            node._chunk = 0;
+            node.ClearChunk();
         } node.origin = newOrigin;
         BuildTree(octreeNode);
         return false;
-    }
-
-    public struct GenTask{
-        public Action task;
-        public int id;
-        public TerrainChunk chunk;
-        public GenTask(Action task, int id, TerrainChunk chunk){
-            this.task = task;
-            this.id = id;
-            this.chunk = chunk;
-        }
     }
 
     //Kills all chunks in the subtree turning them into zombies
@@ -321,9 +431,27 @@ public class OctreeTerrain : MonoBehaviour
         } 
     }
 
-    //Reaps zombie chunks
-    // 1. Destroy all chunk's in its subtree
-    // 2. Remove all chunk's along its path to root until it reaches a node where it has an incomplete sibling
+    /// <summary>
+    /// Reaps a chunk's dependencies(zombies) from the octree. Normally, terrain chunks are only defined on
+    /// the leaf nodes of the octree. However when a new chunk is created but is not completed(does not possess a mesh), 
+    /// the original chunk still lives as a zombie. In doing so, the old chunk may be on a branch node whereby the new 
+    /// chunk is its child and exists on its subtree, or conversely the old chunk is a leaf node and the newly created
+    /// chunk is its parent's branch. This old chunk is a dependency of the new chunk which calls this function to reap 
+    /// the old chunk when it does complete.
+    /// </summary>
+    /// <remarks>
+    /// Calling reap chunk on a chunk will reap(destroy) all nodes within its subtree. Logically, if a chunk is complete,
+    /// it should reside on a leaf-node and can destroy its subtree to achieve this. If a parent chunk is a dependency, it will
+    /// only be reaped when all of its children call reap chunk. 
+    /// 
+    /// Additionally, if a chunk becomes a zombie, it should reap all its dependencies even if it is not complete. This may 
+    /// cause a gap to appear in the terrain if regenerating very quickly, but is necessary to ensure the integrity of the octree. 
+    /// </remarks>
+    /// <param name="octreeIndex">
+    /// The index of the octree node within the
+    /// <see cref="octree">octree</see> structure whose
+    /// dependencies will be reaped(destroyed). 
+    /// </param>
     public static void ReapChunk(uint octreeIndex){
         ref Octree.Node node = ref octree.nodes[octreeIndex];
         //If the chunk has already been reaped, it will still travel up the root path
@@ -346,7 +474,7 @@ public class OctreeTerrain : MonoBehaviour
             if(node.HasChunk){
                 chunks.nodes[node.Chunk].Value.Destroy();
                 chunks.RemoveNode(node.Chunk);
-                node._chunk = 0;
+                node.ClearChunk();
             } 
             octree.RemoveNode(sibling);
             sibling = nSibling;
@@ -372,166 +500,266 @@ public class OctreeTerrain : MonoBehaviour
             if(node.HasChunk && IsSubtreeComplete(node.child)){
                 chunks.nodes[node.Chunk].Value.Destroy();
                 chunks.RemoveNode(node.Chunk);
-                node._chunk = 0;
+                node.ClearChunk();
             }
             node = ref octree.nodes[node.parent];
         }
     }
-}
 
-public struct Octree{
-    public Node[] nodes;
-    public int3 FloorLCoord(int3 GCoord, int chunkSize){ 
-        int3 offset = ((GCoord % chunkSize) + chunkSize) % chunkSize; // GCoord %% chunkSize
-        return (GCoord - offset) / chunkSize; 
-    }
+    private struct ConstrainedLL<T>{
+        public Node[] nodes;
+        public uint length;
+        public uint capacity;
 
-    //Gets the final amount of terrain chunks(leaf nodes) in the octree at any state
-    public static int GetNumChunks(int depth, int balanceF, int chunksRadius){
-        int numChunks = 0; chunksRadius++;
-        for(int i = 0; i < depth; i++){
-            int layerDiameter = GetAxisChunksDepth(i, balanceF, (uint)chunksRadius);
-            numChunks += layerDiameter * layerDiameter * layerDiameter;
-        }
-        return numChunks;
-    }
+        public ConstrainedLL(uint size){
+            length = 0;
+            capacity = size;
+            nodes = new Node[size];
 
-    /*
-    Reasoning: 
-    - The maximum amount of chunks at a layer is equivalent to the maximum amount of concurrent unbalanced
-    chunks on its parent layer * 8(*2*2*2). 
-    - The maximum amount of parent chunks that are unbalanced is equivalent to 
-        radius = ((1 << (depth - (balanceF - 1)) + chunksRadius) >> depth)
-        parentDiam = 2 * (radius >> 1 + 1) + radius % 2
-    */
-
-    public static int GetAxisChunksDepth(int depth, int balanceF, uint chunksRadius){
-        int radius =(int)((1 << math.max(depth - balanceF + 2, 0)) + chunksRadius);
-        int remainder = (chunksRadius % (1 << depth)) != 0 ? 1 : 0;
-        int pDiam = (radius >> depth) + remainder + 1;
-        return pDiam * 2;
-    }
-
-    public Octree(int depth, int balanceF, int chunksRadius){
-        int numChunks = GetNumChunks(depth, balanceF, chunksRadius);
-        nodes = new Node[4*numChunks+1];
-        nodes[0].child = 1; //free list
-    }
-    
-
-    public uint AddNode(Node octree){
-        uint freeNode = nodes[0].child; //Free Head Node
-        uint nextNode = nodes[freeNode].child == 0 ? freeNode + 1 : nodes[freeNode].child;
-        nodes[0].child = nextNode;
-
-        nodes[freeNode] = octree;
-        return freeNode;
-    }
-
-    public void RemoveNode(uint index){
-        nodes[index].child = nodes[0].child;
-        nodes[0].child = index;
-    }
-
-    public struct Node{
-        public int3 origin; //GCoord, bottom left corner
-        public uint size;
-        public uint child; 
-        //Circular LL of siblings
-        public uint sibling;
-        public uint parent;
-        public readonly bool IsLeaf => child == 0;
-
-        public uint _chunk;
-        public readonly bool HasChunk => _chunk != 0;
-        public bool IsComplete{
-            readonly get => (_chunk & 0x80000000) != 0;
-            set => _chunk = value ? _chunk | 0x80000000 : _chunk & 0x7FFFFFFF;
-        }
-        public uint Chunk{
-            readonly get => _chunk & 0x7FFFFFFF;
-            set => _chunk = (value & 0x7FFFFFFF) | (_chunk & 0x80000000);
+            nodes[0].prev = 1; //FirstFreeNode
+            nodes[0].next = 0; //FirstNode
         }
 
-        public int GetL1Dist(int3 GCoord){
-            int3 origin = this.origin;
-            int3 end = this.origin + (int)size;
-            int3 dist = math.abs(math.clamp(GCoord, origin, end) - GCoord);
-            return math.cmax(dist);
+        public uint Enqueue(T node){
+            if(length + 1 >= capacity) {
+                return 0;
+            }
+
+            uint freeNode = nodes[0].prev; //Free Head Node
+            uint nextNode = nodes[freeNode].next == 0 ? freeNode + 1 : nodes[freeNode].next;
+            nodes[0].prev = nextNode;
+
+            nextNode = length == 0 ? freeNode : nodes[0].next;
+            nodes[freeNode] = new Node{
+                prev = nodes[nextNode].prev,
+                next = nextNode,
+                Value = node,
+            };
+            nodes[nodes[nextNode].prev].next = freeNode;
+            nodes[nextNode].prev = freeNode;
+            nodes[0].next = freeNode;
+
+            length++;
+            return freeNode;
         }
 
-        public int GetCenterDist(int3 GCoord){
-            int3 middle = this.origin + (int)size;
-            int3 dist = math.abs(middle - GCoord);
-            return math.cmax(dist);
-        }
-    }
-}
+        public void RemoveNode(uint index){
+            if(index == 0 || length == 0) return;
 
-public struct ConstrainedLL<T>{
-    public Node[] nodes;
-    public uint length;
-    public uint capacity;
+            uint prev = nodes[index].prev;
+            uint next = nodes[index].next;
+            if(nodes[0].next == index) 
+                nodes[0].next = next;
 
-    public ConstrainedLL(uint size){
-        length = 0;
-        capacity = size;
-        nodes = new Node[size];
+            nodes[prev].next = next;
+            nodes[next].prev = prev;
+            //This is so if T is an object, it can be garbage collected
+            nodes[index] = (Node)default(Node);
 
-        nodes[0].prev = 1; //FirstFreeNode
-        nodes[0].next = 0; //FirstNode
-    }
+            nodes[index].next = nodes[0].prev;
+            nodes[0].prev = index;
 
-    public uint Enqueue(T node){
-        if(length + 1 >= capacity) {
-            return 0;
+            length--;
+            return;
         }
 
-        uint freeNode = nodes[0].prev; //Free Head Node
-        uint nextNode = nodes[freeNode].next == 0 ? freeNode + 1 : nodes[freeNode].next;
-        nodes[0].prev = nextNode;
+        public readonly uint Head(){ return nodes[0].next; }
+        public readonly uint Next(uint index){ return nodes[index].next; }
 
-        nextNode = length == 0 ? freeNode : nodes[0].next;
-        nodes[freeNode] = new Node{
-            prev = nodes[nextNode].prev,
-            next = nextNode,
-            Value = node,
-        };
-        nodes[nodes[nextNode].prev].next = freeNode;
-        nodes[nextNode].prev = freeNode;
-        nodes[0].next = freeNode;
-
-        length++;
-        return freeNode;
+        public struct Node{
+            public uint next;
+            public uint prev;
+            public T Value;
+        }
     }
 
-    public void RemoveNode(uint index){
-        if(index == 0 || length == 0) return;
+    /// <summary>
+    /// A struct defining an octree, a tree in which every internal node has exactly 8 children and
+    /// each parent node contains, in 3D space, all of its children such that the root contains the 
+    /// entire tree. The Octree is the primary structure used for LoD terrain generation and management.
+    /// </summary>
+    public struct Octree{
+        /// <summary>
+        /// An array containing the octree. Each node may point to other nodes in a logical octree structure
+        /// but it does not remember which nodes represent roots, branches, or terrain chunks. It is the job of the caller
+        /// to remember what they added and removed.
+        /// </summary>
+        public Node[] nodes;
+        /// <summary>
+        /// Converts a grid coordinates into the chunk coordinate relative to a specific chunk size. Conversion is done
+        /// with explicitly only integer mathematics and thus is not subject to floating point errors.
+        /// </summary>
+        /// <remarks>
+        /// One can obtain the chunk coordinate for a specific depth by setting <paramref name="chunkSize"/> to
+        /// <see cref="RenderSettings.mapChunkSize"/> * (2^<see cref="TerrainChunk.depth"/>)>:
+        /// </remarks>
+        /// <param name="GCoord"></param>
+        /// <param name="chunkSize"></param>
+        /// <returns></returns>
+        public int3 FloorLCoord(int3 GCoord, int chunkSize){ 
+            int3 offset = ((GCoord % chunkSize) + chunkSize) % chunkSize; // GCoord %% chunkSize
+            return (GCoord - offset) / chunkSize; 
+        }
 
-        uint prev = nodes[index].prev;
-        uint next = nodes[index].next;
-        if(nodes[0].next == index) 
-            nodes[0].next = next;
+        /// <summary>
+        /// Gets the maximum amount of octree nodes in an octree of a given depth, balance factor, and chunk radius.
+        /// This is calculated by summing the maximum amount of nodes in each layer from 0 to <paramref name="depth"/>.
+        /// <seealso cref="GetAxisChunksDepth"/>.
+        /// </summary>
+        /// <param name="depth">The maximum depth of the octree</param>
+        /// <param name="balanceF">The balance factor of the octree(1:<paramref name="balanceF"/> + 1))</param>
+        /// <param name="chunksRadius">The chunk radius around the viewer of layer <paramref name="depth"/> = 0</param>
+        /// <returns>The maximum number of nodes in the given octree settings</returns>
+        public static int GetMaxNodes(int depth, int balanceF, int chunksRadius){
+            int numChunks = 0; chunksRadius++;
+            for(int i = 0; i < depth; i++){
+                int layerDiameter = GetAxisChunksDepth(i, balanceF, (uint)chunksRadius);
+                numChunks += layerDiameter * layerDiameter * layerDiameter;
+            }
+            return numChunks;
+        }
 
-        nodes[prev].next = next;
-        nodes[next].prev = prev;
-        //This is so if T is an object, it can be garbage collected
-        nodes[index] = (Node)default(Node);
+        /// <summary>
+        /// Gets the diameter of an octree defined by balanceFactor, and chunkRadius for nodes at a specified depth. 
+        /// This is calculated by determining the maximum radius of chunks at the given depth which can be 
+        /// balanced given any viewer position. 
+        /// </summary>
+        /// <remarks>
+        /// Since the octree is centered around a viewer, nodes of a certain depth form a cubic shell around the viewer.
+        /// The diameter thus is the side length of this cube. 
+        /// </remarks>
+        /// <param name="depth">The specific depth of the given octree whose maximum node diameter is queried</param>
+        /// <param name="balanceF">The balance factor of the octree(1:<paramref name="balanceF"/> + 1)</param>
+        /// <param name="chunksRadius">The chunk radius around the viewer of layer <paramref name="depth"/> = 0</param>
+        /// <returns>
+        /// The maximum diameter in terms of the amount of nodes of the specified <paramref name="depth"/> that can exist
+        /// given the octree's settings.
+        /// </returns>
+        public static int GetAxisChunksDepth(int depth, int balanceF, uint chunksRadius){
+            int radius =(int)((1 << math.max(depth - balanceF + 2, 0)) + chunksRadius);
+            int remainder = (chunksRadius % (1 << depth)) != 0 ? 1 : 0;
+            int pDiam = (radius >> depth) + remainder + 1;
+            return pDiam * 2;
+        }
 
-        nodes[index].next = nodes[0].prev;
-        nodes[0].prev = index;
+        /// <summary>
+        /// Creates an octree with the specified settings--depth, balance factor, and chunk radius.
+        /// </summary>
+        public Octree(int depth, int balanceF, int chunksRadius){
+            int numChunks = GetMaxNodes(depth, balanceF, chunksRadius);
+            nodes = new Node[4*numChunks+1];
+            nodes[0].child = 1; //free list
+        }
 
-        length--;
-        return;
+        /// <summary>
+        /// Inserts a node into the octree. The node is placed into the first
+        /// open entry within the octree. This does not connect it to its parent, children, siblings,
+        /// or mark it as a leaf node. It is expected that <paramref name="octree"/> will already
+        /// be initialized(connected) by the caller.
+        /// </summary>
+        /// <param name="octree">The new node that is placed within the octree</param>
+        /// <returns>The index within the octree that the node is inserted into</returns>
+        public uint AddNode(Node octree){
+            uint freeNode = nodes[0].child; //Free Head Node
+            uint nextNode = nodes[freeNode].child == 0 ? freeNode + 1 : nodes[freeNode].child;
+            nodes[0].child = nextNode;
+
+            nodes[freeNode] = octree;
+            return freeNode;
+        }
+
+        /// <summary>
+        /// Removes a node from the octree, freeing space for new nodes to be inserted.
+        /// The information is not cleared but should not be read from.
+        /// </summary>
+        /// <param name="index">
+        /// The index within the octree of the node that should be removed. It is the caller's
+        /// responsibility to only call this on allocated nodes. 
+        /// </param>
+        public void RemoveNode(uint index){
+            nodes[index].child = nodes[0].child;
+            nodes[0].child = index;
+        }
+
+        /// <summary>
+        /// An octree node that contains information on its orientation, hierarchical relation to 
+        /// other chunks as well as the index of its terrain chunk if it has one.
+        /// </summary>
+        public struct Node{
+            /// <summary>
+            /// The origin in grid space of the chunk. This is the coordinate
+            /// of the bottom-left corner of the bounds of the chunk.
+            /// </summary>
+            public int3 origin; 
+            /// <summary>
+            /// The size of the chunk in grid space. This is equivalent to 
+            /// <see cref="RenderSettings.mapChunkSize"/> * 
+            /// (2^<see cref="TerrainChunk.depth"/>).
+            /// </summary>
+            public uint size;
+            /// <summary>
+            /// The index within <see cref="nodes"/> of the first child of the node if it
+            /// is not a leaf node. If it is a leaf node, this value is 0.
+            /// </summary>
+            public uint child; 
+            /// <summary>
+            /// The index within <see cref="nodes"/> of the sibling of the node. Its sibling
+            /// will reference a different sibling forming a circular linked list of length 8.
+            /// </summary>
+            public uint sibling;
+            /// <summary>
+            /// The index within <see cref="nodes"/> of the parent of the node. If the node is a root
+            /// of the octree, this value is 0.
+            /// </summary>
+            public uint parent;
+            /// <summary>
+            /// Whether or not the node is a leaf node. A leaf node is a node that does not have any children,
+            /// or when <see cref="child"/> is 0.
+            /// </summary>
+            public readonly bool IsLeaf => child == 0;
+
+            private uint chunkData;
+            /// <summary>
+            /// Clears the chunk data of the node. The default state is that
+            /// HasChunk is false and IsComplete is false.
+            /// </summary>
+            public void ClearChunk(){chunkData = 0;}
+            /// <summary>
+            /// Whether or not the node has a chunk associated with it.
+            /// </summary>
+            public readonly bool HasChunk => chunkData != 0;
+            /// <summary>
+            /// If it has a chunk, whether or not the chunk is marked as 
+            /// complete. A chunk is marked as complete if it has attempted to
+            /// generate a mesh.
+            /// </summary>
+            public bool IsComplete{
+                readonly get => (chunkData & 0x80000000) != 0;
+                set => chunkData = value ? chunkData | 0x80000000 : chunkData & 0x7FFFFFFF;
+            }
+
+            /// <summary>
+            /// The index of the chunk within the <see cref="ConstrainedLL{T}">chunk list</see> of the octree.
+            /// </summary>
+            public uint Chunk{
+                readonly get => chunkData & 0x7FFFFFFF;
+                set => chunkData = (value & 0x7FFFFFFF) | (chunkData & 0x80000000);
+            }
+
+            /// <summary>
+            /// Obtains the L1 norm of <paramref name="GCoord"/> to the bounds of the chunk. The L1 norm is the
+            /// Manhattan distance between two points in 3D space and is used to balance the octree. If the point
+            /// is within the bounds of the chunk, the L1 distance is 0. 
+            /// </summary>
+            /// <param name="GCoord">The coordinate of the point whose L1 norm from the chunk is queried</param>
+            /// <returns>The manhattan distance from the chunk's bounds to the point</returns>
+            public int GetL1Dist(int3 GCoord){
+                int3 origin = this.origin;
+                int3 end = this.origin + (int)size;
+                int3 dist = math.abs(math.clamp(GCoord, origin, end) - GCoord);
+                return math.cmax(dist);
+            }
+        }
     }
-
-    public readonly uint Head(){ return nodes[0].next; }
-    public readonly uint Next(uint index){ return nodes[index].next; }
-
-    public struct Node{
-        public uint next;
-        public uint prev;
-        public T Value;
-    }
-}
+}}
 

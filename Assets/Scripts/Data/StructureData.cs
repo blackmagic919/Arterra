@@ -18,7 +18,7 @@ public class StructureData : ScriptableObject
     [JsonIgnore]
     public IEnumerable<PointInfo> SerializePoints{
         get{
-            Registry<MaterialData> reg = WorldStorageHandler.WORLD_OPTIONS.Generation.Materials.value.MaterialDictionary;
+            Registry<MaterialData> reg = WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary;
             return map.value.Select(x => Serialize(x, reg.RetrieveIndex(Materials.value[x.material])));
         }
     }

@@ -8,7 +8,7 @@ public class MaterialItemAuthoring : ItemAuthoringTemplate<MaterialItem> {}
 [System.Serializable]
 public struct MaterialItem : IItem{
     public uint data;
-    public static IRegister Register => WorldStorageHandler.WORLD_OPTIONS.Generation.Items;
+    public static IRegister Register => WorldOptions.CURRENT.Generation.Items;
     [JsonIgnore]
     public readonly bool IsStackable => true;
     [JsonIgnore]

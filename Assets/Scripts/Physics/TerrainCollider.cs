@@ -322,9 +322,9 @@ public class TerrainCollider : MonoBehaviour
 
 
     public void Start(){
-        this.isoValue = (int)Math.Round(WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.IsoLevel * 255.0);
-        this.lerpScale = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.lerpScale;
-        this.chunkSize = WorldStorageHandler.WORLD_OPTIONS.Quality.Rendering.value.mapChunkSize;
+        this.isoValue = (int)Math.Round(WorldOptions.CURRENT.Quality.Rendering.value.IsoLevel * 255.0);
+        this.lerpScale = WorldOptions.CURRENT.Quality.Rendering.value.lerpScale;
+        this.chunkSize = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize;
     }
 
     public void FixedUpdate(){

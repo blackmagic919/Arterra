@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f67e18118f5594c60a3185bba687bef3, type: 3}
   m_Name: SurfaceSettings
   m_EditorClassIdentifier: 
-  terrainOffset: -120
-  MaxTerrainHeight: 400
+  terrainOffset: -300
+  MaxTerrainHeight: 1000
   MaxSquashHeight: 100
   MaxInfluenceHeight: 100
   ContinentalNoise: Continental

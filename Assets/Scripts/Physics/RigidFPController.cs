@@ -6,7 +6,7 @@ using System;
 
 public class RigidFPController : MonoBehaviour
 {
-    public RigidFPControllerSettings Setting => WorldStorageHandler.WORLD_OPTIONS.GamePlay.Movement.value;
+    public RigidFPControllerSettings Setting => WorldOptions.CURRENT.GamePlay.Movement.value;
     [System.Serializable]
     public class RigidFPControllerSettings : ICloneable{
         public float GroundFriction = 0.25f;
