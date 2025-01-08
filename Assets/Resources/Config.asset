@@ -20,17 +20,22 @@ MonoBehaviour:
           BakedTextureSizePX: 128
           InScatterDetail: 6
           NumOpticalDepthPoints: 8
-        isDirty: 0
-      Rendering:
+      Terrain:
         value: {fileID: 11400000, guid: 42017e3b5b1824df087b77161e2e61f3, type: 2}
-        isDirty: 0
       GeoShaders:
-        value: {fileID: 11400000, guid: 91b568ecd9e304c998bf7c49cf668984, type: 2}
-        isDirty: 0
+        Reg:
+          value:
+          - Name: Tesselation
+            _value:
+              value: {fileID: 11400000, guid: 416aff69279c14e2ebb1f76e050273ce, type: 2}
+          - Name: Shell
+            _value:
+              value: {fileID: 11400000, guid: e11232fbec10841a4a488fcc70cc241f, type: 2}
+          - Name: InsetQuad
+            _value:
+              value: {fileID: 11400000, guid: aad37b9e5794849e98fbbc9c685c00d1, type: 2}
       Memory:
         value: {fileID: 11400000, guid: 743280fd1911d428e99f1d63657bfdaf, type: 2}
-        isDirty: 0
-    isDirty: 0
   _Generation:
     value:
       Noise:
@@ -39,237 +44,214 @@ MonoBehaviour:
           - Name: CaveCoarse
             _value:
               value: {fileID: 11400000, guid: 1b8dfa9e7f67f40ceae6a82733b8c9fd, type: 2}
-              isDirty: 0
           - Name: CaveFine
             _value:
               value: {fileID: 11400000, guid: e03d286ba66aa46238fedf83be699d0b, type: 2}
-              isDirty: 0
           - Name: MaterialCoarse
             _value:
               value: {fileID: 11400000, guid: 59376b1bd76944978a461173821c7078, type: 2}
-              isDirty: 0
           - Name: MaterialFine
             _value:
               value: {fileID: 11400000, guid: 7cfb22d5ff9cf40f1a397544e3c84704, type: 2}
-              isDirty: 0
           - Name: Continental
             _value:
               value: {fileID: 11400000, guid: 9c045f93b50334808b6154737c67175b, type: 2}
-              isDirty: 0
           - Name: Erosion
             _value:
               value: {fileID: 11400000, guid: 1a8cb70f57d0f4d0aa53c6806a8d38f1, type: 2}
-              isDirty: 0
           - Name: PeakValley
             _value:
               value: {fileID: 11400000, guid: 4cfde776cdfbf4e21b8e32f76d99eb95, type: 2}
-              isDirty: 0
           - Name: Squash
             _value:
               value: {fileID: 11400000, guid: d7d6a8b31e97345e48f8fe95e523f5be, type: 2}
-              isDirty: 0
           - Name: CaveFrequency
             _value:
               value: {fileID: 11400000, guid: 9b2a2490aae0a404db8553ff56a7d66b, type: 2}
-              isDirty: 0
           - Name: CaveSize
             _value:
               value: {fileID: 11400000, guid: 06bcbe453e4ae4863ae0cd8a454b2940, type: 2}
-              isDirty: 0
           - Name: CaveShape
             _value:
               value: {fileID: 11400000, guid: 1215862d59a644ecdb716b81d2f64c7f, type: 2}
-              isDirty: 0
           - Name: InfluenceHeight
             _value:
               value: {fileID: 11400000, guid: e10045ff684ac425880a51d968bf317e, type: 2}
-              isDirty: 0
           - Name: InfluenceOffset
             _value:
               value: {fileID: 11400000, guid: e675bf8565f3546efbf877710f603aa2, type: 2}
-              isDirty: 0
           - Name: Atmosphere
             _value:
               value: {fileID: 11400000, guid: 3f622d307ed264ecb964727d0b44f77d, type: 2}
-              isDirty: 0
-          isDirty: 0
       Terrain:
         value: {fileID: 11400000, guid: fc195e1f82d9f4b2c99d80b428b8935f, type: 2}
-        isDirty: 0
       Surface:
         value: {fileID: 11400000, guid: 9fe9d4253698c402d8b2f4c56d0eb093, type: 2}
-        isDirty: 0
       Biomes:
         value: {fileID: 11400000, guid: a50efbb6521ad475786885000f19947c, type: 2}
-        isDirty: 0
       Structures:
-        Reg:
-          value:
-          - Name: Tree1
-            _value:
-              value: {fileID: 11400000, guid: 223a31f324fab4c83ab64f10979b618f, type: 2}
-              isDirty: 0
-          - Name: Tree2
-            _value:
-              value: {fileID: 11400000, guid: db047a8eca3694f298f672e5fb810709, type: 2}
-              isDirty: 0
-          - Name: Pine1
-            _value:
-              value: {fileID: 11400000, guid: 5cf56ca1d2b1e4adf950b740e522c47e, type: 2}
-              isDirty: 0
-          - Name: Pine2
-            _value:
-              value: {fileID: 11400000, guid: c393766b615194cf983fec462dae4706, type: 2}
-              isDirty: 0
-          - Name: SnowyPine1
-            _value:
-              value: {fileID: 11400000, guid: ebcb9324d40584b2b98158e9ad1832f2, type: 2}
-              isDirty: 0
-          - Name: SnowyPine2
-            _value:
-              value: {fileID: 11400000, guid: f57a3ff4c55b74f3181b05d46c96e6aa, type: 2}
-              isDirty: 0
-          - Name: Cactus1
-            _value:
-              value: {fileID: 11400000, guid: 49bbfac31bd4d49bda439a6be79dd6c3, type: 2}
-              isDirty: 0
-          - Name: Cactus2
-            _value:
-              value: {fileID: 11400000, guid: b0b24da144a9e49cb82c871e70f40ad3, type: 2}
-              isDirty: 0
-          - Name: Cactus3
-            _value:
-              value: {fileID: 11400000, guid: 3b15969d5cb414c4c8bccb5c0bbe68b8, type: 2}
-              isDirty: 0
-          isDirty: 0
+        value: {fileID: 11400000, guid: f81b05d765b0f44239b636313940cd5b, type: 2}
       Materials:
         value: {fileID: 11400000, guid: 68574011324274a58acce0da69b5d4f7, type: 2}
-        isDirty: 0
       Entities:
         Reg:
           value:
           - Name: Rabbit
             _value:
               value: {fileID: 11400000, guid: 638124de4470742c79535a5f0092eb27, type: 2}
-              isDirty: 0
           - Name: Fox
             _value:
               value: {fileID: 11400000, guid: 20291c96ec2b642818c85c16cbac8a1b, type: 2}
-              isDirty: 0
           - Name: Bird
             _value:
               value: {fileID: 11400000, guid: 74688da9677534740874b306e18e916d, type: 2}
-              isDirty: 0
           - Name: ArcticHare
             _value:
               value: {fileID: 11400000, guid: 76df58cdcf20f4334b669984f650be56, type: 2}
-              isDirty: 0
           - Name: ArcticFox
             _value:
               value: {fileID: 11400000, guid: f96f21e1966384e588e53d9d3c37f0ce, type: 2}
-              isDirty: 0
           - Name: SnowyOwl
             _value:
               value: {fileID: 11400000, guid: 70c868c5da748481e82692c56e502620, type: 2}
-              isDirty: 0
           - Name: EntityItem
             _value:
               value: {fileID: 11400000, guid: 113b6e9010faf40ed9549c22ffbaba03, type: 2}
-              isDirty: 0
           - Name: Camel
             _value:
               value: {fileID: 11400000, guid: bad7490808a414d4eb37230eae23f5af, type: 2}
-              isDirty: 0
-          isDirty: 0
       Items:
         Reg:
           value:
           - Name: Void
             _value:
               value: {fileID: 11400000, guid: a4c2c1088d7014561a762498ec205ec9, type: 2}
-              isDirty: 0
           - Name: Water:Liquid
             _value:
               value: {fileID: 11400000, guid: 799801124b62142afb39063d7fdef2d0, type: 2}
-              isDirty: 0
           - Name: Dirt:Solid
             _value:
               value: {fileID: 11400000, guid: e15f85c38e5de445fafb1fd08af0d165, type: 2}
-              isDirty: 0
           - Name: Grass:Solid
             _value:
               value: {fileID: 11400000, guid: 02d09fe1d2b6b429991220bd65558e30, type: 2}
-              isDirty: 0
           - Name: Wood:Solid
             _value:
               value: {fileID: 11400000, guid: 9fb5b167f9dc94450b7f339704eae542, type: 2}
-              isDirty: 0
           - Name: Sand:Solid
             _value:
               value: {fileID: 11400000, guid: b88ada38ac05747f59adaf213e589d3a, type: 2}
-              isDirty: 0
           - Name: Rock:Solid
             _value:
               value: {fileID: 11400000, guid: 5ea9df1e485a742b39afbef7c6c2f921, type: 2}
-              isDirty: 0
           - Name: Stone:Solid
             _value:
               value: {fileID: 11400000, guid: 074083029b95540a88ced0bbf165b0f6, type: 2}
-              isDirty: 0
           - Name: Leaf:Solid
             _value:
               value: {fileID: 11400000, guid: 89ec4e4227cf84ed9bf05193284009d0, type: 2}
-              isDirty: 0
           - Name: Snow:Solid
             _value:
               value: {fileID: 11400000, guid: 8719d4c2d028f4680b483fc854e5d506, type: 2}
-              isDirty: 0
           - Name: Cactus:Solid
             _value:
               value: {fileID: 11400000, guid: 3f082d188bafd47bda9d3c22bd64949d, type: 2}
-              isDirty: 0
           - Name: Plank:Solid
             _value:
               value: {fileID: 11400000, guid: 34e92fbde564348c48f9702ca5afa1aa, type: 2}
-              isDirty: 0
           - Name: Hardwood:Solid
             _value:
               value: {fileID: 11400000, guid: 2ff1b4dd3fb8342c29a3500c0a9944e6, type: 2}
-              isDirty: 0
           - Name: Furnace:Solid
             _value:
               value: {fileID: 11400000, guid: e68ac1fe7c1ed457aaa6d8366ba45d02, type: 2}
-              isDirty: 0
           - Name: Chest:Solid
             _value:
               value: {fileID: 11400000, guid: 64be78c6fca3c4ffca64a3e4f02f2064, type: 2}
-              isDirty: 0
           - Name: Compost:Solid
             _value:
               value: {fileID: 11400000, guid: 4389a0d25c29240fdaea9ca7342c52d3, type: 2}
-              isDirty: 0
           - Name: Sandstone:Solid
             _value:
               value: {fileID: 11400000, guid: e510129eb310547729dc9e65baaed7f6, type: 2}
-              isDirty: 0
           - Name: Cement:Solid
             _value:
               value: {fileID: 11400000, guid: c142d2ea9973245bca8bc2632e9d4c10, type: 2}
-              isDirty: 0
           - Name: Brick:Solid
             _value:
               value: {fileID: 11400000, guid: 6184bc7460e7546b5bb18fb637f90ae3, type: 2}
-              isDirty: 0
           - Name: Bucket
             _value:
               value: {fileID: 11400000, guid: e9c4f7d8580e3448f83847f4d3d6f0a1, type: 2}
-              isDirty: 0
           - Name: Brush
             _value:
               value: {fileID: 11400000, guid: 54b67afaa6ce54d7a903460a2615f54e, type: 2}
-              isDirty: 0
-          isDirty: 0
-    isDirty: 0
+      Textures:
+        Reg:
+          value:
+          - Name: Void
+            _value:
+              value: {fileID: 21300000, guid: 68036d40e53ca46ccb8662552a0ea939, type: 3}
+          - Name: Brick
+            _value:
+              value: {fileID: 21300000, guid: 71a47f9cf008445e7a58daa311f1b43f, type: 3}
+          - Name: Cactus
+            _value:
+              value: {fileID: 21300000, guid: 59e5a31080221402c8e7b8abdbcc366d, type: 3}
+          - Name: Cement
+            _value:
+              value: {fileID: 21300000, guid: 2a40147a635824ec9840e898399e1458, type: 3}
+          - Name: Chest
+            _value:
+              value: {fileID: 21300000, guid: 435a6b24a4a2549bc971776adabe8a8f, type: 3}
+          - Name: Compost
+            _value:
+              value: {fileID: 21300000, guid: e76a49908b44441f4941d6b3a44e0e8c, type: 3}
+          - Name: Dirt
+            _value:
+              value: {fileID: 21300000, guid: fe82516aeb2e047188993ea733648af7, type: 3}
+          - Name: Furnace
+            _value:
+              value: {fileID: 21300000, guid: 9f1ecff8bde67465786bc2c0c2c21134, type: 3}
+          - Name: Grass
+            _value:
+              value: {fileID: 21300000, guid: 9a32d08edbf8447c88139bfb43dfbe1a, type: 3}
+          - Name: Hardwood
+            _value:
+              value: {fileID: 21300000, guid: 188898ac415a947dfb0485bedb3d625a, type: 3}
+          - Name: Leaf
+            _value:
+              value: {fileID: 21300000, guid: b07e3afae6c5e40bd804ac3f1397c1b7, type: 3}
+          - Name: Plank
+            _value:
+              value: {fileID: 21300000, guid: 4e227e457d2354e7094defe785ed2521, type: 3}
+          - Name: Rock
+            _value:
+              value: {fileID: 21300000, guid: 71c9ce063b15b453ba2769813a1726be, type: 3}
+          - Name: Sand
+            _value:
+              value: {fileID: 21300000, guid: d0eb2762eac0c4bc08e0a4ca534e0c9d, type: 3}
+          - Name: Sandstone
+            _value:
+              value: {fileID: 21300000, guid: 6ba8580a11b554922a1dc57e2c409a7d, type: 3}
+          - Name: Snow
+            _value:
+              value: {fileID: 21300000, guid: e3acbac5c9b9847aa9fd983dd618db4c, type: 3}
+          - Name: Stone
+            _value:
+              value: {fileID: 21300000, guid: d6daddfb095a14f1e814f6fcd10fab89, type: 3}
+          - Name: Water
+            _value:
+              value: {fileID: 21300000, guid: c071ddde8a7294dfc811dab26c30da86, type: 3}
+          - Name: Wood
+            _value:
+              value: {fileID: 21300000, guid: 3e30a42e52755488789c9c1cbb471854, type: 3}
+          - Name: Bucket
+            _value:
+              value: {fileID: 21300000, guid: 9282a2289fed645ccbb0bf6b3c9581d5, type: 3}
+          - Name: Brush
+            _value:
+              value: {fileID: 21300000, guid: 0271f92a8144645c1af75afae444ff0f, type: 3}
   _GamePlay:
     value:
       Terraforming:
@@ -281,7 +263,6 @@ MonoBehaviour:
           CursorSize: 1
           CursorColor: {r: 0.012440997, g: 0.5660378, b: 0, a: 1}
           ShowCursor: 1
-        isDirty: 0
       Movement:
         value:
           GroundFriction: 0.05
@@ -289,7 +270,6 @@ MonoBehaviour:
           jumpForce: 5
           acceleration: 50
           groundStickDist: 0.05
-        isDirty: 0
       Input:
         Reg:
           value:
@@ -301,8 +281,6 @@ MonoBehaviour:
                   - Key: 32
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Move Horizontal
             _value:
               value:
@@ -311,8 +289,6 @@ MonoBehaviour:
                   - Key: 51
                     PollType: 0
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Move Vertical
             _value:
               value:
@@ -321,8 +297,6 @@ MonoBehaviour:
                   - Key: 52
                     PollType: 0
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Look Horizontal
             _value:
               value:
@@ -331,8 +305,6 @@ MonoBehaviour:
                   - Key: 49
                     PollType: 0
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Look Vertical
             _value:
               value:
@@ -341,8 +313,6 @@ MonoBehaviour:
                   - Key: 48
                     PollType: 0
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Place Terrain
             _value:
               value:
@@ -357,8 +327,6 @@ MonoBehaviour:
                   - Key: 303
                     PollType: 1
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Remove Terrain
             _value:
               value:
@@ -373,8 +341,6 @@ MonoBehaviour:
                   - Key: 303
                     PollType: 1
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Pickup Item
             _value:
               value:
@@ -389,8 +355,6 @@ MonoBehaviour:
                   - Key: 303
                     PollType: 2
                     IsAlias: 1
-                  isDirty: 0
-              isDirty: 0
           - Name: Remove Liquid
             _value:
               value:
@@ -405,8 +369,6 @@ MonoBehaviour:
                   - Key: 303
                     PollType: 2
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Open Inventory
             _value:
               value:
@@ -415,8 +377,6 @@ MonoBehaviour:
                   - Key: 9
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Select
             _value:
               value:
@@ -425,8 +385,6 @@ MonoBehaviour:
                   - Key: 323
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Deselect
             _value:
               value:
@@ -435,8 +393,6 @@ MonoBehaviour:
                   - Key: 323
                     PollType: 4
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Craft
             _value:
               value:
@@ -445,8 +401,6 @@ MonoBehaviour:
                   - Key: 13
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Pause
             _value:
               value:
@@ -455,8 +409,6 @@ MonoBehaviour:
                   - Key: 27
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Hotbar1
             _value:
               value:
@@ -465,8 +417,6 @@ MonoBehaviour:
                   - Key: 49
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Hotbar2
             _value:
               value:
@@ -475,8 +425,6 @@ MonoBehaviour:
                   - Key: 50
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Hotbar3
             _value:
               value:
@@ -485,8 +433,6 @@ MonoBehaviour:
                   - Key: 51
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Hotbar4
             _value:
               value:
@@ -495,8 +441,6 @@ MonoBehaviour:
                   - Key: 52
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Hotbar5
             _value:
               value:
@@ -505,8 +449,6 @@ MonoBehaviour:
                   - Key: 53
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Hotbar6
             _value:
               value:
@@ -515,8 +457,6 @@ MonoBehaviour:
                   - Key: 54
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Hotbar7
             _value:
               value:
@@ -525,8 +465,6 @@ MonoBehaviour:
                   - Key: 55
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Hotbar8
             _value:
               value:
@@ -535,8 +473,6 @@ MonoBehaviour:
                   - Key: 56
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
           - Name: Hotbar9
             _value:
               value:
@@ -545,19 +481,14 @@ MonoBehaviour:
                   - Key: 57
                     PollType: 3
                     IsAlias: 0
-                  isDirty: 0
-              isDirty: 0
-          isDirty: 0
       Crafting:
         value: {fileID: 11400000, guid: b6eb14945e6ce4e35a36d2502ba1cf4f, type: 2}
-        isDirty: 0
       Inventory:
         value:
           PrimarySlotCount: 5
           SecondarySlotCount: 30
           SelectedColor: {r: 0.3915094, g: 0.85984695, b: 1, a: 1}
           BaseColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 0.39215687}
-        isDirty: 0
       DayNightCycle:
         value:
           timeMultiplier: 72
@@ -636,7 +567,6 @@ MonoBehaviour:
               m_PreInfinity: 2
               m_PostInfinity: 2
               m_RotationOrder: 4
-            isDirty: 0
           moonIntensityCurve:
             value:
               serializedVersion: 2
@@ -707,16 +637,10 @@ MonoBehaviour:
               m_PreInfinity: 2
               m_PostInfinity: 2
               m_RotationOrder: 4
-            isDirty: 0
-        isDirty: 0
-    isDirty: 0
   _System:
     value:
       ReadBack:
         value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
-        isDirty: 0
       LayerHeads:
         Reg:
           value: []
-          isDirty: 0
-    isDirty: 0

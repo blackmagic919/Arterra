@@ -12,10 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
   m_Name: RockItemSolid
   m_EditorClassIdentifier: 
-  texture:
-    value: {fileID: 21300000, guid: 71c9ce063b15b453ba2769813a1726be, type: 3}
-    isDirty: 0
+  TextureName: Rock
   MaterialName: Rock
   MaterialState: 0
-  item:
-    data: 0

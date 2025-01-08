@@ -1,21 +1,38 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Unity.Mathematics;
 using Unity.Collections;
-using Biome;
+using WorldConfig;
+using WorldConfig.Generation;
+using WorldConfig.Generation.Material;
+using WorldConfig.Generation.Entity;
 
+namespace TerrainGeneration{
+/// <summary>
+/// By default,information may be stored in settings or on storage where it is
+/// likely serialized to be version independent. This class is responsible for acquiring
+/// and deserializing all information pertinent to terrain generation from these locations 
+/// and copying the necessary information to the GPU for use in the terrain generation, shaders
+/// and other systems primarily on the GPU.
+/// </summary>
 public static class GenerationPreset
 {
     private static MaterialHandle materialHandle;
     private static NoiseHandle noiseHandle;
     private static BiomeHandle biomeHandle;
     private static StructHandle structHandle;
+    /// <exclude />
     public static EntityHandle entityHandle;
+    /// <summary> Holds a reference to a long-term storage GPU buffer used in the terrain generation process. <seealso cref="MemoryHandle"/> </summary>
     public static MemoryHandle memoryHandle;
+    /// <summary> Whether or not the GenerationPreset has been <see cref="Initialize"/>d. If not, generation will be unable to occur </summary>
     public static bool active;
 
+    /// <summary>
+    /// Initializes the GenerationPreset. Must be called before any generation is done.
+    /// This process loads all necessary information from the settings and copies it to the GPU.
+    /// </summary>
     public static void Initialize(){
         active = true;
         materialHandle.Initialize();
@@ -26,6 +43,10 @@ public static class GenerationPreset
         memoryHandle.Intiialize();
     }
 
+    /// <summary>
+    /// Releases all generation information that has been allocated on the GPU and 
+    /// elsewhere. Call this method before the program exits to prevent memory leaks.
+    /// </summary>
     public static void Release(){
         if(!active) return;
         active = false;
@@ -38,6 +59,12 @@ public static class GenerationPreset
         memoryHandle.Release();
     }
 
+    /// <summary>
+    /// Responsible for deserializing all material display information as well as copying all textures to the GPU.
+    /// Material display information includes information on each material's visual representation as a solid, liquid, 
+    /// and gas <seealso cref="MaterialData"/>. Textures are copied from the <see cref="ItemAuthoring"/> registry and should
+    /// be referenced in the GPU by their index in that registry.
+    /// </summary>
     public struct MaterialHandle{
         const int textureSize = 512;
         const TextureFormat textureFormat = TextureFormat.RGBA32;
@@ -47,27 +74,38 @@ public static class GenerationPreset
         ComputeBuffer liquidData;
         ComputeBuffer atmosphericData;
 
+        /// <summary> Initializes the <see cref="MaterialHandle" />. Deserializes and copies all information to 
+        /// the GPU for use in the terrain generation process. Information is stored in global GPU buffers 
+        /// <c>_MatTerrainData</c>, <c>_MatAtmosphericData</c>, <c>_MatLiquidData</c>, and <c>_Textures</c>. </summary>
         public void Initialize()
         {
             Release();
-            MaterialGeneration matInfo = WorldOptions.CURRENT.Generation.Materials.value;
-            Registry<ItemAuthoring> textureInfo = WorldOptions.CURRENT.Generation.Items;
+            Generation matInfo = Config.CURRENT.Generation.Materials.value;
+            Registry<Sprite> textureInfo = Config.CURRENT.Generation.Textures;
+            Registry<WorldConfig.Quality.GeoShader> shaderInfo = Config.CURRENT.Quality.GeoShaders;
             MaterialData[] MaterialDictionary = matInfo.MaterialDictionary.SerializedData;
+            MaterialData.TerrainData[] MaterialTerrain = new MaterialData.TerrainData[MaterialDictionary.Length];
+
             int numMats = MaterialDictionary.Length;
             terrainData = new ComputeBuffer(numMats, sizeof(float) * 6 + sizeof(int) * 2, ComputeBufferType.Structured);
             atmosphericData = new ComputeBuffer(numMats, sizeof(float) * 6, ComputeBufferType.Structured);
             liquidData = new ComputeBuffer(numMats, sizeof(float) * (3 * 2 + 2 * 2 + 5), ComputeBufferType.Structured);
 
             for(int i = 0; i < MaterialDictionary.Length; i++) {
-                ref MaterialData data = ref MaterialDictionary[i];
-                data.terrainData.SolidTextureIndex = textureInfo.RetrieveIndex(data.SolidItem);
+                MaterialData material = MaterialDictionary[i]; 
+                MaterialData.TerrainData terrain = material.terrainData;
+                string Key = material.RetrieveKey(terrain.Texture);
+                if(textureInfo.Contains(Key)) terrain.Texture = textureInfo.RetrieveIndex(Key);
+                Key = material.RetrieveKey(terrain.GeoShaderIndex);
+                if(shaderInfo.Contains(Key)) terrain.GeoShaderIndex = shaderInfo.RetrieveIndex(Key);
+                MaterialTerrain[i] = terrain;
             }
 
-            terrainData.SetData(MaterialDictionary.Select(e => e.terrainData).ToArray());
             atmosphericData.SetData(MaterialDictionary.Select(e => e.AtmosphereScatter).ToArray());
             liquidData.SetData(MaterialDictionary.Select(e => e.liquidData).ToArray());
+            terrainData.SetData(MaterialTerrain);
             //Bad naming scheme -> (value.texture.value.texture)
-            Texture2DArray textures = GenerateTextureArray(textureInfo.SerializedData.Select(e => e.texture.value.texture).ToArray());
+            Texture2DArray textures = GenerateTextureArray(textureInfo.SerializedData.Select(e => e.texture).ToArray());
             Shader.SetGlobalTexture("_Textures", textures); 
             Shader.SetGlobalBuffer("_MatTerrainData", terrainData);
             Shader.SetGlobalBuffer("_MatAtmosphericData", atmosphericData);
@@ -77,13 +115,15 @@ public static class GenerationPreset
             Shader.SetGlobalTexture("_LiquidCoarseWave", matInfo.liquidCoarseWave.value);
         }
 
+        /// <summary> Releases all buffers and textures used by the MaterialHandle. 
+        /// Call this method before the program exits to prevent memory leaks. </summary>
         public void Release(){
             terrainData?.Release();
             atmosphericData?.Release();
             liquidData?.Release();
         }
-
-        public Texture2DArray GenerateTextureArray(Texture2D[] textures)
+        
+        private Texture2DArray GenerateTextureArray(Texture2D[] textures)
         {   
             textureArray = new Texture2DArray(textureSize, textureSize, textures.Length, textureFormat, true);
             for(int i = 0; i < textures.Length; i++)
@@ -94,17 +134,25 @@ public static class GenerationPreset
             return textureArray;
         }
     }
-    
-    struct NoiseHandle{
+    /// <summary>
+    /// Responsible for deserializing all noise generation settings and copying it to the GPU 
+    /// for use in the terrain generation process. <seealso cref="Config.CURRENT.Generation.Noise"/>. 
+    /// </summary>
+    public struct NoiseHandle{
         internal ComputeBuffer indexBuffer;
         internal ComputeBuffer settingsBuffer;
         internal ComputeBuffer offsetsBuffer;
         internal ComputeBuffer splinePointsBuffer;
 
-        
+        /// <summary>
+        /// Initializes the <see cref="NoiseHandle"/> . Deserializes and copies all information
+        /// contained by <see cref="WorldConfig.Config.GenerationSettings.Noise"/> to the GPU. 
+        /// Information is stored in global GPU buffers <c>_NoiseIndexes</c>, <c>_NoiseSettings</c>, 
+        /// <c>_NoiseOffsets</c> and <c>_NoiseSplinePoints</c>.
+        /// </summary>
         public void Initialize(){
             Release();
-            NoiseData[] samplerDict = WorldOptions.CURRENT.Generation.Noise.SerializedData;
+            Noise[] samplerDict = Config.CURRENT.Generation.Noise.SerializedData;
             uint[] indexPrefixSum = new uint[(samplerDict.Length + 1) * 2];
             NoiseSettings[] settings = new NoiseSettings[samplerDict.Length];
             List<Vector3> offsets = new List<Vector3>();
@@ -132,6 +180,11 @@ public static class GenerationPreset
             Shader.SetGlobalBuffer("_NoiseOffsets", offsetsBuffer);
             Shader.SetGlobalBuffer("_NoiseSplinePoints", splinePointsBuffer);
         }
+
+        /// <summary>
+        /// Releases all buffers used by the NoiseHandle. 
+        /// Call this method before the program exits to prevent memory leaks.
+        /// </summary>
         public void Release()
         {
             indexBuffer?.Release();
@@ -146,7 +199,7 @@ public static class GenerationPreset
             public float noiseScale;
             public float persistance;
             public float lacunarity;
-            public NoiseSettings(NoiseData noise){
+            public NoiseSettings(Noise noise){
                 noiseScale = noise.noiseScale;
                 persistance = noise.persistance;
                 lacunarity = noise.lacunarity;
@@ -155,7 +208,11 @@ public static class GenerationPreset
     }
     
 
-    struct BiomeHandle{
+    /// <summary>
+    /// Responsible for deserializing all biome generation settings and copying it to the GPU for use
+    /// in the terrain generation process. <seealso cref="Config.CURRENT.Generation.Biomes"/>.
+    /// </summary>
+    public struct BiomeHandle{
         ComputeBuffer SurfTreeBuffer;
         ComputeBuffer CaveTreeBuffer;
         ComputeBuffer biomePrefCountBuffer;
@@ -163,32 +220,30 @@ public static class GenerationPreset
         ComputeBuffer biomeEntityBuffer;
         ComputeBuffer structGenBuffer;
 
-        public void Release()
-        {
-            SurfTreeBuffer?.Release();
-            CaveTreeBuffer?.Release();
-            biomePrefCountBuffer?.Release();
-            biomeEntityBuffer?.Release();
-            biomeMatBuffer?.Release();
-            structGenBuffer?.Release();//
-        }
-
+        /// <summary>
+        /// Initializes the <see cref="BiomeHandle"/>. Deserializes and copies all information
+        /// contained by <see cref="Config.CURRENT.Generation.Biomes"/> to the GPU. Deserializing
+        /// the registry involves constructing an R-Tree LUT which is then copied to the GPU. Information 
+        /// about this LUT is stored in global GPU buffers <c>_BiomeSurfTree</c>, <c>_BiomeCaveTree</c>,
+        /// while information on what each biome contains is stored in <c>_BiomeMaterials</c>, <c>_BiomeStructureData</c>, 
+        /// and <c>_BiomeEntities</c>, referencable through the <c>_BiomePrefCount</c> prefix sum buffer.
+        /// </summary>
         public void Initialize()
         {
             Release();
-            CInfo<SurfaceBiome>[] surface = WorldOptions.CURRENT.Generation.Biomes.value.SurfaceBiomes.SerializedData;
-            CInfo<CaveBiome>[] cave = WorldOptions.CURRENT.Generation.Biomes.value.CaveBiomes.SerializedData;
-            CInfo<CaveBiome>[] sky = WorldOptions.CURRENT.Generation.Biomes.value.SkyBiomes.SerializedData;
-            List<Info> biomes = new List<Info>(); 
+            WorldConfig.Generation.Biome.CInfo<WorldConfig.Generation.Biome.SurfaceBiome>[] surface = Config.CURRENT.Generation.Biomes.value.SurfaceBiomes.SerializedData;
+            WorldConfig.Generation.Biome.CInfo<WorldConfig.Generation.Biome.CaveBiome>[] cave = Config.CURRENT.Generation.Biomes.value.CaveBiomes.SerializedData;
+            WorldConfig.Generation.Biome.CInfo<WorldConfig.Generation.Biome.CaveBiome>[] sky = Config.CURRENT.Generation.Biomes.value.SkyBiomes.SerializedData;
+            List<WorldConfig.Generation.Biome.Info> biomes = new List<WorldConfig.Generation.Biome.Info>(); 
             biomes.AddRange(surface);
             biomes.AddRange(cave);
             biomes.AddRange(sky);
 
             int numBiomes = biomes.Count;
             uint4[] biomePrefSum = new uint4[numBiomes + 1]; //Prefix sum
-            List<Info.BMaterial> biomeMaterial = new();
-            List<Info.TerrainStructure> biomeStructures = new();
-            List<Info.EntityGen> biomeEntities = new();
+            List<WorldConfig.Generation.Biome.Info.BMaterial> biomeMaterial = new();
+            List<WorldConfig.Generation.Biome.Info.TerrainStructure> biomeStructures = new();
+            List<WorldConfig.Generation.Biome.Info.EntityGen> biomeEntities = new();
 
             for (int i = 0; i < numBiomes; i++)
             {
@@ -220,9 +275,9 @@ public static class GenerationPreset
             if(biomeEntityBuffer != null) Shader.SetGlobalBuffer("_BiomeEntities", biomeEntityBuffer);
             Shader.SetGlobalBuffer("_BiomePrefCount", biomePrefCountBuffer);
 
-            SurfaceBiome[] SurfTree = BDict.Create(surface, 1).FlattenTree<SurfaceBiome>();
-            CaveBiome[] CaveTree = BDict.Create(cave, surface.Length + 1).FlattenTree<CaveBiome>();
-            CaveBiome[] SkyTree = BDict.Create(sky, surface.Length + cave.Length + 1).FlattenTree<CaveBiome>();
+            WorldConfig.Generation.Biome.SurfaceBiome[] SurfTree = WorldConfig.Generation.Biome.BDict.Create(surface, 1).FlattenTree<WorldConfig.Generation.Biome.SurfaceBiome>();
+            WorldConfig.Generation.Biome.CaveBiome[] CaveTree = WorldConfig.Generation.Biome.BDict.Create(cave, surface.Length + 1).FlattenTree<WorldConfig.Generation.Biome.CaveBiome>();
+            WorldConfig.Generation.Biome.CaveBiome[] SkyTree = WorldConfig.Generation.Biome.BDict.Create(sky, surface.Length + cave.Length + 1).FlattenTree<WorldConfig.Generation.Biome.CaveBiome>();
             SurfTreeBuffer = new ComputeBuffer(SurfTree.Length, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
             CaveTreeBuffer = new ComputeBuffer(CaveTree.Length + SkyTree.Length, sizeof(float) * 4 * 2 + sizeof(int), ComputeBufferType.Structured);
             SurfTree[0].biome = -1; //set defaults
@@ -236,26 +291,52 @@ public static class GenerationPreset
             Shader.SetGlobalBuffer("_BiomeCaveTree", CaveTreeBuffer);
             Shader.SetGlobalInteger("_BSkyStart", CaveTree.Length);
         }
+
+        /// <summary>
+        /// Releases all buffers used by the BiomeHandle.
+        /// Call this method before the program exits to prevent memory leaks.
+        /// </summary>
+        public void Release()
+        {
+            SurfTreeBuffer?.Release();
+            CaveTreeBuffer?.Release();
+            biomePrefCountBuffer?.Release();
+            biomeEntityBuffer?.Release();
+            biomeMatBuffer?.Release();
+            structGenBuffer?.Release();//
+        }
     }
 
-    struct StructHandle{
+    /// <summary>
+    /// Responsible for deserializing all structure generation settings and copying it to the GPU 
+    /// for use in the terrain generation process. <seealso cref="Config.CURRENT.Generation.Structures"/>.
+    /// </summary>
+    public struct StructHandle{
         ComputeBuffer indexBuffer; //Prefix sum
         ComputeBuffer mapBuffer;
         ComputeBuffer checksBuffer;
         ComputeBuffer settingsBuffer;
 
+
+        /// <summary>
+        /// Initializes the <see cref="StructHandle"/>. Deserializes and copies all information contained by
+        /// <see cref="Config.CURRENT.Generation.Structures"/> to the GPU. Information about a structure's in 
+        /// generation is stored in global GPU buffers <c>_StructureIndexes</c>, <c>_StructureChecks</c>, and  <c>_StructureSettings</c>.
+        ///  <c>_StructureSettings</c> also includes information on each structure's start and length of information in the other buffers, 
+        ///  including the raw point data in <c>_StructureMap</c>.
+        /// </summary>
         public void Initialize()
         {
             Release();
-            StructureData[] StructureDictionary = WorldOptions.CURRENT.Generation.Structures.SerializedData;
+            WorldConfig.Generation.Structure.StructureData[] StructureDictionary = Config.CURRENT.Generation.Structures.value.StructureDictionary.SerializedData;
+            WorldConfig.Generation.Structure.StructureData.Settings[] settings = new WorldConfig.Generation.Structure.StructureData.Settings[StructureDictionary.Length];
+            List<WorldConfig.Generation.Structure.StructureData.PointInfo> map = new ();
+            List<WorldConfig.Generation.Structure.StructureData.CheckPoint> checks = new ();
             uint[] indexPrefixSum = new uint[(StructureDictionary.Length+1)*2];
-            List<StructureData.PointInfo> map = new List<StructureData.PointInfo>();
-            List<StructureData.CheckPoint> checks = new List<StructureData.CheckPoint>();
-            StructureData.Settings[] settings = new StructureData.Settings[StructureDictionary.Length];
 
             for(int i = 0; i < StructureDictionary.Length; i++)
             {
-                StructureData data = StructureDictionary[i];
+                WorldConfig.Generation.Structure.StructureData data = StructureDictionary[i];
                 indexPrefixSum[2 * (i + 1)] = (uint)data.map.value.Count + indexPrefixSum[2*i]; //Density is same length as materials
                 indexPrefixSum[2 * (i + 1) + 1] = (uint)data.checks.value.Count + indexPrefixSum[2 * i + 1];
                 settings[i] = data.settings.value;
@@ -280,6 +361,10 @@ public static class GenerationPreset
             Shader.SetGlobalBuffer("_StructureSettings", settingsBuffer);
         }
 
+        /// <summary>
+        /// Releases all buffers used by the StructHandle.
+        /// Call this method before the program exits to prevent memory leaks.
+        /// </summary>
         public void Release()
         {
             indexBuffer?.Release();
@@ -288,34 +373,37 @@ public static class GenerationPreset
             settingsBuffer?.Release();
         }
     }
-
+    
+    /// <summary>
+    /// Responsible for deserializing all entity generation settings and copying it to the GPU 
+    /// for use in the terrain generation process. Note that <b>only information
+    /// relevant to each entity's placement is copied</b>. 
+    /// <seealso cref="Config.CURRENT.Generation.Entities"/>.
+    /// </summary>
     public struct EntityHandle{
         private ComputeBuffer entityInfoBuffer;
         private ComputeBuffer entityProfileBuffer; //used by gpu placement
+        /// <exclude />
         public NativeArray<ProfileE> entityProfileArray; //used by jobs
 
-        public void Release(){
-            entityInfoBuffer?.Release();
-            entityProfileBuffer?.Release();
-
-            //Release Static Entity Data
-            EntityAuthoring[] EntityDictionary = WorldOptions.CURRENT.Generation.Entities.SerializedData;
-            foreach(EntityAuthoring entity in EntityDictionary) entity.Entity.Unset();
-            if(entityProfileArray.IsCreated) entityProfileArray.Dispose();
-        }
-
+        /// <summary>
+        /// Initializes the <see cref="EntityHandle"/>. Deserializes and copies all information contained by
+        /// <see cref="Config.CURRENT.Generation.Entities"/> relavent to an entity's placement to the GPU. 
+        /// This includes information on each entity's size, and <see cref="ProfileE" />. 
+        /// Information is stored in global GPU buffers <c>_EntityInfo</c> and <c>_EntityProfile</c>.
+        /// </summary>
         public void Initialize()
         {
             Release();
 
-            EntityAuthoring[] EntityDictionary = WorldOptions.CURRENT.Generation.Entities.SerializedData;
+            Authoring[] EntityDictionary = Config.CURRENT.Generation.Entities.SerializedData;
             int numEntities = EntityDictionary.Length;
-            Entity.Info.ProfileInfo[] entityInfo = new Entity.Info.ProfileInfo[numEntities];
+            Entity.ProfileInfo[] entityInfo = new Entity.ProfileInfo[numEntities];
             List<ProfileE> entityProfile = new List<ProfileE>();
 
             for(int i = 0; i < numEntities; i++)
             {
-                Entity.Info.ProfileInfo info = EntityDictionary[i].Info;
+                Entity.ProfileInfo info = EntityDictionary[i].Info;
                 info.profileStart = (uint)entityProfile.Count;
                 entityInfo[i] = info;
                 EntityDictionary[i].Info = info;
@@ -334,8 +422,29 @@ public static class GenerationPreset
             Shader.SetGlobalBuffer("_EntityInfo", entityInfoBuffer);
             Shader.SetGlobalBuffer("_EntityProfile", entityProfileBuffer);
         }
+
+        /// <summary>
+        /// Releases all buffers used by the EntityHandle.
+        /// Call this method before the program exits to prevent memory leaks.s
+        /// </summary>
+        public void Release(){
+            entityInfoBuffer?.Release();
+            entityProfileBuffer?.Release();
+
+            //Release Static Entity Data
+            Authoring[] EntityDictionary = Config.CURRENT.Generation.Entities.SerializedData;
+            foreach(Authoring entity in EntityDictionary) entity.Entity.Unset();
+            if(entityProfileArray.IsCreated) entityProfileArray.Dispose();
+        }
     }
 
+    /// <summary>
+    /// Responsible for managing the allocation and deallocation of memory on the GPU for generation
+    /// related tasks. Rather than allowing each system to maintain its own <see cref="ComputeBuffer"/>, 
+    /// memory is allocated through a shader-based malloc which allows for more efficient memory management and 
+    /// fewer buffer locations to track. Settings on the size of this memory heap can be found in <see cref="WorldConfig.Quality.Memory"/>.
+    /// <seealso href = "https://blackmagic919.github.io/AboutMe/2024/08/18/Memory-Heap/"/> 
+    /// </summary>
     public struct MemoryHandle{
         private ComputeShader HeapSetupShader;
         private ComputeShader AllocateShader;
@@ -348,27 +457,36 @@ public static class GenerationPreset
         private uint2[] addressLL;
         private bool initialized;
 
+        /// <summary>
+        /// Initializes the <see cref="MemoryHandle"/>. Allocates a memory heap on the GPU for use in the terrain generation process.
+        /// Information is stored in local GPU Buffers which should be obtained through <see cref="Storage"/> and <see cref="Address"/>
+        /// properties and bound to any shader that needs to use it. 
+        /// </summary>
         public void Intiialize()
         {
             if(initialized) Release();
 
-            MemoryBufferSettings settings = WorldOptions.CURRENT.Quality.Memory.value;
+            WorldConfig.Quality.Memory settings = Config.CURRENT.Quality.Memory.value;
             HeapSetupShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/PrepareHeap");
             AllocateShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/AllocateData");
             DeallocateShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/DeallocateData");
 
-            _GPUMemorySource = new ComputeBuffer(settings._BufferSize4Bytes, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+            _GPUMemorySource = new ComputeBuffer(settings.StorageSize, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             //2 channels, 1 for size, 2 for memory address
-            _EmptyBlockHeap = new ComputeBuffer(settings._MaxHeapSize, sizeof(uint) * 2, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
-            _AddressBuffer = new ComputeBuffer(settings._MaxAddressSize+1, sizeof(uint) * 2, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+            _EmptyBlockHeap = new ComputeBuffer(settings.HeapSize, sizeof(uint) * 2, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+            _AddressBuffer = new ComputeBuffer(settings.AddressSize+1, sizeof(uint) * 2, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
 
-            addressLL = new uint2[settings._MaxAddressSize+1];
+            addressLL = new uint2[settings.AddressSize+1];
             addressLL[0].y = 1;
             
             initialized = true;
             PrepareMemory();
         }
 
+        /// <summary>
+        /// Releases all buffers used by the MemoryHandle.
+        /// Call this method before the program exits to prevent memory leaks.
+        /// </summary>
         public void Release()
         {
             _GPUMemorySource?.Release();
@@ -377,16 +495,40 @@ public static class GenerationPreset
             initialized = false;
         }
 
-        void PrepareMemory()
+        private void PrepareMemory()
         {
-            MemoryBufferSettings settings = WorldOptions.CURRENT.Quality.Memory.value;
+            WorldConfig.Quality.Memory settings = Config.CURRENT.Quality.Memory.value;
             HeapSetupShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
             HeapSetupShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
-            HeapSetupShader.SetInt("_BufferSize4Bytes", settings._BufferSize4Bytes);
+            HeapSetupShader.SetInt("_BufferSize4Bytes", settings.StorageSize);
 
             HeapSetupShader.Dispatch(0, 1, 1, 1);
         }
 
+        /// <summary>
+        /// Allocates a memory block of size (<paramref name="count"/> * <paramref name="stride"/>) with the 
+        /// specified <paramref name="stride"/> on the GPU. The unit is a 4-byte integer(word) and byte-level
+        /// allocation is not supported. 
+        /// </summary>
+        /// <remarks>
+        /// As this malloc functions on the GPU, though its synchronous complexity is O(log N) where N is the size of
+        /// the free heap, it is an inefficient use of GPU resources as it must be performed synchronously. As a result
+        /// avoid using this function for small allocations or in performance-critical sections of the code.
+        /// 
+        /// The <paramref name="stride"/> is specified such that one can cast the <see cref="Storage"/> buffer as containing a struct of size <paramref name="stride"/>
+        /// which expedites and simplifies the process of reading and writing to the buffer.
+        /// </remarks>
+        /// <param name="count">The amount of structures of size <paramref name = "stride" /> to be allocated adjacently. The total size of the allocation is (<paramref name="count"/> * <paramref name="stride"/>)</param>
+        /// <param name="stride">The alignment of structures relative to <see cref="Storage"/>, every entry will be at a relative address that is a multiple of <paramref name = "stride" />. Stride is in terms of 4-byte words </param>
+        /// <returns>
+        /// The address within the <see cref="Address"/> buffer of the entry which holds the address of the first entry
+        /// within the <see cref="Storage"/> buffer. To read from the memory block, a shader should follow the access pattern
+        /// <b>return addres</b> -> Address Buffer -> Storage Memory. This indirection is necessary to avoid GPU readback. 
+        /// <remarks> 
+        /// The address within the <see cref="Address"/> buffer is will contain two entries, the first being the 4-byte relative address
+        /// and the second being relative to the requested <paramref name = "stride" /> <paramref name="stride"/>.
+        /// </remarks>
+        /// </returns>
         public uint AllocateMemoryDirect(int count, int stride)
         {
             if(!initialized) return 0;
@@ -413,20 +555,15 @@ public static class GenerationPreset
             return addressIndex;
         }
 
-        public void ReleaseMemoryDirect(ComputeBuffer address)
-        {   
-            if(!initialized) return;
-            //Allocate Memory
-            DeallocateShader.EnableKeyword("DIRECT_DEALLOCATE");
-            DeallocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
-            DeallocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
-            DeallocateShader.SetBuffer(0, "_Address", address);
-
-            DeallocateShader.Dispatch(0, 1, 1, 1);
-        }
-
-        //Returns compute buffer with memory address of empty space
-        //NOTE: It is caller's responsibility to release memory address
+        /// <summary>
+        /// Same as <see cref="AllocateMemoryDirect(int, int)"/> but with the count being indirectly referenced. This is applicable
+        /// if the amount of objects to be allocated is not known on the CPU. To reference the count, a <see cref="ComputeBuffer"/> is passed
+        /// while the location of the count within the buffer is specified by <paramref name="countOffset"/>.
+        /// </summary>
+        /// <param name="count">A buffer containing the amount of objects of size stride to be allocated. The count must be a 4-byte integer aligned within the buffer. <seealso cref="AllocateMemoryDirect(int, int)"/></param>
+        /// <param name="stride"><see cref="AllocateMemoryDirect(int, int)"/></param>
+        /// <param name="countOffset">The 4-byte offset within the buffer of the count.</param>
+        /// <returns> <see cref="AllocateMemoryDirect(int, int)"/> </returns>
         public uint AllocateMemory(ComputeBuffer count, int stride, int countOffset = 0)
         {
             if(!initialized) return 0;
@@ -456,7 +593,15 @@ public static class GenerationPreset
             return addressIndex;
         }
 
-        //Releases heap memory of block at memory address
+        /// <summary>
+        /// Releases an allocated memory block from the <see cref="Storage"/> buffer. The caller
+        /// must ensure that the address points to a valid allocated memory block. Improper use
+        /// may corrupt the memory heap and cause undefined behavior.
+        /// </summary>
+        /// <param name="addressIndex">
+        /// The address of the entry within the <see cref="Address"/> buffer which points to the
+        /// allocated memory block within the <see cref="Storage"/> buffer. 
+        /// </param>
         public void ReleaseMemory(uint addressIndex)
         {//
             if(!initialized || addressIndex == 0) return;
@@ -480,7 +625,35 @@ public static class GenerationPreset
             //Debug.Log("Primary: " + heap[3]/250000 + "MB");
         }
 
+        /// <summary>
+        /// Same as <see cref="ReleaseMemory(uint)"/> but with the address being directly referenced. If the caller
+        /// knows the specific location of the address within the GPU, this method can be used to release memory.
+        /// </summary>
+        /// <param name="address">A compute buffer containing the 4-byte sized and aligned address within <see cref="Storage"/> of the memroy block.</param>
+        /// <param name="countOffset">The 4-byte offset within <paramref name="address"/> of the entry containing the address to the memory block</param>
+        public void ReleaseMemoryDirect(ComputeBuffer address, int countOffset = 0)
+        {   
+            if(!initialized) return;
+            //Allocate Memory
+            DeallocateShader.EnableKeyword("DIRECT_DEALLOCATE");
+            DeallocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
+            DeallocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
+            DeallocateShader.SetBuffer(0, "_Address", address);
+            DeallocateShader.SetInt("countOffset", countOffset);
+
+            DeallocateShader.Dispatch(0, 1, 1, 1);
+        }
+
         const int WorkerThreads = 64;
+
+        /// <summary>
+        /// Clears a memory block of size <paramref name="count"/> * <paramref name="stride"/> with the specified <paramref name="stride"/> 
+        /// at the given <paramref name="address"/> on the <see cref="Storage"/> buffer. The unit is a 4-byte integer(word) and byte-level allocation is not supported. 
+        /// This operation is done in parallel on the GPU and is more efficient than clearing memory on the CPU.
+        /// </summary>
+        /// <param name="address"> The address of the entry within the <see cref="Address"/> buffer which points to the memory block to be cleared within the <see cref="Storage"/> buffer. </param>
+        /// <param name="count"> The amount of structures of size <paramref name = "stride" /> to be cleared adjacently. The total size that is cleared is (<paramref name="count"/> * <paramref name="stride"/>) </param>
+        /// <param name="stride"> The alignment of structures relative to <see cref="Storage"/>, every entry will be at a relative address that is a multiple of <paramref name = "stride" /> </param>
         public void ClearMemory(int address, int count, int stride){
             if(!initialized || address == 0) return;
             ClearMemShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
@@ -495,7 +668,12 @@ public static class GenerationPreset
             ClearMemShader.Dispatch(0, threadGroups, 1, 1);
         }
 
+        /// <summary> The primary memory buffer used for long-term memory storage in the terrain generation process. </summary>
         public readonly ComputeBuffer Storage => _GPUMemorySource;
+        /// <summary>
+        /// A buffer containing addresses to memory blocks within the <see cref="Storage"/> buffer. This buffer tracks the raw 4-byte address
+        /// as well as the address relative to the requested stride during allocation of each memory block. 
+        /// </summary>
         public readonly ComputeBuffer Address => _AddressBuffer;
     }
-}
+}}

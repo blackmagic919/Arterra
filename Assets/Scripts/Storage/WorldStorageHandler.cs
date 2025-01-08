@@ -1,9 +1,9 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 using System.Threading.Tasks;
 using System;
+using WorldConfig;
 
 public static class WorldStorageHandler
 {
@@ -12,8 +12,8 @@ public static class WorldStorageHandler
     public static LinkedList<WorldMeta> WORLD_SELECTION;
 
     public static void Activate(){ 
-        WorldOptions.TEMPLATE = Resources.Load<WorldOptions>("Config");
-        WorldOptions.CURRENT = WorldOptions.Create();
+        Config.TEMPLATE = Resources.Load<Config>("Config");
+        Config.CURRENT = Config.Create();
         SegmentedUIEditor.Initialize();
         PaginatedUIEditor.Initialize();
         LoadMetaSync(); LoadOptionsSync();
@@ -40,23 +40,23 @@ public static class WorldStorageHandler
     }
 
     public static async Task LoadOptions(){
-        string location = WORLD_SELECTION.First.Value.Path + "/WorldOptions.json";
+        string location = WORLD_SELECTION.First.Value.Path + "/Config.json";
         if(!Directory.Exists(WORLD_SELECTION.First.Value.Path) || !File.Exists(location)) {
-            WorldOptions.CURRENT = WorldOptions.Create();
+            Config.CURRENT = Config.Create();
             await SaveOptions();
             return;
         }
         string data = await File.ReadAllTextAsync(location);
-        WorldOptions.CURRENT = Newtonsoft.Json.JsonConvert.DeserializeObject<WorldOptions>(data); //Does not call constructor
+        Config.CURRENT = Newtonsoft.Json.JsonConvert.DeserializeObject<Config>(data); //Does not call constructor
         
     }
 
     public static async Task SaveOptions(){
-        string location = WORLD_SELECTION.First.Value.Path + "/WorldOptions.json";
+        string location = WORLD_SELECTION.First.Value.Path + "/Config.json";
         if(!Directory.Exists(WORLD_SELECTION.First.Value.Path)) Directory.CreateDirectory(WORLD_SELECTION.First.Value.Path);
         using (FileStream fs = new FileStream(location, FileMode.Create, FileAccess.Write, FileShare.None)){
             using(StreamWriter writer = new StreamWriter(fs)){
-                string data = Newtonsoft.Json.JsonConvert.SerializeObject(WorldOptions.CURRENT);
+                string data = Newtonsoft.Json.JsonConvert.SerializeObject(Config.CURRENT);
                 await writer.WriteAsync(data);
                 await writer.FlushAsync();
             };
@@ -84,22 +84,22 @@ public static class WorldStorageHandler
     }
 
     public static void LoadOptionsSync(){
-        string location = WORLD_SELECTION.First.Value.Path + "/WorldOptions.json";
+        string location = WORLD_SELECTION.First.Value.Path + "/Config.json";
         if(!Directory.Exists(WORLD_SELECTION.First.Value.Path) || !File.Exists(location)) {
-            WorldOptions.CURRENT = WorldOptions.Create();
+            Config.CURRENT = Config.Create();
             SaveOptionsSync();
             return;
         }
         string data = File.ReadAllText(location);
-        WorldOptions.CURRENT = Newtonsoft.Json.JsonConvert.DeserializeObject<WorldOptions>(data); //Does not call constructor
+        Config.CURRENT = Newtonsoft.Json.JsonConvert.DeserializeObject<Config>(data); //Does not call constructor
     }
 
     public static void SaveOptionsSync(){
-        string location = WORLD_SELECTION.First.Value.Path + "/WorldOptions.json";
+        string location = WORLD_SELECTION.First.Value.Path + "/Config.json";
         if(!Directory.Exists(WORLD_SELECTION.First.Value.Path)) Directory.CreateDirectory(WORLD_SELECTION.First.Value.Path);
         using (FileStream fs = new FileStream(location, FileMode.Create, FileAccess.Write, FileShare.None)){
             using(StreamWriter writer = new StreamWriter(fs)){
-                string data = Newtonsoft.Json.JsonConvert.SerializeObject(WorldOptions.CURRENT);
+                string data = Newtonsoft.Json.JsonConvert.SerializeObject(Config.CURRENT);
                 writer.Write(data);
                 writer.Flush();
             };
@@ -114,7 +114,7 @@ public static class WorldStorageHandler
 
     public static void CreateWorld(){
         WORLD_SELECTION.AddFirst(new WorldMeta(Guid.NewGuid().ToString()));
-        WorldOptions.CURRENT = WorldOptions.Create();
+        Config.CURRENT = Config.Create();
         _ = SaveOptions();
         _ = SaveMeta();
     }

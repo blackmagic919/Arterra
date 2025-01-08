@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -8,6 +7,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using static InputPoller;
 using static PaginatedUIEditor;
+using WorldConfig;
+using WorldConfig.Gameplay;
 
 
 //List must be held by an Option which only holds it
@@ -36,11 +37,11 @@ public class PageKeybindSerializer : IConverter{
         RebindButton.onClick.AddListener(async () => {
             ClearKeybinds(parent.transform);
             Option<List<KeyBind.Binding>> nBindings = await ListenKeypress();
-            nBindings.isDirty = true;
+            nBindings.IsDirty = true;
             OnUpdate((ref object option) => {
                 Registry<KeyBind>.Pair nKeyBind = (Registry<KeyBind>.Pair)field.GetValue(option);
                 nKeyBind._value = new KeyBind{ bindings = nBindings };
-                nKeyBind._value.isDirty = true;
+                nKeyBind._value.IsDirty = true;
 
                 field.SetValue(option, nKeyBind);
                 ReflectKeybind(parent, field, nKeyBind, OnUpdate);

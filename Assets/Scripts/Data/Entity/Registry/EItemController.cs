@@ -4,6 +4,8 @@ using System;
 using UnityEngine;
 using static TerrainGeneration.Readback.IVertFormat;
 using TerrainGeneration.Readback;
+using WorldConfig;
+using WorldConfig.Generation.Entity;
 
 public class ItemController : EntityController
 {
@@ -21,8 +23,8 @@ public class ItemController : EntityController
         this.active = true;
 
         float3 GCoord = new (item->GCoord);
-        float lerpScale = WorldOptions.CURRENT.Quality.Rendering.value.lerpScale;
-        int chunkSize = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize;
+        float lerpScale = Config.CURRENT.Quality.Terrain.value.lerpScale;
+        int chunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         this.transform.position = CPUDensityManager.GSToWS(GCoord - settings.collider.offset) + (float3)Vector3.up;
 
         meshRenderer = gameObject.GetComponent<MeshRenderer>();

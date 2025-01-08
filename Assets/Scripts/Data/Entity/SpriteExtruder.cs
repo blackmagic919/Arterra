@@ -3,8 +3,10 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
+using TerrainGeneration;
 using TerrainGeneration.Readback;
 using static TerrainGeneration.Readback.IVertFormat;
+using WorldConfig;
 
 public static class SpriteExtruder{
     public static ComputeShader ImageExtruder;
@@ -20,7 +22,7 @@ public static class SpriteExtruder{
         ImageExtruder = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/SpriteExtruder");
         triangleTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/TranscribeTriangles");
         vertexTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/TranscribeVertices");
-        int2 maxSampleSize = ((EItem.EItemSetting)WorldOptions.CURRENT.Generation.Entities.Retrieve("EntityItem").Setting).SpriteSampleSize;
+        int2 maxSampleSize = ((EItem.EItemSetting)Config.CURRENT.Generation.Entities.Retrieve("EntityItem").Setting).SpriteSampleSize;
         offsets = new ExtruderOffsets(maxSampleSize, 0, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD);
 
         int kernel = ImageExtruder.FindKernel("March");

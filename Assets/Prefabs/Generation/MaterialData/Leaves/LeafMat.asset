@@ -12,14 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: LeafMat
   m_EditorClassIdentifier: 
-  SolidItem: Leaf:Solid
-  LiquidItem: Void
+  Names:
+  - Leaf:Solid
+  - Void
+  - Leaf
+  - InsetQuad
+  SolidItem: 0
+  LiquidItem: 1
   terrainData:
-    SolidTextureIndex: 0
+    Texture: 2
     color: {x: 0.063, y: 0.302, z: 0.015, w: 1}
     textureScale: 5
     baseColorStrength: 0.4
-    GeoShaderIndex: 2
+    GeoShaderIndex: 3
   AtmosphereScatter:
     ScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}

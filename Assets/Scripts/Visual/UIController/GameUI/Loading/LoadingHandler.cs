@@ -1,10 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Reflection;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using static TerrainGeneration.OctreeTerrain;
+using WorldConfig;
 
 public class LoadingHandler : UpdateTask
 {
@@ -51,6 +49,6 @@ public class LoadingHandler : UpdateTask
         RequestQueue.TryPeek(out GenTask fTask);
         taskText.text = taskDescriptions[fTask.id];
         slider.value = finishedLoad / (totalRemainingLoad + finishedLoad);
-        finishedLoad += WorldOptions.CURRENT.Quality.Rendering.value.maxFrameLoad;
+        finishedLoad += Config.CURRENT.Quality.Terrain.value.maxFrameLoad;
     }
 }

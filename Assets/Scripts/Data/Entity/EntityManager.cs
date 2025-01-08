@@ -9,9 +9,9 @@ using Unity.Burst;
 using static CPUDensityManager;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using UnityEditor;
-
-
+using TerrainGeneration;
+using WorldConfig;
+using WorldConfig.Generation.Entity;
 
 public static class EntityManager
 {
@@ -93,10 +93,10 @@ public static class EntityManager
         Entity newEntity = new ();
         
         int entityInd = EntityHandler.Length;
-        int mapSize = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize;
+        int mapSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
         
-        EntityAuthoring authoring = WorldOptions.CURRENT.Generation.Entities.Reg.value[(int)genInfo.entityIndex].Value;
+        Authoring authoring = Config.CURRENT.Generation.Entities.Reg.value[(int)genInfo.entityIndex].Value;
         newEntity.info.profile = authoring.Info;
         newEntity.info.entityId = Guid.NewGuid();
         newEntity.info.entityType = genInfo.entityIndex;
@@ -122,8 +122,8 @@ public static class EntityManager
         Entity newEntity = new ();
         int entityInd = EntityHandler.Length;
         
-        var reg = WorldOptions.CURRENT.Generation.Entities;
-        EntityAuthoring authoring = reg.Retrieve(sEntity.type);
+        var reg = Config.CURRENT.Generation.Entities;
+        Authoring authoring = reg.Retrieve(sEntity.type);
         newEntity.info.profile = authoring.Info;
         newEntity.info.entityId = sEntity.guid;
         newEntity.info.entityType = (uint)reg.RetrieveIndex(sEntity.type);
@@ -168,7 +168,7 @@ public static class EntityManager
     }
 
     public static unsafe void ReleaseChunkEntities(int3 CCoord){
-        int mapChunkSize = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize;
+        int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         ChunkMapInfo mapInfo = AddressDict[HashCoord(CCoord)];
         if(!mapInfo.valid) return; 
         //mapinfo.CCoord is coord of previous chunk
@@ -182,7 +182,7 @@ public static class EntityManager
     }
 
     public static unsafe List<Entity> GetChunkEntities(int3 CCoord){
-        int mapChunkSize = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize;
+        int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         ChunkMapInfo mapInfo = AddressDict[HashCoord(CCoord)];
         if(!mapInfo.valid) return null;
         List<Entity> entities = new List<Entity>();
@@ -202,7 +202,7 @@ public static class EntityManager
         EntityIndex = new Dictionary<string, int>();
         Executor = new EntityJob{active = false};
 
-        int numPointsPerAxis = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize;
+        int numPointsPerAxis = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
 
         bufferOffsets = new EntityGenOffsets(0, numPoints, ENTITY_STRIDE_WORD);
@@ -302,6 +302,262 @@ public static class EntityManager
         public int3 position;
         public uint entityIndex;
     }
+
+    //More like a BVH, or a dynamic R-Tree with no overlap
+    public unsafe struct STree{
+        public NativeArray<TreeNode> _tree;
+        [NativeDisableUnsafePtrRestriction]
+        public TreeNode* tree;
+        //mark as volatile so we get the latest value
+        public uint length; 
+        public readonly uint Length => length - 1;
+        public readonly uint Root{
+            get{return tree[0].Right;}
+            set{GetRef(0).Right = value;}
+        }
+
+        public TreeNode this[int index]{
+            get{return tree[index];}
+            set{tree[index] = value;}
+        }
+
+        public TreeNode this[uint index]{
+            get{return tree[(int)index];}
+            set{tree[(int)index] = value;}
+        }
+
+        public readonly ref TreeNode GetRef(int index)
+        {
+            //Allow tree to access nodes outside Length to workaround threads, it seems unsafe, but is not catastrophic
+            if (index < 0 || index >= _tree.Length)
+                throw new ArgumentOutOfRangeException(nameof(index));
+            unsafe { return ref UnsafeUtility.ArrayElementAsRef<TreeNode>(tree, index); }
+        }
+
+        public readonly unsafe TreeNode* GetPtr(int index)
+        {
+            if (index < 0 || index >= _tree.Length)
+                throw new ArgumentOutOfRangeException(nameof(index));
+            return tree + index;
+        }
+
+        public STree(int capacity){
+            _tree = new NativeArray<TreeNode>(capacity, Allocator.Persistent);
+            tree = (TreeNode*)_tree.GetUnsafePtr();
+            tree[0] = new TreeNode{
+                bounds = new TreeNode.Bounds{
+                    Min = new int3(int.MinValue),
+                    Max = new int3(int.MaxValue)
+                },
+            };
+
+            //Length includes pointer to head node(0)
+            length = 1;
+        }
+
+        public void Dispose(){
+            _tree.Dispose();
+            length = 0;
+        }
+
+        public uint Insert(int3 position, IntPtr ptr){
+            uint leafInd = length; tree[(int)leafInd] = TreeNode.MakeLeaf(position, ptr);
+            length++;
+
+            if(length == 2) Root = leafInd;
+            else RecursiveInsert(position, Root, ptr);
+            return leafInd;
+        }
+
+        private void RecursiveInsert(int3 position, uint current, IntPtr ptr){
+            ref TreeNode node = ref GetRef((int)current);
+            if(node.IsLeaf){
+                tree[(int)length] = new TreeNode{
+                    bounds = node.bounds.GetExpand(position),
+                    Left = current,
+                    Right = length - 1,
+                    Parent = node.Parent
+                };
+                GetRef((int)node.Parent).ReplaceChild(current, length);
+                GetRef((int)length - 1).Parent = length;
+                node.Parent = length;
+                length++;
+                return;
+            }
+            
+            node.bounds.Expand(position);
+            ref TreeNode.Bounds B1 = ref GetRef((int)node.Left).bounds; 
+            ref TreeNode.Bounds B2 = ref GetRef((int)node.Right).bounds; 
+            if(B1.Contains(position)) RecursiveInsert(position, node.Left, ptr);
+            else if(B2.Contains(position)) RecursiveInsert(position, node.Right, ptr); 
+            else{
+                TreeNode.Bounds B1Prime, B2Prime;
+                B1Prime = B1.GetExpand(position);
+                B2Prime = B2.GetExpand(position);
+
+                //I guarantee there's a configuration that does not intersect
+                if(B1Prime.Intersects(B2)) RecursiveInsert(position, node.Right, ptr);
+                else if(B2Prime.Intersects(B1)) RecursiveInsert(position, node.Left, ptr);
+                else if(B1Prime.Size() >= B2Prime.Size()) RecursiveInsert(position, node.Right, ptr);
+                else RecursiveInsert(position, node.Left, ptr);
+            }
+        } 
+
+        public void Delete(int index){
+            if(length <= 1) return;
+            if(index > length - 1 || index == 0) return;
+            if(tree == null) return;
+
+            ref TreeNode node = ref GetRef(index);
+            ref TreeNode parent = ref GetRef((int)node.Parent);
+            uint Sibling = index == parent.Left ? parent.Right : parent.Left;
+            if(!node.IsLeaf) return; 
+            if(node.Parent == 0) {
+                Root = 0; length = 1;
+                return;
+            }
+
+            uint parentIndex = node.Parent;
+            GetRef((int)parent.Parent).ReplaceChild(node.Parent, Sibling);
+            GetRef((int)Sibling).Parent = parent.Parent;
+            if(index < length - 2) {//This logic took me forever to figure out
+                if(parentIndex != length - 1) MoveEntry((int)length - 1, (uint)index);
+                else MoveEntry((int)length - 2, (uint)index);
+            }
+            if(parentIndex < length - 2){
+                if(index != length - 2) MoveEntry((int)length - 2, parentIndex);
+                else MoveEntry((int)length - 1, parentIndex); 
+            }
+            length -= 2;
+        }
+
+        private void MoveEntry(int oInd, uint nInd){
+            if(oInd == nInd) return;
+            TreeNode oNode = tree[oInd];
+            if(!oNode.IsLeaf){
+                GetRef((int)oNode.Left).Parent = nInd;
+                GetRef((int)oNode.Right).Parent = nInd;
+            } else{ unsafe {
+                Entity* entity = (Entity*)oNode.GetLeaf;
+                entity->info.SpatialId = nInd;
+            }}
+
+            GetRef((int)oNode.Parent).ReplaceChild((uint)oInd, nInd);
+            tree[(int)nInd] = oNode;
+        }
+
+
+        //The callback should not change STree as this will cause unpredictable behavior when query continues
+        public readonly void Query(TreeNode.Bounds bounds, Action<UIntPtr> action, int current = -1){
+            if(current == -1) current = (int)Root;
+            if(current == 0) return;
+            ref TreeNode node = ref GetRef(current);
+            if(node.IsLeaf){
+                action.Invoke(node.GetLeaf);
+                return;
+            }
+            
+            if(bounds.Intersects(GetRef((int)node.Left).bounds)) Query(bounds, action, (int)node.Left);
+            if(bounds.Intersects(GetRef((int)node.Right).bounds)) Query(bounds, action, (int)node.Right);
+        }
+
+        //Note: This function is not thread-safe, TreeNode is not predictable and may be a combination of
+        //multiple nodes, however Ptr is 64-bit and is atomic on 64-bit systems, which this query assumes is true
+        //Bounds may also be inaccurate, but that failure is not catastrophic.
+        public readonly unsafe void QueryAsync(TreeNode.Bounds bounds, FunctionPointer<Action<UIntPtr, UIntPtr>> Action, UIntPtr entity, int current = -1){
+            if(current == -1) current = (int)Root;
+            if(current == 0) return;
+            
+            //copy from cache/memory--this is not thread-safe
+            TreeNode node = tree[current]; 
+            if(node.IsLeaf){
+                //This is the only place for catastrophic failure, Leaf MUST be a valid pointer.
+                Action.Invoke(node.GetLeaf, entity);
+                return;
+            }
+
+            //The values obtained here may be inaccurate, but that's okay
+            if(bounds.Intersects(tree[(int)node.Left].bounds)) QueryAsync(bounds, Action, entity, (int)node.Left);
+            if(bounds.Intersects(tree[(int)node.Right].bounds)) QueryAsync(bounds, Action, entity, (int)node.Right);
+        }
+
+
+        public struct TreeNode{
+            public Bounds bounds;
+            //64-bit systems guarantee 64-bit copies are atomic for properly aligned elements
+            //If 32-bit systems are used, this will not work
+            public ulong Ptr;
+            public uint Parent;
+            public readonly bool IsLeaf => (Ptr & 0x8000000000000000) != 0;
+            public readonly UIntPtr GetLeaf => new (Ptr & 0x7FFFFFFFFFFFFFFF);
+            public uint Left{
+                readonly get{return (uint)(Ptr & 0xFFFFFFFF);}
+                set{Ptr = (Ptr & 0xFFFFFFFF00000000) | (value & 0xFFFFFFFF);}
+            }
+
+            public uint Right{
+                readonly get{return (uint)((Ptr >> 32) & 0x7FFFFFFF);}
+                set{Ptr = (Ptr & 0x80000000FFFFFFFF) | ((ulong)value & 0x7FFFFFFF) << 32;}
+            }
+            public TreeNode(int3 position){
+                bounds = new Bounds(position);
+                Ptr = 0ul;
+                Parent = 0;
+            }
+
+            public static TreeNode MakeLeaf(int3 position, IntPtr ptr){
+                TreeNode node = new(position){ 
+                    Ptr = 0x8000000000000000 | (ulong)ptr,
+                    Parent = 0,
+                };
+                return node;
+            }
+
+            public void ReplaceChild(uint a, uint b){
+                if(Left == a) Left = b;
+                else if(Right == a) Right = b;
+            }
+
+            public struct Bounds{
+                public int3 Min;
+                public int3 Max;
+
+                public Bounds(int3 pos){
+                    Min = pos;
+                    Max = pos;
+                }
+
+                public void Expand(int3 position){
+                    Max = math.max(Max, position);
+                    Min = math.min(Min, position);
+                }
+                
+                public readonly Bounds GetExpand(int3 position){
+                    Bounds nBounds = this;
+                    nBounds.Expand(position);
+                    return nBounds;
+                }
+
+                public readonly bool Contains(int3 position){
+                    return math.all(position >= Min) && math.all(position <= Max);
+                }
+
+                public readonly bool Intersects(Bounds bounds){
+                    return math.all(bounds.Min <= Max) && math.all(bounds.Max >= Min);
+                }
+                
+                public readonly uint Size(){
+                    int3 size = Max - Min;
+                    return (uint)(size.x * size.y * size.z);
+                }
+
+                public readonly float Perimeter(){
+                    int3 size = Max - Min;
+                    return 2 * (size.x + size.y) + 2 * (size.y + size.z) + 2 * (size.z + size.x);
+                }
+            }
+        }
+    }
 }
 
 
@@ -361,12 +617,12 @@ public class EntityJob : UpdateTask{
             mapContext = new MapContext{
                 MapData = (MapData*)SectionedMemory.GetUnsafePtr(),
                 AddressDict = (ChunkMapInfo*)AddressDict.GetUnsafePtr(),
-                mapChunkSize = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize,
+                mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize,
                 numChunksAxis = numChunksAxis,
-                IsoValue = (int)Math.Round(WorldOptions.CURRENT.Quality.Rendering.value.IsoLevel * 255.0)
+                IsoValue = (int)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0)
             },
 
-            gravity = Physics.gravity / WorldOptions.CURRENT.Quality.Rendering.value.lerpScale,
+            gravity = Physics.gravity / Config.CURRENT.Quality.Terrain.value.lerpScale,
             deltaTime = Time.fixedDeltaTime
         };
     }
@@ -399,7 +655,7 @@ public class EntityJob : UpdateTask{
         [NativeDisableUnsafePtrRestriction]
         [ReadOnly] public unsafe ProfileE* Profile;
         [ReadOnly] public unsafe MapContext mapContext;
-        public STree sTree;
+        public EntityManager.STree sTree;
         [ReadOnly] public float3 gravity; 
         [ReadOnly] public float deltaTime;
         public unsafe void Execute(int index){
@@ -409,7 +665,7 @@ public class EntityJob : UpdateTask{
     }
 
     [BurstCompile]
-    public unsafe static bool VerifyProfile(in int3 GCoord, in Entity.Info.ProfileInfo info, in Context context, bool UseExFlag = true){
+    public unsafe static bool VerifyProfile(in int3 GCoord, in Entity.ProfileInfo info, in Context context, bool UseExFlag = true){
         bool allC = true; bool anyC = false; bool any0 = false;
         uint3 dC = new (0);
         for(dC.x = 0; dC.x < info.bounds.x; dC.x++){
@@ -589,7 +845,7 @@ public unsafe struct PathFinder{
     |    |____|____|____| 
     +--------------------> x
     */
-    public static byte* FindPath(in int3 Origin, in int3 iEnd, int PathDistance, in Entity.Info.ProfileInfo info, in EntityJob.Context context, out int PathLength){
+    public static byte* FindPath(in int3 Origin, in int3 iEnd, int PathDistance, in Entity.ProfileInfo info, in EntityJob.Context context, out int PathLength){
         PathFinder finder = new (PathDistance);
         int3 End = math.clamp(iEnd + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
         int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
@@ -633,7 +889,7 @@ public unsafe struct PathFinder{
     }
 
     //Find point that matches raw-profile along the path to destination
-    public static byte* FindClosestAlongPath(in int3 Origin, in int3 iEnd, int PathDistance, in Entity.Info.ProfileInfo info, in EntityJob.Context context, out int PathLength, out bool ReachedEnd){
+    public static byte* FindClosestAlongPath(in int3 Origin, in int3 iEnd, int PathDistance, in Entity.ProfileInfo info, in EntityJob.Context context, out int PathLength, out bool ReachedEnd){
         PathFinder finder = new (PathDistance);
         int3 End = math.clamp(iEnd + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
         int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
@@ -676,7 +932,7 @@ public unsafe struct PathFinder{
     }
 
     //Find point that matches raw-profile along the path to destination with the closest distance to the desired path distance
-    public static byte* FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, in Entity.Info.ProfileInfo info, in EntityJob.Context context, out int PathLength){
+    public static byte* FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, in Entity.ProfileInfo info, in EntityJob.Context context, out int PathLength){
         PathFinder finder = new (PathDistance);
         int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
 
@@ -746,261 +1002,5 @@ public unsafe struct PathFinder{
         //path[0] = 13; //13 i.e. 0, 0, 0
 
         return path;
-    }
-}
-
-//More like a BVH, or a dynamic R-Tree with no overlap
-public unsafe struct STree{
-    public NativeArray<TreeNode> _tree;
-    [NativeDisableUnsafePtrRestriction]
-    public TreeNode* tree;
-    //mark as volatile so we get the latest value
-    public uint length; 
-    public readonly uint Length => length - 1;
-    public readonly uint Root{
-        get{return tree[0].Right;}
-        set{GetRef(0).Right = value;}
-    }
-
-    public TreeNode this[int index]{
-        get{return tree[index];}
-        set{tree[index] = value;}
-    }
-
-    public TreeNode this[uint index]{
-        get{return tree[(int)index];}
-        set{tree[(int)index] = value;}
-    }
-
-    public readonly ref TreeNode GetRef(int index)
-    {
-        //Allow tree to access nodes outside Length to workaround threads, it seems unsafe, but is not catastrophic
-        if (index < 0 || index >= _tree.Length)
-            throw new ArgumentOutOfRangeException(nameof(index));
-        unsafe { return ref UnsafeUtility.ArrayElementAsRef<TreeNode>(tree, index); }
-    }
-
-    public readonly unsafe TreeNode* GetPtr(int index)
-    {
-        if (index < 0 || index >= _tree.Length)
-            throw new ArgumentOutOfRangeException(nameof(index));
-        return tree + index;
-    }
-
-    public STree(int capacity){
-        _tree = new NativeArray<TreeNode>(capacity, Allocator.Persistent);
-        tree = (TreeNode*)_tree.GetUnsafePtr();
-        tree[0] = new TreeNode{
-            bounds = new TreeNode.Bounds{
-                Min = new int3(int.MinValue),
-                Max = new int3(int.MaxValue)
-            },
-        };
-
-        //Length includes pointer to head node(0)
-        length = 1;
-    }
-
-    public void Dispose(){
-        _tree.Dispose();
-        length = 0;
-    }
-
-    public uint Insert(int3 position, IntPtr ptr){
-        uint leafInd = length; tree[(int)leafInd] = TreeNode.MakeLeaf(position, ptr);
-        length++;
-
-        if(length == 2) Root = leafInd;
-        else RecursiveInsert(position, Root, ptr);
-        return leafInd;
-    }
-
-    private void RecursiveInsert(int3 position, uint current, IntPtr ptr){
-        ref TreeNode node = ref GetRef((int)current);
-        if(node.IsLeaf){
-            tree[(int)length] = new TreeNode{
-                bounds = node.bounds.GetExpand(position),
-                Left = current,
-                Right = length - 1,
-                Parent = node.Parent
-            };
-            GetRef((int)node.Parent).ReplaceChild(current, length);
-            GetRef((int)length - 1).Parent = length;
-            node.Parent = length;
-            length++;
-            return;
-        }
-        
-        node.bounds.Expand(position);
-        ref TreeNode.Bounds B1 = ref GetRef((int)node.Left).bounds; 
-        ref TreeNode.Bounds B2 = ref GetRef((int)node.Right).bounds; 
-        if(B1.Contains(position)) RecursiveInsert(position, node.Left, ptr);
-        else if(B2.Contains(position)) RecursiveInsert(position, node.Right, ptr); 
-        else{
-            TreeNode.Bounds B1Prime, B2Prime;
-            B1Prime = B1.GetExpand(position);
-            B2Prime = B2.GetExpand(position);
-
-            //I guarantee there's a configuration that does not intersect
-            if(B1Prime.Intersects(B2)) RecursiveInsert(position, node.Right, ptr);
-            else if(B2Prime.Intersects(B1)) RecursiveInsert(position, node.Left, ptr);
-            else if(B1Prime.Size() >= B2Prime.Size()) RecursiveInsert(position, node.Right, ptr);
-            else RecursiveInsert(position, node.Left, ptr);
-        }
-    } 
-
-    public void Delete(int index){
-        if(length <= 1) return;
-        if(index > length - 1 || index == 0) return;
-        if(tree == null) return;
-
-        ref TreeNode node = ref GetRef(index);
-        ref TreeNode parent = ref GetRef((int)node.Parent);
-        uint Sibling = index == parent.Left ? parent.Right : parent.Left;
-        if(!node.IsLeaf) return; 
-        if(node.Parent == 0) {
-            Root = 0; length = 1;
-            return;
-        }
-
-        uint parentIndex = node.Parent;
-        GetRef((int)parent.Parent).ReplaceChild(node.Parent, Sibling);
-        GetRef((int)Sibling).Parent = parent.Parent;
-        if(index < length - 2) {//This logic took me forever to figure out
-            if(parentIndex != length - 1) MoveEntry((int)length - 1, (uint)index);
-            else MoveEntry((int)length - 2, (uint)index);
-        }
-        if(parentIndex < length - 2){
-            if(index != length - 2) MoveEntry((int)length - 2, parentIndex);
-            else MoveEntry((int)length - 1, parentIndex); 
-        }
-        length -= 2;
-    }
-
-    private void MoveEntry(int oInd, uint nInd){
-        if(oInd == nInd) return;
-        TreeNode oNode = tree[oInd];
-        if(!oNode.IsLeaf){
-            GetRef((int)oNode.Left).Parent = nInd;
-            GetRef((int)oNode.Right).Parent = nInd;
-        } else{ unsafe {
-            Entity* entity = (Entity*)oNode.GetLeaf;
-            entity->info.SpatialId = nInd;
-        }}
-
-        GetRef((int)oNode.Parent).ReplaceChild((uint)oInd, nInd);
-        tree[(int)nInd] = oNode;
-    }
-
-
-    //The callback should not change STree as this will cause unpredictable behavior when query continues
-    public readonly void Query(TreeNode.Bounds bounds, Action<UIntPtr> action, int current = -1){
-        if(current == -1) current = (int)Root;
-        if(current == 0) return;
-        ref TreeNode node = ref GetRef(current);
-        if(node.IsLeaf){
-            action.Invoke(node.GetLeaf);
-            return;
-        }
-        
-        if(bounds.Intersects(GetRef((int)node.Left).bounds)) Query(bounds, action, (int)node.Left);
-        if(bounds.Intersects(GetRef((int)node.Right).bounds)) Query(bounds, action, (int)node.Right);
-    }
-
-    //Note: This function is not thread-safe, TreeNode is not predictable and may be a combination of
-    //multiple nodes, however Ptr is 64-bit and is atomic on 64-bit systems, which this query assumes is true
-    //Bounds may also be inaccurate, but that failure is not catastrophic.
-    public readonly unsafe void QueryAsync(TreeNode.Bounds bounds, FunctionPointer<Action<UIntPtr, UIntPtr>> Action, UIntPtr entity, int current = -1){
-        if(current == -1) current = (int)Root;
-        if(current == 0) return;
-        
-        //copy from cache/memory--this is not thread-safe
-        TreeNode node = tree[current]; 
-        if(node.IsLeaf){
-            //This is the only place for catastrophic failure, Leaf MUST be a valid pointer.
-            Action.Invoke(node.GetLeaf, entity);
-            return;
-        }
-
-        //The values obtained here may be inaccurate, but that's okay
-        if(bounds.Intersects(tree[(int)node.Left].bounds)) QueryAsync(bounds, Action, entity, (int)node.Left);
-        if(bounds.Intersects(tree[(int)node.Right].bounds)) QueryAsync(bounds, Action, entity, (int)node.Right);
-    }
-
-
-    public struct TreeNode{
-        public Bounds bounds;
-        //64-bit systems guarantee 64-bit copies are atomic for properly aligned elements
-        //If 32-bit systems are used, this will not work
-        public ulong Ptr;
-        public uint Parent;
-        public readonly bool IsLeaf => (Ptr & 0x8000000000000000) != 0;
-        public readonly UIntPtr GetLeaf => new (Ptr & 0x7FFFFFFFFFFFFFFF);
-        public uint Left{
-            readonly get{return (uint)(Ptr & 0xFFFFFFFF);}
-            set{Ptr = (Ptr & 0xFFFFFFFF00000000) | (value & 0xFFFFFFFF);}
-        }
-
-        public uint Right{
-            readonly get{return (uint)((Ptr >> 32) & 0x7FFFFFFF);}
-            set{Ptr = (Ptr & 0x80000000FFFFFFFF) | ((ulong)value & 0x7FFFFFFF) << 32;}
-        }
-        public TreeNode(int3 position){
-            bounds = new Bounds(position);
-            Ptr = 0ul;
-            Parent = 0;
-        }
-
-        public static TreeNode MakeLeaf(int3 position, IntPtr ptr){
-            TreeNode node = new(position){ 
-                Ptr = 0x8000000000000000 | (ulong)ptr,
-                Parent = 0,
-            };
-            return node;
-        }
-
-        public void ReplaceChild(uint a, uint b){
-            if(Left == a) Left = b;
-            else if(Right == a) Right = b;
-        }
-
-        public struct Bounds{
-            public int3 Min;
-            public int3 Max;
-
-            public Bounds(int3 pos){
-                Min = pos;
-                Max = pos;
-            }
-
-            public void Expand(int3 position){
-                Max = math.max(Max, position);
-                Min = math.min(Min, position);
-            }
-            
-            public readonly Bounds GetExpand(int3 position){
-                Bounds nBounds = this;
-                nBounds.Expand(position);
-                return nBounds;
-            }
-
-            public readonly bool Contains(int3 position){
-                return math.all(position >= Min) && math.all(position <= Max);
-            }
-
-            public readonly bool Intersects(Bounds bounds){
-                return math.all(bounds.Min <= Max) && math.all(bounds.Max >= Min);
-            }
-            
-            public readonly uint Size(){
-                int3 size = Max - Min;
-                return (uint)(size.x * size.y * size.z);
-            }
-
-            public readonly float Perimeter(){
-                int3 size = Max - Min;
-                return 2 * (size.x + size.y) + 2 * (size.y + size.z) + 2 * (size.z + size.x);
-            }
-        }
     }
 }

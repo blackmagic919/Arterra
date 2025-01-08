@@ -1,10 +1,9 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using Newtonsoft.Json;
-using NUnit.Framework;
 using UnityEngine;
+using WorldConfig;
+using WorldConfig.Gameplay;
 
 /*
 1.0::Menu
@@ -20,13 +19,103 @@ was added(i.e. if an inventory pop-up is bound to tab on “Window” layer,
 inputs related to that should be added to the pop-up “Window” layer as well). 
 Otherwise things can get very confusing and messy.
 */
+namespace WorldConfig.Gameplay{
+    /// <summary> A list of conditions that is assigned a name. During gameplay, a system
+    /// may bind an action to this list through its name which will be triggered
+    /// when the conditions are met. </summary>
+    [Serializable]
+    public struct KeyBind{
+        /// <summary> A list of conditions that must be met for the action to be triggered.
+        /// See <see cref="Binding"/> for more information. </summary>
+        public Option<List<Binding> > bindings;
+        /// <summary> Accessor to unwrap the binding from the option  </summary>
+        [JsonIgnore]
+        public readonly List<Binding> Bindings => bindings.value;
+        private static readonly Func<KeyCode, bool>[] PollTypes = {
+            null,
+            UnityEngine.Input.GetKey, 
+            UnityEngine.Input.GetKey,
+            UnityEngine.Input.GetKeyDown,
+            UnityEngine.Input.GetKeyUp,
+        };
+        /// <summary> If <see cref="BindPoll"/> is <see cref="BindPoll.Axis"/>, the 
+        /// translation of <see cref="KeyCode"/> to the axis name that is being polled. </summary>
+        private static readonly Dictionary<KeyCode, string> AxisMappings = new Dictionary<KeyCode, string>{
+            {KeyCode.Alpha0, "Mouse X"},
+            {KeyCode.Alpha1, "Mouse Y"},
+            {KeyCode.Alpha2, "Mouse ScrollWheel"},
+            {KeyCode.Alpha3, "Horizontal"},
+            {KeyCode.Alpha4, "Vertical"},
+        };
+        /// <summary> A single condition polling a singular type of input from the user. </summary>
+        [Serializable]
+        public struct Binding
+        {
+            /// <summary> The keycode of the input that is being polled. If <see cref="BindPoll"/> is <see cref="BindPoll.Axis"/>,
+            /// this is the alias for the axis that is being polled. </summary>
+            public KeyCode Key;
+            /// <summary> The type of polling that is being done on the input. See <see cref="BindPoll"/> for more information. </summary>
+            public BindPoll PollType;
+            /// <summary> Whether the binding is an alias for another binding. If true, the binding is an alias for the 
+            /// first binding before it in the <see cref="bindings"/> list that isn't an alias. All alias directly 
+            /// proceeding a non-alias binding will allow the binding to evaluate as true if any of the aliases are true. </summary>
+            public bool IsAlias; 
+        }
+        /// <summary> The type of polling that is being done on the input. </summary>
+        public enum BindPoll{
+            /// <summary>
+            /// If the poll type is axis, uses unity's <see cref="UnityEngine.Input.GetAxis(string)"/> which returns an analog-like
+            /// value between -1 and 1 for the requested axis. The axis is determined by the <see cref="KeyCode"/> of the binding
+            /// transformed through <see cref="AxisMappings"/>.
+            /// </summary>
+            Axis = 0,
+            /// <summary> If the poll type is exclude, the binding will only evaluate as true if the input is not being being held. </summary>
+            Exclude = 1,
+            /// <summary> If the poll type is hold, the binding will only evaluate as true if the input is being held. </summary>
+            Hold = 2,
+            /// <summary> If the poll type is down, the binding will only evaluate as true on the frame the input is pressed. 
+            /// That is the frame where the input is held where it wasn't held in the previous frame. </summary>
+            Down = 3,
+            /// <summary> If the poll type is up, the binding will only evaluate as true on the frame the input is released.
+            /// That is the frame where the input is not held where it was held in the previous frame. </summary>
+            Up = 4,
+        }
+
+        /// <summary>
+        /// Determines whether or not the KeyBind is triggered. Evaluates all conditions
+        /// in <see cref="bindings"/> to determine whether the associated action should be triggered.
+        /// </summary>
+        /// <param name="axis">If the <see cref="bindings"/> contains an <see cref="BindPoll.Axis">axis</see>, the axis
+        /// value of the last axis poll in the list. </param>
+        /// <returns>Whether or not the KeyBind has been triggered. </returns>
+        public readonly bool IsTriggered(out float axis){
+            axis = 0; bool Pressed = false;
+            if(Bindings == null || Bindings.Count == 0) return false;
+            for(int i = Bindings.Count-1; i >= 0; i--){
+                Binding bind = Bindings[i];
+                if(bind.PollType == BindPoll.Exclude) {
+                    Pressed |= !PollTypes[(int)bind.PollType](bind.Key);
+                } else if(bind.PollType == BindPoll.Axis){
+                    if(AxisMappings.ContainsKey(bind.Key)) 
+                        axis = UnityEngine.Input.GetAxis(AxisMappings[bind.Key]);
+                    Pressed = true;
+                } else {
+                    Pressed |= PollTypes[(int)bind.PollType](bind.Key);
+                }
+                if(!bind.IsAlias && !Pressed) return false;
+                if(!bind.IsAlias) Pressed = false;
+            }
+            return true;
+        }
+    }
+}
 public class InputPoller : UpdateTask
 {
     private class KeyBinder{
         public SharedLinkedList<ActionBind> KeyBinds;
         public Registry<uint> LayerHeads;
-        public ref Registry<KeyBind> KeyMappings => ref WorldOptions.CURRENT.GamePlay.Input;
-        public ref Registry<KeyBind> DefaultMappings => ref WorldOptions.TEMPLATE.GamePlay.Input;
+        public ref Registry<KeyBind> KeyMappings => ref Config.CURRENT.GamePlay.Input;
+        public ref Registry<KeyBind> DefaultMappings => ref Config.TEMPLATE.GamePlay.Input;
 
         public KeyBinder(){
             KeyBinds = new SharedLinkedList<ActionBind>(MaxActionBinds);
@@ -186,61 +275,6 @@ public class InputPoller : UpdateTask
             LayerHeads.Construct(); //reconstruct because sorting breaks the dictionary's values
         } else LayerHeads.TrySet(layer, KeyBinds.Enqueue(keyBind, LayerHeads.Retrieve(layer)));
         return LayerHeads.Retrieve(layer);
-    }
-
-    [Serializable]
-    public struct KeyBind{
-        public Option<List<Binding> > bindings;
-        [JsonIgnore]
-        public readonly List<Binding> Bindings => bindings.value;
-        private static readonly Func<KeyCode, bool>[] PollTypes = {
-            null,
-            Input.GetKey, 
-            Input.GetKey,
-            Input.GetKeyDown,
-            Input.GetKeyUp,
-        };
-        private static readonly Dictionary<KeyCode, string> AxisMappings = new Dictionary<KeyCode, string>{
-            {KeyCode.Alpha0, "Mouse X"},
-            {KeyCode.Alpha1, "Mouse Y"},
-            {KeyCode.Alpha2, "Mouse ScrollWheel"},
-            {KeyCode.Alpha3, "Horizontal"},
-            {KeyCode.Alpha4, "Vertical"},
-        };
-        [Serializable]
-        public struct Binding
-        {
-            public KeyCode Key;
-            public BindPoll PollType;
-            public bool IsAlias; 
-        }
-        public enum BindPoll{
-            Axis = 0,
-            Exclude = 1,
-            Hold = 2,
-            Down = 3,
-            Up = 4,
-        }
-        public readonly bool IsTriggered(out float axis){
-            axis = 0; bool Pressed = false;
-            if(Bindings == null || Bindings.Count == 0) return false;
-            for(int i = Bindings.Count-1; i >= 0; i--){
-                Binding bind = Bindings[i];
-                if(bind.PollType == BindPoll.Exclude) {
-                    Pressed |= !PollTypes[(int)bind.PollType](bind.Key);
-                } else if(bind.PollType == BindPoll.Axis){
-                    if(AxisMappings.ContainsKey(bind.Key)) 
-                        axis = Input.GetAxis(AxisMappings[bind.Key]);
-                    Pressed = true;
-                } else {
-                    Pressed |= PollTypes[(int)bind.PollType](bind.Key);
-                }
-                if(!bind.IsAlias && !Pressed) return false;
-                if(!bind.IsAlias) Pressed = false;
-            }
-            return true;
-        }
-
     }
 
     public struct ActionBind

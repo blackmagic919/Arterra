@@ -1,30 +1,43 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 using System;
+using WorldConfig;
+using WorldConfig.Gameplay;
 
+namespace WorldConfig.Gameplay{
+/// <summary>
+/// A collection of settings that describe how the player moves.
+/// Movement settings may change during gameplay.
+/// </summary>
+[System.Serializable]
+public class Movement : ICloneable{
+    /// <summary> How quickly the player slows down, in terms of world space, when touching the ground. </summary>
+    public float GroundFriction = 0.25f;
+    /// <summary> The maximum speed the player can run at, in terms of world space. </summary>
+    public float runSpeed = 10f;
+    /// <summary>  How much force is applied to the player when they jump, in terms of world space. </summary>
+    public float jumpForce = 8f;
+    /// <summary> How much speed the user gains when moving, in terms of world space. The acceleration is added onto velocity
+    /// <see cref="GroundFriction"/> meaning the comparative strength of friction increases with velocity. </summary>
+    public float acceleration = 50f;
+    /// <summary> How far below the player the ground needs to be for the player to be 'on the ground'. 
+    /// Being on the ground may affect their ability to jump and the friction they experience. </summary>
+    public float groundStickDist = 0.05f;
+
+    public object Clone(){
+        return new Movement{
+            GroundFriction = this.GroundFriction,
+            runSpeed = this.runSpeed,
+            jumpForce = this.jumpForce,
+            acceleration = this.acceleration,
+            groundStickDist = this.groundStickDist
+        };
+    }
+}
+}
 public class RigidFPController : MonoBehaviour
 {
-    public RigidFPControllerSettings Setting => WorldOptions.CURRENT.GamePlay.Movement.value;
-    [System.Serializable]
-    public class RigidFPControllerSettings : ICloneable{
-        public float GroundFriction = 0.25f;
-        public float runSpeed = 10f;
-        public float jumpForce = 8f;
-        public float acceleration = 50f;
-        public float groundStickDist = 0.05f;
-
-        public object Clone(){
-            return new RigidFPControllerSettings{
-                GroundFriction = this.GroundFriction,
-                runSpeed = this.runSpeed,
-                jumpForce = this.jumpForce,
-                acceleration = this.acceleration,
-                groundStickDist = this.groundStickDist
-            };
-        }
-    }
+    public Movement Setting => Config.CURRENT.GamePlay.Movement.value;
     public Camera cam;
     public MouseLook mouseLook;
     private TerrainCollider tCollider;

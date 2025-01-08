@@ -12,10 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
   m_Name: FurnaceItemSolid
   m_EditorClassIdentifier: 
-  texture:
-    value: {fileID: 21300000, guid: 9f1ecff8bde67465786bc2c0c2c21134, type: 3}
-    isDirty: 0
+  TextureName: Furnace
   MaterialName: Furnace
   MaterialState: 0
-  item:
-    data: 0

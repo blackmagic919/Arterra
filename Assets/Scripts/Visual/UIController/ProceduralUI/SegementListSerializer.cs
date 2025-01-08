@@ -6,6 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using static SegmentedUIEditor;
+using WorldConfig;
 
 public class SegmentListSerializer : IConverter{
     public bool CanConvert(Type type){ return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>); }

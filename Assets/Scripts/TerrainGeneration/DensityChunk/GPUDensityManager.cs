@@ -1,9 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Unity.Mathematics;
 using TerrainGeneration;
+using WorldConfig;
 
 public static class GPUDensityManager
 {
@@ -25,7 +24,7 @@ public static class GPUDensityManager
     public static void Initialize()
     {
         Release();
-        RenderSettings rSettings = WorldOptions.CURRENT.Quality.Rendering.value;
+        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         dictReplaceKey = Resources.Load<ComputeShader>("Compute/MapData/ReplaceDictChunk");
         transcribeMapInfo = Resources.Load<ComputeShader>("Compute/MapData/TranscribeMapInfo");
         multiMapTranscribe = Resources.Load<ComputeShader>("Compute/MapData/MultiMapTranscriber");

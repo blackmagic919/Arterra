@@ -1,10 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
-using Unity.Burst;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.PlayerLoop;
 using static CPUDensityManager;
+using WorldConfig;
+using WorldConfig.Generation.Material;
 
 namespace TerrainGeneration{
 
@@ -16,12 +14,12 @@ namespace TerrainGeneration{
 /// </summary>
 public static class TerrainUpdate
 {
+    private static Registry<MaterialData> MaterialDictionary;
     private static ConstrainedQueue<int3> UpdateCoordinates; //GCoord
     /*We have to keep track of the points we already 
     included so we don't include them again*/
     private static FlagList IncludedCoords;
     private static Manager Executor;
-    private static MaterialData[] MaterialDictionary;
 
     const int MAX_UPDATE_COUNT = 5000; 
     const int UPDATE_FREQ = 4;
@@ -32,13 +30,13 @@ public static class TerrainUpdate
     /// Allocates memory for the update system, which is fixed and cannot be resized.
     /// </summary>
     public static void Initialize(){
-        RenderSettings rSettings = WorldOptions.CURRENT.Quality.Rendering.value;
+        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         int numPointsChunk = rSettings.mapChunkSize;
         int numChunksAxis = OctreeTerrain.Octree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
         numPointsAxis = numChunksAxis * numPointsChunk;
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
         
-        MaterialDictionary = WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary.SerializedData;
+        MaterialDictionary = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         UpdateCoordinates = new ConstrainedQueue<int3>(MAX_UPDATE_COUNT);
         IncludedCoords = new FlagList(numPoints);
         Executor = new Manager{active = false};
@@ -90,7 +88,7 @@ public static class TerrainUpdate
 
                 MapData mapData = SampleMap(coord);
                 if(mapData.data == 0xFFFFFFFF) continue; //Invalid Data
-                MaterialDictionary[mapData.material].UpdateMat(coord);
+                MaterialDictionary.Retrieve(mapData.material).UpdateMat(coord);
             }
         }
     }

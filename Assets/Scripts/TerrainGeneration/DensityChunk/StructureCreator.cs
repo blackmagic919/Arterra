@@ -1,8 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using static StructureGenerator;
 using Unity.Mathematics;
+using TerrainGeneration;
+using WorldConfig;
 
 public class StructureCreator
 {
@@ -50,7 +50,7 @@ public class StructureCreator
     {
         ReleaseStructure();
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 4, 0);
-        SampleStructureLoD(WorldOptions.CURRENT.Generation.Biomes.value.maxLoD, chunkSize, depth, chunkCoord);
+        SampleStructureLoD(Config.CURRENT.Generation.Structures.value.maxLoD, chunkSize, depth, chunkCoord);
         IdentifyStructures(offset, IsoLevel);
         this.structureDataIndex = TranscribeStructures(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address);
 

@@ -1,13 +1,11 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
+using WorldConfig;
 
 namespace Utils.NSerializable{
 
@@ -253,8 +251,8 @@ public class SObjConverter : JsonConverter<ScriptableObject>
     }
 }
 
-public class EntityConverter : JsonConverter<EntitySerial>{ 
-    public override void WriteJson(JsonWriter writer, EntitySerial value, JsonSerializer serializer)
+public class EntityConverter : JsonConverter<WorldConfig.Generation.Entity.EntitySerial>{ 
+    public override void WriteJson(JsonWriter writer, WorldConfig.Generation.Entity.EntitySerial value, JsonSerializer serializer)
     {
         JObject o = new JObject
         {
@@ -264,17 +262,17 @@ public class EntityConverter : JsonConverter<EntitySerial>{
         };
         o.WriteTo(writer);
     }   
-    public override EntitySerial ReadJson(JsonReader reader, Type objectType, EntitySerial existingValue, bool hasExistingValue, JsonSerializer serializer)
+    public override WorldConfig.Generation.Entity.EntitySerial ReadJson(JsonReader reader, Type objectType, WorldConfig.Generation.Entity.EntitySerial existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
-        EntitySerial entity = new(); 
+        WorldConfig.Generation.Entity.EntitySerial entity = new(); 
         JObject obj = JObject.Load(reader);
         
-        var reg = WorldOptions.CURRENT.Generation.Entities;
+        var reg = Config.CURRENT.Generation.Entities;
         entity.type = (string)obj["type"]; 
         entity.guid = (string)obj["guid"];
         //Retrieve the type from the registry and deserialize the data
         Type entityType = reg.Retrieve(entity.type).Entity.GetType();
-        entity.data = (IEntity)serializer.Deserialize(obj["data"].CreateReader(), entityType);
+        entity.data = (WorldConfig.Generation.Entity.IEntity)serializer.Deserialize(obj["data"].CreateReader(), entityType);
         return entity;
     }
 }

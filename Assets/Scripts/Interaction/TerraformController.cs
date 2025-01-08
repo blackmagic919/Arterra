@@ -4,20 +4,49 @@ using UnityEngine;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
 using static CPUDensityManager;
+using WorldConfig;
+using WorldConfig.Generation.Material;
+using WorldConfig.Generation.Item;
+using WorldConfig.Gameplay;
 
+namespace WorldConfig.Gameplay {
+/// <summary>
+/// Settings governing the user's ability to terraform the terrain.
+/// Terraforming is the act of changing the terrain map's information
+/// changing the terrain's apperance and creating new terrain features, 
+/// </summary>
 [Serializable]
-public class TerraformSettings : ICloneable{
+public class Terraform : ICloneable{
+    /// <summary> The radius, in grid space, of the spherical region around the user's
+    /// cursor that will be modified when the user terraforms the terrain. </summary>
     public int terraformRadius = 5;
+    /// <summary> The speed at which the user can terraform the terrain. As terraforming is a 
+    /// continuous process, the speed is measured in terms of change in density per frame. </summary>
     public float terraformSpeed = 4;
+    /// <summary> The maximum distance, in grid space, that the user can terraform the terrain from.
+    /// That is, the maximum distance the cursor can be from the user's camera for the user
+    /// to be able to terraform around the cursor.  </summary>
     public float maxTerraformDistance = 60;
+    /// <summary> When picking up items, the radius around the user's cursor in grid space that is checked for
+    /// <see cref="EItem"> entity items </see> that can be picked up. </summary>
     public int PickupRadius = 2;
 
+    /// <summary> If <see cref="ShowCursor"/> is true, the size of the cursor in world space. 
+    /// The cursor is a sphere that is drawn along the ray in the direction the player is facing. </summary>
     public float CursorSize = 2;
+    /// <summary> If <see cref="ShowCursor"/> is true, the color of the cursor. 
+    /// The cursor is a sphere that is drawn along the ray in the direction the player is facing. </summary>
     public Color CursorColor;
+    /// <summary> Whether or not to display a cursor when terraforming. The cursor is a sphere that is 
+    /// drawn along the ray in the direction the player is facing. </summary>
     public bool ShowCursor = true;
 
+    /// <summary> Clones the terraform settings. 
+    /// Is necessary for modification through the
+    /// <see cref="Option{T}"/> lazy config system. </summary>
+    /// <returns>The duplicated terraform settings. </returns>
     public object Clone(){
-        return new TerraformSettings{
+        return new Terraform{
             terraformRadius = this.terraformRadius,
             terraformSpeed = this.terraformSpeed,
             maxTerraformDistance = this.maxTerraformDistance,
@@ -28,12 +57,13 @@ public class TerraformSettings : ICloneable{
         };
     }
 }
+}
 
 public class TerraformController : UpdateTask
 {
-    private Registry<MaterialData> matInfo => WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary;
-    private Registry<ItemAuthoring> itemInfo => WorldOptions.CURRENT.Generation.Items;
-    public TerraformSettings settings => WorldOptions.CURRENT.GamePlay.Terraforming.value;
+    private Registry<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+    private Registry<Authoring> itemInfo => Config.CURRENT.Generation.Items;
+    public Terraform settings => Config.CURRENT.GamePlay.Terraforming.value;
     public Func<float3> CursorPlace; //function describing where the cursor is placed
     public bool hasHit;
     public float3 hitPoint;
@@ -51,7 +81,7 @@ public class TerraformController : UpdateTask
         cam = Camera.main.transform;
         active = true;
 
-        IsoLevel = Mathf.RoundToInt(WorldOptions.CURRENT.Quality.Rendering.value.IsoLevel * 255);
+        IsoLevel = Mathf.RoundToInt(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255);
         SetUpOverlay();
 
         InputPoller.AddStackPoll(new InputPoller.ActionBind("BASE", (float _) => CursorPlace = RayTestSolid), "CursorPlacement");
@@ -203,7 +233,7 @@ public class TerraformController : UpdateTask
     public void PlaceTerrain(float _){
         if(!hasHit) return;
         if(InventoryController.Selected == null) return;
-        ItemAuthoring selMat = InventoryController.SelectedSetting;
+        Authoring selMat = InventoryController.SelectedSetting;
         if(selMat.MaterialName == null || !matInfo.Contains(selMat.MaterialName)) return;
 
         if(selMat.IsSolid) Terraform(hitPoint, settings.terraformRadius, HandleAddSolid);
@@ -278,7 +308,11 @@ public class TerraformController : UpdateTask
         if(solidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
 
-            int itemIndex = itemInfo.RetrieveIndex(matInfo.Retrieve(pointInfo.material).SolidItem);
+            MaterialData material = matInfo.Retrieve(pointInfo.material);
+            string key = material.RetrieveKey(material.SolidItem);
+            if(!itemInfo.Contains(key)) return pointInfo;
+
+            int itemIndex = itemInfo.RetrieveIndex(key);
             IItem nMaterial = itemInfo.Retrieve(itemIndex).Item;
             nMaterial.Index = itemIndex;
             nMaterial.AmountRaw = deltaDensity;
@@ -299,8 +333,12 @@ public class TerraformController : UpdateTask
         int liquidDensity = pointInfo.LiquidDensity;
         if (liquidDensity >= IsoLevel){
             int deltaDensity = GetStaggeredDelta(liquidDensity, -brushStrength);
+            
+            MaterialData material = matInfo.Retrieve(pointInfo.material);
+            string key = material.RetrieveKey(material.LiquidItem);
+            if(!itemInfo.Contains(key)) return pointInfo;
 
-            int itemIndex = itemInfo.RetrieveIndex(matInfo.Retrieve(pointInfo.material).LiquidItem);
+            int itemIndex = itemInfo.RetrieveIndex(key);
             IItem nMaterial = itemInfo.Retrieve(itemIndex).Item;
             nMaterial.Index = itemIndex;
             nMaterial.AmountRaw = deltaDensity;
@@ -312,9 +350,9 @@ public class TerraformController : UpdateTask
     }
 
     private void PickupItems(float _){
-        var eReg = WorldOptions.CURRENT.Generation.Entities;
+        var eReg = Config.CURRENT.Generation.Entities;
         unsafe void OnEntityFound(UIntPtr entity){
-            Entity* e = (Entity*)entity;
+            WorldConfig.Generation.Entity.Entity* e = (WorldConfig.Generation.Entity.Entity*)entity;
             if(e->info.entityType != eReg.RetrieveIndex("EntityItem")) return;
             if(!e->active) return;
             EItem.EItemEntity* item = (EItem.EItemEntity*)e->obj;
@@ -329,7 +367,7 @@ public class TerraformController : UpdateTask
             EntityManager.AddHandlerEvent(() => EntityManager.ReleaseEntity(e->info.entityId));
         }
 
-        STree.TreeNode.Bounds bounds = new STree.TreeNode.Bounds{
+        EntityManager.STree.TreeNode.Bounds bounds = new (){
             Min = (int3)hitPoint - settings.PickupRadius,
             Max = (int3)hitPoint + settings.PickupRadius
         };

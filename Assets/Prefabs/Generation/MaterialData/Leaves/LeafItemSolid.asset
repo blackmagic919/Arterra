@@ -12,10 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
   m_Name: LeafItemSolid
   m_EditorClassIdentifier: 
-  texture:
-    value: {fileID: 21300000, guid: b07e3afae6c5e40bd804ac3f1397c1b7, type: 3}
-    isDirty: 0
+  TextureName: Leaf
   MaterialName: Leaf
   MaterialState: 0
-  item:
-    data: 0

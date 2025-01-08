@@ -12,10 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
   m_Name: ChestItemSolid
   m_EditorClassIdentifier: 
-  texture:
-    value: {fileID: 21300000, guid: 435a6b24a4a2549bc971776adabe8a8f, type: 3}
-    isDirty: 0
+  TextureName: Chest
   MaterialName: Chest
   MaterialState: 0
-  item:
-    data: 0

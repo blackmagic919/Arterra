@@ -2,19 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
+using WorldConfig;
 
 
 public static class RegisterBuilder{
     public static void Initialize(){
         //Create all registers, then convert their dependencies
-        WorldOptions.CURRENT.Generation.Noise.Construct();
-        WorldOptions.CURRENT.Generation.Biomes.value.SurfaceBiomes.Construct();
-        WorldOptions.CURRENT.Generation.Biomes.value.CaveBiomes.Construct();
-        WorldOptions.CURRENT.Generation.Biomes.value.SkyBiomes.Construct();
-        WorldOptions.CURRENT.Generation.Structures.Construct();
-        WorldOptions.CURRENT.Generation.Entities.Construct();
-        WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary.Construct();
-        WorldOptions.CURRENT.Generation.Items.Construct();
+        Config.CURRENT.Generation.Noise.Construct();
+        Config.CURRENT.Generation.Entities.Construct();
+        Config.CURRENT.Generation.Textures.Construct();
+        Config.CURRENT.Generation.Biomes.value.SurfaceBiomes.Construct();
+        Config.CURRENT.Generation.Biomes.value.CaveBiomes.Construct();
+        Config.CURRENT.Generation.Biomes.value.SkyBiomes.Construct();
+        Config.CURRENT.Generation.Structures.value.StructureDictionary.Construct();
+        Config.CURRENT.Generation.Materials.value.MaterialDictionary.Construct();
+        Config.CURRENT.Generation.Items.Construct();
+        Config.CURRENT.Quality.GeoShaders.Construct();
     }
 }
 [Serializable]

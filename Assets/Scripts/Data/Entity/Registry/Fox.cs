@@ -6,12 +6,13 @@ using System.Runtime.InteropServices;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using System;
-using System.Threading.Tasks;
 using Unity.Collections;
 using Newtonsoft.Json;
+using WorldConfig;
+using WorldConfig.Generation.Entity;
 
 [CreateAssetMenu(menuName = "Entity/Fox")]
-public class Fox : EntityAuthoring
+public class Fox : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]
     public Option<GameObject> _Controller;
@@ -19,7 +20,7 @@ public class Fox : EntityAuthoring
     public Option<FoxEntity> _Entity;
     public Option<FoxSetting> _Setting;
     public Option<List<ProfileE> > _Profile;
-    public Option<Entity.Info.ProfileInfo> _Info;
+    public Option<Entity.ProfileInfo> _Info;
 
     [JsonIgnore]
     public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
@@ -28,7 +29,7 @@ public class Fox : EntityAuthoring
     [JsonIgnore]
     public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (FoxSetting)value; }
     [JsonIgnore]
-    public override Entity.Info.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
+    public override Entity.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
     [JsonIgnore]
     public override ProfileE[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
 

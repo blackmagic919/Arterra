@@ -1,9 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
+using WorldConfig;
 
 public class PauseHandler
 {
@@ -26,12 +24,12 @@ public class PauseHandler
             InputPoller.AddBinding(new InputPoller.ActionBind("Pause", Deactivate), "1.0::Menu");
         });
 
-        Option<WorldOptions.GamePlaySettings> settings = WorldOptions.CURRENT._GamePlay;
+        Option<Config.GamePlaySettings> settings = Config.CURRENT._GamePlay;
         PaginatedUIEditor.CreateProceduralPagination(settings.value, PauseContent, (ChildUpdate cb) => { 
             settings.Clone(); object obj = settings.value;
             cb.Invoke(ref obj); 
-            settings.value = (WorldOptions.GamePlaySettings)obj;
-            WorldOptions.CURRENT._GamePlay = settings;
+            settings.value = (Config.GamePlaySettings)obj;
+            Config.CURRENT._GamePlay = settings;
             WorldStorageHandler.SaveOptionsSync();
         }, () => {Exit();});
 

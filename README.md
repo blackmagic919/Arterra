@@ -88,6 +88,8 @@ Arterra is a procedurally generated 3D sandbox-style game built with Unity. User
 #### Crafting SandStone
 <img src="https://github.com/blackmagic919/Arterra/blob/main/Assets/Images/Recipe.png" alt="drawing" width="200"/> 
 
-## Blog
+## Other Sources
 <ins>For More Information About Implementation Refer Here:</ins>
-- https://blackmagic919.github.io/AboutMe/
+- https://blackmagic919.github.io/AboutMe/ <-- Blog
+- https://blackmagic919.github.io/Arterra/ <-- Documentation
+

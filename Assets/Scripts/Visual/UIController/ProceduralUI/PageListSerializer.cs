@@ -6,6 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using static PaginatedUIEditor;
+using WorldConfig;
 
 
 //List must be held by an Option which only holds it

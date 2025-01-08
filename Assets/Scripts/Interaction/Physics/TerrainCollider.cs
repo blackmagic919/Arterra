@@ -1,9 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 using static CPUDensityManager;
 using System;
+using WorldConfig;
 
 /*
 Future Note: Make this done on a job system
@@ -322,9 +321,9 @@ public class TerrainCollider : MonoBehaviour
 
 
     public void Start(){
-        this.isoValue = (int)Math.Round(WorldOptions.CURRENT.Quality.Rendering.value.IsoLevel * 255.0);
-        this.lerpScale = WorldOptions.CURRENT.Quality.Rendering.value.lerpScale;
-        this.chunkSize = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize;
+        this.isoValue = (int)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0);
+        this.lerpScale = Config.CURRENT.Quality.Terrain.value.lerpScale;
+        this.chunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
     }
 
     public void FixedUpdate(){

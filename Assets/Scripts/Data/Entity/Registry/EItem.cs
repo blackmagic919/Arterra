@@ -6,12 +6,11 @@ using System.Runtime.InteropServices;
 using Unity.Burst;
 using System;
 using Newtonsoft.Json;
-using static InventoryController;
-using System.Runtime.Serialization;
-using Unity.Services.Analytics;
-
+using WorldConfig;
+using WorldConfig.Generation.Item;
+using WorldConfig.Generation.Entity;
 [CreateAssetMenu(menuName = "Entity/Item")]
-public class EItem : EntityAuthoring
+public class EItem : WorldConfig.Generation.Entity.Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]
     public Option<GameObject> _Controller;
@@ -19,8 +18,8 @@ public class EItem : EntityAuthoring
     public Option<EItemEntity> _Entity;
     public Option<EItemSetting> _Setting;
     public Option<List<ProfileE> > _Profile;
-    public Option<Entity.Info.ProfileInfo> _Info;
-    public static Registry<ItemAuthoring> ItemRegistry => WorldOptions.CURRENT.Generation.Items;
+    public Option<Entity.ProfileInfo> _Info;
+    public static Registry<WorldConfig.Generation.Item.Authoring> ItemRegistry => Config.CURRENT.Generation.Items;
     
     [JsonIgnore]
     public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
@@ -29,7 +28,7 @@ public class EItem : EntityAuthoring
     [JsonIgnore]
     public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (EItemSetting)value; }
     [JsonIgnore]
-    public override Entity.Info.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
+    public override Entity.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
     [JsonIgnore]
     public override ProfileE[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
     [Serializable]

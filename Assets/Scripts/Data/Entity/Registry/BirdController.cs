@@ -3,6 +3,8 @@ using System.Runtime.InteropServices;
 using System;
 using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
+using WorldConfig;
+using WorldConfig.Generation.Entity;
 
 public class BirdController : EntityController
 {
@@ -18,8 +20,8 @@ public class BirdController : EntityController
         this.active = true;
 
         float3 GCoord = new (bird->GCoord);
-        float lerpScale = WorldOptions.CURRENT.Quality.Rendering.value.lerpScale;
-        int chunkSize = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize;
+        float lerpScale = Config.CURRENT.Quality.Terrain.value.lerpScale;
+        int chunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         animator = this.GetComponent<Animator>();
         this.transform.position = CPUDensityManager.GSToWS(GCoord - settings.collider.offset) + (float3)Vector3.up * 1;
         base.Initialize(Entity);

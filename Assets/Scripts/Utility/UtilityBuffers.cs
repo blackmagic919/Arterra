@@ -1,8 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
+using WorldConfig;
 
 public static class UtilityBuffers 
 {
@@ -60,7 +59,7 @@ public static class UtilityBuffers
 
         indirectArgs = new ComputeBuffer(3, sizeof(int), ComputeBufferType.IndirectArguments);
         appendCount = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
-        int mapChunkSize = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize;
+        int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int maxPoints = (mapChunkSize+1) * (mapChunkSize+1) * (mapChunkSize+1);
 
         ArgumentBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _MaxArgsCount+1, sizeof(uint) * ARGS_STRIDE_4BYTES);

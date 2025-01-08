@@ -1,12 +1,11 @@
-using System;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
-using UnityEngine.Rendering;
-using Utils;
+using TerrainGeneration;
+using WorldConfig;
+using WorldConfig.Quality;
 
 [CreateAssetMenu(menuName = "ShaderData/GrassShader/Generator")]
-public class ProceduralGrassRenderer : SpecialShader
+public class ProceduralGrassRenderer : GeoShader
 {
     public GrassSettings grassSettings = default;
 

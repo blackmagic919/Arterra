@@ -1,10 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
+using TerrainGeneration;
+using WorldConfig;
+using WorldConfig.Quality;
 
 [CreateAssetMenu(menuName = "ShaderData/SnowShader/Generator")]
-public class ProceduralSnowRenderer : SpecialShader
+public class ProceduralSnowRenderer : GeoShader
 {
     public SnowSettings snowSettings = default;
 

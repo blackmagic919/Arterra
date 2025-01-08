@@ -12,10 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: BrickMat
   m_EditorClassIdentifier: 
-  SolidItem: Brick:Solid
-  LiquidItem: Void
+  Names:
+  - Brick:Solid
+  - Void
+  - Brick
+  SolidItem: 0
+  LiquidItem: 1
   terrainData:
-    SolidTextureIndex: 0
+    Texture: 2
     color: {x: 0.5, y: 0.3, z: 0.15, w: 1}
     textureScale: 5
     baseColorStrength: 0.1

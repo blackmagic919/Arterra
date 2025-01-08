@@ -12,10 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: DirtMat
   m_EditorClassIdentifier: 
-  SolidItem: Dirt:Solid
-  LiquidItem: Void
+  Names:
+  - Dirt:Solid
+  - Void
+  - Dirt
+  SolidItem: 0
+  LiquidItem: 1
   terrainData:
-    SolidTextureIndex: 0
+    Texture: 2
     color: {x: 0.216, y: 0.129, z: 0.059, w: 1}
     textureScale: 5
     baseColorStrength: 0.15

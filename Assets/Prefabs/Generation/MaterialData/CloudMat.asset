@@ -12,8 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: CloudMat
   m_EditorClassIdentifier: 
-  SolidItem: Void
-  LiquidItem: Water:Liquid
+  Names:
+  - Void
+  - Water:Liquid
+  SolidItem: 0
+  LiquidItem: 1
   terrainData:
     SolidTextureIndex: 0
     color: {x: 0.729, y: 0.812, z: 1, w: 1}

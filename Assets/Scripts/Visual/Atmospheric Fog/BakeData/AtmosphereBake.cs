@@ -1,18 +1,37 @@
 using System;
-using System.Collections;
 using System.Linq;
-using TMPro;
-using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
+using WorldConfig;
+namespace WorldConfig.Quality{
+    /// <summary>
+    /// Settings controlling the quality of the atmosphere. 
+    /// The atmosphere is a purely visual effect and does not affect gameplay.
+    /// </summary>
+    [Serializable]
+    public struct Atmosphere{
+        /// <summary>
+        /// The size of the baked texture in pixels. The baked texture is
+        /// the resolution used to actually raymarch and sample the map information made
+        /// available by <see cref="GPUDensityManager"/> which is an expensive operation.
+        /// The result is upscaled to the screen resolution.
+        /// </summary>
+        public int BakedTextureSizePX; // 128
+        /// <summary>
+        /// The detail of the in-scatter. An in-scatter point is a point along the pixel's ray 
+        /// in which the in-scattered light is calculated through calculating the optical depth along other
+        /// rays with a resolution of <see cref="NumOpticalDepthPoints"/>. The amount of in-scatter points
+        /// is 2^<see cref="InScatterDetail"/>. It must be a power of 2 for an acceleration step to work.
+        /// </summary>
+        public int InScatterDetail; // 6
+        /// <summary>
+        /// The number of optical depth points to sample along rays used to calculate in-scatter.
+        /// The number of optical depth points is exactly <see cref="NumOpticalDepthPoints"/>. 
+        /// </summary>
+        public int NumOpticalDepthPoints; // 8
+    }
 
-[Serializable]
-public struct AtmosphereBakeSettings{
-    public int BakedTextureSizePX; // 128
-    public int InScatterDetail; // 6
-    public int NumOpticalDepthPoints; // 8
 }
-
 public class AtmosphereBake
 {
     private ComputeBuffer treeLocks;
@@ -21,14 +40,14 @@ public class AtmosphereBake
 
     private ComputeShader RaySetupCompute;
     private ComputeShader OpticalDataCompute;
-    private AtmosphereBakeSettings settings;
+    private WorldConfig.Quality.Atmosphere settings;
     public int NumInScatterPoints => 1 << settings.InScatterDetail;
 
     private float atmosphereRadius;
     public bool initialized = false;
 
     public AtmosphereBake(float atmosphereRadius){
-        this.settings = WorldOptions.CURRENT.Quality.Atmosphere.value;
+        this.settings = Config.CURRENT.Quality.Atmosphere.value;
         this.atmosphereRadius = atmosphereRadius;
         
         RaySetupCompute = Resources.Load<ComputeShader>("Compute/Atmosphere/RayMarchSetup");
@@ -94,7 +113,7 @@ public class AtmosphereBake
         RaySetupCompute.SetBuffer(0, "rayInfo", rayInfo);
     }
     void SetupOpticalMarch(){
-        RenderSettings rSettings = WorldOptions.CURRENT.Quality.Rendering.value;
+        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         OpticalDataCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
         OpticalDataCompute.SetFloat("_IsoLevel", rSettings.IsoLevel);
 

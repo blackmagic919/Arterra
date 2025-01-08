@@ -12,10 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
   m_Name: GrassItemSolid
   m_EditorClassIdentifier: 
-  texture:
-    value: {fileID: 21300000, guid: 9a32d08edbf8447c88139bfb43dfbe1a, type: 3}
-    isDirty: 0
+  TextureName: Grass
   MaterialName: Grass
   MaterialState: 0
-  item:
-    data: 0

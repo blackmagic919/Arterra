@@ -14,15 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   NameRegister:
     value:
-    - Tree1
-    - Tree2
+    - OakTree1
+    - OakTree2
     - Fox
     - Rabbit
     - Bird
     - Dirt
     - Grass
     - Air
-    isDirty: 0
   GroundMaterials:
     value:
     - value:
@@ -32,7 +31,6 @@ MonoBehaviour:
         frequency: 1
         multiplier: 1
         height: 1
-      isDirty: 0
     - value:
         Material: 6
         genSize: 0.2
@@ -40,8 +38,6 @@ MonoBehaviour:
         frequency: 2
         multiplier: 1.5
         height: 0
-      isDirty: 0
-    isDirty: 0
   SurfaceMaterials:
     value:
     - value:
@@ -51,34 +47,25 @@ MonoBehaviour:
         frequency: 1
         multiplier: 1
         height: 0
-      isDirty: 0
-    isDirty: 0
   Structures:
     value:
     - value:
         ChancePerStructurePoint: 0.5
         Structure: 0
-      isDirty: 0
     - value:
         ChancePerStructurePoint: 0.7
         Structure: 1
-      isDirty: 0
-    isDirty: 0
   Entities:
     value:
     - value:
         Entity: 2
         ChancePerCoord: 0.0001
-      isDirty: 0
     - value:
         Entity: 3
         ChancePerCoord: 0.00025
-      isDirty: 0
     - value:
         Entity: 4
         ChancePerCoord: 0.001
-      isDirty: 0
-    isDirty: 0
   BiomeConditions:
     value:
       TerrainStart: 0.325
@@ -94,4 +81,3 @@ MonoBehaviour:
       InfluenceOffEnd: 1
       AtmosphereEnd: 1
       biome: 0
-    isDirty: 0

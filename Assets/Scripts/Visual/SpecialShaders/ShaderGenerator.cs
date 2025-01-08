@@ -1,16 +1,14 @@
-using System.Buffers;
-using System.Collections.Generic;
-using System.Linq;
-using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Utils;
 using TerrainGeneration;
 using TerrainGeneration.Readback;
+using WorldConfig;
+using WorldConfig.Quality;
 
 public class ShaderGenerator
 {
-    private GeneratorSettings settings;
+    private GeoShader[] shaders;
     public static ComputeShader matSizeCounter;
     public static ComputeShader filterGeometry;
     public static ComputeShader sizePrefixSum;
@@ -52,7 +50,7 @@ public class ShaderGenerator
 
 
     public static void PresetData(){
-        int maxChunkSize = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize;
+        int maxChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int numPointsPerAxis = maxChunkSize + 1;
         int numOfTris = (numPointsPerAxis - 1) * (numPointsPerAxis - 1) * (numPointsPerAxis - 1) * 5;
         /* Gen Buffer Organization
@@ -95,10 +93,10 @@ public class ShaderGenerator
 
     public ShaderGenerator(Transform transform, Bounds boundsOS)
     {
-        this.settings = WorldOptions.CURRENT.Quality.GeoShaders.value;
+        this.shaders = Config.CURRENT.Quality.GeoShaders.SerializedData;
         this.transform = transform;
         this.shaderBounds = CustomUtility.TransformBounds(transform, boundsOS);
-        this.shaderUpdateTasks = new ShaderUpdateTask[this.settings.shaderDictionary.value.Count];
+        this.shaderUpdateTasks = new ShaderUpdateTask[this.shaders.Length];
     }
 
     public void ReleaseGeometry()
@@ -128,7 +126,7 @@ public class ShaderGenerator
         uint[] geoShaderDispArgs = GetShaderDrawArgs();
         RenderParams[] geoShaderParams = SetupShaderMaterials(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, geoShaderMemAdds);
         
-        for(int i = 0; i < this.settings.shaderDictionary.value.Count; i++){
+        for(int i = 0; i < shaders.Length; i++){
             this.shaderUpdateTasks[i] = new ShaderUpdateTask(geoShaderMemAdds[i], geoShaderDispArgs[i], geoShaderParams[i]);
             OctreeTerrain.MainLateUpdateTasks.Enqueue(this.shaderUpdateTasks[i]);
         }
@@ -138,7 +136,7 @@ public class ShaderGenerator
     public void FilterGeometry(GenerationPreset.MemoryHandle memory, int triAddress, int vertAddress)
     {
 
-        int numShaders = this.settings.shaderDictionary.value.Count;
+        int numShaders = shaders.Length;
         ComputeBuffer memStorage = memory.Storage;
         ComputeBuffer memAddresses = memory.Address;
 
@@ -154,9 +152,8 @@ public class ShaderGenerator
     public void ProcessGeoShaders(GenerationPreset.MemoryHandle memory, int vertAddress, int triAddress)
     {
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 1, 0); //clear base count
-        for (int i = 0; i < this.settings.shaderDictionary.value.Count; i++){
-            SpecialShader geoShader = this.settings.shaderDictionary.value[i].value;
-            
+        for (int i = 0; i < shaders.Length; i++){
+            GeoShader geoShader = shaders[i];
             geoShader.ProcessGeoShader(memory, vertAddress, triAddress, fBaseGeoStart, matSizeCStart + i, baseGeoCounter, shadGeoStart, i);
             UtilityBuffers.CopyCount(source: UtilityBuffers.GenerationBuffer, dest: UtilityBuffers.GenerationBuffer, readOffset: baseGeoCounter, writeOffset: shadGeoCStart + i + 1);
             geoShader.ReleaseTempBuffers();
@@ -176,7 +173,7 @@ public class ShaderGenerator
 
     public uint[] TranscribeGeometries()
     {
-        int numShaders = this.settings.shaderDictionary.value.Count;
+        int numShaders = shaders.Length;
 
         uint[] geoShaderAddresses = new uint[numShaders];
         ComputeBuffer memoryReference = GenerationPreset.memoryHandle.Storage;
@@ -194,10 +191,10 @@ public class ShaderGenerator
 
     public RenderParams[] SetupShaderMaterials(ComputeBuffer storageBuffer, ComputeBuffer addressBuffer, uint[] address)
     {
-        RenderParams[] rps = new RenderParams[this.settings.shaderDictionary.value.Count];
-        for(int i = 0; i < this.settings.shaderDictionary.value.Count; i++)
+        RenderParams[] rps = new RenderParams[shaders.Length];
+        for(int i = 0; i < shaders.Length; i++)
         {
-            RenderParams rp = new RenderParams(settings.shaderDictionary.value[i].value.GetMaterial())
+            RenderParams rp = new RenderParams(shaders[i].GetMaterial())
             {
                 worldBounds = shaderBounds,
                 shadowCastingMode = ShadowCastingMode.Off,
@@ -216,7 +213,7 @@ public class ShaderGenerator
 
     public uint[] GetShaderDrawArgs()
     {
-        int numShaders = this.settings.shaderDictionary.value.Count;
+        int numShaders = shaders.Length;
         uint[] shaderDrawArgs = new uint[numShaders];
 
         for (int i = 0; i < numShaders; i++)

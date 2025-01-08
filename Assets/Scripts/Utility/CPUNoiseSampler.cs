@@ -1,15 +1,14 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
+using WorldConfig;
+
 public static class CPUNoiseSampler
 {
 
     public static float SampleTerrainHeight(float3 pos){
-        var NoiseDict = WorldOptions.CURRENT.Generation.Noise.Reg.value;
-        SurfaceCreatorSettings surface = WorldOptions.CURRENT.Generation.Surface.value;
+        var NoiseDict = Config.CURRENT.Generation.Noise.Reg.value;
+        WorldConfig.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
 
         float PVNoise = SampleNoise(NoiseDict[surface.PVIndex].Value, pos.xz) * 2 - 1;
         float continental = SampleNoise(NoiseDict[surface.ContinentalIndex].Value, pos.xz);
@@ -21,7 +20,7 @@ public static class CPUNoiseSampler
 
     
 
-    public static float SampleNoise(NoiseData sampler, float2 pos){
+    public static float SampleNoise(WorldConfig.Generation.Noise sampler, float2 pos){
         return InterpolateValue(GetRawNoise(sampler, pos), sampler);
     }
 
@@ -35,7 +34,7 @@ public static class CPUNoiseSampler
         return index;
     }
 
-    static float InterpolateValue(float value, NoiseData sampler){
+    static float InterpolateValue(float value, WorldConfig.Generation.Noise sampler){
         Vector4[] spline = sampler.SplineKeys;
         uint upperBoundIndex = Search(value, spline);
 
@@ -55,7 +54,7 @@ public static class CPUNoiseSampler
         );
     }
 
-    public static float GetRawNoise(NoiseData sampler, float2 pos){
+    public static float GetRawNoise(WorldConfig.Generation.Noise sampler, float2 pos){
         float3[] offsets = sampler.OctaveOffsets.Select((Vector3 a) => new float3(a.x, a.y, a.z)).ToArray();
 
         float amplitude = 1;

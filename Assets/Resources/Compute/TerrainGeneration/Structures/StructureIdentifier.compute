@@ -184,8 +184,9 @@ void Identify (uint3 id : SV_DispatchThreadID)
 }
 
 bool InBounds(uint data, uint bounds) { 
-    uint density = data & 0xFF; uint viscosity = (data >> 8) & 0xFF;
-    return density >= (bounds & 0xFF) && density <= ((bounds >> 8) & 0xFF) && viscosity >= ((bounds >> 16) & 0xFF) && viscosity <= ((bounds >> 24) & 0xFF); 
+    uint solid = (data >> 8) & 0xFF; //viscosity
+    uint liquid = (data & 0xFF) - solid; //density - viscosity
+    return liquid >= (bounds & 0xFF) && liquid <= ((bounds >> 8) & 0xFF) && solid >= ((bounds >> 16) & 0xFF) && solid <= ((bounds >> 24) & 0xFF); 
 }
 
 //Process structure checks

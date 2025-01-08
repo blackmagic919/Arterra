@@ -1,8 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using static UtilityBuffers;
 using Unity.Mathematics;
+using WorldConfig;
 
 public static class StructureGenerator 
 {
@@ -59,16 +58,16 @@ public static class StructureGenerator
 
     public static void PresetData()
     {
-        MeshCreatorSettings mesh = WorldOptions.CURRENT.Generation.Terrain.value;
-        SurfaceCreatorSettings surface = WorldOptions.CURRENT.Generation.Surface.value;
-        Biome.GenerationData biomes = WorldOptions.CURRENT.Generation.Biomes.value;
-        RenderSettings rSettings = WorldOptions.CURRENT.Quality.Rendering.value;
-        int maxStructurePoints = calculateMaxStructurePoints(biomes.maxLoD, rSettings.MaxStructureDepth, biomes.StructureChecksPerChunk, biomes.LoDFalloff);
+        WorldConfig.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
+        WorldConfig.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
+        WorldConfig.Generation.Structure.Generation structures = Config.CURRENT.Generation.Structures.value;
+        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
+        int maxStructurePoints = calculateMaxStructurePoints(structures.maxLoD, rSettings.MaxStructureDepth, structures.StructureChecksPerChunk, structures.LoDFalloff);
         offsets = new StructureOffsets(maxStructurePoints, 0);
 
-        StructureLoDSampler.SetInt("maxLOD", biomes.maxLoD);
-        StructureLoDSampler.SetInt("numPoints0", biomes.StructureChecksPerChunk);
-        StructureLoDSampler.SetFloat("LoDFalloff", biomes.LoDFalloff);
+        StructureLoDSampler.SetInt("maxLOD", structures.maxLoD);
+        StructureLoDSampler.SetInt("numPoints0", structures.StructureChecksPerChunk);
+        StructureLoDSampler.SetFloat("LoDFalloff", structures.LoDFalloff);
         StructureLoDSampler.SetBuffer(0, "structures", UtilityBuffers.GenerationBuffer);
         StructureLoDSampler.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
         StructureLoDSampler.SetInt("bSTART", offsets.sampleStart);
@@ -159,7 +158,7 @@ public static class StructureGenerator
 
     public static uint TranscribeStructures(ComputeBuffer memory, ComputeBuffer addresses)
     {
-        uint addressIndex = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, STRUCTURE_STRIDE_WORD, offsets.prunedCounter);
+        uint addressIndex = TerrainGeneration.GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, STRUCTURE_STRIDE_WORD, offsets.prunedCounter);
         ComputeBuffer args = UtilityBuffers.CountToArgs(structureDataTranscriber, UtilityBuffers.GenerationBuffer, offsets.structureCounter);
 
         structureDataTranscriber.SetBuffer(0, "_MemoryBuffer", memory);

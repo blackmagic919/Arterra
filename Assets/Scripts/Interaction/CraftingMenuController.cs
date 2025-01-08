@@ -6,11 +6,14 @@ using UnityEngine;
 using UnityEngine.UI;
 using static CPUDensityManager;
 using static PlayerHandler;
-using static CraftingMenuSettings;
+using WorldConfig;
+using WorldConfig.Generation.Material;
+using WorldConfig.Generation.Item;
+using WorldConfig.Gameplay;
 
 public class CraftingMenuController : UpdateTask
 {
-    private static CraftingMenuSettings settings;
+    private static Crafting settings;
     private static KTree Recipe;
     private static GameObject craftingMenu;
     private static MapData[] craftingData;
@@ -46,7 +49,7 @@ public class CraftingMenuController : UpdateTask
     // Start is called before the first frame update
     public static void Initialize()
     {
-        settings = WorldOptions.CURRENT.GamePlay.Crafting.value;
+        settings = Config.CURRENT.GamePlay.Crafting.value;
         craftingMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/CraftingMenu"), UIHandle.transform);
         GridWidth = settings.GridWidth;
 
@@ -144,7 +147,7 @@ public class CraftingMenuController : UpdateTask
         result = null;
         if(FitRecipe == -1) return false;
 
-        Recipe recipe = Recipe.Table[FitRecipe];
+        Crafting.Recipe recipe = Recipe.Table[FitRecipe];
         for(int i = 0; i < GridCount; i++){
             int material = craftingData[i].material;
             if(craftingData[i].density < settings.CraftingIsoValue)
@@ -174,7 +177,7 @@ public class CraftingMenuController : UpdateTask
     }
 
     private static void RefreshSelections(){
-        Recipe target = new Recipe{entry = new Option<List<MapData>>{ value = craftingData.ToList() }};
+        Crafting.Recipe target = new Crafting.Recipe{entry = new Option<List<MapData>>{ value = craftingData.ToList() }};
         for(int i = 0; i < craftingData.Length; i++){
             MapData p = target.entry.value[i];
             p.isDirty = craftingData[i].density < settings.CraftingIsoValue;
@@ -185,7 +188,7 @@ public class CraftingMenuController : UpdateTask
         FitRecipe = recipes.Count > 0 ? recipes[0] : -1;
 
         for(int r = 0; r < recipes.Count; r++){
-            Recipe recipe = Recipe.Table[recipes[r]];
+            Crafting.Recipe recipe = Recipe.Table[recipes[r]];
             for(int i = 0; i < GridCount; i++){
                 craftingData[GridCount * (r + 1) + i] = recipe.EntrySerial(i);
             }
@@ -218,10 +221,12 @@ public class CraftingMenuController : UpdateTask
     }
 
     private static IItem InventoryAddMapData(MapData data){
-        var matInfo = WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary;
-        var itemInfo = WorldOptions.CURRENT.Generation.Items;
+        var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        var itemInfo = Config.CURRENT.Generation.Items;
         MaterialData material = matInfo.Retrieve(data.material);
-        string itemKey = data.viscosity != 0 ? material.SolidItem : material.LiquidItem;
+        string itemKey = material.RetrieveKey(data.viscosity != 0 ? material.SolidItem : material.LiquidItem);
+        if(!itemInfo.Contains(itemKey)) return null;
+
         IItem item = itemInfo.Retrieve(itemKey).Item;
         item.Index = itemInfo.RetrieveIndex(itemKey);
         item.AmountRaw = data.density;
@@ -252,8 +257,8 @@ public class CraftingMenuController : UpdateTask
         if(brushStrength == 0) return pointInfo;
         if(InventoryController.Selected == null) return pointInfo;
 
-        var matInfo = WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary;
-        ItemAuthoring sItemSetting = InventoryController.SelectedSetting;
+        var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        Authoring sItemSetting = InventoryController.SelectedSetting;
         int selected = matInfo.RetrieveIndex(sItemSetting.MaterialName);
 
         if(pointInfo.IsGaseous && pointInfo.material != selected){
@@ -288,7 +293,7 @@ public class CraftingMenuController : UpdateTask
     }
 
     public struct KTree{
-        public Recipe[] Table;
+        public Crafting.Recipe[] Table;
         public List<Node> tree;
         private int head;
         public struct Node{
@@ -298,17 +303,17 @@ public class CraftingMenuController : UpdateTask
             public byte Axis;
         }
 
-        public void ConstructTree(Recipe[] recipes, int dim = 16){
+        public void ConstructTree(Crafting.Recipe[] recipes, int dim = 16){
             Table = recipes;
             tree = new List<Node>();
-            (int, Recipe)[] layer = new (int, Recipe)[recipes.Length];
+            (int, Crafting.Recipe)[] layer = new (int, Crafting.Recipe)[recipes.Length];
             for(int i = 0; i < recipes.Length; i++){
                 layer[i] = (i, recipes[i]);
             }
             head = BuildSubTree(layer, (uint)dim);
         }
 
-        static int GetL1Dist(Recipe a, Recipe b){
+        static int GetL1Dist(Crafting.Recipe a, Crafting.Recipe b){
             int sum = 0;
             for(int i = 0; i < a.entry.value.Count; i++){
                 sum += math.abs(a.EntryMat(i) - b.EntryMat(i));
@@ -316,7 +321,7 @@ public class CraftingMenuController : UpdateTask
             return sum;
         }
 
-        public List<int> QueryNearestLimit(Recipe tg, int dist, int count){
+        public List<int> QueryNearestLimit(Crafting.Recipe tg, int dist, int count){
             List<int> ret = new List<int>();
             QueryNearest(tg, dist, (int recipe) => {
                 ret.Add(recipe);
@@ -326,7 +331,7 @@ public class CraftingMenuController : UpdateTask
             return ret.Take(count).ToList();
         }
 
-        private void QueryNearest(Recipe tg, int dist, Action<int> cb){
+        private void QueryNearest(Crafting.Recipe tg, int dist, Action<int> cb){
             Queue<int> layer = new Queue<int>();
             layer.Enqueue(head);
 
@@ -335,7 +340,7 @@ public class CraftingMenuController : UpdateTask
                 if(node == -1) continue;
 
                 Node n = tree[node];
-                Recipe recipe = Table[n.Split];
+                Crafting.Recipe recipe = Table[n.Split];
                 int targetDist = tg.EntryMat(n.Axis) - recipe.EntryMat(n.Axis);
                 if(math.abs(targetDist) <= dist){
                     if(GetL1Dist(recipe, tg) <= dist) 
@@ -348,11 +353,11 @@ public class CraftingMenuController : UpdateTask
                 }
             }
         }
-        private int BuildSubTree((int, Recipe)[] layer, uint dim){
+        private int BuildSubTree((int, Crafting.Recipe)[] layer, uint dim){
             int GetMaximumDimensions(){
                 HashSet<(int, uint)> dimLens = new HashSet<(int, uint)>();
-                foreach((int, Recipe) rep in layer){
-                    Recipe recipe = rep.Item2;
+                foreach((int, Crafting.Recipe) rep in layer){
+                    Crafting.Recipe recipe = rep.Item2;
                     for(int i = 0; i < dim; i++){
                         dimLens.Add((i, (uint)recipe.EntryMat(i)));
                     }

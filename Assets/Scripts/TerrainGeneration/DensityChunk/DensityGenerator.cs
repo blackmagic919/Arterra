@@ -1,9 +1,8 @@
-using System.Collections.Generic;
-using Unity.Collections;
-using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 using static UtilityBuffers;
+using TerrainGeneration;
+using WorldConfig;
 
 public static class DensityGenerator
 {
@@ -32,10 +31,10 @@ public static class DensityGenerator
     }
 
     public static void PresetData(){
-        MeshCreatorSettings mesh = WorldOptions.CURRENT.Generation.Terrain.value;
+        WorldConfig.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
 
         //Set Marching Cubes Data
-        int numPointsAxes = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize;
+        int numPointsAxes = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         bufferOffsets = new GeoGenOffsets(new int3(numPointsAxes, numPointsAxes, numPointsAxes), 0, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD, RAW_MAP_WORD);
         
         baseGenCompute.SetBuffer(0, "_SurfMemoryBuffer", GenerationPreset.memoryHandle.Storage);

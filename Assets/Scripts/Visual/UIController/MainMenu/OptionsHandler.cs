@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Threading.Tasks;
@@ -7,6 +5,7 @@ using static WorldStorageHandler;
 using UnityEngine.UI;
 using TMPro;
 using static SegmentedUIEditor;
+using WorldConfig;
 
 public class OptionsHandler : MonoBehaviour
 {
@@ -89,7 +88,7 @@ public class OptionsHandler : MonoBehaviour
         });
 
         ReleaseDisplay(infoContent);
-        CreateOptionDisplay(WorldOptions.CURRENT, infoContent, (ChildUpdate cb) => { object wo = WorldOptions.CURRENT; cb.Invoke(ref wo);});
+        CreateOptionDisplay(Config.CURRENT, infoContent, (ChildUpdate cb) => { object wo = Config.CURRENT; cb.Invoke(ref wo);});
         infoContent.GetComponent<VerticalLayoutGroup>().padding.left = 0;
     }
 

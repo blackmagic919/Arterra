@@ -12,10 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: ChestMat
   m_EditorClassIdentifier: 
-  SolidItem: Chest:Solid
-  LiquidItem: Void
+  Names:
+  - Chest:Solid
+  - Void
+  - Chest
+  SolidItem: 0
+  LiquidItem: 1
   terrainData:
-    SolidTextureIndex: 0
+    Texture: 2
     color: {x: 0.302, y: 0.15, z: 0.1, w: 1}
     textureScale: 5
     baseColorStrength: 0.1

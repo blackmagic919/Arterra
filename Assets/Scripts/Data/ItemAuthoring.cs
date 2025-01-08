@@ -1,50 +1,147 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using Newtonsoft.Json;
-using UnityEditor;
 using UnityEngine;
+using WorldConfig;
 
- 
-public class ItemAuthoringTemplate<TItem> : ItemAuthoring where TItem : IItem, new()
+namespace WorldConfig.Generation.Item{
+/// <summary> A template for creating an item. To create an inspector serializable object, the 
+/// concrete type must be known. This allows us to quickly fulfill the contract with
+/// the <see cref="IItem"/>  interface. </summary>
+/// <typeparam name="TItem"></typeparam>
+public class AuthoringTemplate<TItem> : Authoring where TItem : IItem, new()
 {
+    /// <summary> Returns a new instance of the concrete type implementing <see cref="IItem"/>, fulfilling the contract. </summary>
     public override IItem Item => new TItem();
 }
 
-public class ItemAuthoring : ScriptableObject
+/// <summary>
+/// Information shared by all instances of an item containing static properties
+/// that describe the apperance of the item as well as its connection to the 
+/// <see cref="WorldConfig.Config.GenerationSettings.Materials"> material registry </see>. 
+/// </summary>
+public class Authoring : ScriptableObject
 {
+    /// <summary> The name of the entry within the <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see>
+    /// of the texture that is displayed when the item is in a UI panel. It is also used to create an <see cref="EItem"> entity item</see> mesh
+    /// if the item is dropped in the world. This must always be a valid entry. </summary>
+    public string TextureName;
+
+    /// <summary>
+    /// The name of the entry within the <see cref="WorldConfig.Config.GenerationSettings.Materials"> material registry </see>
+    /// of the material that is placed when the item is selected when <see cref="TerraformController.PlaceTerrain(float)"> placing terrain </see>.
+    /// If the material name is not a valid entry, the item will not be able to be placed as a material (e.g. a tool).
+    /// </summary>
+    public string MaterialName;
+    /// <summary>
+    /// If the material is <see cref="MaterialName">placable as a material</see>, whether it should place the material indicated
+    /// by <see cref="MaterialName"/> in a solid or liquid state. If it is not placable this value is ignored. 
+    /// </summary>
+    public State MaterialState;
+    /// <summary>
+    /// The item instance that stores information specific to a specific instance of the item. The instance
+    /// should store the index within <see cref="WorldConfig.Config.GenerationSettings.Items"/> of the entry it 
+    /// is created from to retrieve the item's shared information contained within its <see cref="Authoring"/> object.
+    /// </summary>
+    public virtual IItem Item { get; }
+    /// <summary> If the item is <see cref="MaterialName">placable as a material</see>, whether <see cref="MaterialState"/> is solid. </summary>
+    public bool IsSolid => MaterialState == State.Solid;
+    /// <summary> If the item is <see cref="MaterialName">placable as a material</see>, whether <see cref="MaterialState"/> is liquid. </summary>
+    public bool IsLiquid => MaterialState == State.Liquid;
+
+    /// <summary>
+    /// The states a material can be placed as from an item. 
+    /// This is either a solid or liquid.
+    /// </summary>
     public enum State{
+        /// <summary> The material is placed as a solid. </summary>
         Solid = 0, 
+        /// <summary> The material is placed as a liquid. </summary>
         Liquid = 1,
     }
-    [UISetting(Ignore = true)][JsonIgnore]
-    public Option<Sprite> texture;
-    //Not necessary if only an item
-    public string MaterialName;
-    public State MaterialState;
-    public virtual IItem Item { get; }
-    public bool IsSolid => MaterialState == State.Solid;
-    public bool IsLiquid => MaterialState == State.Liquid;
 }
 
+/// <summary>
+/// A contract for an item instance that is created from an <see cref="Authoring"/> object. 
+/// An item can be anything and define however much data it needs to store and how to manage it.
+/// However, for it to be properly managed by the system, it must detail several properties
+/// related to its apperance, storage, and serialization. </summary> <remarks> 
+/// The contract also provides some hooks that the item can subscribe to which will be answered 
+/// when specific events occur for the item. There is <i>almost</i> no limit on what can't be
+/// done on a hooked event, such as reassigning keybinds, moving items, changing player effects, etc. 
+/// As long as the event itself is safe, the item can do whatever it wants allowing for a very
+/// flexible system. </remarks>
 public interface IItem : ICloneable{
+    /// <summary> Whether the item can be stacked with other items of the same type. If the item is stackable,
+    /// when another item of the same <see cref="Index"/> is encountered it may be combined with the
+    /// current item and the <see cref="AmountRaw"/> increased to the sum the amounts of the two items.
+    /// All items representing materials should be stackable by default. </summary>
     public bool IsStackable { get; }
+    /// <summary> The index within the <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see> of the item's texture.
+    /// This is obtained by using the <see cref="Index"/> within the <see cref="WorldConfig.Config.GenerationSettings.Items"> item registry </see>
+    /// to obtain the <see cref="Authoring.TextureName"/> of the texture which can be used to find the texture in the external
+    /// <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see>. See <seealso cref="Authoring.TextureName"/> for
+    /// more information. </summary>
     public int TexIndex { get; }
-    //The index within its register
+    /// <summary> The index within the <see cref="WorldConfig.Config.GenerationSettings.Items"> item registry </see> of the item. This 
+    /// also is the identity of the item used to determine what it can be combined with if it <see cref="IsStackable"/>. </summary>
     public int Index { get; set; }
-    //The id that is unique to the slot
+    /// <summary> The message displayed next to the item when it is in a UI panel.  </summary>
     public string Display{ get; }
+    /// <summary> The amount of the item that is stored. Used when determing how to stack identical items </summary>
     public int AmountRaw{ get; set; }
+    /// <summary> Whether or not the item has been last modified since its UI element has been updated. This is managed
+    /// by the UI panel that displays the item and should not be directly modified by the item itself. </summary>
     public bool IsDirty{ get; set; }
+    /// <summary> Serializes any references held by the item thus decoupling it from the world configuration and recoupling
+    /// it to the caller's specific module responsible for storing the item. </summary>
+    /// <param name="dict">A callback function which recieves a string indicating the name within an external registry of the entry
+    /// that needs to be serialized. The caller then returns an index which can be used to retrieve the name upon <see cref="Deserialize">
+    /// deserialization. The caller is responsible for storing these names outside the item. </see></param>
     public void Serialize(Func<string, int> dict);
+    /// <summary> Deserializes any references held by the item thus recoupling it to the world configuration. This is the reverse of
+    /// <see cref="Serialize"/> and should be called when the item is loaded from a save file or other external source. </summary>
+    /// <param name="dict">A callback function which recieves the stored index provided by <see cref="Serialize"/> and retrieves
+    /// the string previously stored that is associated with the index from the caller. The function will then recouple
+    /// the item with the current world configuration. </param>
     public void Deserialize(Func<int, string> dict);
 
+    /// <summary>
+    /// An event hook that is called on the frame when the item enters the <see cref="InventoryController.Secondary"> Secondary </see> inventory.
+    /// This is an airtight state, meaning <see cref="OnLeaveSecondary"/> must be called before <see cref="OnEnterSecondary"/> can be called 
+    /// a second time.
+    /// </summary>
     public void OnEnterSecondary(); //Called upon entering the secondary inventory
+    /// <summary>
+    /// An event hook that is called on the frame when the item leaves the <see cref="InventoryController.Secondary"> Secondary </see> inventory.
+    /// This is an airtight state meaning <see cref="OnEnterSecondary"/> must be called before <see cref="OnLeaveSecondary"/> can be called.
+    /// </summary>
     public void OnLeaveSecondary();//Called upon leaving the secondary inventory
+    /// <summary>
+    /// An event hook that is called on the frame when the item enters the <see cref="InventoryController.Primary"> Primary </see> inventory.
+    /// This is an airtight state, meaning <see cref="OnLeavePrimary"/> must be called before <see cref="OnEnterPrimary"/> can be called
+    /// a second time.
+    /// </summary>
     public void OnEnterPrimary(); //Called upon entering the primary inventory
+    /// <summary>
+    /// An event hook that is called on the frame when the item leaves the <see cref="InventoryController.Primary"> Primary </see> inventory.
+    /// This is an airtight state meaning <see cref="OnEnterPrimary"/> must be called before <see cref="OnLeavePrimary"/> can be called.
+    /// </summary>
     public void OnLeavePrimary(); //Called upon leaaving the primary inventory
+    /// <summary>
+    /// An event hook that is called on the frame when the item is held within the <see cref="InventoryController.Selected"> selected slot </see> of the 
+    /// <see cref="InventoryController.Primary">Primary</see> inventory. This is an airtight state, meaning <see cref="OnDeselect"/> must be
+    /// called before <see cref="OnSelect"/> can be called a second time. Furthermore, it is an exclusive state meaning no other item
+    /// can be selected while this item is selected.
+    /// </summary>
     public void OnSelect(); //Called upon becoming the selected item
+    /// <summary>
+    /// An event hook that is called on the frame when the item is no longer held within the <see cref="InventoryController.Selected"> selected slot </see> of the
+    /// <see cref="InventoryController.Primary">Primary</see> inventory. This is an airtight state, meaning <see cref="OnSelect"/> must be called
+    /// before <see cref="OnDeselect"/> can be called.
+    /// </summary>
     public void OnDeselect(); //Called upon no longer being the selectd item
+    /// <summary> An event hook that is called every frame the item is held by an <see cref="EItem">EntityItem</see>. </summary>
+    /// <remarks> TODO: This has yet to be implemented </remarks>
     public void UpdateEItem(); //Called every frame it is an Entity Item
+}
 }

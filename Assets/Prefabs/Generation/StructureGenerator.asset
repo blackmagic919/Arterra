@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 012918e4164034674b1094d5db34c824, type: 3}
+  m_Name: StructureGenerator
+  m_EditorClassIdentifier: 
+  StructureDictionary:
+    Reg:
+      value:
+      - Name: OakTree1
+        _value:
+          value: {fileID: 11400000, guid: 223a31f324fab4c83ab64f10979b618f, type: 2}
+      - Name: OakTree2
+        _value:
+          value: {fileID: 11400000, guid: db047a8eca3694f298f672e5fb810709, type: 2}
+      - Name: PineTree1
+        _value:
+          value: {fileID: 11400000, guid: 5cf56ca1d2b1e4adf950b740e522c47e, type: 2}
+      - Name: PineTree2
+        _value:
+          value: {fileID: 11400000, guid: c393766b615194cf983fec462dae4706, type: 2}
+      - Name: SPineTree1
+        _value:
+          value: {fileID: 11400000, guid: ebcb9324d40584b2b98158e9ad1832f2, type: 2}
+      - Name: SPineTree2
+        _value:
+          value: {fileID: 11400000, guid: f57a3ff4c55b74f3181b05d46c96e6aa, type: 2}
+      - Name: Cactus1
+        _value:
+          value: {fileID: 11400000, guid: 49bbfac31bd4d49bda439a6be79dd6c3, type: 2}
+      - Name: Cactus2
+        _value:
+          value: {fileID: 11400000, guid: b0b24da144a9e49cb82c871e70f40ad3, type: 2}
+      - Name: Cactus3
+        _value:
+          value: {fileID: 11400000, guid: 3b15969d5cb414c4c8bccb5c0bbe68b8, type: 2}
+  StructureChecksPerChunk: 1000
+  LoDFalloff: 3
+  maxLoD: 3

@@ -14,17 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   NameRegister:
     value:
-    - Pine1
-    - Pine2
-    - SnowyPine1
-    - SnowyPine2
+    - PineTree1
+    - PineTree2
+    - SPineTree1
+    - SPineTree2
     - ArcticFox
     - ArcticHare
     - SnowyOwl
     - Dirt
     - Snow
     - Air
-    isDirty: 0
   GroundMaterials:
     value:
     - value:
@@ -34,7 +33,6 @@ MonoBehaviour:
         frequency: 1
         multiplier: 1
         height: 1
-      isDirty: 0
     - value:
         Material: 8
         genSize: 0.106
@@ -42,8 +40,6 @@ MonoBehaviour:
         frequency: 2
         multiplier: 1.5
         height: 0
-      isDirty: 0
-    isDirty: 0
   SurfaceMaterials:
     value:
     - value:
@@ -53,42 +49,31 @@ MonoBehaviour:
         frequency: 1
         multiplier: 1
         height: 0
-      isDirty: 0
-    isDirty: 0
   Structures:
     value:
     - value:
         ChancePerStructurePoint: 0.3
         Structure: 0
-      isDirty: 0
     - value:
         ChancePerStructurePoint: 0.4
         Structure: 1
-      isDirty: 0
     - value:
         ChancePerStructurePoint: 0.6
         Structure: 2
-      isDirty: 0
     - value:
         ChancePerStructurePoint: 1
         Structure: 3
-      isDirty: 0
-    isDirty: 0
   Entities:
     value:
     - value:
         Entity: 4
         ChancePerCoord: 0.0001
-      isDirty: 0
     - value:
         Entity: 5
         ChancePerCoord: 0.00025
-      isDirty: 0
     - value:
         Entity: 6
         ChancePerCoord: 0.0001
-      isDirty: 0
-    isDirty: 0
   BiomeConditions:
     value:
       TerrainStart: 0.325
@@ -104,4 +89,3 @@ MonoBehaviour:
       InfluenceOffEnd: 1
       AtmosphereEnd: 0.5
       biome: 0
-    isDirty: 0

@@ -12,8 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb4d3ddaa56534a70ac7f580405325c8, type: 3}
   m_Name: BrushItem
   m_EditorClassIdentifier: 
-  texture:
-    value: {fileID: 21300000, guid: 0271f92a8144645c1af75afae444ff0f, type: 3}
-    isDirty: 0
+  TextureName: Brush
   MaterialName: 
   MaterialState: 0

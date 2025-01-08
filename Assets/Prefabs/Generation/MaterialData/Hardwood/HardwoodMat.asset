@@ -12,10 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: HardwoodMat
   m_EditorClassIdentifier: 
-  SolidItem: Hardwood:Solid
-  LiquidItem: Void
+  Names:
+  - Hardwood:Solid
+  - Void
+  - Hardwood
+  SolidItem: 0
+  LiquidItem: 1
   terrainData:
-    SolidTextureIndex: 0
+    Texture: 2
     color: {x: 0.302, y: 0.184, z: 0.082, w: 1}
     textureScale: 5
     baseColorStrength: 0.1

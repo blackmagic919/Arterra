@@ -12,8 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0bf3c36ee251b4329bb737887312d1ff, type: 3}
   m_Name: BucketItem
   m_EditorClassIdentifier: 
-  texture:
-    value: {fileID: 21300000, guid: 9282a2289fed645ccbb0bf6b3c9581d5, type: 3}
-    isDirty: 0
+  TextureName: Bucket
   MaterialName: 
   MaterialState: 0

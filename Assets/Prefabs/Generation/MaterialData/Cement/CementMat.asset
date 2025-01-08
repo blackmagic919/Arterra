@@ -12,10 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: CementMat
   m_EditorClassIdentifier: 
-  SolidItem: Cement:Solid
-  LiquidItem: Void
+  Names:
+  - Cement:Solid
+  - Void
+  - Cement
+  SolidItem: 0
+  LiquidItem: 1
   terrainData:
-    SolidTextureIndex: 0
+    Texture: 2
     color: {x: 0.3, y: 0.3, z: 0.3, w: 1}
     textureScale: 5
     baseColorStrength: 0.1

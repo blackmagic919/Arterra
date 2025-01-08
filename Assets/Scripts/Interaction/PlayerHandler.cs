@@ -5,6 +5,7 @@ using UnityEngine;
 using System.IO;
 using System.Linq;
 using TerrainGeneration;
+using WorldConfig;
 
 
 public class PlayerHandler : UpdateTask
@@ -134,11 +135,11 @@ public class PlayerHandler : UpdateTask
 
         public static PlayerData GetDefault(){
             return new PlayerData{
-                position = new Vector3(0, 0, 0) + (CPUNoiseSampler.SampleTerrainHeight(new (0, 0, 0)) + 5) * WorldOptions.CURRENT.Quality.Rendering.value.lerpScale * Vector3.up,
+                position = new Vector3(0, 0, 0) + (CPUNoiseSampler.SampleTerrainHeight(new (0, 0, 0)) + 5) * Config.CURRENT.Quality.Terrain.value.lerpScale * Vector3.up,
                 rotation = Quaternion.LookRotation(Vector3.forward, Vector3.up),
-                PrimaryI = new InventoryController.Inventory(WorldOptions.CURRENT.GamePlay.Inventory.value.PrimarySlotCount),
-                SecondaryI = new InventoryController.Inventory(WorldOptions.CURRENT.GamePlay.Inventory.value.SecondarySlotCount),
-                currentTime = DateTime.Now.Date + TimeSpan.FromHours(WorldOptions.CURRENT.GamePlay.DayNightCycle.value.startHour)
+                PrimaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.PrimarySlotCount),
+                SecondaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.SecondarySlotCount),
+                currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.DayNightCycle.value.startHour)
             };
         }
     }

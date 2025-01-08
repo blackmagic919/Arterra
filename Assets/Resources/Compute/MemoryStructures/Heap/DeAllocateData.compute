@@ -8,8 +8,8 @@ RWStructuredBuffer<uint> _SourceMemory;
 RWStructuredBuffer<uint2> _Heap;
 
 #ifdef DIRECT_DEALLOCATE
-StructuredBuffer<uint2> _Address;
-
+StructuredBuffer<uint> _Address;
+uint countOffset;
 #else
 StructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
@@ -97,7 +97,7 @@ uint NextBlockIndex(uint blockIndex){
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
 #ifdef DIRECT_DEALLOCATE
-    uint blockAddress = _Address[0].x;
+    uint blockAddress = _Address[countOffset];
 #else
     uint blockAddress = _AddressDict[addressIndex].x;
 #endif

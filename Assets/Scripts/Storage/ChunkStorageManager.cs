@@ -1,9 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Unity.Mathematics;
-using Unity.Collections;
-using System.Threading.Tasks;
 using System.Text;
 using System.IO.Compression;
 using Utils;
@@ -13,8 +10,9 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 using System;
-using UnityEngine;
 using TerrainGeneration;
+using WorldConfig;
+using WorldConfig.Generation.Entity;
 
 /*
 Chunk File Layout:
@@ -34,7 +32,7 @@ public static class ChunkStorageManager
     private static ChunkFinder chunkFinder;
 
     public static void Initialize(){
-        maxChunkSize = WorldOptions.CURRENT.Quality.Rendering.value.mapChunkSize;
+        maxChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         chunkFinder = new ChunkFinder();
     }
 
@@ -155,7 +153,7 @@ public static class ChunkStorageManager
 
     static List<EntitySerial> SerializeEntities(List<Entity> entities){
         List<EntitySerial> eSerial = new List<EntitySerial>();
-        var eReg = WorldOptions.CURRENT.Generation.Entities;
+        var eReg = Config.CURRENT.Generation.Entities;
         for(int i = 0; i < entities.Count; i++){
             EntitySerial entity = new ();
             entity.type = eReg.RetrieveName((int)entities[i].info.entityType);
@@ -177,7 +175,7 @@ public static class ChunkStorageManager
         }
 
         string[] dict = new string[RegisterDict.Count];
-        var mReg = WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary;
+        var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         foreach(var pair in RegisterDict){
             dict[pair.Value] = mReg.RetrieveName(pair.Key);
         }
@@ -186,7 +184,7 @@ public static class ChunkStorageManager
     }
 
     private static void DeserializeHeader(ref MapData[] map, ref ChunkHeader header){
-        var mReg = WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary;
+        var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         for(int i = 0; i < map.Length; i++){
             map[i].material = mReg.RetrieveIndex(header.RegisterNames[(int)map[i].material]);
         }
@@ -331,7 +329,7 @@ public static class ChunkStorageManager
             chunkPath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/MapData/";
             entityPath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/EntityData/";
 
-            RenderSettings rSettings = WorldOptions.CURRENT.Quality.Rendering.value;
+            WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
             numChunksAxis = OctreeTerrain.Octree.GetAxisChunksDepth(rSettings.MaxDepth, rSettings.Balance, (uint)rSettings.MinChunkRadius);
             numChunksAxis = math.max((numChunksAxis << rSettings.MaxDepth) >> rSettings.FileRegionDepth, 1);
             regionChunkSize = 1 << rSettings.FileRegionDepth;

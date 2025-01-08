@@ -4,11 +4,11 @@ using Unity.Collections;
 using UnityEngine;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
-using Utils;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Burst;
 using UnityEditor;
 using TerrainGeneration;
+using WorldConfig;
 
 //Benefits of unified chunk map memory
 //1. No runtime allocation of native memory
@@ -29,7 +29,7 @@ public static class CPUDensityManager
 
     public static void Initialize(){
         Release();
-        RenderSettings rSettings = WorldOptions.CURRENT.Quality.Rendering.value;
+        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         mapChunkSize = rSettings.mapChunkSize;
         lerpScale = rSettings.lerpScale;
         IsoValue = (uint)Math.Round(rSettings.IsoLevel * 255.0f);
@@ -72,8 +72,7 @@ public static class CPUDensityManager
         if(!AddressDict[chunkHash].valid) return;
         int3 CCoord = AddressDict[chunkHash].CCoord;
         
-        List<Entity> entities = EntityManager.GetChunkEntities(CCoord);
-        ChunkStorageManager.SaveEntitiesToJsonSync(entities, CCoord);
+        ChunkStorageManager.SaveEntitiesToJsonSync(EntityManager.GetChunkEntities(CCoord), CCoord);
         if(!AddressDict[chunkHash].isDirty) return;
         ChunkPtr chunk = new ChunkPtr(SectionedMemory, chunkHash * numPoints);
         ChunkStorageManager.SaveChunkToBinSync(chunk, CCoord);

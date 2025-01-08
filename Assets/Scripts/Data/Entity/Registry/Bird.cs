@@ -8,9 +8,11 @@ using Unity.Collections.LowLevel.Unsafe;
 using System;
 using Unity.Collections;
 using Newtonsoft.Json;
+using WorldConfig;
+using WorldConfig.Generation.Entity;
 
 [CreateAssetMenu(menuName = "Entity/Bird")]
-public class Bird : EntityAuthoring
+public class Bird : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]
     public Option<GameObject> _Controller;
@@ -18,7 +20,7 @@ public class Bird : EntityAuthoring
     public Option<BirdEntity> _Entity;
     public Option<BirdSetting> _Setting;
     public Option<List<ProfileE> > _Profile;
-    public Option<Entity.Info.ProfileInfo> _Info;
+    public Option<Entity.ProfileInfo> _Info;
     
     [JsonIgnore]
     public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
@@ -27,7 +29,7 @@ public class Bird : EntityAuthoring
     [JsonIgnore]
     public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (BirdSetting)value; }
     [JsonIgnore]
-    public override Entity.Info.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
+    public override Entity.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
     [JsonIgnore]
     public override ProfileE[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
 
@@ -219,7 +221,7 @@ public class Bird : EntityAuthoring
                 boidDMtrx->count++;
             }
             
-            context->sTree.QueryAsync(new STree.TreeNode.Bounds{
+            context->sTree.QueryAsync(new EntityManager.STree.TreeNode.Bounds{
                 Min = bird->GCoord - new int3(settings.flight.InfluenceDist),
                 Max = bird->GCoord + new int3(settings.flight.InfluenceDist)
             }, BurstCompiler.CompileFunctionPointer<Action<UIntPtr, UIntPtr>>(OnEntityFound), (UIntPtr)(&boidDMtrx));

@@ -1,7 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using static UtilityBuffers;
+using WorldConfig;
 
 public static class TerrainGenerator
 {
@@ -16,7 +16,7 @@ public static class TerrainGenerator
     }
 
     public static void PresetData(){
-        SurfaceCreatorSettings surface = WorldOptions.CURRENT.Generation.Surface.value;
+        WorldConfig.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
         surfaceDataSampler.SetBuffer(0, "surfMap", UtilityBuffers.GenerationBuffer);
 
         surfaceDataSampler.SetInt("continentalSampler", surface.ContinentalIndex);

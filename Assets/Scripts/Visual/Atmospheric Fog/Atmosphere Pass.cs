@@ -6,6 +6,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using WorldConfig;
 
 public class AtmospherePass : ScriptableRenderPass
 {
@@ -32,7 +33,7 @@ public class AtmospherePass : ScriptableRenderPass
     public static void Initialize(){
         if (material == null) material = CoreUtils.CreateEngineMaterial("Hidden/Fog");
 
-        RenderSettings rSettings = WorldOptions.CURRENT.Quality.Rendering.value;
+        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         float atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * GPUDensityManager.numChunksRadius;
         AtmosphereSettings = new AtmosphereBake(atmosphereRadius);
 

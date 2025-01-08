@@ -6,12 +6,13 @@ using System.Runtime.InteropServices;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using System;
-using System.Threading.Tasks;
 using Unity.Collections;
 using Newtonsoft.Json;
+using WorldConfig;
+using WorldConfig.Generation.Entity;
 
 [CreateAssetMenu(menuName = "Entity/Rabbit")]
-public class Rabbit : EntityAuthoring
+public class Rabbit : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]
     public Option<GameObject> _Controller;
@@ -19,7 +20,7 @@ public class Rabbit : EntityAuthoring
     public Option<RabbitEntity> _Entity;
     public Option<RabbitSetting> _Setting;
     public Option<List<ProfileE> > _Profile;
-    public Option<Entity.Info.ProfileInfo> _Info;
+    public Option<Entity.ProfileInfo> _Info;
 
     [JsonIgnore]
     public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
@@ -28,7 +29,7 @@ public class Rabbit : EntityAuthoring
     [JsonIgnore]
     public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (RabbitSetting)value; }
     [JsonIgnore]
-    public override Entity.Info.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
+    public override Entity.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
     [JsonIgnore]
     public override ProfileE[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
 

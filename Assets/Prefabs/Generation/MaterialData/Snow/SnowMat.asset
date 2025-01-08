@@ -12,14 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: SnowMat
   m_EditorClassIdentifier: 
-  SolidItem: Snow:Solid
-  LiquidItem: Void
+  Names:
+  - Snow:Solid
+  - Void
+  - Snow
+  - Tesselation
+  SolidItem: 0
+  LiquidItem: 1
   terrainData:
-    SolidTextureIndex: 0
+    Texture: 2
     color: {x: 1, y: 1, z: 1, w: 1}
     textureScale: 10
     baseColorStrength: 0.25
-    GeoShaderIndex: 0
+    GeoShaderIndex: 3
   AtmosphereScatter:
     ScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}

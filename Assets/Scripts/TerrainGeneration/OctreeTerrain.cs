@@ -3,8 +3,8 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 using System.Collections.Concurrent;
-using System.Numerics;
 using UnityEngine.Events;
+using WorldConfig;
 
 namespace TerrainGeneration{
 /// <summary>
@@ -57,7 +57,7 @@ public class OctreeTerrain : MonoBehaviour
     /// on different threads back into the main thread.
     /// </remarks>
     public static ConcurrentQueue<GenTask> RequestQueue;
-    private static RenderSettings s;
+    private static WorldConfig.Quality.Terrain s;
     private int3 prevViewerPos;
     private static Transform origin;
     private static Octree octree;
@@ -110,7 +110,7 @@ public class OctreeTerrain : MonoBehaviour
     }
 
     private void OnEnable(){
-        s = WorldOptions.CURRENT.Quality.Rendering.value;
+        s = Config.CURRENT.Quality.Terrain.value;
         origin = this.transform; //This means origin in Unity's scene heiharchy
         octree = new Octree(s.MaxDepth, s.Balance, s.MinChunkRadius);
         chunks = new ConstrainedLL<TerrainChunk>((uint)(Octree.GetMaxNodes(s.MaxDepth, s.Balance, s.MinChunkRadius) + 1));
@@ -143,7 +143,7 @@ public class OctreeTerrain : MonoBehaviour
         ShaderGenerator.PresetData();
         SpriteExtruder.PresetData();
         Readback.AsyncMeshReadback.PresetData();
-        WorldOptions.CURRENT.System.ReadBack.value.Initialize();
+        Config.CURRENT.System.ReadBack.value.Initialize();
     }
     
     void Start()
@@ -162,7 +162,7 @@ public class OctreeTerrain : MonoBehaviour
         EntityManager.Release();
         GenerationPreset.Release();
         AtmospherePass.Release();
-        WorldOptions.CURRENT.System.ReadBack.value.Release();
+        Config.CURRENT.System.ReadBack.value.Release();
 
         OrderedDisable.Invoke();
     }
@@ -224,7 +224,7 @@ public class OctreeTerrain : MonoBehaviour
     /// <summary>
     /// Determines whether an octree node is balanced based on its current size
     /// and distance from the viewer. A node is balanced if it obeys the balance factor
-    /// of the tree; if it is  1:(<see cref="RenderSettings.Balance">Balance</see> + 1) balanced.
+    /// of the tree; if it is  1:(<see cref="WorldConfig.Quality.Terrain.Balance">Balance</see> + 1) balanced.
     /// </summary>
     /// <param name="node">The octree node whose current state is tested to be balanced</param>
     /// <returns>Whether or not the node is balanced</returns>
@@ -591,7 +591,7 @@ public class OctreeTerrain : MonoBehaviour
         /// </summary>
         /// <remarks>
         /// One can obtain the chunk coordinate for a specific depth by setting <paramref name="chunkSize"/> to
-        /// <see cref="RenderSettings.mapChunkSize"/> * (2^<see cref="TerrainChunk.depth"/>)>:
+        /// <see cref="WorldConfig.Quality.Terrain.mapChunkSize"/> * (2^<see cref="TerrainChunk.depth"/>)>:
         /// </remarks>
         /// <param name="GCoord"></param>
         /// <param name="chunkSize"></param>
@@ -607,7 +607,7 @@ public class OctreeTerrain : MonoBehaviour
         /// <seealso cref="GetAxisChunksDepth"/>.
         /// </summary>
         /// <param name="depth">The maximum depth of the octree</param>
-        /// <param name="balanceF">The balance factor of the octree(1:<paramref name="balanceF"/> + 1))</param>
+        /// <param name="balanceF">The balance factor of the octree(<paramref name="balanceF"/> + 1 : 1))</param>
         /// <param name="chunksRadius">The chunk radius around the viewer of layer <paramref name="depth"/> = 0</param>
         /// <returns>The maximum number of nodes in the given octree settings</returns>
         public static int GetMaxNodes(int depth, int balanceF, int chunksRadius){
@@ -629,7 +629,7 @@ public class OctreeTerrain : MonoBehaviour
         /// The diameter thus is the side length of this cube. 
         /// </remarks>
         /// <param name="depth">The specific depth of the given octree whose maximum node diameter is queried</param>
-        /// <param name="balanceF">The balance factor of the octree(1:<paramref name="balanceF"/> + 1)</param>
+        /// <param name="balanceF">The balance factor of the octree(<paramref name="balanceF"/> + 1 : 1)</param>
         /// <param name="chunksRadius">The chunk radius around the viewer of layer <paramref name="depth"/> = 0</param>
         /// <returns>
         /// The maximum diameter in terms of the amount of nodes of the specified <paramref name="depth"/> that can exist
@@ -693,7 +693,7 @@ public class OctreeTerrain : MonoBehaviour
             public int3 origin; 
             /// <summary>
             /// The size of the chunk in grid space. This is equivalent to 
-            /// <see cref="RenderSettings.mapChunkSize"/> * 
+            /// <see cref="WorldConfig.Quality.Terrain.mapChunkSize"/> * 
             /// (2^<see cref="TerrainChunk.depth"/>).
             /// </summary>
             public uint size;

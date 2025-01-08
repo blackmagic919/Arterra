@@ -1,18 +1,21 @@
 using UnityEngine;
 using Newtonsoft.Json;
 using System;
+using WorldConfig;
 
+namespace WorldConfig.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Material")] 
-public class MaterialItemAuthoring : ItemAuthoringTemplate<MaterialItem> {}
+public class MaterialItemAuthoring : AuthoringTemplate<MaterialItem> {}
 
 [System.Serializable]
 public struct MaterialItem : IItem{
     public uint data;
-    public static IRegister Register => WorldOptions.CURRENT.Generation.Items;
+    private static Registry<Authoring> ItemRegistry => Config.CURRENT.Generation.Items;
+    private static Registry<Sprite> TextureAtlas => Config.CURRENT.Generation.Textures;
     [JsonIgnore]
     public readonly bool IsStackable => true;
     [JsonIgnore]
-    public readonly int TexIndex => Index;
+    public readonly int TexIndex => TextureAtlas.RetrieveIndex(ItemRegistry.Retrieve(Index).TextureName);
 
     [JsonIgnore]
     public int Index{
@@ -36,11 +39,11 @@ public struct MaterialItem : IItem{
     }
 
     public void Serialize(Func<string, int> lookup){
-        Index = lookup(Register.RetrieveName(Index));
+        Index = lookup(ItemRegistry.RetrieveName(Index));
     }
 
     public void Deserialize(Func<int, string> lookup){
-        Index = Register.RetrieveIndex(lookup(Index));
+        Index = ItemRegistry.RetrieveIndex(lookup(Index));
     }
     public object Clone()
     {
@@ -54,4 +57,5 @@ public struct MaterialItem : IItem{
     public readonly void OnSelect(){} 
     public readonly void OnDeselect(){} 
     public readonly void UpdateEItem(){} 
+}
 }

@@ -12,10 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
   m_Name: PlankItemSolid
   m_EditorClassIdentifier: 
-  texture:
-    value: {fileID: 21300000, guid: 4e227e457d2354e7094defe785ed2521, type: 3}
-    isDirty: 0
+  TextureName: Plank
   MaterialName: Plank
   MaterialState: 0
-  item:
-    data: 0

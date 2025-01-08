@@ -12,14 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: GrassMat
   m_EditorClassIdentifier: 
-  SolidItem: Grass:Solid
-  LiquidItem: Void
+  Names:
+  - Grass:Solid
+  - Void
+  - Grass
+  - Shell
+  SolidItem: 0
+  LiquidItem: 1
   terrainData:
-    SolidTextureIndex: 0
+    Texture: 2
     color: {x: 0.051, y: 0.341, z: 0, w: 1}
     textureScale: 5
     baseColorStrength: 0.25
-    GeoShaderIndex: 1
+    GeoShaderIndex: 3
   AtmosphereScatter:
     ScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}

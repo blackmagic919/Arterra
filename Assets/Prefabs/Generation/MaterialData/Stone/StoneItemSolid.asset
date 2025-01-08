@@ -12,10 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
   m_Name: StoneItemSolid
   m_EditorClassIdentifier: 
-  texture:
-    value: {fileID: 21300000, guid: d6daddfb095a14f1e814f6fcd10fab89, type: 3}
-    isDirty: 0
+  TextureName: Stone
   MaterialName: Stone
   MaterialState: 0
-  item:
-    data: 0

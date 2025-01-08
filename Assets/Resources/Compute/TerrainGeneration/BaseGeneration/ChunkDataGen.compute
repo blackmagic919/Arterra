@@ -86,7 +86,7 @@ float GetMaterialWeight(BMaterial material, float coarse, float fine, float heig
     float fineCentered = GetNoiseCentered(fine, noiseCenter, 0, 1);
 
     float baseWeight = coarsePref * coarseCentered + (1.0f-coarsePref) * fineCentered;
-    baseWeight = pow(abs(baseWeight), material.frequency) * material.multiplier;
+    baseWeight = pow(abs(material.frequency), (1 - baseWeight)) * baseWeight * material.multiplier;
     if(height <= 1.0f) baseWeight *= 1 - abs(height - material.height);
     return baseWeight;
 }

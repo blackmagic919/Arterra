@@ -1,16 +1,40 @@
 
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
+using WorldConfig;
+using WorldConfig.Generation.Item;
 
+namespace WorldConfig.Gameplay{
+    /// <summary> Settings controlling the size and apperance of the inventory,
+    /// a system allowing the player to hold and use 
+    /// <see cref="Generation.Item"> items </see>. </summary>
+    [Serializable]
+    public struct Inventory{
+        /// <summary> The amount of slots in the primary inventory, the hotbar. This is
+        /// equivalent to the maximum amount of items that can be held in the hotbar.  </summary>
+        public int PrimarySlotCount;
+        /// <summary> The amount of slots in the secondary inventory, the hidden inventory. This is
+        /// equivalent to the maximum amount of items that can be held in the hidden inventory. </summary>
+        public int SecondarySlotCount;
 
+        /// <summary>
+        /// The color of the selected slot in the <see cref="InventoryController.Primary">Primary Inventory</see>, or
+        /// the hotbar. This color is used to indicate which item currently has the status of being <see cref="InventoryController.Selected">
+        /// selected. </see> 
+        /// </summary>
+        public Color SelectedColor;
+        /// <summary> The color of the base slot in the Inventory. The color 
+        /// of the slot when it is empty (the item held by the slot is null). </summary>
+        public Color BaseColor;
+    }
+}
 public class InventoryController : UpdateTask
 {
-    public static Settings settings => WorldOptions.CURRENT.GamePlay.Inventory.value;
+    public static WorldConfig.Gameplay.Inventory settings => Config.CURRENT.GamePlay.Inventory.value;
     public static Inventory Primary; //Hotbar
     public static Inventory Secondary; //Inventory
     public static InventoryController Instance;
@@ -23,9 +47,10 @@ public class InventoryController : UpdateTask
     public static SlotDisplay[] SecondaryDisplay;
 
     private static uint Fence;
-    private static Registry<ItemAuthoring> ItemSettings;
+    private static Registry<Authoring> ItemSettings;
+    private static Registry<Sprite> TextureAtlas;
     public static IItem Selected=>Primary.Info[SelectedIndex];
-    public static ItemAuthoring SelectedSetting=>ItemSettings.Retrieve(Primary.Info[SelectedIndex].Index);
+    public static Authoring SelectedSetting=>ItemSettings.Retrieve(Primary.Info[SelectedIndex].Index);
     public static IItem Cursor;
     private static int SelectedIndex = 0;
 
@@ -71,7 +96,8 @@ public class InventoryController : UpdateTask
         SecondaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(1).gameObject);
         PrimaryDisplay = new SlotDisplay[settings.PrimarySlotCount];
         SecondaryDisplay = new SlotDisplay[settings.SecondarySlotCount];
-        ItemSettings = WorldOptions.CURRENT.Generation.Items;
+        ItemSettings = Config.CURRENT.Generation.Items;
+        TextureAtlas = Config.CURRENT.Generation.Textures;
 
         GameObject slotDisplay = Resources.Load<GameObject>("Prefabs/GameUI/InventorySlot");
         for(int i = 0; i < settings.PrimarySlotCount; i++){
@@ -168,14 +194,14 @@ public class InventoryController : UpdateTask
         if(Cursor == null) return;
         Inv.RemoveEntry(index);
 
-        CursorDisplay.Icon.sprite = ItemSettings.Retrieve(Cursor.TexIndex).texture.value;
+        CursorDisplay.Icon.sprite = TextureAtlas.Retrieve(Cursor.TexIndex);
         CursorDisplay.Amount.text = Cursor.Display;
         CursorDisplay.Object.SetActive(true);
     }
 
     private static void DeselectDrag(float _){
         static void DropItem(IItem item){
-            EntitySerial Entity = new EntitySerial();
+            WorldConfig.Generation.Entity.EntitySerial Entity = new();
             Entity.type = "EntityItem";
             Entity.guid = Guid.NewGuid().ToString();
             
@@ -280,23 +306,12 @@ public class InventoryController : UpdateTask
                 disp.Amount.text = "";
                 disp.Icon.color = settings.BaseColor;
             } else if(slot.IsDirty){
-                disp.Icon.sprite = ItemSettings.Retrieve(slot.TexIndex).texture.value;
+                disp.Icon.sprite = TextureAtlas.Retrieve(slot.TexIndex);
                 disp.Icon.color = Color.white; //1,1,1,1
                 disp.Amount.text = slot.Display;
                 slot.IsDirty = false;
             } 
         } 
-    }
-
-
-    [Serializable]
-    public struct Settings{
-        public int PrimarySlotCount;
-        public int SecondarySlotCount;
-
-        //This is the theta angle the color is rotated by
-        public Color SelectedColor;
-        public Color BaseColor;
     }
 
 

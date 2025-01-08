@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
-using UnityEngine.Rendering;
-using Utils;
+using TerrainGeneration;
+using WorldConfig;
+using WorldConfig.Quality;
 
 [CreateAssetMenu(menuName = "ShaderData/FoliageShader/Generator")]
-public class ProceduralFoliageRenderer : SpecialShader
+public class ProceduralFoliageRenderer : GeoShader
 {
     [Tooltip("A mesh to create foliage from")]
     [SerializeField] public FoliageSettings foliageSettings = default; 

@@ -5,6 +5,9 @@ using UnityEngine;
 using UnityEditor;
 using Utils;
 using System.Linq;
+using WorldConfig.Generation.Structure;
+using WorldConfig.Generation.Biome;
+using WorldConfig;
 
 [ExecuteInEditMode]
 public class DensityDeconstructor : MonoBehaviour
@@ -63,9 +66,9 @@ public class DensityDeconstructor : MonoBehaviour
         if(GridSize.x == 0 || GridSize.y == 0 || GridSize.z == 0)
             throw new Exception("Grid size cannot be zero");
         if(initialized) Release(); 
-        if(WorldOptions.CURRENT == null) WorldStorageHandler.Activate();
+        if(Config.CURRENT == null) WorldStorageHandler.Activate();
         RegisterBuilder.Initialize(); //Initialize Register LUTS
-        if(!GenerationPreset.active) GenerationPreset.Initialize(); // Initialize Material Information
+        if(!TerrainGeneration.GenerationPreset.active) TerrainGeneration.GenerationPreset.Initialize(); // Initialize Material Information
         if(!UtilityBuffers.active) UtilityBuffers.Initialize(); //Initialize Utility Buffers Which Stores Geometry
         Structure.Initialize();
         DeserializeMaterials();
@@ -315,7 +318,7 @@ public class DensityDeconstructor : MonoBehaviour
             Structure.map.value[i] = p;
         }
         string[] materials = new string[MaterialDict.Count];
-        var reg = WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary;
+        var reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         foreach(var pair in MaterialDict){
             materials[pair.Value] = reg.RetrieveName(pair.Key);
         }
@@ -324,7 +327,7 @@ public class DensityDeconstructor : MonoBehaviour
 
     private void DeserializeMaterials(){
         List<int> MaterialLUT = new List<int>();
-        var reg = WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary;
+        var reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         if(Structure.Materials.value == null || Structure.Materials.value.Count == 0) 
             return;
         for(int i = 0; i < Structure.Materials.value.Count; i++){

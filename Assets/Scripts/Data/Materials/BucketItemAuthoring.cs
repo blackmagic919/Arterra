@@ -1,20 +1,19 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using Unity.Mathematics;
-using Unity.Services.Analytics;
 using UnityEngine;
 using static CPUDensityManager;
 
+namespace WorldConfig.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Bucket")] 
-public class BucketItemAuthoring : ItemAuthoringTemplate<BucketItem> {}
+public class BucketItemAuthoring : AuthoringTemplate<BucketItem> {}
 
 public class BucketItem : IItem{
     public uint data;
     public IItem content;
-    public static Registry<ItemAuthoring> Register => WorldOptions.CURRENT.Generation.Items;
-    public static Registry<MaterialData> MatInfo => WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary;  
+    public static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+    public static Registry<Sprite> TextureAtlas => Config.CURRENT.Generation.Textures;
+    public static Registry<Material.MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;  
     public static TerraformController T => PlayerHandler.terrController;
     private static int PlaceBinding = -1; 
     private static int RemoveBinding = -1; 
@@ -22,7 +21,8 @@ public class BucketItem : IItem{
     [JsonIgnore]
     public bool IsStackable => false;
     [JsonIgnore]
-    public int TexIndex => content == null ? Index : content.TexIndex;
+    public int TexIndex => content != null ? content.TexIndex : 
+    TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
 
     [JsonIgnore]
     public int Index{
@@ -43,15 +43,15 @@ public class BucketItem : IItem{
     }
 
     public void Serialize(Func<string, int> lookup){
-        string bucketName = Register.RetrieveName(Index);
-        string contentName = content == null ? "EMPTY" : Register.RetrieveName(content.Index);
+        string bucketName = ItemInfo.RetrieveName(Index);
+        string contentName = content == null ? "EMPTY" : ItemInfo.RetrieveName(content.Index);
         Index = lookup($"{bucketName}::{contentName}");
     }
 
     public void Deserialize(Func<int, string> lookup){ 
         string[] portions = lookup(Index).Split("::");
-        Index = Register.RetrieveIndex(portions[0]);
-        if(content != null) content.Index = Register.RetrieveIndex(portions[1]);
+        Index = ItemInfo.RetrieveIndex(portions[0]);
+        if(content != null) content.Index = ItemInfo.RetrieveIndex(portions[1]);
     }
 
     public object Clone(){ return new BucketItem{
@@ -81,10 +81,10 @@ public class BucketItem : IItem{
     public void UpdateEItem(){} 
 
     private void PlaceLiquid(float _){
-        var matInfo = WorldOptions.CURRENT.Generation.Materials.value.MaterialDictionary;
+        var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         
         if(!T.hasHit || content == null) return;
-        ItemAuthoring mat = Register.Retrieve(content.Index);
+        Authoring mat = ItemInfo.Retrieve(content.Index);
         if(mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
         CPUDensityManager.Terraform(T.hitPoint, T.settings.terraformRadius, AddFromBucket);
         if(content.AmountRaw == 0) content = null;
@@ -92,10 +92,10 @@ public class BucketItem : IItem{
     }
 
     private MapData AddFromBucket(MapData pointInfo, float brushStrength){
-        float IsoLevel = Mathf.RoundToInt(WorldOptions.CURRENT.Quality.Rendering.value.IsoLevel * 255);
+        float IsoLevel = Mathf.RoundToInt(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255);
         brushStrength *= T.settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
-        ItemAuthoring cSettings = Register.Retrieve(content.Index);
+        Authoring cSettings = ItemInfo.Retrieve(content.Index);
         if(!cSettings.IsLiquid) return pointInfo;
 
 
@@ -121,13 +121,13 @@ public class BucketItem : IItem{
     }
 
     private MapData RemoveToBucket(MapData pointInfo, float brushStrength){
-        float IsoLevel = Mathf.RoundToInt(WorldOptions.CURRENT.Quality.Rendering.value.IsoLevel * 255);
+        float IsoLevel = Mathf.RoundToInt(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255);
         brushStrength *= T.settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int selMat = -1;
         if(content != null){
-            ItemAuthoring cSettings = Register.Retrieve(content.Index);
+            Authoring cSettings = ItemInfo.Retrieve(content.Index);
             if(!cSettings.IsLiquid) content = null; //has to be liquid
             else selMat = MatInfo.RetrieveIndex(cSettings.MaterialName);
         }
@@ -137,10 +137,11 @@ public class BucketItem : IItem{
             int deltaDensity = math.min(TerraformController.GetStaggeredDelta(liquidDensity, -brushStrength), 0xFFFF);
 
             if(content == null){
-                string liquidItem = MatInfo.Retrieve(pointInfo.material).LiquidItem;
-                if(!Register.Contains(liquidItem)) return pointInfo;
-                int itemIndex = Register.RetrieveIndex(liquidItem);
-                content = Register.Retrieve(itemIndex).Item;
+                WorldConfig.Generation.Material.MaterialData material = MatInfo.Retrieve(pointInfo.material);
+                string liquidItem = material.RetrieveKey(material.LiquidItem);
+                if(!ItemInfo.Contains(liquidItem)) return pointInfo;
+                int itemIndex = ItemInfo.RetrieveIndex(liquidItem);
+                content = ItemInfo.Retrieve(itemIndex).Item;
                 content.Index = itemIndex;
                 content.AmountRaw = deltaDensity;
             } else {
@@ -153,4 +154,4 @@ public class BucketItem : IItem{
         return pointInfo;
     }
     
-}
+}}

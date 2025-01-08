@@ -12,10 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
   m_Name: HardwoodItemSolid
   m_EditorClassIdentifier: 
-  texture:
-    value: {fileID: 21300000, guid: 188898ac415a947dfb0485bedb3d625a, type: 3}
-    isDirty: 0
+  TextureName: Hardwood
   MaterialName: Hardwood
   MaterialState: 0
-  item:
-    data: 0

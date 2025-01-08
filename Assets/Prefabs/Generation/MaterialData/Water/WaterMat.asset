@@ -12,10 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 592bdaa92f6a140bca28933503af75b9, type: 3}
   m_Name: WaterMat
   m_EditorClassIdentifier: 
-  SolidItem: Void
-  LiquidItem: Water:Liquid
+  Names:
+  - Void
+  - Water:Liquid
+  - Water
+  SolidItem: 0
+  LiquidItem: 1
   terrainData:
-    SolidTextureIndex: 0
+    Texture: 2
     color: {x: 0.259, y: 0.294, z: 1, w: 1}
     textureScale: 5
     baseColorStrength: 0.1

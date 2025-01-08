@@ -1,26 +1,28 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using Unity.Mathematics;
-using Unity.Services.Analytics;
 using UnityEngine;
 using static CPUDensityManager;
+using WorldConfig;
 
+namespace WorldConfig.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Brush")] 
-public class BrushItemAuthoring : ItemAuthoringTemplate<BrushItem> {}
+public class BrushItemAuthoring : AuthoringTemplate<BrushItem> {}
 
 [Serializable]
 public struct BrushItem : IItem{
     public uint data;
-    public static IRegister Register => WorldOptions.CURRENT.Generation.Items;
+
+    public static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+    public static Registry<Sprite> TextureAtlas => Config.CURRENT.Generation.Textures;
+
     public static TerraformController T => PlayerHandler.terrController;
     private static int SmoothBinding = -1;
     private static int TerraceBinding = -1;
     [JsonIgnore]
     public readonly bool IsStackable => false;
     [JsonIgnore]
-    public readonly int TexIndex => Index;
+    public readonly int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
 
     [JsonIgnore]
     public int Index{
@@ -43,11 +45,11 @@ public struct BrushItem : IItem{
     }
 
     public void Serialize(Func<string, int> lookup){
-        Index = lookup(Register.RetrieveName(Index));
+        Index = lookup(ItemInfo.RetrieveName(Index));
     }
 
     public void Deserialize(Func<int, string> lookup){
-        Index = Register.RetrieveIndex(lookup(Index));
+        Index = ItemInfo.RetrieveIndex(lookup(Index));
     }
     public object Clone()
     {
@@ -173,4 +175,4 @@ public struct BrushItem : IItem{
 
         return true;
     }
-}
+}}

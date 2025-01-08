@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 using System.Linq;
 using Unity.Collections;
 using Utils;
+using WorldConfig;
 
 //Purpose: Render geometry directly from GPU until it is readback async.
 
@@ -14,23 +15,27 @@ using Utils;
  */
 namespace TerrainGeneration.Readback{
 using static OctreeTerrain;
-
+/// <summary>
+/// The readback system is responsible for 
+/// reading back meshes from the GPU and intermediately rendering the meshes
+/// directly from the GPU while this is happening.
+/// </summary>
 public class AsyncMeshReadback 
 {
     private Transform transform;
     private Bounds shaderBounds = default;
 
     //Dependencies
-    public static ComputeShader meshDrawArgsCreator;
-    public static ComputeShader triangleTranscriber;
-    public static ComputeShader vertexTranscriber;
+    private static ComputeShader meshDrawArgsCreator;
+    private static ComputeShader triangleTranscriber;
+    private static ComputeShader vertexTranscriber;
 
     const int MESH_VERTEX_STRIDE_WORD = 3 * 2 + 2;
     const int TRI_STRIDE_WORD = 3;
 
     private static uint numMeshes;
 
-    public static ReadbackSettings settings;
+    private static WorldConfig.Intrinsic.Readback settings;
     public GeometryHandle[] triHandles = default;
     public GeometryHandle vertexHandle = default;
 
@@ -44,7 +49,7 @@ public class AsyncMeshReadback
     }
 
     public static void PresetData(){
-        settings = WorldOptions.CURRENT.System.ReadBack.value;
+        settings = Config.CURRENT.System.ReadBack.value;
         numMeshes = (uint)settings.indirectTerrainMats.Length;
         meshDrawArgsCreator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
         triangleTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/TranscribeTriangles");
