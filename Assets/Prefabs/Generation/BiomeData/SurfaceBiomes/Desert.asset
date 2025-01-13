@@ -21,7 +21,6 @@ MonoBehaviour:
     - Sand
     - Air
     - Camel
-    isDirty: 0
   GroundMaterials:
     value:
     - value:
@@ -31,16 +30,13 @@ MonoBehaviour:
         frequency: 1
         multiplier: 1
         height: 1
-      isDirty: 0
     - value:
         Material: 4
         genSize: 0.2
         genShape: 0.4
-        frequency: 2
+        frequency: 0.3
         multiplier: 1.5
         height: 0
-      isDirty: 0
-    isDirty: 0
   SurfaceMaterials:
     value:
     - value:
@@ -50,30 +46,22 @@ MonoBehaviour:
         frequency: 1
         multiplier: 1
         height: 0
-      isDirty: 0
-    isDirty: 0
   Structures:
     value:
     - value:
         ChancePerStructurePoint: 0.002
         Structure: 0
-      isDirty: 0
     - value:
         ChancePerStructurePoint: 0.004
         Structure: 1
-      isDirty: 0
     - value:
         ChancePerStructurePoint: 0.005
         Structure: 2
-      isDirty: 0
-    isDirty: 0
   Entities:
     value:
     - value:
         Entity: 6
         ChancePerCoord: 0.0001
-      isDirty: 0
-    isDirty: 0
   BiomeConditions:
     value:
       TerrainStart: 0.325
@@ -89,4 +77,3 @@ MonoBehaviour:
       InfluenceOffEnd: 1
       AtmosphereEnd: 1
       biome: 0
-    isDirty: 0

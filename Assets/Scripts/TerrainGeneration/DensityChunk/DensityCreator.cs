@@ -121,15 +121,23 @@ public class MeshCreator
         UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
     }
 
-    public void GenerateRealMesh(int3 CCoord, float IsoLevel, int chunkSize){
+    public void GenerateRealMesh(int3 CCoord, float IsoLevel, int chunkSize, uint neighborDepths){
         CollectRealMap(CCoord, chunkSize);
         GenerateMesh(chunkSize, IsoLevel);
+        if(neighborDepths == 0) return;
+        GenerateTransition(neighborDepths, chunkSize, IsoLevel);
     }
-    public void GenerateVisualMesh(int3 CCoord, int defAddress, float IsoLevel, int chunkSize, int depth){
+    public void GenerateVisualMesh(int3 CCoord, int defAddress, float IsoLevel, int chunkSize, int depth, uint neighborDepths){
         CollectVisualMap(CCoord, defAddress, chunkSize, depth);
         GenerateMesh(chunkSize, IsoLevel);
+        if(neighborDepths == 0) return;
+        GenerateTransition(neighborDepths, chunkSize, IsoLevel);
     }
-    public void GenerateFakeMesh(float IsoLevel, int chunkSize) => GenerateMesh(chunkSize, IsoLevel);
+    public void GenerateFakeMesh(float IsoLevel, int chunkSize, uint neighborDepths) {
+        GenerateMesh(chunkSize, IsoLevel);
+        if(neighborDepths == 0) return;
+        GenerateTransition(neighborDepths, chunkSize, IsoLevel);
+    }
 
 }
 

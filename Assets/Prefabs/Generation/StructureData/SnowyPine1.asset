@@ -21,7 +21,6 @@ MonoBehaviour:
       minimumLOD: 0
       randThetaRot: 1
       randPhiRot: 0
-    isDirty: 0
   map:
     value:
     - data: 3598
@@ -1401,7 +1400,6 @@ MonoBehaviour:
     - data: 3598
     - data: 3598
     - data: 3598
-    isDirty: 0
   checks:
     value:
     - position:
@@ -1409,20 +1407,19 @@ MonoBehaviour:
         y: 1
         z: 5
       checkInfo:
-        data: 4286644096
+        data: 4286611200
     - position:
         x: 5
         y: 5
         z: 5
       checkInfo:
-        data: 4278222592
+        data: 2130738944
     - position:
         x: 5
         y: 15
         z: 5
       checkInfo:
-        data: 4278222592
-    isDirty: 0
+        data: 2130738944
   Materials:
     value:
     - Air
@@ -1430,4 +1427,3 @@ MonoBehaviour:
     - Wood
     - Leaf
     - Grass
-    isDirty: 0

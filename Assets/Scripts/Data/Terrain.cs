@@ -29,7 +29,7 @@ public class Terrain : ScriptableObject
     public int MaxDepth;
     
     /// <summary>
-    /// The <see cref="TerrainGeneration.OctreeTerrain.Octree.Node.GetL1Dist(Unity.Mathematics.int3)"> L1 distance </see>, 
+    /// The <see cref="TerrainGeneration.OctreeTerrain.Octree.Node.GetMaxDist(Unity.Mathematics.int3)"> component distance </see>, 
     /// in terms of the chunk space away from  the viewer of the farthest chunk that will become a real chunk. 
     /// As real chunks define the interactive game environment, this effectively defines the size of the game 
     /// environment relative to the size of the environment chunk (chunk space).
@@ -46,7 +46,7 @@ public class Terrain : ScriptableObject
     public int Balance;
 
     /// <summary>
-    /// The minimum <see cref="TerrainGeneration.OctreeTerrain.Octree.Node.GetL1Dist(Unity.Mathematics.int3)"> L1 distance </see> in 
+    /// The minimum <see cref="TerrainGeneration.OctreeTerrain.Octree.Node.GetMaxDist(Unity.Mathematics.int3)"> component distance </see> in 
     /// chunk space on top of <see cref="MinChunkRadius"/> away from the viewer of the farthest chunk that will be cached in <see cref="GPUDensityManager"/>. 
     /// Chunks not cached in <see cref="GPUDensityManager"/> are incapable of reflecting terrain changes and displaying atmospheric effects. Increasing this value
     /// thus increases the size of the atmosphere at the cost of more GPU memory usage. 
@@ -57,12 +57,12 @@ public class Terrain : ScriptableObject
     /// <summary> The maximum depth within the terrain octree that structures will attempt to be generated. </summary>
     /// <remarks> The process of generating structures scales by a factor of 8 for every increasing depth level. As
     /// larger chunks can contain a larger amount of structures, the process becomes exponentially more expensive. </remarks>
-    public uint MaxStructureDepth; // >= 0 obviously
+    public int MaxStructureDepth; // >= 0 obviously
 
     /// <summary> The maximum depth within the terrain octree of chunks that will be attempted to be geoshaded. </summary>
     /// <remarks> There is a large fixed cost with rendering geoshaded geometry which makes it not feasible to render it for all chunks. 
     /// Moreover, these aesthetic effects become less noticable farther away. </remarks>
-    public uint MaxGeoShaderDepth;
+    public int MaxGeoShaderDepth;
 
     /// <summary> The final scaling factor of the terrain; the scale between the grid space and the world space. </summary>
     [UISetting(Alias = "Terrain Scale")]
@@ -90,6 +90,15 @@ public class Terrain : ScriptableObject
     /// of that depth.This is useful in expediting chunk-reading operations as described in <see cref="ChunkStorageManager"/>. 
     /// </summary> <remarks>Alteration of this value in a world with modified chunks may cause data to be lost.</remarks>
     public int FileRegionDepth = 5; //Number of chunks in a file region
+
+    /// <summary>
+    /// The total size of a chunk's transition voxel as a percentage of a chunk's normal voxel size. When a chunk
+    /// borders another chunk of a different depth, the transition voxel is used to blend the two chunks together.
+    /// If multiple transition layers are required, each layer will be smaller such that the total width of the transition
+    /// is equal to <see cref="transitionWidth"/>.
+    /// </summary>
+    [Range(0, 1)]
+    public float transitionWidth = 0.25f;
 
     private void OnEnable()
     {

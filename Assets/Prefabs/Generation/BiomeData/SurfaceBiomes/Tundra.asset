@@ -37,7 +37,7 @@ MonoBehaviour:
         Material: 8
         genSize: 0.106
         genShape: 0.449
-        frequency: 2
+        frequency: 0.25
         multiplier: 1.5
         height: 0
   SurfaceMaterials:

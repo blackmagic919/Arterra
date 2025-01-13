@@ -35,11 +35,11 @@ public static class StructureGenerator
         return points;
     }
 
-    static int calculateMaxStructurePoints(int maxLoD, uint maxDepthL, int maxStructurePoints, float falloffFactor)
+    static int calculateMaxStructurePoints(int maxLoD, int maxDepthL, int maxStructurePoints, float falloffFactor)
     {
         int totalPoints = 0;
         int processedChunks = 0;
-        int baseDist = (1<<(int)maxDepthL) + 1;
+        int baseDist = (1<<maxDepthL) + 1;
         int maxDist = maxLoD + baseDist;
         int[] pointsPerLoD = calculateLoDPoints(maxLoD, maxStructurePoints, falloffFactor);
 

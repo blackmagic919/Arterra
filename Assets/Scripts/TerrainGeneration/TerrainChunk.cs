@@ -57,6 +57,8 @@ public class TerrainChunk
     protected int mapSkipInc => 1 << depth;
     /// <summary> The status of the chunk which describes the type of generation that needs to be done. </summary>
     protected ChunkStatus status;
+    /// <summary> The depth of the chunk's neighbors. This is used to blend the chunk's mesh with its neighbors. </summary>
+    protected uint neighborDepth;
     
     /// <summary>
     /// A bitmap container describing the types of requested tasks for the chunk. To request the
@@ -147,6 +149,7 @@ public class TerrainChunk
         //This is ok because origin is guaranteed to be a multiple of mapChunkSize by the Octree
         CCoord = origin / rSettings.mapChunkSize;
         depth = math.floorlog2(size / rSettings.mapChunkSize);
+        neighborDepth = OctreeTerrain.GetNeighborDepths(index);
 
         meshObject = new GameObject("Terrain Chunk");
         meshObject.transform.localScale = Vector3.one * rSettings.lerpScale * (1 << depth);
@@ -178,6 +181,11 @@ public class TerrainChunk
         //These two functions are self-verifying, so they will only execute if necessary
         OctreeTerrain.SubdivideChunk(index);
         OctreeTerrain.MergeSiblings(index);
+
+        uint nNeighbor = OctreeTerrain.GetNeighborDepths(index);
+        if(nNeighbor == neighborDepth) return;
+        neighborDepth = nNeighbor;
+        status.UpdateMesh = true;
     }
 
     /// <summary>
@@ -282,10 +290,8 @@ public class TerrainChunk
 /// environment, it is all that exists.
 /// </summary>
 public class RealChunk : TerrainChunk{
-    private bool IsBordering = false;
     /// <summary> Creates a new real chunk with the the given origin and size. <seealso cref="TerrainChunk"/> </summary>
     public RealChunk(Transform parent, int3 origin, int size, uint octreeIndex) : base(parent, origin, size, octreeIndex){
-        IsBordering = OctreeTerrain.IsBordering((int)index);
     }
 
     /// <summary>
@@ -295,9 +301,6 @@ public class RealChunk : TerrainChunk{
     /// <remarks> If a chunk is bordering a chunk of a certain size, some of its out-of-bound mesh information will be invalidated once the neighboring chunk changes size. </remarks>
     public override void VerifyChunk(){
         base.VerifyChunk();
-        if(!IsBordering) return;
-        IsBordering = OctreeTerrain.IsBordering((int)index);
-        if(IsBordering) return;
         status.UpdateMesh = true;
     }
 
@@ -390,7 +393,7 @@ public class RealChunk : TerrainChunk{
     /// </summary>
     /// <param name="UpdateCallback"><see cref="TerrainChunk.CreateMesh(Action{ReadbackTask{TVert}.SharedMeshInfo})"/></param>
     protected override void CreateMesh( Action<ReadbackTask<TVert>.SharedMeshInfo> UpdateCallback = null){
-        Generator.MeshCreator.GenerateRealMesh(CCoord, IsoLevel, mapChunkSize);
+        Generator.MeshCreator.GenerateRealMesh(CCoord, IsoLevel, mapChunkSize, neighborDepth);
         ClearFilter(); ReapChunk(index);
         
         DensityGenerator.GeoGenOffsets bufferOffsets = DensityGenerator.bufferOffsets;
@@ -538,10 +541,10 @@ public class VisualChunk : TerrainChunk{
     protected override void CreateMesh(Action<ReadbackTask<TVert>.SharedMeshInfo> UpdateCallback = null){
         if(mapHandle == -1){
             GenerateDefaultMap(); //We need the default mesh to be immediately in the buffer
-            Generator.MeshCreator.GenerateFakeMesh(IsoLevel, mapChunkSize);
+            Generator.MeshCreator.GenerateFakeMesh(IsoLevel, mapChunkSize, neighborDepth);
         } else {
             int directAddress = (int)GPUDensityManager.GetHandle(mapHandle).x;
-            Generator.MeshCreator.GenerateVisualMesh(CCoord, directAddress, IsoLevel, mapChunkSize, depth);
+            Generator.MeshCreator.GenerateVisualMesh(CCoord, directAddress, IsoLevel, mapChunkSize, depth, neighborDepth);
             GPUDensityManager.UnsubscribeHandle((uint)mapHandle); 
             mapHandle = -1;
         }

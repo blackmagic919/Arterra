@@ -93,33 +93,6 @@ MonoBehaviour:
         value: {fileID: 11400000, guid: f81b05d765b0f44239b636313940cd5b, type: 2}
       Materials:
         value: {fileID: 11400000, guid: 68574011324274a58acce0da69b5d4f7, type: 2}
-      Entities:
-        Reg:
-          value:
-          - Name: Rabbit
-            _value:
-              value: {fileID: 11400000, guid: 638124de4470742c79535a5f0092eb27, type: 2}
-          - Name: Fox
-            _value:
-              value: {fileID: 11400000, guid: 20291c96ec2b642818c85c16cbac8a1b, type: 2}
-          - Name: Bird
-            _value:
-              value: {fileID: 11400000, guid: 74688da9677534740874b306e18e916d, type: 2}
-          - Name: ArcticHare
-            _value:
-              value: {fileID: 11400000, guid: 76df58cdcf20f4334b669984f650be56, type: 2}
-          - Name: ArcticFox
-            _value:
-              value: {fileID: 11400000, guid: f96f21e1966384e588e53d9d3c37f0ce, type: 2}
-          - Name: SnowyOwl
-            _value:
-              value: {fileID: 11400000, guid: 70c868c5da748481e82692c56e502620, type: 2}
-          - Name: EntityItem
-            _value:
-              value: {fileID: 11400000, guid: 113b6e9010faf40ed9549c22ffbaba03, type: 2}
-          - Name: Camel
-            _value:
-              value: {fileID: 11400000, guid: bad7490808a414d4eb37230eae23f5af, type: 2}
       Items:
         Reg:
           value:
@@ -186,6 +159,33 @@ MonoBehaviour:
           - Name: Brush
             _value:
               value: {fileID: 11400000, guid: 54b67afaa6ce54d7a903460a2615f54e, type: 2}
+      Entities:
+        Reg:
+          value:
+          - Name: Rabbit
+            _value:
+              value: {fileID: 11400000, guid: 638124de4470742c79535a5f0092eb27, type: 2}
+          - Name: Fox
+            _value:
+              value: {fileID: 11400000, guid: 20291c96ec2b642818c85c16cbac8a1b, type: 2}
+          - Name: Bird
+            _value:
+              value: {fileID: 11400000, guid: 74688da9677534740874b306e18e916d, type: 2}
+          - Name: ArcticHare
+            _value:
+              value: {fileID: 11400000, guid: 76df58cdcf20f4334b669984f650be56, type: 2}
+          - Name: ArcticFox
+            _value:
+              value: {fileID: 11400000, guid: f96f21e1966384e588e53d9d3c37f0ce, type: 2}
+          - Name: SnowyOwl
+            _value:
+              value: {fileID: 11400000, guid: 70c868c5da748481e82692c56e502620, type: 2}
+          - Name: EntityItem
+            _value:
+              value: {fileID: 11400000, guid: 113b6e9010faf40ed9549c22ffbaba03, type: 2}
+          - Name: Camel
+            _value:
+              value: {fileID: 11400000, guid: bad7490808a414d4eb37230eae23f5af, type: 2}
       Textures:
         Reg:
           value:
@@ -254,22 +254,6 @@ MonoBehaviour:
               value: {fileID: 21300000, guid: 0271f92a8144645c1af75afae444ff0f, type: 3}
   _GamePlay:
     value:
-      Terraforming:
-        value:
-          terraformRadius: 2
-          terraformSpeed: 100
-          maxTerraformDistance: 60
-          PickupRadius: 2
-          CursorSize: 1
-          CursorColor: {r: 0.012440997, g: 0.5660378, b: 0, a: 1}
-          ShowCursor: 1
-      Movement:
-        value:
-          GroundFriction: 0.05
-          runSpeed: 6
-          jumpForce: 5
-          acceleration: 50
-          groundStickDist: 0.05
       Input:
         Reg:
           value:
@@ -481,6 +465,22 @@ MonoBehaviour:
                   - Key: 57
                     PollType: 3
                     IsAlias: 0
+      Movement:
+        value:
+          GroundFriction: 0.25
+          runSpeed: 6
+          jumpForce: 5
+          acceleration: 100
+          groundStickDist: 0.05
+      Terraforming:
+        value:
+          terraformRadius: 2
+          terraformSpeed: 100
+          maxTerraformDistance: 60
+          PickupRadius: 2
+          CursorSize: 1
+          CursorColor: {r: 0.012440997, g: 0.5660378, b: 0, a: 1}
+          ShowCursor: 1
       Crafting:
         value: {fileID: 11400000, guid: b6eb14945e6ce4e35a36d2502ba1cf4f, type: 2}
       Inventory:
@@ -641,6 +641,3 @@ MonoBehaviour:
     value:
       ReadBack:
         value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
-      LayerHeads:
-        Reg:
-          value: []

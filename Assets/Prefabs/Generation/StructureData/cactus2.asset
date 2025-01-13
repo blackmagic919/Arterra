@@ -21,7 +21,6 @@ MonoBehaviour:
       minimumLOD: 0
       randThetaRot: 1
       randPhiRot: 0
-    isDirty: 0
   map:
     value:
     - data: 0
@@ -264,7 +263,6 @@ MonoBehaviour:
     - data: 771
     - data: 9509
     - data: 0
-    isDirty: 0
   checks:
     value:
     - position:
@@ -272,16 +270,14 @@ MonoBehaviour:
         y: 1
         z: 3
       checkInfo:
-        data: 4286644096
+        data: 4286611200
     - position:
         x: 1
         y: 4
         z: 3
       checkInfo:
         data: 4278222592
-    isDirty: 0
   Materials:
     value:
     - Air
     - Cactus
-    isDirty: 0

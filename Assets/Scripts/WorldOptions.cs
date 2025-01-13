@@ -163,6 +163,7 @@ public class Config : ScriptableObject{
     /// </summary>
     [Serializable]
     public struct SystemSettings{
+        /// <summary> The settings for the readback system. See <see cref="Intrinsic.Readback"/> for more information. </summary>
         public Option<Intrinsic.Readback> ReadBack;
     }
 

@@ -1,13 +1,12 @@
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
-
+static const float3 Epsilon = float3(1E-6, 1E-6, 1E-6);
 StructuredBuffer<uint> MapData;
 uint bSTART_map;
-uint meshSkipInc;
 int numCubesPerAxis;
 
 //Water is 1, terrain is 0
 uint ReadMapData(int3 coord){
-    coord *= meshSkipInc; coord += 1; 
+    coord += 1; 
     coord = clamp(coord, 0, numCubesPerAxis + 2);
     uint address = indexFromCoordManual(coord, numCubesPerAxis + 3);
     return MapData[address + bSTART_map];
@@ -31,7 +30,7 @@ float3 CalculateNormal(int3 cCoord, uint isWater) {
     float dy = SampleDensity(cCoord - offsetY, isWater) - SampleDensity(cCoord + offsetY, isWater);
 	float dz = SampleDensity(cCoord - offsetZ, isWater) - SampleDensity(cCoord + offsetZ, isWater);
 
-	return float3(dx, dy, dz);
+	return normalize(float3(dx, dy, dz));
 }
 
 

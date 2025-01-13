@@ -297,13 +297,13 @@ public interface IVertFormat {
     public void SetVertexBufferParams(Mesh mesh, int count);
     
     public struct TVert : IVertFormat
-{
-    public Vector3 pos;
-    public Vector3 norm;
-    public int2 material;
+    {
+        public Vector3 pos;
+        public Vector3 norm;
+        public int2 material;
 
-    //Data is packed into one struct, so read to first stream
-    public void SetVertexBufferParams(Mesh mesh, int count){
+        //Data is packed into one struct, so read to first stream
+        public void SetVertexBufferParams(Mesh mesh, int count){
             mesh.SetVertexBufferParams(count, 
             new [] {
                 new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, stream: 0),

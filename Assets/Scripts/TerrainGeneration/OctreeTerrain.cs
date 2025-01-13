@@ -229,19 +229,16 @@ public class OctreeTerrain : MonoBehaviour
     /// <param name="node">The octree node whose current state is tested to be balanced</param>
     /// <returns>Whether or not the node is balanced</returns>
     public static bool IsBalanced(ref Octree.Node node){
-        int balance = (int)(node.size / s.Balance);
-        return node.GetL1Dist(ViewPosGS) - s.mapChunkSize * s.MinChunkRadius >= balance;
+        int balance = (int)(node.size >> (s.Balance - 1));
+        return node.GetMaxDist(ViewPosGS) - s.mapChunkSize * s.MinChunkRadius >= balance;
     }
 
     /// <summary>
     /// Determines whether an octree node is bordering a chunk of a larger size.
     /// This is determined by checking if its neighbor farthest from the viewer is
     /// balanced if it were of a larger size than the current chunk.
-    /// </summary>
-    /// <param name="index"> 
-    /// The index of the octree node within the
-    /// <see cref="octree">octree</see> structure.
-    /// </param>
+    /// </summary> <param name="index"> The index of the octree node within the
+    /// <see cref="octree">octree</see> structure.  </param>
     /// <returns>Whether or not the node is bordering a larger chunk</returns>
     public static bool IsBordering(int index){
         Octree.Node node = octree.nodes[index];
@@ -251,6 +248,37 @@ public class OctreeTerrain : MonoBehaviour
 
         Octree.Node neighbor = new Octree.Node{origin = nOrigin, size = (uint)parentSize};
         return IsBalanced(ref neighbor);
+    }
+
+    /// <summary>
+    /// Deterimes the positive difference in <see cref="TerrainChunk.depth">depth</see> between a chunk and its 6 neighbors.
+    /// If the parent is of a smaller depth(i.e. smaller) than the current chunk, 0 will be returned as there would be multiple nodes
+    /// that border that side of the chunk. This information is not found through traversal of the octree, but mathematical
+    /// evaluation off the current state of the game--the real neighbors may be at a different depth if not properly updated.
+    /// </summary> <param name="index">The index of the octree node within the
+    /// <see cref="octree">octree</see> structure. </param>
+    /// <returns>A bitmask of 3 bytes describing the positive depth difference between the chunk and its neighbor in the
+    /// <c>x, y, z</c> directions. The highest bit of every byte is set if describing the positive face</returns>
+    /// <remarks>The difference in depth is found using progressive analysis of whether neighbor chunks of 
+    /// larger and larger depths would be <see cref="IsBalanced">balanced</see>. There may be a way to find this 
+    /// mathematically instead.</remarks>
+    public static uint GetNeighborDepths(uint index){
+        Octree.Node node = octree.nodes[index];
+        int3 delta = (int3)math.sign(node.origin - ViewPosGS);
+        uint neighborDepths = 0;
+        for(int i = 0; i < 3; i++){
+            int3 axisDelta = math.select(0, delta, new bool3(i == 0, i == 1, i == 2));
+            int3 origin = node.origin + axisDelta * (int)node.size; int dDepth;
+            for(dDepth = 1; dDepth <= s.Balance; dDepth++){
+                int parentSize = (int)node.size << dDepth;
+                int3 nOrigin = origin - ((origin % parentSize) + parentSize) % parentSize; //make sure offset is not off -> get its parent's origin
+                Octree.Node neighbor = new Octree.Node{origin = nOrigin, size = (uint)parentSize};
+                if(!IsBalanced(ref neighbor)) break;
+            } dDepth--;
+            neighborDepths |= ((uint)dDepth & 0x7F) << i*8;
+            if(dDepth > 0) neighborDepths |= (uint)(math.cmax(axisDelta) & 0x1) << (i*8 + 7);
+        }
+        return neighborDepths;
     }
 
     /// <summary>
@@ -747,13 +775,13 @@ public class OctreeTerrain : MonoBehaviour
             }
 
             /// <summary>
-            /// Obtains the L1 norm of <paramref name="GCoord"/> to the bounds of the chunk. The L1 norm is the
-            /// Manhattan distance between two points in 3D space and is used to balance the octree. If the point
-            /// is within the bounds of the chunk, the L1 distance is 0. 
+            /// Obtains the maximum component distance of <paramref name="GCoord"/> to the bounds of the chunk. The 
+            /// max component distance is the maximum of the distances along each dimension. If the point
+            /// is within the bounds of the chunk, the max distance is 0. 
             /// </summary>
-            /// <param name="GCoord">The coordinate of the point whose L1 norm from the chunk is queried</param>
-            /// <returns>The manhattan distance from the chunk's bounds to the point</returns>
-            public int GetL1Dist(int3 GCoord){
+            /// <param name="GCoord">The coordinate of the point whose max distance from the chunk is queried</param>
+            /// <returns>The maximum component distance from the chunk's bounds to the point</returns>
+            public int GetMaxDist(int3 GCoord){
                 int3 origin = this.origin;
                 int3 end = this.origin + (int)size;
                 int3 dist = math.abs(math.clamp(GCoord, origin, end) - GCoord);

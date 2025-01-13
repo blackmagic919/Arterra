@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 042c647c6590a46049f02ed827103e9a, type: 3}
   m_Name: GenerationSettings
   m_EditorClassIdentifier: 
+  maxFrameLoad: 50
+  viewDistUpdate: 32
   MaxDepth: 6
   MinChunkRadius: 1
   Balance: 2
@@ -22,3 +24,4 @@ MonoBehaviour:
   IsoLevel: 0.5
   mapChunkSize: 64
   FileRegionDepth: 5
+  transitionWidth: 0.5

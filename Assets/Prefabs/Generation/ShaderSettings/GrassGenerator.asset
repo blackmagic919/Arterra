@@ -18,7 +18,5 @@ MonoBehaviour:
     worldPositionUVScale: 0.1
     grassComputeShader:
       value: {fileID: 7200000, guid: 8f05bdc49c0834c6eb32c2d28279e0d0, type: 3}
-      isDirty: 0
     material:
       value: {fileID: 2100000, guid: 9e55a027ee0ba4f9d90667f02145910c, type: 2}
-      isDirty: 0
