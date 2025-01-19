@@ -70,8 +70,10 @@ public static class EntityManager
 
     }
 
-
-    public unsafe static void ReleaseEntity(JGuid entityId){
+    public static void InitializeEntity(GenPoint genInfo, int3 CCoord){AddHandlerEvent(() => InitializeE(genInfo, CCoord));}
+    public static void CreateEntity(EntitySerial sEntity){AddHandlerEvent(() => CreateE(sEntity));}
+    public static void ReleaseEntity(JGuid entityId){AddHandlerEvent(() => ReleaseEntity(entityId));}
+    public unsafe static void ReleaseE(JGuid entityId){
         if(!EntityIndex.ContainsKey(entityId)) {
             return;
         }
@@ -88,8 +90,7 @@ public static class EntityManager
         }
         EntityHandler.RemoveLast();
     }
-
-    public unsafe static void InitializeEntity(GenPoint genInfo, int3 CCoord){
+    private unsafe static void InitializeE(GenPoint genInfo, int3 CCoord){
         Entity newEntity = new ();
         
         int entityInd = EntityHandler.Length;
@@ -118,7 +119,7 @@ public static class EntityManager
         TerrainGeneration.OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
     }
 
-    public unsafe static void CreateEntity(EntitySerial sEntity){
+    private unsafe static void CreateE(EntitySerial sEntity){
         Entity newEntity = new ();
         int entityInd = EntityHandler.Length;
         
@@ -156,14 +157,14 @@ public static class EntityManager
     private static void OnEntitiesRecieved(NativeArray<GenPoint> entities, uint address, int3 CCoord){
         GenerationPreset.memoryHandle.ReleaseMemory(address);
         foreach(GenPoint point in entities){
-            AddHandlerEvent(() => InitializeEntity(point, CCoord));
+            InitializeEntity(point, CCoord);
         }
     }
 
     public static void DeserializeEntities(List<EntitySerial> entities, int3 CCoord){
         if(entities == null) return;
         foreach(EntitySerial sEntity in entities){
-            AddHandlerEvent(() => CreateEntity(sEntity));
+            CreateEntity(sEntity);
         }
     }
 
@@ -173,11 +174,8 @@ public static class EntityManager
         if(!mapInfo.valid) return; 
         //mapinfo.CCoord is coord of previous chunk
         STree.TreeNode.Bounds bounds = new STree.TreeNode.Bounds{Min = mapInfo.CCoord * mapChunkSize, Max = (mapInfo.CCoord + 1) * mapChunkSize - 1};
-
-        AddHandlerEvent(() => {
-            ESTree.Query(bounds, (UIntPtr entity) => {
-                ReleaseEntity(((Entity*)entity)->info.entityId);
-            });
+        ESTree.Query(bounds, (UIntPtr entity) => {
+            ReleaseEntity(((Entity*)entity)->info.entityId);
         });
     }
 

@@ -50,20 +50,7 @@ public class Generation : ScriptableObject
 public class BDict
 {
     private RNode _rTree;
-    /// <summary>
-    /// Queries the R-Tree for the biome that matches the given parameters. The parameters
-    /// must be given in the same order that they are <see cref="IBiomeCondition.SetNode(RegionBound, int)">
-    /// provided</see> when constructing the R-Tree.
-    /// </summary> <param name="point">A list of parameters pertaining to each respective condition</param>
-    /// <returns>The index within the registry used to construct the decision matrix of the biome. -1 if 
-    /// no biome is able to be found. </returns>
-    public int Query(float[] point)
-    {
-        LeafNode node = QueryNode(_rTree, ref point);
-        if (node == null)
-            return -1;
-        return node.biome;
-    }
+    private int leafSize;
 
     /// <summary> Constructs a decision matrix from a list of biome conditions. </summary>
     /// <typeparam name="TCond">The type of biome condition used in the decision matrix. </typeparam>
@@ -75,6 +62,7 @@ public class BDict
         BDict nDict = new BDict();
         List<RNode> leaves = nDict.InitializeBiomeRegions(biomes, offset);
         nDict._rTree = nDict.ConstructRTree(leaves, biomes[0].BiomeConditions.value.GetDimensions());
+        nDict.leafSize = leaves.Count;
         return nDict;
     }
 
@@ -89,68 +77,53 @@ public class BDict
     /// <returns>The flattened array of biome conditions representing the decision matrix</returns>
     public TCond[] FlattenTree<TCond>() where TCond : IBiomeCondition
     {
-        int treeSize = GetTreeSize();
-
+        int treeSize = math.ceilpow2(math.max(leafSize, 2)) * 2 - 1;
         TCond[] flattenedNodes = new TCond[treeSize];
         Queue<RNode> treeNodes = new Queue<RNode>();
         treeNodes.Enqueue(_rTree);
 
-        for(int i = 0; i < treeSize; i++)
-        {
+        for(int i = 0; i < treeSize; i++){
             RNode cur = treeNodes.Dequeue();
-            if(cur == null){
-                flattenedNodes[i].SetNode(RegionBound.GetNoSpace(flattenedNodes[i].GetDimensions()), -1);
-                continue;
-            }
-            else if (cur.GetType() == typeof(LeafNode)) { 
-                flattenedNodes[i].SetNode(cur.bounds, ((LeafNode)cur).biome);
-                continue;//
-            }
-            flattenedNodes[i].SetNode(cur.bounds, -1);
+            cur ??= new RNode{
+                bounds = RegionBound.GetNoSpace(flattenedNodes[i].GetDimensions()),
+                childOne = null,
+                childTwo = null,
+            };
 
-            BranchNode branch = (BranchNode)cur;
-            treeNodes.Enqueue(branch.childOne);
-            treeNodes.Enqueue(branch.childTwo);
+            flattenedNodes[i].SetNode(cur.bounds, cur.biome);
+            treeNodes.Enqueue(cur.childOne);
+            treeNodes.Enqueue(cur.childTwo);
         }
 
         return flattenedNodes;
         //Based on the nature of queues, it will be filled exactly in order of the array
     }
 
-    private int GetTreeSize()
+    /// <summary>
+    /// Queries the R-Tree for the biome that matches the given parameters. The parameters
+    /// must be given in the same order that they are <see cref="IBiomeCondition.SetNode(RegionBound, int)">
+    /// provided</see> when constructing the R-Tree.
+    /// </summary> <param name="point">A list of parameters pertaining to each respective condition</param>
+    /// <returns>The index within the registry used to construct the decision matrix of the biome. -1 if 
+    /// no biome is able to be found. </returns>
+    public int Query(float[] point)
     {
-        Queue<RNode> treeNodes = new Queue<RNode>();
-        treeNodes.Enqueue(_rTree);
-        int treeSize = 0;
-        while (treeNodes.Count != 0)
-        {
-            RNode cur = treeNodes.Dequeue();
-            treeSize++;
-
-            if(cur == null)
-                continue;
-            if (cur.GetType() == typeof(LeafNode))
-                continue;
-
-            BranchNode branch = (BranchNode)cur;
-            treeNodes.Enqueue(branch.childOne);
-            treeNodes.Enqueue(branch.childTwo);
-        }
-        return treeSize;
+        RNode node = QueryNode(_rTree, ref point);
+        if (node == null)
+            return -1;
+        return node.biome;
     }
 
-    LeafNode QueryNode(RNode node, ref float[] point)
+    RNode QueryNode(RNode node, ref float[] point)
     {
-        LeafNode OUT = null;
-        if (node.GetType() == typeof(LeafNode))
-            return (LeafNode)node;
+        RNode OUT = null;
+        if (node.IsLeaf)
+            return node;
 
-        BranchNode branch = (BranchNode)node;
-
-        if (branch.childOne.bounds.Contains(ref point))
-            OUT = QueryNode(branch.childOne, ref point);
-        if (OUT == null && branch.childTwo != null && branch.childTwo.bounds.Contains(ref point))
-            OUT = QueryNode(branch.childTwo, ref point);
+        if (node.childOne != null && node.childOne.bounds.Contains(ref point))
+            OUT = QueryNode(node.childOne, ref point);
+        if (OUT == null && node.childTwo != null && node.childTwo.bounds.Contains(ref point))
+            OUT = QueryNode(node.childTwo, ref point);
 
         return OUT;
     }
@@ -158,41 +131,37 @@ public class BDict
     RNode ConstructRTree(List<RNode> nodes, int dimensions)
     {
         int nodesInLayer = nodes.Count;
-        HashSet<RNode> linked = new HashSet<RNode>();
+        HashSet<int> linked = new HashSet<int>();
         List<RNode> ret = new List<RNode>();
 
         nodes.Sort((RNode a, RNode b) => a.bounds.area.CompareTo(b.bounds.area));
 
         for (int i = 0; i < nodesInLayer; i++)
         {
-            if (linked.Contains(nodes[i]))
+            if (linked.Contains(i))
                 continue;
 
-            BranchNode node = new BranchNode();
+            RNode node = new RNode();
             node.bounds = RegionBound.GetAllSpace(dimensions);
             node.childOne = nodes[i];
             node.childTwo = null;
 
-
-            for (int u = i + 1; u < nodesInLayer; u++)
-            {
+            for (int u = i + 1; u < nodesInLayer; u++){
                 RNode matchNode = nodes[u];
-                if (linked.Contains(matchNode))
+                if (linked.Contains(u))
                     continue;
 
                 RegionBound newRegion = RegionBound.mergeRegion(node.childOne.bounds, matchNode.bounds, dimensions);
-                if (newRegion.area <= node.bounds.area)
-                {
+                if (newRegion.area <= node.bounds.area){
                     node.bounds = newRegion;
                     node.childTwo = matchNode;
+                    node.biome = u;
                 }
             }
-            if (node.childTwo == null)
-                node.bounds = node.childOne.bounds;
-
+            if (node.childTwo == null) node.bounds = node.childOne.bounds;
+            linked.Add(node.biome);
+            node.biome = -1;
             ret.Add(node);
-            linked.Add(node.childOne);
-            linked.Add(node.childTwo);
         }
 
         if (ret.Count == 1)
@@ -217,31 +186,28 @@ public class BDict
                     throw new ArgumentException($"Biome {biomes[i].name}'s generation intersects with {biomes[u].name}");
             }
 
-            biomeRegions.Add(new LeafNode(bounds, i + offset));
+            biomeRegions.Add(new RNode(bounds, i + offset));
         }
 
         return biomeRegions;
     }
 
-    private abstract class RNode
+    private class RNode
     {
         public RegionBound bounds;
-    }
-
-    private class BranchNode : RNode
-    {
         public RNode childOne; //compiles both leaf and branch nodes
         public RNode childTwo;
-    }
-
-    private class LeafNode : RNode
-    {
         public int biome;
-
-        public LeafNode(RegionBound bounds, int biome)
+        public bool IsLeaf => biome != -1;
+        public RNode(RegionBound bounds, int biome)
         {
             this.bounds = bounds;
             this.biome = biome;
+        }
+        public RNode()
+        {
+            bounds = new RegionBound(0);
+            biome = -1;
         }
     }
 

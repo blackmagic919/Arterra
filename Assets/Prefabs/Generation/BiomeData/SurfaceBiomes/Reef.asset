@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 04a6111a713ec455cbfedb4173f40da6, type: 3}
-  m_Name: Ocean
+  m_Name: Reef
   m_EditorClassIdentifier: 
   NameRegister:
     value:
-    - Sand
+    - Snow
     - Air
   GroundMaterials:
     value:
@@ -45,11 +45,11 @@ MonoBehaviour:
       SquashStart: 0
       InfluenceStart: 0
       InfluenceOffStart: 0
-      AtmosphereStart: 0
+      AtmosphereStart: 0.1
       TerrainEnd: 0.325
       ErosionEnd: 1
       SquashEnd: 1
       InfluenceEnd: 1
       InfluenceOffEnd: 1
-      AtmosphereEnd: 0.1
+      AtmosphereEnd: 1
       biome: 0

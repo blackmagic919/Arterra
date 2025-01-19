@@ -14,9 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _Controller:
     value: {fileID: 1869515680497457174, guid: 092657fe27da741e39e3487e750d3fc0, type: 3}
-    isDirty: 0
-  _Entity:
-    isDirty: 0
   _Setting:
     value:
       movement:
@@ -37,7 +34,6 @@ MonoBehaviour:
           y: -0.6
           z: -0.25
         useGravity: 1
-    isDirty: 0
   _Profile:
     value:
     - bounds: 4286644096
@@ -52,7 +48,7 @@ MonoBehaviour:
       flags: 1
     - bounds: 2130771712
       flags: 1
-    - bounds: 0
+    - bounds: 4286644096
       flags: 2
     - bounds: 4286644096
       flags: 2
@@ -64,7 +60,6 @@ MonoBehaviour:
       flags: 1
     - bounds: 2130771712
       flags: 1
-    isDirty: 0
   _Info:
     value:
       bounds:
@@ -72,4 +67,3 @@ MonoBehaviour:
         y: 3
         z: 2
       profileStart: 48
-    isDirty: 0
