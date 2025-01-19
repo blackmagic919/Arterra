@@ -19,19 +19,13 @@ public class Rabbit : Authoring
     [UISetting(Ignore = true)][JsonIgnore]
     public Option<RabbitEntity> _Entity;
     public Option<RabbitSetting> _Setting;
-    public Option<List<ProfileE> > _Profile;
-    public Option<Entity.ProfileInfo> _Info;
 
     [JsonIgnore]
     public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
     [JsonIgnore]
-    public override IEntity Entity { get => _Entity.value; set => _Entity.value = (RabbitEntity)value; }
+    public override Entity Entity { get => new RabbitEntity(); }
     [JsonIgnore]
     public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (RabbitSetting)value; }
-    [JsonIgnore]
-    public override Entity.ProfileInfo Info { get => _Info.value; set => _Info.value = value; }
-    [JsonIgnore]
-    public override ProfileE[] Profile { get => _Profile.value.ToArray(); set => _Profile.value = value.ToList(); }
 
     [Serializable]
     public struct RabbitSetting : IEntitySetting{
@@ -53,7 +47,7 @@ public class Rabbit : Authoring
     [BurstCompile]
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public struct RabbitEntity : IEntity
+    public class RabbitEntity : Entity
     {  
         //This is the real-time position streamed by the controller
         public int3 GCoord; 
@@ -63,32 +57,21 @@ public class Rabbit : Authoring
         public TerrainColliderJob tCollider;
         public Unity.Mathematics.Random random;
 
-        public static readonly SharedStatic<NativeArray<FunctionPointer<IEntity.UpdateDelegate>>> _task = SharedStatic<NativeArray<FunctionPointer<IEntity.UpdateDelegate>>>.GetOrCreate<RabbitSetting, NativeArray<FunctionPointer<IEntity.UpdateDelegate>>>();
-        public static readonly SharedStatic<RabbitSetting> _settings = SharedStatic<RabbitSetting>.GetOrCreate<RabbitEntity, RabbitSetting>();
-        public static RabbitSetting settings{get => _settings.Data; set => _settings.Data = value;}
-        public static NativeArray<FunctionPointer<IEntity.UpdateDelegate>> Task{get => _task.Data; set => _task.Data = value;}
-        public unsafe readonly void Preset(IEntitySetting setting){
+        public static Action<RabbitEntity>[] TaskRegistry = new Action<RabbitEntity>[]{
+            Idle,
+            GeneratePath,
+            FollowPath
+        };
+
+        public static RabbitSetting settings;
+        public override void Preset(IEntitySetting setting){
             settings = (RabbitSetting)setting;
-            if(Task != default && Task.IsCreated) return;
-            var states = new NativeArray<FunctionPointer<IEntity.UpdateDelegate>>(3, Allocator.Persistent);
-            states[0] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Idle);
-            states[1] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(GeneratePath);
-            states[2] = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(FollowPath);
-            Task = states;
         }
-        public unsafe readonly void Unset(){ 
-            if(Task != default) Task.Dispose(); 
-            Task = default;
-        }
+        public override void Unset(){ }
 
-        public unsafe IntPtr Initialize(ref Entity entity, int3 GCoord)
-        {
-            entity._Update = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Update);
-            entity._Disable = BurstCompiler.CompileFunctionPointer<IEntity.DisableDelegate>(Disable);
-            entity.obj = Marshal.AllocHGlobal(Marshal.SizeOf(this));
-
+        public override void Initialize(int3 GCoord){
             //The seed is the entity's memory address
-            this.random = new Unity.Mathematics.Random((uint)entity.obj);
+            this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.GCoord = GCoord;
             pathFinder.hasPath = false;
             tCollider.transform.position = GCoord;
@@ -96,114 +79,75 @@ public class Rabbit : Authoring
             //Start by Idling
             TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
             TaskIndex = 0;
-
-            Marshal.StructureToPtr(this, entity.obj, false);
-            IntPtr nEntity = Marshal.AllocHGlobal(Marshal.SizeOf(entity));
-            Marshal.StructureToPtr(entity, nEntity, false);
-            return nEntity;
         }
 
-        public unsafe IntPtr Deserialize(ref Entity entity, out int3 GCoord)
+        public override void Deserialize(out int3 GCoord)
         {
-            entity._Update = BurstCompiler.CompileFunctionPointer<IEntity.UpdateDelegate>(Update);
-            entity._Disable = BurstCompiler.CompileFunctionPointer<IEntity.DisableDelegate>(Disable);
-            entity.obj = Marshal.AllocHGlobal(Marshal.SizeOf(this));
-
             GCoord = this.GCoord;
-
-            Marshal.StructureToPtr(this, entity.obj, false);
-            IntPtr nEntity = Marshal.AllocHGlobal(Marshal.SizeOf(entity));
-            Marshal.StructureToPtr(entity, nEntity, false);
-            return nEntity;
         }
 
 
-        [BurstCompile]
-        public unsafe static void Update(Entity* entity, EntityJob.Context* context)
+        public override void Update()
         {
-            if(!entity->active) return;
-            RabbitEntity* rabbit = (RabbitEntity*)entity->obj;
-            rabbit->GCoord = (int3)rabbit->tCollider.transform.position;
-            Task[(int)rabbit->TaskIndex].Invoke(entity, context);
+            if(!active) return;
+            GCoord = (int3)tCollider.transform.position;
+            TaskRegistry[(int)TaskIndex].Invoke(this);
 
-            if(rabbit->tCollider.IsGrounded(settings.movement.GroundStickDist, settings.collider, context->mapContext))
-                rabbit->tCollider.velocity.y *= 1 - settings.movement.friction;
-            rabbit->tCollider.velocity.xz *= 1 - settings.movement.friction;
-
-            rabbit->tCollider.Update(*context, settings.collider);
+            tCollider.Update(EntityJob.cxt, settings.collider);
+            tCollider.velocity.xz *= 1 - settings.movement.friction;
         }
 
-        [BurstCompile] //Task 0
-        public static unsafe void Idle(Entity* entity, EntityJob.Context* context){
-            RabbitEntity* rabbit = (RabbitEntity*)entity->obj;
-            if(rabbit->TaskDuration <= 0){
-                rabbit->TaskIndex = 1;
+        //Task 0
+        public static void Idle(RabbitEntity self){
+            if(self.TaskDuration <= 0){
+                self.TaskIndex = 1;
             }
-            else rabbit->TaskDuration -= context->deltaTime;
+            else self.TaskDuration -= EntityJob.cxt.deltaTime;
         }
 
-        [BurstCompile] // Task 1
-        public static unsafe void GeneratePath(Entity* entity, EntityJob.Context* context){
-            RabbitEntity* rabbit = (RabbitEntity*)entity->obj;
+        // Task 1
+        public static unsafe void GeneratePath(RabbitEntity self){
             int PathDist = settings.movement.pathDistance;
-            int3 dP = new (rabbit->random.NextInt(-PathDist, PathDist), rabbit->random.NextInt(-PathDist, PathDist), rabbit->random.NextInt(-PathDist, PathDist));
-            if(EntityJob.VerifyProfile(rabbit->GCoord + dP, entity->info.profile, *context)) {
-                PathFinder.PathInfo nPath = new ();
-                nPath.path = PathFinder.FindPath(rabbit->GCoord, dP, PathDist + 1, entity->info.profile, *context, out nPath.pathLength);
-                nPath.currentPos = rabbit->GCoord;
-                nPath.currentInd = 0;
-                nPath.hasPath = true;
-                rabbit->pathFinder = nPath;
-                rabbit->TaskIndex = 2;
+            int3 dP = new (self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist));
+            if(PathFinder.VerifyProfile(self.GCoord + dP, self.info.profile, EntityJob.cxt)) {
+                byte* path = PathFinder.FindPath(self.GCoord, dP, PathDist + 1, self.info.profile, EntityJob.cxt, out int pLen);
+                self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
+                self.TaskIndex = 2;
             }
         }
 
-        [BurstCompile] //Task 2
-        public static unsafe void FollowPath(Entity* entity, EntityJob.Context* context){
-            RabbitEntity* rabbit = (RabbitEntity*)entity->obj;
-
-            ref PathFinder.PathInfo finder = ref rabbit->pathFinder;
-            ref TerrainColliderJob tCollider = ref rabbit->tCollider;
+        //Task 2
+        public static unsafe void FollowPath(RabbitEntity self){
+            ref PathFinder.PathInfo finder = ref self.pathFinder;
+            ref TerrainColliderJob tCollider = ref self.tCollider;
 
             //Entity has fallen off path
-            if(math.any(math.abs(tCollider.transform.position - finder.currentPos) > entity->info.profile.bounds)) finder.hasPath = false;
-            if(finder.currentInd == finder.pathLength) finder.hasPath = false;
+            if(math.any(math.abs(tCollider.transform.position - finder.currentPos) > self.info.profile.bounds)) finder.hasPath = false;
+            if(finder.currentInd == finder.path.Length) finder.hasPath = false;
             if(!finder.hasPath) {
-                ReleasePath(rabbit);
-
-                rabbit->TaskIndex = 0;
-                rabbit->TaskDuration = settings.movement.AverageIdleTime * rabbit->random.NextFloat(0f, 2f);
+                self.TaskIndex = 0;
+                self.TaskDuration = settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
                 return;
             }
 
             byte dir = finder.path[finder.currentInd];
             int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
-            if(!EntityJob.VerifyProfile(nextPos, entity->info.profile, *context)) finder.hasPath = false;
+            if(!PathFinder.VerifyProfile(nextPos, self.info.profile, EntityJob.cxt)) finder.hasPath = false;
 
-            if(math.all(math.abs(rabbit->GCoord - nextPos) <= 1)){
+            if(math.all(math.abs(self.GCoord - nextPos) <= 1)){
                 finder.currentPos = nextPos;
                 finder.currentInd++;
             } else {
-                float3 aim = math.normalize(nextPos - rabbit->GCoord);
+                float3 aim = math.normalize(nextPos - self.GCoord);
                 Quaternion rot = tCollider.transform.rotation;
                 if(math.any(aim.xz != 0)) rot = Quaternion.LookRotation(new Vector3(aim.x, 0, aim.z));
-                tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, settings.movement.rotSpeed * context->deltaTime);
-                if(math.length(rabbit->tCollider.velocity) < settings.movement.moveSpeed) 
-                    tCollider.velocity += settings.movement.acceleration * context->deltaTime * aim;
+                tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
+                if(math.length(tCollider.velocity) < settings.movement.moveSpeed) 
+                    tCollider.velocity += settings.movement.acceleration * EntityJob.cxt.deltaTime * aim;
             }
         }
 
-        [BurstCompile]
-        private static unsafe void ReleasePath(RabbitEntity* rabbit){
-            if(rabbit->pathFinder.hasPath) 
-                UnsafeUtility.Free(rabbit->pathFinder.path, Unity.Collections.Allocator.Persistent);
-            rabbit->pathFinder.hasPath = false;
-        }
-
-        [BurstCompile]
-        public unsafe static void Disable(Entity* entity){
-            entity->active = false;
-        }
+        public override void Disable(){}
 
     }
 }

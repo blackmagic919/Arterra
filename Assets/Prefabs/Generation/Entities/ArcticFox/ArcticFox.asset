@@ -12,6 +12,39 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
   m_Name: ArcticFox
   m_EditorClassIdentifier: 
+  Profile:
+    value:
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+  Info:
+    value:
+      bounds:
+        x: 2
+        y: 3
+        z: 2
+      profileStart: 0
   _Controller:
     value: {fileID: 1869515680497457174, guid: 092657fe27da741e39e3487e750d3fc0, type: 3}
   _Setting:
@@ -34,36 +67,3 @@ MonoBehaviour:
           y: -0.6
           z: -0.25
         useGravity: 1
-  _Profile:
-    value:
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-  _Info:
-    value:
-      bounds:
-        x: 2
-        y: 3
-        z: 2
-      profileStart: 48

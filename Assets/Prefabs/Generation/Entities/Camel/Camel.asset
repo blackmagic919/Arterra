@@ -12,11 +12,90 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 783ba03f61b61455397331b82dce89e5, type: 3}
   m_Name: Camel
   m_EditorClassIdentifier: 
+  Profile:
+    value:
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    isDirty: 0
+  Info:
+    value:
+      bounds:
+        x: 3
+        y: 4
+        z: 3
+      profileStart: 0
   _Controller:
     value: {fileID: 790299623469635556, guid: 18697aa2fb6d34d25941e34a120018da, type: 3}
-    isDirty: 0
-  _Entity:
-    isDirty: 0
   _Setting:
     value:
       movement:
@@ -40,87 +119,3 @@ MonoBehaviour:
           y: -2
           z: -1
         useGravity: 1
-    isDirty: 0
-  _Profile:
-    value:
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    isDirty: 0
-  _Info:
-    value:
-      bounds:
-        x: 3
-        y: 4
-        z: 3
-      profileStart: 80
-    isDirty: 0

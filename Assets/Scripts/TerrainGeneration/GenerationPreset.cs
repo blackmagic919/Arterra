@@ -409,7 +409,7 @@ public static class GenerationPreset
                 EntityDictionary[i].Info = info;
                 EntityDictionary[i].Entity.Preset(EntityDictionary[i].Setting);
 
-                entityProfile.AddRange(EntityDictionary[i].Profile);
+                entityProfile.AddRange(EntityDictionary[i].Profile.value);
             }
 
             entityInfoBuffer = new ComputeBuffer(numEntities, sizeof(uint) * 4, ComputeBufferType.Structured);

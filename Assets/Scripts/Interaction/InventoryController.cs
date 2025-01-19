@@ -203,11 +203,11 @@ public class InventoryController : UpdateTask
         static void DropItem(IItem item){
             WorldConfig.Generation.Entity.EntitySerial Entity = new();
             Entity.type = "EntityItem";
-            Entity.guid = Guid.NewGuid().ToString();
-            
+            Entity.data.info.entityId = Guid.NewGuid();
             Entity.data = new EItem.EItemEntity(new TerrainColliderJob.Transform{
                 position = CPUDensityManager.WSToGS(PlayerHandler.player.transform.position),
                 rotation = PlayerHandler.player.transform.rotation,
+                
             }, item);
 
             EntityManager.AddHandlerEvent(() => EntityManager.CreateEntity(Entity));

@@ -51,5 +51,5 @@ MonoBehaviour:
       SquashEnd: 1
       InfluenceEnd: 1
       InfluenceOffEnd: 1
-      AtmosphereEnd: 0.1
+      AtmosphereEnd: 1
       biome: 0

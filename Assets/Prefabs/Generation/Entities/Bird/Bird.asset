@@ -12,11 +12,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ac5298b744c34d5f8ceecb832cc99b6, type: 3}
   m_Name: Bird
   m_EditorClassIdentifier: 
+  Profile:
+    value:
+    - bounds: 4286644096
+      flags: 6
+    - bounds: 4286644096
+      flags: 6
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 4286644096
+      flags: 6
+    - bounds: 4286644096
+      flags: 6
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+  Info:
+    value:
+      bounds:
+        x: 2
+        y: 3
+        z: 2
+      profileStart: 0
   _Controller:
     value: {fileID: 5546489892204468177, guid: 0b8db709ddf3d41309f8684a630b72f7, type: 3}
-    isDirty: 0
-  _Entity:
-    isDirty: 0
   _Setting:
     value:
       movement:
@@ -43,39 +73,3 @@ MonoBehaviour:
           y: -0.25
           z: -0.25
         useGravity: 0
-    isDirty: 0
-  _Profile:
-    value:
-    - bounds: 4286644096
-      flags: 6
-    - bounds: 4286644096
-      flags: 6
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 4286644096
-      flags: 6
-    - bounds: 4286644096
-      flags: 6
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    isDirty: 0
-  _Info:
-    value:
-      bounds:
-        x: 2
-        y: 3
-        z: 2
-      profileStart: 12
-    isDirty: 0

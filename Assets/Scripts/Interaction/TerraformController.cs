@@ -351,20 +351,19 @@ public class TerraformController : UpdateTask
 
     private void PickupItems(float _){
         var eReg = Config.CURRENT.Generation.Entities;
-        unsafe void OnEntityFound(UIntPtr entity){
-            WorldConfig.Generation.Entity.Entity* e = (WorldConfig.Generation.Entity.Entity*)entity;
-            if(e->info.entityType != eReg.RetrieveIndex("EntityItem")) return;
-            if(!e->active) return;
-            EItem.EItemEntity* item = (EItem.EItemEntity*)e->obj;
-            if(item->isPickedUp) return;
+        unsafe void OnEntityFound(WorldConfig.Generation.Entity.Entity entity){
+            if(entity.info.entityType != eReg.RetrieveIndex("EntityItem")) return;
+            if(!entity.active) return;
+            EItem.EItemEntity item = (EItem.EItemEntity)entity;
+            if(item.isPickedUp) return;
 
-            IItem slot = item->item.Slot;
+            IItem slot = item.item.Slot;
             if(slot == null) return;
 
             InventoryController.AddEntry(slot);
             if(slot.AmountRaw != 0) return;
-            item->isPickedUp = true; 
-            EntityManager.AddHandlerEvent(() => EntityManager.ReleaseEntity(e->info.entityId));
+            item.isPickedUp = true; 
+            EntityManager.AddHandlerEvent(() => EntityManager.ReleaseEntity(entity.info.entityId));
         }
 
         EntityManager.STree.TreeNode.Bounds bounds = new (){

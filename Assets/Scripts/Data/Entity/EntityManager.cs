@@ -18,8 +18,8 @@ public static class EntityManager
     private static EntityGenOffsets bufferOffsets;
     private static ComputeShader entityGenShader;
     private static ComputeShader entityTranscriber;
-    public static NativeList<IntPtr> EntityHandler; //List of all entities placed adjacently
-    public static Dictionary<string, int> EntityIndex; //tracks location in handler of entityGUID
+    public static List<Entity> EntityHandler; //List of all entities placed adjacently
+    public static Dictionary<Guid, int> EntityIndex; //tracks location in handler of entityGUID
     public static STree ESTree; //BVH of entities updated synchronously
     public static Action HandlerEvents; //Buffered updates to modify entities(since it can't happen while job is executing)
     private static EntityJob Executor; //Job that updates all entities
@@ -58,100 +58,107 @@ public static class EntityManager
 
     public unsafe static void Release(){
         //Debug.Log(EntityHandler.Length);
-        Executor.Complete();
-        EntityHandler.Dispose(); //Controllers will automatically release 
+        Executor.Complete(); 
         ESTree.Dispose();
     }
 
     public static void AddHandlerEvent(Action action){
         //If there's no job running directly execute it
-        if(!Executor.active || !Executor.dispatched)  action.Invoke();
-        else HandlerEvents += action;
-
+        if(!Executor.active) {
+            Executor = new EntityJob(); //make new one to reset
+            OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
+        }  HandlerEvents += action;
     }
 
+    public unsafe static Entity GetEntity(Guid entityId){
+        if(!EntityIndex.ContainsKey(entityId)) return null;
+        int entityInd = EntityIndex[entityId];
+        return EntityHandler[entityInd];
+    }
+
+    public unsafe static Entity GetEntity(int entityIndex){
+        return EntityHandler[entityIndex];
+    }
+    
     public static void InitializeEntity(GenPoint genInfo, int3 CCoord){AddHandlerEvent(() => InitializeE(genInfo, CCoord));}
     public static void CreateEntity(EntitySerial sEntity){AddHandlerEvent(() => CreateE(sEntity));}
-    public static void ReleaseEntity(JGuid entityId){AddHandlerEvent(() => ReleaseEntity(entityId));}
-    public unsafe static void ReleaseE(JGuid entityId){
+    public static void ReleaseEntity(Guid entityId){AddHandlerEvent(() => ReleaseE(entityId));}
+    public unsafe static void ReleaseE(Guid entityId){
         if(!EntityIndex.ContainsKey(entityId)) {
             return;
         }
         int entityInd = EntityIndex[entityId];
-        Entity* entity = (Entity*)EntityHandler[entityInd];
-        Entity.Disable(entity);
+        Entity entity = EntityHandler[entityInd];
         EntityIndex.Remove(entityId);
+        ESTree.Delete((int)entity.info.SpatialId);
+        entity.Disable();
+        entity.active = false;
 
         //Fill in hole
-        if(entityInd != EntityHandler.Length-1){
-            entity = (Entity*)EntityHandler[EntityHandler.Length-1];
-            EntityHandler[entityInd] = (IntPtr)entity;
-            EntityIndex[entity->info.entityId] = entityInd;
+        if(entityInd != EntityHandler.Count-1){
+            entity = EntityHandler[^1];
+            EntityHandler[entityInd] = entity;
+            EntityIndex[entity.info.entityId] = entityInd;
         }
-        EntityHandler.RemoveLast();
+        EntityHandler.RemoveAt(EntityHandler.Count - 1);
     }
     private unsafe static void InitializeE(GenPoint genInfo, int3 CCoord){
-        Entity newEntity = new ();
-        
-        int entityInd = EntityHandler.Length;
         int mapSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
         
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg.value[(int)genInfo.entityIndex].Value;
+        Entity newEntity = authoring.Entity;
         newEntity.info.profile = authoring.Info;
         newEntity.info.entityId = Guid.NewGuid();
         newEntity.info.entityType = genInfo.entityIndex;
         newEntity.active = true;
-        EntityIndex[newEntity.info.entityId] = entityInd;
+        EntityIndex[newEntity.info.entityId] = EntityHandler.Count;
         HandlerEvents = null;
         
-        IntPtr entity = authoring.Entity.Initialize(ref newEntity, GCoord);
-        EntityHandler.Add(entity);
-        ((Entity*)entity)->info.SpatialId = ESTree.Insert(GCoord, entity);
+        newEntity.Initialize(GCoord);
+        EntityHandler.Add(newEntity);
+        newEntity.info.SpatialId = ESTree.Insert(GCoord, newEntity.info.entityId);
 
         //Add controller
         EntityController controller = UnityEngine.Object.Instantiate(authoring.Controller).GetComponent<EntityController>();
         if(controller == null) throw new Exception("Entity Controller is null");
-        controller.Initialize(entity);
+        controller.Initialize(newEntity);
 
         if(Executor.active) return;
         Executor = new EntityJob(); //make new one to reset
-        TerrainGeneration.OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
+        OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
     }
 
     private unsafe static void CreateE(EntitySerial sEntity){
-        Entity newEntity = new ();
-        int entityInd = EntityHandler.Length;
-        
         var reg = Config.CURRENT.Generation.Entities;
         Authoring authoring = reg.Retrieve(sEntity.type);
+        Entity newEntity = sEntity.data;
         newEntity.info.profile = authoring.Info;
-        newEntity.info.entityId = sEntity.guid;
         newEntity.info.entityType = (uint)reg.RetrieveIndex(sEntity.type);
         newEntity.active = true;
-        EntityIndex[newEntity.info.entityId] = entityInd;
+        EntityIndex[newEntity.info.entityId] = EntityHandler.Count;
 
-        IntPtr entity = sEntity.data.Deserialize(ref newEntity, out int3 GCoord);
-        EntityHandler.Add(entity);
-        ((Entity*)entity)->info.SpatialId = ESTree.Insert(GCoord, entity);
+        newEntity.Deserialize(out int3 GCoord);
+        EntityHandler.Add(newEntity);
+        newEntity.info.SpatialId = ESTree.Insert(GCoord, newEntity.info.entityId);
 
         EntityController controller = UnityEngine.Object.Instantiate(authoring.Controller).GetComponent<EntityController>();
         if(controller == null) throw new Exception("Entity Controller is null");
-        controller.Initialize(entity);
+        controller.Initialize(newEntity);
 
         if(Executor.active) return;
         Executor = new EntityJob(); //make new one to reset
-        TerrainGeneration.OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
+        OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
     }
 
-    public unsafe static void AssertEntityLocation(Entity* entity, int3 GCoord){
-        if(entity->info.SpatialId == 0) return;
-        if(ESTree[ESTree[entity->info.SpatialId].Parent].bounds.Contains(GCoord)){
-            ESTree.GetRef((int)entity->info.SpatialId).bounds = new STree.TreeNode.Bounds(GCoord);
+    public unsafe static void AssertEntityLocation(Entity entity, int3 GCoord){
+        if(entity.info.SpatialId == 0) return;
+        if(ESTree[ESTree[entity.info.SpatialId].Parent].bounds.Contains(GCoord)){
+            ESTree.tree[(int)entity.info.SpatialId].bounds = new STree.TreeNode.Bounds(GCoord);
             return;
         } 
-        ESTree.Delete((int)entity->info.SpatialId);
-        entity->info.SpatialId = ESTree.Insert(GCoord, (IntPtr)entity);
+        ESTree.Delete((int)entity.info.SpatialId);
+        entity.info.SpatialId = ESTree.Insert(GCoord, entity.info.entityId);
     }
 
     private static void OnEntitiesRecieved(NativeArray<GenPoint> entities, uint address, int3 CCoord){
@@ -174,8 +181,8 @@ public static class EntityManager
         if(!mapInfo.valid) return; 
         //mapinfo.CCoord is coord of previous chunk
         STree.TreeNode.Bounds bounds = new STree.TreeNode.Bounds{Min = mapInfo.CCoord * mapChunkSize, Max = (mapInfo.CCoord + 1) * mapChunkSize - 1};
-        ESTree.Query(bounds, (UIntPtr entity) => {
-            ReleaseEntity(((Entity*)entity)->info.entityId);
+        ESTree.Query(bounds, (Entity entity) => {
+            ReleaseEntity(entity.info.entityId);
         });
     }
 
@@ -186,8 +193,8 @@ public static class EntityManager
         List<Entity> entities = new List<Entity>();
         STree.TreeNode.Bounds bounds = new() { Min = mapInfo.CCoord * mapChunkSize, Max = (mapInfo.CCoord + 1) * mapChunkSize - 1};
         //This does not change the entity list so can be done directly
-        ESTree.Query(bounds, (UIntPtr entity) => {
-            entities.Add(*(Entity*)entity);
+        ESTree.Query(bounds, (Entity entity) => {
+            entities.Add(entity);
         });
 
         return entities;
@@ -195,9 +202,9 @@ public static class EntityManager
     
 
     public static void Initialize(){
-        EntityHandler = new NativeList<IntPtr>(MAX_ENTITY_COUNT, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+        EntityHandler = new List<Entity>();
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
-        EntityIndex = new Dictionary<string, int>();
+        EntityIndex = new Dictionary<Guid, int>();
         Executor = new EntityJob{active = false};
 
         int numPointsPerAxis = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
@@ -303,15 +310,13 @@ public static class EntityManager
 
     //More like a BVH, or a dynamic R-Tree with no overlap
     public unsafe struct STree{
-        public NativeArray<TreeNode> _tree;
-        [NativeDisableUnsafePtrRestriction]
-        public TreeNode* tree;
+        public TreeNode[] tree;
         //mark as volatile so we get the latest value
         public uint length; 
         public readonly uint Length => length - 1;
         public readonly uint Root{
             get{return tree[0].Right;}
-            set{GetRef(0).Right = value;}
+            set{tree[0].Right = value;}
         }
 
         public TreeNode this[int index]{
@@ -324,24 +329,8 @@ public static class EntityManager
             set{tree[(int)index] = value;}
         }
 
-        public readonly ref TreeNode GetRef(int index)
-        {
-            //Allow tree to access nodes outside Length to workaround threads, it seems unsafe, but is not catastrophic
-            if (index < 0 || index >= _tree.Length)
-                throw new ArgumentOutOfRangeException(nameof(index));
-            unsafe { return ref UnsafeUtility.ArrayElementAsRef<TreeNode>(tree, index); }
-        }
-
-        public readonly unsafe TreeNode* GetPtr(int index)
-        {
-            if (index < 0 || index >= _tree.Length)
-                throw new ArgumentOutOfRangeException(nameof(index));
-            return tree + index;
-        }
-
         public STree(int capacity){
-            _tree = new NativeArray<TreeNode>(capacity, Allocator.Persistent);
-            tree = (TreeNode*)_tree.GetUnsafePtr();
+            tree = new TreeNode[capacity];
             tree[0] = new TreeNode{
                 bounds = new TreeNode.Bounds{
                     Min = new int3(int.MinValue),
@@ -354,21 +343,21 @@ public static class EntityManager
         }
 
         public void Dispose(){
-            _tree.Dispose();
             length = 0;
         }
 
-        public uint Insert(int3 position, IntPtr ptr){
-            uint leafInd = length; tree[(int)leafInd] = TreeNode.MakeLeaf(position, ptr);
+        public uint Insert(int3 position, Guid eId){
+            uint leafInd = length; 
+            tree[(int)leafInd] = TreeNode.MakeLeaf(position, eId);
             length++;
 
             if(length == 2) Root = leafInd;
-            else RecursiveInsert(position, Root, ptr);
+            else RecursiveInsert(position, Root);
             return leafInd;
         }
 
-        private void RecursiveInsert(int3 position, uint current, IntPtr ptr){
-            ref TreeNode node = ref GetRef((int)current);
+        private void RecursiveInsert(int3 position, uint current){
+            ref TreeNode node = ref tree[(int)current];
             if(node.IsLeaf){
                 tree[(int)length] = new TreeNode{
                     bounds = node.bounds.GetExpand(position),
@@ -376,28 +365,28 @@ public static class EntityManager
                     Right = length - 1,
                     Parent = node.Parent
                 };
-                GetRef((int)node.Parent).ReplaceChild(current, length);
-                GetRef((int)length - 1).Parent = length;
+                tree[(int)node.Parent].ReplaceChild(current, length);
+                tree[(int)length - 1].Parent = length;
                 node.Parent = length;
                 length++;
                 return;
             }
             
             node.bounds.Expand(position);
-            ref TreeNode.Bounds B1 = ref GetRef((int)node.Left).bounds; 
-            ref TreeNode.Bounds B2 = ref GetRef((int)node.Right).bounds; 
-            if(B1.Contains(position)) RecursiveInsert(position, node.Left, ptr);
-            else if(B2.Contains(position)) RecursiveInsert(position, node.Right, ptr); 
+            ref TreeNode.Bounds B1 = ref tree[(int)node.Left].bounds; 
+            ref TreeNode.Bounds B2 = ref tree[(int)node.Right].bounds; 
+            if(B1.Contains(position)) RecursiveInsert(position, node.Left);
+            else if(B2.Contains(position)) RecursiveInsert(position, node.Right); 
             else{
                 TreeNode.Bounds B1Prime, B2Prime;
                 B1Prime = B1.GetExpand(position);
                 B2Prime = B2.GetExpand(position);
 
                 //I guarantee there's a configuration that does not intersect
-                if(B1Prime.Intersects(B2)) RecursiveInsert(position, node.Right, ptr);
-                else if(B2Prime.Intersects(B1)) RecursiveInsert(position, node.Left, ptr);
-                else if(B1Prime.Size() >= B2Prime.Size()) RecursiveInsert(position, node.Right, ptr);
-                else RecursiveInsert(position, node.Left, ptr);
+                if(B1Prime.Intersects(B2)) RecursiveInsert(position, node.Right);
+                else if(B2Prime.Intersects(B1)) RecursiveInsert(position, node.Left);
+                else if(B1Prime.Size() >= B2Prime.Size()) RecursiveInsert(position, node.Right);
+                else RecursiveInsert(position, node.Left);
             }
         } 
 
@@ -406,8 +395,8 @@ public static class EntityManager
             if(index > length - 1 || index == 0) return;
             if(tree == null) return;
 
-            ref TreeNode node = ref GetRef(index);
-            ref TreeNode parent = ref GetRef((int)node.Parent);
+            ref TreeNode node = ref tree[index];
+            ref TreeNode parent = ref tree[(int)node.Parent];
             uint Sibling = index == parent.Left ? parent.Right : parent.Left;
             if(!node.IsLeaf) return; 
             if(node.Parent == 0) {
@@ -416,8 +405,8 @@ public static class EntityManager
             }
 
             uint parentIndex = node.Parent;
-            GetRef((int)parent.Parent).ReplaceChild(node.Parent, Sibling);
-            GetRef((int)Sibling).Parent = parent.Parent;
+            tree[(int)parent.Parent].ReplaceChild(node.Parent, Sibling);
+            tree[(int)Sibling].Parent = parent.Parent;
             if(index < length - 2) {//This logic took me forever to figure out
                 if(parentIndex != length - 1) MoveEntry((int)length - 1, (uint)index);
                 else MoveEntry((int)length - 2, (uint)index);
@@ -433,50 +422,30 @@ public static class EntityManager
             if(oInd == nInd) return;
             TreeNode oNode = tree[oInd];
             if(!oNode.IsLeaf){
-                GetRef((int)oNode.Left).Parent = nInd;
-                GetRef((int)oNode.Right).Parent = nInd;
-            } else{ unsafe {
-                Entity* entity = (Entity*)oNode.GetLeaf;
-                entity->info.SpatialId = nInd;
-            }}
+                tree[(int)oNode.Left].Parent = nInd;
+                tree[(int)oNode.Right].Parent = nInd;
+            } else{
+                Entity entity = oNode.GetLeaf;
+                entity.info.SpatialId = nInd;
+            }
 
-            GetRef((int)oNode.Parent).ReplaceChild((uint)oInd, nInd);
+            tree[(int)oNode.Parent].ReplaceChild((uint)oInd, nInd);
             tree[(int)nInd] = oNode;
         }
 
 
         //The callback should not change STree as this will cause unpredictable behavior when query continues
-        public readonly void Query(TreeNode.Bounds bounds, Action<UIntPtr> action, int current = -1){
+        public readonly void Query(TreeNode.Bounds bounds, Action<Entity> action, int current = -1){
             if(current == -1) current = (int)Root;
             if(current == 0) return;
-            ref TreeNode node = ref GetRef(current);
+            ref TreeNode node = ref tree[current];
             if(node.IsLeaf){
                 action.Invoke(node.GetLeaf);
                 return;
             }
             
-            if(bounds.Intersects(GetRef((int)node.Left).bounds)) Query(bounds, action, (int)node.Left);
-            if(bounds.Intersects(GetRef((int)node.Right).bounds)) Query(bounds, action, (int)node.Right);
-        }
-
-        //Note: This function is not thread-safe, TreeNode is not predictable and may be a combination of
-        //multiple nodes, however Ptr is 64-bit and is atomic on 64-bit systems, which this query assumes is true
-        //Bounds may also be inaccurate, but that failure is not catastrophic.
-        public readonly unsafe void QueryAsync(TreeNode.Bounds bounds, FunctionPointer<Action<UIntPtr, UIntPtr>> Action, UIntPtr entity, int current = -1){
-            if(current == -1) current = (int)Root;
-            if(current == 0) return;
-            
-            //copy from cache/memory--this is not thread-safe
-            TreeNode node = tree[current]; 
-            if(node.IsLeaf){
-                //This is the only place for catastrophic failure, Leaf MUST be a valid pointer.
-                Action.Invoke(node.GetLeaf, entity);
-                return;
-            }
-
-            //The values obtained here may be inaccurate, but that's okay
-            if(bounds.Intersects(tree[(int)node.Left].bounds)) QueryAsync(bounds, Action, entity, (int)node.Left);
-            if(bounds.Intersects(tree[(int)node.Right].bounds)) QueryAsync(bounds, Action, entity, (int)node.Right);
+            if(bounds.Intersects(tree[(int)node.Left].bounds)) Query(bounds, action, (int)node.Left);
+            if(bounds.Intersects(tree[(int)node.Right].bounds)) Query(bounds, action, (int)node.Right);
         }
 
 
@@ -484,28 +453,22 @@ public static class EntityManager
             public Bounds bounds;
             //64-bit systems guarantee 64-bit copies are atomic for properly aligned elements
             //If 32-bit systems are used, this will not work
-            public ulong Ptr;
             public uint Parent;
-            public readonly bool IsLeaf => (Ptr & 0x8000000000000000) != 0;
-            public readonly UIntPtr GetLeaf => new (Ptr & 0x7FFFFFFFFFFFFFFF);
-            public uint Left{
-                readonly get{return (uint)(Ptr & 0xFFFFFFFF);}
-                set{Ptr = (Ptr & 0xFFFFFFFF00000000) | (value & 0xFFFFFFFF);}
-            }
-
-            public uint Right{
-                readonly get{return (uint)((Ptr >> 32) & 0x7FFFFFFF);}
-                set{Ptr = (Ptr & 0x80000000FFFFFFFF) | ((ulong)value & 0x7FFFFFFF) << 32;}
-            }
+            public uint Left;
+            public uint Right;
+            public Guid ObjId;
+            public readonly bool IsLeaf => ObjId != Guid.Empty;
+            public readonly Entity GetLeaf => GetEntity(ObjId);
             public TreeNode(int3 position){
                 bounds = new Bounds(position);
-                Ptr = 0ul;
+                Left = 0; Right = 0;
+                ObjId = Guid.Empty;
                 Parent = 0;
             }
 
-            public static TreeNode MakeLeaf(int3 position, IntPtr ptr){
+            public static TreeNode MakeLeaf(int3 position, Guid EntityId){
                 TreeNode node = new(position){ 
-                    Ptr = 0x8000000000000000 | (ulong)ptr,
+                    ObjId = EntityId,
                     Parent = 0,
                 };
                 return node;
@@ -603,15 +566,13 @@ public struct NativeList<T> where T: unmanaged{
 public class EntityJob : UpdateTask{
     public bool dispatched = false;
     private JobHandle handle;
-    private Context job;
+    public static Context cxt;
 
     public unsafe EntityJob(){
         active = true;
         dispatched = false;
-        job = new Context{
-            Entities = (Entity**)EntityManager.EntityHandler.GetPtr(0),
+        cxt = new Context{
             Profile = (ProfileE*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
-            sTree = EntityManager.ESTree,
             mapContext = new MapContext{
                 MapData = (MapData*)SectionedMemory.GetUnsafePtr(),
                 AddressDict = (ChunkMapInfo*)AddressDict.GetUnsafePtr(),
@@ -636,34 +597,35 @@ public class EntityJob : UpdateTask{
 
         EntityManager.HandlerEvents?.Invoke();
         EntityManager.HandlerEvents = null;
-        if(EntityManager.EntityHandler.Length == 0){
+        if(EntityManager.EntityHandler.Count == 0){
             this.active = false;
             return;
         }
 
-        job.deltaTime = Time.fixedDeltaTime;
-        handle = job.Schedule(EntityManager.EntityHandler.Length, 16);
+        cxt.deltaTime = Time.fixedDeltaTime;
+        handle = cxt.Schedule(EntityManager.EntityHandler.Count, 16);
         dispatched = true;
     }
 
-    [BurstCompile]
     public struct Context: IJobParallelFor{
-        [NativeDisableUnsafePtrRestriction]
-        public unsafe Entity** Entities;
         [NativeDisableUnsafePtrRestriction]
         [ReadOnly] public unsafe ProfileE* Profile;
         [ReadOnly] public unsafe MapContext mapContext;
-        public EntityManager.STree sTree;
         [ReadOnly] public float3 gravity; 
         [ReadOnly] public float deltaTime;
         public unsafe void Execute(int index){
-            Context cxt = this; //copy to stack so that address is fixed
-            Entity.Update(*(Entities + index), &cxt);
+            EntityManager.GetEntity(index).Update();
         }
     }
 
+}
+
+
+[BurstCompile]
+public unsafe struct PathFinder{
+
     [BurstCompile]
-    public unsafe static bool VerifyProfile(in int3 GCoord, in Entity.ProfileInfo info, in Context context, bool UseExFlag = true){
+    public unsafe static bool VerifyProfile(in int3 GCoord, in Entity.ProfileInfo info, in EntityJob.Context context, bool UseExFlag = true){
         bool allC = true; bool anyC = false; bool any0 = false;
         uint3 dC = new (0);
         for(dC.x = 0; dC.x < info.bounds.x; dC.x++){
@@ -689,21 +651,21 @@ public class EntityJob : UpdateTask{
                data.viscosity >= ((bounds >> 16) & 0xFF) && data.viscosity <= ((bounds >> 24) & 0xFF);
     }
 
-
-}
-
-
-[BurstCompile]
-public unsafe struct PathFinder{
-
     public struct PathInfo{
         public int3 currentPos; 
         public int currentInd;
-        public int pathLength;
-        [NativeDisableUnsafePtrRestriction][JsonIgnore]
-        public unsafe byte* path;
+        public byte[] path;
         public bool hasPath; //Resource isn't bound
-        //0x4 -> Controller Released, 0x2 -> Job Released, 0x1 -> Resource Released
+        public unsafe PathInfo(int3 currentPos, byte* path, int pathLength){
+            this.currentPos = currentPos;
+            this.currentInd = 0;
+            hasPath = true;
+
+            this.path = new byte[pathLength];
+            for(int i = 0; i < pathLength; i++){
+                this.path[i] = path[i];
+            } UnsafeUtility.Free(path, Allocator.Persistent);
+        }
     }
     
     public int PathMapSize;
@@ -863,7 +825,7 @@ public unsafe struct PathFinder{
             hCost = Get3DDistance(math.abs(End - ECoord));
 
             //Always assume the first point is valid
-            if(current.y != startInd && !EntityJob.VerifyProfile(Origin + ECoord - PathDistance, info, context)) 
+            if(current.y != startInd && !VerifyProfile(Origin + ECoord - PathDistance, info, context)) 
                 continue;
             if(hCost < bestEnd.y){
                 bestEnd.x = current.y;
@@ -908,9 +870,9 @@ public unsafe struct PathFinder{
             hCost = Get3DDistance(math.abs(End - ECoord));
 
             //Always assume the first point is valid
-            if(current.y != startInd && !EntityJob.VerifyProfile(Origin + ECoord - PathDistance, info, context)) 
+            if(current.y != startInd && !VerifyProfile(Origin + ECoord - PathDistance, info, context)) 
                 continue;
-            ReachedEnd = EntityJob.VerifyProfile(Origin + ECoord - PathDistance, info, context, false);
+            ReachedEnd = VerifyProfile(Origin + ECoord - PathDistance, info, context, false);
             if(hCost < bestEnd.y || ReachedEnd) bestEnd = new (current.y, hCost);
             if(current.y == pathEndInd || ReachedEnd) break;
 
@@ -949,7 +911,7 @@ public unsafe struct PathFinder{
             hCost = Get3DDistance(math.abs(End - ECoord));
 
             //Always assume the first point is valid
-            if(current.y != startInd && !EntityJob.VerifyProfile(Origin + ECoord - PathDistance, info, context)) 
+            if(current.y != startInd && !VerifyProfile(Origin + ECoord - PathDistance, info, context)) 
                 continue;
             //                 FScore - HScore = GScore
             if(current.x - hCost >= PathDistance * 10){

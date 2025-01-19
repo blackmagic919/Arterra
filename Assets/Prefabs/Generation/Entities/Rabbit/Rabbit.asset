@@ -12,11 +12,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 346b3105d71cf4c878de54fbbf5115c4, type: 3}
   m_Name: Rabbit
   m_EditorClassIdentifier: 
+  Profile:
+    value:
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    isDirty: 0
+  Info:
+    value:
+      bounds:
+        x: 2
+        y: 3
+        z: 2
+      profileStart: 0
   _Controller:
     value: {fileID: 6546456818936621580, guid: 195ebb10c364e4d08ae29d9e0a8332b8, type: 3}
-    isDirty: 0
-  _Entity:
-    isDirty: 0
   _Setting:
     value:
       movement:
@@ -37,39 +68,3 @@ MonoBehaviour:
           y: -0.3
           z: -0.25
         useGravity: 1
-    isDirty: 0
-  _Profile:
-    value:
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    isDirty: 0
-  _Info:
-    value:
-      bounds:
-        x: 2
-        y: 3
-        z: 2
-      profileStart: 0
-    isDirty: 0

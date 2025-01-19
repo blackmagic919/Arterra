@@ -157,8 +157,7 @@ public static class ChunkStorageManager
         for(int i = 0; i < entities.Count; i++){
             EntitySerial entity = new ();
             entity.type = eReg.RetrieveName((int)entities[i].info.entityType);
-            entity.guid = entities[i].info.entityId;
-            entity.data = (IEntity)Marshal.PtrToStructure(entities[i].obj, eReg.Retrieve(entity.type).Entity.GetType());
+            entity.data = entities[i];
             eSerial.Add(entity);
         }
         return eSerial;

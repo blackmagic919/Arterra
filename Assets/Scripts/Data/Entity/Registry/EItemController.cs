@@ -9,28 +9,25 @@ using WorldConfig.Generation.Entity;
 
 public class ItemController : EntityController
 {
-    private unsafe Entity* entity;
-    private unsafe EItem.EItemEntity* item => (EItem.EItemEntity*)entity->obj;
+    private unsafe EItem.EItemEntity entity;
     private EItem.EItemSetting settings => EItem.EItemEntity.settings;
     private bool active = false;
 
     private MeshRenderer meshRenderer;
     private MeshFilter meshFilter;
 
-    public override unsafe void Initialize(IntPtr Entity)
+    public override void Initialize(Entity Entity)
     {
-        this.entity = (Entity*)Entity;
+        this.entity = (EItem.EItemEntity)Entity;
         this.active = true;
 
-        float3 GCoord = new (item->GCoord);
-        float lerpScale = Config.CURRENT.Quality.Terrain.value.lerpScale;
-        int chunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        float3 GCoord = new (entity.GCoord);
         this.transform.position = CPUDensityManager.GSToWS(GCoord - settings.collider.offset) + (float3)Vector3.up;
 
         meshRenderer = gameObject.GetComponent<MeshRenderer>();
         meshFilter = gameObject.GetComponent<MeshFilter>();
         SpriteExtruder.Extrude(new SpriteExtruder.ExtrudeSettings{
-            ImageIndex = item->item.Slot.TexIndex,
+            ImageIndex = entity.item.Slot.TexIndex,
             SampleSize = settings.SpriteSampleSize,
             AlphaClip = settings.AlphaClip,
             ExtrudeHeight = settings.ExtrudeHeight,
@@ -45,36 +42,31 @@ public class ItemController : EntityController
     }
 
     public unsafe void FixedUpdate(){
-        if(!entity->active) return;
-        EntityManager.AssertEntityLocation(entity, item->GCoord);    
-        TerrainColliderJob.Transform rTransform = item->tCollider.transform;
+        if(!entity.active) return;
+        EntityManager.AssertEntityLocation(entity, entity.GCoord);    
+        TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
         rTransform.position = CPUDensityManager.GSToWS(rTransform.position - settings.collider.offset);
         this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
     }
     public override unsafe void Update()
     {
-        if(!entity->active) {
+        if(!entity.active) {
             Disable();
             return;
         }
-        
     }
 
-    public unsafe override void Disable(){ 
+    public override void Disable(){ 
         if(!active) return;
         active = false;
 
-        item->item.Dispose();
-        EntityManager.ESTree.Delete((int)entity->info.SpatialId);
-        Marshal.FreeHGlobal((IntPtr)item);
-        Marshal.FreeHGlobal((IntPtr)entity);
         Destroy(gameObject);
         base.Disable();
      }
     public unsafe void OnDrawGizmos(){
         if(!active) return;
         Gizmos.color = Color.red;
-        Gizmos.DrawWireCube(item->tCollider.transform.position, settings.collider.size * 2);
+        Gizmos.DrawWireCube(entity.tCollider.transform.position, settings.collider.size * 2);
     }
 
 }

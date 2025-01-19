@@ -1,11 +1,10 @@
-using System;
+/*using System;
 using UnityEngine;
 using Unity.Mathematics;
 using Newtonsoft.Json;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Burst;
 using UnityEditor;
-using System.Collections.Generic;
 namespace WorldConfig.Generation.Entity{
 /// <summary>
 /// A generic contract that ensures that all entities contain a certain
@@ -13,17 +12,17 @@ namespace WorldConfig.Generation.Entity{
 /// </summary>
 public abstract class Authoring : ScriptableObject{
     /// <summary> A reference to the controller that manages the entity. See <see cref="EntityController"/> for more information. </summary>
-    public virtual EntityController Controller{get; }
+    public virtual GameObject Prefab{get; set; }
     /// <summary> A reference to the entity that contains the actual instance of the entity. See <see cref="IEntity"/> for more information</summary>
-    public virtual Entity Entity{get; }
+    public virtual Entity Entity{get; set;}
     /// <summary> A reference to the readonly shared settings that all instances of this entity uses. See <see cref="IEntitySetting"/> for more information</summary>
     public virtual IEntitySetting Setting{get; set;}
     /// <summary> A list of points defining the profile of the entity, the list is linearly encoded through the dimensions
     /// specified in <see cref="Entity.ProfileInfo"/>. See <see cref="ProfileE"/> for more information </summary>
-    public Option<List<ProfileE>> Profile;
+    public virtual ProfileE[] Profile{get; set;}
     /// <summary> A reference to the profile information of the entity. Used during generation to place the entity. See <see cref="Entity.ProfileInfo"/> 
     /// for more information  </summary>
-    public Option<Entity.ProfileInfo> Info;
+    public virtual Entity.ProfileInfo Info{get; set;}
 }
 
 
@@ -40,6 +39,10 @@ public abstract class Entity{
     /// that it can release the entity. Once this flag is set to false, it cannot be set to true without risking race
     /// conditions and undefined behavior. </summary>
     public bool active;
+    /// <summary> A pointer to the specific entity within unmanaged memory. Information specific to the entity's type
+    /// is stored in this structure. The structure being pointed to implements the <see cref="IEntity"/>
+    /// interface and has populated the virtual function table(see <see cref="IEntity.Initialize(ref Entity, int3)"/>)
+    /// with the correct functions. </summary>
 
     /// <summary> A single line property calling the entity's virtual update function. See <see cref="Entity._Update"/> for more information. </summary>
     /// <param name="entity">The entity that is the instance the function is being called on. Equivalent to <c>this</c> in a managed type's method</param>
@@ -47,36 +50,13 @@ public abstract class Entity{
     public abstract void Update();
     /// <summary> A single line property calling the entity's virtual disable function. See <see cref="Entity._Disable"/> for more information.</summary> 
     /// <param name="entity">The entity that is the instance the function is being called on. Equivalent to <c>this</c> in a managed type's method</param>
-   public abstract void Disable();
-    /// <summary> Presets any information shared by all instances of the entity. This is only called once per entity type within
-    /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information.
-    /// </summary> <remarks> For example, if the entity uses a state machine it can allocate function pointers to each state within the machine such that
-    /// they may be referenced through an edge list. </remarks>
-    /// <param name="Settings">The entity's settings, the concrete information known by the entity.</param>
-    public abstract void Preset(IEntitySetting Settings);
-    /// <summary> A callback to release any information set by <see cref="Preset"/>. Called once per entity type within the 
-    /// <see cref="Config.GenerationSettings.Entities"> entity register </see> before the game is closed.  </summary>
+    public abstract void Disable();
+
+    public abstract void Preset(IEntitySetting setting);
     public abstract void Unset();
-    /// <summary>
-    /// Initializes the entity's instance. Called when creating an instance of the entity.
-    /// The callee may preset any default values during this process but it <b>must</b> guarantee
-    /// that the entity returned is fully populated (i.e. virtual functions all set).
-    /// </summary>
-    /// <param name="entity">The entity that contains it. This is copied to unmanaged memory by the callee; only this instance 
-    /// should be copied as the system has already filled out all necessary metadata in it. </param>
-    /// <param name="GCoord">The position in grid space the entity was placed at. </param>
-    /// <returns>A pointer to an unmanaged <see cref="Entity"/> that wraps the <see cref="IEntity"/> with
-    /// all virtual function pointers filled in. </returns>
-    public abstract void Initialize(int3 GCoord);
-    /// <summary>
-    /// Deserializes the entity's instance. Some of the entity's information may be retrieved from serialization
-    /// while others may need to be thrown away. This function is called when the entity is deserialized 
-    /// in case the entity needs to reframe its information.
-    /// </summary>
-    /// <param name="entity">The entity that contains it. See <see cref="Initialize"/> for more info. </param>
-    /// <param name="GCoord">The position in grid space the entity was placed at. </param>
-    /// <returns>A pointer to an unmanaged <see cref="Entity"/>. See <see cref="Initialize"/> for more info. </returns>
-    public abstract void Deserialize(out int3 GCoord);
+
+    public abstract void Initialize(GameObject prefab, int3 GCoord);
+    public abstract void Deserialize(GameObject prefab, out int3 GCoord);
     
     /// <summary>
     /// Settings for a structure that is required for the systems governing how entities are identified
@@ -87,18 +67,16 @@ public abstract class Entity{
     [System.Serializable]
     public struct Info{
         /// <summary> The profile information of the entity. See <see cref="ProfileInfo"/> for more information. </summary>
-        [JsonIgnore]
         public ProfileInfo profile;
         /// <summary>
         /// The index within the <see cref="EntityManager.STree"> spatial partition tree </see> that contains all entities of the 
         /// entity type. This spatial index and tree may change while the entity is active as the entity moves so do not rely on this
         /// always providing the correct spatial index. See <see cref="EntityManager.STree"/> for more info.
         /// </summary>
-        [JsonIgnore]
         public uint SpatialId;
         /// <summary> The job-safe unique identifier of the entity that remains the same throughout the entity's life cycle, regardless of if it's serialized
         /// or saved to disk. See <see cref="JGuid"/> for more information. </summary>
-        public Guid entityId;
+        public JGuid entityId;
         /// <summary> The index of the entity's name within the <see cref="WorldConfig.Config.GenerationSettings.Entities"/> registry. This is guaranteed to be different
         /// for two different types of entities and can be used to test such. If the entity is serialized, this should be decoupled and recoupled upon deserialization. </summary>
         public uint entityType;
@@ -185,8 +163,11 @@ public struct EntitySerial{
     /// Upon deserialization, this type is used to cast <see cref="data"/> to before populating its data. An incorrect <see cref="type"/> will cause the entity
     /// to fail deserialization and be deleted. See <see cref="Utils.NSerializable.EntityConverter"/> for more information. </summary>
     public string type;
+    /// <summary> The <see cref="Entity.Info.entityId"> guid </see> of the entity. As long as 
+    /// the entity exists somewhere its guid does not change </summary>
+    public string guid;
     /// <summary> The data of the entity, known by the entity itself. The <see cref="type"/> is used to serialize and deserialize this information. </summary>
-    public Entity data;
+    public Entity entity;
 }
 
 /// <summary>
@@ -221,6 +202,63 @@ public struct ProfileE {
     public readonly bool ExFlag => (flags & 0x4) != 0;
 }
 
+/// <summary> The job-safe representation of a <see cref="Guid"/>. Stores the data in a fixed byte array
+/// that can be referenced in an unmanaged context. </summary>
+[BurstCompile]
+public struct JGuid{
+    /// <summary> The raw data of the guid stored in a fixed byte array. </summary>
+    [NativeDisableUnsafePtrRestriction]
+    public unsafe fixed byte GuidData[16];
+
+    /// <summary> Implicitly converts a <see cref="Guid"/> to a <see cref="JGuid"/>. </summary>
+    /// <param name="guid">The GUID that is being set</param>
+    public static implicit operator JGuid (Guid guid){
+        JGuid jGuid = new JGuid();
+        unsafe{
+            byte* data = jGuid.GuidData;
+            byte[] bytes = guid.ToByteArray();
+            for(int i = 0; i < 16; i++) data[i] = bytes[i];
+        }
+        return jGuid;
+    }
+    /// <summary> Implicitly converts a <see cref="JGuid"/> to a <see cref="Guid"/>. </summary>
+    /// <param name="jGuid">The guid stored in this object</param>
+    public static implicit operator Guid (JGuid jGuid){
+        Guid guid;
+        unsafe{
+            byte* data = jGuid.GuidData;
+            byte[] bytes = new byte[16];
+            for(int i = 0; i < 16; i++) bytes[i] = data[i];
+            guid = new Guid(bytes);
+        }
+        return guid;
+    }
+
+    /// <summary> Implicitly converts a <see cref="string"/> to a <see cref="JGuid"/>. </summary>
+    /// <param name="guid">The guid stored as a string that is being set</param>
+    public static implicit operator JGuid (string guid){
+        JGuid jGuid = new JGuid();
+        unsafe{
+            byte* data = jGuid.GuidData;
+            byte[] bytes = Guid.Parse(guid).ToByteArray();
+            for(int i = 0; i < 16; i++) data[i] = bytes[i];
+        }
+        return jGuid;
+    }
+
+    /// <summary> Implicitly converts a <see cref="JGuid"/> to a <see cref="string"/>. </summary>
+    /// <param name="jGuid">The guid stored in this object</param>
+    public static implicit operator string (JGuid jGuid){
+        string guid;
+        unsafe{
+            byte* data = jGuid.GuidData;
+            byte[] bytes = new byte[16];
+            for(int i = 0; i < 16; i++) bytes[i] = data[i];
+            guid = new Guid(bytes).ToString();
+        }
+        return guid;
+    }    
+}
 
 /// <summary> A utility class to override serialization of <see cref="ProfileE"/> into a Unity Inspector format.
 /// It exposes the internal components of the bitmap so it can be more easily understood by the developer. </summary>
@@ -290,3 +328,4 @@ public class MapDataDrawer : PropertyDrawer{
 }
 
 
+*/

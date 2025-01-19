@@ -27,15 +27,13 @@ public static class JsonCustomSettings
             settings.Converters.Add(new QuaternionConverter());
             settings.Converters.Add(new SObjConverter());
 
+            settings.Converters.Add(new UInt3Converter());
             settings.Converters.Add(new Int4Converter());
             settings.Converters.Add(new Int3Converter());
             settings.Converters.Add(new Int2Converter());
             settings.Converters.Add(new Float4Converter());
             settings.Converters.Add(new Float3Converter());
             settings.Converters.Add(new Float2Converter());
-
-            settings.Converters.Add(new PathConverter());
-            settings.Converters.Add(new EntityConverter());
             return settings;
         };
     }
@@ -228,6 +226,21 @@ public class Float2Converter : JsonConverter<float2>
     }
 }
 
+public class UInt3Converter : JsonConverter<uint3>
+{
+    public override void WriteJson(JsonWriter writer, uint3 value, JsonSerializer serializer)
+    {
+        JArray array = new(value.x, value.y, value.z);
+        array.WriteTo(writer);
+    }
+
+    public override uint3 ReadJson(JsonReader reader, Type objectType, uint3 existingValue, bool hasExistingValue, JsonSerializer serializer)
+    {
+        JArray array = JArray.Load(reader);
+        return new uint3((uint)array[0], (uint)array[1], (uint)array[2]);
+    }
+}
+
 public class SObjConverter : JsonConverter<ScriptableObject>
 {
     public override void WriteJson(JsonWriter writer, ScriptableObject value, JsonSerializer serializer)
@@ -249,67 +262,4 @@ public class SObjConverter : JsonConverter<ScriptableObject>
         serializer.Populate(reader, instance);
         return instance;
     }
-}
-
-public class EntityConverter : JsonConverter<WorldConfig.Generation.Entity.EntitySerial>{ 
-    public override void WriteJson(JsonWriter writer, WorldConfig.Generation.Entity.EntitySerial value, JsonSerializer serializer)
-    {
-        JObject o = new JObject
-        {
-            new JProperty("type", value.type),
-            new JProperty("guid", value.guid),
-            new JProperty("data", JToken.FromObject(value.data, serializer))
-        };
-        o.WriteTo(writer);
-    }   
-    public override WorldConfig.Generation.Entity.EntitySerial ReadJson(JsonReader reader, Type objectType, WorldConfig.Generation.Entity.EntitySerial existingValue, bool hasExistingValue, JsonSerializer serializer)
-    {
-        WorldConfig.Generation.Entity.EntitySerial entity = new(); 
-        JObject obj = JObject.Load(reader);
-        
-        var reg = Config.CURRENT.Generation.Entities;
-        entity.type = (string)obj["type"]; 
-        entity.guid = (string)obj["guid"];
-        //Retrieve the type from the registry and deserialize the data
-        Type entityType = reg.Retrieve(entity.type).Entity.GetType();
-        entity.data = (WorldConfig.Generation.Entity.IEntity)serializer.Deserialize(obj["data"].CreateReader(), entityType);
-        return entity;
-    }
-}
-
-public class PathConverter : JsonConverter<PathFinder.PathInfo>
-{
-    public override void WriteJson(JsonWriter writer, PathFinder.PathInfo value, JsonSerializer serializer)
-    {
-        JArray array = new(value.currentPos.x, value.currentPos.y, value.currentPos.z, 
-                           value.currentInd, value.pathLength, value.hasPath);
-        unsafe{ if(value.hasPath){
-            for(int i = 0; i < value.pathLength; i++){
-                array.Add(value.path[i]);
-            }
-        }}
-        array.WriteTo(writer);
-    }
-
-    public override PathFinder.PathInfo ReadJson(JsonReader reader, Type objectType, PathFinder.PathInfo existingValue, bool hasExistingValue, JsonSerializer serializer)
-    {
-        PathFinder.PathInfo path = new();
-        JArray array = JArray.Load(reader);
-        path.currentPos.x = (int)array[0];
-        path.currentPos.y = (int)array[1];
-        path.currentPos.z = (int)array[2];
-        path.currentInd = (int)array[3];
-        path.pathLength = (int)array[4];
-        path.hasPath = (bool)array[5];
-
-        unsafe{ if(path.hasPath){
-            path.path = (byte*)UnsafeUtility.Malloc(path.pathLength, 4, Unity.Collections.Allocator.Persistent);
-            for(int i = 0; i < path.pathLength; i++){
-                path.path[i] = array[i+6].ToObject<byte>();
-            }
-        }}
-
-        return path;
-    }
-}
-}
+}}

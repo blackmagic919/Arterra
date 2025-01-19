@@ -9,45 +9,42 @@ using WorldConfig.Generation.Entity;
 public class CamelController : EntityController
 {
     private Animator animator;
-    private unsafe Entity* entity;
-    private unsafe Camel.CamelEntity* camel => (Camel.CamelEntity*)entity->obj;
+    private unsafe Camel.CamelEntity entity;
     private Camel.CamelSetting settings => Camel.CamelEntity.settings;
     private bool active = false;
 
-    public override unsafe void Initialize(IntPtr Entity)
+    public override void Initialize(Entity Entity)
     {
-        this.entity = (Entity*)Entity;
+        this.entity = (Camel.CamelEntity)Entity;
         this.active = true;
 
-        float3 GCoord = new (camel->GCoord);
-        float lerpScale = Config.CURRENT.Quality.Terrain.value.lerpScale;
-        int chunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        float3 GCoord = new (entity.GCoord);
         animator = this.GetComponent<Animator>();
         this.transform.position = CPUDensityManager.GSToWS(GCoord - settings.collider.offset) + (float3)Vector3.up * 1;
         base.Initialize(Entity);
     }
 
     public unsafe void FixedUpdate(){
-        if(!entity->active) return;
-        EntityManager.AssertEntityLocation(entity, camel->GCoord);    
-        TerrainColliderJob.Transform rTransform = camel->tCollider.transform;
+        if(!entity.active) return;
+        EntityManager.AssertEntityLocation(entity, entity.GCoord);    
+        TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
         rTransform.position = CPUDensityManager.GSToWS(rTransform.position - settings.collider.offset);
         this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
     }
     public override unsafe void Update()
     {
-        if(!entity->active) {
+        if(!entity.active) {
             Disable();
             return;
         }
 
-        if(camel->TaskIndex == 3) 
+        if(entity.TaskIndex == 3) 
             animator.SetBool("IsWalking", true);
         else animator.SetBool("IsWalking", false);
-        if(camel->TaskIndex == 1)
+        if(entity.TaskIndex == 1)
             animator.SetBool("IsResting", true);
         else animator.SetBool("IsResting", false);
-        if(camel->TaskIndex == 0 && camel->TaskDuration > 2.0f){
+        if(entity.TaskIndex == 0 && entity.TaskDuration > 2.0f){
             animator.SetBool("IsScratching", true);
         } else animator.SetBool("IsScratching", false);
         
@@ -57,10 +54,6 @@ public class CamelController : EntityController
         if(!active) return;
         active = false;
 
-        if(camel->pathFinder.hasPath) UnsafeUtility.Free(camel->pathFinder.path, Unity.Collections.Allocator.Persistent);
-        EntityManager.ESTree.Delete((int)entity->info.SpatialId);
-        Marshal.FreeHGlobal((IntPtr)camel);
-        Marshal.FreeHGlobal((IntPtr)entity);
         Destroy(gameObject);
         base.Disable();
      }
@@ -69,10 +62,10 @@ public class CamelController : EntityController
         if(!active) return;
         Gizmos.color = Color.red; 
         Gizmos.DrawWireCube(transform.position, settings.collider.size * 2);
-        if(camel->pathFinder.hasPath){
-            PathFinder.PathInfo pathFinder = camel->pathFinder;
+        if(entity.pathFinder.hasPath){
+            PathFinder.PathInfo pathFinder = entity.pathFinder;
             int ind = pathFinder.currentInd;
-            while(ind != pathFinder.pathLength){
+            while(ind != pathFinder.path.Length){
                 int dir = pathFinder.path[ind];
                 int3 dest = pathFinder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
                 Gizmos.DrawLine(CPUDensityManager.GSToWS(pathFinder.currentPos - settings.collider.offset), CPUDensityManager.GSToWS(dest - settings.collider.offset));

@@ -12,11 +12,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b034b027c96fe450b96e91acc87dbc1c, type: 3}
   m_Name: EItem
   m_EditorClassIdentifier: 
+  Profile:
+    value:
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 4286644096
+      flags: 2
+    - bounds: 2130771712
+      flags: 1
+    - bounds: 2130771712
+      flags: 1
+  Info:
+    value:
+      bounds:
+        x: 2
+        y: 2
+        z: 2
+      profileStart: 0
   _Controller:
     value: {fileID: 5653881121737289674, guid: cdde00980c1ea4ddea86e60f5d7f261c, type: 3}
-    isDirty: 0
-  _Entity:
-    isDirty: 0
   _Setting:
     value:
       GroundStickDist: 0.05
@@ -36,31 +58,3 @@ MonoBehaviour:
           y: -0.1
           z: -0.25
         useGravity: 1
-    isDirty: 0
-  _Profile:
-    value:
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 4286644096
-      flags: 2
-    - bounds: 2130771712
-      flags: 1
-    - bounds: 2130771712
-      flags: 1
-    isDirty: 0
-  _Info:
-    value:
-      bounds:
-        x: 2
-        y: 2
-        z: 2
-      profileStart: 72
-    isDirty: 0

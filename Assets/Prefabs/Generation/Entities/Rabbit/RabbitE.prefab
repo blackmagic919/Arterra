@@ -62,7 +62,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 1bc0e8a91dde54ff4a90450bc6e40962, type: 3}
       propertyPath: m_Name
-      value: rabbit
+      value: RabbitE
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -71,6 +71,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1bc0e8a91dde54ff4a90450bc6e40962, type: 3}
       insertIndex: -1
       addedObject: {fileID: -5280223744013464889}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1bc0e8a91dde54ff4a90450bc6e40962, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -6311339835926051568}
   m_SourcePrefab: {fileID: 100100000, guid: 1bc0e8a91dde54ff4a90450bc6e40962, type: 3}
 --- !u!1 &6546456818936621580 stripped
 GameObject:
@@ -98,3 +101,15 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &-6311339835926051568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6546456818936621580}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 731aeb1e2962449c4b72d5080786e2de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

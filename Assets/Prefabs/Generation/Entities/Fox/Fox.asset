@@ -12,33 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
   m_Name: Fox
   m_EditorClassIdentifier: 
-  _Controller:
-    value: {fileID: 226241877390661924, guid: 1904b7349e8b640d7bb34de76d6ab011, type: 3}
-    isDirty: 0
-  _Entity:
-    isDirty: 0
-  _Setting:
-    value:
-      movement:
-        GroundStickDist: 0.05
-        moveSpeed: 3
-        acceleration: 200
-        friction: 0.075
-        rotSpeed: 180
-        pathDistance: 31
-        AverageIdleTime: 2.5
-      collider:
-        size:
-          x: 0.5
-          y: 1
-          z: 0.5
-        offset:
-          x: -0.25
-          y: -0.6
-          z: -0.25
-        useGravity: 1
-    isDirty: 0
-  _Profile:
+  Profile:
     value:
     - bounds: 4286644096
       flags: 2
@@ -65,11 +39,32 @@ MonoBehaviour:
     - bounds: 2130771712
       flags: 1
     isDirty: 0
-  _Info:
+  Info:
     value:
       bounds:
         x: 2
         y: 3
         z: 2
-      profileStart: 12
-    isDirty: 0
+      profileStart: 0
+  _Controller:
+    value: {fileID: 226241877390661924, guid: 1904b7349e8b640d7bb34de76d6ab011, type: 3}
+  _Setting:
+    value:
+      movement:
+        GroundStickDist: 0.05
+        moveSpeed: 3
+        acceleration: 200
+        friction: 0.075
+        rotSpeed: 180
+        pathDistance: 31
+        AverageIdleTime: 2.5
+      collider:
+        size:
+          x: 0.5
+          y: 1
+          z: 0.5
+        offset:
+          x: -0.25
+          y: -0.6
+          z: -0.25
+        useGravity: 1

@@ -19,7 +19,7 @@ public abstract class EntityController : MonoBehaviour
     /// <summary> Initializes the entity controller with the <see cref="Entity"/>
     /// that is associated with it.  </summary>
     /// <param name="entity">A pointer to the <see cref="Entity"/> structure that dictates the controller. </param>
-    public virtual void Initialize(IntPtr entity){
+    public virtual void Initialize(Entity entity){
         TerrainGeneration.OctreeTerrain.OrderedDisable.AddListener(Disable);
     }
 

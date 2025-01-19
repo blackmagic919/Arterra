@@ -75,12 +75,7 @@ public class RigidFPController : MonoBehaviour
         float2 desiredMove = ((float3)(cam.transform.forward*InputDir.y + cam.transform.right*InputDir.x)).xz;
         float2 deltaV = Setting.acceleration * Time.deltaTime * desiredMove;
 
-        float3 posGS = CPUDensityManager.WSToGS(this.transform.position) + tCollider.offset;
-        if(tCollider.SampleCollision(posGS, new float3(tCollider.size.x, -Setting.groundStickDist, tCollider.size.z), out _)){
-            tCollider.velocity.y *= 1 - Setting.GroundFriction;
-        }
         tCollider.velocity.xz *= 1 - Setting.GroundFriction;
-
         if(math.length(tCollider.velocity.xz) < Setting.runSpeed) 
             tCollider.velocity.xz += deltaV;
         InputDir = float2.zero;
