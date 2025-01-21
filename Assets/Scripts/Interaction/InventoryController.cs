@@ -203,21 +203,19 @@ public class InventoryController : UpdateTask
         static void DropItem(IItem item){
             WorldConfig.Generation.Entity.EntitySerial Entity = new();
             Entity.type = "EntityItem";
-            Entity.data.info.entityId = Guid.NewGuid();
             Entity.data = new EItem.EItemEntity(new TerrainColliderJob.Transform{
                 position = CPUDensityManager.WSToGS(PlayerHandler.player.transform.position),
                 rotation = PlayerHandler.player.transform.rotation,
-                
             }, item);
-
-            EntityManager.AddHandlerEvent(() => EntityManager.CreateEntity(Entity));
+            Entity.data.info.entityId = Guid.NewGuid();
+            EntityManager.CreateEntity(Entity);
         }
 
         if(Cursor == null) return;
         CursorDisplay.Object.SetActive(false);
 
         IItem cursor = Cursor; 
-        Cursor = null; Inventory Inv = null;
+        Cursor = null; Inventory Inv;
         if (GetMousePrimary(out int index)){
             Inv = Primary;
         } else if(GetMouseSecondary(out index)){

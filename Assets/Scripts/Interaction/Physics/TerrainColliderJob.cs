@@ -351,4 +351,20 @@ public struct TerrainColliderJob
         public float3 offset;
         public bool useGravity;
     }
+
+    private static bool IsEdgeCollided(float3 originGS, in Settings settings){
+        float3 min = math.min(originGS, originGS + settings.size);
+        float3 max = math.max(originGS, originGS + settings.size);
+        int3 minCS = GSToCS((int3)math.floor(min));
+        int3 maxCS = GSToCS((int3)math.ceil(max));
+        int3 oCC = 0;
+        for(oCC.x = minCS.x; oCC.x <= maxCS.x; oCC.x++){
+        for(oCC.y = minCS.y; oCC.y <= maxCS.y; oCC.y++){
+        for(oCC.z = minCS.z; oCC.z <= maxCS.z; oCC.z++){
+            ChunkMapInfo mapInfo = AddressDict[HashCoord(oCC)];
+            if(!mapInfo.valid) return true;
+            if(math.any(oCC != mapInfo.CCoord)) return true;
+        }}}
+        return false;
+    }
 }

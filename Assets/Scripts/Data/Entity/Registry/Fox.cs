@@ -14,13 +14,9 @@ using WorldConfig.Generation.Entity;
 public class Fox : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]
-    public Option<GameObject> _Controller;
-    [UISetting(Ignore = true)][JsonIgnore]
     public Option<FoxEntity> _Entity;
     public Option<FoxSetting> _Setting;
 
-    [JsonIgnore]
-    public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
     [JsonIgnore]
     public override Entity Entity { get => new FoxEntity(); }
     [JsonIgnore]
@@ -47,7 +43,8 @@ public class Fox : Authoring
     //**If you release here the controller might still be accessing it
     public class FoxEntity : Entity
     {  
-        //This is the real-time position streamed by the controller
+        [JsonIgnore]
+        private FoxController controller;
         public int3 GCoord; 
         public PathFinder.PathInfo pathFinder;
         public TerrainColliderJob tCollider;
@@ -66,8 +63,9 @@ public class Fox : Authoring
         }
         public unsafe override void Unset(){}
 
-        public override void Initialize(int3 GCoord)
+        public override void Initialize(GameObject Controller, int3 GCoord)
         {
+            controller = new FoxController(Controller, this);
             //The seed is the entity's memory address
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.GCoord = GCoord;
@@ -79,8 +77,9 @@ public class Fox : Authoring
             TaskIndex = 0;
         }
 
-        public override void Deserialize(out int3 GCoord)
+        public override void Deserialize(GameObject Controller, out int3 GCoord)
         {
+            controller = new FoxController(Controller, this);
             GCoord = this.GCoord;
         }
 
@@ -93,6 +92,7 @@ public class Fox : Authoring
 
             tCollider.Update(EntityJob.cxt, settings.collider);
             tCollider.velocity.xz *= 1 - settings.movement.friction;
+            EntityManager.AddHandlerEvent(controller.Update);
         }
 
         //Task 0
@@ -144,8 +144,76 @@ public class Fox : Authoring
             }
         }
 
-        public override void Disable(){}
+        public override void Disable(){
+            controller.Dispose();
+        }
 
+        public override void OnDrawGizmos(){
+            if(!active) return;
+            Gizmos.color = Color.red; 
+            Gizmos.DrawWireCube(CPUDensityManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
+            PathFinder.PathInfo finder = pathFinder; //copy so we don't modify the original
+            if(finder.hasPath){
+                int ind = finder.currentInd;
+                while(ind != finder.path.Length){
+                    int dir = finder.path[ind];
+                    int3 dest = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
+                    Gizmos.DrawLine(CPUDensityManager.GSToWS(finder.currentPos - settings.collider.offset), 
+                                    CPUDensityManager.GSToWS(dest - settings.collider.offset));
+                    finder.currentPos = dest;
+                    ind++;
+                }
+            }
+        }
+
+    }
+
+    private class FoxController {
+        private FoxEntity entity;
+        private Animator animator;
+        private GameObject gameObject;
+        private Transform transform;
+        private bool active = false;
+
+        public FoxController(GameObject GameObject, FoxEntity entity){
+            this.entity = entity;
+            this.gameObject = Instantiate(GameObject);
+            this.transform = gameObject.transform;
+            this.animator = gameObject.GetComponent<Animator>();
+            this.active = true;
+
+            float3 GCoord = new (entity.GCoord);
+            transform.position = CPUDensityManager.GSToWS(GCoord - FoxEntity.settings.collider.offset) + (float3)Vector3.up * 1;
+        }
+
+        public void Update(){
+            if(!entity.active) return;
+            if(gameObject == null) return;
+            EntityManager.AssertEntityLocation(entity, entity.GCoord);    
+            TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+            rTransform.position = CPUDensityManager.GSToWS(rTransform.position - FoxEntity.settings.collider.offset);
+            this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
+
+
+            if(entity.TaskIndex == 2) 
+                animator.SetBool("IsWalking", true);
+            else {
+                animator.SetBool("IsWalking", false);
+                if(entity.TaskDuration > 2.0f) animator.SetBool("IsSitting", true);
+                else animator.SetBool("IsSitting", false);
+            }
+        }
+
+        public void Dispose(){
+            if(!active) return;
+            active = false;
+
+            Destroy(gameObject);
+        }
+
+        ~FoxController(){
+            Dispose();
+        }
     }
 }
 

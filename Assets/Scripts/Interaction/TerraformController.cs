@@ -363,7 +363,7 @@ public class TerraformController : UpdateTask
             InventoryController.AddEntry(slot);
             if(slot.AmountRaw != 0) return;
             item.isPickedUp = true; 
-            EntityManager.AddHandlerEvent(() => EntityManager.ReleaseEntity(entity.info.entityId));
+            EntityManager.ReleaseEntity(entity.info.entityId);
         }
 
         EntityManager.STree.TreeNode.Bounds bounds = new (){

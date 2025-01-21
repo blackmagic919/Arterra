@@ -38,7 +38,6 @@ MonoBehaviour:
       flags: 1
     - bounds: 2130771712
       flags: 1
-    isDirty: 0
   Info:
     value:
       bounds:
@@ -46,10 +45,10 @@ MonoBehaviour:
         y: 3
         z: 2
       profileStart: 0
-  _Controller:
-    value: {fileID: 3473730546918308697, guid: 8bd9ce178a5d34ed4ba2f7cc7cd9b85e, type: 3}
   _Setting:
     value:
+      Controller:
+        value: {fileID: 3473730546918308697, guid: 8bd9ce178a5d34ed4ba2f7cc7cd9b85e, type: 3}
       movement:
         moveSpeed: 15
         acceleration: 50

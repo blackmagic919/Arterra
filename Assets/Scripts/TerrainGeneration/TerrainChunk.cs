@@ -373,17 +373,16 @@ public class RealChunk : TerrainChunk{
             GPUDensityManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.GenerationBuffer, DensityGenerator.bufferOffsets.mapStart);
         }
 
-        EntityManager.ReleaseChunkEntities(CCoord);//Clear previous chunk's entities
+        //Copy real chunks to CPU
+        CPUDensityManager.AllocateChunk(this, CCoord);
+        CPUDensityManager.BeginMapReadback(CCoord);
         if(info.entities != null) { //If the chunk has saved entities
-            EntityManager.DeserializeEntities(info.entities, CCoord);
+            EntityManager.DeserializeEntities(info.entities);
         }else { //Otherwise create new entities
             uint entityAddress = EntityManager.PlanEntities(DensityGenerator.bufferOffsets.biomeMapStart, CCoord, mapChunkSize);
             EntityManager.BeginEntityReadback(entityAddress, CCoord);
         }
 
-        //Copy real chunks to CPU
-        int3 CCoord_Captured = CCoord;
-        CPUDensityManager.AllocateChunk(this, CCoord, () => CPUDensityManager.BeginMapReadback(CCoord_Captured));
         callback?.Invoke();
     }
     /// <summary> 

@@ -37,10 +37,10 @@ MonoBehaviour:
         y: 2
         z: 2
       profileStart: 0
-  _Controller:
-    value: {fileID: 5653881121737289674, guid: cdde00980c1ea4ddea86e60f5d7f261c, type: 3}
   _Setting:
     value:
+      Controller:
+        value: {fileID: 5653881121737289674, guid: cdde00980c1ea4ddea86e60f5d7f261c, type: 3}
       GroundStickDist: 0.05
       StickFriction: 0.15
       SpriteSampleSize:

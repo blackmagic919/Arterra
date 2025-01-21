@@ -7,23 +7,19 @@ using WorldConfig;
 using WorldConfig.Generation.Entity;
 
 [CreateAssetMenu(menuName = "Entity/Bird")]
-public class Bird : Authoring
+public class Sparrow : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]
-    public Option<GameObject> _Controller;
-    [UISetting(Ignore = true)][JsonIgnore]
-    public Option<BirdEntity> _Entity;
-    public Option<BirdSetting> _Setting;
+    public Option<SparrowEntity> _Entity;
+    public Option<SparrowSetting> _Setting;
     
     [JsonIgnore]
-    public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
+    public override Entity Entity { get => new SparrowEntity(); }
     [JsonIgnore]
-    public override Entity Entity { get => new BirdEntity(); }
-    [JsonIgnore]
-    public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (BirdSetting)value; }
+    public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (SparrowSetting)value; }
 
     [Serializable]
-    public struct BirdSetting : IEntitySetting{
+    public struct SparrowSetting : IEntitySetting{
         public Movement movement;
         public Flight flight;
         public TerrainColliderJob.Settings collider;
@@ -50,9 +46,10 @@ public class Bird : Authoring
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class BirdEntity : Entity
+    public class SparrowEntity : Entity
     {  
-        //This is the real-time position streamed by the controller
+        [JsonIgnore]
+        private SparrowController controller;
         public int3 GCoord;
         public PathFinder.PathInfo pathFinder;
         public TerrainColliderJob tCollider;
@@ -60,19 +57,20 @@ public class Bird : Authoring
         public float3 flightDirection;
         public float TaskDuration;
         public uint TaskIndex;
-        public static BirdSetting settings;
-        public static Action<BirdEntity>[] TaskRegistry = new Action<BirdEntity>[]{
+        public static SparrowSetting settings;
+        public static Action<SparrowEntity>[] TaskRegistry = new Action<SparrowEntity>[]{
             Idle,
             FollowPath,
             FollowPath
         };
         public override void Preset(IEntitySetting setting){
-            settings = (BirdSetting)setting;
+            settings = (SparrowSetting)setting;
         }
         public override void Unset(){ }
 
-        public override void Initialize(int3 GCoord)
+        public override void Initialize(GameObject Controller, int3 GCoord)
         {
+            controller = new SparrowController(Controller, this);
             //The seed is the entity's memory address
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.GCoord = GCoord;
@@ -83,8 +81,9 @@ public class Bird : Authoring
             TaskIndex = 0;
         }
 
-        public override void Deserialize(out int3 GCoord)
+        public override void Deserialize(GameObject Controller, out int3 GCoord)
         {
+            controller = new SparrowController(Controller, this);
             GCoord = this.GCoord;
         }
 
@@ -98,10 +97,11 @@ public class Bird : Authoring
 
             tCollider.Update(EntityJob.cxt, settings.collider);
             tCollider.velocity *= 1 - settings.movement.friction;
+            EntityManager.AddHandlerEvent(controller.Update);
         }
 
         //Task 0
-        public static void Idle(BirdEntity self){
+        public static void Idle(SparrowEntity self){
             if(self.TaskDuration <= 0) {
                 self.TaskDuration = settings.flight.AverageFlightTime * self.random.NextFloat(0f, 2f);
                 self.flightDirection = self.RandomDirection();
@@ -148,7 +148,7 @@ public class Bird : Authoring
             {
                 if(nEntity == null) return;
                 if(nEntity.info.entityType != info.entityType) return;
-                BirdEntity nBoid = (BirdEntity)nEntity;
+                SparrowEntity nBoid = (SparrowEntity)nEntity;
                 float3 nBoidPos = nBoid.tCollider.transform.position;
                 float3 boidPos = tCollider.transform.position;
 
@@ -174,7 +174,7 @@ public class Bird : Authoring
 
 
         //Task 1 -> Fly, 2 -> Land
-        public static unsafe void FollowPath(BirdEntity self){
+        public static unsafe void FollowPath(SparrowEntity self){
             self.TaskDuration -= EntityJob.cxt.deltaTime;
 
             ref PathFinder.PathInfo finder = ref self.pathFinder;
@@ -219,7 +219,9 @@ public class Bird : Authoring
             else return Normalize(normal);
         }
 
-        public override void Disable(){}
+        public override void Disable(){
+            controller.Dispose();
+        }
 
         unsafe struct BoidDMtrx{
             public float3 SeperationDir;
@@ -227,6 +229,64 @@ public class Bird : Authoring
             public float3 CohesionDir;
             public uint count;
         } 
+
+        public override void OnDrawGizmos(){
+            if(!active) return;
+            Gizmos.color = Color.green; 
+            Gizmos.DrawWireCube(CPUDensityManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
+            float3 location = tCollider.transform.position - settings.collider.offset;
+            Gizmos.DrawLine(CPUDensityManager.GSToWS(location), CPUDensityManager.GSToWS(location + flightDirection));
+        }
+    }
+
+    private class SparrowController {
+        private SparrowEntity entity;
+        private Animator animator;
+        private GameObject gameObject;
+        private Transform transform;
+        private bool active = false;
+
+        public SparrowController(GameObject GameObject, SparrowEntity entity){
+            this.entity = entity;
+            this.gameObject = Instantiate(GameObject);
+            this.transform = gameObject.transform;
+            this.animator = gameObject.GetComponent<Animator>();
+            this.active = true;
+
+            float3 GCoord = new (entity.GCoord);
+            transform.position = CPUDensityManager.GSToWS(GCoord - SparrowEntity.settings.collider.offset) + (float3)Vector3.up * 1;
+        }
+
+        public void Update(){
+            if(!entity.active) return;
+            if(gameObject == null) return;
+            EntityManager.AssertEntityLocation(entity, entity.GCoord);    
+            TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+            rTransform.position = CPUDensityManager.GSToWS(rTransform.position - SparrowEntity.settings.collider.offset);
+            this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
+
+            if(entity.TaskIndex == 1){
+                animator.SetBool("IsFlying", true);
+                if(entity.tCollider.velocity.y >= 0) animator.SetBool("IsAscending", true);
+                else animator.SetBool("IsAscending", false);
+            }
+            else{
+                animator.SetBool("IsFlying", false);
+                if(entity.TaskDuration > 2.0f) animator.SetBool("IsHopping", true);
+                else animator.SetBool("IsHopping", false);
+            }
+        }
+
+        public void Dispose(){
+            if(!active) return;
+            active = false;
+
+            Destroy(gameObject);
+        }
+
+        ~SparrowController(){
+            Dispose();
+        }
     }
 }
 

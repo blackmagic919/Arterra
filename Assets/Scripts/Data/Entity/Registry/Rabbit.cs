@@ -15,13 +15,9 @@ using WorldConfig.Generation.Entity;
 public class Rabbit : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]
-    public Option<GameObject> _Controller;
-    [UISetting(Ignore = true)][JsonIgnore]
     public Option<RabbitEntity> _Entity;
     public Option<RabbitSetting> _Setting;
 
-    [JsonIgnore]
-    public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
     [JsonIgnore]
     public override Entity Entity { get => new RabbitEntity(); }
     [JsonIgnore]
@@ -49,7 +45,8 @@ public class Rabbit : Authoring
     //**If you release here the controller might still be accessing it
     public class RabbitEntity : Entity
     {  
-        //This is the real-time position streamed by the controller
+        [JsonIgnore]
+        private RabbitController controller;
         public int3 GCoord; 
         public uint TaskIndex;
         public float TaskDuration;
@@ -69,20 +66,21 @@ public class Rabbit : Authoring
         }
         public override void Unset(){ }
 
-        public override void Initialize(int3 GCoord){
+        public override void Initialize(GameObject Controller, int3 GCoord){
+            controller = new RabbitController(Controller, this);
             //The seed is the entity's memory address
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.GCoord = GCoord;
             pathFinder.hasPath = false;
             tCollider.transform.position = GCoord;
-
             //Start by Idling
             TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
             TaskIndex = 0;
         }
 
-        public override void Deserialize(out int3 GCoord)
+        public override void Deserialize(GameObject Controller, out int3 GCoord)
         {
+            controller = new RabbitController(Controller, this);
             GCoord = this.GCoord;
         }
 
@@ -95,11 +93,12 @@ public class Rabbit : Authoring
 
             tCollider.Update(EntityJob.cxt, settings.collider);
             tCollider.velocity.xz *= 1 - settings.movement.friction;
+            EntityManager.AddHandlerEvent(controller.Update);
         }
 
         //Task 0
         public static void Idle(RabbitEntity self){
-            if(self.TaskDuration <= 0){
+            if(self .TaskDuration <= 0){
                 self.TaskIndex = 1;
             }
             else self.TaskDuration -= EntityJob.cxt.deltaTime;
@@ -147,8 +146,73 @@ public class Rabbit : Authoring
             }
         }
 
-        public override void Disable(){}
+        public override void Disable(){
+            controller.Dispose();
+        }
 
+        public override void OnDrawGizmos(){
+            if(!active) return;
+            Gizmos.color = Color.red; 
+            Gizmos.DrawWireCube(CPUDensityManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
+            PathFinder.PathInfo finder = pathFinder; //copy so we don't actual
+            if(finder.hasPath){
+                int ind = finder.currentInd;
+                while(ind != finder.path.Length){
+                    int dir = finder.path[ind];
+                    int3 dest = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
+                    Gizmos.DrawLine(CPUDensityManager.GSToWS(finder.currentPos - settings.collider.offset),
+                                    CPUDensityManager.GSToWS(dest - settings.collider.offset));
+                    finder.currentPos = dest;
+                    ind++;
+                }
+            }
+        }
+    }
+
+    private class RabbitController{
+        private RabbitEntity entity;
+        private Animator animator;
+        private GameObject gameObject;
+        private Transform transform;
+        private bool active = false;
+        public RabbitController(GameObject GameObject, RabbitEntity entity){
+            this.entity = entity;
+            this.gameObject = Instantiate(GameObject);
+            this.transform = gameObject.transform;
+            this.animator = gameObject.GetComponent<Animator>();
+            this.active = true;
+
+            float3 GCoord = new (entity.GCoord);
+            transform.position = CPUDensityManager.GSToWS(GCoord - RabbitEntity.settings.collider.offset) + (float3)Vector3.up * 1;
+        }
+
+        public void Update(){
+            if(!entity.active) return;
+            if(gameObject == null) return;
+            EntityManager.AssertEntityLocation(entity, entity.GCoord);    
+            TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+            rTransform.position = CPUDensityManager.GSToWS(rTransform.position - RabbitEntity.settings.collider.offset);
+            this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
+
+            if(entity.TaskIndex == 2)  
+                animator.SetBool("IsMoving", true);
+            else {
+                animator.SetBool("IsMoving", false);
+                if(entity.TaskDuration > 2.0f) animator.SetBool("IsScratching", true);
+                else animator.SetBool("IsScratching", false);
+            }
+        }
+
+        public void Dispose(){
+            if(!active) return;
+            active = false;
+
+            Destroy(gameObject);
+        }
+
+        ~RabbitController(){
+            Dispose();
+        }
     }
 }
 

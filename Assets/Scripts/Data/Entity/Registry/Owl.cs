@@ -13,19 +13,15 @@ using WorldConfig.Generation.Entity;
 public class Owl : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]
-    public Option<GameObject> _Controller;
-    [UISetting(Ignore = true)][JsonIgnore]
     public Option<OwlEntity> _Entity;
     public Option<OwlSetting> _Setting;
 
-    [JsonIgnore]
-    public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
     [JsonIgnore]
     public override Entity Entity { get => new OwlEntity(); }
     [JsonIgnore]
     public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (OwlSetting)value; }
 
-    [System.Serializable]
+    [Serializable]
     public struct OwlSetting : IEntitySetting{
         public Movement movement;
         public Flight flight;
@@ -52,6 +48,8 @@ public class Owl : Authoring
     public class OwlEntity : Entity
     {  
         //This is the real-time position streamed by the controller
+        [JsonIgnore]
+        private OwlController controller;
         public int3 GCoord;
         public PathFinder.PathInfo pathFinder;
         public TerrainColliderJob tCollider;
@@ -70,8 +68,8 @@ public class Owl : Authoring
         }
         public override void Unset(){ }
 
-        public override void Initialize(int3 GCoord)
-        {
+        public override void Initialize(GameObject Controller, int3 GCoord){
+            controller = new OwlController(Controller, this);
             //The seed is the entity's memory address
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
 
@@ -83,8 +81,8 @@ public class Owl : Authoring
             TaskIndex = 0;
         }
 
-        public override void Deserialize(out int3 GCoord)
-        {
+        public override void Deserialize(GameObject Controller, out int3 GCoord){
+            controller = new OwlController(Controller, this);
             GCoord = this.GCoord;
         }
 
@@ -97,6 +95,7 @@ public class Owl : Authoring
 
             tCollider.Update(EntityJob.cxt, settings.collider);
             tCollider.velocity *= 1 - settings.movement.friction;
+            EntityManager.AddHandlerEvent(controller.Update);
         }
 
         //Task 0
@@ -183,7 +182,67 @@ public class Owl : Authoring
             else return Normalize(normal);
         }
 
-        public override void Disable(){}
+        public override void Disable(){
+            controller.Dispose();
+        }
+
+        public override void OnDrawGizmos(){
+            if(!active) return;
+            Gizmos.color = Color.green; 
+            Gizmos.DrawWireCube(CPUDensityManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
+            float3 location = tCollider.transform.position - settings.collider.offset;
+            Gizmos.DrawLine(CPUDensityManager.GSToWS(location), CPUDensityManager.GSToWS(location + flightDirection));
+        }
+    }
+
+    private class OwlController {
+        private OwlEntity entity;
+        private Animator animator;
+        private GameObject gameObject;
+        private Transform transform;
+        private bool active = false;
+
+        public OwlController(GameObject GameObject, OwlEntity entity){
+            this.entity = entity;
+            this.gameObject = Instantiate(GameObject);
+            this.transform = gameObject.transform;
+            this.animator = gameObject.GetComponent<Animator>();
+            this.active = true;
+
+            float3 GCoord = new (entity.GCoord);
+            transform.position = CPUDensityManager.GSToWS(GCoord - OwlEntity.settings.collider.offset) + (float3)Vector3.up * 1;
+        }
+
+        public void Update(){
+            if(!entity.active) return;
+            if(gameObject == null) return;
+            EntityManager.AssertEntityLocation(entity, entity.GCoord);    
+            TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+            rTransform.position = CPUDensityManager.GSToWS(rTransform.position - OwlEntity.settings.collider.offset);
+            this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
+
+            if(entity.TaskIndex == 1){
+                animator.SetBool("IsFlying", true);
+                if(entity.tCollider.velocity.y >= 0) animator.SetBool("IsAscending", true);
+                else animator.SetBool("IsAscending", false);
+            }
+            else{
+                animator.SetBool("IsFlying", false);
+                if(entity.TaskDuration > 2.0f) animator.SetBool("IsHopping", true);
+                else animator.SetBool("IsHopping", false);
+            }
+        }
+
+        public void Dispose(){
+            if(!active) return;
+            active = false;
+
+            Destroy(gameObject);
+        }
+
+        ~OwlController(){
+            Dispose();
+        }
     }
 }
 

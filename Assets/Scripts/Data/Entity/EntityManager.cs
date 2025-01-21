@@ -8,10 +8,10 @@ using Unity.Jobs;
 using Unity.Burst;
 using static CPUDensityManager;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using TerrainGeneration;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
+using System.Collections.Concurrent;
 
 public static class EntityManager
 {
@@ -21,11 +21,10 @@ public static class EntityManager
     public static List<Entity> EntityHandler; //List of all entities placed adjacently
     public static Dictionary<Guid, int> EntityIndex; //tracks location in handler of entityGUID
     public static STree ESTree; //BVH of entities updated synchronously
-    public static Action HandlerEvents; //Buffered updates to modify entities(since it can't happen while job is executing)
+    public static ConcurrentQueue<Action> HandlerEvents; //Buffered updates to modify entities(since it can't happen while job is executing)
     private static EntityJob Executor; //Job that updates all entities
     const int ENTITY_STRIDE_WORD = 3 + 1;
     const int MAX_ENTITY_COUNT = 10000; //10k ~ 5mb
-
 
     public static void OnDrawGizmos(){
         if(ESTree.Length == 0) return;
@@ -33,45 +32,52 @@ public static class EntityManager
         //Debug.Log("Average Depth: " + ((float)depth / sampleCount));
 
         
-        for(int i = 1; i < ESTree.Length; i++){
+        for(uint i = 1; i < ESTree.Length; i++){
             STree.TreeNode region = ESTree[i];
-            Vector3 center = CPUDensityManager.GSToWS(((float3)region.bounds.Min + region.bounds.Max) / 2);
-            Vector3 size = (float3)(region.bounds.Max - region.bounds.Min) * 2;
+            Vector3 center = GSToWS(((float3)region.bounds.Min + region.bounds.Max) / 2);
+            Vector3 size = (float3)(region.bounds.Max - region.bounds.Min) * Config.CURRENT.Quality.Terrain.value.lerpScale;
             Gizmos.DrawWireCube(center, size);
+        } 
+        //Gizmos.color = Color.blue;
+        //DrawRecursive(ESTree.Root);
+
+        foreach(Entity entity in EntityHandler){
+            entity.OnDrawGizmos();
         }
     }
 
-
-    /*private static uint depth = 0;
-    private static uint sampleCount = 0;
-    
-    public static void DrawRecursive(uint ind, int depth){
-        STree.TreeNode region = ESTree[(int)ind];
-        if(region.IsLeaf) {
-            EntityManager.depth += (uint)depth;
-            sampleCount++;
-            return;
-        };
-        DrawRecursive(region.Left, depth + 1);
-        DrawRecursive(region.Right, depth + 1);
-    }*/
+    public static void DrawRecursive(uint ind){
+        STree.TreeNode region = ESTree[ind];
+        if(region.IsLeaf) return;
+        Vector3 center = GSToWS(((float3)region.bounds.Min + region.bounds.Max) / 2);
+        Vector3 size = (float3)(region.bounds.Max - region.bounds.Min) * Config.CURRENT.Quality.Terrain.value.lerpScale;
+        Gizmos.DrawWireCube(center, size);
+        DrawRecursive(region.Left);
+        DrawRecursive(region.Right);
+    }
 
     public unsafe static void Release(){
         //Debug.Log(EntityHandler.Length);
         Executor.Complete(); 
-        ESTree.Dispose();
+        foreach (Entity entity in EntityHandler){
+            entity.Disable();
+        }
     }
 
     public static void AddHandlerEvent(Action action){
+
         //If there's no job running directly execute it
         if(!Executor.active) {
             Executor = new EntityJob(); //make new one to reset
             OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
-        }  HandlerEvents += action;
+        }  HandlerEvents.Enqueue(action);
     }
 
     public unsafe static Entity GetEntity(Guid entityId){
-        if(!EntityIndex.ContainsKey(entityId)) return null;
+        if(!EntityIndex.ContainsKey(entityId)) {
+            Debug.Log(entityId);
+            return null;
+        }
         int entityInd = EntityIndex[entityId];
         return EntityHandler[entityInd];
     }
@@ -81,8 +87,24 @@ public static class EntityManager
     }
     
     public static void InitializeEntity(GenPoint genInfo, int3 CCoord){AddHandlerEvent(() => InitializeE(genInfo, CCoord));}
-    public static void CreateEntity(EntitySerial sEntity){AddHandlerEvent(() => CreateE(sEntity));}
+    public static void CreateEntity(EntitySerial sEntity){ AddHandlerEvent(() => CreateE(sEntity)); }
     public static void ReleaseEntity(Guid entityId){AddHandlerEvent(() => ReleaseE(entityId));}
+    public static unsafe void ReleaseChunkEntities(int3 CCoord){
+        int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        ChunkMapInfo mapInfo = AddressDict[HashCoord(CCoord)];
+        if(!mapInfo.valid) return; 
+        //mapinfo.CCoord is coord of previous chunk
+        STree.TreeNode.Bounds bounds = new STree.TreeNode.Bounds{Min = mapInfo.CCoord * mapChunkSize, 
+        Max = (mapInfo.CCoord + 1) * mapChunkSize};
+
+        List<Entity> Entities = new List<Entity>();
+        ESTree.Query(bounds, (Entity entity) => {
+            if(entity == null) return;
+            ReleaseEntity(entity.info.entityId);
+            Entities.Add(entity);
+        }); 
+        ChunkStorageManager.SaveEntitiesToJsonSync(Entities, mapInfo.CCoord);
+    }
     public unsafe static void ReleaseE(Guid entityId){
         if(!EntityIndex.ContainsKey(entityId)) {
             return;
@@ -90,7 +112,7 @@ public static class EntityManager
         int entityInd = EntityIndex[entityId];
         Entity entity = EntityHandler[entityInd];
         EntityIndex.Remove(entityId);
-        ESTree.Delete((int)entity.info.SpatialId);
+        ESTree.Delete(entityId);
         entity.Disable();
         entity.active = false;
 
@@ -112,17 +134,11 @@ public static class EntityManager
         newEntity.info.entityId = Guid.NewGuid();
         newEntity.info.entityType = genInfo.entityIndex;
         newEntity.active = true;
-        EntityIndex[newEntity.info.entityId] = EntityHandler.Count;
-        HandlerEvents = null;
-        
-        newEntity.Initialize(GCoord);
-        EntityHandler.Add(newEntity);
-        newEntity.info.SpatialId = ESTree.Insert(GCoord, newEntity.info.entityId);
 
-        //Add controller
-        EntityController controller = UnityEngine.Object.Instantiate(authoring.Controller).GetComponent<EntityController>();
-        if(controller == null) throw new Exception("Entity Controller is null");
-        controller.Initialize(newEntity);
+        EntityIndex[newEntity.info.entityId] = EntityHandler.Count;
+        newEntity.Initialize(authoring.Controller, GCoord);
+        EntityHandler.Add(newEntity);
+        ESTree.Insert(GCoord, newEntity.info.entityId);
 
         if(Executor.active) return;
         Executor = new EntityJob(); //make new one to reset
@@ -136,15 +152,11 @@ public static class EntityManager
         newEntity.info.profile = authoring.Info;
         newEntity.info.entityType = (uint)reg.RetrieveIndex(sEntity.type);
         newEntity.active = true;
+
         EntityIndex[newEntity.info.entityId] = EntityHandler.Count;
-
-        newEntity.Deserialize(out int3 GCoord);
+        newEntity.Deserialize(authoring.Controller, out int3 GCoord);
         EntityHandler.Add(newEntity);
-        newEntity.info.SpatialId = ESTree.Insert(GCoord, newEntity.info.entityId);
-
-        EntityController controller = UnityEngine.Object.Instantiate(authoring.Controller).GetComponent<EntityController>();
-        if(controller == null) throw new Exception("Entity Controller is null");
-        controller.Initialize(newEntity);
+        ESTree.Insert(GCoord, newEntity.info.entityId);
 
         if(Executor.active) return;
         Executor = new EntityJob(); //make new one to reset
@@ -152,13 +164,14 @@ public static class EntityManager
     }
 
     public unsafe static void AssertEntityLocation(Entity entity, int3 GCoord){
-        if(entity.info.SpatialId == 0) return;
-        if(ESTree[ESTree[entity.info.SpatialId].Parent].bounds.Contains(GCoord)){
-            ESTree.tree[(int)entity.info.SpatialId].bounds = new STree.TreeNode.Bounds(GCoord);
+        Guid entityId = entity.info.entityId;
+        if(!ESTree.Contains(entityId)) return;
+        if(ESTree[ESTree[entityId].Parent].bounds.Contains(GCoord)){
+            ESTree[entityId].bounds = new STree.TreeNode.Bounds(GCoord);
             return;
         } 
-        ESTree.Delete((int)entity.info.SpatialId);
-        entity.info.SpatialId = ESTree.Insert(GCoord, entity.info.entityId);
+        ESTree.Delete(entityId);
+        ESTree.Insert(GCoord, entityId);
     }
 
     private static void OnEntitiesRecieved(NativeArray<GenPoint> entities, uint address, int3 CCoord){
@@ -168,37 +181,12 @@ public static class EntityManager
         }
     }
 
-    public static void DeserializeEntities(List<EntitySerial> entities, int3 CCoord){
+    public static void DeserializeEntities(List<EntitySerial> entities){
         if(entities == null) return;
         foreach(EntitySerial sEntity in entities){
             CreateEntity(sEntity);
         }
     }
-
-    public static unsafe void ReleaseChunkEntities(int3 CCoord){
-        int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-        ChunkMapInfo mapInfo = AddressDict[HashCoord(CCoord)];
-        if(!mapInfo.valid) return; 
-        //mapinfo.CCoord is coord of previous chunk
-        STree.TreeNode.Bounds bounds = new STree.TreeNode.Bounds{Min = mapInfo.CCoord * mapChunkSize, Max = (mapInfo.CCoord + 1) * mapChunkSize - 1};
-        ESTree.Query(bounds, (Entity entity) => {
-            ReleaseEntity(entity.info.entityId);
-        });
-    }
-
-    public static unsafe List<Entity> GetChunkEntities(int3 CCoord){
-        int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-        ChunkMapInfo mapInfo = AddressDict[HashCoord(CCoord)];
-        if(!mapInfo.valid) return null;
-        List<Entity> entities = new List<Entity>();
-        STree.TreeNode.Bounds bounds = new() { Min = mapInfo.CCoord * mapChunkSize, Max = (mapInfo.CCoord + 1) * mapChunkSize - 1};
-        //This does not change the entity list so can be done directly
-        ESTree.Query(bounds, (Entity entity) => {
-            entities.Add(entity);
-        });
-
-        return entities;
-    } 
     
 
     public static void Initialize(){
@@ -206,6 +194,7 @@ public static class EntityManager
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
         EntityIndex = new Dictionary<Guid, int>();
         Executor = new EntityJob{active = false};
+        HandlerEvents = new ConcurrentQueue<Action>();
 
         int numPointsPerAxis = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
@@ -310,6 +299,7 @@ public static class EntityManager
 
     //More like a BVH, or a dynamic R-Tree with no overlap
     public unsafe struct STree{
+        public Dictionary<Guid, uint> SpatialIndex;
         public TreeNode[] tree;
         //mark as volatile so we get the latest value
         public uint length; 
@@ -319,47 +309,50 @@ public static class EntityManager
             set{tree[0].Right = value;}
         }
 
-        public TreeNode this[int index]{
+        public readonly ref TreeNode this[Guid entityId]{
+            get{
+                if(SpatialIndex.ContainsKey(entityId)) 
+                    return ref tree[SpatialIndex[entityId]];
+                throw new KeyNotFoundException($"Entity with ID {entityId} not found.");
+            }
+        }
+
+        public readonly TreeNode this[uint index]{
             get{return tree[index];}
             set{tree[index] = value;}
         }
 
-        public TreeNode this[uint index]{
-            get{return tree[(int)index];}
-            set{tree[(int)index] = value;}
+        public bool Contains(Guid entityId){
+            return SpatialIndex.ContainsKey(entityId);
         }
 
         public STree(int capacity){
+            SpatialIndex = new Dictionary<Guid, uint>();
             tree = new TreeNode[capacity];
-            tree[0] = new TreeNode{
+            tree[0] = new TreeNode(0){
                 bounds = new TreeNode.Bounds{
                     Min = new int3(int.MinValue),
                     Max = new int3(int.MaxValue)
-                },
+                }
             };
-
-            //Length includes pointer to head node(0)
             length = 1;
+            Root = 0;
         }
 
-        public void Dispose(){
-            length = 0;
-        }
-
-        public uint Insert(int3 position, Guid eId){
-            uint leafInd = length; 
-            tree[(int)leafInd] = TreeNode.MakeLeaf(position, eId);
+        public void Insert(int3 position, Guid eId){
+            if(length+1 >= tree.Length) Resize();
+            SpatialIndex[eId] = length;
             length++;
 
-            if(length == 2) Root = leafInd;
+            tree[length - 1] = new TreeNode(position, eId);
+            if(length == 2) Root = 1;
             else RecursiveInsert(position, Root);
-            return leafInd;
         }
 
         private void RecursiveInsert(int3 position, uint current){
             ref TreeNode node = ref tree[(int)current];
             if(node.IsLeaf){
-                tree[(int)length] = new TreeNode{
+                tree[(int)length] = new TreeNode(0){
                     bounds = node.bounds.GetExpand(position),
                     Left = current,
                     Right = length - 1,
@@ -390,11 +383,14 @@ public static class EntityManager
             }
         } 
 
-        public void Delete(int index){
-            if(length <= 1) return;
-            if(index > length - 1 || index == 0) return;
+        public void Delete(Guid entityId){
             if(tree == null) return;
-
+            if(length <= 1) return;
+            if(!SpatialIndex.ContainsKey(entityId)) return;
+            int index = (int)SpatialIndex[entityId];
+            SpatialIndex.Remove(entityId);
+            
+            if(index > length - 1 || index == 0) return;
             ref TreeNode node = ref tree[index];
             ref TreeNode parent = ref tree[(int)node.Parent];
             uint Sibling = index == parent.Left ? parent.Right : parent.Left;
@@ -406,6 +402,7 @@ public static class EntityManager
 
             uint parentIndex = node.Parent;
             tree[(int)parent.Parent].ReplaceChild(node.Parent, Sibling);
+            tree[(int)parent.Parent].ResizeBranch(tree);
             tree[(int)Sibling].Parent = parent.Parent;
             if(index < length - 2) {//This logic took me forever to figure out
                 if(parentIndex != length - 1) MoveEntry((int)length - 1, (uint)index);
@@ -425,8 +422,7 @@ public static class EntityManager
                 tree[(int)oNode.Left].Parent = nInd;
                 tree[(int)oNode.Right].Parent = nInd;
             } else{
-                Entity entity = oNode.GetLeaf;
-                entity.info.SpatialId = nInd;
+                SpatialIndex[oNode.ObjId] = nInd;
             }
 
             tree[(int)oNode.Parent].ReplaceChild((uint)oInd, nInd);
@@ -437,8 +433,8 @@ public static class EntityManager
         //The callback should not change STree as this will cause unpredictable behavior when query continues
         public readonly void Query(TreeNode.Bounds bounds, Action<Entity> action, int current = -1){
             if(current == -1) current = (int)Root;
-            if(current == 0) return;
-            ref TreeNode node = ref tree[current];
+            if(current == 0) return; //Root is zero when it is empty
+            TreeNode node = tree[current];
             if(node.IsLeaf){
                 action.Invoke(node.GetLeaf);
                 return;
@@ -446,6 +442,13 @@ public static class EntityManager
             
             if(bounds.Intersects(tree[(int)node.Left].bounds)) Query(bounds, action, (int)node.Left);
             if(bounds.Intersects(tree[(int)node.Right].bounds)) Query(bounds, action, (int)node.Right);
+        }
+
+        private void Resize(){
+            TreeNode[] newTree = new TreeNode[tree.Length * 2];
+            for(int i = 0; i < tree.Length; i++){
+                newTree[i] = tree[i];
+            } tree = newTree;
         }
 
 
@@ -466,17 +469,22 @@ public static class EntityManager
                 Parent = 0;
             }
 
-            public static TreeNode MakeLeaf(int3 position, Guid EntityId){
-                TreeNode node = new(position){ 
-                    ObjId = EntityId,
-                    Parent = 0,
-                };
-                return node;
+            public TreeNode(int3 position, Guid EntityId){
+                bounds = new Bounds(position);
+                Left = 0; Right = 0;
+                ObjId = EntityId;
+                Parent = 0;
             }
 
             public void ReplaceChild(uint a, uint b){
                 if(Left == a) Left = b;
                 else if(Right == a) Right = b;
+            }
+
+            public void ResizeBranch(TreeNode[] tree){
+                if(IsLeaf) return;
+                if(Left == 0 || Right == 0) return;
+                bounds = tree[Left].bounds.GetExpand(tree[Right].bounds.Min).GetExpand(tree[Right].bounds.Max);
             }
 
             public struct Bounds{
@@ -521,48 +529,6 @@ public static class EntityManager
     }
 }
 
-
-public struct NativeList<T> where T: unmanaged{
-    public NativeArray<T> array;
-    private int _length;
-    public int Length{get{return _length;}}
-    public T this[int index]{get{return array[index];} set{array[index] = value;}}
-    public NativeList(int length, Allocator allocator, NativeArrayOptions options){
-        array = new NativeArray<T>(length, allocator, options);
-        _length = 0;
-    }
-
-    public ref T GetRef(int index)
-    {
-        if (index < 0 || index >= array.Length)
-            throw new ArgumentOutOfRangeException(nameof(index));
-        unsafe { return ref UnsafeUtility.ArrayElementAsRef<T>(array.GetUnsafePtr(), index); }
-    }
-
-    public unsafe T* GetPtr(int index)
-    {
-        if (index < 0 || index >= array.Length)
-            throw new ArgumentOutOfRangeException(nameof(index));
-        void* basePtr = NativeArrayUnsafeUtility.GetUnsafePtr(array);
-        return (T*)basePtr + index;
-    }
-
-    public void Add(T item){
-        if(_length == array.Length) return;
-        array[_length] = item;
-        _length++;
-    }
-
-    public void RemoveLast(){
-        if(_length == 0) return; 
-        _length--;
-    }
-
-    public void Dispose(){
-        array.Dispose();
-    }
-}
-
 public class EntityJob : UpdateTask{
     public bool dispatched = false;
     private JobHandle handle;
@@ -595,8 +561,10 @@ public class EntityJob : UpdateTask{
         if(dispatched) handle.Complete();
         dispatched = false;
 
-        EntityManager.HandlerEvents?.Invoke();
-        EntityManager.HandlerEvents = null;
+        while(EntityManager.HandlerEvents.TryDequeue(out Action action)){
+            action.Invoke();
+        } EntityManager.HandlerEvents.Clear();
+
         if(EntityManager.EntityHandler.Count == 0){
             this.active = false;
             return;

@@ -169,8 +169,7 @@ public class OctreeTerrain : MonoBehaviour
 
     
     private void OnDrawGizmos(){
-        /*
-        uint curChunk = chunks.Head();
+        /* uint curChunk = chunks.Head();
         int count = 0;
         do{
             TerrainChunk chunk = chunks.nodes[curChunk].Value;
@@ -183,6 +182,7 @@ public class OctreeTerrain : MonoBehaviour
             }
             count++;
         } while(curChunk != chunks.Head());*/
+        EntityManager.OnDrawGizmos();
     }
 
     private void Update()

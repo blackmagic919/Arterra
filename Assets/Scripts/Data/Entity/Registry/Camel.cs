@@ -13,13 +13,9 @@ using WorldConfig.Generation.Entity;
 public class Camel : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]
-    public Option<GameObject> _Controller;
-    [UISetting(Ignore = true)][JsonIgnore]
     public Option<CamelEntity> _Entity;
     public Option<CamelSetting> _Setting;
     
-    [JsonIgnore]
-    public override EntityController Controller { get { return _Controller.value.GetComponent<EntityController>(); } }
     [JsonIgnore]
     public override Entity Entity { get => new CamelEntity(); }
     [JsonIgnore]
@@ -51,8 +47,9 @@ public class Camel : Authoring
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
     public class CamelEntity : Entity
-    {  
-        //This is the real-time position streamed by the controller
+    { 
+        [JsonIgnore]
+        private CamelController controller;
         public int3 GCoord; 
         public uint TaskIndex;
         public float TaskDuration;
@@ -72,8 +69,9 @@ public class Camel : Authoring
         }
         public override void Unset(){}
 
-        public override void Initialize(int3 GCoord)
+        public override void Initialize(GameObject Controller, int3 GCoord)
         {
+            controller = new CamelController(Controller, this);
             //The seed is the entity's memory address
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.GCoord = GCoord;
@@ -85,8 +83,9 @@ public class Camel : Authoring
             TaskIndex = 0;
         }
 
-        public override void Deserialize(out int3 GCoord)
+        public override void Deserialize(GameObject Controller, out int3 GCoord)
         {
+            controller = new CamelController(Controller, this);
             GCoord = this.GCoord;
         }
 
@@ -99,6 +98,7 @@ public class Camel : Authoring
 
             tCollider.Update(EntityJob.cxt, settings.collider);
             tCollider.velocity.xz *= 1 - settings.movement.friction;
+            EntityManager.AddHandlerEvent(controller.Update);
         }
         
 
@@ -154,7 +154,75 @@ public class Camel : Authoring
             }
         }
 
-        public override void Disable(){}
+        public override void Disable(){
+            controller.Dispose();
+        }
+
+        public override void OnDrawGizmos(){
+            if(!active) return;
+            Gizmos.color = Color.red; 
+            Gizmos.DrawWireCube(CPUDensityManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
+            PathFinder.PathInfo finder = pathFinder; //Copy so we don't modify the original
+            if(finder.hasPath){
+                int ind = finder.currentInd;
+                while(ind != finder.path.Length){
+                    int dir = finder.path[ind];
+                    int3 dest = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
+                    Gizmos.DrawLine(CPUDensityManager.GSToWS(finder.currentPos - settings.collider.offset), 
+                                    CPUDensityManager.GSToWS(dest - settings.collider.offset));
+                    finder.currentPos = dest;
+                    ind++;
+                }
+            }
+        }
+    }
+
+    public class CamelController
+    {
+        private CamelEntity entity;
+        private GameObject gameObject;
+        private Transform transform;
+        private Animator animator;
+        private bool active = false;
+
+        public CamelController(GameObject GameObject, CamelEntity Entity)
+        {
+            this.entity = Entity;
+            this.gameObject = Instantiate(GameObject);
+            this.transform = gameObject.transform;
+            this.animator = gameObject.GetComponent<Animator>();
+            this.active = true;
+            
+
+            float3 GCoord = new (entity.GCoord);
+            this.transform.position = CPUDensityManager.GSToWS(GCoord - CamelEntity.settings.collider.offset) + (float3)Vector3.up * 1;
+        }
+
+        public void Update(){
+            if(!entity.active) return;
+            if(gameObject == null) return;
+            EntityManager.AssertEntityLocation(entity, entity.GCoord);    
+            TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+            rTransform.position = CPUDensityManager.GSToWS(rTransform.position - CamelEntity.settings.collider.offset);
+            this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
+
+            if(entity.TaskIndex == 3) 
+                animator.SetBool("IsWalking", true);
+            else animator.SetBool("IsWalking", false);
+            if(entity.TaskIndex == 1)
+                animator.SetBool("IsResting", true);
+            else animator.SetBool("IsResting", false);
+            if(entity.TaskIndex == 0 && entity.TaskDuration > 2.0f){
+                animator.SetBool("IsScratching", true);
+            } else animator.SetBool("IsScratching", false);
+        }
+
+        public void Dispose(){ 
+            if(!active) return;
+            active = false;
+
+            Destroy(gameObject);
+        }
     }
 }
 

@@ -70,9 +70,6 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c33883811f04145968b65e38d6e7d4d1, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2334465774298560892}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c33883811f04145968b65e38d6e7d4d1, type: 3}
-      insertIndex: -1
       addedObject: {fileID: -745115676823459651}
   m_SourcePrefab: {fileID: 100100000, guid: c33883811f04145968b65e38d6e7d4d1, type: 3}
 --- !u!1 &790299623469635556 stripped
@@ -80,18 +77,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: c33883811f04145968b65e38d6e7d4d1, type: 3}
   m_PrefabInstance: {fileID: 447787672044661429}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2334465774298560892
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 790299623469635556}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b678c2b3532c0453baceacc5590756b6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!95 &-745115676823459651
 Animator:
   serializedVersion: 5

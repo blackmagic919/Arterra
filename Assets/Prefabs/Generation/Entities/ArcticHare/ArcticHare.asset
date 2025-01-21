@@ -45,10 +45,10 @@ MonoBehaviour:
         y: 3
         z: 2
       profileStart: 0
-  _Controller:
-    value: {fileID: 6048588642290100750, guid: b79f8c34d04eb46318d1839107d7f4b1, type: 3}
   _Setting:
     value:
+      Controller:
+        value: {fileID: 6048588642290100750, guid: b79f8c34d04eb46318d1839107d7f4b1, type: 3}
       movement:
         GroundStickDist: 0.05
         moveSpeed: 4

@@ -13,6 +13,7 @@ using System;
 using TerrainGeneration;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
+using UnityEngine;
 
 /*
 Chunk File Layout:
@@ -37,24 +38,32 @@ public static class ChunkStorageManager
     }
 
     public static void SaveEntitiesToJsonSync(List<Entity> entities, int3 CCoord){
-        string entityPath = chunkFinder.GetEntityRegionPath(CCoord);
-        if(!Directory.Exists(entityPath))
-            Directory.CreateDirectory(entityPath);
+        try{
+            string entityPath = chunkFinder.GetEntityRegionPath(CCoord);
+            if(!Directory.Exists(entityPath))
+                Directory.CreateDirectory(entityPath);
 
-        string fileAdd = chunkFinder.GetEntityPath(CCoord);
-        chunkFinder.TryAddEntity(CCoord);
-        SaveEntityToJsonSync(fileAdd, entities);
+            string fileAdd = chunkFinder.GetEntityPath(CCoord);
+            chunkFinder.TryAddEntity(CCoord);
+            SaveEntityToJsonSync(fileAdd, entities);
+        } catch(Exception e){
+            Debug.Log($"Failed on Saving Entity Data for Chunk: {CCoord} with exception {e}");
+        }
     }
 
     public static void SaveChunkToBinSync(ChunkPtr chunk, int3 CCoord){
-        string mapPath = chunkFinder.GetMapRegionPath(CCoord);
-        
-        if (!Directory.Exists(mapPath))
-            Directory.CreateDirectory(mapPath);
+        try{
+            string mapPath = chunkFinder.GetMapRegionPath(CCoord);
+            
+            if (!Directory.Exists(mapPath))
+                Directory.CreateDirectory(mapPath);
 
-        string fileAdd = chunkFinder.GetMapPath(CCoord);
-        chunkFinder.TryAddMap(CCoord);
-        SaveChunkToBinSync(fileAdd, chunk); //fire and forget
+            string fileAdd = chunkFinder.GetMapPath(CCoord);
+            chunkFinder.TryAddMap(CCoord);
+            SaveChunkToBinSync(fileAdd, chunk); 
+        } catch(Exception e){
+            Debug.Log($"Failed on Saving Chunk Data for Chunk: {CCoord} with exception {e}");
+        }
     }
 
     public static void SaveChunkToBinSync(string fileAdd, ChunkPtr chunk)
@@ -127,28 +136,38 @@ public static class ChunkStorageManager
 
     public static MapData[] ReadChunkBin(string fileAdd, int depth)
     {
-        MapData[] map = null;
-        //Caller has to copy for persistence
-        using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read))
-        {
-            uint mapStart = ReadChunkHeader(fs, out ChunkHeader header);
-            if(depth != 0) mapStart += (uint)header.ResolutionOffsets[depth - 1];
-            fs.Seek(mapStart, SeekOrigin.Begin);
-            map = ReadChunkMap(fs, maxChunkSize >> depth);
-            DeserializeHeader(ref map, ref header);
+        try{
+            MapData[] map = null;
+            //Caller has to copy for persistence
+            using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read))
+            {
+                uint mapStart = ReadChunkHeader(fs, out ChunkHeader header);
+                if(depth != 0) mapStart += (uint)header.ResolutionOffsets[depth - 1];
+                fs.Seek(mapStart, SeekOrigin.Begin);
+                map = ReadChunkMap(fs, maxChunkSize >> depth);
+                DeserializeHeader(ref map, ref header);
+            }
+            return map;
+        } catch (Exception e){
+            Debug.Log($"Failed on Reading Chunk Data for Chunk: {fileAdd} with exception {e}");
+            return null;
         }
-        return map;
     }
 
     public static List<EntitySerial> ReadEntityJson(string fileAdd)
     {
-        List<EntitySerial> entities = null;
-        //Caller has to copy for persistence
-        using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read)){
-            //It's automatically deserialized by a custom json rule
-            ReadChunkHeader(fs, out entities);
+        try{
+            List<EntitySerial> entities = null;
+            //Caller has to copy for persistence
+            using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read)){
+                //It's automatically deserialized by a custom json rule
+                ReadChunkHeader(fs, out entities);
+            }
+            return entities;
+        } catch (Exception e){
+            Debug.Log($"Failed on Reading Entity Data for Chunk: {fileAdd} with exception {e}");
+            return null;
         }
-        return entities;
     }
 
     static List<EntitySerial> SerializeEntities(List<Entity> entities){

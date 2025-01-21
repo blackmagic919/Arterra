@@ -9,6 +9,7 @@ using Unity.Burst;
 using UnityEditor;
 using TerrainGeneration;
 using WorldConfig;
+using WorldConfig.Generation.Entity;
 
 //Benefits of unified chunk map memory
 //1. No runtime allocation of native memory
@@ -72,16 +73,15 @@ public static class CPUDensityManager
         if(!AddressDict[chunkHash].valid) return;
         int3 CCoord = AddressDict[chunkHash].CCoord;
         
-        ChunkStorageManager.SaveEntitiesToJsonSync(EntityManager.GetChunkEntities(CCoord), CCoord);
+        EntityManager.ReleaseChunkEntities(CCoord);
         if(!AddressDict[chunkHash].isDirty) return;
         ChunkPtr chunk = new ChunkPtr(SectionedMemory, chunkHash * numPoints);
         ChunkStorageManager.SaveChunkToBinSync(chunk, CCoord);
     }
 
 
-    public static void AllocateChunk(TerrainChunk chunk, int3 CCoord, ChunkStorageManager.OnWriteComplete OnReleaseComplete){
+    public static void AllocateChunk(TerrainChunk chunk, int3 CCoord){
         int chunkHash = HashCoord(CCoord);
-
         ChunkMapInfo prevChunk = AddressDict[chunkHash];
         ChunkMapInfo newChunk = new ChunkMapInfo
         {
@@ -92,7 +92,6 @@ public static class CPUDensityManager
 
         //Release Previous Chunk
         if(prevChunk.valid) SaveChunk(chunkHash);
-        OnReleaseComplete.Invoke();
 
         AddressDict[chunkHash] = newChunk;
         _ChunkManagers[chunkHash] = chunk;
@@ -278,6 +277,10 @@ public static class CPUDensityManager
         AsyncGPUReadback.RequestIntoNativeSlice(ref dest, GPUDensityManager.AccessStorage(), size: 4 * numPoints, offset: 4 * memAddress);*/
     }
 
+    public static int3 GSToCS(int3 GCoord){
+        int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
+        return (GCoord - MCoord) / mapChunkSize;
+    }
     public static float3 WSToGS(float3 WSPos){return WSPos / lerpScale + mapChunkSize / 2;}
     public static float3 GSToWS(float3 GSPos){return (GSPos - mapChunkSize / 2) * lerpScale;}
     public static void SetMap(MapData data, int3 GCoord){

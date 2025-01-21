@@ -6,16 +6,16 @@ using Unity.Collections.LowLevel.Unsafe;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
 
-public class BirdController : EntityController
+public class SparrowController : EntityController
 {
     private Animator animator;
-    private unsafe Bird.BirdEntity entity;
-    private Bird.BirdSetting settings => Bird.BirdEntity.settings;
+    private unsafe Sparrow.SparrowEntity entity;
+    private Sparrow.SparrowSetting settings => Sparrow.SparrowEntity.settings;
     private bool active = false;
 
     public override void Initialize(Entity Entity)
     {
-        this.entity = (Bird.BirdEntity)Entity;
+        this.entity = (Sparrow.SparrowEntity)Entity;
         this.active = true;
 
         float3 GCoord = new (entity.GCoord);
