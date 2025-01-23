@@ -1,6 +1,6 @@
 using UnityEngine;
 using Unity.Mathematics;
-using static CPUDensityManager;
+using static CPUMapManager;
 using System;
 using WorldConfig;
 

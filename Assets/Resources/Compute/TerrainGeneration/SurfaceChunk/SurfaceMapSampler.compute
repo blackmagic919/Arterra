@@ -22,9 +22,9 @@ struct surfData{
     int biome;
     float terrain;
     float squash;
+    float atmosphere;
     float InfMax;
     float InfMin;
-    float atmosphere;
 };
 
 RWStructuredBuffer<surfData> surfMap;

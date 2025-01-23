@@ -1,6 +1,5 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
-#pragma multi_compile _ USE_FLOAT
 
 uint indexFromCoord2D(uint x, uint y, uint numPointsPerAxis) {
     return x * numPointsPerAxis + y;
@@ -15,12 +14,8 @@ StructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<uint> _AddressDict;
 uint addressIndex;
 
-#ifdef USE_FLOAT
-RWStructuredBuffer<float> destination;
-#else
-RWStructuredBuffer<int> destination;
-#endif
 
+RWStructuredBuffer<uint> destination;
 uint destPointsPerAxis;
 uint destSkipInc;
 
@@ -38,9 +33,5 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     int2 sourceCoords = (id.xy * destSkipInc) / sourceSkipInc;
     int sourceIndex = _AddressDict[addressIndex] + indexFromCoord2D(sourceCoords.x, sourceCoords.y, sourcePointsPerAxis);
 
-#ifdef USE_FLOAT
-    destination[destIndex] = asfloat(_MemoryBuffer[sourceIndex]);
-#else
-    destination[destIndex] = asint(_MemoryBuffer[sourceIndex]);
-#endif
+    destination[destIndex] = _MemoryBuffer[sourceIndex];
 }

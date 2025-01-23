@@ -1,13 +1,13 @@
 using Unity.Mathematics;
 using UnityEngine;
-using static CPUDensityManager;
+using static CPUMapManager;
 using WorldConfig;
 using WorldConfig.Generation.Material;
 
 namespace TerrainGeneration{
 
 /// <summary>
-/// Terrain Update is a static system that handles updates to map entries within <see cref="CPUDensityManager"/>. Whenever a
+/// Terrain Update is a static system that handles updates to map entries within <see cref="CPUMapManager"/>. Whenever a
 /// map entry is modified(e.g. by a player, through an update, etc.) it should be updated in case it has a specific behavior.
 /// Materials(map entries) must all define an <see cref="MaterialData.UpdateMat"/> method that will be called when the map entry
 /// is updated.
@@ -50,7 +50,7 @@ public static class TerrainUpdate
     /// <summary>
     /// Adds a map entry to the update queue. The map entry will be updated in the next fixed update if there
     /// is enough space for it, otherwise it is discarded. If the map entry already exists in the queue, it is ignored.
-    /// </summary> <param name="GCoord">The grid space coordinate of the map entry. The caller should only call this with coordinates present within <see cref="CPUDensityManager"/></param>
+    /// </summary> <param name="GCoord">The grid space coordinate of the map entry. The caller should only call this with coordinates present within <see cref="CPUMapManager"/></param>
     public static void AddUpdate(int3 GCoord){
         int flagIndex = HashFlag(GCoord);
         if(IncludedCoords.GetFlag(flagIndex)) return;

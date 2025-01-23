@@ -1,7 +1,6 @@
-using System;
+/*using System;
 using UnityEngine;
 
-namespace WorldConfig.Generation.Entity{
 /// <summary>
 /// The controller for an entity. An entity controller reflects the state of 
 /// the entity by changing its animation, physical position, and other properties. 
@@ -35,4 +34,4 @@ public abstract class EntityController : MonoBehaviour
         TerrainGeneration.OctreeTerrain.OrderedDisable.RemoveListener(Disable);
     }
 }
-}
+*/

@@ -1,6 +1,5 @@
 using Unity.Mathematics;
 using UnityEngine;
-using static DensityGenerator;
 using Unity.Collections;
 using WorldConfig;
 
@@ -11,7 +10,7 @@ namespace WorldConfig.Generation{
 /// Locates the noise samplers responsible for creating different aspects
 /// of the terrain. <seealso href="https://blackmagic919.github.io/AboutMe/2024/08/01/Base-Generation/"/>
 /// </summary>
-[CreateAssetMenu(menuName = "Containers/Mesh Creator Settings")]
+[CreateAssetMenu(menuName = "Containers/Map Settings")]
 public class Map : ScriptableObject{ 
     /// <summary>
     /// The name of the material within the <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry of
@@ -102,44 +101,6 @@ public class Map : ScriptableObject{
     /// <summary> The index of the material described by <see cref="waterMat"/> in the <see cref="WorldConfig.Config.GenerationSettings.Materials">noise</see> registry </summary>
     public int WaterIndex => Config.CURRENT.Generation.Materials.value.MaterialDictionary.RetrieveIndex(waterMat);
 }}
-
-
-public class MeshCreator
-{
-
-    public void PopulateBiomes(float3 offset, uint surfaceData, int chunkSize, int mapSkip) => GenerateBiomeData(offset, surfaceData, chunkSize, mapSkip);
-    public void GenerateBaseChunk(float3 offset, uint surfaceData, int chunkSize, int mapSkip, float IsoLevel) => GenerateBaseData(offset, surfaceData, chunkSize, mapSkip, IsoLevel);
-    public void CompressMap(int chunkSize) => CompressMapData(chunkSize);
-
-    public void SetMapInfo(int numPointsAxis, int offset, CPUDensityManager.MapData[] chunkData){
-        int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
-        UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
-    }
-    public void SetMapInfo(int chunkSize, int offset, ref NativeArray<CPUDensityManager.MapData> chunkData)
-    {
-        int numPoints = chunkSize * chunkSize * chunkSize;
-        UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
-    }
-
-    public void GenerateRealMesh(int3 CCoord, float IsoLevel, int chunkSize, uint neighborDepths){
-        CollectRealMap(CCoord, chunkSize);
-        GenerateMesh(chunkSize, IsoLevel);
-        if(neighborDepths == 0) return;
-        GenerateTransition(neighborDepths, chunkSize, IsoLevel);
-    }
-    public void GenerateVisualMesh(int3 CCoord, int defAddress, float IsoLevel, int chunkSize, int depth, uint neighborDepths){
-        CollectVisualMap(CCoord, defAddress, chunkSize, depth);
-        GenerateMesh(chunkSize, IsoLevel);
-        if(neighborDepths == 0) return;
-        GenerateTransition(neighborDepths, chunkSize, IsoLevel);
-    }
-    public void GenerateFakeMesh(float IsoLevel, int chunkSize, uint neighborDepths) {
-        GenerateMesh(chunkSize, IsoLevel);
-        if(neighborDepths == 0) return;
-        GenerateTransition(neighborDepths, chunkSize, IsoLevel);
-    }
-
-}
 
 /*
 

@@ -5,7 +5,7 @@ using Unity.Mathematics;
 using System;
 using Unity.Burst;
 using static EntityJob;
-using static CPUDensityManager;
+using static CPUMapManager;
 
 /*
 Future Note: Make this done on a job system

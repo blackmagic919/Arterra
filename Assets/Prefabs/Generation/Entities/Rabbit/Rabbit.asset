@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 346b3105d71cf4c878de54fbbf5115c4, type: 3}
   m_Name: Rabbit
   m_EditorClassIdentifier: 
+  Controller:
+    value: {fileID: 6546456818936621580, guid: 195ebb10c364e4d08ae29d9e0a8332b8, type: 3}
   Profile:
     value:
     - bounds: 4286644096
@@ -47,8 +49,6 @@ MonoBehaviour:
       profileStart: 0
   _Setting:
     value:
-      Controller:
-        value: {fileID: 6546456818936621580, guid: 195ebb10c364e4d08ae29d9e0a8332b8, type: 3}
       movement:
         GroundStickDist: 0.05
         moveSpeed: 4

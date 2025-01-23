@@ -38,9 +38,9 @@ struct surfData{
     int biome;
     float terrain;
     float squash;
+    float atmosphere;
     float InfMax;
     float InfMin;
-    float atmosphere;
 };
 
 StructuredBuffer<surfData> _SurfMemoryBuffer;

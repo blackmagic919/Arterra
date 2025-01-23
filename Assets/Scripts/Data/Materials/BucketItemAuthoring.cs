@@ -2,7 +2,7 @@ using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using static CPUDensityManager;
+using static CPUMapManager;
 
 namespace WorldConfig.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Bucket")] 
@@ -86,7 +86,7 @@ public class BucketItem : IItem{
         if(!T.hasHit || content == null) return;
         Authoring mat = ItemInfo.Retrieve(content.Index);
         if(mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
-        CPUDensityManager.Terraform(T.hitPoint, T.settings.terraformRadius, AddFromBucket);
+        CPUMapManager.Terraform(T.hitPoint, T.settings.terraformRadius, AddFromBucket);
         if(content.AmountRaw == 0) content = null;
         IsDirty = true;
     }
@@ -116,7 +116,7 @@ public class BucketItem : IItem{
 
     private void RemoveLiquid(float _){
         if(!T.hasHit) return;
-        CPUDensityManager.Terraform(T.hitPoint, T.settings.terraformRadius, RemoveToBucket);
+        CPUMapManager.Terraform(T.hitPoint, T.settings.terraformRadius, RemoveToBucket);
         IsDirty = true; 
     }
 

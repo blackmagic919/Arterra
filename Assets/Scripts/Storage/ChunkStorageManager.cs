@@ -5,9 +5,8 @@ using System.Text;
 using System.IO.Compression;
 using Utils;
 
-using static CPUDensityManager;
+using static CPUMapManager;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 using System;
 using TerrainGeneration;

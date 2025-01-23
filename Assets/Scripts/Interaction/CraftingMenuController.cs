@@ -4,7 +4,7 @@ using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using static CPUDensityManager;
+using static CPUMapManager;
 using static PlayerHandler;
 using WorldConfig;
 using WorldConfig.Generation.Material;

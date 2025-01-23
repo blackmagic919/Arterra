@@ -4,7 +4,7 @@ using Unity.Mathematics;
 using TerrainGeneration;
 using WorldConfig;
 
-public static class GPUDensityManager
+public static class GPUMapManager
 {
     private static ComputeShader dictReplaceKey;
     private static ComputeShader transcribeMapInfo;

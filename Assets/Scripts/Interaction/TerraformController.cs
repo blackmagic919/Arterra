@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
-using static CPUDensityManager;
+using static CPUMapManager;
 using WorldConfig;
 using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
@@ -242,7 +242,7 @@ public class TerraformController : UpdateTask
 
     public void RemoveTerrain(float _){
         if (!hasHit) return;
-        CPUDensityManager.Terraform(hitPoint, settings.terraformRadius, HandleRemoveSolid);
+        CPUMapManager.Terraform(hitPoint, settings.terraformRadius, HandleRemoveSolid);
     }
 
     public static int GetStaggeredDelta(float deltaDensity){

@@ -2,7 +2,7 @@ using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using static CPUDensityManager;
+using static CPUMapManager;
 using WorldConfig;
 
 namespace WorldConfig.Generation.Item{
@@ -98,7 +98,7 @@ public struct BrushItem : IItem{
 
     private static void OnTerrainTerrace(float _){
         if(!T.hasHit) return;
-        CPUDensityManager.TerrainInteract(T.hitPoint, T.settings.terraformRadius, TerrainTerrace);
+        CPUMapManager.TerrainInteract(T.hitPoint, T.settings.terraformRadius, TerrainTerrace);
     }
     private static void AverageSolid(ref MapData min1, ref MapData max1, int delta){
         //make sure max is max liquid and min is min liquid

@@ -110,7 +110,8 @@ public class Config : ScriptableObject{
     [Serializable]
     public struct GenerationSettings{
         /// <summary> The registry containing settings for all noise functions used in the world's generation. 
-        /// The number of noise functions available to be sample is limited to whatever is in this registry. </summary>
+        /// The number of noise functions available to be sample is limited to whatever is in this registry. 
+        /// See <see cref="Generation.Noise"/> for more information. </summary>
         [UISetting(Message = "Controls How The World Is Generated")]
         public Registry<Generation.Noise> Noise;
         /// <summary> See here for more information: <see cref="Generation.Map"/> </summary>
@@ -121,11 +122,17 @@ public class Config : ScriptableObject{
         public Option<Generation.Biome.Generation> Biomes;
         /// <summary> See here for more information: <see cref="Generation.Structure.Generation"/> </summary>
         public Option<Generation.Structure.Generation> Structures;
-        /// <summary> See here for more information: <see cref="Generation.Material.Generation"/> </summary>
+        /// <summary> The registry containing settings for all materials used in the world's generation. 
+        /// Any material not in this registry will not be recognized by the game and usage/deserialization of it may 
+        /// result in undefined behavior. See here for more information: <see cref="Generation.Material.Generation"/> </summary>
         public Option<Generation.Material.Generation> Materials;
-        /// <summary> See here for more information: <see cref="Generation.Item.Authoring"/> </summary>
+        /// <summary> The registry containing all items referencable in any way throughout the game. Any item
+        /// not in this registry will not be recognized by the game and usage/deserialization of it may 
+        /// result in undefined behavior. See here for more information: <see cref="Generation.Item.Authoring"/> </summary>
         public Registry<Generation.Item.Authoring> Items;
-        /// <summary> See here for more information: <see cref="Generation.Entity.Authoring"/> </summary>
+        /// <summary>The registry containing all entities referencable in any way throughout the game. Any entity
+        /// not in this registry will not be recognized by the game and usage/deserialization of it may 
+        /// result in undefined behavior. See here for more information: <see cref="Generation.Entity.Authoring"/> </summary>
         public Registry<Generation.Entity.Authoring> Entities;
         /// <summary> A registry containing all textures used within the game. Similar to a texture 
         /// atlas, this registry is copied to the GPU and to be referenced by shaders. </summary>

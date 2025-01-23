@@ -56,7 +56,7 @@ public class RigidFPController : MonoBehaviour
         InputPoller.AddBinding(new InputPoller.ActionBind("Move Vertical",(float y) => InputDir.y = y), "4.0::Movement");
         InputPoller.AddBinding(new InputPoller.ActionBind("Move Horizontal", (float x) => InputDir.x = x), "4.0::Movement");
         InputPoller.AddBinding(new InputPoller.ActionBind("Jump", (_null_) => {
-            float3 posGS = CPUDensityManager.WSToGS(this.transform.position) + tCollider.offset;
+            float3 posGS = CPUMapManager.WSToGS(this.transform.position) + tCollider.offset;
             if(tCollider.SampleCollision(posGS, new float3(tCollider.size.x, -Setting.groundStickDist, tCollider.size.z), out _))
                 tCollider.velocity += Setting.jumpForce * (float3)Vector3.up;
         }), "4.0::Movement");

@@ -5,21 +5,6 @@ using Newtonsoft.Json;
 using WorldConfig;
 
 
-public static class RegisterBuilder{
-    public static void Initialize(){
-        //Create all registers, then convert their dependencies
-        Config.CURRENT.Generation.Noise.Construct();
-        Config.CURRENT.Generation.Entities.Construct();
-        Config.CURRENT.Generation.Textures.Construct();
-        Config.CURRENT.Generation.Biomes.value.SurfaceBiomes.Construct();
-        Config.CURRENT.Generation.Biomes.value.CaveBiomes.Construct();
-        Config.CURRENT.Generation.Biomes.value.SkyBiomes.Construct();
-        Config.CURRENT.Generation.Structures.value.StructureDictionary.Construct();
-        Config.CURRENT.Generation.Materials.value.MaterialDictionary.Construct();
-        Config.CURRENT.Generation.Items.Construct();
-        Config.CURRENT.Quality.GeoShaders.Construct();
-    }
-}
 [Serializable]
 public struct Registry<T> : IRegister, ICloneable
 {
@@ -115,6 +100,19 @@ public interface IRegister{
     public abstract bool Contains(string name);
     public abstract bool Contains(int index);
     public abstract object Clone();
+    public static void Setup(){
+        //Create all registers, then convert their dependencies
+        Config.CURRENT.Generation.Noise.Construct();
+        Config.CURRENT.Generation.Entities.Construct();
+        Config.CURRENT.Generation.Textures.Construct();
+        Config.CURRENT.Generation.Biomes.value.SurfaceBiomes.Construct();
+        Config.CURRENT.Generation.Biomes.value.CaveBiomes.Construct();
+        Config.CURRENT.Generation.Biomes.value.SkyBiomes.Construct();
+        Config.CURRENT.Generation.Structures.value.StructureDictionary.Construct();
+        Config.CURRENT.Generation.Materials.value.MaterialDictionary.Construct();
+        Config.CURRENT.Generation.Items.Construct();
+        Config.CURRENT.Quality.GeoShaders.Construct();
+    }
     
 }
 

@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ac5298b744c34d5f8ceecb832cc99b6, type: 3}
   m_Name: Sparrow
   m_EditorClassIdentifier: 
+  Controller:
+    value: {fileID: 5546489892204468177, guid: 0b8db709ddf3d41309f8684a630b72f7, type: 3}
   Profile:
     value:
     - bounds: 4286644096
@@ -44,11 +46,9 @@ MonoBehaviour:
         x: 2
         y: 3
         z: 2
-      profileStart: 0
+      profileStart: 24
   _Setting:
     value:
-      Controller:
-        value: {fileID: 5546489892204468177, guid: 0b8db709ddf3d41309f8684a630b72f7, type: 3}
       movement:
         moveSpeed: 15
         acceleration: 50

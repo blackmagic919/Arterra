@@ -1,6 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+
 namespace WorldConfig.Generation.Structure{
 /// <summary>
 /// A collection of settings that describe how structures are generated. 
@@ -8,7 +7,7 @@ namespace WorldConfig.Generation.Structure{
 /// through a structure. See <seealso href="https://blackmagic919.github.io/AboutMe/2024/06/08/Structure%20Planning/">
 /// here</seealso> for more information.
 /// </summary>
-[CreateAssetMenu(menuName = "Generation/Structure/StructureGenerationData")]
+[CreateAssetMenu(menuName = "Generation/Structure/Structure Settings")]
 public class Generation : ScriptableObject
 {
     /// <summary>

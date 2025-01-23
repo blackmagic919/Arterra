@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
   m_Name: ArcticFox
   m_EditorClassIdentifier: 
+  Controller:
+    value: {fileID: 1869515680497457174, guid: 092657fe27da741e39e3487e750d3fc0, type: 3}
   Profile:
     value:
     - bounds: 4286644096
@@ -44,11 +46,9 @@ MonoBehaviour:
         x: 2
         y: 3
         z: 2
-      profileStart: 0
+      profileStart: 48
   _Setting:
     value:
-      Controller:
-        value: {fileID: 1869515680497457174, guid: 092657fe27da741e39e3487e750d3fc0, type: 3}
       movement:
         GroundStickDist: 0.05
         moveSpeed: 3

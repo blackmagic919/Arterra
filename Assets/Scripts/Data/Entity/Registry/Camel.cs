@@ -161,15 +161,15 @@ public class Camel : Authoring
         public override void OnDrawGizmos(){
             if(!active) return;
             Gizmos.color = Color.red; 
-            Gizmos.DrawWireCube(CPUDensityManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
+            Gizmos.DrawWireCube(CPUMapManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
             PathFinder.PathInfo finder = pathFinder; //Copy so we don't modify the original
             if(finder.hasPath){
                 int ind = finder.currentInd;
                 while(ind != finder.path.Length){
                     int dir = finder.path[ind];
                     int3 dest = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
-                    Gizmos.DrawLine(CPUDensityManager.GSToWS(finder.currentPos - settings.collider.offset), 
-                                    CPUDensityManager.GSToWS(dest - settings.collider.offset));
+                    Gizmos.DrawLine(CPUMapManager.GSToWS(finder.currentPos - settings.collider.offset), 
+                                    CPUMapManager.GSToWS(dest - settings.collider.offset));
                     finder.currentPos = dest;
                     ind++;
                 }
@@ -195,7 +195,7 @@ public class Camel : Authoring
             
 
             float3 GCoord = new (entity.GCoord);
-            this.transform.position = CPUDensityManager.GSToWS(GCoord - CamelEntity.settings.collider.offset) + (float3)Vector3.up * 1;
+            this.transform.position = CPUMapManager.GSToWS(GCoord - CamelEntity.settings.collider.offset) + (float3)Vector3.up * 1;
         }
 
         public void Update(){
@@ -203,7 +203,7 @@ public class Camel : Authoring
             if(gameObject == null) return;
             EntityManager.AssertEntityLocation(entity, entity.GCoord);    
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
-            rTransform.position = CPUDensityManager.GSToWS(rTransform.position - CamelEntity.settings.collider.offset);
+            rTransform.position = CPUMapManager.GSToWS(rTransform.position - CamelEntity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
 
             if(entity.TaskIndex == 3) 

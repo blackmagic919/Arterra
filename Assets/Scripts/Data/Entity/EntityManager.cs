@@ -6,7 +6,7 @@ using UnityEngine.Rendering;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Burst;
-using static CPUDensityManager;
+using static CPUMapManager;
 using System.Collections.Generic;
 using TerrainGeneration;
 using WorldConfig;
@@ -22,7 +22,7 @@ public static class EntityManager
     public static Dictionary<Guid, int> EntityIndex; //tracks location in handler of entityGUID
     public static STree ESTree; //BVH of entities updated synchronously
     public static ConcurrentQueue<Action> HandlerEvents; //Buffered updates to modify entities(since it can't happen while job is executing)
-    private static EntityJob Executor; //Job that updates all entities
+    private static volatile EntityJob Executor; //Job that updates all entities
     const int ENTITY_STRIDE_WORD = 3 + 1;
     const int MAX_ENTITY_COUNT = 10000; //10k ~ 5mb
 
@@ -67,15 +67,16 @@ public static class EntityManager
     public static void AddHandlerEvent(Action action){
 
         //If there's no job running directly execute it
+        lock(Executor){
         if(!Executor.active) {
             Executor = new EntityJob(); //make new one to reset
             OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
-        }  HandlerEvents.Enqueue(action);
+        } } 
+        HandlerEvents.Enqueue(action);
     }
 
     public unsafe static Entity GetEntity(Guid entityId){
         if(!EntityIndex.ContainsKey(entityId)) {
-            Debug.Log(entityId);
             return null;
         }
         int entityInd = EntityIndex[entityId];
@@ -94,8 +95,8 @@ public static class EntityManager
         ChunkMapInfo mapInfo = AddressDict[HashCoord(CCoord)];
         if(!mapInfo.valid) return; 
         //mapinfo.CCoord is coord of previous chunk
-        STree.TreeNode.Bounds bounds = new STree.TreeNode.Bounds{Min = mapInfo.CCoord * mapChunkSize, 
-        Max = (mapInfo.CCoord + 1) * mapChunkSize};
+        STree.TreeNode.Bounds bounds = new STree.TreeNode.Bounds{
+        Min = mapInfo.CCoord * mapChunkSize, Max = (mapInfo.CCoord + 1) * mapChunkSize};
 
         List<Entity> Entities = new List<Entity>();
         ESTree.Query(bounds, (Entity entity) => {
@@ -139,10 +140,6 @@ public static class EntityManager
         newEntity.Initialize(authoring.Controller, GCoord);
         EntityHandler.Add(newEntity);
         ESTree.Insert(GCoord, newEntity.info.entityId);
-
-        if(Executor.active) return;
-        Executor = new EntityJob(); //make new one to reset
-        OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
     }
 
     private unsafe static void CreateE(EntitySerial sEntity){
@@ -157,10 +154,6 @@ public static class EntityManager
         newEntity.Deserialize(authoring.Controller, out int3 GCoord);
         EntityHandler.Add(newEntity);
         ESTree.Insert(GCoord, newEntity.info.entityId);
-
-        if(Executor.active) return;
-        Executor = new EntityJob(); //make new one to reset
-        OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
     }
 
     public unsafe static void AssertEntityLocation(Entity entity, int3 GCoord){
@@ -229,15 +222,15 @@ public static class EntityManager
         entityGenShader.SetInt("bSTART_biome", biomeStart);
         entityGenShader.SetInt("numPointsPerAxis", numPointsAxes);
         entityGenShader.SetInts("CCoord", new int[] { CCoord.x, CCoord.y, CCoord.z });
-        GPUDensityManager.SetCCoordHash(entityGenShader);
+        GPUMapManager.SetCCoordHash(entityGenShader);
 
         entityGenShader.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);
         entityGenShader.Dispatch(kernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
         kernel = entityGenShader.FindKernel("Prune");
-        entityGenShader.SetBuffer(kernel, "_MemoryBuffer", GPUDensityManager.Storage);
-        entityGenShader.SetBuffer(kernel, "_AddressDict", GPUDensityManager.Address);
+        entityGenShader.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
+        entityGenShader.SetBuffer(kernel, "_AddressDict", GPUMapManager.Address);
 
         ComputeBuffer args = UtilityBuffers.CountToArgs(entityGenShader, UtilityBuffers.GenerationBuffer, bufferOffsets.entityCounter, kernel: kernel);
         entityGenShader.DispatchIndirect(kernel, args);
@@ -394,12 +387,12 @@ public static class EntityManager
             ref TreeNode node = ref tree[index];
             ref TreeNode parent = ref tree[(int)node.Parent];
             uint Sibling = index == parent.Left ? parent.Right : parent.Left;
-            if(!node.IsLeaf) return; 
+            if(!node.IsLeaf) return;
             if(node.Parent == 0) {
                 Root = 0; length = 1;
                 return;
             }
-
+            
             uint parentIndex = node.Parent;
             tree[(int)parent.Parent].ReplaceChild(node.Parent, Sibling);
             tree[(int)parent.Parent].ResizeBranch(tree);
@@ -614,7 +607,7 @@ public unsafe struct PathFinder{
     }
 
     [BurstCompile]
-    public unsafe static bool InBounds(in CPUDensityManager.MapData data, uint bounds){
+    public unsafe static bool InBounds(in CPUMapManager.MapData data, uint bounds){
         return data.density >= (bounds & 0xFF) && data.density <= ((bounds >> 8) & 0xFF) && 
                data.viscosity >= ((bounds >> 16) & 0xFF) && data.viscosity <= ((bounds >> 24) & 0xFF);
     }

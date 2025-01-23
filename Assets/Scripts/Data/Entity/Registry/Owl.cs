@@ -189,9 +189,9 @@ public class Owl : Authoring
         public override void OnDrawGizmos(){
             if(!active) return;
             Gizmos.color = Color.green; 
-            Gizmos.DrawWireCube(CPUDensityManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
+            Gizmos.DrawWireCube(CPUMapManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
             float3 location = tCollider.transform.position - settings.collider.offset;
-            Gizmos.DrawLine(CPUDensityManager.GSToWS(location), CPUDensityManager.GSToWS(location + flightDirection));
+            Gizmos.DrawLine(CPUMapManager.GSToWS(location), CPUMapManager.GSToWS(location + flightDirection));
         }
     }
 
@@ -210,7 +210,7 @@ public class Owl : Authoring
             this.active = true;
 
             float3 GCoord = new (entity.GCoord);
-            transform.position = CPUDensityManager.GSToWS(GCoord - OwlEntity.settings.collider.offset) + (float3)Vector3.up * 1;
+            transform.position = CPUMapManager.GSToWS(GCoord - OwlEntity.settings.collider.offset) + (float3)Vector3.up * 1;
         }
 
         public void Update(){
@@ -218,7 +218,7 @@ public class Owl : Authoring
             if(gameObject == null) return;
             EntityManager.AssertEntityLocation(entity, entity.GCoord);    
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
-            rTransform.position = CPUDensityManager.GSToWS(rTransform.position - OwlEntity.settings.collider.offset);
+            rTransform.position = CPUMapManager.GSToWS(rTransform.position - OwlEntity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
 
             if(entity.TaskIndex == 1){

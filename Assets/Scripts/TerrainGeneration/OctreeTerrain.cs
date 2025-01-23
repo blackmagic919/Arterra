@@ -24,11 +24,6 @@ public class OctreeTerrain : MonoBehaviour
     /// </summary>
     public static readonly int[] taskLoadTable = { 1, 2, 5, 2, 8, 0 };
     /// <summary>
-    /// A subscribable event that allows for update-loop tasks outside of update containers
-    /// To subsribe to be disabled after static/singleton systems have been disabled.
-    /// </summary>
-    public static UnityEvent OrderedDisable;
-    /// <summary>
     /// A queue containing subscribed tasks that are executed
     /// once every update loop. The update loop occurs
     /// once every frame before the late update loop.
@@ -114,36 +109,12 @@ public class OctreeTerrain : MonoBehaviour
         origin = this.transform; //This means origin in Unity's scene heiharchy
         octree = new Octree(s.MaxDepth, s.Balance, s.MinChunkRadius);
         chunks = new ConstrainedLL<TerrainChunk>((uint)(Octree.GetMaxNodes(s.MaxDepth, s.Balance, s.MinChunkRadius) + 1));
-        OrderedDisable = new UnityEvent();
 
         MainLoopUpdateTasks = new Queue<UpdateTask>();
         MainLateUpdateTasks = new Queue<UpdateTask>();
         MainFixedUpdateTasks = new Queue<UpdateTask>();
         RequestQueue = new ConcurrentQueue<GenTask>();
-
-        UtilityBuffers.Initialize();
-        RegisterBuilder.Initialize();
-        GenerationPreset.Initialize();
-
-        InputPoller.Initialize();
-        PlayerHandler.Initialize();
-
-        GPUDensityManager.Initialize();
-        CPUDensityManager.Initialize();
-
-        EntityManager.Initialize();
-        TerrainUpdate.Initialize();
-
-        AtmospherePass.Initialize();
-        ChunkStorageManager.Initialize();
-
-        StructureGenerator.PresetData();
-        TerrainGenerator.PresetData();
-        DensityGenerator.PresetData();
-        ShaderGenerator.PresetData();
-        SpriteExtruder.PresetData();
-        Readback.AsyncMeshReadback.PresetData();
-        Config.CURRENT.System.ReadBack.value.Initialize();
+        SystemProtocol.Startup();
     }
     
     void Start()
@@ -155,16 +126,7 @@ public class OctreeTerrain : MonoBehaviour
     private void OnDisable()
     {
         ForEachChunk((uint chunk) => chunks.nodes[chunk].Value.Destroy());
-
-        UtilityBuffers.Release();
-        GPUDensityManager.Release();
-        CPUDensityManager.Release();
-        EntityManager.Release();
-        GenerationPreset.Release();
-        AtmospherePass.Release();
-        Config.CURRENT.System.ReadBack.value.Release();
-
-        OrderedDisable.Invoke();
+        SystemProtocol.Shutdown();
     }
 
     
@@ -251,7 +213,7 @@ public class OctreeTerrain : MonoBehaviour
     }
 
     /// <summary>
-    /// Deterimes the positive difference in <see cref="TerrainChunk.depth">depth</see> between a chunk and its 6 neighbors.
+    /// Determines the positive difference in <see cref="TerrainChunk.depth">depth</see> between a chunk and its 6 neighbors.
     /// If the parent is of a smaller depth(i.e. smaller) than the current chunk, 0 will be returned as there would be multiple nodes
     /// that border that side of the chunk. This information is not found through traversal of the octree, but mathematical
     /// evaluation off the current state of the game--the real neighbors may be at a different depth if not properly updated.
@@ -428,7 +390,7 @@ public class OctreeTerrain : MonoBehaviour
     private static bool RemapRoot(uint octreeNode){
         ref Octree.Node node = ref octree.nodes[octreeNode];
         int maxChunkSize = (int)s.mapChunkSize * (1 << (int)s.MaxDepth);
-        int3 VCoord = octree.FloorLCoord(ViewPosGS - maxChunkSize/2, maxChunkSize);
+        int3 VCoord = octree.FloorCCoord(ViewPosGS - maxChunkSize/2, maxChunkSize);
         int3 offset = ((node.origin / maxChunkSize - VCoord) % rootDim + rootDim) % rootDim;
 
         int3 newOrigin = (VCoord + offset) * maxChunkSize;
@@ -621,10 +583,10 @@ public class OctreeTerrain : MonoBehaviour
         /// One can obtain the chunk coordinate for a specific depth by setting <paramref name="chunkSize"/> to
         /// <see cref="WorldConfig.Quality.Terrain.mapChunkSize"/> * (2^<see cref="TerrainChunk.depth"/>)>:
         /// </remarks>
-        /// <param name="GCoord"></param>
-        /// <param name="chunkSize"></param>
-        /// <returns></returns>
-        public int3 FloorLCoord(int3 GCoord, int chunkSize){ 
+        /// <param name="GCoord">The position whose relative chunk coordinate is sampled</param>
+        /// <param name="chunkSize">The size of chunk the outputted chunk coordinate is scaled to.</param>
+        /// <returns>The chunk coordinate of the point relative to <paramref name="chunkSize"/></returns>
+        public int3 FloorCCoord(int3 GCoord, int chunkSize){ 
             int3 offset = ((GCoord % chunkSize) + chunkSize) % chunkSize; // GCoord %% chunkSize
             return (GCoord - offset) / chunkSize; 
         }
@@ -673,6 +635,9 @@ public class OctreeTerrain : MonoBehaviour
         /// <summary>
         /// Creates an octree with the specified settings--depth, balance factor, and chunk radius.
         /// </summary>
+        /// <param name="depth">The maximum depth of the octree</param>
+        /// <param name="balanceF">The balance factor of the octree. See <see cref="WorldConfig.Quality.Terrain.Balance"/> for more info.</param>
+        /// <param name="chunksRadius">The minimum radius of the smallest chunks within the octree. See <see cref="WorldConfig.Quality.Terrain.MinChunkRadius"/> for more info.</param>
         public Octree(int depth, int balanceF, int chunksRadius){
             int numChunks = GetMaxNodes(depth, balanceF, chunksRadius);
             nodes = new Node[4*numChunks+1];

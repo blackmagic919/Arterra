@@ -75,7 +75,7 @@ public class AtmosphereBake
 
     public void Execute(CommandBuffer cmd)
     {
-        if(!GPUDensityManager.initialized)
+        if(!GPUMapManager.initialized)
             return;
         if(!initialized)
             return;
@@ -127,7 +127,7 @@ public class AtmosphereBake
         OpticalDataCompute.SetBuffer(0, "rayInfo", rayInfo);
         OpticalDataCompute.SetBuffer(0, "mapData", OpticalInfo);
 
-        GPUDensityManager.SetDensitySampleData(OpticalDataCompute);
+        GPUMapManager.SetDensitySampleData(OpticalDataCompute);
     }
 
     void CalculateRayData(CommandBuffer cmd)

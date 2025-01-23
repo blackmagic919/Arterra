@@ -16,7 +16,7 @@ using WorldConfig.Generation.Entity;
 //2. Generalization of map data access
 //3. Accessibility of map for jobs(no managed memory)
 //4. Cleaner management and writing to storage(disk/ssd)
-public static class CPUDensityManager
+public static class CPUMapManager
 {
     public static TerrainChunk[] _ChunkManagers;
     public static NativeArray<MapData> SectionedMemory;
@@ -223,7 +223,9 @@ public static class CPUDensityManager
                     float3 dR = GCoord - tPointGS;
                     float sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
                     float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
-                    SetMap(handleTerraform(SampleMap(GCoord), brushStrength), GCoord);
+                    MapData sample = SampleMap(GCoord);
+                    if(sample.IsNull) continue; //Skip if null(invalid)
+                    SetMap(handleTerraform(sample, brushStrength), GCoord);
                     TerrainUpdate.AddUpdate(GCoord);
                 }
             }
@@ -253,10 +255,10 @@ public static class CPUDensityManager
     }
 
     public static void BeginMapReadback(int3 CCoord){ //Need a wrapper class to maintain reference to the native array
-        int GPUChunkHash = GPUDensityManager.HashCoord(CCoord);
+        int GPUChunkHash = GPUMapManager.HashCoord(CCoord);
         int CPUChunkHash = HashCoord(CCoord);
 
-        AsyncGPUReadback.Request(GPUDensityManager.Address, size: 8, offset: 20 * GPUChunkHash, ret => onChunkAddressRecieved(ret, CPUChunkHash));
+        AsyncGPUReadback.Request(GPUMapManager.Address, size: 8, offset: 20 * GPUChunkHash, ret => onChunkAddressRecieved(ret, CPUChunkHash));
     }
 
     static unsafe void onChunkAddressRecieved(AsyncGPUReadbackRequest request, int chunkHash){
@@ -269,12 +271,12 @@ public static class CPUDensityManager
         int meshSkipInc = (int)memHandle.y;
         
         NativeArray<MapData> dest = AccessChunk(chunkHash);
-        AsyncGPUReadback.RequestIntoNativeArray(ref dest, GPUDensityManager.Storage, size: 4 * numPoints, offset: 4 * memAddress);
+        AsyncGPUReadback.RequestIntoNativeArray(ref dest, GPUMapManager.Storage, size: 4 * numPoints, offset: 4 * memAddress);
 
         /*Currently broken because safety checks operate on the object level (i.e. SectionedMemory can only be read to one at a time)
         
         NativeSlice<TerrainChunk.MapData> dest = SectionedMemory.Slice((int)destChunk.address, numPoints);
-        AsyncGPUReadback.RequestIntoNativeSlice(ref dest, GPUDensityManager.AccessStorage(), size: 4 * numPoints, offset: 4 * memAddress);*/
+        AsyncGPUReadback.RequestIntoNativeSlice(ref dest, GPUMapManager.AccessStorage(), size: 4 * numPoints, offset: 4 * memAddress);*/
     }
 
     public static int3 GSToCS(int3 GCoord){
@@ -363,8 +365,8 @@ public static class CPUDensityManager
         int CIndex = HCoord.x * context.numChunksAxis * context.numChunksAxis + HCoord.y * context.numChunksAxis + HCoord.z;
         int numPoints = context.mapChunkSize * context.mapChunkSize * context.mapChunkSize;
         ChunkMapInfo mapInfo = context.AddressDict[CIndex];
-        if(!mapInfo.valid) return new MapData{data = 4294967295};//Not available(currently readingback)
-        if(math.any(mapInfo.CCoord != CCoord)) return new MapData{data = 4294967295}; //Out of bounds
+        if(!mapInfo.valid) return new MapData{data = 0xFFFFFFFF};//Not available(currently readingback)
+        if(math.any(mapInfo.CCoord != CCoord)) return new MapData{data = 0xFFFFFFFF}; //Out of bounds
 
         return context.MapData[CIndex * numPoints + PIndex];
     }
@@ -380,7 +382,7 @@ public static class CPUDensityManager
     public struct MapData
     {
         [HideInInspector] public uint data;
-
+        public bool IsNull => data == 0xFFFFFFFF;
         public bool isDirty{ 
             readonly get => (data & 0x80000000) != 0;
             //Should not edit, but some functions need to

@@ -124,7 +124,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public override void OnDrawGizmos(){
             if(!active) return;
             Gizmos.color = Color.red;
-            Gizmos.DrawWireCube(CPUDensityManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
+            Gizmos.DrawWireCube(CPUMapManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
         }
     }
 
@@ -146,7 +146,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             this.active = true;
 
             float3 GCoord = new (entity.GCoord);
-            this.transform.position = CPUDensityManager.GSToWS(GCoord - EItemEntity.settings.collider.offset) + (float3)Vector3.up;
+            this.transform.position = CPUMapManager.GSToWS(GCoord - EItemEntity.settings.collider.offset) + (float3)Vector3.up;
 
             meshFilter = gameObject.GetComponent<MeshFilter>();
             SpriteExtruder.Extrude(new SpriteExtruder.ExtrudeSettings{
@@ -167,7 +167,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             if(gameObject == null) return;
             EntityManager.AssertEntityLocation(entity, entity.GCoord);    
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
-            rTransform.position = CPUDensityManager.GSToWS(rTransform.position - EItemEntity.settings.collider.offset);
+            rTransform.position = CPUMapManager.GSToWS(rTransform.position - EItemEntity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
         }
 

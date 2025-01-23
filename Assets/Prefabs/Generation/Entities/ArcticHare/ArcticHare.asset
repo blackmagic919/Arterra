@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 346b3105d71cf4c878de54fbbf5115c4, type: 3}
   m_Name: ArcticHare
   m_EditorClassIdentifier: 
+  Controller:
+    value: {fileID: 6048588642290100750, guid: b79f8c34d04eb46318d1839107d7f4b1, type: 3}
   Profile:
     value:
     - bounds: 4286644096
@@ -44,11 +46,9 @@ MonoBehaviour:
         x: 2
         y: 3
         z: 2
-      profileStart: 0
+      profileStart: 36
   _Setting:
     value:
-      Controller:
-        value: {fileID: 6048588642290100750, guid: b79f8c34d04eb46318d1839107d7f4b1, type: 3}
       movement:
         GroundStickDist: 0.05
         moveSpeed: 4

@@ -9,6 +9,54 @@ using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Entity;
 
 namespace TerrainGeneration{
+/// <summary>  The factory protocol for the collective game system. This
+/// protocol tracks the proper process to facilitate large 
+/// context switches within the game. Any new systems should
+/// be added to this protocol with awareness of its dependencies. </summary>
+public static class SystemProtocol{
+    /// <summary> Performs the proper startup protocol when the <b>world</b> is initialized
+    /// (this excludes when the main menu is displayed). This is a static factory protocol and only 
+    /// changes when modifying the system's functionality through its source code. </summary>
+    public static void Startup(){
+        IRegister.Setup();
+        UtilityBuffers.Initialize();
+        GenerationPreset.Initialize();
+
+        InputPoller.Initialize();
+        PlayerHandler.Initialize();
+
+        GPUMapManager.Initialize();
+        CPUMapManager.Initialize();
+
+        EntityManager.Initialize();
+        TerrainUpdate.Initialize();
+
+        AtmospherePass.Initialize();
+        ChunkStorageManager.Initialize();
+
+        Structure.Generator.PresetData();
+        Surface.Generator.PresetData();
+        Map.Generator.PresetData();
+        ShaderGenerator.PresetData();
+        SpriteExtruder.PresetData();
+        Readback.AsyncMeshReadback.PresetData();
+    }
+
+    /// <summary> Performs the proper shutdown protocol when the <b>world</b> is closed
+    /// (this excludes when the main menu is displayed). This is a static factory protocol and 
+    /// only changes when modifying the system's functionality through its source code. </summary>
+    public static void Shutdown(){
+        UtilityBuffers.Release();
+        GPUMapManager.Release();
+        CPUMapManager.Release();
+        EntityManager.Release();
+        GenerationPreset.Release();
+        AtmospherePass.Release();
+        Readback.AsyncMeshReadback.Release();
+    }
+}
+
+
 /// <summary>
 /// By default,information may be stored in settings or on storage where it is
 /// likely serialized to be version independent. This class is responsible for acquiring
@@ -59,12 +107,10 @@ public static class GenerationPreset
         memoryHandle.Release();
     }
 
-    /// <summary>
-    /// Responsible for deserializing all material display information as well as copying all textures to the GPU.
+    /// <summary>Responsible for deserializing all material display information as well as copying all textures to the GPU.
     /// Material display information includes information on each material's visual representation as a solid, liquid, 
-    /// and gas <seealso cref="MaterialData"/>. Textures are copied from the <see cref="ItemAuthoring"/> registry and should
-    /// be referenced in the GPU by their index in that registry.
-    /// </summary>
+    /// and gas <seealso cref="MaterialData"/>. Textures are copied from the <see cref="Config.GenerationSettings.Textures"/>
+    /// registry and should be referenced in the GPU by their index in that registry. </summary>
     public struct MaterialHandle{
         const int textureSize = 512;
         const TextureFormat textureFormat = TextureFormat.RGBA32;
@@ -136,7 +182,7 @@ public static class GenerationPreset
     }
     /// <summary>
     /// Responsible for deserializing all noise generation settings and copying it to the GPU 
-    /// for use in the terrain generation process. <seealso cref="Config.CURRENT.Generation.Noise"/>. 
+    /// for use in the terrain generation process. <seealso cref="Config.GenerationSettings.Noise"/>. 
     /// </summary>
     public struct NoiseHandle{
         internal ComputeBuffer indexBuffer;
@@ -146,7 +192,7 @@ public static class GenerationPreset
 
         /// <summary>
         /// Initializes the <see cref="NoiseHandle"/> . Deserializes and copies all information
-        /// contained by <see cref="WorldConfig.Config.GenerationSettings.Noise"/> to the GPU. 
+        /// contained by <see cref="Config.GenerationSettings.Noise"/> to the GPU. 
         /// Information is stored in global GPU buffers <c>_NoiseIndexes</c>, <c>_NoiseSettings</c>, 
         /// <c>_NoiseOffsets</c> and <c>_NoiseSplinePoints</c>.
         /// </summary>
@@ -210,7 +256,7 @@ public static class GenerationPreset
 
     /// <summary>
     /// Responsible for deserializing all biome generation settings and copying it to the GPU for use
-    /// in the terrain generation process. <seealso cref="Config.CURRENT.Generation.Biomes"/>.
+    /// in the terrain generation process. <seealso cref="Config.GenerationSettings.Biomes"/>.
     /// </summary>
     public struct BiomeHandle{
         ComputeBuffer SurfTreeBuffer;
@@ -222,7 +268,7 @@ public static class GenerationPreset
 
         /// <summary>
         /// Initializes the <see cref="BiomeHandle"/>. Deserializes and copies all information
-        /// contained by <see cref="Config.CURRENT.Generation.Biomes"/> to the GPU. Deserializing
+        /// contained by <see cref="Config.GenerationSettings.Biomes"/> to the GPU. Deserializing
         /// the registry involves constructing an R-Tree LUT which is then copied to the GPU. Information 
         /// about this LUT is stored in global GPU buffers <c>_BiomeSurfTree</c>, <c>_BiomeCaveTree</c>,
         /// while information on what each biome contains is stored in <c>_BiomeMaterials</c>, <c>_BiomeStructureData</c>, 
@@ -309,7 +355,7 @@ public static class GenerationPreset
 
     /// <summary>
     /// Responsible for deserializing all structure generation settings and copying it to the GPU 
-    /// for use in the terrain generation process. <seealso cref="Config.CURRENT.Generation.Structures"/>.
+    /// for use in the terrain generation process. <seealso cref="Config.GenerationSettings.Structures"/>.
     /// </summary>
     public struct StructHandle{
         ComputeBuffer indexBuffer; //Prefix sum
@@ -320,7 +366,7 @@ public static class GenerationPreset
 
         /// <summary>
         /// Initializes the <see cref="StructHandle"/>. Deserializes and copies all information contained by
-        /// <see cref="Config.CURRENT.Generation.Structures"/> to the GPU. Information about a structure's in 
+        /// <see cref="Config.GenerationSettings.Structures"/> to the GPU. Information about a structure's in 
         /// generation is stored in global GPU buffers <c>_StructureIndexes</c>, <c>_StructureChecks</c>, and  <c>_StructureSettings</c>.
         ///  <c>_StructureSettings</c> also includes information on each structure's start and length of information in the other buffers, 
         ///  including the raw point data in <c>_StructureMap</c>.
@@ -378,7 +424,7 @@ public static class GenerationPreset
     /// Responsible for deserializing all entity generation settings and copying it to the GPU 
     /// for use in the terrain generation process. Note that <b>only information
     /// relevant to each entity's placement is copied</b>. 
-    /// <seealso cref="Config.CURRENT.Generation.Entities"/>.
+    /// <seealso cref="Config.GenerationSettings.Entities"/>.
     /// </summary>
     public struct EntityHandle{
         private ComputeBuffer entityInfoBuffer;
@@ -388,7 +434,7 @@ public static class GenerationPreset
 
         /// <summary>
         /// Initializes the <see cref="EntityHandle"/>. Deserializes and copies all information contained by
-        /// <see cref="Config.CURRENT.Generation.Entities"/> relavent to an entity's placement to the GPU. 
+        /// <see cref="Config.GenerationSettings.Entities"/> relavent to an entity's placement to the GPU. 
         /// This includes information on each entity's size, and <see cref="ProfileE" />. 
         /// Information is stored in global GPU buffers <c>_EntityInfo</c> and <c>_EntityProfile</c>.
         /// </summary>

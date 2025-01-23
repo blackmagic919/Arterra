@@ -34,12 +34,12 @@ public class AtmospherePass : ScriptableRenderPass
         if (material == null) material = CoreUtils.CreateEngineMaterial("Hidden/Fog");
 
         WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
-        float atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * GPUDensityManager.numChunksRadius;
+        float atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * GPUMapManager.numChunksRadius;
         AtmosphereSettings = new AtmosphereBake(atmosphereRadius);
 
         material.SetFloat("_AtmosphereRadius", atmosphereRadius);
         material.SetInt("_NumInScatterPoints", AtmosphereSettings.NumInScatterPoints);
-        GPUDensityManager.SetDensitySampleData(material);
+        GPUMapManager.SetDensitySampleData(material);
         AtmosphereSettings.SetBakedData(material);
         initialized = true;
     }
@@ -67,7 +67,7 @@ public class AtmospherePass : ScriptableRenderPass
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
         if(!initialized) return;
-        if(GPUDensityManager.initialized && AtmosphereSettings.initialized){
+        if(GPUMapManager.initialized && AtmosphereSettings.initialized){
             CommandBuffer cmd = CommandBufferPool.Get();
             using (new ProfilingScope(cmd, new ProfilingSampler(ProfilerTag)))
             {

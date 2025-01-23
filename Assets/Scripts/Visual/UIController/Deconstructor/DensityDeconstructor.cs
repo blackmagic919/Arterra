@@ -67,7 +67,7 @@ public class DensityDeconstructor : MonoBehaviour
             throw new Exception("Grid size cannot be zero");
         if(initialized) Release(); 
         if(Config.CURRENT == null) WorldStorageHandler.Activate();
-        RegisterBuilder.Initialize(); //Initialize Register LUTS
+        IRegister.Setup(); //Initialize Register LUTS
         if(!TerrainGeneration.GenerationPreset.active) TerrainGeneration.GenerationPreset.Initialize(); // Initialize Material Information
         if(!UtilityBuffers.active) UtilityBuffers.Initialize(); //Initialize Utility Buffers Which Stores Geometry
         Structure.Initialize();
@@ -408,7 +408,7 @@ public class DensityDeconstructor : MonoBehaviour
         private ComputeShader ModelConstructor;
         private ComputeShader IndexLinker;
         private ComputeShader DrawArgsConstructor;
-        public DensityGenerator.GeoGenOffsets offsets;
+        public TerrainGeneration.Map.Generator.GeoGenOffsets offsets;
         private uint3 GridSize;
         private float IsoLevel;
 
@@ -431,7 +431,7 @@ public class DensityDeconstructor : MonoBehaviour
             this.IsoLevel = IsoLevel;
             this.transform = transform;
 
-            this.offsets = new DensityGenerator.GeoGenOffsets(new int3(GridSize), 0, bufferStart, VERTEX_STRIDE_WORD);
+            this.offsets = new TerrainGeneration.Map.Generator.GeoGenOffsets(new int3(GridSize), 0, bufferStart, VERTEX_STRIDE_WORD);
             PresetData();
         }
 

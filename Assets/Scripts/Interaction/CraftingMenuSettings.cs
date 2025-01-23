@@ -59,10 +59,10 @@ public class Crafting : ScriptableObject{
         /// correspond to a grid of points whose size is dictated by <see cref="Crafting.GridWidth"/>.
         /// If this grid matches  the player's crafting grid, the recipe is considered
         /// craftable and the result may be obtained. No two recipes should be identical,
-        /// although this is not enforced. </summary> <remarks>The <see cref="CPUDensityManager.MapData.isDirty"/> flag
+        /// although this is not enforced. </summary> <remarks>The <see cref="CPUMapManager.MapData.isDirty"/> flag
         /// is repurposed to indicate if an entry should be ignored when being matched. This is useful if a component
         /// of the recipe is not essential to its creation, such as any empty entries. </remarks>
-        public Option<List<CPUDensityManager.MapData> > entry;
+        public Option<List<CPUMapManager.MapData> > entry;
         /// <summary> If the recipe can be crafted, the result that is given to the player if the recipe is crafted.
         /// <see cref="Result"/> for more information. </summary>
         public Result result;
@@ -93,9 +93,9 @@ public class Crafting : ScriptableObject{
         /// deserializes(recouples) any external references to the map entry's material. </summary>
         /// <param name="Index">The index within <see cref="entry"/> of the entry that is retrieved</param>
         /// <returns>The deserialized map information of the recipe's entry at the specified <paramref name="Index"/>.</returns>
-        public readonly CPUDensityManager.MapData EntrySerial(int Index){
+        public readonly CPUMapManager.MapData EntrySerial(int Index){
             Registry<MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-            CPUDensityManager.MapData p = entry.value[Index];
+            CPUMapManager.MapData p = entry.value[Index];
             if(!reg.Contains(Names.value[p.material])) return p;
             p.material = reg.RetrieveIndex(Names.value[p.material]);
             return p;

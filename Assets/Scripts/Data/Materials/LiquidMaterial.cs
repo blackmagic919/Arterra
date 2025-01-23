@@ -1,5 +1,5 @@
 using UnityEngine;
-using static CPUDensityManager;
+using static CPUMapManager;
 using Unity.Mathematics;
 using Unity.Burst;
 using System;

@@ -204,7 +204,7 @@ public class InventoryController : UpdateTask
             WorldConfig.Generation.Entity.EntitySerial Entity = new();
             Entity.type = "EntityItem";
             Entity.data = new EItem.EItemEntity(new TerrainColliderJob.Transform{
-                position = CPUDensityManager.WSToGS(PlayerHandler.player.transform.position),
+                position = CPUMapManager.WSToGS(PlayerHandler.player.transform.position),
                 rotation = PlayerHandler.player.transform.rotation,
             }, item);
             Entity.data.info.entityId = Guid.NewGuid();

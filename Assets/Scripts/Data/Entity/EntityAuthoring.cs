@@ -12,11 +12,12 @@ namespace WorldConfig.Generation.Entity{
 /// set of properties and methods necessary for the system to function.
 /// </summary>
 public abstract class Authoring : ScriptableObject{
-    /// <summary> A reference to the entity that contains the actual instance of the entity. See <see cref="IEntity"/> for more information</summary>
+    /// <summary> A reference to the entity that contains the actual instance of the entity. See <see cref="Entity"/> for more information</summary>
     public virtual Entity Entity{get; }
     /// <summary> A reference to the readonly shared settings that all instances of this entity uses. See <see cref="IEntitySetting"/> for more information</summary>
     public virtual IEntitySetting Setting{get; set;}
-    /// <summary> A reference to the controller responsible for displaying the entity </summary>
+    /// <summary> A reference to the controller responsible for displaying the entity. The controller is the visual gameobject
+    /// representing the entity whose display is managed by Unity. </summary>
     [UISetting(Ignore = true)][JsonIgnore]
     public Option<GameObject> Controller;
     /// <summary> A list of points defining the profile of the entity, the list is linearly encoded through the dimensions
@@ -36,17 +37,19 @@ public abstract class Authoring : ScriptableObject{
 public abstract class Entity{
     /// <summary> Information about the entity instance that is required of every instance for the system to function. See <see cref="Info"/> for more information. </summary>
     public Info info; 
-    /// <summary> Whether or not the entity is active. This is the flag set by <see cref="_Disable"/> to indicate to the controller
-    /// that it can release the entity. Once this flag is set to false, it cannot be set to true without risking race
+    /// <summary> Whether or not the entity is active. This is the flag set to indicate to the system that
+    /// the entity has been released. Once this flag is set to false, it cannot be set to true without risking race
     /// conditions and undefined behavior. </summary>
     public bool active;
 
-    /// <summary> A single line property calling the entity's virtual update function. See <see cref="Entity._Update"/> for more information. </summary>
-    /// <param name="entity">The entity that is the instance the function is being called on. Equivalent to <c>this</c> in a managed type's method</param>
-    /// <param name="context">The context referencing unmaanged system information to be used by the Update. See <see cref="EntityJob.Context"/> for more info. </param>
+    /// <summary> The entity's virtual update function. This will be called every game tick within a Unity Job to 
+    /// perform computational-heavy tasks related to the entity. Only the Entity in question is provided mutual
+    /// exclusivity. Accessing any external resources(e.g. creating an entity) needs to resynchronize using <see cref="EntityManager.AddHandlerEvent(Action)"/>
+    /// </summary>
     public abstract void Update();
-    /// <summary> A single line property calling the entity's virtual disable function. See <see cref="Entity._Disable"/> for more information.</summary> 
-    /// <param name="entity">The entity that is the instance the function is being called on. Equivalent to <c>this</c> in a managed type's method</param>
+    /// <summary> A callback when the entity is disabled. This will be called whenever the system attempts to destroy an 
+    /// entity and should be used to release any resources tied with it. An entity should assume it is destroyed after 
+    /// processing this callback. </summary> 
    public abstract void Disable();
     /// <summary> Presets any information shared by all instances of the entity. This is only called once per entity type within
     /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information.
@@ -62,6 +65,7 @@ public abstract class Entity{
     /// The callee may preset any default values during this process but it <b>must</b> guarantee
     /// that the entity returned is fully populated (i.e. virtual functions all set).
     /// </summary>
+    /// <param name="controller">The controller responsible for displaying the entity. Passed from <see cref="Authoring.Controller"/> </param>
     /// <param name="GCoord">The position in grid space the entity was placed at. </param>
     public abstract void Initialize(GameObject controller, int3 GCoord);
     /// <summary>
@@ -69,6 +73,7 @@ public abstract class Entity{
     /// while others may need to be thrown away. This function is called when the entity is deserialized 
     /// in case the entity needs to reframe its information.
     /// </summary>
+    ///  <param name="controller">The controller responsible for displaying the entity. Passed from <see cref="Authoring.Controller"/> </param>
     /// <param name="GCoord">The position in grid space the entity was placed at. </param>
     public abstract void Deserialize(GameObject controller, out int3 GCoord);
     /// <summary>
@@ -81,7 +86,7 @@ public abstract class Entity{
     /// <summary>
     /// Settings for a structure that is required for the systems governing how entities are identified
     /// and co-exist in the world. An incorrect setting can lead to not only invalidation of the entity
-    /// but corruption of the entire entity system. This may be read from within the <see cref="obj">entity's type</see>
+    /// but corruption of the entire entity system. This may be read from within the entity's type
     /// but should not be modified except by the <see cref="EntityManager"> entity system </see>
     /// </summary>
     [System.Serializable]
@@ -139,7 +144,7 @@ public interface IEntitySetting{}
 public struct EntitySerial{
     /// <summary> The type of the entity. This is the name of the entity within the <see cref="WorldConfig.Config.GenerationSettings.Entities"/> registry. 
     /// Upon deserialization, this type is used to cast <see cref="data"/> to before populating its data. An incorrect <see cref="type"/> will cause the entity
-    /// to fail deserialization and be deleted. See <see cref="Utils.NSerializable.EntityConverter"/> for more information. </summary>
+    /// to fail deserialization and be deleted. </summary>
     public string type;
     /// <summary> The data of the entity, known by the entity itself. The <see cref="type"/> is used to serialize and deserialize this information. </summary>
     public Entity data;
