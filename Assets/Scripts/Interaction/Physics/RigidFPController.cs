@@ -37,7 +37,7 @@ public class Movement : ICloneable{
 }
 public class RigidFPController : MonoBehaviour
 {
-    public Movement Setting => Config.CURRENT.GamePlay.Movement.value;
+    public WorldConfig.Gameplay.Movement Setting => Config.CURRENT.GamePlay.Movement.value;
     public Camera cam;
     public MouseLook mouseLook;
     private TerrainCollider tCollider;

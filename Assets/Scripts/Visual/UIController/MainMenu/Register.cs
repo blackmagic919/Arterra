@@ -92,7 +92,6 @@ public struct Registry<T> : IRegister, ICloneable
     }
 }
 
-
 public interface IRegister{
     public abstract void Construct();
     public abstract string RetrieveName(int index);

@@ -453,7 +453,7 @@ public static class GenerationPreset
                 info.profileStart = (uint)entityProfile.Count;
                 entityInfo[i] = info;
                 EntityDictionary[i].Info = info;
-                EntityDictionary[i].Entity.Preset(EntityDictionary[i].Setting);
+                EntityDictionary[i].Setting.Preset();
 
                 entityProfile.AddRange(EntityDictionary[i].Profile.value);
             }
@@ -479,7 +479,7 @@ public static class GenerationPreset
 
             //Release Static Entity Data
             Authoring[] EntityDictionary = Config.CURRENT.Generation.Entities.SerializedData;
-            foreach(Authoring entity in EntityDictionary) entity.Entity.Unset();
+            foreach(Authoring entity in EntityDictionary) entity.Setting.Unset();
             if(entityProfileArray.IsCreated) entityProfileArray.Dispose();
         }
     }

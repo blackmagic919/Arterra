@@ -6,6 +6,8 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Burst;
 using UnityEditor;
 using System.Collections.Generic;
+using UnityEditor.UI;
+using UnityEngine.UI;
 namespace WorldConfig.Generation.Entity{
 /// <summary>
 /// A generic contract that ensures that all entities contain a certain
@@ -14,8 +16,8 @@ namespace WorldConfig.Generation.Entity{
 public abstract class Authoring : ScriptableObject{
     /// <summary> A reference to the entity that contains the actual instance of the entity. See <see cref="Entity"/> for more information</summary>
     public virtual Entity Entity{get; }
-    /// <summary> A reference to the readonly shared settings that all instances of this entity uses. See <see cref="IEntitySetting"/> for more information</summary>
-    public virtual IEntitySetting Setting{get; set;}
+    /// <summary> A reference to the readonly shared settings that all instances of this entity uses. See <see cref="EntitySetting"/> for more information</summary>
+    public virtual EntitySetting Setting{get; set;}
     /// <summary> A reference to the controller responsible for displaying the entity. The controller is the visual gameobject
     /// representing the entity whose display is managed by Unity. </summary>
     [UISetting(Ignore = true)][JsonIgnore]
@@ -51,31 +53,28 @@ public abstract class Entity{
     /// entity and should be used to release any resources tied with it. An entity should assume it is destroyed after 
     /// processing this callback. </summary> 
    public abstract void Disable();
-    /// <summary> Presets any information shared by all instances of the entity. This is only called once per entity type within
-    /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information.
-    /// </summary> <remarks> For example, if the entity uses a state machine it can allocate function pointers to each state within the machine such that
-    /// they may be referenced through an edge list. </remarks>
-    /// <param name="Settings">The entity's settings, the concrete information known by the entity.</param>
-    public abstract void Preset(IEntitySetting Settings);
-    /// <summary> A callback to release any information set by <see cref="Preset"/>. Called once per entity type within the 
-    /// <see cref="Config.GenerationSettings.Entities"> entity register </see> before the game is closed.  </summary>
-    public abstract void Unset();
     /// <summary>
     /// Initializes the entity's instance. Called when creating an instance of the entity.
     /// The callee may preset any default values during this process but it <b>must</b> guarantee
     /// that the entity returned is fully populated (i.e. virtual functions all set).
     /// </summary>
+    /// <param name="setting">The setting of the entity. Specific to the authoring entry it's instantiated from. </param>
     /// <param name="controller">The controller responsible for displaying the entity. Passed from <see cref="Authoring.Controller"/> </param>
     /// <param name="GCoord">The position in grid space the entity was placed at. </param>
-    public abstract void Initialize(GameObject controller, int3 GCoord);
+    public abstract void Initialize(EntitySetting setting, GameObject controller, int3 GCoord);
     /// <summary>
     /// Deserializes the entity's instance. Some of the entity's information may be retrieved from serialization
     /// while others may need to be thrown away. This function is called when the entity is deserialized 
     /// in case the entity needs to reframe its information.
     /// </summary>
+    /// <param name="setting">The setting of the entity. Specific to the authoring entry it's instantiated from. </param>
     ///  <param name="controller">The controller responsible for displaying the entity. Passed from <see cref="Authoring.Controller"/> </param>
     /// <param name="GCoord">The position in grid space the entity was placed at. </param>
-    public abstract void Deserialize(GameObject controller, out int3 GCoord);
+    public abstract void Deserialize(EntitySetting setting, GameObject controller, out int3 GCoord);
+    /// <summary>A single line property for retrieving and setting the entity's position in grid space. Most entities 
+    /// require knowledge of other entity's positions; however entities that aren't spatially bound may not fulfill 
+    /// this contract if it no system requires its location.  </summary>
+    public abstract float3 position{get; set;}
     /// <summary>
     /// A callback to draw any gizmos that the entity may need to draw. This is only for 
     /// debugging purposes in UnityEditor to draw any annotations related to entities. This will
@@ -129,12 +128,24 @@ public abstract class Entity{
     }
 }
 
-/// <summary>
-/// An interface for all type-specific settings used by entities. A setting itself does not need to 
+/// <summary> An interface for all authoring-specific settings used by entities. A setting itself does not need to 
 /// define any members that has to be known externally so this is an empty contract and in effect no 
-/// different than an <see cref="object"/>, but it offers clarity as to what the object is used for.
-/// </summary>
-public interface IEntitySetting{}
+/// different than an <see cref="object"/>, but it offers clarity as to what the object is used for. Explicitly
+/// must be managed class so instances do individually waste memory on settings. </summary>
+public abstract class EntitySetting{
+    /// <summary> Presets any information shared by all instances of the entity. This is only called once per entity type within
+    /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information.
+    /// </summary> <remarks> For example, if the entity uses a state machine it can allocate function pointers to each state within the machine such that
+    /// they may be referenced through an edge list. </remarks>
+    public virtual void Preset(){
+        //Preset any default values here
+    }
+    /// <summary> A callback to release any information set by <see cref="Preset"/>. Called once per entity type within the 
+    /// <see cref="Config.GenerationSettings.Entities"> entity register </see> before the game is closed.  </summary>
+    public virtual void Unset(){
+        //Unset preset values here
+    }
+}
 
 /// <summary>
 /// A structure that contains the information stored when saving an entity. The system
@@ -210,6 +221,7 @@ public class MapDataDrawer : PropertyDrawer{
         rect.y += EditorGUIUtility.singleLineHeight;
         EditorGUI.MultiIntField(rect, new GUIContent[] { new ("Viscosity L"), new ("Viscosity U") }, viscosityB);
         rect.y += EditorGUIUtility.singleLineHeight;
+        
 
 
         data = (data & 0xFFFFFF00) | ((uint)densityB[0] & 0xFF);

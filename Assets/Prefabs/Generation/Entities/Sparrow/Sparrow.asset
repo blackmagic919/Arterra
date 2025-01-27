@@ -50,14 +50,15 @@ MonoBehaviour:
   _Setting:
     value:
       movement:
-        moveSpeed: 15
+        walkSpeed: 10
+        runSpeed: 15
         acceleration: 50
         friction: 0.075
         rotSpeed: 180
-      flight:
+        pathDistance: 4
         AverageIdleTime: 2.5
+      flight:
         AverageFlightTime: 120
-        flightDistance: 4
         InfluenceDist: 24
         SeperationWeight: 0.75
         AlignmentWeight: 0.5

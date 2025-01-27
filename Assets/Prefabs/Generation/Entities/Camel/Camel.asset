@@ -98,14 +98,14 @@ MonoBehaviour:
   _Setting:
     value:
       movement:
-        GroundStickDist: 0.05
-        moveSpeed: 1.25
+        walkSpeed: 2
+        runSpeed: 5
         acceleration: 200
         friction: 0.075
         rotSpeed: 180
         pathDistance: 31
-      idle:
         AverageIdleTime: 2.5
+      idle:
         AverageRestTime: 32
         RestProbability: 0.3
       collider:

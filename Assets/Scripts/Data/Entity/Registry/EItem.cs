@@ -18,9 +18,9 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
     [JsonIgnore]
     public override Entity Entity { get => new EItemEntity(); }
     [JsonIgnore]
-    public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (EItemSetting)value; }
+    public override EntitySetting Setting { get => _Setting.value; set => _Setting.value = (EItemSetting)value; }
     [Serializable]
-    public struct EItemSetting : IEntitySetting{
+    public class EItemSetting : EntitySetting{
         public float GroundStickDist;
         public float StickFriction;
         public int2 SpriteSampleSize;
@@ -41,13 +41,11 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public int3 GCoord; 
         public bool isPickedUp;
         public ItemInfo item;
-
-        public static EItemSetting settings;
-        
-        public override void Preset(IEntitySetting setting){
-            settings = (EItemSetting)setting;
+        public EItemSetting settings;
+        public override float3 position {
+            get => tCollider.transform.position;
+            set => tCollider.transform.position = value;
         }
-        public override void Unset(){ }
 
         public unsafe EItemEntity(){}
         public EItemEntity(TerrainColliderJob.Transform origin, IItem item){
@@ -61,15 +59,17 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         } 
 
         //This function shouldn't be used
-        public override void Initialize(GameObject Controller, int3 GCoord)
+        public override void Initialize(EntitySetting setting, GameObject Controller, int3 GCoord)
         {
+            settings = (EItemSetting)setting;
             controller = new EItemController(Controller, this);
             tCollider.transform.position = GCoord;
             isPickedUp = false;
         }
 
-        public override void Deserialize(GameObject Controller, out int3 GCoord)
+        public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord)
         {
+            settings = (EItemSetting)setting;
             controller = new EItemController(Controller, this);
             GCoord = this.GCoord;
         }
@@ -146,14 +146,14 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             this.active = true;
 
             float3 GCoord = new (entity.GCoord);
-            this.transform.position = CPUMapManager.GSToWS(GCoord - EItemEntity.settings.collider.offset) + (float3)Vector3.up;
+            this.transform.position = CPUMapManager.GSToWS(GCoord - entity.settings.collider.offset) + (float3)Vector3.up;
 
             meshFilter = gameObject.GetComponent<MeshFilter>();
             SpriteExtruder.Extrude(new SpriteExtruder.ExtrudeSettings{
                 ImageIndex = entity.item.Slot.TexIndex,
-                SampleSize = EItemEntity.settings.SpriteSampleSize,
-                AlphaClip = EItemEntity.settings.AlphaClip,
-                ExtrudeHeight = EItemEntity.settings.ExtrudeHeight,
+                SampleSize = entity.settings.SpriteSampleSize,
+                AlphaClip = entity.settings.AlphaClip,
+                ExtrudeHeight = entity.settings.ExtrudeHeight,
             }, OnMeshRecieved);
         }
 
@@ -167,7 +167,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             if(gameObject == null) return;
             EntityManager.AssertEntityLocation(entity, entity.GCoord);    
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
-            rTransform.position = CPUMapManager.GSToWS(rTransform.position - EItemEntity.settings.collider.offset);
+            rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
         }
 

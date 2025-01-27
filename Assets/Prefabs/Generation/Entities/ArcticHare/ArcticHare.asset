@@ -9,11 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 346b3105d71cf4c878de54fbbf5115c4, type: 3}
+  m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
   m_Name: ArcticHare
   m_EditorClassIdentifier: 
   Controller:
-    value: {fileID: 6048588642290100750, guid: b79f8c34d04eb46318d1839107d7f4b1, type: 3}
+    value: {fileID: 3660665789513501651, guid: 8ba577da0478c4730b160818db4cbf75, type: 3}
   Profile:
     value:
     - bounds: 4286644096
@@ -50,13 +50,52 @@ MonoBehaviour:
   _Setting:
     value:
       movement:
-        GroundStickDist: 0.05
-        moveSpeed: 4
+        walkSpeed: 3
+        runSpeed: 5
         acceleration: 200
         friction: 0.075
         rotSpeed: 180
         pathDistance: 31
         AverageIdleTime: 2.5
+      recognition:
+        Predators:
+          value:
+          - Fox
+          - ArcticFox
+        Prey:
+          value: []
+        Mates:
+          value:
+          - MateType: Rabbit
+            ChildType: Rabbit
+            AmountPerParent: 0.5
+          - MateType: ArcticHare
+            ChildType: ArcticHare
+            AmountPerParent: 0.5
+        Edibles:
+          value: []
+        SightDistance: 31
+        FleeDistance: 5
+      physicality:
+        MaxHealth: 10
+        NaturalRegen: 0.025
+        AttackDistance: 2
+        AttackDamage: 1
+        AttackSpeed: 1
+        KBStrength: 1
+        InvincTime: 0.25
+        HuntThreshold: 0.4
+        MateThreshold: 0.9
+        PregnacyLength: 4
+        ConsumptionRate: 1
+        MateCost: 5
+      decomposition:
+        LootTable:
+          value:
+          - ItemName: Meat
+            DropAmount: 1
+        DecompositionTime: 200
+        DecompPerLoot: 5
       collider:
         size:
           x: 0.5

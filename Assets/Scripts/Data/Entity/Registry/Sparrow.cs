@@ -1,6 +1,5 @@
 using UnityEngine;
 using Unity.Mathematics;
-using Unity.Collections.LowLevel.Unsafe;
 using System;
 using Newtonsoft.Json;
 using WorldConfig;
@@ -16,31 +15,21 @@ public class Sparrow : Authoring
     [JsonIgnore]
     public override Entity Entity { get => new SparrowEntity(); }
     [JsonIgnore]
-    public override IEntitySetting Setting { get => _Setting.value; set => _Setting.value = (SparrowSetting)value; }
+    public override EntitySetting Setting { get => _Setting.value; set => _Setting.value = (SparrowSetting)value; }
 
     [Serializable]
-    public struct SparrowSetting : IEntitySetting{
+    public class SparrowSetting : EntitySetting{
         public Movement movement;
         public Flight flight;
         public TerrainColliderJob.Settings collider;
         [Serializable]
-        public struct Movement{
-            public float moveSpeed; //15
-            public float acceleration; //50
-            public float friction; //0.075
-            public float rotSpeed;//180
-        }
-        [Serializable]
         public struct Flight{
-            public float AverageIdleTime; //2.5
             public float AverageFlightTime; //120
-            public int flightDistance; //4
             public int InfluenceDist; //24
             public float SeperationWeight; //0.75
             public float AlignmentWeight; //0.5
             public float CohesionWeight; //0.25
             public float FlyBiasWeight; //0.25
-
         }
     }
 
@@ -57,19 +46,20 @@ public class Sparrow : Authoring
         public float3 flightDirection;
         public float TaskDuration;
         public uint TaskIndex;
-        public static SparrowSetting settings;
+        public SparrowSetting settings;
         public static Action<SparrowEntity>[] TaskRegistry = new Action<SparrowEntity>[]{
             Idle,
             FollowPath,
             FollowPath
         };
-        public override void Preset(IEntitySetting setting){
-            settings = (SparrowSetting)setting;
+        public override float3 position {
+            get => tCollider.transform.position;
+            set => tCollider.transform.position = value;
         }
-        public override void Unset(){ }
 
-        public override void Initialize(GameObject Controller, int3 GCoord)
+        public override void Initialize(EntitySetting setting, GameObject Controller, int3 GCoord)
         {
+            settings = (SparrowSetting)setting;
             controller = new SparrowController(Controller, this);
             //The seed is the entity's memory address
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
@@ -77,12 +67,13 @@ public class Sparrow : Authoring
             pathFinder.hasPath = false;
             tCollider.transform.position = GCoord;
             flightDirection = RandomDirection();
-            TaskDuration = settings.flight.AverageIdleTime * random.NextFloat(0f, 2f);
+            TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
             TaskIndex = 0;
         }
 
-        public override void Deserialize(GameObject Controller, out int3 GCoord)
+        public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord)
         {
+            settings = (SparrowSetting)setting;
             controller = new SparrowController(Controller, this);
             GCoord = this.GCoord;
         }
@@ -103,7 +94,7 @@ public class Sparrow : Authoring
         //Task 0
         public static void Idle(SparrowEntity self){
             if(self.TaskDuration <= 0) {
-                self.TaskDuration = settings.flight.AverageFlightTime * self.random.NextFloat(0f, 2f);
+                self.TaskDuration = self.settings.flight.AverageFlightTime * self.random.NextFloat(0f, 2f);
                 self.flightDirection = self.RandomDirection();
                 self.TaskIndex = 1;
                 self.BoidFly();
@@ -113,7 +104,7 @@ public class Sparrow : Authoring
             //Rotate towards neutral
             ref Quaternion rotation = ref self.tCollider.transform.rotation;
             float3 lookRotation = new (rotation.eulerAngles.x, 0, rotation.eulerAngles.z);
-            if(math.length(lookRotation) != 0) rotation = Quaternion.RotateTowards(rotation, Quaternion.LookRotation(lookRotation), settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
+            if(math.length(lookRotation) != 0) rotation = Quaternion.RotateTowards(rotation, Quaternion.LookRotation(lookRotation), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
         }
 
 
@@ -124,14 +115,14 @@ public class Sparrow : Authoring
             }
 
             CalculateBoidDirection();
-            byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, settings.flight.flightDistance + 1, info.profile, EntityJob.cxt, out int pLen);
+            byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, settings.movement.pathDistance + 1, info.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
         }
         public unsafe void FindGround(){
             flightDirection = Normalize(flightDirection + math.down()); 
-            int3 dP = (int3)(flightDirection * settings.flight.flightDistance);
+            int3 dP = (int3)(flightDirection * settings.movement.pathDistance);
 
-            byte* path = PathFinder.FindClosestAlongPath(GCoord, dP, settings.flight.flightDistance + 1, info.profile, EntityJob.cxt, out int pLen, out bool fGround);
+            byte* path = PathFinder.FindClosestAlongPath(GCoord, dP, settings.movement.pathDistance + 1, info.profile, EntityJob.cxt, out int pLen, out bool fGround);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
             if(fGround) TaskIndex = 2;
         }
@@ -152,7 +143,7 @@ public class Sparrow : Authoring
                 float3 nBoidPos = nBoid.tCollider.transform.position;
                 float3 boidPos = tCollider.transform.position;
 
-                if(math.distance(boidPos, nBoidPos) < settings.flight.flightDistance) 
+                if(math.distance(boidPos, nBoidPos) < settings.movement.pathDistance) 
                     boidDMtrx.SeperationDir += boidPos - nBoidPos;
                 boidDMtrx.AlignmentDir += nBoid.flightDirection;
                 boidDMtrx.CohesionDir += nBoidPos;
@@ -176,34 +167,17 @@ public class Sparrow : Authoring
         //Task 1 -> Fly, 2 -> Land
         public static unsafe void FollowPath(SparrowEntity self){
             self.TaskDuration -= EntityJob.cxt.deltaTime;
-
-            ref PathFinder.PathInfo finder = ref self.pathFinder;
-            ref TerrainColliderJob tCollider = ref self.tCollider;
-            if(math.any(math.abs(tCollider.transform.position - finder.currentPos) > self.info.profile.bounds)) finder.hasPath = false;
-            else if(finder.currentInd == finder.path.Length) finder.hasPath = false;
-            if(!finder.hasPath) {
+            Movement.FollowStaticPath(self.info.profile, ref self.pathFinder, ref self.tCollider, self.settings.movement.walkSpeed, 
+            self.settings.movement.rotSpeed, self.settings.movement.acceleration, AllowVerticalRotation: true);
+            
+            if(!self.pathFinder.hasPath) {
                 if(self.TaskIndex == 1) {
                     self.BoidFly();
                 } else {
                     self.TaskIndex = 0;
-                    self.TaskDuration = settings.flight.AverageIdleTime * self.random.NextFloat(0f, 2f);
+                    self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
                 }
                 return;
-            }
-
-            byte dir = finder.path[finder.currentInd];
-            int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
-            if(!PathFinder.VerifyProfile(nextPos, self.info.profile, EntityJob.cxt)) finder.hasPath = false;
-
-            if(math.all(self.GCoord == nextPos)){
-                finder.currentPos = nextPos;
-                finder.currentInd++;
-            } else {
-                float3 aim = Normalize(nextPos - self.GCoord);
-                tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, 
-                                               Quaternion.LookRotation(aim), settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
-                if(math.length(tCollider.velocity) < settings.movement.moveSpeed) 
-                    tCollider.velocity += settings.movement.acceleration * EntityJob.cxt.deltaTime * aim;
             }
         }
 
@@ -254,7 +228,7 @@ public class Sparrow : Authoring
             this.active = true;
 
             float3 GCoord = new (entity.GCoord);
-            transform.position = CPUMapManager.GSToWS(GCoord - SparrowEntity.settings.collider.offset) + (float3)Vector3.up * 1;
+            transform.position = CPUMapManager.GSToWS(GCoord - entity.settings.collider.offset) + (float3)Vector3.up * 1;
         }
 
         public void Update(){
@@ -262,7 +236,7 @@ public class Sparrow : Authoring
             if(gameObject == null) return;
             EntityManager.AssertEntityLocation(entity, entity.GCoord);    
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
-            rTransform.position = CPUMapManager.GSToWS(rTransform.position - SparrowEntity.settings.collider.offset);
+            rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
 
             if(entity.TaskIndex == 1){
@@ -272,8 +246,8 @@ public class Sparrow : Authoring
             }
             else{
                 animator.SetBool("IsFlying", false);
-                if(entity.TaskDuration > 2.0f) animator.SetBool("IsHopping", true);
-                else animator.SetBool("IsHopping", false);
+                if(entity.TaskDuration > 2.0f) animator.SetBool("PlayIdle", true);
+                else animator.SetBool("PlayIdle", false);
             }
         }
 

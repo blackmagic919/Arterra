@@ -144,7 +144,7 @@ public class OctreeTerrain : MonoBehaviour
             }
             count++;
         } while(curChunk != chunks.Head());*/
-        EntityManager.OnDrawGizmos();
+        Indicators.OnDrawGizmos();
     }
 
     private void Update()

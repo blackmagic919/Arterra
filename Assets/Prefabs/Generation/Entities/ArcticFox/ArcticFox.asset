@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ArcticFox
   m_EditorClassIdentifier: 
   Controller:
-    value: {fileID: 1869515680497457174, guid: 092657fe27da741e39e3487e750d3fc0, type: 3}
+    value: {fileID: 3837059478011187895, guid: 447fa7c6be9514c98ab4045fc0f243c7, type: 3}
   Profile:
     value:
     - bounds: 4286644096
@@ -50,13 +50,54 @@ MonoBehaviour:
   _Setting:
     value:
       movement:
-        GroundStickDist: 0.05
-        moveSpeed: 3
+        walkSpeed: 3
+        runSpeed: 7
         acceleration: 200
         friction: 0.075
         rotSpeed: 180
         pathDistance: 31
         AverageIdleTime: 2.5
+      recognition:
+        Predators:
+          value: []
+        Prey:
+          value:
+          - Rabbit
+          - ArcticHare
+        Mates:
+          value:
+          - MateType: Fox
+            ChildType: Fox
+            AmountPerParent: 0.5
+          - MateType: ArcticFox
+            ChildType: ArcticFox
+            AmountPerParent: 0.5
+        Edibles:
+          value:
+          - EdibleType: Meat
+            Nutrition: 1.5
+        SightDistance: 31
+        FleeDistance: 5
+      physicality:
+        MaxHealth: 20
+        NaturalRegen: -0.025
+        AttackDistance: 2
+        AttackDamage: 5
+        AttackSpeed: 1
+        KBStrength: 2
+        InvincTime: 0.25
+        HuntThreshold: 0.4
+        MateThreshold: 0.8
+        PregnacyLength: 4
+        ConsumptionRate: 0.05
+        MateCost: 10
+      decomposition:
+        LootTable:
+          value:
+          - ItemName: Meat
+            DropAmount: 0.5
+        DecompositionTime: 200
+        DecompPerLoot: 10
       collider:
         size:
           x: 0.5

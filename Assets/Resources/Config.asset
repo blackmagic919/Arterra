@@ -86,7 +86,7 @@ MonoBehaviour:
       Terrain:
         value: {fileID: 11400000, guid: 221c0649eba984d51a1426a5a546a7cf, type: 2}
       Surface:
-        value: {fileID: 11400000, guid: 98541f2fa93bc4efe906af8c64a32628, type: 2}
+        value: {fileID: 11400000, guid: 163e5244f008c44568ce69a8ba9c9b46, type: 2}
       Biomes:
         value: {fileID: 11400000, guid: a50efbb6521ad475786885000f19947c, type: 2}
       Structures:
@@ -159,12 +159,15 @@ MonoBehaviour:
           - Name: Brush
             _value:
               value: {fileID: 11400000, guid: 54b67afaa6ce54d7a903460a2615f54e, type: 2}
+          - Name: Meat
+            _value:
+              value: {fileID: 11400000, guid: 67c243a2c54c2436dbf89ce16f52e68f, type: 2}
       Entities:
         Reg:
           value:
           - Name: Rabbit
             _value:
-              value: {fileID: 11400000, guid: 638124de4470742c79535a5f0092eb27, type: 2}
+              value: {fileID: 11400000, guid: e12391921ca3e4172b6a054a9d042a41, type: 2}
           - Name: Fox
             _value:
               value: {fileID: 11400000, guid: 20291c96ec2b642818c85c16cbac8a1b, type: 2}
@@ -173,7 +176,7 @@ MonoBehaviour:
               value: {fileID: 11400000, guid: 74688da9677534740874b306e18e916d, type: 2}
           - Name: ArcticHare
             _value:
-              value: {fileID: 11400000, guid: 76df58cdcf20f4334b669984f650be56, type: 2}
+              value: {fileID: 11400000, guid: bc8f64f2dfce54e63b3ac1529b8437ce, type: 2}
           - Name: ArcticFox
             _value:
               value: {fileID: 11400000, guid: f96f21e1966384e588e53d9d3c37f0ce, type: 2}
@@ -252,6 +255,9 @@ MonoBehaviour:
           - Name: Brush
             _value:
               value: {fileID: 21300000, guid: 0271f92a8144645c1af75afae444ff0f, type: 3}
+          - Name: Meat
+            _value:
+              value: {fileID: 21300000, guid: 86d913194d5484611b89302d5f6134ab, type: 3}
   _GamePlay:
     value:
       Input:
