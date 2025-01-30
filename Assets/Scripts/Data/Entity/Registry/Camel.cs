@@ -101,8 +101,8 @@ public class Camel : Authoring
         public static unsafe void GeneratePath(CamelEntity self){
             int PathDist = self.settings.movement.pathDistance;
             int3 dP = new (self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist));
-            if(PathFinder.VerifyProfile(self.GCoord + dP, self.info.profile, EntityJob.cxt)) {
-                byte* path = PathFinder.FindPath(self.GCoord, dP, PathDist + 1, self.info.profile, EntityJob.cxt, out int pLen);
+            if(PathFinder.VerifyProfile(self.GCoord + dP, self.settings.profile, EntityJob.cxt)) {
+                byte* path = PathFinder.FindPath(self.GCoord, dP, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
                 self.TaskIndex = 3;
             }
@@ -111,7 +111,7 @@ public class Camel : Authoring
 
         //Task 3
         public static unsafe void FollowPath(CamelEntity self){
-            Movement.FollowStaticPath(self.info.profile, ref self.pathFinder, ref self.tCollider, 
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
             self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration);
             if(!self.pathFinder.hasPath) {
                 bool IsResting = self.random.NextFloat() >= self.settings.idle.RestProbability;

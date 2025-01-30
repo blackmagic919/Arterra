@@ -12,6 +12,7 @@ using TerrainGeneration;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
 using System.Collections.Concurrent;
+using UnityEngine.Profiling;
 
 public static class EntityManager
 {
@@ -114,7 +115,6 @@ public static class EntityManager
         
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg.value[(int)entityIndex].Value;
         Entity newEntity = authoring.Entity;
-        newEntity.info.profile = authoring.Info;
         newEntity.info.entityId = Guid.NewGuid();
         newEntity.info.entityType = entityIndex;
         newEntity.active = true;
@@ -129,7 +129,6 @@ public static class EntityManager
         var reg = Config.CURRENT.Generation.Entities;
         Authoring authoring = reg.Retrieve(sEntity.type);
         Entity newEntity = sEntity.data;
-        newEntity.info.profile = authoring.Info;
         newEntity.info.entityType = (uint)reg.RetrieveIndex(sEntity.type);
         newEntity.active = true;
 

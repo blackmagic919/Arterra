@@ -40,15 +40,14 @@ MonoBehaviour:
       flags: 1
     - bounds: 2130771712
       flags: 1
-  Info:
-    value:
-      bounds:
-        x: 2
-        y: 3
-        z: 2
-      profileStart: 48
   _Setting:
     value:
+      profile:
+        bounds:
+          x: 2
+          y: 3
+          z: 2
+        profileStart: 48
       movement:
         walkSpeed: 3
         runSpeed: 7
@@ -81,7 +80,7 @@ MonoBehaviour:
       physicality:
         MaxHealth: 20
         NaturalRegen: -0.025
-        AttackDistance: 2
+        AttackDistance: 3
         AttackDamage: 5
         AttackSpeed: 1
         KBStrength: 2

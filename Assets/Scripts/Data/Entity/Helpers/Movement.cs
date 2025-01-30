@@ -13,12 +13,13 @@ public struct Movement{
     public int pathDistance;//~31
     public float AverageIdleTime; //~2.5
 
-    const float pathPersistence = 5f;
+    //This is in game-ticks not real-time
+    const uint pathPersistence = 200;
 
-    public static void FollowStaticPath(Entity.ProfileInfo profile, ref PathFinder.PathInfo finder, ref TerrainColliderJob tCollider, float moveSpeed,
+    public static void FollowStaticPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, ref TerrainColliderJob tCollider, float moveSpeed,
                         float rotSpeed, float acceleration, bool AllowVerticalRotation = false){  
         //Entity has fallen off path
-        finder.stepDuration += EntityJob.cxt.deltaTime;
+        finder.stepDuration++;
         if(math.any(math.abs(tCollider.transform.position - finder.currentPos) > profile.bounds)) finder.hasPath = false;
         if(finder.currentInd == finder.path.Length) finder.hasPath = false;
         if(finder.stepDuration > pathPersistence) { finder.hasPath = false; }
@@ -45,9 +46,9 @@ public struct Movement{
         }
     }
 
-    public static void FollowDynamicPath(Entity.ProfileInfo profile, ref PathFinder.PathInfo finder, ref TerrainColliderJob tCollider, float3 target,
+    public static void FollowDynamicPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, ref TerrainColliderJob tCollider, float3 target,
                             float moveSpeed, float rotSpeed, float acceleration, bool AllowVerticalRotation = false){
-        finder.stepDuration += EntityJob.cxt.deltaTime;
+        finder.stepDuration++;
         if(math.any(math.abs(tCollider.transform.position - finder.currentPos) > profile.bounds)) finder.hasPath = false;
         if(finder.currentInd >= finder.path.Length) finder.hasPath = false;
         if(finder.stepDuration > pathPersistence) finder.hasPath = false;

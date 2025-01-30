@@ -25,9 +25,6 @@ public abstract class Authoring : ScriptableObject{
     /// <summary> A list of points defining the profile of the entity, the list is linearly encoded through the dimensions
     /// specified in <see cref="Entity.ProfileInfo"/>. See <see cref="ProfileE"/> for more information </summary>
     public Option<List<ProfileE>> Profile;
-    /// <summary> A reference to the profile information of the entity. Used during generation to place the entity. See <see cref="Entity.ProfileInfo"/> 
-    /// for more information  </summary>
-    public Option<Entity.ProfileInfo> Info;
 }
 
 
@@ -90,15 +87,34 @@ public abstract class Entity{
     /// </summary>
     [System.Serializable]
     public struct Info{
-        /// <summary> The profile information of the entity. See <see cref="ProfileInfo"/> for more information. </summary>
-        [JsonIgnore]
-        public ProfileInfo profile;
         /// <summary> The unique identifier of the entity that remains the same throughout the entity's life cycle, regardless of if it's serialized
         /// or saved to disk. </summary>
         public Guid entityId;
         /// <summary> The index of the entity's name within the <see cref="WorldConfig.Config.GenerationSettings.Entities"/> registry. This is guaranteed to be different
         /// for two different types of entities and can be used to test such. If the entity is serialized, this should be decoupled and recoupled upon deserialization. </summary>
         public uint entityType;
+    }
+}
+
+/// <summary> An interface for all authoring-specific settings used by entities. A setting itself does not need to 
+/// define any members that has to be known externally so this is an empty contract and in effect no 
+/// different than an <see cref="object"/>, but it offers clarity as to what the object is used for. Explicitly
+/// must be managed class so instances do individually waste memory on settings. </summary>
+public abstract class EntitySetting{
+    /// <summary> The profile information of the entity. See <see cref="ProfileInfo"/> for more information. </summary>
+    [JsonIgnore]
+    public ProfileInfo profile;
+    /// <summary> Presets any information shared by all instances of the entity. This is only called once per entity type within
+    /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information.
+    /// </summary> <remarks> For example, if the entity uses a state machine it can allocate function pointers to each state within the machine such that
+    /// they may be referenced through an edge list. </remarks>
+    public virtual void Preset(){
+        //Preset any default values here
+    }
+    /// <summary> A callback to release any information set by <see cref="Preset"/>. Called once per entity type within the 
+    /// <see cref="Config.GenerationSettings.Entities"> entity register </see> before the game is closed.  </summary>
+    public virtual void Unset(){
+        //Unset preset values here
     }
 
     /// <summary>
@@ -125,25 +141,6 @@ public abstract class Entity{
         /// </summary>
         [HideInInspector][UISetting(Ignore = true)][JsonIgnore]
         public uint profileStart;
-    }
-}
-
-/// <summary> An interface for all authoring-specific settings used by entities. A setting itself does not need to 
-/// define any members that has to be known externally so this is an empty contract and in effect no 
-/// different than an <see cref="object"/>, but it offers clarity as to what the object is used for. Explicitly
-/// must be managed class so instances do individually waste memory on settings. </summary>
-public abstract class EntitySetting{
-    /// <summary> Presets any information shared by all instances of the entity. This is only called once per entity type within
-    /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information.
-    /// </summary> <remarks> For example, if the entity uses a state machine it can allocate function pointers to each state within the machine such that
-    /// they may be referenced through an edge list. </remarks>
-    public virtual void Preset(){
-        //Preset any default values here
-    }
-    /// <summary> A callback to release any information set by <see cref="Preset"/>. Called once per entity type within the 
-    /// <see cref="Config.GenerationSettings.Entities"> entity register </see> before the game is closed.  </summary>
-    public virtual void Unset(){
-        //Unset preset values here
     }
 }
 

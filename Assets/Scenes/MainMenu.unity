@@ -2993,7 +2993,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1467958669}
   m_HandleRect: {fileID: 1844626531}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -4101,7 +4101,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1860236298}
   m_HandleRect: {fileID: 112242975}
   m_Direction: 0
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -4482,6 +4482,63 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2147130163}
   m_CullTransparentMesh: 1
+--- !u!1001 &1566582693181717438
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 7007727347354779117, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 271.6403
+      objectReference: {fileID: 0}
+    - target: {fileID: 7007727347354779117, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 286.66812
+      objectReference: {fileID: 0}
+    - target: {fileID: 7007727347354779117, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 440.76718
+      objectReference: {fileID: 0}
+    - target: {fileID: 7007727347354779117, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7007727347354779117, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7007727347354779117, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7007727347354779117, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7007727347354779117, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7007727347354779117, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7007727347354779117, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7641379624218224471, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
+      propertyPath: m_Name
+      value: SnowyOwl 1
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -4489,3 +4546,4 @@ SceneRoots:
   - {fileID: 237953137}
   - {fileID: 3943853}
   - {fileID: 118132579}
+  - {fileID: 1566582693181717438}

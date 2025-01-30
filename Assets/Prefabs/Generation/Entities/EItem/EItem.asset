@@ -32,15 +32,14 @@ MonoBehaviour:
       flags: 1
     - bounds: 2130771712
       flags: 1
-  Info:
-    value:
-      bounds:
-        x: 2
-        y: 2
-        z: 2
-      profileStart: 72
   _Setting:
     value:
+      profile:
+        bounds:
+          x: 2
+          y: 2
+          z: 2
+        profileStart: 72
       GroundStickDist: 0.05
       StickFriction: 0.15
       SpriteSampleSize:

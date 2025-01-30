@@ -182,7 +182,7 @@ MonoBehaviour:
               value: {fileID: 11400000, guid: f96f21e1966384e588e53d9d3c37f0ce, type: 2}
           - Name: SnowyOwl
             _value:
-              value: {fileID: 11400000, guid: 70c868c5da748481e82692c56e502620, type: 2}
+              value: {fileID: 11400000, guid: 2465da1b5c46c4edc809bfefabce80f4, type: 2}
           - Name: EntityItem
             _value:
               value: {fileID: 11400000, guid: 113b6e9010faf40ed9549c22ffbaba03, type: 2}

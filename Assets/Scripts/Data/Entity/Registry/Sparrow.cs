@@ -104,7 +104,7 @@ public class Sparrow : Authoring
             //Rotate towards neutral
             ref Quaternion rotation = ref self.tCollider.transform.rotation;
             float3 lookRotation = new (rotation.eulerAngles.x, 0, rotation.eulerAngles.z);
-            if(math.length(lookRotation) != 0) rotation = Quaternion.RotateTowards(rotation, Quaternion.LookRotation(lookRotation), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
+            if(math.any(lookRotation != 0)) rotation = Quaternion.RotateTowards(rotation, Quaternion.LookRotation(lookRotation), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
         }
 
 
@@ -115,14 +115,14 @@ public class Sparrow : Authoring
             }
 
             CalculateBoidDirection();
-            byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, settings.movement.pathDistance + 1, info.profile, EntityJob.cxt, out int pLen);
+            byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, settings.movement.pathDistance + 1, settings.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
         }
         public unsafe void FindGround(){
             flightDirection = Normalize(flightDirection + math.down()); 
             int3 dP = (int3)(flightDirection * settings.movement.pathDistance);
 
-            byte* path = PathFinder.FindClosestAlongPath(GCoord, dP, settings.movement.pathDistance + 1, info.profile, EntityJob.cxt, out int pLen, out bool fGround);
+            byte* path = PathFinder.FindMatchAlongRay(GCoord, dP, settings.movement.pathDistance + 1, settings.profile, settings.profile, EntityJob.cxt, out int pLen, out bool fGround);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
             if(fGround) TaskIndex = 2;
         }
@@ -167,7 +167,7 @@ public class Sparrow : Authoring
         //Task 1 -> Fly, 2 -> Land
         public static unsafe void FollowPath(SparrowEntity self){
             self.TaskDuration -= EntityJob.cxt.deltaTime;
-            Movement.FollowStaticPath(self.info.profile, ref self.pathFinder, ref self.tCollider, self.settings.movement.walkSpeed, 
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, self.settings.movement.walkSpeed, 
             self.settings.movement.rotSpeed, self.settings.movement.acceleration, AllowVerticalRotation: true);
             
             if(!self.pathFinder.hasPath) {

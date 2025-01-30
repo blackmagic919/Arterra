@@ -88,15 +88,14 @@ MonoBehaviour:
       flags: 1
     - bounds: 2130771712
       flags: 1
-  Info:
-    value:
-      bounds:
-        x: 3
-        y: 4
-        z: 3
-      profileStart: 80
   _Setting:
     value:
+      profile:
+        bounds:
+          x: 3
+          y: 4
+          z: 3
+        profileStart: 80
       movement:
         walkSpeed: 2
         runSpeed: 5

@@ -81,7 +81,7 @@ public static class TerrainUpdate
             UpdateTick = (UpdateTick + 1) % UPDATE_FREQ;
             if(UpdateTick != 0) return;
 
-            int count = UpdateCoordinates.Length;
+            int count = math.min(UpdateCoordinates.Length, MAX_UPDATE_COUNT);
             for(int i = 0; i < count; i++){
                 int3 coord = UpdateCoordinates.Dequeue();
                 IncludedCoords.SetFlag(HashFlag(coord), false);
@@ -117,8 +117,11 @@ public static class TerrainUpdate
         }
 
         public bool Enqueue(T node){
-            if(_length >= array.Length - 2)
-                return false; //Just Ignore it
+            if(_length >= array.Length - 2){
+                LListNode[] nArray = new LListNode[array.Length * 2];
+                array.CopyTo(nArray, 0);
+                array = nArray;
+            }
             
             int freeNode = array[0].previous; //Free Head Node
             int nextNode = array[freeNode].next == 0 ? freeNode + 1 : array[freeNode].next;

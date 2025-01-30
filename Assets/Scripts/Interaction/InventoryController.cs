@@ -504,6 +504,7 @@ public class InventoryController : UpdateTask
             return index;
         }
 
+        //Caller already has removed the entry from the inventory
         private void DictUpdate(int index){
             IItem item = Info[index];
             if(item == null) return;

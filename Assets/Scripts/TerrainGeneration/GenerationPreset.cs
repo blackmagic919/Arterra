@@ -444,18 +444,17 @@ public static class GenerationPreset
 
             Authoring[] EntityDictionary = Config.CURRENT.Generation.Entities.SerializedData;
             int numEntities = EntityDictionary.Length;
-            Entity.ProfileInfo[] entityInfo = new Entity.ProfileInfo[numEntities];
+            EntitySetting.ProfileInfo[] entityInfo = new EntitySetting.ProfileInfo[numEntities];
             List<ProfileE> entityProfile = new List<ProfileE>();
 
             for(int i = 0; i < numEntities; i++)
             {
-                Entity.ProfileInfo info = EntityDictionary[i].Info;
+                ref EntitySetting.ProfileInfo info = ref EntityDictionary[i].Setting.profile;
                 info.profileStart = (uint)entityProfile.Count;
                 entityInfo[i] = info;
-                EntityDictionary[i].Info = info;
-                EntityDictionary[i].Setting.Preset();
 
                 entityProfile.AddRange(EntityDictionary[i].Profile.value);
+                EntityDictionary[i].Setting.Preset();
             }
 
             entityInfoBuffer = new ComputeBuffer(numEntities, sizeof(uint) * 4, ComputeBufferType.Structured);

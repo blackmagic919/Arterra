@@ -5,12 +5,13 @@ using Unity.Mathematics;
 using UnityEngine;
 using WorldConfig.Generation.Entity;
 using static CPUMapManager;
+using static WorldConfig.Generation.Entity.EntitySetting;
 
 [BurstCompile]
 public unsafe struct PathFinder{
 
     [BurstCompile]
-    public unsafe static bool VerifyProfile(in int3 GCoord, in Entity.ProfileInfo info, in EntityJob.Context context, bool UseExFlag = true){
+    public unsafe static bool VerifyProfile(in int3 GCoord, in EntitySetting.ProfileInfo info, in EntityJob.Context context, bool UseExFlag = true){
         bool allC = true; bool anyC = false; bool any0 = false;
         uint3 dC = new (0);
         for(dC.x = 0; dC.x < info.bounds.x; dC.x++){
@@ -196,7 +197,7 @@ public unsafe struct PathFinder{
     |    |____|____|____| 
     +--------------------> x
     */
-    public static byte* FindPath(in int3 Origin, in int3 iEnd, int PathDistance, in Entity.ProfileInfo info, in EntityJob.Context context, out int PathLength){
+    public static byte* FindPath(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int PathLength, float reachDist = 0){
         PathFinder finder = new (PathDistance);
         int3 End = math.clamp(iEnd + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
         int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
@@ -221,8 +222,9 @@ public unsafe struct PathFinder{
             if(hCost < bestEnd.y){
                 bestEnd.x = current.y;
                 bestEnd.y = hCost;
-            } if((int)current.y == pathEndInd)
-                break;
+            } 
+            if((int)current.y == pathEndInd) break;
+            if(hCost <= reachDist * 10) break;
 
             for(int i = 0; i < 24; i++){
                 int4 delta = dP[i];
@@ -238,9 +240,9 @@ public unsafe struct PathFinder{
         finder.Release();
         return path;
     }
-
+    [BurstCompile]
     //Find point that matches raw-profile along the path to destination
-    public static byte* FindClosestAlongPath(in int3 Origin, in int3 iEnd, int PathDistance, in Entity.ProfileInfo info, in EntityJob.Context context, out int PathLength, out bool ReachedEnd){
+    public static byte* FindMatchAlongRay(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in ProfileInfo dest, in EntityJob.Context context, out int PathLength, out bool ReachedEnd){
         PathFinder finder = new (PathDistance);
         int3 End = math.clamp(iEnd + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
         int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
@@ -263,9 +265,14 @@ public unsafe struct PathFinder{
             //Always assume the first point is valid
             if(current.y != startInd && !VerifyProfile(Origin + ECoord - PathDistance, info, context)) 
                 continue;
-            ReachedEnd = VerifyProfile(Origin + ECoord - PathDistance, info, context, false);
+            ReachedEnd = VerifyProfile(Origin + ECoord - PathDistance, dest, context, false);
             if(hCost < bestEnd.y || ReachedEnd) bestEnd = new (current.y, hCost);
             if(current.y == pathEndInd || ReachedEnd) break;
+            if(current.x - hCost >= PathDistance * 10){
+                bestEnd.x = current.y;
+                break;
+            } 
+            
 
             for(int i = 0; i < 24; i++){
                 int4 delta = dP[i];
@@ -281,9 +288,9 @@ public unsafe struct PathFinder{
         finder.Release();
         return path;
     }
-
+    [BurstCompile]
     //Find point that matches raw-profile along the path to destination with the closest distance to the desired path distance
-    public static byte* FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, in Entity.ProfileInfo info, in EntityJob.Context context, out int PathLength){
+    public static byte* FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, in EntitySetting.ProfileInfo info, in EntityJob.Context context, out int PathLength){
         PathFinder finder = new (PathDistance);
         int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
 
