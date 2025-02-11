@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using UnityEngine;
 using WorldConfig;
@@ -70,7 +71,7 @@ public class Authoring : ScriptableObject
 /// done on a hooked event, such as reassigning keybinds, moving items, changing player effects, etc. 
 /// As long as the event itself is safe, the item can do whatever it wants allowing for a very
 /// flexible system. </remarks>
-public interface IItem : ICloneable{
+public interface IItem : ICloneable, IRegistered{
     /// <summary> Whether the item can be stacked with other items of the same type. If the item is stackable,
     /// when another item of the same <see cref="Index"/> is encountered it may be combined with the
     /// current item and the <see cref="AmountRaw"/> increased to the sum the amounts of the two items.
@@ -82,9 +83,6 @@ public interface IItem : ICloneable{
     /// <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see>. See <seealso cref="Authoring.TextureName"/> for
     /// more information. </summary>
     public int TexIndex { get; }
-    /// <summary> The index within the <see cref="WorldConfig.Config.GenerationSettings.Items"> item registry </see> of the item. This 
-    /// also is the identity of the item used to determine what it can be combined with if it <see cref="IsStackable"/>. </summary>
-    public int Index { get; set; }
     /// <summary> The message displayed next to the item when it is in a UI panel.  </summary>
     public string Display{ get; }
     /// <summary> The amount of the item that is stored. Used when determing how to stack identical items </summary>
@@ -92,18 +90,6 @@ public interface IItem : ICloneable{
     /// <summary> Whether or not the item has been last modified since its UI element has been updated. This is managed
     /// by the UI panel that displays the item and should not be directly modified by the item itself. </summary>
     public bool IsDirty{ get; set; }
-    /// <summary> Serializes any references held by the item thus decoupling it from the world configuration and recoupling
-    /// it to the caller's specific module responsible for storing the item. </summary>
-    /// <param name="dict">A callback function which recieves a string indicating the name within an external registry of the entry
-    /// that needs to be serialized. The caller then returns an index which can be used to retrieve the name upon <see cref="Deserialize">
-    /// deserialization. The caller is responsible for storing these names outside the item. </see></param>
-    public void Serialize(Func<string, int> dict);
-    /// <summary> Deserializes any references held by the item thus recoupling it to the world configuration. This is the reverse of
-    /// <see cref="Serialize"/> and should be called when the item is loaded from a save file or other external source. </summary>
-    /// <param name="dict">A callback function which recieves the stored index provided by <see cref="Serialize"/> and retrieves
-    /// the string previously stored that is associated with the index from the caller. The function will then recouple
-    /// the item with the current world configuration. </param>
-    public void Deserialize(Func<int, string> dict);
 
     /// <summary>
     /// An event hook that is called on the frame when the item enters the <see cref="InventoryController.Secondary"> Secondary </see> inventory.

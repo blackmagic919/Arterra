@@ -43,14 +43,8 @@ public struct BrushItem : IItem{
         readonly get => (data & 0x80000000) != 0;
         set => data = value ? data | 0x80000000 : data & 0x7FFFFFFF;
     }
+    public IRegister GetRegistry() => Config.CURRENT.Generation.Items;
 
-    public void Serialize(Func<string, int> lookup){
-        Index = lookup(ItemInfo.RetrieveName(Index));
-    }
-
-    public void Deserialize(Func<int, string> lookup){
-        Index = ItemInfo.RetrieveIndex(lookup(Index));
-    }
     public object Clone()
     {
         return new BrushItem{data = data};

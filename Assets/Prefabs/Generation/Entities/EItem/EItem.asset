@@ -16,21 +16,29 @@ MonoBehaviour:
     value: {fileID: 5653881121737289674, guid: cdde00980c1ea4ddea86e60f5d7f261c, type: 3}
   Profile:
     value:
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
   _Setting:
     value:

@@ -6,6 +6,8 @@ using System.IO;
 using System.Linq;
 using TerrainGeneration;
 using WorldConfig;
+using WorldConfig.Generation.Item;
+using Unity.Services.Analytics;
 
 
 public class PlayerHandler : UpdateTask
@@ -96,18 +98,19 @@ public class PlayerHandler : UpdateTask
             //Marks updated slots dirty so they are rendered properlly when deserialized
             // (Register Name, Index) -> Name Index
             Dictionary<string, int> lookup = new Dictionary<string, int>();
-            int OnSerialize(string name){
-                lookup.TryAdd(name, lookup.Count);
-                return lookup[name];
-            }
             
-            for(int i = 0; i < PrimaryI.Info.Length; i++){
-                if(PrimaryI.Info[i] == null) continue;
-                PrimaryI.Info[i].Serialize(OnSerialize);
+            void Serialize(ref IItem item){
+                if(item is null) return;
+                IRegister registry = item.GetRegistry();
+                string name = registry.RetrieveName(item.Index);
+                lookup.TryAdd(name, lookup.Count);
+                item.Index = lookup[name];
             }
-            for(int i = 0; i < SecondaryI.Info.Length; i++){
-                if(SecondaryI.Info[i] == null) continue;
-                SecondaryI.Info[i].Serialize(OnSerialize);
+
+            for(int i = 0; i < PrimaryI.Info.Count(); i++){
+                Serialize(ref PrimaryI.Info[i]);
+            } for(int i = 0; i < SecondaryI.Info.Count(); i++){
+                Serialize(ref SecondaryI.Info[i]);
             }
 
             SerializedNames = lookup.Keys.ToList();
@@ -115,21 +118,17 @@ public class PlayerHandler : UpdateTask
 
         public void Deserialize(){
             List<string> names = SerializedNames;
-            string OnDeserialize(int name){
-                if(name < 0 || name >= names.Count) Debug.Log(name);
-                if(name < 0 || name >= names.Count) return "";
-                return names[name];
+            void Deserialize(ref IItem item){
+                if(item is null) return;
+                if(item.Index >= names.Count || item.Index < 0) return;
+                IRegister registry = item.GetRegistry();
+                item.Index = registry.RetrieveIndex(names[item.Index]);
             }
-            
-            for(int i = 0; i < PrimaryI.Info.Length; i++){
-                if(PrimaryI.Info[i] == null) continue;
-                PrimaryI.Info[i].Deserialize(OnDeserialize);
-                PrimaryI.Info[i].IsDirty = true;
-            }
-            for(int i = 0; i < SecondaryI.Info.Length; i++){
-                if(SecondaryI.Info[i] == null) continue;
-                SecondaryI.Info[i].Deserialize(OnDeserialize);
-                SecondaryI.Info[i].IsDirty = true;
+
+            for(int i = 0; i < PrimaryI.Info.Count(); i++){
+                Deserialize(ref PrimaryI.Info[i]);
+            } for(int i = 0; i < SecondaryI.Info.Count(); i++){
+                Deserialize(ref SecondaryI.Info[i]);
             }
         }
 

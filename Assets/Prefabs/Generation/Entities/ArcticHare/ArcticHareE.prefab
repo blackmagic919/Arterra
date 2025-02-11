@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1001 &4470990251878102658
+--- !u!1001 &2174114958600224928
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -62,7 +62,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 538a2239fad6a45fab2387de486f38c2, type: 3}
       propertyPath: m_Name
-      value: ArcticHareE
+      value: ArcticHare
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -70,21 +70,21 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 538a2239fad6a45fab2387de486f38c2, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7809106020640284931}
+      addedObject: {fileID: 2692026185477897296}
   m_SourcePrefab: {fileID: 100100000, guid: 538a2239fad6a45fab2387de486f38c2, type: 3}
---- !u!1 &3660665789513501651 stripped
+--- !u!1 &1363864841180675569 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 538a2239fad6a45fab2387de486f38c2, type: 3}
-  m_PrefabInstance: {fileID: 4470990251878102658}
+  m_PrefabInstance: {fileID: 2174114958600224928}
   m_PrefabAsset: {fileID: 0}
---- !u!95 &7809106020640284931
+--- !u!95 &2692026185477897296
 Animator:
   serializedVersion: 5
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3660665789513501651}
+  m_GameObject: {fileID: 1363864841180675569}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: c4d160977003d4c5384591947f377c84, type: 2}

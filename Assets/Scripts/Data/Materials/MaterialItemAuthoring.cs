@@ -37,14 +37,7 @@ public struct MaterialItem : IItem{
         readonly get => (data & 0x80000000) != 0;
         set => data = value ? data | 0x80000000 : data & 0x7FFFFFFF;
     }
-
-    public void Serialize(Func<string, int> lookup){
-        Index = lookup(ItemRegistry.RetrieveName(Index));
-    }
-
-    public void Deserialize(Func<int, string> lookup){
-        Index = ItemRegistry.RetrieveIndex(lookup(Index));
-    }
+    public IRegister GetRegistry() => Config.CURRENT.Generation.Items;
     public object Clone()
     {
         return new MaterialItem{data = data};

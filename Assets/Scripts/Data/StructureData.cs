@@ -6,6 +6,7 @@ using UnityEditor;
 using System.Linq;
 using Newtonsoft.Json;
 using WorldConfig;
+using Unity.Burst;
 
 namespace WorldConfig.Generation.Structure{
 /// <summary>
@@ -171,6 +172,19 @@ public class StructureData : ScriptableObject
         public uint MaxSolid{
             readonly get => (data >> 24) & 0xFF;
             set => data = (data & 0x00FFFFFF) | ((value & 0xFF) << 24);
+        }
+
+        /// <summary>
+        /// Determines whether or not the specified map entry satisifies the check's
+        /// bounds. A map entry satisifes the check's bounds if its density and viscosity
+        /// fall between the defined lower and upper limits of the check.
+        /// </summary>
+        /// <param name="pt">The map data which is tested against the bounds</param>
+        /// <returns>Whether or not the <paramref name="pt"/> is within the bound</returns>
+        [BurstCompile]
+        public readonly bool Contains(in CPUMapManager.MapData pt){
+            return pt.LiquidDensity >= (data & 0xFF) && pt.LiquidDensity <= ((data >> 8) & 0xFF) && 
+               pt.SolidDensity >= ((data >> 16) & 0xFF) && pt.SolidDensity <= ((data >> 24) & 0xFF);
         }
     }
 

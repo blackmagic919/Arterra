@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
-  m_Name: CompostItemSolid
+  m_Name: PlantMatterSolid
   m_EditorClassIdentifier: 
-  TextureName: Compost
-  MaterialName: Compost
+  TextureName: PlantMatter
+  MaterialName: PlantMatter
   MaterialState: 0

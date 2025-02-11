@@ -40,7 +40,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public Unity.Mathematics.Random random;
         public int3 GCoord; 
         public bool isPickedUp;
-        public ItemInfo item;
+        public Registerable<IItem> item;
         public EItemSetting settings;
         public override float3 position {
             get => tCollider.transform.position;
@@ -55,7 +55,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             
             isPickedUp = false;
             this.random = default;
-            this.item = new ItemInfo(item);
+            this.item = new Registerable<IItem>(item);
         } 
 
         //This function shouldn't be used
@@ -92,40 +92,6 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public override void Disable(){
             controller.Dispose();
         }
-
-        public struct ItemInfo{
-            public IItem item;
-            public string type;
-
-            [JsonIgnore]
-            public IItem Slot{
-                readonly get{   
-                    string SerialType = type;
-                    IItem slot = (IItem)item.Clone();
-                    slot.Deserialize((int _) => SerialType);
-                    return slot;
-                } 
-                set {
-                    string SerialType = ""; 
-                    value.Serialize((string name) => {
-                        SerialType = name; 
-                        return 0;
-                    }); type = SerialType;
-                    item = value;
-                }
-            }
-
-            public ItemInfo(IItem slot){
-                item = default; type = default;
-                Slot = slot;
-            }
-        }
-        
-        public override void OnDrawGizmos(){
-            if(!active) return;
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireCube(CPUMapManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
-        }
     }
 
     public class EItemController
@@ -150,7 +116,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
 
             meshFilter = gameObject.GetComponent<MeshFilter>();
             SpriteExtruder.Extrude(new SpriteExtruder.ExtrudeSettings{
-                ImageIndex = entity.item.Slot.TexIndex,
+                ImageIndex = entity.item.Value.TexIndex,
                 SampleSize = entity.settings.SpriteSampleSize,
                 AlphaClip = entity.settings.AlphaClip,
                 ExtrudeHeight = entity.settings.ExtrudeHeight,

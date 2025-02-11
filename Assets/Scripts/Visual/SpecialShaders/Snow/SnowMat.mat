@@ -128,7 +128,7 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _Metallic: 0
-    - _NormalStrength: 0.15
+    - _NormalStrength: 0.25
     - _OcclusionStrength: 1
     - _OffsetHeight: 0.2
     - _OffsetStrength: 1

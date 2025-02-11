@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 2602968667667237959}
   - component: {fileID: 5974201465083904712}
   - component: {fileID: 852861469365519656}
-  - component: {fileID: 3888386273391801177}
   - component: {fileID: 1698717590077279524}
   m_Layer: 0
   m_Name: PlayerController
@@ -86,31 +85,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &3888386273391801177
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2700935294277801727}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5de76747a36a44cb79d09d10d461e0f0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  size:
-    x: 1
-    y: 2
-    z: 1
-  offset:
-    x: -0.5
-    y: -1
-    z: -0.5
-  velocity:
-    x: 0
-    y: 0
-    z: 0
-  useGravity: 1
 --- !u!114 &1698717590077279524
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -132,12 +106,6 @@ MonoBehaviour:
     MaximumX: 90
     smooth: 0
     smoothTime: 5
-  setting:
-    GroundFriction: 0.25
-    runSpeed: 10
-    jumpForce: 8
-    acceleration: 50
-    groundStickDist: 0.05
   active: 0
 --- !u!1 &7324841153891186926
 GameObject:

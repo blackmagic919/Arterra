@@ -16,7 +16,8 @@ public class GenericMaterial : MaterialData
     /// <summary> Even though it does nothing, it needs to fufill the contract so
     /// that it can be used in the same way as other materials. </summary>
     /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
-    public override void UpdateMat(int3 GCoord)
+    /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
+    public override void UpdateMat(int3 GCoord, Unity.Mathematics.Random prng)
     {
 
     }

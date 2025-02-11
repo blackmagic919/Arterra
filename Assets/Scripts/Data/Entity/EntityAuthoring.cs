@@ -2,12 +2,9 @@ using System;
 using UnityEngine;
 using Unity.Mathematics;
 using Newtonsoft.Json;
-using Unity.Collections.LowLevel.Unsafe;
-using Unity.Burst;
 using UnityEditor;
 using System.Collections.Generic;
-using UnityEditor.UI;
-using UnityEngine.UI;
+using WorldConfig.Generation.Structure;
 namespace WorldConfig.Generation.Entity{
 /// <summary>
 /// A generic contract that ensures that all entities contain a certain
@@ -23,7 +20,7 @@ public abstract class Authoring : ScriptableObject{
     [UISetting(Ignore = true)][JsonIgnore]
     public Option<GameObject> Controller;
     /// <summary> A list of points defining the profile of the entity, the list is linearly encoded through the dimensions
-    /// specified in <see cref="Entity.ProfileInfo"/>. See <see cref="ProfileE"/> for more information </summary>
+    /// specified in <see cref="EntitySetting.ProfileInfo"/>. See <see cref="ProfileE"/> for more information </summary>
     public Option<List<ProfileE>> Profile;
 }
 
@@ -33,7 +30,7 @@ public abstract class Authoring : ScriptableObject{
 /// as well as some metadata used by the system to manage the entity. All entities in the game
 /// must inherit from this class and implement the virtual functions to be used by the system.
 /// </summary>
-public abstract class Entity{
+public abstract class Entity: IRegistered{
     /// <summary> Information about the entity instance that is required of every instance for the system to function. See <see cref="Info"/> for more information. </summary>
     public Info info; 
     /// <summary> Whether or not the entity is active. This is the flag set to indicate to the system that
@@ -94,6 +91,19 @@ public abstract class Entity{
         /// for two different types of entities and can be used to test such. If the entity is serialized, this should be decoupled and recoupled upon deserialization. </summary>
         public uint entityType;
     }
+
+    /// <summary>
+    /// Gets the <see cref="WorldConfig.Generation.Entity">registry</see> containing all entities when the game is loaded. Used to serialize
+    /// and deserialize entities to json. See <see cref="IRegistered.GetRegistry"/> for more info.
+    /// </summary>
+    /// <returns>The Registry containing all entities within the game</returns>
+    public IRegister GetRegistry() => Config.CURRENT.Generation.Entities;
+    /// <summary> Gets the index within the <see cref="WorldConfig.Generation.Entity">entity registry</see> of the current
+    /// entity's name. Equivalent to <see cref="Info.entityType"/>. See <see cref="IRegistered.Index"/> for more info. </summary>
+    public int Index{
+        get => (int)info.entityType;
+        set => info.entityType = (uint)value;
+    }
 }
 
 /// <summary> An interface for all authoring-specific settings used by entities. A setting itself does not need to 
@@ -144,34 +154,21 @@ public abstract class EntitySetting{
     }
 }
 
-/// <summary>
-/// A structure that contains the information stored when saving an entity. The system
-/// then will convert between this format and the <see cref="Entity"/> when saving and loading
-/// entities. 
-/// </summary>
-public struct EntitySerial{
-    /// <summary> The type of the entity. This is the name of the entity within the <see cref="WorldConfig.Config.GenerationSettings.Entities"/> registry. 
-    /// Upon deserialization, this type is used to cast <see cref="data"/> to before populating its data. An incorrect <see cref="type"/> will cause the entity
-    /// to fail deserialization and be deleted. </summary>
-    public string type;
-    /// <summary> The data of the entity, known by the entity itself. The <see cref="type"/> is used to serialize and deserialize this information. </summary>
-    public Entity data;
-}
 
 /// <summary>
-/// A single condition that is considered when verifying an entity's <see cref="Entity.ProfileInfo"> profile </see>.
+/// A single condition that is considered when verifying an entity's <see cref="EntitySetting.ProfileInfo"> profile </see>.
 /// This is a condition that is tested against a point in space to verify that the entity can exist there. The 
 /// condition may also define flags for how it should be evaluated when considering the entity's combined profile.
 /// </summary>
 [Serializable]
 public struct ProfileE {
     /// <summary>
-    /// A bitmask representing two conditions that a map entry must fall within to be considered a match. Similar
-    /// to <see cref="Structure.StructureData.PointInfo"/>, divided into two-byte shorts where each short represents 
-    /// a range defined by the bounds stored within the high and low byte. The high short is used for viscosity and
-    /// the low short for density.
+    /// A bitmask representing two conditions that a map entry must fall within to be considered a match. Divided
+    /// into two-byte shorts where each short represents a range defined by the bounds stored within the high and 
+    /// low byte. The high short is used for viscosity and the low short for density. See <see cref="StructureData.CheckInfo"/>
+    /// for more information.
     /// </summary>
-    public uint bounds;
+    public StructureData.CheckInfo bounds;
     /// <summary>
     /// A bitmask representing the flags that should be used when evaluating the profile. The flags are used to determine
     /// how the condition should effect the overall validity of the profile. 
@@ -199,7 +196,7 @@ public class MapDataDrawer : PropertyDrawer{
     /// <summary>  Callback for when the GUI needs to be rendered for the property. </summary>
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        SerializedProperty boundProp = property.FindPropertyRelative("bounds");
+        SerializedProperty boundProp = property.FindPropertyRelative("bounds").FindPropertyRelative("data");
         uint data = boundProp.uintValue;
 
         //bool isDirty = (data & 0x80000000) != 0;
@@ -214,9 +211,9 @@ public class MapDataDrawer : PropertyDrawer{
 
         Rect rect = new (position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
         
-        EditorGUI.MultiIntField(rect, new GUIContent[] { new ("Density L"), new ("Density U") }, densityB);
+        EditorGUI.MultiIntField(rect, new GUIContent[] { new ("Liquid L"), new ("Liquid U") }, densityB);
         rect.y += EditorGUIUtility.singleLineHeight;
-        EditorGUI.MultiIntField(rect, new GUIContent[] { new ("Viscosity L"), new ("Viscosity U") }, viscosityB);
+        EditorGUI.MultiIntField(rect, new GUIContent[] { new ("Solid L"), new ("Solid U") }, viscosityB);
         rect.y += EditorGUIUtility.singleLineHeight;
         
 

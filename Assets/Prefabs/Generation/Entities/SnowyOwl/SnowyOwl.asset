@@ -16,53 +16,77 @@ MonoBehaviour:
     value: {fileID: 7641379624218224471, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
   Profile:
     value:
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 4286644096
-      flags: 0
-    - bounds: 4286644096
-      flags: 0
-    - bounds: 2130771712
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 0
+    - bounds:
+        data: 4278255360
       flags: 4
-    - bounds: 0
+    - bounds:
+        data: 4278255360
       flags: 4
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 0
+    - bounds:
+        data: 4278255360
       flags: 4
-    - bounds: 0
+    - bounds:
+        data: 4278255360
       flags: 4
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
   _Setting:
     value:
@@ -76,7 +100,7 @@ MonoBehaviour:
         walkSpeed: 2
         runSpeed: 10
         acceleration: 100
-        friction: 0.075
+        friction: 0.25
         rotSpeed: 180
         pathDistance: 31
         AverageIdleTime: 2.5
@@ -94,9 +118,6 @@ MonoBehaviour:
       recognition:
         Predators:
           value: []
-        Prey:
-          value:
-          - ArcticHare
         Mates:
           value:
           - MateType: SnowyOwl
@@ -108,6 +129,9 @@ MonoBehaviour:
             Nutrition: 1.5
         SightDistance: 30
         FleeDistance: 5
+        Prey:
+          value:
+          - ArcticHare
       physicality:
         MaxHealth: 25
         NaturalRegen: -0.025

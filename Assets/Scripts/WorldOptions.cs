@@ -161,6 +161,8 @@ public class Config : ScriptableObject{
         public Option<Gameplay.Inventory> Inventory;
         /// <summary> Settings controlling environment constants of the world. See <see cref="Gameplay.Environment"/> for more information. </summary>
         public Option<Gameplay.Environment> DayNightCycle;
+        /// <summary> Settings controlling the optional visual statistics displayed to the player. See <see cref="Gameplay.Statistics"/> for more information. </summary>
+        public Option<Gameplay.Statistics> Statistics;
     }
 
     /// <summary>
@@ -289,7 +291,7 @@ public struct Option<T> : IOption{
             value = (T)cloneable.Clone();
         else if (value is IList list){
             value = (T)Activator.CreateInstance(list.GetType(), list);
-        }
+        } 
     }
 }}
 

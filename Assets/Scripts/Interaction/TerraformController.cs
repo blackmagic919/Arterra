@@ -357,7 +357,7 @@ public class TerraformController : UpdateTask
             EItem.EItemEntity item = (EItem.EItemEntity)entity;
             if(item.isPickedUp) return;
 
-            IItem slot = item.item.Slot;
+            IItem slot = item.item.Value;
             if(slot == null) return;
 
             InventoryController.AddEntry(slot);

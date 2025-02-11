@@ -3,6 +3,8 @@ using UnityEngine;
 using static CPUMapManager;
 using WorldConfig;
 using WorldConfig.Generation.Material;
+using System.Collections.Concurrent;
+using Unity.Jobs;
 
 namespace TerrainGeneration{
 
@@ -15,12 +17,13 @@ namespace TerrainGeneration{
 public static class TerrainUpdate
 {
     private static Registry<MaterialData> MaterialDictionary;
-    private static ConstrainedQueue<int3> UpdateCoordinates; //GCoord
+    private static ConcurrentQueue<int3> UpdateCoordinates; //GCoord
     /*We have to keep track of the points we already 
     included so we don't include them again*/
     private static FlagList IncludedCoords;
     private static Manager Executor;
 
+    const int RANDOM_UPDATE_COUNT = 100;
     const int MAX_UPDATE_COUNT = 5000; 
     const int UPDATE_FREQ = 4;
     private static int numPointsAxis;
@@ -37,9 +40,10 @@ public static class TerrainUpdate
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
         
         MaterialDictionary = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        UpdateCoordinates = new ConstrainedQueue<int3>(MAX_UPDATE_COUNT);
+        UpdateCoordinates = new ConcurrentQueue<int3>();
         IncludedCoords = new FlagList(numPoints);
-        Executor = new Manager{active = false};
+        Executor = new Manager{active = true};
+        OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
         UpdateTick = 0;
     }
 
@@ -54,13 +58,32 @@ public static class TerrainUpdate
     public static void AddUpdate(int3 GCoord){
         int flagIndex = HashFlag(GCoord);
         if(IncludedCoords.GetFlag(flagIndex)) return;
-        if(!UpdateCoordinates.Enqueue(GCoord)) return;
+        UpdateCoordinates.Enqueue(GCoord); 
         IncludedCoords.SetFlag(flagIndex, true);
+    }
 
-        if(!Executor.active){
-            Executor = new Manager();
-            OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
-        };
+    /// <summary>
+    /// Adds a number of random points into <see cref="UpdateCoordinates"/> to be updated in the
+    /// next update cycle. All points added are guaranteed to be within the <see cref="CPUMapManager"/>'s map--
+    /// that is only map entries currently a part of a <see cref="TerrainChunk.RealChunk"/> can be sampled randomly.
+    /// </summary>
+    /// <param name="numUpdates">The number of updates to add</param>
+    public static void AddRandomUpdates(int numUpdates){
+        static int3 GetRandomPoint(){
+            WorldConfig.Quality.Terrain s = Config.CURRENT.Quality.Terrain.value;
+            float3 oGC = OctreeTerrain.ViewPosGS - (numPointsAxis / 2 + s.mapChunkSize / 2);
+            float3 eGC = OctreeTerrain.ViewPosGS + (numPointsAxis / 2 - s.mapChunkSize / 2 - 1);
+            int3 pos;
+            
+            pos.x = Mathf.RoundToInt(UnityEngine.Random.Range(oGC.x, eGC.x));
+            pos.y = Mathf.RoundToInt(UnityEngine.Random.Range(oGC.y, eGC.y));
+            pos.z = Mathf.RoundToInt(UnityEngine.Random.Range(oGC.z, eGC.z));
+            return pos;
+        }
+
+        for(int i = 0; i < numUpdates; i++){
+            AddUpdate(GetRandomPoint());
+        }
     }
 
     /// <summary>
@@ -68,100 +91,71 @@ public static class TerrainUpdate
     /// It is responsible for updating the map entries within Unity's fixed update loop.
     /// </summary>
     public class Manager : UpdateTask{
+        /// <summary> Whether or not the job is currently running; whether the job
+        /// currently has threads in the thread pool executing it. </summary>
+        public bool dispatched = false;
+        private JobHandle handle;
+        private Context cxt;
         /// <summary>  Default constructor sets the manager to active. </summary>
-        public Manager(){ active = true; }
+        public Manager(){ 
+            cxt = new Context();
+            cxt.seed = new Unity.Mathematics.Random((uint)GetHashCode());
+            dispatched = false;
+            active = true; 
+            
+        }
+
+        /// <summary> Completes the asyncronous Job Operation. Blocks main thread
+        /// until the job has completed. </summary>
+        public bool Complete(){
+            if(!dispatched) return true;
+            if(!handle.IsCompleted) return false; 
+            handle.Complete();
+            dispatched = false;
+            return true;
+        }
         /// <summary>
         /// Updates the map entries in the update queue. 
         /// The map entries are updated in the order they were added.
         /// </summary> <param name="mono"><see cref="UpdateTask.Update"/> </param>
         public override void Update(MonoBehaviour mono){
-            if(UpdateCoordinates.Length == 0) {
-                this.active = false;
-            }
             UpdateTick = (UpdateTick + 1) % UPDATE_FREQ;
             if(UpdateTick != 0) return;
+            cxt.seed.NextUInt();
+            if(!Complete()) return;
 
-            int count = math.min(UpdateCoordinates.Length, MAX_UPDATE_COUNT);
-            for(int i = 0; i < count; i++){
-                int3 coord = UpdateCoordinates.Dequeue();
+            if(UpdateCoordinates.Count < MAX_UPDATE_COUNT){
+                AddRandomUpdates(RANDOM_UPDATE_COUNT);
+            } if(UpdateCoordinates.Count == 0) {
+                return;
+            } 
+
+            int count = math.min(UpdateCoordinates.Count, MAX_UPDATE_COUNT);
+            handle = cxt.Schedule(count, 128);
+            dispatched = true;
+        }
+
+        /// <summary> The Job that is responsible for processing in parallel
+        /// all points that have been updated. </summary>
+        public struct Context: IJobParallelFor{
+            /// <summary>
+            /// Random values referencable by materials; Materials are processed in parallel,
+            /// thus this isn't thread safe, but that adds to the randomness.
+            /// </summary>
+            public Unity.Mathematics.Random seed;
+            /// <summary> Executes the point update in parallel. </summary>
+            /// <param name="index">The index of the job-thread executing the task</param>
+            public void Execute(int index){
+                if(!UpdateCoordinates.TryDequeue(out int3 coord))
+                    return;
                 IncludedCoords.SetFlag(HashFlag(coord), false);
 
                 MapData mapData = SampleMap(coord);
-                if(mapData.data == 0xFFFFFFFF) continue; //Invalid Data
-                MaterialDictionary.Retrieve(mapData.material).UpdateMat(coord);
+                if(!MaterialDictionary.Contains(mapData.material)) 
+                    return; //Invalid Data
+                Unity.Mathematics.Random prng = new ((seed.state ^ (uint)index) | 1u);
+                MaterialDictionary.Retrieve(mapData.material).UpdateMat(coord, prng);
             }
-        }
-    }
-
-    private struct ConstrainedQueue<T>{
-        /*Consists of 2 LinkedList
-            1. Circular Linked List Holding Allocated Nodes
-            2. One-Way Linked List Tracking Free Nodes
-        
-        A queue with initial size and explicitly no resizing
-        Also Explicitly One Memory Location*/
-
-        public LListNode[] array;
-        private int _length;
-        public readonly int Length{get{return _length;}}
-        public ConstrainedQueue(int length){
-            //We Need Clear Memory Here
-            array = new LListNode[length + 1];
-            array[0].next = 1; //Head Node
-            array[0].previous = 2; //Free Head Node
-
-            //Make List Circularly Linked
-            array[1].next = 1; 
-            array[1].previous = 1;
-            _length = 0;
-        }
-
-        public bool Enqueue(T node){
-            if(_length >= array.Length - 2){
-                LListNode[] nArray = new LListNode[array.Length * 2];
-                array.CopyTo(nArray, 0);
-                array = nArray;
-            }
-            
-            int freeNode = array[0].previous; //Free Head Node
-            int nextNode = array[freeNode].next == 0 ? freeNode + 1 : array[freeNode].next;
-            array[0].previous = nextNode;
-
-            int tailNode = array[array[0].next].previous; //Tail Node
-            nextNode = array[tailNode].next; // = array[0].next
-            array[tailNode].next = freeNode;
-            array[nextNode].previous = freeNode;
-            array[freeNode].previous = tailNode;
-            array[freeNode].next = nextNode;
-            array[freeNode].value = node;
-            _length++;
-
-            return true;
-        }
-
-        public T Dequeue(){
-            if(_length == 0)
-                return default(T);
-            
-            int headNode = array[0].next; //Head Node
-            int nextNode = array[headNode].next; //Head Node
-            int prevNode = array[headNode].previous; //Tail Node
-            array[prevNode].next = nextNode;
-            array[nextNode].previous = prevNode;
-            array[0].next = nextNode;
-
-            int freeNode = array[0].previous;
-            array[headNode].next = freeNode;
-            array[0].previous = headNode;
-            _length--;
-
-            return array[headNode].value;
-        }
-
-        public struct LListNode{
-            public int previous;
-            public int next;
-            public T value;
         }
     }
 
@@ -175,16 +169,22 @@ public static class TerrainUpdate
         }
 
         public bool GetFlag(int index){
-            int byteIndex = index / 8;
-            int bitIndex = index % 8;
-            return (flags[byteIndex] & (1 << bitIndex)) != 0;
+            bool isSet = false;
+            lock(flags){
+                int byteIndex = index / 8;
+                int bitIndex = index % 8;
+                isSet = (flags[byteIndex] & (1 << bitIndex)) != 0;
+            }
+            return isSet;
         }
 
         public void SetFlag(int index, bool value){
-            int byteIndex = index / 8;
-            int bitIndex = index % 8;
-            if(value) flags[byteIndex] |= (byte)(1 << bitIndex);
-            else flags[byteIndex] &= (byte)~(1 << bitIndex);
+            lock(flags){
+                int byteIndex = index / 8;
+                int bitIndex = index % 8;
+                if(value) flags[byteIndex] |= (byte)(1 << bitIndex);
+                else flags[byteIndex] &= (byte)~(1 << bitIndex);
+            }
         }
     }
 }}

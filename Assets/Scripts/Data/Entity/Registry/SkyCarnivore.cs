@@ -22,7 +22,7 @@ public class SkyCarnivore : Authoring
     public class AnimalSetting : EntitySetting{
         public Movement movement;
         public Flight flight;
-        public Recognition recognition;
+        public RCarnivore recognition;
         public Vitality.Stats physicality;
         public Vitality.Decomposition decomposition;
         public TerrainColliderJob.Settings collider;
@@ -34,12 +34,12 @@ public class SkyCarnivore : Authoring
             public float FlyBiasWeight; //0.25\
             [Range(0, 1)]
             public float VerticalFreedom;
-            public bool UseGravityOnLand;
         }
         public override void Preset(){ 
             uint pEnd = profile.bounds.x * profile.bounds.y * profile.bounds.z;
             flight.profile.profileStart = profile.profileStart + pEnd;
             recognition.Construct();
+            base.Preset();
         }
     }
 
@@ -122,20 +122,20 @@ public class SkyCarnivore : Authoring
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord){
             settings = (AnimalSetting)setting;
             controller = new AnimalController(Controller, this);
-            vitality = new Vitality(settings.physicality, ref random);
+            vitality.Deserialize(settings.physicality);
             GCoord = this.GCoord;
         }
 
 
         public override void Update()
         {
-            Profiler.BeginSample($"SkyCarnivore Update Task: {TaskIndex}");
+            Profiler.BeginSample($"SkyCarnivore Update Task: {TaskIndex}, {info.entityId}");
             if(!active) return;
             GCoord = (int3)math.floor(tCollider.transform.position);
             TaskRegistry[(int)TaskIndex].Invoke(this);
 
             //use gravity if not flying
-            bool useGGrav = settings.flight.UseGravityOnLand && (TaskIndex == 0 || (TaskIndex >= 7 && TaskIndex <= 9) || TaskIndex == 11);
+            bool useGGrav = TaskIndex == 0 || (TaskIndex >= 7 && TaskIndex <= 9) || TaskIndex == 11;
             tCollider.Update(EntityJob.cxt, settings.collider, useGGrav);
             tCollider.velocity *= 1 - settings.movement.friction;
             EntityManager.AddHandlerEvent(controller.Update);
@@ -144,7 +144,7 @@ public class SkyCarnivore : Authoring
             if(TaskIndex != 11 && vitality.IsDead) {
                 TaskDuration = settings.decomposition.DecompositionTime;
                 TaskIndex = 11;
-            } else if(TaskIndex <= 10)  DetectPredator();
+            } else if(TaskIndex <= 9)  DetectPredator();
             Profiler.EndSample();
         }
 
@@ -259,7 +259,7 @@ public class SkyCarnivore : Authoring
 
             int PathDist = self.settings.movement.pathDistance;
             int3 destination = (int3)math.round(prey.position) - self.GCoord;
-            byte* path = PathFinder.FindPath(self.GCoord, destination, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen, 1);
+            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 5;
 
@@ -340,7 +340,7 @@ public class SkyCarnivore : Authoring
             }
             int PathDist = self.settings.movement.pathDistance;
             int3 destination = (int3)mate.position - self.GCoord;
-            byte* path = PathFinder.FindPath(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen, 1);
+            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 8;
         }
@@ -455,8 +455,6 @@ public class SkyCarnivore : Authoring
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
             rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
-            if(entity.TaskIndex == 8) Debug.Log("Found Mate", gameObject);
-            if(entity.TaskIndex == 9) Debug.Log("Reproduce", gameObject);
             
             Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
             if(AnimatorTask == entity.TaskIndex) return;

@@ -74,7 +74,7 @@ public static class EntityManager
         AddHandlerEvent(() => InitializeE(GCoord, genInfo.entityIndex));
     }
     public static void InitializeEntity(int3 GCoord, uint entityIndex) => AddHandlerEvent(() => InitializeE(GCoord, entityIndex));
-    public static void CreateEntity(EntitySerial sEntity) => AddHandlerEvent(() => CreateE(sEntity));
+    public static void CreateEntity(Entity sEntity) => AddHandlerEvent(() => CreateE(sEntity));
     public static void ReleaseEntity(Guid entityId) => AddHandlerEvent(() => ReleaseE(entityId));
     public static unsafe void ReleaseChunkEntities(int3 CCoord){
         int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
@@ -125,17 +125,15 @@ public static class EntityManager
         ESTree.Insert(GCoord, newEntity.info.entityId);
     }
 
-    private unsafe static void CreateE(EntitySerial sEntity){
+    private unsafe static void CreateE(Entity sEntity){
         var reg = Config.CURRENT.Generation.Entities;
-        Authoring authoring = reg.Retrieve(sEntity.type);
-        Entity newEntity = sEntity.data;
-        newEntity.info.entityType = (uint)reg.RetrieveIndex(sEntity.type);
-        newEntity.active = true;
+        Authoring authoring = reg.Retrieve((int)sEntity.info.entityType);
+        sEntity.active = true;
 
-        EntityIndex[newEntity.info.entityId] = EntityHandler.Count;
-        newEntity.Deserialize(authoring.Setting, authoring.Controller, out int3 GCoord);
-        EntityHandler.Add(newEntity);
-        ESTree.Insert(GCoord, newEntity.info.entityId);
+        EntityIndex[sEntity.info.entityId] = EntityHandler.Count;
+        sEntity.Deserialize(authoring.Setting, authoring.Controller, out int3 GCoord);
+        EntityHandler.Add(sEntity);
+        ESTree.Insert(GCoord, sEntity.info.entityId);
     }
 
     public unsafe static void AssertEntityLocation(Entity entity, int3 GCoord){
@@ -156,9 +154,9 @@ public static class EntityManager
         }
     }
 
-    public static void DeserializeEntities(List<EntitySerial> entities){
+    public static void DeserializeEntities(List<Entity> entities){
         if(entities == null) return;
-        foreach(EntitySerial sEntity in entities){
+        foreach(Entity sEntity in entities){
             CreateEntity(sEntity);
         }
     }
@@ -510,6 +508,7 @@ public static class EntityManager
 }
 
 public class EntityJob : UpdateTask{
+    private float cumulativeDelta;
     public bool dispatched = false;
     private JobHandle handle;
     public static Context cxt;
@@ -517,6 +516,7 @@ public class EntityJob : UpdateTask{
     public unsafe EntityJob(){
         active = true;
         dispatched = false;
+        cumulativeDelta = 0;
         cxt = new Context{
             Profile = (ProfileE*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
             mapContext = new MapContext{
@@ -532,14 +532,19 @@ public class EntityJob : UpdateTask{
         };
     }
 
-    public void Complete(){
-        if(dispatched) handle.Complete();
+    public bool Complete(){
+        if(!dispatched) return true;
+        if(!handle.IsCompleted) return false; 
+        handle.Complete();
         dispatched = false;
+        return true;
     }
 
     public override void Update(MonoBehaviour mono){
-        if(dispatched) handle.Complete();
-        dispatched = false;
+        cumulativeDelta += Time.fixedDeltaTime;
+        if(!Complete()) return;
+        cxt.deltaTime = cumulativeDelta;
+        cumulativeDelta = 0;
 
         while(EntityManager.HandlerEvents.TryDequeue(out Action action)){
             action.Invoke();
@@ -550,7 +555,6 @@ public class EntityJob : UpdateTask{
             return;
         }
 
-        cxt.deltaTime = Time.fixedDeltaTime;
         handle = cxt.Schedule(EntityManager.EntityHandler.Count, 16);
         dispatched = true;
     }
@@ -562,7 +566,9 @@ public class EntityJob : UpdateTask{
         [ReadOnly] public float3 gravity; 
         [ReadOnly] public float deltaTime;
         public unsafe void Execute(int index){
+            Profiler.BeginSample(EntityManager.GetEntity(index).GetType().ToString());
             EntityManager.GetEntity(index).Update();
+            Profiler.EndSample();
         }
     }
 

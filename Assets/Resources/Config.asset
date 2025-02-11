@@ -123,27 +123,27 @@ MonoBehaviour:
           - Name: Leaf:Solid
             _value:
               value: {fileID: 11400000, guid: 89ec4e4227cf84ed9bf05193284009d0, type: 2}
-          - Name: Snow:Solid
-            _value:
-              value: {fileID: 11400000, guid: 8719d4c2d028f4680b483fc854e5d506, type: 2}
           - Name: Cactus:Solid
             _value:
               value: {fileID: 11400000, guid: 3f082d188bafd47bda9d3c22bd64949d, type: 2}
-          - Name: Plank:Solid
-            _value:
-              value: {fileID: 11400000, guid: 34e92fbde564348c48f9702ca5afa1aa, type: 2}
           - Name: Hardwood:Solid
             _value:
               value: {fileID: 11400000, guid: 2ff1b4dd3fb8342c29a3500c0a9944e6, type: 2}
+          - Name: PlantMatter:Solid
+            _value:
+              value: {fileID: 11400000, guid: 98222d75ff0ef411d877d033b7fa95c6, type: 2}
+          - Name: Snow:Solid
+            _value:
+              value: {fileID: 11400000, guid: 8719d4c2d028f4680b483fc854e5d506, type: 2}
+          - Name: Plank:Solid
+            _value:
+              value: {fileID: 11400000, guid: 34e92fbde564348c48f9702ca5afa1aa, type: 2}
           - Name: Furnace:Solid
             _value:
               value: {fileID: 11400000, guid: e68ac1fe7c1ed457aaa6d8366ba45d02, type: 2}
           - Name: Chest:Solid
             _value:
               value: {fileID: 11400000, guid: 64be78c6fca3c4ffca64a3e4f02f2064, type: 2}
-          - Name: Compost:Solid
-            _value:
-              value: {fileID: 11400000, guid: 4389a0d25c29240fdaea9ca7342c52d3, type: 2}
           - Name: Sandstone:Solid
             _value:
               value: {fileID: 11400000, guid: e510129eb310547729dc9e65baaed7f6, type: 2}
@@ -162,21 +162,24 @@ MonoBehaviour:
           - Name: Meat
             _value:
               value: {fileID: 11400000, guid: 67c243a2c54c2436dbf89ce16f52e68f, type: 2}
+          - Name: Sword
+            _value:
+              value: {fileID: 11400000, guid: 767e6798cf15347af9616a7d7a816a7e, type: 2}
       Entities:
         Reg:
           value:
           - Name: Rabbit
             _value:
-              value: {fileID: 11400000, guid: e12391921ca3e4172b6a054a9d042a41, type: 2}
+              value: {fileID: 11400000, guid: b8b3aed6c3ba8490a996e3fe5081055f, type: 2}
           - Name: Fox
             _value:
               value: {fileID: 11400000, guid: 20291c96ec2b642818c85c16cbac8a1b, type: 2}
           - Name: Sparrow
             _value:
-              value: {fileID: 11400000, guid: 74688da9677534740874b306e18e916d, type: 2}
+              value: {fileID: 11400000, guid: 668535b6793f6429689eb033f92f6067, type: 2}
           - Name: ArcticHare
             _value:
-              value: {fileID: 11400000, guid: bc8f64f2dfce54e63b3ac1529b8437ce, type: 2}
+              value: {fileID: 11400000, guid: 23835e4e06a58491396049eee2913c2a, type: 2}
           - Name: ArcticFox
             _value:
               value: {fileID: 11400000, guid: f96f21e1966384e588e53d9d3c37f0ce, type: 2}
@@ -188,7 +191,7 @@ MonoBehaviour:
               value: {fileID: 11400000, guid: 113b6e9010faf40ed9549c22ffbaba03, type: 2}
           - Name: Camel
             _value:
-              value: {fileID: 11400000, guid: bad7490808a414d4eb37230eae23f5af, type: 2}
+              value: {fileID: 11400000, guid: 7e70244b90d3641dfbf81286d647eda6, type: 2}
       Textures:
         Reg:
           value:
@@ -198,18 +201,12 @@ MonoBehaviour:
           - Name: Brick
             _value:
               value: {fileID: 21300000, guid: 71a47f9cf008445e7a58daa311f1b43f, type: 3}
-          - Name: Cactus
-            _value:
-              value: {fileID: 21300000, guid: 59e5a31080221402c8e7b8abdbcc366d, type: 3}
           - Name: Cement
             _value:
               value: {fileID: 21300000, guid: 2a40147a635824ec9840e898399e1458, type: 3}
           - Name: Chest
             _value:
               value: {fileID: 21300000, guid: 435a6b24a4a2549bc971776adabe8a8f, type: 3}
-          - Name: Compost
-            _value:
-              value: {fileID: 21300000, guid: e76a49908b44441f4941d6b3a44e0e8c, type: 3}
           - Name: Dirt
             _value:
               value: {fileID: 21300000, guid: fe82516aeb2e047188993ea733648af7, type: 3}
@@ -219,12 +216,18 @@ MonoBehaviour:
           - Name: Grass
             _value:
               value: {fileID: 21300000, guid: 9a32d08edbf8447c88139bfb43dfbe1a, type: 3}
+          - Name: Cactus
+            _value:
+              value: {fileID: 21300000, guid: 59e5a31080221402c8e7b8abdbcc366d, type: 3}
           - Name: Hardwood
             _value:
               value: {fileID: 21300000, guid: 188898ac415a947dfb0485bedb3d625a, type: 3}
           - Name: Leaf
             _value:
               value: {fileID: 21300000, guid: b07e3afae6c5e40bd804ac3f1397c1b7, type: 3}
+          - Name: PlantMatter
+            _value:
+              value: {fileID: 21300000, guid: a72e900a517bf4557ad43f9f54166ba2, type: 3}
           - Name: Plank
             _value:
               value: {fileID: 21300000, guid: 4e227e457d2354e7094defe785ed2521, type: 3}
@@ -258,11 +261,25 @@ MonoBehaviour:
           - Name: Meat
             _value:
               value: {fileID: 21300000, guid: 86d913194d5484611b89302d5f6134ab, type: 3}
+          - Name: Sword
+            _value:
+              value: {fileID: 21300000, guid: 715948334a2ea40f7b4a83db53cfc385, type: 3}
   _GamePlay:
     value:
       Input:
         Reg:
           value:
+          - Name: Sprint
+            _value:
+              value:
+                bindings:
+                  value:
+                  - Key: 304
+                    PollType: 2
+                    IsAlias: 0
+                  - Key: 303
+                    PollType: 2
+                    IsAlias: 1
           - Name: Jump
             _value:
               value:
@@ -471,13 +488,54 @@ MonoBehaviour:
                   - Key: 57
                     PollType: 3
                     IsAlias: 0
+          - Name: ToggleFly
+            _value:
+              value:
+                bindings:
+                  value:
+                  - Key: 102
+                    PollType: 3
+                    IsAlias: 0
+                  - Key: 304
+                    PollType: 2
+                    IsAlias: 0
+                  - Key: 303
+                    PollType: 2
+                    IsAlias: 1
+          - Name: Descend
+            _value:
+              value:
+                bindings:
+                  value:
+                  - Key: 113
+                    PollType: 2
+                    IsAlias: 0
+          - Name: Ascend
+            _value:
+              value:
+                bindings:
+                  value:
+                  - Key: 32
+                    PollType: 2
+                    IsAlias: 0
       Movement:
         value:
           GroundFriction: 0.25
-          runSpeed: 6
+          walkSpeed: 4
+          runSpeed: 8
           jumpForce: 5
           acceleration: 100
           groundStickDist: 0.05
+          EnableFlying: 1
+          Collider:
+            size:
+              x: 1
+              y: 2
+              z: 1
+            offset:
+              x: -0.5
+              y: -1
+              z: -0.5
       Terraforming:
         value:
           terraformRadius: 2
@@ -643,6 +701,10 @@ MonoBehaviour:
               m_PreInfinity: 2
               m_PostInfinity: 2
               m_RotationOrder: 4
+      Statistics:
+        value:
+          DisplayEntityStats: 1
+          DisplayEntityDamage: 1
   _System:
     value:
       ReadBack:

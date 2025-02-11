@@ -23,6 +23,7 @@ MonoBehaviour:
     - SnowyOwl
     - Dirt
     - Snow
+    - Grass
     - Air
   GroundMaterials:
     value:
@@ -35,15 +36,22 @@ MonoBehaviour:
         height: 1
     - value:
         Material: 8
-        genSize: 0.106
+        genSize: 0.205
         genShape: 0.449
-        frequency: 0.25
+        frequency: 0.5
+        multiplier: 1.5
+        height: 0
+    - value:
+        Material: 9
+        genSize: 0.526
+        genShape: 0.809
+        frequency: 0.5
         multiplier: 1.5
         height: 0
   SurfaceMaterials:
     value:
     - value:
-        Material: 9
+        Material: 10
         genSize: 0.312
         genShape: 0.512
         frequency: 1

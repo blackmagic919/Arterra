@@ -88,7 +88,7 @@ GameObject:
   - component: {fileID: 6775523816589858663}
   - component: {fileID: 5362785183248224353}
   m_Layer: 0
-  m_Name: IndicatorBar
+  m_Name: EntityStats
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

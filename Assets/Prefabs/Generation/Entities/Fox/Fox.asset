@@ -13,32 +13,44 @@ MonoBehaviour:
   m_Name: Fox
   m_EditorClassIdentifier: 
   Controller:
-    value: {fileID: 1648278307762401204, guid: 25d95bd4ebdb9429fa93ef10aa0d6b1a, type: 3}
+    value: {fileID: 5025472046583946829, guid: 419a2bdc199a94b1e86df75c0fc27a4d, type: 3}
   Profile:
     value:
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 0
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
   _Setting:
     value:
@@ -52,24 +64,20 @@ MonoBehaviour:
         walkSpeed: 3
         runSpeed: 7
         acceleration: 200
-        friction: 0.075
+        friction: 0.25
         rotSpeed: 180
         pathDistance: 31
         AverageIdleTime: 2.5
       recognition:
         Predators:
           value: []
-        Prey:
-          value:
-          - Rabbit
-          - ArcticHare
         Mates:
           value:
-          - MateType: ArcticFox
-            ChildType: ArcticFox
-            AmountPerParent: 0.5
           - MateType: Fox
             ChildType: Fox
+            AmountPerParent: 0.5
+          - MateType: ArcticFox
+            ChildType: ArcticFox
             AmountPerParent: 0.5
         Edibles:
           value:
@@ -77,6 +85,10 @@ MonoBehaviour:
             Nutrition: 1.5
         SightDistance: 31
         FleeDistance: 5
+        Prey:
+          value:
+          - Rabbit
+          - ArcticHare
       physicality:
         MaxHealth: 20
         NaturalRegen: -0.025

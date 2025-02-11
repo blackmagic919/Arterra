@@ -201,13 +201,11 @@ public class InventoryController : UpdateTask
 
     private static void DeselectDrag(float _){
         static void DropItem(IItem item){
-            WorldConfig.Generation.Entity.EntitySerial Entity = new();
-            Entity.type = "EntityItem";
-            Entity.data = new EItem.EItemEntity(new TerrainColliderJob.Transform{
+            WorldConfig.Generation.Entity.Entity Entity = new EItem.EItemEntity(new TerrainColliderJob.Transform{
                 position = CPUMapManager.WSToGS(PlayerHandler.player.transform.position),
                 rotation = PlayerHandler.player.transform.rotation,
             }, item);
-            Entity.data.info.entityId = Guid.NewGuid();
+            Entity.info.entityId = Guid.NewGuid();
             EntityManager.CreateEntity(Entity);
         }
 

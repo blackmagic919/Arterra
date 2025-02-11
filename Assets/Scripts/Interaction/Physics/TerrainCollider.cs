@@ -9,22 +9,12 @@ Future Note: Make this done on a job system
 (Someone good at math do this) ->
 Sample from a simplex rather than a grid(should be faster)
 */
-public class TerrainCollider : MonoBehaviour
+public class TerrainCollider
 {
-    public float3 size;
-    public float3 offset;
-    private int isoValue;
-    public int IsoValue => isoValue;
-    private float lerpScale;
-    public float LerpScale => lerpScale;
-    private int chunkSize;
-    public int ChunkSize => chunkSize;
-    private bool active = true;
-    public bool Active{get => active; set => active = value;}
-
+    private float IsoValue;
+    private WorldConfig.Gameplay.Movement.Profile settings;
 
     public float3 velocity;
-    public bool useGravity;
 
     public float3 TrilinearDisplacement(float3 posGS){
         //Calculate Density
@@ -53,7 +43,7 @@ public class TerrainCollider : MonoBehaviour
         float c0 = c00 * (1 - yd) + c10 * yd;
         float c1 = c01 * (1 - yd) + c11 * yd;
         float density = c0 * (1 - zd) + c1 * zd;
-        if(density < isoValue) return float3.zero;
+        if(density < IsoValue) return float3.zero;
     
         //Calculate the normal
         float xL = (c100 - c000) * (1 - yd) + (c110 - c010) * yd;
@@ -89,7 +79,7 @@ public class TerrainCollider : MonoBehaviour
         float c0 = c00 * (1 - xd) + c10 * xd;
         float c1 = c01 * (1 - xd) + c11 * xd;
         float density = c0 * (1 - yd) + c1 * yd;
-        if(density < isoValue) return float2.zero;
+        if(density < IsoValue) return float2.zero;
 
         //Bilinear Normal
         float xC = (c10 - c00) * (1 - yd) + (c11 - c01) * yd;
@@ -111,7 +101,7 @@ public class TerrainCollider : MonoBehaviour
         float td = t - t0;
 
         float density = c0 * (1 - td) + c1 * td;
-        if(density < isoValue) return 0;
+        if(density < IsoValue) return 0;
         float normal = math.sign(-(c1-c0));
         return normal * LinearGradientLength(density, t, normal, SampleTerrain); //Normal
     }
@@ -320,26 +310,23 @@ public class TerrainCollider : MonoBehaviour
     }
 
 
-    public void Start(){
-        this.isoValue = (int)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0);
-        this.lerpScale = Config.CURRENT.Quality.Terrain.value.lerpScale;
-        this.chunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+    public TerrainCollider(WorldConfig.Gameplay.Movement.Profile settings){
+        this.settings = settings;
+        IsoValue = (int)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0);
     }
 
-    public void FixedUpdate(){
-        if(!active) return;
-
+    public void FixedUpdate(Transform transform, bool useGravity = true){
         float3 posWS = transform.position;
         posWS += velocity * Time.fixedDeltaTime;
         if(useGravity) velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
 
-        float3 originGS = WSToGS(posWS) + offset;
-        if(SampleCollision(originGS, size, out float3 displacement)){
+        float3 originGS = WSToGS(posWS) + settings.offset;
+        if(SampleCollision(originGS, settings.size, out float3 displacement)){
             velocity = CancelVel(velocity, displacement);
             originGS += displacement;
         };
 
-        posWS = GSToWS(originGS - offset);
+        posWS = GSToWS(originGS - settings.offset);
         transform.position = posWS;
     }
 }

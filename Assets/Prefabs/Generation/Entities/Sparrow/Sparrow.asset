@@ -9,36 +9,84 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ac5298b744c34d5f8ceecb832cc99b6, type: 3}
+  m_Script: {fileID: 11500000, guid: ab44b3b4d8fc54b598e191f90c84912c, type: 3}
   m_Name: Sparrow
   m_EditorClassIdentifier: 
   Controller:
-    value: {fileID: 5546489892204468177, guid: 0b8db709ddf3d41309f8684a630b72f7, type: 3}
+    value: {fileID: 4790501496118844506, guid: f806b471f43bf41098b6a747b7a1ee66, type: 3}
   Profile:
     value:
-    - bounds: 4286644096
-      flags: 6
-    - bounds: 4286644096
-      flags: 6
-    - bounds: 2130771712
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 4286644096
-      flags: 6
-    - bounds: 4286644096
-      flags: 6
-    - bounds: 2130771712
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
       flags: 1
   _Setting:
     value:
@@ -49,20 +97,70 @@ MonoBehaviour:
           z: 2
         profileStart: 24
       movement:
-        walkSpeed: 10
-        runSpeed: 15
-        acceleration: 50
-        friction: 0.075
+        walkSpeed: 2
+        runSpeed: 10
+        acceleration: 200
+        friction: 0.25
         rotSpeed: 180
-        pathDistance: 4
+        pathDistance: 16
         AverageIdleTime: 2.5
       flight:
-        AverageFlightTime: 120
-        InfluenceDist: 24
+        profile:
+          bounds:
+            x: 2
+            y: 3
+            z: 2
+          profileStart: 36
+        AverageFlightTime: 100
         SeperationWeight: 0.75
         AlignmentWeight: 0.5
         CohesionWeight: 0.25
         FlyBiasWeight: 0.25
+        InfluenceDist: 24
+        PathDist: 5
+      recognition:
+        Predators:
+          value:
+          - Fox
+        Mates:
+          value:
+          - MateType: Sparrow
+            ChildType: Sparrow
+            AmountPerParent: 0.5
+        Edibles:
+          value:
+          - EdibleType: Grass:Solid
+            Nutrition: 0.05
+        SightDistance: 16
+        FleeDistance: 5
+        PlantFindDist: 5
+        Prey:
+          value:
+          - Material: Grass
+            Bounds:
+              data: 4286643968
+            Replacement: Dirt
+            ReplaceState: 0
+      physicality:
+        MaxHealth: 5
+        NaturalRegen: -0.005
+        AttackDistance: 2
+        AttackDamage: 1
+        AttackSpeed: 1
+        KBStrength: 1
+        InvincTime: 0.25
+        HuntThreshold: 0.4
+        MateThreshold: 0.8
+        PregnacyLength: 4
+        ConsumptionRate: 0.25
+        MateCost: 1
+      decomposition:
+        LootTable:
+          value:
+          - ItemName: Meat
+            DropAmount: 1
+        DecompositionTime: 100
+        DecompPerLoot: 5
       collider:
         size:
           x: 0.5

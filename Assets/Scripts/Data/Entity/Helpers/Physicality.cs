@@ -44,6 +44,13 @@ public struct Vitality{
         float initHealth = math.clamp(stats.HuntThreshold + (stats.MateThreshold - stats.HuntThreshold) * random.NextFloat(), 0, 1);
         health = stats.MaxHealth * initHealth;
     }
+
+    public void Deserialize(Stats stats){
+        this.stats = stats;
+        invincibility = 0;
+        attackCooldown = 0;
+    }
+
     public void Update(){
         if(IsDead) return;
         invincibility = math.max(invincibility - EntityJob.cxt.deltaTime, 0);

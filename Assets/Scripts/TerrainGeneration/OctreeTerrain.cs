@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using UnityEngine.Events;
 using WorldConfig;
+using UnityEngine.Profiling;
 
 namespace TerrainGeneration{
 /// <summary>
@@ -164,7 +165,7 @@ public class OctreeTerrain : MonoBehaviour
             UpdateTask task = taskQueue.Dequeue();
             if(!task.active)
                 continue;
-                task.Update(this);
+            task.Update(this);
             taskQueue.Enqueue(task);
         }
     }
@@ -177,7 +178,6 @@ public class OctreeTerrain : MonoBehaviour
                 return;
             if(gen.chunk == null || !gen.chunk.active) 
                 continue;
-
             gen.task();
             FrameGPULoad += taskLoadTable[gen.id];
         }
@@ -390,7 +390,7 @@ public class OctreeTerrain : MonoBehaviour
     private static bool RemapRoot(uint octreeNode){
         ref Octree.Node node = ref octree.nodes[octreeNode];
         int maxChunkSize = (int)s.mapChunkSize * (1 << (int)s.MaxDepth);
-        int3 VCoord = octree.FloorCCoord(ViewPosGS - maxChunkSize/2, maxChunkSize);
+        int3 VCoord = Octree.FloorCCoord(ViewPosGS - maxChunkSize/2, maxChunkSize);
         int3 offset = ((node.origin / maxChunkSize - VCoord) % rootDim + rootDim) % rootDim;
 
         int3 newOrigin = (VCoord + offset) * maxChunkSize;
@@ -586,7 +586,7 @@ public class OctreeTerrain : MonoBehaviour
         /// <param name="GCoord">The position whose relative chunk coordinate is sampled</param>
         /// <param name="chunkSize">The size of chunk the outputted chunk coordinate is scaled to.</param>
         /// <returns>The chunk coordinate of the point relative to <paramref name="chunkSize"/></returns>
-        public int3 FloorCCoord(int3 GCoord, int chunkSize){ 
+        public static int3 FloorCCoord(int3 GCoord, int chunkSize){ 
             int3 offset = ((GCoord % chunkSize) + chunkSize) % chunkSize; // GCoord %% chunkSize
             return (GCoord - offset) / chunkSize; 
         }

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using Newtonsoft.Json;
+using UnityEngine;
 using WorldConfig;
 
 
@@ -92,6 +94,7 @@ public struct Registry<T> : IRegister, ICloneable
     }
 }
 
+
 public interface IRegister{
     public abstract void Construct();
     public abstract string RetrieveName(int index);
@@ -112,8 +115,34 @@ public interface IRegister{
         Config.CURRENT.Generation.Items.Construct();
         Config.CURRENT.Quality.GeoShaders.Construct();
     }
-    
 }
 
+public interface IRegistered{
+    public abstract IRegister GetRegistry();
+    public int Index{get;set;}
+}
 
+public struct Registerable<T> where T : IRegistered {
+    public string Name;
+    public T Value;
+    public Registerable(T obj){
+        Name = null;
+        Value = obj;
+    }
+
+    [OnSerializing]
+    internal void OnSerializing(StreamingContext cxt){
+        if(Value == null) return;
+        IRegister registry = Value.GetRegistry();
+        Name = registry.RetrieveName(Value.Index);
+    }
+
+    [OnDeserialized]
+    internal void OnDeserialized(StreamingContext cxt){
+        if(Value == null) return;
+        if(String.IsNullOrEmpty(Name)) return;
+        IRegister registry = Value.GetRegistry();
+        Value.Index = registry.RetrieveIndex(Name);
+    }
+}
 

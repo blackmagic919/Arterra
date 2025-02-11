@@ -6,6 +6,7 @@ using WorldConfig;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using Unity.Collections;
+using UnityEngine.Profiling;
 
 namespace TerrainGeneration.Map{
 /// <summary> A manager unique for every terrain chunk responsible for creating 

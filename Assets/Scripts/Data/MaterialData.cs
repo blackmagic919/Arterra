@@ -42,10 +42,11 @@ public abstract class MaterialData : ScriptableObject
     /// </summary>
     /// <param name="GCoord">The coordinate in grid space of the entry that has been updated. It is guaranteed
     /// that the map entry at GCoord will be of the same material as the instance that recieves the update. </param>
-    public abstract void UpdateMat(int3 GCoord);
+    /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
+    public abstract void UpdateMat(int3 GCoord, Unity.Mathematics.Random prng = default);
 
     /// <summary>
-    /// The apperance of the terrain when the material <see cref="CPUDensityManager.MapData.IsSolid">is solid</see>. 
+    /// The apperance of the terrain when the material <see cref="CPUMapManager.MapData.IsSolid">is solid</see>. 
     /// When a material is solid, it will be under or adjacent to a mesh. If it is adjacent, the mesh will display the 
     /// material of the closest solid map entry with the apperance defined below.
     /// </summary>
@@ -77,7 +78,7 @@ public abstract class MaterialData : ScriptableObject
     }
 
     /// <summary>
-    /// The apperance of the terrain when the material <see cref="CPUDensityManager.MapData.IsGaseous">is gaseous</see>.
+    /// The apperance of the terrain when the material <see cref="CPUMapManager.MapData.IsGaseous">is gaseous</see>.
     /// A gaseous material will be rendered by the <see cref="AtmosphereBake">atmosphere </see> post process and must describe
     /// its optical interactions since light is permitted to pass through it. See <see href="https://blackmagic919.github.io/AboutMe/2024/09/07/Atmospheric-Scattering/">
     /// here </see> for more information.
@@ -101,7 +102,7 @@ public abstract class MaterialData : ScriptableObject
         public Vector3 GroundExtinction;
     }
 
-    /// <summary>  The apperance of the terrain when the material <see cref="CPUDensityManager.MapData.IsLiquid">is liquid</see>.
+    /// <summary>  The apperance of the terrain when the material <see cref="CPUMapManager.MapData.IsLiquid">is liquid</see>.
     /// A liquid material is under or adjacent to a seperate liquid mesh that displays the surface of the liquid terrain.
     /// If it is adjacent, the mesh will display the material of the closest liquid map entry with the apperance defined below.
     /// </summary> <remarks>If the liquid mesh borders the solid mesh, the liquid mesh will adopt the solid mesh's vertices</remarks>

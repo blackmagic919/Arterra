@@ -9,84 +9,120 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 783ba03f61b61455397331b82dce89e5, type: 3}
+  m_Script: {fileID: 11500000, guid: 6fbcd5f0b5992466685233b55199a842, type: 3}
   m_Name: Camel
   m_EditorClassIdentifier: 
   Controller:
-    value: {fileID: 790299623469635556, guid: 18697aa2fb6d34d25941e34a120018da, type: 3}
+    value: {fileID: 2030604048505752331, guid: 811ca543be197474ba42ba429eac8363, type: 3}
   Profile:
     value:
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
   _Setting:
     value:
@@ -95,18 +131,58 @@ MonoBehaviour:
           x: 3
           y: 4
           z: 3
-        profileStart: 80
+        profileStart: 104
       movement:
         walkSpeed: 2
-        runSpeed: 5
+        runSpeed: 4
         acceleration: 200
-        friction: 0.075
+        friction: 0.25
         rotSpeed: 180
         pathDistance: 31
-        AverageIdleTime: 2.5
-      idle:
-        AverageRestTime: 32
-        RestProbability: 0.3
+        AverageIdleTime: 6
+      recognition:
+        Predators:
+          value:
+          - Fox
+        Mates:
+          value:
+          - MateType: Camel
+            ChildType: Camel
+            AmountPerParent: 0.5
+        Edibles:
+          value:
+          - EdibleType: Cactus:Solid
+            Nutrition: 0.05
+        SightDistance: 31
+        FleeDistance: 5
+        PlantFindDist: 10
+        Prey:
+          value:
+          - Material: Cactus
+            Bounds:
+              data: 4286643968
+            Replacement: PlantMatter
+            ReplaceState: 0
+      physicality:
+        MaxHealth: 30
+        NaturalRegen: -0.01
+        AttackDistance: 4
+        AttackDamage: 10
+        AttackSpeed: 0.5
+        KBStrength: 5
+        InvincTime: 0.25
+        HuntThreshold: 0.4
+        MateThreshold: 0.8
+        PregnacyLength: 6
+        ConsumptionRate: 0.25
+        MateCost: 10
+      decomposition:
+        LootTable:
+          value:
+          - ItemName: Meat
+            DropAmount: 1
+        DecompositionTime: 200
+        DecompPerLoot: 2
       collider:
         size:
           x: 2

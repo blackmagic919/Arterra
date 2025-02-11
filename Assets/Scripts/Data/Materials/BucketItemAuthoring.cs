@@ -41,18 +41,7 @@ public class BucketItem : IItem{
         get => (data & 0x80000000) != 0;
         set => data = value ? data | 0x80000000 : data & 0x7FFFFFFF;
     }
-
-    public void Serialize(Func<string, int> lookup){
-        string bucketName = ItemInfo.RetrieveName(Index);
-        string contentName = content == null ? "EMPTY" : ItemInfo.RetrieveName(content.Index);
-        Index = lookup($"{bucketName}::{contentName}");
-    }
-
-    public void Deserialize(Func<int, string> lookup){ 
-        string[] portions = lookup(Index).Split("::");
-        Index = ItemInfo.RetrieveIndex(portions[0]);
-        if(content != null) content.Index = ItemInfo.RetrieveIndex(portions[1]);
-    }
+    public IRegister GetRegistry() => Config.CURRENT.Generation.Items;
 
     public object Clone(){ return new BucketItem{
         data = data, content = content == null ? 

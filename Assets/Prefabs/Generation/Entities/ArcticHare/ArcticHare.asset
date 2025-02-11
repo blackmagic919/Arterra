@@ -9,36 +9,48 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
+  m_Script: {fileID: 11500000, guid: 6fbcd5f0b5992466685233b55199a842, type: 3}
   m_Name: ArcticHare
   m_EditorClassIdentifier: 
   Controller:
-    value: {fileID: 3660665789513501651, guid: 8ba577da0478c4730b160818db4cbf75, type: 3}
+    value: {fileID: 1363864841180675569, guid: 9f3da586f65d14207adc445c8018826b, type: 3}
   Profile:
     value:
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 4286644096
+    - bounds:
+        data: 4286643968
       flags: 2
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
-    - bounds: 2130771712
+    - bounds:
+        data: 2130738944
       flags: 1
   _Setting:
     value:
@@ -52,7 +64,7 @@ MonoBehaviour:
         walkSpeed: 3
         runSpeed: 5
         acceleration: 200
-        friction: 0.075
+        friction: 0.25
         rotSpeed: 180
         pathDistance: 31
         AverageIdleTime: 2.5
@@ -61,34 +73,38 @@ MonoBehaviour:
           value:
           - Fox
           - ArcticFox
-          - SnowyOwl
-        Prey:
-          value: []
         Mates:
           value:
-          - MateType: Rabbit
-            ChildType: Rabbit
-            AmountPerParent: 0.5
           - MateType: ArcticHare
             ChildType: ArcticHare
             AmountPerParent: 0.5
         Edibles:
-          value: []
-        SightDistance: 31
+          value:
+          - EdibleType: Grass:Solid
+            Nutrition: 0.05
+        SightDistance: 16
         FleeDistance: 5
+        PlantFindDist: 3
+        Prey:
+          value:
+          - Material: Grass
+            Bounds:
+              data: 4286643968
+            Replacement: Dirt
+            ReplaceState: 0
       physicality:
         MaxHealth: 10
-        NaturalRegen: 0.025
+        NaturalRegen: -0.01
         AttackDistance: 2
         AttackDamage: 1
         AttackSpeed: 1
         KBStrength: 1
         InvincTime: 0.25
         HuntThreshold: 0.4
-        MateThreshold: 0.9
+        MateThreshold: 0.8
         PregnacyLength: 4
-        ConsumptionRate: 1
-        MateCost: 5
+        ConsumptionRate: 0.25
+        MateCost: 2
       decomposition:
         LootTable:
           value:

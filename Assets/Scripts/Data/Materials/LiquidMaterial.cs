@@ -70,8 +70,9 @@ public class LiquidMaterial : MaterialData
 
     /// <summary> Updates the liquid material to perform liquid physics. </summary>
     /// <param name="GCoord">The coordinate in grid space of a map entry that is this material (a liquid material)</param>
+    /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
     [BurstCompile]
-    public override void UpdateMat(int3 GCoord){
+    public override void UpdateMat(int3 GCoord, Unity.Mathematics.Random prng){
         byte ChangeState = (byte)0;
         MapData cur = SampleMap(GCoord); //Current 
         if(cur.IsSolid) return;

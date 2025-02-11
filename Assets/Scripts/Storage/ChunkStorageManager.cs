@@ -13,6 +13,9 @@ using TerrainGeneration;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
 using UnityEngine;
+using Unity.Collections.LowLevel.Unsafe;
+using System.Buffers;
+using UnityEngine.Profiling;
 
 /*
 Chunk File Layout:
@@ -128,8 +131,10 @@ public static class ChunkStorageManager
 
     public static ReadbackInfo ReadChunkInfo(int3 CCoord){
         ReadbackInfo info = new ReadbackInfo(false);
+        Profiler.BeginSample("Reading Chunk");
         if(chunkFinder.TryGetMapChunk(CCoord, out string chunkAdd)) info.map = ReadChunkBin(chunkAdd, 0);
         if(chunkFinder.TryGetEntityChunk(CCoord, out string entityAdd)) info.entities = ReadEntityJson(entityAdd);
+        Profiler.EndSample();
         return info;
     }
 
@@ -153,33 +158,33 @@ public static class ChunkStorageManager
         }
     }
 
-    public static List<EntitySerial> ReadEntityJson(string fileAdd)
+    public static List<Entity> ReadEntityJson(string fileAdd)
     {
         try{
-            List<EntitySerial> entities = null;
+            List<Registerable<Entity>> sEntities = null;
             //Caller has to copy for persistence
             using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read)){
                 //It's automatically deserialized by a custom json rule
-                ReadChunkHeader(fs, out entities);
+                ReadChunkHeader(fs, out sEntities);
             }
-            return entities;
+            return DeserializeEntities(sEntities);
         } catch (Exception e){
             Debug.Log($"Failed on Reading Entity Data for Chunk: {fileAdd} with exception {e}");
             return null;
         }
     }
 
-    static List<EntitySerial> SerializeEntities(List<Entity> entities){
-        List<EntitySerial> eSerial = new List<EntitySerial>();
-        var eReg = Config.CURRENT.Generation.Entities;
-        for(int i = 0; i < entities.Count; i++){
-            EntitySerial entity = new ();
-            entity.type = eReg.RetrieveName((int)entities[i].info.entityType);
-            entity.data = entities[i];
-            eSerial.Add(entity);
-        }
+    static List<Registerable<Entity>> SerializeEntities(List<Entity> entities){
+        List<Registerable<Entity>> eSerial = new List<Registerable<Entity>>();
+        foreach(Entity entity in entities){ eSerial.Add(new Registerable<Entity>(entity)); }
         return eSerial;
-     }
+    } 
+    static List<Entity> DeserializeEntities(List<Registerable<Entity>> eSerial){
+        List<Entity> entities = new List<Entity>();
+        foreach(Registerable<Entity> sEntity in eSerial){ entities.Add(sEntity.Value); }
+        return entities;
+    }
+     
 
     static ChunkHeader SerializeHeader(ChunkPtr chunk){
         Dictionary<int, int> RegisterDict = new Dictionary<int, int>();
@@ -202,21 +207,9 @@ public static class ChunkStorageManager
 
     private static void DeserializeHeader(ref MapData[] map, ref ChunkHeader header){
         var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        for(int i = 0; i < map.Length; i++){
-            map[i].material = mReg.RetrieveIndex(header.RegisterNames[(int)map[i].material]);
-        }
-    }
-
-    static void WriteUInt32(byte[] buffer, ref uint offset, uint value){
-        buffer[offset + 0] = (byte)(value & 0xFF);
-        buffer[offset + 1] = (byte)((value >> 8) & 0xFF);
-        buffer[offset + 2] = (byte)((value >> 16) & 0xFF);
-        buffer[offset + 3] = (byte)((value >> 24) & 0xFF);
-        offset += 4;
-    }
-
-    static uint ReadUInt32(byte[] buffer, uint offset){
-        return (uint)(buffer[offset + 0] | buffer[offset + 1] << 8 | buffer[offset + 2] << 16 | buffer[offset + 3] << 24);
+        int[] materialIndexCache = new int[header.RegisterNames.Count];
+        for (int i = 0; i < header.RegisterNames.Count; i++) { materialIndexCache[i] = mReg.RetrieveIndex(header.RegisterNames[i]); }
+        for(int i = 0; i < map.Length; i++){ map[i].material = materialIndexCache[(int)map[i].material]; }
     }
 
     private static MemoryStream WriteChunkHeader(object header){
@@ -229,8 +222,8 @@ public static class ChunkStorageManager
             zs.Write(buffer); 
             zs.Flush(); 
         }
-        byte[] size = new byte[4]; uint _ = 0;
-        WriteUInt32(size, ref _, (uint)ms.Length);
+        byte[] size = new byte[4]; 
+        UnsafeUtility.As<byte, uint>(ref size[0]) = (uint)ms.Length;
         ms.Seek(0, SeekOrigin.Begin);
         ms.Write(size);
         ms.Flush();
@@ -239,7 +232,7 @@ public static class ChunkStorageManager
 
     private static uint ReadChunkHeader<T>(FileStream fs, out T header){
         byte[] readSize = new byte[4]; fs.Read(readSize); 
-        uint size = ReadUInt32(readSize, 0);
+        uint size = UnsafeUtility.As<byte, uint>(ref readSize[0]);
         byte[] buffer = new byte[size]; fs.Read(buffer);
 
         using MemoryStream ms = new(buffer);
@@ -254,29 +247,35 @@ public static class ChunkStorageManager
         MemoryStream ms = new MemoryStream();
         header = SerializeHeader(chunk);
         header.ResolutionOffsets = new List<int>();
-
         for(int skipInc = 1; skipInc <= maxChunkSize; skipInc <<= 1){
             int numPointsAxis = maxChunkSize / skipInc;
             int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
+            var mBuffer = ArrayPool<byte>.Shared.Rent(numPoints * 4);
 
-            var mBuffer = new byte[numPoints * 4]; uint mBPos = 0;
-            for(int x = 0; x < maxChunkSize; x += skipInc){
+            uint mBPos = 0;
+            unsafe{fixed(byte* destPtr = mBuffer){
+                if(skipInc == 1) {
+                    UnsafeUtility.MemCpy(destPtr, (MapData*)chunk.data.GetUnsafePtr() + 
+                    chunk.offset, numPoints * 4);
+                } else {
+                for(int x = 0; x < maxChunkSize; x += skipInc){
                 for(int y = 0; y < maxChunkSize; y += skipInc){
-                    for(int z = 0; z < maxChunkSize; z += skipInc){
-                        int readPos = CustomUtility.indexFromCoord(x, y, z, maxChunkSize);
-                        MapData mapPt = chunk.data[chunk.offset + readPos];
+                for(int z = 0; z < maxChunkSize; z += skipInc){
+                    int readPos = CustomUtility.indexFromCoord(x, y, z, maxChunkSize);
+                    MapData mapPt = chunk.data[chunk.offset + readPos];
 
-                        //if(!mapPt.isDirty) mapPt.data = 0;
-                        WriteUInt32(mBuffer, ref mBPos, mapPt.data);
-                    }
-                }
-            }
+                    //if(!mapPt.isDirty) mapPt.data = 0;
+                    UnsafeUtility.As<byte, uint>(ref mBuffer[mBPos]) = mapPt.data;
+                    mBPos += 4;
+                }}}}
+            }}
             //Deals with memory so it's better to not hog all the threads
             using(GZipStream zs = new GZipStream(ms, CompressionMode.Compress, true)){ 
                 zs.Write(mBuffer); 
                 zs.Flush(); 
-            }   
+            } 
             header.ResolutionOffsets.Add((int)ms.Length);
+            ArrayPool<byte>.Shared.Return(mBuffer);
         }
         ms.Flush();
         return ms;
@@ -289,18 +288,13 @@ public static class ChunkStorageManager
     
         using(GZipStream zs = new GZipStream(fs, CompressionMode.Decompress, true))
         {
-            byte[] buffer = new byte[4 * numPoints]; uint bufferPos = 0;
+            byte[] buffer = new byte[4 * numPoints]; 
             zs.Read(buffer);
-
-            for(int index = 0; index < numPoints; index++)
-            {
-                outStream[index] = new MapData{
-                    data = (uint)(buffer[bufferPos + 0] | 
-                    buffer[bufferPos + 1] << 8 | 
-                    buffer[bufferPos + 2] << 16 | 
-                    buffer[bufferPos + 3] << 24)
-                };
-                bufferPos += 4;
+            unsafe{
+                fixed(byte* inPtr = buffer){
+                fixed(MapData* outPtr = outStream){
+                UnsafeUtility.MemCpy(outPtr, inPtr, numPoints * 4);
+                }}
             }
             zs.Close();
         }
@@ -313,7 +307,7 @@ public static class ChunkStorageManager
     }
 
     public struct ReadbackInfo{
-        public List<EntitySerial> entities;
+        public List<Entity> entities;
         public MapData[] map;
 
         public ReadbackInfo(bool _){
@@ -321,7 +315,7 @@ public static class ChunkStorageManager
             map = null;
         }
 
-        public ReadbackInfo(MapData[] map, List<EntitySerial> entities){
+        public ReadbackInfo(MapData[] map, List<Entity> entities){
             this.entities = entities;
             this.map = map;
         }

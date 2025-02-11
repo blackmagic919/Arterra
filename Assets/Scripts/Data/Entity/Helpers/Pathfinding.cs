@@ -20,7 +20,7 @@ public unsafe struct PathFinder{
                     uint index = dC.x * info.bounds.y * info.bounds.z + dC.y * info.bounds.z + dC.z;
                     ProfileE profile = context.Profile[index + info.profileStart];
                     if(profile.ExFlag && UseExFlag) continue;
-                    bool valid = InBounds(SampleMap(GCoord + (int3)dC, context.mapContext), profile.bounds);
+                    bool valid = profile.bounds.Contains(SampleMap(GCoord + (int3)dC, context.mapContext));
                     allC = allC && (valid || !profile.AndFlag);
                     anyC = anyC || (valid && profile.OrFlag);
                     any0 = any0 || profile.OrFlag;
@@ -29,12 +29,6 @@ public unsafe struct PathFinder{
         } 
         if(allC && (!any0 || anyC)) return true;
         else return false;
-    }
-
-    [BurstCompile]
-    public unsafe static bool InBounds(in CPUMapManager.MapData data, uint bounds){
-        return data.density >= (bounds & 0xFF) && data.density <= ((bounds >> 8) & 0xFF) && 
-               data.viscosity >= ((bounds >> 16) & 0xFF) && data.viscosity <= ((bounds >> 24) & 0xFF);
     }
 
     public struct PathInfo{
@@ -197,7 +191,7 @@ public unsafe struct PathFinder{
     |    |____|____|____| 
     +--------------------> x
     */
-    public static byte* FindPath(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int PathLength, float reachDist = 0){
+    public static unsafe byte* FindPath(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int PathLength){
         PathFinder finder = new (PathDistance);
         int3 End = math.clamp(iEnd + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
         int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
@@ -224,7 +218,6 @@ public unsafe struct PathFinder{
                 bestEnd.y = hCost;
             } 
             if((int)current.y == pathEndInd) break;
-            if(hCost <= reachDist * 10) break;
 
             for(int i = 0; i < 24; i++){
                 int4 delta = dP[i];
@@ -242,9 +235,9 @@ public unsafe struct PathFinder{
     }
     [BurstCompile]
     //Find point that matches raw-profile along the path to destination
-    public static byte* FindMatchAlongRay(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in ProfileInfo dest, in EntityJob.Context context, out int PathLength, out bool ReachedEnd){
+    public static unsafe byte* FindMatchAlongRay(in int3 Origin, in float3 rayDir, int PathDistance, in ProfileInfo info, in ProfileInfo dest, in EntityJob.Context context, out int PathLength, out bool ReachedEnd){
         PathFinder finder = new (PathDistance);
-        int3 End = math.clamp(iEnd + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
+        int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance), 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
         int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
 
         //Find the closest point to the end
@@ -290,7 +283,7 @@ public unsafe struct PathFinder{
     }
     [BurstCompile]
     //Find point that matches raw-profile along the path to destination with the closest distance to the desired path distance
-    public static byte* FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, in EntitySetting.ProfileInfo info, in EntityJob.Context context, out int PathLength){
+    public static unsafe byte* FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, in EntitySetting.ProfileInfo info, in EntityJob.Context context, out int PathLength){
         PathFinder finder = new (PathDistance);
         int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
 
@@ -336,7 +329,7 @@ public unsafe struct PathFinder{
 
 
     [BurstCompile]
-    public static byte* RetracePath(ref PathFinder finder, int dest, int start, out int PathLength){
+    public static unsafe byte* RetracePath(ref PathFinder finder, int dest, int start, out int PathLength){
         PathLength = 0; 
         int currentInd = dest;
         while(currentInd != start){ 
@@ -360,5 +353,30 @@ public unsafe struct PathFinder{
         //path[0] = 13; //13 i.e. 0, 0, 0
 
         return path;
+    }
+
+    /// <summary>
+    ///An annoying challenge of pathfinding is that we must search all pathable nodes 
+    ///to determine a path doesn't exist. However, if the destination is not a pathable point
+    ///pathfinding will always have to search all nodes which is inefficient. Thus if the destination
+    ///is not a pathable point, simply follow a ray to a certain length to approach the target, which is a
+    ///much cheaper operation than failing to find an exact path.
+    /// </summary>
+    /// <param name="Origin"></param>
+    /// <param name="iEnd"></param>
+    /// <param name="PathDistance"></param>
+    /// <param name="info"></param>
+    /// <param name="context"></param>
+    /// <param name="PathLength"></param>
+    [BurstCompile]
+    public static unsafe byte* FindPathOrApproachTarget(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int PathLength){
+        int3 dGC = Origin + iEnd;
+        if(VerifyProfile(dGC, info, context)){
+            return FindPath(Origin, iEnd, PathDistance, info, context, out PathLength);
+        } else {
+            float3 rayDir = (float3)iEnd;
+            int pathDist = math.min(math.cmax(math.abs(iEnd)), PathDistance);
+            return FindPathAlongRay(Origin, ref rayDir, pathDist, info, context, out PathLength);
+        }
     }
 }

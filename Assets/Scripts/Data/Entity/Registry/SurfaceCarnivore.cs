@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
 using System.Threading.Tasks;
+using UnityEngine.Profiling;
 
 [CreateAssetMenu(menuName = "Entity/SurfaceCarnivore")]
 public class SurfaceCarnivore : Authoring
@@ -21,7 +22,7 @@ public class SurfaceCarnivore : Authoring
     [Serializable]
     public class AnimalSetting : EntitySetting{
         public Movement movement;
-        public Recognition recognition;
+        public RCarnivore recognition;
         public Vitality.Stats physicality;
         public Vitality.Decomposition decomposition;
         public TerrainColliderJob.Settings collider;
@@ -111,8 +112,8 @@ public class SurfaceCarnivore : Authoring
         {
             settings = (AnimalSetting)setting;
             controller = new AnimalController(Controller, this);
+            vitality.Deserialize(settings.physicality);
             random.state ^= (uint)GetHashCode();
-            vitality = new Vitality(settings.physicality, ref random);
             GCoord = this.GCoord;
         }
 
@@ -189,7 +190,7 @@ public class SurfaceCarnivore : Authoring
 
             int PathDist = self.settings.movement.pathDistance;
             int3 destination = (int3)math.round(prey.position) - self.GCoord;
-            byte* path = PathFinder.FindPath(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 4;
 
@@ -249,7 +250,7 @@ public class SurfaceCarnivore : Authoring
             }
             int PathDist = self.settings.movement.pathDistance;
             int3 destination = (int3)math.round(mate.position) - self.GCoord;
-            byte* path = PathFinder.FindPath(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 7;
         }
