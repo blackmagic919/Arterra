@@ -95,7 +95,7 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 60
+        profileStart: 88
       movement:
         walkSpeed: 2
         runSpeed: 10
@@ -110,11 +110,10 @@ MonoBehaviour:
             x: 2
             y: 3
             z: 2
-          profileStart: 72
+          profileStart: 100
         AverageFlightTime: 20
         FlyBiasWeight: 0.25
         VerticalFreedom: 0.5
-        UseGravityOnLand: 1
       recognition:
         Predators:
           value: []

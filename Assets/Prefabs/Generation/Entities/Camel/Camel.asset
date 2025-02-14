@@ -166,12 +166,12 @@ MonoBehaviour:
       physicality:
         MaxHealth: 30
         NaturalRegen: -0.01
-        AttackDistance: 4
+        AttackDistance: 3
         AttackDamage: 10
         AttackSpeed: 0.5
         KBStrength: 5
         InvincTime: 0.25
-        HuntThreshold: 0.4
+        HuntThreshold: 0.6
         MateThreshold: 0.8
         PregnacyLength: 6
         ConsumptionRate: 0.25

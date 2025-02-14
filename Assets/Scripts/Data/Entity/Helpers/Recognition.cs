@@ -221,17 +221,16 @@ public class RCarnivore : Recognition{
             if(nEntity.info.entityId == self.info.entityId) return;
             if(!Awareness.ContainsKey((int)nEntity.info.entityType)) return;
 
-            Recognizable entityInfo = Awareness[(int)nEntity.info.entityType];
-            if(!entityInfo.IsPrey) return;
+            Recognizable eInfo = Awareness[(int)nEntity.info.entityType];
+            if(!eInfo.IsPrey) return;
             if(cEntity != null){
-            if(entityInfo.Preference > pPref) return;
-            if(pPref == entityInfo.Preference && math.distance(nEntity.position, ePos) > closestDist) 
-                return;
+            if(eInfo.Preference > pPref) return;
+            if(eInfo.Preference == pPref && math.distance(nEntity.position, self.position) > closestDist) return;
             }
             
             cEntity = nEntity;
-            pPref = entityInfo.Preference;
-            closestDist = math.distance(nEntity.position, ePos);
+            pPref = eInfo.Preference;
+            closestDist = math.distance(nEntity.position, self.position);
         });
         entity = cEntity;
         return entity != null;

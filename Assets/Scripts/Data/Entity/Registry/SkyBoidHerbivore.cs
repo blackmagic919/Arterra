@@ -146,6 +146,7 @@ public class SkyBoidHerbivore : Authoring
             vitality.Update();
             if(TaskIndex != 10 && vitality.IsDead) {
                 TaskDuration = settings.decomposition.DecompositionTime;
+                flightDirection = 0;
                 TaskIndex = 10;
             } else if(TaskIndex <= 8)  DetectPredator();
         }
@@ -155,9 +156,10 @@ public class SkyBoidHerbivore : Authoring
                 return;
 
             int PathDist = settings.recognition.FleeDistance;
-            float3 rayDir = GCoord - predator.position;
-            byte* path = PathFinder.FindPathAlongRay(GCoord, ref rayDir, PathDist + 1, settings.flight.profile, EntityJob.cxt, out int pLen);
+            flightDirection = GCoord - predator.position;
+            byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, PathDist + 1, settings.flight.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
+            flightDirection = math.normalize(flightDirection);
             TaskIndex = 9;
         }
 
@@ -203,6 +205,7 @@ public class SkyBoidHerbivore : Authoring
                 float3 nBoidPos = nBoid.tCollider.transform.position;
                 float3 boidPos = tCollider.transform.position;
 
+                if(math.all(nBoid.flightDirection == 0)) return;
                 if(math.distance(boidPos, nBoidPos) < settings.flight.PathDist) 
                     boidDMtrx.SeperationDir += boidPos - nBoidPos;
                 boidDMtrx.AlignmentDir += nBoid.flightDirection;
@@ -292,6 +295,7 @@ public class SkyBoidHerbivore : Authoring
 
             if(!self.pathFinder.hasPath) {
                 self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
+                self.flightDirection = 0;
                 self.TaskIndex = 0; //Landed
             }
         }
@@ -465,8 +469,6 @@ public class SkyBoidHerbivore : Authoring
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
             rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
-
-            if(UnityEditor.Selection.Contains(gameObject)) Debug.Log(entity.TaskIndex);
 
             Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
             if(AnimatorTask == entity.TaskIndex) return;

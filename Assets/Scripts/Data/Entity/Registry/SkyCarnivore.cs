@@ -401,9 +401,7 @@ public class SkyCarnivore : Authoring
 
         public override void OnDrawGizmos(){
             if(!active) return;
-            Gizmos.color = Color.green; 
-            if(!active) return;
-            Gizmos.color = Color.green; 
+            Gizmos.color = Color.magenta; 
             Gizmos.DrawWireCube(CPUMapManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
             PathFinder.PathInfo finder = pathFinder; //copy so we don't modify the original
             if(finder.hasPath){
@@ -455,6 +453,9 @@ public class SkyCarnivore : Authoring
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
             rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
+            if(UnityEditor.Selection.Contains(gameObject)) {
+                Debug.Log(entity.TaskIndex);
+            }
             
             Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
             if(AnimatorTask == entity.TaskIndex) return;

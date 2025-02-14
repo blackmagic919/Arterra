@@ -73,6 +73,7 @@ MonoBehaviour:
           value:
           - Fox
           - ArcticFox
+          - Hawk
         Mates:
           value:
           - MateType: Rabbit

@@ -98,9 +98,9 @@ MonoBehaviour:
         profileStart: 24
       movement:
         walkSpeed: 2
-        runSpeed: 10
-        acceleration: 200
-        friction: 0.25
+        runSpeed: 6
+        acceleration: 50
+        friction: 0.1
         rotSpeed: 180
         pathDistance: 16
         AverageIdleTime: 2.5
@@ -113,15 +113,15 @@ MonoBehaviour:
           profileStart: 36
         AverageFlightTime: 100
         SeperationWeight: 0.75
-        AlignmentWeight: 0.5
-        CohesionWeight: 0.25
-        FlyBiasWeight: 0.25
-        InfluenceDist: 24
+        AlignmentWeight: 0.4
+        CohesionWeight: 0.35
+        FlyBiasWeight: 0.1
+        InfluenceDist: 10
         PathDist: 5
       recognition:
         Predators:
           value:
-          - Fox
+          - Hawk
         Mates:
           value:
           - MateType: Sparrow
@@ -131,7 +131,7 @@ MonoBehaviour:
           value:
           - EdibleType: Grass:Solid
             Nutrition: 0.05
-        SightDistance: 16
+        SightDistance: 20
         FleeDistance: 5
         PlantFindDist: 5
         Prey:

@@ -19,20 +19,21 @@ MonoBehaviour:
     - Fox
     - Rabbit
     - Sparrow
+    - Hawk
     - Dirt
     - Grass
     - Air
   GroundMaterials:
     value:
     - value:
-        Material: 5
+        Material: 6
         genSize: 0.8
         genShape: 0.62
         frequency: 1
         multiplier: 1
         height: 1
     - value:
-        Material: 6
+        Material: 7
         genSize: 0.2
         genShape: 0.24
         frequency: 0.25
@@ -41,7 +42,7 @@ MonoBehaviour:
   SurfaceMaterials:
     value:
     - value:
-        Material: 7
+        Material: 8
         genSize: 0.2
         genShape: 0
         frequency: 1
@@ -66,6 +67,9 @@ MonoBehaviour:
     - value:
         Entity: 4
         ChancePerCoord: 0.001
+    - value:
+        Entity: 5
+        ChancePerCoord: 0.0001
   BiomeConditions:
     value:
       TerrainStart: 0.325
