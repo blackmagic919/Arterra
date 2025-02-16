@@ -1,7 +1,9 @@
 # Arterra
 Arterra is a procedurally generated 3D sandbox-style game built with Unity. Users are permitted to explore vast landscapes populated by unique generation and perhaps find secret discoveries and create their own story. It triumphs an avant-garde world representation that enables users to interact with far more components(clouds, water, air) than its competitors for a fun and refreshing experience. Arterra's built-in generation is set to resemble the natural world, but Users are free to **define their own custom generation**, shaping the world they will explore. With stunning graphics and limitless opportunity, what will your adventure be?
 
-![](https://github.com/blackmagic919/Arterra/blob/main/Assets/Images/FinalTrailer.mov)
+### Trailer
+[![Arterra Trailer](https://github.com/blackmagic919/Arterra/blob/main/Assets/Images/ArterraTrailer.png)](https://www.youtube.com/watch?v=VQky5HlDAYM)
+
 *Requirements*:
 - 4 gB VRAM(Video-RAM)
 - 3 gB RAM

@@ -266,12 +266,12 @@ MonoBehaviour:
               - data: 104086
             result:
               data: 255
-      - Name: Brush
+      - Name: Pen
         _value:
           value:
             Names:
               value:
-              - Brush
+              - Pen
               - Wood
               - Sand
             entry:

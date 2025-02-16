@@ -52,7 +52,7 @@ public class InventoryController : UpdateTask
     public static IItem Selected=>Primary.Info[SelectedIndex];
     public static Authoring SelectedSetting=>ItemSettings.Retrieve(Primary.Info[SelectedIndex].Index);
     public static IItem Cursor;
-    private static int SelectedIndex = 0;
+    public static int SelectedIndex = 0;
 
     public struct SlotDisplay{
         public GameObject Object;
@@ -280,10 +280,11 @@ public class InventoryController : UpdateTask
                 Primary.AddEntry(e, out int _);
         }
     }
-    public static int RemoveMaterial(int delta){
-        if(Selected == null) return 0;
-        if(SelectedSetting.MaterialName == null) return 0;
-        return Primary.RemoveStackableSlot(SelectedIndex, delta);
+    public static int RemoveMaterial(int delta, int SelIndex = -1){
+        if(SelIndex == -1) SelIndex = SelectedIndex;
+        if(Primary.Info[SelIndex] == null) return 0;
+        if(ItemSettings.Retrieve(Primary.Info[SelIndex].Index).MaterialName == null) return 0;
+        return Primary.RemoveStackableSlot(SelIndex, delta);
     }
 
     public override void Update(MonoBehaviour mono){

@@ -156,7 +156,7 @@ MonoBehaviour:
           - Name: Bucket
             _value:
               value: {fileID: 11400000, guid: e9c4f7d8580e3448f83847f4d3d6f0a1, type: 2}
-          - Name: Brush
+          - Name: Pen
             _value:
               value: {fileID: 11400000, guid: 54b67afaa6ce54d7a903460a2615f54e, type: 2}
           - Name: Meat
@@ -195,6 +195,9 @@ MonoBehaviour:
           - Name: Camel
             _value:
               value: {fileID: 11400000, guid: 7e70244b90d3641dfbf81286d647eda6, type: 2}
+          - Name: Coyote
+            _value:
+              value: {fileID: 11400000, guid: 1ffa182daf2554821a09824cd86c6a78, type: 2}
       Textures:
         Reg:
           value:
@@ -258,9 +261,9 @@ MonoBehaviour:
           - Name: Bucket
             _value:
               value: {fileID: 21300000, guid: 9282a2289fed645ccbb0bf6b3c9581d5, type: 3}
-          - Name: Brush
+          - Name: Pen
             _value:
-              value: {fileID: 21300000, guid: 0271f92a8144645c1af75afae444ff0f, type: 3}
+              value: {fileID: 21300000, guid: ba53321744fa94b758858011fe31f42f, type: 3}
           - Name: Meat
             _value:
               value: {fileID: 21300000, guid: 86d913194d5484611b89302d5f6134ab, type: 3}
@@ -706,7 +709,7 @@ MonoBehaviour:
               m_RotationOrder: 4
       Statistics:
         value:
-          DisplayEntityStats: 1
+          DisplayEntityStats: 0
           DisplayEntityDamage: 1
   _System:
     value:

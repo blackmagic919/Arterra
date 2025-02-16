@@ -21,6 +21,7 @@ MonoBehaviour:
     - Sand
     - Air
     - Camel
+    - Coyote
   GroundMaterials:
     value:
     - value:
@@ -61,6 +62,9 @@ MonoBehaviour:
     value:
     - value:
         Entity: 6
+        ChancePerCoord: 0.0002
+    - value:
+        Entity: 7
         ChancePerCoord: 0.0001
   BiomeConditions:
     value:

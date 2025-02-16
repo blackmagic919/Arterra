@@ -131,7 +131,7 @@ MonoBehaviour:
           x: 3
           y: 4
           z: 3
-        profileStart: 104
+        profileStart: 128
       movement:
         walkSpeed: 2
         runSpeed: 4
@@ -143,7 +143,7 @@ MonoBehaviour:
       recognition:
         Predators:
           value:
-          - Fox
+          - Coyote
         Mates:
           value:
           - MateType: Camel

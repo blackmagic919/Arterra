@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -111,6 +112,7 @@ namespace WorldConfig.Gameplay{
 }
 public class InputPoller : UpdateTask
 {
+    public static ArrayPool<int> KeyBindSaver;
     private class KeyBinder{
         public SharedLinkedList<ActionBind> KeyBinds;
         public Registry<uint> LayerHeads;
@@ -172,6 +174,7 @@ public class InputPoller : UpdateTask
         Binder = new KeyBinder();
         SStack = new StateStack();
         KeyBindChanges = new Queue<Action>();
+        KeyBindSaver = ArrayPool<int>.Create();
         AddStackPoll(new ActionBind("BASE", (float _) => SetCursorLock(true)), "CursorLock");
         TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(new InputPoller{active = true});
     }

@@ -15,8 +15,6 @@ public class BucketItem : IItem{
     public static Registry<Sprite> TextureAtlas => Config.CURRENT.Generation.Textures;
     public static Registry<Material.MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;  
     public static TerraformController T => PlayerHandler.terrController;
-    private static int PlaceBinding = -1; 
-    private static int RemoveBinding = -1; 
 
     [JsonIgnore]
     public bool IsStackable => false;
@@ -52,15 +50,16 @@ public class BucketItem : IItem{
     public void OnLeaveSecondary(){}
     public void OnEnterPrimary(){} 
     public void OnLeavePrimary(){} 
+
+    private static int PlaceBinding = -1; 
+    private static int RemoveBinding = -1; 
     public void OnSelect(){
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("Bucket", (float _) => T.CursorPlace = T.RayTestLiquid), "CursorPlacement");
         InputPoller.AddKeyBindChange(() => {
             PlaceBinding = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", PlaceLiquid, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
             RemoveBinding = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", RemoveLiquid, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
         }); 
     } 
     public void OnDeselect(){
-        InputPoller.RemoveStackPoll("Bucket", "CursorPlacement");
         InputPoller.AddKeyBindChange(() => {
             if(PlaceBinding != -1) InputPoller.RemoveKeyBind((uint)PlaceBinding, "5.0::GamePlay");
             if(RemoveBinding != -1) InputPoller.RemoveKeyBind((uint)RemoveBinding, "5.0::GamePlay");
@@ -72,10 +71,10 @@ public class BucketItem : IItem{
     private void PlaceLiquid(float _){
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         
-        if(!T.hasHit || content == null) return;
+        if(content == null || !T.RayTestLiquid(out float3 hitPt)) return;
         Authoring mat = ItemInfo.Retrieve(content.Index);
         if(mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
-        CPUMapManager.Terraform(T.hitPoint, T.settings.terraformRadius, AddFromBucket);
+        CPUMapManager.Terraform(hitPt, T.settings.terraformRadius, AddFromBucket);
         if(content.AmountRaw == 0) content = null;
         IsDirty = true;
     }
@@ -104,8 +103,8 @@ public class BucketItem : IItem{
     }
 
     private void RemoveLiquid(float _){
-        if(!T.hasHit) return;
-        CPUMapManager.Terraform(T.hitPoint, T.settings.terraformRadius, RemoveToBucket);
+        if(!!T.RayTestLiquid(out float3 hitPt)) return;
+        CPUMapManager.Terraform(hitPt, T.settings.terraformRadius, RemoveToBucket);
         IsDirty = true; 
     }
 

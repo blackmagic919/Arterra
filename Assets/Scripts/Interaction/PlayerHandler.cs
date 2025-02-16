@@ -123,6 +123,7 @@ public class PlayerHandler : UpdateTask
                 if(item.Index >= names.Count || item.Index < 0) return;
                 IRegister registry = item.GetRegistry();
                 item.Index = registry.RetrieveIndex(names[item.Index]);
+                item.IsDirty = true;
             }
 
             for(int i = 0; i < PrimaryI.Info.Count(); i++){
