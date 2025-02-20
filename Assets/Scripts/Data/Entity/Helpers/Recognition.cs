@@ -75,13 +75,9 @@ public class Recognition{
         entity = null; if(AwarenessTable == null) return false;
         if(Predators.value == null || Predators.value.Count == 0) return false;
 
-        int3 ePos = (int3)math.floor(self.position);
         Entity cEntity = null; float closestDist = SightDistance + 1;
         Dictionary<int, Recognition.Recognizable> Awareness = AwarenessTable;
-        TreeNode.Bounds bounds = new (){
-            Min = ePos - new int3(SightDistance),
-            Max = ePos + new int3(SightDistance)
-        };
+        Bounds bounds = new (self.position, 2 * new float3(SightDistance));
         EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
             if(nEntity == null) return;
             if(nEntity.info.entityId == self.info.entityId) return;
@@ -89,7 +85,7 @@ public class Recognition{
 
             Recognizable entityInfo = Awareness[(int)nEntity.info.entityType];
             if(!entityInfo.IsPredator) return;
-            float dist = math.distance(ePos, nEntity.position);
+            float dist = math.distance(self.position, nEntity.position);
             if(dist >= closestDist) return;
             cEntity = nEntity;
             closestDist = dist;
@@ -106,12 +102,8 @@ public class Recognition{
         Entity cEntity = null; int pPref = -1;
         float closestDist = SightDistance + 1;
 
-        int3 ePos = (int3)math.floor(self.position);
         Dictionary<int, Recognizable> Awareness = AwarenessTable;
-        TreeNode.Bounds bounds = new (){
-            Min = ePos - new int3(SightDistance),
-            Max = ePos + new int3(SightDistance)
-        };
+        Bounds bounds = new (self.position, 2 * new float3(SightDistance));
         EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
             if(nEntity == null) return;
             if(!Awareness.ContainsKey((int)nEntity.info.entityType)) return;
@@ -210,12 +202,8 @@ public class RCarnivore : Recognition{
         Entity cEntity = null; int pPref = -1;
         float closestDist = SightDistance + 1;
 
-        int3 ePos = (int3)math.floor(self.position);
         Dictionary<int, Recognizable> Awareness = AwarenessTable;
-        TreeNode.Bounds bounds = new (){
-            Min = ePos - new int3(SightDistance),
-            Max = ePos + new int3(SightDistance)
-        };
+        Bounds bounds = new (self.position, 2 * new float3(SightDistance));
         EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
             if(nEntity == null) return;
             if(nEntity.info.entityId == self.info.entityId) return;

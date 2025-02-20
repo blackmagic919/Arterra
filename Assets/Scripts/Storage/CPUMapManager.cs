@@ -22,10 +22,10 @@ public static class CPUMapManager
     public static NativeArray<MapData> SectionedMemory;
     public static NativeArray<ChunkMapInfo> AddressDict;
     public static int numChunksAxis;
+    public static uint IsoValue;
     private static int numPoints;
     private static int mapChunkSize;
     private static float lerpScale;
-    private static uint IsoValue;
     private static bool initialized = false;
 
     public static void Initialize(){

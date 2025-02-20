@@ -417,7 +417,15 @@ public class InputPoller : UpdateTask
             bindIndex = LayerHeads.Retrieve(layer);
             StackBinds.Value(bindIndex).action.Invoke(0);
         }
+
+        public void InvokeTop(string layer){
+            if(!LayerHeads.Contains(layer)) return;
+            uint bindIndex = LayerHeads.Retrieve(layer);
+            StackBinds.Value(bindIndex).action.Invoke(0);
+        }
     }
+
+    public static void InvokeStackTop(string layer) => SStack.InvokeTop(layer);
     public static void AddStackPoll(ActionBind bind, string Layer) => SStack.AddStackPoll(bind, Layer, bind.Binding);
     public static void RemoveStackPoll(string BindName, string Layer) => SStack.RemoveStackPoll(Layer, BindName);
 }

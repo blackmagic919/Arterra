@@ -7,16 +7,16 @@ using static CPUMapManager;
 using WorldConfig;
 using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
-using WorldConfig.Gameplay;
+using WorldConfig.Gameplay.Player;
 
-namespace WorldConfig.Gameplay {
+namespace WorldConfig.Gameplay.Player {
 /// <summary>
-/// Settings governing the user's ability to terraform the terrain.
-/// Terraforming is the act of changing the terrain map's information
-/// changing the terrain's apperance and creating new terrain features, 
+/// Settings governing the user's ability to interact with the world.
+/// This includes Terraforming, the act of changing the terrain map's information,
+/// and interaction with entities and more.
 /// </summary>
 [Serializable]
-public class Terraform : ICloneable{
+public class Interaction : ICloneable{
     /// <summary> The radius, in grid space, of the spherical region around the user's
     /// cursor that will be modified when the user terraforms the terrain. </summary>
     public int terraformRadius = 5;
@@ -26,84 +26,66 @@ public class Terraform : ICloneable{
     /// <summary> The maximum distance, in grid space, that the user can terraform the terrain from.
     /// That is, the maximum distance the cursor can be from the user's camera for the user
     /// to be able to terraform around the cursor.  </summary>
-    public float maxTerraformDistance = 60;
-    /// <summary> When picking up items, the radius around the user's cursor in grid space that is checked for
-    /// <see cref="EItem"> entity items </see> that can be picked up. </summary>
-    public int PickupRadius = 2;
+    public float ReachDistance = 60;
+    /// <summary> When picking up items, the speed at which resources from 
+    /// <see cref="IAttackable"> entities that can be collected from </see> are collected. </summary>
+    public float PickupRate = 0.5f;
 
-    /// <summary> If <see cref="ShowCursor"/> is true, the size of the cursor in world space. 
-    /// The cursor is a sphere that is drawn along the ray in the direction the player is facing. </summary>
-    public float CursorSize = 2;
-    /// <summary> If <see cref="ShowCursor"/> is true, the color of the cursor. 
-    /// The cursor is a sphere that is drawn along the ray in the direction the player is facing. </summary>
-    public Color CursorColor;
-    /// <summary> Whether or not to display a cursor when terraforming. The cursor is a sphere that is 
-    /// drawn along the ray in the direction the player is facing. </summary>
-    public bool ShowCursor = true;
 
     /// <summary> Clones the terraform settings. 
     /// Is necessary for modification through the
     /// <see cref="Option{T}"/> lazy config system. </summary>
     /// <returns>The duplicated terraform settings. </returns>
     public object Clone(){
-        return new Terraform{
+        return new Interaction{
             terraformRadius = this.terraformRadius,
             terraformSpeed = this.terraformSpeed,
-            maxTerraformDistance = this.maxTerraformDistance,
-            PickupRadius = this.PickupRadius,
-            CursorSize = this.CursorSize,
-            CursorColor = this.CursorColor,
-            ShowCursor = this.ShowCursor
+            ReachDistance = this.ReachDistance,
+            PickupRate = this.PickupRate,
         };
     }
 }
 }
 
-public class TerraformController : UpdateTask
+public class PlayerInteraction
 {
-    private Registry<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-    private Registry<Authoring> itemInfo => Config.CURRENT.Generation.Items;
-    public Terraform settings => Config.CURRENT.GamePlay.Terraforming.value;
-    public Func<float3> CursorPlace; //function describing where the cursor is placed
-    public int IsoLevel;
-    Transform cam;
+    private static Registry<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+    private static Registry<Authoring> itemInfo => Config.CURRENT.Generation.Items;
+    public static Interaction settings => Config.CURRENT.GamePlay.Player.value.Interaction;
+    private PlayerStreamer.Player data;
 
 
 
     // Start is called before the first frame update
-    public TerraformController()
+    public PlayerInteraction(PlayerStreamer.Player data)
     {
-        cam = Camera.main.transform;
-        active = true;
-
-        IsoLevel = Mathf.RoundToInt(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255);
+        this.data = data;
         InputPoller.AddBinding(new InputPoller.ActionBind("Pickup Item", PickupItems), "5.0::GamePlay");
         InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", PlaceTerrain), "5.0::GamePlay");
         InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", RemoveTerrain), "5.0::GamePlay");
-        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(this);
     }
 
-    public bool RayTestSolid(out float3 hitPt){
+    public static bool RayTestSolid(PlayerStreamer.Player data, out float3 hitPt){
         static uint RayTestSolid(int3 coord){ 
             MapData pointInfo = SampleMap(coord);
             return (uint)pointInfo.viscosity; 
         } 
-        float3 camPosGC = WSToGS(cam.position);
-        return RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestSolid, out hitPt);
+        return RayCastTerrain(data.position, PlayerHandler.camera.forward, settings.ReachDistance, RayTestSolid, out hitPt);
     }
 
-    public bool RayTestLiquid(out float3 hitPt){
+    public static bool RayTestLiquid(PlayerStreamer.Player data, out float3 hitPt){
         static uint RayTestLiquid(int3 coord){ 
             MapData pointInfo = SampleMap(coord);
             return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
         }
-        float3 camPosGC = WSToGS(cam.position);
-        return RayCastTerrain(camPosGC, cam.forward, settings.maxTerraformDistance, RayTestLiquid, out hitPt);
+        return RayCastTerrain(data.position, PlayerHandler.camera.forward, settings.ReachDistance, RayTestLiquid, out hitPt);
     }
 
     public void PlaceTerrain(float _){
         
-        if(!RayTestSolid(out float3 hitPt)) return;
+        if(!RayTestSolid(data, out float3 hitPt)) return;
+        if(EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
+            return;
         if(InventoryController.Selected == null) return;
         Authoring selMat = InventoryController.SelectedSetting;
         if(selMat.MaterialName == null || !matInfo.Contains(selMat.MaterialName)) return;
@@ -113,7 +95,9 @@ public class TerraformController : UpdateTask
     }
 
     public void RemoveTerrain(float _){
-        if (!RayTestSolid(out float3 hitPt)) return;
+        if (!RayTestSolid(data, out float3 hitPt)) return;
+        if(EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
+            return;
         CPUMapManager.Terraform(hitPt, settings.terraformRadius, HandleRemoveSolid);
     }
 
@@ -129,7 +113,7 @@ public class TerraformController : UpdateTask
         return Mathf.Abs(Mathf.Clamp(baseDensity + staggeredDelta, 0, 255) - baseDensity);
     }
 
-    public MapData HandleAddSolid(MapData pointInfo, float brushStrength){
+    public static MapData HandleAddSolid(MapData pointInfo, float brushStrength){
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
         if(InventoryController.Selected == null || !InventoryController.SelectedSetting.IsSolid) 
@@ -139,7 +123,7 @@ public class TerraformController : UpdateTask
 
         int selected = matInfo.RetrieveIndex(InventoryController.SelectedSetting.MaterialName);
         int solidDensity = pointInfo.SolidDensity;
-        if(solidDensity < IsoLevel || pointInfo.material == selected){
+        if(solidDensity < IsoValue || pointInfo.material == selected){
             //If adding solid density, override water
             int deltaDensity = GetStaggeredDelta(solidDensity, brushStrength);
             deltaDensity = InventoryController.RemoveMaterial(deltaDensity);
@@ -147,12 +131,12 @@ public class TerraformController : UpdateTask
             solidDensity += deltaDensity;
             pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
             pointInfo.viscosity = math.min(pointInfo.viscosity + deltaDensity, 255);
-            if(solidDensity >= IsoLevel) pointInfo.material = selected;
+            if(solidDensity >= IsoValue) pointInfo.material = selected;
         }
         return pointInfo;
     }
 
-    public MapData HandleAddLiquid(MapData pointInfo, float brushStrength){
+    public static MapData HandleAddLiquid(MapData pointInfo, float brushStrength){
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
         if(InventoryController.Selected == null || !InventoryController.SelectedSetting.IsLiquid) 
@@ -162,26 +146,26 @@ public class TerraformController : UpdateTask
 
         int selected = matInfo.RetrieveIndex(InventoryController.SelectedSetting.MaterialName);
         int liquidDensity = pointInfo.LiquidDensity;
-        if(liquidDensity < IsoLevel || pointInfo.material == selected){
+        if(liquidDensity < IsoValue || pointInfo.material == selected){
             //If adding liquid density, only change if not solid
             int deltaDensity = GetStaggeredDelta(pointInfo.density, brushStrength);
             deltaDensity = InventoryController.RemoveMaterial(deltaDensity);
 
             pointInfo.density += deltaDensity;
             liquidDensity += deltaDensity;
-            if(liquidDensity >= IsoLevel) pointInfo.material = selected;
+            if(liquidDensity >= IsoValue) pointInfo.material = selected;
         }
         return pointInfo;
     }
 
 
 
-    public MapData HandleRemoveSolid(MapData pointInfo, float brushStrength){
+    public static MapData HandleRemoveSolid(MapData pointInfo, float brushStrength){
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int solidDensity = pointInfo.SolidDensity;
-        if(solidDensity >= IsoLevel){
+        if(solidDensity >= IsoValue){
             int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
 
             MaterialData material = matInfo.Retrieve(pointInfo.material);
@@ -202,12 +186,12 @@ public class TerraformController : UpdateTask
         return pointInfo;
     }
 
-    public MapData HandleRemoveLiquid(MapData pointInfo, float brushStrength){
+    public static MapData HandleRemoveLiquid(MapData pointInfo, float brushStrength){
         brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int liquidDensity = pointInfo.LiquidDensity;
-        if (liquidDensity >= IsoLevel){
+        if (liquidDensity >= IsoValue){
             int deltaDensity = GetStaggeredDelta(liquidDensity, -brushStrength);
             
             MaterialData material = matInfo.Retrieve(pointInfo.material);
@@ -226,28 +210,16 @@ public class TerraformController : UpdateTask
     }
 
     private void PickupItems(float _){
-        var eReg = Config.CURRENT.Generation.Entities;
-        unsafe void OnEntityFound(WorldConfig.Generation.Entity.Entity entity){
-            if(entity.info.entityType != eReg.RetrieveIndex("EntityItem")) return;
-            if(!entity.active) return;
-            EItem.EItemEntity item = (EItem.EItemEntity)entity;
-            if(item.isPickedUp) return;
-
-            IItem slot = item.item.Value;
-            if(slot == null) return;
-
-            InventoryController.AddEntry(slot);
-            if(slot.AmountRaw != 0) return;
-            item.isPickedUp = true; 
-            EntityManager.ReleaseEntity(entity.info.entityId);
-        }
-
-        if(!RayTestSolid(out float3 hitPt)) return;
-        EntityManager.STree.TreeNode.Bounds bounds = new (){
-            Min = (int3)hitPt - settings.PickupRadius,
-            Max = (int3)hitPt + settings.PickupRadius
-        };
-
-        EntityManager.ESTree.Query(bounds, OnEntityFound);
+        if(!RayTestSolid(data, out float3 hitPt)) return;
+        if(!EntityManager.ESTree.FindClosestAlongRay(data.position, hitPt, PlayerHandler.data.info.entityId, 
+        out WorldConfig.Generation.Entity.Entity entity))
+            return;
+        
+        if(!entity.active) return;
+        if(entity is not IAttackable) return;
+        IAttackable collectEntity = entity as IAttackable;
+        if(!collectEntity.IsDead) return;
+        IItem slot = collectEntity.Collect(settings.PickupRate);
+        InventoryController.AddEntry(slot);
     }
 }

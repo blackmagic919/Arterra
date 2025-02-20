@@ -325,9 +325,9 @@ public struct TerrainColliderJob
     }
 
     [BurstCompile]
-    public void Update(in Context cxt, in Settings settings, bool useGravity = false){
+    public void Update(in Context cxt, in Settings settings, bool useGravity = true){
         transform.position += velocity * cxt.deltaTime;
-        if(useGravity || settings.useGravity) velocity += cxt.gravity * cxt.deltaTime;
+        if(useGravity) velocity += cxt.gravity * cxt.deltaTime;
 
         if(SampleCollision(transform.position, settings.size, cxt.mapContext, out float3 displacement)){
             velocity = CancelVel(velocity, displacement);
@@ -349,6 +349,5 @@ public struct TerrainColliderJob
     public struct Settings{
         public float3 size;
         public float3 offset;
-        public bool useGravity;
     }
 }

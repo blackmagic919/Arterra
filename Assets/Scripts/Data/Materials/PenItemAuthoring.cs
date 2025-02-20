@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using static CPUMapManager;
-using WorldConfig;
 using WorldConfig.Generation.Material;
 
 namespace WorldConfig.Generation.Item{
@@ -16,7 +15,6 @@ public struct PenItem : IItem{
     public static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
     public static Registry<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
     public static Registry<Sprite> TextureAtlas => Config.CURRENT.Generation.Textures;
-    public static TerraformController T => PlayerHandler.terrController;
     [JsonIgnore]
     public readonly bool IsStackable => false;
     [JsonIgnore]
@@ -106,15 +104,10 @@ public struct PenItem : IItem{
         if(cur.IsNull || !cur.IsSolid) {
             PrevHit[3] = -1; return;
         };
-        SetMap(T.HandleRemoveSolid(cur, 1), hitCoord);
+        SetMap(PlayerInteraction.HandleRemoveSolid(cur, 1), hitCoord);
     }
     private static void OnTerrainAdd(float _){
-        int3 hitCoord;
-        if(PrevHit[3] < Time.frameCount-1){
-            if(!FindNearest(out hitCoord, false)) return;
-            PrevHit[0] = hitCoord.x; PrevHit[1] = hitCoord.y; PrevHit[2] = hitCoord.z;  
-        } PrevHit[3] = Time.frameCount;
-        hitCoord.x = PrevHit[0]; hitCoord.y = PrevHit[1]; hitCoord.z = PrevHit[2];
+        if(!FindNearest(out int3 hitCoord)) return;
         MapData cur = SampleMap(hitCoord);
         if(cur.IsNull || cur.SolidDensity == 0xFF) {
             PrevHit[3] = -1; return;
@@ -124,20 +117,21 @@ public struct PenItem : IItem{
     }
 
 
-    private static bool FindNearest(out int3 hitCoord, bool NotSolid = true){
+    private static bool FindNearest(out int3 hitCoord, bool OnlySolid = false){
         hitCoord = int3.zero;
-
-        if(!T.RayTestSolid(out float3 hitPt)) return false;
+        static float GetDistFromRay(Ray ray, Vector3 point) => Vector3.Cross(ray.direction, point - ray.origin).magnitude;
+        if(!PlayerInteraction.RayTestSolid(PlayerHandler.data, out float3 hitPt)) return false;
+        Ray ray = new Ray(PlayerHandler.data.position, PlayerHandler.camera.forward);
         int3 hitOrig = (int3)math.floor(hitPt);
 
         hitCoord = hitOrig;
         for(int i = 0; i < 8; i++){
             int3 hitCorner = hitOrig + new int3(i & 0x1, (i >> 1) & 0x1, (i >> 2) & 0x1);
             MapData cInfo = SampleMap(hitCorner);
-            if(cInfo.IsSolid ^ NotSolid) continue;
+            if(!cInfo.IsSolid && OnlySolid) continue;
             if(cInfo.SolidDensity == 0xFF) continue; //Ignore fully filled
-            float curDist = math.distance(hitPt, hitCorner);
-            float bestDist = math.distance(hitPt, hitCoord);
+            float curDist = GetDistFromRay(ray, (float3)hitCorner);
+            float bestDist = GetDistFromRay(ray, (float3)hitCoord);
             if(curDist < bestDist) hitCoord = hitCorner;
         } return true;
     }
@@ -155,20 +149,20 @@ public struct PenItem : IItem{
     }
 
     public static MapData HandleAddNextSolid(MapData pointInfo, float brushStrength, int slot){
-        brushStrength *= T.settings.terraformSpeed * Time.deltaTime;
+        brushStrength *= PlayerInteraction.settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int material = MatInfo.RetrieveIndex(ItemInfo.Retrieve(InventoryController.Primary.Info[slot].Index).MaterialName);
         int solidDensity = pointInfo.SolidDensity;
-        if(solidDensity < T.IsoLevel || pointInfo.material == material){
+        if(solidDensity < IsoValue || pointInfo.material == material){
             //If adding solid density, override water
-            int deltaDensity = TerraformController.GetStaggeredDelta(solidDensity, brushStrength);
+            int deltaDensity = PlayerInteraction.GetStaggeredDelta(solidDensity, brushStrength);
             deltaDensity = InventoryController.RemoveMaterial(deltaDensity, slot);
 
             solidDensity += deltaDensity;
             pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
             pointInfo.viscosity = math.min(pointInfo.viscosity + deltaDensity, 255);
-            if(solidDensity >= T.IsoLevel) pointInfo.material = material;
+            if(solidDensity >= IsoValue) pointInfo.material = material;
         }
         return pointInfo;
     }

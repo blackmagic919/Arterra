@@ -24,7 +24,6 @@ public class SurfaceHerbivore : Authoring
         public RHerbivore recognition;
         public Vitality.Stats physicality;
         public Vitality.Decomposition decomposition;
-        public TerrainColliderJob.Settings collider;
 
         public override void Preset(){
             recognition.Construct();
@@ -343,8 +342,7 @@ public class SurfaceHerbivore : Authoring
 
         public void Update(){
             if(!entity.active) return;
-            if(gameObject == null) return;
-            EntityManager.AssertEntityLocation(entity, entity.GCoord);    
+            if(gameObject == null) return;    
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
             rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);

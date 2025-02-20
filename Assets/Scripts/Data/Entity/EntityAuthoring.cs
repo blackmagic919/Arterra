@@ -114,6 +114,8 @@ public abstract class EntitySetting{
     /// <summary> The profile information of the entity. See <see cref="ProfileInfo"/> for more information. </summary>
     [JsonIgnore]
     public ProfileInfo profile;
+    /// <summary> The actual dimensions of the entity used for collisions and hit-box detection </summary>
+    public TerrainColliderJob.Settings collider;
     /// <summary> Presets any information shared by all instances of the entity. This is only called once per entity type within
     /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information.
     /// </summary> <remarks> For example, if the entity uses a state machine it can allocate function pointers to each state within the machine such that

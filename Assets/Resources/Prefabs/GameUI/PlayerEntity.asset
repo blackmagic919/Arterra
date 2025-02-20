@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d489b2cf2c6d049aa9b4030d3ef7776a, type: 3}
+  m_Name: PlayerEntity
+  m_EditorClassIdentifier: 
+  Controller:
+    value: {fileID: 2700935294277801727, guid: df6d579f7da5349fc93609ff3e12406f, type: 3}
+  Profile:
+    value: []
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 0
+          y: 0
+          z: 0
+        profileStart: 176
+      collider:
+        size:
+          x: 1
+          y: 2
+          z: 1
+        offset:
+          x: -0.5
+          y: -1
+          z: -0.5
+      maxHealth: 50
+      healthRegen: 0.01

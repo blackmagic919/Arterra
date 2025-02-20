@@ -56,6 +56,7 @@ public static class SegmentedUIEditor
     public static void SupplementTree(ref object dest, ref object src){
         System.Reflection.FieldInfo[] fields = src.GetType().GetFields();
         foreach(FieldInfo field in fields){
+            if(field.IsStatic) continue; //Ignore static fields
             if(field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Option<>)){
                 if(((IOption)field.GetValue(dest)).IsDirty){
                     FieldInfo nField = field.FieldType.GetField("value");
@@ -119,6 +120,7 @@ public static class SegmentedUIEditor
         SetUpLayout(content);
 
         for(int i = 0; i < fields.Length; i++){
+            if(fields[i].IsStatic) continue;
             string name = fields[i].Name;
             if(Attribute.IsDefined(fields[i], typeof(UISetting))){
                 UISetting UITag = Attribute.GetCustomAttribute(fields[i], typeof(UISetting)) as UISetting;

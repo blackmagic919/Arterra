@@ -25,7 +25,6 @@ public class SurfaceCarnivore : Authoring
         public RCarnivore recognition;
         public Vitality.Stats physicality;
         public Vitality.Decomposition decomposition;
-        public TerrainColliderJob.Settings collider;
 
         public override void Preset(){
             recognition.Construct();
@@ -359,7 +358,6 @@ public class SurfaceCarnivore : Authoring
         public void Update(){
             if(!entity.active) return;
             if(gameObject == null) return;
-            EntityManager.AssertEntityLocation(entity, entity.GCoord);    
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
             rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);

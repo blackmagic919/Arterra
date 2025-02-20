@@ -7,6 +7,7 @@ using WorldConfig.Generation.Item;
 using WorldConfig.Generation.Entity;
 using static TerrainGeneration.Readback.IVertFormat;
 using TerrainGeneration.Readback;
+using Unity.Services.Analytics;
 [CreateAssetMenu(menuName = "Entity/Item")]
 public class EItem : WorldConfig.Generation.Entity.Authoring
 {
@@ -26,12 +27,11 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public int2 SpriteSampleSize;
         public float AlphaClip;
         public float ExtrudeHeight;
-        public TerrainColliderJob.Settings collider;
     }
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class EItemEntity : Entity
+    public class EItemEntity : Entity, IAttackable
     {  
         //This is the real-time position streamed by the controller
         [JsonIgnore]
@@ -39,9 +39,31 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public TerrainColliderJob tCollider;
         public Unity.Mathematics.Random random;
         public int3 GCoord; 
-        public bool isPickedUp;
         public Registerable<IItem> item;
         public EItemSetting settings;
+
+        public bool IsDead => true;
+        public IItem Collect(float amount){
+            if(item.Value == null) return null;
+            IItem ret;
+            if(!item.Value.IsStackable){
+                ret = item.Value;
+            } else {
+                int delta = Mathf.FloorToInt(amount) + (random.NextFloat() < math.frac(amount) ? 1 : 0);
+                ret = (IItem)item.Value.Clone();
+                ret.AmountRaw = math.max(delta, ret.AmountRaw);
+            }
+            item.Value.AmountRaw -= ret.AmountRaw;
+            if(item.Value.AmountRaw == 0) item.Value = null;
+
+            return ret;
+        }
+
+        public void TakeDamage(float damage, float3 knockback){
+            Indicators.DisplayPopupText(damage.ToString(), position);
+            tCollider.velocity += knockback;
+        }
+
         public override float3 position {
             get => tCollider.transform.position;
             set => tCollider.transform.position = value;
@@ -53,9 +75,8 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             tCollider.velocity = 0;
             GCoord = (int3)origin.position;
             
-            isPickedUp = false;
-            this.random = default;
             this.item = new Registerable<IItem>(item);
+            this.random = new Unity.Mathematics.Random((uint)GetHashCode());
         } 
 
         //This function shouldn't be used
@@ -64,7 +85,6 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             settings = (EItemSetting)setting;
             controller = new EItemController(Controller, this);
             tCollider.transform.position = GCoord;
-            isPickedUp = false;
         }
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord)
@@ -80,6 +100,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             if(!active) return;
             GCoord = (int3)tCollider.transform.position;
 
+            if(item.Value == null)  EntityManager.ReleaseEntity(info.entityId);
             if(tCollider.GetGroundDir(settings.GroundStickDist, settings.collider, EntityJob.cxt.mapContext, out float3 gDir)){
                 tCollider.transform.rotation = Quaternion.LookRotation(gDir, math.up());
                 tCollider.velocity.y = math.max(0, tCollider.velocity.y);
@@ -131,7 +152,6 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public void Update(){
             if(!entity.active) return;
             if(gameObject == null) return;
-            EntityManager.AssertEntityLocation(entity, entity.GCoord);    
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
             rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
@@ -148,7 +168,6 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         }
 
     }
-
 }
 
 

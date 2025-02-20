@@ -7,6 +7,7 @@ using Unity.Mathematics;
 using System.Collections;
 using System.Threading.Tasks;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 namespace WorldConfig.Gameplay{
     /// <summary> A collection of settings describing optional statistics that can be displayed in the game.
@@ -80,8 +81,13 @@ public static class Indicators
     }
 
     public static void OnDrawGizmos(){
-
         if(ESTree.Length == 0) return;
+        /*for(int i = 1; i < ESTree.Length; i++){
+            STree.TreeNode region = ESTree.tree[i];
+            Vector3 center = CPUMapManager.GSToWS((float3)(region.bounds.min + region.bounds.max) / 2);
+            Vector3 size = (float3)(region.bounds.max - region.bounds.min);
+            Gizmos.DrawWireCube(center, size);
+        }*/
         int[] entities = new int[Config.CURRENT.Generation.Entities.Reg.value.Count];
         foreach(Entity entity in EntityHandler){
             entities[entity.info.entityType]++;

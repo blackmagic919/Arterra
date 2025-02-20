@@ -35,8 +35,8 @@ namespace WorldConfig.Gameplay{
 public class InventoryController : UpdateTask
 {
     public static WorldConfig.Gameplay.Inventory settings => Config.CURRENT.GamePlay.Inventory.value;
-    public static Inventory Primary; //Hotbar
-    public static Inventory Secondary; //Inventory
+    public static Inventory Primary => PlayerHandler.data.PrimaryI; //Hotbar
+    public static Inventory Secondary => PlayerHandler.data.SecondaryI; //Inventory
     public static InventoryController Instance;
     public static SlotDisplay CursorDisplay;
 
@@ -91,7 +91,7 @@ public class InventoryController : UpdateTask
     }
 
     public static void Initialize(){
-        GameObject Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory"), PlayerHandler.UIHandle.transform);
+        GameObject Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory"), GameUIManager.UIHandle.transform);
         PrimaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(0).gameObject);
         SecondaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(1).gameObject);
         PrimaryDisplay = new SlotDisplay[settings.PrimarySlotCount];
@@ -202,9 +202,10 @@ public class InventoryController : UpdateTask
     private static void DeselectDrag(float _){
         static void DropItem(IItem item){
             WorldConfig.Generation.Entity.Entity Entity = new EItem.EItemEntity(new TerrainColliderJob.Transform{
-                position = CPUMapManager.WSToGS(PlayerHandler.player.transform.position),
-                rotation = PlayerHandler.player.transform.rotation,
+                position = PlayerHandler.data.position,
+                rotation = PlayerHandler.data.rotation
             }, item);
+            Entity.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("EntityItem");
             Entity.info.entityId = Guid.NewGuid();
             EntityManager.CreateEntity(Entity);
         }
@@ -270,6 +271,7 @@ public class InventoryController : UpdateTask
     //The Slot is changed to reflect what remains
     //if stackable, add to primary then secondary, else add to secondary then primary
     public static void AddEntry(IItem e){
+        if(e == null) return;
         if(e.IsStackable){
             if(Primary.EntryDict.ContainsKey(e.Index)){
                 Primary.AddStackable(e);
@@ -432,7 +434,7 @@ public class InventoryController : UpdateTask
 
         public bool AddEntry(IItem entry, out int head){
             head = (int)tail; 
-            if(length == capacity-1) return false;
+            if(length >= capacity) return false;
             tail = EntryLL[head].n; 
             length++;
 
@@ -447,7 +449,7 @@ public class InventoryController : UpdateTask
         }
 
         public bool AddEntry(IItem entry, int index){
-            if(length == capacity-1) return false;
+            if(length >= capacity) return false;
             if(Info[index] != null) return false; //Slot has to be null
             if(index == tail) tail = EntryLL[tail].n;
             length++;

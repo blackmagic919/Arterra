@@ -76,6 +76,7 @@ public static class PaginatedUIEditor
         FieldInfo[] fields = setting.GetType().GetFields();
 
         for(int i = 0; i < fields.Length; i++){
+            if(fields[i].IsStatic) continue;
             string name = fields[i].Name;
             if(Attribute.IsDefined(fields[i], typeof(UISetting))){
                 UISetting UITag = Attribute.GetCustomAttribute(fields[i], typeof(UISetting)) as UISetting;

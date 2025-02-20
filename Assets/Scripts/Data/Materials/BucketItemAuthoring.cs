@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using static CPUMapManager;
+using static PlayerInteraction;
 
 namespace WorldConfig.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Bucket")] 
@@ -14,7 +15,6 @@ public class BucketItem : IItem{
     public static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
     public static Registry<Sprite> TextureAtlas => Config.CURRENT.Generation.Textures;
     public static Registry<Material.MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;  
-    public static TerraformController T => PlayerHandler.terrController;
 
     [JsonIgnore]
     public bool IsStackable => false;
@@ -71,17 +71,17 @@ public class BucketItem : IItem{
     private void PlaceLiquid(float _){
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         
-        if(content == null || !T.RayTestLiquid(out float3 hitPt)) return;
+        if(content == null || !RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
         Authoring mat = ItemInfo.Retrieve(content.Index);
         if(mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
-        CPUMapManager.Terraform(hitPt, T.settings.terraformRadius, AddFromBucket);
+        CPUMapManager.Terraform(hitPt, settings.terraformRadius, AddFromBucket);
         if(content.AmountRaw == 0) content = null;
         IsDirty = true;
     }
 
     private MapData AddFromBucket(MapData pointInfo, float brushStrength){
         float IsoLevel = Mathf.RoundToInt(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255);
-        brushStrength *= T.settings.terraformSpeed * Time.deltaTime;
+        brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
         Authoring cSettings = ItemInfo.Retrieve(content.Index);
         if(!cSettings.IsLiquid) return pointInfo;
@@ -91,7 +91,7 @@ public class BucketItem : IItem{
         int liquidDensity = pointInfo.LiquidDensity;
         if(liquidDensity < IsoLevel || pointInfo.material == selected){
             //If adding liquid density, only change if not solid
-            int deltaDensity = TerraformController.GetStaggeredDelta(pointInfo.density, brushStrength);
+            int deltaDensity = GetStaggeredDelta(pointInfo.density, brushStrength);
             deltaDensity = content.AmountRaw - math.max(content.AmountRaw - deltaDensity, 0);
             content.AmountRaw -= deltaDensity;
 
@@ -103,14 +103,14 @@ public class BucketItem : IItem{
     }
 
     private void RemoveLiquid(float _){
-        if(!!T.RayTestLiquid(out float3 hitPt)) return;
-        CPUMapManager.Terraform(hitPt, T.settings.terraformRadius, RemoveToBucket);
+        if(!!RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
+        CPUMapManager.Terraform(hitPt, settings.terraformRadius, RemoveToBucket);
         IsDirty = true; 
     }
 
     private MapData RemoveToBucket(MapData pointInfo, float brushStrength){
         float IsoLevel = Mathf.RoundToInt(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255);
-        brushStrength *= T.settings.terraformSpeed * Time.deltaTime;
+        brushStrength *= settings.terraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int selMat = -1;
@@ -122,7 +122,7 @@ public class BucketItem : IItem{
         
         int liquidDensity = pointInfo.LiquidDensity;
         if (liquidDensity >= IsoLevel && (selMat == -1 || pointInfo.material == selMat)){
-            int deltaDensity = math.min(TerraformController.GetStaggeredDelta(liquidDensity, -brushStrength), 0xFFFF);
+            int deltaDensity = math.min(GetStaggeredDelta(liquidDensity, -brushStrength), 0xFFFF);
 
             if(content == null){
                 WorldConfig.Generation.Material.MaterialData material = MatInfo.Retrieve(pointInfo.material);

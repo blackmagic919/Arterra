@@ -3,17 +3,16 @@ using Unity.Mathematics;
 using static CPUMapManager;
 using System;
 using WorldConfig;
+using Newtonsoft.Json;
 
 /*
 Future Note: Make this done on a job system
 (Someone good at math do this) ->
 Sample from a simplex rather than a grid(should be faster)
 */
-public class TerrainCollider
+public class PlayerCollider
 {
-    private float IsoValue;
-    private WorldConfig.Gameplay.Movement.Profile settings;
-
+    private float IsoValue => (float)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0);
     public float3 velocity;
 
     public float3 TrilinearDisplacement(float3 posGS){
@@ -144,7 +143,7 @@ public class TerrainCollider
         return math.clamp((IsoValue - density) / (fDen - density), 0, 1) * t;
     }
 
-    private float LinearDensity(float t, Func<int, int> SampleTerrain){
+    private static float LinearDensity(float t, Func<int, int> SampleTerrain){
         int t0 = (int)Math.Floor(t); 
         int t1 = t0 + 1;
 
@@ -155,7 +154,7 @@ public class TerrainCollider
         return c0 * (1 - td) + c1 * td;
     }
 
-    private float BilinearDensity(float x, float y, Func<int, int, int> SampleTerrain){
+    private static float BilinearDensity(float x, float y, Func<int, int, int> SampleTerrain){
         int x0 = (int)Math.Floor(x); int x1 = x0 + 1;
         int y0 = (int)Math.Floor(y); int y1 = y0 + 1;
 
@@ -304,29 +303,21 @@ public class TerrainCollider
         return math.any(displacement != float3.zero);
     }
 
-    float3 CancelVel(float3 vel, float3 dir){
+    static float3 CancelVel(float3 vel, float3 dir){
         dir = math.normalize(dir);
         return vel - math.dot(vel, dir) * dir;
     }
 
+    public void FixedUpdate(PlayerStreamer.Player data, TerrainColliderJob.Settings settings){
+        float3 posGS = data.position;
+        posGS += velocity * Time.fixedDeltaTime;
 
-    public TerrainCollider(WorldConfig.Gameplay.Movement.Profile settings){
-        this.settings = settings;
-        IsoValue = (int)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0);
-    }
-
-    public void FixedUpdate(Transform transform, bool useGravity = true){
-        float3 posWS = transform.position;
-        posWS += velocity * Time.fixedDeltaTime;
-        if(useGravity) velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
-
-        float3 originGS = WSToGS(posWS) + settings.offset;
+        float3 originGS = posGS + settings.offset;
         if(SampleCollision(originGS, settings.size, out float3 displacement)){
             velocity = CancelVel(velocity, displacement);
             originGS += displacement;
         };
 
-        posWS = GSToWS(originGS - settings.offset);
-        transform.position = posWS;
+        data.position = originGS - settings.offset;
     }
 }

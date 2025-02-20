@@ -25,7 +25,6 @@ public class SkyCarnivore : Authoring
         public RCarnivore recognition;
         public Vitality.Stats physicality;
         public Vitality.Decomposition decomposition;
-        public TerrainColliderJob.Settings collider;
         [Serializable]
         public struct Flight{
             //Starts after the profile of the ground entity
@@ -449,7 +448,6 @@ public class SkyCarnivore : Authoring
         public void Update(){
             if(!entity.active) return;
             if(gameObject == null) return;
-            EntityManager.AssertEntityLocation(entity, entity.GCoord);    
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
             rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);

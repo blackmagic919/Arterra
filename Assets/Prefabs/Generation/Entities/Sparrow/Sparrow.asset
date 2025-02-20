@@ -96,6 +96,15 @@ MonoBehaviour:
           y: 3
           z: 2
         profileStart: 24
+      collider:
+        size:
+          x: 0.75
+          y: 0.75
+          z: 0.75
+        offset:
+          x: -0.375
+          y: -0.375
+          z: -0.375
       movement:
         walkSpeed: 2
         runSpeed: 6
@@ -161,13 +170,3 @@ MonoBehaviour:
             DropAmount: 1
         DecompositionTime: 100
         DecompPerLoot: 5
-      collider:
-        size:
-          x: 0.5
-          y: 0.5
-          z: 0.5
-        offset:
-          x: -0.25
-          y: -0.25
-          z: -0.25
-        useGravity: 0

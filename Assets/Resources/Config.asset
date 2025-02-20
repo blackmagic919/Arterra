@@ -198,6 +198,9 @@ MonoBehaviour:
           - Name: Coyote
             _value:
               value: {fileID: 11400000, guid: 1ffa182daf2554821a09824cd86c6a78, type: 2}
+          - Name: Player
+            _value:
+              value: {fileID: 11400000, guid: aea5983bb2790423db2800179c58cf00, type: 2}
       Textures:
         Reg:
           value:
@@ -347,6 +350,20 @@ MonoBehaviour:
                   value:
                   - Key: 323
                     PollType: 2
+                    IsAlias: 0
+                  - Key: 304
+                    PollType: 1
+                    IsAlias: 0
+                  - Key: 303
+                    PollType: 1
+                    IsAlias: 0
+          - Name: Attack
+            _value:
+              value:
+                bindings:
+                  value:
+                  - Key: 323
+                    PollType: 3
                     IsAlias: 0
                   - Key: 304
                     PollType: 1
@@ -524,33 +541,36 @@ MonoBehaviour:
                   - Key: 32
                     PollType: 2
                     IsAlias: 0
-      Movement:
+      Player:
         value:
-          GroundFriction: 0.25
-          walkSpeed: 4
-          runSpeed: 8
-          jumpForce: 5
-          acceleration: 100
-          groundStickDist: 0.05
-          EnableFlying: 1
-          Collider:
-            size:
-              x: 1
-              y: 2
-              z: 1
-            offset:
-              x: -0.5
-              y: -1
-              z: -0.5
-      Terraforming:
-        value:
-          terraformRadius: 2
-          terraformSpeed: 100
-          maxTerraformDistance: 60
-          PickupRadius: 2
-          CursorSize: 1
-          CursorColor: {r: 0.012440997, g: 0.5660378, b: 0, a: 1}
-          ShowCursor: 1
+          movement:
+            value:
+              GroundFriction: 0.25
+              walkSpeed: 4
+              runSpeed: 8
+              jumpForce: 5
+              acceleration: 100
+              groundStickDist: 0.05
+              flightSpeedMultiplier: 2
+          Camera:
+            value:
+              Sensitivity: 2
+              clampVerticalRotation: 1
+              MinimumX: -90
+              MaximumX: 90
+              smooth: 0
+              smoothTime: 0
+          Interaction:
+            value:
+              terraformRadius: 2
+              terraformSpeed: 100
+              ReachDistance: 60
+              PickupRate: 0.5
+          Physicality:
+            value:
+              AttackDamage: 2
+              AttackFrequency: 0.25
+              KnockBackStrength: 20
       Crafting:
         value: {fileID: 11400000, guid: b6eb14945e6ce4e35a36d2502ba1cf4f, type: 2}
       Inventory:

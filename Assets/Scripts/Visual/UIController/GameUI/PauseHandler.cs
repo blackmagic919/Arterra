@@ -9,7 +9,7 @@ public class PauseHandler
     private static GameObject PauseContent => PauseMenu.transform.Find("Content").gameObject;
     private static uint Fence;
     public static void Initialize() { 
-        PauseMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Pause"), PlayerHandler.UIHandle.transform);
+        PauseMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Pause"), GameUIManager.UIHandle.transform);
         PauseMenu.SetActive(false);
 
         InputPoller.AddBinding(new InputPoller.ActionBind("Pause", Activate), "1.0::Menu");

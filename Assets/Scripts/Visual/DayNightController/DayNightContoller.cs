@@ -38,7 +38,10 @@ namespace WorldConfig.Gameplay{
 public class DayNightContoller : UpdateTask
 {
     private static WorldConfig.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.DayNightCycle;
-    public static DateTime currentTime;
+    public static DateTime currentTime{
+        get => PlayerHandler.data.currentTime;
+        set => PlayerHandler.data.currentTime = value;
+    }
     private static Light Sun;
     private static Light Moon;
 

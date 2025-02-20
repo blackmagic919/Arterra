@@ -22,14 +22,15 @@ public static class SystemProtocol{
         UtilityBuffers.Initialize();
         GenerationPreset.Initialize();
 
-        InputPoller.Initialize();
-        PlayerHandler.Initialize();
-
         GPUMapManager.Initialize();
         CPUMapManager.Initialize();
 
         EntityManager.Initialize();
         TerrainUpdate.Initialize();
+
+        InputPoller.Initialize();
+        GameUIManager.Initialize();
+        PlayerHandler.Initialize();
 
         AtmospherePass.Initialize();
         ChunkStorageManager.Initialize();
@@ -452,9 +453,7 @@ public static class GenerationPreset
                 ref EntitySetting.ProfileInfo info = ref EntityDictionary[i].Setting.profile;
                 info.profileStart = (uint)entityProfile.Count;
                 entityInfo[i] = info;
-
                 entityProfile.AddRange(EntityDictionary[i].Profile.value);
-                EntityDictionary[i].Setting.Preset();
             }
 
             entityInfoBuffer = new ComputeBuffer(numEntities, sizeof(uint) * 4, ComputeBufferType.Structured);
@@ -477,8 +476,6 @@ public static class GenerationPreset
             entityProfileBuffer?.Release();
 
             //Release Static Entity Data
-            Authoring[] EntityDictionary = Config.CURRENT.Generation.Entities.SerializedData;
-            foreach(Authoring entity in EntityDictionary) entity.Setting.Unset();
             if(entityProfileArray.IsCreated) entityProfileArray.Dispose();
         }
     }

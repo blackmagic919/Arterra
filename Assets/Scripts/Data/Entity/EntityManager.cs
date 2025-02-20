@@ -27,24 +27,6 @@ public static class EntityManager
     const int ENTITY_STRIDE_WORD = 3 + 1;
     const int MAX_ENTITY_COUNT = 10000; //10k ~ 5mb
 
-    public static void DrawRecursive(uint ind){
-        STree.TreeNode region = ESTree[ind];
-        if(region.IsLeaf) return;
-        Vector3 center = GSToWS(((float3)region.bounds.Min + region.bounds.Max) / 2);
-        Vector3 size = (float3)(region.bounds.Max - region.bounds.Min) * Config.CURRENT.Quality.Terrain.value.lerpScale;
-        Gizmos.DrawWireCube(center, size);
-        DrawRecursive(region.Left);
-        DrawRecursive(region.Right);
-    }
-
-    public unsafe static void Release(){
-        //Debug.Log(EntityHandler.Length);
-        Executor.Complete(); 
-        foreach (Entity entity in EntityHandler){
-            entity.Disable();
-        }
-    }
-
     public static void AddHandlerEvent(Action action){
 
         //If there's no job running directly execute it
@@ -81,12 +63,13 @@ public static class EntityManager
         ChunkMapInfo mapInfo = AddressDict[HashCoord(CCoord)];
         if(!mapInfo.valid) return; 
         //mapinfo.CCoord is coord of previous chunk
-        STree.TreeNode.Bounds bounds = new STree.TreeNode.Bounds{
-        Min = mapInfo.CCoord * mapChunkSize, Max = (mapInfo.CCoord + 1) * mapChunkSize};
+        Bounds bounds = new (((float3)mapInfo.CCoord + 0.5f) * mapChunkSize, (float3)mapChunkSize);
 
         List<Entity> Entities = new List<Entity>();
-        ESTree.Query(bounds, (Entity entity) => {
+        ESTree.QueryExclusive(bounds, (Entity entity) => {
             if(entity == null) return;
+            //This is the only entity that is not serialized and saved
+            if(entity.GetType() == typeof(PlayerStreamer.Player)) return;
             ReleaseEntity(entity.info.entityId);
             Entities.Add(entity);
         }); 
@@ -122,7 +105,7 @@ public static class EntityManager
         EntityIndex[newEntity.info.entityId] = EntityHandler.Count;
         newEntity.Initialize(authoring.Setting, authoring.Controller, GCoord);
         EntityHandler.Add(newEntity);
-        ESTree.Insert(GCoord, newEntity.info.entityId);
+        ESTree.Insert(newEntity);
     }
 
     private unsafe static void CreateE(Entity sEntity){
@@ -133,18 +116,7 @@ public static class EntityManager
         EntityIndex[sEntity.info.entityId] = EntityHandler.Count;
         sEntity.Deserialize(authoring.Setting, authoring.Controller, out int3 GCoord);
         EntityHandler.Add(sEntity);
-        ESTree.Insert(GCoord, sEntity.info.entityId);
-    }
-
-    public unsafe static void AssertEntityLocation(Entity entity, int3 GCoord){
-        Guid entityId = entity.info.entityId;
-        if(!ESTree.Contains(entityId)) return;
-        if(ESTree[ESTree[entityId].Parent].bounds.Contains(GCoord)){
-            ESTree[entityId].bounds = new STree.TreeNode.Bounds(GCoord);
-            return;
-        } 
-        ESTree.Delete(entityId);
-        ESTree.Insert(GCoord, entityId);
+        ESTree.Insert(sEntity);
     }
 
     private static void OnEntitiesRecieved(NativeArray<GenPoint> entities, uint address, int3 CCoord){
@@ -193,6 +165,26 @@ public static class EntityManager
         entityTranscriber.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
         entityTranscriber.SetInt("bCOUNTER_entities", bufferOffsets.prunedCounter);
         entityTranscriber.SetInt("bSTART_entities", bufferOffsets.prunedStart);
+
+        //Ensure the entity dictionary has the player. This is non-negotiable and must always be ensured
+        Registry<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities;
+        if(EntityDictionary.Contains("Player") && EntityDictionary.Retrieve("Player").GetType() != typeof(PlayerStreamer))
+            EntityDictionary.TryRemove("Player");
+        if(!EntityDictionary.Contains("Player")) {
+            PlayerStreamer PlayerEntity = Resources.Load<PlayerStreamer>("Prefabs/GameUI/PlayerEntity");
+            EntityDictionary.Add("Player", PlayerEntity);
+        }
+        foreach(Authoring entity in EntityDictionary.SerializedData) entity.Setting.Preset();
+    }
+
+    public unsafe static void Release(){
+        //Debug.Log(EntityHandler.Length);
+        Executor.Complete(); 
+        foreach (Entity entity in EntityHandler){
+            entity.Disable();
+        }
+        Authoring[] EntityDictionary = Config.CURRENT.Generation.Entities.SerializedData;
+        foreach(Authoring entity in EntityDictionary) entity.Setting.Unset();
     }
 
     public static uint PlanEntities(int biomeStart, int3 CCoord, int chunkSize){
@@ -234,7 +226,6 @@ public static class EntityManager
             int entityStartWord = ENTITY_STRIDE_WORD * (int)memHandle.y;
             AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Storage, size: memSize * 4, offset: 4 * entityStartWord, (req) => callback.Invoke(req.GetData<GenPoint>()));
         }
-
         static void OnEntityAddressRecieved(AsyncGPUReadbackRequest request, Action<NativeArray<GenPoint>> callback){
             uint2 memHandle = request.GetData<uint2>()[0];
             if(memHandle.x == 0) return; // No entities
@@ -275,7 +266,7 @@ public static class EntityManager
         }
     }
 
-    //More like a BVH, or a dynamic R-Tree with no overlap
+    //More like a BVH, or a dynamic R-Tree
     public unsafe struct STree{
         public Dictionary<Guid, uint> SpatialIndex;
         public TreeNode[] tree;
@@ -307,31 +298,45 @@ public static class EntityManager
         public STree(int capacity){
             SpatialIndex = new Dictionary<Guid, uint>();
             tree = new TreeNode[capacity];
-            tree[0] = new TreeNode(0){
-                bounds = new TreeNode.Bounds{
-                    Min = new int3(int.MinValue),
-                    Max = new int3(int.MaxValue)
-                }
-            };
+            tree[0] = new TreeNode(new Bounds(float3.zero, new float3(float.MaxValue)));
             length = 1;
             Root = 0;
         }
 
-        public void Insert(int3 position, Guid eId){
+        public void AssertEntityLocation(Entity entity){
+            Guid entityId = entity.info.entityId;
+            float3 colliderSize = Config.CURRENT.Generation.Entities.Retrieve((int)entity.info.entityType).Setting.collider.size;
+            Bounds nBounds = new Bounds(entity.position + colliderSize/2, colliderSize);
+
+            if(!this.Contains(entityId)) return;
+            if(Contains(this[this[entityId].Parent].bounds, nBounds)){
+                this[entityId].bounds = nBounds;
+                return;
+            } 
+            this.Delete(entityId);
+            this.Insert(nBounds, entityId);
+        }
+
+        public void Insert(Entity entity){
+            float3 colliderSize = Config.CURRENT.Generation.Entities.Retrieve((int)entity.info.entityType).Setting.collider.size;
+            Bounds eEBounds = new (entity.position + colliderSize / 2, colliderSize);
+            Insert(eEBounds, entity.info.entityId);
+        }
+        private void Insert(Bounds bounds, Guid eId){
             if(length+1 >= tree.Length) Resize();
             SpatialIndex[eId] = length;
             length++;
 
-            tree[length - 1] = new TreeNode(position, eId);
+            tree[length - 1] = new TreeNode(bounds, eId);
             if(length == 2) Root = 1;
-            else RecursiveInsert(position, Root);
+            else RecursiveInsert(bounds, Root);
         }
 
-        private void RecursiveInsert(int3 position, uint current){
+        private void RecursiveInsert(Bounds bounds, uint current){
             ref TreeNode node = ref tree[(int)current];
             if(node.IsLeaf){
-                tree[(int)length] = new TreeNode(0){
-                    bounds = node.bounds.GetExpand(position),
+                tree[(int)length] = new TreeNode{
+                    bounds = GetExpand(node.bounds, bounds),
                     Left = current,
                     Right = length - 1,
                     Parent = node.Parent
@@ -343,21 +348,18 @@ public static class EntityManager
                 return;
             }
             
-            node.bounds.Expand(position);
-            ref TreeNode.Bounds B1 = ref tree[(int)node.Left].bounds; 
-            ref TreeNode.Bounds B2 = ref tree[(int)node.Right].bounds; 
-            if(B1.Contains(position)) RecursiveInsert(position, node.Left);
-            else if(B2.Contains(position)) RecursiveInsert(position, node.Right); 
+            node.bounds.Encapsulate(bounds);
+            ref Bounds B1 = ref tree[(int)node.Left].bounds; 
+            ref Bounds B2 = ref tree[(int)node.Right].bounds; 
+            if(Contains(B1, bounds)) RecursiveInsert(bounds, node.Left);
+            else if(Contains(B2, bounds)) RecursiveInsert(bounds, node.Right); 
             else{
-                TreeNode.Bounds B1Prime, B2Prime;
-                B1Prime = B1.GetExpand(position);
-                B2Prime = B2.GetExpand(position);
-
+                Bounds B1Prime, B2Prime;
+                B1Prime = GetExpand(B1, bounds);
+                B2Prime = GetExpand(B2, bounds);
                 //I guarantee there's a configuration that does not intersect
-                if(B1Prime.Intersects(B2)) RecursiveInsert(position, node.Right);
-                else if(B2Prime.Intersects(B1)) RecursiveInsert(position, node.Left);
-                else if(B1Prime.Size() >= B2Prime.Size()) RecursiveInsert(position, node.Right);
-                else RecursiveInsert(position, node.Left);
+                if(Volume(B1Prime) >= Volume(B2Prime)) RecursiveInsert(bounds, node.Right);
+                else RecursiveInsert(bounds, node.Left);
             }
         } 
 
@@ -409,7 +411,7 @@ public static class EntityManager
 
 
         //The callback should not change STree as this will cause unpredictable behavior when query continues
-        public readonly void Query(TreeNode.Bounds bounds, Action<Entity> action, int current = -1){
+        public readonly void Query(Bounds bounds, Action<Entity> action, int current = -1){
             if(current == -1) current = (int)Root;
             if(current == 0) return; //Root is zero when it is empty
             TreeNode node = tree[current];
@@ -420,6 +422,55 @@ public static class EntityManager
             
             if(bounds.Intersects(tree[(int)node.Left].bounds)) Query(bounds, action, (int)node.Left);
             if(bounds.Intersects(tree[(int)node.Right].bounds)) Query(bounds, action, (int)node.Right);
+        }
+
+        public readonly void QueryExclusive(Bounds bounds, Action<Entity> action, int current = -1){
+            if(current == -1) current = (int)Root;
+            if(current == 0) return; //Root is zero when it is empty
+            TreeNode node = tree[current];
+            if(node.IsLeaf){
+                if(bounds.Contains(node.bounds.min))
+                    action.Invoke(node.GetLeaf);
+                return;
+            }
+            
+            if(bounds.Intersects(tree[(int)node.Left].bounds)) QueryExclusive(bounds, action, (int)node.Left);
+            if(bounds.Intersects(tree[(int)node.Right].bounds)) QueryExclusive(bounds, action, (int)node.Right);
+        }
+
+        public readonly void QueryRay(Ray ray, float maxDist, Action<Entity> action, int current = -1){
+            if(current == -1) current = (int)Root;
+            if(current == 0) return; //Root is zero when it is empty
+            TreeNode node = tree[current];
+            if(node.IsLeaf){
+                action.Invoke(node.GetLeaf);
+                return;
+            }
+
+            if(tree[(int)node.Left].bounds.IntersectRay(ray, out float dist) && dist <= maxDist) 
+                QueryRay(ray, maxDist, action, (int)node.Left);
+            if(tree[(int)node.Right].bounds.IntersectRay(ray, out dist) && dist <= maxDist) 
+                QueryRay(ray, maxDist, action, (int)node.Right);
+        }
+
+        public readonly bool FindClosestAlongRay(float3 startGS, float3 endGS, Guid callerId, out Entity closestHit){
+            Ray viewRay = new (startGS, endGS - startGS);
+            float cDist = math.distance(startGS, endGS);
+            Entity cEntity = null;
+            void OnFoundEntity(Entity entity){
+                if(entity.info.entityId == callerId) return; //Ignore the caller
+                float3 colliderSize = Config.CURRENT.Generation.Entities.Retrieve((int)entity.info.entityType).Setting.collider.size;
+                Bounds bounds = new Bounds(entity.position + colliderSize/2, colliderSize);
+                bounds.IntersectRay(viewRay, out float dist);
+                if(dist <= cDist){
+                    cEntity = entity;
+                    cDist = dist;
+                }
+            }
+
+            QueryRay(viewRay, cDist, OnFoundEntity);
+            closestHit = cEntity;
+            return cEntity != null;
         }
 
         private void Resize(){
@@ -440,15 +491,15 @@ public static class EntityManager
             public Guid ObjId;
             public readonly bool IsLeaf => ObjId != Guid.Empty;
             public readonly Entity GetLeaf => GetEntity(ObjId);
-            public TreeNode(int3 position){
-                bounds = new Bounds(position);
+            public TreeNode(Bounds bounds){
+                this.bounds = bounds;
                 Left = 0; Right = 0;
                 ObjId = Guid.Empty;
                 Parent = 0;
             }
 
-            public TreeNode(int3 position, Guid EntityId){
-                bounds = new Bounds(position);
+            public TreeNode(Bounds bounds, Guid EntityId){
+                this.bounds = bounds;
                 Left = 0; Right = 0;
                 ObjId = EntityId;
                 Parent = 0;
@@ -462,47 +513,23 @@ public static class EntityManager
             public void ResizeBranch(TreeNode[] tree){
                 if(IsLeaf) return;
                 if(Left == 0 || Right == 0) return;
-                bounds = tree[Left].bounds.GetExpand(tree[Right].bounds.Min).GetExpand(tree[Right].bounds.Max);
+                bounds = GetExpand(tree[Left].bounds, tree[Right].bounds);
             }
+        }
 
-            public struct Bounds{
-                public int3 Min;
-                public int3 Max;
+        private static Bounds GetExpand(Bounds a, Bounds b){
+            Bounds nBounds = new(a.center, a.size);
+            nBounds.Encapsulate(b);
+            return nBounds;
+        }
 
-                public Bounds(int3 pos){
-                    Min = pos;
-                    Max = pos;
-                }
+        private static double Volume(Bounds bounds){
+            float3 size = bounds.size;
+            return size.x * size.y * size.z;
+        }
 
-                public void Expand(int3 position){
-                    Max = math.max(Max, position);
-                    Min = math.min(Min, position);
-                }
-                
-                public readonly Bounds GetExpand(int3 position){
-                    Bounds nBounds = this;
-                    nBounds.Expand(position);
-                    return nBounds;
-                }
-
-                public readonly bool Contains(int3 position){
-                    return math.all(position >= Min) && math.all(position <= Max);
-                }
-
-                public readonly bool Intersects(Bounds bounds){
-                    return math.all(bounds.Min <= Max) && math.all(bounds.Max >= Min);
-                }
-                
-                public readonly uint Size(){
-                    int3 size = Max - Min;
-                    return (uint)(size.x * size.y * size.z);
-                }
-
-                public readonly float Perimeter(){
-                    int3 size = Max - Min;
-                    return 2 * (size.x + size.y) + 2 * (size.y + size.z) + 2 * (size.z + size.x);
-                }
-            }
+        private static bool Contains(Bounds src, Bounds qry){
+            return src.Contains(qry.min) && src.Contains(qry.max);
         }
     }
 }
@@ -549,6 +576,10 @@ public class EntityJob : UpdateTask{
         while(EntityManager.HandlerEvents.TryDequeue(out Action action)){
             action.Invoke();
         } EntityManager.HandlerEvents.Clear();
+
+        foreach(Entity entity in EntityManager.EntityHandler){
+            EntityManager.ESTree.AssertEntityLocation(entity);
+        }
 
         if(EntityManager.EntityHandler.Count == 0){
             this.active = false;

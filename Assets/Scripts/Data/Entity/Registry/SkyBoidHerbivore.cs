@@ -24,7 +24,6 @@ public class SkyBoidHerbivore : Authoring
         public RHerbivore recognition;
         public Vitality.Stats physicality;
         public Vitality.Decomposition decomposition;
-        public TerrainColliderJob.Settings collider;
         [Serializable]
         public struct Flight{
             public ProfileInfo profile;
@@ -213,10 +212,9 @@ public class SkyBoidHerbivore : Authoring
                 boidDMtrx.count++;
             }
             
-            EntityManager.ESTree.Query(new EntityManager.STree.TreeNode.Bounds{
-                Min = GCoord - new int3(settings.flight.InfluenceDist),
-                Max = GCoord + new int3(settings.flight.InfluenceDist)
-            }, OnEntityFound);
+            EntityManager.ESTree.Query(new ((float3)GCoord,
+                2 * new float3(settings.flight.InfluenceDist)), 
+            OnEntityFound);
 
             if(boidDMtrx.count == 0) return;
             flightDirection = Normalize(flightDirection + 
@@ -465,7 +463,6 @@ public class SkyBoidHerbivore : Authoring
         public void Update(){
             if(!entity.active) return;
             if(gameObject == null) return;
-            EntityManager.AssertEntityLocation(entity, entity.GCoord);    
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
             rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);

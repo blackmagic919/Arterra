@@ -152,9 +152,7 @@ public class Config : ScriptableObject{
         public Registry<Gameplay.KeyBind> Input;
         /// <summary> Controls how the player moves through the world. See <see cref="Gameplay.Movement"/> for more information. </summary>
         [UISetting(Message = "Controls How The Player Interacts With The World")]
-        public Option<Gameplay.Movement> Movement;
-        /// <summary> Controls how the player modifies the world. See <see cref="Gameplay.Terraform"/> for more information. </summary>
-        public Option<Gameplay.Terraform> Terraforming;
+        public Option<Gameplay.Player.Settings> Player;
         /// <summary> Controls how the player can create items. See <see cref="Gameplay.Crafting"/> for more information. </summary>
         public Option<Gameplay.Crafting> Crafting;
         /// <summary> Controls the players inventory. See <see cref="Gameplay.Inventory"/> for more information. </summary>
