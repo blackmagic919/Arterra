@@ -132,18 +132,26 @@ MonoBehaviour:
           y: 4
           z: 3
         profileStart: 128
+      collider:
+        size:
+          x: 2
+          y: 3
+          z: 2
+        offset:
+          x: -1
+          y: -2
+          z: -1
+        friction: 0.25
       movement:
         walkSpeed: 2
         runSpeed: 4
         acceleration: 200
-        friction: 0.25
         rotSpeed: 180
         pathDistance: 31
         AverageIdleTime: 6
       recognition:
         Predators:
-          value:
-          - Coyote
+          value: []
         Mates:
           value:
           - MateType: Camel
@@ -155,6 +163,7 @@ MonoBehaviour:
             Nutrition: 0.05
         SightDistance: 31
         FleeDistance: 5
+        FightAggressor: 1
         PlantFindDist: 10
         Prey:
           value:
@@ -167,8 +176,8 @@ MonoBehaviour:
         MaxHealth: 30
         NaturalRegen: -0.01
         AttackDistance: 3
-        AttackDamage: 10
-        AttackSpeed: 0.5
+        AttackDamage: 7
+        AttackCooldown: 3
         KBStrength: 5
         InvincTime: 0.25
         HuntThreshold: 0.6
@@ -176,6 +185,7 @@ MonoBehaviour:
         PregnacyLength: 6
         ConsumptionRate: 0.25
         MateCost: 10
+        weight: 0.85
       decomposition:
         LootTable:
           value:
@@ -183,13 +193,3 @@ MonoBehaviour:
             DropAmount: 1
         DecompositionTime: 200
         DecompPerLoot: 2
-      collider:
-        size:
-          x: 2
-          y: 3
-          z: 2
-        offset:
-          x: -1
-          y: -2
-          z: -1
-        useGravity: 1

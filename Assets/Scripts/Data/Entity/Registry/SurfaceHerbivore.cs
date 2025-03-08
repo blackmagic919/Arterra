@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
 using System.Threading.Tasks;
+using UnityEditor;
 
 [CreateAssetMenu(menuName = "Entity/SurfaceHerbivore")]
 public class SurfaceHerbivore : Authoring
@@ -43,6 +44,7 @@ public class SurfaceHerbivore : Authoring
         public TerrainColliderJob tCollider;
         public Unity.Mathematics.Random random;
         public AnimalSetting settings;
+        public Guid TaskTarget;
         public uint TaskIndex;
         public float TaskDuration;
         public static Action<Animal>[] TaskRegistry = new Action<Animal>[]{
@@ -55,6 +57,9 @@ public class SurfaceHerbivore : Authoring
             FindMate,
             ChaseMate,
             Reproduce,
+            RunFromTarget,
+            ChaseTarget,
+            AttackTarget,
             RunFromPredator,
             Death,
         };
@@ -64,11 +69,28 @@ public class SurfaceHerbivore : Authoring
         }
 
         public bool IsDead => vitality.IsDead;
-        public void TakeDamage(float damage, float3 knockback){
+        public void TakeDamage(float damage, float3 knockback, Entity attacker){
             if(!vitality.Damage(damage)) return;
-            Indicators.DisplayPopupText(damage.ToString(), position);
+            Indicators.DisplayPopupText(position, knockback);
             tCollider.velocity += knockback;
+
+            if(attacker == null) return; //If environmental damage, we don't need to retaliate
+            TaskTarget = attacker.info.entityId;
+            Recognition.Recognizable recog = settings.recognition.Recognize(attacker);
+            if(recog.IsPredator) TaskIndex = 9u; //if predator run away
+            else if(recog.IsMate) TaskIndex = 10u; //if mate fight back
+            else if(recog.IsPrey) TaskIndex = 10u; //if prey fight back
+            else TaskIndex = settings.recognition.FightAggressor ? 10u : 9u; //if unknown, depends
+            if(TaskIndex == 10 && attacker is not IAttackable) TaskIndex = 9u;  //Don't try to attack a non-attackable entity
+            pathFinder.hasPath = false;
         }
+        public void ProcessFallDamage(float zVelDelta){
+            if(zVelDelta <= Vitality.FallDmgThresh) return;
+            float damage = zVelDelta - Vitality.FallDmgThresh;    
+            damage = math.pow(damage, settings.physicality.weight);
+            EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
+        }
+
         public WorldConfig.Generation.Item.IItem Collect(float amount){
             if(!IsDead) return null; //You can't collect resources until the entity is dead
             var item = settings.decomposition.LootItem(amount, ref random);
@@ -97,12 +119,14 @@ public class SurfaceHerbivore : Authoring
             //The seed is the entity's memory address
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.vitality = new Vitality(settings.physicality, ref random);
+            this.tCollider = new TerrainColliderJob(GCoord, true, ProcessFallDamage);
             this.GCoord = GCoord;
             pathFinder.hasPath = false;
             tCollider.transform.position = GCoord;
 
             //Start by Idling
             TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
+            TaskTarget = Guid.Empty;
             TaskIndex = 0;
         }
 
@@ -111,6 +135,7 @@ public class SurfaceHerbivore : Authoring
             settings = (AnimalSetting)setting;
             controller = new AnimalController(Controller, this);
             vitality.Deserialize(settings.physicality);
+            tCollider.OnHitGround = ProcessFallDamage;
             random.state ^= (uint)GetHashCode();
             GCoord = this.GCoord;
         }
@@ -121,16 +146,15 @@ public class SurfaceHerbivore : Authoring
             if(!active) return;
             GCoord = (int3)tCollider.transform.position;
             tCollider.Update(EntityJob.cxt, settings.collider);
-            tCollider.velocity.xz *= 1 - settings.movement.friction;
             EntityManager.AddHandlerEvent(controller.Update);
             
             vitality.Update();
             TaskRegistry[(int)TaskIndex].Invoke(this);
             //Shared high priority states
-            if(TaskIndex != 10 && vitality.IsDead) {
+            if(TaskIndex != 13 && vitality.IsDead) {
                 TaskDuration = settings.decomposition.DecompositionTime;
-                TaskIndex = 10;
-            } else if(TaskIndex <= 8)  DetectPredator();
+                TaskIndex = 13;
+            } else if(TaskIndex <= 11)  DetectPredator();
         }
 
         //Always detect unless already running from predator
@@ -142,7 +166,7 @@ public class SurfaceHerbivore : Authoring
             float3 rayDir = GCoord - predator.position;
             byte* path = PathFinder.FindPathAlongRay(GCoord, ref rayDir, PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
-            TaskIndex = 9;
+            TaskIndex = 12;
         }
 
         //Task 0
@@ -267,9 +291,81 @@ public class SurfaceHerbivore : Authoring
             self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
             self.TaskIndex = 0;
         }
-        
 
         //Task 9
+        private static unsafe void RunFromTarget(Animal self){
+            Entity target = EntityManager.GetEntity(self.TaskTarget);
+            if(target == null) self.TaskTarget = Guid.Empty;
+            else if(math.distance(self.position, target.position) > self.settings.recognition.SightDistance)
+                self.TaskTarget = Guid.Empty;
+            if(self.TaskTarget == Guid.Empty) {
+                self.TaskIndex = 0;
+                return;
+            }
+
+            if(!self.pathFinder.hasPath) {
+                int PathDist = self.settings.recognition.FleeDistance;
+                float3 rayDir = self.GCoord - target.position;
+                byte* path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
+            } 
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
+            self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration);
+        }
+        
+        //Task 10
+        private static unsafe void ChaseTarget(Animal self){
+            Entity target = EntityManager.GetEntity(self.TaskTarget);
+            if(target == null) 
+                self.TaskTarget = Guid.Empty;
+            else if(math.distance(self.position, target.position) > self.settings.recognition.SightDistance)
+                self.TaskTarget = Guid.Empty;
+            if(self.TaskTarget == Guid.Empty) {
+                self.TaskIndex = 0;
+                return;
+            }
+
+            if(!self.pathFinder.hasPath) {
+                int PathDist = self.settings.movement.pathDistance;
+                int3 destination = (int3)math.round(target.position) - self.GCoord;
+                byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
+            } 
+            Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, target.position,
+            self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration);
+            if(math.distance(self.tCollider.transform.position, target.position) < self.settings.physicality.AttackDistance) {
+                self.TaskIndex = 11;
+                return;
+            }
+        }
+
+        //Task 11
+        private static void AttackTarget(Animal self){
+            Entity tEntity = EntityManager.GetEntity(self.TaskTarget);
+            if(tEntity == null) 
+                self.TaskTarget = Guid.Empty;
+            else if(tEntity is not IAttackable)
+                self.TaskTarget = Guid.Empty;
+            if(self.TaskTarget == Guid.Empty) {
+                self.TaskIndex = 0;
+                return;
+            }
+            float targetDist = math.distance(tEntity.position, self.position);
+            if(targetDist > self.settings.physicality.AttackDistance) {
+                self.TaskIndex = 10;
+                return;
+            }
+
+            float3 atkDir = math.normalize(tEntity.position - self.tCollider.transform.position); atkDir.y = 0;
+            if(math.any(atkDir != 0)) self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation, 
+            Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
+
+            IAttackable target = tEntity as IAttackable;
+            if(target.IsDead) self.TaskIndex = 0;
+            else self.vitality.Attack(tEntity, self);
+        }
+
+        //Task 12
         private static unsafe void RunFromPredator(Animal self){
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, self.settings.movement.runSpeed, 
             self.settings.movement.rotSpeed, self.settings.movement.acceleration);
@@ -280,7 +376,7 @@ public class SurfaceHerbivore : Authoring
             }
         }
 
-        //Task 10
+        //Task 13
         private static void Death(Animal self){
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if(!self.IsDead){ //Bring back from the dead 
@@ -324,7 +420,8 @@ public class SurfaceHerbivore : Authoring
         private int AnimatorTask;
         private static readonly string[] AnimationNames = new string[]{
             "IsIdling",  null, "IsWalking", null, "IsRunning", "IsEating",  
-            null, "IsWalking", "IsCuddling", "IsRunning", "IsDead"
+            null, "IsWalking", "IsCuddling", "IsRunning", "IsRunning", 
+            "IsAttacking", "IsRunning", "IsDead"
         };
 
         public AnimalController(GameObject GameObject, Animal entity){
@@ -346,7 +443,9 @@ public class SurfaceHerbivore : Authoring
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
             rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
             this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
+#if UNITY_EDITOR
             if(UnityEditor.Selection.Contains(gameObject)) Debug.Log(entity.TaskIndex);
+#endif
 
             Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
             if(AnimatorTask == entity.TaskIndex) return;

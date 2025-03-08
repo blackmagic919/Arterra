@@ -35,7 +35,7 @@ namespace WorldConfig.Gameplay{
         public Option<AnimationCurve> moonIntensityCurve;
     }
 }
-public class DayNightContoller : UpdateTask
+public static class DayNightContoller
 {
     private static WorldConfig.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.DayNightCycle;
     public static DateTime currentTime{
@@ -44,6 +44,7 @@ public class DayNightContoller : UpdateTask
     }
     private static Light Sun;
     private static Light Moon;
+    private static UpdateTask eventTask;
 
     // Start is called before the first frame update
     public static void Initialize()
@@ -53,11 +54,12 @@ public class DayNightContoller : UpdateTask
         var constraintSource = new ConstraintSource { sourceTransform = TerrainGeneration.OctreeTerrain.viewer, weight = 1 };
         Sun.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
         Moon.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
-        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(new DayNightContoller{active = true});
+        eventTask = new IndirectUpdate(Update);
+        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
     }
 
     // Update is called once per frame
-    public override void Update(MonoBehaviour mono)
+    public static void Update(MonoBehaviour mono)
     {
         currentTime = currentTime.AddSeconds(Time.deltaTime * settings.timeMultiplier);
         float progress = GetDayProgress(currentTime.TimeOfDay);
@@ -68,7 +70,7 @@ public class DayNightContoller : UpdateTask
         UpdateLightSettings(progress);
     }
 
-    private void UpdateLightSettings(float progress)
+    private static void UpdateLightSettings(float progress)
     {
         Sun.intensity = Mathf.Lerp(0, settings.maxSunIntensity, settings.sunIntensityCurve.value.Evaluate(progress));
         Moon.intensity = Mathf.Lerp(0, settings.maxMoonIntensity, settings.moonIntensityCurve.value.Evaluate(progress));

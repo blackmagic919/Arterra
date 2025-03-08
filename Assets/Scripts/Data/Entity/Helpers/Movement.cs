@@ -8,7 +8,6 @@ public struct Movement{
     public float walkSpeed;
     public float runSpeed; 
     public float acceleration; //~100
-    public float friction; //~0.1
     public float rotSpeed;//~180
     public int pathDistance;//~31
     public float AverageIdleTime; //~2.5

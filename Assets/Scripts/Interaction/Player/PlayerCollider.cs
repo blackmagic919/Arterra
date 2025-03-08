@@ -13,7 +13,10 @@ Sample from a simplex rather than a grid(should be faster)
 public class PlayerCollider
 {
     private float IsoValue => (float)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0);
+    [JsonIgnore]
+    public Action<float> OnHitGround;
     public float3 velocity;
+    public bool useGravity;
 
     public float3 TrilinearDisplacement(float3 posGS){
         //Calculate Density
@@ -308,16 +311,25 @@ public class PlayerCollider
         return vel - math.dot(vel, dir) * dir;
     }
 
+    public PlayerCollider(Action<float> OnHitGround = null){
+        this.OnHitGround = OnHitGround;
+        this.useGravity = true;
+        velocity = 0;
+    }
+
     public void FixedUpdate(PlayerStreamer.Player data, TerrainColliderJob.Settings settings){
         float3 posGS = data.position;
         posGS += velocity * Time.fixedDeltaTime;
+        if(useGravity) velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
 
         float3 originGS = posGS + settings.offset;
         if(SampleCollision(originGS, settings.size, out float3 displacement)){
-            velocity = CancelVel(velocity, displacement);
+            float3 nVelocity = CancelVel(velocity, displacement);
+            if(useGravity) OnHitGround?.Invoke(nVelocity.y - velocity.y);
+            velocity = nVelocity;
             originGS += displacement;
         };
-
+        velocity.xz *= 1 - settings.friction;
         data.position = originGS - settings.offset;
     }
 }

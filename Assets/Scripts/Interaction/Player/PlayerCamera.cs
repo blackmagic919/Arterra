@@ -33,7 +33,7 @@ namespace WorldConfig.Gameplay.Player{
         private Quaternion m_CharacterTargetRot;
         private Quaternion m_CameraTargetRot;
 
-        public PlayerCamera(ref PlayerStreamer.Player character)
+        public PlayerCamera(PlayerStreamer.Player character)
         {
             m_CharacterTargetRot = character.rotation;
             m_CameraTargetRot = character.cameraRot;

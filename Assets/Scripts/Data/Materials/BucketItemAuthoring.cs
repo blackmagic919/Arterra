@@ -121,9 +121,8 @@ public class BucketItem : IItem{
         }
         
         int liquidDensity = pointInfo.LiquidDensity;
+        int deltaDensity = math.min(GetStaggeredDelta(liquidDensity, -brushStrength), 0xFFFF);
         if (liquidDensity >= IsoLevel && (selMat == -1 || pointInfo.material == selMat)){
-            int deltaDensity = math.min(GetStaggeredDelta(liquidDensity, -brushStrength), 0xFFFF);
-
             if(content == null){
                 WorldConfig.Generation.Material.MaterialData material = MatInfo.Retrieve(pointInfo.material);
                 string liquidItem = material.RetrieveKey(material.LiquidItem);
@@ -136,9 +135,7 @@ public class BucketItem : IItem{
                 deltaDensity = math.min(content.AmountRaw + deltaDensity, 0xFFFF) - content.AmountRaw;
                 content.AmountRaw += deltaDensity;
             }
-
-            pointInfo.density -= deltaDensity;
-        }
+        } pointInfo.density -= deltaDensity;
         return pointInfo;
     }
     

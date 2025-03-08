@@ -59,8 +59,8 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             return ret;
         }
 
-        public void TakeDamage(float damage, float3 knockback){
-            Indicators.DisplayPopupText(damage.ToString(), position);
+        public void TakeDamage(float damage, float3 knockback, Entity attacker){
+            Indicators.DisplayPopupText(position, knockback);
             tCollider.velocity += knockback;
         }
 

@@ -4,6 +4,9 @@ using Unity.Mathematics;
 using UnityEngine;
 using static CPUMapManager;
 using WorldConfig.Generation.Material;
+using System.Collections.Generic;
+using System.Linq;
+using TerrainGeneration;
 
 namespace WorldConfig.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Pen")] 
@@ -52,72 +55,85 @@ public struct PenItem : IItem{
     public readonly void OnLeavePrimary(){} 
 
     private static int[] KeyBinds;
-    private static int[] PrevHit;
-    public readonly void OnSelect(){
+    private static uint SelectionCount{get {
+        uint radius = (uint)Config.CURRENT.GamePlay.Player.value.Interaction.value.terraformRadius;
+        return radius * radius * radius * 8;
+    }}
+    private Dictionary<int3, GameObject> Selections;
+    public void OnSelect(){
+        Selections = new Dictionary<int3, GameObject>();
         InputPoller.AddKeyBindChange(() => {
-            KeyBinds = InputPoller.KeyBindSaver.Rent(2);
-            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", OnTerrainRemove, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-            KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", OnTerrainAdd, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-            PrevHit = InputPoller.KeyBindSaver.Rent(4); PrevHit[3] = -1;
+            KeyBinds = InputPoller.KeyBindSaver.Rent(4);
+            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Interact", DeselectPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Pickup Item", SelectPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            KeyBinds[2] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", OnTerrainRemove, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            KeyBinds[3] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", OnTerrainAdd, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
         });
     } 
-    public readonly void OnDeselect(){
+    public void OnDeselect(){
+        foreach(GameObject Indicator in Selections.Values){
+            Indicators.SelectionIndicators.Release(Indicator);
+        } Selections = null;
         InputPoller.AddKeyBindChange(() => {
             if(KeyBinds == null) return;
             InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
             InputPoller.RemoveKeyBind((uint)KeyBinds[1], "5.0::GamePlay");
+            InputPoller.RemoveKeyBind((uint)KeyBinds[2], "5.0::GamePlay");
+            InputPoller.RemoveKeyBind((uint)KeyBinds[3], "5.0::GamePlay");
             InputPoller.KeyBindSaver.Return(KeyBinds);
-            InputPoller.KeyBindSaver.Return(PrevHit);
-            KeyBinds = null;
+            KeyBinds = null; 
         });
     } 
     public readonly void UpdateEItem(){} 
+    
 
-    /*
-    y
-    ^      0  5        z
-    |      | /        /\
-    |      |/         /
-    | 4 -- c -- 2    /
-    |     /|        /
-    |    / |       /
-    |   3  1      /
-    +----------->x
-    */
-    readonly static int3[] dP = new int3[6]{
-        new (0,1,0),
-        new (0,-1,0),
-        new (1,0,0),
-        new (0,0,-1),
-        new (-1,0,0),
-        new (0,0,1),
-    };
-
-    private static void OnTerrainRemove(float _){
-        int3 hitCoord;
-        if(PrevHit[3] < Time.frameCount-1){
-            if(!FindNearest(out hitCoord, true)) return;
-            PrevHit[0] = hitCoord.x; PrevHit[1] = hitCoord.y; PrevHit[2] = hitCoord.z;  
-        } PrevHit[3] = Time.frameCount;
-        hitCoord.x = PrevHit[0]; hitCoord.y = PrevHit[1]; hitCoord.z = PrevHit[2];
-        MapData cur = SampleMap(hitCoord);
-        if(cur.IsNull || !cur.IsSolid) {
-            PrevHit[3] = -1; return;
-        };
-        SetMap(PlayerInteraction.HandleRemoveSolid(cur, 1), hitCoord);
-    }
-    private static void OnTerrainAdd(float _){
+    private void SelectPoint(float _){
+        if(Selections == null) return;
+        if(Selections.Count >= SelectionCount) return;
         if(!FindNearest(out int3 hitCoord)) return;
-        MapData cur = SampleMap(hitCoord);
-        if(cur.IsNull || cur.SolidDensity == 0xFF) {
-            PrevHit[3] = -1; return;
+        if(Selections.ContainsKey(hitCoord)) return;
+        Selections.Add(hitCoord, Indicators.SelectionIndicators.Get());
+        Selections[hitCoord].transform.position = GSToWS(hitCoord);
+    }
+
+    private void DeselectPoint(float _){
+        if(Selections == null) return;
+        if(!FindNearest(out int3 hitCoord)) return;
+        if(!Selections.TryGetValue(hitCoord, out GameObject value)) return;
+        Indicators.SelectionIndicators.Release(value);
+        Selections.Remove(hitCoord);
+    }
+
+    private void OnTerrainRemove(float _){
+        if(Selections.Count == 0) {
+            if(!FindNearest(out int3 hitCoord, true)) return;
+            MapData cur = SampleMap(hitCoord);
+            SetMap(PlayerInteraction.HandleRemoveSolid(cur, 1), hitCoord);
         }
-        if(!FindNextSolidMat(out int nextSlot)) return;
-        SetMap(HandleAddNextSolid(cur, 1, nextSlot), hitCoord);
+        else {
+            foreach(int3 hitPoint in Selections.Keys){
+                MapData cur = SampleMap(hitPoint);
+                SetMap(PlayerInteraction.HandleRemoveSolid(cur, 1), hitPoint);
+            };
+        }
+    }
+    private void OnTerrainAdd(float _){
+        if(Selections.Count == 0) {
+            if(!FindNearest(out int3 hitCoord)) return;
+            if(!FindNextSolidMat(out int nextSlot)) return;
+            SetMap(HandleAddNextSolid(SampleMap(hitCoord), 1, nextSlot), hitCoord);
+        }
+        else {
+            foreach(int3 hitPoint in Selections.Keys){
+                MapData cur = SampleMap(hitPoint);
+                if(!FindNextSolidMat(out int nextSlot)) return;
+                SetMap(HandleAddNextSolid(cur, 1, nextSlot), hitPoint);
+            };
+        }
     }
 
 
-    private static bool FindNearest(out int3 hitCoord, bool OnlySolid = false){
+    private static bool FindNearest(out int3 hitCoord, bool IsSolid = false){
         hitCoord = int3.zero;
         static float GetDistFromRay(Ray ray, Vector3 point) => Vector3.Cross(ray.direction, point - ray.origin).magnitude;
         if(!PlayerInteraction.RayTestSolid(PlayerHandler.data, out float3 hitPt)) return false;
@@ -128,8 +144,7 @@ public struct PenItem : IItem{
         for(int i = 0; i < 8; i++){
             int3 hitCorner = hitOrig + new int3(i & 0x1, (i >> 1) & 0x1, (i >> 2) & 0x1);
             MapData cInfo = SampleMap(hitCorner);
-            if(!cInfo.IsSolid && OnlySolid) continue;
-            if(cInfo.SolidDensity == 0xFF) continue; //Ignore fully filled
+            if(cInfo.IsSolid ^ IsSolid) continue;
             float curDist = GetDistFromRay(ray, (float3)hitCorner);
             float bestDist = GetDistFromRay(ray, (float3)hitCoord);
             if(curDist < bestDist) hitCoord = hitCorner;
@@ -165,5 +180,11 @@ public struct PenItem : IItem{
             if(solidDensity >= IsoValue) pointInfo.material = material;
         }
         return pointInfo;
+    }
+
+
+    private struct Selection{
+        public int3 hitPoint;
+        public GameObject indicator;
     }
 }}

@@ -110,7 +110,7 @@ namespace WorldConfig.Gameplay{
         }
     }
 }
-public class InputPoller : UpdateTask
+public static class InputPoller
 {
     public static ArrayPool<int> KeyBindSaver;
     private class KeyBinder{
@@ -166,6 +166,7 @@ public class InputPoller : UpdateTask
     private static ref SharedLinkedList<ActionBind> KeyBinds => ref Binder.KeyBinds;
     private static ref Registry<uint> LayerHeads => ref Binder.LayerHeads;
     private static Queue<Action> KeyBindChanges;
+    private static UpdateTask eventTask;
     private static bool CursorLock = false;
     private const int MaxActionBinds = 10000;
 
@@ -176,7 +177,8 @@ public class InputPoller : UpdateTask
         KeyBindChanges = new Queue<Action>();
         KeyBindSaver = ArrayPool<int>.Create();
         AddStackPoll(new ActionBind("BASE", (float _) => SetCursorLock(true)), "CursorLock");
-        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(new InputPoller{active = true});
+        eventTask = new IndirectUpdate(Update);
+        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
     }
 
     public static void SetCursorLock(bool value)
@@ -193,7 +195,7 @@ public class InputPoller : UpdateTask
         }
     }
 
-    private void AnswerKeyBinds(){
+    private static void AnswerKeyBinds(){
         //Explicit lexicographic-name ordering
         HashSet<string> GlobalExclusion = new();
         HashSet<string> LayerExclusion = new();
@@ -222,7 +224,7 @@ public class InputPoller : UpdateTask
             } while(current != head.Value);
         }
     }
-    public override void Update(MonoBehaviour mono){
+    public static void Update(MonoBehaviour mono){
         AnswerKeyBinds();
         //Fulfill all keybind change requests
         while(KeyBindChanges.Count > 0) 

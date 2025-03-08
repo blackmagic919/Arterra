@@ -7,6 +7,9 @@ using WorldConfig;
 using WorldConfig.Generation.Item;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Collections;
+using TerrainGeneration;
 
 [CreateAssetMenu(menuName = "Entity/Player")]
 public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
@@ -22,16 +25,18 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
     public override EntitySetting Setting { get => _Setting.value; set => _Setting.value = (PlayerSettings)value; }
     [Serializable]
     public class PlayerSettings : EntitySetting{
-        public float maxHealth;
-        public float healthRegen;
+        //Most settings are streamed from worldconfig as we want them to be 
+        //modifiable during gameplay
     }
     
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class Player : Entity
+    public class Player : Entity, IAttackable
     {  
         [JsonIgnore]
         public PlayerSettings settings;
+        [JsonIgnore]
+        public GameObject player;
         public DateTime currentTime;
         public float3 positionGS;
         public Quaternion rotation;
@@ -39,8 +44,9 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         public List<string> SerializedNames;
         public InventoryController.Inventory PrimaryI;
         public InventoryController.Inventory SecondaryI;
-        public Physicality physicality;
+        public PlayerVitality vitality;
         public PlayerCollider collider;
+        public bool IsStreaming;
 
         [JsonIgnore]
         public override float3 position {
@@ -52,6 +58,28 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             get => CPUMapManager.GSToWS(positionGS);
             set => positionGS = CPUMapManager.WSToGS(value);
         }
+        [JsonIgnore]
+        public bool IsDead{get => vitality.health <= 0; }
+        
+        public IItem Collect(float collectRate){
+            InventoryController.Inventory inv;
+            int itemCount = PrimaryI.EntryDict.Count + SecondaryI.EntryDict.Count;
+            
+            IItem ret;
+            if(PrimaryI.EntryDict.Count > 0) ret = PrimaryI.LootInventory(collectRate);
+            else ret = SecondaryI.LootInventory(collectRate);
+
+            float itemDelta = itemCount - (PrimaryI.EntryDict.Count + SecondaryI.EntryDict.Count);
+            vitality.health -= (itemDelta / itemCount) * PlayerVitality.settings.DecompositionTime;
+            return ret;
+        }
+
+        public void TakeDamage(float damage, float3 knockback, Entity attacker = null){
+            if(!vitality.Damage(damage)) return;
+            Indicators.DisplayPopupText(position, knockback);
+            PlayerHandler.data.collider.velocity += knockback;
+            OctreeTerrain.MainCoroutines.Enqueue(CameraShake(0.25f, 0.25f));
+        }
 
         public Player(){
             position = new Vector3(0, 0, 0) + (CPUNoiseSampler.SampleTerrainHeight(new (0, 0, 0)) + 5) * Config.CURRENT.Quality.Terrain.value.lerpScale * Vector3.up;
@@ -62,29 +90,55 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.DayNightCycle.value.startHour);
             info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             info.entityId = Guid.NewGuid();
-            collider = new PlayerCollider{velocity = 0};
+            collider = new PlayerCollider();
+            vitality = new PlayerVitality();
+            IsStreaming = true;
         }
 
         //This function shouldn't be used
         public override void Initialize(EntitySetting setting, GameObject Controller, int3 GCoord)
         {
             settings = (PlayerSettings)setting;
+            collider.OnHitGround = PlayerVitality.ProcessFallDamage;
+            player = GameObject.Instantiate(Controller);
+            player.transform.SetPositionAndRotation(positionWS, rotation);
         }
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord)
         {
             settings = (PlayerSettings)setting;
             GCoord = (int3)this.positionGS;
+            player = GameObject.Instantiate(Controller);
+            player.transform.SetPositionAndRotation(positionWS, rotation);
+            collider.OnHitGround = PlayerVitality.ProcessFallDamage;
         }
 
 
         public override void Update()
         {
             if(!active) return;
-            //This is not really safe
+            if(!IsDead){
+                vitality.Update();
+                return;
+            }
+
+            if(IsStreaming) EntityManager.AddHandlerEvent(DetatchStreamer);
+            if(vitality.health <= -PlayerVitality.settings.DecompositionTime){ //the player isn't idling
+                if(PlayerHandler.data == null || PlayerHandler.data.info.entityId != info.entityId)
+                    EntityManager.ReleaseEntity(this.info.entityId);
+            } vitality.health -= EntityJob.cxt.deltaTime;
+
+            //Apply gravity and take over physics updating
+            EntityManager.AddHandlerEvent(() => {
+                collider.velocity += (float3)(Physics.gravity * EntityJob.cxt.deltaTime);
+                collider.FixedUpdate(this, this.settings.collider);
+                player.transform.SetPositionAndRotation(this.positionWS, this.rotation);
+            });
         }
 
-        public override void Disable(){}
+        public override void Disable(){
+            if(player != null) GameObject.Destroy(player);
+        }
 
         public override void OnDrawGizmos(){
             Gizmos.color = Color.blue; 
@@ -129,10 +183,32 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
                 Deserialize(ref SecondaryI.Info[i]);
             }
         }
-    }
 
-    public struct Physicality{
-        public float Health;
-        //Add stuff like armor, status effects, etc.
+        private void DetatchStreamer(){
+            if(!IsStreaming) return;
+            IsStreaming = false;
+
+            GameOverHandler.Activate();
+        }
+
+        public IEnumerator CameraShake(float duration, float rStrength){
+            Transform CameraLocalT = PlayerHandler.camera.GetChild(0).transform;
+            Quaternion OriginRot = CameraLocalT.localRotation;
+            Quaternion RandomRot = Quaternion.Euler(new (0, 0, UnityEngine.Random.Range(-180f, 180f) * rStrength));
+            duration /= 2;
+
+            float elapsed = 0.0f;
+            while(elapsed < duration){
+                CameraLocalT.localRotation = Quaternion.Slerp(CameraLocalT.localRotation, RandomRot, elapsed/duration);
+                elapsed += Time.deltaTime;
+                yield return null;
+            } elapsed = 0.0f;
+            while(elapsed < duration){
+                CameraLocalT.localRotation = Quaternion.Slerp(CameraLocalT.localRotation, OriginRot, elapsed/duration);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+           CameraLocalT.localRotation = OriginRot;
+        }
     }
 }

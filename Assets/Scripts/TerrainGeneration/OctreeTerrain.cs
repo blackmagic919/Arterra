@@ -43,6 +43,12 @@ public class OctreeTerrain : MonoBehaviour
     /// </summary>
     public static Queue<UpdateTask> MainFixedUpdateTasks;
     /// <summary>
+    /// A queue containing coroutines which will be synchronized and updated
+    /// by Unity's main update loop. Unity does not allow injection into its synchronization
+    /// outside monobehavior, so OctreeTerrain has to manage this.
+    /// </summary>
+    public static Queue<System.Collections.IEnumerator> MainCoroutines;
+    /// <summary>
     /// A queue of generation actions which are processed
     /// sequentially and discarded once they are called. All tasks 
     /// are channeled through this queue to manage the resource load
@@ -53,6 +59,7 @@ public class OctreeTerrain : MonoBehaviour
     /// on different threads back into the main thread.
     /// </remarks>
     public static ConcurrentQueue<GenTask> RequestQueue;
+    
     private static WorldConfig.Quality.Terrain s;
     private int3 prevViewerPos;
     private static Transform origin;
@@ -104,7 +111,7 @@ public class OctreeTerrain : MonoBehaviour
             this.chunk = chunk;
         }
     }
-
+    
     private void OnEnable(){
         s = Config.CURRENT.Quality.Terrain.value;
         origin = this.transform; //This means origin in Unity's scene heiharchy
@@ -114,6 +121,7 @@ public class OctreeTerrain : MonoBehaviour
         MainLoopUpdateTasks = new Queue<UpdateTask>();
         MainLateUpdateTasks = new Queue<UpdateTask>();
         MainFixedUpdateTasks = new Queue<UpdateTask>();
+        MainCoroutines = new Queue<System.Collections.IEnumerator>();
         RequestQueue = new ConcurrentQueue<GenTask>();
         SystemProtocol.Startup();
     }
@@ -155,6 +163,7 @@ public class OctreeTerrain : MonoBehaviour
         StartGeneration();
         
         ProcessUpdateTasks(MainLoopUpdateTasks);
+        ProcessCoroutines(MainCoroutines);
     }
     private void LateUpdate(){ ProcessUpdateTasks(MainLateUpdateTasks); }
     private void FixedUpdate(){ ProcessUpdateTasks(MainFixedUpdateTasks); }
@@ -167,6 +176,14 @@ public class OctreeTerrain : MonoBehaviour
                 continue;
             task.Update(this);
             taskQueue.Enqueue(task);
+        }
+    }
+
+    private void ProcessCoroutines(Queue<System.Collections.IEnumerator> taskQueue){
+        int UpdateTaskCount = taskQueue.Count;
+        for(int i = 0; i < UpdateTaskCount; i++){
+            var task = taskQueue.Dequeue();
+            if(task != null) StartCoroutine(task);
         }
     }
     private void StartGeneration()
@@ -496,10 +513,13 @@ public class OctreeTerrain : MonoBehaviour
         }
     }
 
-    private struct ConstrainedLL<T>{
+    public struct ConstrainedLL<T>{
         public Node[] nodes;
         public uint length;
         public uint capacity;
+
+        public ref uint head => ref nodes[0].next;
+        public ref uint free => ref nodes[0].prev;
 
         public ConstrainedLL(uint size){
             length = 0;
@@ -510,14 +530,20 @@ public class OctreeTerrain : MonoBehaviour
             nodes[0].next = 0; //FirstNode
         }
 
+        public void Release(){
+            nodes = null;
+            length = 0;
+            capacity = 0;
+        }
+
         public uint Enqueue(T node){
             if(length + 1 >= capacity) {
                 return 0;
             }
 
-            uint freeNode = nodes[0].prev; //Free Head Node
+            uint freeNode = free; //Free Head Node
             uint nextNode = nodes[freeNode].next == 0 ? freeNode + 1 : nodes[freeNode].next;
-            nodes[0].prev = nextNode;
+            free = nextNode;
 
             nextNode = length == 0 ? freeNode : nodes[0].next;
             nodes[freeNode] = new Node{
@@ -527,7 +553,7 @@ public class OctreeTerrain : MonoBehaviour
             };
             nodes[nodes[nextNode].prev].next = freeNode;
             nodes[nextNode].prev = freeNode;
-            nodes[0].next = freeNode;
+            head = freeNode;
 
             length++;
             return freeNode;
@@ -538,16 +564,16 @@ public class OctreeTerrain : MonoBehaviour
 
             uint prev = nodes[index].prev;
             uint next = nodes[index].next;
-            if(nodes[0].next == index) 
-                nodes[0].next = next;
+            if(head == index) 
+                head = next;
 
             nodes[prev].next = next;
             nodes[next].prev = prev;
             //This is so if T is an object, it can be garbage collected
             nodes[index] = (Node)default(Node);
 
-            nodes[index].next = nodes[0].prev;
-            nodes[0].prev = index;
+            nodes[index].next = free;
+            free = index;
 
             length--;
             return;
@@ -555,6 +581,16 @@ public class OctreeTerrain : MonoBehaviour
 
         public readonly uint Head(){ return nodes[0].next; }
         public readonly uint Next(uint index){ return nodes[index].next; }
+
+        public int GetCoord(Func<T, bool> cb){
+            uint cur = head;
+            for(int i = 0; i < length; i++){
+                if(cb(nodes[cur].Value))
+                    return (int)cur;
+                cur = nodes[cur].next;
+            }
+            return -1;
+        }
 
         public struct Node{
             public uint next;

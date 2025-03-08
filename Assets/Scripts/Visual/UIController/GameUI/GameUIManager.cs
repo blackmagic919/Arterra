@@ -10,7 +10,12 @@ public static class GameUIManager
         UIHandle = GameObject.Find("MainUI");
         LoadingHandler.Initialize();
         PauseHandler.Initialize();
-        
+        GameOverHandler.Initialize();
+
+        InventoryController.Initialize();
+        DayNightContoller.Initialize();
+        CraftingMenuController.Initialize();
+        PlayerStatDisplay.Initialize();
     }
 
 }

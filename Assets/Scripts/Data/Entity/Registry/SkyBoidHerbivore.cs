@@ -56,6 +56,7 @@ public class SkyBoidHerbivore : Authoring
         public TerrainColliderJob tCollider;
         public Unity.Mathematics.Random random;
         public float3 flightDirection;
+        public Guid TaskTarget;
         public float TaskDuration;
         public uint TaskIndex;
         public AnimalSetting settings;
@@ -69,6 +70,9 @@ public class SkyBoidHerbivore : Authoring
             FindMate,
             ChaseMate,
             Reproduce,
+            RunFromTarget,
+            ChaseTarget,
+            AttackTarget,
             RunFromPredator,
             Death
         };
@@ -78,10 +82,27 @@ public class SkyBoidHerbivore : Authoring
         }
 
         public bool IsDead => vitality.IsDead;
-        public void TakeDamage(float damage, float3 knockback){
+        public void TakeDamage(float damage, float3 knockback, Entity attacker){
             if(!vitality.Damage(damage)) return;
-            Indicators.DisplayPopupText(damage.ToString(), position);
+            Indicators.DisplayPopupText(position, knockback);
             tCollider.velocity += knockback;
+
+            if(attacker == null) return; //If environmental damage, we don't need to retaliate
+            TaskTarget = attacker.info.entityId;
+            Recognition.Recognizable recog = settings.recognition.Recognize(attacker);
+            if(recog.IsPredator) TaskIndex = 9u; //if predator run away
+            else if(recog.IsMate) TaskIndex = 10u; //if mate fight back
+            else if(recog.IsPrey) TaskIndex = 10u; //if prey fight back
+            else TaskIndex = settings.recognition.FightAggressor ? 10u : 9u; //if unknown, depends
+            if(TaskIndex == 10 && attacker is not IAttackable) TaskIndex = 9u;  //Don't try to attack a non-attackable entity
+            pathFinder.hasPath = false;
+        }
+
+        public void ProcessFallDamage(float zVelDelta){
+            if(zVelDelta <= Vitality.FallDmgThresh) return;
+            float damage = zVelDelta - Vitality.FallDmgThresh;    
+            damage = math.pow(damage, settings.physicality.weight);
+            EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
         public WorldConfig.Generation.Item.IItem Collect(float amount){
             if(!IsDead) return null; //You can't collect resources until the entity is dead
@@ -113,11 +134,13 @@ public class SkyBoidHerbivore : Authoring
             //The seed is the entity's memory address
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.vitality = new Vitality(settings.physicality, ref random);
+            this.tCollider = new TerrainColliderJob(GCoord, true, ProcessFallDamage);
+
             this.GCoord = GCoord;
             pathFinder.hasPath = false;
-            tCollider.transform.position = GCoord;
             flightDirection = RandomDirection();
             TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
+            TaskTarget = Guid.Empty;
             TaskIndex = 0;
         }
 
@@ -126,6 +149,7 @@ public class SkyBoidHerbivore : Authoring
             settings = (AnimalSetting)setting;
             controller = new AnimalController(Controller, this);
             vitality.Deserialize(settings.physicality);
+            tCollider.OnHitGround = ProcessFallDamage;
             random.state ^= (uint)GetHashCode();
             GCoord = this.GCoord;
         }
@@ -137,17 +161,16 @@ public class SkyBoidHerbivore : Authoring
             TaskRegistry[(int)TaskIndex].Invoke(this);
 
             //use gravity if not flying
-            bool useGGrav = TaskIndex == 0 || (TaskIndex >= 3 && TaskIndex <= 8) || TaskIndex == 10;
-            tCollider.Update(EntityJob.cxt, settings.collider, useGGrav);
-            tCollider.velocity *= 1 - settings.movement.friction;
+            tCollider.Update(EntityJob.cxt, settings.collider);
+            if(!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
             EntityManager.AddHandlerEvent(controller.Update);
 
             vitality.Update();
-            if(TaskIndex != 10 && vitality.IsDead) {
+            if(TaskIndex != 13 && vitality.IsDead) {
                 TaskDuration = settings.decomposition.DecompositionTime;
                 flightDirection = 0;
-                TaskIndex = 10;
-            } else if(TaskIndex <= 8)  DetectPredator();
+                TaskIndex = 13;
+            } else if(TaskIndex <= 11)  DetectPredator();
         }
 
         private unsafe void DetectPredator(){
@@ -159,7 +182,7 @@ public class SkyBoidHerbivore : Authoring
             byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, PathDist + 1, settings.flight.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
             flightDirection = math.normalize(flightDirection);
-            TaskIndex = 9;
+            TaskIndex = 12;
         }
 
 
@@ -253,6 +276,7 @@ public class SkyBoidHerbivore : Authoring
 
         //Task 0
         public static void Idle(Animal self){
+            self.tCollider.useGravity = true;
             if (self.vitality.healthPercent > self.settings.physicality.MateThreshold){
                 self.TaskIndex = 6;
                 return;
@@ -277,6 +301,7 @@ public class SkyBoidHerbivore : Authoring
         
         //Task 1 -> Fly 
         public static unsafe void FollowFlight(Animal self){
+            self.tCollider.useGravity = false;
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, 
             self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
@@ -288,6 +313,7 @@ public class SkyBoidHerbivore : Authoring
 
         //Task 2 -> Landing 
         public static unsafe void FollowLanding(Animal self){
+            self.tCollider.useGravity = false;
             Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, 
             self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
 
@@ -301,6 +327,7 @@ public class SkyBoidHerbivore : Authoring
 
         //Task 3
         private static unsafe void FindPrey(Animal self){
+            self.tCollider.useGravity = true;
             if(!self.settings.recognition.FindPreferredPrey((int3)math.round(self.position + self.settings.collider.offset), out int3 preyPos)){
                 self.RandomWalk();
                 return;
@@ -323,6 +350,7 @@ public class SkyBoidHerbivore : Authoring
 
         //Task 4
         private static unsafe void ChasePrey(Animal self){
+            self.tCollider.useGravity = true;
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
             self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration);
             if(self.pathFinder.hasPath) return;
@@ -336,6 +364,7 @@ public class SkyBoidHerbivore : Authoring
 
         //Task 5
         private static unsafe void EatFood(Animal self){
+            self.tCollider.useGravity = true;
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if(self.TaskDuration <= 0){
                 if(self.settings.recognition.FindPreferredPrey((int3)math.round(self.position - self.settings.collider.offset), out int3 foodPos)){
@@ -349,6 +378,7 @@ public class SkyBoidHerbivore : Authoring
 
         //Task 6
         private static unsafe void FindMate(Animal self){
+            self.tCollider.useGravity = true;
             if(self.vitality.healthPercent < self.settings.physicality.MateThreshold){
                 self.TaskIndex = 0;
                 return;
@@ -366,6 +396,7 @@ public class SkyBoidHerbivore : Authoring
 
         //Task 7
         private static unsafe void ChaseMate(Animal self){//I feel you man
+            self.tCollider.useGravity = true;
             if(!self.settings.recognition.FindPreferredMate(self, out Entity mate)){
                 self.TaskIndex = 6;
                 return;
@@ -386,14 +417,92 @@ public class SkyBoidHerbivore : Authoring
 
         //Task 8 (I will never get here)
         private static void Reproduce(Animal self){
+            self.tCollider.useGravity = true;
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if(self.TaskDuration > 0) return;
             self.BoidFly();
         }
 
-
         //Task 9
+        private static unsafe void RunFromTarget(Animal self){
+            self.tCollider.useGravity = false;
+            Entity target = EntityManager.GetEntity(self.TaskTarget);
+            if(target == null) self.TaskTarget = Guid.Empty;
+            else if(math.distance(self.position, target.position) > self.settings.recognition.SightDistance)
+                self.TaskTarget = Guid.Empty;
+            if(self.TaskTarget == Guid.Empty) {
+                self.BoidFly();
+                return;
+            }
+
+            if(!self.pathFinder.hasPath) {
+                int PathDist = self.settings.recognition.FleeDistance;
+                float3 rayDir = self.GCoord - target.position;
+                byte* path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen);
+                self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
+            } 
+            Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, 
+            self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+        }
+        
+        //Task 10
+        private static unsafe void ChaseTarget(Animal self){
+            self.tCollider.useGravity = false;
+            Entity target = EntityManager.GetEntity(self.TaskTarget);
+            if(target == null) 
+                self.TaskTarget = Guid.Empty;
+            else if(math.distance(self.position, target.position) > self.settings.recognition.SightDistance)
+                self.TaskTarget = Guid.Empty;
+            if(self.TaskTarget == Guid.Empty) {
+                self.BoidFly();
+                return;
+            }
+
+            if(!self.pathFinder.hasPath) {
+                int PathDist = self.settings.movement.pathDistance;
+                int3 destination = (int3)math.round(target.position) - self.GCoord;
+                byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen);
+                self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
+            } 
+            Movement.FollowDynamicPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, target.position,
+            self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+            if(math.distance(self.tCollider.transform.position, target.position) < self.settings.physicality.AttackDistance) {
+                self.TaskIndex = 11;
+                return;
+            }
+        }
+
+        //Task 11
+        private static void AttackTarget(Animal self){
+            self.tCollider.useGravity = false;
+            Entity tEntity = EntityManager.GetEntity(self.TaskTarget);
+            if(tEntity == null) 
+                self.TaskTarget = Guid.Empty;
+            else if(tEntity is not IAttackable)
+                self.TaskTarget = Guid.Empty;
+            if(self.TaskTarget == Guid.Empty) {
+                self.BoidFly();
+                return;
+            }
+            float targetDist = math.distance(tEntity.position, self.position);
+            if(targetDist > self.settings.physicality.AttackDistance) {
+                self.TaskIndex = 10;
+                return;
+            }
+
+            float3 atkDir = math.normalize(tEntity.position - self.tCollider.transform.position); atkDir.y = 0;
+            self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation, 
+            Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
+
+            IAttackable target = tEntity as IAttackable;
+            if(target.IsDead) self.BoidFly();
+            else self.vitality.Attack(tEntity, self);
+        }
+
+
+        //Task 12
         private static unsafe void RunFromPredator(Animal self){
+            self.tCollider.useGravity = false;
             Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, self.settings.movement.runSpeed, 
             self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
             if(!self.pathFinder.hasPath) {
@@ -401,8 +510,9 @@ public class SkyBoidHerbivore : Authoring
             }
         }
 
-        //Task 10
+        //Task 13
         private static void Death(Animal self){
+            self.tCollider.useGravity = true;
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if(!self.IsDead){ //Bring back from the dead 
                 self.TaskIndex = 0;
@@ -444,7 +554,7 @@ public class SkyBoidHerbivore : Authoring
         private static readonly string[] AnimationNames = new string[]{
             "IsIdling",  "IsFlying", "IsFlying",  "IsWalking", "IsWalking", 
             "IsEating", "IsWalking",  "IsWalking", "IsCuddling",  "IsFlying", 
-            "IsDead"
+            "IsFlying", "IsAttacking", "IsFlying", "IsDead"
         };
 
         public AnimalController(GameObject GameObject, Animal entity){

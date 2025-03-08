@@ -385,6 +385,20 @@ MonoBehaviour:
                   - Key: 303
                     PollType: 2
                     IsAlias: 1
+          - Name: Interact
+            _value:
+              value:
+                bindings:
+                  value:
+                  - Key: 324
+                    PollType: 2
+                    IsAlias: 0
+                  - Key: 304
+                    PollType: 2
+                    IsAlias: 0
+                  - Key: 303
+                    PollType: 2
+                    IsAlias: 1
           - Name: Remove Liquid
             _value:
               value:
@@ -545,7 +559,6 @@ MonoBehaviour:
         value:
           movement:
             value:
-              GroundFriction: 0.25
               walkSpeed: 4
               runSpeed: 8
               jumpForce: 5
@@ -562,7 +575,7 @@ MonoBehaviour:
               smoothTime: 0
           Interaction:
             value:
-              terraformRadius: 2
+              terraformRadius: 1
               terraformSpeed: 100
               ReachDistance: 60
               PickupRate: 0.5
@@ -571,6 +584,11 @@ MonoBehaviour:
               AttackDamage: 2
               AttackFrequency: 0.25
               KnockBackStrength: 20
+              InvincTime: 0.25
+              MaxHealth: 40
+              NaturalRegen: 0.01
+              DecompositionTime: 300
+              weight: 0.75
       Crafting:
         value: {fileID: 11400000, guid: b6eb14945e6ce4e35a36d2502ba1cf4f, type: 2}
       Inventory:
@@ -729,7 +747,7 @@ MonoBehaviour:
               m_RotationOrder: 4
       Statistics:
         value:
-          DisplayEntityStats: 0
+          DisplayEntityStats: 1
           DisplayEntityDamage: 1
   _System:
     value:

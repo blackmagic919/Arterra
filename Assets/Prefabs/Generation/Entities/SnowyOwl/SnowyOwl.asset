@@ -95,12 +95,21 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 88
+        profileStart: 96
+      collider:
+        size:
+          x: 0.5
+          y: 0.5
+          z: 0.5
+        offset:
+          x: -0.25
+          y: -0.25
+          z: -0.25
+        friction: 0.25
       movement:
         walkSpeed: 2
         runSpeed: 10
         acceleration: 100
-        friction: 0.25
         rotSpeed: 180
         pathDistance: 31
         AverageIdleTime: 2.5
@@ -110,7 +119,7 @@ MonoBehaviour:
             x: 2
             y: 3
             z: 2
-          profileStart: 100
+          profileStart: 108
         AverageFlightTime: 20
         FlyBiasWeight: 0.25
         VerticalFreedom: 0.5
@@ -128,6 +137,7 @@ MonoBehaviour:
             Nutrition: 1.5
         SightDistance: 30
         FleeDistance: 5
+        FightAggressor: 0
         Prey:
           value:
           - ArcticHare
@@ -136,7 +146,7 @@ MonoBehaviour:
         NaturalRegen: -0.025
         AttackDistance: 4
         AttackDamage: 5
-        AttackSpeed: 1
+        AttackCooldown: 0.75
         KBStrength: 2
         InvincTime: 0.025
         HuntThreshold: 0.4
@@ -144,6 +154,7 @@ MonoBehaviour:
         PregnacyLength: 5
         ConsumptionRate: 0.05
         MateCost: 10
+        weight: 0.25
       decomposition:
         LootTable:
           value:
@@ -151,13 +162,3 @@ MonoBehaviour:
             DropAmount: 1
         DecompositionTime: 200
         DecompPerLoot: 5
-      collider:
-        size:
-          x: 0.5
-          y: 0.5
-          z: 0.5
-        offset:
-          x: -0.25
-          y: -0.25
-          z: -0.25
-        useGravity: 0

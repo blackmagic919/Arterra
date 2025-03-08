@@ -52,14 +52,13 @@ public class PlayerInteraction
     private static Registry<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
     private static Registry<Authoring> itemInfo => Config.CURRENT.Generation.Items;
     public static Interaction settings => Config.CURRENT.GamePlay.Player.value.Interaction;
-    private PlayerStreamer.Player data;
+    private PlayerStreamer.Player data => PlayerHandler.data;
 
 
 
     // Start is called before the first frame update
-    public PlayerInteraction(PlayerStreamer.Player data)
+    public PlayerInteraction()
     {
-        this.data = data;
         InputPoller.AddBinding(new InputPoller.ActionBind("Pickup Item", PickupItems), "5.0::GamePlay");
         InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", PlaceTerrain), "5.0::GamePlay");
         InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", RemoveTerrain), "5.0::GamePlay");
@@ -104,12 +103,11 @@ public class PlayerInteraction
     public static int GetStaggeredDelta(float deltaDensity){
         int remInvFreq = Mathf.CeilToInt(1 / math.frac(deltaDensity));
         int staggeredDelta = Mathf.FloorToInt(deltaDensity);
-        return  staggeredDelta + math.frac(deltaDensity) == 0 ? 0 : 
-                (Time.frameCount % remInvFreq) == 0 ? 1 : 0;
+        return  staggeredDelta + ((Time.frameCount % remInvFreq) == 0 ? 1 : 0);
     }
 
     public static int GetStaggeredDelta(int baseDensity, float deltaDensity){
-        int staggeredDelta = GetStaggeredDelta(deltaDensity);
+        int staggeredDelta = (deltaDensity > 0 ? 1 : -1) * GetStaggeredDelta(math.abs(deltaDensity));
         return Mathf.Abs(Mathf.Clamp(baseDensity + staggeredDelta, 0, 255) - baseDensity);
     }
 
@@ -165,9 +163,8 @@ public class PlayerInteraction
         if(brushStrength == 0) return pointInfo;
 
         int solidDensity = pointInfo.SolidDensity;
+        int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
         if(solidDensity >= IsoValue){
-            int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
-
             MaterialData material = matInfo.Retrieve(pointInfo.material);
             string key = material.RetrieveKey(material.SolidItem);
             if(!itemInfo.Contains(key)) return pointInfo;
@@ -179,10 +176,9 @@ public class PlayerInteraction
 
             InventoryController.AddEntry(nMaterial);
             deltaDensity -= nMaterial.AmountRaw;
-
-            pointInfo.viscosity -= deltaDensity;
-            pointInfo.density -= deltaDensity;
         }
+        pointInfo.viscosity -= deltaDensity;
+        pointInfo.density -= deltaDensity;
         return pointInfo;
     }
 
@@ -191,9 +187,8 @@ public class PlayerInteraction
         if(brushStrength == 0) return pointInfo;
 
         int liquidDensity = pointInfo.LiquidDensity;
+        int deltaDensity = GetStaggeredDelta(liquidDensity, -brushStrength);
         if (liquidDensity >= IsoValue){
-            int deltaDensity = GetStaggeredDelta(liquidDensity, -brushStrength);
-            
             MaterialData material = matInfo.Retrieve(pointInfo.material);
             string key = material.RetrieveKey(material.LiquidItem);
             if(!itemInfo.Contains(key)) return pointInfo;
@@ -202,15 +197,14 @@ public class PlayerInteraction
             IItem nMaterial = itemInfo.Retrieve(itemIndex).Item;
             nMaterial.Index = itemIndex;
             nMaterial.AmountRaw = deltaDensity;
-            
             deltaDensity -= nMaterial.AmountRaw;
-            pointInfo.density -= deltaDensity;
         }
+        pointInfo.density -= deltaDensity;
         return pointInfo;
     }
 
     private void PickupItems(float _){
-        if(!RayTestSolid(data, out float3 hitPt)) return;
+        if(!RayTestSolid(data, out float3 hitPt)) hitPt = data.positionGS + (float3)PlayerHandler.camera.forward * settings.ReachDistance;
         if(!EntityManager.ESTree.FindClosestAlongRay(data.position, hitPt, PlayerHandler.data.info.entityId, 
         out WorldConfig.Generation.Entity.Entity entity))
             return;

@@ -29,8 +29,8 @@ public static class SystemProtocol{
         TerrainUpdate.Initialize();
 
         InputPoller.Initialize();
-        GameUIManager.Initialize();
         PlayerHandler.Initialize();
+        GameUIManager.Initialize();
 
         AtmospherePass.Initialize();
         ChunkStorageManager.Initialize();
@@ -54,6 +54,7 @@ public static class SystemProtocol{
         GenerationPreset.Release();
         AtmospherePass.Release();
         Readback.AsyncMeshReadback.Release();
+        PlayerHandler.Release();
     }
 }
 

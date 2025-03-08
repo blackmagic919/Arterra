@@ -55,9 +55,19 @@ public static class EntityManager
         int3 GCoord = CCoord * mapSize + genInfo.position;
         AddHandlerEvent(() => InitializeE(GCoord, genInfo.entityIndex));
     }
-    public static void InitializeEntity(int3 GCoord, uint entityIndex) => AddHandlerEvent(() => InitializeE(GCoord, entityIndex));
-    public static void CreateEntity(Entity sEntity) => AddHandlerEvent(() => CreateE(sEntity));
-    public static void ReleaseEntity(Guid entityId) => AddHandlerEvent(() => ReleaseE(entityId));
+    public static void InitializeEntity(int3 GCoord, uint entityIndex, Action cb = null) => AddHandlerEvent(() => {
+        InitializeE(GCoord, entityIndex);
+        cb?.Invoke();
+    });
+    public static void CreateEntity(Entity sEntity, Action cb = null) => AddHandlerEvent(() => {
+        CreateE(sEntity);
+        cb?.Invoke();
+    });
+    public static void ReleaseEntity(Guid entityId, Action cb = null) => AddHandlerEvent(() => {
+        ReleaseE(entityId);
+        cb?.Invoke();
+    });
+    
     public static unsafe void ReleaseChunkEntities(int3 CCoord){
         int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         ChunkMapInfo mapInfo = AddressDict[HashCoord(CCoord)];
@@ -69,7 +79,7 @@ public static class EntityManager
         ESTree.QueryExclusive(bounds, (Entity entity) => {
             if(entity == null) return;
             //This is the only entity that is not serialized and saved
-            if(entity.GetType() == typeof(PlayerStreamer.Player)) return;
+            if(entity.info.entityId == PlayerHandler.data.info.entityId) return;
             ReleaseEntity(entity.info.entityId);
             Entities.Add(entity);
         }); 
@@ -94,7 +104,7 @@ public static class EntityManager
         }
         EntityHandler.RemoveAt(EntityHandler.Count - 1);
     }
-    private unsafe static void InitializeE(int3 GCoord, uint entityIndex){
+    public unsafe static void InitializeE(int3 GCoord, uint entityIndex){
         
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg.value[(int)entityIndex].Value;
         Entity newEntity = authoring.Entity;
@@ -108,7 +118,7 @@ public static class EntityManager
         ESTree.Insert(newEntity);
     }
 
-    private unsafe static void CreateE(Entity sEntity){
+    public unsafe static void CreateE(Entity sEntity){
         var reg = Config.CURRENT.Generation.Entities;
         Authoring authoring = reg.Retrieve((int)sEntity.info.entityType);
         sEntity.active = true;

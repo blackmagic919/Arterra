@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
@@ -32,14 +33,13 @@ namespace WorldConfig.Gameplay{
         public Color BaseColor;
     }
 }
-public class InventoryController : UpdateTask
+public static class InventoryController
 {
     public static WorldConfig.Gameplay.Inventory settings => Config.CURRENT.GamePlay.Inventory.value;
     public static Inventory Primary => PlayerHandler.data.PrimaryI; //Hotbar
     public static Inventory Secondary => PlayerHandler.data.SecondaryI; //Inventory
-    public static InventoryController Instance;
     public static SlotDisplay CursorDisplay;
-
+    private static UpdateTask EventTask;
     
     public static InventDisplay PrimaryArea;
     public static SlotDisplay[] PrimaryDisplay;
@@ -116,9 +116,8 @@ public class InventoryController : UpdateTask
         AddHotbarKeybinds();
         ReApplyHandles();
 
-        CraftingMenuController.Initialize();
-        Instance = new InventoryController{active = true};
-        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(Instance);
+        EventTask = new IndirectUpdate(Update);
+        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(EventTask);
 
         Secondary.AddCallbacks(OnEnterSecondary, OnLeaveSecondary);
         Primary.AddCallbacks(OnEnterPrimary, OnLeavePrimary);
@@ -289,7 +288,7 @@ public class InventoryController : UpdateTask
         return Primary.RemoveStackableSlot(SelIndex, delta);
     }
 
-    public override void Update(MonoBehaviour mono){
+    public static void Update(MonoBehaviour mono){
         ReflectInventory(PrimaryDisplay, Primary); 
         ReflectInventory(SecondaryDisplay, Secondary);
         CursorDisplay.Object.transform.position = Input.mousePosition;
@@ -341,6 +340,23 @@ public class InventoryController : UpdateTask
         public void AddCallbacks(Action<int> OnAddItem = null, Action<int> OnRemoveItem = null){
             OnAddElement = OnAddItem;
             OnRemoveElement = OnRemoveItem;
+        }
+
+        public IItem LootInventory(float collectRate){
+            if(EntryDict.Count <= 0) return null;
+            int firstSlot = EntryDict.First().Value;
+            IItem item = Info[firstSlot];
+            if(item == null) return null;
+
+            IItem ret = null;
+            if(item.IsStackable){
+                ret = (IItem)item.Clone();
+                int delta = Mathf.FloorToInt(collectRate) + (UnityEngine.Random.Range(0,1) < math.frac(collectRate) ? 1 : 0);
+                ret.AmountRaw = RemoveStackableSlot(firstSlot, delta);
+            } else if(UnityEngine.Random.Range(0, 1) > math.exp(-collectRate)){
+                ret = (IItem)item.Clone();
+                RemoveEntry(firstSlot);
+            } return ret;
         }
 
         //Input: The material id, amount to add, and index to add at

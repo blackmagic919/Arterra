@@ -25,22 +25,21 @@ namespace WorldConfig.Gameplay{
 public static class Indicators
 {
     public static WorldConfig.Gameplay.Statistics Stats => Config.CURRENT.GamePlay.Statistics;
-    private static ObjectPool<GameObject> TextIndicators;
-    private static GameObject TextIndicator;
-    private static GameObject BarIndicator;
-    private static float decayTime = 2f;
+    public static ObjectPool<GameObject> SelectionIndicators;
+    public static GameObject DamageIndicator;
+    public static GameObject BarIndicator;
     public static void Initialize(){
-        TextIndicator = Resources.Load<GameObject>("Prefabs/GameUI/IndicatorText");
+        static void OnActivate(GameObject indicator) => indicator.SetActive(true);
+        static void OnDeactivate(GameObject indicator) => indicator.SetActive(false);
+        static void OnDestroy(GameObject indicator) => GameObject.Destroy(indicator);
+
+        GameObject SelectionIndicator = Resources.Load<GameObject>("Prefabs/GameUI/Selection");
+        DamageIndicator = Resources.Load<GameObject>("Prefabs/GameUI/DamageEffect");
         BarIndicator = Resources.Load<GameObject>("Prefabs/GameUI/EntityStats");
-        TextIndicators = new ObjectPool<GameObject>(() => {
-            return GameObject.Instantiate(TextIndicator);
-        }, indicator => {
-            indicator.SetActive(true);
-        }, indicator => {
-            indicator.SetActive(false);
-        }, indicator => {
-            GameObject.Destroy(indicator);
-        }, true, 25, 100);
+
+        SelectionIndicators = new ObjectPool<GameObject>(() => {
+            return GameObject.Instantiate(SelectionIndicator);
+        }, OnActivate, OnDeactivate, OnDestroy, true, 25, 100);
     }
 
     public static void SetupIndicators(GameObject entity){
@@ -55,30 +54,28 @@ public static class Indicators
         if(!stats.activeSelf) return;
 
         if(vitality != null) {
+            Vitality vitals = (Vitality)vitality;
             Image healthSlider = stats?.transform.Find("HealthBar").GetComponent<Image>();
-            if(healthSlider != null) healthSlider.fillAmount = ((Vitality)vitality).healthPercent;
+            if(healthSlider != null) healthSlider.fillAmount = vitals.healthPercent;
+            if(vitals.invincibility > 0) return;
+            Image damageSlider = stats?.transform.Find("DamageBar").GetComponent<Image>();
+            damageSlider.fillAmount = math.max(vitals.healthPercent, damageSlider.fillAmount - 0.01f);
         } if(path != null) {
             //Maybe Implement path indicator(s) ?
         }
     }
 
-    public static GameObject DisplayPopupText(string text, float3 posGS){
+    public static GameObject DisplayPopupText(float3 posGS, float3 eulerDir = default){
         if(!Stats.DisplayEntityDamage) return null;
-        GameObject indicator = TextIndicators.Get();
-        Quaternion rot = Quaternion.Euler(0f, UnityEngine.Random.Range(0, 360f), 0f);
+        GameObject indicator = GameObject.Instantiate(DamageIndicator);
+
+        Quaternion rot;
+        if(math.all(eulerDir == default)) rot = UnityEngine.Random.rotation;
+        else rot = Quaternion.LookRotation(eulerDir);
         indicator.transform.SetPositionAndRotation(CPUMapManager.GSToWS(posGS), rot);
-        indicator.GetComponent<TextMesh>().text = text.ToString();
-        indicator.GetComponent<GravitySimulator>().velocity = 
-        new Vector3(UnityEngine.Random.Range(-1, 1), 1, UnityEngine.Random.Range(-1, 1)) * 5;
-        ReleaseAfterDelay(indicator, decayTime);
         return indicator;
     }
 
-    public static async void ReleaseAfterDelay(GameObject obj, float delay)
-    {
-        await Task.Delay((int)(delay * 1000)); // Convert seconds to milliseconds
-        if(obj != null) TextIndicators.Release(obj);
-    }
 
     public static void OnDrawGizmos(){
         if(ESTree.Length == 0) return;

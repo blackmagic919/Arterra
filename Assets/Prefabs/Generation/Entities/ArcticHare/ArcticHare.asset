@@ -59,12 +59,21 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 36
+        profileStart: 72
+      collider:
+        size:
+          x: 0.5
+          y: 0.8
+          z: 0.5
+        offset:
+          x: -0.25
+          y: -0.3
+          z: -0.25
+        friction: 0.25
       movement:
         walkSpeed: 3
         runSpeed: 5
         acceleration: 200
-        friction: 0.25
         rotSpeed: 180
         pathDistance: 31
         AverageIdleTime: 2.5
@@ -84,6 +93,7 @@ MonoBehaviour:
             Nutrition: 0.05
         SightDistance: 16
         FleeDistance: 5
+        FightAggressor: 0
         PlantFindDist: 3
         Prey:
           value:
@@ -97,7 +107,7 @@ MonoBehaviour:
         NaturalRegen: -0.01
         AttackDistance: 2
         AttackDamage: 1
-        AttackSpeed: 1
+        AttackCooldown: 1
         KBStrength: 1
         InvincTime: 0.25
         HuntThreshold: 0.4
@@ -105,6 +115,7 @@ MonoBehaviour:
         PregnacyLength: 4
         ConsumptionRate: 0.25
         MateCost: 2
+        weight: 0.5
       decomposition:
         LootTable:
           value:
@@ -112,13 +123,3 @@ MonoBehaviour:
             DropAmount: 1
         DecompositionTime: 200
         DecompPerLoot: 5
-      collider:
-        size:
-          x: 0.5
-          y: 0.8
-          z: 0.5
-        offset:
-          x: -0.25
-          y: -0.3
-          z: -0.25
-        useGravity: 1

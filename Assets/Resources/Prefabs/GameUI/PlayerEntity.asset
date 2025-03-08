@@ -33,5 +33,6 @@ MonoBehaviour:
           x: -0.5
           y: -1
           z: -0.5
+        friction: 0.25
       maxHealth: 50
       healthRegen: 0.01

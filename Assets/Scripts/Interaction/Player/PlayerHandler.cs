@@ -4,6 +4,7 @@ using System.IO;
 using TerrainGeneration;
 using WorldConfig;
 using System;
+using UnityEngine.PlayerLoop;
 
 
 namespace WorldConfig.Gameplay.Player{
@@ -25,56 +26,50 @@ public struct Settings{
 }
 }
 
-public class PlayerHandler : MonoBehaviour
+public static class PlayerHandler
 {
     public static PlayerStreamer.Player data;
     public static new Transform camera;
-    private PlayerInteraction interaction;
-    private PlayerMovement movement;
-    private PlayerVitality vitality;
+    private static PlayerInteraction interaction;
+    private static PlayerMovement movement;
     private static bool active = false;
     public static void Initialize(){
-        PlayerStreamer playerEntity = (PlayerStreamer)Config.CURRENT.Generation.Entities.Retrieve("Player");
-        GameObject player = GameObject.Instantiate(playerEntity.Controller.value);
         active = false;
-        
         data = LoadPlayerData();
-        EntityManager.CreateEntity(data);
-        player.transform.SetPositionAndRotation(data.positionWS, data.rotation);
-        OctreeTerrain.viewer = player.transform; //set octree's viewer to current player
+        EntityManager.CreateE(data); 
 
-        InventoryController.Initialize();
-        DayNightContoller.Initialize();
+        camera = GameObject.Find("CameraHandler").transform;
+        camera.SetParent(data.player.transform, worldPositionStays: false);
+        OctreeTerrain.viewer = camera; //set octree's viewer to current player
+
+        OctreeTerrain.MainLoopUpdateTasks.Enqueue(new IndirectUpdate(Update));
+        OctreeTerrain.MainFixedUpdateTasks.Enqueue(new IndirectUpdate(FixedUpdate));
     }
-
-    public void Start(){camera = Camera.main.transform;}
 
     // Update is called once per frame
-    public void Update() { 
+    public static void Update(MonoBehaviour mono) { 
+        if(!data.active) return;
         if(!active && OctreeTerrain.RequestQueue.IsEmpty) {
-            movement = new PlayerMovement(data);
-            interaction = new PlayerInteraction(data);
-            vitality = new PlayerVitality(data);
+            movement = new PlayerMovement();
+            interaction = new PlayerInteraction();
             active = true;
         } if(!active) return;
-        vitality.Update();
         movement.Update();
         camera.localRotation = data.cameraRot;
+        PlayerStatDisplay.UpdateIndicator(data.vitality);
     }
 
-    public void FixedUpdate(){
+    public static void FixedUpdate(MonoBehaviour mono){
         if(!active) return;
-        movement.FixedUpdate();
+        if(!data.active) return;
         data.collider.FixedUpdate(data, data.settings.collider);
-        this.transform.SetPositionAndRotation(data.positionWS, data.rotation);
+        data.player.transform.SetPositionAndRotation(data.positionWS, data.rotation);
     }
 
-    public void OnDisable(){
+    public static void Release(){
         InputPoller.SetCursorLock(false); //Release Cursor Lock
-        Task.Run(() => SavePlayerData(data));//
-
+        Task.Run(() => SavePlayerData(data));
         InventoryController.Release();
-        GameObject.Destroy(this.gameObject);
     }
     
 
@@ -97,5 +92,15 @@ public class PlayerHandler : MonoBehaviour
         PlayerStreamer.Player playerInfo = Newtonsoft.Json.JsonConvert.DeserializeObject<PlayerStreamer.Player>(data);
         playerInfo.Deserialize();
         return playerInfo;
+    }
+
+    public static void RespawnPlayer(Action cb = null){
+        DateTime currentTime = data.currentTime;
+        data = new PlayerStreamer.Player();
+        data.currentTime = currentTime;
+        EntityManager.CreateEntity(data, () => {
+            camera.SetParent(data.player.transform, worldPositionStays: false);
+            cb?.Invoke();
+        });
     }
 }

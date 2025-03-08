@@ -9,7 +9,7 @@ using WorldConfig.Generation.Entity;
 /// implementer to decide how the request to take damage is handled. </summary>
 public interface IAttackable{
     public WorldConfig.Generation.Item.IItem Collect(float collectRate);
-    public void TakeDamage(float damage, float3 knockback);
+    public void TakeDamage(float damage, float3 knockback, Entity attacker = null);
     public bool IsDead{get;}
 }
 
@@ -20,7 +20,7 @@ public struct Vitality{
         public float NaturalRegen;
         public float AttackDistance;
         public float AttackDamage;
-        public float AttackSpeed;
+        public float AttackCooldown;
         public float KBStrength;
         public float InvincTime;
         [Range(0, 1)]
@@ -30,6 +30,9 @@ public struct Vitality{
         public float PregnacyLength;
         public float ConsumptionRate;
         public float MateCost; //Everything );
+
+        [Range(0,1)]
+        public float weight;
     }
     private Stats stats;
     public float health;
@@ -37,6 +40,7 @@ public struct Vitality{
     public float attackCooldown;
     public float healthPercent => health / stats.MaxHealth;
     public bool IsDead => health <= 0;
+    public const float FallDmgThresh = 10;
     public Vitality(Stats stats, ref Unity.Mathematics.Random random){
         this.stats = stats;
         invincibility = 0;
@@ -67,13 +71,13 @@ public struct Vitality{
         return true;
     }
 
-    public bool Attack(Entity target, float3 selfPos){
+    public bool Attack(Entity target, Entity self){
         if(attackCooldown > 0) return false;
         if(target is not IAttackable) return false;
-        attackCooldown = stats.AttackSpeed;
+        attackCooldown = stats.AttackCooldown;
         float damage = stats.AttackDamage;
-        float3 knockback = math.normalize(target.position - selfPos) * stats.KBStrength;
-        EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback));
+        float3 knockback = math.normalize(target.position - self.position) * stats.KBStrength;
+        EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback, self));
         return true;
     }
 

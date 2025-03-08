@@ -26,6 +26,7 @@ public class Recognition{
     public Option<List<Consumable>> Edibles;
     public int SightDistance;
     public int FleeDistance;
+    public bool FightAggressor;
 
     [UISetting(Ignore = true)][JsonIgnore][HideInInspector]
     internal Dictionary<int, Recognizable> AwarenessTable;
@@ -47,11 +48,15 @@ public class Recognition{
 
     [Serializable]
 
-    internal struct Recognizable{
+    public struct Recognizable{
         public uint data;
         public int Preference{
             readonly get => (int)(data & 0x3FFFFFF);
             set => data = (data & 0xC0000000) | ((uint)value & 0x3FFFFFF);
+        }
+        public bool IsUnknown{
+            readonly get => ((data >> 30) & 0x3) == 0;
+            set => data = (data & 0x3FFFFFFF) | (uint)(value ? 0 : 0);
         }
         public bool IsPredator{
             readonly get => ((data >> 30) & 0x3) == 1;
@@ -161,6 +166,13 @@ public class Recognition{
         if(AwarenessTable == null) return false;
         int index = (int)entity.info.entityType;
         return AwarenessTable.ContainsKey(index);
+    }
+
+    public Recognizable Recognize(Entity entity){
+        if(AwarenessTable == null) return new Recognizable{IsUnknown = true};
+        if(!AwarenessTable.TryGetValue((int)entity.info.entityType, out Recognizable ret)) 
+            return new Recognizable{IsUnknown = true};
+        return ret;
     }
 }
 [Serializable]

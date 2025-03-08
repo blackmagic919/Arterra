@@ -47,14 +47,7 @@ MonoBehaviour:
           x: 2
           y: 2
           z: 2
-        profileStart: 72
-      GroundStickDist: 0.05
-      StickFriction: 0.15
-      SpriteSampleSize:
-        x: 32
-        y: 32
-      AlphaClip: 0.2
-      ExtrudeHeight: 5
+        profileStart: 120
       collider:
         size:
           x: 0.5
@@ -64,4 +57,11 @@ MonoBehaviour:
           x: -0.25
           y: -0.1
           z: -0.25
-        useGravity: 1
+        friction: 0.25
+      GroundStickDist: 0.05
+      StickFriction: 0.15
+      SpriteSampleSize:
+        x: 32
+        y: 32
+      AlphaClip: 0.2
+      ExtrudeHeight: 5

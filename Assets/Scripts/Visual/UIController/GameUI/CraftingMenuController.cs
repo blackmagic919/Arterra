@@ -11,7 +11,7 @@ using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
 using WorldConfig.Gameplay;
 
-public class CraftingMenuController : UpdateTask
+public static class CraftingMenuController
 {
     private static Crafting settings;
     private static KTree Recipe;
@@ -19,9 +19,7 @@ public class CraftingMenuController : UpdateTask
     private static MapData[] craftingData;
     private static Display Rendering;
     public static int FitRecipe = -1;
-
-
-    private static CraftingMenuController Instance;
+    private static UpdateTask eventTask;
 
     private static int GridWidth;
     private static int AxisWidth => GridWidth + 1;
@@ -103,9 +101,9 @@ public class CraftingMenuController : UpdateTask
     }
 
     // Update is called once per frame
-    public override void Update(MonoBehaviour mono)
+    public static void Update(MonoBehaviour mono)
     {
-        if(!active) return; 
+        if(!eventTask.active) return; 
         
         //Crafting Point Scaling
         EvaluateInfluence((int2 corner, float influence) => {
@@ -212,8 +210,8 @@ public class CraftingMenuController : UpdateTask
     }
 
     public static void Activate(){
-        Instance = new CraftingMenuController{active = true};
-        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(Instance);
+        eventTask = new IndirectUpdate(Update);
+        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
 
         Clear();
         UpdateDisplay();//
@@ -235,7 +233,7 @@ public class CraftingMenuController : UpdateTask
     }
 
     public static void Deactivate(){
-        Instance.active = false;
+        eventTask.active = false;
         for(int i = 0; i < GridCount; i++){
             if(craftingData[i].density == 0) continue;
             InventoryAddMapData(craftingData[i]);

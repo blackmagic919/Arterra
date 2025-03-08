@@ -11,8 +11,6 @@ namespace WorldConfig.Gameplay.Player{
     /// </summary>
     [Serializable]
     public class Movement : ICloneable{
-        /// <summary> How quickly the player slows down, in terms of world space, when touching the ground. </summary>
-        public float GroundFriction = 0.25f;
         /// <summary> The maximum speed the player can walk at, in terms of world space. </summary>
         public float walkSpeed = 10f;
         /// <summary> The maximum speed the player can run at, in terms of world space. </summary>
@@ -20,7 +18,7 @@ namespace WorldConfig.Gameplay.Player{
         /// <summary>  How much force is applied to the player when they jump, in terms of world space. </summary>
         public float jumpForce = 8f;
         /// <summary> How much speed the user gains when moving, in terms of world space. The acceleration is added onto velocity
-        /// <see cref="GroundFriction"/> meaning the comparative strength of friction increases with velocity. </summary>
+        /// meaning the comparative strength of friction increases with velocity. </summary>
         public float acceleration = 50f;
         /// <summary> How far below the player the ground needs to be for the player to be 'on the ground'. 
         /// Being on the ground may affect their ability to jump and the friction they experience. </summary>
@@ -32,7 +30,6 @@ namespace WorldConfig.Gameplay.Player{
 
         public object Clone(){
             return new Movement{
-                GroundFriction = this.GroundFriction,
                 walkSpeed = this.walkSpeed,
                 runSpeed = this.runSpeed,
                 jumpForce = this.jumpForce,
@@ -48,48 +45,42 @@ public class PlayerMovement
     public static WorldConfig.Gameplay.Player.Camera Camera => Config.CURRENT.GamePlay.Player.value.Camera;
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
     private PlayerCamera cameraInput;
-    private PlayerStreamer.Player data;
+    private ref PlayerStreamer.Player data => ref PlayerHandler.data;
 
-    public PlayerMovement(PlayerStreamer.Player data){
-        this.data = data;
+    public PlayerMovement(){
         //These constructors will hook themselves to input modules and will not be garbage collected
-        new SurfaceMovement(data);
-        new FlightMovement(data);
-        cameraInput = new PlayerCamera(ref data);
+        new SurfaceMovement();
+        new FlightMovement();
+        cameraInput = new PlayerCamera(data);
     }
 
     public void Update(){ 
         cameraInput.LookRotation(ref data);
         InputPoller.InvokeStackTop("Movement::Update");
     }
-
-    public void FixedUpdate(){ InputPoller.InvokeStackTop("Movement::FixedUpdate"); }
 }
 
 public class MovementModule{
-    public PlayerStreamer.Player data;
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
     public static ref float3 velocity => ref PlayerHandler.data.collider.velocity;
     public float2 InputDir;
     public virtual void Update(){}
-    public virtual void FixedUpdate(){}
 }
 
 public class SurfaceMovement : MovementModule{
     private float moveSpeed => IsSprinting ? Setting.runSpeed : Setting.walkSpeed;
     private bool IsSprinting;
-    public SurfaceMovement(PlayerStreamer.Player data)
+    public SurfaceMovement()
     {
-        this.data = data;
         InputPoller.AddStackPoll(new InputPoller.ActionBind("GroundMove::1", _ => Update()), "Movement::Update");
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("GroundMove::2", _ => FixedUpdate()), "Movement::FixedUpdate");
+        InputPoller.AddStackPoll(new InputPoller.ActionBind("GroundMove::2", _ => PlayerHandler.data.collider.useGravity = true), "Movement::Gravity");
         InputPoller.AddBinding(new InputPoller.ActionBind("Move Vertical", (float y) => InputDir.y = y), "4.0::Movement");
         InputPoller.AddBinding(new InputPoller.ActionBind("Move Horizontal", (float x) => InputDir.x = x), "4.0::Movement");
         InputPoller.AddBinding(new InputPoller.ActionBind("Sprint", (float x) => {IsSprinting = true;}), "4.0::Movement");
         InputPoller.AddBinding(new InputPoller.ActionBind("Jump", (_null_) => {
-            TerrainColliderJob.Settings collider = data.settings.collider;
+            TerrainColliderJob.Settings collider = PlayerHandler.data.settings.collider;
             float3 posGS = PlayerHandler.data.position + collider.offset;
-            if(data.collider.SampleCollision(posGS, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _))
+            if(PlayerHandler.data.collider.SampleCollision(posGS, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _))
                 velocity += Setting.jumpForce * (float3)Vector3.up;
         }), "4.0::Movement");
     }
@@ -98,14 +89,11 @@ public class SurfaceMovement : MovementModule{
         float2 desiredMove = ((float3)(PlayerHandler.camera.forward*InputDir.y + PlayerHandler.camera.right*InputDir.x)).xz;
         float2 deltaV = Setting.acceleration * Time.deltaTime * desiredMove;
 
-        velocity.xz *= 1 - Setting.GroundFriction;
         if(math.length(velocity.xz) < moveSpeed) 
             velocity.xz += deltaV;
         IsSprinting = false;
         InputDir = float2.zero;
     }
-
-    public override void FixedUpdate(){velocity += (float3)Physics.gravity * Time.fixedDeltaTime;}
 }
 
 public class FlightMovement : MovementModule{
@@ -113,9 +101,9 @@ public class FlightMovement : MovementModule{
     private int[] KeyBinds = null;
     private bool IsSprinting;
 
-    public FlightMovement(PlayerStreamer.Player data)
+    public FlightMovement()
     {
-        this.data = data; KeyBinds = null;
+        KeyBinds = null;
         InputPoller.AddBinding(new InputPoller.ActionBind("ToggleFly", (_null_) => {
             if(KeyBinds == null) AddHandles();
             else RemoveHandles();
@@ -124,7 +112,7 @@ public class FlightMovement : MovementModule{
 
     private void AddHandles(){
         InputPoller.AddStackPoll(new InputPoller.ActionBind("FlightMove::1", _ => Update()), "Movement::Update");
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("FlightMove::2", _ => FixedUpdate()), "Movement::FixedUpdate");
+        InputPoller.AddStackPoll(new InputPoller.ActionBind("FlightMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
         InputPoller.AddKeyBindChange(() => {
             KeyBinds = InputPoller.KeyBindSaver.Rent(5);
             KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Ascend", (_null_) => {
@@ -141,7 +129,7 @@ public class FlightMovement : MovementModule{
 
     private void RemoveHandles(){
         InputPoller.RemoveStackPoll("FlightMove::1", "Movement::Update");
-        InputPoller.RemoveStackPoll("FlightMove::2", "Movement::FixedUpdate");
+        InputPoller.RemoveStackPoll("FlightMove::2", "Movement::Gravity");
         InputPoller.AddKeyBindChange(() => {
             InputPoller.RemoveKeyBind((uint)KeyBinds[0], "4.0::Movement");
             InputPoller.RemoveKeyBind((uint)KeyBinds[1], "4.0::Movement");
@@ -157,7 +145,7 @@ public class FlightMovement : MovementModule{
         float2 desiredMove = ((float3)(PlayerHandler.camera.forward*InputDir.y + PlayerHandler.camera.right*InputDir.x)).xz;
         float2 deltaV = Setting.acceleration * Time.deltaTime * desiredMove *  Setting.flightSpeedMultiplier;
 
-        velocity *= 1 - Setting.GroundFriction;
+        velocity.y *= 1 - PlayerHandler.data.settings.collider.friction;
         if(math.length(velocity.xz) < MoveSpeed) 
             velocity.xz += deltaV;
         IsSprinting = false;

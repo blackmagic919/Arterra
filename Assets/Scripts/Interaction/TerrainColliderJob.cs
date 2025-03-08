@@ -6,6 +6,7 @@ using System;
 using Unity.Burst;
 using static EntityJob;
 using static CPUMapManager;
+using Newtonsoft.Json;
 
 /*
 Future Note: Make this done on a job system
@@ -16,8 +17,11 @@ Sample from a simplex rather than a grid(should be faster)
 [BurstCompile][System.Serializable]
 public struct TerrainColliderJob
 {
+    [JsonIgnore]
+    public Action<float> OnHitGround;
     public Transform transform;
     public float3 velocity;
+    public bool useGravity;
 
     [BurstCompile]
     public readonly float3 TrilinearDisplacement(in float3 posGS, in MapContext cxt){
@@ -325,14 +329,24 @@ public struct TerrainColliderJob
     }
 
     [BurstCompile]
-    public void Update(in Context cxt, in Settings settings, bool useGravity = true){
+    public void Update(in Context cxt, in Settings settings){
         transform.position += velocity * cxt.deltaTime;
         if(useGravity) velocity += cxt.gravity * cxt.deltaTime;
 
         if(SampleCollision(transform.position, settings.size, cxt.mapContext, out float3 displacement)){
-            velocity = CancelVel(velocity, displacement);
             transform.position += displacement;
+            float3 nVelocity = CancelVel(velocity, displacement);
+            if(useGravity) OnHitGround?.Invoke(nVelocity.y - velocity.y);
+            velocity = nVelocity;
         };
+        velocity.xz *= 1 - settings.friction;
+    }
+
+    public TerrainColliderJob(float3 position, bool useGravity, Action<float> OnHitGround = null){
+        this.transform = new Transform(position, Quaternion.identity);
+        this.OnHitGround = OnHitGround;
+        this.useGravity = useGravity;
+        this.velocity = 0;
     }
 
     [BurstCompile]
@@ -349,5 +363,6 @@ public struct TerrainColliderJob
     public struct Settings{
         public float3 size;
         public float3 offset;
+        public float friction; //~0.1
     }
 }
