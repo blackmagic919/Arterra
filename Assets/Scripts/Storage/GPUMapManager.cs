@@ -55,11 +55,16 @@ public static class GPUMapManager
     public static int RegisterChunkVisual(int3 oCCoord, int depth, ComputeBuffer mapData, int rdOff = 0){
         if(!IsChunkRegisterable(oCCoord, depth)) return -1;
         int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
-        int numPointsFaces = (mapChunkSize+3) * (mapChunkSize+3) * 12;
-        uint address = memorySpace.AllocateMemoryDirect(numPoints + numPointsFaces, 1);
+        int numPointsFaces = (mapChunkSize+3) * (mapChunkSize+3) * 9;
+        int mapSize = numPoints + numPointsFaces + LightBaker.GetLightMapLength(mapChunkSize);
+        uint address = memorySpace.AllocateMemoryDirect(mapSize, 1);
         TranscribeMap(mapData, address, rdOff, mapChunkSize+3, mapChunkSize, 1);
         TranscribeEdgeFaces(mapData, address, rdOff, mapChunkSize+3, mapChunkSize+3, numPoints);
         uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new uint2(address, 0);
+
+        uint prevChunk = MapLookup[HashCoord(oCCoord)];
+        if(prevChunk != 0) prevChunk = HandleDict[prevChunk].x;
+        LightBaker.RegisterChunk(oCCoord, mapChunkSize, address, prevChunk);
 
         RegisterChunk(oCCoord, depth, handleAddress);
         return (int)handleAddress;
@@ -67,10 +72,18 @@ public static class GPUMapManager
     public static int RegisterChunkReal(int3 oCCoord, int depth, ComputeBuffer mapData, int rdOff = 0){
         if(!IsChunkRegisterable(oCCoord, depth)) return -1;
         int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
-        uint address = memorySpace.AllocateMemoryDirect(numPoints, 1);
+        //This is unnecessary here, but we need to ensure it so that other systems(e.g. Lighting)
+        //Have a consistent chunk size to buffer with
+        int numPointsFaces = (mapChunkSize+3) * (mapChunkSize+3) * 9;
+        int mapSize = numPoints + numPointsFaces + LightBaker.GetLightMapLength(mapChunkSize);
+        uint address = memorySpace.AllocateMemoryDirect(mapSize, 1);
         TranscribeMap(mapData, address, rdOff, mapChunkSize, mapChunkSize);
         uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new uint2(address, 0);
-        
+
+        uint prevChunk = MapLookup[HashCoord(oCCoord)];
+        if(prevChunk != 0) prevChunk = HandleDict[prevChunk].x;
+        LightBaker.RegisterChunk(oCCoord, mapChunkSize, address, prevChunk);
+
         RegisterChunk(oCCoord, depth, handleAddress);
         return (int)handleAddress;
     }

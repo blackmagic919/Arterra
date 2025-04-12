@@ -30,14 +30,17 @@ struct OpticalInfo{
 };
 
 OpticalInfo SampleMapData(float3 samplePointWS){
-    CInfo cHandle = _ChunkAddressDict[HashCoord(WSToCS(samplePointWS))];
+    int3 CSCoord = WSToCS(samplePointWS);
+    CInfo cHandle = _ChunkAddressDict[HashCoord(CSCoord)];
     OpticalInfo mapData = (OpticalInfo)0;
     
-    if(!Exists(cHandle, WSToCS(samplePointWS))) return mapData; else{
+    if(!Exists(cHandle, CSCoord)) return mapData; else{
     float3 MSPoint = WSToMS(samplePointWS) / (cHandle.offset & 0xFF);
-    MSPoint.x += (cHandle.offset >> 24) & 0xFF;
-    MSPoint.y += (cHandle.offset >> 16) & 0xFF;
-    MSPoint.z += (cHandle.offset >> 8) & 0xFF;
+    MSPoint += float3(
+        (cHandle.offset >> 24) & 0xFF,
+        (cHandle.offset >> 16) & 0xFF,
+        (cHandle.offset >> 8) & 0xFF
+    );
 
     Influences blendInfo = GetBlendInfo(MSPoint); //Blend pos using grid-fixed cube
     [unroll]for(uint i = 0; i < 8; i++){
@@ -48,23 +51,26 @@ OpticalInfo SampleMapData(float3 samplePointWS){
 
         uint info = _ChunkInfoBuffer[pointAddress];
         int material = info >> 16 & 0x7FFF;
-        mapData.opticalDensity += (info & 0xFF) * blendInfo.corner[i];
-        mapData.scatterCoeffs += _MatAtmosphericData[material].scatterCoeffs * blendInfo.corner[i];
-        mapData.extinctionCoeff += _MatAtmosphericData[material].extinctCoeff * blendInfo.corner[i];
+        mapData.opticalDensity = mad((info & 0xFF), blendInfo.corner[i], mapData.opticalDensity);
+        mapData.scatterCoeffs = mad(_MatAtmosphericData[material].scatterCoeffs, blendInfo.corner[i], mapData.scatterCoeffs);
+        mapData.extinctionCoeff = mad(_MatAtmosphericData[material].extinctCoeff, blendInfo.corner[i], mapData.extinctionCoeff);
     }
 
     return mapData;
 }}
 
 OpticalDepth SampleOpticalDepth(float3 samplePointWS){
-    CInfo cHandle = _ChunkAddressDict[HashCoord(WSToCS(samplePointWS))];
+    int3 CSCoord = WSToCS(samplePointWS);
+    CInfo cHandle = _ChunkAddressDict[HashCoord(CSCoord)];
     OpticalDepth depth = (OpticalDepth)0;
     
-    if(!Exists(cHandle, WSToCS(samplePointWS))) return depth; else{
+    if(!Exists(cHandle, CSCoord)) return depth; else{
     float3 MSPoint = WSToMS(samplePointWS) / (cHandle.offset & 0xFF);
-    MSPoint.x += (cHandle.offset >> 24) & 0xFF;
-    MSPoint.y += (cHandle.offset >> 16) & 0xFF;
-    MSPoint.z += (cHandle.offset >> 8) & 0xFF;
+    MSPoint += float3(
+        (cHandle.offset >> 24) & 0xFF,
+        (cHandle.offset >> 16) & 0xFF,
+        (cHandle.offset >> 8) & 0xFF
+    );
 
     Influences blendInfo = GetBlendInfo(MSPoint); //Blend pos using grid-fixed cube
     [unroll]for(uint i = 0; i < 8; i++){
@@ -75,8 +81,8 @@ OpticalDepth SampleOpticalDepth(float3 samplePointWS){
 
         uint info = _ChunkInfoBuffer[pointAddress];
         int material = info >> 16 & 0x7FFF;
-        depth.opticalDensity += (info & 0xFF) * blendInfo.corner[i];
-        depth.scatterCoeffs += _MatAtmosphericData[material].scatterCoeffs * blendInfo.corner[i];
+        depth.opticalDensity = mad((info & 0xFF), blendInfo.corner[i], depth.opticalDensity);
+        depth.scatterCoeffs = mad(_MatAtmosphericData[material].scatterCoeffs, blendInfo.corner[i], depth.scatterCoeffs);
     }
 
     return depth;

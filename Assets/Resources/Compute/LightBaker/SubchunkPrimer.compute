@@ -1,0 +1,54 @@
+#include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
+#pragma kernel PrimeSubchunks
+#pragma kernel PrimeQueue
+const static int numThreads = 128;
+
+RWStructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<CInfo> _AddressDict;
+
+RWStructuredBuffer<uint2> DirtySubChunks;
+RWStructuredBuffer<uint2> CurUpdateSubChunks;
+uint2 bCOUNT; //x -> Dirty, y -> Current
+uint2 bSTART;
+
+// Size of LightMap + MapSize in 4-bytes
+uint chunkLHOffset;
+uint UpdateCount;
+uint QueueSize;
+
+bool HashExists(CInfo cHandle, uint HIndex){
+    return (cHandle.address != 0 && HashCoord(cHandle.CCoord) == HIndex);
+}
+
+[numthreads(numThreads,1,1)]
+void PrimeSubchunks (uint3 id : SV_DispatchThreadID)
+{
+    //x -> start of queue, y -> count
+    uint count = min(DirtySubChunks[bCOUNT.x].y, UpdateCount);
+    if(id.x >= count) return;
+
+    int ind = bSTART.x + ((id.x + DirtySubChunks[bCOUNT.x].x) % QueueSize);
+    uint2 SubChunkInfo = DirtySubChunks[ind]; //x -> chunk index, y -> subchunk index
+    CInfo cHandle = _AddressDict[SubChunkInfo.x];
+
+    //If the chunk no longer exists, it means that there used to be a chunk originating
+    //at this location, but it was replaced by a new chunk. We should only accept updates
+    //that are synced--i.e. cIndex points to the origin CCoord of a chunk.
+    if(!HashExists(cHandle, SubChunkInfo.x))
+        return;
+
+    //Set HashBit to zero(removed from dirty list)
+    uint lAddress = cHandle.address + chunkLHOffset;
+    uint lHashAdd = lAddress + SubChunkInfo.y / 32;
+    InterlockedAnd(_MemoryBuffer[lHashAdd], ~(1 << (SubChunkInfo.y % 32)));
+
+    CurUpdateSubChunks[bSTART.y + id.x] = SubChunkInfo;
+}
+
+[numthreads(1,1,1)]
+void PrimeQueue(uint3 id : SV_DispatchThreadID){
+    int dequeueCount = min(DirtySubChunks[bCOUNT.x].y, UpdateCount);
+    CurUpdateSubChunks[bCOUNT.y].x = dequeueCount;
+    DirtySubChunks[bCOUNT.x].x = (DirtySubChunks[bCOUNT.x].x + dequeueCount) % QueueSize;
+    DirtySubChunks[bCOUNT.x].y -= dequeueCount;
+}

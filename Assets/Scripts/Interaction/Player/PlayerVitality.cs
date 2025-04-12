@@ -4,6 +4,7 @@ using static CPUMapManager;
 using WorldConfig.Gameplay.Player;
 using WorldConfig;
 using UnityEngine;
+using Newtonsoft.Json;
 
 namespace WorldConfig.Gameplay.Player {
     /// <summary> Settings describing the player's vitaltiy, or the 
@@ -32,6 +33,8 @@ public class PlayerVitality
     public float Invincibility;
     public float health;
     public float healthPercent => health / settings.MaxHealth;
+    [JsonIgnore]
+    public bool IsDead{get => health <= 0; }
     public PlayerVitality(){
         InputPoller.AddBinding(new InputPoller.ActionBind("Attack", AttackEntity), "5.0::GamePlay");
         AttackCooldown = 0;
@@ -42,6 +45,7 @@ public class PlayerVitality
     public void Update(){
         Invincibility = math.max(Invincibility - EntityJob.cxt.deltaTime, 0);
         AttackCooldown = math.max(AttackCooldown - EntityJob.cxt.deltaTime, 0);
+        if(IsDead) return;
         float delta = math.min(health + settings.NaturalRegen * EntityJob.cxt.deltaTime, 
                       settings.MaxHealth) - health;
         health += delta;
@@ -62,21 +66,16 @@ public class PlayerVitality
         if(PlayerInteraction.RayTestSolid(PlayerHandler.data, out float3 terrHit)) hitPt = terrHit;
         if(!EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out WorldConfig.Generation.Entity.Entity entity))
             return;
-        
         static void PlayerDamageEntity(WorldConfig.Generation.Entity.Entity target){
             if(!target.active) return;
             if(target is not IAttackable) return;
             IAttackable atkEntity = target as IAttackable;
             float3 knockback = math.normalize(target.position - PlayerHandler.data.position) * settings.KnockBackStrength;
             atkEntity.TakeDamage(settings.AttackDamage, knockback, PlayerHandler.data);
+
+            string anim = UnityEngine.Random.Range(0, 2) == 0 ? "PunchR" : "PunchL";
+            PlayerHandler.data.animator.SetTrigger(anim);
         }
         EntityManager.AddHandlerEvent(() => PlayerDamageEntity(entity));
-    }
-
-    public static void ProcessFallDamage(float zVelDelta){
-        if(zVelDelta <= Vitality.FallDmgThresh) return;
-        float dmgIntensity = zVelDelta - Vitality.FallDmgThresh;    
-        dmgIntensity = math.pow(dmgIntensity, settings.weight);
-        PlayerHandler.data.TakeDamage(dmgIntensity, 0, null);
     }
 }

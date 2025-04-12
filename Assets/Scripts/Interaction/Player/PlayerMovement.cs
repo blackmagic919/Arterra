@@ -91,6 +91,12 @@ public class SurfaceMovement : MovementModule{
 
         if(math.length(velocity.xz) < moveSpeed) 
             velocity.xz += deltaV;
+
+        if(math.length(deltaV) > 0.1f){
+            if(IsSprinting) PlayerHandler.data.animator.SetTrigger("IsRunning");
+            else PlayerHandler.data.animator.SetTrigger("IsWalking");
+        };
+
         IsSprinting = false;
         InputDir = float2.zero;
     }
@@ -148,6 +154,12 @@ public class FlightMovement : MovementModule{
         velocity.y *= 1 - PlayerHandler.data.settings.collider.friction;
         if(math.length(velocity.xz) < MoveSpeed) 
             velocity.xz += deltaV;
+
+        if(math.length(deltaV) > 0.1f){
+            if(IsSprinting) PlayerHandler.data.animator.SetTrigger("IsRunning");
+            else PlayerHandler.data.animator.SetTrigger("IsWalking");
+        };
+        
         IsSprinting = false;
         InputDir = float2.zero;
     }

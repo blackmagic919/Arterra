@@ -60,7 +60,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         }
 
         public void TakeDamage(float damage, float3 knockback, Entity attacker){
-            Indicators.DisplayPopupText(position, knockback);
+            Indicators.DisplayDamageParticle(position, knockback);
             tCollider.velocity += knockback;
         }
 
@@ -85,12 +85,14 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             settings = (EItemSetting)setting;
             controller = new EItemController(Controller, this);
             tCollider.transform.position = GCoord;
+            tCollider.useGravity = true;
         }
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord)
         {
             settings = (EItemSetting)setting;
             controller = new EItemController(Controller, this);
+            tCollider.useGravity = true;
             GCoord = this.GCoord;
         }
 

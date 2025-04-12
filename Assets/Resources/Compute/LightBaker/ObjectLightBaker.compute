@@ -1,0 +1,99 @@
+#include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#include "Assets/Resources/Compute/LightBaker/LightLookup.hlsl"
+
+#pragma kernel BakeLights
+const static int numThreads = 128;
+
+
+//Global Lookup Buffers
+StructuredBuffer<uint2> CurUpdateSubChunks;
+
+//This code is so illegible I'm sorry
+[numthreads(numThreads,1,1)]
+void BakeLights (uint3 id : SV_DispatchThreadID)
+{
+    uint count = CurUpdateSubChunks[bCOUNT.y].x;
+    if(id.x >= count) return;
+
+    uint ind = bSTART.y + id.x;
+    uint2 SubChunkInfo = CurUpdateSubChunks[ind]; //x -> chunk index, y -> subchunk index
+    CInfo cHandle = _AddressDict[SubChunkInfo.x];
+    //Assume cHandle is always valid & exists.
+    uint3 SubChunkOrigin;
+    SubChunkOrigin.x = (SubChunkInfo.y / (subChunksAxis * subChunksAxis));
+    SubChunkOrigin.y = (SubChunkInfo.y / subChunksAxis) % subChunksAxis;
+    SubChunkOrigin.z = SubChunkInfo.y % subChunksAxis;
+    SubChunkOrigin *= subChunkSize;
+    int skipInc = cHandle.offset & 0xFF;
+
+    uint isDirty = 0;
+    uint numCoords = subChunkSize * subChunkSize * subChunkSize;
+    for(uint i = 0; i < numCoords; i++){
+        uint3 sMCoord = int3(i / (subChunkSize * subChunkSize), (i / subChunkSize) % subChunkSize, i % subChunkSize);
+        uint3 mapCoord = sMCoord + SubChunkOrigin;
+        uint mIndex = indexFromCoord(mapCoord);
+        
+        int3 mC = 0;
+        if (((_MemoryBuffer[cHandle.address + mIndex] >> 8) & 0xFF) < IsoLevel) {
+            [unroll] for(int j = 0; j < 6; j++){
+                int3 nCoord = ((int3)mapCoord) + dp[j];
+                uint light = SampleLumin(nCoord, cHandle);
+                mC.x = max(mC.x, light & 0x1F);
+                mC.y = max(mC.y, (light >> 5) & 0x1F);
+                mC.z = max(mC.z, (light >> 11) & 0x1F);
+        }}
+        mC = max(mC - skipInc, SampleBaseLight(mapCoord, cHandle.address)); 
+
+        uint light = (mC.x & 0x1F) | ((mC.y & 0x1F) << 5) | ((mC.z & 0x1F) << 11);
+        light = (IsInShadow(mapCoord + int3(0, 1, 0), cHandle) << 15) | (light & 0x7FFF);
+        uint address = cHandle.address + chunkLMOffset + mIndex/2;
+        
+        uint Illumin = _MemoryBuffer[address];
+        uint nIllumin = (mIndex % 2 == 0) ? (Illumin & 0xFFFF0000) | light
+                    :  (Illumin & 0x0000FFFF) | (light << 16);
+        
+        if(nIllumin == Illumin) continue;
+        //This is thread-safe because the current thread is the only one
+        //with exclusive access to the entire subchunk
+        _MemoryBuffer[address] = nIllumin;
+        isDirty |= 0x1 | ((sMCoord.x == 0) << 1) |
+        ((sMCoord.x == subChunkSize - 1) << 2) |
+        ((sMCoord.y == 0) << 3) |
+        ((sMCoord.y == subChunkSize - 1) << 4) |
+        ((sMCoord.z == 0) << 5) |
+        ((sMCoord.z == subChunkSize - 1) << 6);
+    }
+
+    SubChunkOrigin /= subChunkSize;
+    if(isDirty & 0x1) AddDirtySubchunk(cHandle.CCoord, SubChunkOrigin);
+    [unroll]for(int j = 1; j < 7; j++){
+        if(!(isDirty & (0x1 << j))) continue;
+        int3 nCoord = ((int3)SubChunkOrigin) + dp[j - 1];
+        if(all(SubChunkOrigin >= 0 && SubChunkOrigin < subChunksAxis))
+            AddDirtySubchunk(cHandle.CCoord, nCoord);
+        else { //In case the adjacent subchunk is outside the chunk
+            //scales subchunks to absolute subchunk coordinates
+            nCoord = nCoord * skipInc + cHandle.CCoord * subChunksAxis; 
+            int3 CCoord = ((nCoord % subChunksAxis) + subChunksAxis) % subChunksAxis;
+            CCoord = (nCoord - CCoord) / subChunksAxis;
+
+            CInfo nHandle = _AddressDict[HashCoord(CCoord)];
+            if(!Exists(nHandle, CCoord)) continue;
+            //Note: nHandle.CCoord is coord of the origin of the actual chunk
+            //While CCoord is the CCoord of a chunk possibly with the actual adjacent chunk
+
+            uint nSkip = (nHandle.offset & 0xFF);
+            uint nAbsSCAxis = nSkip * subChunksAxis;
+            nCoord = ((nCoord % nAbsSCAxis) + nAbsSCAxis) % nAbsSCAxis;
+            nCoord /= nSkip; //takes floor of the division
+
+            nSkip = max(skipInc / nSkip, 1);
+            for(uint k = 0; k < nSkip * nSkip; k++){
+                int2 dSC = int2(k / nSkip, k % nSkip);
+                int3 nSC = nCoord + mul(dNA[(j-1)/2u], dSC);
+                AddDirtySubchunk(nHandle.CCoord, nSC);
+            }
+        }
+    }
+}

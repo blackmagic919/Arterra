@@ -18,16 +18,22 @@ struct Influences{
     uint3 origin;
 };
 
-Influences GetBlendInfo(float3 positionMS){
-    Influences influences = (Influences)0;
+inline Influences GetBlendInfo(float3 positionMS) {
+    Influences inf;
 
-    influences.origin = uint3(floor(positionMS));
-    [unroll]for(int i = 7; i >= 0; i--){
-        uint3 oppositeCorner = influences.origin + uint3(i & 1u, (i >> 1) & 1u, (i >> 2) & 1u);
-        influences.corner[7-i] = abs((positionMS.x - oppositeCorner.x) * (positionMS.y - oppositeCorner.y) * (positionMS.z - oppositeCorner.z));
-    }
+    float3 f = frac(positionMS);
+    float3 oneMinusF = 1.0 - f;
 
-    return influences;
+    inf.origin = uint3(positionMS); // implicitly floor()
+    inf.corner[0] = oneMinusF.x * oneMinusF.y * oneMinusF.z; // (0,0,0)
+    inf.corner[1] = f.x         * oneMinusF.y * oneMinusF.z; // (1,0,0)
+    inf.corner[2] = oneMinusF.x * f.y         * oneMinusF.z; // (0,1,0)
+    inf.corner[3] = f.x         * f.y         * oneMinusF.z; // (1,1,0)
+    inf.corner[4] = oneMinusF.x * oneMinusF.y * f.z;         // (0,0,1)
+    inf.corner[5] = f.x         * oneMinusF.y * f.z;         // (1,0,1)
+    inf.corner[6] = oneMinusF.x * f.y         * f.z;         // (0,1,1)
+    inf.corner[7] = f.x         * f.y         * f.z;         // (1,1,1)
+    return inf;
 }
 
 struct Influences2D{
@@ -35,15 +41,18 @@ struct Influences2D{
     uint2 origin;
 };
 
-Influences2D GetBlendInfo(float2 positionMS){
-    Influences2D influences = (Influences2D)0;
+inline Influences2D GetBlendInfo(float2 positionMS) {
+    Influences2D inf;
 
-    influences.origin = uint2(floor(positionMS));
-    [unroll]for(int i = 3; i >= 0; i--){
-        uint2 oppositeCorner = influences.origin + uint2(i & 1u, (i >> 1) & 1u);
-        influences.corner[3-i] = abs((positionMS.x - oppositeCorner.x) * (positionMS.y - oppositeCorner.y));
-    }
+    float2 f = frac(positionMS);
+    float2 oneMinusF = 1.0 - f;
 
-    return influences;
+    inf.origin = uint2(positionMS); // floor(positionMS)
+    inf.corner[0] = oneMinusF.x * oneMinusF.y; // (0,0)
+    inf.corner[1] = f.x         * oneMinusF.y; // (1,0)
+    inf.corner[2] = oneMinusF.x * f.y;         // (0,1)
+    inf.corner[3] = f.x         * f.y;         // (1,1)
+    return inf;
 }
+
 #endif

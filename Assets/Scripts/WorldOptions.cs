@@ -83,6 +83,8 @@ public class Config : ScriptableObject{
         /// <summary> See here for more information: <see cref="Quality.Atmosphere"/>  </summary>
         [UISetting(Message = "Improve Performance By Reducing Quality")]
         public Option<Quality.Atmosphere> Atmosphere;
+        /// <summary> See here for more information: <see cref="Quality.LightBaker"/> </summary>
+        public Option<Quality.LightBaker> Lighting;
         /// <summary> See here for more information: <see cref="Quality.Terrain"/>  </summary>
         public Option<Quality.Terrain> Terrain;
         /// <summary>

@@ -81,7 +81,7 @@ public class PlayerInteraction
     }
 
     public void PlaceTerrain(float _){
-        
+        PlayerHandler.data.animator.SetTrigger("IsPlacing");
         if(!RayTestSolid(data, out float3 hitPt)) return;
         if(EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
             return;
@@ -94,6 +94,7 @@ public class PlayerInteraction
     }
 
     public void RemoveTerrain(float _){
+        PlayerHandler.data.animator.SetTrigger("IsPlacing");
         if (!RayTestSolid(data, out float3 hitPt)) return;
         if(EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
             return;

@@ -43,12 +43,12 @@ const static uint3x3 rAxis[3] = {
     {1, 0, 0, 0, 0, 1, 0, 1, 0}, //XZ-Plane(XZY)
     {1, 0, 0, 0, 1, 0, 0, 0, 1}  //XY-Plane(XYZ)
 };
-const static uint1x2 rPlane[4] = {
-    {0, 0}, {0, 1}, {1, -2}, {1, -1}
+const static uint1x2 rPlane[3] = {
+    {0, 0}, {1, -2}, {1, -1}
 };
 
 //offset here means write offset
-[numthreads(numThreads,numThreads,12)]
+[numthreads(numThreads,numThreads,9)]
 void TranscribeFaces (uint3 id : SV_DispatchThreadID)
 {
     if(_AddressDict[addressIndex].x == 0) //Invalid
@@ -61,8 +61,8 @@ void TranscribeFaces (uint3 id : SV_DispatchThreadID)
     wAddress += id.x * sizeWrAxis + id.y;
     wAddress += _AddressDict[addressIndex].y;
 
-    int plane = mul(rPlane[id.z % 4], int2(sizeRdAxis, 1));
-    int3 rdPos = mul(rAxis[id.z / 4], int3(id.x, id.y, plane));
+    int plane = mul(rPlane[id.z % 3], int2(sizeRdAxis, 1));
+    int3 rdPos = mul(rAxis[id.z / 3], int3(id.x, id.y, plane));
     uint readAdd = rdPos.x * sizeRdAxis * sizeRdAxis + rdPos.y * sizeRdAxis + rdPos.z;
 
     _MemoryBuffer[wAddress] = chunkData[readAdd + bSTART_read];

@@ -20,6 +20,10 @@ MonoBehaviour:
           BakedTextureSizePX: 128
           InScatterDetail: 6
           NumOpticalDepthPoints: 8
+      Lighting:
+        value:
+          SubChunkDivisions: 8
+          MaxSubChunkUpdatesPerTick: 5000
       Terrain:
         value: {fileID: 11400000, guid: 42017e3b5b1824df087b77161e2e61f3, type: 2}
       GeoShaders:
@@ -189,15 +193,18 @@ MonoBehaviour:
           - Name: SnowyOwl
             _value:
               value: {fileID: 11400000, guid: 2465da1b5c46c4edc809bfefabce80f4, type: 2}
-          - Name: EntityItem
-            _value:
-              value: {fileID: 11400000, guid: 113b6e9010faf40ed9549c22ffbaba03, type: 2}
           - Name: Camel
             _value:
               value: {fileID: 11400000, guid: 7e70244b90d3641dfbf81286d647eda6, type: 2}
           - Name: Coyote
             _value:
               value: {fileID: 11400000, guid: 1ffa182daf2554821a09824cd86c6a78, type: 2}
+          - Name: Vulture
+            _value:
+              value: {fileID: 11400000, guid: 08744a4ae3a2344488c2923f90feeb46, type: 2}
+          - Name: EntityItem
+            _value:
+              value: {fileID: 11400000, guid: 113b6e9010faf40ed9549c22ffbaba03, type: 2}
           - Name: Player
             _value:
               value: {fileID: 11400000, guid: aea5983bb2790423db2800179c58cf00, type: 2}
@@ -364,12 +371,6 @@ MonoBehaviour:
                   value:
                   - Key: 323
                     PollType: 3
-                    IsAlias: 0
-                  - Key: 304
-                    PollType: 1
-                    IsAlias: 0
-                  - Key: 303
-                    PollType: 1
                     IsAlias: 0
           - Name: Pickup Item
             _value:
@@ -585,7 +586,7 @@ MonoBehaviour:
               AttackFrequency: 0.25
               KnockBackStrength: 20
               InvincTime: 0.25
-              MaxHealth: 40
+              MaxHealth: 20
               NaturalRegen: 0.01
               DecompositionTime: 300
               weight: 0.75
@@ -747,7 +748,7 @@ MonoBehaviour:
               m_RotationOrder: 4
       Statistics:
         value:
-          DisplayEntityStats: 1
+          DisplayEntityStats: 0
           DisplayEntityDamage: 1
   _System:
     value:

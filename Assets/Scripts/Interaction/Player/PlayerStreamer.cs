@@ -10,6 +10,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Collections;
 using TerrainGeneration;
+using WorldConfig.Gameplay.Player;
+using UnityEditor.Animations;
 
 [CreateAssetMenu(menuName = "Entity/Player")]
 public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
@@ -37,6 +39,8 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         public PlayerSettings settings;
         [JsonIgnore]
         public GameObject player;
+        [JsonIgnore]
+        public Animator animator;
         public DateTime currentTime;
         public float3 positionGS;
         public Quaternion rotation;
@@ -59,10 +63,9 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             set => positionGS = CPUMapManager.WSToGS(value);
         }
         [JsonIgnore]
-        public bool IsDead{get => vitality.health <= 0; }
+        public bool IsDead{get => vitality.IsDead; }
         
         public IItem Collect(float collectRate){
-            InventoryController.Inventory inv;
             int itemCount = PrimaryI.EntryDict.Count + SecondaryI.EntryDict.Count;
             
             IItem ret;
@@ -76,8 +79,10 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 
         public void TakeDamage(float damage, float3 knockback, Entity attacker = null){
             if(!vitality.Damage(damage)) return;
-            Indicators.DisplayPopupText(position, knockback);
-            PlayerHandler.data.collider.velocity += knockback;
+            Indicators.DisplayDamageParticle(position, knockback);
+            collider.velocity += knockback;
+
+            if(!IsStreaming) return;
             OctreeTerrain.MainCoroutines.Enqueue(CameraShake(0.25f, 0.25f));
         }
 
@@ -99,8 +104,9 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         public override void Initialize(EntitySetting setting, GameObject Controller, int3 GCoord)
         {
             settings = (PlayerSettings)setting;
-            collider.OnHitGround = PlayerVitality.ProcessFallDamage;
+            collider.OnHitGround = ProcessFallDamage;
             player = GameObject.Instantiate(Controller);
+            animator = player.GetComponent<Animator>();
             player.transform.SetPositionAndRotation(positionWS, rotation);
         }
 
@@ -109,19 +115,19 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             settings = (PlayerSettings)setting;
             GCoord = (int3)this.positionGS;
             player = GameObject.Instantiate(Controller);
+            animator = player.GetComponent<Animator>();
             player.transform.SetPositionAndRotation(positionWS, rotation);
-            collider.OnHitGround = PlayerVitality.ProcessFallDamage;
+            collider.OnHitGround = ProcessFallDamage;
+            if(IsDead) PlayDead(); 
         }
 
 
         public override void Update()
         {
             if(!active) return;
-            if(!IsDead){
-                vitality.Update();
-                return;
-            }
+            vitality.Update();
 
+            if(!IsDead) return;
             if(IsStreaming) EntityManager.AddHandlerEvent(DetatchStreamer);
             if(vitality.health <= -PlayerVitality.settings.DecompositionTime){ //the player isn't idling
                 if(PlayerHandler.data == null || PlayerHandler.data.info.entityId != info.entityId)
@@ -187,8 +193,14 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         private void DetatchStreamer(){
             if(!IsStreaming) return;
             IsStreaming = false;
+            PlayDead();
 
             GameOverHandler.Activate();
+        }
+
+        private void PlayDead(){
+            animator.SetBool("IsDead", true);
+            SetLayerRecursively(player.transform, LayerMask.NameToLayer("Default"));
         }
 
         public IEnumerator CameraShake(float duration, float rStrength){
@@ -209,6 +221,20 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
                 yield return null;
             }
            CameraLocalT.localRotation = OriginRot;
+        }
+
+        private void SetLayerRecursively(Transform obj, int layer) {
+            obj.gameObject.layer = layer;
+            foreach (Transform child in obj) {
+                SetLayerRecursively(child, layer);
+            }
+        }
+
+        public void ProcessFallDamage(float zVelDelta){
+            if(zVelDelta <= Vitality.FallDmgThresh) return;
+            float dmgIntensity = zVelDelta - Vitality.FallDmgThresh;    
+            dmgIntensity = math.pow(dmgIntensity, Config.CURRENT.GamePlay.Player.value.Physicality.value.weight);
+            TakeDamage(dmgIntensity, 0, null);
         }
     }
 }

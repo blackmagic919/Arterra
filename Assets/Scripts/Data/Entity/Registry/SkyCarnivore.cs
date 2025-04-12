@@ -83,9 +83,10 @@ public class SkyCarnivore : Authoring
         public bool IsDead => vitality.IsDead;
         public void TakeDamage(float damage, float3 knockback, Entity attacker){
             if(!vitality.Damage(damage)) return;
-            Indicators.DisplayPopupText(position, knockback);
+            Indicators.DisplayDamageParticle(position, knockback);
             tCollider.velocity += knockback;
 
+            if(IsDead) return;
             if(attacker == null) return; //If environmental damage, we don't need to retaliate
             TaskTarget = attacker.info.entityId;
             Recognition.Recognizable recog = settings.recognition.Recognize(attacker);

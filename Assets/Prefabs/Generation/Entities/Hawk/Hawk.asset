@@ -134,7 +134,7 @@ MonoBehaviour:
         Edibles:
           value:
           - EdibleType: Meat
-            Nutrition: 1.5
+            Nutrition: 0.2
         SightDistance: 30
         FleeDistance: 5
         FightAggressor: 1
@@ -143,10 +143,10 @@ MonoBehaviour:
           - Sparrow
           - Rabbit
       physicality:
-        MaxHealth: 20
-        NaturalRegen: -0.025
+        MaxHealth: 12
+        NaturalRegen: -0.01
         AttackDistance: 3
-        AttackDamage: 5
+        AttackDamage: 4
         AttackCooldown: 0.75
         KBStrength: 1
         InvincTime: 0.25
@@ -154,12 +154,12 @@ MonoBehaviour:
         MateThreshold: 0.8
         PregnacyLength: 4
         ConsumptionRate: 0.05
-        MateCost: 6
+        MateCost: 4
         weight: 0.25
       decomposition:
         LootTable:
           value:
           - ItemName: Meat
-            DropAmount: 1
+            DropAmount: 8
         DecompositionTime: 200
         DecompPerLoot: 5

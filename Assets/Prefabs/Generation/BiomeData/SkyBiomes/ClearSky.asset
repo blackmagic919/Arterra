@@ -16,7 +16,6 @@ MonoBehaviour:
     value:
     - Water
     - Air
-    isDirty: 0
   GroundMaterials:
     value:
     - value:
@@ -26,8 +25,6 @@ MonoBehaviour:
         frequency: 1
         multiplier: 1
         height: 0
-      isDirty: 0
-    isDirty: 0
   SurfaceMaterials:
     value:
     - value:
@@ -37,14 +34,10 @@ MonoBehaviour:
         frequency: 1
         multiplier: 1
         height: 0
-      isDirty: 0
-    isDirty: 0
   Structures:
     value: []
-    isDirty: 0
   Entities:
     value: []
-    isDirty: 0
   BiomeConditions:
     value:
       CaveFreqStart: 0
@@ -56,4 +49,3 @@ MonoBehaviour:
       CaveShapeEnd: 1
       HeightEnd: 0.35
       biome: 0
-    isDirty: 0

@@ -56,9 +56,9 @@ public struct Vitality{
     }
 
     public void Update(){
-        if(IsDead) return;
         invincibility = math.max(invincibility - EntityJob.cxt.deltaTime, 0);
         attackCooldown = math.max(attackCooldown - EntityJob.cxt.deltaTime, 0);
+        if(IsDead) return;
         float delta = math.min(health + stats.NaturalRegen * EntityJob.cxt.deltaTime, 
                       stats.MaxHealth) - health;
         health += delta;

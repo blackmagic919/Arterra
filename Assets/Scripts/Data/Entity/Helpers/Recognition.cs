@@ -207,7 +207,7 @@ public class RCarnivore : Recognition{
     }
 
     //Finds most preferred it can see, then the closest one it prefers
-    public bool FindPreferredPrey(Entity self, out Entity entity){
+    public bool FindPreferredPrey(Entity self, out Entity entity, Func<Entity, bool> CanHunt = null){
         entity = null; if(AwarenessTable == null) return false;
         if(Prey.value == null || Prey.value.Count == 0) return false;
 
@@ -223,6 +223,9 @@ public class RCarnivore : Recognition{
 
             Recognizable eInfo = Awareness[(int)nEntity.info.entityType];
             if(!eInfo.IsPrey) return;
+            if(CanHunt != null && !CanHunt(nEntity)) 
+                return;
+                
             if(cEntity != null){
             if(eInfo.Preference > pPref) return;
             if(eInfo.Preference == pPref && math.distance(nEntity.position, self.position) > closestDist) return;

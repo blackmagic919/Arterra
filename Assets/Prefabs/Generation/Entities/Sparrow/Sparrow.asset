@@ -152,7 +152,7 @@ MonoBehaviour:
             Replacement: Dirt
             ReplaceState: 0
       physicality:
-        MaxHealth: 5
+        MaxHealth: 4
         NaturalRegen: -0.005
         AttackDistance: 2
         AttackDamage: 1
@@ -169,6 +169,6 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Meat
-            DropAmount: 1
+            DropAmount: 4
         DecompositionTime: 100
         DecompPerLoot: 5

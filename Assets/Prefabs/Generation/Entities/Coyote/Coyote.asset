@@ -59,7 +59,7 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 164
+        profileStart: 156
       collider:
         size:
           x: 0.75
@@ -88,18 +88,18 @@ MonoBehaviour:
         Edibles:
           value:
           - EdibleType: Meat
-            Nutrition: 1.5
+            Nutrition: 0.2
         SightDistance: 31
         FleeDistance: 5
-        FightAggressor: 0
+        FightAggressor: 1
         Prey:
           value:
           - Camel
       physicality:
-        MaxHealth: 20
-        NaturalRegen: -0.025
+        MaxHealth: 10
+        NaturalRegen: -0.01
         AttackDistance: 3
-        AttackDamage: 5
+        AttackDamage: 4
         AttackCooldown: 1
         KBStrength: 2
         InvincTime: 0.25
@@ -107,12 +107,12 @@ MonoBehaviour:
         MateThreshold: 0.8
         PregnacyLength: 4
         ConsumptionRate: 0.05
-        MateCost: 10
+        MateCost: 4
         weight: 0.75
       decomposition:
         LootTable:
           value:
           - ItemName: Meat
-            DropAmount: 0.5
+            DropAmount: 8
         DecompositionTime: 200
         DecompPerLoot: 10

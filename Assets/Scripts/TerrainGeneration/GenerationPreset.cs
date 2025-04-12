@@ -27,6 +27,7 @@ public static class SystemProtocol{
 
         EntityManager.Initialize();
         TerrainUpdate.Initialize();
+        LightBaker.Initialize();
 
         InputPoller.Initialize();
         PlayerHandler.Initialize();
@@ -51,6 +52,7 @@ public static class SystemProtocol{
         GPUMapManager.Release();
         CPUMapManager.Release();
         EntityManager.Release();
+        LightBaker.Release();
         GenerationPreset.Release();
         AtmospherePass.Release();
         Readback.AsyncMeshReadback.Release();
@@ -663,8 +665,8 @@ public static class GenerationPreset
             addressLL[nAddress].x = addressIndex;
             addressLL[addressIndex] = new uint2(pAddress, nAddress);
             
-            //uint[] heap = new uint[6];
-            //_EmptyBlockHeap.GetData(heap);
+            uint[] heap = new uint[6];
+            _EmptyBlockHeap.GetData(heap);
             //Debug.Log("Primary: " + heap[3]/250000 + "MB");
         }
 

@@ -29,7 +29,7 @@ public struct Settings{
 public static class PlayerHandler
 {
     public static PlayerStreamer.Player data;
-    public static new Transform camera;
+    public static Transform camera;
     private static PlayerInteraction interaction;
     private static PlayerMovement movement;
     private static bool active = false;

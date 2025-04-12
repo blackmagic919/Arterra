@@ -638,9 +638,12 @@ public class OctreeTerrain : MonoBehaviour
         /// <returns>The maximum number of nodes in the given octree settings</returns>
         public static int GetMaxNodes(int depth, int balanceF, int chunksRadius){
             int numChunks = 0; chunksRadius++;
+            int pLayerSize = 0;
             for(int i = 0; i < depth; i++){
                 int layerDiameter = GetAxisChunksDepth(i, balanceF, (uint)chunksRadius);
-                numChunks += layerDiameter * layerDiameter * layerDiameter;
+                int LayerSize = layerDiameter * layerDiameter * layerDiameter;
+                numChunks += LayerSize - pLayerSize;
+                pLayerSize = LayerSize / 8;
             }
             return numChunks;
         }

@@ -65,7 +65,7 @@ public static class Indicators
         }
     }
 
-    public static GameObject DisplayPopupText(float3 posGS, float3 eulerDir = default){
+    public static GameObject DisplayDamageParticle(float3 posGS, float3 eulerDir = default){
         if(!Stats.DisplayEntityDamage) return null;
         GameObject indicator = GameObject.Instantiate(DamageIndicator);
 

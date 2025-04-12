@@ -89,14 +89,14 @@ uint ReadDefaultMap(int3 sCoord){
     if(address == 0) return 0; //this should never happen
 
     int fChunkSize = mapChunkSize + 3;
-    int3 corner = sCoord % mapChunkSize + (sCoord / mapChunkSize);
-    corner.y += 4; corner.z += 8;
+    int3 corner = sCoord % mapChunkSize;
+    corner.y += 3; corner.z += 6;
     int index = mapChunkSize * mapChunkSize * mapChunkSize;
-    if (sCoord.x <= 1 || sCoord.x >= mapChunkSize + 1){
+    if (sCoord.x == 0 || sCoord.x >= mapChunkSize + 1){
         index += corner.x * fChunkSize * fChunkSize + sCoord.y * fChunkSize + sCoord.z;
-    } else if(sCoord.y <= 1 || sCoord.y >= mapChunkSize + 1){
+    } else if(sCoord.y == 0 || sCoord.y >= mapChunkSize + 1){
         index += corner.y * fChunkSize * fChunkSize + sCoord.x * fChunkSize + sCoord.z;
-    } else if(sCoord.z <= 1 || sCoord.z >= mapChunkSize + 1){
+    } else if(sCoord.z == 0 || sCoord.z >= mapChunkSize + 1){
         index += corner.z * fChunkSize * fChunkSize + sCoord.x * fChunkSize + sCoord.y;
     } else index = indexFromCoordManual(sCoord-1, mapChunkSize);
 
