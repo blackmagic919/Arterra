@@ -115,7 +115,6 @@ public class AtmosphereBake
     void SetupOpticalMarch(){
         WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         OpticalDataCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
-        OpticalDataCompute.SetFloat("_IsoLevel", rSettings.IsoLevel);
 
         OpticalDataCompute.SetInt("_NumInScatterPoints", NumInScatterPoints);
         OpticalDataCompute.SetInt("_NumOpticalDepthPoints", settings.NumOpticalDepthPoints);
@@ -127,6 +126,7 @@ public class AtmosphereBake
         OpticalDataCompute.SetBuffer(0, "rayInfo", rayInfo);
         OpticalDataCompute.SetBuffer(0, "mapData", OpticalInfo);
 
+        LightBaker.SetupLightSampler(OpticalDataCompute, 0);
         GPUMapManager.SetDensitySampleData(OpticalDataCompute);
     }
 

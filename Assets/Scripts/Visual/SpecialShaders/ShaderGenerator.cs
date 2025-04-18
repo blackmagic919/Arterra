@@ -89,6 +89,11 @@ public class ShaderGenerator
         geoTranscriber.SetBuffer(0, "DrawTriangles", UtilityBuffers.GenerationBuffer);
         geoTranscriber.SetBuffer(0, "ShaderPrefixes", UtilityBuffers.GenerationBuffer);
         geoTranscriber.SetInt("bSTART_oGeo", shadGeoStart);
+
+        foreach(GeoShader shader in Config.CURRENT.Quality.GeoShaders.SerializedData){
+            Material mat = shader.GetMaterial();
+            LightBaker.SetupLightSampler(mat);
+        }
     }
 
     public ShaderGenerator(Transform transform, Bounds boundsOS)

@@ -24,14 +24,11 @@ Shader "Unlit/Snow"
             #pragma vertex vert
             #pragma fragment frag
             // make fog work
-            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
-            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
-            #pragma multi_compile _ _ADDITIONAL_LIGHTS
-            #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
-            #pragma multi_compile _ _SHADOWS_SOFT
+            #pragma skip_variants SHADOWS_*
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
+            #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
             
             struct DrawTriangle{
                 uint2 vertex[3];
@@ -141,7 +138,14 @@ Shader "Unlit/Snow"
                 surfaceInput.albedo = albedo;
                 surfaceInput.alpha = 1;
 
-                return max(UniversalFragmentPBR(lightingInput, surfaceInput), surfaceInput.albedo * unity_AmbientEquator).rgb;
+                uint light = SampleLight(IN.positionWS);
+                float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f) * 0.5 + 0.5;
+                float3 DynamicLight = UniversalFragmentPBR(lightingInput, surfaceInput) * shadow;
+                float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
+                ObjectLight = mad((1 - ObjectLight), unity_AmbientEquator, ObjectLight * 2.5f); //linear interpolation
+                ObjectLight *= surfaceInput.albedo;
+
+                return max(DynamicLight, ObjectLight).rgb;
             }
             ENDHLSL
         }

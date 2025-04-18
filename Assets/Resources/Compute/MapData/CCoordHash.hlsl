@@ -13,7 +13,9 @@ uint HashCoord(in int3 CCoord){
     return (hashCC.x * numChunksAxis * numChunksAxis) + (hashCC.y * numChunksAxis) + hashCC.z;
 }
 
-bool Exists(in CInfo info, in int3 CCoord){
-    return info.address != 0 && all(info.CCoord == CCoord);
+bool Contains(in CInfo info, in int3 CCoord){
+    int3 minCC = info.CCoord;
+    int3 maxCC = minCC + (info.offset & 0xFF);
+    return info.address != 0 && all(minCC <= CCoord && CCoord < maxCC);
 }
 #endif

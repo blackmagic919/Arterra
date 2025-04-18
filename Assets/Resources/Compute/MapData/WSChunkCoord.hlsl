@@ -12,4 +12,8 @@ float3 WSToMS(float3 positionWS){
     float3 positionMS = positionWS / lerpScale + mapChunkSize / 2;
     return fmod((mapChunkSize + fmod(positionMS, mapChunkSize)), mapChunkSize);
 }
+
+float3 WSToGS(float3 positionWS){
+    return positionWS / lerpScale + mapChunkSize / 2;
+}
 #endif

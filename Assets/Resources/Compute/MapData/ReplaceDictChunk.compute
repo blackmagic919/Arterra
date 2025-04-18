@@ -26,7 +26,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     info.offset = bOffset + ((((id.x * chunkInc) & 0xFF) << 24) | 
     (((id.y * chunkInc) & 0xFF) << 16) | 
     (((id.z * chunkInc) & 0xFF) << 8));
-    info.CCoord = oCoord + int3(id.x, id.y, id.z);
+    //Note: info.CCoord refers to the origin of the chunk
+    //not the specific CCoord of the subportion in uniform Chunk Space
+    info.CCoord = oCoord;
 
-    ChunkDict[HashCoord(info.CCoord)] = info;
+    int3 CCoord = oCoord + int3(id.x, id.y, id.z);
+    ChunkDict[HashCoord(oCoord + int3(id.x, id.y, id.z))] = info;
 }

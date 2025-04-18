@@ -1,17 +1,18 @@
 #include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
-#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CleanChunk
 #pragma kernel CopyHash
-const static int numThreads = 8;
+const static int numThreads = 128;
+StructuredBuffer<CInfo> _ChunkAddressDict;
+StructuredBuffer<uint2> _DirectAddress;
 
 RWStructuredBuffer<uint> _MemoryBuffer;
-StructuredBuffer<uint2> _DirectAddress;
 RWStructuredBuffer<uint2> DirtySubChunks;
 uint chunkLHOffset;
 uint chunkLMOffset;
 uint nChunkAddress;
-uint oChunkAddress;
+uint CopyMap;
+//This is the coordinate of the origin
 int3 CCoord;
 
 
@@ -24,19 +25,21 @@ uint subChunkSize;
 //Number of hash bits divided by 32
 uint numLightUnits; 
 
+bool IsRealChunk(in CInfo cHandle){ return cHandle.address != 0 && (cHandle.offset & 0xFF) == 1; }
+bool IsHashOrigin(in CInfo cHandle, in uint CIndex){ return cHandle.address != 0 && CIndex == HashCoord(cHandle.CCoord); }
+
 [numthreads(numThreads,1,1)]
 void CleanChunk (uint3 id : SV_DispatchThreadID)
 {
     if(id.x >= numLightUnits) return;
     
-    uint rLight;
-    if(oChunkAddress == -1) rLight = 0;
-    else { 
-        uint rAddress = _DirectAddress[oChunkAddress].y;
-        rAddress += chunkLMOffset + id.x;
+    uint rLight = 0;
+    uint CIndex = HashCoord(CCoord);
+    CInfo cHandle = _ChunkAddressDict[HashCoord(CCoord)];
+    if(IsRealChunk(cHandle) && CopyMap){
+        uint rAddress = cHandle.address + chunkLMOffset + id.x;
         rLight = _MemoryBuffer[rAddress];
-    } 
-
+    }
     uint wAddress = _DirectAddress[nChunkAddress].y;
     wAddress += chunkLMOffset + id.x;
     _MemoryBuffer[wAddress] = rLight;
@@ -49,11 +52,13 @@ void CopyHash (uint3 id : SV_DispatchThreadID)
     if(id.x >= numLightUnits) return;
 
     uint bitMap = 0;
-    if(oChunkAddress != 0){
-        uint rAddress = _DirectAddress[oChunkAddress].y;
-        rAddress += chunkLHOffset + id.x;
-        bitMap = _MemoryBuffer[rAddress]; 
-    } uint CIndex = HashCoord(CCoord);
+
+    uint CIndex = HashCoord(CCoord);
+    CInfo cHandle = _ChunkAddressDict[CIndex];
+    if(IsHashOrigin(cHandle, CIndex)){
+        uint rAddress = cHandle.address + chunkLHOffset + id.x;
+        bitMap = _MemoryBuffer[rAddress];
+    }
 
     [unroll]for(int i = 0; i < 32; i++){
         uint bit = (bitMap >> i) & 0x1;
@@ -68,4 +73,3 @@ void CopyHash (uint3 id : SV_DispatchThreadID)
     uint wAddress = nChunkAddress + chunkLHOffset + id.x;
     _MemoryBuffer[wAddress] = 0xFFFFFFFF; 
 }
-

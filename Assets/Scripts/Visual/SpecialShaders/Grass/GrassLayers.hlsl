@@ -28,6 +28,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "NMGGrassLayersHelpers.hlsl"
 #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
+#include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
 
 struct DrawTriangle{
     uint2 vertex[3];
@@ -94,12 +95,12 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
     output.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
     output.normalWS = normalize(mul(_LocalToWorld, float4(v.normalOS, 0)).xyz);
     output.uv = mapCoordinates(output.positionWS) * _WSToUVScale;
+    output.positionCS = TransformWorldToHClip(output.positionWS);
 
     float height = (uint)((input.x >> 28) & 0xF);
     height /= 15.0f;
     output.height.xy = height;
 
-    output.positionCS = CalculatePositionCSWithShadowCasterLogic(output.positionWS, output.normalWS);
     
     return output;
 }
@@ -130,17 +131,11 @@ half3 Fragment(VertexOutput input) : SV_Target {
     clip(detailNoise * smoothNoise - height);
 
     // If the code reaches this far, this pixel should render
-
-#ifdef SHADOW_CASTER_PASS
-    // If we're in the shadow caster pass, it's enough to return now. We don't care about color
-    return 0;
-#else
     // Gather some data for the lighting algorithm
     InputData lightingInput = (InputData)0;
     lightingInput.positionWS = input.positionWS;
     lightingInput.normalWS = NormalizeNormalPerPixel(input.normalWS); // Renormalize the normal to reduce interpolation errors
     lightingInput.viewDirectionWS = GetViewDirectionFromPosition(input.positionWS); // Calculate the view direction
-    lightingInput.shadowCoord = CalculateShadowCoord(input.positionWS, input.positionCS); // Calculate the shadow map coord
 
     // Lerp between the two grass colors based on layer height
     float colorLerp = input.height.y;
@@ -150,11 +145,14 @@ half3 Fragment(VertexOutput input) : SV_Target {
 	surfaceInput.albedo = albedo;
 	surfaceInput.alpha = 1;
 
-    // The URP simple lit algorithm
-    // The arguments are lighting input data, albedo color, specular color, smoothness, emission color, and alpha
-    //return UniversalFragmentBlinnPhong(lightingInput, albedo, 1, 0, 0, 1); <-- code has been depreciated
-    return max(UniversalFragmentPBR(lightingInput, surfaceInput), surfaceInput.albedo * unity_AmbientEquator).rgb;
-#endif
+    uint light = SampleLight(input.positionWS);
+    float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f) * 0.5 + 0.5;
+    float3 DynamicLight = UniversalFragmentPBR(lightingInput, surfaceInput) * shadow;
+    float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
+    ObjectLight = mad((1 - ObjectLight), unity_AmbientEquator, ObjectLight * 2.5f); //linear interpolation
+    ObjectLight *= surfaceInput.albedo;
+
+    return max(DynamicLight, ObjectLight).rgb;
 }
 
 #endif

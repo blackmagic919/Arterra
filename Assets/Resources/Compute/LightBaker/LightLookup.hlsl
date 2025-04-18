@@ -18,10 +18,8 @@ struct AtmosphericData{
     float3 scatterCoeffs;
     float3 extinctCoeff;
     uint LightIntensity; 
-    //Divided r -> 0x1F, g -> 0x3E, b -> 0x7C00,
-    // 0x80000000 -> Light as Solid
-    // 0x40000000 -> Light as Liquid
-    // 0x20000000 -> Light as Gas
+    //Divided SolidLight: r -> 0x1F, g -> 0x3E, b -> 0x7C00,
+    //Liquid-Gas Light: LightIntensity >> 16 & 0x7FFF
 };
 
 StructuredBuffer<AtmosphericData> _MatAtmosphericData; 
@@ -32,6 +30,7 @@ RWStructuredBuffer<uint2> DirtySubChunks;
 uint2 bCOUNT; //x -> Dirty, y -> Current
 uint2 bSTART;
 uint QueueSize;
+int mapChunkSize;
 
 uint chunkLMOffset; //Light Map
 uint chunkLHOffset; //Light Hash
@@ -41,18 +40,18 @@ uint IsoLevel;
 
 bool IsInShadowDirect(uint3 SamplePointMS, uint address){
     uint index = indexFromCoord(SamplePointMS);
-    address = address + index;
-    uint mInfo = _MemoryBuffer[address];
-    if((mInfo & 0xFF) >= IsoLevel) return 1; //Don't recieve light if underground
+    uint pAddress = address + index;
+    uint mInfo = _MemoryBuffer[pAddress];
+    if((mInfo >> 8 & 0xFF) >= IsoLevel) return 1; //Don't recieve light if underground
     else {
-    address = address + chunkLMOffset + index / 2;
-    return (_MemoryBuffer[address] >> ((index % 2) * 16 + 15)) & 0x1;
+    pAddress = address + chunkLMOffset + index / 2;
+    return (_MemoryBuffer[pAddress] >> ((index % 2) * 16 + 15)) & 0x1;
 }}
 
 uint SampleLuminDirect(uint3 SamplePointMS, uint address){
     uint index = indexFromCoord(SamplePointMS);
     address = address + chunkLMOffset + index / 2;
-    return (_MemoryBuffer[address] >> ((index % 2) * 16)) & 0xFFFF;
+    return (_MemoryBuffer[address] >> ((index % 2) * 16)) & 0x7FFF;
 }
 
 uint SampleRawLight(int3 MCoord, uint address){
@@ -62,62 +61,62 @@ uint SampleRawLight(int3 MCoord, uint address){
     uint solid = (mInfo >> 8) & 0xFF;
     uint liquid = (mInfo & 0xFF) - solid;
     uint light = _MatAtmosphericData[material].LightIntensity;
-    if(((solid >= IsoLevel) && ((light >> 31) & 0x1)) || 
-    ((liquid >= IsoLevel) && ((light >> 30) & 0x1)) ||
-    max(solid, liquid) < IsoLevel && ((light >> 29) & 0x1))
+    if(solid >= IsoLevel){
         return light & 0x7FFF;
-    else return 0;
+    } else if (liquid >= IsoLevel || max(solid, liquid) < IsoLevel){
+        return (light >> 16) & 0x7FFF;
+    } else return 0;
 }
 
 uint3 SampleBaseLight(int3 MCoord, uint address){
     uint rawLight = SampleRawLight(MCoord, address);
-    return uint3(rawLight & 0x1F, (rawLight >> 5) & 0x1F, (rawLight >> 11) & 0x1F);
+    return uint3(rawLight & 0x1F, (rawLight >> 5) & 0x1F, (rawLight >> 10) & 0x1F);
 }
 
-uint SampleLumin(uint3 SamplePointMS, CInfo cHandle){
+uint SampleLumin(int3 SamplePointMS, CInfo cHandle){
     //If underground return 0
-    if(any(SamplePointMS < 0 && SamplePointMS >= subChunksAxis)){
+    if(any(SamplePointMS < 0 || SamplePointMS >= (int)numPointsPerAxis)){
         //Convert from MapSpace to GridSpace
-        int3 SampleGS = SamplePointMS * (cHandle.offset * 0xFF) + cHandle.CCoord * numPointsPerAxis;
-        SamplePointMS = ((SampleGS % subChunksAxis) + subChunksAxis) % subChunksAxis;
-        int3 CCoord = (SampleGS - SamplePointMS) / subChunksAxis;
+        int3 SampleGS = SamplePointMS * (cHandle.offset & 0xFF) + cHandle.CCoord * mapChunkSize;
+        SamplePointMS = ((SampleGS % mapChunkSize) + mapChunkSize) % mapChunkSize;
+        int3 CCoord = (SampleGS - SamplePointMS) / mapChunkSize;
         cHandle = _AddressDict[HashCoord(CCoord)];
-        if(!Exists(cHandle, CCoord)) return 0;
+        if(!Contains(cHandle, CCoord)) 
+            cHandle.address = 0; 
         SamplePointMS /= (cHandle.offset & 0xFF);
         SamplePointMS.x += (cHandle.offset >> 24) & 0xFF;
         SamplePointMS.y += (cHandle.offset >> 16) & 0xFF;
         SamplePointMS.z += (cHandle.offset >> 8) & 0xFF;
     }
 
-    return SampleLuminDirect(SamplePointMS, cHandle.address);
+    if(cHandle.address == 0) return 0;
+    else return SampleLuminDirect(SamplePointMS, cHandle.address);
 }
 
-bool IsInShadow(uint3 SamplePointMS, CInfo cHandle){
+bool IsInShadow(int3 SamplePointMS, CInfo cHandle){
     //If underground return 0
-    if(any(SamplePointMS < 0 && SamplePointMS >= subChunksAxis)){
+    if(any(SamplePointMS < 0 || SamplePointMS >= (int)numPointsPerAxis)){
         //Convert from MapSpace to GridSpace
-        int3 SampleGS = SamplePointMS * (cHandle.offset * 0xFF) + cHandle.CCoord * numPointsPerAxis;
-        SamplePointMS = ((SampleGS % subChunksAxis) + subChunksAxis) % subChunksAxis;
-        int3 CCoord = (SampleGS - SamplePointMS) / subChunksAxis;
+        int3 SampleGS = SamplePointMS * (cHandle.offset & 0xFF) + cHandle.CCoord * mapChunkSize;
+        SamplePointMS = ((SampleGS % mapChunkSize) + mapChunkSize) % mapChunkSize;
+        int3 CCoord = (SampleGS - SamplePointMS) / mapChunkSize;
         cHandle = _AddressDict[HashCoord(CCoord)];
         //IMPORTANT: If above chunk doesn't exist, it is not in shadow
-        if(!Exists(cHandle, CCoord)) return 0; 
+        if(!Contains(cHandle, CCoord)) 
+            cHandle.address = 0; 
         SamplePointMS /= (cHandle.offset & 0xFF);
         SamplePointMS.x += (cHandle.offset >> 24) & 0xFF;
         SamplePointMS.y += (cHandle.offset >> 16) & 0xFF;
         SamplePointMS.z += (cHandle.offset >> 8) & 0xFF;
     }
 
-    return IsInShadowDirect(SamplePointMS, cHandle.address);
+    if(cHandle.address == 0) return 0;
+    else return IsInShadowDirect(SamplePointMS, cHandle.address);
 }
 
-//IMPORTANT: Caller should ensure CCoord is the coord of the origin of the chunk
-void AddDirtySubchunk(int3 CCoord, int3 SCoord){
+void AddDirtySubchunk(CInfo cHandle, int3 SCoord){
     //Add the subchunk to the dirty list
-    uint CIndex = HashCoord(CCoord);
-    uint SIndex = indexFromCoord(SCoord);
-    CInfo cHandle = _AddressDict[CIndex];
-    if(!Exists(cHandle, CCoord)) return;
+    uint SIndex = indexFromCoordManual(SCoord, subChunksAxis);
     uint addr = cHandle.address + chunkLHOffset;
     addr += SIndex / 32;
 
@@ -127,7 +126,9 @@ void AddDirtySubchunk(int3 CCoord, int3 SCoord){
     //Add to the dirty list
     InterlockedAdd(DirtySubChunks[bCOUNT.x].y, 1, value);
     uint ind = bSTART.x + ((value + DirtySubChunks[bCOUNT.x].x) % QueueSize);
-    DirtySubChunks[ind] = uint2(CIndex, SIndex);
+
+    //Note cHandle.CCoord is NOT necessarily CCoord
+    DirtySubChunks[ind] = uint2(HashCoord(cHandle.CCoord), SIndex);
 }
 
 #endif

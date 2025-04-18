@@ -25,7 +25,7 @@ uint ReadMapData(int3 sCoord){
     int skipInc = (cHandle.offset & 0xFF);
 
     //this shouldn't happen as long as mapExtend >= 1
-    if(!Exists(cHandle, sCCoord)) return 0;  
+    if(!Contains(cHandle, sCCoord)) return 0;  
     //If the chunk is too not detail, just extend the current map
     else if(any(coord % skipInc != 0)){ 
         coord = clamp(sCoord, 0, mapChunkSize - 1);
@@ -64,7 +64,7 @@ bool ReadRealMap(int3 sCoord, out uint info){
 
     CInfo cHandle = _AddressDict[HashCoord(sCCoord)];
     int skipInc = (cHandle.offset & 0xFF);
-    if(!Exists(cHandle, sCCoord)) return false; 
+    if(!Contains(cHandle, sCCoord)) return false; 
     else if(any(sCoord % skipInc) != 0) return false;
     //bottom edge needs to check if adjacent chunk exists
     //otherwise it'll have different data than the fake adjacent
@@ -72,7 +72,7 @@ bool ReadRealMap(int3 sCoord, out uint info){
     else if(any(sCoord == 0)){ 
         sCCoord += clamp(sCoord-1, -1, 0);
         CInfo adjHandle = _AddressDict[HashCoord(sCCoord)];
-        if(!Exists( adjHandle, sCCoord)) return false;
+        if(!Contains( adjHandle, sCCoord)) return false;
     } 
 
     sCoord /= skipInc;

@@ -100,6 +100,13 @@ public abstract class MaterialData : ScriptableObject
         /// will result in lower visibility of distant objects. 
         /// </summary> <remarks>as a percentage, between 0 and 1</remarks>
         public Vector3 GroundExtinction;
+        /// <summary>
+        /// Controls how much light is emitted from this block as both a solid and liquid.
+        /// Divided into 2 15 bit sections; 0x7FFF controls light emitted as a solid; 0x7FFF0000
+        /// controls the light emitted as a liquid and gas. Each 15 bit section is divided into 3 
+        /// 5 bit regions, each controlling on a scale from 0->31 the intensity of the RGB channels.
+        /// </summary>
+        public uint LightIntensity;
     }
 
     /// <summary>  The apperance of the terrain when the material <see cref="CPUMapManager.MapData.IsLiquid">is liquid</see>.
@@ -152,7 +159,4 @@ public abstract class MaterialData : ScriptableObject
         if(index < 0 || index >= Names.Count) return "NULL";
         return Names[index];
     }
-
-}
-}
-
+}}

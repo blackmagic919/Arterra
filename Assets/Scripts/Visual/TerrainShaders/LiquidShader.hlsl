@@ -1,5 +1,6 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
 
 struct v2f
 {
@@ -159,9 +160,12 @@ half4 frag (v2f IN) : SV_Target
     surfaceInput.smoothness = matData.Smoothness;
     surfaceInput.specular = 1;
 
-#if UNITY_VERSION >= 202120
-    return UniversalFragmentBlinnPhong(lightingInput, surfaceInput);
-#else
-    return UniversalFragmentBlinnPhong(lightingInput, surfaceInput.albedo, float4(surfaceInput.specular, 1), surfaceInput.smoothness, 0, surfaceInput.alpha);
-#endif
+    uint light = SampleLight(IN.positionWS);
+    float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f) * 0.5 + 0.5;
+    float4 DynamicLight = UniversalFragmentPBR(lightingInput, surfaceInput) * shadow;
+    float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
+    ObjectLight = mad((1 - ObjectLight), unity_AmbientGround, ObjectLight * 2.5f); //linear interpolation
+    ObjectLight *= surfaceInput.albedo;
+
+	return max(DynamicLight, float4(ObjectLight, 0));
 }

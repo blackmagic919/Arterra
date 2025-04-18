@@ -7,11 +7,8 @@ using WorldConfig;
 using WorldConfig.Generation.Item;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Collections;
 using TerrainGeneration;
-using WorldConfig.Gameplay.Player;
-using UnityEditor.Animations;
 
 [CreateAssetMenu(menuName = "Entity/Player")]
 public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring

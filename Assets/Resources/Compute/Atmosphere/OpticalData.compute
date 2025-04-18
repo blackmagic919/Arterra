@@ -6,11 +6,14 @@
 
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/MapData/WSDensitySampler.hlsl"
+#include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
+const static float StaticLightIntensity = 0.01f;
 
 struct ScatterData{
     float3 inScatteredLight;
     float3 extinction;
 };
+
 
 RWStructuredBuffer<ScatterData> mapData;
 RWStructuredBuffer<uint> treeLocks;
@@ -23,7 +26,6 @@ float3 _LightDirection; //Global Variable
 float _AtmosphereRadius;
 uint _NumInScatterPoints;
 uint _NumOpticalDepthPoints;
-float _IsoLevel;
 
 float2 raySphere(float3 s0, float sr, float3 r0, float3 rd) {
     float a = dot(rd, rd);
@@ -41,41 +43,43 @@ float2 raySphere(float3 s0, float sr, float3 r0, float3 rd) {
 	}
 }
 
-float calculateOcclusionFactor(float3 rayOrigin, float3 rayDir, float rayLength){
-    half cascadeIndex = ComputeCascadeIndex(rayOrigin);
-    float stepSize = pow(2, cascadeIndex);
-    int NumShadowPoints = max(1, rayLength / stepSize);
-
-    float3 shadowPoint = rayOrigin;
-    float transmittanceCount = 0;
-
-    for(int i = 0; i < NumShadowPoints; i++){
-        transmittanceCount += MainLightRealtimeShadow(TransformWorldToShadowCoord(shadowPoint));
-        shadowPoint += rayDir * stepSize;
+float4 CumulativeStaticLight(float3 rayOrigin, float3 rayDir, float rayLength){
+    float stepSize = rayLength / (_NumOpticalDepthPoints - 1);
+    uint4 CumStaticLight = 0; //xyz -> rgb, w -> shadow
+    for(uint i = 0; i < _NumOpticalDepthPoints; i++){
+        uint light = SampleLightFast(rayOrigin);
+        CumStaticLight.x += (light & 0x3FF);
+        CumStaticLight.y += (light >> 10 & 0x3FF);
+        CumStaticLight.z += (light >> 20 & 0x3FF);
+        CumStaticLight.w += (light >> 30 & 0x3);
+        rayOrigin += rayDir * stepSize;
     }
-    return (transmittanceCount / NumShadowPoints);
+    float4 ObjLight = CumStaticLight;
+    ObjLight /= _NumOpticalDepthPoints;
+    ObjLight.xyz /= 1023.0f;
+    ObjLight.w = 1.0f - (ObjLight.w / 3.0f); //1 means in shadow means No Light(0)
+    return ObjLight;
 }
 
+
 OpticalInfo CumulativeMapInfo(float3 rayOrigin, float3 rayDir, float rayLength){
-    float3 densitySamplePoint = rayOrigin; 
     float stepSize = rayLength / (_NumOpticalDepthPoints - 1);
     OpticalInfo info = (OpticalInfo)0;
-    for(uint i = 0; i < _NumOpticalDepthPoints; i++){
-        OpticalInfo sampleData = SampleMapData(densitySamplePoint);
 
-        info.opticalDensity += sampleData.opticalDensity / (_IsoLevel * 255.0f);
+    for(uint i = 0; i < _NumOpticalDepthPoints; i++){
+        OpticalInfo sampleData = SampleMapData(rayOrigin);
+        info.opticalDensity += sampleData.opticalDensity / ((float)IsoLevel);
         info.scatterCoeffs += sampleData.scatterCoeffs;
         info.extinctionCoeff += sampleData.extinctionCoeff;
-
-        densitySamplePoint += rayDir * stepSize;
+        rayOrigin += rayDir * stepSize;
     }
     info.opticalDensity /= _NumOpticalDepthPoints;
     info.scatterCoeffs /= _NumOpticalDepthPoints;
     info.extinctionCoeff /= _NumOpticalDepthPoints;
-    info.scatterCoeffs *= calculateOcclusionFactor(rayOrigin, rayDir, rayLength);
-    
     return info;
 }
+
+
 
 float3 opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
     float3 densitySamplePoint = rayOrigin;
@@ -84,7 +88,7 @@ float3 opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
 
     for(uint i = 0; i < _NumOpticalDepthPoints; i++){
         OpticalDepth mapData = SampleOpticalDepth(densitySamplePoint);
-        opticalDepth += mapData.scatterCoeffs * (mapData.opticalDensity / (_IsoLevel * 255.0f)) * stepSize;
+        opticalDepth += mapData.scatterCoeffs * (mapData.opticalDensity / ((float)IsoLevel)) * stepSize;
         densitySamplePoint += rayDir * stepSize;
     }
 
@@ -135,12 +139,17 @@ void Bake (uint3 id : SV_DispatchThreadID)
 
     ScatterData scatterData = (ScatterData)0;
     OpticalInfo opticalInfo = CumulativeMapInfo(inScatterPoint, direction, stepSize); 
+    float4 staticLight = CumulativeStaticLight(inScatterPoint, direction, stepSize);
 
     //Calculate Scatter Data
     float3 sunDepth = opticalDepth(inScatterPoint, _LightDirection, sunRayLength);
     float3 cameraDepth = opticalDepth(inScatterPoint, -direction, stepSize * depth); 
     float3 transmittance =  exp(-(sunDepth + cameraDepth)); // exp(-t(PPc, lambda)-t(PPa, lambda)) 
-    scatterData.inScatteredLight = opticalInfo.scatterCoeffs * opticalInfo.opticalDensity * transmittance;
+    float3 emissionColor = _MainLightColor.xyz;
+
+    scatterData.inScatteredLight = emissionColor * opticalInfo.scatterCoeffs * transmittance * staticLight.w;
+    scatterData.inScatteredLight += staticLight.xyz * exp(-cameraDepth) * StaticLightIntensity;
+    scatterData.inScatteredLight *= opticalInfo.opticalDensity;
     scatterData.extinction = opticalInfo.extinctionCoeff * opticalInfo.opticalDensity;
    
     ConstructSampleTree(scatterData, pixelIndex, depth);

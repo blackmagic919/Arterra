@@ -5,6 +5,7 @@
 #include "NMGFoliageHelpers.hlsl"
 #include "NMGFoliageHelpers.hlsl"
 #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
+#include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
 
 struct DrawTriangle{
     uint2 vertex[3];
@@ -49,8 +50,8 @@ VertexOutput Vertex(uint vertexID: SV_VertexID){
 
     output.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
     output.normalWS = normalize(mul(_LocalToWorld, float4(v.normalOS, 0)).xyz);
+    output.positionCS = TransformWorldToHClip(output.positionWS);
     output.uv = uv;
-    output.positionCS = CalculatePositionCSWithShadowCasterLogic(output.positionWS, output.normalWS);
 
     return output;
 }
@@ -90,7 +91,14 @@ half3 Fragment(VertexOutput IN) : SV_TARGET{
 	surfaceInput.alpha = 1;
     clip(SAMPLE_TEXTURE2D(_AlphaMap, sampler_AlphaMap, IN.uv).a - _AlphaClip);
 
-    return max(UniversalFragmentPBR(lightingInput, surfaceInput), surfaceInput.albedo * unity_AmbientEquator).rgb;
+    uint light = SampleLight(IN.positionWS);
+    float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f) * 0.5 + 0.5;
+    float3 DynamicLight = UniversalFragmentPBR(lightingInput, surfaceInput) * shadow;
+    float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
+    ObjectLight = mad((1 - ObjectLight), unity_AmbientEquator, ObjectLight * 2.5f); //linear interpolation
+    ObjectLight *= surfaceInput.albedo;
+
+    return max(DynamicLight, ObjectLight).rgb;
 }
 
 #endif

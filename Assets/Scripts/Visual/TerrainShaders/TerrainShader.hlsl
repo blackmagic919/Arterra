@@ -1,4 +1,5 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
 
 struct matTerrain{
     int textureIndex;
@@ -101,6 +102,9 @@ float3 frag (v2f IN) : SV_Target
     float colorStrength = tInfo.baseColorStrength;
     float3 textureColor = triplanar(IN.positionWS, tInfo.baseTextureScale, blendAxes, tInfo.textureIndex);
 
+    uint light = SampleLight(IN.positionWS);
+    float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f) * 0.5 + 0.5;
+    //float shadow = (dot((1, 1, 1), WSToCS(IN.positionWS)) % 2 == 0 ? 1 : 0) * 0.5 + 0.5;//
     InputData lightingInput = (InputData)0;
 	lightingInput.positionWS = IN.positionWS;
 	lightingInput.normalWS = normalize(IN.normalWS);
@@ -110,5 +114,11 @@ float3 frag (v2f IN) : SV_Target
 	SurfaceData surfaceInput = (SurfaceData)0;
 	surfaceInput.albedo = baseColor * colorStrength + textureColor * (1-colorStrength);
 
-	return max(UniversalFragmentPBR(lightingInput, surfaceInput), surfaceInput.albedo * unity_AmbientGround).rgb;
+    float3 DynamicLight = UniversalFragmentPBR(lightingInput, surfaceInput) * shadow;
+    float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
+    ObjectLight = mad((1 - ObjectLight), unity_AmbientGround, ObjectLight * 2.5f); //linear interpolation
+    ObjectLight *= surfaceInput.albedo;
+
+
+	return max(DynamicLight, ObjectLight).rgb;
 }

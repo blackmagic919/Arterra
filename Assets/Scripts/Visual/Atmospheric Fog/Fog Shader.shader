@@ -130,7 +130,6 @@ Shader "Hidden/Fog"
                 half4 originalColor = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv);
                 float screenDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, IN.uv);
                 float linearDepth = LinearEyeDepth(screenDepth, _ZBufferParams) * length(IN.viewVector);
-                float3 emissionColor = _MainLightColor.xyz;
 
                 //Assume atmosphere originates at viewer
                 float dstThroughAtmosphere = min(_AtmosphereRadius, linearDepth);
@@ -139,7 +138,7 @@ Shader "Hidden/Fog"
 
                 if(dstThroughAtmosphere > 0){
                     ScatterData atmosphereData = CalculateScatterData(dstThroughAtmosphere, sampleDist, rayInfluences);
-                    return half4(atmosphereData.inScatteredLight * emissionColor + originalColor.xyz * exp(-atmosphereData.extinction), 0);
+                    return half4(atmosphereData.inScatteredLight + originalColor.xyz * exp(-atmosphereData.extinction), 0);
                 }
                 return originalColor;
             }

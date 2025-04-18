@@ -7,6 +7,7 @@
 struct AtmosphericData{
     float3 scatterCoeffs;
     float3 extinctCoeff;
+    uint LightIntensity; 
 };
 
 
@@ -14,8 +15,12 @@ struct AtmosphericData{
 StructuredBuffer<AtmosphericData> _MatAtmosphericData; 
 
 //MapData
+#ifndef MAPINFO_SAMPLER
+#define MAPINFO_SAMPLER
 StructuredBuffer<CInfo> _ChunkAddressDict;
 StructuredBuffer<uint> _ChunkInfoBuffer;
+uint IsoLevel;
+#endif
 const static int POINT_STRIDE_4BYTE = 1;
 
 struct OpticalDepth{
@@ -34,7 +39,7 @@ OpticalInfo SampleMapData(float3 samplePointWS){
     CInfo cHandle = _ChunkAddressDict[HashCoord(CSCoord)];
     OpticalInfo mapData = (OpticalInfo)0;
     
-    if(!Exists(cHandle, CSCoord)) return mapData; else{
+    if(!Contains(cHandle, CSCoord)) return mapData; else{
     float3 MSPoint = WSToMS(samplePointWS) / (cHandle.offset & 0xFF);
     MSPoint += float3(
         (cHandle.offset >> 24) & 0xFF,
@@ -64,7 +69,7 @@ OpticalDepth SampleOpticalDepth(float3 samplePointWS){
     CInfo cHandle = _ChunkAddressDict[HashCoord(CSCoord)];
     OpticalDepth depth = (OpticalDepth)0;
     
-    if(!Exists(cHandle, CSCoord)) return depth; else{
+    if(!Contains(cHandle, CSCoord)) return depth; else{
     float3 MSPoint = WSToMS(samplePointWS) / (cHandle.offset & 0xFF);
     MSPoint += float3(
         (cHandle.offset >> 24) & 0xFF,
@@ -92,7 +97,7 @@ OpticalDepth SampleOpticalDepthRaw(float3 samplePointWS){
     CInfo cHandle = _ChunkAddressDict[HashCoord(WSToCS(samplePointWS))];
     OpticalDepth depth = (OpticalDepth)0;
     
-    if(!Exists(cHandle, WSToCS(samplePointWS))) return depth; 
+    if(!Contains(cHandle, WSToCS(samplePointWS))) return depth; 
     float3 MSPoint = WSToMS(samplePointWS) / (cHandle.offset & 0xFF);
     MSPoint.x += (cHandle.offset >> 24) & 0xFF;
     MSPoint.y += (cHandle.offset >> 16) & 0xFF;

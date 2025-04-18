@@ -16,9 +16,7 @@ uint chunkLHOffset;
 uint UpdateCount;
 uint QueueSize;
 
-bool HashExists(CInfo cHandle, uint HIndex){
-    return (cHandle.address != 0 && HashCoord(cHandle.CCoord) == HIndex);
-}
+bool IsHashOrigin(CInfo cHandle, uint HIndex){ return cHandle.address != 0 && HashCoord(cHandle.CCoord) == HIndex; }
 
 [numthreads(numThreads,1,1)]
 void PrimeSubchunks (uint3 id : SV_DispatchThreadID)
@@ -34,14 +32,12 @@ void PrimeSubchunks (uint3 id : SV_DispatchThreadID)
     //If the chunk no longer exists, it means that there used to be a chunk originating
     //at this location, but it was replaced by a new chunk. We should only accept updates
     //that are synced--i.e. cIndex points to the origin CCoord of a chunk.
-    if(!HashExists(cHandle, SubChunkInfo.x))
+    if(!IsHashOrigin(cHandle, SubChunkInfo.x))
         return;
 
     //Set HashBit to zero(removed from dirty list)
-    uint lAddress = cHandle.address + chunkLHOffset;
-    uint lHashAdd = lAddress + SubChunkInfo.y / 32;
-    InterlockedAnd(_MemoryBuffer[lHashAdd], ~(1 << (SubChunkInfo.y % 32)));
-
+    uint lHashAdd = cHandle.address + chunkLHOffset + SubChunkInfo.y / 32;
+    InterlockedAnd(_MemoryBuffer[lHashAdd], ~(1u << (SubChunkInfo.y % 32)));
     CurUpdateSubChunks[bSTART.y + id.x] = SubChunkInfo;
 }
 

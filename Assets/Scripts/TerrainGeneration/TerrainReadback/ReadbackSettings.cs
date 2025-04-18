@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TerrainGeneration.Readback;
 using UnityEngine;
 
 namespace WorldConfig.Intrinsic{
@@ -25,6 +26,9 @@ public class Readback: ScriptableObject
             if(indirectTerrainMats[i] != null) continue;
             indirectTerrainMats[i] = Object.Instantiate(TerrainMats[i]);
             indirectTerrainMats[i].EnableKeyword("INDIRECT");
+
+            LightBaker.SetupLightSampler(indirectTerrainMats[i]);
+            LightBaker.SetupLightSampler(TerrainMats[i]);
         }
     }
 

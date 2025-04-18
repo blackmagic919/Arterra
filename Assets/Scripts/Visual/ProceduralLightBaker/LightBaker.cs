@@ -62,12 +62,12 @@ public static class LightBaker
 
         int mapSize = terrain.mapChunkSize * terrain.mapChunkSize * terrain.mapChunkSize;
         int mapFullSize = mapSize + (terrain.mapChunkSize + 3) * (terrain.mapChunkSize + 3) * 9;
-        int lightMapSize = Mathf.CeilToInt(mapSize / 2);
+        int lightMapSize = Mathf.CeilToInt(mapSize / 2.0f);
         int IsoValue = Mathf.RoundToInt(terrain.IsoLevel * 255.0f);
 
         int kernel = LightSetupPrimer.FindKernel("PrimeSubchunks");
         LightSetupPrimer.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
-        LightSetupPrimer.SetBuffer(kernel, "_AddressDict", GPUMapManager.Storage);
+        LightSetupPrimer.SetBuffer(kernel, "_AddressDict", GPUMapManager.Address);
         LightSetupPrimer.SetBuffer(kernel, "DirtySubChunks", DirtySubChunkDict);
         LightSetupPrimer.SetBuffer(kernel, "CurUpdateSubChunks", SubChunkUpdateBuffer);
         kernel = LightSetupPrimer.FindKernel("PrimeQueue");
@@ -94,14 +94,18 @@ public static class LightBaker
         ObjectLightShader.SetInt("subChunkSize", SubChunkSize);
         ObjectLightShader.SetInt("subChunksAxis", Settings.SubChunkDivisions);
         ObjectLightShader.SetInt("IsoLevel", IsoValue);
+        ObjectLightShader.SetInt("mapChunkSize", terrain.mapChunkSize); //as int
+        ObjectLightShader.SetInt("numPointsPerAxis", terrain.mapChunkSize); //as uint
         GPUMapManager.SetCCoordHash(ObjectLightShader);
 
         kernel = ChunkLightPrimer.FindKernel("CopyHash");
         ChunkLightPrimer.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
+        ChunkLightPrimer.SetBuffer(kernel, "_ChunkAddressDict", GPUMapManager.Address);
         ChunkLightPrimer.SetBuffer(kernel, "_DirectAddress", GPUMapManager.DirectAddress);
         ChunkLightPrimer.SetBuffer(kernel, "DirtySubChunks", DirtySubChunkDict);
         kernel = ChunkLightPrimer.FindKernel("CleanChunk");
         ChunkLightPrimer.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
+        ChunkLightPrimer.SetBuffer(kernel, "_ChunkAddressDict", GPUMapManager.Address);
         ChunkLightPrimer.SetBuffer(kernel, "_DirectAddress", GPUMapManager.DirectAddress);
         ChunkLightPrimer.SetBuffer(kernel, "DirtySubChunks", DirtySubChunkDict);
 
@@ -122,20 +126,52 @@ public static class LightBaker
         SubChunkUpdateBuffer?.Dispose();
     }
 
-    public static int GetLightMapLength(int mapChunkSize){
+    public static int GetLightMapLength(){
+        int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int mapSize = mapChunkSize * mapChunkSize * mapChunkSize;
         int SubChunkAxis = mapChunkSize / Settings.SubChunkDivisions;
         int SubChunkCount = SubChunkAxis * SubChunkAxis * SubChunkAxis;
         return Mathf.CeilToInt(mapSize / 2.0f) + Mathf.CeilToInt(SubChunkCount / 32.0f);
     }
 
-    public static void RegisterChunk(int3 CCoord, int mapChunkSize, uint nAddress, uint oAddress = 0){
+    public static int GetLightMapStart(){
+        int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        int mapSize = mapChunkSize * mapChunkSize * mapChunkSize;
+        int mapFullSize = mapSize + (mapChunkSize + 3) * (mapChunkSize + 3) * 9;
+        return mapFullSize;
+    }
+
+    public static void SetupLightSampler(Material mat){
+        var tSettings = Config.CURRENT.Quality.Terrain.value;
+        int IsoValue = Mathf.RoundToInt(tSettings.IsoLevel * 255.0f);
+        mat.SetBuffer("_ChunkAddressDict", GPUMapManager.Address);
+        mat.SetBuffer("_ChunkInfoBuffer", GPUMapManager.Storage);
+        mat.SetInt("chunkLMOffset", GetLightMapStart());
+        mat.SetInt("IsoLevel", IsoValue);
+        mat.SetInt("mapChunkSize", tSettings.mapChunkSize);
+        mat.SetFloat("lerpScale", tSettings.lerpScale);
+        GPUMapManager.SetCCoordHash(mat);
+    }
+
+    public static void SetupLightSampler(ComputeShader shad, int kernel){
+        var tSettings = Config.CURRENT.Quality.Terrain.value;
+        int IsoValue = Mathf.RoundToInt(tSettings.IsoLevel * 255.0f);
+        shad.SetBuffer(kernel, "_ChunkAddressDict", GPUMapManager.Address);
+        shad.SetBuffer(kernel, "_ChunkInfoBuffer", GPUMapManager.Storage);
+        shad.SetInt("chunkLMOffset", GetLightMapStart());
+        shad.SetInt("IsoLevel", IsoValue);
+        shad.SetInt("mapChunkSize", tSettings.mapChunkSize);
+        shad.SetFloat("lerpScale", tSettings.lerpScale);
+        GPUMapManager.SetCCoordHash(shad);
+    }
+
+    public static void RegisterChunk(int3 CCoord, int mapChunkSize, uint nAddress, bool CopyMap = false){
         int SubChunkAxis = mapChunkSize / Settings.SubChunkDivisions;
         int numSubChunks = SubChunkAxis * SubChunkAxis * SubChunkAxis;
         ChunkLightPrimer.SetInts("CCoord", new int[]{CCoord.x, CCoord.y, CCoord.z});
         ChunkLightPrimer.SetInt("numLightUnits", Mathf.CeilToInt(numSubChunks / 32.0f));
-        ChunkLightPrimer.SetInt("nAddress", (int)nAddress);
-        ChunkLightPrimer.SetInt("oAddress", (int)oAddress);
+        ChunkLightPrimer.SetInt("nChunkAddress", (int)nAddress);
+        ChunkLightPrimer.SetInt("CopyMap", CopyMap ? 1 : 0);
 
         int kernel = ChunkLightPrimer.FindKernel("CopyHash");
         ChunkLightPrimer.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
@@ -143,11 +179,18 @@ public static class LightBaker
         ChunkLightPrimer.Dispatch(kernel, numThreads, 1, 1);
 
         int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
+        //Don't copy chunk info
         ChunkLightPrimer.SetInt("numLightUnits", Mathf.CeilToInt(numPoints / 2.0f));
         kernel = ChunkLightPrimer.FindKernel("CleanChunk");
         ChunkLightPrimer.GetKernelThreadGroupSizes(kernel, out threadGroupSize, out _, out _);
         numThreads = Mathf.CeilToInt(numPoints / (2.0f * (float)threadGroupSize));
         ChunkLightPrimer.Dispatch(kernel, numThreads, 1, 1);
+
+        //int2[] address = {0};
+        //uint[] LightMap = new uint[mapChunkSize * mapChunkSize * mapChunkSize / 2];
+        //GPUMapManager.DirectAddress.GetData(address, 0, (int)nAddress, 1);
+        //GPUMapManager.Storage.GetData(LightMap, 0, address[0].x + GetLightMapStart(), mapChunkSize * mapChunkSize * mapChunkSize / 2);
+
     }
 
     public static void IterateLightUpdate(MonoBehaviour mono){
@@ -164,8 +207,8 @@ public static class LightBaker
         ObjectLightShader.DispatchIndirect(kernel, args);
 
         //int2[] count = new int2[2];
-        //SubChunkUpdateBuffer.GetData(count);
-        //Debug.Log(count[0].x);
+        //DirtySubChunkDict.GetData(count);
+        //Debug.Log(count[0].y);
     }
 
     public struct BakeQueueOffsets : BufferOffsets{

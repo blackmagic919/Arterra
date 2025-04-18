@@ -40,7 +40,7 @@ void Transcribe (uint3 id : SV_DispatchThreadID)
     int3 CCoord = (GCoord - MCoord) / mapChunkSize + oCCoord;
 
     CInfo cHandle = _AddressDict[HashCoord(CCoord)];
-    if(!Exists(cHandle, CCoord)) return;
+    if(!Contains(cHandle, CCoord)) return;
     //should be the same as skipInc if used correctly
     MCoord /= (cHandle.offset & 0xFF); 
     MCoord.x += (cHandle.offset >> 24) & 0xFF;

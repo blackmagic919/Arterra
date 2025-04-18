@@ -138,7 +138,7 @@ public static class GenerationPreset
 
             int numMats = MaterialDictionary.Length;
             terrainData = new ComputeBuffer(numMats, sizeof(float) * 6 + sizeof(int) * 2, ComputeBufferType.Structured);
-            atmosphericData = new ComputeBuffer(numMats, sizeof(float) * 6, ComputeBufferType.Structured);
+            atmosphericData = new ComputeBuffer(numMats, sizeof(float) * 6 + sizeof(uint), ComputeBufferType.Structured);
             liquidData = new ComputeBuffer(numMats, sizeof(float) * (3 * 2 + 2 * 2 + 5), ComputeBufferType.Structured);
 
             for(int i = 0; i < MaterialDictionary.Length; i++) {
@@ -665,8 +665,8 @@ public static class GenerationPreset
             addressLL[nAddress].x = addressIndex;
             addressLL[addressIndex] = new uint2(pAddress, nAddress);
             
-            uint[] heap = new uint[6];
-            _EmptyBlockHeap.GetData(heap);
+            //uint[] heap = new uint[6];
+            //_EmptyBlockHeap.GetData(heap);
             //Debug.Log("Primary: " + heap[3]/250000 + "MB");
         }
 

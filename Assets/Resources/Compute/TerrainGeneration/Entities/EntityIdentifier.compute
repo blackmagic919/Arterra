@@ -98,7 +98,7 @@ uint SampleMapData(uint3 coord){
     uint3 dCC = floor(coord / (float)numPointsPerAxis);
     coord -= dCC * numPointsPerAxis;
     CInfo chunkHandle = _AddressDict[HashCoord(CCoord + dCC)];
-    if(!Exists(chunkHandle, CCoord))
+    if(!Contains(chunkHandle, CCoord))
         return asuint(-1);
     else{
         uint address = chunkHandle.address + indexFromCoord(coord);
