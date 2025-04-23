@@ -20,12 +20,13 @@ MonoBehaviour:
   terrainData:
     Texture: 0
     color: {x: 0.275, y: 0.486, z: 0.992, w: 1}
-    textureScale: 5
+    textureScale: 2
     baseColorStrength: 0.2
     GeoShaderIndex: -1
   AtmosphereScatter:
     ScatterCoeffs: {x: 0.000625, y: 0.00125, z: 0.0025}
     GroundExtinction: {x: 0.005, y: 0.01, z: 0.02}
+    LightIntensity: 0
   liquidData:
     shallowCol: {x: 0.19, y: 0.9, z: 1}
     deepCol: {x: 0, y: 0.36, z: 1}

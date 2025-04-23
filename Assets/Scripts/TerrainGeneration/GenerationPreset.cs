@@ -116,7 +116,7 @@ public static class GenerationPreset
     /// and gas <seealso cref="MaterialData"/>. Textures are copied from the <see cref="Config.GenerationSettings.Textures"/>
     /// registry and should be referenced in the GPU by their index in that registry. </summary>
     public struct MaterialHandle{
-        const int textureSize = 512;
+        const int textureSize = 128;
         const TextureFormat textureFormat = TextureFormat.RGBA32;
 
         Texture2DArray textureArray;
@@ -137,7 +137,7 @@ public static class GenerationPreset
             MaterialData.TerrainData[] MaterialTerrain = new MaterialData.TerrainData[MaterialDictionary.Length];
 
             int numMats = MaterialDictionary.Length;
-            terrainData = new ComputeBuffer(numMats, sizeof(float) * 6 + sizeof(int) * 2, ComputeBufferType.Structured);
+            terrainData = new ComputeBuffer(numMats, sizeof(float) + sizeof(int) * 2, ComputeBufferType.Structured);
             atmosphericData = new ComputeBuffer(numMats, sizeof(float) * 6 + sizeof(uint), ComputeBufferType.Structured);
             liquidData = new ComputeBuffer(numMats, sizeof(float) * (3 * 2 + 2 * 2 + 5), ComputeBufferType.Structured);
 

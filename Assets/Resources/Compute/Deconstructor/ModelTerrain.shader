@@ -37,9 +37,7 @@ Shader "Unlit/ModelTerrain"
 
             struct matTerrain{
                 int textureIndex;
-                float4 baseColor;
                 float baseTextureScale;
-                float baseColorStrength;
                 int geoShaderInd;
             };
 

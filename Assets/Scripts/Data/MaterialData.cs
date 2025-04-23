@@ -58,19 +58,11 @@ public abstract class MaterialData : ScriptableObject
         /// of the texture that is displayed when a mesh primitive is rendered with this material. This index must always refer to a valid texture if it can be solid.
         /// </summary>
         public int Texture;
-        /// <summary> The color that is mixed with the texture when it is drawn to the terrain. <see cref="baseColorStrength"/>  </summary>
-        public Vector4 color;
         /// <summary>
         /// The scale of the texture when it is drawn to the terrain. The scale difference between world space and 
         /// the UV space of the texture when it is being sampled. A larger value will result in a larger texture on the terrain.
         /// </summary>
         public float textureScale;
-        /// <summary>
-        /// The strength of the base color when it is mixed with the texture color. The final color of the fragment is determined
-        /// by mixing the <see cref="Texture"> texture color </see> with a <see cref="color">base color</see> by this intensity.
-        /// </summary>
-        [Range(0,1)]
-        public float baseColorStrength;
         /// <summary> The index within the <see cref="Names"> Name Registry </see> of the name within the external <see cref="Config.QualitySettings.GeoShaders"/> registry,
         /// of the geometry shader that is generated ontop of the mesh when it is solid. If the index is -1, no extra geoshader will be
         /// generated for this material. </summary>

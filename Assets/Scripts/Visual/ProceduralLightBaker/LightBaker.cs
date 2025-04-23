@@ -201,14 +201,16 @@ public static class LightBaker
 
         kernel = LightSetupPrimer.FindKernel("PrimeQueue");
         LightSetupPrimer.Dispatch(kernel, 1, 1, 1);
-
+        
         kernel = ObjectLightShader.FindKernel("BakeLights");
         ComputeBuffer args = UtilityBuffers.CountToArgs(ObjectLightShader, SubChunkUpdateBuffer, UpdateQueueOffsets.QueueCount, kernel);
         ObjectLightShader.DispatchIndirect(kernel, args);
 
-        //int2[] count = new int2[2];
-        //DirtySubChunkDict.GetData(count);
-        //Debug.Log(count[0].y);
+        //int4[] count = new int4[2];
+        //SubChunkUpdateBuffer.GetData(count);
+        //Debug.Log("Count: " + count[0].x);
+        //Debug.Log("HashInfo: " + count[0].zw);
+
     }
 
     public struct BakeQueueOffsets : BufferOffsets{

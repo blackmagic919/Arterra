@@ -23,7 +23,7 @@ MonoBehaviour:
       Lighting:
         value:
           SubChunkDivisions: 8
-          MaxSubChunkUpdatesPerTick: 5000
+          MaxSubChunkUpdatesPerTick: 2500
       Terrain:
         value: {fileID: 11400000, guid: 42017e3b5b1824df087b77161e2e61f3, type: 2}
       GeoShaders:
@@ -136,6 +136,9 @@ MonoBehaviour:
           - Name: PlantMatter:Solid
             _value:
               value: {fileID: 11400000, guid: 98222d75ff0ef411d877d033b7fa95c6, type: 2}
+          - Name: Coal:Solid
+            _value:
+              value: {fileID: 11400000, guid: 8af60393695e748478c78bcb4c27aa54, type: 2}
           - Name: Snow:Solid
             _value:
               value: {fileID: 11400000, guid: 8719d4c2d028f4680b483fc854e5d506, type: 2}
@@ -169,6 +172,9 @@ MonoBehaviour:
           - Name: Sword
             _value:
               value: {fileID: 11400000, guid: 767e6798cf15347af9616a7d7a816a7e, type: 2}
+          - Name: Embers:Solid
+            _value:
+              value: {fileID: 11400000, guid: 066474d0a2bfa4600b725f5c258b274f, type: 2}
       Entities:
         Reg:
           value:
@@ -213,73 +219,85 @@ MonoBehaviour:
           value:
           - Name: Void
             _value:
-              value: {fileID: 21300000, guid: 68036d40e53ca46ccb8662552a0ea939, type: 3}
+              value: {fileID: 21300000, guid: e8434094c2f95444eb74292ba282ae0f, type: 3}
           - Name: Brick
             _value:
-              value: {fileID: 21300000, guid: 71a47f9cf008445e7a58daa311f1b43f, type: 3}
+              value: {fileID: 21300000, guid: 045a542b3d4f24dddb2246d4136e1e9d, type: 3}
           - Name: Cement
             _value:
-              value: {fileID: 21300000, guid: 2a40147a635824ec9840e898399e1458, type: 3}
+              value: {fileID: 21300000, guid: b31ba69d0fe0c426f8c83de4de5ed958, type: 3}
           - Name: Chest
             _value:
-              value: {fileID: 21300000, guid: 435a6b24a4a2549bc971776adabe8a8f, type: 3}
+              value: {fileID: 21300000, guid: b235731e3120a44bba9fa28100345b39, type: 3}
           - Name: Dirt
             _value:
-              value: {fileID: 21300000, guid: fe82516aeb2e047188993ea733648af7, type: 3}
+              value: {fileID: 21300000, guid: 9026b434123b241398581e28b965f513, type: 3}
           - Name: Furnace
             _value:
-              value: {fileID: 21300000, guid: 9f1ecff8bde67465786bc2c0c2c21134, type: 3}
+              value: {fileID: 21300000, guid: 1e4483294764d4156bb511978dd69a74, type: 3}
           - Name: Grass
             _value:
-              value: {fileID: 21300000, guid: 9a32d08edbf8447c88139bfb43dfbe1a, type: 3}
+              value: {fileID: 21300000, guid: 8dc6012b9d73240718a3b244ab77ccf1, type: 3}
           - Name: Cactus
             _value:
-              value: {fileID: 21300000, guid: 59e5a31080221402c8e7b8abdbcc366d, type: 3}
+              value: {fileID: 21300000, guid: 50ff573114ec4477f988f0e656ec1dc3, type: 3}
           - Name: Hardwood
             _value:
-              value: {fileID: 21300000, guid: 188898ac415a947dfb0485bedb3d625a, type: 3}
+              value: {fileID: 21300000, guid: 2dd445fc9d2a44b8f96264dc92b98cfe, type: 3}
           - Name: Leaf
             _value:
-              value: {fileID: 21300000, guid: b07e3afae6c5e40bd804ac3f1397c1b7, type: 3}
+              value: {fileID: 21300000, guid: 21f97b036d97e453b9cc2b16aed199ec, type: 3}
           - Name: PlantMatter
             _value:
-              value: {fileID: 21300000, guid: a72e900a517bf4557ad43f9f54166ba2, type: 3}
+              value: {fileID: 21300000, guid: 3bdeffad81f1249d6b0a90b5f255dbfb, type: 3}
           - Name: Plank
             _value:
-              value: {fileID: 21300000, guid: 4e227e457d2354e7094defe785ed2521, type: 3}
+              value: {fileID: 21300000, guid: 005f8b11bc01f45838b8d0f278eb02a5, type: 3}
           - Name: Rock
             _value:
-              value: {fileID: 21300000, guid: 71c9ce063b15b453ba2769813a1726be, type: 3}
+              value: {fileID: 21300000, guid: b88e44f79a1e9474ba4f034aa9c58b9d, type: 3}
           - Name: Sand
             _value:
-              value: {fileID: 21300000, guid: d0eb2762eac0c4bc08e0a4ca534e0c9d, type: 3}
+              value: {fileID: 21300000, guid: 8226181227cd44ccf890e4ceef2c8713, type: 3}
           - Name: Sandstone
             _value:
-              value: {fileID: 21300000, guid: 6ba8580a11b554922a1dc57e2c409a7d, type: 3}
+              value: {fileID: 21300000, guid: cbd60c51a9a7f440db983591e9fef851, type: 3}
           - Name: Snow
             _value:
-              value: {fileID: 21300000, guid: e3acbac5c9b9847aa9fd983dd618db4c, type: 3}
+              value: {fileID: 21300000, guid: ee48cbf4c1ebd49cb90e22d1a98e6726, type: 3}
           - Name: Stone
             _value:
               value: {fileID: 21300000, guid: d6daddfb095a14f1e814f6fcd10fab89, type: 3}
           - Name: Water
             _value:
-              value: {fileID: 21300000, guid: c071ddde8a7294dfc811dab26c30da86, type: 3}
+              value: {fileID: 21300000, guid: ece3021f8755a4161bd2118d9a27090f, type: 3}
           - Name: Wood
             _value:
               value: {fileID: 21300000, guid: 3e30a42e52755488789c9c1cbb471854, type: 3}
           - Name: Bucket
             _value:
-              value: {fileID: 21300000, guid: 9282a2289fed645ccbb0bf6b3c9581d5, type: 3}
+              value: {fileID: 21300000, guid: a34b2fff50651478ea9462edaafebd75, type: 3}
           - Name: Pen
             _value:
-              value: {fileID: 21300000, guid: ba53321744fa94b758858011fe31f42f, type: 3}
+              value: {fileID: 21300000, guid: 77e2c54b7acd2432fa9db2bd585a6c84, type: 3}
           - Name: Meat
             _value:
-              value: {fileID: 21300000, guid: 86d913194d5484611b89302d5f6134ab, type: 3}
+              value: {fileID: 21300000, guid: 09c10b816e6cf4bc3b4645ba0b7035ed, type: 3}
           - Name: Sword
             _value:
               value: {fileID: 21300000, guid: 715948334a2ea40f7b4a83db53cfc385, type: 3}
+          - Name: Coal
+            _value:
+              value: {fileID: 21300000, guid: 54ad90182f26c4c81b98af73919f0c53, type: 3}
+          - Name: CoalOre
+            _value:
+              value: {fileID: 21300000, guid: 3cbcd88d80dc646698d92e8d0208e1a9, type: 3}
+          - Name: CoalItem
+            _value:
+              value: {fileID: 21300000, guid: 78abf60c0dcbc4b5d9c0eaaa35b81104, type: 3}
+          - Name: Embers
+            _value:
+              value: {fileID: 21300000, guid: a3eb7bf01a9724eb8b2f0e47bcb3255c, type: 3}
   _GamePlay:
     value:
       Input:

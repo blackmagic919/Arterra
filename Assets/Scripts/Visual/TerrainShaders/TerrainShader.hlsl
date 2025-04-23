@@ -3,9 +3,7 @@
 
 struct matTerrain{
     int textureIndex;
-    float4 baseColor;
     float baseTextureScale;
-    float baseColorStrength;
     int geoShaderInd;
 };
 
@@ -98,9 +96,6 @@ float3 frag (v2f IN) : SV_Target
 
     int material = IN.material;
     matTerrain tInfo =  _MatTerrainData[material];
-    float3 baseColor = tInfo.baseColor.xyz;
-    float colorStrength = tInfo.baseColorStrength;
-    float3 textureColor = triplanar(IN.positionWS, tInfo.baseTextureScale, blendAxes, tInfo.textureIndex);
 
     uint light = SampleLight(IN.positionWS);
     float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f) * 0.5 + 0.5;
@@ -112,7 +107,7 @@ float3 frag (v2f IN) : SV_Target
 	lightingInput.shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
 
 	SurfaceData surfaceInput = (SurfaceData)0;
-	surfaceInput.albedo = baseColor * colorStrength + textureColor * (1-colorStrength);
+	surfaceInput.albedo = triplanar(IN.positionWS, tInfo.baseTextureScale, blendAxes, tInfo.textureIndex);
 
     float3 DynamicLight = UniversalFragmentPBR(lightingInput, surfaceInput) * shadow;
     float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;

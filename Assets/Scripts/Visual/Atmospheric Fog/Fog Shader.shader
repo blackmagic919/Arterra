@@ -20,7 +20,6 @@ Shader "Hidden/Fog"
         HLSLINCLUDE
         #pragma vertex vert
         #pragma fragment frag
-        #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
 
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"

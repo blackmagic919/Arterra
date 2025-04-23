@@ -80,11 +80,16 @@ public class LiquidMaterial : MaterialData
         int material = cur.material;
         MapData[] map = {SampleMap(GCoord + dP[0]), SampleMap(GCoord + dP[1]), SampleMap(GCoord + dP[2]), 
                          SampleMap(GCoord + dP[3]), SampleMap(GCoord + dP[4]), SampleMap(GCoord + dP[5])};
+
         
         for(int i = 0; i < 6; i++){
             ChangeState ^= (byte)((map[i].IsLiquid ? 1 : 0) << i);
             if(map[i].IsSolid) return;
         }
+
+        //If all liquid or all gaseous, ignore
+        if(ChangeState == 0x3F && cur.IsLiquid) return;
+        if(ChangeState == 0 && cur.IsGaseous) return;
         
         if(map[1].material == material || map[1].IsGaseous) {
             TransferLiquid(ref cur, ref map[1]);

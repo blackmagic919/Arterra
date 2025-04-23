@@ -280,10 +280,11 @@ public static class CraftingMenuController
     static MapData HandleRemoveConservative(MapData pointInfo, float brushStrength){
         brushStrength *= settings.CraftSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
-
+        
         int deltaDensity = GetStaggeredDelta(pointInfo.density, -brushStrength);
-        IItem nItem = InventoryAddMapData(pointInfo);
-        deltaDensity -= nItem.AmountRaw;
+        MapData rMap = pointInfo;
+        rMap.density = deltaDensity;
+        InventoryAddMapData(rMap);
 
         pointInfo.density -= deltaDensity;
         pointInfo.viscosity = math.min(pointInfo.viscosity, pointInfo.density);

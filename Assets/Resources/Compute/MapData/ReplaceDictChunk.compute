@@ -31,5 +31,5 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     info.CCoord = oCoord;
 
     int3 CCoord = oCoord + int3(id.x, id.y, id.z);
-    ChunkDict[HashCoord(oCoord + int3(id.x, id.y, id.z))] = info;
+    ChunkDict[HashCoord(CCoord)] = info;
 }

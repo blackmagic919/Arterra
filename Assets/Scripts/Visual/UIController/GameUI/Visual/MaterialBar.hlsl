@@ -15,9 +15,7 @@ struct v2f
 
 struct matTerrain{
     int texIndex;
-    float4 baseColor;
     float baseTextureScale;
-    float baseColorStrength;
     int geoShaderInd;
 };
 

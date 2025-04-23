@@ -5,9 +5,7 @@ const static int numThreads = 256;
 
 struct matTerrain{
     int textureIndex;
-    float4 baseColor;
     float baseTextureScale;
-    float baseColorStrength;
     int geoShaderInd;
 };
 

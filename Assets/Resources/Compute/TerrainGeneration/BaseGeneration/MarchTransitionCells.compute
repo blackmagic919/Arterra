@@ -150,8 +150,9 @@ void AddTriangulation(int2 coordUV, int caseIndex, int2 offset, in FaceInfo info
             baseTri.axis[2-v] = 2 * dictHash + info.dictStart + pInd.z;
         }
         //Flip winding if inverted, it's also doubly inverted if 
-        // the transition is on the negative chunk alignment.
-        if(IsInverted(caseIndex) ^ (Align(info.data) < 3)){
+        // the transition is on the opposing chunk alignment. 
+        //NOTE: Fixed condition (~Align(info.data) & 0x1) is correct(don't ask me why tho)
+        if(IsInverted(caseIndex) ^ (~Align(info.data) & 0x1)){
             uint temp = baseTri.axis[0];
             baseTri.axis[0] = baseTri.axis[2];
             baseTri.axis[2] = temp;

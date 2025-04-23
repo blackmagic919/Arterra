@@ -94,10 +94,11 @@ OpticalDepth SampleOpticalDepth(float3 samplePointWS){
 }}
 //
 OpticalDepth SampleOpticalDepthRaw(float3 samplePointWS){
-    CInfo cHandle = _ChunkAddressDict[HashCoord(WSToCS(samplePointWS))];
+    int3 CSCoord = WSToCS(samplePointWS);
+    CInfo cHandle = _ChunkAddressDict[HashCoord(CSCoord)];
     OpticalDepth depth = (OpticalDepth)0;
     
-    if(!Contains(cHandle, WSToCS(samplePointWS))) return depth; 
+    if(!Contains(cHandle, CSCoord)) return depth; 
     float3 MSPoint = WSToMS(samplePointWS) / (cHandle.offset & 0xFF);
     MSPoint.x += (cHandle.offset >> 24) & 0xFF;
     MSPoint.y += (cHandle.offset >> 16) & 0xFF;
