@@ -37,7 +37,9 @@ Shader "Unlit/ModelTerrain"
 
             struct matTerrain{
                 int textureIndex;
+                float4 baseColor;
                 float baseTextureScale;
+                float baseColorStrength;
                 int geoShaderInd;
             };
 
@@ -112,10 +114,6 @@ Shader "Unlit/ModelTerrain"
                 int material = IN.material;
 
                 matTerrain data = _MatTerrainData[material];
-                float3 baseColor = data.baseColor.xyz;
-                float colorStrength = data.baseColorStrength;
-                float3 textureColor = triplanar(IN.positionWS, data.baseTextureScale, blendAxes, data.textureIndex);
-
                 InputData lightingInput = (InputData)0;
                 lightingInput.positionWS = IN.positionWS;
                 lightingInput.normalWS = normalize(IN.normalWS);
@@ -123,7 +121,7 @@ Shader "Unlit/ModelTerrain"
                 lightingInput.shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
 
                 SurfaceData surfaceInput = (SurfaceData)0;
-                surfaceInput.albedo = baseColor * colorStrength + textureColor * (1-colorStrength);
+                surfaceInput.albedo = triplanar(IN.positionWS, data.baseTextureScale, blendAxes, data.textureIndex);
 
                 return UniversalFragmentPBR(lightingInput, surfaceInput).rgb;
             }

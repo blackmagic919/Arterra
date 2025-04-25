@@ -99,15 +99,11 @@ Shader "Unlit/CraftingShader"
 
             fixed3 GetMatColor(float2 uv, int index){
                 matTerrain matData = _MatTerrainData[index];
-                float3 color = matData.baseColor;
-                float colorStrength = matData.baseColorStrength;
             
                 float textureU = uv.x / matData.baseTextureScale;
                 float textureV = uv.y / matData.baseTextureScale;
             
-                float3 textureColor = _Textures.Sample(sampler_Textures, float3(textureU, textureV, matData.texIndex));
-            
-                return color * colorStrength + textureColor * (1-colorStrength);
+                return _Textures.Sample(sampler_Textures, float3(textureU, textureV, matData.texIndex));
             }
             
             fixed3 GetLiquidColor(float2 uv, int index){
