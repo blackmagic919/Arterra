@@ -75,6 +75,8 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         }
 
         public void TakeDamage(float damage, float3 knockback, Entity attacker = null){
+            //Invulnerability means we don't even process the request
+            if(Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability) return; 
             if(!vitality.Damage(damage)) return;
             Indicators.DisplayDamageParticle(position, knockback);
             collider.velocity += knockback;
@@ -232,6 +234,11 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             float dmgIntensity = zVelDelta - Vitality.FallDmgThresh;    
             dmgIntensity = math.pow(dmgIntensity, Config.CURRENT.GamePlay.Player.value.Physicality.value.weight);
             TakeDamage(dmgIntensity, 0, null);
+        }
+
+        public void ProcessSuffocation(float density){
+            if(density <= 0) return;
+            TakeDamage(density/255.0f, 0, null);
         }
     }
 }

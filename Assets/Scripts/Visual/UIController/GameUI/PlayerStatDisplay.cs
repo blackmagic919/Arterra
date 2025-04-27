@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
+using WorldConfig;
 
 public static class PlayerStatDisplay
 {
@@ -18,9 +19,19 @@ public static class PlayerStatDisplay
         rect.localScale = Vector3.one; 
         healthStat = HealthBar.transform.Find("HealthBar").GetComponent<Image>();
         damageStat = HealthBar.transform.Find("DamageBar").GetComponent<Image>();
+
+        Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Invulnerability", ToggleInvulnerability);
+        ToggleInvulnerability();
+    }
+
+    public static void ToggleInvulnerability(){
+        if((!Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability) == HealthBar.activeSelf)
+            return;
+        HealthBar.SetActive(!Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability);
     }
 
     public static void UpdateIndicator(PlayerVitality vitality){
+        if(!HealthBar.activeSelf) return;
         healthStat.fillAmount = vitality.healthPercent;
         if(vitality.Invincibility > 0) return;
         damageStat.fillAmount = math.max(vitality.healthPercent, damageStat.fillAmount - 0.01f);

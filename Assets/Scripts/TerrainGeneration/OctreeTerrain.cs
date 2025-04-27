@@ -263,7 +263,7 @@ public class OctreeTerrain : MonoBehaviour
     /// <summary>
     /// Subdivides a chunk if it can be subdivided, otherwise does nothing.
     /// A chunk can be subdivided if it is unbalanced and not of the minimal chunk size.
-    /// Subdividing a chunk will recursively subdivide it until all its children is balanced.
+    /// Subdividing a chunk will recursively subdivide it until all its children are balanced.
     /// </summary>
     /// <remarks>
     /// Subdividing a chunk causes the chunk to become a zombie. If it is already a zombie

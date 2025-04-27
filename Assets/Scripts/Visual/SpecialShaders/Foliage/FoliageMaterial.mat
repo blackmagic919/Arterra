@@ -131,6 +131,7 @@ Material:
     - _LeafColor: {r: 0.039215688, g: 0.3764706, b: 0.039215688, a: 1}
     - _SpecColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &143363728106278436
 MonoBehaviour:
   m_ObjectHideFlags: 11

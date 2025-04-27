@@ -140,6 +140,7 @@ Material:
     - _TopColor: {r: 0.37254903, g: 0.5647059, b: 0.08235294, a: 1}
     - _TramplePosition: {r: 5, g: 32, b: 15, a: 1}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &268507729726714724
 MonoBehaviour:
   m_ObjectHideFlags: 11

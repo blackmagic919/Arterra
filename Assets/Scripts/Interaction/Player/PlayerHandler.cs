@@ -26,12 +26,29 @@ public struct Settings{
 }
 }
 
+namespace WorldConfig.Gameplay{
+    /// <summary>
+    /// Settings describing different game settings the player can play with.
+    /// These settings may drastically change the game's difficulty and
+    /// can drastically change the player's experience.
+    /// </summary>
+    [Serializable]
+    public struct Gamemodes{
+        /// <summary> Whether the player can toggle flight; whether the player can fly </summary>
+        [UIModifiable(CallbackName = "Gamemode:Flight")]
+        public bool Flight;
+        [UIModifiable(CallbackName = "Gamemode:Invulnerability")]
+        /// <summary> Whether the player can recieve damage or die. Whether health is a concept for the player. </summary>
+        public bool Invulnerability;
+        /// <summary> Whether the player will collide with solid objects and be subject to in-game forces.</summary>
+        public bool Intangiblity;
+    }
+}
+
 public static class PlayerHandler
 {
     public static PlayerStreamer.Player data;
     public static Transform camera;
-    private static PlayerInteraction interaction;
-    private static PlayerMovement movement;
     private static bool active = false;
     public static void Initialize(){
         active = false;
@@ -50,13 +67,16 @@ public static class PlayerHandler
     public static void Update(MonoBehaviour mono) { 
         if(!data.active) return;
         if(!active && OctreeTerrain.RequestQueue.IsEmpty) {
-            movement = new PlayerMovement();
-            interaction = new PlayerInteraction();
+            PlayerMovement.Initialize();
+            PlayerInteraction.Initialize();
             active = true;
         } if(!active) return;
-        movement.Update();
+        PlayerMovement.Update();
         camera.localRotation = data.cameraRot;
         PlayerStatDisplay.UpdateIndicator(data.vitality);
+        PlayerInteraction.DetectMapInteraction(data.position, 
+        OnInSolid: data.ProcessSuffocation, OnInLiquid: SwimMovement.StartSwim, 
+        OnInGas: SwimMovement.StopSwim);
     }
 
     public static void FixedUpdate(MonoBehaviour mono){

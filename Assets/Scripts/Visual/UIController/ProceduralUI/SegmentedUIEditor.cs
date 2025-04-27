@@ -16,6 +16,12 @@ public sealed class UISetting : Attribute{
     public string Alias{get; set;}
 }
 
+//Only applicable for WorldOptions
+[AttributeUsage(AttributeTargets.Field)]
+public sealed class UIModifiable : Attribute {
+    public string CallbackName{get; set;}
+}
+
 public delegate void ChildUpdate(ref object obj);
 public delegate void ParentUpdate(ChildUpdate cb);
 

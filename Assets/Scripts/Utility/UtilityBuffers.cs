@@ -62,7 +62,7 @@ public static class UtilityBuffers
         int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int maxPoints = (mapChunkSize+1) * (mapChunkSize+1) * (mapChunkSize+1);
 
-        ArgumentBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _MaxArgsCount+1, sizeof(uint) * ARGS_STRIDE_4BYTES);
+        ArgumentBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, _MaxArgsCount+1, sizeof(uint) * ARGS_STRIDE_4BYTES);
         addressLL = new uint2[_MaxArgsCount+1];
         addressLL[0].x = 1;
 

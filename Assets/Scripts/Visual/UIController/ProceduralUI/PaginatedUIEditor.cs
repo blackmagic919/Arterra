@@ -110,6 +110,7 @@ public static class PaginatedUIEditor
                 
                 void ChildRequest(ChildUpdate childCallback) { 
                     void ParentReceive(ref object parentObject){
+                        VerifyUpdateHooks(oField); //Use the original field
                         ((IOption)cObject).Clone();
                         childCallback(ref cObject);
                         oField.SetValue(parentObject, cObject);
@@ -137,6 +138,7 @@ public static class PaginatedUIEditor
         object cValue = value; //Capture the object to streamline changes
         void ChildRequest(ChildUpdate childCallback) { 
             void ParentReceive(ref object parentObject){
+                VerifyUpdateHooks(field);
                 cValue = field.GetValue(parentObject);
                 childCallback(ref cValue); 
                 field.SetValue(parentObject, cValue);
@@ -148,27 +150,42 @@ public static class PaginatedUIEditor
             case Type t when t == typeof(int):
                 TMP_InputField inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); 
                 inputField.text = value.ToString();
-                inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, int.Parse(value));}); });
+                inputField.onEndEdit.AddListener((string value) => { 
+                    OnUpdate((ref object parent) => {field.SetValue(parent, int.Parse(value));}); 
+                    VerifyUpdateHooks(field);
+                });
                 break;
             case Type t when t == typeof(uint):
                 inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); 
                 inputField.text = value.ToString();
-                inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, uint.Parse(value));}); });
+                inputField.onEndEdit.AddListener((string value) => { 
+                    OnUpdate((ref object parent) => {field.SetValue(parent, uint.Parse(value));});
+                    VerifyUpdateHooks(field);
+                });
                 break;
             case Type t when t == typeof(float):
                 inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); 
                 inputField.text = value.ToString();
-                inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, float.Parse(value));}); });
+                inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {
+                    field.SetValue(parent, float.Parse(value));}); 
+                    VerifyUpdateHooks(field);
+                });
                 break;
             case Type t when t == typeof(string):
                 inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); 
                 inputField.text = value == null ? "New Entry" : value.ToString();
-                inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, value);}); });
+                inputField.onEndEdit.AddListener((string value) => { 
+                    OnUpdate((ref object parent) => {field.SetValue(parent, value);}); 
+                    VerifyUpdateHooks(field);
+                });
                 break;
             case Type t when t == typeof(bool):
                 Toggle toggleField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Bool_Input"), parent.transform).GetComponent<Toggle>(); 
                 toggleField.isOn = (bool)value;
-                toggleField.onValueChanged.AddListener((bool value) => { OnUpdate((ref object parent) => {field.SetValue(parent, value);}); });
+                toggleField.onValueChanged.AddListener((bool value) => { 
+                    OnUpdate((ref object parent) => {field.SetValue(parent, value);}); 
+                    VerifyUpdateHooks(field);
+                });
                 break;
             case Type t when t.IsEnum:
                 TMP_Dropdown dropdownField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Dropdown_Input"), parent.transform).GetComponent<TMP_Dropdown>();
@@ -177,7 +194,10 @@ public static class PaginatedUIEditor
 
                 Array enumValues = Enum.GetValues(t);
                 dropdownField.value = Array.IndexOf(enumValues, value);
-                dropdownField.onValueChanged.AddListener((int value) => { OnUpdate((ref object parent) => { field.SetValue(parent, enumValues.GetValue(value)); }); });
+                dropdownField.onValueChanged.AddListener((int value) => { 
+                    OnUpdate((ref object parent) => { field.SetValue(parent, enumValues.GetValue(value)); }); 
+                    VerifyUpdateHooks(field);
+                });
                 break;
             default: //create new page
                 Button PaginateButton = parent.AddComponent<Button>();
@@ -194,6 +214,15 @@ public static class PaginatedUIEditor
                     CreatePageDisplay(cValue, newPage, ChildRequest);
                 });
                 break;
+        }
+    }
+
+    public static void VerifyUpdateHooks(FieldInfo field){
+        if(Attribute.IsDefined(field, typeof(UIModifiable))){
+            UIModifiable modTag = Attribute.GetCustomAttribute(field, typeof(UIModifiable)) as UIModifiable;
+            Registry<Action> hooks = Config.CURRENT.System.GameplayModifyHooks;
+            if(!hooks.Contains(modTag.CallbackName)) return;
+            hooks.Retrieve(modTag.CallbackName).Invoke();
         }
     }
 }

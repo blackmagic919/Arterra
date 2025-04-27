@@ -43,7 +43,7 @@ public static class Indicators
     }
 
     public static void SetupIndicators(GameObject entity){
-        GameObject.Instantiate(BarIndicator, entity.transform);
+       GameObject.Instantiate(BarIndicator, entity.transform);
     }
 
     public static void UpdateIndicators(GameObject entity, object vitality = null, object path = null){

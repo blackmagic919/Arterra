@@ -1,6 +1,8 @@
 using System;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Animations;
+using UnityEngine.Rendering;
 using WorldConfig;
 
 namespace WorldConfig.Gameplay{
@@ -42,6 +44,7 @@ public static class DayNightContoller
         get => PlayerHandler.data.currentTime;
         set => PlayerHandler.data.currentTime = value;
     }
+    private static LensFlareComponentSRP sunFlare;
     private static Light Sun;
     private static Light Moon;
     private static UpdateTask eventTask;
@@ -54,6 +57,7 @@ public static class DayNightContoller
         var constraintSource = new ConstraintSource { sourceTransform = TerrainGeneration.OctreeTerrain.viewer, weight = 1 };
         Sun.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
         Moon.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
+        sunFlare = Sun.GetComponent<LensFlareComponentSRP>();
         eventTask = new IndirectUpdate(Update);
         TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
     }
@@ -63,11 +67,20 @@ public static class DayNightContoller
     {
         currentTime = currentTime.AddSeconds(Time.deltaTime * settings.timeMultiplier);
         float progress = GetDayProgress(currentTime.TimeOfDay);
+        UpdateSunFlareShimmer();
 
         float rotation = Mathf.Lerp(0, 360, progress);
         Sun.transform.rotation = Quaternion.AngleAxis(rotation, Vector3.right);
         Moon.transform.rotation = Quaternion.AngleAxis((rotation + 180)%360, Vector3.right);
         UpdateLightSettings(progress);
+    }
+
+    private static void UpdateSunFlareShimmer(){
+        const float ShimmerRate = 50f;
+        float angleDiff = Vector3.Dot(sunFlare.transform.forward, PlayerHandler.camera.transform.forward);
+        float pulse = Mathf.Sin(angleDiff * ShimmerRate) * 0.5f + 0.5f;
+        sunFlare.lensFlareData.elements[2].uniformScale = 5 + 5 * pulse;
+        sunFlare.lensFlareData.elements[3].uniformScale = 10 + 5 * (1-pulse);
     }
 
     private static void UpdateLightSettings(float progress)

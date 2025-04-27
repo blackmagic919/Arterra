@@ -73,9 +73,9 @@ public class AtmospherePass : ScriptableRenderPass
             {
                 AtmosphereSettings.Execute(cmd);
                 // Blit from the color buffer to a temporary buffer and back. This is needed for a two-pass shader.
-                Blit(cmd, depthBuffer, Shader.GetGlobalTexture("_CameraDepthTexture")); //Make sure camera depth is available in shader
-                Blit(cmd, colorBuffer, temporaryBuffer.rt, material, 0); // shader pass 0
-                Blit(cmd, temporaryBuffer.rt, colorBuffer);
+                cmd.Blit(depthBuffer, Shader.GetGlobalTexture("_CameraDepthTexture")); //Make sure camera depth is available in shader
+                cmd.Blit(colorBuffer, temporaryBuffer, material, 0); // shader pass 0
+                cmd.Blit(temporaryBuffer, colorBuffer);
             }
 
             // Execute the command buffer and release it.

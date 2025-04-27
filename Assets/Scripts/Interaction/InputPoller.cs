@@ -120,6 +120,7 @@ public static class InputPoller
         public ref Registry<KeyBind> DefaultMappings => ref Config.TEMPLATE.GamePlay.Input;
 
         public KeyBinder(){
+            Config.CURRENT.System.GameplayModifyHooks.Add("KeyBindReconstruct", ReconstructMappings);
             KeyBinds = new SharedLinkedList<ActionBind>(MaxActionBinds);
             LayerHeads = new Registry<uint>();
             LayerHeads.Construct();
@@ -133,6 +134,7 @@ public static class InputPoller
             binding.bindings.Clone(); // We need to clone the bindings
             KeyMappings.Add(name, binding);
         }
+
         
         //We need to check if the mappings have been changed
         //Because mappings can change at any time during runtime
@@ -152,10 +154,6 @@ public static class InputPoller
 
         public KeyBind Retrieve(string name){
             if(!KeyMappings.Contains(name)) AssertMapping(name);
-            int index = KeyMappings.RetrieveIndex(name);
-            if(!KeyMappings.Contains(index)) ReconstructMappings();
-            if(KeyMappings.RetrieveName(index).CompareTo(name) != 0) ReconstructMappings();
-
             return KeyMappings.Retrieve(name);
         }
     }
@@ -280,6 +278,36 @@ public static class InputPoller
             LayerHeads.Construct(); //reconstruct because sorting breaks the dictionary's values
         } else LayerHeads.TrySet(layer, KeyBinds.Enqueue(keyBind, LayerHeads.Retrieve(layer)));
         return LayerHeads.Retrieve(layer);
+    }
+
+    //Tries to remove last instance of the keybind matching the name
+    public static bool TryRemove(string name, string layer){
+        if(!LayerHeads.Contains(layer)) return false;
+        uint bindHead = KeyBinds.Previous(LayerHeads.Retrieve(layer));
+        uint current = bindHead;
+        do{
+            if(KeyBinds.Value(current).Binding == name){
+                RemoveKeyBind(current, layer);
+                return true;
+            } current = KeyBinds.Previous(current);
+        } while(current != bindHead);
+        return false;
+    }
+
+    //Tries to add the keybing to the layer ONLY IF it does not exist in the layer
+    public static bool TryAdd(ActionBind keyBind, string layer){
+        if(!LayerHeads.Contains(layer)) {
+            AddKeyBind(keyBind, layer);
+            return true;
+        }
+        uint bindHead = LayerHeads.Retrieve(layer);
+        uint current = bindHead;
+        do{
+            if(KeyBinds.Value(current).Binding == keyBind.Binding) return false;
+            current = KeyBinds.Next(current);
+        } while(current != bindHead);
+        AddKeyBind(keyBind, layer);
+        return true;
     }
 
     public struct ActionBind

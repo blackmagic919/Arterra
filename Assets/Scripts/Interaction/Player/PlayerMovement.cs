@@ -40,43 +40,40 @@ namespace WorldConfig.Gameplay.Player{
         }
     }
 }
-public class PlayerMovement
+public static class PlayerMovement
 {
     public static WorldConfig.Gameplay.Player.Camera Camera => Config.CURRENT.GamePlay.Player.value.Camera;
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
-    private PlayerCamera cameraInput;
-    private ref PlayerStreamer.Player data => ref PlayerHandler.data;
+    private static ref PlayerStreamer.Player data => ref PlayerHandler.data;
+    private static PlayerCamera cameraInput;
+    public static bool IsSprinting;
+    public static float2 InputDir;
 
-    public PlayerMovement(){
+    public static void Initialize(){
         //These constructors will hook themselves to input modules and will not be garbage collected
-        new SurfaceMovement();
-        new FlightMovement();
+        InputPoller.AddBinding(new InputPoller.ActionBind("Move Vertical", (float y) => InputDir.y = y), "4.0::Movement");
+        InputPoller.AddBinding(new InputPoller.ActionBind("Move Horizontal", (float x) => InputDir.x = x), "4.0::Movement");
+        InputPoller.AddBinding(new InputPoller.ActionBind("Sprint", (float x) => {IsSprinting = true;}), "4.0::Movement");
+        SurfaceMovement.Initialize();
+        FlightMovement.Initialize();
+        SwimMovement.Initialize();
         cameraInput = new PlayerCamera(data);
     }
 
-    public void Update(){ 
+    public static void Update(){ 
         cameraInput.LookRotation(ref data);
         InputPoller.InvokeStackTop("Movement::Update");
     }
 }
 
-public class MovementModule{
+public static class SurfaceMovement{
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
     public static ref float3 velocity => ref PlayerHandler.data.collider.velocity;
-    public float2 InputDir;
-    public virtual void Update(){}
-}
-
-public class SurfaceMovement : MovementModule{
-    private float moveSpeed => IsSprinting ? Setting.runSpeed : Setting.walkSpeed;
-    private bool IsSprinting;
-    public SurfaceMovement()
+    private static float moveSpeed => PlayerMovement.IsSprinting ? Setting.runSpeed : Setting.walkSpeed;
+    public static void Initialize()
     {
         InputPoller.AddStackPoll(new InputPoller.ActionBind("GroundMove::1", _ => Update()), "Movement::Update");
         InputPoller.AddStackPoll(new InputPoller.ActionBind("GroundMove::2", _ => PlayerHandler.data.collider.useGravity = true), "Movement::Gravity");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Move Vertical", (float y) => InputDir.y = y), "4.0::Movement");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Move Horizontal", (float x) => InputDir.x = x), "4.0::Movement");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Sprint", (float x) => {IsSprinting = true;}), "4.0::Movement");
         InputPoller.AddBinding(new InputPoller.ActionBind("Jump", (_null_) => {
             TerrainColliderJob.Settings collider = PlayerHandler.data.settings.collider;
             float3 posGS = PlayerHandler.data.position + collider.offset;
@@ -85,70 +82,74 @@ public class SurfaceMovement : MovementModule{
         }), "4.0::Movement");
     }
 
-    public override void Update(){ 
-        float2 desiredMove = ((float3)(PlayerHandler.camera.forward*InputDir.y + PlayerHandler.camera.right*InputDir.x)).xz;
+    public static void Update(){ 
+        float2 desiredMove = ((float3)(PlayerHandler.camera.forward*PlayerMovement.InputDir.y + PlayerHandler.camera.right*PlayerMovement.InputDir.x)).xz;
         float2 deltaV = Setting.acceleration * Time.deltaTime * desiredMove;
 
         if(math.length(velocity.xz) < moveSpeed) 
             velocity.xz += deltaV;
 
         if(math.length(deltaV) > 0.1f){
-            if(IsSprinting) PlayerHandler.data.animator.SetTrigger("IsRunning");
+            if(PlayerMovement.IsSprinting) PlayerHandler.data.animator.SetTrigger("IsRunning");
             else PlayerHandler.data.animator.SetTrigger("IsWalking");
         };
 
-        IsSprinting = false;
-        InputDir = float2.zero;
+        PlayerMovement.IsSprinting = false;
+        PlayerMovement.InputDir = float2.zero;
     }
 }
 
-public class FlightMovement : MovementModule{
-    private float MoveSpeed => Setting.flightSpeedMultiplier * (IsSprinting ? Setting.runSpeed : Setting.walkSpeed);
-    private int[] KeyBinds = null;
-    private bool IsSprinting;
-
-    public FlightMovement()
+public static class FlightMovement{
+    public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
+    public static ref float3 velocity => ref PlayerHandler.data.collider.velocity;
+    private static float MoveSpeed => Setting.flightSpeedMultiplier * (PlayerMovement.IsSprinting ? Setting.runSpeed : Setting.walkSpeed);
+    private static int[] KeyBinds = null;
+    public static void Initialize()
     {
-        KeyBinds = null;
-        InputPoller.AddBinding(new InputPoller.ActionBind("ToggleFly", (_null_) => {
-            if(KeyBinds == null) AddHandles();
-            else RemoveHandles();
-        }), "4.0::Movement");
+        Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Flight", FlightMovement.OnFlightRuleChanged);
+        OnFlightRuleChanged();
     }
-
-    private void AddHandles(){
+    
+    public static void OnFlightRuleChanged(){
+        bool EnableFlight = Config.CURRENT.GamePlay.Gamemodes.value.Flight;
+        if(!EnableFlight){
+            InputPoller.TryRemove("ToggleFly", "4.0::Movement");
+            if(KeyBinds != null) RemoveHandles();
+        } else {
+            if(InputPoller.TryAdd(new InputPoller.ActionBind("ToggleFly", (_null_) => {
+                if(KeyBinds == null) AddHandles();
+                else RemoveHandles();
+            }), "4.0::Movement")) 
+                KeyBinds = null;
+        }
+    }
+    private static void AddHandles(){
         InputPoller.AddStackPoll(new InputPoller.ActionBind("FlightMove::1", _ => Update()), "Movement::Update");
         InputPoller.AddStackPoll(new InputPoller.ActionBind("FlightMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
         InputPoller.AddKeyBindChange(() => {
-            KeyBinds = InputPoller.KeyBindSaver.Rent(5);
+            KeyBinds = InputPoller.KeyBindSaver.Rent(2);
             KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Ascend", (_null_) => {
                 if(velocity.y < MoveSpeed) velocity.y += Setting.acceleration * Time.deltaTime * Setting.flightSpeedMultiplier;
             }), "4.0::Movement");
             KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Descend", (_null_) => {
                 if(velocity.y > -MoveSpeed) velocity.y -= Setting.acceleration * Time.deltaTime * Setting.flightSpeedMultiplier;
             }), "4.0::Movement");
-            KeyBinds[2] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Sprint", (float x) => {IsSprinting = true;}, InputPoller.ActionBind.Exclusion.ExcludeLayer), "4.0::Movement");
-            KeyBinds[3] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Move Vertical",(float y) => InputDir.y = y, InputPoller.ActionBind.Exclusion.ExcludeLayer), "4.0::Movement");
-            KeyBinds[4] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Move Horizontal", (float x) => InputDir.x = x, InputPoller.ActionBind.Exclusion.ExcludeLayer), "4.0::Movement");
         });
     }
 
-    private void RemoveHandles(){
+    private static void RemoveHandles(){
         InputPoller.RemoveStackPoll("FlightMove::1", "Movement::Update");
         InputPoller.RemoveStackPoll("FlightMove::2", "Movement::Gravity");
         InputPoller.AddKeyBindChange(() => {
             InputPoller.RemoveKeyBind((uint)KeyBinds[0], "4.0::Movement");
             InputPoller.RemoveKeyBind((uint)KeyBinds[1], "4.0::Movement");
-            InputPoller.RemoveKeyBind((uint)KeyBinds[2], "4.0::Movement");
-            InputPoller.RemoveKeyBind((uint)KeyBinds[3], "4.0::Movement");
-            InputPoller.RemoveKeyBind((uint)KeyBinds[4], "4.0::Movement");
             InputPoller.KeyBindSaver.Return(KeyBinds);
             KeyBinds = null;
         });
     }
 
-    public override void Update(){
-        float2 desiredMove = ((float3)(PlayerHandler.camera.forward*InputDir.y + PlayerHandler.camera.right*InputDir.x)).xz;
+    public static void Update(){
+        float2 desiredMove = ((float3)(PlayerHandler.camera.forward*PlayerMovement.InputDir.y + PlayerHandler.camera.right*PlayerMovement.InputDir.x)).xz;
         float2 deltaV = Setting.acceleration * Time.deltaTime * desiredMove *  Setting.flightSpeedMultiplier;
 
         velocity.y *= 1 - PlayerHandler.data.settings.collider.friction;
@@ -156,11 +157,78 @@ public class FlightMovement : MovementModule{
             velocity.xz += deltaV;
 
         if(math.length(deltaV) > 0.1f){
-            if(IsSprinting) PlayerHandler.data.animator.SetTrigger("IsRunning");
+            if(PlayerMovement.IsSprinting) PlayerHandler.data.animator.SetTrigger("IsRunning");
             else PlayerHandler.data.animator.SetTrigger("IsWalking");
         };
         
-        IsSprinting = false;
-        InputDir = float2.zero;
+        PlayerMovement.IsSprinting = false;
+        PlayerMovement.InputDir = float2.zero;
+    }
+}
+
+public static class SwimMovement{
+    public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
+    private static float MoveSpeed => PlayerMovement.IsSprinting ? Setting.runSpeed : Setting.walkSpeed;
+    public static ref float3 velocity => ref PlayerHandler.data.collider.velocity;
+    private static int[] KeyBinds = null;
+    private static bool isSwimming = false;
+    public static void Initialize()
+    {
+        isSwimming = false;
+    }
+
+    public static void StartSwim(float _){
+        if(isSwimming) return;
+        isSwimming = true;
+        AddHandles();
+    }
+
+    public static void StopSwim(float _){
+        if(!isSwimming) return;
+        isSwimming = false;
+        RemoveHandles();
+    }
+
+    //Two modes: If Sprinting, swim in direction of camera, otherwise, apply gravity but with friction on it
+    private static void AddHandles(){
+        InputPoller.AddStackPoll(new InputPoller.ActionBind("SwimMove::1", _ => Update()), "Movement::Update");
+        InputPoller.AddStackPoll(new InputPoller.ActionBind("SwimMove::2", _ => PlayerHandler.data.collider.useGravity = true), "Movement::Gravity");
+        InputPoller.AddKeyBindChange(() => {
+            KeyBinds = InputPoller.KeyBindSaver.Rent(2);
+            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Ascend", (_null_) => {
+                if(velocity.y < MoveSpeed) velocity.y += Setting.acceleration * Time.deltaTime * Setting.flightSpeedMultiplier;
+            }), "4.0::Movement");
+            KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Descend", (_null_) => {
+                if(velocity.y > -MoveSpeed) velocity.y -= Setting.acceleration * Time.deltaTime * Setting.flightSpeedMultiplier;
+            }), "4.0::Movement");
+        });
+    }
+
+    private static void RemoveHandles(){
+        InputPoller.RemoveStackPoll("SwimMove::1", "Movement::Update");
+        InputPoller.RemoveStackPoll("SwimMove::2", "Movement::Gravity");
+        InputPoller.AddKeyBindChange(() => {
+            InputPoller.RemoveKeyBind((uint)KeyBinds[0], "4.0::Movement");
+            InputPoller.RemoveKeyBind((uint)KeyBinds[1], "4.0::Movement");
+            InputPoller.KeyBindSaver.Return(KeyBinds);
+            KeyBinds = null;
+        });
+    }
+
+    public static void Update(){
+        float3 desiredMove = ((float3)(PlayerHandler.camera.forward*PlayerMovement.InputDir.y + PlayerHandler.camera.right*PlayerMovement.InputDir.x));
+        float3 deltaV = Setting.acceleration * Time.deltaTime * desiredMove *  Setting.flightSpeedMultiplier;
+
+        velocity.y *= 1 - PlayerHandler.data.settings.collider.friction;
+        if(PlayerMovement.IsSprinting && math.length(velocity) < MoveSpeed) velocity += deltaV;
+        else if(!PlayerMovement.IsSprinting && math.length(velocity.xz) < MoveSpeed) velocity.xz += deltaV.xz;
+
+        if(math.length(deltaV) > 0.1f){
+            if(PlayerMovement.IsSprinting) PlayerHandler.data.animator.SetTrigger("IsRunning");
+            else PlayerHandler.data.animator.SetTrigger("IsWalking");
+        };
+        
+        PlayerMovement.IsSprinting = false;
+        PlayerMovement.InputDir = float2.zero;
     }
 }

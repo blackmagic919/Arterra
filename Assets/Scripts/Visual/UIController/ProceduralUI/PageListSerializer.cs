@@ -17,6 +17,7 @@ public class PageListSerializer : IConverter{
         object cValue = value; //Capture the object to streamline changes
         void ChildRequest(ChildUpdate childCallback) { 
             void ParentReceive(ref object parentObject){
+                VerifyUpdateHooks(field);
                 cValue = field.GetValue(parentObject);
                 childCallback(ref cValue); 
                 field.SetValue(parentObject, cValue);
@@ -82,6 +83,7 @@ public class PageListSerializer : IConverter{
                     field.SetValue(cObject, value);
                 } 
 
+                //List element can't have Attribute, so we don't have to check VerifyUpdateHooks
                 void ChildRequest(ChildUpdate childCallback) { 
                     void ParentReceive(ref object parentObject){
                         IList newList = (IList)parentObject;

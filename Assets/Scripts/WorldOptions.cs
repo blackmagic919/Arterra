@@ -56,7 +56,7 @@ public class Config : ScriptableObject{
     [UISetting(Alias = "Gameplay")]
     public Option<GamePlaySettings> _GamePlay;
     /// <exclude />
-    [UISetting(Ignore = true)]
+    [UISetting(Alias = "System")]
     public Option<SystemSettings> _System;
 
     ///<summary> <see cref="QualitySettings"/>  </summary>
@@ -149,14 +149,15 @@ public class Config : ScriptableObject{
     /// </summary>
     [Serializable]
     public struct GamePlaySettings{
+        [UIModifiable(CallbackName = "KeyBindReconstruct")]
         /// <summary> The registry of all keybinds that are used to bind player input to actions within the game.
         /// See <see cref="Gameplay.KeyBind"/> for more information. </summary>
         public Registry<Gameplay.KeyBind> Input;
         /// <summary> Controls how the player moves through the world. See <see cref="Gameplay.Movement"/> for more information. </summary>
         [UISetting(Message = "Controls How The Player Interacts With The World")]
         public Option<Gameplay.Player.Settings> Player;
-        /// <summary> Controls how the player can create items. See <see cref="Gameplay.Crafting"/> for more information. </summary>
-        public Option<Gameplay.Crafting> Crafting;
+        /// <summary> Controls how the player experiences the world. See <see cref="Gameplay.Interaction"/> for more information. </summary>
+        public Option<Gameplay.Gamemodes> Gamemodes;
         /// <summary> Controls the players inventory. See <see cref="Gameplay.Inventory"/> for more information. </summary>
         public Option<Gameplay.Inventory> Inventory;
         /// <summary> Settings controlling environment constants of the world. See <see cref="Gameplay.Environment"/> for more information. </summary>
@@ -172,8 +173,18 @@ public class Config : ScriptableObject{
     /// </summary>
     [Serializable]
     public struct SystemSettings{
+        /// <summary> Controls how the player can create items. See <see cref="Gameplay.Crafting"/> for more information. </summary>
+        public Option<Gameplay.Crafting> Crafting;
+        [UISetting(Ignore = true)]
         /// <summary> The settings for the readback system. See <see cref="Intrinsic.Readback"/> for more information. </summary>
         public Option<Intrinsic.Readback> ReadBack;
+        /// <summary>
+        /// Registry for hooks that are called when a certain setting is modified. This registry is generated
+        /// during runtime and is not customizable by the user. If a certain member has a UIModifiable attribute
+        /// defined, the gameplay menu will trigger a hook associated with that name if it or any sub-member is changed.
+        /// </summary>
+        [HideInInspector][JsonIgnore][UISetting(Ignore = true)]
+        public Registry<Action> GameplayModifyHooks;
     }
 
     [OnDeserialized]

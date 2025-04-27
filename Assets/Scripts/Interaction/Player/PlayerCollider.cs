@@ -15,6 +15,7 @@ public class PlayerCollider
     private float IsoValue => (float)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0);
     [JsonIgnore]
     public Action<float> OnHitGround;
+
     public float3 velocity;
     public bool useGravity;
 
@@ -321,14 +322,16 @@ public class PlayerCollider
         float3 posGS = data.position;
         posGS += velocity * Time.fixedDeltaTime;
         if(useGravity) velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
-
+        
         float3 originGS = posGS + settings.offset;
-        if(SampleCollision(originGS, settings.size, out float3 displacement)){
+        bool IsTangible = !Config.CURRENT.GamePlay.Gamemodes.value.Intangiblity;
+        if(IsTangible && SampleCollision(originGS, settings.size, out float3 displacement)){
             float3 nVelocity = CancelVel(velocity, displacement);
             if(useGravity) OnHitGround?.Invoke(nVelocity.y - velocity.y);
             velocity = nVelocity;
             originGS += displacement;
         };
+
         velocity.xz *= 1 - settings.friction;
         data.position = originGS - settings.offset;
     }

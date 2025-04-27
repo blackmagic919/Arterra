@@ -47,15 +47,18 @@ public static class CraftingMenuController
     // Start is called before the first frame update
     public static void Initialize()
     {
-        settings = Config.CURRENT.GamePlay.Crafting.value;
+        settings = Config.CURRENT.System.Crafting.value;
         craftingMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/CraftingMenu"), GameUIManager.UIHandle.transform);
-        GridWidth = settings.GridWidth;
+        SetupCraftingGrid();
+    }
 
+    private static void SetupCraftingGrid(){
+        GridWidth = settings.GridWidth;
         int numMapTotal = GridCount * (settings.NumMaxSelections + 1);
         craftingData = new MapData[numMapTotal];
         Rendering.craftingBuffer = new ComputeBuffer(numMapTotal, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
 
-        Recipe.ConstructTree(settings.Recipes.Reg.value.ToArray().Select(x => x.Value).ToArray());
+        Recipe.ConstructTree(settings.Recipes.Reg.value.ToArray().Select(x => x.Value).ToArray(), dim: GridCount);
         InitializeCraftingArea();
         InitializeSelections();
         craftingMenu.SetActive(false);
@@ -249,14 +252,14 @@ public static class CraftingMenuController
         return staggeredDelta;
     }
 
-    
     static MapData HandleAddConservative(MapData pointInfo, float brushStrength){
         brushStrength *= settings.CraftSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
         if(InventoryController.Selected == null) return pointInfo;
-
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+
         Authoring sItemSetting = InventoryController.SelectedSetting;
+        if(!matInfo.Contains(sItemSetting.MaterialName)) return pointInfo;
         int selected = matInfo.RetrieveIndex(sItemSetting.MaterialName);
 
         if(pointInfo.IsGaseous && pointInfo.material != selected){
@@ -307,7 +310,14 @@ public static class CraftingMenuController
             tree = new List<Node>();
             (int, Crafting.Recipe)[] layer = new (int, Crafting.Recipe)[recipes.Length];
             for(int i = 0; i < recipes.Length; i++){
-                layer[i] = (i, recipes[i]);
+                //Ensure recipes are valid for given config; Recipe is Value Type so this is not a reference
+                while(recipes[i].entry.value.Count < dim){
+                    recipes[i].entry.value.Add(new MapData{data = 0});
+                } if(recipes[i].entry.value.Count > dim){
+                    recipes[i].entry.value = recipes[i].entry.value.Take(dim).ToList();
+                } if(recipes[i].Names.value.Count == 0){
+                    recipes[i].Names.value.Add("Void");
+                } layer[i] = (i, recipes[i]);
             }
             head = BuildSubTree(layer, (uint)dim);
         }

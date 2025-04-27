@@ -107,7 +107,9 @@ public static class CPUMapManager
         NativeArray<MapData> nativeSlice = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<MapData>((void *)memStart, numPoints, Allocator.None);
 
 #if ENABLE_UNITY_COLLECTIONS_CHECKS //Saftey handles don't exist in release mode
-        NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref nativeSlice, AtomicSafetyHandle.GetTempMemoryHandle());
+        AtomicSafetyHandle handle = AtomicSafetyHandle.Create(); // <-- instead of GetTempMemoryHandle
+        AtomicSafetyHandle.UseSecondaryVersion(ref handle);
+        NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref nativeSlice, handle);
 #endif
         return nativeSlice;
     }
