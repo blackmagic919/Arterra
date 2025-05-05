@@ -57,6 +57,8 @@ public static class Indicators
             Vitality vitals = (Vitality)vitality;
             Image healthSlider = stats?.transform.Find("HealthBar").GetComponent<Image>();
             if(healthSlider != null) healthSlider.fillAmount = vitals.healthPercent;
+            Image breathSlider = stats?.transform.Find("BreathBar").GetComponent<Image>();
+            if(breathSlider != null) breathSlider.fillAmount = math.fmod(vitals.breathPercent, 1);;
             if(vitals.invincibility > 0) return;
             Image damageSlider = stats?.transform.Find("DamageBar").GetComponent<Image>();
             damageSlider.fillAmount = math.max(vitals.healthPercent, damageSlider.fillAmount - 0.01f);

@@ -5,6 +5,7 @@ using WorldConfig.Gameplay.Player;
 using WorldConfig;
 using UnityEngine;
 using Newtonsoft.Json;
+using WorldConfig.Generation.Entity;
 
 namespace WorldConfig.Gameplay.Player {
     /// <summary> Settings describing the player's vitaltiy, or the 
@@ -17,6 +18,7 @@ namespace WorldConfig.Gameplay.Player {
         public float AttackFrequency = 0.25f;
         public float KnockBackStrength = 5f;
         public float InvincTime;
+        public float HoldBreathTime;
         public float MaxHealth;
         public float NaturalRegen;
         public float DecompositionTime;
@@ -33,6 +35,8 @@ public class PlayerVitality
     public float Invincibility;
     public float health;
     public float healthPercent => health / settings.MaxHealth;
+    public float breath;
+    public float breathPercent => breath / settings.HoldBreathTime;
     [JsonIgnore]
     public bool IsDead{get => health <= 0; }
     public PlayerVitality(){
@@ -40,6 +44,7 @@ public class PlayerVitality
         AttackCooldown = 0;
         Invincibility = 0;
         health = settings.MaxHealth;
+        breath = settings.HoldBreathTime;
     }
 
     public void Update(){
@@ -77,5 +82,25 @@ public class PlayerVitality
             PlayerHandler.data.animator.SetTrigger(anim);
         }
         EntityManager.AddHandlerEvent(() => PlayerDamageEntity(entity));
+    }
+
+     public void ProcessSuffocation(Entity self, float density){
+        if(density <= 0) return;
+        if(self is not IAttackable) return;
+        IAttackable target = (IAttackable)self;
+        if(target.IsDead) return;
+        target.TakeDamage(density/255.0f, 0, null);
+    }
+
+    public void ProcessInGas(float density){
+        breath = settings.HoldBreathTime;
+        SwimMovement.StopSwim(density);
+    }
+
+    public void ProcessInLiquid(Entity self, float density){
+        SwimMovement.StartSwim(density);
+        breath = math.max(breath - Time.fixedDeltaTime, 0);
+        if(breath > 0) return;
+        ProcessSuffocation(self, density);
     }
 }

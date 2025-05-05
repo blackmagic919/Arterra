@@ -39,8 +39,6 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         [JsonIgnore]
         public Animator animator;
         public DateTime currentTime;
-        public float3 positionGS;
-        public Quaternion rotation;
         public Quaternion cameraRot;
         public List<string> SerializedNames;
         public InventoryController.Inventory PrimaryI;
@@ -51,13 +49,19 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 
         [JsonIgnore]
         public override float3 position {
-            get => positionGS;
-            set => positionGS = value;
+            get => collider.transform.position + settings.collider.size/2;
+            set => collider.transform.position = value - settings.collider.size/2;
         }
         [JsonIgnore]
         public float3 positionWS{
-            get => CPUMapManager.GSToWS(positionGS);
-            set => positionGS = CPUMapManager.WSToGS(value);
+            get => CPUMapManager.GSToWS(position);
+            set => position = CPUMapManager.WSToGS(value);
+        }
+
+        [JsonIgnore]
+        public override float3 origin{
+            get => collider.transform.position;
+            set => collider.transform.position = value;
         }
         [JsonIgnore]
         public bool IsDead{get => vitality.IsDead; }
@@ -82,19 +86,22 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             collider.velocity += knockback;
 
             if(!IsStreaming) return;
-            OctreeTerrain.MainCoroutines.Enqueue(CameraShake(0.25f, 0.25f));
+            OctreeTerrain.MainCoroutines.Enqueue(CameraShake(0.2f, 0.25f));
         }
 
         public Player(){
-            position = new Vector3(0, 0, 0) + (CPUNoiseSampler.SampleTerrainHeight(new (0, 0, 0)) + 5) * Config.CURRENT.Quality.Terrain.value.lerpScale * Vector3.up;
-            rotation = Quaternion.LookRotation(Vector3.forward, Vector3.up);
             cameraRot = Quaternion.identity;
             PrimaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.PrimarySlotCount);
             SecondaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.SecondarySlotCount);
             currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.DayNightCycle.value.startHour);
             info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             info.entityId = Guid.NewGuid();
-            collider = new PlayerCollider();
+
+            settings = Config.CURRENT.Generation.Entities.Retrieve((int)info.entityType).Setting as PlayerSettings;
+            collider = new PlayerCollider(
+                new TerrainColliderJob.Transform((CPUNoiseSampler.SampleTerrainHeight(new (0, 0, 0)) + 5) * Config.CURRENT.Quality.Terrain.value.lerpScale * Vector3.up, 
+                Quaternion.LookRotation(Vector3.forward, Vector3.up)
+            ));
             vitality = new PlayerVitality();
             IsStreaming = true;
         }
@@ -106,16 +113,16 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             collider.OnHitGround = ProcessFallDamage;
             player = GameObject.Instantiate(Controller);
             animator = player.GetComponent<Animator>();
-            player.transform.SetPositionAndRotation(positionWS, rotation);
+            player.transform.SetPositionAndRotation(positionWS, collider.transform.rotation);
         }
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord)
         {
             settings = (PlayerSettings)setting;
-            GCoord = (int3)this.positionGS;
+            GCoord = (int3)this.origin;
             player = GameObject.Instantiate(Controller);
             animator = player.GetComponent<Animator>();
-            player.transform.SetPositionAndRotation(positionWS, rotation);
+            player.transform.SetPositionAndRotation(positionWS, collider.transform.rotation);
             collider.OnHitGround = ProcessFallDamage;
             if(IsDead) PlayDead(); 
         }
@@ -133,12 +140,17 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
                     EntityManager.ReleaseEntity(this.info.entityId);
             } vitality.health -= EntityJob.cxt.deltaTime;
 
+            collider.useGravity = true;
+            Recognition.DetectMapInteraction(position, OnInSolid: null,
+            OnInLiquid: (dens) => {
+                collider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
+                collider.velocity.y *= 1 - settings.collider.friction;
+                collider.useGravity = false;
+            }, OnInGas: null);
+
             //Apply gravity and take over physics updating
-            EntityManager.AddHandlerEvent(() => {
-                collider.velocity += (float3)(Physics.gravity * EntityJob.cxt.deltaTime);
-                collider.FixedUpdate(this, this.settings.collider);
-                player.transform.SetPositionAndRotation(this.positionWS, this.rotation);
-            });
+            collider.JobUpdate(EntityJob.cxt, this.settings.collider);
+            EntityManager.AddHandlerEvent(() => player.transform.SetPositionAndRotation(this.positionWS, collider.transform.rotation));
         }
 
         public override void Disable(){
@@ -234,11 +246,6 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             float dmgIntensity = zVelDelta - Vitality.FallDmgThresh;    
             dmgIntensity = math.pow(dmgIntensity, Config.CURRENT.GamePlay.Player.value.Physicality.value.weight);
             TakeDamage(dmgIntensity, 0, null);
-        }
-
-        public void ProcessSuffocation(float density){
-            if(density <= 0) return;
-            TakeDamage(density/255.0f, 0, null);
         }
     }
 }

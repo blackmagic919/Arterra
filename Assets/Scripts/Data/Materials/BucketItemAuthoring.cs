@@ -103,7 +103,7 @@ public class BucketItem : IItem{
     }
 
     private void RemoveLiquid(float _){
-        if(!!RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
+        if(!RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
         CPUMapManager.Terraform(hitPt, settings.terraformRadius, RemoveToBucket);
         IsDirty = true; 
     }

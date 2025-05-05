@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
-using Unity.Burst;
 using static CPUMapManager;
 using System.Collections.Generic;
 using TerrainGeneration;
@@ -83,7 +82,7 @@ public static class EntityManager
             ReleaseEntity(entity.info.entityId);
             Entities.Add(entity);
         }); 
-        ChunkStorageManager.SaveEntitiesToJsonSync(Entities, mapInfo.CCoord);
+        MapStorage.Chunk.SaveEntitiesToJsonSync(Entities, mapInfo.CCoord);
     }
     public unsafe static void ReleaseE(Guid entityId){
         if(!EntityIndex.ContainsKey(entityId)) {
@@ -316,7 +315,7 @@ public static class EntityManager
         public void AssertEntityLocation(Entity entity){
             Guid entityId = entity.info.entityId;
             float3 colliderSize = Config.CURRENT.Generation.Entities.Retrieve((int)entity.info.entityType).Setting.collider.size;
-            Bounds nBounds = new Bounds(entity.position + colliderSize/2, colliderSize);
+            Bounds nBounds = new Bounds(entity.position, colliderSize);
 
             if(!this.Contains(entityId)) return;
             if(Contains(this[this[entityId].Parent].bounds, nBounds)){

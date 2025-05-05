@@ -48,7 +48,7 @@ public class MenuHandler : MonoBehaviour
     }
     public void Play() { 
         if(!active) return;
-        _ = WorldStorageHandler.SaveOptions(); 
+        _ = MapStorage.World.SaveOptions(); 
         SceneManager.LoadScene("GameScene");
     }
     public void Select(){ 

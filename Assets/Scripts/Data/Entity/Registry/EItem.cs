@@ -33,15 +33,26 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
     //**If you release here the controller might still be accessing it
     public class EItemEntity : Entity, IAttackable
     {  
-        //This is the real-time position streamed by the controller
-        [JsonIgnore]
-        private EItemController controller;
         public TerrainColliderJob tCollider;
         public Unity.Mathematics.Random random;
-        public int3 GCoord; 
         public Registerable<IItem> item;
+        [JsonIgnore]
+        private EItemController controller;
+        [JsonIgnore]
         public EItemSetting settings;
-
+        [JsonIgnore]
+        public override float3 position {
+            get => tCollider.transform.position + settings.collider.size / 2;
+            set => tCollider.transform.position = value - settings.collider.size / 2;
+        }
+        [JsonIgnore]
+        public override float3 origin {
+            get => tCollider.transform.position;
+            set => tCollider.transform.position = value;
+        }
+        [JsonIgnore]
+        public int3 GCoord => (int3)math.floor(origin); 
+        [JsonIgnore]
         public bool IsDead => true;
         public IItem Collect(float amount){
             if(item.Value == null) return null;
@@ -64,16 +75,10 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             tCollider.velocity += knockback;
         }
 
-        public override float3 position {
-            get => tCollider.transform.position;
-            set => tCollider.transform.position = value;
-        }
-
         public unsafe EItemEntity(){}
         public EItemEntity(TerrainColliderJob.Transform origin, IItem item){
             tCollider.transform = origin;
             tCollider.velocity = 0;
-            GCoord = (int3)origin.position;
             
             this.item = new Registerable<IItem>(item);
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
@@ -100,12 +105,18 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public override void Update()
         {
             if(!active) return;
-            GCoord = (int3)tCollider.transform.position;
+
+            tCollider.useGravity = true;
+            Recognition.DetectMapInteraction(position, OnInSolid: null,
+            OnInLiquid: (dens) => {
+                tCollider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
+                tCollider.velocity.y *= 1 - settings.collider.friction;
+                tCollider.useGravity = false;
+            }, OnInGas: null);
 
             if(item.Value == null)  EntityManager.ReleaseEntity(info.entityId);
             if(tCollider.GetGroundDir(settings.GroundStickDist, settings.collider, EntityJob.cxt.mapContext, out float3 gDir)){
                 tCollider.transform.rotation = Quaternion.LookRotation(gDir, math.up());
-                tCollider.velocity.y = math.max(0, tCollider.velocity.y);
                 tCollider.velocity *= 1 - settings.StickFriction;
             }
             tCollider.Update(EntityJob.cxt, settings.collider);
@@ -135,7 +146,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             this.active = true;
 
             float3 GCoord = new (entity.GCoord);
-            this.transform.position = CPUMapManager.GSToWS(GCoord - entity.settings.collider.offset) + (float3)Vector3.up;
+            this.transform.position = CPUMapManager.GSToWS(entity.position) + (float3)Vector3.up;
 
             meshFilter = gameObject.GetComponent<MeshFilter>();
             SpriteExtruder.Extrude(new SpriteExtruder.ExtrudeSettings{
@@ -155,8 +166,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             if(!entity.active) return;
             if(gameObject == null) return;
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
-            rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
-            this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
+            this.transform.SetPositionAndRotation(entity.position, rTransform.rotation);
         }
 
         public void Dispose(){ 

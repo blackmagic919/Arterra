@@ -66,7 +66,7 @@ public class DensityDeconstructor : MonoBehaviour
         if(GridSize.x == 0 || GridSize.y == 0 || GridSize.z == 0)
             throw new Exception("Grid size cannot be zero");
         if(initialized) Release(); 
-        if(Config.CURRENT == null) WorldStorageHandler.Activate();
+        if(Config.CURRENT == null) MapStorage.World.Activate();
         IRegister.Setup(); //Initialize Register LUTS
         if(!TerrainGeneration.GenerationPreset.active) TerrainGeneration.GenerationPreset.Initialize(); // Initialize Material Information
         if(!UtilityBuffers.active) UtilityBuffers.Initialize(); //Initialize Utility Buffers Which Stores Geometry

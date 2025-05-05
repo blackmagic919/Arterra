@@ -35,7 +35,7 @@ namespace WorldConfig.Gameplay.Player{
 
         public PlayerCamera(PlayerStreamer.Player character)
         {
-            m_CharacterTargetRot = character.rotation;
+            m_CharacterTargetRot = character.collider.transform.rotation;
             m_CameraTargetRot = character.cameraRot;
             active = true;
 
@@ -67,14 +67,14 @@ namespace WorldConfig.Gameplay.Player{
 
             if(S.smooth)
             {
-                character.rotation = Quaternion.Slerp (character.rotation, m_CharacterTargetRot,
+                character.collider.transform.rotation = Quaternion.Slerp (character.collider.transform.rotation, m_CharacterTargetRot,
                     S.smoothTime * Time.deltaTime);
                 character.cameraRot = Quaternion.Slerp (character.cameraRot, m_CameraTargetRot,
                     S.smoothTime * Time.deltaTime);
             }
             else
             {
-                character.rotation = m_CharacterTargetRot;
+                character.collider.transform.rotation = m_CharacterTargetRot;
                 character.cameraRot = m_CameraTargetRot;
             }
         }

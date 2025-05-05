@@ -111,6 +111,7 @@ MonoBehaviour:
         AttackCooldown: 1
         KBStrength: 1
         InvincTime: 0.25
+        HoldBreathTime: 10
         HuntThreshold: 0.4
         MateThreshold: 0.8
         PregnacyLength: 4

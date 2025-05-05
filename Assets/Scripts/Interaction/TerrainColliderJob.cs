@@ -362,7 +362,6 @@ public struct TerrainColliderJob
     [Serializable]
     public struct Settings{
         public float3 size;
-        public float3 offset;
         public float friction; //~0.1
     }
 }

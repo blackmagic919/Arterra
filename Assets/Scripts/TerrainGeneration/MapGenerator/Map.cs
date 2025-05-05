@@ -14,14 +14,14 @@ namespace WorldConfig.Generation{
 public class Map : ScriptableObject{ 
     /// <summary>
     /// The name of the material within the <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry of
-    /// the material that is used as water. This material should define its <see cref="MaterialData.liquidData"> 
+    /// the material that is used as water. This material should define its <see cref="Material.MaterialData.liquidData"> 
     /// liquid visual settings </see> as it will be generated as a liquid.
     /// </summary>
     [UISetting(Message = "Name In Registries")]
     public string waterMat;
     /// <summary>
     /// The height in grid space of the water surface. Water will only be generated if the <i>surface</i>, as defined in 
-    /// <see cref="SurfaceCreator"/> is below this height, water will then fill the space between the surface and this height.
+    /// <see cref="Surface"/> is below this height, water will then fill the space between the surface and this height.
     /// </summary> 
     /// <remarks>Water only generates below this height as creating various water heights involves topological examination 
     /// to affirm a water body is contained within the terrain which is expensive.</remarks>
@@ -35,9 +35,9 @@ public class Map : ScriptableObject{
     /// </summary>
     public float heightFalloff;
     /// <summary>
-    /// The falloff intensity of the atmosphere that is multipled with the <see cref="SurfaceCreatorSettings.AtmosphereNoise"/> map to 
+    /// The falloff intensity of the atmosphere that is multipled with the <see cref="Surface.AtmosphereNoise"/> map to 
     /// falloff the atmosphere as height approaches infinity. Because this number is very small, it is difficult to control directly 
-    /// in the <see cref="MaterialData">noise</see> settings, so this value is just used as a scalar for the entire function.
+    /// in the <see cref="Material.MaterialData">noise</see> settings, so this value is just used as a scalar for the entire function.
     /// </summary>
     public float atmosphereFalloff;
     /// <summary>

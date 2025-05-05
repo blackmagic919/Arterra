@@ -26,19 +26,31 @@ Header: [Material Size][Entity Offset]
 //Lists and headers are zipped, offsets are not zipped
 */
 
-public static class ChunkStorageManager
+namespace MapStorage{
+
+/// <summary> Manages the access, loading and storage of world-specific data from an external file system location
+/// to in-game memory. Concurrently, it also defines the structure of the data that is stored in terms of both
+/// format, encoding, and file-structure within the file system.
+/// </summary>
+public static class Chunk
 {
-    public delegate void OnReadComplete(ReadbackInfo info);
-    public delegate void OnWriteComplete();
 
     private static int maxChunkSize;
     private static ChunkFinder chunkFinder;
 
+    /// <summary> Initializes the Chunk Storage Manager. This should be called once at the start of the game.
+    /// Sets up information relavent to file formatting, and the <see cref="ChunkFinder"/>. </summary>
     public static void Initialize(){
         maxChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         chunkFinder = new ChunkFinder();
     }
 
+    /// <summary>Saves a list of entities associated with a chunk to the file system at the appropriate location.
+    /// Entities associated with a chunk are saved in a compressed json format to the correct location for
+    /// the chunk within the world's file system. See <see cref="ChunkFinder.entityPath"/> for more information </summary>
+    /// <param name="entities">A list containing all <see cref="Entity">Entities</see> associated with the chunk(typically within its bounds). </param>
+    /// <param name="CCoord">The coordinate in chunk space of the Chunk associated with the entities. 
+    /// This information used to identify the location to store the resulting file(s). </param>
     public static void SaveEntitiesToJsonSync(List<Entity> entities, int3 CCoord){
         try{
             string entityPath = chunkFinder.GetEntityRegionPath(CCoord);
@@ -53,6 +65,13 @@ public static class ChunkStorageManager
         }
     }
 
+    /// <summary>Saves a chunk's map information to the file system at the appropriate location. 
+    /// The chunk's map information is saved in a multi-resolution compressed binary format
+    /// to the correct location for the chunk within the world's file system(<see cref="ChunkFinder.chunkPath"/>).  
+    /// See <see cref="ChunkHeader"/> for information on this format. </summary>
+    /// <param name="chunk">A <see cref="ChunkPtr"/> referencing the chunk's map in memory</param>
+    /// <param name="CCoord">The coordinate in chunk space of the Chunk associated with the map 
+    /// information. Used to identify the location to store the resulting file(s). </param>
     public static void SaveChunkToBinSync(ChunkPtr chunk, int3 CCoord){
         try{
             string mapPath = chunkFinder.GetMapRegionPath(CCoord);
@@ -68,7 +87,7 @@ public static class ChunkStorageManager
         }
     }
 
-    public static void SaveChunkToBinSync(string fileAdd, ChunkPtr chunk)
+    private static void SaveChunkToBinSync(string fileAdd, ChunkPtr chunk)
     {
         using (FileStream fs = File.Create(fileAdd))
         {
@@ -87,7 +106,7 @@ public static class ChunkStorageManager
         }
     }
 
-    public static void SaveEntityToJsonSync(string fileAdd, List<Entity> entities){
+    private static void SaveEntityToJsonSync(string fileAdd, List<Entity> entities){
         using (FileStream fs = File.Create(fileAdd))
         {
             MemoryStream headerStream = WriteChunkHeader(SerializeEntities(entities));
@@ -99,6 +118,16 @@ public static class ChunkStorageManager
         }
     }
 
+    /// <summary> Reads a virtual(<see cref="TerrainChunk.VisualChunk"/>) chunk's map information from the file system
+    /// and returns it as a linear encoded map. Involves reading multiple files associated with different chunks
+    /// with the appropriate resolution and merging them into a single map for the chunk(which spans the collective region).
+    /// If a chunk is not found, the map is skipped and a bit is set to indicate that the map information is not dirty and 
+    /// should be replaced by any default information. </summary>
+    /// <param name="CCoord">The coordinate of the origin of the chunk in chunk space. Used to determine locations
+    /// of files containing overlapping chunks in the file system</param>
+    /// <param name="depth">The <see cref="TerrainChunk.depth"/> of the visual chunk. Used to determine the size of the chunk, 
+    /// and equivalently how many chunks and which resolution levels to sample. A depth of 0 corresponds to a real chunk. </param>
+    /// <returns>The linearly encoded map information associated with the chunk. </returns>
     public static MapData[] ReadVisualChunkMap(int3 CCoord, int depth){
         int numPoints = maxChunkSize * maxChunkSize * maxChunkSize;
         MapData[] map = new MapData[numPoints]; //automatically zeored(not dirty)
@@ -129,6 +158,12 @@ public static class ChunkStorageManager
         }
     }
 
+    /// <summary> Reads all information(entity and map) associated with a <see cref="TerrainChunk.RealChunk"> Real Chunk</see> from the file system 
+    /// and returns it as a <see cref="ReadbackInfo"/>. This includes the map information and the entities associated with the chunk.
+    /// This functionality is not available for visual chunks as entities for visual chunks is not supported. </summary>
+    /// <param name="CCoord">The coordinate in chunk space of the real chunk to be read. Used to locate the
+    /// chunk's information in the file system.</param>
+    /// <returns>The aggregate information associated with the chunk as a <see cref="ReadbackInfo"/>. </returns>
     public static ReadbackInfo ReadChunkInfo(int3 CCoord){
         ReadbackInfo info = new ReadbackInfo(false);
         Profiler.BeginSample("Reading Chunk");
@@ -137,7 +172,18 @@ public static class ChunkStorageManager
         Profiler.EndSample();
         return info;
     }
-
+    
+    /// <summary>
+    /// Reads the map information associated with a chunk file at the specified address at a certain
+    /// resolution. Automatically loads and deserializes the map information by recoupling it to the
+    /// current game instance. The size of the read map information is dependant on the 
+    /// sampled resolution controlled by <paramref name="depth"/>. 
+    /// </summary>
+    /// <param name="fileAdd">The path of the chunk file in the file system to be read. Caller should ensure this file exists 
+    /// and is a properly formatted chunk-map file. </param>
+    /// <param name="depth">The resolution within of the map to be sampled from the file. Chunk files contain multiple
+    /// resolutions of their maps compressed seperately, see <see cref="ChunkHeader"/> for more information. </param>
+    /// <returns>The linearly encoded map data associated with the requested resolution of the chunk</returns>
     public static MapData[] ReadChunkBin(string fileAdd, int depth)
     {
         try{
@@ -158,6 +204,14 @@ public static class ChunkStorageManager
         }
     }
 
+    /// <summary>
+    /// Reads the entity information associated with a chunk file at the specified address.
+    /// Loads and deserializes the entity information by recoupling it to the current 
+    /// game instance.
+    /// </summary>
+    /// <param name="fileAdd">The path of the entity file in the file system to be read.  Caller should ensure a 
+    /// properly formatted entity file exists at this location. </param>
+    /// <returns>The list containing all entities associated with the chunk.</returns>
     public static List<Entity> ReadEntityJson(string fileAdd)
     {
         try{
@@ -301,20 +355,53 @@ public static class ChunkStorageManager
         return outStream;
     }
 
+    /// <summary> A struct representing the header of a chunk's map information file. 
+    /// Map information is stored in a multi-resolution compressed binary format. This format is divided in the following way:
+    /// - 4Byte-Int(Uncompressed): The exact size of the compressed header in bytes 
+    /// - Header(Compressed): The current object 
+    /// - Map Data(Compressed): The map data of the chunk, compressed seperately by resolution and stored sequentially starting with the lowest resolution.
+    /// The header contains the following two types of information: RegisterNames and ResolutionOffsets </summary>
     public struct ChunkHeader{
+        /// <summary>A list of the names of all unique materials used in the chunk. This is used to 
+        /// decouple the chunk's materials from the current game-version, allowing the same material to be reloaded
+        /// even if the exact index of the material changes.</summary>
         public List<string> RegisterNames;
+        /// <summary> A list of offsets in bytes from the end of the compressed header to the start
+        /// of each resolution's compressed map data. This can be used to selectively jump to a specific resolution's
+        /// map information and only decompress/process it if other resolutions are not needed. </summary>
         public List<int> ResolutionOffsets;
     }
 
+    /// <summary>
+    /// A structure wrapping the maximum information a chunk may associate 
+    /// on the file system. Not all chunks may have every member defined, but 
+    /// every chunk must have at most only these fields populated. Structure
+    /// may be partially filled depending on what information exists/can be found.
+    /// </summary>
     public struct ReadbackInfo{
+        /// <summary>
+        /// A list of all deserialized <see cref="Entity">Entities</see> associated 
+        /// with the chunk. See <see cref="Entity"/> for more information.
+        /// </summary>
         public List<Entity> entities;
+        /// <summary>
+        /// A list of all deserialized <see cref="MapData">MapData</see> associated
+        /// with the chunk. See <see cref="MapData"/> for more information.
+        /// </summary>
         public MapData[] map;
 
+        /// <summary>A constructor to initialize a default instance of
+        /// <see cref="ReadbackInfo"/> which zeroes all fields. </summary>
+        /// <param name="_">A dummy paramater</param>
         public ReadbackInfo(bool _){
             entities = null;
             map = null;
         }
 
+        /// <summary> Creates an instance of <see cref="ReadbackInfo"/> to 
+        /// wrap the specified information.</summary>
+        /// <param name="map">The list of deserialized <see cref="map">MapData</see> to wrap.</param>
+        /// <param name="entities">The list of deserialized <see cref="entities">entities</see> to wrap.</param>
         public ReadbackInfo(MapData[] map, List<Entity> entities){
             this.entities = entities;
             this.map = map;
@@ -337,8 +424,8 @@ public static class ChunkStorageManager
         public static string entityPath;
         private const string fileExtension = ".bin";
         public ChunkFinder(){
-            chunkPath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/MapData/";
-            entityPath = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/EntityData/";
+            chunkPath = World.WORLD_SELECTION.First.Value.Path + "/MapData/";
+            entityPath = World.WORLD_SELECTION.First.Value.Path + "/EntityData/";
 
             WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
             numChunksAxis = OctreeTerrain.Octree.GetAxisChunksDepth(rSettings.MaxDepth, rSettings.Balance, (uint)rSettings.MinChunkRadius);
@@ -459,4 +546,4 @@ public static class ChunkStorageManager
             active = true;
         }
     }
-}
+}}

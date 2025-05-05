@@ -76,8 +76,7 @@ public static class SurfaceMovement{
         InputPoller.AddStackPoll(new InputPoller.ActionBind("GroundMove::2", _ => PlayerHandler.data.collider.useGravity = true), "Movement::Gravity");
         InputPoller.AddBinding(new InputPoller.ActionBind("Jump", (_null_) => {
             TerrainColliderJob.Settings collider = PlayerHandler.data.settings.collider;
-            float3 posGS = PlayerHandler.data.position + collider.offset;
-            if(PlayerHandler.data.collider.SampleCollision(posGS, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _))
+            if(PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _))
                 velocity += Setting.jumpForce * (float3)Vector3.up;
         }), "4.0::Movement");
     }

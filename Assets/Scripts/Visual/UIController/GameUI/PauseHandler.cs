@@ -30,7 +30,7 @@ public class PauseHandler
             cb.Invoke(ref obj); 
             settings.value = (Config.GamePlaySettings)obj;
             Config.CURRENT._GamePlay = settings;
-            WorldStorageHandler.SaveOptionsSync();
+            MapStorage.World.SaveOptionsSync();
         }, () => {Exit();});
 
         GameObject ExitButton = PauseContent.transform.GetChild(0).Find("TopPanel").Find("Return").GetChild(0).gameObject;

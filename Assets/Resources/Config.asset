@@ -604,6 +604,7 @@ MonoBehaviour:
               AttackFrequency: 0.25
               KnockBackStrength: 20
               InvincTime: 0.25
+              HoldBreathTime: 15
               MaxHealth: 20
               NaturalRegen: 0.01
               DecompositionTime: 300
@@ -805,6 +806,27 @@ MonoBehaviour:
           - Name: Gamemode:Flight
           - Name: KeyBindReconstruct
           - Name: Gamemode:PlayerStatDisplay
+          - Name: Gamemode:Flight
+          - Name: KeyBindReconstruct
+          - Name: Gamemode:Invulnerability
+          - Name: Gamemode:Flight
+          - Name: KeyBindReconstruct
+          - Name: Gamemode:Invulnerability
+          - Name: Gamemode:Flight
+          - Name: KeyBindReconstruct
+          - Name: Gamemode:Invulnerability
+          - Name: Gamemode:Flight
+          - Name: KeyBindReconstruct
+          - Name: Gamemode:Invulnerability
+          - Name: Gamemode:Flight
+          - Name: KeyBindReconstruct
+          - Name: Gamemode:Invulnerability
+          - Name: Gamemode:Flight
+          - Name: KeyBindReconstruct
+          - Name: Gamemode:Invulnerability
+          - Name: Gamemode:Flight
+          - Name: KeyBindReconstruct
+          - Name: Gamemode:Invulnerability
           - Name: Gamemode:Flight
           - Name: KeyBindReconstruct
           - Name: Gamemode:Invulnerability

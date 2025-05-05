@@ -4,7 +4,7 @@ using UnityEngine;
 using System.Threading.Tasks;
 using UnityEngine.UI;
 using TMPro;
-using static WorldStorageHandler;
+using static MapStorage.World;
 using UnityEditor;
 
 public class SelectionHandler : MonoBehaviour
@@ -16,7 +16,7 @@ public class SelectionHandler : MonoBehaviour
     private void OnEnable() { 
         sAnimator = this.gameObject.GetComponent<Animator>(); 
         infoContent = this.gameObject.transform.GetChild(0).GetChild(0).GetComponent<ScrollRect>().content.GetComponent<RectTransform>();
-        WorldStorageHandler.Activate();
+        MapStorage.World.Activate();
         active = false;
     }
 

@@ -8,6 +8,7 @@ using WorldConfig.Generation.Entity;
 using WorldConfig.Generation.Structure;
 using WorldConfig.Generation.Material;
 using static EntityManager.STree;
+using WorldConfig.Generation;
 
 
 public interface IMateable{
@@ -173,6 +174,60 @@ public class Recognition{
         if(!AwarenessTable.TryGetValue((int)entity.info.entityType, out Recognizable ret)) 
             return new Recognizable{IsUnknown = true};
         return ret;
+    }
+
+    public static void DetectMapInteraction(float3 originGS, Action<float> OnInSolid = null, Action<float> OnInLiquid = null, Action<float> OnInGas = null){
+        static (float, float) TrilinearBlend(float3 posGS){
+            //Calculate Density
+            int x0 = (int)Math.Floor(posGS.x); int x1 = x0 + 1;
+            int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
+            int z0 = (int)Math.Floor(posGS.z); int z1 = z0 + 1;
+
+            uint c000 = CPUMapManager.SampleMap(new int3(x0, y0, z0)).data;
+            uint c100 = CPUMapManager.SampleMap(new int3(x1, y0, z0)).data;
+            uint c010 = CPUMapManager.SampleMap(new int3(x0, y1, z0)).data;
+            uint c110 = CPUMapManager.SampleMap(new int3(x1, y1, z0)).data;
+            uint c001 = CPUMapManager.SampleMap(new int3(x0, y0, z1)).data;
+            uint c101 = CPUMapManager.SampleMap(new int3(x1, y0, z1)).data;
+            uint c011 = CPUMapManager.SampleMap(new int3(x0, y1, z1)).data;
+            uint c111 = CPUMapManager.SampleMap(new int3(x1, y1, z1)).data;
+
+            float xd = posGS.x - x0;
+            float yd = posGS.y - y0;
+            float zd = posGS.z - z0;
+
+            float c00 = (c000 & 0xFF) * (1 - xd) + (c100 & 0xFF) * xd;
+            float c01 = (c001 & 0xFF) * (1 - xd) + (c101 & 0xFF) * xd;
+            float c10 = (c010 & 0xFF) * (1 - xd) + (c110 & 0xFF) * xd;
+            float c11 = (c011 & 0xFF) * (1 - xd) + (c111 & 0xFF) * xd;
+
+            float c0 = c00 * (1 - yd) + c10 * yd;
+            float c1 = c01 * (1 - yd) + c11 * yd;
+            float density = c0 * (1 - zd) + c1 * zd;
+
+            c000 = c000 >> 8 & 0xFF; c100 = c100 >> 8 & 0xFF;
+            c010 = c010 >> 8 & 0xFF; c110 = c110 >> 8 & 0xFF;
+            c001 = c001 >> 8 & 0xFF; c101 = c101 >> 8 & 0xFF;
+            c011 = c011 >> 8 & 0xFF; c111 = c111 >> 8 & 0xFF;
+
+            c00 = c000 * (1 - xd) + c100 * xd;
+            c01 = c001 * (1 - xd) + c101 * xd;
+            c10 = c010 * (1 - xd) + c110 * xd;
+            c11 = c011 * (1 - xd) + c111 * xd;
+
+            c0 = c00 * (1 - yd) + c10 * yd;
+            c1 = c01 * (1 - yd) + c11 * yd;
+            float viscosity = c0 * (1 - zd) + c1 * zd;
+            return (density, viscosity);
+        }
+
+        (float density, float viscoity) = TrilinearBlend(originGS);
+        if(viscoity > CPUMapManager.IsoValue) OnInSolid?.Invoke(viscoity);
+        else if(density - viscoity > CPUMapManager.IsoValue) OnInLiquid?.Invoke(density - viscoity);
+        else OnInGas?.Invoke(density);
+        
+        //int3 coordGS = (int3)math.round(centerGS);
+        //int material = SampleMap(coordGS).material;
     }
 }
 [Serializable]

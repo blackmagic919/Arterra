@@ -38,9 +38,8 @@ void BakeLights (uint3 id : SV_DispatchThreadID)
             [unroll] for(int j = 0; j < 6; j++){
                 int3 nCoord = ((int3)mapCoord) + dp[j];
                 uint light = SampleLumin(nCoord, cHandle);
-                mC.x = max(mC.x, light & 0x1F);
-                mC.y = max(mC.y, (light >> 5) & 0x1F);
-                mC.z = max(mC.z, (light >> 10) & 0x1F);
+                uint3 lightVec = uint3(light & 0x1F, (light >> 5) & 0x1F, (light >> 10) & 0x1F);  
+                mC = max(mC, lightVec);
             } 
         }
         mC = max(mC - skipInc, (int3)SampleBaseLight(mapCoord, cHandle.address)); 

@@ -20,8 +20,8 @@ public class Creator
     public uint StructureDataIndex;
     const int STRUCTURE_STRIDE_WORD = 3 + 2 + 1;
 
-    /// <summary>  Releases any intermediate structure information held by this instance. Call this to ensure
-    /// that no memory is being held by a chunk being disposed. See <seealso cref="structureDataIndex"/>. </summary>
+    /// <summary>  Releases any intermediate structure information sheld by this instance. Call this to ensure
+    /// that no memory is being held by a chunk being disposed. See <seealso cref="StructureDataIndex"/>. </summary>
     public void ReleaseStructure()
     {
         if(StructureDataIndex == 0) return;
@@ -64,8 +64,8 @@ public class Creator
     /// necessary to ensure structures across chunk boundaries are recognized and generated correctly. </summary>
     /// <remarks>Structures are sampled in a deterministic manner meaning that the same structures 
     /// will be generated in the same location in the same world regardless of any other factors. </remarks>
-    /// <param name="chunkCoord">The coordinate, in <see cref="TerrainChunk.CCoord">Chunk Space, of the chunk whose structures
-    /// are planned. If the chunk spans multiple <paramref name="chunkCoord">ChunkCoords</see>, this is the coordinate of the origin of
+    /// <param name="chunkCoord">The coordinate, in <see cref="TerrainChunk.CCoord"/>Chunk Space, of the chunk whose structures
+    /// are planned. If the chunk spans multiple <paramref name="chunkCoord">ChunkCoords</paramref>, this is the coordinate of the origin of
     /// the region. </param>
     /// <param name="offset">The offset in grid space of the origin of the chunk. This should be 
     /// equvalent to (<paramref name="chunkCoord"/> * <paramref name="chunkSize"/>)</param>
@@ -88,12 +88,12 @@ public class Creator
     /// <summary> Generates the planned structures for the current chunk. This involves actually transcribing the <see cref="WorldConfig.Generation.Structure.StructureData.map">
     /// map information </see> of each structure onto the chunk's map in <see cref="GenerationBuffer">working memory</see> that will be used to create the visual and
     /// interactable features of the chunk. This must be called after the chunk's base map has been populated through
-    /// <see cref="MapGenerator.GenerateBaseData(Vector3, uint, int, int, float)"/>. </summary>
+    /// <see cref="Map.Generator.GenerateBaseData(Vector3, uint, int, int, float)"/>. </summary>
     /// <remarks>The time complexity of this operation is O(n) with respect to the size of the largest structure within the chunk.</remarks>
     /// <param name="chunkSize">The size of the chunk a <see cref="TerrainChunk.RealChunk">real chunk</see> in grid space.</param>
     /// <param name="skipInc">The distance in grid space between two adjacent samples in the chunk's terrain map. Used to convert
     /// a structure's coordinate from grid space to map space(the location within the chunk's terrain map). </param>
-    /// <param name="mapStart">The start of the chunk's terrain map within the <see cref="UtilityBuffers.GenerationBuffer"/>. See <see cref="MapGenerator.GeoGenOffsets.rawMapStart"/>
+    /// <param name="mapStart">The start of the chunk's terrain map within the <see cref="UtilityBuffers.GenerationBuffer"/>. See <see cref="Map.Generator.GeoGenOffsets.rawMapStart"/>
     /// for more info. </param>
     /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> for more info.</param>
     /// <param name="wChunkSize">The axis size of the chunk's terrain map as it currently is in <see cref="GenerationBuffer"> working memory </see>.</param>
@@ -136,6 +136,9 @@ public static class Generator
     const int SAMPLE_STRIDE_WORD = 3 + 1;
     const int CHECK_STRIDE_WORD = 2;
 
+    /// <summary> The offsets within the <see cref="UtilityBuffers.GenerationBuffer"> working buffer </see> of different 
+    /// logical regions used for different tasks during the terrain generation process. See <see cref="StructureOffsets"/>
+    /// for more information. </summary>
     public static StructureOffsets offsets;
     
     static Generator(){
@@ -321,7 +324,7 @@ public static class Generator
     /// in meta data and padding. If the memory block is not represented in a known way or does not contain structure generation information, the result is undefined. </summary>
     /// <param name="memory">The GPU buffer containing the structure generation information that is to be counted.</param>
     /// <param name="address">The buffer containing the direct address within <paramref name="memory"/>where the information is stored. </param>
-    /// <param name="addressIndex">The index within <paramref name="addresses"/> of the location that contains the direct address to the 
+    /// <param name="addressIndex">The index within <paramref name="address"/> of the location that contains the direct address to the 
     /// region within <paramref name="memory"/> where the information is stored.</param>
     /// <param name="STRUCTURE_STRIDE_4BYTE">The size of the generation information of a single structure in units of 4-bytes. The amount of 
     /// unique structures can be obtained by dividing the total size of the chunk's structure generation information by this size.</param>
@@ -351,7 +354,7 @@ public static class Generator
     /// <param name="addressIndex">The index within <paramref name="addresses"/> of the location that contains the direct address to the 
     /// region within <paramref name="memory"/> where the generation information is stored.</param>
     /// <param name="mapStart">The location within <see cref="GenerationBuffer">working memory</see> of the start of the
-    /// chunk's terrain map. See <see cref="MapGenerator.GeoGenOffsets.rawMapStart"/> for more info. </param>
+    /// chunk's terrain map. See <see cref="Map.Generator.GeoGenOffsets.rawMapStart"/> for more info. </param>
     /// <param name="chunkSize">The size of a <see cref="TerrainChunk.RealChunk"/> in grid space. </param>
     /// <param name="meshSkipInc">The distance in grid space between two adjacent samples in the chunk's terrain map. Used to convert
     /// a structure's coordinate from grid space to map space(the location within the chunk's terrain map).</param>

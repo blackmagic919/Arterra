@@ -202,7 +202,7 @@ public static class InventoryController
         static void DropItem(IItem item){
             WorldConfig.Generation.Entity.Entity Entity = new EItem.EItemEntity(new TerrainColliderJob.Transform{
                 position = PlayerHandler.data.position,
-                rotation = PlayerHandler.data.rotation
+                rotation = PlayerHandler.data.collider.transform.rotation,
             }, item);
             Entity.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("EntityItem");
             Entity.info.entityId = Guid.NewGuid();

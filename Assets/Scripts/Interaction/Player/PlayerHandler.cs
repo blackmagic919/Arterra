@@ -74,16 +74,17 @@ public static class PlayerHandler
         PlayerMovement.Update();
         camera.localRotation = data.cameraRot;
         PlayerStatDisplay.UpdateIndicator(data.vitality);
-        PlayerInteraction.DetectMapInteraction(data.position, 
-        OnInSolid: data.ProcessSuffocation, OnInLiquid: SwimMovement.StartSwim, 
-        OnInGas: SwimMovement.StopSwim);
     }
 
     public static void FixedUpdate(MonoBehaviour mono){
         if(!active) return;
         if(!data.active) return;
-        data.collider.FixedUpdate(data, data.settings.collider);
-        data.player.transform.SetPositionAndRotation(data.positionWS, data.rotation);
+        Recognition.DetectMapInteraction(data.position, 
+        OnInSolid: (dens) => data.vitality.ProcessSuffocation(data, dens), 
+        OnInLiquid: (dens) => data.vitality.ProcessInLiquid(data, dens), 
+        OnInGas: data.vitality.ProcessInGas);
+        data.collider.FixedUpdate(data.settings.collider);
+        data.player.transform.SetPositionAndRotation(data.positionWS, data.collider.transform.rotation);
     }
 
     public static void Release(){
@@ -95,7 +96,7 @@ public static class PlayerHandler
 
     static async Task SavePlayerData(PlayerStreamer.Player playerInfo){
         playerInfo.Serialize();
-        string path = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
+        string path = MapStorage.World.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
         using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)){
             using StreamWriter writer = new StreamWriter(fs);
             string data = Newtonsoft.Json.JsonConvert.SerializeObject(playerInfo);
@@ -105,7 +106,7 @@ public static class PlayerHandler
     }
 
     static PlayerStreamer.Player LoadPlayerData(){
-        string path = WorldStorageHandler.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
+        string path = MapStorage.World.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
         if(!File.Exists(path)) { return new PlayerStreamer.Player(); }
 
         string data = System.IO.File.ReadAllText(path);

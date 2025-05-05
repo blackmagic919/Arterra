@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 using Unity.Mathematics;
@@ -9,13 +8,14 @@ using Unity.Burst;
 using UnityEditor;
 using TerrainGeneration;
 using WorldConfig;
-using WorldConfig.Generation.Entity;
 
 //Benefits of unified chunk map memory
 //1. No runtime allocation of native memory
 //2. Generalization of map data access
 //3. Accessibility of map for jobs(no managed memory)
 //4. Cleaner management and writing to storage(disk/ssd)
+
+
 public static class CPUMapManager
 {
     public static TerrainChunk[] _ChunkManagers;
@@ -76,7 +76,7 @@ public static class CPUMapManager
         EntityManager.ReleaseChunkEntities(CCoord);
         if(!AddressDict[chunkHash].isDirty) return;
         ChunkPtr chunk = new ChunkPtr(SectionedMemory, chunkHash * numPoints);
-        ChunkStorageManager.SaveChunkToBinSync(chunk, CCoord);
+        MapStorage.Chunk.SaveChunkToBinSync(chunk, CCoord);
     }
 
 

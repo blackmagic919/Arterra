@@ -1,7 +1,7 @@
 using UnityEngine;
 using System;
 using System.Threading.Tasks;
-using static WorldStorageHandler;
+using static MapStorage.World;
 using UnityEngine.UI;
 using TMPro;
 using static SegmentedUIEditor;

@@ -131,7 +131,7 @@ MonoBehaviour:
           x: 3
           y: 4
           z: 3
-        profileStart: 128
+        profileStart: 120
       collider:
         size:
           x: 2
@@ -180,6 +180,7 @@ MonoBehaviour:
         AttackCooldown: 3
         KBStrength: 5
         InvincTime: 0.25
+        HoldBreathTime: 10
         HuntThreshold: 0.6
         MateThreshold: 0.8
         PregnacyLength: 6

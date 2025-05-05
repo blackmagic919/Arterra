@@ -124,6 +124,7 @@ Shader "Hidden/Fog"
                 return scatterData;
             }
 
+
             half4 frag(v2f IN) : SV_TARGET
             {
                 half4 originalColor = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv);

@@ -34,7 +34,7 @@ public static class SystemProtocol{
         GameUIManager.Initialize();
 
         AtmospherePass.Initialize();
-        ChunkStorageManager.Initialize();
+        MapStorage.Chunk.Initialize();
 
         Structure.Generator.PresetData();
         Surface.Generator.PresetData();

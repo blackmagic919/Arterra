@@ -8,6 +8,7 @@ using WorldConfig;
 public static class PlayerStatDisplay
 {
     private static GameObject HealthBar;
+    private static Image breathStat;
     private static Image healthStat;
     private static Image damageStat;
     public static void Initialize()
@@ -19,6 +20,7 @@ public static class PlayerStatDisplay
         rect.localScale = Vector3.one; 
         healthStat = HealthBar.transform.Find("HealthBar").GetComponent<Image>();
         damageStat = HealthBar.transform.Find("DamageBar").GetComponent<Image>();
+        breathStat = HealthBar.transform.Find("BreathBar").GetComponent<Image>();
 
         Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Invulnerability", ToggleInvulnerability);
         ToggleInvulnerability();
@@ -33,7 +35,7 @@ public static class PlayerStatDisplay
     public static void UpdateIndicator(PlayerVitality vitality){
         if(!HealthBar.activeSelf) return;
         healthStat.fillAmount = vitality.healthPercent;
-        if(vitality.Invincibility > 0) return;
-        damageStat.fillAmount = math.max(vitality.healthPercent, damageStat.fillAmount - 0.01f);
+        breathStat.fillAmount = math.fmod(vitality.breathPercent, 1);
+        if(vitality.Invincibility <= 0) damageStat.fillAmount = math.max(vitality.healthPercent, damageStat.fillAmount - 0.01f);
     }
 }

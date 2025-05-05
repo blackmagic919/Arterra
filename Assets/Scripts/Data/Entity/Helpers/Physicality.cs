@@ -23,6 +23,7 @@ public struct Vitality{
         public float AttackCooldown;
         public float KBStrength;
         public float InvincTime;
+        public float HoldBreathTime;
         [Range(0, 1)]
         public float HuntThreshold;
         [Range(0, 1)]
@@ -39,6 +40,8 @@ public struct Vitality{
     public float invincibility;
     public float attackCooldown;
     public float healthPercent => health / stats.MaxHealth;
+    public float breath;
+    public float breathPercent => breath / stats.HoldBreathTime;
     public bool IsDead => health <= 0;
     public const float FallDmgThresh = 10;
     public Vitality(Stats stats, ref Unity.Mathematics.Random random){
@@ -47,6 +50,7 @@ public struct Vitality{
         attackCooldown = 0;
         float initHealth = math.clamp(stats.HuntThreshold + (stats.MateThreshold - stats.HuntThreshold) * random.NextFloat(), 0, 1);
         health = stats.MaxHealth * initHealth;
+        breath = stats.HoldBreathTime;
     }
 
     public void Deserialize(Stats stats){
@@ -85,6 +89,27 @@ public struct Vitality{
         if(force) {health += delta; return;}
         if(IsDead) return;
         health = math.min(health + delta, stats.MaxHealth);
+    }
+
+    public void ProcessSuffocation(Entity self, float density){
+        if(density <= 0) return;
+        if(self is not IAttackable) return;
+        IAttackable target = (IAttackable)self;
+        if(target.IsDead) return;
+        EntityManager.AddHandlerEvent(() => target.TakeDamage(density/255.0f, 0, null));
+    }
+
+    public void ProcessInGas(float density){
+        breath = stats.HoldBreathTime;
+    }
+
+    public void ProcessInLiquid(Entity self, ref TerrainColliderJob tCollider, float density){
+        breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
+        tCollider.velocity += EntityJob.cxt.deltaTime * stats.weight * -EntityJob.cxt.gravity;
+        tCollider.velocity.y *= 0.95f;
+        tCollider.useGravity = false;
+        if(breath > 0) return;
+        ProcessSuffocation(self, density);
     }
 
     [Serializable]

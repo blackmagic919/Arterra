@@ -356,7 +356,7 @@ public class RealChunk : TerrainChunk{
     /// </summary> <param name="callback"><see cref="TerrainChunk.ReadMapData"/></param>
     protected override void ReadMapData(Action callback = null){
         //This code will be called on a background thread
-        ChunkStorageManager.ReadbackInfo info = ChunkStorageManager.ReadChunkInfo(CCoord);
+        MapStorage.Chunk.ReadbackInfo info = MapStorage.Chunk.ReadChunkInfo(CCoord);
 
         if(info.map != null){ //if the chunk has saved map data
             Generator.MeshCreator.SetMapInfo(mapChunkSize, 0, info.map);
@@ -516,7 +516,7 @@ public class VisualChunk : TerrainChunk{
         mapHandle = GPUMapManager.RegisterChunkVisual(CCoord, depth, UtilityBuffers.GenerationBuffer, bufferOffsets.mapStart);
         if(mapHandle == -1) return; 
 
-        CPUMapManager.MapData[] info = ChunkStorageManager.ReadVisualChunkMap(CCoord, depth);
+        CPUMapManager.MapData[] info = MapStorage.Chunk.ReadVisualChunkMap(CCoord, depth);
         Generator.MeshCreator.SetMapInfo(mapChunkSize, 0, info);
         GPUMapManager.TranscribeMultiMap(UtilityBuffers.TransferBuffer, CCoord, depth);
         //Subscribe once more so the chunk can't be released while we hold its handle

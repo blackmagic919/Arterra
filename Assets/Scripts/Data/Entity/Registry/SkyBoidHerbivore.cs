@@ -48,9 +48,6 @@ public class SkyBoidHerbivore : Authoring
     //**If you release here the controller might still be accessing it
     public class Animal : Entity, IMateable, IAttackable
     {  
-        [JsonIgnore]
-        private AnimalController controller;
-        public int3 GCoord;
         public Vitality vitality;
         public PathFinder.PathInfo pathFinder;
         public TerrainColliderJob tCollider;
@@ -59,7 +56,11 @@ public class SkyBoidHerbivore : Authoring
         public Guid TaskTarget;
         public float TaskDuration;
         public uint TaskIndex;
+        [JsonIgnore]
+        private AnimalController controller;
+        [JsonIgnore]
         public AnimalSetting settings;
+        [JsonIgnore]
         public static Action<Animal>[] TaskRegistry = new Action<Animal>[]{
             Idle,
             FollowFlight,
@@ -76,11 +77,19 @@ public class SkyBoidHerbivore : Authoring
             RunFromPredator,
             Death
         };
+        [JsonIgnore]
         public override float3 position {
+            get => tCollider.transform.position + settings.collider.size / 2;
+            set => tCollider.transform.position = value - settings.collider.size / 2;
+        }
+        [JsonIgnore]
+        public override float3 origin {
             get => tCollider.transform.position;
             set => tCollider.transform.position = value;
         }
-
+        [JsonIgnore]
+        public int3 GCoord => (int3)math.floor(origin); 
+        [JsonIgnore]
         public bool IsDead => vitality.IsDead;
         public void TakeDamage(float damage, float3 knockback, Entity attacker){
             if(!vitality.Damage(damage)) return;
@@ -137,7 +146,6 @@ public class SkyBoidHerbivore : Authoring
             this.vitality = new Vitality(settings.physicality, ref random);
             this.tCollider = new TerrainColliderJob(GCoord, true, ProcessFallDamage);
 
-            this.GCoord = GCoord;
             pathFinder.hasPath = false;
             flightDirection = RandomDirection();
             TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
@@ -158,15 +166,18 @@ public class SkyBoidHerbivore : Authoring
         public override void Update()
         {
             if(!active) return;
-            GCoord = (int3)math.floor(tCollider.transform.position);
-            TaskRegistry[(int)TaskIndex].Invoke(this);
-
             //use gravity if not flying
             tCollider.Update(EntityJob.cxt, settings.collider);
             if(!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
             EntityManager.AddHandlerEvent(controller.Update);
 
+            Recognition.DetectMapInteraction(position, 
+            OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
+            OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
+            OnInGas: vitality.ProcessInGas);
+
             vitality.Update();
+            TaskRegistry[(int)TaskIndex].Invoke(this);
             if(TaskIndex != 13 && vitality.IsDead) {
                 TaskDuration = settings.decomposition.DecompositionTime;
                 flightDirection = 0;
@@ -179,7 +190,7 @@ public class SkyBoidHerbivore : Authoring
                 return;
 
             int PathDist = settings.recognition.FleeDistance;
-            flightDirection = GCoord - predator.position;
+            flightDirection = position - predator.position;
             byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, PathDist + 1, settings.flight.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
             flightDirection = math.normalize(flightDirection);
@@ -244,7 +255,7 @@ public class SkyBoidHerbivore : Authoring
             flightDirection = Normalize(flightDirection + 
                 settings.flight.SeperationWeight * boidDMtrx.SeperationDir / boidDMtrx.count +
                 settings.flight.AlignmentWeight * (boidDMtrx.AlignmentDir / boidDMtrx.count - flightDirection) +
-                settings.flight.CohesionWeight * (boidDMtrx.CohesionDir / boidDMtrx.count - tCollider.transform.position) +
+                settings.flight.CohesionWeight * (boidDMtrx.CohesionDir / boidDMtrx.count - position) +
                 math.up() * random.NextFloat(0, settings.flight.FlyBiasWeight));
         }
 
@@ -329,7 +340,7 @@ public class SkyBoidHerbivore : Authoring
         //Task 3
         private static unsafe void FindPrey(Animal self){
             self.tCollider.useGravity = true;
-            if(!self.settings.recognition.FindPreferredPrey((int3)math.round(self.position + self.settings.collider.offset), out int3 preyPos)){
+            if(!self.settings.recognition.FindPreferredPrey((int3)math.round(self.position), out int3 preyPos)){
                 self.RandomWalk();
                 return;
             }
@@ -356,7 +367,7 @@ public class SkyBoidHerbivore : Authoring
             self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration);
             if(self.pathFinder.hasPath) return;
 
-            if(self.settings.recognition.FindPreferredPrey((int3)math.round(self.position - self.settings.collider.offset), out int3 preyPos) && 
+            if(self.settings.recognition.FindPreferredPrey((int3)math.round(self.position), out int3 preyPos) && 
             math.distance(preyPos, self.position) <= self.settings.physicality.AttackDistance){
                 self.TaskDuration = 1 / math.max(self.settings.physicality.ConsumptionRate, 0.0001f);
                 self.TaskIndex = 5;
@@ -368,7 +379,7 @@ public class SkyBoidHerbivore : Authoring
             self.tCollider.useGravity = true;
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if(self.TaskDuration <= 0){
-                if(self.settings.recognition.FindPreferredPrey((int3)math.round(self.position - self.settings.collider.offset), out int3 foodPos)){
+                if(self.settings.recognition.FindPreferredPrey((int3)math.round(self.position), out int3 foodPos)){
                     WorldConfig.Generation.Item.IItem item = self.settings.recognition.ConsumeFood(foodPos);
                     if(item != null && self.settings.recognition.CanConsume(item, out float nutrition))
                         self.vitality.Heal(nutrition);  
@@ -389,7 +400,7 @@ public class SkyBoidHerbivore : Authoring
                 return;   
             }
             int PathDist = self.settings.movement.pathDistance;
-            int3 destination = (int3)mate.position - self.GCoord;
+            int3 destination = (int3)mate.origin - self.GCoord;
             byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 7;
@@ -403,9 +414,9 @@ public class SkyBoidHerbivore : Authoring
                 return;
             }
 
-            Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, mate.position,
+            Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, mate.origin,
             self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration);
-            float mateDist = math.distance(self.tCollider.transform.position, mate.position);
+            float mateDist = math.distance(self.position, mate.position);
             if(mateDist < self.settings.physicality.AttackDistance) {
                 EntityManager.AddHandlerEvent(() => (mate as IMateable).MateWith(self));
                 self.MateWith(mate);
@@ -438,7 +449,7 @@ public class SkyBoidHerbivore : Authoring
 
             if(!self.pathFinder.hasPath) {
                 int PathDist = self.settings.recognition.FleeDistance;
-                float3 rayDir = self.GCoord - target.position;
+                float3 rayDir = self.position - target.position;
                 byte* path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             } 
@@ -461,13 +472,13 @@ public class SkyBoidHerbivore : Authoring
 
             if(!self.pathFinder.hasPath) {
                 int PathDist = self.settings.movement.pathDistance;
-                int3 destination = (int3)math.round(target.position) - self.GCoord;
+                int3 destination = (int3)math.round(target.origin) - self.GCoord;
                 byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             } 
-            Movement.FollowDynamicPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, target.position,
+            Movement.FollowDynamicPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, target.origin,
             self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
-            if(math.distance(self.tCollider.transform.position, target.position) < self.settings.physicality.AttackDistance) {
+            if(math.distance(self.position, target.position) < self.settings.physicality.AttackDistance) {
                 self.TaskIndex = 11;
                 return;
             }
@@ -491,7 +502,7 @@ public class SkyBoidHerbivore : Authoring
                 return;
             }
 
-            float3 atkDir = math.normalize(tEntity.position - self.tCollider.transform.position); atkDir.y = 0;
+            float3 atkDir = math.normalize(tEntity.position - self.position); atkDir.y = 0;
             self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation, 
             Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
 
@@ -539,9 +550,8 @@ public class SkyBoidHerbivore : Authoring
         public override void OnDrawGizmos(){
             if(!active) return;
             Gizmos.color = Color.green; 
-            Gizmos.DrawWireCube(CPUMapManager.GSToWS(tCollider.transform.position), settings.collider.size * 2);
-            float3 location = tCollider.transform.position - settings.collider.offset;
-            Gizmos.DrawLine(CPUMapManager.GSToWS(location), CPUMapManager.GSToWS(location + flightDirection));
+            Gizmos.DrawWireCube(CPUMapManager.GSToWS(position), settings.collider.size * 2);
+            Gizmos.DrawLine(CPUMapManager.GSToWS(position), CPUMapManager.GSToWS(position + flightDirection));
         }
     }
 
@@ -568,15 +578,14 @@ public class SkyBoidHerbivore : Authoring
 
             Indicators.SetupIndicators(gameObject);
             float3 GCoord = new (entity.GCoord);
-            transform.position = CPUMapManager.GSToWS(GCoord - entity.settings.collider.offset) + (float3)Vector3.up * 1;
+            transform.position = CPUMapManager.GSToWS(entity.position);
         }
 
         public void Update(){
             if(!entity.active) return;
             if(gameObject == null) return;
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
-            rTransform.position = CPUMapManager.GSToWS(rTransform.position - entity.settings.collider.offset);
-            this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
+            this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
 
             Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
             if(AnimatorTask == entity.TaskIndex) return;
