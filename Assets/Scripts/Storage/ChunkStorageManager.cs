@@ -278,13 +278,12 @@ public static class Chunk
 
     private static void DeserializeHeader(ref MapData[] map, ref ChunkHeader header){
         var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        int[] materialIndexCache = new int[header.RegisterNames.Count];
         Dictionary<int, int> materialIndexCacheDict = new Dictionary<int, int>();
         foreach (var kvp in header.RegisterNames)
         {
                 materialIndexCacheDict[kvp.Key] = mReg.RetrieveIndex(kvp.Value);
         }
-        for(int i = 0; i < map.Length; i++){ map[i].material = materialIndexCache[(int)map[i].material]; }
+        for(int i = 0; i < map.Length; i++){ map[i].material = materialIndexCacheDict[(int)map[i].material]; }
     }
 
     private static MemoryStream WriteChunkHeader(object header){
