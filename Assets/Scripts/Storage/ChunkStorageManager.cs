@@ -16,6 +16,8 @@ using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Buffers;
 using UnityEngine.Profiling;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 /*
 Chunk File Layout:
@@ -89,20 +91,20 @@ public static class Chunk
 
     private static void SaveChunkToBinSync(string fileAdd, ChunkPtr chunk)
     {
-        using (FileStream fs = File.Create(fileAdd))
-        {
-            MemoryStream mapStream = WriteChunkMaps(chunk, out ChunkHeader header);
-            MemoryStream headerStream = WriteChunkHeader(header);
-            headerStream.Seek(0, SeekOrigin.Begin);
-            headerStream.CopyTo(fs);
-            headerStream.Close();
-            
-            mapStream.Seek(0, SeekOrigin.Begin);
-            mapStream.CopyTo(fs);
-            mapStream.Close();
+            using (FileStream fs = File.Create(fileAdd))
+            {
+                MemoryStream mapStream = WriteChunkMaps(chunk, out ChunkHeader header);
+                MemoryStream headerStream = WriteChunkHeader(header);
+                headerStream.Seek(0, SeekOrigin.Begin);
+                headerStream.CopyTo(fs);
+                headerStream.Close();
 
-            fs.Flush();
-            fs.Close();
+                mapStream.Seek(0, SeekOrigin.Begin);
+                mapStream.CopyTo(fs);
+                mapStream.Close();
+
+                fs.Flush();
+                fs.Close();
         }
     }
 
@@ -238,31 +240,46 @@ public static class Chunk
         foreach(Registerable<Entity> sEntity in eSerial){ entities.Add(sEntity.Value); }
         return entities;
     }
-     
-
+    
+    
     static ChunkHeader SerializeHeader(ChunkPtr chunk){
         Dictionary<int, int> RegisterDict = new Dictionary<int, int>();
+        ConcurrentDictionary<int, byte> uniqueMatIndices = new();
         int numPoints = maxChunkSize * maxChunkSize * maxChunkSize;
-        for(int i = 0; i < numPoints; i++){
-            MapData mapPt = chunk.data[chunk.offset + i];
-            RegisterDict.TryAdd(mapPt.material, RegisterDict.Count);
-            mapPt._material = RegisterDict[mapPt.material];
-            chunk.data[chunk.offset + i] = mapPt;
-        }
+        Parallel.For(0, numPoints,
+            () => new HashSet<int>(), // initialize localSet for keeping the unique indices for each loop batch
+            (i, loopState, localSet) =>
+            {
+                MapData mapPt = chunk.data[chunk.offset + (int)i];
+                localSet.Add(mapPt.material); // Add to local set
+                return localSet;
+            },
+            localSet =>
+            {
+                // Merge into global thread-safe dictionary
+                foreach (var val in localSet)
+                    uniqueMatIndices.TryAdd(val, 0);
+            }
+        );
 
-        string[] dict = new string[RegisterDict.Count];
+        // Construct RegisterNames dictionary
+        Dictionary<int, string> regNames = new();
         var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        foreach(var pair in RegisterDict){
-            dict[pair.Value] = mReg.RetrieveName(pair.Key);
+        foreach (var matIndex in uniqueMatIndices.Keys)
+        {
+            regNames.Add(matIndex, mReg.RetrieveName(matIndex));
         }
-
-        return new ChunkHeader{ RegisterNames = dict.ToList() };
+        return new ChunkHeader{ RegisterNames = regNames };
     }
 
     private static void DeserializeHeader(ref MapData[] map, ref ChunkHeader header){
         var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         int[] materialIndexCache = new int[header.RegisterNames.Count];
-        for (int i = 0; i < header.RegisterNames.Count; i++) { materialIndexCache[i] = mReg.RetrieveIndex(header.RegisterNames[i]); }
+        Dictionary<int, int> materialIndexCacheDict = new Dictionary<int, int>();
+        foreach (var kvp in header.RegisterNames)
+        {
+                materialIndexCacheDict[kvp.Key] = mReg.RetrieveIndex(kvp.Value);
+        }
         for(int i = 0; i < map.Length; i++){ map[i].material = materialIndexCache[(int)map[i].material]; }
     }
 
@@ -362,10 +379,11 @@ public static class Chunk
     /// - Map Data(Compressed): The map data of the chunk, compressed seperately by resolution and stored sequentially starting with the lowest resolution.
     /// The header contains the following two types of information: RegisterNames and ResolutionOffsets </summary>
     public struct ChunkHeader{
-        /// <summary>A list of the names of all unique materials used in the chunk. This is used to 
-        /// decouple the chunk's materials from the current game-version, allowing the same material to be reloaded
+        /// <summary>A dirctionary for mapping the material index of a map point to the name of the material.
+        /// This is used to decouple the chunk's materials from the current game-version, allowing the same material to be reloaded
         /// even if the exact index of the material changes.</summary>
-        public List<string> RegisterNames;
+        public Dictionary<int, string> RegisterNames;
+        
         /// <summary> A list of offsets in bytes from the end of the compressed header to the start
         /// of each resolution's compressed map data. This can be used to selectively jump to a specific resolution's
         /// map information and only decompress/process it if other resolutions are not needed. </summary>
