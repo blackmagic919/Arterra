@@ -195,7 +195,9 @@ public class OctreeTerrain : MonoBehaviour
                 return;
             if(gen.chunk == null || !gen.chunk.active) 
                 continue;
+            Profiler.BeginSample("Task Number: " + gen.id);
             gen.task();
+            Profiler.EndSample();
             FrameGPULoad += taskLoadTable[gen.id];
         }
     }

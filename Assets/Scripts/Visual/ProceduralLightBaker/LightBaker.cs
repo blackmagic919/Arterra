@@ -116,6 +116,7 @@ public static class LightBaker
         ChunkLightPrimer.SetInt("subChunkSize", SubChunkSize);
         ChunkLightPrimer.SetInt("subChunksAxis", Settings.SubChunkDivisions);
         ChunkLightPrimer.SetInt("QueueSize", SubChunkCount);
+        ChunkLightPrimer.SetInt("numPointsPerAxis", terrain.mapChunkSize); //as uint
         GPUMapManager.SetCCoordHash(ChunkLightPrimer);
 
         OctreeTerrain.MainLateUpdateTasks.Enqueue(new IndirectUpdate(IterateLightUpdate));
@@ -165,26 +166,23 @@ public static class LightBaker
         GPUMapManager.SetCCoordHash(shad);
     }
 
-    public static void RegisterChunk(int3 CCoord, int mapChunkSize, uint nAddress, bool CopyMap = false){
+    public static void RegisterChunk(int3 CCoord, int mapChunkSize, uint nAddress, int wSkipInc){
         int SubChunkAxis = mapChunkSize / Settings.SubChunkDivisions;
         int numSubChunks = SubChunkAxis * SubChunkAxis * SubChunkAxis;
         ChunkLightPrimer.SetInts("CCoord", new int[]{CCoord.x, CCoord.y, CCoord.z});
         ChunkLightPrimer.SetInt("numLightUnits", Mathf.CeilToInt(numSubChunks / 32.0f));
         ChunkLightPrimer.SetInt("nChunkAddress", (int)nAddress);
-        ChunkLightPrimer.SetInt("CopyMap", CopyMap ? 1 : 0);
 
         int kernel = ChunkLightPrimer.FindKernel("CopyHash");
         ChunkLightPrimer.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
         int numThreads = Mathf.CeilToInt(numSubChunks / (32.0f * (float)threadGroupSize));
         ChunkLightPrimer.Dispatch(kernel, numThreads, 1, 1);
-
-        int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
-        //Don't copy chunk info
-        ChunkLightPrimer.SetInt("numLightUnits", Mathf.CeilToInt(numPoints / 2.0f));
+        
         kernel = ChunkLightPrimer.FindKernel("CleanChunk");
+        ChunkLightPrimer.SetInt("SkipInc", wSkipInc);
         ChunkLightPrimer.GetKernelThreadGroupSizes(kernel, out threadGroupSize, out _, out _);
-        numThreads = Mathf.CeilToInt(numPoints / (2.0f * (float)threadGroupSize));
-        ChunkLightPrimer.Dispatch(kernel, numThreads, 1, 1);
+        numThreads = Mathf.CeilToInt(mapChunkSize / (float)threadGroupSize);
+        ChunkLightPrimer.Dispatch(kernel, numThreads, numThreads, (numThreads + 1)/2);
 
         //int2[] address = {0};
         //uint[] LightMap = new uint[mapChunkSize * mapChunkSize * mapChunkSize / 2];

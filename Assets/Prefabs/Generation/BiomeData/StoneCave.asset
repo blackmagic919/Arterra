@@ -17,7 +17,12 @@ MonoBehaviour:
     - Rock
     - Stone
     - CoalOre
+    - Dirt
+    - Moss
     - Air
+    - Bat
+    - Spider
+    - Beetle
   GroundMaterials:
     value:
     - value:
@@ -25,35 +30,52 @@ MonoBehaviour:
         genSize: 0.431
         genShape: 0.541
         frequency: 1
-        multiplier: 1
         height: 0
     - value:
         Material: 1
-        genSize: 1
-        genShape: 0.5
-        frequency: 1
-        multiplier: 0.75
+        genSize: 0.3
+        genShape: 0.85
+        frequency: 0.85
         height: 0
     - value:
         Material: 2
         genSize: 0.166
         genShape: 0.253
-        frequency: 0.4
-        multiplier: 1
+        frequency: 0.1
+        height: 0
+    - value:
+        Material: 3
+        genSize: 0.2
+        genShape: 0.634
+        frequency: 0.8
+        height: 0
+    - value:
+        Material: 4
+        genSize: 0.4
+        genShape: 0.7
+        frequency: 0.75
         height: 0
   SurfaceMaterials:
     value:
     - value:
-        Material: 3
+        Material: 5
         genSize: 0
         genShape: 0
         frequency: 1
-        multiplier: 1
         height: 0
   Structures:
     value: []
   Entities:
-    value: []
+    value:
+    - value:
+        Entity: 6
+        ChancePerCoord: 0.0001
+    - value:
+        Entity: 7
+        ChancePerCoord: 0.00015
+    - value:
+        Entity: 8
+        ChancePerCoord: 0.0003
   BiomeConditions:
     value:
       CaveFreqStart: 0

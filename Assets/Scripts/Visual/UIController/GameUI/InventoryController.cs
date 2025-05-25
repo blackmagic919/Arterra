@@ -540,13 +540,6 @@ public static class InventoryController
             EntryDict[KeyIndex] = (int)EntryLL[end].n;
         }
 
-        /*
-            2 flag bits in beginning:
-            00 -> Is a Liquid Material
-            01 -> Is a Solid Material
-            10 -> Is an Unstackable Item
-            11 -> Is a Stackable Item
-        */
         public struct LLNode{
             public uint p;
             public uint n;

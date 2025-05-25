@@ -174,9 +174,12 @@ public class Config : ScriptableObject{
     [Serializable]
     public struct SystemSettings{
         /// <summary> Controls how the player can create items. See <see cref="Gameplay.Crafting"/> for more information. </summary>
-        public Option<Gameplay.Crafting> Crafting;
-        [UISetting(Ignore = true)]
+        public Option<Intrinsic.Crafting> Crafting;
+        /// <summary> Controls how the terrain is updated. See <see cref="Intrinsic.TerrainUpdation"/> for more information. </summary>
+        public Option<Intrinsic.TerrainUpdation> TerrainUpdation;
+
         /// <summary> The settings for the readback system. See <see cref="Intrinsic.Readback"/> for more information. </summary>
+        [UISetting(Ignore = true)]
         public Option<Intrinsic.Readback> ReadBack;
         /// <summary>
         /// Registry for hooks that are called when a certain setting is modified. This registry is generated

@@ -9,7 +9,7 @@ using static PlayerHandler;
 using WorldConfig;
 using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
-using WorldConfig.Gameplay;
+using WorldConfig.Intrinsic;
 
 public static class CraftingMenuController
 {

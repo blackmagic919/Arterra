@@ -57,6 +57,9 @@ MonoBehaviour:
       - Name: Plank
         _value:
           value: {fileID: 11400000, guid: b04a7904e687b4c758cd8ecaf397bfde, type: 2}
+      - Name: Moss
+        _value:
+          value: {fileID: 11400000, guid: c1c364aa971c94d9da804acddfd3e37d, type: 2}
       - Name: CoalOre
         _value:
           value: {fileID: 11400000, guid: c42336a9130a340a895ffef851581929, type: 2}

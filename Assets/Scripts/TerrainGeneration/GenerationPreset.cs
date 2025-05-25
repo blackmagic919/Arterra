@@ -307,7 +307,7 @@ public static class GenerationPreset
                 biomeEntities.AddRange(biomes[i].EntitySerial);
             }
 
-            int matStride = sizeof(int) + sizeof(float) * 5;
+            int matStride = sizeof(int) + sizeof(float) * 4;
             int structStride = sizeof(uint) + sizeof(float);
             int entityStride = sizeof(uint) + sizeof(float);
             biomePrefCountBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint) * 4, ComputeBufferType.Structured);

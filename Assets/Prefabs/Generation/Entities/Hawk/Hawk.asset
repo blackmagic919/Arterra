@@ -101,15 +101,11 @@ MonoBehaviour:
           x: 0.6
           y: 0.6
           z: 0.6
-        offset:
-          x: -0.3
-          y: -0.3
-          z: -0.3
         friction: 0.25
       movement:
         walkSpeed: 2
         runSpeed: 10
-        acceleration: 100
+        acceleration: 150
         rotSpeed: 180
         pathDistance: 31
         AverageIdleTime: 2.5

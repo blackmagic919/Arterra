@@ -11,7 +11,6 @@ struct BMaterial{
     float genNoiseSize;
     float genNoiseShape;
     float frequency;
-    float multiplier;
     float height;
 };
 
@@ -86,7 +85,8 @@ float GetMaterialWeight(BMaterial material, float coarse, float fine, float heig
     float fineCentered = GetNoiseCentered(fine, noiseCenter, 0, 1);
 
     float baseWeight = coarsePref * coarseCentered + (1.0f-coarsePref) * fineCentered;
-    baseWeight = pow(abs(material.frequency), (1 - baseWeight)) * baseWeight * material.multiplier;
+    //freq^((1-v)/freq) * v gives more saturated results with higher frequencies
+    baseWeight = pow(abs(material.frequency), (1 - baseWeight)/material.frequency) * baseWeight;
     if(height <= 1.0f) baseWeight *= 1 - abs(height - material.height);
     return baseWeight;
 }

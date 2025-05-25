@@ -1,8 +1,9 @@
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CleanChunk
 #pragma kernel CopyHash
-const static int numThreads = 128;
+const static int numThreads = 8;
 StructuredBuffer<CInfo> _ChunkAddressDict;
 StructuredBuffer<uint2> _DirectAddress;
 
@@ -11,7 +12,7 @@ RWStructuredBuffer<uint2> DirtySubChunks;
 uint chunkLHOffset;
 uint chunkLMOffset;
 uint nChunkAddress;
-uint CopyMap;
+uint SkipInc;
 //This is the coordinate of the origin
 int3 CCoord;
 
@@ -22,29 +23,44 @@ uint QueueSize;
 
 uint subChunksAxis;
 uint subChunkSize;
-//Number of hash bits divided by 32
-uint numLightUnits; 
 
 bool IsRealChunk(in CInfo cHandle){ return cHandle.address != 0 && (cHandle.offset & 0xFF) == 1; }
 bool IsHashOrigin(in CInfo cHandle, in uint CIndex){ return cHandle.address != 0 && CIndex == HashCoord(cHandle.CCoord); }
 
-[numthreads(numThreads,1,1)]
+[numthreads(numThreads,numThreads,numThreads)]
 void CleanChunk (uint3 id : SV_DispatchThreadID)
 {
-    if(id.x >= numLightUnits) return;
+    if(any(id.xy >= numPointsPerAxis)) return;
+    if(id.z >= numPointsPerAxis/2) return;
+    id.z *= 2;
     
+    int mapSize = (int)numPointsPerAxis;
+    int3 GCoord = id * SkipInc + CCoord * mapSize;
+    int3 MCoord = ((GCoord % mapSize) + mapSize) % mapSize;
+    int3 sCCoord = (GCoord - MCoord) / mapSize;
+
+    CInfo wHandle; 
+    wHandle.address = _DirectAddress[nChunkAddress].y; 
+    wHandle.offset = SkipInc; 
+    wHandle.CCoord = CCoord;
+
     uint rLight = 0;
-    uint CIndex = HashCoord(CCoord);
-    CInfo cHandle = _ChunkAddressDict[HashCoord(CCoord)];
-    if(IsRealChunk(cHandle) && CopyMap){
-        uint rAddress = cHandle.address + chunkLMOffset + id.x;
-        rLight = _MemoryBuffer[rAddress];
+    uint CIndex = HashCoord(sCCoord);
+    CInfo rHandle = _ChunkAddressDict[CIndex];
+    if(Overlaps(wHandle, rHandle)){
+        MCoord /= (rHandle.offset & 0xFF);
+        MCoord += int3((rHandle.offset >> 24) & 0xFF, (rHandle.offset >> 16) & 0xFF, (rHandle.offset >> 8) & 0xFF);
+        uint rAddress = rHandle.address + chunkLMOffset + (indexFromCoord(MCoord) / 2);
+        rLight = _MemoryBuffer[rAddress]; // reads two voxel lights at once(cur voxel and z axis neighbor)
     }
-    uint wAddress = _DirectAddress[nChunkAddress].y;
-    wAddress += chunkLMOffset + id.x;
+
+    uint wAddress = wHandle.address + chunkLMOffset + (indexFromCoord(id) / 2);
     _MemoryBuffer[wAddress] = rLight;
 }
 
+
+//Number of hash bits divided by 32
+uint numLightUnits; 
 const static int numThreadsS = 32;
 [numthreads(numThreadsS,1,1)]
 void CopyHash (uint3 id : SV_DispatchThreadID)

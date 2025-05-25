@@ -166,10 +166,8 @@ public static class Chunk
     /// <returns>The aggregate information associated with the chunk as a <see cref="ReadbackInfo"/>. </returns>
     public static ReadbackInfo ReadChunkInfo(int3 CCoord){
         ReadbackInfo info = new ReadbackInfo(false);
-        Profiler.BeginSample("Reading Chunk");
         if(chunkFinder.TryGetMapChunk(CCoord, out string chunkAdd)) info.map = ReadChunkBin(chunkAdd, 0);
         if(chunkFinder.TryGetEntityChunk(CCoord, out string entityAdd)) info.entities = ReadEntityJson(entityAdd);
-        Profiler.EndSample();
         return info;
     }
     

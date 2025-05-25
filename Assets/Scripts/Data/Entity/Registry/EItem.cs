@@ -146,7 +146,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             this.active = true;
 
             float3 GCoord = new (entity.GCoord);
-            this.transform.position = CPUMapManager.GSToWS(entity.position) + (float3)Vector3.up;
+            this.transform.position = CPUMapManager.GSToWS(entity.position);
 
             meshFilter = gameObject.GetComponent<MeshFilter>();
             SpriteExtruder.Extrude(new SpriteExtruder.ExtrudeSettings{
@@ -166,7 +166,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             if(!entity.active) return;
             if(gameObject == null) return;
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
-            this.transform.SetPositionAndRotation(entity.position, rTransform.rotation);
+            this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
         }
 
         public void Dispose(){ 

@@ -38,7 +38,10 @@ public class GrassMaterial : MaterialData
     [Range(0, 1)]
     public float SpreadChance;
     public string SpreadMaterial;
+    [Header("Spread Bounds")]
     public StructureData.CheckInfo SpreadBounds;
+    [Header("Neighbor Bounds")]
+    public StructureData.CheckInfo NeighborBounds;
     readonly int3[] dP = new int3[6]{
         new (0,1,0),
         new (0,-1,0),
@@ -59,12 +62,24 @@ public class GrassMaterial : MaterialData
         int spreadMat = matInfo.RetrieveIndex(SpreadMaterial);
 
         for(int i = 0; i < 6; i++){
-            MapData neighbor = SampleMap(GCoord + dP[i]);
-            if(neighbor.material != spreadMat) continue;
-            if(!SpreadBounds.Contains(neighbor)) continue;
             if(prng.NextFloat() > SpreadChance) continue;
+            int3 NCoord = GCoord + dP[i];
+            MapData neighbor = SampleMap(NCoord);
+            if(!CanSpread(neighbor, NCoord, spreadMat)) continue;
+            
             neighbor.material = cur.material;
-            SetMap(neighbor, GCoord + dP[i]);
+            SetMap(neighbor, NCoord);
         }
+    }
+
+    private bool CanSpread(MapData neighbor, int3 GCoord, float spreadMat){
+        if(neighbor.material != spreadMat) return false;
+        if(!SpreadBounds.Contains(neighbor)) return false;
+        for(int i = 0; i < 6; i++){
+            MapData nNeighbor = SampleMap(GCoord + dP[i]);
+            if(!NeighborBounds.Contains(nNeighbor)) continue;
+            return true;
+        }
+        return false;
     }
 }}

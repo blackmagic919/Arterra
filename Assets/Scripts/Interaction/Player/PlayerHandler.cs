@@ -89,13 +89,12 @@ public static class PlayerHandler
 
     public static void Release(){
         InputPoller.SetCursorLock(false); //Release Cursor Lock
-        Task.Run(() => SavePlayerData(data));
+        Task.Run(() => SavePlayerData(new Registerable<PlayerStreamer.Player>(data)));
         InventoryController.Release();
     }
     
 
-    static async Task SavePlayerData(PlayerStreamer.Player playerInfo){
-        playerInfo.Serialize();
+    static async Task SavePlayerData(Registerable<PlayerStreamer.Player> playerInfo){
         string path = MapStorage.World.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
         using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)){
             using StreamWriter writer = new StreamWriter(fs);
@@ -110,8 +109,7 @@ public static class PlayerHandler
         if(!File.Exists(path)) { return new PlayerStreamer.Player(); }
 
         string data = System.IO.File.ReadAllText(path);
-        PlayerStreamer.Player playerInfo = Newtonsoft.Json.JsonConvert.DeserializeObject<PlayerStreamer.Player>(data);
-        playerInfo.Deserialize();
+        PlayerStreamer.Player playerInfo = Newtonsoft.Json.JsonConvert.DeserializeObject<Registerable<PlayerStreamer.Player>>(data).Value;
         return playerInfo;
     }
 

@@ -61,7 +61,7 @@ public static class GPUMapManager
         TranscribeMap(mapData, address, rdOff, mapChunkSize+3, mapChunkSize, 1);
         TranscribeEdgeFaces(mapData, address, rdOff, mapChunkSize+3, mapChunkSize+3, numPoints);
         uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new uint2(address, 0);
-        LightBaker.RegisterChunk(oCCoord, mapChunkSize, address);
+        LightBaker.RegisterChunk(oCCoord, mapChunkSize, address, 1<<depth);
 
         RegisterChunk(oCCoord, depth, handleAddress);
         return (int)handleAddress;
@@ -76,7 +76,7 @@ public static class GPUMapManager
         uint address = memorySpace.AllocateMemoryDirect(mapSize, 1);
         TranscribeMap(mapData, address, rdOff, mapChunkSize, mapChunkSize);
         uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new uint2(address, 0);
-        LightBaker.RegisterChunk(oCCoord, mapChunkSize, address, CopyMap: true);
+        LightBaker.RegisterChunk(oCCoord, mapChunkSize, address, 1<<depth);
 
         RegisterChunk(oCCoord, depth, handleAddress);
         return (int)handleAddress;

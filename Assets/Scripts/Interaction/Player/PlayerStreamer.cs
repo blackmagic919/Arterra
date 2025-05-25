@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Collections;
 using TerrainGeneration;
+using System.Runtime.Serialization;
 
 [CreateAssetMenu(menuName = "Entity/Player")]
 public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
@@ -162,7 +163,8 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             Gizmos.DrawWireCube(CPUMapManager.GSToWS(position), Vector3.one * 2);
         }
 
-        public void Serialize(){
+        [OnSerializing]
+        public void OnSerializing(StreamingContext cxt){
             //Marks updated slots dirty so they are rendered properlly when deserialized
             // (Register Name, Index) -> Name Index
             Dictionary<string, int> lookup = new Dictionary<string, int>();
@@ -184,7 +186,8 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             SerializedNames = lookup.Keys.ToList();
         }
 
-        public void Deserialize(){
+        [OnDeserialized]
+        public void OnDeserialized(StreamingContext cxt){
             List<string> names = SerializedNames;
             void Deserialize(ref IItem item){
                 if(item is null) return;
@@ -193,7 +196,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
                 item.Index = registry.RetrieveIndex(names[item.Index]);
                 item.IsDirty = true;
             }
-
+            info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             for(int i = 0; i < PrimaryI.Info.Count(); i++){
                 Deserialize(ref PrimaryI.Info[i]);
             } for(int i = 0; i < SecondaryI.Info.Count(); i++){

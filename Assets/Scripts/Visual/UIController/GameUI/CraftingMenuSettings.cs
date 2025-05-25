@@ -8,7 +8,7 @@ using WorldConfig;
 using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
 
-namespace WorldConfig.Gameplay{
+namespace WorldConfig.Intrinsic{
 
 /// <summary>
 /// Settings controlling the apperance and behavior of the crafting system. The crafting 

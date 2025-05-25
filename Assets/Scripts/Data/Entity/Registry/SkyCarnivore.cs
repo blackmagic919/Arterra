@@ -569,11 +569,11 @@ public class SkyCarnivore : Authoring
             if(gameObject == null) return;
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
             this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
-#if UNITY_EDITOR
-            if(UnityEditor.Selection.Contains(gameObject)) {
-                Debug.Log(entity.TaskIndex);
-            }
-#endif
+// #if UNITY_EDITOR
+//            if(UnityEditor.Selection.Contains(gameObject)) {
+//                Debug.Log(entity.TaskIndex);
+//            }
+// #endif
             
             Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
             if(AnimatorTask == entity.TaskIndex) return;

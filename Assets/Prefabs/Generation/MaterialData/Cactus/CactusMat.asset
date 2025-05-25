@@ -20,9 +20,7 @@ MonoBehaviour:
   LiquidItem: 1
   terrainData:
     Texture: 2
-    color: {x: 0.027, y: 0.341, z: 0, w: 1}
     textureScale: 2
-    baseColorStrength: 0.5
     GeoShaderIndex: -1
   AtmosphereScatter:
     ScatterCoeffs: {x: 0, y: 0, z: 0}
@@ -42,3 +40,5 @@ MonoBehaviour:
   SpreadMaterial: PlantMatter
   SpreadBounds:
     data: 4286643968
+  NeighborBounds:
+    data: 4278255360

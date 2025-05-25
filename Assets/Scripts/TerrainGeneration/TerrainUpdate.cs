@@ -5,6 +5,37 @@ using WorldConfig;
 using WorldConfig.Generation.Material;
 using System.Collections.Concurrent;
 using Unity.Jobs;
+using WorldConfig.Intrinsic;
+
+namespace WorldConfig.Intrinsic{
+    [System.Serializable]
+    /// <summary>
+    /// Settings controlling how updates to the terrain are performed 
+    /// and how much load it is allotted. Terrain updates are point-operations
+    /// applied to any map entry in <see cref="CPUMapManager"/>. Once a map entry is updated
+    /// the correspondng material's unique update method will be called if it is defined.
+    /// See <see cref="MaterialData.UpdateMat"/> for more information.
+    /// </summary>
+    public class TerrainUpdation{
+        /// <summary> How many random points are chosen to be updated at random 
+        /// per update cycle. Random Updates allow certain materials to 
+        /// base behavior off stochastic sampling. Random Updates will only
+        /// be added if the backlog of update points does not exceed 
+        /// <see cref="MaximumTickUpdates"/> </summary>
+        public int RandomUpdateCount = 250;
+        /// <summary>
+        /// The maximum number of updates that can be performed in a 
+        /// single update cycle. Increasing this value may increase simulation
+        /// speed of update-based-effects at the cost of performance.
+        /// </summary>
+        public int MaximumTickUpdates = 5000;
+        /// <summary>
+        /// The number of in-game-ticks that must pass before the next update cycle.
+        /// An in-game tick is one update to Unity's FixedUpdate loop.
+        /// </summary>
+        public int UpdateTickDelay = 4;
+    }
+}
 
 namespace TerrainGeneration{
 
@@ -22,10 +53,7 @@ public static class TerrainUpdate
     included so we don't include them again*/
     private static FlagList IncludedCoords;
     private static Manager Executor;
-
-    const int RANDOM_UPDATE_COUNT = 100;
-    const int MAX_UPDATE_COUNT = 5000; 
-    const int UPDATE_FREQ = 4;
+    private static TerrainUpdation settings;
     private static int numPointsAxis;
     private static int UpdateTick;
     /// <summary>
@@ -33,6 +61,7 @@ public static class TerrainUpdate
     /// Allocates memory for the update system, which is fixed and cannot be resized.
     /// </summary>
     public static void Initialize(){
+        settings = Config.CURRENT.System.TerrainUpdation.value;
         WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         int numPointsChunk = rSettings.mapChunkSize;
         int numChunksAxis = OctreeTerrain.Octree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
@@ -119,18 +148,18 @@ public static class TerrainUpdate
         /// The map entries are updated in the order they were added.
         /// </summary> <param name="mono"><see cref="UpdateTask.Update"/> </param>
         public override void Update(MonoBehaviour mono){
-            UpdateTick = (UpdateTick + 1) % UPDATE_FREQ;
+            UpdateTick = (UpdateTick + 1) % settings.UpdateTickDelay;
             if(UpdateTick != 0) return;
             cxt.seed.NextUInt();
             if(!Complete()) return;
 
-            if(UpdateCoordinates.Count < MAX_UPDATE_COUNT){
-                AddRandomUpdates(RANDOM_UPDATE_COUNT);
+            if(UpdateCoordinates.Count < settings.MaximumTickUpdates){
+                AddRandomUpdates(settings.RandomUpdateCount);
             } if(UpdateCoordinates.Count == 0) {
                 return;
             } 
 
-            int count = math.min(UpdateCoordinates.Count, MAX_UPDATE_COUNT);
+            int count = math.min(UpdateCoordinates.Count, settings.MaximumTickUpdates);
             handle = cxt.Schedule(count, 128);
             dispatched = true;
         }

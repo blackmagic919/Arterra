@@ -1,0 +1,104 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
+  m_Name: Spider
+  m_EditorClassIdentifier: 
+  Controller:
+    value: {fileID: 5869526235615368524, guid: 386e5ae30cb3749b082b7437e2558214, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 2
+          y: 2
+          z: 2
+        profileStart: 192
+      collider:
+        size:
+          x: 0.3
+          y: 0.6
+          z: 0.3
+        friction: 0.25
+      movement:
+        walkSpeed: 2
+        runSpeed: 4
+        acceleration: 150
+        rotSpeed: 180
+        pathDistance: 24
+        AverageIdleTime: 2.5
+      recognition:
+        Predators:
+          value:
+          - Bat
+        Mates:
+          value:
+          - MateType: Spider
+            ChildType: Spider
+            AmountPerParent: 0.5
+        Edibles:
+          value:
+          - EdibleType: Meat
+            Nutrition: 0.6
+        SightDistance: 24
+        FleeDistance: 5
+        FightAggressor: 1
+        Prey:
+          value:
+          - Beetle
+      physicality:
+        MaxHealth: 3
+        NaturalRegen: -0.002
+        AttackDistance: 3
+        AttackDamage: 0.5
+        AttackCooldown: 1
+        KBStrength: 2
+        InvincTime: 0.25
+        HoldBreathTime: 10
+        HuntThreshold: 0.4
+        MateThreshold: 0.8
+        PregnacyLength: 4
+        ConsumptionRate: 0.05
+        MateCost: 0.75
+        weight: 0.1
+      decomposition:
+        LootTable:
+          value:
+          - ItemName: Meat
+            DropAmount: 3
+        DecompositionTime: 100
+        DecompPerLoot: 10

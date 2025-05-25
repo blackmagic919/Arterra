@@ -146,9 +146,6 @@ public class Info : ScriptableObject
         /// </summary>
         [Range(0, 1)]
         public float frequency;
-        /// <summary> A final multiplier that is applied to the match closeness of the material, offering more
-        /// control over the final material placement. </summary>
-        public float multiplier;
         /// <summary>
         /// If the biome is a <see cref="SBiomeInfo"/>, describes the preferred height relative to the influence range
         /// that the material should be generated at. An influence height of 0 will result in the material being generated

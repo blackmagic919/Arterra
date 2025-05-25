@@ -30,14 +30,12 @@ MonoBehaviour:
         genSize: 0.8
         genShape: 0.62
         frequency: 1
-        multiplier: 1
         height: 1
     - value:
         Material: 7
         genSize: 0.2
         genShape: 0.24
-        frequency: 0.25
-        multiplier: 1.5
+        frequency: 0.5
         height: 0
   SurfaceMaterials:
     value:
@@ -46,7 +44,6 @@ MonoBehaviour:
         genSize: 0.2
         genShape: 0
         frequency: 1
-        multiplier: 1
         height: 0
   Structures:
     value:

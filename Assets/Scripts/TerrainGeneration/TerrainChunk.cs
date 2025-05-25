@@ -8,7 +8,8 @@ using WorldConfig;
 
 namespace TerrainGeneration{
 using TerrainGeneration.Readback;
-using static OctreeTerrain;
+    using UnityEngine.Profiling;
+    using static OctreeTerrain;
 /// <summary>
 /// The unit of terrain generation, a chunk is(usually) a leaf node on the octree which bounds
 /// an mutually exclusive region of space relative to all other terrain chunks. Terrain chunks
@@ -379,7 +380,6 @@ public class RealChunk : TerrainChunk{
             uint entityAddress = EntityManager.PlanEntities(Map.Generator.bufferOffsets.biomeMapStart, CCoord, mapChunkSize);
             EntityManager.BeginEntityReadback(entityAddress, CCoord);
         }
-
         callback?.Invoke();
     }
     /// <summary> 

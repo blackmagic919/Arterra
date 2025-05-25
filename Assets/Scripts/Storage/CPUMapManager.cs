@@ -8,6 +8,7 @@ using Unity.Burst;
 using UnityEditor;
 using TerrainGeneration;
 using WorldConfig;
+using UnityEngine.Profiling;
 
 //Benefits of unified chunk map memory
 //1. No runtime allocation of native memory
