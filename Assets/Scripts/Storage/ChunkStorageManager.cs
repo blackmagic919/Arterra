@@ -14,6 +14,8 @@ using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Buffers;
 using UnityEngine.Profiling;
+using System.Threading.Tasks;
+//using System.Diagnostics;
 
 /*
 Chunk File Layout:
@@ -87,21 +89,27 @@ public static class Chunk
 
     private static void SaveChunkToBinSync(string fileAdd, CPUMapManager.ChunkPtr chunk)
     {
-        using (FileStream fs = File.Create(fileAdd))
+        int numPointsAxis = maxChunkSize;
+        int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
+        ChunkPtr chunkCopy = chunk.Copy(numPoints);
+        Task.Run(() => 
         {
-            MemoryStream mapStream = WriteChunkMaps(chunk, out ChunkHeader header);
-            MemoryStream headerStream = WriteChunkHeader(header);
-            headerStream.Seek(0, SeekOrigin.Begin);
-            headerStream.CopyTo(fs);
-            headerStream.Close();
-            
-            mapStream.Seek(0, SeekOrigin.Begin);
-            mapStream.CopyTo(fs);
-            mapStream.Close();
-            
-            fs.Flush();
-            fs.Close();
-        }
+            using (FileStream fs = File.Create(fileAdd))
+            {
+                MemoryStream mapStream = WriteChunkMaps(chunkCopy, out ChunkHeader header);
+                MemoryStream headerStream = WriteChunkHeader(header);
+                headerStream.Seek(0, SeekOrigin.Begin);
+                headerStream.CopyTo(fs);
+                headerStream.Close();
+
+                mapStream.Seek(0, SeekOrigin.Begin);
+                mapStream.CopyTo(fs);
+                mapStream.Close();
+
+                fs.Flush();
+                fs.Close();
+            }
+        });
     }
 
     private static void SaveEntityToJsonSync(string fileAdd, List<Entity> entities){
