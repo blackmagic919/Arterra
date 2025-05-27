@@ -324,15 +324,28 @@ public static class CPUMapManager
         MapData mapData = SampleMap(GCoord);
         return mapData.viscosity;
     }
-    
 
-    public struct ChunkPtr{
+
+    public struct ChunkPtr
+    {
         public NativeArray<MapData> data;
         public int offset;
-        public ChunkPtr(NativeArray<MapData> data, int offset){
+        public ChunkPtr(NativeArray<MapData> data, int offset)
+        {
             this.data = data;
             this.offset = offset;
         }
+
+        public ChunkPtr Copy(int Length)
+        {
+            ChunkPtr ret = new ChunkPtr
+            {
+                data = new NativeArray<MapData>(Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory),
+                offset = 0
+            };
+            NativeArray<MapData>.Copy(data, offset, ret.data, 0, Length);
+            return ret;
+        } 
     }
 
     public struct ChunkMapInfo{
