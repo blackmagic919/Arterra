@@ -83,13 +83,13 @@ public static class Chunk
 
             string fileAdd = chunkFinder.GetMapPath(CCoord);
             chunkFinder.TryAddMap(CCoord);
-            SaveChunkToBinSync(fileAdd, chunk); 
+            SaveChunkToBinAsync(fileAdd, chunk); 
         } catch(Exception e){
             Debug.Log($"Failed on Saving Chunk Data for Chunk: {CCoord} with exception {e}");
         }
     }
 
-    private static void SaveChunkToBinSync(string fileAdd, ChunkPtr chunk)
+    private static void SaveChunkToBinAsync(string fileAdd, ChunkPtr chunk)
     {
         int numPointsAxis = maxChunkSize;
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
@@ -99,6 +99,7 @@ public static class Chunk
             using (FileStream fs = File.Create(fileAdd))
             {
                 MemoryStream mapStream = WriteChunkMaps(chunkCopy, out ChunkHeader header);
+                chunkCopy.Dispose();
                 MemoryStream headerStream = WriteChunkHeader(header);
                 headerStream.Seek(0, SeekOrigin.Begin);
                 headerStream.CopyTo(fs);

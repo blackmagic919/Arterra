@@ -345,7 +345,15 @@ public static class CPUMapManager
             };
             NativeArray<MapData>.Copy(data, offset, ret.data, 0, Length);
             return ret;
-        } 
+        }
+
+        public void Dispose()
+        {
+            if (data.IsCreated)
+            {
+                data.Dispose();
+            }
+        }
     }
 
     public struct ChunkMapInfo{
