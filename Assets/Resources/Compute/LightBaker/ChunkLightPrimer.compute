@@ -1,28 +1,16 @@
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
+#include "Assets/Resources/Compute/LightBaker/LightLookup.hlsl"
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CleanChunk
 #pragma kernel CopyHash
 const static int numThreads = 8;
-StructuredBuffer<CInfo> _ChunkAddressDict;
 StructuredBuffer<uint2> _DirectAddress;
-
-RWStructuredBuffer<uint> _MemoryBuffer;
-RWStructuredBuffer<uint2> DirtySubChunks;
-uint chunkLHOffset;
-uint chunkLMOffset;
+RWStructuredBuffer<uint2> DirtyShadowSubChunks;
 uint nChunkAddress;
 uint SkipInc;
 //This is the coordinate of the origin
 int3 CCoord;
-
-
-uint bSTART;
-uint bCOUNT;
-uint QueueSize;
-
-uint subChunksAxis;
-uint subChunkSize;
 
 bool IsRealChunk(in CInfo cHandle){ return cHandle.address != 0 && (cHandle.offset & 0xFF) == 1; }
 bool IsHashOrigin(in CInfo cHandle, in uint CIndex){ return cHandle.address != 0 && CIndex == HashCoord(cHandle.CCoord); }
@@ -46,7 +34,7 @@ void CleanChunk (uint3 id : SV_DispatchThreadID)
 
     uint rLight = 0;
     uint CIndex = HashCoord(sCCoord);
-    CInfo rHandle = _ChunkAddressDict[CIndex];
+    CInfo rHandle = _AddressDict[CIndex];
     if(Overlaps(wHandle, rHandle)){
         MCoord /= (rHandle.offset & 0xFF);
         MCoord += int3((rHandle.offset >> 24) & 0xFF, (rHandle.offset >> 16) & 0xFF, (rHandle.offset >> 8) & 0xFF);
@@ -54,10 +42,22 @@ void CleanChunk (uint3 id : SV_DispatchThreadID)
         rLight = _MemoryBuffer[rAddress]; // reads two voxel lights at once(cur voxel and z axis neighbor)
     }
 
+    [unroll]for(int i = 0; i < 2; i++){
+        uint cLight = (rLight >> (i * 16)) & 0x7FFF;
+        uint3 light = SampleBaseLight(id + int3(0, 0, i), wHandle.address);
+        light = max(light, uint3(cLight & 0x1F, (cLight >> 5) & 0x1F, (cLight >> 10) & 0x1F));
+        cLight = (light.x & 0x1F) | ((light.y & 0x1F) << 5) | ((light.z & 0x1F) << 10);
+        rLight = (i == 0) ? (rLight & 0xFFFF8000) | cLight : (rLight & 0x8000FFFF) | (cLight << 16);
+    }
+
     uint wAddress = wHandle.address + chunkLMOffset + (indexFromCoord(id) / 2);
     _MemoryBuffer[wAddress] = rLight;
-}
 
+    if((rLight & 0x7FFF7FFF) == 0) return;
+    MCoord = ((id % subChunkSize) + subChunkSize) % subChunkSize;
+    int3 SCoord = (id - MCoord) / subChunkSize; //get subchunk coordinate
+    AddDirtySubchunk(wHandle, SCoord, 0x40);
+}
 
 //Number of hash bits divided by 32
 uint numLightUnits; 
@@ -68,24 +68,38 @@ void CopyHash (uint3 id : SV_DispatchThreadID)
     if(id.x >= numLightUnits) return;
 
     uint bitMap = 0;
-
     uint CIndex = HashCoord(CCoord);
-    CInfo cHandle = _ChunkAddressDict[CIndex];
+    CInfo cHandle = _AddressDict[CIndex];
     if(IsHashOrigin(cHandle, CIndex)){
         uint rAddress = cHandle.address + chunkLHOffset + id.x;
         bitMap = _MemoryBuffer[rAddress];
     }
 
-    [unroll]for(int i = 0; i < 32; i++){
-        uint bit = (bitMap >> i) & 0x1;
-        if(bit == 0x1) continue;
-        uint SIndex = id.x * 32 + i;
-        uint ind;
-        InterlockedAdd(DirtySubChunks[bCOUNT].y, 1, ind);
-        ind = bSTART + ((ind + DirtySubChunks[bCOUNT].x) % QueueSize);
-        DirtySubChunks[ind] = uint2(CIndex, SIndex);
+    //Add all shadow subchunks if not added
+    [unroll]for(int i = 0; i < 4; i++){
+        if((bitMap >> (i*8 + 7)) & 0x1) continue;
+        uint SIndex = id.x * 4 + i; uint ind;
+
+        InterlockedAdd(DirtyShadowSubChunks[bCOUNT.x].y, 1, ind);
+        ind = bSTART.x + ((ind + DirtyShadowSubChunks[bCOUNT.x].x) % QueueSize);
+        DirtyShadowSubChunks[ind] = uint2(CIndex, SIndex);
     } 
 
-    uint wAddress = nChunkAddress + chunkLHOffset + id.x;
-    _MemoryBuffer[wAddress] = 0xFFFFFFFF; 
+    //Add object subchunks only if its boundary is lit
+    [unroll]for(i = 0; i < 4; i++){
+        if((bitMap >> (i*8 + 6)) & 0x1) continue;
+        int SIndex = id.x * 4 + i;
+        int3 SCoord = int3(SIndex / (subChunksAxis * subChunksAxis), (SIndex / subChunksAxis) % subChunksAxis, SIndex % subChunksAxis);
+        if(!IsNeighborPropogating(CCoord, SCoord, SkipInc)) continue;
+        
+        uint ind;
+        InterlockedAdd(DirtySubChunks[bCOUNT.x].y, 1, ind);
+        ind = bSTART.x + ((ind + DirtySubChunks[bCOUNT.x].x) % QueueSize);
+        DirtySubChunks[ind] = uint2(CIndex, SIndex);
+        bitMap |= (0x1 << (i*8 + 6));
+    }
+
+    uint wAddress = _DirectAddress[nChunkAddress].y + chunkLHOffset + id.x;
+    //shadow subchunks are always dirty
+    _MemoryBuffer[wAddress] = bitMap | 0x80808080;  
 }

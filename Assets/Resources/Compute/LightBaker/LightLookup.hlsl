@@ -27,14 +27,14 @@ RWStructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<CInfo> _AddressDict;
 
 RWStructuredBuffer<uint2> DirtySubChunks;
-uint2 bCOUNT; //x -> Dirty, y -> Current
-uint2 bSTART;
+uint3 bCOUNT; //x -> Dirty, y -> CurrentShadow, z -> CurrentObject
+uint3 bSTART;
 uint QueueSize;
 int mapChunkSize;
+int subChunksAxis;
 
 uint chunkLMOffset; //Light Map
 uint chunkLHOffset; //Light Hash
-uint subChunksAxis;
 uint subChunkSize;
 uint IsoLevel;
 
@@ -114,21 +114,71 @@ bool IsInShadow(int3 SamplePointMS, CInfo cHandle){
     else return IsInShadowDirect(SamplePointMS, cHandle.address);
 }
 
-void AddDirtySubchunk(CInfo cHandle, int3 SCoord){
+void AddDirtySubchunk(CInfo cHandle, int3 SCoord, uint HashInd){
     //Add the subchunk to the dirty list
     uint SIndex = indexFromCoordManual(SCoord, subChunksAxis);
-    uint addr = cHandle.address + chunkLHOffset;
-    addr += SIndex / 32;
+    uint addr = cHandle.address + chunkLHOffset + SIndex / 4;
 
-    uint value;
-    InterlockedOr(_MemoryBuffer[addr], 1 << (SIndex % 32), value);
-    if(value >> (SIndex % 32) & 0x1) return;
+    uint value; uint shift = ((SIndex % 4) * 8);
+    InterlockedOr(_MemoryBuffer[addr], HashInd << shift, value);
+    if((value >> shift) & HashInd) return;
     //Add to the dirty list
     InterlockedAdd(DirtySubChunks[bCOUNT.x].y, 1, value);
     uint ind = bSTART.x + ((value + DirtySubChunks[bCOUNT.x].x) % QueueSize);
 
     //Note cHandle.CCoord is NOT necessarily CCoord
     DirtySubChunks[ind] = uint2(HashCoord(cHandle.CCoord), SIndex);
+}
+
+void AddDirtyNeighboringChunkSubChunks(int3 CCoord, int3 SCoord, int skipInc, uint cxt){
+    //In case the adjacent subchunk is outside the chunk
+    //scales subchunks to absolute subchunk coordinates
+    SCoord = SCoord * skipInc + CCoord * subChunksAxis; 
+    CCoord = ((SCoord % subChunksAxis) + subChunksAxis) % subChunksAxis;
+    CCoord = (SCoord - CCoord) / subChunksAxis;
+    CInfo nHandle = _AddressDict[HashCoord(CCoord)];
+
+    if(!Contains(nHandle, CCoord)) return;
+    //Note: nHandle.CCoord is coord of the origin of the actual chunk
+    //While CCoord is the CCoord of a chunk possibly with the actual adjacent chunk
+    uint nSkip = (nHandle.offset & 0xFF);
+    SCoord /= nSkip; //takes floor of the division
+    SCoord = ((SCoord % subChunksAxis) + subChunksAxis) % subChunksAxis;
+
+    nSkip = max(skipInc / nSkip, 1);
+    for(uint k = 0; k < nSkip * nSkip; k++){
+        int2 dSC = int2(k / nSkip, k % nSkip);
+        int3 nSC = clamp(SCoord + mul(dNA[cxt & 0xFF], dSC), 0, subChunksAxis-1);
+        AddDirtySubchunk(nHandle, nSC, (cxt >> 8) & 0xFF);
+    }
+}
+
+
+bool IsNeighborPropogating(int3 CCoord, int3 SCoord, int skipInc){
+    for(int j = 0; j < 6; j++){
+        int3 nSCoord = SCoord + dp[j];
+        nSCoord = nSCoord * skipInc + CCoord * subChunksAxis; 
+        int3 nCCoord = ((nSCoord % subChunksAxis) + subChunksAxis) % subChunksAxis;
+        nCCoord = (nSCoord - nCCoord) / subChunksAxis;
+        CInfo nHandle = _AddressDict[HashCoord(nCCoord)];
+        if(!Contains(nHandle, nCCoord)) continue;
+
+        uint nSkip = (nHandle.offset & 0xFF); nSCoord /= nSkip; 
+        nSCoord = ((nSCoord % subChunksAxis) + subChunksAxis) % subChunksAxis;
+
+        nSkip = max(skipInc / nSkip, 1);
+        for(uint k = 0; k < nSkip * nSkip; k++){
+            int2 dSC = int2(k / nSkip, k % nSkip);
+            int3 nSC = clamp(nSCoord + mul(dNA[j/2u], dSC), 0, subChunksAxis-1);
+            uint SIndex = indexFromCoordManual(nSC, subChunksAxis);
+            uint heapInfo = _MemoryBuffer[nHandle.address + chunkLHOffset + SIndex / 4];
+            heapInfo >>= ((SIndex % 4) * 8);
+            // xor 0x1 to get the opposite direction
+            heapInfo = (heapInfo >> (j ^ 0x1)) & 0x1;
+            if(heapInfo) return true;
+        }
+    }
+    return false;
 }
 
 #endif

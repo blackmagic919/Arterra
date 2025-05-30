@@ -1,0 +1,60 @@
+#include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#include "Assets/Resources/Compute/LightBaker/LightLookup.hlsl"
+
+#pragma kernel BakeLights
+const static int numThreads = 128;
+//Global Lookup Buffers
+StructuredBuffer<uint2> CurUpdateSubChunks;
+
+//This code is so illegible I'm sorry
+[numthreads(numThreads,1,1)]
+void BakeLights (uint3 id : SV_DispatchThreadID)
+{
+    uint count = CurUpdateSubChunks[bCOUNT.y].x;
+    if(id.x >= count) return;//
+
+    uint ind = bSTART.y + id.x;
+    uint2 SubChunkInfo = CurUpdateSubChunks[ind]; //x -> chunk index, y -> subchunk index
+    CInfo cHandle = _AddressDict[SubChunkInfo.x];
+    if(cHandle.address == 0) return;
+
+    uint3 SubChunkOrigin;
+    SubChunkOrigin.x = (SubChunkInfo.y / (subChunksAxis * subChunksAxis));
+    SubChunkOrigin.y = (SubChunkInfo.y / subChunksAxis) % subChunksAxis;
+    SubChunkOrigin.z = SubChunkInfo.y % subChunksAxis;
+    SubChunkOrigin *= subChunkSize;
+    int skipInc = (cHandle.offset & 0xFF);
+
+    uint isDirty = 0;
+    uint numCoords = subChunkSize * subChunkSize * subChunkSize;
+    for(uint i = 0; i < numCoords; i++){
+        uint3 sMCoord = int3(i / (subChunkSize * subChunkSize), (i / subChunkSize) % subChunkSize, i % subChunkSize);
+        uint3 mapCoord = sMCoord + SubChunkOrigin;
+        uint mIndex = indexFromCoord(mapCoord);
+
+        uint Shadow = (IsInShadow(mapCoord + int3(0, 1, 0), cHandle) & 0x1) << 15;
+
+        uint address = cHandle.address + chunkLMOffset + mIndex/2;
+        uint Illumin = _MemoryBuffer[address];
+        uint nIllumin = (mIndex % 2 == 0) ? (Illumin & 0xFFFF7FFF) | Shadow
+                    :  (Illumin & 0x7FFFFFFF) | (Shadow << 16);
+        
+        if(nIllumin == Illumin) continue;
+        //This is thread-safe because the current thread is the only one
+        //with exclusive access to the entire subchunk
+        _MemoryBuffer[address] = nIllumin;
+        if(sMCoord.y == 0) isDirty |= 0x2;
+        isDirty |= 0x1; 
+    }
+
+    
+    SubChunkOrigin /= subChunkSize;
+    if(isDirty & 0x1) AddDirtySubchunk(cHandle, SubChunkOrigin, 0x80);
+    if(!(isDirty & 0x2)) return;
+
+    //Add Neighboring Subchunk
+    int3 nCoord = ((int3)SubChunkOrigin) - int3(0, 1, 0);
+    if(nCoord.y >= 0) AddDirtySubchunk(cHandle, nCoord, 0x80);
+    else AddDirtyNeighboringChunkSubChunks(cHandle.CCoord, nCoord, skipInc, 0x8000 | (1));
+}

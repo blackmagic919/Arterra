@@ -16,6 +16,7 @@ MonoBehaviour:
     value:
     - Sand
     - Air
+    - Cod
   GroundMaterials:
     value:
     - value:
@@ -23,7 +24,6 @@ MonoBehaviour:
         genSize: 0.2
         genShape: 0.495
         frequency: 1
-        multiplier: 1
         height: 0
   SurfaceMaterials:
     value:
@@ -32,12 +32,14 @@ MonoBehaviour:
         genSize: 0
         genShape: 0.417
         frequency: 1
-        multiplier: 1
         height: 0
   Structures:
     value: []
   Entities:
-    value: []
+    value:
+    - value:
+        Entity: 2
+        ChancePerCoord: 0.00002
   BiomeConditions:
     value:
       TerrainStart: 0

@@ -6,37 +6,56 @@ const static int numThreads = 128;
 RWStructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<CInfo> _AddressDict;
 
-RWStructuredBuffer<uint2> DirtySubChunks;
+RWStructuredBuffer<uint2> DirtyShadowSubChunks;
+RWStructuredBuffer<uint2> DirtyObjectSubChunks;
 RWStructuredBuffer<uint2> CurUpdateSubChunks;
-uint2 bCOUNT; //x -> Dirty, y -> Current
-uint2 bSTART;
+uint3 bCOUNT; //x -> Dirty, y -> CurrentShadow, z -> CurrentObject
+uint3 bSTART; //x -> Dirty, y -> CurrentShadow, z -> CurrentObject
 
 // Size of LightMap + MapSize in 4-bytes
 uint chunkLHOffset;
-uint UpdateCount;
+uint ShadowUpdateCount;
+uint ObjectUpdateCount;
 uint QueueSize;
 
 [numthreads(numThreads,1,1)]
 void PrimeSubchunks (uint3 id : SV_DispatchThreadID)
 {
     //x -> start of queue, y -> count
-    uint count = min(DirtySubChunks[bCOUNT.x].y, UpdateCount);
-    if(id.x >= count) return;
+    uint count = min(DirtyShadowSubChunks[bCOUNT.x].y, ShadowUpdateCount);
+    if(id.x < count) { //Add Shadow Subchunks
+        int ind = bSTART.x + ((id.x + DirtyShadowSubChunks[bCOUNT.x].x) % QueueSize);
+        uint2 SubChunkInfo = DirtyShadowSubChunks[ind]; //x -> chunk index, y -> subchunk index
+        CInfo cHandle = _AddressDict[SubChunkInfo.x];
 
-    int ind = bSTART.x + ((id.x + DirtySubChunks[bCOUNT.x].x) % QueueSize);
-    uint2 SubChunkInfo = DirtySubChunks[ind]; //x -> chunk index, y -> subchunk index
-    CInfo cHandle = _AddressDict[SubChunkInfo.x];
+        //Set HashBit to zero(removed from dirty list)
+        uint lHashAdd = cHandle.address + chunkLHOffset + SubChunkInfo.y / 4;
+        InterlockedAnd(_MemoryBuffer[lHashAdd], ~(1u << ((SubChunkInfo.y % 4) * 8 + 7)));
+        CurUpdateSubChunks[bSTART.y + id.x] = SubChunkInfo;
+    } 
+    count = min(DirtyObjectSubChunks[bCOUNT.x].y, ObjectUpdateCount);
+    if(id.x < count) { //Add Object Light Subchunks
+        int ind = bSTART.x + ((id.x + DirtyObjectSubChunks[bCOUNT.x].x) % QueueSize);
+        uint2 SubChunkInfo = DirtyObjectSubChunks[ind]; //x -> chunk index, y -> subchunk index
+        CInfo cHandle = _AddressDict[SubChunkInfo.x];
 
-    //Set HashBit to zero(removed from dirty list)
-    uint lHashAdd = cHandle.address + chunkLHOffset + SubChunkInfo.y / 32;
-    InterlockedAnd(_MemoryBuffer[lHashAdd], ~(1u << (SubChunkInfo.y % 32)));
-    CurUpdateSubChunks[bSTART.y + id.x] = SubChunkInfo;
+        //Set HashBit to zero(removed from dirty list)
+        uint lHashAdd = cHandle.address + chunkLHOffset + SubChunkInfo.y / 4;
+        InterlockedAnd(_MemoryBuffer[lHashAdd], ~(1u << ((SubChunkInfo.y % 4) * 8 + 6)));
+        CurUpdateSubChunks[bSTART.z + id.x] = SubChunkInfo;
+    } 
+
 }
 
 [numthreads(1,1,1)]
 void PrimeQueue(uint3 id : SV_DispatchThreadID){
-    int dequeueCount = min(DirtySubChunks[bCOUNT.x].y, UpdateCount);
+    int dequeueCount = min(DirtyShadowSubChunks[bCOUNT.x].y, ShadowUpdateCount);
     CurUpdateSubChunks[bCOUNT.y].x = dequeueCount;
-    DirtySubChunks[bCOUNT.x].x = (DirtySubChunks[bCOUNT.x].x + dequeueCount) % QueueSize;
-    DirtySubChunks[bCOUNT.x].y -= dequeueCount;
+    DirtyShadowSubChunks[bCOUNT.x].x = (DirtyShadowSubChunks[bCOUNT.x].x + dequeueCount) % QueueSize;
+    DirtyShadowSubChunks[bCOUNT.x].y -= dequeueCount;
+
+    dequeueCount = min(DirtyObjectSubChunks[bCOUNT.x].y, ObjectUpdateCount);
+    CurUpdateSubChunks[bCOUNT.z].x = dequeueCount;
+    DirtyObjectSubChunks[bCOUNT.x].x = (DirtyObjectSubChunks[bCOUNT.x].x + dequeueCount) % QueueSize;
+    DirtyObjectSubChunks[bCOUNT.x].y -= dequeueCount;
 }

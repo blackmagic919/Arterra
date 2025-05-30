@@ -35,6 +35,7 @@ public struct Vitality{
         [Range(0,1)]
         public float weight;
     }
+
     private Stats stats;
     public float health;
     public float invincibility;
@@ -109,7 +110,34 @@ public struct Vitality{
         tCollider.velocity.y *= 0.95f;
         tCollider.useGravity = false;
         if(breath > 0) return;
+        //If dead don't process suffocation
+        if(self is IAttackable target && target.IsDead) return; 
         ProcessSuffocation(self, density);
+    }
+
+    public void ProcessInLiquidAquatic(Entity self, ref TerrainColliderJob tCollider, float density, float drownTime){
+        if(breath >= 0) breath = -drownTime;
+
+        const float Epsilon = 0.001f;
+        breath = math.min(breath + EntityJob.cxt.deltaTime, -Epsilon);
+        tCollider.useGravity = false;
+
+        if (self is IAttackable target && target.IsDead){ //If dead float to the surface
+            tCollider.velocity += EntityJob.cxt.deltaTime * stats.weight * -EntityJob.cxt.gravity;
+            tCollider.velocity.y *= 0.95f;
+            return; //don't process suffocation
+        }
+
+        if(breath >= -Epsilon) ProcessSuffocation(self, density);
+    }
+
+    public void ProcessInGasAquatic(Entity self, ref TerrainColliderJob tCollider, float density){
+        if(breath < 0) breath = stats.HoldBreathTime;
+        breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
+        tCollider.useGravity = true;
+
+        if(self is IAttackable target && target.IsDead) return; //If dead don't process suffocation
+        if(breath <= 0) ProcessSuffocation(self, density);
     }
 
     [Serializable]
@@ -137,5 +165,16 @@ public struct Vitality{
             public string ItemName;
             public float DropAmount;
         }
+    }
+
+    [Serializable]
+    public struct Aquatic{
+        public float DrownTime;
+        [Range(0, 1)]
+        //Threshold at which the entity will try to swim to the surface
+        public float SurfaceThreshold; 
+        public float JumpStickDistance;
+        public float JumpStrength;
+        public EntitySetting.ProfileInfo SurfaceProfile;
     }
 }

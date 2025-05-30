@@ -51,7 +51,7 @@ MonoBehaviour:
         height: 0
     - value:
         Material: 4
-        genSize: 0.4
+        genSize: 0.29
         genShape: 0.7
         frequency: 0.75
         height: 0

@@ -16,6 +16,7 @@ using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Buffers;
 using UnityEngine.Profiling;
+using Unity.Burst;
 
 /*
 Chunk File Layout:
@@ -293,6 +294,7 @@ public static class Chunk
         header = JsonConvert.DeserializeObject<T>(sr.ReadToEnd());
         return size; //add 4 for the size of the size of the header(yeah lol)
     }
+
 
     //IT IS CALLERS RESPONSIBILITY TO DISPOSE MEMORY STREAM
     private static MemoryStream WriteChunkMaps(ChunkPtr chunk, out ChunkHeader header){
