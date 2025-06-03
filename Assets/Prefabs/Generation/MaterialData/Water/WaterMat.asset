@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 592bdaa92f6a140bca28933503af75b9, type: 3}
   m_Name: WaterMat
   m_EditorClassIdentifier: 
+  Name: Water
   Names:
   - Void
   - Water:Liquid
@@ -20,12 +21,10 @@ MonoBehaviour:
   LiquidItem: 1
   terrainData:
     Texture: 2
-    color: {x: 0.259, y: 0.294, z: 1, w: 1}
     textureScale: 2
-    baseColorStrength: 0.1
     GeoShaderIndex: -1
   AtmosphereScatter:
-    ScatterCoeffs: {x: 0.00005, y: 0.0002, z: 0.0005}
+    ScatterCoeffs: {x: 0.00005, y: 0.00025, z: 0.0006}
     GroundExtinction: {x: 0.03, y: 0.006, z: 0.003}
     LightIntensity: 0
   liquidData:

@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6fbcd5f0b5992466685233b55199a842, type: 3}
   m_Name: ArcticHare
   m_EditorClassIdentifier: 
+  Name: ArcticHare
   Controller:
     value: {fileID: 1363864841180675569, guid: 9f3da586f65d14207adc445c8018826b, type: 3}
   Profile:
@@ -65,10 +66,6 @@ MonoBehaviour:
           x: 0.5
           y: 0.8
           z: 0.5
-        offset:
-          x: -0.25
-          y: -0.3
-          z: -0.25
         friction: 0.25
       movement:
         walkSpeed: 3

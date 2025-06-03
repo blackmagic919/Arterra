@@ -302,7 +302,7 @@ public class RHerbivore : Recognition{
     //The order of the list describes the order of preference for the entity
     //An entity won't chase a prey if a more preferred prey is in range
     public Option<List<Plant>> Prey;
-    private int materialStart => Config.CURRENT.Generation.Entities.Reg.value.Count;
+    private int materialStart => Config.CURRENT.Generation.Entities.Reg.Count;
 
     public override void Construct(){
         AwarenessTable = new Dictionary<int, Recognizable>();

@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
   m_Name: Coyote
   m_EditorClassIdentifier: 
+  Name: Coyote
   Controller:
     value: {fileID: 6344444734217580524, guid: 0d22b432cfe3a45ea997cf4da8e776a3, type: 3}
   Profile:
@@ -65,10 +66,6 @@ MonoBehaviour:
           x: 0.75
           y: 1
           z: 0.75
-        offset:
-          x: -0.375
-          y: -0.6
-          z: -0.375
         friction: 0.25
       movement:
         walkSpeed: 3

@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
   m_Name: SwordItem
   m_EditorClassIdentifier: 
+  Name: Sword
   TextureName: Sword
   MaterialName: 
   MaterialState: 0

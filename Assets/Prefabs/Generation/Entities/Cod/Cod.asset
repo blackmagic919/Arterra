@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4bcffb4d9d8c4ecc8408d8a7953c9ce, type: 3}
   m_Name: Cod
   m_EditorClassIdentifier: 
+  Name: Cod
   Controller:
     value: {fileID: 1773657278825501379, guid: 47117b954db374041893bfa1025aeebe, type: 3}
   Profile:
@@ -75,15 +76,16 @@ MonoBehaviour:
         Edibles:
           value:
           - EdibleType: Meat
-            Nutrition: 0.2
+            Nutrition: 0.8
         SightDistance: 16
         FleeDistance: 5
         FightAggressor: 0
         Prey:
-          value: []
+          value:
+          - Krill
       physicality:
         MaxHealth: 5
-        NaturalRegen: -0.05
+        NaturalRegen: -0.01
         AttackDistance: 3
         AttackDamage: 2
         AttackCooldown: 1
@@ -106,6 +108,8 @@ MonoBehaviour:
       aquaticBehavior:
         DrownTime: Infinity
         SurfaceThreshold: 0
+        JumpStickDistance: 0.05
+        JumpStrength: 3
         SurfaceProfile:
           bounds:
             x: 1

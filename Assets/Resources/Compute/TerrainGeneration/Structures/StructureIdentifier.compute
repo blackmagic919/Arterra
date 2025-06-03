@@ -43,8 +43,16 @@ struct checkInfo{
     uint structureIndex;
 };
 
+struct PrefixCounters{
+    uint GroundEnd;
+    uint SurfaceEnd;
+    uint WaterEnd;
+    uint StructureStart;
+    uint EntityStart;
+};
+
 // Global references
-StructuredBuffer<uint4> _BiomePrefCount; //Gets range of details for biome
+StructuredBuffer<PrefixCounters> _BiomePrefCount; //Gets range of details for biome
 StructuredBuffer<biomeStructure> _BiomeStructureData; //biome generation data for structure
 
 StructuredBuffer<uint2> _StructureIndexes;
@@ -101,8 +109,8 @@ int BinSearchStructures(uint startIndex, uint arraySize, uint searchLoD) //Retur
 
 int determineStructure(uint LoD, int biome, float seed){
     //Determine Structure
-    uint biomeStart = _BiomePrefCount[biome].z;
-    uint biomeLength = _BiomePrefCount[biome+1].z - biomeStart;
+    uint biomeStart = _BiomePrefCount[biome].StructureStart;
+    uint biomeLength = _BiomePrefCount[biome+1].StructureStart - biomeStart;
 
     int structureIndex = BinSearchStructures(biomeStart, biomeLength, LoD);
 
@@ -138,7 +146,7 @@ void Identify (uint3 id : SV_DispatchThreadID)
     int structureIndex = determineStructure(structPlan.LoD, structBiome, RandomFloat(seedStruct));
 
     //No structure found
-    if(structureIndex < (int)_BiomePrefCount[structBiome].z)
+    if(structureIndex < (int)_BiomePrefCount[structBiome].StructureStart)
         return;
     
     structureIndex = _BiomeStructureData[structureIndex].structIndex;

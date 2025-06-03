@@ -38,6 +38,7 @@ public class GrassMaterial : MaterialData
     [Range(0, 1)]
     public float SpreadChance;
     public string SpreadMaterial;
+
     [Header("Spread Bounds")]
     public StructureData.CheckInfo SpreadBounds;
     [Header("Neighbor Bounds")]
@@ -58,9 +59,14 @@ public class GrassMaterial : MaterialData
     public override void UpdateMat(int3 GCoord, Unity.Mathematics.Random prng){
         MapData cur = SampleMap(GCoord); //Current 
         if(!cur.IsSolid) return;
+        SpreadGrass(cur, GCoord, prng);
+    }
+
+    public bool SpreadGrass(MapData cur, int3 GCoord, Unity.Mathematics.Random prng){
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         int spreadMat = matInfo.RetrieveIndex(SpreadMaterial);
-
+       
+        bool spread = false;
         for(int i = 0; i < 6; i++){
             if(prng.NextFloat() > SpreadChance) continue;
             int3 NCoord = GCoord + dP[i];
@@ -69,7 +75,8 @@ public class GrassMaterial : MaterialData
             
             neighbor.material = cur.material;
             SetMap(neighbor, NCoord);
-        }
+            spread = true;
+        } return spread;
     }
 
     private bool CanSpread(MapData neighbor, int3 GCoord, float spreadMat){

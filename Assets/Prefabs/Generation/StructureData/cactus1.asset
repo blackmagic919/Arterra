@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0ed4b06c60c74eb3a1638cff170e3f8, type: 3}
   m_Name: cactus1
   m_EditorClassIdentifier: 
+  Name: Cactus1
   settings:
     value:
       GridSize:

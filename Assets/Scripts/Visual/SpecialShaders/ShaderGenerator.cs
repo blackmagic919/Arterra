@@ -5,10 +5,11 @@ using TerrainGeneration;
 using TerrainGeneration.Readback;
 using WorldConfig;
 using WorldConfig.Quality;
+using System.Collections.Generic;
 
 public class ShaderGenerator
 {
-    private GeoShader[] shaders;
+    private List<GeoShader> shaders;
     public static ComputeShader matSizeCounter;
     public static ComputeShader filterGeometry;
     public static ComputeShader sizePrefixSum;
@@ -90,7 +91,7 @@ public class ShaderGenerator
         geoTranscriber.SetBuffer(0, "ShaderPrefixes", UtilityBuffers.GenerationBuffer);
         geoTranscriber.SetInt("bSTART_oGeo", shadGeoStart);
 
-        foreach(GeoShader shader in Config.CURRENT.Quality.GeoShaders.SerializedData){
+        foreach(GeoShader shader in Config.CURRENT.Quality.GeoShaders.Reg){
             Material mat = shader.GetMaterial();
             LightBaker.SetupLightSampler(mat);
         }
@@ -98,10 +99,10 @@ public class ShaderGenerator
 
     public ShaderGenerator(Transform transform, Bounds boundsOS)
     {
-        this.shaders = Config.CURRENT.Quality.GeoShaders.SerializedData;
+        this.shaders = Config.CURRENT.Quality.GeoShaders.Reg;
         this.transform = transform;
         this.shaderBounds = CustomUtility.TransformBounds(transform, boundsOS);
-        this.shaderUpdateTasks = new ShaderUpdateTask[this.shaders.Length];
+        this.shaderUpdateTasks = new ShaderUpdateTask[this.shaders.Count];
     }
 
     public void ReleaseGeometry()
@@ -131,7 +132,7 @@ public class ShaderGenerator
         uint[] geoShaderDispArgs = GetShaderDrawArgs();
         RenderParams[] geoShaderParams = SetupShaderMaterials(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, geoShaderMemAdds);
         
-        for(int i = 0; i < shaders.Length; i++){
+        for(int i = 0; i < shaders.Count; i++){
             this.shaderUpdateTasks[i] = new ShaderUpdateTask(geoShaderMemAdds[i], geoShaderDispArgs[i], geoShaderParams[i]);
             OctreeTerrain.MainLateUpdateTasks.Enqueue(this.shaderUpdateTasks[i]);
         }
@@ -141,7 +142,7 @@ public class ShaderGenerator
     public void FilterGeometry(GenerationPreset.MemoryHandle memory, int triAddress, int vertAddress)
     {
 
-        int numShaders = shaders.Length;
+        int numShaders = shaders.Count;
         ComputeBuffer memStorage = memory.Storage;
         ComputeBuffer memAddresses = memory.Address;
 
@@ -157,7 +158,7 @@ public class ShaderGenerator
     public void ProcessGeoShaders(GenerationPreset.MemoryHandle memory, int vertAddress, int triAddress)
     {
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 1, 0); //clear base count
-        for (int i = 0; i < shaders.Length; i++){
+        for (int i = 0; i < shaders.Count; i++){
             GeoShader geoShader = shaders[i];
             geoShader.ProcessGeoShader(memory, vertAddress, triAddress, fBaseGeoStart, matSizeCStart + i, baseGeoCounter, shadGeoStart, i);
             UtilityBuffers.CopyCount(source: UtilityBuffers.GenerationBuffer, dest: UtilityBuffers.GenerationBuffer, readOffset: baseGeoCounter, writeOffset: shadGeoCStart + i + 1);
@@ -178,7 +179,7 @@ public class ShaderGenerator
 
     public uint[] TranscribeGeometries()
     {
-        int numShaders = shaders.Length;
+        int numShaders = shaders.Count;
 
         uint[] geoShaderAddresses = new uint[numShaders];
         ComputeBuffer memoryReference = GenerationPreset.memoryHandle.Storage;
@@ -196,8 +197,8 @@ public class ShaderGenerator
 
     public RenderParams[] SetupShaderMaterials(ComputeBuffer storageBuffer, ComputeBuffer addressBuffer, uint[] address)
     {
-        RenderParams[] rps = new RenderParams[shaders.Length];
-        for(int i = 0; i < shaders.Length; i++)
+        RenderParams[] rps = new RenderParams[shaders.Count];
+        for(int i = 0; i < shaders.Count; i++)
         {
             RenderParams rp = new RenderParams(shaders[i].GetMaterial())
             {
@@ -218,7 +219,7 @@ public class ShaderGenerator
 
     public uint[] GetShaderDrawArgs()
     {
-        int numShaders = shaders.Length;
+        int numShaders = shaders.Count;
         uint[] shaderDrawArgs = new uint[numShaders];
 
         for (int i = 0; i < numShaders; i++)

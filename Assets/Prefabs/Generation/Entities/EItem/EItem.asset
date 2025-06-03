@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b034b027c96fe450b96e91acc87dbc1c, type: 3}
   m_Name: EItem
   m_EditorClassIdentifier: 
+  Name: EntityItem
   Controller:
     value: {fileID: 5653881121737289674, guid: cdde00980c1ea4ddea86e60f5d7f261c, type: 3}
   Profile:
@@ -53,10 +54,6 @@ MonoBehaviour:
           x: 0.5
           y: 0.5
           z: 0.5
-        offset:
-          x: -0.25
-          y: -0.1
-          z: -0.25
         friction: 0.25
       GroundStickDist: 0.05
       StickFriction: 0.15

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 040870a578bbf46179e139dc5e722edf, type: 3}
+  m_Name: MaterialDict
+  m_EditorClassIdentifier: 
+  MaterialDictionary:
+    Category:
+      value: {fileID: 11400000, guid: a39ea644f5cd74776b07fc9c2e1e0d5e, type: 2}
+    Reg:
+    - {fileID: 0}
+  liquidFineWave:
+    value: {fileID: 2800000, guid: 0a658634b9a994b12b7ee75cb511ac02, type: 3}
+  liquidCoarseWave:
+    value: {fileID: 2800000, guid: 03ddc5285c7f24a009c3eff5304abb4e, type: 3}

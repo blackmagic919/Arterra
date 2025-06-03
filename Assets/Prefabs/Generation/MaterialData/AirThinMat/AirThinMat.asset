@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: AirThinMat
   m_EditorClassIdentifier: 
+  Name: Air
   Names:
   - Void
   - Water:Liquid
@@ -19,9 +20,7 @@ MonoBehaviour:
   LiquidItem: 1
   terrainData:
     Texture: 0
-    color: {x: 0.275, y: 0.486, z: 0.992, w: 1}
     textureScale: 2
-    baseColorStrength: 0.2
     GeoShaderIndex: -1
   AtmosphereScatter:
     ScatterCoeffs: {x: 0.000625, y: 0.00125, z: 0.0025}

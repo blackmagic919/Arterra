@@ -30,18 +30,19 @@ public class PageKeybindSerializer : IConverter{
         {KeyCode.Alpha4, "Vertical"},
     };
 
-    public bool CanConvert(Type type){ return typeof(Registry<KeyBind>.Pair).IsAssignableFrom(type); }
+    public bool CanConvert(Type type){ return typeof(KeyBind).IsAssignableFrom(type); }
     public void Serialize(GameObject page, GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate){
         GameObject KeybindName = parent.transform.Find("Name").gameObject;
-        Button RebindButton = KeybindName.AddComponent<Button>();
+        if(KeybindName != null) GameObject.Destroy(KeybindName);
+        Button RebindButton = parent.AddComponent<Button>();
         RebindButton.onClick.AddListener(async () => {
             ClearKeybinds(parent.transform);
             Option<List<KeyBind.Binding>> nBindings = await ListenKeypress();
             nBindings.IsDirty = true;
             OnUpdate((ref object option) => {
-                Registry<KeyBind>.Pair nKeyBind = (Registry<KeyBind>.Pair)field.GetValue(option);
-                nKeyBind._value = new KeyBind{ bindings = nBindings };
-                nKeyBind._value.IsDirty = true;
+                KeyBind nKeyBind = (KeyBind)field.GetValue(option);
+                KeyBind nKB = ScriptableObject.Instantiate(nKeyBind);
+                nKB.bindings = nBindings;
 
                 field.SetValue(option, nKeyBind);
                 ReflectKeybind(parent, field, nKeyBind, OnUpdate);
@@ -49,7 +50,7 @@ public class PageKeybindSerializer : IConverter{
             });
         });
         
-        ReflectKeybind(parent, field, (Registry<KeyBind>.Pair)value, OnUpdate);
+        ReflectKeybind(parent, field, (KeyBind)value, OnUpdate);
         ForceLayoutRefresh(parent.transform);
     }
 
@@ -60,15 +61,15 @@ public class PageKeybindSerializer : IConverter{
         }
     }
     
-    private void ReflectKeybind(GameObject parent, FieldInfo field, Registry<KeyBind>.Pair keybind, ParentUpdate OnUpdate){
+    private void ReflectKeybind(GameObject parent, FieldInfo field, KeyBind keybind, ParentUpdate OnUpdate){
         ClearKeybinds(parent.transform);
-        List<KeyBind.Binding> bindings = keybind.Value.Bindings;
+        List<KeyBind.Binding> bindings = keybind.Bindings;
 
         void GetKeyBind(int index, Func<KeyBind.Binding, KeyBind.Binding> cb){
             OnUpdate((ref object option) => {
-                Registry<KeyBind>.Pair nKeyBind = (Registry<KeyBind>.Pair)field.GetValue(option);
-                KeyBind.Binding nBinding = nKeyBind._value.value.bindings.value[index];
-                nKeyBind._value.value.bindings.value[index] = cb.Invoke(nBinding);
+                KeyBind nKeyBind = (KeyBind)field.GetValue(option);
+                KeyBind.Binding nBinding = nKeyBind.bindings.value[index];
+                nKeyBind.bindings.value[index] = cb.Invoke(nBinding);
                 field.SetValue(option, nKeyBind);
             });
         }

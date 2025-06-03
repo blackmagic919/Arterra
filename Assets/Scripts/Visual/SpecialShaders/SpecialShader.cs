@@ -10,7 +10,7 @@ namespace WorldConfig.Quality{
 /// the compute shader and the output geometry is cached in memory as long as the chunk's 
 /// base mesh exists. <seealso href="https://blackmagic919.github.io/AboutMe/2024/11/03/GeoShaders/">More Info</seealso>
 /// </summary>
-public abstract class GeoShader : ScriptableObject
+public abstract class GeoShader : Category<GeoShader>
 {
     
     private const int DRAW_STRIDE = (sizeof(float) * 4) + (sizeof(float) * 3) * 2 + sizeof(float) * 2;

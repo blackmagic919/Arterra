@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
 
-[CreateAssetMenu(menuName = "Entity/SkyBoidHerbivore")]
+[CreateAssetMenu(menuName = "Generation/Entity/SkyBoidHerbivore")]
 public class SkyBoidHerbivore : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]
@@ -31,9 +31,9 @@ public class SkyBoidHerbivore : Authoring
             public float SeperationWeight; //0.75
             public float AlignmentWeight; //0.5
             public float CohesionWeight; //0.25
-            public float FlyBiasWeight; //0.25
             public int InfluenceDist; //24
             public int PathDist; //5
+            public int MaxSwarmSize; //8
         }
 
         public override void Preset(){ 
@@ -252,11 +252,15 @@ public class SkyBoidHerbivore : Authoring
             OnEntityFound);
 
             if(boidDMtrx.count == 0) return;
-            flightDirection = Normalize(flightDirection + 
-                settings.flight.SeperationWeight * boidDMtrx.SeperationDir / boidDMtrx.count +
+            float3 influenceDir;
+            if(boidDMtrx.count > settings.flight.MaxSwarmSize) //the sign of seperation is flipped for this case
+                influenceDir = settings.flight.SeperationWeight * boidDMtrx.SeperationDir / boidDMtrx.count - 
+                settings.flight.CohesionWeight * (boidDMtrx.CohesionDir / boidDMtrx.count - position);
+            else influenceDir = settings.flight.SeperationWeight * boidDMtrx.SeperationDir / boidDMtrx.count +
                 settings.flight.AlignmentWeight * (boidDMtrx.AlignmentDir / boidDMtrx.count - flightDirection) +
-                settings.flight.CohesionWeight * (boidDMtrx.CohesionDir / boidDMtrx.count - position) +
-                math.up() * random.NextFloat(0, settings.flight.FlyBiasWeight));
+                settings.flight.CohesionWeight * (boidDMtrx.CohesionDir / boidDMtrx.count - position);
+            
+            flightDirection = Normalize(flightDirection + influenceDir);
         }
 
         private unsafe void RandomWalk(){
@@ -586,6 +590,13 @@ public class SkyBoidHerbivore : Authoring
             if(gameObject == null) return;
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
             this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
+
+#if UNITY_EDITOR
+            if(UnityEditor.Selection.Contains(gameObject)) {
+                Debug.Log(entity.TaskIndex);
+                Debug.Log(AnimationNames[entity.TaskIndex]);
+            }
+#endif
 
             Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
             if(AnimatorTask == entity.TaskIndex) return;

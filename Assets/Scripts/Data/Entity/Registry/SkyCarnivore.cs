@@ -6,7 +6,7 @@ using WorldConfig;
 using WorldConfig.Generation.Entity;
 using UnityEngine.Profiling;
 
-[CreateAssetMenu(menuName = "Entity/SkyCarnivore")]
+[CreateAssetMenu(menuName = "Generation/Entity/SkyCarnivore")]
 public class SkyCarnivore : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]

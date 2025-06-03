@@ -11,7 +11,7 @@ using System.Collections;
 using TerrainGeneration;
 using System.Runtime.Serialization;
 
-[CreateAssetMenu(menuName = "Entity/Player")]
+[CreateAssetMenu(menuName = "Generation/Entity/Player")]
 public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 {
     [UISetting(Ignore = true)]
@@ -94,7 +94,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             cameraRot = Quaternion.identity;
             PrimaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.PrimarySlotCount);
             SecondaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.SecondarySlotCount);
-            currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.DayNightCycle.value.startHour);
+            currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.Time.value.startHour);
             info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             info.entityId = Guid.NewGuid();
 
@@ -197,10 +197,15 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
                 item.IsDirty = true;
             }
             info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
+            PrimaryI.EntryDict = new Dictionary<int, int>(); SecondaryI.EntryDict = new Dictionary<int, int>();
             for(int i = 0; i < PrimaryI.Info.Count(); i++){
                 Deserialize(ref PrimaryI.Info[i]);
+                if(PrimaryI.Info[i] != null) 
+                    PrimaryI.EntryDict.Add(PrimaryI.Info[i].Index, i);
             } for(int i = 0; i < SecondaryI.Info.Count(); i++){
                 Deserialize(ref SecondaryI.Info[i]);
+                if(SecondaryI.Info[i] != null) 
+                    SecondaryI.EntryDict.Add(SecondaryI.Info[i].Index, i);
             }
         }
 

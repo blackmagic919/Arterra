@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6fbcd5f0b5992466685233b55199a842, type: 3}
   m_Name: Beetle
   m_EditorClassIdentifier: 
+  Name: Beetle
   Controller:
     value: {fileID: 8827423900315909153, guid: 6bc1a2d4c70d9469993e233f0fa6d12c, type: 3}
   Profile:
@@ -96,7 +97,7 @@ MonoBehaviour:
       physicality:
         MaxHealth: 2
         NaturalRegen: -0.002
-        AttackDistance: 2
+        AttackDistance: 3
         AttackDamage: 0.2
         AttackCooldown: 1
         KBStrength: 0.1

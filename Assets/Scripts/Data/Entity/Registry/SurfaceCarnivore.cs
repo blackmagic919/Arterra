@@ -7,7 +7,7 @@ using WorldConfig.Generation.Entity;
 using System.Threading.Tasks;
 using UnityEngine.Profiling;
 
-[CreateAssetMenu(menuName = "Entity/SurfaceCarnivore")]
+[CreateAssetMenu(menuName = "Generation/Entity/SurfaceCarnivore")]
 public class SurfaceCarnivore : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]

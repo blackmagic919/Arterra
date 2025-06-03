@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
   m_Name: Spider
   m_EditorClassIdentifier: 
+  Name: Spider
   Controller:
     value: {fileID: 5869526235615368524, guid: 386e5ae30cb3749b082b7437e2558214, type: 3}
   Profile:

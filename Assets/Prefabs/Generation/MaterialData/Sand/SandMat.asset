@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: SandMat
   m_EditorClassIdentifier: 
+  Name: Sand
   Names:
   - Sand:Solid
   - Void
@@ -20,9 +21,7 @@ MonoBehaviour:
   LiquidItem: 1
   terrainData:
     Texture: 2
-    color: {x: 0.424, y: 0.318, z: 0.122, w: 1}
     textureScale: 4
-    baseColorStrength: 0.25
     GeoShaderIndex: -1
   AtmosphereScatter:
     ScatterCoeffs: {x: 0, y: 0, z: 0}

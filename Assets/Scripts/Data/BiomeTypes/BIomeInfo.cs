@@ -12,7 +12,9 @@ namespace WorldConfig.Generation.Biome{
 /// conditions, this is just a shorthand way of guaranteeing that.
 /// </summary> <typeparam name="TCond">The set of conditions that describe the placement of the biome.
 /// See <see cref="IBiomeCondition"/> for more information. </typeparam>
-public class CInfo<TCond> : Info where TCond : IBiomeCondition{
+public class CInfo<TCond> : Category<CInfo<TCond>> where TCond : IBiomeCondition{
+    /// <summary> Generic setting shared by all biomes, see <see cref="Info"/> for more information. </summary>
+    public Info info;
     /// <summary> The conditions that define the placement of the biome. </summary>
     public Option<TCond> BiomeConditions;
     /// <summary> This method is called when the object is changed in Unity's editor. It ensures that the conditions
@@ -25,8 +27,8 @@ public class CInfo<TCond> : Info where TCond : IBiomeCondition{
 /// must always define these aspects as each respective system needs to know what to do
 /// if a specific biome is encountered. 
 /// </summary>
-[CreateAssetMenu(menuName = "Generation/Biomes/BiomeInfo")]
-public class Info : ScriptableObject
+[Serializable]
+public class Info
 {
     /// <summary>
     /// The registry names of all entries referencing registries within <see cref="Info"/>. When an element such as
@@ -43,10 +45,16 @@ public class Info : ScriptableObject
     [Header("Material Layers")]
     public Option<List<Option<BMaterial> > > GroundMaterials = new();
     /// <summary> A list containing the generation pattern of non-solid materials within the biome. This list is considered
-    /// only if the density of the map entry is less than <see cref="Quality.Terrain.IsoLevel"/>(i.e. undeground).
+    /// only if the density of the map entry is less than <see cref="Quality.Terrain.IsoLevel"/>(i.e. above ground).
     /// </summary> <remarks> When considered, all materials within the list will attempt to be placed, meaning the time 
     /// complexity of material assignment is O(n) with respect to the number of materials in the list.</remarks>
     public Option<List<Option<BMaterial> > > SurfaceMaterials = new ();
+    /// <summary>
+    /// A list containing the generation pattern of liquid materials within the biome. This list is considered
+    /// when the density of the map entry is less than <see cref="Quality.Terrain.IsoLevel"/>(i.e. above ground)
+    /// and the point lies above the terrain surface and below the global water level, see <see cref="WorldConfig.Generation.Map.waterHeight"/>
+    /// for more information.</summary>
+    public Option<List<Option<BMaterial> > > LiquidMaterials = new ();
 
     /// <summary> A list containing all structures that will attempt to generate within the biome. Anything terrain feature
     /// not a result of noise based generation should naturally be created through a structure. <see cref="WorldConfig.Generation.Structure"/> 

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
@@ -48,7 +49,7 @@ public static class InventoryController
 
     private static uint Fence;
     private static Registry<Authoring> ItemSettings;
-    private static Registry<Sprite> TextureAtlas;
+    private static Registry<TextureContainer> TextureAtlas;
     public static IItem Selected=>Primary.Info[SelectedIndex];
     public static Authoring SelectedSetting=>ItemSettings.Retrieve(Primary.Info[SelectedIndex].Index);
     public static IItem Cursor;
@@ -193,7 +194,7 @@ public static class InventoryController
         if(Cursor == null) return;
         Inv.RemoveEntry(index);
 
-        CursorDisplay.Icon.sprite = TextureAtlas.Retrieve(Cursor.TexIndex);
+        CursorDisplay.Icon.sprite = TextureAtlas.Retrieve(Cursor.TexIndex).self;
         CursorDisplay.Amount.text = Cursor.Display;
         CursorDisplay.Object.SetActive(true);
     }
@@ -304,7 +305,7 @@ public static class InventoryController
                 disp.Amount.text = "";
                 disp.Icon.color = settings.BaseColor;
             } else if(slot.IsDirty){
-                disp.Icon.sprite = TextureAtlas.Retrieve(slot.TexIndex);
+                disp.Icon.sprite = TextureAtlas.Retrieve(slot.TexIndex).self;
                 disp.Icon.color = Color.white; //1,1,1,1
                 disp.Amount.text = slot.Display;
                 slot.IsDirty = false;
@@ -316,6 +317,7 @@ public static class InventoryController
     public class Inventory{
         public IItem[] Info;
         public LLNode[] EntryLL;
+        [JsonIgnore]
         public Dictionary<int, int> EntryDict;
         public readonly uint capacity;
         public uint length;

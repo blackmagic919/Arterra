@@ -15,7 +15,7 @@ namespace WorldConfig.Generation.Structure{
 /// how it should be generated in the world.
 /// </summary>
 [CreateAssetMenu(fileName = "Structure_Data", menuName = "Generation/Structure/Structure Data")]
-public class StructureData : ScriptableObject
+public class StructureData : Category<StructureData>
 {
     /// <summary>  See <see cref="StructureData.Settings"/> for more information. </summary>
     public Option<Settings> settings;

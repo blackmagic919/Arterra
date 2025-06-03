@@ -14,13 +14,20 @@ struct BMaterial{
     float height;
 };
 
+struct PrefixCounters{
+    uint GroundEnd;
+    uint SurfaceEnd;
+    uint WaterEnd;
+    uint StructureStart;
+    uint EntityStart;
+};
+
 float IsoLevel;
 float heightSFalloff;
 float atmoStrength;
 float waterHeight;
-int waterMat;
 
-StructuredBuffer<uint4> _BiomePrefCount;
+StructuredBuffer<PrefixCounters> _BiomePrefCount;
 StructuredBuffer<BMaterial> _BiomeMaterials;
 int _BSkyStart;
 
@@ -160,28 +167,26 @@ void Generate (uint3 id : SV_DispatchThreadID)
     float density = baseDensity * (terrainFactor * (1-IsoLevel) + atmosphereFactor * IsoLevel);
 
     index = indexFromCoord(id) + bSTART_map;
-    //Generate Water
-    if(actualHeight > (data.terrain - data.squash) && actualHeight < waterHeight && density < IsoLevel){
-        BaseMap[index].density = 255;
-        BaseMap[index].viscosity = (uint)round(density * 255.0f);
-        BaseMap[index].material = waterMat;
-        return;
-    }
-
     //Get Material
     int2 bounds;
-    if(density >= IsoLevel){
-        bounds.x = _BiomePrefCount[biome].y;
-        bounds.y = _BiomePrefCount[biome+1].x;
-    }else{
-        bounds.x = _BiomePrefCount[biome+1].x;
-        bounds.y = _BiomePrefCount[biome+1].y;
-    }
     float height = groundHeight > 0 ? groundHeight / data.InfMax : groundHeight / data.InfMin;
+    if(density >= IsoLevel){
+        BaseMap[index].density = (uint)round(density * 255.0f);
+        BaseMap[index].viscosity = BaseMap[index].density;
+        bounds.x = _BiomePrefCount[biome].WaterEnd;
+        bounds.y = _BiomePrefCount[biome+1].GroundEnd;
+    } else if(actualHeight > (data.terrain - data.squash) && actualHeight < waterHeight){
+        BaseMap[index].density = 255;
+        BaseMap[index].viscosity = (uint)round(density * 255.0f);
+        bounds.x = _BiomePrefCount[biome+1].SurfaceEnd;
+        bounds.y = _BiomePrefCount[biome+1].WaterEnd;
+    } else {
+        BaseMap[index].density = (uint)round(density * 255.0f);
+        BaseMap[index].viscosity = BaseMap[index].density;
+        bounds.x = _BiomePrefCount[biome+1].GroundEnd;
+        bounds.y = _BiomePrefCount[biome+1].SurfaceEnd;
+    }
+
     int matInd = GetMaterial(bounds, coarseMatNoise, fineMatNoise, height);
-    
-    //Generate Land
-    BaseMap[index].density = (uint)round(density * 255.0f);
-    BaseMap[index].viscosity = BaseMap[index].density;
     BaseMap[index].material = matInd;
 }

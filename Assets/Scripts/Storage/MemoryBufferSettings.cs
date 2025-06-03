@@ -10,7 +10,7 @@ namespace WorldConfig.Quality{
     /// store/visualize the world throughout terrain generation. 
     /// <seealso cref="TerrainGeneration.GenerationPreset.MemoryHandle"/>
     /// </summary>
-    [CreateAssetMenu(menuName = "BufferMemory/Memory Heap")]
+    [CreateAssetMenu(menuName = "Containers/Memory Heap")]
     public class Memory : ScriptableObject
     {
         /// <summary> The amount of storage memory allocated in a GPU buffer that is used

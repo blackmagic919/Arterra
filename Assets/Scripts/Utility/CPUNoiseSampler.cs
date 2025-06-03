@@ -7,12 +7,12 @@ public static class CPUNoiseSampler
 {
 
     public static float SampleTerrainHeight(float3 pos){
-        var NoiseDict = Config.CURRENT.Generation.Noise.Reg.value;
+        var NoiseDict = Config.CURRENT.Generation.Noise.Reg;
         WorldConfig.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
 
-        float PVNoise = SampleNoise(NoiseDict[surface.PVIndex].Value, pos.xz) * 2 - 1;
-        float continental = SampleNoise(NoiseDict[surface.ContinentalIndex].Value, pos.xz);
-        float erosion = SampleNoise(NoiseDict[surface.ErosionIndex].Value, pos.xz);
+        float PVNoise = SampleNoise(NoiseDict[surface.PVIndex], pos.xz) * 2 - 1;
+        float continental = SampleNoise(NoiseDict[surface.ContinentalIndex], pos.xz);
+        float erosion = SampleNoise(NoiseDict[surface.ErosionIndex], pos.xz);
         float terrainHeight = (continental + PVNoise * erosion) * surface.MaxTerrainHeight + surface.terrainOffset;
         
         return terrainHeight;

@@ -12,13 +12,7 @@ namespace WorldConfig.Generation{
 /// </summary>
 [CreateAssetMenu(menuName = "Containers/Map Settings")]
 public class Map : ScriptableObject{ 
-    /// <summary>
-    /// The name of the material within the <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry of
-    /// the material that is used as water. This material should define its <see cref="Material.MaterialData.liquidData"> 
-    /// liquid visual settings </see> as it will be generated as a liquid.
-    /// </summary>
-    [UISetting(Message = "Name In Registries")]
-    public string waterMat;
+
     /// <summary>
     /// The height in grid space of the water surface. Water will only be generated if the <i>surface</i>, as defined in 
     /// <see cref="Surface"/> is below this height, water will then fill the space between the surface and this height.
@@ -98,8 +92,6 @@ public class Map : ScriptableObject{
     public int CoarseTerrainIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(CoarseTerrainNoise);
     /// <summary> The index of the noise function described by <see cref="FineTerrainNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
     public int FineTerrainIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(FineTerrainNoise);
-    /// <summary> The index of the material described by <see cref="waterMat"/> in the <see cref="WorldConfig.Config.GenerationSettings.Materials">noise</see> registry </summary>
-    public int WaterIndex => Config.CURRENT.Generation.Materials.value.MaterialDictionary.RetrieveIndex(waterMat);
 }}
 
 /*

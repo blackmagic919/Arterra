@@ -62,27 +62,34 @@ public static class SegmentedUIEditor
     public static void SupplementTree(ref object dest, ref object src){
         System.Reflection.FieldInfo[] fields = src.GetType().GetFields();
         foreach(FieldInfo field in fields){
-            if(field.IsStatic) continue; //Ignore static fields
-            if(field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Option<>)){
-                if(((IOption)field.GetValue(dest)).IsDirty){
+            if (Attribute.IsDefined(field, typeof(UISetting)) && (Attribute.GetCustomAttribute(field, typeof(UISetting)) as UISetting).Ignore)
+                continue;
+            if (field.IsStatic) continue; //Ignore static fields
+            if (field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Option<>))
+            {
+                if (((IOption)field.GetValue(dest)).IsDirty)
+                {
                     FieldInfo nField = field.FieldType.GetField("value");
-                    object oDest = field.GetValue(dest), oSrc  = field.GetValue(src);
+                    object oDest = field.GetValue(dest), oSrc = field.GetValue(src);
                     object nDest = nField.GetValue(oDest), nSrc = nField.GetValue(oSrc);
-                    
+
                     IConverter CustomConvertor = GetCustomSerializerSetting(nField.FieldType);
-                    if(CustomConvertor != null) CustomConvertor.Deserialize(ref nDest, ref nSrc);
+                    if (CustomConvertor != null) CustomConvertor.Deserialize(ref nDest, ref nSrc);
                     else SupplementTree(ref nDest, ref nSrc);
 
                     nField.SetValue(oDest, nDest); field.SetValue(dest, oDest);
-                } else field.SetValue(dest, field.GetValue(src)); //This is the only line that actually fills in anything
+                }
+                else field.SetValue(dest, field.GetValue(src)); //This is the only line that actually fills in anything
             }
             else if (field.FieldType.IsPrimitive || field.FieldType == typeof(string)) continue;
             else if (field.FieldType.IsEnum) continue;
-            else if (field.FieldType.IsValueType) {
+            else if (field.FieldType.IsValueType)
+            {
                 object nDest = field.GetValue(dest), nSrc = field.GetValue(src);
                 SupplementTree(ref nDest, ref nSrc);
                 field.SetValue(dest, nDest);
-            } else throw new Exception("Settings objects must contain either only value types or options");
+            }
+            else throw new Exception("Settings objects must contain either only value types or options");
         }
     }
 
@@ -186,7 +193,7 @@ public static class SegmentedUIEditor
     //Parent -> UI Parent of the field
     //OnUpdate -> Callback to parent to obtain new parent path when editing
     public static void CreateInputField(FieldInfo field, GameObject parent, object value, ParentUpdate OnUpdate = null){
-        IConverter CustomConverter = GetCustomSerializerSetting(field.FieldType);
+        IConverter CustomConverter = GetCustomSerializerSetting(value.GetType()); //Don't use FieldType because it could be more generic than the value type
         if(CustomConverter != null){
             CustomConverter.Serialize(parent, field, value, OnUpdate);
             return;

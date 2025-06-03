@@ -252,12 +252,11 @@ public class SObjConverter : JsonConverter<ScriptableObject>
 
     public override ScriptableObject ReadJson(JsonReader reader, Type objectType, ScriptableObject existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
-        if(objectType.IsAbstract || objectType.IsInterface){
+        if(objectType.IsAbstract || objectType.IsInterface || objectType.IsGenericType){
             JObject typeObject = JObject.Load(reader);
             objectType = typeObject["$type"].ToObject<Type>();
             reader = typeObject.CreateReader();
         }
-
         ScriptableObject instance = ScriptableObject.CreateInstance(objectType);
         serializer.Populate(reader, instance);
         return instance;

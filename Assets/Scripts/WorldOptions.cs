@@ -138,7 +138,7 @@ public class Config : ScriptableObject{
         public Registry<Generation.Entity.Authoring> Entities;
         /// <summary> A registry containing all textures used within the game. Similar to a texture 
         /// atlas, this registry is copied to the GPU and to be referenced by shaders. </summary>
-        public Registry<Sprite> Textures;
+        public Registry<TextureContainer> Textures;
     }
 
     /// <summary>
@@ -152,7 +152,7 @@ public class Config : ScriptableObject{
         [UIModifiable(CallbackName = "KeyBindReconstruct")]
         /// <summary> The registry of all keybinds that are used to bind player input to actions within the game.
         /// See <see cref="Gameplay.KeyBind"/> for more information. </summary>
-        public Registry<Gameplay.KeyBind> Input;
+        public Registry<Gameplay.KeyBind> Input;//
         /// <summary> Controls how the player moves through the world. See <see cref="Gameplay.Movement"/> for more information. </summary>
         [UISetting(Message = "Controls How The Player Interacts With The World")]
         public Option<Gameplay.Player.Settings> Player;
@@ -161,7 +161,7 @@ public class Config : ScriptableObject{
         /// <summary> Controls the players inventory. See <see cref="Gameplay.Inventory"/> for more information. </summary>
         public Option<Gameplay.Inventory> Inventory;
         /// <summary> Settings controlling environment constants of the world. See <see cref="Gameplay.Environment"/> for more information. </summary>
-        public Option<Gameplay.Environment> DayNightCycle;
+        public Option<Gameplay.Environment> Time;
         /// <summary> Settings controlling the optional visual statistics displayed to the player. See <see cref="Gameplay.Statistics"/> for more information. </summary>
         public Option<Gameplay.Statistics> Statistics;
     }
@@ -187,7 +187,7 @@ public class Config : ScriptableObject{
         /// defined, the gameplay menu will trigger a hook associated with that name if it or any sub-member is changed.
         /// </summary>
         [HideInInspector][JsonIgnore][UISetting(Ignore = true)]
-        public Registry<Action> GameplayModifyHooks;
+        public DynamicRegistry<Action> GameplayModifyHooks;
     }
 
     [OnDeserialized]

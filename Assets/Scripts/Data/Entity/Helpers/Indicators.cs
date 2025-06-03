@@ -87,7 +87,7 @@ public static class Indicators
             Vector3 size = (float3)(region.bounds.max - region.bounds.min);
             Gizmos.DrawWireCube(center, size);
         }*/
-        int[] entities = new int[Config.CURRENT.Generation.Entities.Reg.value.Count];
+        int[] entities = new int[Config.CURRENT.Generation.Entities.Reg.Count];
         foreach(Entity entity in EntityHandler){
             entities[entity.info.entityType]++;
             entity.OnDrawGizmos();

@@ -34,7 +34,7 @@ namespace WorldConfig.Generation.Material{
 [CreateAssetMenu(menuName = "Generation/MaterialData/LiquidMat")]
 public class LiquidMaterial : MaterialData
 {
-    readonly int3[] dP = new int3[6]{
+    readonly static int3[] dP = new int3[6]{
         new (0,1,0),
         new (0,-1,0),
         new (1,0,0),
@@ -44,7 +44,7 @@ public class LiquidMaterial : MaterialData
     };
 
     [BurstCompile]
-    private void TransferLiquid(ref MapData a1, ref MapData b1){
+    private static void TransferLiquid(ref MapData a1, ref MapData b1){
         int amount = a1.LiquidDensity; //Amount that's transferred
         amount = math.min(b1.density + amount, 255) - b1.density;
         b1.density += amount;
@@ -52,7 +52,7 @@ public class LiquidMaterial : MaterialData
     }
     
     [BurstCompile]
-    private void AverageLiquid(ref MapData min1, ref MapData max1){
+    private static void AverageLiquid(ref MapData min1, ref MapData max1){
         //make sure max is max liquid and min is min liquid
         if(min1.LiquidDensity >= max1.LiquidDensity){
             ref MapData temp = ref min1;
@@ -67,15 +67,14 @@ public class LiquidMaterial : MaterialData
         min1.density += amount;
         max1.density -= amount;
     }
-
+    
     /// <summary> Updates the liquid material to perform liquid physics. </summary>
     /// <param name="GCoord">The coordinate in grid space of a map entry that is this material (a liquid material)</param>
     /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
-    [BurstCompile]
-    public override void UpdateMat(int3 GCoord, Unity.Mathematics.Random prng){
+    public static bool PropogateLiquid(int3 GCoord, Unity.Mathematics.Random prng){
         byte ChangeState = (byte)0;
         MapData cur = SampleMap(GCoord); //Current 
-        if(cur.IsSolid) return;
+        if(cur.IsSolid) return false;
 
         int material = cur.material;
         MapData[] map = {SampleMap(GCoord + dP[0]), SampleMap(GCoord + dP[1]), SampleMap(GCoord + dP[2]), 
@@ -83,13 +82,13 @@ public class LiquidMaterial : MaterialData
 
         
         for(int i = 0; i < 6; i++){
-            ChangeState ^= (byte)((map[i].IsLiquid ? 1 : 0) << i);
-            if(map[i].IsSolid) return;
+            ChangeState |= (byte)((map[i].IsLiquid ? 1:0) << i);
+            if(map[i].IsSolid) return false;
         }
 
         //If all liquid or all gaseous, ignore
-        if(ChangeState == 0x3F && cur.IsLiquid) return;
-        if(ChangeState == 0 && cur.IsGaseous) return;
+        if((ChangeState & 0x3E) == 0x3E && cur.IsLiquid) return false;
+        if((ChangeState & 0x3D) == 0 && cur.IsGaseous) return false;
         
         if(map[1].material == material || map[1].IsGaseous) {
             TransferLiquid(ref cur, ref map[1]);
@@ -112,9 +111,14 @@ public class LiquidMaterial : MaterialData
             //Update the map
             SetMap(map[i], GCoord + dP[i]);
             //If state changed, add it to be updated
-            if((((ChangeState >> i) & 0x1) ^ (map[i].IsLiquid ? 1 : 0)) != 0)
+            if((((ChangeState >> i) & 0x1) ^ (map[i].IsLiquid ? 1:0)) != 0)
                 TerrainGeneration.TerrainUpdate.AddUpdate(GCoord + dP[i]); 
         }
-        
+        return true;
+    }
+
+    [BurstCompile]
+    public override void UpdateMat(int3 GCoord, Unity.Mathematics.Random prng){
+        PropogateLiquid(GCoord, prng);
     }
 }}

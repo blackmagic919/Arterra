@@ -21,7 +21,7 @@ public class Generation : ScriptableObject
     /// Surface biomes have their unique selection space and only need to not overlap
     /// other surface biomes within <see cref="SurfaceBiomes"/>. <seealso cref="SBiomeInfo"/> </summary> 
     [SerializeField]
-    public Registry<SBiomeInfo> SurfaceBiomes;
+    public Registry<CInfo<SurfaceBiome>> SurfaceBiomes;
     /// <summary>
     /// The registry containing all cave biomes that can be generated.
     /// Cave biomes generate underneath the surface of the world and have their unique
@@ -30,7 +30,7 @@ public class Generation : ScriptableObject
     /// </summary> <remarks> Cave biomes can be used to create different cave formations, mineral placement,
     /// or underground biomes independent of what the surface biome is. </remarks>
     [SerializeField]
-    public Registry<CBiomeInfo> CaveBiomes;
+    public Registry<CInfo<CaveBiome>> CaveBiomes;
     /// <summary>
     /// The registry containing all sky biomes that can be generated.
     /// Sky biomes generate above the surface of the world and have their unique sample
@@ -38,7 +38,7 @@ public class Generation : ScriptableObject
     /// </summary>  <remarks> Sky biomes can be used to create different cloud patterns, weather or effects in the 
     /// sky independently of what the surface biome is. </remarks>
     [SerializeField]
-    public Registry<CBiomeInfo> SkyBiomes;
+    public Registry<CInfo<CaveBiome>> SkyBiomes;
 }
 
 /// <summary>
@@ -57,7 +57,7 @@ public class BDict
     /// <param name="biomes">The registry's biomes that define the leaf nodes of the decision matrix </param>
     /// <param name="offset">The offset of biome indices if the biomes are not zero-indexed relative to the registry</param>
     /// <returns>The constructed decision matrix</returns>
-    public static BDict Create<TCond>(CInfo<TCond>[] biomes, int offset = 0) where TCond : IBiomeCondition
+    public static BDict Create<TCond>(List<CInfo<TCond>> biomes, int offset = 0) where TCond : IBiomeCondition
     {
         BDict nDict = new BDict();
         List<RNode> leaves = nDict.InitializeBiomeRegions(biomes, offset);
@@ -169,9 +169,9 @@ public class BDict
         return ConstructRTree(ret, dimensions);
     }
 
-    List<RNode> InitializeBiomeRegions<TCond>(CInfo<TCond>[] biomes, int offset) where TCond : IBiomeCondition
+    List<RNode> InitializeBiomeRegions<TCond>(List<CInfo<TCond>> biomes, int offset) where TCond : IBiomeCondition
     {
-        int numOfBiomes = biomes.Length;
+        int numOfBiomes = biomes.Count;
         List<RNode> biomeRegions = new List<RNode>();
         for (int i = 0; i < numOfBiomes; i++)
         {

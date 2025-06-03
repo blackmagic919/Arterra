@@ -12,7 +12,7 @@ namespace WorldConfig.Generation {
 /// <seealso href="https://blackmagic919.github.io/AboutMe/2024/07/13/Noise-Generation/"/>
 /// </summary>
 [CreateAssetMenu(menuName = "Generation/NoiseData")]
-public class Noise : ScriptableObject
+public class Noise : Category<Noise>
 {
     /// <summary>
     /// The scale of the noise map relative to grid space; how much the noise varies as the sample point moves.

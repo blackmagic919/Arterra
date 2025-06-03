@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b2367e3ab693466f86e638e42c4f155, type: 3}
   m_Name: PenItem
   m_EditorClassIdentifier: 
+  Name: Pen
   TextureName: Pen
   MaterialName: 
   MaterialState: 0

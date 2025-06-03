@@ -28,9 +28,17 @@ struct entityInfo {
     uint entityIndex;
 };
 
+struct PrefixCounters{
+    uint GroundEnd;
+    uint SurfaceEnd;
+    uint WaterEnd;
+    uint StructureStart;
+    uint EntityStart;
+};
+
 StructuredBuffer<entityBound> _EntityInfo;
 StructuredBuffer<entityCheck> _EntityProfile;
-StructuredBuffer<uint4> _BiomePrefCount;
+StructuredBuffer<PrefixCounters> _BiomePrefCount;
 StructuredBuffer<enititySetting> _BiomeEntities;
 
 StructuredBuffer<uint> _MemoryBuffer;
@@ -58,8 +66,8 @@ void Identify (uint3 id : SV_DispatchThreadID)
     uint seedEntity = Random(pointCoord); 
     
     uint biome = BiomeMap[indexFromCoord(id) + bSTART_biome];
-    uint entityStart = _BiomePrefCount[biome].w;
-    uint entityEnd = _BiomePrefCount[biome+1].w;
+    uint entityStart = _BiomePrefCount[biome].EntityStart;
+    uint entityEnd = _BiomePrefCount[biome+1].EntityStart;
 
     for(uint index = entityStart; index < entityEnd; index++){
         enititySetting setting = _BiomeEntities[index];

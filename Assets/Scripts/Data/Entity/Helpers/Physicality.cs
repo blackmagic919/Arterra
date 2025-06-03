@@ -106,8 +106,7 @@ public struct Vitality{
 
     public void ProcessInLiquid(Entity self, ref TerrainColliderJob tCollider, float density){
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
-        tCollider.velocity += EntityJob.cxt.deltaTime * stats.weight * -EntityJob.cxt.gravity;
-        tCollider.velocity.y *= 0.95f;
+        tCollider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
         tCollider.useGravity = false;
         if(breath > 0) return;
         //If dead don't process suffocation
@@ -123,8 +122,7 @@ public struct Vitality{
         tCollider.useGravity = false;
 
         if (self is IAttackable target && target.IsDead){ //If dead float to the surface
-            tCollider.velocity += EntityJob.cxt.deltaTime * stats.weight * -EntityJob.cxt.gravity;
-            tCollider.velocity.y *= 0.95f;
+            tCollider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
             return; //don't process suffocation
         }
 

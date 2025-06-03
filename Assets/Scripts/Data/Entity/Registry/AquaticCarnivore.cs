@@ -7,7 +7,7 @@ using WorldConfig.Generation.Entity;
 using System.Threading.Tasks;
 using UnityEngine.Profiling;
 
-[CreateAssetMenu(menuName = "Entity/AquaticCarnivore")]
+[CreateAssetMenu(menuName = "Generation/Entity/AquaticCarnivore")]
 public class AquaticCarnivore : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]
@@ -162,13 +162,12 @@ public class AquaticCarnivore : Authoring
             if(!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
             EntityManager.AddHandlerEvent(controller.Update);
 
-            tCollider.useGravity = true;
             Recognition.DetectMapInteraction(position, 
             OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquidAquatic(this, ref tCollider, dens, settings.aquaticBehavior.DrownTime),
             OnInGas:(dens) => {
-                if(TaskIndex != 10 && TaskIndex != 1) TaskIndex = 15; //Flop on ground
                 vitality.ProcessInGasAquatic(this, ref tCollider, dens);
+                if(TaskIndex < 15) TaskIndex = 15; //Flop on ground
             });
             
             vitality.Update();
@@ -460,8 +459,8 @@ public class AquaticCarnivore : Authoring
         //Task 15
         private static void FlopOnGround(Animal self){
             if(self.vitality.breath < 0) {
-                self.TaskIndex = 0; //Idle
                 self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
+                self.TaskIndex = 0; //Idle
                 return;
             }
 

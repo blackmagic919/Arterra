@@ -129,7 +129,7 @@ public static class PaginatedUIEditor
     //Parent -> UI Parent of the field
     //OnUpdate -> Callback to parent to obtain new parent path when editing
     public static void CreateInputField(FieldInfo field, object value, GameObject parent, GameObject page, ParentUpdate OnUpdate = null){
-        IConverter CustomConverter = GetCustomSerializerSetting(field.FieldType);
+        IConverter CustomConverter = GetCustomSerializerSetting(value.GetType()); 
         if(CustomConverter != null){
             CustomConverter.Serialize(page, parent, field, value, OnUpdate);
             return;
@@ -220,7 +220,7 @@ public static class PaginatedUIEditor
     public static void VerifyUpdateHooks(FieldInfo field){
         if(Attribute.IsDefined(field, typeof(UIModifiable))){
             UIModifiable modTag = Attribute.GetCustomAttribute(field, typeof(UIModifiable)) as UIModifiable;
-            Registry<Action> hooks = Config.CURRENT.System.GameplayModifyHooks;
+            DynamicRegistry<Action> hooks = Config.CURRENT.System.GameplayModifyHooks;
             if(!hooks.Contains(modTag.CallbackName)) return;
             hooks.Retrieve(modTag.CallbackName).Invoke();
         }

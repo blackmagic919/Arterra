@@ -12,70 +12,81 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a8f096ab7a4824b12aa37586fb102c35, type: 3}
   m_Name: StoneCave
   m_EditorClassIdentifier: 
-  NameRegister:
-    value:
-    - Rock
-    - Stone
-    - CoalOre
-    - Dirt
-    - Moss
-    - Air
-    - Bat
-    - Spider
-    - Beetle
-  GroundMaterials:
-    value:
-    - value:
-        Material: 0
-        genSize: 0.431
-        genShape: 0.541
-        frequency: 1
-        height: 0
-    - value:
-        Material: 1
-        genSize: 0.3
-        genShape: 0.85
-        frequency: 0.85
-        height: 0
-    - value:
-        Material: 2
-        genSize: 0.166
-        genShape: 0.253
-        frequency: 0.1
-        height: 0
-    - value:
-        Material: 3
-        genSize: 0.2
-        genShape: 0.634
-        frequency: 0.8
-        height: 0
-    - value:
-        Material: 4
-        genSize: 0.29
-        genShape: 0.7
-        frequency: 0.75
-        height: 0
-  SurfaceMaterials:
-    value:
-    - value:
-        Material: 5
-        genSize: 0
-        genShape: 0
-        frequency: 1
-        height: 0
-  Structures:
-    value: []
-  Entities:
-    value:
-    - value:
-        Entity: 6
-        ChancePerCoord: 0.0001
-    - value:
-        Entity: 7
-        ChancePerCoord: 0.00015
-    - value:
-        Entity: 8
-        ChancePerCoord: 0.0003
+  Name: Stone Cave
+  info:
+    NameRegister:
+      value:
+      - Rock
+      - Stone
+      - CoalOre
+      - Dirt
+      - Moss
+      - Air
+      - Water
+      - Bat
+      - Spider
+      - Beetle
+    GroundMaterials:
+      value:
+      - value:
+          Material: 0
+          genSize: 0.431
+          genShape: 0.541
+          frequency: 1
+          height: 0
+      - value:
+          Material: 1
+          genSize: 0.3
+          genShape: 0.85
+          frequency: 0.85
+          height: 0
+      - value:
+          Material: 2
+          genSize: 0.166
+          genShape: 0.253
+          frequency: 0.4
+          height: 0
+      - value:
+          Material: 3
+          genSize: 0.2
+          genShape: 0.634
+          frequency: 0.8
+          height: 0
+      - value:
+          Material: 4
+          genSize: 0.29
+          genShape: 0.7
+          frequency: 0.75
+          height: 0
+    SurfaceMaterials:
+      value:
+      - value:
+          Material: 5
+          genSize: 0
+          genShape: 0
+          frequency: 1
+          height: 0
+    LiquidMaterials:
+      value:
+      - value:
+          Material: 6
+          genSize: 0
+          genShape: 0
+          frequency: 1
+          height: 0
+    Structures:
+      value: []
+    Entities:
+      value:
+      - value:
+          Entity: 7
+          ChancePerCoord: 0.0001
+      - value:
+          Entity: 8
+          ChancePerCoord: 0.00015
+      - value:
+          Entity: 9
+          ChancePerCoord: 0.0003
   BiomeConditions:
     value:
       CaveFreqStart: 0

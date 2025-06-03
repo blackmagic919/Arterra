@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d489b2cf2c6d049aa9b4030d3ef7776a, type: 3}
   m_Name: PlayerEntity
   m_EditorClassIdentifier: 
+  Name: PlayerEntity
   Controller:
     value: {fileID: 575893146433189521, guid: 2ee69fbffd75f483ebfc5bfbd8709056, type: 3}
   Profile:
@@ -65,8 +66,4 @@ MonoBehaviour:
           x: 1
           y: 2
           z: 1
-        offset:
-          x: -0.5
-          y: -1
-          z: -0.5
         friction: 0.25

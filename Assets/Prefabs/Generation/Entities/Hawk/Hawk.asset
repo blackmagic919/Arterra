@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eef870968b735497384f821adc938e6b, type: 3}
   m_Name: Hawk
   m_EditorClassIdentifier: 
+  Name: Hawk
   Controller:
     value: {fileID: 168991073919609735, guid: f2f74ce56e41a4504b5319d9673564fc, type: 3}
   Profile:

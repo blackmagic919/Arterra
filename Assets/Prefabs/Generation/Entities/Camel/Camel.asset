@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6fbcd5f0b5992466685233b55199a842, type: 3}
   m_Name: Camel
   m_EditorClassIdentifier: 
+  Name: Camel
   Controller:
     value: {fileID: 2030604048505752331, guid: 811ca543be197474ba42ba429eac8363, type: 3}
   Profile:
@@ -137,10 +138,6 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        offset:
-          x: -1
-          y: -2
-          z: -1
         friction: 0.25
       movement:
         walkSpeed: 2

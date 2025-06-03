@@ -7,6 +7,7 @@ using WorldConfig;
 using WorldConfig.Generation;
 using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Entity;
+using WorldConfig.Generation.Biome;
 
 namespace TerrainGeneration{
 /// <summary>  The factory protocol for the collective game system. This
@@ -130,18 +131,18 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            Generation matInfo = Config.CURRENT.Generation.Materials.value;
-            Registry<Sprite> textureInfo = Config.CURRENT.Generation.Textures;
+            WorldConfig.Generation.Material.Generation matInfo = Config.CURRENT.Generation.Materials.value;
+            Registry<TextureContainer> textureInfo = Config.CURRENT.Generation.Textures;
             Registry<WorldConfig.Quality.GeoShader> shaderInfo = Config.CURRENT.Quality.GeoShaders;
-            MaterialData[] MaterialDictionary = matInfo.MaterialDictionary.SerializedData;
-            MaterialData.TerrainData[] MaterialTerrain = new MaterialData.TerrainData[MaterialDictionary.Length];
+            List<MaterialData> MaterialDictionary = matInfo.MaterialDictionary.Reg;
+            MaterialData.TerrainData[] MaterialTerrain = new MaterialData.TerrainData[MaterialDictionary.Count];
 
-            int numMats = MaterialDictionary.Length;
+            int numMats = MaterialDictionary.Count;
             terrainData = new ComputeBuffer(numMats, sizeof(float) + sizeof(int) * 2, ComputeBufferType.Structured);
             atmosphericData = new ComputeBuffer(numMats, sizeof(float) * 6 + sizeof(uint), ComputeBufferType.Structured);
             liquidData = new ComputeBuffer(numMats, sizeof(float) * (3 * 2 + 2 * 2 + 5), ComputeBufferType.Structured);
 
-            for(int i = 0; i < MaterialDictionary.Length; i++) {
+            for(int i = 0; i < MaterialDictionary.Count; i++) {
                 MaterialData material = MaterialDictionary[i]; 
                 MaterialData.TerrainData terrain = material.terrainData;
                 string Key = material.RetrieveKey(terrain.Texture);
@@ -155,7 +156,7 @@ public static class GenerationPreset
             liquidData.SetData(MaterialDictionary.Select(e => e.liquidData).ToArray());
             terrainData.SetData(MaterialTerrain);
             //Bad naming scheme -> (value.texture.value.texture)
-            Texture2DArray textures = GenerateTextureArray(textureInfo.SerializedData.Select(e => e.texture).ToArray());
+            Texture2DArray textures = GenerateTextureArray(textureInfo.Reg.Select(e => e.self.texture).ToArray());
             Shader.SetGlobalTexture("_Textures", textures); 
             Shader.SetGlobalBuffer("_MatTerrainData", terrainData);
             Shader.SetGlobalBuffer("_MatAtmosphericData", atmosphericData);
@@ -202,12 +203,12 @@ public static class GenerationPreset
         /// </summary>
         public void Initialize(){
             Release();
-            Noise[] samplerDict = Config.CURRENT.Generation.Noise.SerializedData;
-            uint[] indexPrefixSum = new uint[(samplerDict.Length + 1) * 2];
-            NoiseSettings[] settings = new NoiseSettings[samplerDict.Length];
+            List<Noise> samplerDict = Config.CURRENT.Generation.Noise.Reg;
+            uint[] indexPrefixSum = new uint[(samplerDict.Count + 1) * 2];
+            NoiseSettings[] settings = new NoiseSettings[samplerDict.Count];
             List<Vector3> offsets = new List<Vector3>();
             List<Vector4> splinePoints = new List<Vector4>();
-            for(int i = 0; i < samplerDict.Length; i++){
+            for(int i = 0; i < samplerDict.Count; i++){
                 indexPrefixSum[2 * (i+1)] = (uint)samplerDict[i].OctaveOffsets.Length + indexPrefixSum[2*i];
                 indexPrefixSum[2 * (i+1) + 1] = (uint)samplerDict[i].SplineKeys.Length + indexPrefixSum[2*i+1];
                 settings[i] = new NoiseSettings(samplerDict[i]);
@@ -215,8 +216,8 @@ public static class GenerationPreset
                 splinePoints.AddRange(samplerDict[i].SplineKeys);
             }
             
-            indexBuffer = new ComputeBuffer(samplerDict.Length + 1, sizeof(uint) * 2, ComputeBufferType.Structured);
-            settingsBuffer = new ComputeBuffer(samplerDict.Length, sizeof(float) * 3, ComputeBufferType.Structured);
+            indexBuffer = new ComputeBuffer(samplerDict.Count + 1, sizeof(uint) * 2, ComputeBufferType.Structured);
+            settingsBuffer = new ComputeBuffer(samplerDict.Count, sizeof(float) * 3, ComputeBufferType.Structured);
             offsetsBuffer = new ComputeBuffer(offsets.Count, sizeof(float) * 3, ComputeBufferType.Structured);
             splinePointsBuffer = new ComputeBuffer(splinePoints.Count, sizeof(float) * 4, ComputeBufferType.Structured);
 
@@ -281,28 +282,30 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            WorldConfig.Generation.Biome.CInfo<WorldConfig.Generation.Biome.SurfaceBiome>[] surface = Config.CURRENT.Generation.Biomes.value.SurfaceBiomes.SerializedData;
-            WorldConfig.Generation.Biome.CInfo<WorldConfig.Generation.Biome.CaveBiome>[] cave = Config.CURRENT.Generation.Biomes.value.CaveBiomes.SerializedData;
-            WorldConfig.Generation.Biome.CInfo<WorldConfig.Generation.Biome.CaveBiome>[] sky = Config.CURRENT.Generation.Biomes.value.SkyBiomes.SerializedData;
+            List<WorldConfig.Generation.Biome.CInfo<WorldConfig.Generation.Biome.SurfaceBiome>> surface = Config.CURRENT.Generation.Biomes.value.SurfaceBiomes.Reg;
+            List<WorldConfig.Generation.Biome.CInfo<WorldConfig.Generation.Biome.CaveBiome>> cave = Config.CURRENT.Generation.Biomes.value.CaveBiomes.Reg;
+            List<WorldConfig.Generation.Biome.CInfo<WorldConfig.Generation.Biome.CaveBiome>> sky = Config.CURRENT.Generation.Biomes.value.SkyBiomes.Reg;
             List<WorldConfig.Generation.Biome.Info> biomes = new List<WorldConfig.Generation.Biome.Info>(); 
-            biomes.AddRange(surface);
-            biomes.AddRange(cave);
-            biomes.AddRange(sky);
+            biomes.AddRange(surface.Select(e => e.info));
+            biomes.AddRange(cave.Select(e => e.info));
+            biomes.AddRange(sky.Select(e => e.info));
 
             int numBiomes = biomes.Count;
-            uint4[] biomePrefSum = new uint4[numBiomes + 1]; //Prefix sum
+            uint[,] biomePrefSum = new uint[numBiomes + 1, 5]; //Prefix sum
             List<WorldConfig.Generation.Biome.Info.BMaterial> biomeMaterial = new();
             List<WorldConfig.Generation.Biome.Info.TerrainStructure> biomeStructures = new();
             List<WorldConfig.Generation.Biome.Info.EntityGen> biomeEntities = new();
 
             for (int i = 0; i < numBiomes; i++)
             {
-                biomePrefSum[i+1].x = (uint)biomes[i].GroundMaterials.value?.Count + biomePrefSum[i].y;
-                biomePrefSum[i+1].y = (uint)biomes[i].SurfaceMaterials.value?.Count + biomePrefSum[i + 1].x;
-                biomePrefSum[i+1].z = (uint)biomes[i].Structures.value?.Count + biomePrefSum[i].z;
-                biomePrefSum[i+1].w = (uint)biomes[i].Entities.value?.Count + biomePrefSum[i].w;
+                biomePrefSum[i+1, 0] = (uint)biomes[i].GroundMaterials.value?.Count + biomePrefSum[i, 2];
+                biomePrefSum[i+1, 1] = (uint)biomes[i].SurfaceMaterials.value?.Count + biomePrefSum[i + 1, 0];
+                biomePrefSum[i+1, 2] = (uint)biomes[i].LiquidMaterials.value?.Count + biomePrefSum[i + 1, 1];
+                biomePrefSum[i+1, 3] = (uint)biomes[i].Structures.value?.Count + biomePrefSum[i, 3];
+                biomePrefSum[i+1, 4] = (uint)biomes[i].Entities.value?.Count + biomePrefSum[i, 4];
                 biomeMaterial.AddRange(biomes[i].MaterialSerial(biomes[i].GroundMaterials));
                 biomeMaterial.AddRange(biomes[i].MaterialSerial(biomes[i].SurfaceMaterials));
+                biomeMaterial.AddRange(biomes[i].MaterialSerial(biomes[i].LiquidMaterials));
                 biomeStructures.AddRange(biomes[i].StructureSerial);
                 biomeEntities.AddRange(biomes[i].EntitySerial);
             }
@@ -310,7 +313,7 @@ public static class GenerationPreset
             int matStride = sizeof(int) + sizeof(float) * 4;
             int structStride = sizeof(uint) + sizeof(float);
             int entityStride = sizeof(uint) + sizeof(float);
-            biomePrefCountBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint) * 4, ComputeBufferType.Structured);
+            biomePrefCountBuffer = new ComputeBuffer(numBiomes + 1, sizeof(uint) * 5, ComputeBufferType.Structured);
             if(biomeMaterial.Count > 0) biomeMatBuffer = new ComputeBuffer(biomeMaterial.Count, matStride, ComputeBufferType.Structured);
             if(biomeStructures.Count > 0) structGenBuffer = new ComputeBuffer(biomeStructures.Count, structStride, ComputeBufferType.Structured);
             if(biomeEntities.Count > 0) biomeEntityBuffer = new ComputeBuffer(biomeEntities.Count, entityStride, ComputeBufferType.Structured);
@@ -325,14 +328,14 @@ public static class GenerationPreset
             if(biomeEntityBuffer != null) Shader.SetGlobalBuffer("_BiomeEntities", biomeEntityBuffer);
             Shader.SetGlobalBuffer("_BiomePrefCount", biomePrefCountBuffer);
 
-            WorldConfig.Generation.Biome.SurfaceBiome[] SurfTree = WorldConfig.Generation.Biome.BDict.Create(surface, 1).FlattenTree<WorldConfig.Generation.Biome.SurfaceBiome>();
-            WorldConfig.Generation.Biome.CaveBiome[] CaveTree = WorldConfig.Generation.Biome.BDict.Create(cave, surface.Length + 1).FlattenTree<WorldConfig.Generation.Biome.CaveBiome>();
-            WorldConfig.Generation.Biome.CaveBiome[] SkyTree = WorldConfig.Generation.Biome.BDict.Create(sky, surface.Length + cave.Length + 1).FlattenTree<WorldConfig.Generation.Biome.CaveBiome>();
+            WorldConfig.Generation.Biome.SurfaceBiome[] SurfTree = BDict.Create<SurfaceBiome>(surface, 1).FlattenTree<WorldConfig.Generation.Biome.SurfaceBiome>();
+            WorldConfig.Generation.Biome.CaveBiome[] CaveTree = BDict.Create<CaveBiome>(cave, surface.Count + 1).FlattenTree<WorldConfig.Generation.Biome.CaveBiome>();
+            WorldConfig.Generation.Biome.CaveBiome[] SkyTree = BDict.Create<CaveBiome>(sky, surface.Count + cave.Count + 1).FlattenTree<WorldConfig.Generation.Biome.CaveBiome>();
             SurfTreeBuffer = new ComputeBuffer(SurfTree.Length, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
             CaveTreeBuffer = new ComputeBuffer(CaveTree.Length + SkyTree.Length, sizeof(float) * 4 * 2 + sizeof(int), ComputeBufferType.Structured);
             SurfTree[0].biome = -1; //set defaults
-            CaveTree[0].biome = -1 * (surface.Length + 1); 
-            SkyTree[0].biome = -1 * (cave.Length + surface.Length + 1);
+            CaveTree[0].biome = -1 * (surface.Count + 1); 
+            SkyTree[0].biome = -1 * (cave.Count + surface.Count + 1);
 
             SurfTreeBuffer.SetData(SurfTree);
             CaveTreeBuffer.SetData(CaveTree.Concat(SkyTree).ToArray());
@@ -378,13 +381,13 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            WorldConfig.Generation.Structure.StructureData[] StructureDictionary = Config.CURRENT.Generation.Structures.value.StructureDictionary.SerializedData;
-            WorldConfig.Generation.Structure.StructureData.Settings[] settings = new WorldConfig.Generation.Structure.StructureData.Settings[StructureDictionary.Length];
+            List<WorldConfig.Generation.Structure.StructureData> StructureDictionary = Config.CURRENT.Generation.Structures.value.StructureDictionary.Reg;
+            WorldConfig.Generation.Structure.StructureData.Settings[] settings = new WorldConfig.Generation.Structure.StructureData.Settings[StructureDictionary.Count];
             List<WorldConfig.Generation.Structure.StructureData.PointInfo> map = new ();
             List<WorldConfig.Generation.Structure.StructureData.CheckPoint> checks = new ();
-            uint[] indexPrefixSum = new uint[(StructureDictionary.Length+1)*2];
+            uint[] indexPrefixSum = new uint[(StructureDictionary.Count+1)*2];
 
-            for(int i = 0; i < StructureDictionary.Length; i++)
+            for(int i = 0; i < StructureDictionary.Count; i++)
             {
                 WorldConfig.Generation.Structure.StructureData data = StructureDictionary[i];
                 indexPrefixSum[2 * (i + 1)] = (uint)data.map.value.Count + indexPrefixSum[2*i]; //Density is same length as materials
@@ -394,10 +397,10 @@ public static class GenerationPreset
                 checks.AddRange(data.checks.value);
             }
 
-            indexBuffer = new ComputeBuffer(StructureDictionary.Length + 1, sizeof(uint) * 2, ComputeBufferType.Structured); //By doubling stride, we compress the prefix sums
+            indexBuffer = new ComputeBuffer(StructureDictionary.Count + 1, sizeof(uint) * 2, ComputeBufferType.Structured); //By doubling stride, we compress the prefix sums
             mapBuffer = new ComputeBuffer(map.Count, sizeof(uint), ComputeBufferType.Structured);
             checksBuffer = new ComputeBuffer(checks.Count, sizeof(float) * 3 + sizeof(uint), ComputeBufferType.Structured);
-            settingsBuffer = new ComputeBuffer(StructureDictionary.Length, sizeof(int) * 4 + sizeof(uint) * 2, ComputeBufferType.Structured);
+            settingsBuffer = new ComputeBuffer(StructureDictionary.Count, sizeof(int) * 4 + sizeof(uint) * 2, ComputeBufferType.Structured);
 
             indexBuffer.SetData(indexPrefixSum);
             mapBuffer.SetData(map.ToArray());
@@ -446,8 +449,8 @@ public static class GenerationPreset
         {
             Release();
 
-            Authoring[] EntityDictionary = Config.CURRENT.Generation.Entities.SerializedData;
-            int numEntities = EntityDictionary.Length;
+            List<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities.Reg;
+            int numEntities = EntityDictionary.Count;
             EntitySetting.ProfileInfo[] entityInfo = new EntitySetting.ProfileInfo[numEntities];
             List<ProfileE> entityProfile = new List<ProfileE>();
 

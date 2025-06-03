@@ -8,7 +8,7 @@ using WorldConfig.Generation.Entity;
 using static TerrainGeneration.Readback.IVertFormat;
 using TerrainGeneration.Readback;
 using Unity.Services.Analytics;
-[CreateAssetMenu(menuName = "Entity/Item")]
+[CreateAssetMenu(menuName = "Generation/Entity/Item")]
 public class EItem : WorldConfig.Generation.Entity.Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]

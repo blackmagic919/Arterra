@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
   m_Name: ChestItemSolid
   m_EditorClassIdentifier: 
+  Name: Chest:Solid
   TextureName: Chest
   MaterialName: Chest
   MaterialState: 0

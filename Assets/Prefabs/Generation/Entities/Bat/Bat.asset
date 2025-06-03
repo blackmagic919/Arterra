@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eef870968b735497384f821adc938e6b, type: 3}
   m_Name: Bat
   m_EditorClassIdentifier: 
+  Name: Bat
   Controller:
     value: {fileID: 2660168820009388384, guid: 25f6646533b5a44a99e680f20e587aa6, type: 3}
   Profile:

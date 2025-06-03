@@ -105,7 +105,7 @@ public static class EntityManager
     }
     public unsafe static void InitializeE(int3 GCoord, uint entityIndex){
         
-        Authoring authoring = Config.CURRENT.Generation.Entities.Reg.value[(int)entityIndex].Value;
+        Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
         Entity newEntity = authoring.Entity;
         newEntity.info.entityId = Guid.NewGuid();
         newEntity.info.entityType = entityIndex;
@@ -183,7 +183,7 @@ public static class EntityManager
             PlayerStreamer PlayerEntity = Resources.Load<PlayerStreamer>("Prefabs/GameUI/PlayerEntity");
             EntityDictionary.Add("Player", PlayerEntity);
         }
-        foreach(Authoring entity in EntityDictionary.SerializedData) entity.Setting.Preset();
+        foreach(Authoring entity in EntityDictionary.Reg) entity.Setting.Preset();
     }
 
     public unsafe static void Release(){
@@ -192,7 +192,7 @@ public static class EntityManager
         foreach (Entity entity in EntityHandler){
             entity.Disable();
         }
-        Authoring[] EntityDictionary = Config.CURRENT.Generation.Entities.SerializedData;
+        List<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities.Reg;
         foreach(Authoring entity in EntityDictionary) entity.Setting.Unset();
     }
 

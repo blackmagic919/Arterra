@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5a55167b9f07403db285acd197bbc09, type: 3}
   m_Name: MaterialCoarseNoise
   m_EditorClassIdentifier: 
+  Name: MaterialCoarse
   noiseScale: 1000
   octaves: 4
   persistance: 0.25
@@ -42,4 +43,3 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    isDirty: 0

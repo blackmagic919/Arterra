@@ -3,91 +3,231 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
+using UnityEditor;
 using UnityEngine;
 using WorldConfig;
 
+//Curiously recurring template pattern!!
+[Serializable]
+public class Category<T> : ScriptableObject where T : Category<T>{
+    public string Name;
+    protected virtual Option<List<Option<Category<T> > > >? GetChildren() => null;
+    public virtual void AddChildren(ref List<T> list){
+        list ??= new List<T>();
+        var children = GetChildren()?.value;
+        if(children == null) {
+            list.Add((T)this);
+            return;
+        } foreach (var pair in children) {
+            if(pair.value != null) pair.value.AddChildren(ref list);
+        }
+    }
+}
 
 [Serializable]
-public struct Registry<T> : IRegister, ICloneable
+public struct Registry<T> : IRegister, ICloneable where T : Category<T>
 {
-    public Option<List<Pair> > Reg;
-    [UISetting(Ignore = true)] 
-    private Dictionary<string, int> Index;
+    public Option<Category<T>> Category;
+    [HideInInspector]
+    [UISetting(Ignore = true)]
     [JsonIgnore]
-    public T[] SerializedData => Reg.value.Select(x => x.Value).ToArray();
+    public List<T> Reg;
+    [HideInInspector]
+    [UISetting(Ignore = true)]
+    [JsonIgnore]
+    private Dictionary<string, int> Index;
 
-    public void Construct(){
+    public void Construct()
+    {
         Index = new Dictionary<string, int>();
-        Reg.value ??= new List<Pair>();
-        for(int i = 0; i < Reg.value.Count; i++){
-            Index.Add(Reg.value[i].Name, i);
+        Reg = new List<T>();
+        Category.value.AddChildren(ref Reg);
+        for (int i = 0; i < Reg.Count; i++)
+        {
+            Index.Add(Reg[i].Name, i);
         }
     }
 
-    public readonly int RetrieveIndex(string name){
+    public readonly int RetrieveIndex(string name)
+    {
         return Index[name];
     }
-    public readonly string RetrieveName(int index){
-        return Reg.value[index].Name;
+    public readonly string RetrieveName(int index)
+    {
+        return Reg[index].Name;
     }
 
-    public readonly T Retrieve(string name){
-        return Reg.value[Index[name]].Value;
+    public readonly T Retrieve(string name)
+    {
+        return Reg[Index[name]];
     }
-    public readonly T Retrieve(int index){
-        return Reg.value[index].Value;
+    public readonly T Retrieve(int index)
+    {
+        return Reg[index];
     }
-    public readonly bool Contains(string name){
-        if(Index == null) return false;
+    public readonly bool Contains(string name)
+    {
+        if (Index == null) return false;
         return Index.ContainsKey(name);
     }
-    public readonly bool Contains(int index){
-        return index >= 0 && index < Reg.value.Count;
+    public readonly bool Contains(int index)
+    {
+        return index >= 0 && index < Reg.Count;
     }
-    public void Add(string name, T value){
-        Reg.value ??= new List<Pair>();
+    public void Add(string name, T value)
+    {
+        Reg ??= new List<T>();
         Index ??= new Dictionary<string, int>();
 
-        Reg.value.Add(new Pair{Name = name, _value = new Option<T>{value = value}});
-        Index.Add(name, Reg.value.Count - 1);
+        Reg.Add(value);
+        Index.Add(name, Reg.Count - 1);
     }
 
-    public bool TryRemove(string name){
-        if(Reg.value == null || Index == null) return false;
-        if(!Index.ContainsKey(name)) return false;
+    public bool TryRemove(string name)
+    {
+        if (Reg == null || Index == null) return false;
+        if (!Index.ContainsKey(name)) return false;
 
-        Reg.value.RemoveAt(Index[name]);
+        Reg.RemoveAt(Index[name]);
         Index.Remove(name);
         Construct(); //Rebuild the index
         return true;
     }
 
-    public readonly bool TrySet(string name, T value){
-        if(Reg.value == null || Index == null) return false;
-        if(!Index.ContainsKey(name)) return false;
+    public readonly bool TrySet(string name, T value)
+    {
+        if (Reg == null || Index == null) return false;
+        if (!Index.ContainsKey(name)) return false;
 
         int index = Index[name];
-        var tPair = Reg.value[index];
-        tPair._value.value = value;
-        Reg.value[index] = tPair;
+        Reg[index] = value;
         return true;
     }
 
-    public object Clone(){
-        return new Registry<T>{Reg = Reg};
+    public object Clone()
+    {
+        return new Registry<T> { Reg = Reg };
     }
 
     [Serializable]
-    public struct Pair : ICloneable{
+    public struct Pair : ICloneable
+    {
         public string Name;
         [UISetting(Alias = "Value")]
         public Option<T> _value;
         [JsonIgnore]
         public readonly T Value => _value.value;
 
-        public object Clone(){
-            return new Pair{
-                Name = Name, 
+        public object Clone()
+        {
+            return new Pair
+            {
+                Name = Name,
+                _value = _value
+            };
+        }
+    }
+}
+
+public struct DynamicRegistry<T> : IRegister, ICloneable 
+{
+    [HideInInspector]
+    [UISetting(Ignore = true)]
+    [JsonIgnore]
+    public List<Pair> Reg;
+    [HideInInspector]
+    [UISetting(Ignore = true)]
+    [JsonIgnore]
+    private Dictionary<string, int> Index;
+
+    public void Construct()
+    {
+        Index = new Dictionary<string, int>();
+        Reg ??= new List<Pair>();
+        for (int i = 0; i < Reg.Count; i++)
+        {
+            Index.Add(Reg[i].Name, i);
+        }
+    }
+
+    public readonly int RetrieveIndex(string name)
+    {
+        return Index[name];
+    }
+    public readonly string RetrieveName(int index)
+    {
+        return Reg[index].Name;
+    }
+
+    public readonly T Retrieve(string name)
+    {
+        return Reg[Index[name]].Value;
+    }
+    public readonly T Retrieve(int index)
+    {
+        return Reg[index].Value;
+    }
+    public readonly bool Contains(string name)
+    {
+        if (Index == null) return false;
+        return Index.ContainsKey(name);
+    }
+    public readonly bool Contains(int index)
+    {
+        return index >= 0 && index < Reg.Count;
+    }
+    public void Add(string name, T value)
+    {
+        Reg ??= new List<Pair>();
+        Index ??= new Dictionary<string, int>();
+
+        Reg.Add(new Pair{Name = name, _value = new Option<T>{value = value}});
+        Index.Add(name, Reg.Count - 1);
+
+    }
+
+    public bool TryRemove(string name)
+    {
+        if (Reg == null || Index == null) return false;
+        if (!Index.ContainsKey(name)) return false;
+
+        Reg.RemoveAt(Index[name]);
+        Index.Remove(name);
+        Construct(); //Rebuild the index
+        return true;
+    }
+
+    public readonly bool TrySet(string name, T value)
+    {
+        if (Reg == null || Index == null) return false;
+        if (!Index.ContainsKey(name)) return false;
+
+        int index = Index[name];
+        var tPair = Reg[index];
+        tPair._value.value = value;
+        Reg[index] = tPair;
+        return true;
+    }
+
+    public object Clone()
+    {
+        return new DynamicRegistry<T> { Reg = Reg };
+    }
+
+    [Serializable]
+    public struct Pair : ICloneable
+    {
+        public string Name;
+        [UISetting(Alias = "Value")]
+        public Option<T> _value;
+        [JsonIgnore]
+        public readonly T Value => _value.value;
+
+        public object Clone()
+        {
+            return new Pair
+            {
+                Name = Name,
                 _value = _value
             };
         }
@@ -95,14 +235,19 @@ public struct Registry<T> : IRegister, ICloneable
 }
 
 
-public interface IRegister{
+
+
+
+public interface IRegister
+{
     public abstract void Construct();
     public abstract string RetrieveName(int index);
     public abstract int RetrieveIndex(string name);
     public abstract bool Contains(string name);
     public abstract bool Contains(int index);
     public abstract object Clone();
-    public static void Setup(){
+    public static void Setup()
+    {
         //Create all registers, then convert their dependencies
         Config.CURRENT.Generation.Noise.Construct();
         Config.CURRENT.Generation.Entities.Construct();
@@ -114,6 +259,7 @@ public interface IRegister{
         Config.CURRENT.Generation.Materials.value.MaterialDictionary.Construct();
         Config.CURRENT.Generation.Items.Construct();
         Config.CURRENT.Quality.GeoShaders.Construct();
+        Config.CURRENT.System.Crafting.value.Recipes.Construct();
     }
 }
 

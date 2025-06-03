@@ -10,7 +10,7 @@ namespace WorldConfig.Generation.Entity{
 /// A generic contract that ensures that all entities contain a certain
 /// set of properties and methods necessary for the system to function.
 /// </summary>
-public abstract class Authoring : ScriptableObject{
+public abstract class Authoring : Category<Authoring>{
     /// <summary> A reference to the entity that contains the actual instance of the entity. See <see cref="Entity"/> for more information</summary>
     public virtual Entity Entity{get; }
     /// <summary> A reference to the readonly shared settings that all instances of this entity uses. See <see cref="EntitySetting"/> for more information</summary>

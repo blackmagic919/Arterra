@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1cbb11f6eccf844d2bbaa784a6cd4cdf, type: 3}
   m_Name: CactusMat
   m_EditorClassIdentifier: 
+  Name: Cactus
   Names:
   - Cactus:Solid
   - Void

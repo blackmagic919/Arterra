@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
   m_Name: WaterItemLiquid
   m_EditorClassIdentifier: 
+  Name: Water:Liquid
   TextureName: Water
   MaterialName: Water
   MaterialState: 1

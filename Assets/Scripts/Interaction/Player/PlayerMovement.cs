@@ -105,7 +105,7 @@ public static class FlightMovement{
     private static int[] KeyBinds = null;
     public static void Initialize()
     {
-        Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Flight", FlightMovement.OnFlightRuleChanged);
+        Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Flight", OnFlightRuleChanged);
         OnFlightRuleChanged();
     }
     

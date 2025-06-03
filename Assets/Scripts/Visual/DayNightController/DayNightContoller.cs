@@ -39,7 +39,7 @@ namespace WorldConfig.Gameplay{
 }
 public static class DayNightContoller
 {
-    private static WorldConfig.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.DayNightCycle;
+    private static WorldConfig.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.Time;
     public static DateTime currentTime{
         get => PlayerHandler.data.currentTime;
         set => PlayerHandler.data.currentTime = value;

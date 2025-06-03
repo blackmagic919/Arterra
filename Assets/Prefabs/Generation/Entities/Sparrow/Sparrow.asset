@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab44b3b4d8fc54b598e191f90c84912c, type: 3}
   m_Name: Sparrow
   m_EditorClassIdentifier: 
+  Name: Sparrow
   Controller:
     value: {fileID: 4790501496118844506, guid: f806b471f43bf41098b6a747b7a1ee66, type: 3}
   Profile:
@@ -101,10 +102,6 @@ MonoBehaviour:
           x: 0.75
           y: 0.75
           z: 0.75
-        offset:
-          x: -0.375
-          y: -0.375
-          z: -0.375
         friction: 0.25
       movement:
         walkSpeed: 2
@@ -123,10 +120,10 @@ MonoBehaviour:
         AverageFlightTime: 100
         SeperationWeight: 0.75
         AlignmentWeight: 0.4
-        CohesionWeight: 0.35
-        FlyBiasWeight: 0.1
+        CohesionWeight: 0.15
         InfluenceDist: 10
         PathDist: 5
+        MaxSwarmSize: 8
       recognition:
         Predators:
           value:

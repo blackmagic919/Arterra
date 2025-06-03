@@ -173,7 +173,6 @@ public static class Generator
         baseGenCompute.SetFloat("heightSFalloff", mesh.heightFalloff);
         baseGenCompute.SetFloat("atmoStrength", mesh.atmosphereFalloff);
         baseGenCompute.SetFloat("waterHeight", mesh.waterHeight);
-        baseGenCompute.SetInt("waterMat", mesh.WaterIndex);
 
         baseGenCompute.SetBuffer(0, "BiomeMap", UtilityBuffers.GenerationBuffer);
         baseGenCompute.SetBuffer(0, "BaseMap", UtilityBuffers.GenerationBuffer);

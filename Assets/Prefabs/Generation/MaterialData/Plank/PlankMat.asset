@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
   m_Name: PlankMat
   m_EditorClassIdentifier: 
+  Name: Plank
   Names:
   - Plank:Solid
   - Void
@@ -20,9 +21,7 @@ MonoBehaviour:
   LiquidItem: 1
   terrainData:
     Texture: 2
-    color: {x: 0.302, y: 0.184, z: 0.082, w: 1}
     textureScale: 2
-    baseColorStrength: 0.1
     GeoShaderIndex: -1
   AtmosphereScatter:
     ScatterCoeffs: {x: 0, y: 0, z: 0}

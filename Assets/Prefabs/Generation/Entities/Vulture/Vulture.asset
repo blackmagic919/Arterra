@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79911cd5cf6af49e29186706689cf084, type: 3}
   m_Name: Vulture
   m_EditorClassIdentifier: 
+  Name: Vulture
   Controller:
     value: {fileID: 6391285027507025075, guid: a230d566c906b4028bdf80fc9ba28914, type: 3}
   Profile:
@@ -101,10 +102,6 @@ MonoBehaviour:
           x: 0.5
           y: 0.5
           z: 0.5
-        offset:
-          x: -0.25
-          y: -0.25
-          z: -0.25
         friction: 0.25
       movement:
         walkSpeed: 2

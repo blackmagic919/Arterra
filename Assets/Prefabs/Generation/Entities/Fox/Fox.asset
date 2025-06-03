@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
   m_Name: Fox
   m_EditorClassIdentifier: 
+  Name: Fox
   Controller:
     value: {fileID: 5025472046583946829, guid: 419a2bdc199a94b1e86df75c0fc27a4d, type: 3}
   Profile:
@@ -65,10 +66,6 @@ MonoBehaviour:
           x: 0.75
           y: 1
           z: 0.75
-        offset:
-          x: -0.375
-          y: -0.6
-          z: -0.375
         friction: 0.25
       movement:
         walkSpeed: 3
