@@ -75,38 +75,40 @@ MonoBehaviour:
         pathDistance: 31
         AverageIdleTime: 2.5
       recognition:
-        Predators:
-          value: []
-        Mates:
-          value:
-          - MateType: ArcticFox
-            ChildType: ArcticFox
-            AmountPerParent: 0.5
-        Edibles:
-          value:
-          - EdibleType: Meat
-            Nutrition: 0.2
-        SightDistance: 31
-        FleeDistance: 5
-        FightAggressor: 1
-        Prey:
-          value:
-          - Camel
+        value:
+          Predators:
+            value: []
+          Mates:
+            value:
+            - MateType: ArcticFox
+              ChildType: ArcticFox
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Meat
+              Nutrition: 0.2
+          SightDistance: 31
+          FleeDistance: 5
+          FightAggressor: 1
+          Prey:
+            value:
+            - Camel
       physicality:
-        MaxHealth: 10
-        NaturalRegen: -0.01
-        AttackDistance: 3
-        AttackDamage: 4
-        AttackCooldown: 1
-        KBStrength: 2
-        InvincTime: 0.25
-        HoldBreathTime: 10
-        HuntThreshold: 0.4
-        MateThreshold: 0.8
-        PregnacyLength: 4
-        ConsumptionRate: 0.05
-        MateCost: 4
-        weight: 0.75
+        value:
+          MaxHealth: 10
+          NaturalRegen: -0.01
+          AttackDistance: 3
+          AttackDamage: 4
+          AttackCooldown: 1
+          KBStrength: 2
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 4
+          ConsumptionRate: 0.05
+          MateCost: 4
+          weight: 0.75
       decomposition:
         LootTable:
           value:

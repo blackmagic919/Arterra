@@ -20,7 +20,8 @@ public static class PaginatedUIEditor
     public static void Initialize(){
         UIConverterSettings = new List<IConverter>{
             new PageListSerializer(),
-            new PageKeybindSerializer()
+            new PageKeybindSerializer(),
+            new PaginatedCategorySerializer(),
         };
     }
     public static IConverter GetCustomSerializerSetting(Type type){

@@ -14,7 +14,7 @@ namespace WorldConfig.Generation.Biome{
 /// See <see cref="IBiomeCondition"/> for more information. </typeparam>
 public class CInfo<TCond> : Category<CInfo<TCond>> where TCond : IBiomeCondition{
     /// <summary> Generic setting shared by all biomes, see <see cref="Info"/> for more information. </summary>
-    public Info info;
+    public Option<Info> info;
     /// <summary> The conditions that define the placement of the biome. </summary>
     public Option<TCond> BiomeConditions;
     /// <summary> This method is called when the object is changed in Unity's editor. It ensures that the conditions

@@ -9,7 +9,7 @@ using static SegmentedUIEditor;
 using WorldConfig;
 
 public class SegmentListSerializer : IConverter{
-    public bool CanConvert(Type type){ return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>); }
+    public bool CanConvert(Type iType, Type fType){ return iType.IsGenericType && iType.GetGenericTypeDefinition() == typeof(List<>); }
     public void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate){
         object cValue = value; //Capture the object to streamline changes
         void ChildRequest(ChildUpdate childCallback) { 
@@ -31,21 +31,22 @@ public class SegmentListSerializer : IConverter{
             ForceLayoutRefresh(parent.transform);
         }); 
         listAdd.onClick.AddListener(() => {
-            if(!isOpen1) return;
             ChildRequest((ref object parentObj) => {
                 cValue = parentObj; ((IList)cValue).Add(CreateInstance(field.FieldType.GetGenericArguments()[0]));
-                ReleaseDisplay(parent); CreateList((IList)cValue, parent, ChildRequest);
+                if (isOpen1) ReleaseDisplay(parent);
+                CreateList((IList)cValue, parent, ChildRequest);
                 ForceLayoutRefresh(parent.transform);
-            });
+            }); isOpen1 = true;
         });
         listRemove.onClick.AddListener(() => {
-            if(!isOpen1) return;
+            if(!isOpen1) isOpen1 = true;
             if(((IList)cValue).Count == 0) return;
             ChildRequest((ref object parentObj) => {
                 cValue = (IList)parentObj; ((IList)cValue).RemoveAt(((IList)cValue).Count - 1);
-                ReleaseDisplay(parent); CreateList((IList)cValue, parent, ChildRequest);
+                if (isOpen1) ReleaseDisplay(parent);
+                CreateList((IList)cValue, parent, ChildRequest);
                 ForceLayoutRefresh(parent.transform);
-            });
+            }); isOpen1 = true;
         });
     }
 
@@ -79,19 +80,19 @@ public class SegmentListSerializer : IConverter{
 
             TextMeshProUGUI elementText = key.GetComponent<TextMeshProUGUI>();
             FieldInfo name = value.GetType().GetField("Name");
-            if(name != null && name.GetValue(value) != null){ elementText.text = name.GetValue(value).ToString(); }
-            else elementText.text = "Element " + i.ToString() + ": ";
 
             FieldInfo field = null; ParentUpdate nUpdate = OnUpdate; 
             int index = i; //this is not useless--index is captured to streamline changes
             if(cObjType.IsGenericType && cObjType.GetGenericTypeDefinition() == typeof(Option<>)){
                 field = cObjType.GetField("value"); 
                 value = field.GetValue(cObject);
-                if(value == null){
+                if (value == null)
+                {
                     value = CreateInstance(field.FieldType);
                     field.SetValue(cObject, value);
                 } 
 
+                name = value.GetType().GetField("Name");
                 void ChildRequest(ChildUpdate childCallback) { 
                     void ParentReceive(ref object parentObject){
                         IList newList = (IList)parentObject;
@@ -122,7 +123,9 @@ public class SegmentListSerializer : IConverter{
             
             else if(!field.FieldType.IsPrimitive && field.FieldType != typeof(string)) 
                 throw new Exception("Setting objects must contain either only value types or options");
-
+            
+            if(name != null && name.GetValue(value) != null){ elementText.text = name.GetValue(value).ToString(); }
+            else elementText.text = "Element " + i.ToString() + ": ";
             CreateInputField(field, key, value, nUpdate);
         }
     }

@@ -121,38 +121,40 @@ MonoBehaviour:
         FlyBiasWeight: 0.25
         VerticalFreedom: 0.5
       recognition:
-        Predators:
-          value: []
-        Mates:
-          value:
-          - MateType: SnowyOwl
-            ChildType: SnowyOwl
-            AmountPerParent: 0.5
-        Edibles:
-          value:
-          - EdibleType: Meat
-            Nutrition: 0.15
-        SightDistance: 30
-        FleeDistance: 5
-        FightAggressor: 0
-        Prey:
-          value:
-          - ArcticHare
+        value:
+          Predators:
+            value: []
+          Mates:
+            value:
+            - MateType: SnowyOwl
+              ChildType: SnowyOwl
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Meat
+              Nutrition: 0.15
+          SightDistance: 30
+          FleeDistance: 5
+          FightAggressor: 0
+          Prey:
+            value:
+            - ArcticHare
       physicality:
-        MaxHealth: 10
-        NaturalRegen: -0.01
-        AttackDistance: 4
-        AttackDamage: 3
-        AttackCooldown: 0.75
-        KBStrength: 2
-        InvincTime: 0.025
-        HoldBreathTime: 10
-        HuntThreshold: 0.4
-        MateThreshold: 0.7
-        PregnacyLength: 5
-        ConsumptionRate: 0.05
-        MateCost: 4
-        weight: 0.25
+        value:
+          MaxHealth: 10
+          NaturalRegen: -0.01
+          AttackDistance: 4
+          AttackDamage: 3
+          AttackCooldown: 0.75
+          KBStrength: 2
+          InvincTime: 0.025
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.7
+          PregnacyLength: 5
+          ConsumptionRate: 0.05
+          MateCost: 4
+          weight: 0.25
       decomposition:
         LootTable:
           value:

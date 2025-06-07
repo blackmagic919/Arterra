@@ -121,39 +121,41 @@ MonoBehaviour:
         FlyBiasWeight: 0.25
         VerticalFreedom: 0.5
       recognition:
-        Predators:
-          value: []
-        Mates:
-          value:
-          - MateType: Vulture
-            ChildType: Vulture
-            AmountPerParent: 0.5
-        Edibles:
-          value:
-          - EdibleType: Meat
-            Nutrition: 0.15
-        SightDistance: 30
-        FleeDistance: 5
-        FightAggressor: 0
-        Prey:
-          value:
-          - Camel
-          - Coyote
+        value:
+          Predators:
+            value: []
+          Mates:
+            value:
+            - MateType: Vulture
+              ChildType: Vulture
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Meat
+              Nutrition: 0.15
+          SightDistance: 30
+          FleeDistance: 5
+          FightAggressor: 0
+          Prey:
+            value:
+            - Camel
+            - Coyote
       physicality:
-        MaxHealth: 8
-        NaturalRegen: -0.01
-        AttackDistance: 4
-        AttackDamage: 2
-        AttackCooldown: 0.75
-        KBStrength: 2
-        InvincTime: 0.025
-        HoldBreathTime: 10
-        HuntThreshold: 0.4
-        MateThreshold: 0.7
-        PregnacyLength: 5
-        ConsumptionRate: 0.05
-        MateCost: 3
-        weight: 0.25
+        value:
+          MaxHealth: 8
+          NaturalRegen: -0.01
+          AttackDistance: 4
+          AttackDamage: 2
+          AttackCooldown: 0.75
+          KBStrength: 2
+          InvincTime: 0.025
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.7
+          PregnacyLength: 5
+          ConsumptionRate: 0.05
+          MateCost: 3
+          weight: 0.25
       decomposition:
         LootTable:
           value:

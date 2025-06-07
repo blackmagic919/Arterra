@@ -66,38 +66,40 @@ MonoBehaviour:
         pathDistance: 16
         AverageIdleTime: 1.5
       recognition:
-        Predators:
-          value: []
-        Mates:
-          value:
-          - MateType: Cod
-            ChildType: Cod
-            AmountPerParent: 0.5
-        Edibles:
-          value:
-          - EdibleType: Meat
-            Nutrition: 0.8
-        SightDistance: 16
-        FleeDistance: 5
-        FightAggressor: 0
-        Prey:
-          value:
-          - Krill
+        value:
+          Predators:
+            value: []
+          Mates:
+            value:
+            - MateType: Cod
+              ChildType: Cod
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Meat
+              Nutrition: 0.8
+          SightDistance: 16
+          FleeDistance: 5
+          FightAggressor: 0
+          Prey:
+            value:
+            - Krill
       physicality:
-        MaxHealth: 5
-        NaturalRegen: -0.01
-        AttackDistance: 3
-        AttackDamage: 2
-        AttackCooldown: 1
-        KBStrength: 1
-        InvincTime: 0.25
-        HoldBreathTime: 10
-        HuntThreshold: 0.4
-        MateThreshold: 0.8
-        PregnacyLength: 4
-        ConsumptionRate: 0.25
-        MateCost: 1.5
-        weight: 0.3
+        value:
+          MaxHealth: 5
+          NaturalRegen: -0.01
+          AttackDistance: 3
+          AttackDamage: 2
+          AttackCooldown: 1
+          KBStrength: 1
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 4
+          ConsumptionRate: 0.25
+          MateCost: 1.5
+          weight: 0.3
       decomposition:
         LootTable:
           value:

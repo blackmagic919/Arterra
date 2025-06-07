@@ -286,9 +286,9 @@ public static class GenerationPreset
             List<WorldConfig.Generation.Biome.CInfo<WorldConfig.Generation.Biome.CaveBiome>> cave = Config.CURRENT.Generation.Biomes.value.CaveBiomes.Reg;
             List<WorldConfig.Generation.Biome.CInfo<WorldConfig.Generation.Biome.CaveBiome>> sky = Config.CURRENT.Generation.Biomes.value.SkyBiomes.Reg;
             List<WorldConfig.Generation.Biome.Info> biomes = new List<WorldConfig.Generation.Biome.Info>(); 
-            biomes.AddRange(surface.Select(e => e.info));
-            biomes.AddRange(cave.Select(e => e.info));
-            biomes.AddRange(sky.Select(e => e.info));
+            biomes.AddRange(surface.Select(e => e.info.value));
+            biomes.AddRange(cave.Select(e => e.info.value));
+            biomes.AddRange(sky.Select(e => e.info.value));
 
             int numBiomes = biomes.Count;
             uint[,] biomePrefSum = new uint[numBiomes + 1, 5]; //Prefix sum

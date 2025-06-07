@@ -70,19 +70,19 @@ public class PageListSerializer : IConverter{
             GameObject key = GetOptionContent(UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Option"), GetPageContent(page))).gameObject;
             TextMeshProUGUI elementText = key.transform.Find("Name").GetComponent<TextMeshProUGUI>();
             FieldInfo name = value.GetType().GetField("Name");
-            if(name != null && name.GetValue(value) != null){ elementText.text = name.GetValue(value).ToString(); }
-            else elementText.text = "Element " + i.ToString() + ": ";
 
             FieldInfo field = null; ParentUpdate nUpdate = OnUpdate; 
             int index = i; //Capture the index to streamline changes
             if(cObjType.IsGenericType && cObjType.GetGenericTypeDefinition() == typeof(Option<>)){
                 field = cObjType.GetField("value"); 
                 value = field.GetValue(cObject);
-                if(value == null){
+                if (value == null)
+                {
                     value = CreateInstance(field.FieldType);
                     field.SetValue(cObject, value);
                 } 
 
+                name = value.GetType().GetField("Name");
                 //List element can't have Attribute, so we don't have to check VerifyUpdateHooks
                 void ChildRequest(ChildUpdate childCallback) { 
                     void ParentReceive(ref object parentObject){
@@ -112,7 +112,9 @@ public class PageListSerializer : IConverter{
             
             else if(!field.FieldType.IsPrimitive && field.FieldType != typeof(string)) 
                 throw new Exception("Setting objects must contain either only value types or options");
-
+            
+            if(name != null && name.GetValue(value) != null){ elementText.text = name.GetValue(value).ToString(); }
+            else elementText.text = "Element " + i.ToString() + ": ";
             CreateInputField(field, value, key, page, nUpdate);
         }
     }

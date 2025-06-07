@@ -147,43 +147,45 @@ MonoBehaviour:
         pathDistance: 31
         AverageIdleTime: 6
       recognition:
-        Predators:
-          value: []
-        Mates:
-          value:
-          - MateType: Camel
-            ChildType: Camel
-            AmountPerParent: 0.5
-        Edibles:
-          value:
-          - EdibleType: Cactus:Solid
-            Nutrition: 0.05
-        SightDistance: 31
-        FleeDistance: 5
-        FightAggressor: 1
-        PlantFindDist: 10
-        Prey:
-          value:
-          - Material: Cactus
-            Bounds:
-              data: 4286643968
-            Replacement: PlantMatter
-            ReplaceState: 0
+        value:
+          Predators:
+            value: []
+          Mates:
+            value:
+            - MateType: Camel
+              ChildType: Camel
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Cactus:Solid
+              Nutrition: 0.05
+          SightDistance: 31
+          FleeDistance: 5
+          FightAggressor: 1
+          PlantFindDist: 10
+          Prey:
+            value:
+            - Material: Cactus
+              Bounds:
+                data: 4286643968
+              Replacement: PlantMatter
+              ReplaceState: 0
       physicality:
-        MaxHealth: 20
-        NaturalRegen: -0.01
-        AttackDistance: 2
-        AttackDamage: 7
-        AttackCooldown: 3
-        KBStrength: 5
-        InvincTime: 0.25
-        HoldBreathTime: 10
-        HuntThreshold: 0.6
-        MateThreshold: 0.8
-        PregnacyLength: 6
-        ConsumptionRate: 0.25
-        MateCost: 8
-        weight: 0.85
+        value:
+          MaxHealth: 20
+          NaturalRegen: -0.01
+          AttackDistance: 2
+          AttackDamage: 7
+          AttackCooldown: 3
+          KBStrength: 5
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.6
+          MateThreshold: 0.8
+          PregnacyLength: 6
+          ConsumptionRate: 0.25
+          MateCost: 8
+          weight: 0.85
       decomposition:
         LootTable:
           value:

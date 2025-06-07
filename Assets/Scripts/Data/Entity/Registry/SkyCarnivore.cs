@@ -22,9 +22,11 @@ public class SkyCarnivore : Authoring
     public class AnimalSetting : EntitySetting{
         public Movement movement;
         public Flight flight;
-        public RCarnivore recognition;
-        public Vitality.Stats physicality;
         public Vitality.Decomposition decomposition;
+        public Option<RCarnivore> recognition;
+        public Option<Vitality.Stats> physicality;
+        public RCarnivore Recognition => recognition;
+        public Vitality.Stats Physicality => physicality;
         [Serializable]
         public struct Flight{
             //Starts after the profile of the ground entity
@@ -37,7 +39,7 @@ public class SkyCarnivore : Authoring
         public override void Preset(){ 
             uint pEnd = profile.bounds.x * profile.bounds.y * profile.bounds.z;
             flight.profile.profileStart = profile.profileStart + pEnd;
-            recognition.Construct();
+            Recognition.Construct();
             base.Preset();
         }
     }
@@ -97,11 +99,11 @@ public class SkyCarnivore : Authoring
             if(IsDead) return;
             if(attacker == null) return; //If environmental damage, we don't need to retaliate
             TaskTarget = attacker.info.entityId;
-            Recognition.Recognizable recog = settings.recognition.Recognize(attacker);
+            Recognition.Recognizable recog = settings.Recognition.Recognize(attacker);
             if(recog.IsPredator) TaskIndex = 10u; //if predator run away
             else if(recog.IsMate) TaskIndex = 11u; //if mate fight back
             else if(recog.IsPrey) TaskIndex = 11u; //if prey fight back
-            else TaskIndex = settings.recognition.FightAggressor ? 11u : 10u; //if unknown, depends
+            else TaskIndex = settings.Recognition.FightAggressor ? 11u : 10u; //if unknown, depends
             if(TaskIndex == 11 && attacker is not IAttackable) TaskIndex = 10u;  //Don't try to attack a non-attackable entity
             pathFinder.hasPath = false;
         }
@@ -109,7 +111,7 @@ public class SkyCarnivore : Authoring
         public void ProcessFallDamage(float zVelDelta){
             if(zVelDelta <= Vitality.FallDmgThresh) return;
             float damage = zVelDelta - Vitality.FallDmgThresh;    
-            damage = math.pow(damage, settings.physicality.weight);
+            damage = math.pow(damage, settings.Physicality.weight);
             EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
         
@@ -122,16 +124,16 @@ public class SkyCarnivore : Authoring
 
         //Not thread safe
         public bool CanMateWith(Entity entity){
-            if(vitality.healthPercent < settings.physicality.MateThreshold) return false;
+            if(vitality.healthPercent < settings.Physicality.MateThreshold) return false;
             if(vitality.IsDead) return false;
             if(TaskIndex >= 9) return false;
-            return settings.recognition.CanMateWith(entity);
+            return settings.Recognition.CanMateWith(entity);
         }
         public void MateWith(Entity entity){
             if(!CanMateWith(entity)) return;
-            if(settings.recognition.MateWithEntity(entity, ref random))
-                vitality.Damage(settings.physicality.MateCost);
-            TaskDuration = settings.physicality.PregnacyLength;
+            if(settings.Recognition.MateWithEntity(entity, ref random))
+                vitality.Damage(settings.Physicality.MateCost);
+            TaskDuration = settings.Physicality.PregnacyLength;
             TaskIndex = 9;
         }
 
@@ -140,7 +142,7 @@ public class SkyCarnivore : Authoring
             controller = new AnimalController(Controller, this);
             //The seed is the entity's memory address
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
-            this.vitality = new Vitality(settings.physicality, ref random);
+            this.vitality = new Vitality(settings.Physicality, ref random);
             this.tCollider = new TerrainColliderJob(GCoord, true, ProcessFallDamage);
 
             pathFinder.hasPath = false;
@@ -152,7 +154,7 @@ public class SkyCarnivore : Authoring
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord){
             settings = (AnimalSetting)setting;
             controller = new AnimalController(Controller, this);
-            vitality.Deserialize(settings.physicality);
+            vitality.Deserialize(settings.Physicality);
             tCollider.OnHitGround = ProcessFallDamage;
             GCoord = this.GCoord;
         }
@@ -181,10 +183,10 @@ public class SkyCarnivore : Authoring
 
         //Always detect unless already running from predator
         private unsafe void DetectPredator(){
-            if(!settings.recognition.FindClosestPredator(this, out Entity predator))
+            if(!settings.Recognition.FindClosestPredator(this, out Entity predator))
                 return;
 
-            int PathDist = settings.recognition.FleeDistance;
+            int PathDist = settings.Recognition.FleeDistance;
             float3 rayDir = position - predator.position;
             byte* path = PathFinder.FindPathAlongRay(GCoord, ref rayDir, PathDist + 1, settings.flight.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
@@ -228,7 +230,7 @@ public class SkyCarnivore : Authoring
                 self.TaskDuration = self.settings.flight.AverageFlightTime * self.random.NextFloat(0f, 2f);
                 self.TaskIndex = 1;
                 return;
-            } if(self.vitality.healthPercent > self.settings.physicality.MateThreshold){
+            } if(self.vitality.healthPercent > self.settings.Physicality.MateThreshold){
                 self.TaskIndex = 7;
                 return;
             }
@@ -247,11 +249,11 @@ public class SkyCarnivore : Authoring
                 else self.TaskIndex = 2;
                 return;
             }
-            if (self.vitality.healthPercent > self.settings.physicality.MateThreshold){
+            if (self.vitality.healthPercent > self.settings.Physicality.MateThreshold){
                 self.TaskDuration = math.min(0, self.TaskDuration); //try to land to mate
                 return;
             }  
-            if(self.vitality.healthPercent < self.settings.physicality.HuntThreshold){
+            if(self.vitality.healthPercent < self.settings.Physicality.HuntThreshold){
                 self.TaskIndex = 4;
                 return;
             }
@@ -287,7 +289,7 @@ public class SkyCarnivore : Authoring
         private static unsafe void FindPrey(Animal self){
             self.tCollider.useGravity = false;
             //Use mate threshold not hunt because the entity may lose the target while eating
-            if(!self.settings.recognition.FindPreferredPrey(self, out Entity prey)){
+            if(!self.settings.Recognition.FindPreferredPrey(self, out Entity prey)){
                 self.TaskIndex = 2;
                 self.RandomFly();
                 return;   
@@ -300,7 +302,7 @@ public class SkyCarnivore : Authoring
             self.TaskIndex = 5;
 
             //If it can't get to the prey and is currently at the closest position it can be
-            if(math.all(self.pathFinder.destination == self.GCoord) && math.distance(prey.position, self.position) > self.settings.physicality.AttackDistance){
+            if(math.all(self.pathFinder.destination == self.GCoord) && math.distance(prey.position, self.position) > self.settings.Physicality.AttackDistance){
                 self.TaskIndex = 2;
                 self.RandomFly();
             } 
@@ -309,14 +311,14 @@ public class SkyCarnivore : Authoring
         //Task 5 - Chase Prey
         private static unsafe void ChasePrey(Animal self){
             self.tCollider.useGravity = false;
-            if(!self.settings.recognition.FindPreferredPrey(self, out Entity prey)){
+            if(!self.settings.Recognition.FindPreferredPrey(self, out Entity prey)){
                 self.TaskIndex = 4;
                 return;
             }
             Movement.FollowDynamicPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, prey.origin,
             self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
             float preyDist = math.distance(self.position, prey.position);
-            if(preyDist < self.settings.physicality.AttackDistance) {
+            if(preyDist < self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 6;
                 return;
             } if(!self.pathFinder.hasPath) {
@@ -329,9 +331,9 @@ public class SkyCarnivore : Authoring
         private static void Attack(Animal self){
             self.tCollider.useGravity = false;
             self.TaskIndex = 4;
-            if(!self.settings.recognition.FindPreferredPrey(self, out Entity prey)) return;
+            if(!self.settings.Recognition.FindPreferredPrey(self, out Entity prey)) return;
             float preyDist = math.distance(self.position, prey.position);
-            if(preyDist > self.settings.physicality.AttackDistance) return;
+            if(preyDist > self.settings.Physicality.AttackDistance) return;
             if(prey is not IAttackable) return;
             self.TaskIndex = 6;
 
@@ -342,8 +344,8 @@ public class SkyCarnivore : Authoring
             IAttackable target = (IAttackable)prey;
             if(target.IsDead) {
                 EntityManager.AddHandlerEvent(() => {
-                WorldConfig.Generation.Item.IItem item = target.Collect(self.settings.physicality.ConsumptionRate);
-                if(item != null && self.settings.recognition.CanConsume(item, out float nutrition)){
+                WorldConfig.Generation.Item.IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
+                if(item != null && self.settings.Recognition.CanConsume(item, out float nutrition)){
                     self.vitality.Heal(nutrition);  
                 } if(self.vitality.healthPercent >= 1){
                     self.TaskIndex = 1;
@@ -369,11 +371,11 @@ public class SkyCarnivore : Authoring
         //Task 7
         private static unsafe void FindMate(Animal self){
             self.tCollider.useGravity = true;
-            if(self.vitality.healthPercent < self.settings.physicality.MateThreshold){
+            if(self.vitality.healthPercent < self.settings.Physicality.MateThreshold){
                 self.TaskIndex = 0;
                 return;
             }
-            if(!self.settings.recognition.FindPreferredMate(self, out Entity mate)){
+            if(!self.settings.Recognition.FindPreferredMate(self, out Entity mate)){
                 self.RandomWalk();
                 return;   
             }
@@ -387,7 +389,7 @@ public class SkyCarnivore : Authoring
         //Task 8
         private static unsafe void ChaseMate(Animal self){//I feel you man
             self.tCollider.useGravity = true;
-            if(!self.settings.recognition.FindPreferredMate(self, out Entity mate)){
+            if(!self.settings.Recognition.FindPreferredMate(self, out Entity mate)){
                 self.TaskIndex = 7;
                 return;
             }
@@ -395,7 +397,7 @@ public class SkyCarnivore : Authoring
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, mate.origin,
             self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration);
             float mateDist = math.distance(self.position, mate.position);
-            if(mateDist < self.settings.physicality.AttackDistance) {
+            if(mateDist < self.settings.Physicality.AttackDistance) {
                 EntityManager.AddHandlerEvent(() => (mate as IMateable).MateWith(self));
                 self.MateWith(mate);
                 return;
@@ -419,7 +421,7 @@ public class SkyCarnivore : Authoring
             self.tCollider.useGravity = false;
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) self.TaskTarget = Guid.Empty;
-            else if(math.distance(self.position, target.position) > self.settings.recognition.SightDistance)
+            else if(math.distance(self.position, target.position) > self.settings.Recognition.SightDistance)
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.TaskIndex = 1;
@@ -427,7 +429,7 @@ public class SkyCarnivore : Authoring
             }
 
             if(!self.pathFinder.hasPath) {
-                int PathDist = self.settings.recognition.FleeDistance;
+                int PathDist = self.settings.Recognition.FleeDistance;
                 float3 rayDir = self.position - target.position;
                 byte* path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
@@ -442,7 +444,7 @@ public class SkyCarnivore : Authoring
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) 
                 self.TaskTarget = Guid.Empty;
-            else if(math.distance(self.position, target.position) > self.settings.recognition.SightDistance)
+            else if(math.distance(self.position, target.position) > self.settings.Recognition.SightDistance)
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.TaskIndex = 1;
@@ -457,7 +459,7 @@ public class SkyCarnivore : Authoring
             } 
             Movement.FollowDynamicPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, target.position,
             self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
-            if(math.distance(self.position, target.position) < self.settings.physicality.AttackDistance) {
+            if(math.distance(self.position, target.position) < self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 12;
                 return;
             }
@@ -476,7 +478,7 @@ public class SkyCarnivore : Authoring
                 return;
             }
             float targetDist = math.distance(tEntity.position, self.position);
-            if(targetDist > self.settings.physicality.AttackDistance) {
+            if(targetDist > self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 11;
                 return;
             }

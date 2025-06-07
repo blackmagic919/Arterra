@@ -12,14 +12,21 @@ using WorldConfig;
 public class Category<T> : ScriptableObject where T : Category<T>{
     public string Name;
     protected virtual Option<List<Option<Category<T> > > >? GetChildren() => null;
-    public virtual void AddChildren(ref List<T> list){
+    protected virtual void SetChildren(Option<List<Option<Category<T>>>> value){}
+
+    public virtual void AddChildren(ref List<T> list)
+    {
         list ??= new List<T>();
         var children = GetChildren()?.value;
-        if(children == null) {
+        //If children is null, then it is the leaf type being contained
+        if (children == null)
+        {
             list.Add((T)this);
             return;
-        } foreach (var pair in children) {
-            if(pair.value != null) pair.value.AddChildren(ref list);
+        }
+        foreach (var pair in children)
+        {
+            if (pair.value != null) pair.value.AddChildren(ref list);
         }
     }
 }

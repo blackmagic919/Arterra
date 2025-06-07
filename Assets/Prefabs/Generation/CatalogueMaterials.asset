@@ -16,7 +16,6 @@ MonoBehaviour:
   Children:
     value:
     - value: {fileID: 11400000, guid: 2a37c22a11b7a406da4fbaf59dceb18b, type: 2}
-    - value: {fileID: 11400000, guid: fdee68429400b4b5abd29d968d298d3d, type: 2}
     - value: {fileID: 11400000, guid: db0066818616147b9bd124a81c0ff506, type: 2}
     - value: {fileID: 11400000, guid: 32f8aefaf1a274a97a58c68cdcc6c600, type: 2}
     - value: {fileID: 11400000, guid: cc518bf484c014189af0984e24ba783b, type: 2}
@@ -31,6 +30,7 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: a549dc98ff67b49aaac7fd0c59f51234, type: 2}
     - value: {fileID: 11400000, guid: b04a7904e687b4c758cd8ecaf397bfde, type: 2}
     - value: {fileID: 11400000, guid: c1c364aa971c94d9da804acddfd3e37d, type: 2}
+    - value: {fileID: 11400000, guid: fdee68429400b4b5abd29d968d298d3d, type: 2}
     - value: {fileID: 11400000, guid: c42336a9130a340a895ffef851581929, type: 2}
     - value: {fileID: 11400000, guid: 77dcf9a30be1942cdbd95c72546bb3a2, type: 2}
     - value: {fileID: 11400000, guid: 648f75c635cbb4686a0e32aae0a17df7, type: 2}

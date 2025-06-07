@@ -74,51 +74,53 @@ MonoBehaviour:
         SwimDist: 4
         MaxSwarmSize: 10
       recognition:
-        Predators:
-          value:
-          - Cod
-        Mates:
-          value:
-          - MateType: Krill
-            ChildType: Krill
-            AmountPerParent: 0.8
-        Edibles:
-          value:
-          - EdibleType: Moss:Solid
-            Nutrition: 0.05
-          - EdibleType: SaturatedWater:Liquid
-            Nutrition: 0.03
-        SightDistance: 16
-        FleeDistance: 5
-        FightAggressor: 0
-        PlantFindDist: 5
-        Prey:
-          value:
-          - Material: Moss
-            Bounds:
-              data: 4286643968
-            Replacement: Dirt
-            ReplaceState: 0
-          - Material: SaturatedWater
-            Bounds:
-              data: 4278255488
-            Replacement: Water
-            ReplaceState: 1
+        value:
+          Predators:
+            value:
+            - Cod
+          Mates:
+            value:
+            - MateType: Krill
+              ChildType: Krill
+              AmountPerParent: 0.8
+          Edibles:
+            value:
+            - EdibleType: Moss:Solid
+              Nutrition: 0.05
+            - EdibleType: SaturatedWater:Liquid
+              Nutrition: 0.03
+          SightDistance: 16
+          FleeDistance: 5
+          FightAggressor: 0
+          PlantFindDist: 5
+          Prey:
+            value:
+            - Material: Moss
+              Bounds:
+                data: 4286643968
+              Replacement: Dirt
+              ReplaceState: 0
+            - Material: SaturatedWater
+              Bounds:
+                data: 4278255488
+              Replacement: Water
+              ReplaceState: 1
       physicality:
-        MaxHealth: 2
-        NaturalRegen: -0.002
-        AttackDistance: 3
-        AttackDamage: 0.1
-        AttackCooldown: 0.5
-        KBStrength: 0.1
-        InvincTime: 0.25
-        HoldBreathTime: 15
-        HuntThreshold: 0.4
-        MateThreshold: 0.8
-        PregnacyLength: 4
-        ConsumptionRate: 0.25
-        MateCost: 0.5
-        weight: 0.1
+        value:
+          MaxHealth: 2
+          NaturalRegen: -0.002
+          AttackDistance: 3
+          AttackDamage: 0.1
+          AttackCooldown: 0.5
+          KBStrength: 0.1
+          InvincTime: 0.25
+          HoldBreathTime: 15
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 4
+          ConsumptionRate: 0.25
+          MateCost: 0.5
+          weight: 0.1
       aquatic:
         DrownTime: Infinity
         SurfaceThreshold: 0

@@ -9,6 +9,7 @@ using WorldConfig.Generation.Material;
 [CreateAssetMenu(menuName = "Generation/MaterialData/Category")]
 public class MaterialCategory : Category<MaterialData>
 {
-    public Option<List<Option<Category<MaterialData> > > > Children;
-    public override Option<List<Option<Category<MaterialData> > > >? GetChildren() => Children;
+    public Option<List<Option<Category<MaterialData>>>> Children;
+    protected override Option<List<Option<Category<MaterialData>>>>? GetChildren() => Children;
+    protected override void SetChildren(Option<List<Option<Category<MaterialData>>>> value) => Children = value;
 }

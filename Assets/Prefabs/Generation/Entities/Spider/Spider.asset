@@ -63,39 +63,41 @@ MonoBehaviour:
         pathDistance: 24
         AverageIdleTime: 2.5
       recognition:
-        Predators:
-          value:
-          - Bat
-        Mates:
-          value:
-          - MateType: Spider
-            ChildType: Spider
-            AmountPerParent: 0.5
-        Edibles:
-          value:
-          - EdibleType: Meat
-            Nutrition: 0.6
-        SightDistance: 24
-        FleeDistance: 5
-        FightAggressor: 1
-        Prey:
-          value:
-          - Beetle
+        value:
+          Predators:
+            value:
+            - Bat
+          Mates:
+            value:
+            - MateType: Spider
+              ChildType: Spider
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Meat
+              Nutrition: 0.6
+          SightDistance: 24
+          FleeDistance: 5
+          FightAggressor: 1
+          Prey:
+            value:
+            - Beetle
       physicality:
-        MaxHealth: 3
-        NaturalRegen: -0.002
-        AttackDistance: 3
-        AttackDamage: 0.5
-        AttackCooldown: 1
-        KBStrength: 2
-        InvincTime: 0.25
-        HoldBreathTime: 10
-        HuntThreshold: 0.4
-        MateThreshold: 0.8
-        PregnacyLength: 4
-        ConsumptionRate: 0.05
-        MateCost: 0.75
-        weight: 0.1
+        value:
+          MaxHealth: 3
+          NaturalRegen: -0.002
+          AttackDistance: 3
+          AttackDamage: 0.5
+          AttackCooldown: 1
+          KBStrength: 2
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 4
+          ConsumptionRate: 0.05
+          MateCost: 0.75
+          weight: 0.1
       decomposition:
         LootTable:
           value:

@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: CoalOreT
   m_EditorClassIdentifier: 
   Name: CoalOre
-  self: {fileID: 21300000, guid: 54ad90182f26c4c81b98af73919f0c53, type: 3}
+  self: {fileID: 21300000, guid: 3cbcd88d80dc646698d92e8d0208e1a9, type: 3}

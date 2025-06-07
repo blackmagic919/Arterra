@@ -125,44 +125,46 @@ MonoBehaviour:
         PathDist: 5
         MaxSwarmSize: 8
       recognition:
-        Predators:
-          value:
-          - Hawk
-        Mates:
-          value:
-          - MateType: Sparrow
-            ChildType: Sparrow
-            AmountPerParent: 0.5
-        Edibles:
-          value:
-          - EdibleType: Grass:Solid
-            Nutrition: 0.05
-        SightDistance: 20
-        FleeDistance: 5
-        FightAggressor: 0
-        PlantFindDist: 5
-        Prey:
-          value:
-          - Material: Grass
-            Bounds:
-              data: 4286643968
-            Replacement: Dirt
-            ReplaceState: 0
+        value:
+          Predators:
+            value:
+            - Hawk
+          Mates:
+            value:
+            - MateType: Sparrow
+              ChildType: Sparrow
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Grass:Solid
+              Nutrition: 0.05
+          SightDistance: 20
+          FleeDistance: 5
+          FightAggressor: 0
+          PlantFindDist: 5
+          Prey:
+            value:
+            - Material: Grass
+              Bounds:
+                data: 4286643968
+              Replacement: Dirt
+              ReplaceState: 0
       physicality:
-        MaxHealth: 4
-        NaturalRegen: -0.005
-        AttackDistance: 2
-        AttackDamage: 1
-        AttackCooldown: 1
-        KBStrength: 1
-        InvincTime: 0.25
-        HoldBreathTime: 10
-        HuntThreshold: 0.4
-        MateThreshold: 0.8
-        PregnacyLength: 4
-        ConsumptionRate: 0.25
-        MateCost: 1
-        weight: 0.25
+        value:
+          MaxHealth: 4
+          NaturalRegen: -0.005
+          AttackDistance: 2
+          AttackDamage: 1
+          AttackCooldown: 1
+          KBStrength: 1
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 4
+          ConsumptionRate: 0.25
+          MateCost: 1
+          weight: 0.25
       decomposition:
         LootTable:
           value:

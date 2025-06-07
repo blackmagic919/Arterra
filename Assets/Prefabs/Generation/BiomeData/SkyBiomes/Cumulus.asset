@@ -14,45 +14,46 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Cumulus
   info:
-    NameRegister:
-      value:
-      - Water
-      - Air
-      - Cloud
-    GroundMaterials:
-      value:
-      - value:
-          Material: 0
-          genSize: 0.21
-          genShape: 0.541
-          frequency: 0
-          height: 0
-    SurfaceMaterials:
-      value:
-      - value:
-          Material: 1
-          genSize: 0.65
-          genShape: 0.5
-          frequency: 2
-          height: 0
-      - value:
-          Material: 2
-          genSize: 0.9
-          genShape: 0.1
-          frequency: 0.95
-          height: 0
-    LiquidMaterials:
-      value:
-      - value:
-          Material: 0
-          genSize: 0
-          genShape: 0
-          frequency: 1
-          height: 0
-    Structures:
-      value: []
-    Entities:
-      value: []
+    value:
+      NameRegister:
+        value:
+        - Water
+        - Air
+        - Cloud
+      GroundMaterials:
+        value:
+        - value:
+            Material: 0
+            genSize: 0.21
+            genShape: 0.541
+            frequency: 0
+            height: 0
+      SurfaceMaterials:
+        value:
+        - value:
+            Material: 1
+            genSize: 0.65
+            genShape: 0.5
+            frequency: 2
+            height: 0
+        - value:
+            Material: 2
+            genSize: 0.9
+            genShape: 0.1
+            frequency: 0.95
+            height: 0
+      LiquidMaterials:
+        value:
+        - value:
+            Material: 0
+            genSize: 0
+            genShape: 0
+            frequency: 1
+            height: 0
+      Structures:
+        value: []
+      Entities:
+        value: []
   BiomeConditions:
     value:
       CaveFreqStart: 0

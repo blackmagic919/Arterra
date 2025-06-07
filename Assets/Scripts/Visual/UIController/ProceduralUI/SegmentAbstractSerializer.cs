@@ -9,9 +9,9 @@ using static SegmentedUIEditor;
 
 public class SegmentAbstractSerializer : IConverter
 {
-    public bool CanConvert(Type obj)
+    public bool CanConvert(Type iType, Type fType)
     {
-        return obj.IsAbstract || obj.IsInterface;
+        return iType != fType;
     }
 
     //Type is the abstract type's type, value is the object, OnUpdate is the callback to parent

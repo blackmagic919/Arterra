@@ -121,39 +121,41 @@ MonoBehaviour:
         FlyBiasWeight: 0.25
         VerticalFreedom: 0.5
       recognition:
-        Predators:
-          value: []
-        Mates:
-          value:
-          - MateType: Hawk
-            ChildType: Hawk
-            AmountPerParent: 0.5
-        Edibles:
-          value:
-          - EdibleType: Meat
-            Nutrition: 0.2
-        SightDistance: 30
-        FleeDistance: 5
-        FightAggressor: 1
-        Prey:
-          value:
-          - Sparrow
-          - Rabbit
+        value:
+          Predators:
+            value: []
+          Mates:
+            value:
+            - MateType: Hawk
+              ChildType: Hawk
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Meat
+              Nutrition: 0.2
+          SightDistance: 30
+          FleeDistance: 5
+          FightAggressor: 1
+          Prey:
+            value:
+            - Sparrow
+            - Rabbit
       physicality:
-        MaxHealth: 12
-        NaturalRegen: -0.01
-        AttackDistance: 3
-        AttackDamage: 4
-        AttackCooldown: 0.75
-        KBStrength: 1
-        InvincTime: 0.25
-        HoldBreathTime: 10
-        HuntThreshold: 0.4
-        MateThreshold: 0.8
-        PregnacyLength: 4
-        ConsumptionRate: 0.05
-        MateCost: 4
-        weight: 0.25
+        value:
+          MaxHealth: 12
+          NaturalRegen: -0.01
+          AttackDistance: 3
+          AttackDamage: 4
+          AttackCooldown: 0.75
+          KBStrength: 1
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 4
+          ConsumptionRate: 0.05
+          MateCost: 4
+          weight: 0.25
       decomposition:
         LootTable:
           value:

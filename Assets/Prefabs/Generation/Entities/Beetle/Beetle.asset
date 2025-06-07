@@ -63,52 +63,54 @@ MonoBehaviour:
         pathDistance: 24
         AverageIdleTime: 2.5
       recognition:
-        Predators:
-          value:
-          - Spider
-          - Bat
-        Mates:
-          value:
-          - MateType: Beetle
-            ChildType: Beetle
-            AmountPerParent: 0.5
-        Edibles:
-          value:
-          - EdibleType: Moss:Solid
-            Nutrition: 0.05
-          - EdibleType: Grass:Solid
-            Nutrition: 0.05
-        SightDistance: 12
-        FleeDistance: 5
-        FightAggressor: 0
-        PlantFindDist: 3
-        Prey:
-          value:
-          - Material: Moss
-            Bounds:
-              data: 4286643968
-            Replacement: Dirt
-            ReplaceState: 0
-          - Material: Grass
-            Bounds:
-              data: 4286643968
-            Replacement: Dirt
-            ReplaceState: 0
+        value:
+          Predators:
+            value:
+            - Spider
+            - Bat
+          Mates:
+            value:
+            - MateType: Beetle
+              ChildType: Beetle
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Moss:Solid
+              Nutrition: 0.05
+            - EdibleType: Grass:Solid
+              Nutrition: 0.05
+          SightDistance: 12
+          FleeDistance: 5
+          FightAggressor: 0
+          PlantFindDist: 3
+          Prey:
+            value:
+            - Material: Moss
+              Bounds:
+                data: 4286643968
+              Replacement: Dirt
+              ReplaceState: 0
+            - Material: Grass
+              Bounds:
+                data: 4286643968
+              Replacement: Dirt
+              ReplaceState: 0
       physicality:
-        MaxHealth: 2
-        NaturalRegen: -0.002
-        AttackDistance: 3
-        AttackDamage: 0.2
-        AttackCooldown: 1
-        KBStrength: 0.1
-        InvincTime: 0.25
-        HoldBreathTime: 10
-        HuntThreshold: 0.4
-        MateThreshold: 0.8
-        PregnacyLength: 4
-        ConsumptionRate: 0.25
-        MateCost: 0.5
-        weight: 0.1
+        value:
+          MaxHealth: 2
+          NaturalRegen: -0.002
+          AttackDistance: 3
+          AttackDamage: 0.2
+          AttackCooldown: 1
+          KBStrength: 0.1
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 4
+          ConsumptionRate: 0.25
+          MateCost: 0.5
+          weight: 0.1
       decomposition:
         LootTable:
           value:
