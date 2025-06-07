@@ -10,5 +10,5 @@ using WorldConfig.Generation.Material;
 public class MaterialCategory : Category<MaterialData>
 {
     public Option<List<Option<Category<MaterialData> > > > Children;
-    protected override Option<List<Option<Category<MaterialData> > > >? GetChildren() => Children;
+    public override Option<List<Option<Category<MaterialData> > > >? GetChildren() => Children;
 }
