@@ -328,7 +328,7 @@ public static class EntityManager
 
         public void Insert(Entity entity){
             float3 colliderSize = Config.CURRENT.Generation.Entities.Retrieve((int)entity.info.entityType).Setting.collider.size;
-            Bounds eEBounds = new (entity.position + colliderSize / 2, colliderSize);
+            Bounds eEBounds = new (entity.position, colliderSize);
             Insert(eEBounds, entity.info.entityId);
         }
         private void Insert(Bounds bounds, Guid eId){
@@ -469,7 +469,7 @@ public static class EntityManager
             void OnFoundEntity(Entity entity){
                 if(entity.info.entityId == callerId) return; //Ignore the caller
                 float3 colliderSize = Config.CURRENT.Generation.Entities.Retrieve((int)entity.info.entityType).Setting.collider.size;
-                Bounds bounds = new Bounds(entity.position + colliderSize/2, colliderSize);
+                Bounds bounds = new Bounds(entity.position, colliderSize);
                 bounds.IntersectRay(viewRay, out float dist);
                 if(dist <= cDist){
                     cEntity = entity;

@@ -100,6 +100,7 @@ public class Info
     /// <see cref="GroundMaterials"/> or <see cref="SurfaceMaterials"/>. </param>
     /// <returns>An ordered collection of the recoupled with the external <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry</returns>
     public IEnumerable<BMaterial> MaterialSerial(List<Option<BMaterial> > Materials){
+        if(Materials == null) return null;
         Registry<Material.MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         return Materials.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Material])));
     }

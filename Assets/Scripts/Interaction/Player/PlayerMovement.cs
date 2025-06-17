@@ -195,10 +195,10 @@ public static class SwimMovement{
         InputPoller.AddKeyBindChange(() => {
             KeyBinds = InputPoller.KeyBindSaver.Rent(2);
             KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Ascend", (_null_) => {
-                if(velocity.y < MoveSpeed) velocity.y += Setting.acceleration * Time.deltaTime * Setting.flightSpeedMultiplier;
+                if(velocity.y < MoveSpeed) velocity.y += Setting.acceleration * Time.deltaTime;
             }), "4.0::Movement");
             KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Descend", (_null_) => {
-                if(velocity.y > -MoveSpeed) velocity.y -= Setting.acceleration * Time.deltaTime * Setting.flightSpeedMultiplier;
+                if(velocity.y > -MoveSpeed) velocity.y -= Setting.acceleration * Time.deltaTime;
             }), "4.0::Movement");
         });
     }
@@ -216,7 +216,7 @@ public static class SwimMovement{
 
     public static void Update(){
         float3 desiredMove = ((float3)(PlayerHandler.camera.forward*PlayerMovement.InputDir.y + PlayerHandler.camera.right*PlayerMovement.InputDir.x));
-        float3 deltaV = Setting.acceleration * Time.deltaTime * desiredMove *  Setting.flightSpeedMultiplier;
+        float3 deltaV = Setting.acceleration * Time.deltaTime * desiredMove;
 
         velocity.y *= 1 - PlayerHandler.data.settings.collider.friction;
         if(PlayerMovement.IsSprinting && math.length(velocity) < MoveSpeed) velocity += deltaV;

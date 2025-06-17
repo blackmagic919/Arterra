@@ -31,7 +31,7 @@ Shader "Unlit/Snow"
             #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
             
             struct DrawTriangle{
-                uint2 vertex[3];
+                uint3 vertex[3];
             };
             
             
@@ -98,9 +98,9 @@ Shader "Unlit/Snow"
 
                 uint triAddress = vertexID / 3 + _AddressDict[addressIndex].y;
                 uint vertexIndex = vertexID % 3;
-                uint2 input = _StorageMemory[triAddress].vertex[vertexIndex];  
+                uint3 input = _StorageMemory[triAddress].vertex[vertexIndex];  
                 VertexInfo v = UnpackVertex(input);
-                float snowHeight = (uint)((input.x >> 28) & 0xF) / 15.0f;
+                float snowHeight = (uint)((input.z >> 24) & 0xFF) / 255.0f;
                 snowHeight *= _OffsetHeight;
                 
                 float3 positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
@@ -108,7 +108,7 @@ Shader "Unlit/Snow"
                 
                 float2 snowUV = TRANSFORM_TEX(mapCoordinates(positionWS), _OffsetTexture);
                 float snowNoise = SAMPLE_TEXTURE2D_LOD(_OffsetTexture, sampler_OffsetTexture, snowUV, 0).r * 2 - 1;
-                snowHeight += snowNoise  * snowHeight;
+                snowHeight += snowNoise * snowHeight;
                 
                 output.positionWS = positionWS + normalWS * snowHeight;
                 output.normalWS = normalWS;
@@ -132,7 +132,6 @@ Shader "Unlit/Snow"
                 InputData lightingInput = (InputData)0;
                 lightingInput.positionWS = IN.positionWS;
                 lightingInput.normalWS = NormalizeNormalPerPixel(normal); // Renormalize the normal to reduce interpolation errors
-                lightingInput.shadowCoord = TransformWorldToShadowCoord(IN.positionWS); // Calculate the shadow map coord
 
                 SurfaceData surfaceInput = (SurfaceData)0;
                 surfaceInput.albedo = albedo;

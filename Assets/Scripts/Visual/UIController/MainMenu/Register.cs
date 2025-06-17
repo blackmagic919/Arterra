@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 using WorldConfig;
+using WorldConfig.Quality;
 
 //Curiously recurring template pattern!!
 [Serializable]
@@ -36,11 +37,11 @@ public struct Registry<T> : IRegister, ICloneable where T : Category<T>
 {
     public Option<Category<T>> Category;
     [HideInInspector]
-    [UISetting(Ignore = true)]
+    [UISetting(Ignore = true, Defaulting = true)]
     [JsonIgnore]
     public List<T> Reg;
     [HideInInspector]
-    [UISetting(Ignore = true)]
+    [UISetting(Ignore = true, Defaulting = true)]
     [JsonIgnore]
     private Dictionary<string, int> Index;
 
@@ -265,8 +266,14 @@ public interface IRegister
         Config.CURRENT.Generation.Structures.value.StructureDictionary.Construct();
         Config.CURRENT.Generation.Materials.value.MaterialDictionary.Construct();
         Config.CURRENT.Generation.Items.Construct();
-        Config.CURRENT.Quality.GeoShaders.Construct();
         Config.CURRENT.System.Crafting.value.Recipes.Construct();
+        Config.CURRENT.Quality.GeoShaders.Construct();
+
+        foreach (GeoShader shader in Config.CURRENT.Quality.GeoShaders.Reg){
+            IRegister reg = shader.GetRegistry();
+            if (reg == null) continue;
+            reg.Construct(); shader.SetRegistry(reg);
+        }
     }
 }
 

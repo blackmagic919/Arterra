@@ -163,6 +163,7 @@ public class SurfaceCarnivore : Authoring
             OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
             OnInGas: vitality.ProcessInGas);
+            if (!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
             
             vitality.Update();
             TaskRegistry[(int)TaskIndex].Invoke(this);
@@ -233,7 +234,7 @@ public class SurfaceCarnivore : Authoring
             self.TaskIndex = 4;
 
             //If it can't get to the prey and is currently at the closest position it can be
-            if(math.all(self.pathFinder.destination == self.GCoord) && math.distance(prey.position, self.position) > self.settings.Physicality.AttackDistance) 
+            if(math.all(self.pathFinder.destination == self.GCoord) && Recognition.GetColliderDist(prey, self) > self.settings.Physicality.AttackDistance) 
                 self.TaskIndex = 1;
         }
 
@@ -245,7 +246,7 @@ public class SurfaceCarnivore : Authoring
             }
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, prey.origin,
             self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration);
-            float preyDist = math.distance(self.position, prey.position);
+            float preyDist = Recognition.GetColliderDist(self, prey);
             if(preyDist < self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 5;
                 return;
@@ -259,7 +260,7 @@ public class SurfaceCarnivore : Authoring
         private static void Attack(Animal self){
             self.TaskIndex = 3;
             if(!self.settings.Recognition.FindPreferredPrey(self, out Entity prey)) return;
-            float preyDist = math.distance(self.position, prey.position);
+            float preyDist = Recognition.GetColliderDist(self, prey);
             if(preyDist > self.settings.Physicality.AttackDistance) return;
             if(prey is not IAttackable) return;
             self.TaskIndex = 5;
@@ -302,7 +303,7 @@ public class SurfaceCarnivore : Authoring
 
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, mate.origin,
             self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration);
-            float mateDist = math.distance(self.position, mate.position);
+            float mateDist = Recognition.GetColliderDist(self, mate);
             if(mateDist < self.settings.Physicality.AttackDistance) {
                 EntityManager.AddHandlerEvent(() => (mate as IMateable).MateWith(self));
                 self.MateWith(mate);
@@ -325,7 +326,7 @@ public class SurfaceCarnivore : Authoring
         private static unsafe void RunFromTarget(Animal self){
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) self.TaskTarget = Guid.Empty;
-            else if(math.distance(self.position, target.position) > self.settings.Recognition.SightDistance)
+            else if(Recognition.GetColliderDist(self, target) > self.settings.Recognition.SightDistance)
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.TaskIndex = 0;
@@ -347,7 +348,7 @@ public class SurfaceCarnivore : Authoring
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) 
                 self.TaskTarget = Guid.Empty;
-            else if(math.distance(self.position, target.position) > self.settings.Recognition.SightDistance)
+            else if(Recognition.GetColliderDist(self, target) > self.settings.Recognition.SightDistance)
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.TaskIndex = 0;
@@ -362,7 +363,7 @@ public class SurfaceCarnivore : Authoring
             } 
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, target.origin,
             self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration);
-            if(math.distance(self.position, target.position) < self.settings.Physicality.AttackDistance) {
+            if(Recognition.GetColliderDist(self, target) < self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 11;
                 return;
             }
@@ -380,7 +381,7 @@ public class SurfaceCarnivore : Authoring
                 return;
             }
 
-            float targetDist = math.distance(tEntity.position, self.position);
+            float targetDist = Recognition.GetColliderDist(tEntity, self);
             if(targetDist > self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 10;
                 return;

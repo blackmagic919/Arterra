@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35b248a6feb384006b8d260b15609721, type: 3}
+  m_Name: CatalogueShell
+  m_EditorClassIdentifier: 
+  Name: Root
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 748d3ee81b1a74398b39f0d98e4fd4ca, type: 2}
+    - value: {fileID: 11400000, guid: a99a3b52273a44bf38315a596f3880af, type: 2}

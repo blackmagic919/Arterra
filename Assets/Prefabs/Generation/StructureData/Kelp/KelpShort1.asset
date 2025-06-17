@@ -1,0 +1,130 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0ed4b06c60c74eb3a1638cff170e3f8, type: 3}
+  m_Name: KelpShort1
+  m_EditorClassIdentifier: 
+  Name: KelpShort1
+  settings:
+    value:
+      GridSize:
+        x: 2
+        y: 20
+        z: 2
+      minimumLOD: 0
+      randThetaRot: 1
+      randPhiRot: 0
+  map:
+    value:
+    - data: 0
+    - data: 0
+    - data: 110768
+    - data: 0
+    - data: 110768
+    - data: 110768
+    - data: 0
+    - data: 110768
+    - data: 0
+    - data: 0
+    - data: 110768
+    - data: 0
+    - data: 110768
+    - data: 110768
+    - data: 0
+    - data: 110768
+    - data: 0
+    - data: 0
+    - data: 110768
+    - data: 0
+    - data: 110768
+    - data: 110768
+    - data: 0
+    - data: 110768
+    - data: 0
+    - data: 0
+    - data: 110768
+    - data: 0
+    - data: 110768
+    - data: 110768
+    - data: 0
+    - data: 110768
+    - data: 0
+    - data: 0
+    - data: 110768
+    - data: 0
+    - data: 110768
+    - data: 110768
+    - data: 0
+    - data: 110768
+    - data: 110768
+    - data: 110768
+    - data: 110768
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 110768
+    - data: 110768
+    - data: 110768
+    - data: 110768
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 110768
+    - data: 110768
+    - data: 110768
+    - data: 110768
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 110768
+    - data: 110768
+    - data: 110768
+    - data: 110768
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 110768
+    - data: 110768
+    - data: 110768
+    - data: 110768
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+  checks:
+    value:
+    - position:
+        x: 0
+        y: 1
+        z: 0
+      checkInfo:
+        data: 4286643968
+    - position:
+        x: 0
+        y: 5
+        z: 0
+      checkInfo:
+        data: 2130771712
+    - position:
+        x: 0
+        y: 22
+        z: 0
+      checkInfo:
+        data: 2130771712
+  Materials:
+    value:
+    - Air
+    - Kelp

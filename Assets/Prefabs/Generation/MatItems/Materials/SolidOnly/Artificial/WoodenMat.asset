@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb5ab28ebaf0240359baf1d92ea3df1e, type: 3}
+  m_Name: WoodenMat
+  m_EditorClassIdentifier: 
+  Name: C:Wood
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: d0db97a90a909415db01656599be5d42, type: 2}
+    - value: {fileID: 11400000, guid: f685fed15df9a42eebfdf7102d8ab63d, type: 2}
+    - value: {fileID: 11400000, guid: b04a7904e687b4c758cd8ecaf397bfde, type: 2}

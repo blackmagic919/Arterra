@@ -50,6 +50,10 @@ MonoBehaviour:
             genShape: 0
             frequency: 1
             height: 0
+      Structures:
+        value: []
+      Entities:
+        value: []
   BiomeConditions:
     value:
       CaveFreqStart: 0

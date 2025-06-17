@@ -2640,5 +2640,5 @@ MonoBehaviour:
     value:
     - Air
     - Wood
-    - Leaf
+    - OakLeaf
     - Grass

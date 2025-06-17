@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4bcffb4d9d8c4ecc8408d8a7953c9ce, type: 3}
   m_Name: Shark
   m_EditorClassIdentifier: 
-  Name: Cod
+  Name: Shark
   Controller:
-    value: {fileID: 1773657278825501379, guid: 47117b954db374041893bfa1025aeebe, type: 3}
+    value: {fileID: 435428154833586252, guid: 8a78362c9c1db49cb8d76cd3d9e0df5e, type: 3}
   Profile:
     value:
     - bounds:
@@ -42,69 +42,91 @@ MonoBehaviour:
         data: 2130771840
       flags: 1
     - bounds:
-        data: 2130738944
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 0
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
       flags: 1
   _Setting:
     value:
       profile:
         bounds:
-          x: 2
-          y: 2
-          z: 2
-        profileStart: 232
+          x: 3
+          y: 3
+          z: 3
+        profileStart: 250
       collider:
         size:
-          x: 0.5
-          y: 0.75
-          z: 0.5
+          x: 1
+          y: 1.5
+          z: 1
         friction: 0.25
       movement:
-        walkSpeed: 2
-        runSpeed: 4
+        walkSpeed: 3
+        runSpeed: 7
         acceleration: 100
         rotSpeed: 180
-        pathDistance: 16
+        pathDistance: 24
         AverageIdleTime: 1.5
-      recognition:
-        value:
-          Predators:
-            value: []
-          Mates:
-            value:
-            - MateType: Cod
-              ChildType: Cod
-              AmountPerParent: 0.5
-          Edibles:
-            value:
-            - EdibleType: Meat
-              Nutrition: 0.8
-          SightDistance: 16
-          FleeDistance: 5
-          FightAggressor: 0
-          Prey:
-            value:
-            - Krill
-      physicality:
-        value:
-          MaxHealth: 5
-          NaturalRegen: -0.01
-          AttackDistance: 3
-          AttackDamage: 2
-          AttackCooldown: 1
-          KBStrength: 1
-          InvincTime: 0.25
-          HoldBreathTime: 10
-          HuntThreshold: 0.4
-          MateThreshold: 0.8
-          PregnacyLength: 4
-          ConsumptionRate: 0.25
-          MateCost: 1.5
-          weight: 0.3
       decomposition:
         LootTable:
           value:
           - ItemName: Meat
-            DropAmount: 0.4
+            DropAmount: 0.8
         DecompositionTime: 200
         DecompPerLoot: 10
       aquaticBehavior:
@@ -117,4 +139,40 @@ MonoBehaviour:
             x: 1
             y: 1
             z: 1
-          profileStart: 240
+          profileStart: 277
+      physicality:
+        value:
+          MaxHealth: 25
+          NaturalRegen: -0.01
+          AttackDistance: 3
+          AttackDamage: 5
+          AttackCooldown: 1
+          KBStrength: 5
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 4
+          ConsumptionRate: 0.25
+          MateCost: 7
+          weight: 0.3
+      recognition:
+        value:
+          Predators:
+            value: []
+          Mates:
+            value:
+            - MateType: Shark
+              ChildType: Shark
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Meat
+              Nutrition: 0.4
+          SightDistance: 24
+          FleeDistance: 5
+          FightAggressor: 1
+          Prey:
+            value:
+            - Cod
+            - Player

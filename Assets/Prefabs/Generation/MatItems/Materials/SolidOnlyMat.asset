@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb5ab28ebaf0240359baf1d92ea3df1e, type: 3}
+  m_Name: SolidOnlyMat
+  m_EditorClassIdentifier: 
+  Name: C:Solid
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: c8bdc732764ee44b3b20e8f3d76461e4, type: 2}
+    - value: {fileID: 11400000, guid: d61682910c0024e41a742b1373dbf367, type: 2}

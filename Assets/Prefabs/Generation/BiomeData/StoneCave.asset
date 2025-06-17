@@ -45,7 +45,7 @@ MonoBehaviour:
             Material: 2
             genSize: 0.166
             genShape: 0.253
-            frequency: 0.4
+            frequency: 0.25
             height: 0
         - value:
             Material: 3

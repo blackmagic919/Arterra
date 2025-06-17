@@ -5,7 +5,6 @@ using Unity.Mathematics;
 using UnityEditor;
 using System.Linq;
 using Newtonsoft.Json;
-using WorldConfig;
 using Unity.Burst;
 
 namespace WorldConfig.Generation.Structure{

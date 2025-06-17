@@ -58,6 +58,7 @@ public class TerrainChunk
     protected ChunkStatus status;
     /// <summary> The depth of the chunk's neighbors. This is used to blend the chunk's mesh with its neighbors. </summary>
     protected uint neighborDepth;
+    private Mesh runtimeMesh;
     
     /// <summary>
     /// A bitmap container describing the types of requested tasks for the chunk. To request the
@@ -223,6 +224,7 @@ public class TerrainChunk
     /// additional information that needs to be released, it should override this function to release that information.
     /// </summary>
     public virtual void ReleaseChunk(){
+        ClearFilter(); //Releases Mesh Data
         Generator.GeoShaders?.ReleaseGeometry(); //Release geoShader Geometry
         Generator.MeshReadback?.ReleaseAllGeometry(); //Release base geometry on GPU
         Generator.StructCreator.ReleaseStructure(); //Release structure data
@@ -240,12 +242,22 @@ public class TerrainChunk
     }
 
     /// <summary>Overridable event when deleting CPU-cached mesh information </summary>
-    public void ClearFilter(){ meshFilter.sharedMesh = null; }
+    public void ClearFilter(){
+        
+        if (meshFilter.sharedMesh != null){
+#if UNITY_EDITOR
+            UnityEngine.Object.DestroyImmediate(meshFilter.sharedMesh);
+#else
+            UnityEngine.Object.Destroy(meshFilter.sharedMesh);
+#endif
+        } meshFilter.sharedMesh = null;
+    }
+    
     /// <summary> 
-    /// Overridable event triggered within update-loop. Primarily used to queue generation tasks
-    /// based on the chunk's status flags. Expensive operations should be queued in the <see cref="RequestQueue"/>
-    /// </summary>
-    public virtual void Update(){}
+        /// Overridable event triggered within update-loop. Primarily used to queue generation tasks
+        /// based on the chunk's status flags. Expensive operations should be queued in the <see cref="RequestQueue"/>
+        /// </summary>
+        public virtual void Update() { }
 
     private void SetupChunk(){
         RequestQueue.Enqueue(new GenTask{
@@ -279,9 +291,9 @@ public class TerrainChunk
     /// </summary> <param name="UpdateCallback">The callback function that's returned the mesh constructor once the mesh has been readback</param>
     protected virtual void CreateMesh(Action<ReadbackTask<TVert>.SharedMeshInfo> UpdateCallback = null){}
     /// <exclude />
-    protected void OnChunkCreated(ReadbackTask<TVert>.SharedMeshInfo meshInfo)
-    {
-        meshFilter.sharedMesh = meshInfo.GenerateMesh(UnityEngine.Rendering.IndexFormat.UInt32);;
+    protected void OnChunkCreated(ReadbackTask<TVert>.SharedMeshInfo meshInfo){
+        ClearFilter();
+        meshFilter.sharedMesh = meshInfo.GenerateMesh(UnityEngine.Rendering.IndexFormat.UInt32);
         meshInfo.Release();
     }
 

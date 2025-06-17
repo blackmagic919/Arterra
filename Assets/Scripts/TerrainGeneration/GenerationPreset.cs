@@ -29,6 +29,7 @@ public static class SystemProtocol{
         EntityManager.Initialize();
         TerrainUpdate.Initialize();
         LightBaker.Initialize();
+        StartupPlacer.Initialize();
 
         InputPoller.Initialize();
         PlayerHandler.Initialize();
@@ -54,6 +55,7 @@ public static class SystemProtocol{
         CPUMapManager.Release();
         EntityManager.Release();
         LightBaker.Release();
+        ShaderGenerator.Release();
         GenerationPreset.Release();
         AtmospherePass.Release();
         Readback.AsyncMeshReadback.Release();
@@ -130,10 +132,24 @@ public static class GenerationPreset
         /// <c>_MatTerrainData</c>, <c>_MatAtmosphericData</c>, <c>_MatLiquidData</c>, and <c>_Textures</c>. </summary>
         public void Initialize()
         {
+            static void SerializeGeoShader(MaterialData mat, ref MaterialData.TerrainData terr){
+                if (!terr.GeoShaderIndex.HasGeoShader) return;
+                Registry<WorldConfig.Quality.GeoShader> shaderInfo = Config.CURRENT.Quality.GeoShaders;
+                ref MaterialData.TerrainData.GeoShaderInfo info = ref terr.GeoShaderIndex;
+                string Key = mat.RetrieveKey((int)info.MajorIndex);
+                info.HasGeoShader = false; //If we fail any checks here on out, ignore this entry
+                if (!shaderInfo.Contains(Key)) return;
+
+                info.MajorIndex = (uint)shaderInfo.RetrieveIndex(Key);
+                IRegister subReg = shaderInfo.Retrieve((int)info.MajorIndex).GetRegistry();
+                Key = mat.RetrieveKey((int)info.MinorIndex);
+                if (subReg == null || !subReg.Contains(Key)) return;
+                info.MinorIndex = (uint)subReg.RetrieveIndex(Key);
+                info.HasGeoShader = true;
+            }
             Release();
             WorldConfig.Generation.Material.Generation matInfo = Config.CURRENT.Generation.Materials.value;
             Registry<TextureContainer> textureInfo = Config.CURRENT.Generation.Textures;
-            Registry<WorldConfig.Quality.GeoShader> shaderInfo = Config.CURRENT.Quality.GeoShaders;
             List<MaterialData> MaterialDictionary = matInfo.MaterialDictionary.Reg;
             MaterialData.TerrainData[] MaterialTerrain = new MaterialData.TerrainData[MaterialDictionary.Count];
 
@@ -147,8 +163,8 @@ public static class GenerationPreset
                 MaterialData.TerrainData terrain = material.terrainData;
                 string Key = material.RetrieveKey(terrain.Texture);
                 if(textureInfo.Contains(Key)) terrain.Texture = textureInfo.RetrieveIndex(Key);
-                Key = material.RetrieveKey(terrain.GeoShaderIndex);
-                if(shaderInfo.Contains(Key)) terrain.GeoShaderIndex = shaderInfo.RetrieveIndex(Key);
+                SerializeGeoShader(material, ref terrain);
+
                 MaterialTerrain[i] = terrain;
             }
 
@@ -298,16 +314,16 @@ public static class GenerationPreset
 
             for (int i = 0; i < numBiomes; i++)
             {
-                biomePrefSum[i+1, 0] = (uint)biomes[i].GroundMaterials.value?.Count + biomePrefSum[i, 2];
-                biomePrefSum[i+1, 1] = (uint)biomes[i].SurfaceMaterials.value?.Count + biomePrefSum[i + 1, 0];
-                biomePrefSum[i+1, 2] = (uint)biomes[i].LiquidMaterials.value?.Count + biomePrefSum[i + 1, 1];
-                biomePrefSum[i+1, 3] = (uint)biomes[i].Structures.value?.Count + biomePrefSum[i, 3];
-                biomePrefSum[i+1, 4] = (uint)biomes[i].Entities.value?.Count + biomePrefSum[i, 4];
+                biomePrefSum[i+1, 0] = (biomes[i].GroundMaterials.value == null ? 0 : (uint)biomes[i].GroundMaterials.value.Count) + biomePrefSum[i, 2];
+                biomePrefSum[i+1, 1] = (biomes[i].SurfaceMaterials.value == null ? 0 : (uint)biomes[i].SurfaceMaterials.value.Count) + biomePrefSum[i + 1, 0];
+                biomePrefSum[i+1, 2] = (biomes[i].LiquidMaterials.value == null ? 0 : (uint)biomes[i].LiquidMaterials.value.Count) + biomePrefSum[i + 1, 1];
+                biomePrefSum[i+1, 3] = (biomes[i].Structures.value == null ? 0 : (uint)biomes[i].Structures.value.Count) + biomePrefSum[i, 3];
+                biomePrefSum[i+1, 4] = (biomes[i].Entities.value == null ? 0 : (uint)biomes[i].Entities.value?.Count) + biomePrefSum[i, 4];
                 biomeMaterial.AddRange(biomes[i].MaterialSerial(biomes[i].GroundMaterials));
                 biomeMaterial.AddRange(biomes[i].MaterialSerial(biomes[i].SurfaceMaterials));
                 biomeMaterial.AddRange(biomes[i].MaterialSerial(biomes[i].LiquidMaterials));
-                biomeStructures.AddRange(biomes[i].StructureSerial);
-                biomeEntities.AddRange(biomes[i].EntitySerial);
+                if(biomes[i].Structures.value != null) biomeStructures.AddRange(biomes[i].StructureSerial);
+                if(biomes[i].Entities.value != null) biomeEntities.AddRange(biomes[i].EntitySerial);
             }
 
             int matStride = sizeof(int) + sizeof(float) * 4;

@@ -2,9 +2,7 @@ Shader "Unlit/Foliage"
 {
     Properties
     {
-        _LeafColor ("Leaf Color", Color) = (0, 1, 0, 1)
         _FresnelFalloff ("Highlight Falloff", float) = 0.5
-        _AlphaMap ("Alpha Map", 2D) = "white" {}
         _AlphaClip ("Clip Value", float) = 0.2
         _WindNoiseTexture("Wind Noise Texture", 2D) = "white" {} 
         _WindTimeMult("Wind Frequency", Float) = 1 

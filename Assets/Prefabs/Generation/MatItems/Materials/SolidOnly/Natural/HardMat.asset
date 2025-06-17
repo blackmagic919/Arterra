@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb5ab28ebaf0240359baf1d92ea3df1e, type: 3}
+  m_Name: HardMat
+  m_EditorClassIdentifier: 
+  Name: C:Hard
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 77dcf9a30be1942cdbd95c72546bb3a2, type: 2}
+    - value: {fileID: 11400000, guid: c42336a9130a340a895ffef851581929, type: 2}
+    - value: {fileID: 11400000, guid: 8955b69172d2b4feb98c9a2d158c442c, type: 2}
+    - value: {fileID: 11400000, guid: a379ea77d6f8543c58c09392df10b026, type: 2}

@@ -1,0 +1,34 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using WorldConfig;
+
+[CreateAssetMenu(menuName = "ShaderData/QuadShader/Setting")]
+public class QuadSetting : Category<QuadSetting>
+{
+    public static int DataSize => sizeof(float) * 6 + sizeof(int);
+    /// <summary>The registry names of all entries referencing registries within <see cref="info"/>. When an element such as
+    /// a material, structure, or entry needs to reference an entry in an external registry, they can indicate the index
+    /// within this list of the name of the entry within the registry that they are referencing. </summary>
+    public Option<List<string> > NameRegister;
+    //This is seperated so we have just the raw data independent of 
+    //anything we might have inherited and so-on
+    public Data info;
+    [Serializable]
+    public struct Data
+    {
+        [Tooltip("Size of Quad Images")]
+        public float QuadSize; //1.0f
+        [Tooltip("Distance Extruded Along Normal")]
+        public float Inflation; //0f   
+        public Color LeafColor;
+        public int TextureIndex;
+    }
+    public Data GetInfo()
+    {
+        Data serial = info;
+        Registry<TextureContainer> texReg = Config.CURRENT.Generation.Textures;
+        serial.TextureIndex = texReg.RetrieveIndex(NameRegister.value[serial.TextureIndex]);
+        return serial;
+    }
+}

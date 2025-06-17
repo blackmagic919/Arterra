@@ -4,7 +4,7 @@
 const static uint numThreads = 256;
 
 struct DrawTriangle{
-    uint2 vertices[3];
+    uint3 vertices[3];
 };
 
 StructuredBuffer<DrawTriangle> DrawTriangles;

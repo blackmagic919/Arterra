@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b92ab6716ab84e588c812f4df75143a, type: 3}
+  m_Name: SoftTexs
+  m_EditorClassIdentifier: 
+  Name: C:Soft
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: e432d726c515b4c6aa6d67d38eedc0ea, type: 2}
+    - value: {fileID: 11400000, guid: 1b8fc15cb2acc4a318160ab5cb363318, type: 2}
+    - value: {fileID: 11400000, guid: f50cc0a3095f043158321cc666e5a8ee, type: 2}
+    - value: {fileID: 11400000, guid: a6a4728a746554363b009fdcc97658c8, type: 2}
+    - value: {fileID: 11400000, guid: 91efc261d54c1460b9e7a9d88a7c1779, type: 2}

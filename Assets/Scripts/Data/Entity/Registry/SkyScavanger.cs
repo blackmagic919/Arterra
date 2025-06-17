@@ -161,23 +161,25 @@ public class SkyScavanger : Authoring
 
         public override void Update()
         {
-            if(!active) return;
+            if (!active) return;
             //use gravity if not flying
             tCollider.Update(EntityJob.cxt, settings.collider);
-            if(!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
+            if (!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
             EntityManager.AddHandlerEvent(controller.Update);
 
+            vitality.Update();
+            TaskRegistry[(int)TaskIndex].Invoke(this);
+            if (TaskIndex != 14 && vitality.IsDead)
+            {
+                TaskDuration = settings.decomposition.DecompositionTime;
+                TaskIndex = 14;
+            }
+            else if (TaskIndex <= 12) DetectPredator();
+            
             Recognition.DetectMapInteraction(position, 
             OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
             OnInGas: vitality.ProcessInGas);
-
-            vitality.Update();
-            TaskRegistry[(int)TaskIndex].Invoke(this);
-            if(TaskIndex != 14 && vitality.IsDead) {
-                TaskDuration = settings.decomposition.DecompositionTime;
-                TaskIndex = 14;
-            } else if(TaskIndex <= 12)  DetectPredator();
         }
 
         //Always detect unless already running from predator
@@ -324,7 +326,7 @@ public class SkyScavanger : Authoring
             self.TaskIndex = 5;
 
             //If it can't get to the prey and is currently at the closest position it can be
-            if(math.all(self.pathFinder.destination == self.GCoord) && math.distance(prey.position, self.position) > self.settings.Physicality.AttackDistance){
+            if(math.all(self.pathFinder.destination == self.GCoord) && Recognition.GetColliderDist(prey, self) > self.settings.Physicality.AttackDistance){
                 self.RandomFly();
                 self.TaskIndex = 2;
             } 
@@ -339,7 +341,7 @@ public class SkyScavanger : Authoring
             }
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, prey.origin,
             self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
-            float preyDist = math.distance(self.position, prey.position);
+            float preyDist = Recognition.GetColliderDist(self, prey);
             if(preyDist < self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 6;
                 return;
@@ -354,7 +356,7 @@ public class SkyScavanger : Authoring
             self.tCollider.useGravity = true;
             self.TaskIndex = 4;
             if(!self.settings.Recognition.FindPreferredPrey(self, out Entity prey, CanEatEntity)) return;
-            float preyDist = math.distance(self.position, prey.position);
+            float preyDist = Recognition.GetColliderDist(self, prey);
             if(preyDist > self.settings.Physicality.AttackDistance) return;
             if(prey is not IAttackable) return;
             self.TaskIndex = 6;
@@ -417,7 +419,7 @@ public class SkyScavanger : Authoring
 
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, mate.origin,
             self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration);
-            float mateDist = math.distance(self.position, mate.position);
+            float mateDist = Recognition.GetColliderDist(self, mate);
             if(mateDist < self.settings.Physicality.AttackDistance) {
                 EntityManager.AddHandlerEvent(() => (mate as IMateable).MateWith(self));
                 self.MateWith(mate);
@@ -442,7 +444,7 @@ public class SkyScavanger : Authoring
             self.tCollider.useGravity = false;
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) self.TaskTarget = Guid.Empty;
-            else if(math.distance(self.position, target.position) > self.settings.Recognition.SightDistance)
+            else if(Recognition.GetColliderDist(self, target) > self.settings.Recognition.SightDistance)
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.TaskIndex = 1;
@@ -465,7 +467,7 @@ public class SkyScavanger : Authoring
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) 
                 self.TaskTarget = Guid.Empty;
-            else if(math.distance(self.position, target.position) > self.settings.Recognition.SightDistance)
+            else if(Recognition.GetColliderDist(self, target) > self.settings.Recognition.SightDistance)
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.TaskIndex = 1;
@@ -480,7 +482,7 @@ public class SkyScavanger : Authoring
             } 
             Movement.FollowDynamicPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, target.position,
             self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
-            if(math.distance(self.position, target.position) < self.settings.Physicality.AttackDistance) {
+            if(Recognition.GetColliderDist(self, target) < self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 12;
                 return;
             }
@@ -498,7 +500,7 @@ public class SkyScavanger : Authoring
                 self.TaskIndex = 1;
                 return;
             }
-            float targetDist = math.distance(tEntity.position, self.position);
+            float targetDist = Recognition.GetColliderDist(tEntity, self);
             if(targetDist > self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 11;
                 return;

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b92ab6716ab84e588c812f4df75143a, type: 3}
+  m_Name: NaturalTexs
+  m_EditorClassIdentifier: 
+  Name: C:Natural
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 8466ba0fecdf646c784435d423970f8a, type: 2}
+    - value: {fileID: 11400000, guid: ac986daa79de841deaea2ddcf2300386, type: 2}
+    - value: {fileID: 11400000, guid: de8ba080a6a214002b31233860bde6c4, type: 2}
+    - value: {fileID: 11400000, guid: 547a2ea883b154fad9bdf6517d05da56, type: 2}

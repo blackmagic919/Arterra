@@ -15,30 +15,5 @@ MonoBehaviour:
   Name: Root
   Children:
     value:
-    - value: {fileID: 11400000, guid: a4c2c1088d7014561a762498ec205ec9, type: 2}
-    - value: {fileID: 11400000, guid: 799801124b62142afb39063d7fdef2d0, type: 2}
-    - value: {fileID: 11400000, guid: d6b9381607c524d0e8e9440fc45d6e5b, type: 2}
-    - value: {fileID: 11400000, guid: e15f85c38e5de445fafb1fd08af0d165, type: 2}
-    - value: {fileID: 11400000, guid: 02d09fe1d2b6b429991220bd65558e30, type: 2}
-    - value: {fileID: 11400000, guid: 9fb5b167f9dc94450b7f339704eae542, type: 2}
-    - value: {fileID: 11400000, guid: 2ff1b4dd3fb8342c29a3500c0a9944e6, type: 2}
-    - value: {fileID: 11400000, guid: b88ada38ac05747f59adaf213e589d3a, type: 2}
-    - value: {fileID: 11400000, guid: 5ea9df1e485a742b39afbef7c6c2f921, type: 2}
-    - value: {fileID: 11400000, guid: 074083029b95540a88ced0bbf165b0f6, type: 2}
-    - value: {fileID: 11400000, guid: 89ec4e4227cf84ed9bf05193284009d0, type: 2}
-    - value: {fileID: 11400000, guid: 3f082d188bafd47bda9d3c22bd64949d, type: 2}
-    - value: {fileID: 11400000, guid: 98222d75ff0ef411d877d033b7fa95c6, type: 2}
-    - value: {fileID: 11400000, guid: 0c730137e752a46ebb0448a0caa06e8e, type: 2}
-    - value: {fileID: 11400000, guid: 8af60393695e748478c78bcb4c27aa54, type: 2}
-    - value: {fileID: 11400000, guid: 8719d4c2d028f4680b483fc854e5d506, type: 2}
-    - value: {fileID: 11400000, guid: 34e92fbde564348c48f9702ca5afa1aa, type: 2}
-    - value: {fileID: 11400000, guid: e68ac1fe7c1ed457aaa6d8366ba45d02, type: 2}
-    - value: {fileID: 11400000, guid: 64be78c6fca3c4ffca64a3e4f02f2064, type: 2}
-    - value: {fileID: 11400000, guid: e510129eb310547729dc9e65baaed7f6, type: 2}
-    - value: {fileID: 11400000, guid: c142d2ea9973245bca8bc2632e9d4c10, type: 2}
-    - value: {fileID: 11400000, guid: 6184bc7460e7546b5bb18fb637f90ae3, type: 2}
-    - value: {fileID: 11400000, guid: e9c4f7d8580e3448f83847f4d3d6f0a1, type: 2}
-    - value: {fileID: 11400000, guid: 54b67afaa6ce54d7a903460a2615f54e, type: 2}
-    - value: {fileID: 11400000, guid: 767e6798cf15347af9616a7d7a816a7e, type: 2}
-    - value: {fileID: 11400000, guid: 066474d0a2bfa4600b725f5c258b274f, type: 2}
-    - value: {fileID: 11400000, guid: 67c243a2c54c2436dbf89ce16f52e68f, type: 2}
+    - value: {fileID: 11400000, guid: e50417828aa7b40118f4f95a5e47b448, type: 2}
+    - value: {fileID: 11400000, guid: 781f98c9ed51e4e849f5f7bb2755cbb8, type: 2}

@@ -125,7 +125,7 @@ public class OctreeTerrain : MonoBehaviour
         RequestQueue = new ConcurrentQueue<GenTask>();
         SystemProtocol.Startup();
     }
-    
+
     void Start()
     {
         UpdateViewerPos();
@@ -326,7 +326,6 @@ public class OctreeTerrain : MonoBehaviour
             action(curChunk);
             curChunk = chunks.Next(curChunk);
         } while(curChunk != chunks.Head());
-
     }
     
     private void VerifyChunks(){

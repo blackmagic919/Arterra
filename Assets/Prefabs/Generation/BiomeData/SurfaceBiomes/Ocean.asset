@@ -24,6 +24,8 @@ MonoBehaviour:
         - Air
         - Water
         - SaturatedWater
+        - Shark
+        - Whale
         - Cod
         - Krill
       GroundMaterials:
@@ -83,10 +85,16 @@ MonoBehaviour:
             ChancePerCoord: 0.00001
         - value:
             Entity: 8
-            ChancePerCoord: 0.00005
+            ChancePerCoord: 0.0000015
+        - value:
+            Entity: 9
+            ChancePerCoord: 0.00004
+        - value:
+            Entity: 10
+            ChancePerCoord: 0.00008
   BiomeConditions:
     value:
-      TerrainStart: 0
+      TerrainStart: 0.15
       ErosionStart: 0
       SquashStart: 0
       InfluenceStart: 0

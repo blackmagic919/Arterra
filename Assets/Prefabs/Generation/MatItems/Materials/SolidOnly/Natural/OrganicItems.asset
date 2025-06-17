@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80ae62d4a8db64373ab2031aa7690b4a, type: 3}
+  m_Name: OrganicItems
+  m_EditorClassIdentifier: 
+  Name: C:Organic
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 3f082d188bafd47bda9d3c22bd64949d, type: 2}
+    - value: {fileID: 11400000, guid: 02d09fe1d2b6b429991220bd65558e30, type: 2}
+    - value: {fileID: 11400000, guid: 0c730137e752a46ebb0448a0caa06e8e, type: 2}
+    - value: {fileID: 11400000, guid: 89ec4e4227cf84ed9bf05193284009d0, type: 2}
+    - value: {fileID: 11400000, guid: 02fabfde62aaa41f29f7bf79160ea3fc, type: 2}
+    - value: {fileID: 11400000, guid: 98222d75ff0ef411d877d033b7fa95c6, type: 2}
+    - value: {fileID: 11400000, guid: 9fb5b167f9dc94450b7f339704eae542, type: 2}
+    - value: {fileID: 11400000, guid: 30e8866070f85430eb0212df8d118fce, type: 2}

@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56e80ec6ecf30476bb27ebfb5ee38b1e, type: 3}
+  m_Name: CatalogueQuads
+  m_EditorClassIdentifier: 
+  Name: Root
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 97abaf9231ba649ac85139f8f9624c92, type: 2}
+    - value: {fileID: 11400000, guid: 920ec026925254386adc03a7ef3b3160, type: 2}
+    - value: {fileID: 11400000, guid: c42bddca9ddaf49469233934b9598552, type: 2}

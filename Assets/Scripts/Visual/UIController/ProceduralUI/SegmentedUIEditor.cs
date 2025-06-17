@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,7 +11,8 @@ using WorldConfig;
 
 [AttributeUsage(AttributeTargets.Field)]
 public sealed class UISetting : Attribute{
-    public bool Ignore{get; set;}
+    public bool Defaulting { get; set; }
+    public bool Ignore { get; set; }
     public string Message{get; set;}
     public string Warning{get; set;}
     public string Alias{get; set;}
@@ -68,7 +70,8 @@ public static class SegmentedUIEditor
     public static void SupplementTree(ref object dest, ref object src){
         System.Reflection.FieldInfo[] fields = src.GetType().GetFields();
         foreach(FieldInfo field in fields){
-            if (Attribute.IsDefined(field, typeof(UISetting)) && (Attribute.GetCustomAttribute(field, typeof(UISetting)) as UISetting).Ignore)
+            if (Attribute.IsDefined(field, typeof(JsonIgnoreAttribute)) && (Attribute.GetCustomAttribute(field, typeof(UISetting))
+                as UISetting).Defaulting)
                 continue;
             if (field.IsStatic) continue; //Ignore static fields
             if (field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Option<>))

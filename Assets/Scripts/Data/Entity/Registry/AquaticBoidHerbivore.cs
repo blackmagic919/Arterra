@@ -389,7 +389,7 @@ public class AquaticBoidHerbivore : Authoring
 
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, mate.origin,
             self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
-            float mateDist = math.distance(self.position, mate.position);
+            float mateDist = Recognition.GetColliderDist(self, mate);
             if(mateDist < self.settings.Physicality.AttackDistance) {
                 EntityManager.AddHandlerEvent(() => (mate as IMateable).MateWith(self));
                 self.MateWith(mate);
@@ -436,7 +436,7 @@ public class AquaticBoidHerbivore : Authoring
         private static unsafe void RunFromTarget(Animal self){
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) self.TaskTarget = Guid.Empty;
-            else if(math.distance(self.position, target.position) > self.settings.Recognition.SightDistance)
+            else if(Recognition.GetColliderDist(self, target) > self.settings.Recognition.SightDistance)
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
@@ -459,7 +459,7 @@ public class AquaticBoidHerbivore : Authoring
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) 
                 self.TaskTarget = Guid.Empty;
-            else if(math.distance(self.position, target.position) > self.settings.Recognition.SightDistance)
+            else if(Recognition.GetColliderDist(self, target) > self.settings.Recognition.SightDistance)
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
@@ -475,7 +475,7 @@ public class AquaticBoidHerbivore : Authoring
             } 
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, target.origin,
             self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
-            if(math.distance(self.position, target.position) < self.settings.Physicality.AttackDistance) {
+            if(Recognition.GetColliderDist(self, target) < self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 12;
                 return;
             }
@@ -493,7 +493,7 @@ public class AquaticBoidHerbivore : Authoring
                 self.TaskIndex = 0;
                 return;
             }
-            float targetDist = math.distance(tEntity.position, self.position);
+            float targetDist = Recognition.GetColliderDist(tEntity, self);
             if(targetDist > self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 11;
                 return;

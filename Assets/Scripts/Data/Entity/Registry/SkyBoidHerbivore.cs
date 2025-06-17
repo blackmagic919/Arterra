@@ -167,24 +167,26 @@ public class SkyBoidHerbivore : Authoring
 
         public override void Update()
         {
-            if(!active) return;
+            if (!active) return;
             //use gravity if not flying
             tCollider.Update(EntityJob.cxt, settings.collider);
-            if(!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
+            if (!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
             EntityManager.AddHandlerEvent(controller.Update);
 
+            vitality.Update();
+            TaskRegistry[(int)TaskIndex].Invoke(this);
+            if (TaskIndex != 13 && vitality.IsDead)
+            {
+                TaskDuration = settings.decomposition.DecompositionTime;
+                flightDirection = 0;
+                TaskIndex = 13;
+            }
+            else if (TaskIndex <= 11) DetectPredator();
+            
             Recognition.DetectMapInteraction(position, 
             OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
             OnInGas: vitality.ProcessInGas);
-
-            vitality.Update();
-            TaskRegistry[(int)TaskIndex].Invoke(this);
-            if(TaskIndex != 13 && vitality.IsDead) {
-                TaskDuration = settings.decomposition.DecompositionTime;
-                flightDirection = 0;
-                TaskIndex = 13;
-            } else if(TaskIndex <= 11)  DetectPredator();
         }
 
         private unsafe void DetectPredator(){
@@ -422,7 +424,7 @@ public class SkyBoidHerbivore : Authoring
 
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, mate.origin,
             self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration);
-            float mateDist = math.distance(self.position, mate.position);
+            float mateDist = Recognition.GetColliderDist(self, mate);
             if(mateDist < self.settings.Physicality.AttackDistance) {
                 EntityManager.AddHandlerEvent(() => (mate as IMateable).MateWith(self));
                 self.MateWith(mate);
@@ -446,7 +448,7 @@ public class SkyBoidHerbivore : Authoring
             self.tCollider.useGravity = false;
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) self.TaskTarget = Guid.Empty;
-            else if(math.distance(self.position, target.position) > self.settings.Recognition.SightDistance)
+            else if(Recognition.GetColliderDist(self, target) > self.settings.Recognition.SightDistance)
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.BoidFly();
@@ -469,7 +471,7 @@ public class SkyBoidHerbivore : Authoring
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) 
                 self.TaskTarget = Guid.Empty;
-            else if(math.distance(self.position, target.position) > self.settings.Recognition.SightDistance)
+            else if(Recognition.GetColliderDist(self, target) > self.settings.Recognition.SightDistance)
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.BoidFly();
@@ -484,7 +486,7 @@ public class SkyBoidHerbivore : Authoring
             } 
             Movement.FollowDynamicPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, target.origin,
             self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
-            if(math.distance(self.position, target.position) < self.settings.Physicality.AttackDistance) {
+            if(Recognition.GetColliderDist(self, target) < self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 11;
                 return;
             }
@@ -502,7 +504,7 @@ public class SkyBoidHerbivore : Authoring
                 self.BoidFly();
                 return;
             }
-            float targetDist = math.distance(tEntity.position, self.position);
+            float targetDist = Recognition.GetColliderDist(tEntity, self);
             if(targetDist > self.settings.Physicality.AttackDistance) {
                 self.TaskIndex = 10;
                 return;

@@ -48,15 +48,17 @@ namespace WorldConfig.Gameplay{
 public static class PlayerHandler
 {
     public static PlayerStreamer.Player data;
+    public static CameraEffects cEffects;
     public static Transform camera;
     private static bool active = false;
     public static void Initialize(){
         active = false;
         data = LoadPlayerData();
-        EntityManager.CreateE(data); 
+        EntityManager.CreateE(data);
 
         camera = GameObject.Find("CameraHandler").transform;
         camera.SetParent(data.player.transform, worldPositionStays: false);
+        cEffects = new CameraEffects();
         OctreeTerrain.viewer = camera; //set octree's viewer to current player
 
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(new IndirectUpdate(Update));

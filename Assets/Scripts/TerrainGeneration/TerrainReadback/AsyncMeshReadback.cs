@@ -246,7 +246,6 @@ public class AsyncMeshReadback
 
     private void TranscribeVertices(int addressIndex, int vertCounter){
         ComputeBuffer args = UtilityBuffers.CountToArgs(vertexTranscriber, UtilityBuffers.GenerationBuffer, countOffset: vertCounter);
-
         vertexTranscriber.SetInt("addressIndex", addressIndex);
         vertexTranscriber.DispatchIndirect(0, args);
     }
@@ -471,9 +470,8 @@ public class ReadbackTask<Vert> where Vert : struct, IVertFormat{
         /// <returns>The generated <see cref="Mesh"/> based off the <see cref="SharedMeshInfo"/>'s information. </returns>
         public Mesh GenerateMesh(UnityEngine.Rendering.IndexFormat meshIndexFormat)
         {
-            Mesh mesh = new();
             if(VertexBuffer == null || VertexBuffer.Length == 0) return null;
-
+            Mesh mesh = new();
             //Set Layouts
             int totalIndices = IndexBuffer.Sum(x => x.Length);
             new Vert().SetVertexBufferParams(mesh, VertexBuffer.Length);
@@ -494,8 +492,8 @@ public class ReadbackTask<Vert> where Vert : struct, IVertFormat{
                 meshIndexStart += indices.Length;
             }
             mesh.SetIndexBufferParams(meshIndexStart, meshIndexFormat);
-            
             mesh.SetSubMeshes(subMeshes);
+            mesh.hideFlags = HideFlags.DontSave;
             return mesh;
         }
 

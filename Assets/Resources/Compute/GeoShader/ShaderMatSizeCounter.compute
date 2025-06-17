@@ -6,7 +6,7 @@ const static int numThreads = 256;
 struct matTerrain{
     int textureIndex;
     float baseTextureScale;
-    int geoShaderInd;
+    uint geoShaderInd;
 };
 
 struct vertex{
@@ -45,12 +45,15 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     triangleIndexOffset[bSTART_tri + id.x] = -1; 
 
     //Each triangle will have 3 materials, take the minimum shader index
-    uint shaderIndex = asuint(-1);
+    uint shaderIndex = asuint(-1); 
     pInfo vIndex = triangles[_AddressDict[triAddress].y + id.x];
     [unroll] for(uint i = 0; i < 3; i++) {
         int material = vertices[_AddressDict[vertAddress].y + vIndex.axis[i]].material.x; // Only consider solid material
-        shaderIndex = min(shaderIndex, asuint(_MatTerrainData[material].geoShaderInd));
+        uint sInd = _MatTerrainData[material].geoShaderInd;
+        if((sInd & 0x80000000) == 0) continue;
+        shaderIndex = min(shaderIndex, (sInd >> 16) & 0x7FFF);
     }
 
-    if(shaderIndex != asuint(-1)) InterlockedAdd(shaderIndexOffset[bSTART_scount + shaderIndex + 1], 1, triangleIndexOffset[bSTART_tri + id.x]);
+    if(shaderIndex == asuint(-1)) return;
+    InterlockedAdd(shaderIndexOffset[bSTART_scount + shaderIndex + 1], 1, triangleIndexOffset[bSTART_tri + id.x]);
 }

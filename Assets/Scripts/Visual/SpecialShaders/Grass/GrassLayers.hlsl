@@ -26,12 +26,11 @@
 
 // Include some helper functions
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-#include "NMGGrassLayersHelpers.hlsl"
 #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
 
 struct DrawTriangle{
-    uint2 vertex[3];
+    uint3 vertex[3];
 };
 
 // Vertex function output and geometry function input
@@ -40,25 +39,30 @@ struct VertexOutput {
     float3 normalWS     : TEXCOORD1; // Normal vector in world space
     float2 uv  : TEXCOORD2; // UV
     float2 height : TEXCOORD3; // Height of the layer
+    nointerpolation int variant : TEXCOORD4;//
 
     float4 positionCS   : SV_POSITION;
 };
 
+struct Settings{
+    float TotalHeight;
+    int MaxLayers;
+    float4 BaseColor;
+    float4 TopColor;
+    int TexIndex;
+    float Scale;
+};
+
+StructuredBuffer<Settings> VariantSettings;
 StructuredBuffer<DrawTriangle> _StorageMemory;
 StructuredBuffer<uint2> _AddressDict;
 float4x4 _LocalToWorld;
 uint addressIndex;
 
 
-// Properties
-float4 _BaseColor;
-float4 _TopColor;
-// These two textures are combined to create the grass pattern in the fragment function
-TEXTURE2D(_DetailNoiseTexture); SAMPLER(sampler_DetailNoiseTexture); float4 _DetailNoiseTexture_ST;
-float _DetailDepthScale;
-TEXTURE2D(_SmoothNoiseTexture); SAMPLER(sampler_SmoothNoiseTexture); float4 _SmoothNoiseTexture_ST;
-float _SmoothDepthScale;
 // Wind properties
+Texture2DArray _Textures;
+SamplerState sampler_Textures;
 TEXTURE2D(_WindNoiseTexture); SAMPLER(sampler_WindNoiseTexture); float4 _WindNoiseTexture_ST;
 float _WindTimeMult;
 float _WindAmplitude;
@@ -76,7 +80,6 @@ float2 mapCoordinates(float3 worldPos)
 
 float4 _CameraPosition;
 float _CameraHeight;
-float _WSToUVScale;
 
 // Vertex functions
 
@@ -88,20 +91,18 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
 
     uint triAddress = vertexID / 3 + _AddressDict[addressIndex].y;
     uint vertexIndex = vertexID % 3;
-    uint2 input = _StorageMemory[triAddress].vertex[vertexIndex];
+    uint3 input = _StorageMemory[triAddress].vertex[vertexIndex];
 
     VertexInfo v = UnpackVertex(input);
-    
     output.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
     output.normalWS = normalize(mul(_LocalToWorld, float4(v.normalOS, 0)).xyz);
-    output.uv = mapCoordinates(output.positionWS) * _WSToUVScale;
+    output.uv = mapCoordinates(output.positionWS) * VariantSettings[v.variant].Scale;
     output.positionCS = TransformWorldToHClip(output.positionWS);
+    output.variant = v.variant;
 
-    float height = (uint)((input.x >> 28) & 0xF);
-    height /= 15.0f;
+    float height = (uint)((input.z >> 24) & 0xFF) / 255.0f;
     output.height.xy = height;
 
-    
     return output;
 }
 
@@ -120,26 +121,21 @@ half3 Fragment(VertexOutput input) : SV_Target {
     // Offset the grass UV by the wind. Higher layers are affected more
     uv = uv + windNoise * (_WindAmplitude * height);
 
-    // Sample the two noise textures, applying their scale and offset
-    float detailNoise = SAMPLE_TEXTURE2D(_DetailNoiseTexture, sampler_DetailNoiseTexture, TRANSFORM_TEX(uv, _DetailNoiseTexture)).r;
-    float smoothNoise = SAMPLE_TEXTURE2D(_SmoothNoiseTexture, sampler_SmoothNoiseTexture, TRANSFORM_TEX(uv, _SmoothNoiseTexture)).r;
-    // Combine the textures together using these scale variables. Lower values will reduce a texture's influence
-    detailNoise = 1 - (1 - detailNoise) * _DetailDepthScale;
-    smoothNoise = 1 - (1 - smoothNoise) * _SmoothDepthScale;
-    // If detailNoise * smoothNoise is less than height, this pixel will be discarded by the renderer
-    // I.E. this pixel will not render. The fragment function returns as well
-    clip(detailNoise * smoothNoise - height);
+    Settings cxt = VariantSettings[input.variant];
+    float3 detailNoise = _Textures.Sample(sampler_Textures, float3(uv, cxt.TexIndex));
+    float value = (height > 0.5f ? (height - 0.5f) * detailNoise.b + (1 - height) * detailNoise.g : 
+                                  (height) * detailNoise.g + (0.5f - height) * detailNoise.r) * 2;
+    clip(value-0.5f);
 
     // If the code reaches this far, this pixel should render
     // Gather some data for the lighting algorithm
     InputData lightingInput = (InputData)0;
     lightingInput.positionWS = input.positionWS;
     lightingInput.normalWS = NormalizeNormalPerPixel(input.normalWS); // Renormalize the normal to reduce interpolation errors
-    lightingInput.viewDirectionWS = GetViewDirectionFromPosition(input.positionWS); // Calculate the view direction
-
+    
     // Lerp between the two grass colors based on layer height
     float colorLerp = input.height.y;
-    float3 albedo = lerp(_BaseColor, _TopColor, colorLerp).rgb;
+    float3 albedo = lerp(cxt.BaseColor, cxt.TopColor, colorLerp).rgb;
 
     SurfaceData surfaceInput = (SurfaceData)0;
 	surfaceInput.albedo = albedo;

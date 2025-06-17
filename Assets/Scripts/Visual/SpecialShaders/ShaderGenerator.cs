@@ -21,7 +21,7 @@ public class ShaderGenerator
 
 
     private Transform transform;
-    const int GEO_VERTEX_STRIDE = 2;
+    const int GEO_VERTEX_STRIDE = 3;
     const int TRI_STRIDE_WORD = 3;
 
     private Bounds shaderBounds;
@@ -48,7 +48,6 @@ public class ShaderGenerator
     private static int triIndDictStart;
     private static int fBaseGeoStart;
     private static int shadGeoStart;
-
 
     public static void PresetData(){
         int maxChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
@@ -91,9 +90,17 @@ public class ShaderGenerator
         geoTranscriber.SetBuffer(0, "ShaderPrefixes", UtilityBuffers.GenerationBuffer);
         geoTranscriber.SetInt("bSTART_oGeo", shadGeoStart);
 
-        foreach(GeoShader shader in Config.CURRENT.Quality.GeoShaders.Reg){
+        for (int i = 0; i < Config.CURRENT.Quality.GeoShaders.Reg.Count; i++){
+            GeoShader shader = Config.CURRENT.Quality.GeoShaders.Retrieve(i);
+            shader.PresetData(fBaseGeoStart, matSizeCStart + i, baseGeoCounter, shadGeoStart, i);
             Material mat = shader.GetMaterial();
             LightBaker.SetupLightSampler(mat);
+        }
+    }
+
+    public static void Release(){
+        foreach (GeoShader shader in Config.CURRENT.Quality.GeoShaders.Reg){
+            shader.Release();
         }
     }
 
@@ -160,9 +167,8 @@ public class ShaderGenerator
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 1, 0); //clear base count
         for (int i = 0; i < shaders.Count; i++){
             GeoShader geoShader = shaders[i];
-            geoShader.ProcessGeoShader(memory, vertAddress, triAddress, fBaseGeoStart, matSizeCStart + i, baseGeoCounter, shadGeoStart, i);
+            geoShader.ProcessGeoShader(memory, vertAddress, triAddress, matSizeCStart + i);
             UtilityBuffers.CopyCount(source: UtilityBuffers.GenerationBuffer, dest: UtilityBuffers.GenerationBuffer, readOffset: baseGeoCounter, writeOffset: shadGeoCStart + i + 1);
-            geoShader.ReleaseTempBuffers();
         }
     }
 

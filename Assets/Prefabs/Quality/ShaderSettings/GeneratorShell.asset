@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87195c2ad27524d5e8e3582bb4fd6b6f, type: 3}
+  m_Name: GeneratorShell
+  m_EditorClassIdentifier: 
+  Name: Shell
+  settings:
+    Category:
+      value: {fileID: 11400000, guid: 9960ae89f45d94b7f83185581de62ea6, type: 2}
+    Reg:
+    - {fileID: 11400000, guid: 748d3ee81b1a74398b39f0d98e4fd4ca, type: 2}
+    - {fileID: 11400000, guid: a99a3b52273a44bf38315a596f3880af, type: 2}
+  material:
+    value: {fileID: 2100000, guid: 2f6dd9734977449f6af6517cb4d8dffa, type: 2}

@@ -25,7 +25,6 @@ uint density(uint data) { return data & 0x000000FF; }
 uint viscosity(uint data) { return (data & 0x0000FF00) >> 8; }
 uint material(uint data) { return (data & 0x7FFF0000) >> 16; }
 bool preserve(uint data) { return (data & 0x80000000) >> 31; }
-
 StructuredBuffer<structureInfo> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
