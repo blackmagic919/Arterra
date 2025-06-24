@@ -1,0 +1,181 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab44b3b4d8fc54b598e191f90c84912c, type: 3}
+  m_Name: Sparrow
+  m_EditorClassIdentifier: 
+  Name: Sparrow
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 4790501496118844506, guid: f806b471f43bf41098b6a747b7a1ee66, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 2
+          y: 3
+          z: 2
+        profileStart: 24
+      collider:
+        size:
+          x: 0.75
+          y: 0.75
+          z: 0.75
+        friction: 0.25
+      movement:
+        walkSpeed: 2
+        runSpeed: 6
+        acceleration: 100
+        rotSpeed: 180
+        pathDistance: 16
+        AverageIdleTime: 2.5
+      flight:
+        profile:
+          bounds:
+            x: 2
+            y: 3
+            z: 2
+          profileStart: 36
+        AverageFlightTime: 100
+        SeperationWeight: 0.75
+        AlignmentWeight: 0.4
+        CohesionWeight: 0.15
+        InfluenceDist: 10
+        PathDist: 5
+        MaxSwarmSize: 8
+      decomposition:
+        LootTable:
+          value:
+          - ItemName: Meat
+            DropAmount: 6
+          - ItemName: Feathers:Solid
+            DropAmount: 8
+        DecompositionTime: 100
+      physicality:
+        value:
+          MaxHealth: 4
+          NaturalRegen: -0.005
+          AttackDistance: 2
+          AttackDamage: 1
+          AttackCooldown: 1
+          KBStrength: 1
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 4
+          ConsumptionRate: 0.25
+          MateCost: 1
+          weight: 0.25
+      recognition:
+        value:
+          Predators:
+            value:
+            - Hawk
+          Mates:
+            value:
+            - MateType: Sparrow
+              ChildType: Sparrow
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Grass:Solid
+              Nutrition: 4
+          SightDistance: 20
+          FleeDistance: 5
+          FightAggressor: 0
+          PlantFindDist: 5
+          Prey:
+            value:
+            - Material: Grass
+              Bounds:
+                data: 4286643968
+              Replacement: Dirt
+              ReplaceState: 0
+  references:
+    version: 2
+    RefIds: []

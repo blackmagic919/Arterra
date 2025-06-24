@@ -13,9 +13,14 @@ MonoBehaviour:
   m_Name: ItemOnlyItems
   m_EditorClassIdentifier: 
   Name: C:Item
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
-    - value: {fileID: 11400000, guid: e9c4f7d8580e3448f83847f4d3d6f0a1, type: 2}
-    - value: {fileID: 11400000, guid: 67c243a2c54c2436dbf89ce16f52e68f, type: 2}
-    - value: {fileID: 11400000, guid: 54b67afaa6ce54d7a903460a2615f54e, type: 2}
+    - value: {fileID: 11400000, guid: 5f5a37927d304487ba9db1b9c4a27fc0, type: 2}
     - value: {fileID: 11400000, guid: 767e6798cf15347af9616a7d7a816a7e, type: 2}
+    - value: {fileID: 11400000, guid: 85bfa9e341d7845ee964171c00332dc6, type: 2}
+  references:
+    version: 2
+    RefIds: []

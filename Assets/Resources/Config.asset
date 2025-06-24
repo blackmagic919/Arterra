@@ -128,7 +128,34 @@ MonoBehaviour:
         Category:
           value: {fileID: 11400000, guid: 280bf6dd8603344b6a47cfc48ac8b144, type: 2}
         Reg:
-        - {fileID: 0}
+        - {fileID: 11400000, guid: ef97c2bbcda194eeca399ad75aa3d76f, type: 2}
+        - {fileID: 11400000, guid: d124f377bd2cb4aa5bd990d1f6f7abec, type: 2}
+        - {fileID: 11400000, guid: 3ef0b8b91203d4ae1b4e787f1add337e, type: 2}
+        - {fileID: 11400000, guid: b2656699d49e94000bbc865b5086bf8b, type: 2}
+        - {fileID: 11400000, guid: 057e6e98e02c345209aa8736d0298b69, type: 2}
+        - {fileID: 11400000, guid: 032c87b1430ae42a68b2aac5b4421523, type: 2}
+        - {fileID: 11400000, guid: d27af918d59ce4048a200cacabeac627, type: 2}
+        - {fileID: 11400000, guid: 263f27b39632d479aaffad68f215720f, type: 2}
+        - {fileID: 11400000, guid: c20fcb502b1ff4cfcbc60389b42600f1, type: 2}
+        - {fileID: 11400000, guid: 96e46afc73b8e4a5a89ea5768d97e17f, type: 2}
+        - {fileID: 11400000, guid: 32341f2bc31c54bd9aa91fc8b12f8a56, type: 2}
+        - {fileID: 11400000, guid: 9a417caa1252145e3956ef6c3689e816, type: 2}
+        - {fileID: 11400000, guid: ef4610a7cf9384233b6e52be76e3521b, type: 2}
+        - {fileID: 11400000, guid: 7a0af45912db0441aa2a22b4d003426a, type: 2}
+        - {fileID: 11400000, guid: 4493b0004c7c9443eb425366eb44a3f6, type: 2}
+        - {fileID: 11400000, guid: 8d9afdc5467fe4b3c97d0e027dd1badc, type: 2}
+        - {fileID: 11400000, guid: 89ee29ef2b0474715969d24ec2cf6df5, type: 2}
+        - {fileID: 11400000, guid: 1bf3eaee608324c7290366bd92356746, type: 2}
+        - {fileID: 11400000, guid: 1937e4059fb3a4a8abb03e5e60a8b7f5, type: 2}
+        - {fileID: 11400000, guid: 98b851e50a0d1422c9fc17287273d134, type: 2}
+        - {fileID: 11400000, guid: b366d4646a23f4a6d9ece342e312a48c, type: 2}
+        - {fileID: 11400000, guid: b90a4c9cb53fb4ac8b490825185b13d2, type: 2}
+        - {fileID: 11400000, guid: e4d7966289e5e4d3592416715aca0ce4, type: 2}
+        - {fileID: 11400000, guid: 87b0b9f827fe04b4bad3d43e442aad47, type: 2}
+        - {fileID: 11400000, guid: 9e255fbb5463940e5aa7d9aec4020a2f, type: 2}
+        - {fileID: 11400000, guid: fed2c4837867645fd93d4aaf0ce9ac10, type: 2}
+        - {fileID: 11400000, guid: 5342f196de3484effb55a6ae9b8b1e45, type: 2}
+        - {fileID: 11400000, guid: 2873a78604fdf4748a0cb9bc1f6781a5, type: 2}
       Player:
         value:
           movement:
@@ -149,10 +176,13 @@ MonoBehaviour:
               smoothTime: 0
           Interaction:
             value:
-              terraformRadius: 1
-              terraformSpeed: 100
-              ReachDistance: 60
-              PickupRate: 0.5
+              TerraformRadius: 1
+              DefaultTerraform:
+                value:
+                  TerraformSpeed: 50
+                  GivesItem: 1
+              ReachDistance: 20
+              PickupRate: 1.5
           Physicality:
             value:
               AttackDamage: 2
@@ -338,3 +368,110 @@ MonoBehaviour:
           UpdateTickDelay: 4
       ReadBack:
         value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
+      GameplayModifyHooks:
+        Reg:
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight

@@ -53,8 +53,9 @@ public class Noise : Category<Noise>
     [SerializeField][UISetting(Ignore = true)][JsonIgnore]
     public Option<AnimationCurve> interpolation;
 
-    private void OnValidate()
+    public override void OnValidate()
     {
+        base.OnValidate();
         if (lacunarity < 1) lacunarity = 1;
         if (octaves < 0) octaves = 0;
         noiseScale = Mathf.Max(10E-9f, noiseScale);

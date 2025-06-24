@@ -19,7 +19,7 @@ public class CInfo<TCond> : Category<CInfo<TCond>> where TCond : IBiomeCondition
     public Option<TCond> BiomeConditions;
     /// <summary> This method is called when the object is changed in Unity's editor. It ensures that the conditions
     /// describe a valid region within the decision matrix. </summary>
-    public void OnValidate(){ BiomeConditions.value.Validate(); }
+    public override void OnValidate(){ base.OnValidate(); BiomeConditions.value.Validate(); }
 }
 
 /// <summary>

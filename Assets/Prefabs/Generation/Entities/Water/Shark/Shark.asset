@@ -1,0 +1,185 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4bcffb4d9d8c4ecc8408d8a7953c9ce, type: 3}
+  m_Name: Shark
+  m_EditorClassIdentifier: 
+  Name: Shark
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 435428154833586252, guid: 8a78362c9c1db49cb8d76cd3d9e0df5e, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 0
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 3
+          y: 3
+          z: 3
+        profileStart: 250
+      collider:
+        size:
+          x: 1
+          y: 1.5
+          z: 1
+        friction: 0.25
+      movement:
+        walkSpeed: 3
+        runSpeed: 7
+        acceleration: 100
+        rotSpeed: 180
+        pathDistance: 32
+        AverageIdleTime: 1.5
+      decomposition:
+        LootTable:
+          value:
+          - ItemName: FishMeat
+            DropAmount: 17
+          - ItemName: FishScales:Solid
+            DropAmount: 13
+        DecompositionTime: 200
+      aquaticBehavior:
+        DrownTime: Infinity
+        SurfaceThreshold: 0
+        JumpStickDistance: 0.05
+        JumpStrength: 3
+        SurfaceProfile:
+          bounds:
+            x: 1
+            y: 1
+            z: 1
+          profileStart: 277
+      physicality:
+        value:
+          MaxHealth: 25
+          NaturalRegen: -0.01
+          AttackDistance: 3
+          AttackDamage: 5
+          AttackCooldown: 1
+          KBStrength: 5
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 4
+          ConsumptionRate: 0.5
+          MateCost: 7
+          weight: 0.3
+      recognition:
+        value:
+          Predators:
+            value: []
+          Mates:
+            value:
+            - MateType: Shark
+              ChildType: Shark
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: FishMeat
+              Nutrition: 51.2
+          SightDistance: 24
+          FleeDistance: 5
+          FightAggressor: 1
+          Prey:
+            value:
+            - Cod
+            - Player
+  references:
+    version: 2
+    RefIds: []

@@ -3,7 +3,6 @@ using Unity.Mathematics;
 using System;
 using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.TerrainTools;
 
 
 namespace WorldConfig.Generation.Material

@@ -28,6 +28,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
+#include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
 
 struct DrawTriangle{
     uint3 vertex[3];
@@ -127,26 +128,17 @@ half3 Fragment(VertexOutput input) : SV_Target {
                                   (height) * detailNoise.g + (0.5f - height) * detailNoise.r) * 2;
     clip(value-0.5f);
 
-    // If the code reaches this far, this pixel should render
-    // Gather some data for the lighting algorithm
-    InputData lightingInput = (InputData)0;
-    lightingInput.positionWS = input.positionWS;
-    lightingInput.normalWS = NormalizeNormalPerPixel(input.normalWS); // Renormalize the normal to reduce interpolation errors
-    
     // Lerp between the two grass colors based on layer height
     float colorLerp = input.height.y;
     float3 albedo = lerp(cxt.BaseColor, cxt.TopColor, colorLerp).rgb;
-
-    SurfaceData surfaceInput = (SurfaceData)0;
-	surfaceInput.albedo = albedo;
-	surfaceInput.alpha = 1;
+    float3 normal = NormalizeNormalPerPixel(input.normalWS);
 
     uint light = SampleLight(input.positionWS);
-    float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f) * 0.5 + 0.5;
-    float3 DynamicLight = UniversalFragmentPBR(lightingInput, surfaceInput) * shadow;
+    float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f);
+    float3 DynamicLight = LambertShade(albedo, normal, shadow);
     float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
     ObjectLight = mad((1 - ObjectLight), unity_AmbientEquator, ObjectLight * 2.5f); //linear interpolation
-    ObjectLight *= surfaceInput.albedo;
+    ObjectLight *= albedo;
 
     return max(DynamicLight, ObjectLight).rgb;
 }

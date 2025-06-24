@@ -46,7 +46,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         public InventoryController.Inventory SecondaryI;
         public PlayerVitality vitality;
         public PlayerCollider collider;
-        private StreamingStatus status;
+        public StreamingStatus status;
 
         [JsonIgnore]
         public override float3 position
@@ -95,21 +95,22 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             OctreeTerrain.MainCoroutines.Enqueue(PlayerHandler.cEffects.CameraShake(0.2f, 0.25f));
         }
 
-        public Player()
+        public static Player Build()
         {
-            cameraRot = Quaternion.identity;
-            PrimaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.PrimarySlotCount);
-            SecondaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.SecondarySlotCount);
-            currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.Time.value.startHour);
-            info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
-            info.entityId = Guid.NewGuid();
+            Player p = new();
+            p.cameraRot = Quaternion.identity;
+            p.PrimaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.PrimarySlotCount);
+            p.SecondaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.SecondarySlotCount);
+            p.currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.Time.value.startHour);
+            p.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
+            p.info.entityId = Guid.NewGuid();
 
-            settings = Config.CURRENT.Generation.Entities.Retrieve((int)info.entityType).Setting as PlayerSettings;
-            collider = new PlayerCollider(new TerrainColliderJob.Transform(0, Quaternion.LookRotation(Vector3.forward, Vector3.up)));
-            vitality = new PlayerVitality();
-            status = StreamingStatus.StartingUp;
-
-            StartupPlacer.PlaceOnSurface(this);
+            p.settings = Config.CURRENT.Generation.Entities.Retrieve((int)p.info.entityType).Setting as PlayerSettings;
+            p.collider = new PlayerCollider(new TerrainColliderJob.Transform(0, Quaternion.LookRotation(Vector3.forward, Vector3.up)));
+            p.vitality = new PlayerVitality();
+            p.status = StreamingStatus.Live;
+            StartupPlacer.PlaceOnSurface(p);
+            return p;
         }
 
         //This function shouldn't be used
@@ -142,8 +143,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             if (!IsDead) return;
             if (status != StreamingStatus.Disconnected)
                 EntityManager.AddHandlerEvent(DetatchStreamer);
-            if (vitality.health <= -PlayerVitality.settings.DecompositionTime)
-            { //the player isn't idling
+            if (vitality.health <= -PlayerVitality.settings.DecompositionTime){ //the player isn't idling
                 if (PlayerHandler.data == null || PlayerHandler.data.info.entityId != info.entityId)
                     EntityManager.ReleaseEntity(this.info.entityId);
             }
@@ -212,21 +212,17 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
                 if (item.Index >= names.Count || item.Index < 0) return;
                 IRegister registry = item.GetRegistry();
                 item.Index = registry.RetrieveIndex(names[item.Index]);
-                item.IsDirty = true;
             }
             info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             PrimaryI.EntryDict = new Dictionary<int, int>(); SecondaryI.EntryDict = new Dictionary<int, int>();
-            for (int i = 0; i < PrimaryI.Info.Count(); i++)
-            {
+            for (int i = 0; i < PrimaryI.Info.Count(); i++) {
+                if (PrimaryI.Info[i] is null) continue;
                 Deserialize(ref PrimaryI.Info[i]);
-                if (PrimaryI.Info[i] != null)
-                    PrimaryI.EntryDict.Add(PrimaryI.Info[i].Index, i);
-            }
-            for (int i = 0; i < SecondaryI.Info.Count(); i++)
-            {
+                PrimaryI.EntryDict.TryAdd(PrimaryI.Info[i].Index, i);
+            } for (int i = 0; i < SecondaryI.Info.Count(); i++) {
+                if (SecondaryI.Info[i] is null) continue;
                 Deserialize(ref SecondaryI.Info[i]);
-                if (SecondaryI.Info[i] != null)
-                    SecondaryI.EntryDict.Add(SecondaryI.Info[i].Index, i);
+                SecondaryI.EntryDict.TryAdd(SecondaryI.Info[i].Index, i);
             }
         }
 
@@ -262,8 +258,8 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             TakeDamage(dmgIntensity, 0, null);
         }
 
-        private enum StreamingStatus{
-            StartingUp,
+        public enum StreamingStatus
+        {
             Live,
             Disconnected
         }

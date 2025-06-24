@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: SnowyPine1
   m_EditorClassIdentifier: 
   Name: SPineTree1
+  Tags:
+    Reg:
+      value: []
   settings:
     value:
       GridSize:
@@ -1426,5 +1429,8 @@ MonoBehaviour:
     - Air
     - Snow
     - Wood
-    - PineLeaf
+    - PineLeaves
     - Grass
+  references:
+    version: 2
+    RefIds: []

@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: DeciduousForest
   m_EditorClassIdentifier: 
   Name: Deciduous Forest
+  Tags:
+    Reg:
+      value: []
   info:
     value:
       NameRegister:
@@ -88,9 +91,12 @@ MonoBehaviour:
       InfluenceOffStart: 0
       AtmosphereStart: 0.5
       TerrainEnd: 1
-      ErosionEnd: 0.7
+      ErosionEnd: 0.55
       SquashEnd: 1
       InfluenceEnd: 1
       InfluenceOffEnd: 1
       AtmosphereEnd: 1
       biome: 0
+  references:
+    version: 2
+    RefIds: []

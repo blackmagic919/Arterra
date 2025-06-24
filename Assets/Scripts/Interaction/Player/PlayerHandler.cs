@@ -108,7 +108,7 @@ public static class PlayerHandler
 
     static PlayerStreamer.Player LoadPlayerData(){
         string path = MapStorage.World.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
-        if(!File.Exists(path)) { return new PlayerStreamer.Player(); }
+        if(!File.Exists(path)) { return PlayerStreamer.Player.Build(); }
 
         string data = System.IO.File.ReadAllText(path);
         PlayerStreamer.Player playerInfo = Newtonsoft.Json.JsonConvert.DeserializeObject<Registerable<PlayerStreamer.Player>>(data).Value;
@@ -117,7 +117,7 @@ public static class PlayerHandler
 
     public static void RespawnPlayer(Action cb = null){
         DateTime currentTime = data.currentTime;
-        data = new PlayerStreamer.Player();
+        data = PlayerStreamer.Player.Build();
         data.currentTime = currentTime;
         EntityManager.CreateEntity(data, () => {
             camera.SetParent(data.player.transform, worldPositionStays: false);

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2983eef72a70244a28e76d3fd1b716cd, type: 3}
+  m_Name: WaterEntities
+  m_EditorClassIdentifier: 
+  Name: Water
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 5090753ded056405f8cf4485f8067bb2, type: 2}
+    - value: {fileID: 11400000, guid: 188c214f36b82484c98425d9b007a465, type: 2}
+    - value: {fileID: 11400000, guid: a3f99f4ff3f45440088e18af67e41d1c, type: 2}
+    - value: {fileID: 11400000, guid: fbdc51524dc8245fca9c35578d34e059, type: 2}
+    - value: {fileID: 11400000, guid: 1635b34bda69a4b12b9a87ca47dcf88c, type: 2}
+  references:
+    version: 2
+    RefIds: []

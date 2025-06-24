@@ -8,26 +8,46 @@ using UnityEngine;
 using WorldConfig;
 using WorldConfig.Quality;
 
+
 //Curiously recurring template pattern!!
 [Serializable]
-public class Category<T> : ScriptableObject where T : Category<T>{
+public class Category<T> : ScriptableObject where T : Category<T>
+{
     public string Name;
-    protected virtual Option<List<Option<Category<T> > > >? GetChildren() => null;
-    protected virtual void SetChildren(Option<List<Option<Category<T>>>> value){}
+    public TagRegistry Tags;
+    protected virtual Option<List<Option<Category<T>>>>? GetChildren() => null;
+    protected virtual void SetChildren(Option<List<Option<Category<T>>>> value) { }
 
-    public virtual void AddChildren(ref List<T> list)
+    public virtual void AddChildren(ref List<T> flat, ref List<BackEdge> inv, BackEdge parent = null)
     {
-        list ??= new List<T>();
+        flat ??= new List<T>();
+        inv ??= new List<BackEdge>();
+
+        Tags.Construct();
         var children = GetChildren()?.value;
+        BackEdge invertedDependency = new BackEdge(parent, this);
         //If children is null, then it is the leaf type being contained
         if (children == null)
         {
-            list.Add((T)this);
+            inv.Add(invertedDependency);
+            flat.Add((T)this);
             return;
         }
         foreach (var pair in children)
         {
-            if (pair.value != null) pair.value.AddChildren(ref list);
+            if (pair.value != null) pair.value.AddChildren(ref flat, ref inv, invertedDependency);
+        }
+    }
+
+    public virtual void OnValidate() => Tags.OnValidate();
+
+    public class BackEdge
+    {
+        public BackEdge Parent = null;
+        public Category<T> Category = null;
+        public BackEdge(BackEdge Parent, Category<T> Category){
+            this.Parent = Parent;
+            this.Category = Category;
         }
     }
 }
@@ -44,16 +64,17 @@ public struct Registry<T> : IRegister, ICloneable where T : Category<T>
     [UISetting(Ignore = true, Defaulting = true)]
     [JsonIgnore]
     private Dictionary<string, int> Index;
+    [HideInInspector]
+    [UISetting(Ignore = true, Defaulting = true)]
+    [JsonIgnore]
+    private List<Category<T>.BackEdge> InvertedDependency;
 
     public void Construct()
     {
-        Index = new Dictionary<string, int>();
         Reg = new List<T>();
-        Category.value.AddChildren(ref Reg);
-        for (int i = 0; i < Reg.Count; i++)
-        {
-            Index.Add(Reg[i].Name, i);
-        }
+        InvertedDependency = new List<Category<T>.BackEdge>();
+        Category.value.AddChildren(ref Reg, ref InvertedDependency);
+        ReconstructIndex();
     }
 
     public readonly int RetrieveIndex(string name)
@@ -86,19 +107,22 @@ public struct Registry<T> : IRegister, ICloneable where T : Category<T>
     {
         Reg ??= new List<T>();
         Index ??= new Dictionary<string, int>();
+        InvertedDependency ??= new List<Category<T>.BackEdge>();
 
         Reg.Add(value);
         Index.Add(name, Reg.Count - 1);
+        InvertedDependency.Add(new Category<T>.BackEdge(null, value));
     }
 
     public bool TryRemove(string name)
     {
         if (Reg == null || Index == null) return false;
+        if (InvertedDependency == null) return false;
         if (!Index.ContainsKey(name)) return false;
 
+        InvertedDependency.RemoveAt(Index[name]);
         Reg.RemoveAt(Index[name]);
-        Index.Remove(name);
-        Construct(); //Rebuild the index
+        ReconstructIndex();
         return true;
     }
 
@@ -108,13 +132,45 @@ public struct Registry<T> : IRegister, ICloneable where T : Category<T>
         if (!Index.ContainsKey(name)) return false;
 
         int index = Index[name];
+        InvertedDependency[index].Category = value;
         Reg[index] = value;
         return true;
+    }
+
+    public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, string name, out TagRegistry.IProperty prop) => GetMostSpecificTag(tag, RetrieveIndex(name), out prop);
+    public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, int index, out TagRegistry.IProperty prop)
+    {
+        prop = null;
+        if (index < 0 || index >= Reg.Count) return false;
+        Category<T>.BackEdge cur = InvertedDependency[index];
+        while (cur != null)
+        {
+            if (cur.Category.Tags.Contains(tag))
+                break;
+            cur = cur.Parent;
+        }
+        if (cur == null) return false;
+        prop = cur.Category.Tags.Retrieve(tag);
+        return true;
+    }
+
+    private void ReconstructIndex()
+    {
+        Index = new Dictionary<string, int>();
+        for (int i = 0; i < Reg.Count; i++)
+        {
+            Index.Add(Reg[i].Name, i);
+        }
     }
 
     public object Clone()
     {
         return new Registry<T> { Reg = Reg };
+    }
+
+    internal bool GetMostSpecificTag(TagRegistry.Tags bareHand, int material, out ToolTag tag)
+    {
+        throw new NotImplementedException();
     }
 
     [Serializable]
@@ -137,11 +193,9 @@ public struct Registry<T> : IRegister, ICloneable where T : Category<T>
     }
 }
 
-public struct DynamicRegistry<T> : IRegister, ICloneable 
+[Serializable]
+public struct DynamicRegistry<T> : IRegister, ICloneable
 {
-    [HideInInspector]
-    [UISetting(Ignore = true)]
-    [JsonIgnore]
     public List<Pair> Reg;
     [HideInInspector]
     [UISetting(Ignore = true)]
@@ -189,7 +243,7 @@ public struct DynamicRegistry<T> : IRegister, ICloneable
         Reg ??= new List<Pair>();
         Index ??= new Dictionary<string, int>();
 
-        Reg.Add(new Pair{Name = name, _value = new Option<T>{value = value}});
+        Reg.Add(new Pair { Name = name, _value = new Option<T> { value = value } });
         Index.Add(name, Reg.Count - 1);
 
     }

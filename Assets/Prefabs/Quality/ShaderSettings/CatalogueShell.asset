@@ -13,7 +13,14 @@ MonoBehaviour:
   m_Name: CatalogueShell
   m_EditorClassIdentifier: 
   Name: Root
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 748d3ee81b1a74398b39f0d98e4fd4ca, type: 2}
+    - value: {fileID: 11400000, guid: 9ef23a5fe06fa4394b0506e731e767a9, type: 2}
     - value: {fileID: 11400000, guid: a99a3b52273a44bf38315a596f3880af, type: 2}
+  references:
+    version: 2
+    RefIds: []

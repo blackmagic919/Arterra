@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Ocean
   m_EditorClassIdentifier: 
   Name: Ocean
+  Tags:
+    Reg:
+      value: []
   info:
     value:
       NameRegister:
@@ -27,7 +30,7 @@ MonoBehaviour:
         - Shark
         - Whale
         - Cod
-        - Krill
+        - Minnow
       GroundMaterials:
         value:
         - value:
@@ -107,3 +110,6 @@ MonoBehaviour:
       InfluenceOffEnd: 1
       AtmosphereEnd: 1
       biome: 0
+  references:
+    version: 2
+    RefIds: []

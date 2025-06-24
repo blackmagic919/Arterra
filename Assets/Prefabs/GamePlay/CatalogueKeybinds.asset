@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: CatalogueKeybinds
   m_EditorClassIdentifier: 
   Name: Root
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: ef97c2bbcda194eeca399ad75aa3d76f, type: 2}
@@ -39,8 +42,10 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: b90a4c9cb53fb4ac8b490825185b13d2, type: 2}
     - value: {fileID: 11400000, guid: e4d7966289e5e4d3592416715aca0ce4, type: 2}
     - value: {fileID: 11400000, guid: 87b0b9f827fe04b4bad3d43e442aad47, type: 2}
-    - value: {fileID: 11400000, guid: 71c7b8a1082614c74bed815bdac6996c, type: 2}
     - value: {fileID: 11400000, guid: 9e255fbb5463940e5aa7d9aec4020a2f, type: 2}
     - value: {fileID: 11400000, guid: fed2c4837867645fd93d4aaf0ce9ac10, type: 2}
     - value: {fileID: 11400000, guid: 5342f196de3484effb55a6ae9b8b1e45, type: 2}
     - value: {fileID: 11400000, guid: 2873a78604fdf4748a0cb9bc1f6781a5, type: 2}
+  references:
+    version: 2
+    RefIds: []

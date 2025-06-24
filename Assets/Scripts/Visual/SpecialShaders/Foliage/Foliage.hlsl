@@ -4,6 +4,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
+#include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
 
 struct DrawTriangle{
     uint3 vertex[3];
@@ -78,22 +79,17 @@ half3 Fragment(VertexOutput IN) : SV_TARGET{
     float2 windNoise = SAMPLE_TEXTURE2D(_WindNoiseTexture, sampler_WindNoiseTexture, windUV).xy * 2 - 1;
     IN.uv = clamp(IN.uv + windNoise * _WindAmplitude, 0, 1);
 
-    InputData lightingInput = (InputData)0;
-    lightingInput.positionWS = IN.positionWS;
-    lightingInput.normalWS = NormalizeNormalPerPixel(IN.normalWS);
-
     Settings cxt = VariantSettings[IN.variant];
-    SurfaceData surfaceInput = (SurfaceData)0;
-	surfaceInput.albedo = cxt.LeafColor.rgb;
-	surfaceInput.alpha = 1;
     clip(_Textures.Sample(sampler_Textures, float3(IN.uv, cxt.TexIndex)).a - _AlphaClip);
+    float3 normal = NormalizeNormalPerPixel(IN.normalWS);
+    float3 albedo = cxt.LeafColor.rgb;
 
     uint light = SampleLight(IN.positionWS);
-    float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f) * 0.5 + 0.5;
-    float3 DynamicLight = UniversalFragmentPBR(lightingInput, surfaceInput) * shadow;
+    float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f);
+    float3 DynamicLight = LambertShade(albedo, normal, shadow);
     float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
     ObjectLight = mad((1 - ObjectLight), unity_AmbientEquator, ObjectLight * 2.5f); //linear interpolation
-    ObjectLight *= surfaceInput.albedo;
+    ObjectLight *= albedo;
 
     return max(DynamicLight, ObjectLight).rgb;
 }

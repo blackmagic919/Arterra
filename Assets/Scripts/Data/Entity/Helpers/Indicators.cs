@@ -25,21 +25,43 @@ namespace WorldConfig.Gameplay{
 public static class Indicators
 {
     public static WorldConfig.Gameplay.Statistics Stats => Config.CURRENT.GamePlay.Statistics;
-    public static ObjectPool<GameObject> SelectionIndicators;
+    public static ObjectPool<GameObject> ItemSlots;
+    public static ObjectPool<GameObject> StackableItems;
+    public static ObjectPool<GameObject> HolderItems;
+    public static GameObject SelectionIndicator;
     public static GameObject DamageIndicator;
     public static GameObject BarIndicator;
-    public static void Initialize(){
+    public static void Initialize()
+    {
         static void OnActivate(GameObject indicator) => indicator.SetActive(true);
         static void OnDeactivate(GameObject indicator) => indicator.SetActive(false);
-        static void OnDestroy(GameObject indicator) => GameObject.Destroy(indicator);
+        static void OnDestroy(GameObject indicator){
+#if UNITY_EDITOR
+            GameObject.DestroyImmediate(indicator);
+#else 
+            GameObject.Destroy(indicator);
+#endif
+        }
 
-        GameObject SelectionIndicator = Resources.Load<GameObject>("Prefabs/GameUI/Selection");
+        SelectionIndicator = Object.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Selection"));
         DamageIndicator = Resources.Load<GameObject>("Prefabs/GameUI/DamageEffect");
         BarIndicator = Resources.Load<GameObject>("Prefabs/GameUI/EntityStats");
 
-        SelectionIndicators = new ObjectPool<GameObject>(() => {
-            return GameObject.Instantiate(SelectionIndicator);
+        GameObject ItemSlot = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Slot");
+        GameObject StackableItem = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/StackableItem");
+        GameObject HolderItem = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/HolderItem");
+
+        ItemSlots = new ObjectPool<GameObject>(() =>
+        {
+            return GameObject.Instantiate(ItemSlot);
         }, OnActivate, OnDeactivate, OnDestroy, true, 25, 100);
+        StackableItems = new ObjectPool<GameObject>(() =>
+        {
+            return GameObject.Instantiate(StackableItem);
+        }, OnActivate, OnDeactivate, OnDestroy, true, 5, 40);
+        HolderItems = new ObjectPool<GameObject>(() => {
+            return GameObject.Instantiate(HolderItem);
+        }, OnActivate, OnDeactivate, OnDestroy, true, 5, 20);
     }
 
     public static void SetupIndicators(GameObject entity){

@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using static SegmentedUIEditor;
 using WorldConfig;
+using System.Linq;
 
 public class SegmentListSerializer : IConverter{
     public bool CanConvert(Type iType, Type fType){ return iType.IsGenericType && iType.GetGenericTypeDefinition() == typeof(List<>); }
@@ -54,7 +55,7 @@ public class SegmentListSerializer : IConverter{
         IList dest = (IList)destination; IList src = (IList)source;
         for(int i = 0; i < dest.Count && i < src.Count; i++){
             object srcEl = src[i]; object destEl = dest[i]; Type destType = destEl.GetType();
-            if(destType.IsGenericType && destType.GetGenericTypeDefinition() == typeof(Option<>)){
+            if(destType.GetInterfaces().Contains(typeof(IOption))){
                 if(((IOption)destEl).IsDirty) {
                     object nDest, nSrc; 
                     FieldInfo field = destType.GetField("value");
@@ -83,7 +84,7 @@ public class SegmentListSerializer : IConverter{
 
             FieldInfo field = null; ParentUpdate nUpdate = OnUpdate; 
             int index = i; //this is not useless--index is captured to streamline changes
-            if(cObjType.IsGenericType && cObjType.GetGenericTypeDefinition() == typeof(Option<>)){
+            if(cObjType.GetInterfaces().Contains(typeof(IOption))){
                 field = cObjType.GetField("value"); 
                 value = field.GetValue(cObject);
                 if (value == null)

@@ -1,0 +1,172 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eef870968b735497384f821adc938e6b, type: 3}
+  m_Name: Hawk
+  m_EditorClassIdentifier: 
+  Name: Hawk
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 168991073919609735, guid: f2f74ce56e41a4504b5319d9673564fc, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 2
+          y: 3
+          z: 2
+        profileStart: 48
+      collider:
+        size:
+          x: 0.6
+          y: 0.6
+          z: 0.6
+        friction: 0.25
+      movement:
+        walkSpeed: 2
+        runSpeed: 10
+        acceleration: 150
+        rotSpeed: 180
+        pathDistance: 31
+        AverageIdleTime: 2.5
+      flight:
+        profile:
+          bounds:
+            x: 2
+            y: 3
+            z: 2
+          profileStart: 60
+        AverageFlightTime: 25
+        FlyBiasWeight: 0.25
+        VerticalFreedom: 0.5
+      decomposition:
+        LootTable:
+          value:
+          - ItemName: Meat
+            DropAmount: 7
+          - ItemName: Feathers:Solid
+            DropAmount: 10
+        DecompositionTime: 200
+      recognition:
+        value:
+          Predators:
+            value: []
+          Mates:
+            value:
+            - MateType: Hawk
+              ChildType: Hawk
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Meat
+              Nutrition: 25.6
+          SightDistance: 30
+          FleeDistance: 5
+          FightAggressor: 1
+          Prey:
+            value:
+            - Sparrow
+            - Rabbit
+      physicality:
+        value:
+          MaxHealth: 12
+          NaturalRegen: -0.01
+          AttackDistance: 3
+          AttackDamage: 4
+          AttackCooldown: 0.75
+          KBStrength: 1
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 4
+          ConsumptionRate: 0.5
+          MateCost: 4
+          weight: 0.25
+  references:
+    version: 2
+    RefIds: []

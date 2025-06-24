@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: EItem
   m_EditorClassIdentifier: 
   Name: EntityItem
+  Tags:
+    Reg:
+      value: []
   Controller:
     value: {fileID: 5653881121737289674, guid: cdde00980c1ea4ddea86e60f5d7f261c, type: 3}
   Profile:
@@ -48,7 +51,7 @@ MonoBehaviour:
           x: 2
           y: 2
           z: 2
-        profileStart: 120
+        profileStart: 474
       collider:
         size:
           x: 0.5
@@ -61,4 +64,7 @@ MonoBehaviour:
         x: 32
         y: 32
       AlphaClip: 0.2
-      ExtrudeHeight: 5
+      ExtrudeHeight: 2.5
+  references:
+    version: 2
+    RefIds: []

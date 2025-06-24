@@ -1,0 +1,125 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fbcd5f0b5992466685233b55199a842, type: 3}
+  m_Name: Beetle
+  m_EditorClassIdentifier: 
+  Name: Beetle
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 8827423900315909153, guid: 6bc1a2d4c70d9469993e233f0fa6d12c, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 2
+          y: 2
+          z: 2
+        profileStart: 200
+      collider:
+        size:
+          x: 0.3
+          y: 0.6
+          z: 0.3
+        friction: 0.25
+      movement:
+        walkSpeed: 1
+        runSpeed: 2
+        acceleration: 150
+        rotSpeed: 180
+        pathDistance: 24
+        AverageIdleTime: 2.5
+      decomposition:
+        LootTable:
+          value:
+          - ItemName: BugMush
+            DropAmount: 1
+        DecompositionTime: 75
+      recognition:
+        value:
+          Predators:
+            value:
+            - Spider
+            - Bat
+          Mates:
+            value:
+            - MateType: Beetle
+              ChildType: Beetle
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Moss:Solid
+              Nutrition: 12.75
+            - EdibleType: Grass:Solid
+              Nutrition: 12.75
+          SightDistance: 12
+          FleeDistance: 5
+          FightAggressor: 0
+          PlantFindDist: 3
+          Prey:
+            value:
+            - Material: Moss
+              Bounds:
+                data: 4286643968
+              Replacement: Dirt
+              ReplaceState: 0
+            - Material: Grass
+              Bounds:
+                data: 4286643968
+              Replacement: Dirt
+              ReplaceState: 0
+      physicality:
+        value:
+          MaxHealth: 2
+          NaturalRegen: -0.002
+          AttackDistance: 3
+          AttackDamage: 0.2
+          AttackCooldown: 1
+          KBStrength: 0.1
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 4
+          ConsumptionRate: 0.25
+          MateCost: 0.5
+          weight: 0.1
+  references:
+    version: 2
+    RefIds: []

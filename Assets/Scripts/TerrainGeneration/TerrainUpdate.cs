@@ -8,7 +8,7 @@ using Unity.Jobs;
 using WorldConfig.Intrinsic;
 
 namespace WorldConfig.Intrinsic{
-    [System.Serializable]
+    
     /// <summary>
     /// Settings controlling how updates to the terrain are performed 
     /// and how much load it is allotted. Terrain updates are point-operations
@@ -16,6 +16,7 @@ namespace WorldConfig.Intrinsic{
     /// the correspondng material's unique update method will be called if it is defined.
     /// See <see cref="MaterialData.UpdateMat"/> for more information.
     /// </summary>
+    [System.Serializable]
     public class TerrainUpdation{
         /// <summary> How many random points are chosen to be updated at random 
         /// per update cycle. Random Updates allow certain materials to 

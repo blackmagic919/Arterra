@@ -8,6 +8,7 @@ using WorldConfig;
 using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
 using WorldConfig.Gameplay.Player;
+using UnityEditor;
 
 namespace WorldConfig.Gameplay.Player {
 /// <summary>
@@ -19,10 +20,10 @@ namespace WorldConfig.Gameplay.Player {
 public class Interaction : ICloneable{
     /// <summary> The radius, in grid space, of the spherical region around the user's
     /// cursor that will be modified when the user terraforms the terrain. </summary>
-    public int terraformRadius = 5;
-    /// <summary> The speed at which the user can terraform the terrain. As terraforming is a 
-    /// continuous process, the speed is measured in terms of change in density per frame. </summary>
-    public float terraformSpeed = 4;
+    public int TerraformRadius = 1;
+    /// <summary>  The default information used for terrain terraforming if no tag is applied.
+    /// See <see cref="ToolTag"/> for more information </summary>
+    public Option<ToolTag> DefaultTerraform;
     /// <summary> The maximum distance, in grid space, that the user can terraform the terrain from.
     /// That is, the maximum distance the cursor can be from the user's camera for the user
     /// to be able to terraform around the cursor.  </summary>
@@ -38,8 +39,8 @@ public class Interaction : ICloneable{
     /// <returns>The duplicated terraform settings. </returns>
     public object Clone(){
         return new Interaction{
-            terraformRadius = this.terraformRadius,
-            terraformSpeed = this.terraformSpeed,
+            TerraformRadius = this.TerraformRadius,
+            DefaultTerraform = this.DefaultTerraform,
             ReachDistance = this.ReachDistance,
             PickupRate = this.PickupRate,
         };
@@ -59,7 +60,7 @@ public static class PlayerInteraction
     // Start is called before the first frame update
     public static void Initialize()
     {
-        InputPoller.AddBinding(new InputPoller.ActionBind("Pickup Item", PickupItems), "5.0::GamePlay");
+        InputPoller.AddBinding(new InputPoller.ActionBind("Interact", PickupItems), "5.0::GamePlay");
         InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", PlaceTerrain), "5.0::GamePlay");
         InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", RemoveTerrain), "5.0::GamePlay");
     }
@@ -88,17 +89,25 @@ public static class PlayerInteraction
         if(InventoryController.Selected == null) return;
         Authoring selMat = InventoryController.SelectedSetting;
         if(selMat.MaterialName == null || !matInfo.Contains(selMat.MaterialName)) return;
-
-        if(selMat.IsSolid) Terraform(hitPt, settings.terraformRadius, HandleAddSolid);
-        else Terraform(hitPt, settings.terraformRadius, HandleAddLiquid);
+        
+        if (selMat.IsSolid) Terraform(hitPt, settings.TerraformRadius, (MapData mapData, float speed) => HandleAddSolid(mapData, speed * settings.DefaultTerraform.value.TerraformSpeed));
+        else Terraform(hitPt, settings.TerraformRadius, (MapData mapData, float speed) => HandleAddSolid(mapData, speed * settings.DefaultTerraform.value.TerraformSpeed));
     }
 
-    public static void RemoveTerrain(float _){
+    public static void RemoveTerrain(float _)
+    {
         PlayerHandler.data.animator.SetTrigger("IsPlacing");
         if (!RayTestSolid(data, out float3 hitPt)) return;
-        if(EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
+        if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
             return;
-        CPUMapManager.Terraform(hitPt, settings.terraformRadius, HandleRemoveSolid);
+        MapData RemoveSolidBareHand(MapData mapData, float speed){
+            int material = mapData.material; ToolTag tag = settings.DefaultTerraform;
+            if (matInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, material, out TagRegistry.IProperty prop))
+                tag = prop as ToolTag;
+            return HandleRemoveSolid(mapData, speed * tag.TerraformSpeed, tag.GivesItem);
+        }
+        
+        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolidBareHand);
     }
 
     public static int GetStaggeredDelta(float deltaDensity){
@@ -113,7 +122,7 @@ public static class PlayerInteraction
     }
 
     public static MapData HandleAddSolid(MapData pointInfo, float brushStrength){
-        brushStrength *= settings.terraformSpeed * Time.deltaTime;
+        brushStrength *= Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
         if(InventoryController.Selected == null || !InventoryController.SelectedSetting.IsSolid) 
             return pointInfo;
@@ -136,7 +145,7 @@ public static class PlayerInteraction
     }
 
     public static MapData HandleAddLiquid(MapData pointInfo, float brushStrength){
-        brushStrength *= settings.terraformSpeed * Time.deltaTime;
+        brushStrength *= Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
         if(InventoryController.Selected == null || !InventoryController.SelectedSetting.IsLiquid) 
             return pointInfo;
@@ -159,22 +168,20 @@ public static class PlayerInteraction
 
 
 
-    public static MapData HandleRemoveSolid(MapData pointInfo, float brushStrength){
-        brushStrength *= settings.terraformSpeed * Time.deltaTime;
+    public static MapData HandleRemoveSolid(MapData pointInfo, float brushStrength, bool ObtainMat = true){
+        brushStrength *= Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int solidDensity = pointInfo.SolidDensity;
         int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
-        if(solidDensity >= IsoValue){
+        if(solidDensity >= IsoValue && ObtainMat){
             MaterialData material = matInfo.Retrieve(pointInfo.material);
             string key = material.RetrieveKey(material.SolidItem);
             if(!itemInfo.Contains(key)) return pointInfo;
 
             int itemIndex = itemInfo.RetrieveIndex(key);
             IItem nMaterial = itemInfo.Retrieve(itemIndex).Item;
-            nMaterial.Index = itemIndex;
-            nMaterial.AmountRaw = deltaDensity;
-
+            nMaterial.Create(itemIndex, deltaDensity);
             InventoryController.AddEntry(nMaterial);
             deltaDensity -= nMaterial.AmountRaw;
         }
@@ -184,7 +191,7 @@ public static class PlayerInteraction
     }
 
     public static MapData HandleRemoveLiquid(MapData pointInfo, float brushStrength){
-        brushStrength *= settings.terraformSpeed * Time.deltaTime;
+        brushStrength *= Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
 
         int liquidDensity = pointInfo.LiquidDensity;
@@ -196,8 +203,7 @@ public static class PlayerInteraction
 
             int itemIndex = itemInfo.RetrieveIndex(key);
             IItem nMaterial = itemInfo.Retrieve(itemIndex).Item;
-            nMaterial.Index = itemIndex;
-            nMaterial.AmountRaw = deltaDensity;
+            nMaterial.Create(itemIndex, deltaDensity);
             deltaDensity -= nMaterial.AmountRaw;
         }
         pointInfo.density -= deltaDensity;

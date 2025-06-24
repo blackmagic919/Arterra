@@ -100,9 +100,10 @@ public class DensityDeconstructor : MonoBehaviour
         this.modelManager.GenerateModel();
     }
 
-    public void ConvertMesh(){
+    public void ConvertMesh()
+    {
         Mesh mesh = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + savePath + ".fbx").GetComponent<MeshFilter>().sharedMesh;
-        if(mesh == null) throw new Exception("Mesh not found");
+        if (mesh == null) throw new Exception("Mesh not found");
         InitializeGrid();
 
         GetDataFromMesh(mesh);

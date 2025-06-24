@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: SoftMat
   m_EditorClassIdentifier: 
   Name: C:Soft
+  Tags:
+    Reg:
+      value:
+      - Tag: 3
+        value:
+          value:
+            rid: 5818089297814487235
   Children:
     value:
     - value: {fileID: 11400000, guid: f59c26f6a7afe4b8da7d243b73968ab8, type: 2}
@@ -20,3 +27,12 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: 481b2c054900b455eb9738ef2d48a56d, type: 2}
     - value: {fileID: 11400000, guid: 648f75c635cbb4686a0e32aae0a17df7, type: 2}
     - value: {fileID: 11400000, guid: 76b3bb95abd574c2db8fe40648a02a3a, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 5818089297814487235
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 150
+        ToolDamage: 1
+        GivesItem: 1

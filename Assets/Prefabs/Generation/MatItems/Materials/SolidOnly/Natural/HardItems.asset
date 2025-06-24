@@ -13,8 +13,14 @@ MonoBehaviour:
   m_Name: HardItems
   m_EditorClassIdentifier: 
   Name: C:Hard
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 8af60393695e748478c78bcb4c27aa54, type: 2}
     - value: {fileID: 11400000, guid: 5ea9df1e485a742b39afbef7c6c2f921, type: 2}
     - value: {fileID: 11400000, guid: 074083029b95540a88ced0bbf165b0f6, type: 2}
+  references:
+    version: 2
+    RefIds: []

@@ -43,9 +43,7 @@ public static class InventoryController
     private static UpdateTask EventTask;
     
     public static InventDisplay PrimaryArea;
-    public static SlotDisplay[] PrimaryDisplay;
     public static InventDisplay SecondaryArea;
-    public static SlotDisplay[] SecondaryDisplay;
 
     private static uint Fence;
     private static Registry<Authoring> ItemSettings;
@@ -55,14 +53,14 @@ public static class InventoryController
     public static IItem Cursor;
     public static int SelectedIndex = 0;
 
-    public struct SlotDisplay{
+    public struct SlotDisplay
+    {
         public GameObject Object;
         public Image Icon;
-        public TextMeshProUGUI Amount;
-        public SlotDisplay(GameObject obj){
+        public SlotDisplay(GameObject obj)
+        {
             Object = obj;
             Icon = obj.transform.GetComponent<Image>();
-            Amount = obj.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
         }
     }
     public struct InventDisplay{
@@ -92,24 +90,17 @@ public static class InventoryController
     }
 
     public static void Initialize(){
-        GameObject Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory"), GameUIManager.UIHandle.transform);
+        GameObject Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Panel"), GameUIManager.UIHandle.transform);
         PrimaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(0).gameObject);
         SecondaryArea = new InventDisplay(Menu.transform.GetChild(0).GetChild(1).gameObject);
-        PrimaryDisplay = new SlotDisplay[settings.PrimarySlotCount];
-        SecondaryDisplay = new SlotDisplay[settings.SecondarySlotCount];
         ItemSettings = Config.CURRENT.Generation.Items;
         TextureAtlas = Config.CURRENT.Generation.Textures;
+        Primary.InitializeDisplay(settings.PrimarySlotCount, PrimaryArea.Object.transform);
+        Secondary.InitializeDisplay(settings.SecondarySlotCount, SecondaryArea.Object.transform);
 
-        GameObject slotDisplay = Resources.Load<GameObject>("Prefabs/GameUI/InventorySlot");
-        for(int i = 0; i < settings.PrimarySlotCount; i++){
-            GameObject slot = GameObject.Instantiate(slotDisplay, PrimaryArea.Object.transform);
-            PrimaryDisplay[i] = new SlotDisplay(slot);
-        }
-        for(int i = 0; i < settings.SecondarySlotCount; i++){
-            GameObject slot = GameObject.Instantiate(slotDisplay, SecondaryArea.Object.transform);
-            SecondaryDisplay[i] = new SlotDisplay(slot);
-        } Cursor = null;
-        CursorDisplay = new SlotDisplay(GameObject.Instantiate(slotDisplay, Menu.transform)); 
+        Cursor = null;
+        CursorDisplay = new SlotDisplay(Indicators.ItemSlots.Get());
+        CursorDisplay.Object.transform.SetParent(Menu.transform);
         SecondaryArea.Region.SetActive(false);
         CursorDisplay.Object.SetActive(false);
 
@@ -125,9 +116,13 @@ public static class InventoryController
     }
 
     public static void Release(){ CraftingMenuController.Release(); }
-    private static void Activate(float _){
+    
+
+    private static void Activate(float _)
+    {
         InputPoller.AddStackPoll(new InputPoller.ActionBind("Frame:Inventory", (float _) => InputPoller.SetCursorLock(false)), "CursorLock");
-        InputPoller.AddKeyBindChange(() => {
+        InputPoller.AddKeyBindChange(() =>
+        {
             Fence = InputPoller.AddContextFence("3.0::Window", InputPoller.ActionBind.Exclusion.ExcludeAll);
             InputPoller.AddBinding(new InputPoller.ActionBind("Open Inventory", Deactivate), "3.0::Window");
             InputPoller.AddBinding(new InputPoller.ActionBind("Select", SelectDrag), "3.0::Window");
@@ -162,13 +157,16 @@ public static class InventoryController
         Selected?.OnSelect();
     }
 
-    private static void AddHotbarKeybinds(){
-        static void ChangeSelected(int index){
-            if(Selected != null) Selected.IsDirty = true;
+    private static void AddHotbarKeybinds()
+    {
+        static void ChangeSelected(int index)
+        {
             Selected?.OnDeselect();
+            Primary.Display[SelectedIndex].Icon.color = settings.BaseColor;
+
             SelectedIndex = index % settings.PrimarySlotCount;
             Selected?.OnSelect();
-            if(Selected != null) Selected.IsDirty = true;
+            Primary.Display[SelectedIndex].Icon.color = settings.SelectedColor;
         }
         InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar1", (float _) => ChangeSelected(0)), "2.0::Subscene");
         InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar2", (float _) => ChangeSelected(1)), "2.0::Subscene");
@@ -179,55 +177,65 @@ public static class InventoryController
         InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar7", (float _) => ChangeSelected(6)), "2.0::Subscene");
         InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar8", (float _) => ChangeSelected(7)), "2.0::Subscene");
         InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar9", (float _) => ChangeSelected(8)), "2.0::Subscene");
+        Primary.Display[SelectedIndex].Icon.color = settings.SelectedColor; //Set the inital selected color
+    }
+    
+    private static bool GetMouseTarget(out Inventory Inv, out int index){
+        Inv = null;
+        if (GetMousePrimary(out index)) {
+            Inv = Primary;
+        } else if (GetMouseSecondary(out index)) {
+            Inv = Secondary;
+        } else return false;
+        return true;
+    }
+    private static void DropItem(IItem item){
+        WorldConfig.Generation.Entity.Entity Entity = new EItem.EItemEntity(new TerrainColliderJob.Transform{
+            position = PlayerHandler.data.position,
+            rotation = PlayerHandler.data.collider.transform.rotation,
+        }, item);
+        Entity.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("EntityItem");
+        Entity.info.entityId = Guid.NewGuid();
+        EntityManager.CreateEntity(Entity);
     }
 
-    private static void SelectDrag(float _){
-        Inventory Inv;
-        if (GetMousePrimary(out int index)){
-            Inv = Primary;
-        } else if(GetMouseSecondary(out index)){
-            Inv = Secondary;
-        } else return;
+    private static void SelectDrag(float _)
+    {
+        if (!GetMouseTarget(out Inventory Inv, out int index))
+            return;
 
         //Swap the cursor with the selected slot
         Cursor = Inv.Info[index];
-        if(Cursor == null) return;
+        if (Cursor == null) return;
         Inv.RemoveEntry(index);
 
-        CursorDisplay.Icon.sprite = TextureAtlas.Retrieve(Cursor.TexIndex).self;
-        CursorDisplay.Amount.text = Cursor.Display;
+        Cursor.AttachDisplay(CursorDisplay.Object.transform);
         CursorDisplay.Object.SetActive(true);
     }
 
     private static void DeselectDrag(float _){
-        static void DropItem(IItem item){
-            WorldConfig.Generation.Entity.Entity Entity = new EItem.EItemEntity(new TerrainColliderJob.Transform{
-                position = PlayerHandler.data.position,
-                rotation = PlayerHandler.data.collider.transform.rotation,
-            }, item);
-            Entity.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("EntityItem");
-            Entity.info.entityId = Guid.NewGuid();
-            EntityManager.CreateEntity(Entity);
-        }
-
         if(Cursor == null) return;
         CursorDisplay.Object.SetActive(false);
 
-        IItem cursor = Cursor; 
-        Cursor = null; Inventory Inv;
-        if (GetMousePrimary(out int index)){
-            Inv = Primary;
-        } else if(GetMouseSecondary(out index)){
-            Inv = Secondary;
-        } else { DropItem(cursor); return;}
+        IItem cursor = Cursor;
+        cursor.ClearDisplay();
+        Cursor = null;
+        if (!GetMouseTarget(out Inventory Inv, out int index)) {
+            DropItem(cursor);
+            return;
+        }
 
-        if(Inv.Info[index] == null)
-            Inv.AddEntry(cursor, index);   
-        else if(Inv.Info[index].IsStackable && cursor.Index == Inv.Info[index].Index) {
+        if (Inv.Info[index] == null)
+            Inv.AddEntry(cursor, index);
+        else if (Inv.Info[index].IsStackable && cursor.Index == Inv.Info[index].Index)
+        {
             Inv.AddStackable(cursor, index);
-        } else if(Primary.EntryDict.ContainsKey(cursor.Index) && Inv.Info[index].IsStackable) {
+        }
+        else if (Primary.EntryDict.ContainsKey(cursor.Index) && Inv.Info[index].IsStackable)
+        {
             Primary.AddStackable(cursor);
-        } else if(!Secondary.AddEntry(cursor, out int _)){ DropItem(cursor); return; };
+        }
+        else if (!Secondary.AddEntry(cursor, out int _)) { DropItem(cursor); return; };
     }
 
     private static int2 GetSlotIndex(InventDisplay display, float2 pos){
@@ -290,28 +298,10 @@ public static class InventoryController
     }
 
     public static void Update(MonoBehaviour mono){
-        ReflectInventory(PrimaryDisplay, Primary); 
-        ReflectInventory(SecondaryDisplay, Secondary);
+        if (Cursor == null) return;
         CursorDisplay.Object.transform.position = Input.mousePosition;
-        PrimaryDisplay[SelectedIndex].Icon.color = settings.SelectedColor;
     }
 
-    private static void ReflectInventory(SlotDisplay[] display, Inventory inventory){
-        for(int i = 0; i < display.Length; i++){
-            SlotDisplay disp = display[i];
-            IItem slot = inventory.Info[i];
-            if(slot == null){
-                disp.Icon.sprite = null;
-                disp.Amount.text = "";
-                disp.Icon.color = settings.BaseColor;
-            } else if(slot.IsDirty){
-                disp.Icon.sprite = TextureAtlas.Retrieve(slot.TexIndex).self;
-                disp.Icon.color = Color.white; //1,1,1,1
-                disp.Amount.text = slot.Display;
-                slot.IsDirty = false;
-            } 
-        } 
-    }
 
 
     public class Inventory{
@@ -319,7 +309,9 @@ public static class InventoryController
         public LLNode[] EntryLL;
         [JsonIgnore]
         public Dictionary<int, int> EntryDict;
-        public readonly uint capacity;
+        [JsonIgnore]
+        public SlotDisplay[] Display;
+        public uint capacity;
         public uint length;
         public uint tail;
         private Action<int> OnAddElement;
@@ -339,7 +331,27 @@ public static class InventoryController
             } 
         }
 
-        public void AddCallbacks(Action<int> OnAddItem = null, Action<int> OnRemoveItem = null){
+        public void InitializeDisplay(int slotCount, Transform Parent) {
+            Display = new SlotDisplay[slotCount];
+            for (int i = 0; i < slotCount; i++)
+            {
+                GameObject slot = Indicators.ItemSlots.Get();
+                slot.transform.SetParent(Parent);
+                Display[i] = new SlotDisplay(slot);
+                Info[i]?.AttachDisplay(Display[i].Object.transform);
+            }
+        }
+
+        public void ReleaseDisplay()
+        {
+            for (int i = 0; i < Info.Length; i++){
+                Indicators.ItemSlots.Release(Display[i].Object);
+                Info[i]?.ClearDisplay();
+            } Display = null;
+        }
+
+        public void AddCallbacks(Action<int> OnAddItem = null, Action<int> OnRemoveItem = null)
+        {
             OnAddElement = OnAddItem;
             OnRemoveElement = OnRemoveItem;
         }
@@ -372,7 +384,6 @@ public static class InventoryController
                 int delta = math.min(sMat.AmountRaw + mat.AmountRaw, 0xFFFF) - sMat.AmountRaw;
                 sMat.AmountRaw += delta;
                 mat.AmountRaw -= delta;
-                sMat.IsDirty = true;
                 DictUpdate(SlotIndex);
             }
 
@@ -395,7 +406,6 @@ public static class InventoryController
                 int delta = math.min(sMat.AmountRaw + mat.AmountRaw, 0xFFFF) - sMat.AmountRaw;
                 sMat.AmountRaw += delta;
                 mat.AmountRaw -= delta;
-                sMat.IsDirty = true;
                 DictUpdate(SlotIndex);
             }
             if(mat.AmountRaw <= 0) return;
@@ -408,7 +418,6 @@ public static class InventoryController
             IItem mat = Info[SlotIndex];
             delta = mat.AmountRaw - math.max(mat.AmountRaw - delta, 0);
             Info[SlotIndex].AmountRaw -= delta;
-            mat.IsDirty = true;
 
             if(mat.AmountRaw != 0) DictUpdate(SlotIndex); 
             else RemoveEntry(SlotIndex); 
@@ -427,7 +436,6 @@ public static class InventoryController
                 IItem mat = Info[SlotIndex];
                 delta = mat.AmountRaw - math.max(mat.AmountRaw - remainder, 0);
                 mat.AmountRaw -= delta; remainder -= delta;
-                mat.IsDirty = true;
                 if(mat.AmountRaw != 0) DictUpdate(SlotIndex);
                 else RemoveEntry(SlotIndex);
             }
@@ -442,9 +450,9 @@ public static class InventoryController
             }
             LLRemove((uint)SlotIndex);
             LLAdd((uint)SlotIndex, tail);
-            Info[SlotIndex].IsDirty = true;
             OnRemoveElement?.Invoke(SlotIndex);
 
+            Info[SlotIndex].ClearDisplay();
             Info[SlotIndex] = null;
             tail = math.min(tail, (uint)SlotIndex);
             length--;
@@ -458,9 +466,9 @@ public static class InventoryController
 
             LLRemove((uint)head);
             Info[head] = entry.Clone() as IItem;
+            Info[head].AttachDisplay(Display[head].Object.transform);
             entry.AmountRaw = 0;
             DictEnqueue(head);
-            Info[head].IsDirty = true;
             OnAddElement?.Invoke(head);
 
             return true;
@@ -474,9 +482,9 @@ public static class InventoryController
 
             LLRemove((uint)index);
             Info[index] = entry.Clone() as IItem;
+            Info[index].AttachDisplay(Display[index].Object.transform);
             entry.AmountRaw = 0;
             DictEnqueue(index);
-            Info[index].IsDirty = true;
             OnAddElement?.Invoke(index);
 
             return true;

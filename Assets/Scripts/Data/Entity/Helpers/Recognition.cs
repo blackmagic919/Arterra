@@ -179,7 +179,7 @@ public class Recognition
         if (AwarenessTable == null) return false;
         if (!AwarenessTable.ContainsKey(-item.Index)) return false;
         nutrition = Edibles.value[AwarenessTable[-item.Index].Preference].Nutrition;
-        if (item.IsStackable) nutrition *= item.AmountRaw;
+        if (item.IsStackable) nutrition *= item.AmountRaw / 255.0f;
         return true;
     }
 
@@ -297,9 +297,9 @@ public class RCarnivore : Recognition{
             AwarenessTable.TryAdd(entityIndex, new Recognizable(i, 3));
         }} if(Edibles.value != null) {
         for(int i = 0; i < Edibles.value.Count; i++){
-            int entityIndex = iReg.RetrieveIndex(Edibles.value[i].EdibleType);
+            int itemIndex = iReg.RetrieveIndex(Edibles.value[i].EdibleType);
             //negative so it doesn't conflict with entity indexes
-            AwarenessTable.TryAdd(-entityIndex, new Recognizable(i, 0)); 
+            AwarenessTable.TryAdd(-itemIndex, new Recognizable(i, 0)); 
         }}
     }
 

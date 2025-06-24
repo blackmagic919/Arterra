@@ -1,6 +1,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
+#include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
 
 struct v2f
 {
@@ -149,23 +150,12 @@ half4 frag (v2f IN) : SV_Target
     float3 waterCol = lerp(matData.WaterShallowCol, matData.WaterDeepCol, 1 - exp(-waterDepth * matData.WaterColFalloff));
     float waterAlpha = 1 - exp(-waterDepth * matData.DepthOpacity);
 
-    InputData lightingInput = (InputData)0;                                       
-    lightingInput.positionWS = IN.positionWS;
-    lightingInput.normalWS = normalize(specWaveNormal);
-    lightingInput.viewDirectionWS = GetWorldSpaceNormalizeViewDir(IN.positionWS);
-
-    SurfaceData surfaceInput = (SurfaceData)0;
-    surfaceInput.albedo = waterCol;
-    surfaceInput.alpha = waterAlpha;
-    surfaceInput.smoothness = matData.Smoothness;
-    surfaceInput.specular = 1;
-
     uint light = SampleLight(IN.positionWS);
-    float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f) * 0.5 + 0.5;
-    float4 DynamicLight = UniversalFragmentPBR(lightingInput, surfaceInput) * shadow;
+    float shadow = 1.0 - (light >> 30 & 0x3) / 3.0f;
+    float3 DynamicLight = LambertShade(waterCol, specWaveNormal, shadow);
     float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
     ObjectLight = mad((1 - ObjectLight), unity_AmbientGround, ObjectLight * 2.5f); //linear interpolation
-    ObjectLight *= surfaceInput.albedo;
+    ObjectLight *= waterCol;
 
-	return max(DynamicLight, float4(ObjectLight, 0));
+	return float4(max(DynamicLight, ObjectLight), waterAlpha);
 }

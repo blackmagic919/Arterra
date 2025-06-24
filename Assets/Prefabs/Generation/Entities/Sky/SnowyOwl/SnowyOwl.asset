@@ -1,0 +1,171 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eef870968b735497384f821adc938e6b, type: 3}
+  m_Name: SnowyOwl
+  m_EditorClassIdentifier: 
+  Name: SnowyOwl
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 7641379624218224471, guid: 00463efefda7e41d2b07d68253c1cebb, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 4278255360
+      flags: 4
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 2
+          y: 3
+          z: 2
+        profileStart: 96
+      collider:
+        size:
+          x: 0.5
+          y: 0.5
+          z: 0.5
+        friction: 0.25
+      movement:
+        walkSpeed: 2
+        runSpeed: 10
+        acceleration: 100
+        rotSpeed: 180
+        pathDistance: 31
+        AverageIdleTime: 2.5
+      flight:
+        profile:
+          bounds:
+            x: 2
+            y: 3
+            z: 2
+          profileStart: 108
+        AverageFlightTime: 20
+        FlyBiasWeight: 0.25
+        VerticalFreedom: 0.5
+      decomposition:
+        LootTable:
+          value:
+          - ItemName: Meat
+            DropAmount: 7
+          - ItemName: Feathers:Solid
+            DropAmount: 7
+        DecompositionTime: 200
+      recognition:
+        value:
+          Predators:
+            value: []
+          Mates:
+            value:
+            - MateType: SnowyOwl
+              ChildType: SnowyOwl
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: Meat
+              Nutrition: 19.2
+          SightDistance: 30
+          FleeDistance: 5
+          FightAggressor: 0
+          Prey:
+            value:
+            - ArcticHare
+      physicality:
+        value:
+          MaxHealth: 10
+          NaturalRegen: -0.01
+          AttackDistance: 4
+          AttackDamage: 3
+          AttackCooldown: 0.75
+          KBStrength: 2
+          InvincTime: 0.5
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.7
+          PregnacyLength: 5
+          ConsumptionRate: 0.05
+          MateCost: 4
+          weight: 0.25
+  references:
+    version: 2
+    RefIds: []

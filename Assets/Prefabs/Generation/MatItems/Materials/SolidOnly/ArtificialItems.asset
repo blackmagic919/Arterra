@@ -13,8 +13,23 @@ MonoBehaviour:
   m_Name: ArtificialItems
   m_EditorClassIdentifier: 
   Name: C:Artificial
+  Tags:
+    Reg:
+      value:
+      - Tag: 3
+        value:
+          value:
+            rid: 5818089297814487233
   Children:
     value:
     - value: {fileID: 11400000, guid: 066474d0a2bfa4600b725f5c258b274f, type: 2}
     - value: {fileID: 11400000, guid: 6c595e59c52504031904529272be70d9, type: 2}
     - value: {fileID: 11400000, guid: ae71dc3e4abd649ecbab5dbc374c7d0e, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 5818089297814487233
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 5
+        GivesItem: 0

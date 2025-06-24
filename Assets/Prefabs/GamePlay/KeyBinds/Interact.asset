@@ -15,7 +15,7 @@ MonoBehaviour:
   Name: Interact
   bindings:
     value:
-    - Key: 324
+    - Key: 323
       PollType: 2
       IsAlias: 0
     - Key: 304

@@ -12,5 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d60a39b1e4df74ed3aaaa1cb0087049e, type: 3}
   m_Name: WaterT
   m_EditorClassIdentifier: 
-  Name: C:Water
+  Name: Water
+  Tags:
+    Reg:
+      value: []
   self: {fileID: 21300000, guid: ece3021f8755a4161bd2118d9a27090f, type: 3}
+  references:
+    version: 2
+    RefIds: []

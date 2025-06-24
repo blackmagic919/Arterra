@@ -42,6 +42,10 @@ public class ProceduralShellTexturer : GeoShader
         material.value.SetBuffer("VariantSettings", variantTable);
     }
 
+    public override void Release(){
+        variantTable?.Release();
+    }
+
     public override void ProcessGeoShader(GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, int baseGeoCount)
     {
         if (settings.Reg.Count == 0) return;

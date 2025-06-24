@@ -13,13 +13,22 @@ MonoBehaviour:
   m_Name: OrganicMat
   m_EditorClassIdentifier: 
   Name: C:Organic
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 877c920efebfb4e15bfc341d9b395995, type: 2}
     - value: {fileID: 11400000, guid: 116dbc651ae144517a09709a031fd843, type: 2}
+    - value: {fileID: 11400000, guid: 90f1fcecea050433e82d94eef5576328, type: 2}
     - value: {fileID: 11400000, guid: c1c364aa971c94d9da804acddfd3e37d, type: 2}
     - value: {fileID: 11400000, guid: 78d4ae6a530564b959843399cfd956d3, type: 2}
     - value: {fileID: 11400000, guid: 07d2832ea77354ad688f41842d2458f8, type: 2}
     - value: {fileID: 11400000, guid: a549dc98ff67b49aaac7fd0c59f51234, type: 2}
     - value: {fileID: 11400000, guid: 72eb2a86f07ef473ca5c536aeec133ce, type: 2}
     - value: {fileID: 11400000, guid: 4294a1b3d397b4bc4a494788192b0665, type: 2}
+    - value: {fileID: 11400000, guid: 0d3f3b37a74564114b9a437870248d11, type: 2}
+    - value: {fileID: 11400000, guid: 1f9f68ebe27844430b8188a0426091e2, type: 2}
+  references:
+    version: 2
+    RefIds: []

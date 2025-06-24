@@ -13,14 +13,18 @@ MonoBehaviour:
   m_Name: Pen
   m_EditorClassIdentifier: 
   Name: Pen
+  Tags:
+    Reg:
+      value: []
   Names:
     value:
     - Pen
     - Wood
-    - Sand
+    - Coal
+    - Feathers
   entry:
     value:
-    - data: 104086
+    - data: 235158
     - data: 2147515773
     - data: 2147483648
     - data: 2147483648
@@ -38,3 +42,6 @@ MonoBehaviour:
     - data: 169622
   result:
     data: 255
+  references:
+    version: 2
+    RefIds: []

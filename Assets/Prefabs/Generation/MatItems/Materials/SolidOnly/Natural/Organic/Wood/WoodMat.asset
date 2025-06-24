@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: WoodMat
   m_EditorClassIdentifier: 
   Name: Wood
+  Tags:
+    Reg:
+      value:
+      - Tag: 2
+        value:
+          value:
+            rid: 5818089297814487231
   Names:
   - Wood:Solid
   - Void
@@ -22,7 +29,8 @@ MonoBehaviour:
   terrainData:
     Texture: 2
     textureScale: 2
-    GeoShaderIndex: -1
+    GeoShaderIndex:
+      data: 0
   AtmosphereScatter:
     ScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}
@@ -37,3 +45,12 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 5818089297814487231
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 100
+        ToolDamage: 1
+        GivesItem: 1

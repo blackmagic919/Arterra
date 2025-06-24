@@ -5,7 +5,7 @@ Shader "Unlit/LiquidShader"
         //None all data from buffers
     }   
 
-    SubShader
+    SubShader//
     {
         Tags {"RenderPipeline" = "UniversalPipeline"  "Queue" = "Transparent" "RenderType"="Transparent" }
         ZWrite On

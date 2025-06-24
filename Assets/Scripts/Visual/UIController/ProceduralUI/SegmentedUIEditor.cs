@@ -74,7 +74,7 @@ public static class SegmentedUIEditor
                 as UISetting).Defaulting)
                 continue;
             if (field.IsStatic) continue; //Ignore static fields
-            if (field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Option<>))
+            if (field.FieldType.GetInterfaces().Contains(typeof(IOption)))
             {
                 if (((IOption)field.GetValue(dest)).IsDirty)
                 {
@@ -176,7 +176,7 @@ public static class SegmentedUIEditor
             //cObject is the Option Field(value type)
             //setting is the class containing the option
             //value is the class held by the option
-            if (field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Option<>))
+            if (field.FieldType.GetInterfaces().Contains(typeof(IOption)))
             {
                 FieldInfo oField = field;
                 cObject = field.GetValue(setting); //Would prefer if GetValueDirect was implemented 

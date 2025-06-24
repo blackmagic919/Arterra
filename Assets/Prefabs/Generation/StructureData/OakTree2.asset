@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: OakTree2
   m_EditorClassIdentifier: 
   Name: OakTree2
+  Tags:
+    Reg:
+      value: []
   settings:
     value:
       GridSize:
@@ -1997,5 +2000,8 @@ MonoBehaviour:
   Materials:
     value:
     - Air
-    - OakLeaf
+    - OakLeaves
     - Wood
+  references:
+    version: 2
+    RefIds: []

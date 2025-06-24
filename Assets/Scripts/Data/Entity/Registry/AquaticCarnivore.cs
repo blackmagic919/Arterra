@@ -113,7 +113,7 @@ public class AquaticCarnivore : Authoring
         public WorldConfig.Generation.Item.IItem Collect(float amount){
             if(!IsDead) return null; //You can't collect resources until the entity is dead
             var item = settings.decomposition.LootItem(amount, ref random);
-            TaskDuration -= settings.decomposition.DecompPerLoot * amount;
+            TaskDuration -= amount;
             return item;
         }
         //Not thread safe

@@ -160,8 +160,7 @@ public static class CraftingMenuController
         int amount = 0;
         for(int i = 0; i < GridCount; i++){ amount += craftingData[i].density; }
         result = recipe.ResultItem;
-        result.Index = recipe.ResultIndex;
-        result.AmountRaw = (int)math.min(math.round(recipe.result.Multiplier * amount), 0x7FFF);
+        result.Create(recipe.ResultIndex, (int)math.min(math.round(recipe.result.Multiplier * amount), 0x7FFF));
         return true;
     }
 
@@ -229,8 +228,7 @@ public static class CraftingMenuController
         if(!itemInfo.Contains(itemKey)) return null;
 
         IItem item = itemInfo.Retrieve(itemKey).Item;
-        item.Index = itemInfo.RetrieveIndex(itemKey);
-        item.AmountRaw = data.density;
+        item.Create(itemInfo.RetrieveIndex(itemKey), data.density);
         InventoryController.AddEntry(item);
         return item;
     }

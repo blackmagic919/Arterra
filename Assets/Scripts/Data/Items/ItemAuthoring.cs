@@ -61,73 +61,80 @@ public class Authoring : Category<Authoring>
     }
 }
 
-/// <summary>
-/// A contract for an item instance that is created from an <see cref="Authoring"/> object. 
-/// An item can be anything and define however much data it needs to store and how to manage it.
-/// However, for it to be properly managed by the system, it must detail several properties
-/// related to its apperance, storage, and serialization. </summary> <remarks> 
-/// The contract also provides some hooks that the item can subscribe to which will be answered 
-/// when specific events occur for the item. There is <i>almost</i> no limit on what can't be
-/// done on a hooked event, such as reassigning keybinds, moving items, changing player effects, etc. 
-/// As long as the event itself is safe, the item can do whatever it wants allowing for a very
-/// flexible system. </remarks>
-public interface IItem : ICloneable, IRegistered{
-    /// <summary> Whether the item can be stacked with other items of the same type. If the item is stackable,
-    /// when another item of the same <see cref="Index"/> is encountered it may be combined with the
-    /// current item and the <see cref="AmountRaw"/> increased to the sum the amounts of the two items.
-    /// All items representing materials should be stackable by default. </summary>
-    public bool IsStackable { get; }
-    /// <summary> The index within the <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see> of the item's texture.
-    /// This is obtained by using the <see cref="Index"/> within the <see cref="WorldConfig.Config.GenerationSettings.Items"> item registry </see>
-    /// to obtain the <see cref="Authoring.TextureName"/> of the texture which can be used to find the texture in the external
-    /// <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see>. See <seealso cref="Authoring.TextureName"/> for
-    /// more information. </summary>
-    public int TexIndex { get; }
-    /// <summary> The message displayed next to the item when it is in a UI panel.  </summary>
-    public string Display{ get; }
-    /// <summary> The amount of the item that is stored. Used when determing how to stack identical items </summary>
-    public int AmountRaw{ get; set; }
-    /// <summary> Whether or not the item has been last modified since its UI element has been updated. This is managed
-    /// by the UI panel that displays the item and should not be directly modified by the item itself. </summary>
-    public bool IsDirty{ get; set; }
+    /// <summary>
+    /// A contract for an item instance that is created from an <see cref="Authoring"/> object. 
+    /// An item can be anything and define however much data it needs to store and how to manage it.
+    /// However, for it to be properly managed by the system, it must detail several properties
+    /// related to its apperance, storage, and serialization. </summary> <remarks> 
+    /// The contract also provides some hooks that the item can subscribe to which will be answered 
+    /// when specific events occur for the item. There is <i>almost</i> no limit on what can't be
+    /// done on a hooked event, such as reassigning keybinds, moving items, changing player effects, etc. 
+    /// As long as the event itself is safe, the item can do whatever it wants allowing for a very
+    /// flexible system. </remarks>
+    public interface IItem : ICloneable, IRegistered
+    {
+        /// <summary> Whether the item can be stacked with other items of the same type. If the item is stackable,
+        /// when another item of the same <see cref="Index"/> is encountered it may be combined with the
+        /// current item and the <see cref="AmountRaw"/> increased to the sum the amounts of the two items.
+        /// All items representing materials should be stackable by default. </summary>
+        public bool IsStackable { get; }
+        /// <summary> The amount of the item that is stored. Used when determing how to stack identical items </summary>
+        public int AmountRaw { get; set; }
+        /// <summary> The index within the <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see> of the item's texture.
+        /// This is obtained by using the <see cref="Index"/> within the <see cref="WorldConfig.Config.GenerationSettings.Items"> item registry </see>
+        /// to obtain the <see cref="Authoring.TextureName"/> of the texture which can be used to find the texture in the external
+        /// <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see>. See <seealso cref="Authoring.TextureName"/> for
+        /// more information. </summary>
+        public int TexIndex { get; }
+        
+        /// <summary> The constructor function called whenever an item is created.
+        /// This should be used to setup Index and AmountRaw. </summary>
+        /// <param name="Index">The index of the item within <see cref="Config.GenerationSettings.Items"/> registry</param>
+        /// <param name="AmountRaw">The amount of the item</param>
+        public void Create(int Index, int AmountRaw) { }
 
-    /// <summary>
-    /// An event hook that is called on the frame when the item enters the <see cref="InventoryController.Secondary"> Secondary </see> inventory.
-    /// This is an airtight state, meaning <see cref="OnLeaveSecondary"/> must be called before <see cref="OnEnterSecondary"/> can be called 
-    /// a second time.
-    /// </summary>
-    public void OnEnterSecondary(); //Called upon entering the secondary inventory
-    /// <summary>
-    /// An event hook that is called on the frame when the item leaves the <see cref="InventoryController.Secondary"> Secondary </see> inventory.
-    /// This is an airtight state meaning <see cref="OnEnterSecondary"/> must be called before <see cref="OnLeaveSecondary"/> can be called.
-    /// </summary>
-    public void OnLeaveSecondary();//Called upon leaving the secondary inventory
-    /// <summary>
-    /// An event hook that is called on the frame when the item enters the <see cref="InventoryController.Primary"> Primary </see> inventory.
-    /// This is an airtight state, meaning <see cref="OnLeavePrimary"/> must be called before <see cref="OnEnterPrimary"/> can be called
-    /// a second time.
-    /// </summary>
-    public void OnEnterPrimary(); //Called upon entering the primary inventory
-    /// <summary>
-    /// An event hook that is called on the frame when the item leaves the <see cref="InventoryController.Primary"> Primary </see> inventory.
-    /// This is an airtight state meaning <see cref="OnEnterPrimary"/> must be called before <see cref="OnLeavePrimary"/> can be called.
-    /// </summary>
-    public void OnLeavePrimary(); //Called upon leaaving the primary inventory
-    /// <summary>
-    /// An event hook that is called on the frame when the item is held within the <see cref="InventoryController.Selected"> selected slot </see> of the 
-    /// <see cref="InventoryController.Primary">Primary</see> inventory. This is an airtight state, meaning <see cref="OnDeselect"/> must be
-    /// called before <see cref="OnSelect"/> can be called a second time. Furthermore, it is an exclusive state meaning no other item
-    /// can be selected while this item is selected.
-    /// </summary>
-    public void OnSelect(); //Called upon becoming the selected item
-    /// <summary>
-    /// An event hook that is called on the frame when the item is no longer held within the <see cref="InventoryController.Selected"> selected slot </see> of the
-    /// <see cref="InventoryController.Primary">Primary</see> inventory. This is an airtight state, meaning <see cref="OnSelect"/> must be called
-    /// before <see cref="OnDeselect"/> can be called.
-    /// </summary>
-    public void OnDeselect(); //Called upon no longer being the selectd item
-    /// <summary> An event hook that is called every frame the item is held by an <see cref="EItem">EntityItem</see>. </summary>
-    /// <remarks> TODO: This has yet to be implemented </remarks>
-    public void UpdateEItem(); //Called every frame it is an Entity Item
+        /// <summary>
+        /// An event hook that is called on the frame when the item enters the <see cref="InventoryController.Secondary"> Secondary </see> inventory.
+        /// This is an airtight state, meaning <see cref="OnLeaveSecondary"/> must be called before <see cref="OnEnterSecondary"/> can be called 
+        /// a second time.
+        /// </summary>
+        public void OnEnterSecondary(); //Called upon entering the secondary inventory
+        /// <summary>
+        /// An event hook that is called on the frame when the item leaves the <see cref="InventoryController.Secondary"> Secondary </see> inventory.
+        /// This is an airtight state meaning <see cref="OnEnterSecondary"/> must be called before <see cref="OnLeaveSecondary"/> can be called.
+        /// </summary>
+        public void OnLeaveSecondary();//Called upon leaving the secondary inventory
+        /// <summary>
+        /// An event hook that is called on the frame when the item enters the <see cref="InventoryController.Primary"> Primary </see> inventory.
+        /// This is an airtight state, meaning <see cref="OnLeavePrimary"/> must be called before <see cref="OnEnterPrimary"/> can be called
+        /// a second time.
+        /// </summary>
+        public void OnEnterPrimary(); //Called upon entering the primary inventory
+        /// <summary>
+        /// An event hook that is called on the frame when the item leaves the <see cref="InventoryController.Primary"> Primary </see> inventory.
+        /// This is an airtight state meaning <see cref="OnEnterPrimary"/> must be called before <see cref="OnLeavePrimary"/> can be called.
+        /// </summary>
+        public void OnLeavePrimary(); //Called upon leaaving the primary inventory
+        /// <summary>
+        /// An event hook that is called on the frame when the item is held within the <see cref="InventoryController.Selected"> selected slot </see> of the 
+        /// <see cref="InventoryController.Primary">Primary</see> inventory. This is an airtight state, meaning <see cref="OnDeselect"/> must be
+        /// called before <see cref="OnSelect"/> can be called a second time. Furthermore, it is an exclusive state meaning no other item
+        /// can be selected while this item is selected.
+        /// </summary>
+        public void OnSelect(); //Called upon becoming the selected item
+        /// <summary>
+        /// An event hook that is called on the frame when the item is no longer held within the <see cref="InventoryController.Selected"> selected slot </see> of the
+        /// <see cref="InventoryController.Primary">Primary</see> inventory. This is an airtight state, meaning <see cref="OnSelect"/> must be called
+        /// before <see cref="OnDeselect"/> can be called.
+        /// </summary>
+        public void OnDeselect(); //Called upon no longer being the selectd item
+        /// <summary> An event hook that is called every frame the item is held by an <see cref="EItem">EntityItem</see>. </summary>
+        /// <remarks> TODO: This has yet to be implemented </remarks>
+        public void UpdateEItem(); //Called every frame it is an Entity Item
+        /// <summary> Attaches the UI panel to be displayed representing the Item to the UI object. </summary>
+        public void AttachDisplay(Transform pSlot);
+        /// <summary> This handle is called when the Display UI is to be cleared  </summary>
+        public void ClearDisplay();
+        
 }
 }

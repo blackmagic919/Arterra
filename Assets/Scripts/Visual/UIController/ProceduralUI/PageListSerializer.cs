@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using static PaginatedUIEditor;
 using WorldConfig;
+using System.Linq;
 
 
 //List must be held by an Option which only holds it
@@ -73,7 +74,7 @@ public class PageListSerializer : IConverter{
 
             FieldInfo field = null; ParentUpdate nUpdate = OnUpdate; 
             int index = i; //Capture the index to streamline changes
-            if(cObjType.IsGenericType && cObjType.GetGenericTypeDefinition() == typeof(Option<>)){
+            if(cObjType.GetInterfaces().Contains(typeof(IOption))){
                 field = cObjType.GetField("value"); 
                 value = field.GetValue(cObject);
                 if (value == null)

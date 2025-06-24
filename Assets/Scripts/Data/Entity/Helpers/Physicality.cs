@@ -142,11 +142,10 @@ public struct Vitality{
     public struct Decomposition{
         public Option<List<LootInfo>> LootTable;
         public float DecompositionTime; //~300 seconds
-        public float DecompPerLoot;
         public WorldConfig.Generation.Item.IItem LootItem(float collectRate, ref Unity.Mathematics.Random random){
             if(LootTable.value == null || LootTable.value.Count == 0) return null;
-            int index = random.NextInt() % LootTable.value.Count;
-
+            int index = random.NextInt(LootTable.value.Count);
+            
             float delta = LootTable.value[index].DropAmount * collectRate;
             int amount = Mathf.FloorToInt(delta) + (random.NextFloat() < math.frac(delta) ? 1 : 0);
             if(amount == 0) return null;
@@ -154,8 +153,7 @@ public struct Vitality{
             Registry<WorldConfig.Generation.Item.Authoring> registry = Config.CURRENT.Generation.Items;
             int itemindex = registry.RetrieveIndex(LootTable.value[index].ItemName);
             WorldConfig.Generation.Item.IItem item = registry.Retrieve(itemindex).Item;
-            item.Index = itemindex;
-            item.AmountRaw = amount;
+            item.Create(itemindex, amount);
             return item;
         }
         [Serializable]

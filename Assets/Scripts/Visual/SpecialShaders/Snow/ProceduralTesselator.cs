@@ -40,6 +40,10 @@ public class ProceduralTesselator : GeoShader
         tesselCompute.SetInt("bCOUNT_oGeo", geoCounter);
         tesselCompute.SetInt("geoInd", geoInd);
     }
+
+    public override void Release(){
+        variantTable?.Release();
+    }
     
     public override void ProcessGeoShader(GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, int baseGeoCount)
     {

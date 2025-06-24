@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: PineTree1
   m_EditorClassIdentifier: 
   Name: PineTree1
+  Tags:
+    Reg:
+      value: []
   settings:
     value:
       GridSize:
@@ -1424,7 +1427,10 @@ MonoBehaviour:
   Materials:
     value:
     - Air
-    - PineLeaf
+    - PineLeaves
     - Wood
     - Dirt
     - Grass
+  references:
+    version: 2
+    RefIds: []

@@ -6,6 +6,7 @@ using TerrainGeneration.Readback;
 using WorldConfig;
 using WorldConfig.Quality;
 using System.Collections.Generic;
+using Unity.Mathematics;
 
 public class ShaderGenerator
 {
@@ -117,31 +118,29 @@ public class ShaderGenerator
         foreach (ShaderUpdateTask task in shaderUpdateTasks){
             if (task == null || !task.active)
                 continue;
-            task.active = false;
-
             task.Release(GenerationPreset.memoryHandle);
         }
     }
 
 
     public void ComputeGeoShaderGeometry(GeometryHandle vertHandle, GeometryHandle triHandle)
-    { 
+    {
         ReleaseGeometry();
         int triAddress = (int)triHandle.addressIndex;
         int vertAddress = (int)vertHandle.addressIndex;
 
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, triIndDictStart, 0);
         FilterGeometry(GenerationPreset.memoryHandle, triAddress, vertAddress);
-
         ProcessGeoShaders(GenerationPreset.memoryHandle, vertAddress, triAddress);
-        
+
         uint[] geoShaderMemAdds = TranscribeGeometries();
         uint[] geoShaderDispArgs = GetShaderDrawArgs();
         RenderParams[] geoShaderParams = SetupShaderMaterials(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, geoShaderMemAdds);
-        
-        for(int i = 0; i < shaders.Count; i++){
-            this.shaderUpdateTasks[i] = new ShaderUpdateTask(geoShaderMemAdds[i], geoShaderDispArgs[i], geoShaderParams[i]);
-            OctreeTerrain.MainLateUpdateTasks.Enqueue(this.shaderUpdateTasks[i]);
+
+        for (int i = 0; i < shaders.Count; i++){
+            shaderUpdateTasks[i] = new ShaderUpdateTask(geoShaderMemAdds[i], geoShaderDispArgs[i], geoShaderParams[i]);
+            OctreeTerrain.MainLateUpdateTasks.Enqueue(shaderUpdateTasks[i]);
+            ReleaseEmptyShaders(shaderUpdateTasks[i]);
         }
     }
 
@@ -302,13 +301,25 @@ public class ShaderGenerator
         matSizeCounter.DispatchIndirect(0, args);
     }
 
-    
+    private static void ReleaseEmptyShaders(ShaderUpdateTask shader){
+        void OnAddressRecieved(AsyncGPUReadbackRequest request){
+            if (!shader.active) return;
 
-    public class ShaderUpdateTask : UpdateTask{
-        uint address;
-        uint dispArgs;
+            uint2 memAddress = request.GetData<uint2>().ToArray()[0];
+            if (memAddress.x != 0) return; //No geometry to readback
+            shader.Release(GenerationPreset.memoryHandle);
+            return;
+        }
+        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)shader.address, OnAddressRecieved);
+    }
+
+    public class ShaderUpdateTask : UpdateTask
+    {
+        public uint address;
+        public uint dispArgs;
         RenderParams rp;
-        public ShaderUpdateTask(uint address, uint dispArgs, RenderParams rp){
+        public ShaderUpdateTask(uint address, uint dispArgs, RenderParams rp)
+        {
             this.address = address;
             this.dispArgs = dispArgs;
             this.rp = rp;
@@ -320,65 +331,15 @@ public class ShaderGenerator
             Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)dispArgs);
         }
 
-        public void Release(GenerationPreset.MemoryHandle memory){
+        public void Release(GenerationPreset.MemoryHandle memory)
+        {
+            if (!active) return;
+            active = false;
+            
             memory.ReleaseMemory(address);
             UtilityBuffers.ReleaseArgs(dispArgs);
         }
+        
     }
-
-    /*
-
-    ComputeBuffer CalculateArgsFromPrefix(ComputeBuffer shaderStartIndexes, int shaderIndex)
-    {
-        ComputeBuffer geoShaderArgs = UtilityBuffers.indirectArgs;
-
-        geoTranscriber.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
-
-        prefixShaderArgs.SetBuffer(0, "_PrefixStart", shaderStartIndexes);
-        prefixShaderArgs.SetInt("shaderIndex", shaderIndex);
-        prefixShaderArgs.SetInt("threadGroupSize", (int)threadGroupSize);
-
-        prefixShaderArgs.SetBuffer(0, "indirectArgs", geoShaderArgs);
-
-        prefixShaderArgs.Dispatch(0, 1, 1, 1);
-        return geoShaderArgs;
-    }
-     
-    public MeshInfo ReadBackMesh()
-    {
-        MeshInfo chunk = new MeshInfo();
-
-        int numShaders = this.settings.shaderDictionary.Count;
-
-        int[] geoLengths = new int[numShaders + 1];
-        shaderStartIndexes.GetData(geoLengths);
-
-        if (geoLengths[numShaders - 1] == 0)
-            return chunk;
-
-        int fullLength = geoLengths[numShaders];
-        Triangle[] geometry = new Triangle[fullLength];
-        geoShaderGeometry.GetData(geometry);
-        for (int s = 0; s < numShaders; s++)
-        {
-            for (int i = geoLengths[s]; i < geoLengths[s+1]; i++)
-            {
-                for (int j = 0; j < 3; j++)
-                {
-                    chunk.triangles.Add(3*i + j);
-                    chunk.vertices.Add(geometry[i][j].pos);
-                    chunk.UVs.Add(geometry[i][j].uv);
-                    chunk.normals.Add(geometry[i][j].norm);
-                    chunk.colorMap.Add(new Color(geometry[i][j].color.x, geometry[i][j].color.y, geometry[i][j].color.z, geometry[i][j].color.w));
-                }
-            }
-
-            chunk.subMeshes.Add(new UnityEngine.Rendering.SubMeshDescriptor(geoLengths[s] * 3, (geoLengths[s + 1] - geoLengths[s]) * 3, MeshTopology.Triangles));
-        }
-
-        return chunk;
-    }
-     */
-
 
 }

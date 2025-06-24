@@ -13,8 +13,14 @@ MonoBehaviour:
   m_Name: WoodenItems
   m_EditorClassIdentifier: 
   Name: C:Wood
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 64be78c6fca3c4ffca64a3e4f02f2064, type: 2}
     - value: {fileID: 11400000, guid: 2ff1b4dd3fb8342c29a3500c0a9944e6, type: 2}
     - value: {fileID: 11400000, guid: 34e92fbde564348c48f9702ca5afa1aa, type: 2}
+  references:
+    version: 2
+    RefIds: []

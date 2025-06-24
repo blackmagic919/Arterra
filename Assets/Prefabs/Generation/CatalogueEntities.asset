@@ -13,24 +13,16 @@ MonoBehaviour:
   m_Name: CatalogueEntities
   m_EditorClassIdentifier: 
   Name: Root
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
-    - value: {fileID: 11400000, guid: b8b3aed6c3ba8490a996e3fe5081055f, type: 2}
-    - value: {fileID: 11400000, guid: 20291c96ec2b642818c85c16cbac8a1b, type: 2}
-    - value: {fileID: 11400000, guid: 668535b6793f6429689eb033f92f6067, type: 2}
-    - value: {fileID: 11400000, guid: 632c0f53f524f4f38a57b1c5bf673f7d, type: 2}
-    - value: {fileID: 11400000, guid: 23835e4e06a58491396049eee2913c2a, type: 2}
-    - value: {fileID: 11400000, guid: f96f21e1966384e588e53d9d3c37f0ce, type: 2}
-    - value: {fileID: 11400000, guid: 2465da1b5c46c4edc809bfefabce80f4, type: 2}
-    - value: {fileID: 11400000, guid: 7e70244b90d3641dfbf81286d647eda6, type: 2}
-    - value: {fileID: 11400000, guid: 1ffa182daf2554821a09824cd86c6a78, type: 2}
-    - value: {fileID: 11400000, guid: 08744a4ae3a2344488c2923f90feeb46, type: 2}
-    - value: {fileID: 11400000, guid: ed7430201855b4d19bcbfa992248431a, type: 2}
-    - value: {fileID: 11400000, guid: b7ae0def2978c4588b4973fd6a872f1d, type: 2}
-    - value: {fileID: 11400000, guid: 1422b5ca88e8147ebba5e1520c915d58, type: 2}
-    - value: {fileID: 11400000, guid: a3f99f4ff3f45440088e18af67e41d1c, type: 2}
-    - value: {fileID: 11400000, guid: 1635b34bda69a4b12b9a87ca47dcf88c, type: 2}
-    - value: {fileID: 11400000, guid: 188c214f36b82484c98425d9b007a465, type: 2}
-    - value: {fileID: 11400000, guid: 5090753ded056405f8cf4485f8067bb2, type: 2}
-    - value: {fileID: 11400000, guid: 113b6e9010faf40ed9549c22ffbaba03, type: 2}
     - value: {fileID: 11400000, guid: aea5983bb2790423db2800179c58cf00, type: 2}
+    - value: {fileID: 11400000, guid: 113b6e9010faf40ed9549c22ffbaba03, type: 2}
+    - value: {fileID: 11400000, guid: 4ccd53c1f2161432a9de681fe99d1c68, type: 2}
+    - value: {fileID: 11400000, guid: 8942bb4d3dd434280b1cf9560d5ef441, type: 2}
+    - value: {fileID: 11400000, guid: 0c3c5d9daf98d450cadffb9bc610e7f3, type: 2}
+  references:
+    version: 2
+    RefIds: []

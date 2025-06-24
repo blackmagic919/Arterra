@@ -4,187 +4,366 @@ using Unity.Mathematics;
 using UnityEngine;
 using static CPUMapManager;
 using WorldConfig.Generation.Material;
-using System.Collections.Generic;
-using System.Linq;
-using TerrainGeneration;
+using static InventoryController;
 
-namespace WorldConfig.Generation.Item{
-[CreateAssetMenu(menuName = "Generation/Items/Pen")] 
-public class PenItemAuthoring : AuthoringTemplate<PenItem> {}
-
-[Serializable]
-public struct PenItem : IItem{
-    public uint data;
-    public static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
-    public static Registry<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-    public static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
-    [JsonIgnore]
-    public readonly bool IsStackable => false;
-    [JsonIgnore]
-    public readonly int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
-
-    [JsonIgnore]
-    public int Index{
-        readonly get => (int)(data >> 16) & 0x7FFF;
-        set => data = (data & 0x8000FFFF) | (((uint)value & 0x7FFF) << 16);
-    }
-    [JsonIgnore]
-    public readonly string Display{
-        get => "Pen";
-    }
-    [JsonIgnore]
-    public int AmountRaw{
-        readonly get => (int)(data & 0xFFFF);
-        set => data = (data & 0xFFFF0000) | ((uint)value & 0xFFFF);
-    }
-    [JsonIgnore]
-    public bool IsDirty{
-        readonly get => (data & 0x80000000) != 0;
-        set => data = value ? data | 0x80000000 : data & 0x7FFFFFFF;
-    }
-    public IRegister GetRegistry() => Config.CURRENT.Generation.Items;
-
-    public object Clone()
+namespace WorldConfig.Generation.Item
+{
+    [CreateAssetMenu(menuName = "Generation/Items/Pen")]
+    public class PenItemAuthoring : AuthoringTemplate<PenItem>
     {
-        return new PenItem{data = data};
+        public float SelectionRefreshDist;
+        public float MaximumSelectionVolume;
+        public float MaxDurability = 100;
     }
 
-    public readonly void OnEnterSecondary(){} 
-    public readonly void OnLeaveSecondary(){}
-    public readonly void OnEnterPrimary(){} 
-    public readonly void OnLeavePrimary(){} 
+    [Serializable]
+    public class PenItem : IItem
+    {
+        public uint data;
+        public float durability;
+        public static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+        public static Registry<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        public static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
+        [JsonIgnore]
+        public bool IsStackable => false;
+        [JsonIgnore]
+        public int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
+        internal PenItemAuthoring settings => ItemInfo.Retrieve(Index) as PenItemAuthoring;
+        private InteractionHandler handler;
 
-    private static int[] KeyBinds;
-    private static uint SelectionCount{get {
-        uint radius = (uint)Config.CURRENT.GamePlay.Player.value.Interaction.value.terraformRadius;
-        return radius * radius * radius * 8;
-    }}
-    private Dictionary<int3, GameObject> Selections;
-    public void OnSelect(){
-        Selections = new Dictionary<int3, GameObject>();
-        InputPoller.AddKeyBindChange(() => {
-            KeyBinds = InputPoller.KeyBindSaver.Rent(4);
-            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Interact", DeselectPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-            KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Pickup Item", SelectPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-            KeyBinds[2] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", OnTerrainRemove, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-            KeyBinds[3] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", OnTerrainAdd, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-        });
-    } 
-    public void OnDeselect(){
-        foreach(GameObject Indicator in Selections.Values){
-            Indicators.SelectionIndicators.Release(Indicator);
-        } Selections = null;
-        InputPoller.AddKeyBindChange(() => {
-            if(KeyBinds == null) return;
-            InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
-            InputPoller.RemoveKeyBind((uint)KeyBinds[1], "5.0::GamePlay");
-            InputPoller.RemoveKeyBind((uint)KeyBinds[2], "5.0::GamePlay");
-            InputPoller.RemoveKeyBind((uint)KeyBinds[3], "5.0::GamePlay");
-            InputPoller.KeyBindSaver.Return(KeyBinds);
-            KeyBinds = null; 
-        });
-    } 
-    public readonly void UpdateEItem(){} 
-    
-
-    private void SelectPoint(float _){
-        if(Selections == null) return;
-        if(Selections.Count >= SelectionCount) return;
-        if(!FindNearest(out int3 hitCoord)) return;
-        if(Selections.ContainsKey(hitCoord)) return;
-        Selections.Add(hitCoord, Indicators.SelectionIndicators.Get());
-        Selections[hitCoord].transform.position = GSToWS(hitCoord);
-    }
-
-    private void DeselectPoint(float _){
-        if(Selections == null) return;
-        if(!FindNearest(out int3 hitCoord)) return;
-        if(!Selections.TryGetValue(hitCoord, out GameObject value)) return;
-        Indicators.SelectionIndicators.Release(value);
-        Selections.Remove(hitCoord);
-    }
-
-    private void OnTerrainRemove(float _){
-        if(Selections.Count == 0) {
-            if(!FindNearest(out int3 hitCoord, true)) return;
-            MapData cur = SampleMap(hitCoord);
-            SetMap(PlayerInteraction.HandleRemoveSolid(cur, 1), hitCoord);
+        [JsonIgnore]
+        public int Index
+        {
+            get => (int)(data >> 16) & 0x7FFF;
+            set => data = (data & 0x0000FFFF) | (((uint)value & 0x7FFF) << 16);
         }
-        else {
-            foreach(int3 hitPoint in Selections.Keys){
-                MapData cur = SampleMap(hitPoint);
-                SetMap(PlayerInteraction.HandleRemoveSolid(cur, 1), hitPoint);
-            };
+        [JsonIgnore]
+        public int AmountRaw
+        {
+            get => (int)(data & 0xFFFF);
+            set => data = (data & 0x7FFF0000) | ((uint)value & 0xFFFF);
+        }
+        public IRegister GetRegistry() => Config.CURRENT.Generation.Items;
+
+        public object Clone() => new PenItem { data = data, durability = durability };
+        public void Create(int Index, int AmountRaw)
+        {
+            this.Index = Index;
+            this.AmountRaw = AmountRaw;
+            this.durability = settings.MaxDurability;
+        }
+        public void OnEnterSecondary() { }
+        public void OnLeaveSecondary() { }
+        public void OnEnterPrimary() { }
+        public void OnLeavePrimary() { }
+        public void UpdateEItem() { }
+        public void OnSelect()
+        {
+            if (handler != null) handler.Release();
+            handler = InteractionHandler.Create(this);
+        }
+
+        public void OnDeselect()
+        {
+            handler.Release();
+            handler = null;
+        }
+
+        private GameObject display;
+        public void AttachDisplay(Transform parent)
+        {
+            if (display != null)
+            {
+                display.transform.SetParent(parent, false);
+                return;
+            }
+
+            display = Indicators.HolderItems.Get();
+            display.transform.SetParent(parent, false);
+            display.transform.GetComponent<UnityEngine.UI.Image>().sprite = TextureAtlas.Retrieve(ItemInfo.Retrieve(Index).TextureName).self;
+            UpdateDisplay();
+        }
+
+        public void ClearDisplay()
+        {
+            if (display == null) return;
+            Indicators.HolderItems.Release(display);
+            display = null;
+        }
+
+        internal void UpdateDisplay()
+        {
+            if (display == null) return;
+            Transform durbBar = display.transform.Find("Bar");
+            durbBar.GetComponent<UnityEngine.UI.Image>().fillAmount = durability / settings.MaxDurability;
         }
     }
-    private void OnTerrainAdd(float _){
-        if(Selections.Count == 0) {
-            if(!FindNearest(out int3 hitCoord)) return;
-            if(!FindNextSolidMat(out int nextSlot)) return;
-            SetMap(HandleAddNextSolid(SampleMap(hitCoord), 1, nextSlot), hitCoord);
+    class InteractionHandler
+    {
+        private int[] KeyBinds;
+        private Bounds SelectBounds; //Inclusive
+        private GameObject Selector;
+        private uint SelectedCorner;
+        private PenItem item;
+
+        public static Registry<WorldConfig.Generation.Item.Authoring> ItemInfo => WorldConfig.Config.CURRENT.Generation.Items;
+        public static Registry<MaterialData> MatInfo => WorldConfig.Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        public static InteractionHandler Create(PenItem item)
+        {
+            InteractionHandler h = new InteractionHandler();
+            h.SelectedCorner = 0;
+            h.item = item; //Watch out, this can create a circular reference
+
+            InputPoller.AddKeyBindChange(() =>
+            {
+                h.KeyBinds = new int[4];
+                h.KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Interact", h.DragPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                h.KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Start Interact", h.SelectPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                //When SelectPoint is triggered, DragPoint will also be triggered on the same frame, make sure SelectPoint happens first 
+                h.KeyBinds[2] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", h.OnTerrainRemove, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                h.KeyBinds[3] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", h.OnTerrainAdd, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            });
+            return h;
         }
-        else {
-            foreach(int3 hitPoint in Selections.Keys){
-                MapData cur = SampleMap(hitPoint);
-                if(!FindNextSolidMat(out int nextSlot)) return;
-                SetMap(HandleAddNextSolid(cur, 1, nextSlot), hitPoint);
-            };
+
+        public void Release()
+        {
+            Selector?.SetActive(false);
+            Selector = null;
+            item = default;
+            InputPoller.AddKeyBindChange(() =>
+            {
+                if (KeyBinds == null) return;
+                InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
+                InputPoller.RemoveKeyBind((uint)KeyBinds[1], "5.0::GamePlay");
+                InputPoller.RemoveKeyBind((uint)KeyBinds[2], "5.0::GamePlay");
+                InputPoller.RemoveKeyBind((uint)KeyBinds[3], "5.0::GamePlay");
+                KeyBinds = null;
+            });
         }
-    }
+
+        public void SelectPoint(float _)
+        {
+            if (Selector != null)
+            {
+                Ray cRay = new Ray(PlayerHandler.data.position, PlayerHandler.camera.forward);
+                float crnDist = GetDistClosestCorner(SelectBounds, cRay, out SelectedCorner);
+                if (crnDist > item.settings.SelectionRefreshDist)
+                {
+                    Selector.SetActive(false);
+                    Selector = null;
+                }
+            }
+            if (Selector != null) return;
+
+            if (!FindNearest(out int3 hitCoord)) return;
+            SelectBounds = new Bounds((float3)hitCoord, float3.zero);
+            Selector = Indicators.SelectionIndicator;
+            Selector.SetActive(true);
+            Selector.gameObject.transform.position = GSToWS(hitCoord);
+        }
+
+        public void DragPoint(float _)
+        {
+            if (Selector == null) return;
+            Ray cRay = new Ray(PlayerHandler.data.position, PlayerHandler.camera.forward);
+            float3 projection = GetProjOntoRay(cRay, GetCorner(SelectBounds, SelectedCorner));
+            Bounds nBounds = SetCorner(SelectBounds, ref SelectedCorner, math.round(projection));
+            if (GetVolume(nBounds.size + new Vector3(1, 1, 1)) < item.settings.MaximumSelectionVolume)
+                SelectBounds = nBounds;
+            Selector.transform.position = GSToWS(SelectBounds.center);
+            Selector.transform.localScale = SelectBounds.size + new Vector3(1, 1, 1);
+        }
+
+        public void OnTerrainAdd(float _)
+        {
+            if (Selector == null)
+            {
+                if (!FindNearest(out int3 hitCoord)) return;
+                if (!FindNextSolidMat(out int nextSlot)) return;
+                AddNextSolidWithDurability(hitCoord, nextSlot);
+                return;
+            }
+            int3 coord = 0;
+            for (coord.x = (int)SelectBounds.min.x; coord.x <= SelectBounds.max.x; coord.x++)
+            {
+                for (coord.y = (int)SelectBounds.min.y; coord.y <= SelectBounds.max.y; coord.y++)
+                {
+                    for (coord.z = (int)SelectBounds.min.z; coord.z <= SelectBounds.max.z; coord.z++)
+                    {
+                        if (!FindNextSolidMat(out int slot)) return;
+                        AddNextSolidWithDurability(coord, slot);
+                    }
+                }
+            }
+        }
 
 
-    private static bool FindNearest(out int3 hitCoord, bool IsSolid = false){
-        hitCoord = int3.zero;
-        static float GetDistFromRay(Ray ray, Vector3 point) => Vector3.Cross(ray.direction, point - ray.origin).magnitude;
-        if(!PlayerInteraction.RayTestSolid(PlayerHandler.data, out float3 hitPt)) return false;
-        Ray ray = new Ray(PlayerHandler.data.position, PlayerHandler.camera.forward);
-        int3 hitOrig = (int3)math.floor(hitPt);
+        public void OnTerrainRemove(float _)
+        {
+            if (Selector == null)
+            {
+                if (!FindNearest(out int3 hitCoord)) return;
+                RemoveSolidWithDurability(hitCoord);
+                return;
+            }
 
-        hitCoord = hitOrig;
-        for(int i = 0; i < 8; i++){
-            int3 hitCorner = hitOrig + new int3(i & 0x1, (i >> 1) & 0x1, (i >> 2) & 0x1);
-            MapData cInfo = SampleMap(hitCorner);
-            if(cInfo.IsSolid ^ IsSolid) continue;
-            float curDist = GetDistFromRay(ray, (float3)hitCorner);
-            float bestDist = GetDistFromRay(ray, (float3)hitCoord);
-            if(curDist < bestDist) hitCoord = hitCorner;
-        } return true;
-    }
+            int3 coord = 0;
+            for (coord.x = (int)SelectBounds.min.x; coord.x <= SelectBounds.max.x; coord.x++)
+            {
+                for (coord.y = (int)SelectBounds.min.y; coord.y <= SelectBounds.max.y; coord.y++)
+                {
+                    for (coord.z = (int)SelectBounds.min.z; coord.z <= SelectBounds.max.z; coord.z++)
+                    {
+                        RemoveSolidWithDurability(coord);
+                    }
+                }
+            }
+        }
 
-    private static bool FindNextSolidMat(out int slot){
-        int start = InventoryController.SelectedIndex;
-        var settings = Config.CURRENT.GamePlay.Inventory.value;
-        for(slot = start + 1; slot != start; slot = (slot + 1) % settings.PrimarySlotCount){
-            if(InventoryController.Primary.Info[slot] == null) continue;
-            Authoring authoring = ItemInfo.Retrieve(InventoryController.Primary.Info[slot].Index);
-            if(!MatInfo.Contains(authoring.MaterialName) || !authoring.IsSolid) continue;
+        private static float GetVolume(float3 bounds) => bounds.x * bounds.y * bounds.z;
+        private static float GetDistFromRay(Ray ray, Vector3 point) => Vector3.Cross(ray.direction, point - ray.origin).magnitude;
+        private static float3 GetProjOntoRay(Ray ray, float3 point)
+        {
+            float3 origin = ray.origin;
+            float3 dir = math.normalize(ray.direction); // ensure it's a unit vector
+            float3 toPoint = point - origin;
+            float t = math.dot(toPoint, dir);
+            return origin + t * dir;
+        }
+        private static bool FindNearest(out int3 hitCoord)
+        {
+            hitCoord = int3.zero;
+            if (!PlayerInteraction.RayTestSolid(PlayerHandler.data, out float3 hitPt)) return false;
+            Ray ray = new Ray(PlayerHandler.data.position, PlayerHandler.camera.forward);
+            int3 hitOrig = (int3)math.floor(hitPt);
+
+            hitCoord = hitOrig;
+            for (int i = 0; i < 8; i++)
+            {
+                int3 hitCorner = hitOrig + new int3(i & 0x1, (i >> 1) & 0x1, (i >> 2) & 0x1);
+                float curDist = GetDistFromRay(ray, (float3)hitCorner);
+                float bestDist = GetDistFromRay(ray, (float3)hitCoord);
+                if (curDist < bestDist) hitCoord = hitCorner;
+            }
             return true;
-        } return false;
-
-    }
-
-    public static MapData HandleAddNextSolid(MapData pointInfo, float brushStrength, int slot){
-        brushStrength *= PlayerInteraction.settings.terraformSpeed * Time.deltaTime;
-        if(brushStrength == 0) return pointInfo;
-
-        int material = MatInfo.RetrieveIndex(ItemInfo.Retrieve(InventoryController.Primary.Info[slot].Index).MaterialName);
-        int solidDensity = pointInfo.SolidDensity;
-        if(solidDensity < IsoValue || pointInfo.material == material){
-            //If adding solid density, override water
-            int deltaDensity = PlayerInteraction.GetStaggeredDelta(solidDensity, brushStrength);
-            deltaDensity = InventoryController.RemoveMaterial(deltaDensity, slot);
-
-            solidDensity += deltaDensity;
-            pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
-            pointInfo.viscosity = math.min(pointInfo.viscosity + deltaDensity, 255);
-            if(solidDensity >= IsoValue) pointInfo.material = material;
         }
-        return pointInfo;
+
+        private static float3 GetCorner(Bounds bounds, uint index)
+        {
+            float3 min = bounds.min;
+            float3 max = bounds.max;
+            return new((index & 0x1) == 0 ? min.x : max.x,
+                    (index & 0x2) == 0 ? min.y : max.y,
+                    (index & 0x3) == 0 ? min.z : max.z);
+        }
+
+        private static Bounds SetCorner(Bounds bounds, ref uint index, float3 pos)
+        {
+            float3 min = bounds.min;
+            float3 max = bounds.max;
+            // For each axis, if the index bit is 0, that axis corresponds to min; if 1, it’s max
+            if ((index & 0x1) == 0) min.x = pos.x; else max.x = pos.x;
+            if ((index & 0x2) == 0) min.y = pos.y; else max.y = pos.y;
+            if ((index & 0x4) == 0) min.z = pos.z; else max.z = pos.z;
+            index ^= ((min.x > max.x) ? 0x1u : 0) | ((min.y > max.y) ? 0x2u : 0) |
+            ((min.z > max.z) ? 0x4u : 0);
+
+            // Fix if min > max on any axis (swap if necessary)
+            float3 realMin = math.min(min, max);
+            float3 realMax = math.max(min, max);
+
+            return new Bounds { min = realMin, max = realMax };
+        }
+
+        private static float GetDistClosestCorner(Bounds bounds, Ray ray, out uint CornerIndex)
+        {
+            CornerIndex = 0;
+            float closest = float.PositiveInfinity;
+            for (uint i = 0; i < 8; i++)
+            {
+                float3 corner = GetCorner(bounds, i);
+                float dist = GetDistFromRay(ray, corner);
+                if (dist > closest) continue;
+                CornerIndex = i;
+                closest = dist;
+            }
+            return closest;
+        }
+
+        void AddNextSolidWithDurability(int3 hitCoord, int nextSlot)
+        {
+            MapData orig = SampleMap(hitCoord);
+            ToolTag prop = PlayerInteraction.settings.DefaultTerraform.value;
+            if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out TagRegistry.IProperty tag))
+                prop = tag as ToolTag;
+
+            MapData change = HandleAddNextSolid(orig, prop.TerraformSpeed, nextSlot);
+            int delta = math.abs(change.SolidDensity - orig.SolidDensity);
+            SetMap(change, hitCoord);
+
+            item.durability -= prop.ToolDamage * delta;
+            item.UpdateDisplay();
+
+            if (item.durability > 0) return;
+            InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
+        }
+
+        void RemoveSolidWithDurability(int3 hitCoord)
+        {
+            MapData orig = SampleMap(hitCoord);
+            ToolTag prop = PlayerInteraction.settings.DefaultTerraform.value;
+            if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out TagRegistry.IProperty tag))
+                prop = tag as ToolTag;
+
+            MapData change = PlayerInteraction.HandleRemoveSolid(orig, prop.TerraformSpeed);
+            int delta = math.abs(orig.SolidDensity - change.SolidDensity);
+            SetMap(change, hitCoord);
+
+            item.durability -= prop.ToolDamage * delta;
+            item.UpdateDisplay();
+
+            if (item.durability > 0) return;
+            InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
+        }
+
+        public static MapData HandleAddNextSolid(MapData pointInfo, float brushStrength, int slot)
+        {
+            brushStrength *= Time.deltaTime;
+            if (brushStrength == 0) return pointInfo;
+
+            int material = MatInfo.RetrieveIndex(ItemInfo.Retrieve(InventoryController.Primary.Info[slot].Index).MaterialName);
+            int solidDensity = pointInfo.SolidDensity;
+            if (solidDensity < IsoValue || pointInfo.material == material)
+            {
+                //If adding solid density, override water
+                int deltaDensity = PlayerInteraction.GetStaggeredDelta(solidDensity, brushStrength);
+                deltaDensity = InventoryController.RemoveMaterial(deltaDensity, slot);
+
+                solidDensity += deltaDensity;
+                pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
+                pointInfo.viscosity = math.min(pointInfo.viscosity + deltaDensity, 255);
+                if (solidDensity >= IsoValue) pointInfo.material = material;
+            }
+            return pointInfo;
+        }
+
+        private static bool FindNextSolidMat(out int slot)
+        {
+            int start = InventoryController.SelectedIndex;
+            var settings = WorldConfig.Config.CURRENT.GamePlay.Inventory.value;
+            for (slot = (start + 1) % settings.PrimarySlotCount;
+                slot != start;
+                slot = (slot + 1) % settings.PrimarySlotCount)
+            {
+                slot %= settings.PrimarySlotCount;
+                if (InventoryController.Primary.Info[slot] == null) continue;
+                Authoring authoring = ItemInfo.Retrieve(InventoryController.Primary.Info[slot].Index);
+                if (!MatInfo.Contains(authoring.MaterialName) || !authoring.IsSolid) continue;
+                return true;
+            }
+            return false;
+        }
     }
 
-
-    private struct Selection{
-        public int3 hitPoint;
-        public GameObject indicator;
-    }
-}}
+}

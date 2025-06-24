@@ -28,7 +28,7 @@ MonoBehaviour:
     shapeCutOffRadius: 10
     m_LocalIntensity: 1.5
     lensFlareTexture: {fileID: 0}
-    uniformScale: 5
+    uniformScale: 3
     sizeXY: {x: 1, y: 1}
     allowMultipleElement: 0
     m_Count: 5
@@ -74,7 +74,7 @@ MonoBehaviour:
     autoRotate: 0
     flareType: 1
     modulateByLightColor: 0
-    isFoldOpened: 0
+    isFoldOpened: 1
     distribution: 0
     lengthSpread: 1
     positionCurve:
@@ -233,7 +233,7 @@ MonoBehaviour:
     m_LocalIntensity: 1
     lensFlareTexture: {fileID: 0}
     uniformScale: 1
-    sizeXY: {x: 3.5, y: 3.5}
+    sizeXY: {x: 3, y: 3}
     allowMultipleElement: 1
     m_Count: 5
     preserveAspectRatio: 0
@@ -278,7 +278,7 @@ MonoBehaviour:
     autoRotate: 0
     flareType: 2
     modulateByLightColor: 0
-    isFoldOpened: 0
+    isFoldOpened: 1
     distribution: 2
     lengthSpread: 0.5
     positionCurve:
@@ -436,7 +436,7 @@ MonoBehaviour:
     shapeCutOffRadius: 10
     m_LocalIntensity: 1
     lensFlareTexture: {fileID: 2800000, guid: 60a29755e11de4457aa0e11898aeb3b9, type: 3}
-    uniformScale: 6.1155334
+    uniformScale: 2.5007381
     sizeXY: {x: 1, y: 1}
     allowMultipleElement: 0
     m_Count: 5
@@ -482,7 +482,7 @@ MonoBehaviour:
     autoRotate: 0
     flareType: 0
     modulateByLightColor: 0
-    isFoldOpened: 1
+    isFoldOpened: 0
     distribution: 0
     lengthSpread: 10
     positionCurve:
@@ -640,7 +640,7 @@ MonoBehaviour:
     shapeCutOffRadius: 1
     m_LocalIntensity: 1
     lensFlareTexture: {fileID: 2800000, guid: ec7b02c5461af4a668145e123dd02deb, type: 3}
-    uniformScale: 13.884466
+    uniformScale: 7.499262
     sizeXY: {x: 1, y: 1}
     allowMultipleElement: 0
     m_Count: 5
@@ -686,7 +686,7 @@ MonoBehaviour:
     autoRotate: 0
     flareType: 0
     modulateByLightColor: 0
-    isFoldOpened: 1
+    isFoldOpened: 0
     distribution: 0
     lengthSpread: 1
     positionCurve:

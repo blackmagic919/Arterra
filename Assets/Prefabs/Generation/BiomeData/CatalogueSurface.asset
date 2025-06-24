@@ -13,10 +13,17 @@ MonoBehaviour:
   m_Name: CatalogueSurface
   m_EditorClassIdentifier: 
   Name: Root
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 051fa97817dc7468c8f3590652705fa7, type: 2}
+    - value: {fileID: 11400000, guid: 18db5d2080ba7454e9d9e0fbff761d5a, type: 2}
     - value: {fileID: 11400000, guid: c6cf230d8776042d6941a79eea587f30, type: 2}
     - value: {fileID: 11400000, guid: 8a408ddfd451d411ba7b1a63b52a456f, type: 2}
     - value: {fileID: 11400000, guid: a63107e4d5f53467e9446965fa8bde8a, type: 2}
     - value: {fileID: 11400000, guid: 95336cff9441e4a4d97db180d8e93a8d, type: 2}
+  references:
+    version: 2
+    RefIds: []

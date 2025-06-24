@@ -13,8 +13,44 @@ MonoBehaviour:
   m_Name: CatalogueMaterials
   m_EditorClassIdentifier: 
   Name: Root
+  Tags:
+    Reg:
+      value:
+      - Tag: 4
+        value:
+          value:
+            rid: 5818089297814487219
+      - Tag: 2
+        value:
+          value:
+            rid: 5818089297814487228
+      - Tag: 3
+        value:
+          value:
+            rid: 5818089297814487232
   Children:
     value:
     - value: {fileID: 11400000, guid: f4f4cf755e1394f77b3e90ac1fb6cdd8, type: 2}
     - value: {fileID: 11400000, guid: 9b756fc619b1041fcaaec54a317f38c3, type: 2}
     - value: {fileID: 11400000, guid: 10dcaebfb8414456aaadd7a4c01e4128, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 5818089297814487219
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 5
+        ToolDamage: 0.5
+        GivesItem: 0
+    - rid: 5818089297814487228
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 2.5
+        ToolDamage: 0.5
+        GivesItem: 0
+    - rid: 5818089297814487232
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 50
+        ToolDamage: 0.5
+        GivesItem: 1

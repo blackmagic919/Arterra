@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CraftingSettings
   m_EditorClassIdentifier: 
   GridWidth: 3
-  CraftSpeed: 200
+  CraftSpeed: 600
   PointSizeMultiplier: 2
   CraftingIsoValue: 128
   MaxRecipeDistance: 64
@@ -22,4 +22,18 @@ MonoBehaviour:
     Category:
       value: {fileID: 11400000, guid: ee7d1d539469b426aba308ae37b1074d, type: 2}
     Reg:
-    - {fileID: 0}
+    - {fileID: 11400000, guid: 5a67f40ae4c614091a3689d2834fedc0, type: 2}
+    - {fileID: 11400000, guid: 8bca0cc82944c43bebfc9f590ec0638b, type: 2}
+    - {fileID: 11400000, guid: 1befee71d758745beb5f1b8c490b8ec4, type: 2}
+    - {fileID: 11400000, guid: 5cc1fea8a491146459bd5bab9c3b2b2f, type: 2}
+    - {fileID: 11400000, guid: 611b8b18912f94836b17ec27e8ef8132, type: 2}
+    - {fileID: 11400000, guid: 331cd0150c9c047f4943e18dbf7d33a7, type: 2}
+    - {fileID: 11400000, guid: f17841d80e5934020baceada689f7508, type: 2}
+    - {fileID: 11400000, guid: 95a0a7dea7e9346f3abf7b366a9bc09f, type: 2}
+    - {fileID: 11400000, guid: c7961b83106aa46819f8df52dfe96520, type: 2}
+    - {fileID: 11400000, guid: cddbf2b174ab148c2a2177b7afb552e0, type: 2}
+    - {fileID: 11400000, guid: 1d0ec91b2488f42c184accc303c29c25, type: 2}
+    - {fileID: 11400000, guid: ba415daf15ebd456ca73a6db4822d607, type: 2}
+    - {fileID: 11400000, guid: d4317c7dbbf4b41a8b2f6d5c33ad49ec, type: 2}
+    - {fileID: 11400000, guid: 6a4a901536f2643058724a0e4be6f7b1, type: 2}
+    - {fileID: 11400000, guid: 838a4cdf609d944b1acc764f433d346c, type: 2}

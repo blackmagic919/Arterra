@@ -29,6 +29,7 @@ Shader "Unlit/Snow"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
             #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
+            #include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
             
             struct DrawTriangle{
                 uint3 vertex[3];
@@ -129,20 +130,12 @@ Shader "Unlit/Snow"
                 float3 normal = triplanarNorm(_SnowNormal, sampler_SnowNormal, _SnowNormal_ST, IN.positionWS, blendAxes);
                 normal = lerp(IN.normalWS, normal, _NormalStrength);
 
-                InputData lightingInput = (InputData)0;
-                lightingInput.positionWS = IN.positionWS;
-                lightingInput.normalWS = NormalizeNormalPerPixel(normal); // Renormalize the normal to reduce interpolation errors
-
-                SurfaceData surfaceInput = (SurfaceData)0;
-                surfaceInput.albedo = albedo;
-                surfaceInput.alpha = 1;
-
-                uint light = SampleLight(IN.positionWS);
-                float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f) * 0.5 + 0.5;
-                float3 DynamicLight = UniversalFragmentPBR(lightingInput, surfaceInput) * shadow;
+                uint light = SampleLight(IN.positionWS);//
+                float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f);
+                float3 DynamicLight = LambertShade(albedo, NormalizeNormalPerPixel(normal), shadow);
                 float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
                 ObjectLight = mad((1 - ObjectLight), unity_AmbientEquator, ObjectLight * 2.5f); //linear interpolation
-                ObjectLight *= surfaceInput.albedo;
+                ObjectLight *= albedo;
 
                 return max(DynamicLight, ObjectLight).rgb;
             }

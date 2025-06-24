@@ -122,7 +122,7 @@ public class AquaticBoidHerbivore : Authoring
         public WorldConfig.Generation.Item.IItem Collect(float amount){
             if(!IsDead) return null; //You can't collect resources until the entity is dead
             var item = settings.decomposition.LootItem(amount, ref random);
-            TaskDuration -= settings.decomposition.DecompPerLoot * amount;
+            TaskDuration -= amount;
             return item;
         }
 
@@ -298,7 +298,7 @@ public class AquaticBoidHerbivore : Authoring
             //Rotate towards neutral
             ref Quaternion rotation = ref self.tCollider.transform.rotation;
             float3 lookRotation = new (rotation.eulerAngles.x, 0, rotation.eulerAngles.z);
-            if(math.any(lookRotation != 0)) rotation = Quaternion.RotateTowards(rotation, Quaternion.LookRotation(lookRotation), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
+            if (Vector3.Magnitude(lookRotation) > 1E-05f) rotation = Quaternion.RotateTowards(rotation, Quaternion.LookRotation(lookRotation), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
         }
         
         //Task 1 -> Fly 

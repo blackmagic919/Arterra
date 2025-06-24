@@ -13,9 +13,13 @@ MonoBehaviour:
   m_Name: OrganicTexs
   m_EditorClassIdentifier: 
   Name: C:Organic
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 699c4002676a54319a646bfb02695c02, type: 2}
+    - value: {fileID: 11400000, guid: 87d51d85178724468a03508d3cf204d5, type: 2}
     - value: {fileID: 11400000, guid: e28bea311b6ad43db8d196586dbd8008, type: 2}
     - value: {fileID: 11400000, guid: 147299bd45a354aa3820d7d1687eb232, type: 2}
     - value: {fileID: 11400000, guid: 811dad1b5689744358ea4ac28733a553, type: 2}
@@ -23,3 +27,8 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: d90ff36088df74efca28b9317753e680, type: 2}
     - value: {fileID: 11400000, guid: 4c033a0f5ae324fc7bbd5f37f0417ea4, type: 2}
     - value: {fileID: 11400000, guid: 10ad473eb91be448cb0cce2a8bd3243b, type: 2}
+    - value: {fileID: 11400000, guid: 22c43a811976b4dd4843b4cf9b006ebc, type: 2}
+    - value: {fileID: 11400000, guid: 2994eef646ac942fe908e0298c28d370, type: 2}
+  references:
+    version: 2
+    RefIds: []

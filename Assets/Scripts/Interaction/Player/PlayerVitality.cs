@@ -63,17 +63,25 @@ public class PlayerVitality
         health -= delta;
         return true;
     }
+    
+    public void Heal(float delta, bool force = false){
+        if(force) {health += delta; return;}
+        if(IsDead) return;
+        health = math.min(health + delta, settings.MaxHealth);
+    }
 
-    private void AttackEntity(float _){
-        if(AttackCooldown > 0) return;
+    private void AttackEntity(float _)
+    {
+        if (AttackCooldown > 0) return;
         AttackCooldown = settings.AttackFrequency;
         float3 hitPt = PlayerHandler.data.position + (float3)PlayerHandler.camera.forward * interact.ReachDistance;
-        if(PlayerInteraction.RayTestSolid(PlayerHandler.data, out float3 terrHit)) hitPt = terrHit;
-        if(!EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out WorldConfig.Generation.Entity.Entity entity))
+        if (PlayerInteraction.RayTestSolid(PlayerHandler.data, out float3 terrHit)) hitPt = terrHit;
+        if (!EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out WorldConfig.Generation.Entity.Entity entity))
             return;
-        static void PlayerDamageEntity(WorldConfig.Generation.Entity.Entity target){
-            if(!target.active) return;
-            if(target is not IAttackable) return;
+        static void PlayerDamageEntity(WorldConfig.Generation.Entity.Entity target)
+        {
+            if (!target.active) return;
+            if (target is not IAttackable) return;
             IAttackable atkEntity = target as IAttackable;
             float3 knockback = math.normalize(target.position - PlayerHandler.data.position) * settings.KnockBackStrength;
             atkEntity.TakeDamage(settings.AttackDamage, knockback, PlayerHandler.data);

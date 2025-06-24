@@ -13,9 +13,45 @@ MonoBehaviour:
   m_Name: HardMat
   m_EditorClassIdentifier: 
   Name: C:Hard
+  Tags:
+    Reg:
+      value:
+      - Tag: 1
+        value:
+          value:
+            rid: 5818089297814487225
+      - Tag: 3
+        value:
+          value:
+            rid: 5818089297814487234
+      - Tag: 4
+        value:
+          value:
+            rid: 5818089297814487226
   Children:
     value:
     - value: {fileID: 11400000, guid: 77dcf9a30be1942cdbd95c72546bb3a2, type: 2}
     - value: {fileID: 11400000, guid: c42336a9130a340a895ffef851581929, type: 2}
     - value: {fileID: 11400000, guid: 8955b69172d2b4feb98c9a2d158c442c, type: 2}
     - value: {fileID: 11400000, guid: a379ea77d6f8543c58c09392df10b026, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 5818089297814487225
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 1
+        ToolDamage: 2
+        GivesItem: 0
+    - rid: 5818089297814487226
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 100
+        ToolDamage: 1
+        GivesItem: 1
+    - rid: 5818089297814487234
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 2
+        ToolDamage: 2
+        GivesItem: 0
