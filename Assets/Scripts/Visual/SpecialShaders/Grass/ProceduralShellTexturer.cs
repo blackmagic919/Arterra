@@ -35,8 +35,7 @@ public class ProceduralShellTexturer : GeoShader
         shellCompute.SetInt("bCOUNT_oGeo", geoCounter);
         shellCompute.SetInt("geoInd", geoInd);
 
-        shellCompute.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        shellCompute.SetBuffer(kernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
+        shellCompute.SetBuffer(kernel, "Counters", UtilityBuffers.GenerationBuffer);
         shellCompute.SetBuffer(kernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
         shellCompute.SetBuffer(kernel, "VariantSettings", variantTable);
         material.value.SetBuffer("VariantSettings", variantTable);

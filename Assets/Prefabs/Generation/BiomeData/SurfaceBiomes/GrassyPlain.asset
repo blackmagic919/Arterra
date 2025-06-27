@@ -22,28 +22,56 @@ MonoBehaviour:
         value:
         - OakTree1
         - OakTree2
-        - Dirt
-        - TallGrass
         - Air
         - Water
+        - Dirt
+        - TallGrass
+        - Dandelions
+        - Hydrangea
+        - Lupines
+        - Peonies
       GroundMaterials:
         value:
         - value:
-            Material: 2
+            Material: 4
             genSize: 0.8
             genShape: 0.62
             frequency: 1
             height: 1
         - value:
-            Material: 3
+            Material: 5
             genSize: 0.2
             genShape: 0.408
             frequency: 0.9
             height: 0.2
+        - value:
+            Material: 6
+            genSize: 0
+            genShape: 0.782
+            frequency: 0.04
+            height: 0.2
+        - value:
+            Material: 7
+            genSize: 0.581
+            genShape: 0.355
+            frequency: 0.03
+            height: 0.2
+        - value:
+            Material: 8
+            genSize: 0.8
+            genShape: 0.609
+            frequency: 0.02
+            height: 0.2
+        - value:
+            Material: 9
+            genSize: 1
+            genShape: 0.266
+            frequency: 0.02
+            height: 0.1
       SurfaceMaterials:
         value:
         - value:
-            Material: 4
+            Material: 2
             genSize: 0.2
             genShape: 0
             frequency: 1
@@ -51,7 +79,7 @@ MonoBehaviour:
       LiquidMaterials:
         value:
         - value:
-            Material: 5
+            Material: 3
             genSize: 0
             genShape: 0
             frequency: 1

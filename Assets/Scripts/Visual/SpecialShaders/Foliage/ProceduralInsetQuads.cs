@@ -30,8 +30,7 @@ public class ProceduralInsetQuads : GeoShader
         quadCompute = Resources.Load<ComputeShader>("Compute/GeoShader/Registry/FoliageQuads");
 
         int kernel = quadCompute.FindKernel("Main");
-        quadCompute.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        quadCompute.SetBuffer(kernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
+        quadCompute.SetBuffer(kernel, "Counters", UtilityBuffers.GenerationBuffer);
         quadCompute.SetBuffer(kernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
         quadCompute.SetBuffer(kernel, "VariantSettings", variantTable);
         material.value.SetBuffer("VariantSettings", variantTable);

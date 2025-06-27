@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: MaterialFineNoise
   m_EditorClassIdentifier: 
   Name: MaterialFine
+  Tags:
+    Reg:
+      value: []
   noiseScale: 25
   octaves: 4
   persistance: 0.25
@@ -43,3 +46,6 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+  references:
+    version: 2
+    RefIds: []

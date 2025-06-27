@@ -13,4 +13,10 @@ MonoBehaviour:
   m_Name: GrassNoise
   m_EditorClassIdentifier: 
   Name: GrassNoise
+  Tags:
+    Reg:
+      value: []
   self: {fileID: 21300000, guid: a2a4befd44b2f47a78fdeec55b8a7006, type: 3}
+  references:
+    version: 2
+    RefIds: []

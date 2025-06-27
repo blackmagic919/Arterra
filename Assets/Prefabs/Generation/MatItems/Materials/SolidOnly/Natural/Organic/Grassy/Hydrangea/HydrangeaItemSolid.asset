@@ -10,9 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
-  m_Name: MossSolid
+  m_Name: HydrangeaItemSolid
   m_EditorClassIdentifier: 
-  Name: Moss:Solid
-  TextureName: Moss
-  MaterialName: Moss
+  Name: Hydrangea:Solid
+  Tags:
+    Reg:
+      value: []
+  TextureName: Hydrangea
+  MaterialName: Hydrangea
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

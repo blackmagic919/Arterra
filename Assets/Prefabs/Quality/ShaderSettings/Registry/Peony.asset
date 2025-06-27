@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fd5e8b7ba3514f9ca716e61b79750ae, type: 3}
+  m_Name: Peony
+  m_EditorClassIdentifier: 
+  Name: Peony
+  Tags:
+    Reg:
+      value: []
+  NameRegister:
+    value:
+    - PeonyVoronoi
+  info:
+    grassHeight: 0.5
+    maxLayers: 15
+    TextureIndex: 0
+    BaseColor: {r: 0.25326172, g: 0.4528302, b: 0.13029547, a: 0}
+    TopColor: {r: 0.9622642, g: 0.6309185, b: 0.83213806, a: 0}
+    Scale: 0.8
+    CenterHeight: 0.5
+  references:
+    version: 2
+    RefIds: []

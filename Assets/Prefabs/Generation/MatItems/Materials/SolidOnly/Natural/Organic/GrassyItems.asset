@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80ae62d4a8db64373ab2031aa7690b4a, type: 3}
+  m_Name: GrassyItems
+  m_EditorClassIdentifier: 
+  Name: Grassy
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 828e0cfa708264ced8f04cfbe8b1d351, type: 2}
+    - value: {fileID: 11400000, guid: 02d09fe1d2b6b429991220bd65558e30, type: 2}
+    - value: {fileID: 11400000, guid: d6bd7cac775fd4cfe9fb66068eb65c15, type: 2}
+    - value: {fileID: 11400000, guid: d396def016ca64a61a35ab3e8adc4464, type: 2}
+    - value: {fileID: 11400000, guid: 5e25cf8d733264a0899bf967d8b80330, type: 2}
+    - value: {fileID: 11400000, guid: 7b50b5f19d99f4bfab119f4853e5668b, type: 2}
+    - value: {fileID: 11400000, guid: 30e8866070f85430eb0212df8d118fce, type: 2}
+    - value: {fileID: 11400000, guid: 0c730137e752a46ebb0448a0caa06e8e, type: 2}
+  references:
+    version: 2
+    RefIds: []

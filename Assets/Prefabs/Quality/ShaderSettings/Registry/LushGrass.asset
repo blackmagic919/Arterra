@@ -13,13 +13,20 @@ MonoBehaviour:
   m_Name: LushGrass
   m_EditorClassIdentifier: 
   Name: LushGrass
+  Tags:
+    Reg:
+      value: []
   NameRegister:
     value:
     - GrassNoise
   info:
     grassHeight: 0.25
     maxLayers: 15
+    TextureIndex: 0
     BaseColor: {r: 0.14901961, g: 0.2509804, b: 0.039215688, a: 0}
     TopColor: {r: 0.37254903, g: 0.5647059, b: 0.08627451, a: 0}
-    TextureIndex: 0
-    Scale: 0.75
+    Scale: 1
+    CenterHeight: 0.5
+  references:
+    version: 2
+    RefIds: []

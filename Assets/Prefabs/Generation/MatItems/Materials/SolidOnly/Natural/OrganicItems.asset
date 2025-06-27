@@ -18,15 +18,12 @@ MonoBehaviour:
       value: []
   Children:
     value:
+    - value: {fileID: 11400000, guid: f50536952595e40f8afb774b0175f5fe, type: 2}
     - value: {fileID: 11400000, guid: 3f082d188bafd47bda9d3c22bd64949d, type: 2}
-    - value: {fileID: 11400000, guid: 02d09fe1d2b6b429991220bd65558e30, type: 2}
-    - value: {fileID: 11400000, guid: 828e0cfa708264ced8f04cfbe8b1d351, type: 2}
-    - value: {fileID: 11400000, guid: 0c730137e752a46ebb0448a0caa06e8e, type: 2}
     - value: {fileID: 11400000, guid: 89ec4e4227cf84ed9bf05193284009d0, type: 2}
     - value: {fileID: 11400000, guid: 02fabfde62aaa41f29f7bf79160ea3fc, type: 2}
     - value: {fileID: 11400000, guid: 98222d75ff0ef411d877d033b7fa95c6, type: 2}
     - value: {fileID: 11400000, guid: 9fb5b167f9dc94450b7f339704eae542, type: 2}
-    - value: {fileID: 11400000, guid: 30e8866070f85430eb0212df8d118fce, type: 2}
     - value: {fileID: 11400000, guid: d0dc5bc754925403cbcff5f0f2a6917a, type: 2}
     - value: {fileID: 11400000, guid: 5f1c775c8062c4822ad748ebf93e6ec6, type: 2}
   references:

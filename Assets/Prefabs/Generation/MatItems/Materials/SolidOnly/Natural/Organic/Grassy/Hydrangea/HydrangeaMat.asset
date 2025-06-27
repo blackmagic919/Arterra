@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cbb11f6eccf844d2bbaa784a6cd4cdf, type: 3}
+  m_Name: HydrangeaMat
+  m_EditorClassIdentifier: 
+  Name: Hydrangea
+  Tags:
+    Reg:
+      value: []
+  Names:
+  - Hydrangea:Solid
+  - Void
+  - Hydrangea
+  - Shell
+  - Hydrangea
+  SolidItem: 0
+  LiquidItem: 1
+  terrainData:
+    Texture: 2
+    textureScale: 2
+    GeoShaderIndex:
+      data: 2147680260
+  AtmosphereScatter:
+    ScatterCoeffs: {x: 0, y: 0, z: 0}
+    GroundExtinction: {x: 0, y: 0, z: 0}
+    LightIntensity: 0
+  liquidData:
+    shallowCol: {x: 0.1, y: 0.5, z: 0.1}
+    deepCol: {x: 0, y: 0.5, z: 0.25}
+    colFalloff: 0.052
+    depthOpacity: 0.173
+    smoothness: 0.468
+    waveBlend: 0
+    waveStrength: 0
+    waveScale: {x: 0, y: 0}
+    waveSpeed: {x: 0, y: 0}
+  SpreadChance: 0.75
+  SpreadMaterial: Dirt
+  SpreadBounds:
+    data: 2944466688
+  NeighborBounds:
+    data: 2130771712
+  references:
+    version: 2
+    RefIds: []

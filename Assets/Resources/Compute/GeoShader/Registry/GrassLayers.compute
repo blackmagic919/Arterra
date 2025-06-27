@@ -11,10 +11,11 @@ struct DrawTriangle{
 struct Settings{
     float TotalHeight;
     int MaxLayers;
+    int TexInd;
     float4 BaseColor;
     float4 TopColor;
-    int TexInd;
     float Scale;
+    float CenterHeight;
 };
 
 StructuredBuffer<Settings> VariantSettings;
@@ -24,8 +25,7 @@ StructuredBuffer<uint2> _AddressDict;
 uint vertAddress;
 uint triAddress;
 
-RWStructuredBuffer<uint> counters;
-StructuredBuffer<uint> BaseTriangles;
+RWStructuredBuffer<uint> Counters;
 RWStructuredBuffer<DrawTriangle> DrawTriangles;
 int bSTART_base;
 int bCOUNT_base;
@@ -46,12 +46,12 @@ uint3 ExtrudeVertex(SourceVertex v, int layerIndex, uint mat, Settings cxt){
 [numthreads(numThreads, 1, 1)]
 void Main(uint3 id : SV_DispatchThreadID){
 
-    uint startIndex = counters[bCOUNT_base];
-    uint numSourceTriangles = counters[bCOUNT_base+1] - startIndex;
+    uint startIndex = Counters[bCOUNT_base];
+    uint numSourceTriangles = Counters[bCOUNT_base+1] - startIndex;
     if(id.x >= numSourceTriangles)
         return;
 
-    uint triIndex = BaseTriangles[bSTART_base + startIndex + id.x];
+    uint triIndex = Counters[bSTART_base + startIndex + id.x];
     uint3 sourceTri = SourceTriangles[_AddressDict[triAddress].y + triIndex];
 
     SourceVertex inputs[3];
@@ -70,7 +70,7 @@ void Main(uint3 id : SV_DispatchThreadID){
         }
 
         int appendInd = 0;
-        InterlockedAdd(counters[bCOUNT_oGeo], 1, appendInd);
+        InterlockedAdd(Counters[bCOUNT_oGeo], 1, appendInd);
         DrawTriangles[bSTART_oGeo + appendInd] = tri;
     }
 }

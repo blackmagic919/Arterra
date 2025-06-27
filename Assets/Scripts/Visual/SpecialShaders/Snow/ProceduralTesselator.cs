@@ -30,8 +30,7 @@ public class ProceduralTesselator : GeoShader
         tesselCompute = Resources.Load<ComputeShader>("Compute/GeoShader/Registry/SnowTessel");
 
         int kernel = tesselCompute.FindKernel("Main");
-        tesselCompute.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        tesselCompute.SetBuffer(kernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
+        tesselCompute.SetBuffer(kernel, "Counters", UtilityBuffers.GenerationBuffer);
         tesselCompute.SetBuffer(kernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
         tesselCompute.SetBuffer(kernel, "VariantSettings", variantTable);
         tesselCompute.SetInt("bSTART_base", baseGeoStart);

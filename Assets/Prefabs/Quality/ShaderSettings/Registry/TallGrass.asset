@@ -21,11 +21,12 @@ MonoBehaviour:
     - GrassNoise
   info:
     grassHeight: 0.75
-    maxLayers: 20
+    maxLayers: 15
+    TextureIndex: 0
     BaseColor: {r: 0.10727614, g: 0.23529412, b: 0.07058825, a: 0}
     TopColor: {r: 0.18582655, g: 0.48235294, b: 0.1098039, a: 0}
-    TextureIndex: 0
-    Scale: 0.5
+    Scale: 0.75
+    CenterHeight: 0.5
   references:
     version: 2
     RefIds: []

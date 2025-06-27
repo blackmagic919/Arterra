@@ -29,8 +29,7 @@ StructuredBuffer<uint2> _AddressDict;
 uint vertAddress;
 uint triAddress;
 
-RWStructuredBuffer<uint> counters;
-StructuredBuffer<uint> BaseTriangles;
+RWStructuredBuffer<uint> Counters;
 RWStructuredBuffer<DrawTriangle> DrawTriangles;
 int bSTART_base;
 int bCOUNT_base;
@@ -72,7 +71,7 @@ Quad GetQuad(float3 center, float3 right, float3 up, uint mat){
 
 void AppendTri(DrawTriangle tri){
     int appendInd = 0;
-    InterlockedAdd(counters[bCOUNT_oGeo], 1, appendInd);
+    InterlockedAdd(Counters[bCOUNT_oGeo], 1, appendInd);
     DrawTriangles[bSTART_oGeo + appendInd] = tri;
 }
 
@@ -106,12 +105,12 @@ void CreateQuadIntersects(float3 center, float3 normalOS, uint mat) {
 [numthreads(numThreads,1,1)]
 void Main (uint3 id : SV_DispatchThreadID)
 {
-    uint startIndex = counters[bCOUNT_base];
-    uint numSourceTriangles = counters[bCOUNT_base+1] - startIndex;
+    uint startIndex = Counters[bCOUNT_base];
+    uint numSourceTriangles = Counters[bCOUNT_base+1] - startIndex;
     if(id.x >= numSourceTriangles)
         return;
 
-    uint triIndex = BaseTriangles[bSTART_base + startIndex + id.x];
+    uint triIndex = Counters[bSTART_base + startIndex + id.x];
     uint3 sourceTri = SourceTriangles[_AddressDict[triAddress].y + triIndex];
 
     SourceVertex inputs[3];

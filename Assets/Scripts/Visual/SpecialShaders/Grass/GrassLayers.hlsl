@@ -48,10 +48,11 @@ struct VertexOutput {
 struct Settings{
     float TotalHeight;
     int MaxLayers;
+    int TexIndex;
     float4 BaseColor;
     float4 TopColor;
-    int TexIndex;
     float Scale;
+    float CenterHeight;
 };
 
 StructuredBuffer<Settings> VariantSettings;
@@ -107,8 +108,8 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
     return output;
 }
 
-// Fragment functions
 
+// Fragment functions
 half3 Fragment(VertexOutput input) : SV_Target {
 
     float2 uv = input.uv;
@@ -124,8 +125,12 @@ half3 Fragment(VertexOutput input) : SV_Target {
 
     Settings cxt = VariantSettings[input.variant];
     float3 detailNoise = _Textures.Sample(sampler_Textures, float3(uv, cxt.TexIndex));
-    float value = (height > 0.5f ? (height - 0.5f) * detailNoise.b + (1 - height) * detailNoise.g : 
-                                  (height) * detailNoise.g + (0.5f - height) * detailNoise.r) * 2;
+    float value;
+    if(height > cxt.CenterHeight)
+        value = ((height - cxt.CenterHeight) * detailNoise.b + (1 - height) * detailNoise.g) * (1/(1-cxt.CenterHeight));
+    else
+        value = ((height) * detailNoise.g + (cxt.CenterHeight - height) * detailNoise.r) * (1/cxt.CenterHeight);
+        
     clip(value-0.5f);
 
     // Lerp between the two grass colors based on layer height

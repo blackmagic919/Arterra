@@ -1,12 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
 using Newtonsoft.Json;
-using UnityEditor;
 using UnityEngine;
 using WorldConfig;
-using WorldConfig.Quality;
 
 
 [Serializable]
@@ -64,7 +60,6 @@ public struct TagRegistry
         }
     }
 
-#if UNITY_EDITOR
     public void OnValidate()
     {
         if (Reg.value == null) return;
@@ -82,7 +77,6 @@ public struct TagRegistry
             } Reg.value[i] = pair;//
         }
     }
-#endif
 
     public int RetrieveIndex(Tags tag)
     {
