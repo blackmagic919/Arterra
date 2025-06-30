@@ -60,9 +60,8 @@ public static class PlayerInteraction
     // Start is called before the first frame update
     public static void Initialize()
     {
-        InputPoller.AddBinding(new InputPoller.ActionBind("Interact", PickupItems), "5.0::GamePlay");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", PlaceTerrain), "5.0::GamePlay");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", RemoveTerrain), "5.0::GamePlay");
+        InputPoller.AddBinding(new InputPoller.ActionBind("Place", PlaceTerrain), "5.0::GamePlay");
+        InputPoller.AddBinding(new InputPoller.ActionBind("Remove", RemoveTerrain), "5.0::GamePlay");
     }
 
     public static bool RayTestSolid(PlayerStreamer.Player data, out float3 hitPt){
@@ -82,24 +81,35 @@ public static class PlayerInteraction
     }
 
     public static void PlaceTerrain(float _){
-        PlayerHandler.data.animator.SetTrigger("IsPlacing");
-        if(!RayTestSolid(data, out float3 hitPt)) return;
-        if(EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
+        bool rayHit = false;
+        float3 hitPt = data.position + (float3)PlayerHandler.camera.forward * settings.ReachDistance;
+        if (RayTestSolid(data, out float3 terrHit)) {
+            hitPt = terrHit;
+            rayHit = true;
+        };
+        
+        if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var entity)){
+            EntityInteract(entity);
             return;
-        if(InventoryController.Selected == null) return;
+        }
+
+        if (!rayHit) return;
+        if (InventoryController.Selected == null) return;
         Authoring selMat = InventoryController.SelectedSetting;
         if(selMat.MaterialName == null || !matInfo.Contains(selMat.MaterialName)) return;
-        
-        if (selMat.IsSolid) Terraform(hitPt, settings.TerraformRadius, (MapData mapData, float speed) => HandleAddSolid(mapData, speed * settings.DefaultTerraform.value.TerraformSpeed));
-        else Terraform(hitPt, settings.TerraformRadius, (MapData mapData, float speed) => HandleAddSolid(mapData, speed * settings.DefaultTerraform.value.TerraformSpeed));
+        if (!selMat.IsSolid) return;
+
+        PlayerHandler.data.animator.SetTrigger("IsPlacing");
+        Terraform(hitPt, settings.TerraformRadius, (MapData mapData, float speed) => HandleAddSolid(mapData, speed * settings.DefaultTerraform.value.TerraformSpeed));
     }
 
     public static void RemoveTerrain(float _)
-    {
-        PlayerHandler.data.animator.SetTrigger("IsPlacing");
+    {   
         if (!RayTestSolid(data, out float3 hitPt)) return;
-        if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
+        if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var entity)){
             return;
+        }
+        
         MapData RemoveSolidBareHand(MapData mapData, float speed){
             int material = mapData.material; ToolTag tag = settings.DefaultTerraform;
             if (matInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, material, out TagRegistry.IProperty prop))
@@ -107,6 +117,7 @@ public static class PlayerInteraction
             return HandleRemoveSolid(mapData, speed * tag.TerraformSpeed, tag.GivesItem);
         }
         
+        PlayerHandler.data.animator.SetTrigger("IsPlacing");
         CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolidBareHand);
     }
 
@@ -210,17 +221,14 @@ public static class PlayerInteraction
         return pointInfo;
     }
 
-    private static void PickupItems(float _){
-        if(!RayTestSolid(data, out float3 hitPt)) hitPt = data.position + (float3)PlayerHandler.camera.forward * settings.ReachDistance;
-        if(!EntityManager.ESTree.FindClosestAlongRay(data.position, hitPt, PlayerHandler.data.info.entityId, 
-        out WorldConfig.Generation.Entity.Entity entity))
-            return;
-        
-        if(!entity.active) return;
-        if(entity is not IAttackable) return;
-        IAttackable collectEntity = entity as IAttackable;
-        if(!collectEntity.IsDead) return;
-        IItem slot = collectEntity.Collect(settings.PickupRate);
-        InventoryController.AddEntry(slot);
+    private static void EntityInteract(WorldConfig.Generation.Entity.Entity target){
+        if(!target.active) return;
+        if(target is not IAttackable) return;
+        IAttackable targEnt = target as IAttackable;
+        if (!targEnt.IsDead) targEnt.Interact(data);
+        else {
+            IItem slot = targEnt.Collect(settings.PickupRate);
+            InventoryController.AddEntry(slot);   
+        }
     }
 }

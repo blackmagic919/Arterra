@@ -1,6 +1,7 @@
 #ifndef LBLOOKUP
 #define LBLOOKUP
 
+
 const static int3 dp[6] = {
     {1,0,0}, {-1,0,0}, 
     {0,1,0}, {0,-1,0}, 

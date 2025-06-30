@@ -87,11 +87,11 @@ float3 opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
 
     for(uint i = 0; i < _NumOpticalDepthPoints; i++){
         OpticalDepth mapData = SampleOpticalDepth(densitySamplePoint);
-        opticalDepth += mapData.scatterCoeffs * (mapData.opticalDensity / ((float)IsoLevel)) * stepSize;
+        opticalDepth += mapData.scatterCoeffs * (mapData.opticalDensity / ((float)IsoLevel));
         densitySamplePoint += rayDir * stepSize;
     }
 
-    return opticalDepth;
+    return opticalDepth * stepSize;
 }
 
 void ConstructSampleTree(ScatterData cNode, uint pixelIndex, uint depth){

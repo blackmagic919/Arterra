@@ -54,10 +54,12 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public int3 GCoord => (int3)math.floor(origin); 
         [JsonIgnore]
         public bool IsDead => true;
-        public IItem Collect(float amount){
-            if(item.Value == null) return null;
+
+        public void Interact(Entity targert) { }
+        public IItem Collect(float amount) {
+            if (item.Value == null) return null;
             IItem ret;
-            if(!item.Value.IsStackable){
+            if (!item.Value.IsStackable) {
                 ret = item.Value;
             } else {
                 int delta = Mathf.FloorToInt(amount) + (random.NextFloat() < math.frac(amount) ? 1 : 0);
@@ -65,7 +67,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
                 ret.AmountRaw = math.max(delta, ret.AmountRaw);
             }
             item.Value.AmountRaw -= ret.AmountRaw;
-            if(item.Value.AmountRaw == 0) item.Value = null;
+            if (item.Value.AmountRaw == 0) item.Value = null;
 
             return ret;
         }

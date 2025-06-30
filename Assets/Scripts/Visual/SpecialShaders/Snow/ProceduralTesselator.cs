@@ -24,7 +24,7 @@ public class ProceduralTesselator : GeoShader
     {
         if (settings.Reg.Count == 0) return;
         TesselSettings.Data[] data = settings.Reg.Select(e => e.info).ToArray();
-        variantTable = new ComputeBuffer(data.Length, TesselSettings.DataSize, ComputeBufferType.Constant);
+        variantTable = new ComputeBuffer(data.Length, TesselSettings.DataSize, ComputeBufferType.Structured);
         variantTable.SetData(data);
 
         tesselCompute = Resources.Load<ComputeShader>("Compute/GeoShader/Registry/SnowTessel");

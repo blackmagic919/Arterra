@@ -30,6 +30,7 @@ MonoBehaviour:
         - Hydrangea
         - Lupines
         - Peonies
+        - Horse
       GroundMaterials:
         value:
         - value:
@@ -93,7 +94,10 @@ MonoBehaviour:
             ChancePerStructurePoint: 0.002
             Structure: 1
       Entities:
-        value: []
+        value:
+        - value:
+            Entity: 10
+            ChancePerCoord: 0.0001
   BiomeConditions:
     value:
       TerrainStart: 0.325

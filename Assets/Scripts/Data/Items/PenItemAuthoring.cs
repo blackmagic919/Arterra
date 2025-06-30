@@ -120,8 +120,8 @@ namespace WorldConfig.Generation.Item
                 h.KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Interact", h.DragPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
                 h.KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Start Interact", h.SelectPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
                 //When SelectPoint is triggered, DragPoint will also be triggered on the same frame, make sure SelectPoint happens first 
-                h.KeyBinds[2] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", h.OnTerrainRemove, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-                h.KeyBinds[3] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", h.OnTerrainAdd, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                h.KeyBinds[2] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", h.OnTerrainRemove, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                h.KeyBinds[3] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place", h.OnTerrainAdd, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
             });
             return h;
         }

@@ -116,11 +116,8 @@ half3 Fragment(VertexOutput input) : SV_Target {
     float height = input.height.x;
 
     // Calculate wind
-    // Get the wind noise texture uv by applying scale and offset and then adding a time offset
     float2 windUV = TRANSFORM_TEX(uv, _WindNoiseTexture) + _Time.y * _WindTimeMult;
-    // Sample the wind noise texture and remap to range from -1 to 1
     float2 windNoise = SAMPLE_TEXTURE2D(_WindNoiseTexture, sampler_WindNoiseTexture, windUV).xy * 2 - 1;
-    // Offset the grass UV by the wind. Higher layers are affected more
     uv = uv + windNoise * (_WindAmplitude * height);
 
     Settings cxt = VariantSettings[input.variant];
@@ -130,7 +127,7 @@ half3 Fragment(VertexOutput input) : SV_Target {
         value = ((height - cxt.CenterHeight) * detailNoise.b + (1 - height) * detailNoise.g) * (1/(1-cxt.CenterHeight));
     else
         value = ((height) * detailNoise.g + (cxt.CenterHeight - height) * detailNoise.r) * (1/cxt.CenterHeight);
-        
+
     clip(value-0.5f);
 
     // Lerp between the two grass colors based on layer height

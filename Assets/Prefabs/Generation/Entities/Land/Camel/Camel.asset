@@ -9,12 +9,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6fbcd5f0b5992466685233b55199a842, type: 3}
+  m_Script: {fileID: 11500000, guid: fa992e5feeb2c43589ee5bb280a39340, type: 3}
   m_Name: Camel
   m_EditorClassIdentifier: 
   Name: Camel
+  Tags:
+    Reg:
+      value: []
   Controller:
-    value: {fileID: 2030604048505752331, guid: 811ca543be197474ba42ba429eac8363, type: 3}
+    value: {fileID: 4670410139979133744, guid: 75bc8e972a96b45dba996f770581e50b, type: 3}
   Profile:
     value:
     - bounds:
@@ -132,7 +135,7 @@ MonoBehaviour:
           x: 3
           y: 4
           z: 3
-        profileStart: 120
+        profileStart: 68
       collider:
         size:
           x: 2
@@ -192,3 +195,6 @@ MonoBehaviour:
           ConsumptionRate: 0.25
           MateCost: 8
           weight: 0.85
+  references:
+    version: 2
+    RefIds: []

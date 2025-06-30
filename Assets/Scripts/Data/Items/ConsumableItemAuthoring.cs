@@ -49,7 +49,7 @@ public class ConsumbaleItem : IItem{
     public void OnSelect(){
         InputPoller.AddKeyBindChange(() => {
             KeyBinds = new uint[1];
-            KeyBinds[0] = InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", ConsumeFood, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            KeyBinds[0] = InputPoller.AddBinding(new InputPoller.ActionBind("Place", ConsumeFood, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
         });
     } 
     public void OnDeselect(){

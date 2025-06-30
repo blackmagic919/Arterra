@@ -31,7 +31,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class Player : Entity, IAttackable
+    public class Player : Entity, IAttackable, IRider
     {
         [JsonIgnore]
         public PlayerSettings settings;
@@ -69,7 +69,8 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         }
         [JsonIgnore]
         public bool IsDead { get => vitality.IsDead; }
-
+        
+        public void Interact(Entity target) { }
         public IItem Collect(float collectRate)
         {
             int itemCount = PrimaryI.EntryDict.Count + SecondaryI.EntryDict.Count;
@@ -95,8 +96,10 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             OctreeTerrain.MainCoroutines.Enqueue(PlayerHandler.cEffects.CameraShake(0.2f, 0.25f));
         }
 
-        public static Player Build()
-        {
+        public void OnMounted(IRidable mount) => RideMovement.AddHandles(mount);
+        public void OnDismounted(IRidable mount) => RideMovement.RemoveHandles();
+
+        public static Player Build() {
             Player p = new();
             p.cameraRot = Quaternion.identity;
             p.PrimaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.PrimarySlotCount);

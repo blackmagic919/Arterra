@@ -83,3 +83,4 @@ mono_crash.*
 docs/api/*.yml
 docs/api/.manifest
 docs/_site/*
+Packages/*

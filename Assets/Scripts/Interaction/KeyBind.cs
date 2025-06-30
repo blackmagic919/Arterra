@@ -122,7 +122,6 @@ namespace WorldConfig.Gameplay{
 }
 public static class InputPoller
 {
-    public static ArrayPool<int> KeyBindSaver;
     private class KeyBinder{
         public SharedLinkedList<ActionBind> KeyBinds;
         public DynamicRegistry<uint> LayerHeads;
@@ -183,7 +182,6 @@ public static class InputPoller
         Binder = new KeyBinder();
         SStack = new StateStack();
         KeyBindChanges = new Queue<Action>();
-        KeyBindSaver = ArrayPool<int>.Create();
         AddStackPoll(new ActionBind("BASE", (float _) => SetCursorLock(true)), "CursorLock");
         eventTask = new IndirectUpdate(Update);
         TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
@@ -416,55 +414,63 @@ public static class InputPoller
         }
     }
 
-    public class StateStack{
+    public class StateStack {
         private SharedLinkedList<ActionBind> StackBinds;
         private DynamicRegistry<uint> LayerHeads;
         private DynamicRegistry<uint> StackEntries;
         private const int MaxStackBinds = 5000;
 
-        public StateStack(){
-            StackBinds = new (MaxStackBinds);
+        public StateStack() {
+            StackBinds = new(MaxStackBinds);
             LayerHeads = new DynamicRegistry<uint>();
             StackEntries = new DynamicRegistry<uint>();
             LayerHeads.Construct();
             StackEntries.Construct();
         }
-        
-        public void AddStackPoll(ActionBind bind, string layer, string KeyName){
-            if(!LayerHeads.Contains(layer)) LayerHeads.Add(layer, StackBinds.Enqueue(bind));
+
+        public void AddStackPoll(ActionBind bind, string layer, string KeyName) {
+            if (!LayerHeads.Contains(layer)) LayerHeads.Add(layer, StackBinds.Enqueue(bind));
             else LayerHeads.TrySet(layer, StackBinds.Enqueue(bind, LayerHeads.Retrieve(layer)));
 
-            if(StackEntries.Contains(KeyName)) StackEntries.TryRemove(KeyName);
+            if (StackEntries.Contains(KeyName)) StackEntries.TryRemove(KeyName);
             StackEntries.Add(KeyName, LayerHeads.Retrieve(layer));
             bind.action.Invoke(0);
         }
-        
-        public void RemoveStackPoll(string layer, string KeyName){
-            if(!StackEntries.Contains(KeyName)) return;
-            if(!LayerHeads.Contains(layer)) return;
+
+        public void RemoveStackPoll(string layer, string KeyName) {
+            if (!StackEntries.Contains(KeyName)) return;
+            if (!LayerHeads.Contains(layer)) return;
 
             uint bindIndex = StackEntries.Retrieve(KeyName);
             //Move head if removed, if empty remove layer
-            if(LayerHeads.Retrieve(layer) == bindIndex){
+            if (LayerHeads.Retrieve(layer) == bindIndex) {
                 LayerHeads.TrySet(layer, StackBinds.Next(bindIndex));
-            } if(LayerHeads.Retrieve(layer) == bindIndex){
+            }
+            if (LayerHeads.Retrieve(layer) == bindIndex) {
                 LayerHeads.TryRemove(layer);
-            } 
+            }
             StackBinds.Remove(bindIndex);
             StackEntries.TryRemove(KeyName);
-            if(!LayerHeads.Contains(layer)) return;
+            if (!LayerHeads.Contains(layer)) return;
             //Invoke the top bind in the stack
             bindIndex = LayerHeads.Retrieve(layer);
             StackBinds.Value(bindIndex).action.Invoke(0);
         }
 
-        public void InvokeTop(string layer){
-            if(!LayerHeads.Contains(layer)) return;
+        public void InvokeTop(string layer) {
+            if (!LayerHeads.Contains(layer)) return;
             uint bindIndex = LayerHeads.Retrieve(layer);
             StackBinds.Value(bindIndex).action.Invoke(0);
         }
+        
+        public string PeekTop(string layer) {
+            if (!LayerHeads.Contains(layer)) return null;
+            uint bindIndex = LayerHeads.Retrieve(layer);
+            return StackBinds.Value(bindIndex).Binding;
+        }
     }
 
+    public static string PeekTop(string layer) => SStack.PeekTop(layer);
     public static void InvokeStackTop(string layer) => SStack.InvokeTop(layer);
     public static void AddStackPoll(ActionBind bind, string Layer) => SStack.AddStackPoll(bind, Layer, bind.Binding);
     public static void RemoveStackPoll(string BindName, string Layer) => SStack.RemoveStackPoll(Layer, BindName);

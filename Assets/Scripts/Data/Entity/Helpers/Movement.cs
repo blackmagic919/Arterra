@@ -38,10 +38,11 @@ public struct Movement
         Quaternion rot = tCollider.transform.rotation;
         if (!AllowVerticalRotation){
             if (math.any(aim.xz != 0)){
-                rot = Quaternion.LookRotation(new Vector3(aim.x, 0, aim.z));
+                aim = math.normalize(new float3(aim.x, 0, aim.z));
+                rot = Quaternion.LookRotation(aim);
             }
         }
-        else rot = Quaternion.LookRotation(new Vector3(aim.x, aim.y, aim.z));
+        else rot = Quaternion.LookRotation(aim);
 
         tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, rotSpeed * EntityJob.cxt.deltaTime);
         if (math.length(tCollider.velocity) < moveSpeed)
@@ -74,10 +75,11 @@ public struct Movement
         Quaternion rot = tCollider.transform.rotation;
         if (!AllowVerticalRotation){
             if (math.any(aim.xz != 0)){
-                rot = Quaternion.LookRotation(new Vector3(aim.x, 0, aim.z));
+                aim = math.normalize(new float3(aim.x, 0, aim.z));
+                rot = Quaternion.LookRotation(aim);
             }
         }
-        else rot = Quaternion.LookRotation(new Vector3(aim.x, aim.y, aim.z));
+        else rot = Quaternion.LookRotation(aim);
 
         tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, rotSpeed * EntityJob.cxt.deltaTime);
         if (math.length(tCollider.velocity) < moveSpeed)

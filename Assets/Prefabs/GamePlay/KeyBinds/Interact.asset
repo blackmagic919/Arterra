@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Interact
   m_EditorClassIdentifier: 
   Name: Interact
+  Tags:
+    Reg:
+      value: []
   bindings:
     value:
     - Key: 323
@@ -24,3 +27,6 @@ MonoBehaviour:
     - Key: 303
       PollType: 2
       IsAlias: 1
+  references:
+    version: 2
+    RefIds: []

@@ -59,8 +59,8 @@ public class BucketItem : IItem{
     public void OnSelect(){
         InputPoller.AddKeyBindChange(() => {
             KeyBinds = new int[2];
-            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place Terrain", PlaceLiquid, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-            KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", RemoveLiquid, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place", PlaceLiquid, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", RemoveLiquid, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
         }); 
     } 
     public void OnDeselect(){

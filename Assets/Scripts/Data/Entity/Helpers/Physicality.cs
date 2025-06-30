@@ -5,9 +5,10 @@ using UnityEngine;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
 
-// <summary> An interface for all object that can be attacked and take damage. It is up to the 
+/// <summary> An interface for all object that can be attacked and take damage. It is up to the 
 /// implementer to decide how the request to take damage is handled. </summary>
 public interface IAttackable{
+    public void Interact(Entity caller);
     public WorldConfig.Generation.Item.IItem Collect(float collectRate);
     public void TakeDamage(float damage, float3 knockback, Entity attacker = null);
     public bool IsDead{get;}

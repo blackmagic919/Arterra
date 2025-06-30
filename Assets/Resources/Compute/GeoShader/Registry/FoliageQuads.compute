@@ -37,7 +37,6 @@ int bSTART_oGeo;
 int bCOUNT_oGeo;
 
 
-
 uint3 InitializeDrawVertex(float3 positionOS, float3 normalOS, uint2 uv, uint mat){
     uint3 data = PackVertices(positionOS, normalOS, mat);
     data.z |= uv.x << 24 | uv.y << 28;

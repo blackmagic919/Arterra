@@ -1,0 +1,207 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa992e5feeb2c43589ee5bb280a39340, type: 3}
+  m_Name: Horse
+  m_EditorClassIdentifier: 
+  Name: Horse
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 4395981907996118257, guid: 00ca1f9e7df7b47e8b8ae693b40de4f0, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 3
+          y: 4
+          z: 3
+        profileStart: 132
+      collider:
+        size:
+          x: 2
+          y: 2.5
+          z: 2
+        friction: 0.25
+      movement:
+        walkSpeed: 2
+        runSpeed: 8
+        acceleration: 180
+        rotSpeed: 180
+        pathDistance: 31
+        AverageIdleTime: 2.5
+      decomposition:
+        LootTable:
+          value:
+          - ItemName: Meat
+            DropAmount: 25
+        DecompositionTime: 200
+      recognition:
+        value:
+          Predators:
+            value: []
+          Mates:
+            value:
+            - MateType: Camel
+              ChildType: Camel
+              AmountPerParent: 0.5
+          Edibles:
+            value:
+            - EdibleType: TallGrass:Solid
+              Nutrition: 12.75
+            - EdibleType: Grass:Solid
+              Nutrition: 7.25
+          SightDistance: 31
+          FleeDistance: 5
+          FightAggressor: 0
+          PlantFindDist: 10
+          Prey:
+            value:
+            - Material: TallGrass
+              Bounds:
+                data: 4286643968
+              Replacement: Dirt
+              ReplaceState: 0
+            - Material: Grass
+              Bounds:
+                data: 4286643968
+              Replacement: Dirt
+              ReplaceState: 0
+      physicality:
+        value:
+          MaxHealth: 20
+          NaturalRegen: -0.01
+          AttackDistance: 2
+          AttackDamage: 6
+          AttackCooldown: 3
+          KBStrength: 5
+          InvincTime: 0.25
+          HoldBreathTime: 10
+          HuntThreshold: 0.4
+          MateThreshold: 0.8
+          PregnacyLength: 6
+          ConsumptionRate: 0.25
+          MateCost: 8
+          weight: 0.85
+  references:
+    version: 2
+    RefIds: []

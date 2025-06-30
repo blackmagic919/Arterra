@@ -24,7 +24,7 @@ public class ProceduralInsetQuads : GeoShader
     {
         if (settings.Reg.Count == 0) return;
         QuadSetting.Data[] data = settings.Reg.Select(e => e.GetInfo()).ToArray();
-        variantTable = new ComputeBuffer(data.Length, QuadSetting.DataSize, ComputeBufferType.Constant);
+        variantTable = new ComputeBuffer(data.Length, QuadSetting.DataSize, ComputeBufferType.Structured);
         variantTable.SetData(data);
 
         quadCompute = Resources.Load<ComputeShader>("Compute/GeoShader/Registry/FoliageQuads");

@@ -39,8 +39,8 @@ namespace WorldConfig.Gameplay.Player{
             m_CameraTargetRot = character.cameraRot;
             active = true;
 
-            InputPoller.AddBinding(new InputPoller.ActionBind("Look Horizontal", LookX), "4.0::Movement");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Look Vertical", LookY), "4.0::Movement");
+            InputPoller.AddBinding(new InputPoller.ActionBind("Look Horizontal", LookX), "4.5::Movement");
+            InputPoller.AddBinding(new InputPoller.ActionBind("Look Vertical", LookY), "4.5::Movement");
         }
 
         private void LookX(float x){

@@ -114,3 +114,28 @@ OpticalDepth SampleOpticalDepthRaw(float3 samplePointWS){
 
     return depth;
 }
+
+OpticalInfo SampleMapDataRaw(float3 samplePointWS){
+    int3 CSCoord = WSToCS(samplePointWS);
+    CInfo cHandle = _ChunkAddressDict[HashCoord(CSCoord)];
+    OpticalInfo mapData = (OpticalInfo)0;
+    
+    if(!Contains(cHandle, CSCoord)) return mapData; else{
+    float3 MSPoint = WSToMS(samplePointWS) / (cHandle.offset & 0xFF);
+    MSPoint += float3(
+        (cHandle.offset >> 24) & 0xFF,
+        (cHandle.offset >> 16) & 0xFF,
+        (cHandle.offset >> 8) & 0xFF
+    );
+
+    uint3 MSCoord = clamp(round(WSToMS(MSPoint)), 0, mapChunkSize - 1); 
+    uint pointAddress = cHandle.address + indexFromCoordManual(MSCoord, mapChunkSize) * POINT_STRIDE_4BYTE;
+
+    uint info = _ChunkInfoBuffer[pointAddress];
+    int material = info >> 16 & 0x7FFF;
+    mapData.opticalDensity = (info & 0xFF);
+    mapData.scatterCoeffs = _MatAtmosphericData[material].scatterCoeffs; 
+    mapData.extinctionCoeff = _MatAtmosphericData[material].extinctCoeff;
+
+    return mapData;
+}}

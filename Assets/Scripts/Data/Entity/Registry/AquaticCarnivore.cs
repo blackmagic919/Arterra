@@ -110,8 +110,10 @@ public class AquaticCarnivore : Authoring
             damage = math.pow(damage, settings.Physicality.weight);
             EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
-        public WorldConfig.Generation.Item.IItem Collect(float amount){
-            if(!IsDead) return null; //You can't collect resources until the entity is dead
+        public void Interact(Entity caller) { }
+        public WorldConfig.Generation.Item.IItem Collect(float amount)
+        {
+            if (!IsDead) return null; //You can't collect resources until the entity is dead
             var item = settings.decomposition.LootItem(amount, ref random);
             TaskDuration -= amount;
             return item;
