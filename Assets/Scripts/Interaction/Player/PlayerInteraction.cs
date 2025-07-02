@@ -1,14 +1,11 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
-using UnityEngine.Rendering;
-using static CPUMapManager;
+using MapStorage;
 using WorldConfig;
 using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
 using WorldConfig.Gameplay.Player;
-using UnityEditor;
 
 namespace WorldConfig.Gameplay.Player {
 /// <summary>
@@ -66,18 +63,18 @@ public static class PlayerInteraction
 
     public static bool RayTestSolid(PlayerStreamer.Player data, out float3 hitPt){
         static uint RayTestSolid(int3 coord){ 
-            MapData pointInfo = SampleMap(coord);
+            MapData pointInfo = CPUMapManager.SampleMap(coord);
             return (uint)pointInfo.viscosity; 
         } 
-        return RayCastTerrain(data.position, PlayerHandler.camera.forward, settings.ReachDistance, RayTestSolid, out hitPt);
+        return CPUMapManager.RayCastTerrain(data.position, PlayerHandler.camera.forward, settings.ReachDistance, RayTestSolid, out hitPt);
     }
 
     public static bool RayTestLiquid(PlayerStreamer.Player data, out float3 hitPt){
         static uint RayTestLiquid(int3 coord){ 
-            MapData pointInfo = SampleMap(coord);
+            MapData pointInfo = CPUMapManager.SampleMap(coord);
             return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
         }
-        return RayCastTerrain(data.position, PlayerHandler.camera.forward, settings.ReachDistance, RayTestLiquid, out hitPt);
+        return CPUMapManager.RayCastTerrain(data.position, PlayerHandler.camera.forward, settings.ReachDistance, RayTestLiquid, out hitPt);
     }
 
     public static void PlaceTerrain(float _){
@@ -100,7 +97,7 @@ public static class PlayerInteraction
         if (!selMat.IsSolid) return;
 
         PlayerHandler.data.animator.SetTrigger("IsPlacing");
-        Terraform(hitPt, settings.TerraformRadius, (MapData mapData, float speed) => HandleAddSolid(mapData, speed * settings.DefaultTerraform.value.TerraformSpeed));
+        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, (MapData mapData, float speed) => HandleAddSolid(mapData, speed * settings.DefaultTerraform.value.TerraformSpeed));
     }
 
     public static void RemoveTerrain(float _)
@@ -142,7 +139,7 @@ public static class PlayerInteraction
 
         int selected = matInfo.RetrieveIndex(InventoryController.SelectedSetting.MaterialName);
         int solidDensity = pointInfo.SolidDensity;
-        if(solidDensity < IsoValue || pointInfo.material == selected){
+        if(solidDensity < CPUMapManager.IsoValue || pointInfo.material == selected){
             //If adding solid density, override water
             int deltaDensity = GetStaggeredDelta(solidDensity, brushStrength);
             deltaDensity = InventoryController.RemoveMaterial(deltaDensity);
@@ -150,7 +147,7 @@ public static class PlayerInteraction
             solidDensity += deltaDensity;
             pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
             pointInfo.viscosity = math.min(pointInfo.viscosity + deltaDensity, 255);
-            if(solidDensity >= IsoValue) pointInfo.material = selected;
+            if(solidDensity >= CPUMapManager.IsoValue) pointInfo.material = selected;
         }
         return pointInfo;
     }
@@ -165,14 +162,14 @@ public static class PlayerInteraction
 
         int selected = matInfo.RetrieveIndex(InventoryController.SelectedSetting.MaterialName);
         int liquidDensity = pointInfo.LiquidDensity;
-        if(liquidDensity < IsoValue || pointInfo.material == selected){
+        if(liquidDensity < CPUMapManager.IsoValue || pointInfo.material == selected){
             //If adding liquid density, only change if not solid
             int deltaDensity = GetStaggeredDelta(pointInfo.density, brushStrength);
             deltaDensity = InventoryController.RemoveMaterial(deltaDensity);
 
             pointInfo.density += deltaDensity;
             liquidDensity += deltaDensity;
-            if(liquidDensity >= IsoValue) pointInfo.material = selected;
+            if(liquidDensity >= CPUMapManager.IsoValue) pointInfo.material = selected;
         }
         return pointInfo;
     }
@@ -185,7 +182,7 @@ public static class PlayerInteraction
 
         int solidDensity = pointInfo.SolidDensity;
         int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
-        if(solidDensity >= IsoValue && ObtainMat){
+        if(solidDensity >= CPUMapManager.IsoValue && ObtainMat){
             MaterialData material = matInfo.Retrieve(pointInfo.material);
             string key = material.RetrieveKey(material.SolidItem);
             if(!itemInfo.Contains(key)) return pointInfo;
@@ -207,7 +204,7 @@ public static class PlayerInteraction
 
         int liquidDensity = pointInfo.LiquidDensity;
         int deltaDensity = GetStaggeredDelta(liquidDensity, -brushStrength);
-        if (liquidDensity >= IsoValue){
+        if (liquidDensity >= CPUMapManager.IsoValue){
             MaterialData material = matInfo.Retrieve(pointInfo.material);
             string key = material.RetrieveKey(material.LiquidItem);
             if(!itemInfo.Contains(key)) return pointInfo;

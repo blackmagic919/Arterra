@@ -1,29 +1,29 @@
 using Unity.Mathematics;
 using UnityEngine;
-using static CPUMapManager;
 using WorldConfig;
 using WorldConfig.Generation.Material;
 using System.Collections.Concurrent;
 using Unity.Jobs;
 using WorldConfig.Intrinsic;
+using MapStorage;
 
 namespace WorldConfig.Intrinsic{
-    
     /// <summary>
     /// Settings controlling how updates to the terrain are performed 
     /// and how much load it is allotted. Terrain updates are point-operations
     /// applied to any map entry in <see cref="CPUMapManager"/>. Once a map entry is updated
     /// the correspondng material's unique update method will be called if it is defined.
-    /// See <see cref="MaterialData.UpdateMat"/> for more information.
+    /// See <see cref="MaterialData.PropogateMaterialUpdate(int3, Unity.Mathematics.Random)"/> and
+    /// <see cref="MaterialData.RandomMaterialUpdate(int3, Unity.Mathematics.Random)"/> for more information.
     /// </summary>
     [System.Serializable]
     public class TerrainUpdation{
         /// <summary> How many random points are chosen to be updated at random 
-        /// per update cycle. Random Updates allow certain materials to 
+        /// per update cycle per chunk. Random Updates allow certain materials to 
         /// base behavior off stochastic sampling. Random Updates will only
         /// be added if the backlog of update points does not exceed 
         /// <see cref="MaximumTickUpdates"/> </summary>
-        public int RandomUpdateCount = 250;
+        public int RandomUpdatesPerChunk = 50;
         /// <summary>
         /// The maximum number of updates that can be performed in a 
         /// single update cycle. Increasing this value may increase simulation
@@ -43,18 +43,19 @@ namespace TerrainGeneration{
 /// <summary>
 /// Terrain Update is a static system that handles updates to map entries within <see cref="CPUMapManager"/>. Whenever a
 /// map entry is modified(e.g. by a player, through an update, etc.) it should be updated in case it has a specific behavior.
-/// Materials(map entries) must all define an <see cref="MaterialData.UpdateMat"/> method that will be called when the map entry
+/// Materials(map entries) must all define a <see cref="MaterialData.PropogateMaterialUpdate(int3, Unity.Mathematics.Random)"/> and
+/// <see cref="MaterialData.RandomMaterialUpdate(int3, Unity.Mathematics.Random)"/> method that will be called when the map entry
 /// is updated.
 /// </summary>
 public static class TerrainUpdate
 {
     private static Registry<MaterialData> MaterialDictionary;
     private static ConcurrentQueue<int3> UpdateCoordinates; //GCoord
+    private static TerrainUpdation settings;
     /*We have to keep track of the points we already 
     included so we don't include them again*/
     private static FlagList IncludedCoords;
     private static Manager Executor;
-    private static TerrainUpdation settings;
     private static int numPointsAxis;
     private static int UpdateTick;
     /// <summary>
@@ -93,30 +94,6 @@ public static class TerrainUpdate
     }
 
     /// <summary>
-    /// Adds a number of random points into <see cref="UpdateCoordinates"/> to be updated in the
-    /// next update cycle. All points added are guaranteed to be within the <see cref="CPUMapManager"/>'s map--
-    /// that is only map entries currently a part of a <see cref="TerrainChunk.RealChunk"/> can be sampled randomly.
-    /// </summary>
-    /// <param name="numUpdates">The number of updates to add</param>
-    public static void AddRandomUpdates(int numUpdates){
-        static int3 GetRandomPoint(){
-            WorldConfig.Quality.Terrain s = Config.CURRENT.Quality.Terrain.value;
-            float3 oGC = OctreeTerrain.ViewPosGS - (numPointsAxis / 2 + s.mapChunkSize / 2);
-            float3 eGC = OctreeTerrain.ViewPosGS + (numPointsAxis / 2 - s.mapChunkSize / 2 - 1);
-            int3 pos;
-            
-            pos.x = Mathf.RoundToInt(UnityEngine.Random.Range(oGC.x, eGC.x));
-            pos.y = Mathf.RoundToInt(UnityEngine.Random.Range(oGC.y, eGC.y));
-            pos.z = Mathf.RoundToInt(UnityEngine.Random.Range(oGC.z, eGC.z));
-            return pos;
-        }
-
-        for(int i = 0; i < numUpdates; i++){
-            AddUpdate(GetRandomPoint());
-        }
-    }
-
-    /// <summary>
     /// Update Task that is tied with the <see cref="OctreeTerrain.MainFixedUpdateTasks"/>. 
     /// It is responsible for updating the map entries within Unity's fixed update loop.
     /// </summary>
@@ -124,23 +101,33 @@ public static class TerrainUpdate
         /// <summary> Whether or not the job is currently running; whether the job
         /// currently has threads in the thread pool executing it. </summary>
         public bool dispatched = false;
-        private JobHandle handle;
-        private Context cxt;
+        private JobHandle propHandle;
+        private JobHandle randHandle;
+        private PropogatedUpdates propogatedUpdates;
+        private RandomUpdates randomUpdates;
+        
         /// <summary>  Default constructor sets the manager to active. </summary>
-        public Manager(){ 
-            cxt = new Context();
-            cxt.seed = new Unity.Mathematics.Random((uint)GetHashCode());
+        public Manager() {
+            propogatedUpdates = new PropogatedUpdates();
+            randomUpdates = new RandomUpdates();
+            propogatedUpdates.seed = new Unity.Mathematics.Random((uint)GetHashCode());
+            randomUpdates.seed = new Unity.Mathematics.Random((uint)GetHashCode() ^ 0x12345678u);
+            randomUpdates.numUpdatesPerChunk = settings.RandomUpdatesPerChunk;
+            int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+            randomUpdates.mapChunkSize = mapChunkSize;
+            randomUpdates.numPointsChunk = mapChunkSize * mapChunkSize * mapChunkSize;
             dispatched = false;
-            active = true; 
-            
+            active = true;
         }
 
         /// <summary> Completes the asyncronous Job Operation. Blocks main thread
         /// until the job has completed. </summary>
         public bool Complete(){
             if(!dispatched) return true;
-            if(!handle.IsCompleted) return false; 
-            handle.Complete();
+            if(!propHandle.IsCompleted || !randHandle.IsCompleted)
+                return false; 
+            propHandle.Complete();
+            randHandle.Complete();
             dispatched = false;
             return true;
         }
@@ -151,23 +138,19 @@ public static class TerrainUpdate
         public override void Update(MonoBehaviour mono){
             UpdateTick = (UpdateTick + 1) % settings.UpdateTickDelay;
             if(UpdateTick != 0) return;
-            cxt.seed.NextUInt();
-            if(!Complete()) return;
-
-            if(UpdateCoordinates.Count < settings.MaximumTickUpdates){
-                AddRandomUpdates(settings.RandomUpdateCount);
-            } if(UpdateCoordinates.Count == 0) {
-                return;
-            } 
+            if (!Complete()) return;
+            propogatedUpdates.seed.NextUInt();
+            randomUpdates.seed.NextUInt();
 
             int count = math.min(UpdateCoordinates.Count, settings.MaximumTickUpdates);
-            handle = cxt.Schedule(count, 128);
+            propHandle = propogatedUpdates.Schedule(count, 64);
+            randHandle = randomUpdates.Schedule(CPUMapManager.numChunks, 64);
             dispatched = true;
         }
 
         /// <summary> The Job that is responsible for processing in parallel
-        /// all points that have been updated. </summary>
-        public struct Context: IJobParallelFor{
+        /// all points whose updates have been propogated. </summary>
+        public struct PropogatedUpdates: IJobParallelFor{
             /// <summary>
             /// Random values referencable by materials; Materials are processed in parallel,
             /// thus this isn't thread safe, but that adds to the randomness.
@@ -180,13 +163,50 @@ public static class TerrainUpdate
                     return;
                 IncludedCoords.SetFlag(HashFlag(coord), false);
 
-                MapData mapData = SampleMap(coord);
+                MapData mapData = CPUMapManager.SampleMap(coord);
                 if(!MaterialDictionary.Contains(mapData.material)) 
                     return; //Invalid Data
                 Unity.Mathematics.Random prng = new ((seed.state ^ (uint)index) | 1u);
-                MaterialDictionary.Retrieve(mapData.material).UpdateMat(coord, prng);
+                MaterialDictionary.Retrieve(mapData.material).PropogateMaterialUpdate(coord, prng);
             }
         }
+        
+        /// <summary> The Job responsible for processing random updates in parallel. 
+        /// Random updates are performed on a per-chunk basis, and each chunk
+        /// is processed in its own job thread. </summary>
+        public struct RandomUpdates : IJobParallelFor {
+                /// <summary> Random values referencable by materials; Materials are processed in parallel,
+                /// thus this isn't thread safe, but that adds to the randomness. /// </summary>
+                public Unity.Mathematics.Random seed;
+                /// <summary> The number of random updates to perform per one chunk. See <see cref="TerrainUpdation.RandomUpdatesPerChunk"/> for more information. </summary>
+                public int numUpdatesPerChunk;
+                /// <summary> The size of a map chunk, the number of points per axis in a map chunk. </summary>
+                public int mapChunkSize;
+                /// <summary> The amount of points total in a map chunk, equivalent to <see cref="mapChunkSize"/>^3. </summary>
+                public int numPointsChunk;
+                /// <summary> Executes the random update in parallel. Each job thread is responsible for
+                /// processing a single chunk of the map. The chunk is identified by its index in the
+                /// <see cref="CPUMapManager.AddressDict"/> dictionary. </summary>
+                /// <param name="index"></param>
+                public void Execute(int index) {
+                    CPUMapManager.ChunkMapInfo info = CPUMapManager.AddressDict[index];
+                    if (!info.valid) return;
+                    Unity.Mathematics.Random prng = new((seed.state ^ (uint)index) | 1u);
+                    int3 CCoord = info.CCoord;
+                    int CIndex = CPUMapManager.HashCoord(CCoord);
+                    for (uint i = 0; i < numUpdatesPerChunk; i++) {
+                        //Generate a random point in the chunk
+                        int3 MCoord = new(
+                            (int)(prng.NextUInt() % mapChunkSize),
+                            (int)(prng.NextUInt() % mapChunkSize),
+                            (int)(prng.NextUInt() % mapChunkSize)
+                        );
+                        int MIndex = MCoord.x * mapChunkSize * mapChunkSize + MCoord.y * mapChunkSize + MCoord.z;
+                        MapData mapData = CPUMapManager.SectionedMemory[CIndex * numPointsChunk + MIndex];
+                        MaterialDictionary.Retrieve(mapData.material).RandomMaterialUpdate(CCoord * mapChunkSize + MCoord, prng);
+                    }
+                }
+            }
     }
 
     private struct FlagList{

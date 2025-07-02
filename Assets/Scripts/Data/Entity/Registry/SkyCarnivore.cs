@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
 using UnityEngine.Profiling;
+using MapStorage;
 
 [CreateAssetMenu(menuName = "Generation/Entity/SkyCarnivore")]
 public class SkyCarnivore : Authoring

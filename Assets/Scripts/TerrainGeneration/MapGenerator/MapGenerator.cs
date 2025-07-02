@@ -1,12 +1,11 @@
 using Unity.Mathematics;
 using UnityEngine;
 using static UtilityBuffers;
-using TerrainGeneration;
 using WorldConfig;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using Unity.Collections;
-using UnityEngine.Profiling;
+using MapStorage;
 
 namespace TerrainGeneration.Map{
 /// <summary> A manager unique for every terrain chunk responsible for creating 
@@ -46,20 +45,20 @@ public struct Creator
     /// <summary> Copies the map data from a linearly encoded chunk on the CPU to a 
     /// <see cref="UtilityBuffers.TransferBuffer">transfer buffer</see> accessible by GPU-based tasks.  </summary>
     /// <param name="numPointsAxis">The axis size of the map to be copied, the length of <paramref name="chunkData"/>
-    /// should be greater than or equal to (<paramref cref="numPointsAxis"/>^3)</param>
+    /// should be greater than or equal to (<i>numPointsAxis</i>^3)</param>
     /// <param name="offset">The offset within <paramref name="chunkData"/> to begin copying the MapData.</param>
     /// <param name="chunkData">A managed array containing the linearly encoded map information for a chunk.</param>
-    public void SetMapInfo(int numPointsAxis, int offset, CPUMapManager.MapData[] chunkData){
+    public void SetMapInfo(int numPointsAxis, int offset, MapData[] chunkData){
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
         UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
     }
     /// <summary> Copies the map data from a linearly encoded unmanaged chunk on the CPU to a 
     /// <see cref="UtilityBuffers.TransferBuffer">transfer buffer</see> accessible by GPU-based tasks.</summary>
     /// <param name="numPointsAxis">The axis size of the map to be copied, the length of <paramref name="chunkData"/>
-    /// should be greater than or equal to (<paramref cref="numPointsAxis"/>^3)</param>
+    /// should be greater than or equal to (<i>numPointsAxis</i>^3)</param>
     /// <param name="offset">The offset within <paramref name="chunkData"/> to begin copying the MapData.</param>
     /// <param name="chunkData">A Unity unamanged array containing the linearly encoded map information for a chunk.</param>
-    public void SetMapInfo(int numPointsAxis, int offset, ref NativeArray<CPUMapManager.MapData> chunkData)
+    public void SetMapInfo(int numPointsAxis, int offset, ref NativeArray<MapData> chunkData)
     {
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
         UtilityBuffers.TransferBuffer.SetData(chunkData, offset, 0, numPoints);
@@ -118,7 +117,7 @@ public struct Creator
 }
 
 /// <summary> A static manager responsible for managing loading and access
-/// of all compute-shaders used within the map & mesh generation process
+/// of all compute-shaders used within the map and mesh generation process
 /// of terrain generation. All instructions related to map/mesh
 /// generation done by the GPU is streamlined from this module. </summary>
 public static class Generator
@@ -306,7 +305,7 @@ public static class Generator
     /// <param name="chunkSize">The resolution of the mesh generated for the chunk. Equivalent to the amount of entries per axis within the map saved for this chunk.
     /// The amount of points in the map retrieved by this function is (<paramref name="chunkSize"/>+3)^3</param>
     /// <param name="depth">The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.Octree">chunk octree</see>. Identifies
-    /// the distance between samples in a map of the resolution defined by <paramref cref="depth"/>.</param>
+    /// the distance between samples in a map of the resolution defined by <i>depth</i>.</param>
     public static void CollectVisualMap(int3 CCoord, int defaultAddress, int chunkSize, int depth){
         int fChunkSize = chunkSize + 3; int skipInc = 1 << depth;
         meshInfoCollector.SetInts("CCoord", new int[]{CCoord.x, CCoord.y, CCoord.z});
@@ -450,10 +449,10 @@ public static class Generator
         /// <summary>The location of the liquid terrain triangles(index buffer) created during mesh generation.</summary>
         public int waterTriStart;
         private int offsetStart; private int offsetEnd;
-        /// <summary> The start of the buffer region that is used by the Map & Mesh generator. 
+        /// <summary> The start of the buffer region that is used by the Map and Mesh generator. 
         /// See <see cref="BufferOffsets.bufferStart"/> for more info. </summary>
         public int bufferStart{get{return offsetStart;}}
-        /// <summary> The end of the buffer region that is used by the Map & Mesh generator. 
+        /// <summary> The end of the buffer region that is used by the Map and Mesh generator. 
         /// See <see cref="BufferOffsets.bufferEnd"/> for more info. </summary>
         public int bufferEnd{get{return offsetEnd;}}
 

@@ -5,13 +5,13 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
-using static CPUMapManager;
 using System.Collections.Generic;
 using TerrainGeneration;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
 using System.Collections.Concurrent;
 using UnityEngine.Profiling;
+using MapStorage;
 
 public static class EntityManager
 {
@@ -69,7 +69,7 @@ public static class EntityManager
     
     public static unsafe void ReleaseChunkEntities(int3 CCoord){
         int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-        ChunkMapInfo mapInfo = AddressDict[HashCoord(CCoord)];
+        CPUMapManager.ChunkMapInfo mapInfo = CPUMapManager.AddressDict[CPUMapManager.HashCoord(CCoord)];
         if(!mapInfo.valid) return; 
         //mapinfo.CCoord is coord of previous chunk
         Bounds bounds = new (((float3)mapInfo.CCoord + 0.5f) * mapChunkSize, (float3)mapChunkSize);
@@ -555,11 +555,11 @@ public class EntityJob : UpdateTask{
         cumulativeDelta = 0;
         cxt = new Context{
             Profile = (ProfileE*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
-            mapContext = new MapContext{
-                MapData = (MapData*)SectionedMemory.GetUnsafePtr(),
-                AddressDict = (ChunkMapInfo*)AddressDict.GetUnsafePtr(),
+            mapContext = new CPUMapManager.MapContext{
+                MapData = (MapData*)CPUMapManager.SectionedMemory.GetUnsafePtr(),
+                AddressDict = (CPUMapManager.ChunkMapInfo*)CPUMapManager.AddressDict.GetUnsafePtr(),
                 mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize,
-                numChunksAxis = numChunksAxis,
+                numChunksAxis = CPUMapManager.numChunksAxis,
                 IsoValue = (int)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0)
             },
 
@@ -602,7 +602,7 @@ public class EntityJob : UpdateTask{
     public struct Context: IJobParallelFor{
         [NativeDisableUnsafePtrRestriction]
         [ReadOnly] public unsafe ProfileE* Profile;
-        [ReadOnly] public unsafe MapContext mapContext;
+        [ReadOnly] public unsafe CPUMapManager.MapContext mapContext;
         [ReadOnly] public float3 gravity; 
         [ReadOnly] public float deltaTime;
         public unsafe void Execute(int index){

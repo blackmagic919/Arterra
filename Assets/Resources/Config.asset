@@ -164,7 +164,7 @@ MonoBehaviour:
               walkSpeed: 2.5
               runSpeed: 5
               jumpForce: 5
-              acceleration: 100
+              acceleration: 10
               groundStickDist: 0.05
               flightSpeedMultiplier: 3
           Camera:
@@ -365,7 +365,7 @@ MonoBehaviour:
         value: {fileID: 11400000, guid: b6eb14945e6ce4e35a36d2502ba1cf4f, type: 2}
       TerrainUpdation:
         value:
-          RandomUpdateCount: 250
+          RandomUpdatesPerChunk: 50
           MaximumTickUpdates: 5000
           UpdateTickDelay: 4
       ReadBack:
@@ -684,6 +684,227 @@ MonoBehaviour:
         - Name: KeyBindReconstruct
         - Name: Gamemode:Invulnerability
         - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
         - Name: KeyBindReconstruct
         - Name: Gamemode:Invulnerability
         - Name: Gamemode:Flight

@@ -4,12 +4,11 @@ using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using static CPUMapManager;
-using static PlayerHandler;
 using WorldConfig;
 using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
 using WorldConfig.Intrinsic;
+using MapStorage;
 
 public static class CraftingMenuController
 {

@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: MossMat
   m_EditorClassIdentifier: 
   Name: Moss
+  Tags:
+    Reg:
+      value: []
   Names:
   - Moss:Solid
   - Void
@@ -22,7 +25,8 @@ MonoBehaviour:
   terrainData:
     Texture: 2
     textureScale: 2
-    GeoShaderIndex: -1
+    GeoShaderIndex:
+      data: 0
   AtmosphereScatter:
     ScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}
@@ -37,9 +41,12 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
-  SpreadChance: 0.5
+  SpreadChance: 0.05
   SpreadMaterial: Dirt
   SpreadBounds:
     data: 2944466688
   NeighborBounds:
     data: 2130771712
+  references:
+    version: 2
+    RefIds: []

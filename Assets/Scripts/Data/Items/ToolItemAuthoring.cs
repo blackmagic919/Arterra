@@ -2,10 +2,9 @@ using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using static CPUMapManager;
 using WorldConfig.Generation.Material;
 using static PlayerInteraction;
-using UnityEditor;
+using MapStorage;
 
 namespace WorldConfig.Generation.Item
 {
@@ -72,7 +71,7 @@ namespace WorldConfig.Generation.Item
             InputPoller.AddKeyBindChange(() =>
             {
                 KeyBinds = new int[1];
-                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove Terrain", TerrainRemove, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", TerrainRemove, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
             });
         }
 

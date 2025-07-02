@@ -7,9 +7,9 @@ using WorldConfig;
 using WorldConfig.Generation.Item;
 using System.Collections.Generic;
 using System.Linq;
-using System.Collections;
 using TerrainGeneration;
 using System.Runtime.Serialization;
+using MapStorage;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Player")]
 public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring

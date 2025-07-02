@@ -4,8 +4,6 @@ using Unity.Mathematics;
 using System.Text;
 using System.IO.Compression;
 using Utils;
-
-using static CPUMapManager;
 using System.Linq;
 using Newtonsoft.Json;
 using System;
@@ -15,8 +13,6 @@ using WorldConfig.Generation.Entity;
 using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Buffers;
-using UnityEngine.Profiling;
-using Unity.Burst;
 
 /*
 Chunk File Layout:
@@ -70,10 +66,10 @@ public static class Chunk
     /// The chunk's map information is saved in a multi-resolution compressed binary format
     /// to the correct location for the chunk within the world's file system(<see cref="ChunkFinder.chunkPath"/>).  
     /// See <see cref="ChunkHeader"/> for information on this format. </summary>
-    /// <param name="chunk">A <see cref="ChunkPtr"/> referencing the chunk's map in memory</param>
+    /// <param name="chunk">A <see cref="CPUMapManager.ChunkPtr"/> referencing the chunk's map in memory</param>
     /// <param name="CCoord">The coordinate in chunk space of the Chunk associated with the map 
     /// information. Used to identify the location to store the resulting file(s). </param>
-    public static void SaveChunkToBinSync(ChunkPtr chunk, int3 CCoord){
+    public static void SaveChunkToBinSync(CPUMapManager.ChunkPtr chunk, int3 CCoord){
         try{
             string mapPath = chunkFinder.GetMapRegionPath(CCoord);
             
@@ -88,7 +84,7 @@ public static class Chunk
         }
     }
 
-    private static void SaveChunkToBinSync(string fileAdd, ChunkPtr chunk)
+    private static void SaveChunkToBinSync(string fileAdd, CPUMapManager.ChunkPtr chunk)
     {
         using (FileStream fs = File.Create(fileAdd))
         {
@@ -239,7 +235,7 @@ public static class Chunk
     }
      
 
-    static ChunkHeader SerializeHeader(ChunkPtr chunk){
+    static ChunkHeader SerializeHeader(CPUMapManager.ChunkPtr chunk){
         Dictionary<int, int> RegisterDict = new Dictionary<int, int>();
         int numPoints = maxChunkSize * maxChunkSize * maxChunkSize;
         for(int i = 0; i < numPoints; i++){
@@ -297,7 +293,7 @@ public static class Chunk
 
 
     //IT IS CALLERS RESPONSIBILITY TO DISPOSE MEMORY STREAM
-    private static MemoryStream WriteChunkMaps(ChunkPtr chunk, out ChunkHeader header){
+    private static MemoryStream WriteChunkMaps(CPUMapManager.ChunkPtr chunk, out ChunkHeader header){
         MemoryStream ms = new MemoryStream();
         header = SerializeHeader(chunk);
         header.ResolutionOffsets = new List<int>();

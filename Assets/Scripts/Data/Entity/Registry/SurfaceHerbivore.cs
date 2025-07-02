@@ -4,8 +4,7 @@ using System;
 using Newtonsoft.Json;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
-using System.Threading.Tasks;
-using UnityEditor;
+using MapStorage;
 
 [CreateAssetMenu(menuName = "Generation/Entity/SurfaceHerbivore")]
 public class SurfaceHerbivore : Authoring
@@ -234,7 +233,7 @@ public class SurfaceHerbivore : Authoring
 
             //If it can't get to the prey and is currently at the closest position it can be
             if(math.all(self.pathFinder.destination == self.GCoord)){
-                float dist = math.distance(preyPos, self.position);
+                float dist = Recognition.GetColliderDist(self, preyPos) ;
                 if(dist <= self.settings.Physicality.AttackDistance){
                     self.TaskDuration = 1 / math.max(self.settings.Physicality.ConsumptionRate, 0.0001f);
                     self.TaskIndex = 5;
@@ -251,7 +250,7 @@ public class SurfaceHerbivore : Authoring
             if(self.pathFinder.hasPath) return;
 
             if(self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position), out int3 preyPos) && 
-            math.distance(preyPos, self.position) <= self.settings.Physicality.AttackDistance){
+            Recognition.GetColliderDist(self, preyPos) <= self.settings.Physicality.AttackDistance){
                 self.TaskDuration = 1 / math.max(self.settings.Physicality.ConsumptionRate, 0.0001f);
                 self.TaskIndex = 5;
             } else self.TaskIndex = 3;

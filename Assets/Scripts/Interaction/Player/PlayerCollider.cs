@@ -1,9 +1,9 @@
 using UnityEngine;
 using Unity.Mathematics;
-using static CPUMapManager;
 using System;
 using WorldConfig;
 using Newtonsoft.Json;
+using static MapStorage.CPUMapManager;
 
 /*
 Future Note: Make this done on a job system
@@ -323,13 +323,14 @@ public class PlayerCollider
     public void FixedUpdate(TerrainColliderJob.Settings settings){
         transform.position += velocity * Time.fixedDeltaTime;
         if(useGravity) velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
+            
         
         bool IsTangible = !Config.CURRENT.GamePlay.Gamemodes.value.Intangiblity;
         if(IsTangible && SampleCollision(transform.position, settings.size, out float3 displacement)){
             float3 nVelocity = CancelVel(velocity, displacement);
             if(useGravity) OnHitGround?.Invoke(nVelocity.y - velocity.y);
-            velocity = nVelocity;
             transform.position += displacement;
+            velocity = nVelocity;
         };
 
         velocity.xz *= 1 - settings.friction;

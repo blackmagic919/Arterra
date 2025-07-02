@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: GrassMat
   m_EditorClassIdentifier: 
   Name: Grass
+  Tags:
+    Reg:
+      value: []
   Names:
   - Grass:Solid
   - Void
@@ -40,9 +43,12 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
-  SpreadChance: 0.75
+  SpreadChance: 0.075
   SpreadMaterial: Dirt
   SpreadBounds:
     data: 2944466688
   NeighborBounds:
     data: 2130771712
+  references:
+    version: 2
+    RefIds: []

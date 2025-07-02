@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
@@ -6,6 +5,7 @@ using UnityEditor;
 using System.Linq;
 using Newtonsoft.Json;
 using Unity.Burst;
+using MapStorage;
 
 namespace WorldConfig.Generation.Structure{
 /// <summary>
@@ -181,7 +181,7 @@ public class StructureData : Category<StructureData>
         /// <param name="pt">The map data which is tested against the bounds</param>
         /// <returns>Whether or not the <paramref name="pt"/> is within the bound</returns>
         [BurstCompile]
-        public readonly bool Contains(in CPUMapManager.MapData pt){
+        public readonly bool Contains(in MapData pt){
             return pt.LiquidDensity >= (data & 0xFF) && pt.LiquidDensity <= ((data >> 8) & 0xFF) && 
                pt.SolidDensity >= ((data >> 16) & 0xFF) && pt.SolidDensity <= ((data >> 24) & 0xFF);
         }

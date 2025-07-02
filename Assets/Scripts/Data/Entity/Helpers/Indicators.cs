@@ -4,10 +4,7 @@ using static EntityManager;
 using WorldConfig.Generation.Entity;
 using WorldConfig;
 using Unity.Mathematics;
-using System.Collections;
-using System.Threading.Tasks;
 using UnityEngine.UI;
-using System.Collections.Generic;
 
 namespace WorldConfig.Gameplay{
     /// <summary> A collection of settings describing optional statistics that can be displayed in the game.
@@ -96,7 +93,7 @@ public static class Indicators
         Quaternion rot;
         if(math.all(eulerDir == default)) rot = UnityEngine.Random.rotation;
         else rot = Quaternion.LookRotation(eulerDir);
-        indicator.transform.SetPositionAndRotation(CPUMapManager.GSToWS(posGS), rot);
+        indicator.transform.SetPositionAndRotation(MapStorage.CPUMapManager.GSToWS(posGS), rot);
         return indicator;
     }
 

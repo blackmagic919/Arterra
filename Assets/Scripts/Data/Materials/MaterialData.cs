@@ -44,7 +44,15 @@ namespace WorldConfig.Generation.Material
         /// <param name="GCoord">The coordinate in grid space of the entry that has been updated. It is guaranteed
         /// that the map entry at GCoord will be of the same material as the instance that recieves the update. </param>
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
-        public abstract void UpdateMat(int3 GCoord, Unity.Mathematics.Random prng = default);
+        public abstract void PropogateMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default);
+        /// <summary> Called whenever a map entry of this material has been randomly updated. Random updates are used to
+        /// simulate the natural changes of the material over time. They cannot be added externally and
+        /// are sampled at random from an internal system. See <see cref="TerrainGeneration.TerrainUpdate"/> 
+        /// for more information </summary>
+        /// <param name="GCoord">he coordinate in grid space of the entry that has been updated. It is guaranteed
+        /// that the map entry at GCoord will be of the same material as the instance that recieves the update.</param>
+        /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
+        public abstract void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default);
 
         /// <summary>
         /// The apperance of the terrain when the material <see cref="CPUMapManager.MapData.IsSolid">is solid</see>. 

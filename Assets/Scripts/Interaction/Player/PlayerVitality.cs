@@ -1,6 +1,5 @@
 using System;
 using Unity.Mathematics;
-using static CPUMapManager;
 using WorldConfig.Gameplay.Player;
 using WorldConfig;
 using UnityEngine;

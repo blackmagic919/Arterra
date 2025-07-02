@@ -3,7 +3,6 @@ using Unity.Mathematics;
 using System;
 using WorldConfig;
 using WorldConfig.Gameplay.Player;
-using WorldConfig.Generation.Entity;
 using System.Collections.Generic;
 namespace WorldConfig.Gameplay.Player{
     /// <summary>
@@ -289,7 +288,7 @@ public static class RideMovement {
     public static void Update() {
         if (mount == null) return;
         Transform root = mount.GetRiderRoot();
-        float3 rootPos = CPUMapManager.WSToGS(root.position);
+        float3 rootPos = MapStorage.CPUMapManager.WSToGS(root.position);
         PlayerHandler.data.position = rootPos + new float3(0, PlayerHandler.data.settings.collider.size.y/2, 0);
     }
 

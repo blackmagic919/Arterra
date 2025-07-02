@@ -514,7 +514,7 @@ public class OctreeTerrain : MonoBehaviour
         }
     }
 
-    public struct ConstrainedLL<T>{
+    internal struct ConstrainedLL<T>{
         public Node[] nodes;
         public uint length;
         public uint capacity;

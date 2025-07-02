@@ -95,8 +95,8 @@ public static class Generator
     /// memory buffer </see> and will be lost unless transcribed to long term storage through <see cref="TranscribeSurfaceMap"/>. </summary>
     /// <remarks> 
     /// The surface map is a 2D map describing 6 values for every pixel. The <see cref="WorldConfig.Generation.Biome.SurfaceBiome.biome"> surface biome index </see>,
-    /// the <see cref="WorldConfig.Generation.Surface.MaxTerrainHeight">height of the surface</see>, the <see cref="WorldConfig.Generation.Surface.SquashNoise"> squash height </see>, the <see cref="Map.atmosphereFalloff">
-    /// falloff intensity of the atmosphere</see>, and the <see cref="WorldConfig.Generation.Biome.SurfaceBiome.InfluenceStart"> start </see> and 
+    /// the <see cref="WorldConfig.Generation.Surface.MaxTerrainHeight">height of the surface</see>, the <see cref="WorldConfig.Generation.Surface.SquashNoise"> squash height </see>, the 
+    /// <see cref="WorldConfig.Generation.Surface.AtmosphereNoise"> falloff intensity of the atmosphere</see>, and the <see cref="WorldConfig.Generation.Biome.SurfaceBiome.InfluenceStart"> start </see> and 
     /// <see cref="WorldConfig.Generation.Biome.SurfaceBiome.InfluenceEnd"> end </see> of its vertical influence, 
     /// </remarks>
     /// <param name="offset">The offset in grid space of the origin to begin sampling. </param>

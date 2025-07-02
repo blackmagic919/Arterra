@@ -3,6 +3,8 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 using WorldConfig;
+using MapStorage;
+
 namespace WorldConfig.Quality{
     /// <summary>
     /// Settings controlling the quality of the atmosphere. 

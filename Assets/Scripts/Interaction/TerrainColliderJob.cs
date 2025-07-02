@@ -1,12 +1,10 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 using System;
 using Unity.Burst;
 using static EntityJob;
-using static CPUMapManager;
 using Newtonsoft.Json;
+using static MapStorage.CPUMapManager;
 
 /*
 Future Note: Make this done on a job system

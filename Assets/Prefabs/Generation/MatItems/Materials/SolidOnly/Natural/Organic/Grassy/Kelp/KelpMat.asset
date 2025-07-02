@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: KelpMat
   m_EditorClassIdentifier: 
   Name: Kelp
+  Tags:
+    Reg:
+      value: []
   Names:
   - Kelp:Solid
   - Void
@@ -40,9 +43,12 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
-  SpreadChance: 0.25
+  SpreadChance: 0.2
   SpreadMaterial: PlantMatter
   SpreadBounds:
     data: 4286643968
   NeighborBounds:
     data: 2130771840
+  references:
+    version: 2
+    RefIds: []

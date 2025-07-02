@@ -7,7 +7,8 @@ using WorldConfig.Generation.Item;
 using WorldConfig.Generation.Entity;
 using static TerrainGeneration.Readback.IVertFormat;
 using TerrainGeneration.Readback;
-using Unity.Services.Analytics;
+using MapStorage;
+
 [CreateAssetMenu(menuName = "Generation/Entity/Item")]
 public class EItem : WorldConfig.Generation.Entity.Authoring
 {

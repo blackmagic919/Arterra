@@ -2,9 +2,8 @@ using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using static CPUMapManager;
 using WorldConfig.Generation.Material;
-using static InventoryController;
+using MapStorage;
 
 namespace WorldConfig.Generation.Item
 {
@@ -160,7 +159,7 @@ namespace WorldConfig.Generation.Item
             SelectBounds = new Bounds((float3)hitCoord, float3.zero);
             Selector = Indicators.SelectionIndicator;
             Selector.SetActive(true);
-            Selector.gameObject.transform.position = GSToWS(hitCoord);
+            Selector.gameObject.transform.position = CPUMapManager.GSToWS(hitCoord);
         }
 
         public void DragPoint(float _)
@@ -171,7 +170,7 @@ namespace WorldConfig.Generation.Item
             Bounds nBounds = SetCorner(SelectBounds, ref SelectedCorner, math.round(projection));
             if (GetVolume(nBounds.size + new Vector3(1, 1, 1)) < item.settings.MaximumSelectionVolume)
                 SelectBounds = nBounds;
-            Selector.transform.position = GSToWS(SelectBounds.center);
+            Selector.transform.position = CPUMapManager.GSToWS(SelectBounds.center);
             Selector.transform.localScale = SelectBounds.size + new Vector3(1, 1, 1);
         }
 
@@ -293,14 +292,14 @@ namespace WorldConfig.Generation.Item
 
         void AddNextSolidWithDurability(int3 hitCoord, int nextSlot)
         {
-            MapData orig = SampleMap(hitCoord);
+            MapData orig = CPUMapManager.SampleMap(hitCoord);
             ToolTag prop = PlayerInteraction.settings.DefaultTerraform.value;
             if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out TagRegistry.IProperty tag))
                 prop = tag as ToolTag;
 
             MapData change = HandleAddNextSolid(orig, prop.TerraformSpeed, nextSlot);
             int delta = math.abs(change.SolidDensity - orig.SolidDensity);
-            SetMap(change, hitCoord);
+            CPUMapManager.SetMap(change, hitCoord);
 
             item.durability -= prop.ToolDamage * delta;
             item.UpdateDisplay();
@@ -311,14 +310,14 @@ namespace WorldConfig.Generation.Item
 
         void RemoveSolidWithDurability(int3 hitCoord)
         {
-            MapData orig = SampleMap(hitCoord);
+            MapData orig = CPUMapManager.SampleMap(hitCoord);
             ToolTag prop = PlayerInteraction.settings.DefaultTerraform.value;
             if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out TagRegistry.IProperty tag))
                 prop = tag as ToolTag;
 
             MapData change = PlayerInteraction.HandleRemoveSolid(orig, prop.TerraformSpeed);
             int delta = math.abs(orig.SolidDensity - change.SolidDensity);
-            SetMap(change, hitCoord);
+            CPUMapManager.SetMap(change, hitCoord);
 
             item.durability -= prop.ToolDamage * delta;
             item.UpdateDisplay();
@@ -334,7 +333,7 @@ namespace WorldConfig.Generation.Item
 
             int material = MatInfo.RetrieveIndex(ItemInfo.Retrieve(InventoryController.Primary.Info[slot].Index).MaterialName);
             int solidDensity = pointInfo.SolidDensity;
-            if (solidDensity < IsoValue || pointInfo.material == material)
+            if (solidDensity < CPUMapManager.IsoValue || pointInfo.material == material)
             {
                 //If adding solid density, override water
                 int deltaDensity = PlayerInteraction.GetStaggeredDelta(solidDensity, brushStrength);
@@ -343,7 +342,7 @@ namespace WorldConfig.Generation.Item
                 solidDensity += deltaDensity;
                 pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
                 pointInfo.viscosity = math.min(pointInfo.viscosity + deltaDensity, 255);
-                if (solidDensity >= IsoValue) pointInfo.material = material;
+                if (solidDensity >= CPUMapManager.IsoValue) pointInfo.material = material;
             }
             return pointInfo;
         }

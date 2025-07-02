@@ -43,7 +43,7 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
-  SpreadChance: 0.75
+  SpreadChance: 0.075
   SpreadMaterial: Dirt
   SpreadBounds:
     data: 2944466688

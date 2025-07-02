@@ -4,8 +4,7 @@ using System;
 using Newtonsoft.Json;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
-using System.Threading.Tasks;
-using UnityEngine.Profiling;
+using MapStorage;
 
 [CreateAssetMenu(menuName = "Generation/Entity/SurfaceCarnivore")]
 public class SurfaceCarnivore : Authoring

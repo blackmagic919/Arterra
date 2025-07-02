@@ -1,8 +1,8 @@
 using UnityEngine;
-using static CPUMapManager;
 using Unity.Mathematics;
 using Unity.Burst;
-using System;
+using MapStorage;
+using static MapStorage.CPUMapManager;
 /*
 y
 ^      0  5        z
@@ -27,7 +27,7 @@ namespace WorldConfig.Generation.Material{
 /// <item> A liquid can move between two entries if the entry it is moving to is gaseous, or if both entries are the same material </item>
 /// </list>
 /// This is the default behavior liquids use to emulate liquid physics. If left unchecked, the propogation of liquid
-/// physics will eventually be curtailed by <see cref="TerrainGeneration.TerrainUpdate.ConstrainedQueue{T}"> the maximum 
+/// physics will eventually be ratelimited by <see cref="Intrinsic.TerrainUpdation.MaximumTickUpdates"> the maximum 
 /// amount of updates </see> defined by the system at which point liquid physics may prevent other terrain updates from occuring.
 /// </summary>
 [BurstCompile]
@@ -117,8 +117,21 @@ public class LiquidMaterial : MaterialData
         return true;
     }
 
+    
+    /// <summary> Mandatory Random Update callback called randomly. Use this to trigger random water propogations </summary>
+    /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
+    /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
     [BurstCompile]
-    public override void UpdateMat(int3 GCoord, Unity.Mathematics.Random prng){
+    public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng){
         PropogateLiquid(GCoord, prng);
     }
+    
+    /// <summary> Updates the liquid material to perform liquid physics.  </summary>
+    /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
+    /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
+    [BurstCompile]
+    public override void PropogateMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default) {
+        PropogateLiquid(GCoord, prng);
+    }
+
 }}

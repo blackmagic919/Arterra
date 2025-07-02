@@ -4,7 +4,7 @@ using System;
 using Newtonsoft.Json;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
-using UnityEngine.Profiling;
+using MapStorage;
 
 [CreateAssetMenu(menuName = "Generation/Entity/SkyScavanger")]
 public class SkyScavanger : Authoring

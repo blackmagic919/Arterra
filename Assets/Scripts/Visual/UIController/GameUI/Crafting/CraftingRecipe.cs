@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
 using Unity.Mathematics;
-
+using MapStorage;
 namespace WorldConfig.Intrinsic{
 /// <summary>
 /// A recipe describing a configuration of materials on the crafting grid
@@ -27,7 +27,7 @@ public class CraftingRecipe : Category<CraftingRecipe>{
     /// although this is not enforced. </summary> <remarks>The <see cref="CPUMapManager.MapData.isDirty"/> flag
     /// is repurposed to indicate if an entry should be ignored when being matched. This is useful if a component
     /// of the recipe is not essential to its creation, such as any empty entries. </remarks>
-    public Option<List<CPUMapManager.MapData> > entry;
+    public Option<List<MapData> > entry;
     /// <summary> If the recipe can be crafted, the result that is given to the player if the recipe is crafted.
     /// <see cref="Result"/> for more information. </summary>
     public Result result;
@@ -58,9 +58,9 @@ public class CraftingRecipe : Category<CraftingRecipe>{
     /// deserializes(recouples) any external references to the map entry's material. </summary>
     /// <param name="Index">The index within <see cref="entry"/> of the entry that is retrieved</param>
     /// <returns>The deserialized map information of the recipe's entry at the specified <paramref name="Index"/>.</returns>
-    public CPUMapManager.MapData EntrySerial(int Index){
+    public MapData EntrySerial(int Index){
         Registry<MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        CPUMapManager.MapData p = entry.value[Index];
+        MapData p = entry.value[Index];
         if(!reg.Contains(Names.value[p.material])) return p;
         p.material = reg.RetrieveIndex(Names.value[p.material]);
         return p;

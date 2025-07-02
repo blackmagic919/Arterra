@@ -1,22 +1,19 @@
-using System.Collections.Generic;
-using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
+using MapStorage;
 
-public static class StartupPlacer
-{
+
+public static class StartupPlacer {
     private static ComputeShader SurfaceFinder;
     private static ComputeShader WeightedPlacement;
 
-    static StartupPlacer()
-    {
+    static StartupPlacer() {
         SurfaceFinder = Resources.Load<ComputeShader>("Compute/StartupPlacement/SurfaceFinder");
         WeightedPlacement = Resources.Load<ComputeShader>("Compute/StartupPlacement/WeightedPlacement");
     }
-    public static void Initialize()
-    {
+    public static void Initialize() {
         WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
         WorldConfig.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
         SurfaceFinder.SetInt("continentalSampler", surface.ContinentalIndex);
@@ -48,8 +45,7 @@ public static class StartupPlacer
         WeightedPlacement.SetBuffer(kernel, "Lock", UtilityBuffers.TransferBuffer);
     }
 
-    public static void PlaceOnSurface(Entity entity)
-    {
+    public static void PlaceOnSurface(Entity entity) {
         SurfaceFinder.SetFloats("startPosXZ", new float[] { entity.position.x, entity.position.z });
         int kernel = SurfaceFinder.FindKernel("FindSurface");
         SurfaceFinder.Dispatch(kernel, 1, 1, 1);
@@ -59,8 +55,7 @@ public static class StartupPlacer
         entity.position = new float3(entity.position.x, height[0], entity.position.z);
     }
 
-    public static void MoveToClearing(Entity entity)
-    {
+    public static void MoveToClearing(Entity entity) {
         //Setup Lock Value
         WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
         UtilityBuffers.TransferBuffer.SetData(new uint[] { uint.MaxValue }, 0, 3, 1);
@@ -79,7 +74,7 @@ public static class StartupPlacer
 
         int[] position = new int[4];
         UtilityBuffers.TransferBuffer.GetData(position, 0, 0, 4);
-        int3 deltaPos = new (position[0], position[1], position[2]);
+        int3 deltaPos = new(position[0], position[1], position[2]);
         deltaPos = math.clamp(deltaPos, -rSettings.viewDistUpdate, rSettings.viewDistUpdate);
         Debug.Log(deltaPos);
         entity.position += deltaPos;

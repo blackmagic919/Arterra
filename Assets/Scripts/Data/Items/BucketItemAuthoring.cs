@@ -2,7 +2,8 @@ using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using static CPUMapManager;
+using MapStorage;
+
 namespace WorldConfig.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Bucket")] 
 public class BucketItemAuthoring : AuthoringTemplate<BucketItem> {

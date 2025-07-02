@@ -4,8 +4,8 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
 using WorldConfig.Generation.Entity;
-using static CPUMapManager;
 using static WorldConfig.Generation.Entity.EntitySetting;
+using MapStorage;
 
 [BurstCompile]
 public unsafe struct PathFinder{
@@ -20,7 +20,7 @@ public unsafe struct PathFinder{
                     uint index = dC.x * info.bounds.y * info.bounds.z + dC.y * info.bounds.z + dC.z;
                     ProfileE profile = context.Profile[index + info.profileStart];
                     if(profile.ExFlag && UseExFlag) continue;
-                    bool valid = profile.bounds.Contains(SampleMap(GCoord + (int3)dC, context.mapContext));
+                    bool valid = profile.bounds.Contains(CPUMapManager.SampleMap(GCoord + (int3)dC, context.mapContext));
                     allC = allC && (valid || !profile.AndFlag);
                     anyC = anyC || (valid && profile.OrFlag);
                     any0 = any0 || profile.OrFlag;

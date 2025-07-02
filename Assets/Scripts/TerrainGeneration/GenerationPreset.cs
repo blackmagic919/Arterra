@@ -23,8 +23,8 @@ public static class SystemProtocol{
         UtilityBuffers.Initialize();
         GenerationPreset.Initialize();
 
-        GPUMapManager.Initialize();
-        CPUMapManager.Initialize();
+        MapStorage.GPUMapManager.Initialize();
+        MapStorage.CPUMapManager.Initialize();
 
         EntityManager.Initialize();
         TerrainUpdate.Initialize();
@@ -51,8 +51,8 @@ public static class SystemProtocol{
     /// only changes when modifying the system's functionality through its source code. </summary>
     public static void Shutdown(){
         UtilityBuffers.Release();
-        GPUMapManager.Release();
-        CPUMapManager.Release();
+        MapStorage.GPUMapManager.Release();
+        MapStorage.CPUMapManager.Release();
         EntityManager.Release();
         LightBaker.Release();
         ShaderGenerator.Release();
@@ -95,7 +95,7 @@ public static class GenerationPreset
         biomeHandle.Initialize();
         structHandle.Initialize();
         entityHandle.Initialize();
-        memoryHandle.Intiialize();
+        memoryHandle.Initialize();
     }
 
     /// <summary>
@@ -526,7 +526,7 @@ public static class GenerationPreset
         /// Information is stored in local GPU Buffers which should be obtained through <see cref="Storage"/> and <see cref="Address"/>
         /// properties and bound to any shader that needs to use it. 
         /// </summary>
-        public void Intiialize()
+        public void Initialize()
         {
             if(initialized) Release();
 

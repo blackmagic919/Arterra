@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using WorldConfig;
+using MapStorage;
 
 public class AtmospherePass : ScriptableRenderPass
 {
