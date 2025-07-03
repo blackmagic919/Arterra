@@ -69,7 +69,7 @@ namespace MapStorage{
         }
 
         /// <summary>
-        /// Registers a visual chunk by copying its map information from working memroy to long-term GPU memory,
+        /// Registers a visual chunk by copying its map information from working memory to long-term GPU memory,
         /// updating the lookup structure(s) and garbage collecting(permanently) any map information made unaccessible.
         /// The hashmap structure is scaled to the size of a real chunk (chunk space) and thus a visual chunk
         /// <see cref="TerrainChunk.VisualChunk"/> overlaps multiple entries in the hasmap and will require writing
@@ -96,7 +96,7 @@ namespace MapStorage{
             return (int)handleAddress;
         }
 
-        /// <summary> Registers a real chunk by copying its map information from working memroy to long-term GPU memory,
+        /// <summary> Registers a real chunk by copying its map information from working memory to long-term GPU memory,
         /// updating the lookup structure(s) and garbage collecting(permanently) any map information made unaccessible.
         /// The hashmap structure is scaled to the size of a real chunk (chunk space) and thus this will only replace
         /// and garbage collect at most one previously tracked chunk. </summary>

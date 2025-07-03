@@ -365,7 +365,7 @@ MonoBehaviour:
         value: {fileID: 11400000, guid: b6eb14945e6ce4e35a36d2502ba1cf4f, type: 2}
       TerrainUpdation:
         value:
-          RandomUpdatesPerChunk: 50
+          RandomUpdatesPerChunk: 500
           MaximumTickUpdates: 5000
           UpdateTickDelay: 4
       ReadBack:
@@ -905,6 +905,15 @@ MonoBehaviour:
         - Name: Gamemode:Invulnerability
         - Name: KeyBindReconstruct
         - Name: Gamemode:Invulnerability
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
+        - Name: KeyBindReconstruct
+        - Name: Gamemode:Invulnerability
+        - Name: Gamemode:Flight
         - Name: KeyBindReconstruct
         - Name: Gamemode:Invulnerability
         - Name: Gamemode:Flight

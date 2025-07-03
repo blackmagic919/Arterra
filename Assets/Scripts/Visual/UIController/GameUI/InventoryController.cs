@@ -128,8 +128,8 @@ public static class InventoryController
             InputPoller.AddBinding(new InputPoller.ActionBind("Select", SelectDrag), "3.0::Window");
             InputPoller.AddBinding(new InputPoller.ActionBind("Deselect", DeselectDrag), "3.0::Window");
             InputPoller.AddBinding(new InputPoller.ActionBind("Craft", CraftEntry), "3.0::Window");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Interact", CraftingMenuController.AddMaterial), "3.0::Window");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Attack", CraftingMenuController.RemoveMaterial), "3.0::Window");
+            InputPoller.AddBinding(new InputPoller.ActionBind("Place", CraftingMenuController.AddMaterial), "3.0::Window");
+            InputPoller.AddBinding(new InputPoller.ActionBind("Remove", CraftingMenuController.RemoveMaterial), "3.0::Window");
         });
         CraftingMenuController.Activate();
         CursorDisplay.Object.SetActive(false);

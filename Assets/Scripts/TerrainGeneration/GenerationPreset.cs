@@ -27,7 +27,6 @@ public static class SystemProtocol{
         MapStorage.CPUMapManager.Initialize();
 
         EntityManager.Initialize();
-        TerrainUpdate.Initialize();
         LightBaker.Initialize();
         StartupPlacer.Initialize();
 

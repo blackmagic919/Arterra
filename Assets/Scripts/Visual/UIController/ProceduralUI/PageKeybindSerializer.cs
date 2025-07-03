@@ -33,7 +33,6 @@ public class PageKeybindSerializer : IConverter{
     public bool CanConvert(Type type){ return typeof(KeyBind).IsAssignableFrom(type); }
     public void Serialize(GameObject page, GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate){
         GameObject KeybindName = parent.transform.Find("Name").gameObject;
-        if(KeybindName != null) GameObject.Destroy(KeybindName);
         Button RebindButton = parent.AddComponent<Button>();
         RebindButton.onClick.AddListener(async () => {
             ClearKeybinds(parent.transform);

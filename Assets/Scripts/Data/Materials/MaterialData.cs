@@ -3,6 +3,7 @@ using Unity.Mathematics;
 using System;
 using System.Collections.Generic;
 using UnityEditor;
+using MapStorage;
 
 
 namespace WorldConfig.Generation.Material
@@ -49,10 +50,37 @@ namespace WorldConfig.Generation.Material
         /// simulate the natural changes of the material over time. They cannot be added externally and
         /// are sampled at random from an internal system. See <see cref="TerrainGeneration.TerrainUpdate"/> 
         /// for more information </summary>
-        /// <param name="GCoord">he coordinate in grid space of the entry that has been updated. It is guaranteed
+        /// <param name="GCoord">The coordinate in grid space of the entry that has been updated. It is guaranteed
         /// that the map entry at GCoord will be of the same material as the instance that recieves the update.</param>
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
         public abstract void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default);
+
+        /*
+        /// <summary> Called whenever the player is about to remove the terrain; called for all the materials
+        /// that will be removed by the player if not prevented. This handle is answered before any part of the
+        /// terrain is actually updated and can be used to trigger material-specific behaviors. </summary>
+        /// <param name="GCoord">The coordinate in grid space of the entry that will be updated. It is guaranteed
+        /// that the map entry at GCoord will be of the same material as the instance that recieves the update.</param>
+        /// <param name="amount">Proportionally, how intensely the material will be removed at this location.</param>
+        /// <returns>Whether or not to prevent the user from modifying the terrain. Also stops answering all
+        /// handles after this point. </returns>
+        public virtual bool OnRemoving(int3 GCoord, float amount) {
+            return false; //Don't block by default
+        }
+
+        /// <summary> Called whenever the player is during the process of removing the terrain; called for all the materials
+        /// that will be removed by the player. Primarily used to indicate which item should be provided to the user
+        /// in exchange for removing the specified amount of terrain.</summary>
+        /// <param name="GCoord">The coordinate in grid space of the entry that has been updated. It is guaranteed
+        /// that the map entry at GCoord will be of the same material as the instance that recieves the update.</param>
+        /// <param name="mapData">The <see cref="MapData"/> object describing the exact amount of material that has been 
+        /// removed and its identity. </param>
+        public abstract Item.IItem OnRemoved(int3 GCoord, in MapData mapData);
+
+
+        public virtual bool OnPlacing(int3 GCoord) {
+            return false; //Don't block by default
+        }*/
 
         /// <summary>
         /// The apperance of the terrain when the material <see cref="CPUMapManager.MapData.IsSolid">is solid</see>. 

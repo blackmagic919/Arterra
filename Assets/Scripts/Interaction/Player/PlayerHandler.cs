@@ -37,8 +37,8 @@ namespace WorldConfig.Gameplay{
         /// <summary> Whether the player can toggle flight; whether the player can fly </summary>
         [UIModifiable(CallbackName = "Gamemode:Flight")]
         public bool Flight;
-        [UIModifiable(CallbackName = "Gamemode:Invulnerability")]
         /// <summary> Whether the player can recieve damage or die. Whether health is a concept for the player. </summary>
+        [UIModifiable(CallbackName = "Gamemode:Invulnerability")]
         public bool Invulnerability;
         /// <summary> Whether the player will collide with solid objects and be subject to in-game forces.</summary>
         public bool Intangiblity;
@@ -71,6 +71,7 @@ public static class PlayerHandler
         if(!active && OctreeTerrain.RequestQueue.IsEmpty) {
             PlayerMovement.Initialize();
             PlayerInteraction.Initialize();
+            TerrainUpdate.Initialize();
             active = true;
         } if(!active) return;
         PlayerMovement.Update();
