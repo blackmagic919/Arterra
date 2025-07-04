@@ -79,7 +79,7 @@ public static class CraftingMenuController
         }
 
         Rendering.crafting.Display.materialForRendering.SetBuffer("CraftingInfo", Rendering.craftingBuffer);
-        Rendering.crafting.Display.materialForRendering.SetInt("IsoValue", (int)settings.CraftingIsoValue);
+        Rendering.crafting.Display.materialForRendering.SetInt("IsoValue", (int)CPUMapManager.IsoValue);
         Rendering.crafting.Display.materialForRendering.SetFloat("GridWidth", GridWidth);
         Rendering.crafting.Display.color = new Color(0, 0, 0);
         Rendering.IsDirty = false;
@@ -149,11 +149,17 @@ public static class CraftingMenuController
 
         CraftingRecipe recipe = Recipe.Table[FitRecipe];
         for(int i = 0; i < GridCount; i++){
-            int material = craftingData[i].material;
-            if(craftingData[i].density < settings.CraftingIsoValue)
-                material = -1;
-            if(material != recipe.EntryMat(i)) 
+            if (recipe.entry.value[i].isDirty) continue;
+            if (recipe.entry.value[i].IsGaseous) {
+                if (craftingData[i].IsGaseous) continue;
+                else return false;
+            }
+
+            if (recipe.entry.value[i].IsSolid && !craftingData[i].IsSolid)
                 return false;
+            if (recipe.entry.value[i].IsLiquid && !craftingData[i].IsLiquid)
+                return false;
+            if (craftingData[i].material != recipe.EntryMat(i)) return false;
         }
 
         int amount = 0;
@@ -167,8 +173,8 @@ public static class CraftingMenuController
         MapData oldMap = craftingData[index];
         craftingData[index] = map;
         if(oldMap.material != map.material ||
-        math.sign(map.density - settings.CraftingIsoValue) !=  
-        math.sign(oldMap.density - settings.CraftingIsoValue)){
+        math.sign(map.density - CPUMapManager.IsoValue) !=  
+        math.sign(oldMap.density - CPUMapManager.IsoValue)){
             RefreshSelections();
         }
         Rendering.IsDirty = true;
@@ -179,7 +185,7 @@ public static class CraftingMenuController
         CraftingRecipe target = new CraftingRecipe{entry = new Option<List<MapData>>{ value = craftingData.ToList() }};
         for(int i = 0; i < craftingData.Length; i++){
             MapData p = target.entry.value[i];
-            p.isDirty = craftingData[i].density < settings.CraftingIsoValue;
+            p.isDirty = craftingData[i].density < CPUMapManager.IsoValue;
             target.entry.value[i] = p;
         } target.Names = null;
 
@@ -219,17 +225,19 @@ public static class CraftingMenuController
         craftingMenu.SetActive(true);
     }
 
-    private static IItem InventoryAddMapData(MapData data){
+    private static void InventoryAddMapData(MapData data){
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        var itemInfo = Config.CURRENT.Generation.Items;
-        MaterialData material = matInfo.Retrieve(data.material);
-        string itemKey = material.RetrieveKey(data.viscosity != 0 ? material.SolidItem : material.LiquidItem);
-        if(!itemInfo.Contains(itemKey)) return null;
 
-        IItem item = itemInfo.Retrieve(itemKey).Item;
-        item.Create(itemInfo.RetrieveIndex(itemKey), data.density);
-        InventoryController.AddEntry(item);
-        return item;
+        if (data.LiquidDensity != 0) {
+            MapData lData = data; lData.viscosity = 0;
+            IItem item = matInfo.Retrieve(lData.material).AcquireItem(data);
+            InventoryController.AddEntry(item);
+        }
+
+        if (data.SolidDensity != 0) {
+            IItem item = matInfo.Retrieve(data.material).AcquireItem(data);
+            InventoryController.AddEntry(item);
+        }
     }
 
     public static void Deactivate(){

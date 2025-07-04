@@ -261,7 +261,7 @@ public class SurfaceHerbivore : Authoring
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if(self.TaskDuration <= 0){
                 if(self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position), out int3 foodPos)){
-                    WorldConfig.Generation.Item.IItem item = self.settings.Recognition.ConsumeFood(foodPos);
+                    WorldConfig.Generation.Item.IItem item = self.settings.Recognition.ConsumeFood(self, foodPos);
                     if(item != null && self.settings.Recognition.CanConsume(item, out float nutrition))
                         self.vitality.Heal(nutrition);  
                     self.TaskIndex = 0;

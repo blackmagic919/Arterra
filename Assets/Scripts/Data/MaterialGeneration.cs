@@ -5,7 +5,7 @@ namespace WorldConfig.Generation.Material{
 /// <summary> The container for all materials that can be generated. Materials determine how the terrain appears
 /// when it is solid, liquid, or atmospheric as well as <see cref="TerrainGeneration.TerrainUpdate"> possible 
 /// interactions </see>. Materials only exist as part of the terrain and once picked up are handled by the 
-/// <see cref="ItemAuthoring"/> system. </summary>
+/// <see cref="Item.Authoring"/> system. </summary>
 [CreateAssetMenu(menuName = "Settings/TextureDict")]
 public class Generation : ScriptableObject
 {

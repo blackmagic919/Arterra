@@ -97,7 +97,12 @@ public static class PlayerInteraction
         if (!selMat.IsSolid) return;
 
         PlayerHandler.data.animator.SetTrigger("IsPlacing");
-        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, (MapData mapData, float speed) => HandleAddSolid(mapData, speed * settings.DefaultTerraform.value.TerraformSpeed));
+        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, (GCoord, speed) => HandleAddSolid(
+            InventoryController.Selected,
+            GCoord,
+            speed * settings.DefaultTerraform.value.TerraformSpeed,
+            out MapData _
+        ), CallOnMapPlacing);
     }
 
     public static void RemoveTerrain(float _)
@@ -107,21 +112,37 @@ public static class PlayerInteraction
             return;
         }
         
-        MapData RemoveSolidBareHand(MapData mapData, float speed){
-            int material = mapData.material; ToolTag tag = settings.DefaultTerraform;
-            if (matInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, material, out TagRegistry.IProperty prop))
-                tag = prop as ToolTag;
-            return HandleRemoveSolid(mapData, speed * tag.TerraformSpeed, tag.GivesItem);
-        }
-        
         PlayerHandler.data.animator.SetTrigger("IsPlacing");
-        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolidBareHand);
+        CPUMapManager.Terraform(hitPt, settings.TerraformRadius,
+            RemoveSolidBareHand, CallOnMapRemoving);
+    }
+    
+    /// <summary> Calls the default <see cref="MaterialData.OnPlacing"/> handle
+    /// for the material being placed on behalf of the player and halts all terraforming 
+    /// if an error occurs. </summary>
+    /// <param name="GCoord">The coordinate in grid space of the material being placed</param>
+    /// <returns>Whether or not to halt the current terraform process</returns>
+    public static bool CallOnMapPlacing(int3 GCoord) {
+        MapData map = CPUMapManager.SampleMap(GCoord);
+        if (map.IsNull) return true;
+        return matInfo.Retrieve(map.material).OnPlacing(GCoord, data);
     }
 
-    public static int GetStaggeredDelta(float deltaDensity){
+    /// <summary> Calls the default <see cref="MaterialData.OnRemoving"/> handle
+    /// for the material being removed on behalf of the player and halts all terraforming 
+    /// if an error occurs. </summary>
+    /// <param name="GCoord">The coordinate in grid space of the material being removed</param>
+    /// <returns>Whether or not to halt the current terraform process</returns>
+    public static bool CallOnMapRemoving(int3 GCoord) {
+        MapData map = CPUMapManager.SampleMap(GCoord);
+        if (map.IsNull) return true;
+        return matInfo.Retrieve(map.material).OnRemoving(GCoord, data);
+    }
+
+    public static int GetStaggeredDelta(float deltaDensity) {
         int remInvFreq = Mathf.CeilToInt(1 / math.frac(deltaDensity));
         int staggeredDelta = Mathf.FloorToInt(deltaDensity);
-        return  staggeredDelta + ((Time.frameCount % remInvFreq) == 0 ? 1 : 0);
+        return staggeredDelta + ((Time.frameCount % remInvFreq) == 0 ? 1 : 0);
     }
 
     public static int GetStaggeredDelta(int baseDensity, float deltaDensity){
@@ -129,93 +150,126 @@ public static class PlayerInteraction
         return Mathf.Abs(Mathf.Clamp(baseDensity + staggeredDelta, 0, 255) - baseDensity);
     }
 
-    public static MapData HandleAddSolid(MapData pointInfo, float brushStrength){
+    public static bool HandleAddSolid(IItem matItem, int3 GCoord, float brushStrength, out MapData pointInfo){
+        pointInfo = CPUMapManager.SampleMap(GCoord);
         brushStrength *= Time.deltaTime;
-        if(brushStrength == 0) return pointInfo;
-        if(InventoryController.Selected == null || !InventoryController.SelectedSetting.IsSolid) 
-            return pointInfo;
-        if(!matInfo.Contains(InventoryController.SelectedSetting.MaterialName))
-            return pointInfo;
+        if(brushStrength == 0) return false;
 
-        int selected = matInfo.RetrieveIndex(InventoryController.SelectedSetting.MaterialName);
+        if (matItem == null)
+            return false;
+        Authoring setting = itemInfo.Retrieve(matItem.Index);
+        if (!setting.IsSolid)
+            return false;
+        if (!matInfo.Contains(setting.MaterialName))
+            return false;
+
+        int selected = matInfo.RetrieveIndex(setting.MaterialName);
         int solidDensity = pointInfo.SolidDensity;
-        if(solidDensity < CPUMapManager.IsoValue || pointInfo.material == selected){
-            //If adding solid density, override water
-            int deltaDensity = GetStaggeredDelta(solidDensity, brushStrength);
-            deltaDensity = InventoryController.RemoveMaterial(deltaDensity);
+        if (solidDensity >= CPUMapManager.IsoValue && pointInfo.material != selected)
+            return false;
 
-            solidDensity += deltaDensity;
-            pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
-            pointInfo.viscosity = math.min(pointInfo.viscosity + deltaDensity, 255);
-            if(solidDensity >= CPUMapManager.IsoValue) pointInfo.material = selected;
-        }
-        return pointInfo;
+        //If adding solid density, override water
+        MapData delta = pointInfo;
+        delta.density = GetStaggeredDelta(solidDensity, brushStrength);
+        delta.density = InventoryController.RemoveMaterial(delta.density);
+        delta.viscosity = delta.density;
+
+        solidDensity += delta.density;
+        delta.density = math.min(pointInfo.density + delta.density, 255) - pointInfo.density;
+        delta.viscosity = math.min(pointInfo.viscosity + delta.viscosity, 255) - pointInfo.viscosity;
+        pointInfo.density += delta.density;
+        pointInfo.viscosity += delta.viscosity;
+        if(solidDensity >= CPUMapManager.IsoValue)
+            pointInfo.material = selected;
+        CPUMapManager.SetMap(pointInfo, GCoord);
+        matInfo.Retrieve(pointInfo.material).OnPlaced(GCoord, delta);
+        return true;
     }
 
-    public static MapData HandleAddLiquid(MapData pointInfo, float brushStrength){
+    public static bool HandleAddLiquid(IItem matItem, int3 GCoord, float brushStrength, out MapData pointInfo){
+        pointInfo = CPUMapManager.SampleMap(GCoord);
         brushStrength *= Time.deltaTime;
-        if(brushStrength == 0) return pointInfo;
-        if(InventoryController.Selected == null || !InventoryController.SelectedSetting.IsLiquid) 
-            return pointInfo;
-        if(!matInfo.Contains(InventoryController.SelectedSetting.MaterialName))
-            return pointInfo;
+        if(brushStrength == 0) return false;
+        
+        if (matItem == null)
+            return false;
+        Authoring setting = itemInfo.Retrieve(matItem.Index);
+        if (!setting.IsLiquid)
+            return false;
+        if (!matInfo.Contains(setting.MaterialName))
+            return false;
 
-        int selected = matInfo.RetrieveIndex(InventoryController.SelectedSetting.MaterialName);
+        int selected = matInfo.RetrieveIndex(setting.MaterialName);
         int liquidDensity = pointInfo.LiquidDensity;
-        if(liquidDensity < CPUMapManager.IsoValue || pointInfo.material == selected){
-            //If adding liquid density, only change if not solid
-            int deltaDensity = GetStaggeredDelta(pointInfo.density, brushStrength);
-            deltaDensity = InventoryController.RemoveMaterial(deltaDensity);
+        if (liquidDensity >= CPUMapManager.IsoValue && pointInfo.material != selected)
+            return false;
 
-            pointInfo.density += deltaDensity;
-            liquidDensity += deltaDensity;
-            if(liquidDensity >= CPUMapManager.IsoValue) pointInfo.material = selected;
-        }
-        return pointInfo;
+        //If adding liquid density, only change if not solid
+        MapData delta = pointInfo;
+        delta.viscosity = 0;
+        delta.density = GetStaggeredDelta(pointInfo.density, brushStrength);
+        delta.density = InventoryController.RemoveMaterial(delta.density);
+
+        pointInfo.density += delta.density;
+        liquidDensity += delta.density;
+        if(liquidDensity >= CPUMapManager.IsoValue) pointInfo.material = selected;
+        matInfo.Retrieve(pointInfo.material).OnPlaced(GCoord, delta);
+        CPUMapManager.SetMap(pointInfo, GCoord);
+        return true;
+    }
+    
+    private static bool RemoveSolidBareHand(int3 GCoord, float speed){
+        MapData mapData = CPUMapManager.SampleMap(GCoord);
+        int material = mapData.material; ToolTag tag = settings.DefaultTerraform;
+        if (matInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, material, out TagRegistry.IProperty prop))
+            tag = prop as ToolTag;
+        return HandleRemoveSolid(ref mapData, GCoord, speed * tag.TerraformSpeed, tag.GivesItem);
     }
 
-
-
-    public static MapData HandleRemoveSolid(MapData pointInfo, float brushStrength, bool ObtainMat = true){
+    public static bool HandleRemoveSolid(ref MapData pointInfo, int3 GCoord, float brushStrength, bool ObtainMat = true) {
         brushStrength *= Time.deltaTime;
-        if(brushStrength == 0) return pointInfo;
+        if (brushStrength == 0) return false;
 
+        MapData delta = pointInfo;
         int solidDensity = pointInfo.SolidDensity;
-        int deltaDensity = GetStaggeredDelta(solidDensity, -brushStrength);
-        if(solidDensity >= CPUMapManager.IsoValue && ObtainMat){
+        delta.density = GetStaggeredDelta(solidDensity, -brushStrength);
+        delta.viscosity = delta.density;
+        if (solidDensity >= CPUMapManager.IsoValue && ObtainMat) {
             MaterialData material = matInfo.Retrieve(pointInfo.material);
-            string key = material.RetrieveKey(material.SolidItem);
-            if(!itemInfo.Contains(key)) return pointInfo;
-
-            int itemIndex = itemInfo.RetrieveIndex(key);
-            IItem nMaterial = itemInfo.Retrieve(itemIndex).Item;
-            nMaterial.Create(itemIndex, deltaDensity);
-            InventoryController.AddEntry(nMaterial);
-            deltaDensity -= nMaterial.AmountRaw;
+            IItem matItem = material.AcquireItem(delta);
+            if (matItem == null) return false;
+            int prevAmount = matItem.AmountRaw;
+            InventoryController.AddEntry(matItem);
+            if (prevAmount == matItem.AmountRaw) return false;
         }
-        pointInfo.viscosity -= deltaDensity;
-        pointInfo.density -= deltaDensity;
-        return pointInfo;
+        pointInfo.viscosity -= delta.viscosity;
+        pointInfo.density -= delta.density;
+        CPUMapManager.SetMap(pointInfo, GCoord);
+        matInfo.Retrieve(pointInfo.material).OnRemoved(GCoord, delta);
+        return true;
     }
 
-    public static MapData HandleRemoveLiquid(MapData pointInfo, float brushStrength){
+    public static bool HandleRemoveLiquid(int3 GCoord, float brushStrength){
         brushStrength *= Time.deltaTime;
-        if(brushStrength == 0) return pointInfo;
+        if (brushStrength == 0) return false;
 
+        MapData pointInfo = CPUMapManager.SampleMap(GCoord);
+        MapData delta = pointInfo;
         int liquidDensity = pointInfo.LiquidDensity;
-        int deltaDensity = GetStaggeredDelta(liquidDensity, -brushStrength);
+        delta.density = GetStaggeredDelta(liquidDensity, -brushStrength);
+        delta.viscosity = 0;
         if (liquidDensity >= CPUMapManager.IsoValue){
             MaterialData material = matInfo.Retrieve(pointInfo.material);
-            string key = material.RetrieveKey(material.LiquidItem);
-            if(!itemInfo.Contains(key)) return pointInfo;
-
-            int itemIndex = itemInfo.RetrieveIndex(key);
-            IItem nMaterial = itemInfo.Retrieve(itemIndex).Item;
-            nMaterial.Create(itemIndex, deltaDensity);
-            deltaDensity -= nMaterial.AmountRaw;
+            IItem matItem = material.AcquireItem(delta);
+            if (matItem == null) return false;
+            int prevAmount = matItem.AmountRaw;
+            InventoryController.AddEntry(matItem);
+            if (prevAmount == matItem.AmountRaw) return false;
         }
-        pointInfo.density -= deltaDensity;
-        return pointInfo;
+        pointInfo.density -= delta.density;
+        CPUMapManager.SetMap(pointInfo, GCoord);
+        matInfo.Retrieve(pointInfo.material).OnRemoved(GCoord, delta);
+        return true;
     }
 
     private static void EntityInteract(WorldConfig.Generation.Entity.Entity target){

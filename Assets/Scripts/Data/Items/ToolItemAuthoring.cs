@@ -29,9 +29,9 @@ namespace WorldConfig.Generation.Item
     {
         public uint data;
         public float durability;
-        public static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
-        public static Registry<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        public static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
+        private static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+        private static Registry<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        private static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
         [JsonIgnore]
         public bool IsStackable => false;
         [JsonIgnore]
@@ -112,15 +112,19 @@ namespace WorldConfig.Generation.Item
             if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
                 return;
             var localSettings = settings;
-            MapData RemoveSolid(MapData mapData, float speed)
+            bool RemoveSolid(int3 GCoord, float speed)
             {
+                MapData mapData = CPUMapManager.SampleMap(GCoord);
                 int material = mapData.material; ToolTag tag = PlayerInteraction.settings.DefaultTerraform;
                 if (MatInfo.GetMostSpecificTag(localSettings.ToolTag, material, out TagRegistry.IProperty prop))
                     tag = prop as ToolTag;
-                MapData info = HandleRemoveSolid(mapData, speed * tag.TerraformSpeed, tag.GivesItem);
-                float delta = math.abs(mapData.SolidDensity - info.SolidDensity);
+
+                MapData prev = mapData;
+                if (!HandleRemoveSolid(ref mapData, GCoord, speed * tag.TerraformSpeed, tag.GivesItem))
+                    return false;
+                float delta = math.abs(prev.SolidDensity - mapData.SolidDensity);
                 durability -= tag.ToolDamage * (delta / 255.0f);
-                return info;
+                return true;
             }
 
             CPUMapManager.Terraform(hitPt, localSettings.TerraformRadius, RemoveSolid);

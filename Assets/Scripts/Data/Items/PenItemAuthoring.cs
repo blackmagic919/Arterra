@@ -20,9 +20,8 @@ namespace WorldConfig.Generation.Item
     {
         public uint data;
         public float durability;
-        public static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
-        public static Registry<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        public static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
+        private static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+        private static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
         [JsonIgnore]
         public bool IsStackable => false;
         [JsonIgnore]
@@ -297,10 +296,9 @@ namespace WorldConfig.Generation.Item
             if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out TagRegistry.IProperty tag))
                 prop = tag as ToolTag;
 
-            MapData change = HandleAddNextSolid(orig, prop.TerraformSpeed, nextSlot);
+            if (!PlayerInteraction.HandleAddSolid(InventoryController.Primary.Info[nextSlot], hitCoord, prop.TerraformSpeed, out MapData change))
+                return;
             int delta = math.abs(change.SolidDensity - orig.SolidDensity);
-            CPUMapManager.SetMap(change, hitCoord);
-
             item.durability -= prop.ToolDamage * delta;
             item.UpdateDisplay();
 
@@ -315,36 +313,16 @@ namespace WorldConfig.Generation.Item
             if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out TagRegistry.IProperty tag))
                 prop = tag as ToolTag;
 
-            MapData change = PlayerInteraction.HandleRemoveSolid(orig, prop.TerraformSpeed);
-            int delta = math.abs(orig.SolidDensity - change.SolidDensity);
-            CPUMapManager.SetMap(change, hitCoord);
-
+            MapData prev = orig;
+            if (!PlayerInteraction.HandleRemoveSolid(ref orig, hitCoord, prop.TerraformSpeed))
+                return;
+            
+            int delta = math.abs(prev.SolidDensity - orig.SolidDensity);
             item.durability -= prop.ToolDamage * delta;
             item.UpdateDisplay();
 
             if (item.durability > 0) return;
             InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
-        }
-
-        public static MapData HandleAddNextSolid(MapData pointInfo, float brushStrength, int slot)
-        {
-            brushStrength *= Time.deltaTime;
-            if (brushStrength == 0) return pointInfo;
-
-            int material = MatInfo.RetrieveIndex(ItemInfo.Retrieve(InventoryController.Primary.Info[slot].Index).MaterialName);
-            int solidDensity = pointInfo.SolidDensity;
-            if (solidDensity < CPUMapManager.IsoValue || pointInfo.material == material)
-            {
-                //If adding solid density, override water
-                int deltaDensity = PlayerInteraction.GetStaggeredDelta(solidDensity, brushStrength);
-                deltaDensity = InventoryController.RemoveMaterial(deltaDensity, slot);
-
-                solidDensity += deltaDensity;
-                pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
-                pointInfo.viscosity = math.min(pointInfo.viscosity + deltaDensity, 255);
-                if (solidDensity >= CPUMapManager.IsoValue) pointInfo.material = material;
-            }
-            return pointInfo;
         }
 
         private static bool FindNextSolidMat(out int slot)

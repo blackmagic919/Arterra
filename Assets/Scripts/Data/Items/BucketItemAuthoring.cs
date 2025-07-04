@@ -18,9 +18,9 @@ public class BucketItemAuthoring : AuthoringTemplate<BucketItem> {
 public class BucketItem : IItem{
     public uint data;
     public IItem content;
-    public static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
-    public static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
-    public static Registry<Material.MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;  
+    private static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+    private static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
+    private static Registry<Material.MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;  
     private BucketItemAuthoring settings => ItemInfo.Retrieve(Index) as BucketItemAuthoring;
 
     [JsonIgnore]
@@ -99,69 +99,73 @@ public class BucketItem : IItem{
         if(content == null || !PlayerInteraction.RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
         Authoring mat = ItemInfo.Retrieve(content.Index);
         if(mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
-        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, AddFromBucket);
+        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, AddFromBucket, PlayerInteraction.CallOnMapPlacing);
         if(content.AmountRaw != 0) return;
         content.ClearDisplay();
         content = null;
     }
 
-    private MapData AddFromBucket(MapData pointInfo, float brushStrength){
+    private bool AddFromBucket(int3 GCoord, float brushStrength){
         float IsoLevel = Mathf.RoundToInt(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255);
         brushStrength *= settings.TerraformSpeed * Time.deltaTime;
-        if(brushStrength == 0) return pointInfo;
+        if(brushStrength == 0) return false;
         Authoring cSettings = ItemInfo.Retrieve(content.Index);
-        if(!cSettings.IsLiquid) return pointInfo;
+        if(!cSettings.IsLiquid) return false;
 
-
+        MapData pointInfo = CPUMapManager.SampleMap(GCoord);
         int selected = MatInfo.RetrieveIndex(cSettings.MaterialName);
         int liquidDensity = pointInfo.LiquidDensity;
-        if(liquidDensity < IsoLevel || pointInfo.material == selected){
-            //If adding liquid density, only change if not solid
-            int deltaDensity = PlayerInteraction.GetStaggeredDelta(pointInfo.density, brushStrength);
-            deltaDensity = content.AmountRaw - math.max(content.AmountRaw - deltaDensity, 0);
-            content.AmountRaw -= deltaDensity;
+        if(liquidDensity >= IsoLevel && pointInfo.material != selected)
+            return false;
 
-            pointInfo.density += deltaDensity;
-            liquidDensity += deltaDensity;
-            if(liquidDensity >= IsoLevel) pointInfo.material = selected;
-        }
-        return pointInfo;
+        MapData delta = pointInfo;
+        delta.viscosity = 0;
+        delta.density = PlayerInteraction.GetStaggeredDelta(pointInfo.density, brushStrength);
+        delta.density = content.AmountRaw - math.max(content.AmountRaw - delta.density, 0);
+        content.AmountRaw -= delta.density;
+
+        pointInfo.density += delta.density;
+        liquidDensity += delta.density;
+        if(liquidDensity >= IsoLevel) pointInfo.material = selected;
+
+        CPUMapManager.SetMap(pointInfo, GCoord);
+        MatInfo.Retrieve(pointInfo.material).OnPlaced(GCoord, delta);
+        return true;
     }
 
     private void RemoveLiquid(float _){
         if(!PlayerInteraction.RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
-        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveToBucket);
+        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveToBucket, PlayerInteraction.CallOnMapRemoving);
     }
 
-    private MapData RemoveToBucket(MapData pointInfo, float brushStrength){
-        float IsoLevel = Mathf.RoundToInt(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255);
+    private bool RemoveToBucket(int3 GCoord, float brushStrength){
         brushStrength *= settings.TerraformSpeed * Time.deltaTime;
-        if(brushStrength == 0) return pointInfo;
+        if(brushStrength == 0) return false;
 
-        int selMat = -1;
-        if(content != null){
-            Authoring cSettings = ItemInfo.Retrieve(content.Index);
-            if(!cSettings.IsLiquid) content = null; //has to be liquid
-            else selMat = MatInfo.RetrieveIndex(cSettings.MaterialName);
-        }
-        
+        MapData pointInfo = CPUMapManager.SampleMap(GCoord);
+        MapData delta = pointInfo;
         int liquidDensity = pointInfo.LiquidDensity;
-        int deltaDensity = math.min(PlayerInteraction.GetStaggeredDelta(liquidDensity, -brushStrength), 0xFFFF);
-        if (liquidDensity >= IsoLevel && (selMat == -1 || pointInfo.material == selMat)){
-            if(content == null){
-                WorldConfig.Generation.Material.MaterialData material = MatInfo.Retrieve(pointInfo.material);
-                string liquidItem = material.RetrieveKey(material.LiquidItem);
-                if(!ItemInfo.Contains(liquidItem)) return pointInfo;
-                int itemIndex = ItemInfo.RetrieveIndex(liquidItem);
-                content = ItemInfo.Retrieve(itemIndex).Item;
-                content.Create(itemIndex, deltaDensity);
+        delta.density = math.min(PlayerInteraction.GetStaggeredDelta(liquidDensity, -brushStrength), 0xFFFF);
+        Material.MaterialData material = MatInfo.Retrieve(pointInfo.material);
+        delta.viscosity = 0;
+        if (liquidDensity >= CPUMapManager.IsoValue){
+            if (content == null) {
+                content = material.AcquireItem(delta);
+                if (content == null) return false;
                 AttachChildDisplay();
             } else {
-                deltaDensity = math.min(content.AmountRaw + deltaDensity, 0xFFFF) - content.AmountRaw;
-                content.AmountRaw += deltaDensity;
+                if (content.AmountRaw == 0xFFFF) return false;
+                IItem newMat = material.AcquireItem(delta);
+                if (newMat == null) return false;
+                if (newMat.Index != content.Index) return false;
+                content.AmountRaw = math.min(content.AmountRaw + newMat.AmountRaw, 0xFFFF);
             }
-        } pointInfo.density -= deltaDensity;
-        return pointInfo;
+        }
+
+        pointInfo.density -= delta.density;
+        CPUMapManager.SetMap(pointInfo, GCoord);
+        material.OnRemoved(GCoord, delta);
+        return true;
     }
     
     private void AttachChildDisplay(){

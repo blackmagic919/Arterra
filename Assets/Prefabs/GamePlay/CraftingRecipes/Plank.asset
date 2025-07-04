@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Plank
   m_EditorClassIdentifier: 
   Name: Plank
+  Tags:
+    Reg:
+      value: []
   Names:
     value:
     - Plank:Solid
@@ -21,19 +24,22 @@ MonoBehaviour:
     value:
     - data: 104086
     - data: 104086
-    - data: 2147483648
-    - data: 2147483648
+    - data: 0
+    - data: 0
     - data: 104086
     - data: 104086
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
   result:
     data: 1020
+  references:
+    version: 2
+    RefIds: []

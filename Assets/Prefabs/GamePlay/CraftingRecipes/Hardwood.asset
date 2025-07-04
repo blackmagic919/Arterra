@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Hardwood
   m_EditorClassIdentifier: 
   Name: Hardwood
+  Tags:
+    Reg:
+      value: []
   Names:
     value:
     - Hardwood:Solid
@@ -26,14 +29,17 @@ MonoBehaviour:
     - data: 104086
     - data: 104086
     - data: 104086
-    - data: 2147483648
+    - data: 0
     - data: 104086
     - data: 104086
     - data: 104086
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
   result:
     data: 191
+  references:
+    version: 2
+    RefIds: []

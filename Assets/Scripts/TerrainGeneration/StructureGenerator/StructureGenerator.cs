@@ -432,18 +432,19 @@ public static class Generator
             sampleCounter = bufferStart; structureCounter = bufferStart + 1;
             checkCounter = bufferStart + 2; prunedCounter = bufferStart + 3;
 
-            sampleStart = Mathf.CeilToInt((float)(bufferStart + 4) / SAMPLE_STRIDE_WORD); //U for unit, W for word
-            int SampleEndInd_W = sampleStart * SAMPLE_STRIDE_WORD + maxStructurePoints * SAMPLE_STRIDE_WORD;
-            
-            structureStart = Mathf.CeilToInt((float)SampleEndInd_W / STRUCTURE_STRIDE_WORD);
+            structureStart = Mathf.CeilToInt((float)(bufferStart + 4)/ STRUCTURE_STRIDE_WORD);
             int StructureEndInd_W = structureStart * STRUCTURE_STRIDE_WORD + maxStructurePoints * STRUCTURE_STRIDE_WORD;
 
             prunedStart = Mathf.CeilToInt((float)StructureEndInd_W / STRUCTURE_STRIDE_WORD);
             int PrunedEndInd_W = prunedStart * STRUCTURE_STRIDE_WORD + maxStructurePoints * STRUCTURE_STRIDE_WORD;
 
+            sampleStart = Mathf.CeilToInt((float)PrunedEndInd_W / SAMPLE_STRIDE_WORD); //U for unit, W for word
+            int SampleEndInd_W = sampleStart * SAMPLE_STRIDE_WORD + maxStructurePoints * SAMPLE_STRIDE_WORD;
+
+            //These two regions can be reused
             checkStart = Mathf.CeilToInt((float)PrunedEndInd_W / CHECK_STRIDE_WORD);
-            int CheckEndInd_W = checkStart * CHECK_STRIDE_WORD + (maxStructurePoints * 5) * CHECK_STRIDE_WORD;
-            this.offsetEnd = CheckEndInd_W;
+            int CheckEndInd_W = checkStart * CHECK_STRIDE_WORD + maxStructurePoints * CHECK_STRIDE_WORD;
+            this.offsetEnd = math.max(CheckEndInd_W, SampleEndInd_W);
         }
     }
 }}

@@ -381,48 +381,46 @@ public class RHerbivore : Recognition{
     }
 
     //Eat Food
-    public WorldConfig.Generation.Item.IItem ConsumeFood(int3 preyCoord){
-        MapData mapInfo = CPUMapManager.SampleMap(preyCoord);
-        int mIndex = mapInfo.material + materialStart;
+    public WorldConfig.Generation.Item.IItem ConsumeFood(Entity self, int3 preyCoord){
+        MapData mapData = CPUMapManager.SampleMap(preyCoord);
+        if (mapData.IsNull) return null;
+        int mIndex = mapData.material + materialStart;
         
         Dictionary<int, Recognizable> Awareness = AwarenessTable;
         if(!Awareness.TryGetValue(mIndex, out Recognizable rInfo)) return null;
         Plant plant = Prey.value[rInfo.Preference];
-        if(!plant.Bounds.Contains(mapInfo)) return null;
+        if(!plant.Bounds.Contains(mapData)) return null;
         if(!rInfo.IsPrey) return null;
         Registry<MaterialData> matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        Registry<WorldConfig.Generation.Item.Authoring> itemInfo = Config.CURRENT.Generation.Items;
-        MaterialData material = matInfo.Retrieve(mapInfo.material);
-        string key; int delta;
 
-        if(mapInfo.IsSolid){
-            key = material.RetrieveKey(material.SolidItem);
-            delta = mapInfo.SolidDensity;
-        } else {
-            key = material.RetrieveKey(material.LiquidItem);
-            delta = mapInfo.LiquidDensity;
-        } 
+        MapData deltaOrig = mapData;
+        MapData deltaNew = mapData;
 
-        if(!itemInfo.Contains(key)) return null;
-        int itemIndex = itemInfo.RetrieveIndex(key);
-        WorldConfig.Generation.Item.IItem nMat = itemInfo.Retrieve(itemIndex).Item;
-        nMat.Index = itemIndex;
-        nMat.AmountRaw = delta;
+        string key = plant.Replacement;
+        if (!String.IsNullOrEmpty(key) && matInfo.Contains(key))
+            deltaNew.material = matInfo.RetrieveIndex(key);
+        if (plant.ReplaceState == WorldConfig.Generation.Item.Authoring.State.Liquid)
+                deltaNew.viscosity = 0;
+        //Remove old material
+        MaterialData deltaMatInfo = matInfo.Retrieve(deltaOrig.material);
+        if (deltaMatInfo.OnRemoving(preyCoord, self)) return null;
+        mapData.viscosity -= deltaOrig.viscosity;
+        mapData.density -= deltaOrig.density;
+        CPUMapManager.SetMap(mapData, preyCoord);
+        deltaMatInfo.OnRemoved(preyCoord, deltaOrig);
 
-        key = plant.Replacement;
-        if(String.IsNullOrEmpty(key) || !matInfo.Contains(key)){
-            if(mapInfo.IsSolid) mapInfo.viscosity -= delta;
-            else if(mapInfo.IsLiquid) mapInfo.density -= delta; 
-        } else {
-            mIndex = matInfo.RetrieveIndex(key);
-            mapInfo.material = mIndex;
-            if(mapInfo.IsSolid && (plant.ReplaceState == 
-            WorldConfig.Generation.Item.Authoring.State.Liquid)) mapInfo.viscosity -= delta;
-            else if(mapInfo.IsLiquid && (plant.ReplaceState == 
-            WorldConfig.Generation.Item.Authoring.State.Solid)) mapInfo.viscosity += delta;
-        }
-        CPUMapManager.SetMap(mapInfo, preyCoord);
+        if (deltaOrig.IsLiquid) deltaOrig.viscosity = 0;
+        WorldConfig.Generation.Item.IItem nMat = matInfo.Retrieve(mapData.material).AcquireItem(deltaOrig);
+        if (deltaNew.density == 0) return nMat;
 
+        //Place new material
+        deltaMatInfo = matInfo.Retrieve(deltaNew.material);
+        if (deltaMatInfo.OnPlacing(preyCoord, self)) return nMat;
+        mapData.material = deltaNew.material;
+        mapData.viscosity += deltaNew.viscosity;
+        mapData.density += deltaNew.density;
+        CPUMapManager.SetMap(mapData, preyCoord);
+        deltaMatInfo.OnPlaced(preyCoord, deltaNew);
         return nMat;
     }
 

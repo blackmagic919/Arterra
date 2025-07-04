@@ -7,6 +7,7 @@ using static TerrainGeneration.Readback.IVertFormat;
 using WorldConfig;
 using TerrainGeneration.Readback;
 using MapStorage;
+using System.Collections.Generic;
 
 namespace TerrainGeneration{
 
@@ -365,7 +366,7 @@ namespace TerrainGeneration{
             /// </summary> <param name="callback"><see cref="TerrainChunk.ReadMapData"/></param>
             protected override void ReadMapData(Action callback = null) {
                 //This code will be called on a background thread
-                MapStorage.Chunk.ReadbackInfo info = MapStorage.Chunk.ReadChunkInfo(CCoord);
+                Chunk.ReadbackInfo info = Chunk.ReadChunkInfo(CCoord);
 
                 if (info.map != null) { //if the chunk has saved map data
                     Generator.MeshCreator.SetMapInfo(mapChunkSize, 0, info.map);
@@ -380,7 +381,7 @@ namespace TerrainGeneration{
                 }
 
                 //Copy real chunks to CPU
-                CPUMapManager.AllocateChunk(this, CCoord);
+                CPUMapManager.AllocateChunk(this, info.mapMeta, CCoord);
                 CPUMapManager.BeginMapReadback(CCoord);
                 if (info.entities != null) { //If the chunk has saved entities
                     EntityManager.DeserializeEntities(info.entities);

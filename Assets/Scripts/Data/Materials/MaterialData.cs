@@ -21,14 +21,6 @@ namespace WorldConfig.Generation.Material
         /// of the world's configuration. 
         /// </summary>
         public List<string> Names;
-        /// <summary> The index within the <see cref="Names"> name registry </see> of the name within the external registry, 
-        /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is solid. 
-        /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
-        public int SolidItem;
-        /// <summary> The index within the <see cref="Names"> name registry </see> of the name within the external registry, 
-        /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is liquid. 
-        /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
-        public int LiquidItem;
 
         /// <summary> Settings controlling the appearance of the terrain when the material is solid. See <see cref="TerrainData"/> for more info. </summary>
         public TerrainData terrainData;
@@ -55,35 +47,57 @@ namespace WorldConfig.Generation.Material
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
         public abstract void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default);
 
-        /*
         /// <summary> Called whenever the player is about to remove the terrain; called for all the materials
         /// that will be removed by the player if not prevented. This handle is answered before any part of the
         /// terrain is actually updated and can be used to trigger material-specific behaviors. </summary>
         /// <param name="GCoord">The coordinate in grid space of the entry that will be updated. It is guaranteed
         /// that the map entry at GCoord will be of the same material as the instance that recieves the update.</param>
-        /// <param name="amount">Proportionally, how intensely the material will be removed at this location.</param>
+        /// <param name="caller"> The entity responsible for removing the terrain. If the terrain is not being removed 
+        /// by an entity this will be null </param>
         /// <returns>Whether or not to prevent the user from modifying the terrain. Also stops answering all
-        /// handles after this point. </returns>
-        public virtual bool OnRemoving(int3 GCoord, float amount) {
+        /// calls to <see cref="OnRemoving"/> after this point. </returns>
+        public virtual bool OnRemoving(int3 GCoord, Entity.Entity caller) {
             return false; //Don't block by default
         }
 
+        /// <summary> Called whenever the player is about to place the terrain; called for all the materials
+        /// that will be placed by the player if not prevented. This handle is answered before any part of the
+        /// terrain is actually updated and can be used to trigger material-specific behaviors. </summary>
+        /// <param name="GCoord">The coordinate in grid space of the entry that will be updated. It is guaranteed
+        /// that the map entry at GCoord will be of the same material as the instance that recieves the update.</param>
+        /// <param name="caller"> The entity responsible for removing the terrain. If the terrain is not being removed 
+        /// by an entity this will be null </param>
+        /// <returns>Whether or not to prevent the user from modifying the terrain. Also stops answering all
+        /// calls to <see cref="OnPlacing"/> after this point. </returns>
+        public virtual bool OnPlacing(int3 GCoord, Entity.Entity caller) {
+            return false; //Don't block by default
+        }
+        
         /// <summary> Called whenever the player is during the process of removing the terrain; called for all the materials
-        /// that will be removed by the player. Primarily used to indicate which item should be provided to the user
-        /// in exchange for removing the specified amount of terrain.</summary>
+        /// that will be removed by the player. Importantly, this is answered <b>after</b> the material has been removed
+        /// from the terrain. </summary>
         /// <param name="GCoord">The coordinate in grid space of the entry that has been updated. It is guaranteed
         /// that the map entry at GCoord will be of the same material as the instance that recieves the update.</param>
-        /// <param name="mapData">The <see cref="MapData"/> object describing the exact amount of material that has been 
-        /// removed and its identity. </param>
-        public abstract Item.IItem OnRemoved(int3 GCoord, in MapData mapData);
+        /// <param name="amount">The amount of material that was removed from the terrain</param>
+        public virtual void OnRemoved(int3 GCoord, in MapData amount) { }
 
+        /// <summary> Called whenever the player is during the process of placing the terrain; called for all the materials
+        /// that are placed by the player. Importantly, this is answered for the new material states that are placed; if a previous 
+        /// material(e.g. air) is replaced by a new material(e.g. dirt), this handle is answered only for the new material(dirt) 
+        /// while <see cref="OnPlacing"/> will be answered only for the old material(air)</summary>
+        /// <param name="GCoord">The coordinate in grid space of the entry that has been updated. It is guaranteed
+        /// that the map entry at GCoord will be of the same material as the instance that recieves the update.</param>
+        /// <param name="amount">The amount of material that was added to the terrain</param>
+        public virtual void OnPlaced(int3 GCoord, in MapData amount){}
 
-        public virtual bool OnPlacing(int3 GCoord) {
-            return false; //Don't block by default
-        }*/
+        /// <summary> Called while modifying the terrain to indicate which item should be provided to the user
+        /// in exchange for removing the specified amount of terrain.</summary>
+        /// <param name="mapData">The <see cref="MapData"/> object describing the exact amount and state of material that 
+        /// has been removed and its identity. </param>
+        public abstract Item.IItem AcquireItem(in MapData mapData);
 
         /// <summary>
-        /// The apperance of the terrain when the material <see cref="CPUMapManager.MapData.IsSolid">is solid</see>. 
+        /// The apperance of the terrain when the material <see cref="MapData.IsSolid">is solid</see>. 
         /// When a material is solid, it will be under or adjacent to a mesh. If it is adjacent, the mesh will display the 
         /// material of the closest solid map entry with the apperance defined below.
         /// </summary>
@@ -101,27 +115,39 @@ namespace WorldConfig.Generation.Material
             /// the UV space of the texture when it is being sampled. A larger value will result in a larger texture on the terrain.
             /// </summary>
             public float textureScale;
-            /// <summary> The index within the <see cref="Names"> Name Registry </see> of the name within the external <see cref="Config.QualitySettings.GeoShaders"/> registry,
-            /// of the geometry shader that is generated ontop of the mesh when it is solid. If the index is -1, no extra geoshader will be
-            /// generated for this material. </summary>
+            /// <summary> The information describing what type of <see cref="Quality.GeoShader"/> to render the current 
+            /// material with if it is responsible for creating a mesh triangle. See <see cref="GeoShaderInfo"/> for more info.</summary>
             public GeoShaderInfo GeoShaderIndex;
+
+            /// <summary> Information about how the material should be handled by <see cref="Quality.GeoShader">Geoshaders</see> which
+            /// are responsible for an assortment of mildly performance intensive mesh-based visual effects. </summary>
             [Serializable]
             public struct GeoShaderInfo
             {
+                /// <summary> The raw data described by these settings. This is the raw 
+                /// compacted information recieved by the GPU </summary>
                 [HideInInspector]
                 public uint data;
-                public uint MajorIndex
-                {
+                /// <summary> The index within the <see cref="Names"> Name Registry </see> of the name within the external <see cref="Config.QualitySettings.GeoShaders"/> registry,
+                /// of the geometry shader that is generated ontop of the mesh when it is solid. If the index is -1, no extra geoshader will be
+                /// generated for this material. </summary>
+                public uint MajorIndex {
                     get => (data >> 16) & 0x7FFF;
                     set => data = (value & 0x7FFF) << 16 | (data & 0xFFFF);
                 }
-                public uint MinorIndex
-                {
+                /// <summary> The index within the specific registry at the <see cref="MajorIndex"/> within the <see cref="Config.QualitySettings.GeoShaders"/> registry
+                /// containing variant settings describing how to generate/render the geoshader. Simply put, materials with the 
+                /// same <see cref="MajorIndex"/> utilize the same source logic during rendering/generation, but may possess 
+                /// unique settings effecting each process. </summary>
+                public uint MinorIndex {
                     get => data & 0xFFFF;
                     set => data = (value & 0xFFFF) | (data & 0xFFFF0000);
                 }
-                public bool HasGeoShader
-                {
+                
+                /// <summary> Whether or not the material possesses a geoshader and is processed by the geoshader system.
+                /// If a material does not possess a geoshader, it is filtered out at an early stage 
+                /// and does not tax the geoshader/rendering system.  </summary>
+                public bool HasGeoShader {
                     get => (data & 0x80000000) != 0;
                     set => data = (value ? 0x80000000 : 0) | (data & 0x7FFFFFFF);
                 }
@@ -129,7 +155,7 @@ namespace WorldConfig.Generation.Material
         }
 
         /// <summary>
-        /// The apperance of the terrain when the material <see cref="CPUMapManager.MapData.IsGaseous">is gaseous</see>.
+        /// The apperance of the terrain when the material <see cref="MapData.IsGaseous">is gaseous</see>.
         /// A gaseous material will be rendered by the <see cref="AtmosphereBake">atmosphere </see> post process and must describe
         /// its optical interactions since light is permitted to pass through it. See <see href="https://blackmagic919.github.io/AboutMe/2024/09/07/Atmospheric-Scattering/">
         /// here </see> for more information.
@@ -160,7 +186,7 @@ namespace WorldConfig.Generation.Material
             public uint LightIntensity;
         }
 
-        /// <summary>  The apperance of the terrain when the material <see cref="CPUMapManager.MapData.IsLiquid">is liquid</see>.
+        /// <summary>  The apperance of the terrain when the material <see cref="MapData.IsLiquid">is liquid</see>.
         /// A liquid material is under or adjacent to a seperate liquid mesh that displays the surface of the liquid terrain.
         /// If it is adjacent, the mesh will display the material of the closest liquid map entry with the apperance defined below.
         /// </summary> <remarks>If the liquid mesh borders the solid mesh, the liquid mesh will adopt the solid mesh's vertices</remarks>
@@ -215,7 +241,7 @@ namespace WorldConfig.Generation.Material
     }
 
 
-    /// <summary> A utility class to override serialization of <see cref="StructureData.PointInfo"/> into a Unity Inspector format.
+    /// <summary> A utility class to override serialization of <see cref="Structure.StructureData.PointInfo"/> into a Unity Inspector format.
     /// It exposes the internal components of the bitmap so it can be more easily understood by the developer. </summary>
 #if UNITY_EDITOR
     [CustomPropertyDrawer(typeof(MaterialData.TerrainData.GeoShaderInfo))]

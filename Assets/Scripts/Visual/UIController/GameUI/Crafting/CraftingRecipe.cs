@@ -72,7 +72,6 @@ public class CraftingRecipe : Category<CraftingRecipe>{
     /// <param name="index">The index within <see cref="entry"/> of the entry whose material is retrieved</param>
     /// <returns>The material of the entry at the specified <paramref name="index"/></returns>
     public int EntryMat(int index){
-        if(entry.value[index].isDirty) return -1;
         if(Names.value == null) return entry.value[index].material;
         Registry<MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         return reg.RetrieveIndex(Names.value[entry.value[index].material]);

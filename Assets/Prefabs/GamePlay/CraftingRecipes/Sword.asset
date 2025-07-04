@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Sword
   m_EditorClassIdentifier: 
   Name: Sword
+  Tags:
+    Reg:
+      value: []
   Names:
     value:
     - Sword
@@ -21,20 +24,23 @@ MonoBehaviour:
   entry:
     value:
     - data: 116936
-    - data: 2147509348
+    - data: 25700
     - data: 104086
-    - data: 2147483648
-    - data: 2147509348
+    - data: 0
+    - data: 25700
     - data: 104086
-    - data: 2147515773
-    - data: 2147483648
+    - data: 32125
+    - data: 0
     - data: 104086
-    - data: 2147515773
+    - data: 32125
     - data: 169622
-    - data: 2147515773
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147515773
+    - data: 32125
+    - data: 0
+    - data: 0
+    - data: 32125
     - data: 169622
   result:
     data: 255
+  references:
+    version: 2
+    RefIds: []

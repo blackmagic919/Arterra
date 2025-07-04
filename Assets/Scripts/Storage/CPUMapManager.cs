@@ -8,6 +8,9 @@ using Unity.Burst;
 using UnityEditor;
 using TerrainGeneration;
 using WorldConfig;
+using UnityEditor.Playables;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace MapStorage {
     /// <summary>A static centralized location for managing and storing all CPU-side map information,
@@ -25,6 +28,11 @@ namespace MapStorage {
         /// <summary> A dictionary that maps the chunk index to the <see cref="ChunkMapInfo"/> for that chunk. 
         /// See <see cref="ChunkMapInfo"/> for more information.  </summary>
         public static NativeArray<ChunkMapInfo> AddressDict;
+        /// <summary> Optional meta-data map points in a chunk may contain. Certain
+        /// map entries which require special meta data(e.g. chests/containers) should store
+        /// their specific information in this dictionary, accessible via the linearly encoded
+        /// sub-chunk index(MIndex) of the entry they're accessing. </summary>
+        public static Dictionary<uint, object>[] MapMetaData;
         /// <summary> The maximum number of real chunks along each axis that can be saved simultaneously with the game's 
         /// current settings. See <see cref="OctreeTerrain.Octree.GetAxisChunksDepth"/> to see how this is calculated. </summary>
         public static int numChunksAxis;
@@ -55,6 +63,7 @@ namespace MapStorage {
             numChunksAxis = OctreeTerrain.Octree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
 
             _ChunkManagers = new TerrainChunk[numChunks];
+            MapMetaData = new Dictionary<uint, object>[numChunks];
             SectionedMemory = new NativeArray<MapData>(numChunks * numPoints, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             AddressDict = new NativeArray<ChunkMapInfo>(numChunks, Allocator.Persistent, NativeArrayOptions.ClearMemory);
             initialized = true;
@@ -70,6 +79,7 @@ namespace MapStorage {
             SaveAllChunksSync();
             SectionedMemory.Dispose();
             AddressDict.Dispose();
+            MapMetaData = null;
         }
 
         static void SaveAllChunksSync() {
@@ -95,8 +105,9 @@ namespace MapStorage {
 
             EntityManager.ReleaseChunkEntities(CCoord);
             if (!AddressDict[chunkHash].isDirty) return;
-            ChunkPtr chunk = new ChunkPtr(SectionedMemory, chunkHash * numPoints);
-            MapStorage.Chunk.SaveChunkToBinSync(chunk, CCoord);
+            ChunkPtr chunk = new ChunkPtr(MapMetaData[chunkHash],
+                SectionedMemory, chunkHash * numPoints);
+            Chunk.SaveChunkToBinSync(chunk, CCoord);
         }
 
         /// <summary> Allocates a new chunk in the CPU Map Manager. This will setup handlers
@@ -107,18 +118,24 @@ namespace MapStorage {
         /// <see cref="numChunksAxis"/>+1 chunks away from the new chunk, so it is implied
         /// that it should be safe to deallocate if this chunk is to be loaded. </remarks>
         /// <param name="chunk">The Real Terrain Chunk at <i>CCoord</i></param>
+        /// <param name="chunkMeta"> The optional map-entry specific meta data in its flattened storage form</param>
         /// <param name="CCoord">The Coordinate in chunk space of the new chunk to be allocated.</param>
-        public static void AllocateChunk(TerrainChunk chunk, int3 CCoord) {
+        public static void AllocateChunk(
+            TerrainChunk chunk,
+            KeyValuePair<uint, object>[] chunkMeta,
+            int3 CCoord
+        ) {
             int chunkHash = HashCoord(CCoord);
             ChunkMapInfo prevChunk = AddressDict[chunkHash];
-            ChunkMapInfo newChunk = new ChunkMapInfo {
-                CCoord = CCoord,
-                valid = true,
-                isDirty = false
-            };
+            ChunkMapInfo newChunk = new ChunkMapInfo(CCoord);
 
             //Release Previous Chunk
             if (prevChunk.valid) SaveChunk(chunkHash);
+            MapMetaData[chunkHash] = chunkMeta?.ToDictionary(
+                pair => pair.Key, 
+                pair => pair.Value
+            );
+
             AddressDict[chunkHash] = newChunk;
             _ChunkManagers[chunkHash] = chunk;
         }
@@ -204,6 +221,68 @@ namespace MapStorage {
             return false;
         }
 
+        /// <summary> Obtains the metadata of type <i>TMeta</i> at the location. If the metadata at this location
+        /// does not exist or is not of type <i>TMeta</i>, this call will discard the previous information
+        /// and return a new default <i>TMeta</i> object which is now stored at this location. </summary>
+        /// <typeparam name="TMeta">The type of object to obtain; will delete any object not of 
+        /// the requested type and replace it with a new default instance.</typeparam>
+        /// <param name="GCoord">The coordinate in grid space of the map entry whose meta data is being queried</param>
+        /// <param name="ret">The meta data obtained at this location.</param>
+        /// <returns>Whether or not the requested metaData could be obtained. If the metaData cannot be obtained
+        /// it means the system is not capable of tracking it and the caller should not attempt to further use/create
+        ///  the meta data.</returns>
+        public static bool GetOrCreateMapMetaData<TMeta>(int3 GCoord, out TMeta ret) {
+            int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
+            int3 CCoord = (GCoord - MCoord) / mapChunkSize;
+            int3 HCoord = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
+            ret = default;
+
+            int CIndex = HCoord.x * numChunksAxis * numChunksAxis + HCoord.y * numChunksAxis + HCoord.z;
+            ChunkMapInfo mapInfo = AddressDict[CIndex];
+            if (!mapInfo.valid || math.any(mapInfo.CCoord != CCoord))
+                return false;
+
+            uint PIndex = (uint)(MCoord.x * mapChunkSize * mapChunkSize +
+                                 MCoord.y * mapChunkSize + MCoord.z);
+
+            MapMetaData[CIndex] ??= new Dictionary<uint, object>();
+            if (!MapMetaData[CIndex].TryGetValue(PIndex, out object value)) {
+                MapMetaData[CIndex][PIndex] = ret;
+                return true;
+            }
+
+            if (value is TMeta tVal) ret = tVal;
+            else MapMetaData[CIndex][PIndex] = ret;
+            return true;
+        }
+
+        /// <summary> Removes the meta data at the map entry at the specified 
+        /// location if it exists. </summary>
+        /// <param name="GCoord">The coordinate in grid space of the map entry whose 
+        /// meta data is being removed.</param>
+        /// <returns>Whether or not any object was removed. Regardless of the output, the caller is 
+        /// guaranteed that there does not exist meta data  associated
+        /// with this location anymore. </returns>
+        public static bool ClearMapMetaData(int3 GCoord) {
+            int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
+            int3 CCoord = (GCoord - MCoord) / mapChunkSize;
+            int3 HCoord = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
+
+            int CIndex = HCoord.x * numChunksAxis * numChunksAxis + HCoord.y * numChunksAxis + HCoord.z;
+            ChunkMapInfo mapInfo = AddressDict[CIndex];
+            if (!mapInfo.valid || math.any(mapInfo.CCoord != CCoord))
+                return false;
+
+            uint PIndex = (uint)(MCoord.x * mapChunkSize * mapChunkSize +
+                                 MCoord.y * mapChunkSize + MCoord.z);
+
+            MapMetaData[CIndex] ??= new Dictionary<uint, object>();
+            if (!MapMetaData[CIndex].TryGetValue(PIndex, out object value))
+                return false;
+
+            return MapMetaData[CIndex].Remove(PIndex);
+        }
+
         private static uint GetRayPlaneIntersectionX(ref float3 rayOrigin, float3 rayDir, int XPlane, Func<int3, uint> SampleMap) {
             float t = (XPlane - rayOrigin.x) / rayDir.x;
             rayOrigin = new(XPlane, rayOrigin.y + t * rayDir.y, rayOrigin.z + t * rayDir.z);
@@ -245,27 +324,39 @@ namespace MapStorage {
         /// to distance from the center. </summary>
         /// <param name="tPointGS">The center in grid space of the circle that is terraformed</param>
         /// <param name="terraformRadius">The radius in grid space of the circle that is terraformed</param>
-        /// <param name="handleTerraform">The callback that provides map information, how much to modify it, and expects 
-        /// to be returned the new modified map data corresponding to the original map information. </param>
-        public static void Terraform(float3 tPointGS, int terraformRadius, Func<MapData, float, MapData> handleTerraform) {
-            int3 tPointGSInt = (int3)math.floor(tPointGS);
+        /// <param name="handleTerraform">The callback that is given the map coordinate, how much to modify it, and
+        /// is responsible for modifying the terrian and returning whether or not it was modified </param>
+        /// <param name="handlePreTerraform">The optional callback that will be called for every map coordinate before
+        /// any calls to <i>handleTerraform</i> is ever made, returning whether or not to terminate the terraform operation. </param>
+        public static void Terraform(
+            float3 tPointGS,
+            int terraformRadius,
+            Func<int3, float, bool> handleTerraform,
+            Func<int3, bool> handlePreTerraform = null
+        ) {
+            int3 tPointGSInt = (int3)math.round(tPointGS);
 
-            for (int x = -terraformRadius; x <= terraformRadius + 1; x++) {
-                for (int y = -terraformRadius; y <= terraformRadius + 1; y++) {
-                    for (int z = -terraformRadius; z <= terraformRadius + 1; z++) {
-                        int3 GCoord = tPointGSInt + new int3(x, y, z);
-
-                        //Calculate Brush Strength
-                        float3 dR = GCoord - tPointGS;
-                        float sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
-                        float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
-                        MapData sample = SampleMap(GCoord);
-                        if (sample.IsNull) continue; //Skip if null(invalid)
-                        SetMap(handleTerraform(sample, brushStrength), GCoord);
-                        TerrainUpdate.AddUpdate(GCoord);
-                    }
-                }
+            if (handlePreTerraform != null) {
+                bool terminated = false;
+                Utils.CustomUtility.OrderedLoop(terraformRadius, GCoord => {
+                    if (terminated) return;
+                    GCoord += tPointGSInt;
+                    float3 dR = GCoord - tPointGS;
+                    float sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
+                    float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
+                    terminated = handlePreTerraform.Invoke(GCoord);
+                });
+                if (terminated) return;
             }
+
+            Utils.CustomUtility.OrderedLoop(terraformRadius, GCoord => {
+                GCoord += tPointGSInt;
+                float3 dR = GCoord - tPointGS;
+                float sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
+                float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
+                if (handleTerraform(GCoord, brushStrength))
+                    TerrainUpdate.AddUpdate(GCoord);
+            });
         }
 
         /// <summary> Reads back the map information associated with the Chunk Coord(<i>CCoord</i>) from the GPU to the CPU.
@@ -377,8 +468,8 @@ namespace MapStorage {
             return mapData.viscosity;
         }
 
-        /// <summary> The meta-data coordinating access, saving and
-        /// readback of a chunk's map information. Associated via
+        /// <summary> The meta-data coordinating map-metadata storage, access,
+        /// saving and readback of a chunk's map information. Associated via
         /// the chunk index within <see cref="AddressDict"/> to a chunk's
         /// map data </summary>
         public struct ChunkMapInfo {
@@ -392,6 +483,14 @@ namespace MapStorage {
             /// <summary>Whether this chunk will be saved to disk when unloaded from memory. Whether 
             /// any entry within its chunk's map information has been modified. </summary>
             public bool isDirty;
+            /// <summary> Initializes a new <see cref="ChunkMapInfo"/> for the specific
+            /// chunk coordinate of the chunk. </summary>
+            /// <param name="CCoord">The coordinate in chunk space of the chunk being managed</param>
+            public ChunkMapInfo(int3 CCoord) {
+                this.CCoord = CCoord;
+                valid = true;
+                isDirty = false;
+            }
         }
         
         /// <summary> A wrapper structure containing a specific chunk's map data 
@@ -400,15 +499,22 @@ namespace MapStorage {
             /// <summary> A native array containing the chunk's map information at
             /// the offset specified by <see cref="offset"/> </summary>
             public NativeArray<MapData> data;
+            /// <summary> The array containing all map entry meta-data and the index
+            /// identifying them as it will be represented in storage.
+            /// See <see cref="MapMetaData"/> for more information. </summary>
+            public KeyValuePair<uint, object>[] mapMeta;
             /// <summary> The offset within <see cref="data"/> where the map
             /// information of the chunk being stored starts. </summary>
             public int offset;
             /// <summary> A simple constructor creating a ChunkPtr wrapper </summary>
+            /// /// <param name="metaData">The optional map-entry meta data to be stored. See 
+            /// <see cref="MapMetaData"/> for more information</param>
             /// <param name="data">An native array containing the chunk's map information at <see cref="offset"/></param>
             /// <param name="offset">The offset within <see cref="data"/> where the chunk's map information begins</param>
-            public ChunkPtr(NativeArray<MapData> data, int offset) {
+            public ChunkPtr(Dictionary<uint, object> metaData, NativeArray<MapData> data, int offset) {
                 this.data = data;
                 this.offset = offset;
+                mapMeta = metaData?.ToArray();
             }
         }
 

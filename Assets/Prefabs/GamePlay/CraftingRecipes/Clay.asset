@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Clay
   m_EditorClassIdentifier: 
   Name: Clay
+  Tags:
+    Reg:
+      value: []
   Names:
     value:
     - Clay:Solid
@@ -22,19 +25,22 @@ MonoBehaviour:
     value:
     - data: 104086
     - data: 131222
-    - data: 2147483648
-    - data: 2147483648
+    - data: 0
+    - data: 0
     - data: 131222
     - data: 104086
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147483648
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
   result:
     data: 510
+  references:
+    version: 2
+    RefIds: []

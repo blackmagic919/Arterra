@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Chest
   m_EditorClassIdentifier: 
   Name: Chest
+  Tags:
+    Reg:
+      value: []
   Names:
     value:
     - Chest:Solid
@@ -24,12 +27,12 @@ MonoBehaviour:
     - data: 104086
     - data: 104086
     - data: 104086
-    - data: 2147502923
-    - data: 2147502923
+    - data: 19275
+    - data: 19275
     - data: 104086
     - data: 104086
-    - data: 2147502923
-    - data: 2147502923
+    - data: 19275
+    - data: 19275
     - data: 104086
     - data: 104086
     - data: 104086
@@ -37,3 +40,6 @@ MonoBehaviour:
     - data: 104086
   result:
     data: 128
+  references:
+    version: 2
+    RefIds: []

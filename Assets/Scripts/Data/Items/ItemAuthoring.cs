@@ -74,16 +74,16 @@ public class Authoring : Category<Authoring>
     public interface IItem : ICloneable, IRegistered
     {
         /// <summary> Whether the item can be stacked with other items of the same type. If the item is stackable,
-        /// when another item of the same <see cref="Index"/> is encountered it may be combined with the
+        /// when another item of the same <see cref="IRegistered.Index"/> is encountered it may be combined with the
         /// current item and the <see cref="AmountRaw"/> increased to the sum the amounts of the two items.
         /// All items representing materials should be stackable by default. </summary>
         public bool IsStackable { get; }
         /// <summary> The amount of the item that is stored. Used when determing how to stack identical items </summary>
         public int AmountRaw { get; set; }
-        /// <summary> The index within the <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see> of the item's texture.
-        /// This is obtained by using the <see cref="Index"/> within the <see cref="WorldConfig.Config.GenerationSettings.Items"> item registry </see>
+        /// <summary> The index within the <see cref="Config.GenerationSettings.Textures"> texture registry </see> of the item's texture.
+        /// This is obtained by using the <see cref="IRegistered.Index"/> within the <see cref="WorldConfig.Config.GenerationSettings.Items"> item registry </see>
         /// to obtain the <see cref="Authoring.TextureName"/> of the texture which can be used to find the texture in the external
-        /// <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see>. See <seealso cref="Authoring.TextureName"/> for
+        /// <see cref="Config.GenerationSettings.Textures"> texture registry </see>. See <seealso cref="Authoring.TextureName"/> for
         /// more information. </summary>
         public int TexIndex { get; }
         

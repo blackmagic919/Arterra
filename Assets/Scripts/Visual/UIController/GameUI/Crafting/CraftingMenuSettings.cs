@@ -28,10 +28,6 @@ public class Crafting : ScriptableObject{
     /// <summary> When a user's cursor hovers closer to a grid corner, how large the grid corner point grows.
     /// This is used to help the user see where they are placing materials.  </summary>
     public int PointSizeMultiplier; //2
-    /// <summary> The IsoValue that is used to create the visual representation of the crafted recipe. Though this is
-    /// seperately configurable, it should generally be the same as <see cref="WorldConfig.Quality.Terrain.IsoLevel"/>
-    /// to avoid confusion. </summary>
-    public uint CraftingIsoValue; //128
 
     /// <summary> The maximum L1 distance between a recipe entry and the player's crafting grid
     /// for the recipe to be displayed in the crafting menu. The point is to show only the 

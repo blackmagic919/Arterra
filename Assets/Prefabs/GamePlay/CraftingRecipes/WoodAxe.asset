@@ -24,18 +24,18 @@ MonoBehaviour:
   entry:
     value:
     - data: 116936
-    - data: 2147509348
-    - data: 2147483648
-    - data: 2147483648
-    - data: 2147509348
+    - data: 25700
+    - data: 0
+    - data: 0
+    - data: 25700
     - data: 104086
-    - data: 2147488788
-    - data: 2147483648
-    - data: 2147483648
+    - data: 5140
+    - data: 0
+    - data: 0
     - data: 169622
     - data: 104086
-    - data: 2147502923
-    - data: 2147502923
+    - data: 19275
+    - data: 19275
     - data: 169622
     - data: 177332
     - data: 182472

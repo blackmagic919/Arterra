@@ -97,7 +97,7 @@ public static class Chunk
             mapStream.Seek(0, SeekOrigin.Begin);
             mapStream.CopyTo(fs);
             mapStream.Close();
-
+            
             fs.Flush();
             fs.Close();
         }
@@ -137,7 +137,7 @@ public static class Chunk
             dCC = (dSC << depth) / maxChunkSize;
             int3 sCC = CCoord + dCC;
             if(!chunkFinder.TryGetMapChunk(sCC, out string chunkAdd)) continue;
-            MapData[] chunkMap = ReadChunkBin(chunkAdd, clampedDepth);
+            MapData[] chunkMap = ReadChunkBin(chunkAdd, clampedDepth, out _);
             CopyTo(map, chunkMap, dSC, clampedDepth);
         }}}
         return map;
@@ -163,8 +163,11 @@ public static class Chunk
     /// <returns>The aggregate information associated with the chunk as a <see cref="ReadbackInfo"/>. </returns>
     public static ReadbackInfo ReadChunkInfo(int3 CCoord){
         ReadbackInfo info = new ReadbackInfo(false);
-        if(chunkFinder.TryGetMapChunk(CCoord, out string chunkAdd)) info.map = ReadChunkBin(chunkAdd, 0);
-        if(chunkFinder.TryGetEntityChunk(CCoord, out string entityAdd)) info.entities = ReadEntityJson(entityAdd);
+        if (chunkFinder.TryGetMapChunk(CCoord, out string chunkAdd)) {
+            info.map = ReadChunkBin(chunkAdd, 0, out ChunkHeader header);
+            info.mapMeta = header.MapEntryMetaData;
+        }
+        if (chunkFinder.TryGetEntityChunk(CCoord, out string entityAdd)) info.entities = ReadEntityJson(entityAdd);
         return info;
     }
     
@@ -178,15 +181,17 @@ public static class Chunk
     /// and is a properly formatted chunk-map file. </param>
     /// <param name="depth">The resolution within of the map to be sampled from the file. Chunk files contain multiple
     /// resolutions of their maps compressed seperately, see <see cref="ChunkHeader"/> for more information. </param>
+    /// <param name="header">The deserialized <see cref="ChunkHeader">header</see> stored in the beginning of the file. All
+    /// requests to read a chunk's MapData must deserialize this header. </param>
     /// <returns>The linearly encoded map data associated with the requested resolution of the chunk</returns>
-    public static MapData[] ReadChunkBin(string fileAdd, int depth)
+    public static MapData[] ReadChunkBin(string fileAdd, int depth, out ChunkHeader header)
     {
         try{
             MapData[] map = null;
             //Caller has to copy for persistence
             using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read))
             {
-                uint mapStart = ReadChunkHeader(fs, out ChunkHeader header);
+                uint mapStart = ReadChunkHeader(fs, out header);
                 if(depth != 0) mapStart += (uint)header.ResolutionOffsets[depth - 1];
                 fs.Seek(mapStart, SeekOrigin.Begin);
                 map = ReadChunkMap(fs, maxChunkSize >> depth);
@@ -195,9 +200,11 @@ public static class Chunk
             return map;
         } catch (Exception e){
             Debug.Log($"Failed on Reading Chunk Data for Chunk: {fileAdd} with exception {e}");
+            header = default;
             return null;
         }
     }
+    
 
     /// <summary>
     /// Reads the entity information associated with a chunk file at the specified address.
@@ -251,7 +258,10 @@ public static class Chunk
             dict[pair.Value] = mReg.RetrieveName(pair.Key);
         }
 
-        return new ChunkHeader{ RegisterNames = dict.ToList() };
+        return new ChunkHeader {
+            RegisterNames = dict.ToList(),
+            MapEntryMetaData = chunk.mapMeta
+        };
     }
 
     private static void DeserializeHeader(ref MapData[] map, ref ChunkHeader header){
@@ -263,6 +273,7 @@ public static class Chunk
 
     private static MemoryStream WriteChunkHeader(object header){
         MemoryStream ms = new MemoryStream();
+        if(header == null) return ms; 
         ms.Seek(4, SeekOrigin.Begin);
 
         string json = JsonConvert.SerializeObject(header, Formatting.Indented);
@@ -366,6 +377,9 @@ public static class Chunk
         /// of each resolution's compressed map data. This can be used to selectively jump to a specific resolution's
         /// map information and only decompress/process it if other resolutions are not needed. </summary>
         public List<int> ResolutionOffsets;
+        /// <summary> The map-entry specific meta data and the index identifying its location 
+        /// flattened out in the same format it will be represented when stored. </summary>
+        public KeyValuePair<uint, object>[] MapEntryMetaData;
     }
 
     /// <summary>
@@ -385,21 +399,27 @@ public static class Chunk
         /// with the chunk. See <see cref="MapData"/> for more information.
         /// </summary>
         public MapData[] map;
+        /// <summary> An array of all the deserialized <see cref="ChunkHeader.MapEntryMetaData"/> entries associated
+        /// with the chunk. See <see cref="ChunkHeader.MapEntryMetaData"/> for more information. </summary>
+        public KeyValuePair<uint, object>[] mapMeta;
 
         /// <summary>A constructor to initialize a default instance of
         /// <see cref="ReadbackInfo"/> which zeroes all fields. </summary>
         /// <param name="_">A dummy paramater</param>
-        public ReadbackInfo(bool _){
+        public ReadbackInfo(bool _) {
             entities = null;
             map = null;
+            mapMeta = null; 
         }
 
         /// <summary> Creates an instance of <see cref="ReadbackInfo"/> to 
         /// wrap the specified information.</summary>
         /// <param name="map">The list of deserialized <see cref="map">MapData</see> to wrap.</param>
+        /// <param name="mapMeta">The list of deserialized MapMetaData to wrap. </param>
         /// <param name="entities">The list of deserialized <see cref="entities">entities</see> to wrap.</param>
-        public ReadbackInfo(MapData[] map, List<Entity> entities){
+        public ReadbackInfo(MapData[] map, KeyValuePair<uint, object>[] mapMeta, List<Entity> entities){
             this.entities = entities;
+            this.mapMeta = mapMeta;
             this.map = map;
         }
     }

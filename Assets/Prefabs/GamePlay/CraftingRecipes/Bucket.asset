@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Bucket
   m_EditorClassIdentifier: 
   Name: Bucket
+  Tags:
+    Reg:
+      value: []
   Names:
     value:
     - Bucket
@@ -24,16 +27,19 @@ MonoBehaviour:
     - data: 104086
     - data: 104086
     - data: 104086
-    - data: 2147490073
-    - data: 2147490073
-    - data: 2147490073
+    - data: 6425
+    - data: 6425
+    - data: 6425
     - data: 104086
-    - data: 2147490073
-    - data: 2147490073
-    - data: 2147490073
+    - data: 6425
+    - data: 6425
+    - data: 6425
     - data: 104086
     - data: 104086
     - data: 104086
     - data: 104086
   result:
     data: 255
+  references:
+    version: 2
+    RefIds: []
