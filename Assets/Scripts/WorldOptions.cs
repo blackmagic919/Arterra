@@ -194,6 +194,7 @@ namespace WorldConfig
             /// during runtime and is not customizable by the user. If a certain member has a UIModifiable attribute
             /// defined, the gameplay menu will trigger a hook associated with that name if it or any sub-member is changed.
             /// </summary>
+            [NonSerialized]
             [HideInInspector]
             [JsonIgnore]
             [UISetting(Ignore = true)]

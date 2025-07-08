@@ -90,7 +90,7 @@ public class ConsumbaleItem : IItem{
 
         delta = AmountRaw - math.max(AmountRaw - delta, 0);
         player.vitality.Heal(delta / 255.0f * settings.NutritionValue);
-        InventoryController.RemoveMaterial(delta);
+        InventoryController.RemoveStackable(delta, Index);
     }
     
     private void UpdateDisplay(){

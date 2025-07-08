@@ -21,12 +21,6 @@ MonoBehaviour:
     - Key: 324
       PollType: 2
       IsAlias: 0
-    - Key: 304
-      PollType: 1
-      IsAlias: 0
-    - Key: 303
-      PollType: 1
-      IsAlias: 0
   references:
     version: 2
     RefIds: []

@@ -12,9 +12,9 @@ public static class GameUIManager
         PauseHandler.Initialize();
         GameOverHandler.Initialize();
 
+        PanelNavbarManager.Initialize();
         InventoryController.Initialize();
         DayNightContoller.Initialize();
-        CraftingMenuController.Initialize();
         PlayerStatDisplay.Initialize();
     }
 

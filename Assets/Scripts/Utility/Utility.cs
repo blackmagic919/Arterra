@@ -191,7 +191,7 @@ namespace Utils {
                             if (minorAxis == 0) SignDecode(4, s => PlaceDecodeSmall(new int3(minorAxis, s.x * majorAxis, s.y * intAxis), cb));
                             else SignDecode(8, s => PlaceDecodeSmall(new int3(s.x * minorAxis, s.y * majorAxis, s.z * intAxis), cb));
                         } else if (intAxis == minorAxis) {
-                            if (minorAxis == 0) SignDecode(4, s => PlaceDecodeSmall(new int3(majorAxis, s.x * intAxis, s.y * minorAxis), cb));
+                            if (minorAxis == 0) SignDecode(2, s => PlaceDecodeSmall(new int3(majorAxis * s.x, intAxis, minorAxis), cb));
                             else SignDecode(8, s => PlaceDecodeSmall(new int3(s.x * majorAxis, s.y * intAxis, s.z * minorAxis), cb));
                         } else {
                             if (minorAxis == 0) SignDecode(4, s => PlaceDecodeLarge(new int3(minorAxis, s.x * intAxis, s.y * majorAxis), cb));
@@ -208,8 +208,8 @@ namespace Utils {
         planning = 0,
         structure = 1,
         generation = 2,
-        mesh = 3,
-        visual = 4,
+        assignment = 3,
+        mesh = 4,
         propogation = 5,
         
 

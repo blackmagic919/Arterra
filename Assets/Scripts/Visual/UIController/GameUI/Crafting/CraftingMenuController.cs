@@ -10,32 +10,32 @@ using WorldConfig.Generation.Item;
 using WorldConfig.Intrinsic;
 using MapStorage;
 
-public static class CraftingMenuController
-{
-    private static Crafting settings;
-    private static KTree Recipe;
-    private static GameObject craftingMenu;
-    private static MapData[] craftingData;
-    private static Display Rendering;
-    public static int FitRecipe = -1;
-    private static UpdateTask eventTask;
+public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
+    private Crafting settings;
+    private KTree Recipe;
+    private GameObject craftingMenu;
+    private MapData[] craftingData;
+    private Display Rendering;
+    private UpdateTask eventTask;
+    public int FitRecipe = -1;
 
-    private static int GridWidth;
-    private static int AxisWidth => GridWidth + 1;
-    private static int GridCount => AxisWidth * AxisWidth;
-    private static int2 GridSize => (int2)(float2)Rendering.crafting.Transform.sizeDelta / GridWidth;
+    private int GridWidth;
+    private int AxisWidth => GridWidth + 1;
+    private int GridCount => AxisWidth * AxisWidth;
+    private int2 GridSize => (int2)(float2)Rendering.crafting.Transform.sizeDelta / GridWidth;
+    private uint Fence = 0;
 
-    public struct Display{
+    public struct Display {
         public Grid crafting;
         public Grid[] selections;
         public RectTransform[] corners;
         public ComputeBuffer craftingBuffer;
         public bool IsDirty;
-        public struct Grid{
+        public struct Grid {
             public GameObject Object;
             public RectTransform Transform;
             public Image Display;
-            public Grid(GameObject obj){
+            public Grid(GameObject obj) {
                 Object = obj;
                 Transform = obj.GetComponent<RectTransform>();
                 Display = obj.GetComponent<Image>();
@@ -44,36 +44,59 @@ public static class CraftingMenuController
     }
 
     // Start is called before the first frame update
-    public static void Initialize()
-    {
-        settings = Config.CURRENT.System.Crafting.value;
-        craftingMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/CraftingMenu"), GameUIManager.UIHandle.transform);
-        SetupCraftingGrid();
-    }
-
-    private static void SetupCraftingGrid(){
+    public CraftingMenuController(Crafting settings) {
+        this.settings = settings;
+        craftingMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Crafting/CraftingMenu"), GameUIManager.UIHandle.transform);
+        
         GridWidth = settings.GridWidth;
         int numMapTotal = GridCount * (settings.NumMaxSelections + 1);
         craftingData = new MapData[numMapTotal];
         Rendering.craftingBuffer = new ComputeBuffer(numMapTotal, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
 
-        Recipe.ConstructTree(settings.Recipes.Reg.ToArray(), dim: GridCount);
+        Recipe.ConstructTree(settings.Recipes.Reg.Select(r => r.Recipe).ToArray(), dim: GridCount);
         InitializeCraftingArea();
         InitializeSelections();
         craftingMenu.SetActive(false);
+        Fence = 0;
     }
 
-    public static void Release(){
-        Rendering.craftingBuffer.Release();
+    public void Release(){ Rendering.craftingBuffer.Release(); }
+
+    public Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(settings.DisplayIcon).self;
+    public GameObject GetDispContent() => craftingMenu;
+    
+    public void Activate() {
+        eventTask = new IndirectUpdate(Update);
+        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
+        InputPoller.AddKeyBindChange(() => {
+            Fence = InputPoller.AddContextFence("3.0::Window", InputPoller.ActionBind.Exclusion.None);
+            InputPoller.AddBinding(new InputPoller.ActionBind("Craft", CraftEntry), "3.0::Window");
+            InputPoller.AddBinding(new InputPoller.ActionBind("Place", AddMaterial), "3.0::Window");
+            InputPoller.AddBinding(new InputPoller.ActionBind("Remove", RemoveMaterial), "3.0::Window");
+        });
+
+        Clear();
+        UpdateDisplay();
+        craftingMenu.SetActive(true);
+    }
+    
+    public void Deactivate() {
+        eventTask.active = false;
+        for (int i = 0; i < GridCount; i++) {
+            if (craftingData[i].density == 0) continue;
+            InventoryAddMapData(craftingData[i]);
+        }
+        InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence(Fence, "3.0::Window"));
+        craftingMenu.SetActive(false);
     }
 
-    static void InitializeCraftingArea(){
+    private void InitializeCraftingArea() {
         Rendering.crafting = new Display.Grid(craftingMenu.transform.Find("CraftingGrid").gameObject);
 
-        GameObject craftingPoint = Resources.Load<GameObject>("Prefabs/GameUI/CraftingPoint");
+        GameObject craftingPoint = Resources.Load<GameObject>("Prefabs/GameUI/Crafting/CraftingPoint");
         Rendering.corners = new RectTransform[GridCount];
 
-        for(int i = 0; i < GridCount; i++){
+        for (int i = 0; i < GridCount; i++) {
             Rendering.corners[i] = GameObject.Instantiate(craftingPoint, Rendering.crafting.Transform).GetComponent<RectTransform>();
             Rendering.corners[i].transform.Translate(new Vector3((i / AxisWidth) * GridSize.x, (i % AxisWidth) * GridSize.y, 0));
         }
@@ -85,9 +108,9 @@ public static class CraftingMenuController
         Rendering.IsDirty = false;
     }
 
-    static void InitializeSelections(){
+    private void InitializeSelections(){
         GameObject SelectionArea = craftingMenu.transform.GetChild(1).GetChild(0).GetChild(0).gameObject;
-        GameObject SelectionGrid = Resources.Load<GameObject>("Prefabs/GameUI/CraftingSelection");
+        GameObject SelectionGrid = Resources.Load<GameObject>("Prefabs/GameUI/Crafting/CraftingSelection");
         Rendering.selections = new Display.Grid[settings.NumMaxSelections];
         for(int i = 0; i < settings.NumMaxSelections; i++){
             Display.Grid grid = new(GameObject.Instantiate(SelectionGrid, SelectionArea.transform));
@@ -96,14 +119,14 @@ public static class CraftingMenuController
         }
     }
 
-    static void UpdateDisplay(){
+    private void UpdateDisplay(){
         if(!Rendering.IsDirty) return;
         Rendering.IsDirty = false;
         Rendering.craftingBuffer.SetData(craftingData);
     }
 
     // Update is called once per frame
-    public static void Update(MonoBehaviour mono)
+    private void Update(MonoBehaviour mono)
     {
         if(!eventTask.active) return; 
         
@@ -117,7 +140,7 @@ public static class CraftingMenuController
         UpdateDisplay();
     }   
 
-    private static void EvaluateInfluence(Action<int2, float> callback){
+    private void EvaluateInfluence(Action<int2, float> callback){
         int2 origin = (int2)((float3)Rendering.crafting.Transform.position).xy - GridSize * GridWidth;
         float2 relativePos = (((float3)Input.mousePosition).xy - origin) / GridSize;
         int2 gridPos = (int2)math.clamp(relativePos, 0, GridWidth - 1);
@@ -129,21 +152,21 @@ public static class CraftingMenuController
         }
     }
 
-    public static void AddMaterial(float _){
+    private void AddMaterial(float _){
         EvaluateInfluence((int2 corner, float influence) => {
             int index = corner.x * AxisWidth + corner.y;
             UpdateCrafting(index, HandleAddConservative(craftingData[index], influence));
         });
     }
 
-    public static void RemoveMaterial(float _){
+    private void RemoveMaterial(float _){
         EvaluateInfluence((int2 corner, float influence) => {
             int index = corner.x * AxisWidth + corner.y;
             UpdateCrafting(index, HandleRemoveConservative(craftingData[index], influence));
         });
     }
 
-    public static bool CraftRecipe(out IItem result){
+    public bool CraftRecipe(out IItem result){
         result = null;
         if(FitRecipe == -1) return false;
 
@@ -169,7 +192,7 @@ public static class CraftingMenuController
         return true;
     }
 
-    private static void UpdateCrafting(int index, MapData map){
+    private void UpdateCrafting(int index, MapData map){
         MapData oldMap = craftingData[index];
         craftingData[index] = map;
         if(oldMap.material != map.material ||
@@ -181,7 +204,7 @@ public static class CraftingMenuController
         
     }
 
-    private static void RefreshSelections(){
+    private void RefreshSelections(){
         CraftingRecipe target = new CraftingRecipe{entry = new Option<List<MapData>>{ value = craftingData.ToList() }};
         for(int i = 0; i < craftingData.Length; i++){
             MapData p = target.entry.value[i];
@@ -207,7 +230,7 @@ public static class CraftingMenuController
         }
     }
 
-    public static void Clear(){
+    public void Clear(){
         for(int i = 0; i < craftingData.Length; i++){
             craftingData[i] = new MapData();
         } Rendering.IsDirty = true; 
@@ -215,17 +238,16 @@ public static class CraftingMenuController
             Rendering.selections[i].Object.SetActive(false);
         } FitRecipe = -1;
     }
-
-    public static void Activate(){
-        eventTask = new IndirectUpdate(Update);
-        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
-
+    
+     private void CraftEntry(float _) {
+        if (!CraftRecipe(out IItem result) || result == null)
+            return;
+        InventoryController.AddEntry(result);
         Clear();
-        UpdateDisplay();//
-        craftingMenu.SetActive(true);
     }
 
-    private static void InventoryAddMapData(MapData data){
+
+    private void InventoryAddMapData(MapData data) {
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
 
         if (data.LiquidDensity != 0) {
@@ -240,24 +262,14 @@ public static class CraftingMenuController
         }
     }
 
-    public static void Deactivate(){
-        eventTask.active = false;
-        for(int i = 0; i < GridCount; i++){
-            if(craftingData[i].density == 0) continue;
-            InventoryAddMapData(craftingData[i]);
-        }
-
-        craftingMenu.SetActive(false);
-    }
-
-    static int GetStaggeredDelta(int baseDensity, float deltaDensity){
+    private int GetStaggeredDelta(int baseDensity, float deltaDensity){
         int staggeredDelta = Mathf.FloorToInt(deltaDensity);
         staggeredDelta += (deltaDensity % 1) == 0 ? 0 : (Time.frameCount % Mathf.CeilToInt(1 / (deltaDensity % 1))) == 0 ? 1 : 0;
         staggeredDelta = Mathf.Abs(Mathf.Clamp(baseDensity + staggeredDelta, 0, 255) - baseDensity);
         return staggeredDelta;
     }
 
-    static MapData HandleAddConservative(MapData pointInfo, float brushStrength){
+    private MapData HandleAddConservative(MapData pointInfo, float brushStrength){
         brushStrength *= settings.CraftSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
         if(InventoryController.Selected == null) return pointInfo;
@@ -270,13 +282,13 @@ public static class CraftingMenuController
         if(pointInfo.IsGaseous && pointInfo.material != selected){
             InventoryAddMapData(pointInfo);
 
-            pointInfo.density = InventoryController.RemoveMaterial(pointInfo.density);
+            pointInfo.density = InventoryController.RemoveStackable(pointInfo.density);
             pointInfo.viscosity = sItemSetting.IsSolid ? pointInfo.density : 0;
             pointInfo.material = selected;
         }else if(pointInfo.material == selected){
             //If adding solid density, override water
             int deltaDensity = GetStaggeredDelta(pointInfo.density, brushStrength);
-            deltaDensity = InventoryController.RemoveMaterial(deltaDensity);
+            deltaDensity = InventoryController.RemoveStackable(deltaDensity);
 
             pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
             if(sItemSetting.IsSolid) pointInfo.viscosity = pointInfo.density;
@@ -285,7 +297,7 @@ public static class CraftingMenuController
         return pointInfo;
     }
 
-    static MapData HandleRemoveConservative(MapData pointInfo, float brushStrength){
+    private MapData HandleRemoveConservative(MapData pointInfo, float brushStrength){
         brushStrength *= settings.CraftSpeed * Time.deltaTime;
         if(brushStrength == 0) return pointInfo;
         

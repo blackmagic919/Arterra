@@ -16,30 +16,31 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
-  Names:
-    value:
-    - PlantMatter:Solid
-    - Grass
-  entry:
-    value:
-    - data: 104086
-    - data: 104086
-    - data: 0
-    - data: 0
-    - data: 104086
-    - data: 104086
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-  result:
-    data: 255
+  Recipe:
+    Names:
+      value:
+      - PlantMatter:Solid
+      - Grass
+    entry:
+      value:
+      - data: 104086
+      - data: 104086
+      - data: 0
+      - data: 0
+      - data: 104086
+      - data: 104086
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+    result:
+      data: 255
   references:
     version: 2
     RefIds: []

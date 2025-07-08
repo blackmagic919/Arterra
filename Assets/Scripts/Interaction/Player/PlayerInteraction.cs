@@ -55,8 +55,7 @@ public static class PlayerInteraction
 
 
     // Start is called before the first frame update
-    public static void Initialize()
-    {
+    public static void Initialize() {
         InputPoller.AddBinding(new InputPoller.ActionBind("Place", PlaceTerrain), "5.0::GamePlay");
         InputPoller.AddBinding(new InputPoller.ActionBind("Remove", RemoveTerrain), "5.0::GamePlay");
     }
@@ -77,7 +76,8 @@ public static class PlayerInteraction
         return CPUMapManager.RayCastTerrain(data.position, PlayerHandler.camera.forward, settings.ReachDistance, RayTestLiquid, out hitPt);
     }
 
-    public static void PlaceTerrain(float _){
+    private static void PlaceTerrain(float _){
+        if (!PlayerHandler.active) return;
         bool rayHit = false;
         float3 hitPt = data.position + (float3)PlayerHandler.camera.forward * settings.ReachDistance;
         if (RayTestSolid(data, out float3 terrHit)) {
@@ -105,13 +105,14 @@ public static class PlayerInteraction
         ), CallOnMapPlacing);
     }
 
-    public static void RemoveTerrain(float _)
+    private static void RemoveTerrain(float _)
     {   
+        if (!PlayerHandler.active) return;
         if (!RayTestSolid(data, out float3 hitPt)) return;
         if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var entity)){
             return;
         }
-        
+
         PlayerHandler.data.animator.SetTrigger("IsPlacing");
         CPUMapManager.Terraform(hitPt, settings.TerraformRadius,
             RemoveSolidBareHand, CallOnMapRemoving);
@@ -171,7 +172,7 @@ public static class PlayerInteraction
         //If adding solid density, override water
         MapData delta = pointInfo;
         delta.density = GetStaggeredDelta(solidDensity, brushStrength);
-        delta.density = InventoryController.RemoveMaterial(delta.density);
+        delta.density = InventoryController.RemoveStackable(delta.density, matItem.Index);
         delta.viscosity = delta.density;
 
         solidDensity += delta.density;
@@ -181,8 +182,8 @@ public static class PlayerInteraction
         pointInfo.viscosity += delta.viscosity;
         if(solidDensity >= CPUMapManager.IsoValue)
             pointInfo.material = selected;
-        CPUMapManager.SetMap(pointInfo, GCoord);
         matInfo.Retrieve(pointInfo.material).OnPlaced(GCoord, delta);
+        CPUMapManager.SetMap(pointInfo, GCoord);
         return true;
     }
 
@@ -208,7 +209,7 @@ public static class PlayerInteraction
         MapData delta = pointInfo;
         delta.viscosity = 0;
         delta.density = GetStaggeredDelta(pointInfo.density, brushStrength);
-        delta.density = InventoryController.RemoveMaterial(delta.density);
+        delta.density = InventoryController.RemoveStackable(delta.density, matItem.Index);
 
         pointInfo.density += delta.density;
         liquidDensity += delta.density;
@@ -244,8 +245,8 @@ public static class PlayerInteraction
         }
         pointInfo.viscosity -= delta.viscosity;
         pointInfo.density -= delta.density;
-        CPUMapManager.SetMap(pointInfo, GCoord);
         matInfo.Retrieve(pointInfo.material).OnRemoved(GCoord, delta);
+        CPUMapManager.SetMap(pointInfo, GCoord);
         return true;
     }
 
@@ -267,8 +268,8 @@ public static class PlayerInteraction
             if (prevAmount == matItem.AmountRaw) return false;
         }
         pointInfo.density -= delta.density;
-        CPUMapManager.SetMap(pointInfo, GCoord);
         matInfo.Retrieve(pointInfo.material).OnRemoved(GCoord, delta);
+        CPUMapManager.SetMap(pointInfo, GCoord);
         return true;
     }
 

@@ -17,6 +17,10 @@ namespace WorldConfig.Intrinsic{
 /// </summary>
 [CreateAssetMenu(menuName = "Settings/Crafting/Options")]
 public class Crafting : ScriptableObject{
+    /// <summary> The name of the texture within the texture registry of 
+    /// the icon displayed on the <see cref="PanelNavbarManager">Navbar</see>
+    /// referring to Crafting.  </summary>
+    public string DisplayIcon;
     /// <summary> The width of the square grid in terms of grid spaces. As recipe entries are stored on 
     /// grid corners, the amount of entries necessary to fill the grid is <c> (GridWidth + 1)^2 </c>. 
     /// If the grid width changes all recipes must be modified to refit the new grid size. </summary>
@@ -38,6 +42,6 @@ public class Crafting : ScriptableObject{
     /// within <see cref="MaxRecipeDistance"/> of the player's crafting grid. </summary>
     public int NumMaxSelections; //5
     /// <summary> The registry of all recipes that can be crafted within the game. See <see cref="Recipe"/> for more information. </summary>
-    public Registry<CraftingRecipe> Recipes; 
+    public Registry<CraftingAuthoring> Recipes; 
 }
 }

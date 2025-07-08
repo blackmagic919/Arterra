@@ -13,28 +13,29 @@ MonoBehaviour:
   m_Name: Brick
   m_EditorClassIdentifier: 
   Name: Brick
-  Names:
-    value:
-    - Brick:Solid
-    - Stone
-    - Clay
-  entry:
-    value:
-    - data: 104086
-    - data: 169622
-    - data: 104086
-    - data: 169622
-    - data: 104086
-    - data: 169622
-    - data: 104086
-    - data: 169622
-    - data: 104086
-    - data: 169622
-    - data: 104086
-    - data: 169622
-    - data: 104086
-    - data: 169622
-    - data: 104086
-    - data: 169622
-  result:
-    data: 255
+  Recipe:
+    Names:
+      value:
+      - Brick:Solid
+      - Stone
+      - Clay
+    entry:
+      value:
+      - data: 104086
+      - data: 169622
+      - data: 104086
+      - data: 169622
+      - data: 104086
+      - data: 169622
+      - data: 104086
+      - data: 169622
+      - data: 104086
+      - data: 169622
+      - data: 104086
+      - data: 169622
+      - data: 104086
+      - data: 169622
+      - data: 104086
+      - data: 169622
+    result:
+      data: 255

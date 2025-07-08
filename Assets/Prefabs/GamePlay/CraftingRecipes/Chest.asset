@@ -16,30 +16,31 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
-  Names:
-    value:
-    - Chest:Solid
-    - Plank
-  entry:
-    value:
-    - data: 104086
-    - data: 104086
-    - data: 104086
-    - data: 104086
-    - data: 104086
-    - data: 19275
-    - data: 19275
-    - data: 104086
-    - data: 104086
-    - data: 19275
-    - data: 19275
-    - data: 104086
-    - data: 104086
-    - data: 104086
-    - data: 104086
-    - data: 104086
-  result:
-    data: 128
+  Recipe:
+    Names:
+      value:
+      - Chest:Solid
+      - Plank
+    entry:
+      value:
+      - data: 104086
+      - data: 104086
+      - data: 104086
+      - data: 104086
+      - data: 104086
+      - data: 19275
+      - data: 19275
+      - data: 104086
+      - data: 104086
+      - data: 19275
+      - data: 19275
+      - data: 104086
+      - data: 104086
+      - data: 104086
+      - data: 104086
+      - data: 104086
+    result:
+      data: 128
   references:
     version: 2
     RefIds: []

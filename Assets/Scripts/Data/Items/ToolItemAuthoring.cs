@@ -127,7 +127,7 @@ namespace WorldConfig.Generation.Item
                 return true;
             }
 
-            CPUMapManager.Terraform(hitPt, localSettings.TerraformRadius, RemoveSolid);
+            CPUMapManager.Terraform(hitPt, localSettings.TerraformRadius, RemoveSolid, CallOnMapRemoving);
             UpdateDisplay();
 
             if (durability > 0) return;

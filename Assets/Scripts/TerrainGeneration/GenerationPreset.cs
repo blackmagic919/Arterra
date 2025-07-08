@@ -30,6 +30,9 @@ public static class SystemProtocol{
         LightBaker.Initialize();
         StartupPlacer.Initialize();
 
+        TerrainUpdate.Initialize();
+        //We need to make sure keybinds are rebound in the same order
+        //as the state they were saved at
         InputPoller.Initialize();
         PlayerHandler.Initialize();
         GameUIManager.Initialize();

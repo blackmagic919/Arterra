@@ -50,8 +50,8 @@ public static class PlayerHandler
     public static PlayerStreamer.Player data;
     public static CameraEffects cEffects;
     public static Transform camera;
-    private static bool active = false;
-    public static void Initialize(){
+    public static bool active = false;
+    public static void Initialize() {
         active = false;
         data = LoadPlayerData();
         EntityManager.CreateE(data);
@@ -61,6 +61,8 @@ public static class PlayerHandler
         cEffects = new CameraEffects();
         OctreeTerrain.viewer = camera; //set octree's viewer to current player
 
+        PlayerMovement.Initialize();
+        PlayerInteraction.Initialize();
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(new IndirectUpdate(Update));
         OctreeTerrain.MainFixedUpdateTasks.Enqueue(new IndirectUpdate(FixedUpdate));
     }
@@ -68,12 +70,9 @@ public static class PlayerHandler
     // Update is called once per frame
     public static void Update(MonoBehaviour mono) { 
         if(!data.active) return;
-        if(!active && OctreeTerrain.RequestQueue.IsEmpty) {
-            PlayerMovement.Initialize();
-            PlayerInteraction.Initialize();
-            TerrainUpdate.Initialize();
+        if(!active && OctreeTerrain.RequestQueue.IsEmpty)
             active = true;
-        } if(!active) return;
+        if(!active) return;
         PlayerMovement.Update();
         camera.localRotation = data.cameraRot;
         PlayerStatDisplay.UpdateIndicator(data.vitality);
@@ -92,18 +91,18 @@ public static class PlayerHandler
 
     public static void Release(){
         InputPoller.SetCursorLock(false); //Release Cursor Lock
-        Task.Run(() => SavePlayerData(new Registerable<PlayerStreamer.Player>(data)));
-        InventoryController.Release();
+        SavePlayerData(new Registerable<PlayerStreamer.Player>(data));
+        PanelNavbarManager.Release();
     }
     
 
-    static async Task SavePlayerData(Registerable<PlayerStreamer.Player> playerInfo){
+    static void SavePlayerData(Registerable<PlayerStreamer.Player> playerInfo){
         string path = MapStorage.World.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
         using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)){
             using StreamWriter writer = new StreamWriter(fs);
             string data = Newtonsoft.Json.JsonConvert.SerializeObject(playerInfo);
-            await writer.WriteAsync(data);
-            await writer.FlushAsync();
+            writer.Write(data);
+            writer.Flush();
         };
     }
 

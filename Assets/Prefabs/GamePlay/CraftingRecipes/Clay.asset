@@ -16,31 +16,32 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
-  Names:
-    value:
-    - Clay:Solid
-    - Sand
-    - Water
-  entry:
-    value:
-    - data: 104086
-    - data: 131222
-    - data: 0
-    - data: 0
-    - data: 131222
-    - data: 104086
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-  result:
-    data: 510
+  Recipe:
+    Names:
+      value:
+      - Clay:Solid
+      - Sand
+      - Water
+    entry:
+      value:
+      - data: 104086
+      - data: 131222
+      - data: 0
+      - data: 0
+      - data: 131222
+      - data: 104086
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+    result:
+      data: 510
   references:
     version: 2
     RefIds: []

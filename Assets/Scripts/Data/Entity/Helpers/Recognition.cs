@@ -406,8 +406,8 @@ public class RHerbivore : Recognition{
         if (deltaMatInfo.OnRemoving(preyCoord, self)) return null;
         mapData.viscosity -= deltaOrig.viscosity;
         mapData.density -= deltaOrig.density;
-        CPUMapManager.SetMap(mapData, preyCoord);
         deltaMatInfo.OnRemoved(preyCoord, deltaOrig);
+        CPUMapManager.SetMap(mapData, preyCoord);
 
         if (deltaOrig.IsLiquid) deltaOrig.viscosity = 0;
         WorldConfig.Generation.Item.IItem nMat = matInfo.Retrieve(mapData.material).AcquireItem(deltaOrig);
@@ -419,8 +419,8 @@ public class RHerbivore : Recognition{
         mapData.material = deltaNew.material;
         mapData.viscosity += deltaNew.viscosity;
         mapData.density += deltaNew.density;
-        CPUMapManager.SetMap(mapData, preyCoord);
         deltaMatInfo.OnPlaced(preyCoord, deltaNew);
+        CPUMapManager.SetMap(mapData, preyCoord);
         return nMat;
     }
 

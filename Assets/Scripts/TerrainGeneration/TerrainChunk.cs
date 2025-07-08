@@ -56,7 +56,7 @@ namespace TerrainGeneration{
         /// <exclude />
         protected int mapSkipInc => 1 << depth;
         /// <summary> The status of the chunk which describes the type of generation that needs to be done. </summary>
-        protected ChunkStatus status;
+        protected Status status;
         /// <summary> The depth of the chunk's neighbors. This is used to blend the chunk's mesh with its neighbors. </summary>
         protected uint neighborDepth;
         private Mesh runtimeMesh;
@@ -66,38 +66,64 @@ namespace TerrainGeneration{
         /// chunk perform a specific task, one can set the corresponding bit information in the data field
         /// and the chunk will automatically perform the task on the next update cycle or when it is possible to do so.
         /// </summary>
-        public struct ChunkStatus {
-            private byte data;
-            /// <summary>
-            /// Whether or not the chunk needs to update its map data. Do not set this directly, <see cref="CreateMap"/>, <see cref="ShrinkMap"/>, and <see cref="SetMap"/>
-            /// automatically set this value when they are set.
-            /// </summary>
-            public bool UpdateMap { readonly get => (data & 0x7) != 0; set => data = (byte)((data & 0xF8) | (value ? 0x7 : 0)); }
+        public struct Status {
+            /// <summary> Whether or not the chunk needs to update its map data. Do not set this directly, <see cref="CreateMap"/>, <see cref="ShrinkMap"/>, and <see cref="SetMap"/>
+            /// automatically set this value when they are set. </summary>
+            public State UpdateMap {
+                readonly get => (State)math.max((int)CreateMap, math.max((int)ShrinkMap, (int)SetMap));
+                set {
+                    CreateMap = value;
+                    ShrinkMap = value;
+                    SetMap = value;
+                }
+            }
             /// <summary> Whether or not the chunk needs to regenerate the map data. This is true by default when creating a new chunk </summary>
-            public bool CreateMap { readonly get => (data & 1) == 1; set => data = (byte)((data & 0xF8) | (value ? 1 : data & 0x6)); }
+            public State CreateMap;
             /// <summary>
             /// If it is of higher resolution, whether or not it can be shrunk down to a lower resolution. This is not used
             /// currently with an Octree model, but for a flat grid model, this would be used to shrink the map down to a lower resolution.
             /// </summary>
-            public bool ShrinkMap { readonly get => (data & 2) == 2; set => data = (byte)((data & 0xF8) | (value ? 2 : data & 0x5)); }
+            public State ShrinkMap;
             /// <summary>
             /// Whether or not the chunk needs to copy its map information from the CPU to the GPU. 
             /// To visually update chunk, it must be copied to the GPU.
             /// </summary>
-            public bool SetMap { readonly get => (data & 4) == 4; set => data = (byte)((data & 0xF8) | (value ? 4 : data & 0x3)); }
+            public State SetMap;
             /// <summary>
             /// Whether or not the chunk can recreate its mesh information. This will eventually allow the mesh to be updated
             /// when it reaches the proper update cycle to recieve out-of-bound information from chunks outside itself. 
             /// This is true by default when creating a new chunk.
             /// </summary>
-            public bool UpdateMesh { readonly get => (data & 8) == 8; set => data = (byte)((data & 0xF7) | (value ? 8 : 0)); }
+            public State UpdateMesh;
             /// <summary>
             /// Whether or not the chunk can update its mesh data. Do not set this directly, <see cref="UpdateMesh"/> 
             /// automatically sets this value when the chunk is actually able to update its mesh data. 
             /// </summary>
-            public bool CanUpdateMesh { readonly get => (data & 16) == 16; set => data = (byte)((data & 0xEF) | (value ? 16 : 0)); }
-            /// <param name="data">The raw bitmap for the chunk status</param>
-            public ChunkStatus(byte data) { this.data = data; }
+            public State CanUpdateMesh;
+
+            /// <summary> The enum describing the current 
+            /// progress of any chunk update request.  </summary>
+            public enum State {
+                /// <summary> Whether or not the requested update is finished.  </summary>
+                Finished = 0,
+                /// <summary> Whether or not the requested update is pending and 
+                /// waiting to be enqueued into the <see cref="RequestQueue">generation queue</see>
+                /// during the next update cycle. </summary>
+                Pending = 1,
+                /// <summary> Whether or not the requested update is enqueued
+                /// in the <see cref="RequestQueue">generation queue</see> and 
+                /// will be executed when it reaches the front of the queue</summary>
+                InProgress = 2,
+            }
+
+            /// <summary> Progresses the given state to <see cref="State.Pending"/> only if it is currently <see cref="State.Finished"/> </summary>
+            /// <param name="s">The state to progress</param>
+            /// <returns>The current or pending state</returns>
+            public static State Initiate(State s) => s == State.Finished ? State.Pending : s;
+            /// <summary> Progresses the given state to <see cref="State.Finished"/> only if it is currently <see cref="State.InProgress"/> </summary>
+            /// <param name="s">The state to progress</param>
+            /// <returns>The current or pending state</returns>
+            public static State Complete(State s) => s == State.InProgress ? State.Finished : s;
         }
 
         /// <summary> 
@@ -164,7 +190,13 @@ namespace TerrainGeneration{
             meshRenderer = meshObject.AddComponent<MeshRenderer>();
             meshRenderer.sharedMaterials = Config.CURRENT.System.ReadBack.value.TerrainMats.ToArray();
 
-            status = new ChunkStatus { CreateMap = true, UpdateMesh = true, CanUpdateMesh = false };
+            status = new Status {
+                CreateMap = Status.State.Pending,
+                SetMap = Status.State.Finished,
+                ShrinkMap = Status.State.Finished,
+                UpdateMesh = Status.State.Pending,
+                CanUpdateMesh = Status.State.Finished,
+            };
             Generator = new GeneratorInfo(this);
             SetupChunk();
         }
@@ -187,7 +219,7 @@ namespace TerrainGeneration{
             uint nNeighbor = OctreeTerrain.GetNeighborDepths(index);
             if (nNeighbor == neighborDepth) return;
             neighborDepth = nNeighbor;
-            status.UpdateMesh = true;
+            status.UpdateMesh = Status.Initiate(status.UpdateMesh);
         }
 
         /// <summary>
@@ -230,12 +262,12 @@ namespace TerrainGeneration{
 
         /// <summary>
         /// Requests the chunk to reflect its CPU-side map data visually by setting status flags, 
-        /// Specifically the flags to <see cref="ChunkStatus.SetMap"/> and <see cref="ChunkStatus.UpdateMesh"/>
+        /// Specifically the flags to <see cref="Status.SetMap"/> and <see cref="Status.UpdateMesh"/>
         /// </summary>
         public void ReflectChunk() {
             if (!active) return; //Can't reflect a chunk that hasn't been read yet
-            status.SetMap = true;
-            status.UpdateMesh = true;
+            status.SetMap = Status.Initiate(status.SetMap);
+            status.UpdateMesh = Status.Initiate(status.UpdateMesh);
         }
 
         /// <summary>Overridable event when deleting CPU-cached mesh information </summary>
@@ -306,29 +338,26 @@ namespace TerrainGeneration{
             public RealChunk(Transform parent, int3 origin, int size, uint octreeIndex) : base(parent, origin, size, octreeIndex) {
             }
 
-            /// <summary>
-            /// Verifies whether the chunk's is still valid given that a chunk is not valid if it was previously bording a chunk of a 
-            /// larger size and is no longer or vice versa. If it is not valid, sets the <see cref="ChunkStatus.UpdateMesh"/> flag to true.
-            /// </summary>
+            /// <summary> Verifies whether the chunk's is still valid given that a chunk is not valid if it was previously bording a chunk of a 
+            /// larger size and is no longer or vice versa. If it is not valid, sets the <see cref="Status.UpdateMesh"/> flag to true. </summary>
             /// <remarks> If a chunk is bordering a chunk of a certain size, some of its out-of-bound mesh information will be invalidated once the neighboring chunk changes size. </remarks>
             public override void VerifyChunk() {
                 base.VerifyChunk();
-                status.UpdateMesh = true;
             }
 
             /// <summary> Based upon the chunk's status, enqueues generation tasks to the <see cref="RequestQueue"/>
             /// to reflect the flags. The status is updated accordingly after the tasks are enqueued/finished. </summary>
             public override void Update() {
                 base.Update();
-                if (status.CreateMap) {
-                    status.UpdateMap = false;
+                if (status.CreateMap == Status.State.Pending) {
+                    status.UpdateMap = Status.State.InProgress;
                     RequestQueue.Enqueue(new GenTask {
                         task = () => ReadMapData(),
                         id = (int)priorities.generation,
                         chunk = this
                     });
-                } else if (status.SetMap) {
-                    status.UpdateMap = false;
+                } else if (status.SetMap == Status.State.Pending) {
+                    status.UpdateMap = Status.State.InProgress;
                     RequestQueue.Enqueue(new GenTask {
                         task = () => SetChunkData(),
                         id = (int)priorities.generation,
@@ -336,16 +365,18 @@ namespace TerrainGeneration{
                     });
                 }
 
-                if (status.UpdateMesh) {
-                    status.UpdateMesh = false;
+                if (status.UpdateMesh == Status.State.Pending) {
+                    status.UpdateMesh = Status.State.InProgress;
                     RequestQueue.Enqueue(new GenTask {
-                        task = () => status.CanUpdateMesh = true,
-                        id = (int)priorities.propogation,
+                        task = () => {
+                            status.UpdateMesh = Status.Complete(status.UpdateMesh);
+                            status.CanUpdateMesh = Status.Initiate(status.CanUpdateMesh);
+                        }, id = (int)priorities.propogation,
                         chunk = this
                     });
                 }
-                if (status.CanUpdateMesh) {
-                    status.CanUpdateMesh = false;
+                if (status.CanUpdateMesh == Status.State.Pending) {
+                    status.CanUpdateMesh = Status.State.InProgress;
                     RequestQueue.Enqueue(new GenTask {
                         task = () => { CreateMesh(OnChunkCreated); },
                         id = (int)priorities.mesh,
@@ -389,6 +420,7 @@ namespace TerrainGeneration{
                     uint entityAddress = EntityManager.PlanEntities(Map.Generator.bufferOffsets.biomeMapStart, CCoord, mapChunkSize);
                     EntityManager.BeginEntityReadback(entityAddress, CCoord);
                 }
+                status.UpdateMap = Status.Complete(status.UpdateMap);
                 callback?.Invoke();
             }
             /// <summary> 
@@ -411,6 +443,7 @@ namespace TerrainGeneration{
                     Generator.GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
                 else
                     Generator.GeoShaders.ReleaseGeometry();
+                status.CanUpdateMesh = Status.Complete(status.CanUpdateMesh);
             }
 
             private void SetChunkData(Action callback = null) {
@@ -420,11 +453,13 @@ namespace TerrainGeneration{
 
                 Generator.MeshCreator.SetMapInfo(mapChunkSize, offset, ref mapData);
                 GPUMapManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.TransferBuffer);
+                status.UpdateMap = Status.Complete(status.UpdateMap);
                 callback?.Invoke();
             }
 
             private void SimplifyMap(int skipInc, Action callback = null) {
                 GPUMapManager.SimplifyChunk(CCoord, skipInc);
+                status.UpdateMap = Status.Complete(status.UpdateMap);
                 callback?.Invoke();
             }
 
@@ -456,26 +491,28 @@ namespace TerrainGeneration{
             /// to reflect the flags. The status is updated accordingly after the tasks are enqueued/finished. </summary>
             public override void Update() {
                 base.Update();
-                if (status.CreateMap) {
+                if (status.CreateMap == Status.State.Pending) {
                     //Readmap data starts a CPU background thread to read data and re-synchronizes by adding to the queue
                     //Therefore we need to call it directly to maintain it's on the same call-cycle as the rest of generation
-                    status.UpdateMap = false;
+                    status.UpdateMap = Status.State.InProgress;
                     RequestQueue.Enqueue(new GenTask {
                         task = () => ReadMapData(),
                         id = (int)priorities.generation,
                         chunk = this
                     });
                 }
-                if (status.UpdateMesh) {
-                    status.UpdateMesh = false;
+                if (status.UpdateMesh == Status.State.Pending) {
+                    status.UpdateMesh = Status.State.InProgress;
                     RequestQueue.Enqueue(new GenTask {
-                        task = () => status.CanUpdateMesh = true,
-                        id = (int)priorities.propogation,
+                        task = () => {
+                            status.UpdateMesh = Status.Complete(status.UpdateMesh);
+                            status.CanUpdateMesh = Status.Initiate(status.CanUpdateMesh);
+                        }, id = (int)priorities.propogation,
                         chunk = this
                     });
                 }
-                if (status.CanUpdateMesh) {
-                    status.CanUpdateMesh = false;
+                if (status.CanUpdateMesh == Status.State.Pending) {
+                    status.CanUpdateMesh = Status.State.InProgress;
                     RequestQueue.Enqueue(new GenTask {
                         task = () => { CreateMesh(OnChunkCreated); },
                         id = (int)priorities.mesh,
@@ -529,6 +566,7 @@ namespace TerrainGeneration{
                 GPUMapManager.TranscribeMultiMap(UtilityBuffers.TransferBuffer, CCoord, depth);
                 //Subscribe once more so the chunk can't be released while we hold its handle
                 GPUMapManager.SubscribeHandle((uint)mapHandle);
+                status.UpdateMap = Status.Complete(status.UpdateMap);
                 callback?.Invoke();
             }
 
@@ -561,6 +599,7 @@ namespace TerrainGeneration{
                     Generator.GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
                 else
                     Generator.GeoShaders.ReleaseGeometry();
+                status.CanUpdateMesh = Status.Complete(status.CanUpdateMesh);
             }
         }
     }

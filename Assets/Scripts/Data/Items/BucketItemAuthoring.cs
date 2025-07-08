@@ -128,8 +128,8 @@ public class BucketItem : IItem{
         liquidDensity += delta.density;
         if(liquidDensity >= IsoLevel) pointInfo.material = selected;
 
-        CPUMapManager.SetMap(pointInfo, GCoord);
         MatInfo.Retrieve(pointInfo.material).OnPlaced(GCoord, delta);
+        CPUMapManager.SetMap(pointInfo, GCoord);
         return true;
     }
 
@@ -163,8 +163,8 @@ public class BucketItem : IItem{
         }
 
         pointInfo.density -= delta.density;
-        CPUMapManager.SetMap(pointInfo, GCoord);
         material.OnRemoved(GCoord, delta);
+        CPUMapManager.SetMap(pointInfo, GCoord);
         return true;
     }
     

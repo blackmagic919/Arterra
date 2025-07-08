@@ -31,11 +31,14 @@ public static class Indicators
     public static void Initialize()
     {
         static void OnActivate(GameObject indicator) => indicator.SetActive(true);
-        static void OnDeactivate(GameObject indicator) => indicator.SetActive(false);
-        static void OnDestroy(GameObject indicator){
+        static void OnDeactivate(GameObject indicator){
+            indicator.transform.SetParent(null, false);
+            indicator.SetActive(false);
+        }
+        static void OnDestroy(GameObject indicator) {
 #if UNITY_EDITOR
             GameObject.DestroyImmediate(indicator);
-#else 
+#else
             GameObject.Destroy(indicator);
 #endif
         }
@@ -43,6 +46,7 @@ public static class Indicators
         SelectionIndicator = Object.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Selection"));
         DamageIndicator = Resources.Load<GameObject>("Prefabs/GameUI/DamageEffect");
         BarIndicator = Resources.Load<GameObject>("Prefabs/GameUI/EntityStats");
+        SelectionIndicator.SetActive(false);
 
         GameObject ItemSlot = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Slot");
         GameObject StackableItem = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/StackableItem");

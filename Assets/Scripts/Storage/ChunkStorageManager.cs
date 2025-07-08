@@ -13,6 +13,7 @@ using WorldConfig.Generation.Entity;
 using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Buffers;
+using UnityEngine.Profiling;
 
 /*
 Chunk File Layout:
@@ -241,14 +242,17 @@ public static class Chunk
         return entities;
     }
      
-
     static ChunkHeader SerializeHeader(CPUMapManager.ChunkPtr chunk){
-        Dictionary<int, int> RegisterDict = new Dictionary<int, int>();
-        int numPoints = maxChunkSize * maxChunkSize * maxChunkSize;
-        for(int i = 0; i < numPoints; i++){
+        Dictionary<int, int> RegisterDict = new();
+        int numPoints = maxChunkSize * maxChunkSize * maxChunkSize; int nextId = 0;
+        for (int i = 0; i < numPoints; i++) {
             MapData mapPt = chunk.data[chunk.offset + i];
-            RegisterDict.TryAdd(mapPt.material, RegisterDict.Count);
-            mapPt._material = RegisterDict[mapPt.material];
+            if (!RegisterDict.TryGetValue(mapPt.material, out int registeredId)) {
+                registeredId = nextId++;
+                RegisterDict[mapPt.material] = registeredId;
+            }
+
+            mapPt._material = registeredId;
             chunk.data[chunk.offset + i] = mapPt;
         }
 
@@ -306,7 +310,9 @@ public static class Chunk
     //IT IS CALLERS RESPONSIBILITY TO DISPOSE MEMORY STREAM
     private static MemoryStream WriteChunkMaps(CPUMapManager.ChunkPtr chunk, out ChunkHeader header){
         MemoryStream ms = new MemoryStream();
+        Profiler.BeginSample("Serializing Header");
         header = SerializeHeader(chunk);
+        Profiler.EndSample(); Profiler.BeginSample("Writing Maps");
         header.ResolutionOffsets = new List<int>();
         for(int skipInc = 1; skipInc <= maxChunkSize; skipInc <<= 1){
             int numPointsAxis = maxChunkSize / skipInc;
@@ -319,19 +325,21 @@ public static class Chunk
                     UnsafeUtility.MemCpy(destPtr, (MapData*)chunk.data.GetUnsafePtr() + 
                     chunk.offset, numPoints * 4);
                 } else {
-                for(int x = 0; x < maxChunkSize; x += skipInc){
-                for(int y = 0; y < maxChunkSize; y += skipInc){
+                    
+                int yStride = maxChunkSize;
+                int zStride = maxChunkSize * maxChunkSize;
+                
                 for(int z = 0; z < maxChunkSize; z += skipInc){
-                    int readPos = CustomUtility.indexFromCoord(x, y, z, maxChunkSize);
-                    MapData mapPt = chunk.data[chunk.offset + readPos];
-
-                    //if(!mapPt.isDirty) mapPt.data = 0;
-                    UnsafeUtility.As<byte, uint>(ref mBuffer[mBPos]) = mapPt.data;
+                int zOffset = z * zStride + chunk.offset;
+                for(int y = 0; y < maxChunkSize; y += skipInc){
+                int yzOffset = zOffset + y * yStride;
+                for(int x = 0; x < maxChunkSize; x += skipInc){
+                    UnsafeUtility.As<byte, uint>(ref mBuffer[mBPos]) = chunk.data[yzOffset + x].data;
                     mBPos += 4;
                 }}}}
             }}
-            //Deals with memory so it's better to not hog all the threads
-            using(GZipStream zs = new GZipStream(ms, CompressionMode.Compress, true)){ 
+            
+            using(GZipStream zs = new(ms, CompressionMode.Compress, true)){ 
                 zs.Write(mBuffer); 
                 zs.Flush(); 
             } 

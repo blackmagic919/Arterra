@@ -174,17 +174,21 @@ public static class InputPoller
     private static ref DynamicRegistry<uint> LayerHeads => ref Binder.LayerHeads;
     private static Queue<Action> KeyBindChanges;
     private static UpdateTask eventTask;
+    private static HashSet<string> GlobalExclusion;
+    private static HashSet<string> LayerExclusion;
+
     private static bool CursorLock = false;
     private const int MaxActionBinds = 10000;
 
-    public static void Initialize()
-    {
+    public static void Initialize() {
         Binder = new KeyBinder();
         SStack = new StateStack();
         KeyBindChanges = new Queue<Action>();
         AddStackPoll(new ActionBind("BASE", (float _) => SetCursorLock(true)), "CursorLock");
         eventTask = new IndirectUpdate(Update);
         TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
+        GlobalExclusion = new HashSet<string>();
+        LayerExclusion = new HashSet<string>();
     }
 
     public static void SetCursorLock(bool value)
@@ -203,8 +207,8 @@ public static class InputPoller
 
     private static void AnswerKeyBinds(){
         //Explicit lexicographic-name ordering
-        HashSet<string> GlobalExclusion = new();
-        HashSet<string> LayerExclusion = new();
+        GlobalExclusion.Clear();
+        LayerExclusion.Clear();
         foreach(DynamicRegistry<uint>.Pair head in LayerHeads.Reg){
             uint current = head.Value; LayerExclusion.Clear();
             do{
@@ -230,7 +234,7 @@ public static class InputPoller
             } while(current != head.Value);
         }
     }
-    public static void Update(MonoBehaviour mono){
+    private static void Update(MonoBehaviour mono){
         AnswerKeyBinds();
         //Fulfill all keybind change requests
         while(KeyBindChanges.Count > 0) 
@@ -251,13 +255,21 @@ public static class InputPoller
         }, Layer);
     }
 
+    public static void SuspendKeybindPropogation(string name, ActionBind.Exclusion exclusion = ActionBind.Exclusion.ExcludeLayer) {
+        if (exclusion.Equals(ActionBind.Exclusion.ExcludeLayer)) {
+            LayerExclusion?.Add(name);
+        } else if (exclusion.Equals(ActionBind.Exclusion.ExcludeAll)) {
+            GlobalExclusion?.Add(name);
+        }
+    }
+
     //Do not call this with an invalid bindIndex not in the layer, or else it could corrupt all keybinds
-    public static void RemoveContextFence(uint bindIndex, string layer = "base"){
-        if(!LayerHeads.Contains(layer))
+    public static void RemoveContextFence(uint bindIndex, string layer = "base") {
+        if (!LayerHeads.Contains(layer))
             return;
 
         uint current = LayerHeads.Retrieve(layer);
-        while(current != bindIndex){
+        while (current != bindIndex) {
             uint next = KeyBinds.Next(current);
             RemoveKeyBind(current, layer);
             current = next;

@@ -9,11 +9,11 @@ namespace WorldConfig.Intrinsic{
 
     [Serializable]
     [CreateAssetMenu(menuName = "Settings/Crafting/Category")]
-    public class RecipeCategory : Category<CraftingRecipe>
+    public class RecipeCategory : Category<CraftingAuthoring>
     {
-        public Option<List<Option<Category<CraftingRecipe>>>> Children;
-        protected override Option<List<Option<Category<CraftingRecipe>>>>? GetChildren() => Children;
-        protected override void SetChildren(Option<List<Option<Category<CraftingRecipe>>>> value) => Children = value;
+        public Option<List<Option<Category<CraftingAuthoring>>>> Children;
+        protected override Option<List<Option<Category<CraftingAuthoring>>>>? GetChildren() => Children;
+        protected override void SetChildren(Option<List<Option<Category<CraftingAuthoring>>>> value) => Children = value;
 }
 
 }

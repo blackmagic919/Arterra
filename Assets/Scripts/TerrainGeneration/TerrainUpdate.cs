@@ -135,6 +135,7 @@ namespace TerrainGeneration{
             /// The map entries are updated in the order they were added.
             /// </summary> <param name="mono"><see cref="UpdateTask.Update"/> </param>
             public override void Update(MonoBehaviour mono) {
+                if (!PlayerHandler.active) return;
                 UpdateTick = (UpdateTick + 1) % settings.UpdateTickDelay;
                 if (UpdateTick != 0) return;
                 if (!Complete()) return;

@@ -86,7 +86,7 @@ bool ReadRealMap(int3 sCoord, out uint info){
 
 uint ReadDefaultMap(int3 sCoord){
     int address = _DirectAddress[defAddress].y;
-    if(address == 0) return 0; //this should never happen
+    if(address == 0) return 0; else {//this should never happen
 
     int fChunkSize = mapChunkSize + 3;
     int3 corner = sCoord % mapChunkSize;
@@ -101,7 +101,7 @@ uint ReadDefaultMap(int3 sCoord){
     } else index = indexFromCoordManual(sCoord-1, mapChunkSize);
 
     return _MemoryBuffer[index + address];
-}
+}}
 
 [numthreads(numThreads,numThreads,numThreads)]
 void CollectVisual (uint3 id : SV_DispatchThreadID)

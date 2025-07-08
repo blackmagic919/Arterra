@@ -227,11 +227,13 @@ namespace MapStorage {
         /// <typeparam name="TMeta">The type of object to obtain; will delete any object not of 
         /// the requested type and replace it with a new default instance.</typeparam>
         /// <param name="GCoord">The coordinate in grid space of the map entry whose meta data is being queried</param>
+        /// <param name="GetDefault">The callback to acquire a default instance of the object being stored if it does not
+        /// currently exist at the requested location </param>
         /// <param name="ret">The meta data obtained at this location.</param>
         /// <returns>Whether or not the requested metaData could be obtained. If the metaData cannot be obtained
         /// it means the system is not capable of tracking it and the caller should not attempt to further use/create
         ///  the meta data.</returns>
-        public static bool GetOrCreateMapMetaData<TMeta>(int3 GCoord, out TMeta ret) {
+        public static bool GetOrCreateMapMeta<TMeta>(int3 GCoord, Func<TMeta> GetDefault, out TMeta ret){
             int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
             int3 CCoord = (GCoord - MCoord) / mapChunkSize;
             int3 HCoord = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
@@ -247,13 +249,72 @@ namespace MapStorage {
 
             MapMetaData[CIndex] ??= new Dictionary<uint, object>();
             if (!MapMetaData[CIndex].TryGetValue(PIndex, out object value)) {
+                ret = GetDefault();
                 MapMetaData[CIndex][PIndex] = ret;
                 return true;
             }
 
-            if (value is TMeta tVal) ret = tVal;
-            else MapMetaData[CIndex][PIndex] = ret;
+            if (value is TMeta tVal)
+                ret = tVal;
+            else {
+                ret = GetDefault();
+                MapMetaData[CIndex][PIndex] = ret;
+            } return true;
+        }
+        
+        /// <summary>Obtains the metadata of type <i>TMeta</i> at the location only if there exists
+        /// metadata of the requested type. Otherwise fails. Unlike <see cref="GetOrCreateMapMeta"/>,
+        /// this operation will not create/modify existing metadata</summary>
+        /// <typeparam name="TMeta">The type of object to obtain</typeparam>
+        /// <param name="GCoord">The coordinate in grid space of the map entry whose meta data is being queried</param>
+        /// <param name="ret">The meta data obtained at this location.</param>
+        /// <returns>Whether or not there existed metaData of the requested type at the location.</returns>
+        public static bool TryGetExistingMapMeta<TMeta>(int3 GCoord, out TMeta ret) {
+            int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
+            int3 CCoord = (GCoord - MCoord) / mapChunkSize;
+            int3 HCoord = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
+            ret = default;
+
+            int CIndex = HCoord.x * numChunksAxis * numChunksAxis + HCoord.y * numChunksAxis + HCoord.z;
+            ChunkMapInfo mapInfo = AddressDict[CIndex];
+            if (!mapInfo.valid || math.any(mapInfo.CCoord != CCoord))
+                return false;
+
+            uint PIndex = (uint)(MCoord.x * mapChunkSize * mapChunkSize +
+                                 MCoord.y * mapChunkSize + MCoord.z);
+
+            MapMetaData[CIndex] ??= new Dictionary<uint, object>();
+            if (!MapMetaData[CIndex].TryGetValue(PIndex, out object value))
+                return false;
+            if (value is TMeta tVal)
+                ret = tVal;
+            else return false;
             return true;
+        }
+
+        /// <summary>Sets the metadata for a certain location or clears it. </summary>
+        /// <typeparam name="TMeta">The type of object to set</typeparam>
+        /// <param name="GCoord">The coordinate in grid space of the map entry whose meta data is being set</param>
+        /// <param name="value">The meta data to set to this location. If this value is null, any existing
+        /// metadata at this location will be removed.</param>
+        /// <returns>If setting, whether the value was successfully set. If removing, whether any value
+        /// was successfully removed</returns>
+        public static bool SetExistingMapMeta<TMeta>(int3 GCoord, TMeta value) {
+            int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
+            int3 CCoord = (GCoord - MCoord) / mapChunkSize;
+            int3 HCoord = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
+
+            int CIndex = HCoord.x * numChunksAxis * numChunksAxis + HCoord.y * numChunksAxis + HCoord.z;
+            ChunkMapInfo mapInfo = AddressDict[CIndex];
+            if (!mapInfo.valid || math.any(mapInfo.CCoord != CCoord))
+                return false;
+
+            uint PIndex = (uint)(MCoord.x * mapChunkSize * mapChunkSize +
+                                 MCoord.y * mapChunkSize + MCoord.z);
+
+            MapMetaData[CIndex] ??= new Dictionary<uint, object>();
+            if (value == null) return MapMetaData[CIndex].Remove(PIndex);
+            return MapMetaData[CIndex].TryAdd(PIndex, value);
         }
 
         /// <summary> Removes the meta data at the map entry at the specified 
@@ -341,9 +402,9 @@ namespace MapStorage {
                 Utils.CustomUtility.OrderedLoop(terraformRadius, GCoord => {
                     if (terminated) return;
                     GCoord += tPointGSInt;
-                    float3 dR = GCoord - tPointGS;
-                    float sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
-                    float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
+                    int3 dR = GCoord - tPointGSInt;
+                    int sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
+                    float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius + 1, sqrDistWS);
                     terminated = handlePreTerraform.Invoke(GCoord);
                 });
                 if (terminated) return;
@@ -351,9 +412,9 @@ namespace MapStorage {
 
             Utils.CustomUtility.OrderedLoop(terraformRadius, GCoord => {
                 GCoord += tPointGSInt;
-                float3 dR = GCoord - tPointGS;
-                float sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
-                float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius, sqrDistWS);
+                int3 dR = GCoord - tPointGSInt;
+                int sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
+                float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius + 1, sqrDistWS);
                 if (handleTerraform(GCoord, brushStrength))
                     TerrainUpdate.AddUpdate(GCoord);
             });
@@ -383,11 +444,6 @@ namespace MapStorage {
 
             NativeArray<MapData> dest = AccessChunk(chunkHash);
             AsyncGPUReadback.RequestIntoNativeArray(ref dest, GPUMapManager.Storage, size: 4 * numPoints, offset: 4 * memAddress);
-
-            /*Currently broken because safety checks operate on the object level (i.e. SectionedMemory can only be read to one at a time)
-
-            NativeSlice<TerrainChunk.MapData> dest = SectionedMemory.Slice((int)destChunk.address, numPoints);
-            AsyncGPUReadback.RequestIntoNativeSlice(ref dest, GPUMapManager.AccessStorage(), size: 4 * numPoints, offset: 4 * memAddress);*/
         }
 
         /// <summary> Converts from grid space to chunk space using integer mathematics. Chunk Space is a coordinate
@@ -435,7 +491,22 @@ namespace MapStorage {
             var chunkMapInfo = AddressDict[CIndex];
             chunkMapInfo.isDirty = true;
             AddressDict[CIndex] = chunkMapInfo;
-            _ChunkManagers[CIndex].ReflectChunk();
+            ReflectNeighbors(CCoord, MCoord == 0);
+        }
+
+        private static void ReflectNeighbors(int3 CCoord, bool3 IsBordering) {
+            for (int x = IsBordering.x ? -1 : 0 ; x <= 0; x++) {
+            for (int y = IsBordering.y ? -1 : 0; y <= 0; y++) {
+            for (int z = IsBordering.z ? -1 : 0; z <= 0; z++) {
+                int3 NeighborCC = CCoord + new int3(x,y,z);
+                int3 HCoord = ((NeighborCC % numChunksAxis) + numChunksAxis) % numChunksAxis;
+                int CIndex = HCoord.x * numChunksAxis * numChunksAxis + HCoord.y * numChunksAxis + HCoord.z;
+                ChunkMapInfo mapInfo = AddressDict[CIndex];
+                //Not available(currently readingback) || Out of Bounds
+                if (!mapInfo.valid || math.any(mapInfo.CCoord != CCoord))
+                    return;
+                _ChunkManagers[CIndex].ReflectChunk();
+            }}};
         }
 
         /// <summary> Retrieves the <see cref="MapData"/> associated with a grid coordinate if

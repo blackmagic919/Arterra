@@ -18,8 +18,8 @@ public static class LoadingHandler
         "Generating Surface Data",
         "Planning Structures",
         "Combining Map Infomation",
-        "Generating Terrain",
         "Filling Hills and Clouds",
+        "Generating Terrain",
         "Facilitating Generation"
     };
 

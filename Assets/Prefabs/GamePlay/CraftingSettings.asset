@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2b1fc2151f544d899d2863fbc6c828b, type: 3}
   m_Name: CraftingSettings
   m_EditorClassIdentifier: 
+  DisplayIcon: CraftingIcon
   GridWidth: 3
   CraftSpeed: 600
   PointSizeMultiplier: 2
-  CraftingIsoValue: 128
   MaxRecipeDistance: 64
   NumMaxSelections: 5
   Recipes:

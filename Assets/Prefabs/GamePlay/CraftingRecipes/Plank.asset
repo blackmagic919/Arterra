@@ -16,30 +16,31 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
-  Names:
-    value:
-    - Plank:Solid
-    - Wood
-  entry:
-    value:
-    - data: 104086
-    - data: 104086
-    - data: 0
-    - data: 0
-    - data: 104086
-    - data: 104086
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-    - data: 0
-  result:
-    data: 1020
+  Recipe:
+    Names:
+      value:
+      - Plank:Solid
+      - Wood
+    entry:
+      value:
+      - data: 104086
+      - data: 104086
+      - data: 0
+      - data: 0
+      - data: 104086
+      - data: 104086
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+      - data: 0
+    result:
+      data: 1020
   references:
     version: 2
     RefIds: []

@@ -13,7 +13,53 @@ MonoBehaviour:
   m_Name: GasMat
   m_EditorClassIdentifier: 
   Name: C:Gas
+  Tags:
+    Reg:
+      value:
+      - Tag: 1
+        value:
+          value:
+            rid: 6432722648275615816
+      - Tag: 2
+        value:
+          value:
+            rid: 6432722648275615817
+      - Tag: 3
+        value:
+          value:
+            rid: 6432722648275615818
+      - Tag: 4
+        value:
+          value:
+            rid: 6432722648275615819
   Children:
     value:
     - value: {fileID: 11400000, guid: 2a37c22a11b7a406da4fbaf59dceb18b, type: 2}
     - value: {fileID: 11400000, guid: fdee68429400b4b5abd29d968d298d3d, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 6432722648275615816
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 50
+        ToolDamage: 0
+        GivesItem: 0
+    - rid: 6432722648275615817
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 50
+        ToolDamage: 0
+        GivesItem: 0
+    - rid: 6432722648275615818
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 50
+        ToolDamage: 0
+        GivesItem: 0
+    - rid: 6432722648275615819
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 50
+        ToolDamage: 0
+        GivesItem: 0

@@ -41,7 +41,6 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         public Animator animator;
         public DateTime currentTime;
         public Quaternion cameraRot;
-        public List<string> SerializedNames;
         public InventoryController.Inventory PrimaryI;
         public InventoryController.Inventory SecondaryI;
         public PlayerVitality vitality;
@@ -128,6 +127,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord)
         {
+            info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             settings = (PlayerSettings)setting;
             GCoord = (int3)this.origin;
             player = GameObject.Instantiate(Controller);
@@ -176,61 +176,8 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             Gizmos.color = Color.blue;
             Gizmos.DrawWireCube(CPUMapManager.GSToWS(position), Vector3.one * 2);
         }
-
-        [OnSerializing]
-        public void OnSerializing(StreamingContext cxt)
-        {
-            //Marks updated slots dirty so they are rendered properlly when deserialized
-            // (Register Name, Index) -> Name Index
-            Dictionary<string, int> lookup = new Dictionary<string, int>();
-
-            void Serialize(ref IItem item)
-            {
-                if (item is null) return;
-                IRegister registry = item.GetRegistry();
-                string name = registry.RetrieveName(item.Index);
-                lookup.TryAdd(name, lookup.Count);
-                item.Index = lookup[name];
-            }
-
-            for (int i = 0; i < PrimaryI.Info.Length; i++)
-            {
-                Serialize(ref PrimaryI.Info[i]);
-            }
-            for (int i = 0; i < SecondaryI.Info.Length; i++)
-            {
-                Serialize(ref SecondaryI.Info[i]);
-            }
-
-            SerializedNames = lookup.Keys.ToList();
-        }
-
-        [OnDeserialized]
-        public void OnDeserialized(StreamingContext cxt)
-        {
-            List<string> names = SerializedNames;
-            void Deserialize(ref IItem item)
-            {
-                if (item is null) return;
-                if (item.Index >= names.Count || item.Index < 0) return;
-                IRegister registry = item.GetRegistry();
-                item.Index = registry.RetrieveIndex(names[item.Index]);
-            }
-            info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
-            PrimaryI.EntryDict = new Dictionary<int, int>(); SecondaryI.EntryDict = new Dictionary<int, int>();
-            for (int i = 0; i < PrimaryI.Info.Count(); i++) {
-                if (PrimaryI.Info[i] is null) continue;
-                Deserialize(ref PrimaryI.Info[i]);
-                PrimaryI.EntryDict.TryAdd(PrimaryI.Info[i].Index, i);
-            } for (int i = 0; i < SecondaryI.Info.Count(); i++) {
-                if (SecondaryI.Info[i] is null) continue;
-                Deserialize(ref SecondaryI.Info[i]);
-                SecondaryI.EntryDict.TryAdd(SecondaryI.Info[i].Index, i);
-            }
-        }
-
-        private void DetatchStreamer()
-        {
+        
+        private void DetatchStreamer() {
             if (status == StreamingStatus.Disconnected) return;
             status = StreamingStatus.Disconnected;
             PlayDead();

@@ -29,7 +29,7 @@ public class Authoring : Category<Authoring>
 
     /// <summary>
     /// The name of the entry within the <see cref="WorldConfig.Config.GenerationSettings.Materials"> material registry </see>
-    /// of the material that is placed when the item is selected when <see cref="PlayerInteraction.PlaceTerrain(float)"> placing terrain </see>.
+    /// of the material that is placed when the item is selected when placing terrain.
     /// If the material name is not a valid entry, the item will not be able to be placed as a material (e.g. a tool).
     /// </summary>
     public string MaterialName;

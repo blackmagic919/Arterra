@@ -9,20 +9,23 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
+  m_Script: {fileID: 11500000, guid: ef77fbab4752a4878ad291f54a5303d8, type: 3}
   m_Name: ChestMat
   m_EditorClassIdentifier: 
   Name: Chest
+  Tags:
+    Reg:
+      value: []
   Names:
   - Chest:Solid
   - Void
   - Chest
-  SolidItem: 0
-  LiquidItem: 1
+  - ChestIcon
   terrainData:
     Texture: 2
-    textureScale: 2
-    GeoShaderIndex: -1
+    textureScale: 1
+    GeoShaderIndex:
+      data: 0
   AtmosphereScatter:
     ScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}
@@ -37,3 +40,10 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
+  SolidItem: 0
+  LiquidItem: 1
+  DisplayIcon: 3
+  MaxSlotCount: 20
+  references:
+    version: 2
+    RefIds: []

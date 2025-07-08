@@ -112,14 +112,14 @@ namespace WorldConfig.Generation.Item
             h.SelectedCorner = 0;
             h.item = item; //Watch out, this can create a circular reference
 
-            InputPoller.AddKeyBindChange(() =>
-            {
+            InputPoller.AddKeyBindChange(() => {
                 h.KeyBinds = new int[4];
-                h.KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Interact", h.DragPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-                h.KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Start Interact", h.SelectPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-                //When SelectPoint is triggered, DragPoint will also be triggered on the same frame, make sure SelectPoint happens first 
+
                 h.KeyBinds[2] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", h.OnTerrainRemove, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
                 h.KeyBinds[3] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place", h.OnTerrainAdd, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                //When SelectPoint is triggered, DragPoint will also be triggered on the same frame, make sure SelectPoint happens first 
+                h.KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Interact", h.DragPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                h.KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Start Interact", h.SelectPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
             });
             return h;
         }
@@ -142,12 +142,10 @@ namespace WorldConfig.Generation.Item
 
         public void SelectPoint(float _)
         {
-            if (Selector != null)
-            {
+            if (Selector != null) {
                 Ray cRay = new Ray(PlayerHandler.data.position, PlayerHandler.camera.forward);
                 float crnDist = GetDistClosestCorner(SelectBounds, cRay, out SelectedCorner);
-                if (crnDist > item.settings.SelectionRefreshDist)
-                {
+                if (crnDist > item.settings.SelectionRefreshDist) {
                     Selector.SetActive(false);
                     Selector = null;
                 }
@@ -163,6 +161,8 @@ namespace WorldConfig.Generation.Item
 
         public void DragPoint(float _)
         {
+            InputPoller.SuspendKeybindPropogation("Remove");
+            InputPoller.SuspendKeybindPropogation("Place");
             if (Selector == null) return;
             Ray cRay = new Ray(PlayerHandler.data.position, PlayerHandler.camera.forward);
             float3 projection = GetProjOntoRay(cRay, GetCorner(SelectBounds, SelectedCorner));
@@ -291,6 +291,7 @@ namespace WorldConfig.Generation.Item
 
         void AddNextSolidWithDurability(int3 hitCoord, int nextSlot)
         {
+            if (item == null) return;
             MapData orig = CPUMapManager.SampleMap(hitCoord);
             ToolTag prop = PlayerInteraction.settings.DefaultTerraform.value;
             if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out TagRegistry.IProperty tag))
@@ -301,13 +302,13 @@ namespace WorldConfig.Generation.Item
             int delta = math.abs(change.SolidDensity - orig.SolidDensity);
             item.durability -= prop.ToolDamage * delta;
             item.UpdateDisplay();
-
             if (item.durability > 0) return;
             InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
         }
 
         void RemoveSolidWithDurability(int3 hitCoord)
         {
+            if (item == null) return;
             MapData orig = CPUMapManager.SampleMap(hitCoord);
             ToolTag prop = PlayerInteraction.settings.DefaultTerraform.value;
             if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out TagRegistry.IProperty tag))
