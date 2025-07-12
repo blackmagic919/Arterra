@@ -11,6 +11,7 @@ using WorldConfig;
 using UnityEditor.Playables;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace MapStorage {
     /// <summary>A static centralized location for managing and storing all CPU-side map information,
@@ -107,7 +108,13 @@ namespace MapStorage {
             if (!AddressDict[chunkHash].isDirty) return;
             ChunkPtr chunk = new ChunkPtr(MapMetaData[chunkHash],
                 SectionedMemory, chunkHash * numPoints);
-            Chunk.SaveChunkToBinSync(chunk, CCoord);
+            
+            // Save the chunk to disk in background thread
+            ChunkPtr chunkCopy = chunk.CopySingleChunk();
+            Task.Run(() => {
+                Chunk.SaveChunkToBinSync(chunkCopy, CCoord);
+                chunkCopy.DisposeData();
+            });
         }
 
         /// <summary> Allocates a new chunk in the CPU Map Manager. This will setup handlers
@@ -563,7 +570,7 @@ namespace MapStorage {
                 isDirty = false;
             }
         }
-        
+
         /// <summary> A wrapper structure containing a specific chunk's map data 
         /// that will be stored to disk </summary>
         public struct ChunkPtr {
@@ -586,6 +593,25 @@ namespace MapStorage {
                 this.data = data;
                 this.offset = offset;
                 mapMeta = metaData?.ToArray();
+            }
+
+            /// <summary>
+            /// Copy a single chunk from current offset <see cref="ChunkPtr"/>.
+            /// </summary>
+            /// <returns>The new ChunkPtr object that contains the copied chunk data.</returns>
+            public ChunkPtr CopySingleChunk() {
+                mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+                int chunkDataSize = mapChunkSize * mapChunkSize * mapChunkSize;
+                NativeArray<MapData> newData = new NativeArray<MapData>(chunkDataSize, Allocator.Persistent);
+                NativeArray<MapData>.Copy(data, offset, newData, 0, chunkDataSize);
+                return new ChunkPtr(mapMeta?.ToDictionary(pair => pair.Key, pair => pair.Value), newData, 0); // ?? do we need mapMeta?
+            }
+
+            /// <summary> Disposes the native array containing the chunk's map information. </summary>
+            public void DisposeData() {
+                if (data.IsCreated) {
+                    data.Dispose();
+                }
             }
         }
 
