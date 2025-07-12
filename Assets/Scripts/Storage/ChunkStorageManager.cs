@@ -14,6 +14,8 @@ using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Buffers;
 using UnityEngine.Profiling;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 /*
 Chunk File Layout:
@@ -243,36 +245,45 @@ public static class Chunk
     }
      
     static ChunkHeader SerializeHeader(CPUMapManager.ChunkPtr chunk){
-        Dictionary<int, int> RegisterDict = new();
-        int numPoints = maxChunkSize * maxChunkSize * maxChunkSize; int nextId = 0;
-        for (int i = 0; i < numPoints; i++) {
-            MapData mapPt = chunk.data[chunk.offset + i];
-            if (!RegisterDict.TryGetValue(mapPt.material, out int registeredId)) {
-                registeredId = nextId++;
-                RegisterDict[mapPt.material] = registeredId;
+        Dictionary<int, int> RegisterDict = new Dictionary<int, int>();
+        ConcurrentDictionary<int, byte> uniqueMatIndices = new();
+        int numPoints = maxChunkSize * maxChunkSize * maxChunkSize;
+        Parallel.For(0, numPoints,
+            () => new HashSet<int>(), // initialize localSet for keeping the unique indices for each loop batch
+            (i, loopState, localSet) =>
+            {
+                MapData mapPt = chunk.data[chunk.offset + (int)i];
+                localSet.Add(mapPt.material); // Add to local set
+                return localSet;
+            },
+            localSet =>
+            {
+                // Merge into global thread-safe dictionary
+                foreach (var val in localSet)
+                    uniqueMatIndices.TryAdd(val, 0);
             }
+        );
 
-            mapPt._material = registeredId;
-            chunk.data[chunk.offset + i] = mapPt;
-        }
-
-        string[] dict = new string[RegisterDict.Count];
+        // Construct RegisterNames dictionary
+        Dictionary<int, string> regNames = new();
         var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        foreach(var pair in RegisterDict){
-            dict[pair.Value] = mReg.RetrieveName(pair.Key);
+        foreach (var matIndex in uniqueMatIndices.Keys)
+        {
+            regNames.Add(matIndex, mReg.RetrieveName(matIndex));
         }
-
         return new ChunkHeader {
-            RegisterNames = dict.ToList(),
-            MapEntryMetaData = chunk.mapMeta
-        };
+            RegisterNames = regNames,
+            MapEntryMetaData = chunk.mapMeta};
     }
 
     private static void DeserializeHeader(ref MapData[] map, ref ChunkHeader header){
         var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        int[] materialIndexCache = new int[header.RegisterNames.Count];
-        for (int i = 0; i < header.RegisterNames.Count; i++) { materialIndexCache[i] = mReg.RetrieveIndex(header.RegisterNames[i]); }
-        for(int i = 0; i < map.Length; i++){ map[i].material = materialIndexCache[(int)map[i].material]; }
+        Dictionary<int, int> materialIndexCacheDict = new Dictionary<int, int>();
+        foreach (var kvp in header.RegisterNames)
+        {
+                materialIndexCacheDict[kvp.Key] = mReg.RetrieveIndex(kvp.Value);
+        }
+        for(int i = 0; i < map.Length; i++){ map[i].material = materialIndexCacheDict[(int)map[i].material]; }
     }
 
     private static MemoryStream WriteChunkHeader(object header){
@@ -377,10 +388,11 @@ public static class Chunk
     /// - Map Data(Compressed): The map data of the chunk, compressed seperately by resolution and stored sequentially starting with the lowest resolution.
     /// The header contains the following two types of information: RegisterNames and ResolutionOffsets </summary>
     public struct ChunkHeader{
-        /// <summary>A list of the names of all unique materials used in the chunk. This is used to 
-        /// decouple the chunk's materials from the current game-version, allowing the same material to be reloaded
+        /// <summary>A dirctionary for mapping the material index of a map point to the name of the material.
+        /// This is used to decouple the chunk's materials from the current game-version, allowing the same material to be reloaded
         /// even if the exact index of the material changes.</summary>
-        public List<string> RegisterNames;
+        public Dictionary<int, string> RegisterNames;
+        
         /// <summary> A list of offsets in bytes from the end of the compressed header to the start
         /// of each resolution's compressed map data. This can be used to selectively jump to a specific resolution's
         /// map information and only decompress/process it if other resolutions are not needed. </summary>
