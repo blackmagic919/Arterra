@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4b53420ee54bde40aee129b46811e80, type: 3}
+  m_Name: BoatEntity
+  m_EditorClassIdentifier: 
+  Name: Boat
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 1752805397856205576, guid: 2fd04441772cd554485b96b3a19b98d5, type: 3}
+  Profile:
+    value: []
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 0
+          y: 0
+          z: 0
+        profileStart: 0
+      collider:
+        size:
+          x: 0
+          y: 0
+          z: 0
+        friction: 0
+      GroundStickDist: 0
+      StickFriction: 0
+      SpriteSampleSize:
+        x: 0
+        y: 0
+      AlphaClip: 0
+      ExtrudeHeight: 0
+  references:
+    version: 2
+    RefIds: []
