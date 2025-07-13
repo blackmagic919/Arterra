@@ -107,7 +107,7 @@ namespace MapStorage {
             if (!AddressDict[chunkHash].isDirty) return;
             ChunkPtr chunk = new ChunkPtr(MapMetaData[chunkHash],
                 SectionedMemory, chunkHash * numPoints);
-            Chunk.SaveChunkToBinSync(chunk, CCoord);
+            Chunk.SaveChunkToBinAsync(chunk, CCoord);
         }
 
         /// <summary> Allocates a new chunk in the CPU Map Manager. This will setup handlers
@@ -563,7 +563,7 @@ namespace MapStorage {
                 isDirty = false;
             }
         }
-        
+
         /// <summary> A wrapper structure containing a specific chunk's map data 
         /// that will be stored to disk </summary>
         public struct ChunkPtr {
@@ -587,6 +587,26 @@ namespace MapStorage {
                 this.offset = offset;
                 mapMeta = metaData?.ToArray();
             }
+
+            public ChunkPtr Copy(int Length)
+            {
+                ChunkPtr ret = new ChunkPtr
+                {
+                    mapMeta = mapMeta?.ToArray(),
+                    data = new NativeArray<MapData>(Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory),
+                    offset = 0
+                };
+                NativeArray<MapData>.Copy(data, offset, ret.data, 0, Length);
+                return ret;
+            }
+
+            public void Dispose()
+            {
+                if (data.IsCreated)
+                {
+                    data.Dispose();
+                }
+            }            
         }
 
         /// <summary> A wrapper structure containing all the unamanged handlers necessary
