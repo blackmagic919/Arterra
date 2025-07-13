@@ -26,8 +26,13 @@ namespace WorldConfig.Generation.Material{
         /// <summary> The chance that grass will spread to a neighboring entry. </summary>
         [Range(0, 1)]
         public float SpreadChance;
-        /// <summary>  The material that grass will spread onto  </summary>
+        /// <summary>  If not null, the name of the material attempting to be spread to must be for the grass to spread to it. </summary>
         public string SpreadMaterial;
+        /// <summary>The chance that the grass will decay and become <see cref="DecayMaterial"/> when randomly updated. </summary>
+        [Range(0, 1)]
+        public float DecayChance = 0;
+        /// <summary>The material that grass will become once it decays if it does decay</summary>
+        public string DecayMaterial;
         /// <summary> The <see cref="MapData"/> requirements of the material that the grass can spread onto.  </summary>
 
         [Header("Spread Bounds")]
@@ -36,13 +41,13 @@ namespace WorldConfig.Generation.Material{
         [Header("Neighbor Bounds")]
         public StructureData.CheckInfo NeighborBounds;
         readonly int3[] dP = new int3[6]{
-        new (0,1,0),
-        new (0,-1,0),
-        new (1,0,0),
-        new (0,0,-1),
-        new (-1,0,0),
-        new (0,0,1),
-    };
+            new (0,1,0),
+            new (0,-1,0),
+            new (1,0,0),
+            new (0,0,-1),
+            new (-1,0,0),
+            new (0,0,1),
+        };
 
         /// <summary> Random Material Update entry used to trigger grass growth. </summary>
         /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
@@ -66,22 +71,38 @@ namespace WorldConfig.Generation.Material{
             var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             int spreadMat = matInfo.RetrieveIndex(SpreadMaterial);
 
-            for (int i = 0; i < 6; i++) {
-                if (prng.NextFloat() > SpreadChance) continue;
-                int3 NCoord = GCoord + dP[i];
-                MapData neighbor = CPUMapManager.SampleMap(NCoord);
-                if (!CanSpread(neighbor, NCoord, spreadMat)) continue;
-                if (matInfo.Retrieve(neighbor.material).OnRemoving(GCoord, null))
-                    continue;
-                
-                matInfo.Retrieve(neighbor.material).OnRemoved(GCoord, neighbor);
-                neighbor.material = cur.material;
-                CPUMapManager.SetMap(neighbor, NCoord);
+            int3 delta = int3.zero;
+            for (delta.x = -1; delta.x <= 1; delta.x++) {
+                for (delta.y = -1; delta.y <= 1; delta.y++) {
+                    for (delta.z = -1; delta.z <= 1; delta.z++) {
+                        if (prng.NextFloat() >= SpreadChance) continue;
+                        if (math.all(delta == int3.zero)) continue;
+                        int3 NCoord = GCoord + delta;
+                        MapData neighbor = CPUMapManager.SampleMap(NCoord);
+                        if (!CanSpread(neighbor, NCoord, spreadMat)) continue;
+                        if (!SwapMaterial(NCoord, cur.material))
+                            continue;
+                    }
+                }
+            }
+
+            if (prng.NextFloat() >= DecayChance) return;
+            if (DecayMaterial != null && !String.IsNullOrEmpty(DecayMaterial)) {
+                SwapMaterial(GCoord, matInfo.RetrieveIndex(DecayMaterial));
+            } else {
+                MapData info = CPUMapManager.SampleMap(GCoord);
+                if (matInfo.Retrieve(info.material).OnRemoving(GCoord, null))
+                    return;
+                matInfo.Retrieve(info.material).OnRemoved(GCoord, info);
+                info.viscosity = 0;
+                info.density = 0;
+                CPUMapManager.SetMap(info, GCoord);
             }
         }
 
-        private bool CanSpread(MapData neighbor, int3 GCoord, float spreadMat) {
-            if (neighbor.material != spreadMat) return false;
+        private bool CanSpread(MapData neighbor, int3 GCoord, int SpreadMat) {
+            if (SpreadMat != neighbor.material)
+                return false;
             if (!SpreadBounds.Contains(neighbor)) return false;
             for (int i = 0; i < 6; i++) {
                 MapData nNeighbor = CPUMapManager.SampleMap(GCoord + dP[i]);

@@ -70,7 +70,7 @@ public static class PlayerHandler
     // Update is called once per frame
     public static void Update(MonoBehaviour mono) { 
         if(!data.active) return;
-        if(!active && OctreeTerrain.RequestQueue.IsEmpty)
+        if (!active && OctreeTerrain.RequestQueue.IsEmpty)
             active = true;
         if(!active) return;
         PlayerMovement.Update();
@@ -81,7 +81,7 @@ public static class PlayerHandler
     public static void FixedUpdate(MonoBehaviour mono){
         if(!active) return;
         if(!data.active) return;
-        Recognition.DetectMapInteraction(data.position, 
+        TerrainInteractor.DetectMapInteraction(data.position, 
         OnInSolid: (dens) => data.vitality.ProcessSuffocation(data, dens), 
         OnInLiquid: (dens) => data.vitality.ProcessInLiquid(data, dens), 
         OnInGas: data.vitality.ProcessInGas);

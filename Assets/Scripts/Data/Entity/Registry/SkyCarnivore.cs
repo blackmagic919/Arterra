@@ -166,7 +166,7 @@ public class SkyCarnivore : Authoring
             if (!active) return;
             Profiler.BeginSample($"Sampling task {TaskIndex}");
             //use gravity if not flying
-            tCollider.Update(EntityJob.cxt, settings.collider);
+            tCollider.Update(settings.collider, this);
             if (!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
             EntityManager.AddHandlerEvent(controller.Update);
 
@@ -180,7 +180,7 @@ public class SkyCarnivore : Authoring
             else if (TaskIndex <= 12) DetectPredator();
             Profiler.EndSample();
             
-            Recognition.DetectMapInteraction(position, 
+            TerrainInteractor.DetectMapInteraction(position, 
             OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
             OnInGas: vitality.ProcessInGas);

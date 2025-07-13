@@ -13,4 +13,10 @@ MonoBehaviour:
   m_Name: RocksT
   m_EditorClassIdentifier: 
   Name: Rock
-  self: {fileID: 21300000, guid: b88e44f79a1e9474ba4f034aa9c58b9d, type: 3}
+  Tags:
+    Reg:
+      value: []
+  self: {fileID: 21300000, guid: 1fd8ebce9248f45609baa129bdac9468, type: 3}
+  references:
+    version: 2
+    RefIds: []

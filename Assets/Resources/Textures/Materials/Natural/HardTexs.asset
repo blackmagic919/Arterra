@@ -13,10 +13,18 @@ MonoBehaviour:
   m_Name: HardTexs
   m_EditorClassIdentifier: 
   Name: C:Hard
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: d49a13364ad454ed991c2b7515482caa, type: 2}
     - value: {fileID: 11400000, guid: 45cf4233e977d45c5a594feceebc026f, type: 2}
+    - value: {fileID: 11400000, guid: fad0045fac0b5411eaed4261a728b70a, type: 2}
+    - value: {fileID: 11400000, guid: f5ecaf2eb543b467ea12944913f6a1e3, type: 2}
     - value: {fileID: 11400000, guid: cfcd7db386dd446038b88ea2e723e410, type: 2}
     - value: {fileID: 11400000, guid: 30e4857c695734194a4e060deeca6551, type: 2}
     - value: {fileID: 11400000, guid: 812200510afa1431c8c349121f724fc4, type: 2}
+  references:
+    version: 2
+    RefIds: []

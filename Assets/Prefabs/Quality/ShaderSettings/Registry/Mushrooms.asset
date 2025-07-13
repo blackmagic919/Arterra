@@ -13,13 +13,22 @@ MonoBehaviour:
   m_Name: Mushrooms
   m_EditorClassIdentifier: 
   Name: Mushrooms
+  Tags:
+    Reg:
+      value: []
   NameRegister:
     value:
     - MushroomVoronoi
   info:
     grassHeight: 0.5
     maxLayers: 15
+    TextureIndex: 0
     BaseColor: {r: 0.39607844, g: 0.39607844, b: 0.39607844, a: 0}
     TopColor: {r: 0.2264151, g: 0.19330722, b: 0.20425054, a: 0}
-    TextureIndex: 0
     Scale: 0.5
+    CenterHeight: 0.5
+    WindFrequency: 0.1
+    WindStrength: 0.1
+  references:
+    version: 2
+    RefIds: []

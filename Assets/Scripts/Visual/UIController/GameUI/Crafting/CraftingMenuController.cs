@@ -9,6 +9,7 @@ using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
 using WorldConfig.Intrinsic;
 using MapStorage;
+using TMPro;
 
 public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
     private Crafting settings;
@@ -109,7 +110,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
     }
 
     private void InitializeSelections(){
-        GameObject SelectionArea = craftingMenu.transform.GetChild(1).GetChild(0).GetChild(0).gameObject;
+        GameObject SelectionArea = craftingMenu.transform.Find("CraftingHints").GetChild(0).GetChild(0).gameObject;
         GameObject SelectionGrid = Resources.Load<GameObject>("Prefabs/GameUI/Crafting/CraftingSelection");
         Rendering.selections = new Display.Grid[settings.NumMaxSelections];
         for(int i = 0; i < settings.NumMaxSelections; i++){
@@ -311,43 +312,46 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         return pointInfo;
     }
 
-    public struct KTree{
+    public struct KTree {
         public CraftingRecipe[] Table;
         public List<Node> tree;
         private int head;
-        public struct Node{
+        public struct Node {
             public int Split;
             public int Left;
             public int Right;
             public byte Axis;
         }
 
-        public void ConstructTree(CraftingRecipe[] recipes, int dim = 16){
+        public void ConstructTree(CraftingRecipe[] recipes, int dim = 16) {
             Table = recipes;
             tree = new List<Node>();
             (int, CraftingRecipe)[] layer = new (int, CraftingRecipe)[recipes.Length];
-            for(int i = 0; i < recipes.Length; i++){
+            for (int i = 0; i < recipes.Length; i++) {
                 //Ensure recipes are valid for given config; Recipe is Value Type so this is not a reference
-                while(recipes[i].entry.value.Count < dim){
-                    recipes[i].entry.value.Add(new MapData{data = 0});
-                } if(recipes[i].entry.value.Count > dim){
+                while (recipes[i].entry.value.Count < dim) {
+                    recipes[i].entry.value.Add(new MapData { data = 0 });
+                }
+                if (recipes[i].entry.value.Count > dim) {
                     recipes[i].entry.value = recipes[i].entry.value.Take(dim).ToList();
-                } if(recipes[i].Names.value.Count == 0){
+                }
+                if (recipes[i].Names.value.Count == 0) {
                     recipes[i].Names.value.Add("Void");
-                } layer[i] = (i, recipes[i]);
+                }
+                layer[i] = (i, recipes[i]);
             }
             head = BuildSubTree(layer, (uint)dim);
         }
 
-        static int GetL1Dist(CraftingRecipe a, CraftingRecipe b){
+        static int GetL1Dist(CraftingRecipe a, CraftingRecipe b) {
             int sum = 0;
-            for(int i = 0; i < a.entry.value.Count; i++){
+            for (int i = 0; i < a.entry.value.Count; i++) {
                 sum += math.abs(a.EntryMat(i) - b.EntryMat(i));
             }
             return sum;
         }
 
-        public List<int> QueryNearestLimit(CraftingRecipe tg, int dist, int count){
+        public List<int> QueryNearestLimit(CraftingRecipe tg, int dist, int count) {
             List<int> ret = new List<int>();
             QueryNearest(tg, dist, (int recipe) => {
                 ret.Add(recipe);
@@ -357,19 +361,19 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             return ret.Take(count).ToList();
         }
 
-        private void QueryNearest(CraftingRecipe tg, int dist, Action<int> cb){
+        private void QueryNearest(CraftingRecipe tg, int dist, Action<int> cb) {
             Queue<int> layer = new Queue<int>();
             layer.Enqueue(head);
 
-            while(layer.Count > 0){
+            while (layer.Count > 0) {
                 int node = layer.Dequeue();
-                if(node == -1) continue;
+                if (node == -1) continue;
 
                 Node n = tree[node];
                 CraftingRecipe recipe = Table[n.Split];
                 int targetDist = tg.EntryMat(n.Axis) - recipe.EntryMat(n.Axis);
-                if(math.abs(targetDist) <= dist){
-                    if(GetL1Dist(recipe, tg) <= dist) 
+                if (math.abs(targetDist) <= dist) {
+                    if (GetL1Dist(recipe, tg) <= dist)
                         cb(n.Split);
                     layer.Enqueue(n.Left);
                     layer.Enqueue(n.Right);
@@ -379,31 +383,31 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
                 }
             }
         }
-        private int BuildSubTree((int, CraftingRecipe)[] layer, uint dim){
-            int GetMaximumDimensions(){
+        private int BuildSubTree((int, CraftingRecipe)[] layer, uint dim) {
+            int GetMaximumDimensions() {
                 HashSet<(int, uint)> dimLens = new HashSet<(int, uint)>();
-                foreach((int, CraftingRecipe) rep in layer){
+                foreach ((int, CraftingRecipe) rep in layer) {
                     CraftingRecipe recipe = rep.Item2;
-                    for(int i = 0; i < dim; i++){
+                    for (int i = 0; i < dim; i++) {
                         dimLens.Add((i, (uint)recipe.EntryMat(i)));
                     }
                 }
 
                 int[] dimCounts = new int[dim];
-                foreach((int dimension, uint material) in dimLens){ dimCounts[dimension]++; }
+                foreach ((int dimension, uint material) in dimLens) { dimCounts[dimension]++; }
                 return dimCounts.Max();
             }
 
-            if(layer.Length <= 0) return -1;
+            if (layer.Length <= 0) return -1;
             int maxDim = GetMaximumDimensions();
             Array.Sort(layer, (a, b) => a.Item2.EntryMat(maxDim) - b.Item2.EntryMat(maxDim));
-            
+
             int mid = layer.Length / 2;
-            tree.Add(new Node{
+            tree.Add(new Node {
                 Split = layer[mid].Item1,
                 Axis = (byte)maxDim,
                 Left = BuildSubTree(layer.Take(mid).ToArray(), dim),
-                Right = BuildSubTree(layer.Skip(mid+1).ToArray(), dim),
+                Right = BuildSubTree(layer.Skip(mid + 1).ToArray(), dim),
             });
             return tree.Count - 1;
         }

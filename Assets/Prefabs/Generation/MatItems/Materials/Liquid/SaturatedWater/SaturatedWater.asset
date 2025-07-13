@@ -13,18 +13,21 @@ MonoBehaviour:
   m_Name: SaturatedWater
   m_EditorClassIdentifier: 
   Name: SaturatedWater
+  Tags:
+    Reg:
+      value: []
   Names:
   - Void
   - SaturatedWater:Liquid
   - Water
-  SolidItem: 0
-  LiquidItem: 1
   terrainData:
     Texture: 2
     textureScale: 2
-    GeoShaderIndex: -1
+    GeoShaderIndex:
+      data: 0
   AtmosphereScatter:
-    ScatterCoeffs: {x: 0.00005, y: 0.0007, z: 0.0005}
+    InScatterCoeffs: {x: 0.0025, y: 0.007, z: 0.0025}
+    OutScatterCoeffs: {x: 0.0025, y: 0.007, z: 0.0025}
     GroundExtinction: {x: 0.03, y: 0.005, z: 0.003}
     LightIntensity: 0
   liquidData:
@@ -39,7 +42,14 @@ MonoBehaviour:
     waveSpeed: {x: 2, y: 5}
   SpreadChance: 0.1
   SpreadMaterial: Water
+  DecayChance: 0
+  DecayMaterial: 
   SpreadBounds:
     data: 4278255488
   NeighborBounds:
     data: 4278255360
+  SolidItem: 0
+  LiquidItem: 1
+  references:
+    version: 2
+    RefIds: []

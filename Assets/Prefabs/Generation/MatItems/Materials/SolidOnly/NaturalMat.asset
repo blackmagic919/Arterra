@@ -13,8 +13,16 @@ MonoBehaviour:
   m_Name: NaturalMat
   m_EditorClassIdentifier: 
   Name: C:Natural
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 0dccd6e6efb3449fd8ca4fb13ba5f306, type: 2}
     - value: {fileID: 11400000, guid: 383171fe000d046d4a10276937dd786e, type: 2}
     - value: {fileID: 11400000, guid: 8b96464f08ec641aaaf9533ef377597a, type: 2}
+    - value: {fileID: 11400000, guid: 55dc8b2c6c6e84cc496cf3870c63eba3, type: 2}
+    - value: {fileID: 11400000, guid: fe6a285d326f7438c82474b7d7b58366, type: 2}
+  references:
+    version: 2
+    RefIds: []

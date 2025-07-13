@@ -153,7 +153,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             vitality.health -= EntityJob.cxt.deltaTime;
 
             collider.useGravity = true;
-            Recognition.DetectMapInteraction(position, OnInSolid: null,
+            TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
             OnInLiquid: (dens) =>
             {
                 collider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;

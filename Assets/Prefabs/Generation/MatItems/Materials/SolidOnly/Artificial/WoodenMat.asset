@@ -20,6 +20,10 @@ MonoBehaviour:
         value:
           value:
             rid: 5818089348897964116
+      - Tag: 5
+        value:
+          value:
+            rid: 6432722648275615827
   Children:
     value:
     - value: {fileID: 11400000, guid: d431ce8734eb24150bd1b9ad93c14bb2, type: 2}
@@ -34,3 +38,12 @@ MonoBehaviour:
         TerraformSpeed: 100
         ToolDamage: 1
         GivesItem: 1
+    - rid: 6432722648275615827
+      type: {class: ConverterToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0.25
+        ToolDamage: 2
+        GivesItem: 0
+        ConvertBounds:
+          data: 4286643968
+        ConvertTarget: FireAsh

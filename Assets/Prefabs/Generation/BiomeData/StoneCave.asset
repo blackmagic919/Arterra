@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: StoneCave
   m_EditorClassIdentifier: 
   Name: Stone Cave
+  Tags:
+    Reg:
+      value: []
   info:
     value:
       NameRegister:
@@ -20,6 +23,7 @@ MonoBehaviour:
         - Rock
         - Stone
         - CoalOre
+        - IronOre
         - Dirt
         - Moss
         - Air
@@ -49,12 +53,18 @@ MonoBehaviour:
             height: 0
         - value:
             Material: 3
-            genSize: 0.2
-            genShape: 0.634
-            frequency: 0.8
+            genSize: 0.287
+            genShape: 0.6
+            frequency: 0.15
             height: 0
         - value:
             Material: 4
+            genSize: 0.413
+            genShape: 0.252
+            frequency: 0.8
+            height: 0
+        - value:
+            Material: 5
             genSize: 0.29
             genShape: 0.7
             frequency: 0.75
@@ -62,7 +72,7 @@ MonoBehaviour:
       SurfaceMaterials:
         value:
         - value:
-            Material: 5
+            Material: 6
             genSize: 0
             genShape: 0
             frequency: 1
@@ -70,7 +80,7 @@ MonoBehaviour:
       LiquidMaterials:
         value:
         - value:
-            Material: 6
+            Material: 7
             genSize: 0
             genShape: 0
             frequency: 1
@@ -80,13 +90,13 @@ MonoBehaviour:
       Entities:
         value:
         - value:
-            Entity: 7
+            Entity: 8
             ChancePerCoord: 0.0001
         - value:
-            Entity: 8
+            Entity: 9
             ChancePerCoord: 0.00015
         - value:
-            Entity: 9
+            Entity: 10
             ChancePerCoord: 0.0003
   BiomeConditions:
     value:
@@ -99,3 +109,6 @@ MonoBehaviour:
       CaveShapeEnd: 1
       HeightEnd: 1
       biome: 0
+  references:
+    version: 2
+    RefIds: []

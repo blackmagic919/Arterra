@@ -13,18 +13,20 @@ MonoBehaviour:
   m_Name: AirThinMat
   m_EditorClassIdentifier: 
   Name: Air
+  Tags:
+    Reg:
+      value: []
   Names:
   - Void
   - Water:Liquid
-  SolidItem: 0
-  LiquidItem: 1
   terrainData:
     Texture: 0
     textureScale: 2
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
-    ScatterCoeffs: {x: 0.000625, y: 0.00125, z: 0.0025}
+    InScatterCoeffs: {x: 0.000625, y: 0.00125, z: 0.0025}
+    OutScatterCoeffs: {x: 0.000625, y: 0.00125, z: 0.0025}
     GroundExtinction: {x: 0.005, y: 0.01, z: 0.02}
     LightIntensity: 0
   liquidData:
@@ -37,3 +39,8 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
+  SolidItem: 0
+  LiquidItem: 1
+  references:
+    version: 2
+    RefIds: []

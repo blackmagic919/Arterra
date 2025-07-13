@@ -365,7 +365,7 @@ MonoBehaviour:
         value: {fileID: 11400000, guid: b6eb14945e6ce4e35a36d2502ba1cf4f, type: 2}
       TerrainUpdation:
         value:
-          RandomUpdatesPerChunk: 100
+          RandomUpdatesPerChunk: 250
           MaximumTickUpdates: 5000
           UpdateTickDelay: 4
       ReadBack:

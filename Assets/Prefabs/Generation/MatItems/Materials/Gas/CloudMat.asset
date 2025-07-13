@@ -13,17 +13,20 @@ MonoBehaviour:
   m_Name: CloudMat
   m_EditorClassIdentifier: 
   Name: Cloud
+  Tags:
+    Reg:
+      value: []
   Names:
   - Void
   - Water:Liquid
-  SolidItem: 0
-  LiquidItem: 1
   terrainData:
     Texture: 0
     textureScale: 5
-    GeoShaderIndex: -1
+    GeoShaderIndex:
+      data: 0
   AtmosphereScatter:
-    ScatterCoeffs: {x: 0.00625, y: 0.00625, z: 0.00625}
+    InScatterCoeffs: {x: 0.00625, y: 0.00625, z: 0.00625}
+    OutScatterCoeffs: {x: 0.00625, y: 0.00625, z: 0.00625}
     GroundExtinction: {x: 0.025, y: 0.025, z: 0.025}
     LightIntensity: 0
   liquidData:
@@ -36,3 +39,8 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
+  SolidItem: 0
+  LiquidItem: 1
+  references:
+    version: 2
+    RefIds: []

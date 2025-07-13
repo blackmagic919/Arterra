@@ -203,6 +203,11 @@ namespace TerrainGeneration{
                         );
                         int MIndex = MCoord.x * mapChunkSize * mapChunkSize + MCoord.y * mapChunkSize + MCoord.z;
                         MapData mapData = CPUMapManager.SectionedMemory[CIndex * numPointsChunk + MIndex];
+                        if (!MaterialDictionary.Contains(mapData.material)) {
+                            Debug.Log(CCoord);
+                            Debug.Log(mapData.material);
+                            return;
+                        }
                         MaterialDictionary.Retrieve(mapData.material).RandomMaterialUpdate(CCoord * mapChunkSize + MCoord, prng);
                     }
                 }

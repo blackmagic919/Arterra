@@ -4,62 +4,60 @@ using Newtonsoft.Json;
 using UnityEngine;
 using WorldConfig;
 
-namespace WorldConfig.Generation.Item{
-/// <summary> A template for creating an item. To create an inspector serializable object, the 
-/// concrete type must be known. This allows us to quickly fulfill the contract with
-/// the <see cref="IItem"/>  interface. </summary>
-/// <typeparam name="TItem"></typeparam>
-public class AuthoringTemplate<TItem> : Authoring where TItem : IItem, new()
-{
-    /// <summary> Returns a new instance of the concrete type implementing <see cref="IItem"/>, fulfilling the contract. </summary>
-    public override IItem Item => new TItem();
-}
-
-/// <summary>
-/// Information shared by all instances of an item containing static properties
-/// that describe the apperance of the item as well as its connection to the 
-/// <see cref="WorldConfig.Config.GenerationSettings.Materials"> material registry </see>. 
-/// </summary>
-public class Authoring : Category<Authoring>
-{
-    /// <summary> The name of the entry within the <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see>
-    /// of the texture that is displayed when the item is in a UI panel. It is also used to create an <see cref="EItem"> entity item</see> mesh
-    /// if the item is dropped in the world. This must always be a valid entry. </summary>
-    public string TextureName;
-
-    /// <summary>
-    /// The name of the entry within the <see cref="WorldConfig.Config.GenerationSettings.Materials"> material registry </see>
-    /// of the material that is placed when the item is selected when placing terrain.
-    /// If the material name is not a valid entry, the item will not be able to be placed as a material (e.g. a tool).
-    /// </summary>
-    public string MaterialName;
-    /// <summary>
-    /// If the material is <see cref="MaterialName">placable as a material</see>, whether it should place the material indicated
-    /// by <see cref="MaterialName"/> in a solid or liquid state. If it is not placable this value is ignored. 
-    /// </summary>
-    public State MaterialState;
-    /// <summary>
-    /// The item instance that stores information specific to a specific instance of the item. The instance
-    /// should store the index within <see cref="WorldConfig.Config.GenerationSettings.Items"/> of the entry it 
-    /// is created from to retrieve the item's shared information contained within its <see cref="Authoring"/> object.
-    /// </summary>
-    public virtual IItem Item { get; }
-    /// <summary> If the item is <see cref="MaterialName">placable as a material</see>, whether <see cref="MaterialState"/> is solid. </summary>
-    public bool IsSolid => MaterialState == State.Solid;
-    /// <summary> If the item is <see cref="MaterialName">placable as a material</see>, whether <see cref="MaterialState"/> is liquid. </summary>
-    public bool IsLiquid => MaterialState == State.Liquid;
-
-    /// <summary>
-    /// The states a material can be placed as from an item. 
-    /// This is either a solid or liquid.
-    /// </summary>
-    public enum State{
-        /// <summary> The material is placed as a solid. </summary>
-        Solid = 0, 
-        /// <summary> The material is placed as a liquid. </summary>
-        Liquid = 1,
+namespace WorldConfig.Generation.Item {
+    /// <summary> A template for creating an item. To create an inspector serializable object, the 
+    /// concrete type must be known. This allows us to quickly fulfill the contract with
+    /// the <see cref="IItem"/>  interface. </summary>
+    /// <typeparam name="TItem"></typeparam>
+    public class AuthoringTemplate<TItem> : Authoring where TItem : IItem, new() {
+        /// <summary> Returns a new instance of the concrete type implementing <see cref="IItem"/>, fulfilling the contract. </summary>
+        public override IItem Item => new TItem();
     }
-}
+
+    /// <summary>
+    /// Information shared by all instances of an item containing static properties
+    /// that describe the apperance of the item as well as its connection to the 
+    /// <see cref="WorldConfig.Config.GenerationSettings.Materials"> material registry </see>. 
+    /// </summary>
+    public class Authoring : Category<Authoring> {
+        /// <summary> The name of the entry within the <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see>
+        /// of the texture that is displayed when the item is in a UI panel. It is also used to create an <see cref="EItem"> entity item</see> mesh
+        /// if the item is dropped in the world. This must always be a valid entry. </summary>
+        public string TextureName;
+
+        /// <summary>
+        /// The name of the entry within the <see cref="WorldConfig.Config.GenerationSettings.Materials"> material registry </see>
+        /// of the material that is placed when the item is selected when placing terrain.
+        /// If the material name is not a valid entry, the item will not be able to be placed as a material (e.g. a tool).
+        /// </summary>
+        public string MaterialName;
+        /// <summary>
+        /// If the material is <see cref="MaterialName">placable as a material</see>, whether it should place the material indicated
+        /// by <see cref="MaterialName"/> in a solid or liquid state. If it is not placable this value is ignored. 
+        /// </summary>
+        public State MaterialState;
+        /// <summary>
+        /// The item instance that stores information specific to a specific instance of the item. The instance
+        /// should store the index within <see cref="WorldConfig.Config.GenerationSettings.Items"/> of the entry it 
+        /// is created from to retrieve the item's shared information contained within its <see cref="Authoring"/> object.
+        /// </summary>
+        public virtual IItem Item { get; }
+        /// <summary> If the item is <see cref="MaterialName">placable as a material</see>, whether <see cref="MaterialState"/> is solid. </summary>
+        public bool IsSolid => MaterialState == State.Solid;
+        /// <summary> If the item is <see cref="MaterialName">placable as a material</see>, whether <see cref="MaterialState"/> is liquid. </summary>
+        public bool IsLiquid => MaterialState == State.Liquid;
+
+        /// <summary>
+        /// The states a material can be placed as from an item. 
+        /// This is either a solid or liquid.
+        /// </summary>
+        public enum State {
+            /// <summary> The material is placed as a solid. </summary>
+            Solid = 0,
+            /// <summary> The material is placed as a liquid. </summary>
+            Liquid = 1,
+        }
+    }
 
     /// <summary>
     /// A contract for an item instance that is created from an <see cref="Authoring"/> object. 
@@ -71,8 +69,7 @@ public class Authoring : Category<Authoring>
     /// done on a hooked event, such as reassigning keybinds, moving items, changing player effects, etc. 
     /// As long as the event itself is safe, the item can do whatever it wants allowing for a very
     /// flexible system. </remarks>
-    public interface IItem : ICloneable, IRegistered
-    {
+    public interface IItem : ICloneable, IRegistered, ISlot {
         /// <summary> Whether the item can be stacked with other items of the same type. If the item is stackable,
         /// when another item of the same <see cref="IRegistered.Index"/> is encountered it may be combined with the
         /// current item and the <see cref="AmountRaw"/> increased to the sum the amounts of the two items.
@@ -86,7 +83,7 @@ public class Authoring : Category<Authoring>
         /// <see cref="Config.GenerationSettings.Textures"> texture registry </see>. See <seealso cref="Authoring.TextureName"/> for
         /// more information. </summary>
         public int TexIndex { get; }
-        
+
         /// <summary> The constructor function called whenever an item is created.
         /// This should be used to setup Index and AmountRaw. </summary>
         /// <param name="Index">The index of the item within <see cref="Config.GenerationSettings.Items"/> registry</param>
@@ -131,10 +128,5 @@ public class Authoring : Category<Authoring>
         /// <summary> An event hook that is called every frame the item is held by an <see cref="EItem">EntityItem</see>. </summary>
         /// <remarks> TODO: This has yet to be implemented </remarks>
         public void UpdateEItem(); //Called every frame it is an Entity Item
-        /// <summary> Attaches the UI panel to be displayed representing the Item to the UI object. </summary>
-        public void AttachDisplay(Transform pSlot);
-        /// <summary> This handle is called when the Display UI is to be cleared  </summary>
-        public void ClearDisplay();
-        
-}
+    }
 }

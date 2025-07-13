@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: C:Organic
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 5
+        value:
+          value:
+            rid: 6432722648275615824
   Children:
     value:
     - value: {fileID: 11400000, guid: c53bc6cecb20249aead859815e2ff583, type: 2}
@@ -26,6 +30,16 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: 72eb2a86f07ef473ca5c536aeec133ce, type: 2}
     - value: {fileID: 11400000, guid: 0d3f3b37a74564114b9a437870248d11, type: 2}
     - value: {fileID: 11400000, guid: 1f9f68ebe27844430b8188a0426091e2, type: 2}
+    - value: {fileID: 11400000, guid: 7b57b4e08c05c4ff386c642fd205567a, type: 2}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 6432722648275615824
+      type: {class: ConverterToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0.25
+        ToolDamage: 2
+        GivesItem: 0
+        ConvertBounds:
+          data: 4286643968
+        ConvertTarget: FireAsh

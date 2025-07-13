@@ -8,7 +8,6 @@ using Unity.Burst;
 using UnityEditor;
 using TerrainGeneration;
 using WorldConfig;
-using UnityEditor.Playables;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -101,6 +100,7 @@ namespace MapStorage {
 
         private static void SaveChunk(int chunkHash) {
             if (!AddressDict[chunkHash].valid) return;
+            AddressDict[chunkHash].Dispose();
             int3 CCoord = AddressDict[chunkHash].CCoord;
 
             EntityManager.ReleaseChunkEntities(CCoord);
@@ -503,7 +503,7 @@ namespace MapStorage {
                 int CIndex = HCoord.x * numChunksAxis * numChunksAxis + HCoord.y * numChunksAxis + HCoord.z;
                 ChunkMapInfo mapInfo = AddressDict[CIndex];
                 //Not available(currently readingback) || Out of Bounds
-                if (!mapInfo.valid || math.any(mapInfo.CCoord != CCoord))
+                if (!mapInfo.valid || math.any(mapInfo.CCoord != NeighborCC))
                     return;
                 _ChunkManagers[CIndex].ReflectChunk();
             }}};
@@ -562,6 +562,10 @@ namespace MapStorage {
                 valid = true;
                 isDirty = false;
             }
+
+            /// <summary> Invalidates the chunk map data indicating to 
+            /// processes that it should no longer be modified </summary>
+            public void Dispose() => valid = false;
         }
 
         /// <summary> A wrapper structure containing a specific chunk's map data 

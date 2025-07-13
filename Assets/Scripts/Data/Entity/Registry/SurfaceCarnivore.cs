@@ -156,11 +156,11 @@ public class SurfaceCarnivore : Authoring
         public override void Update()
         {
             if(!active) return;
-            tCollider.Update(EntityJob.cxt, settings.collider);
+            tCollider.Update(settings.collider, this);
             EntityManager.AddHandlerEvent(controller.Update);
 
             tCollider.useGravity = true;
-            Recognition.DetectMapInteraction(position, 
+            TerrainInteractor.DetectMapInteraction(position, 
             OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
             OnInGas: vitality.ProcessInGas);

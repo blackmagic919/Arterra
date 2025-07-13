@@ -319,9 +319,7 @@ public static class Chunk
     //IT IS CALLERS RESPONSIBILITY TO DISPOSE MEMORY STREAM
     private static MemoryStream WriteChunkMaps(CPUMapManager.ChunkPtr chunk, out ChunkHeader header){
         MemoryStream ms = new MemoryStream();
-        Profiler.BeginSample("Serializing Header");
         header = SerializeHeader(chunk);
-        Profiler.EndSample(); Profiler.BeginSample("Writing Maps");
         header.ResolutionOffsets = new List<int>();
         for(int skipInc = 1; skipInc <= maxChunkSize; skipInc <<= 1){
             int numPointsAxis = maxChunkSize / skipInc;

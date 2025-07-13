@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fd5e8b7ba3514f9ca716e61b79750ae, type: 3}
+  m_Name: Flames
+  m_EditorClassIdentifier: 
+  Name: Flames
+  Tags:
+    Reg:
+      value: []
+  NameRegister:
+    value:
+    - GrassNoise
+  info:
+    grassHeight: 0.75
+    maxLayers: 15
+    TextureIndex: 0
+    BaseColor: {r: 1, g: 0.5430068, b: 0.08962262, a: 0}
+    TopColor: {r: 1, g: 0.95914936, b: 0, a: 0}
+    Scale: 0.2
+    CenterHeight: 0.5
+    WindFrequency: 0.025
+    WindStrength: 0.5
+  references:
+    version: 2
+    RefIds: []

@@ -56,7 +56,7 @@ namespace WorldConfig.Generation.Material
 
         private ContainerInventory OpenedInventory = null;
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
-            if (caller.info.entityType != Config.CURRENT.Generation.Entities.RetrieveIndex("Player"))
+            if (caller == null || caller.info.entityType != Config.CURRENT.Generation.Entities.RetrieveIndex("Player"))
                 return false;
             if (PlayerMovement.IsSprinting) return false;
             MapData info = CPUMapManager.SampleMap(GCoord);

@@ -27,6 +27,8 @@ MonoBehaviour:
     TopColor: {r: 0.37254903, g: 0.5647059, b: 0.08627451, a: 0}
     Scale: 1
     CenterHeight: 0.5
+    WindFrequency: 0.1
+    WindStrength: 0.1
   references:
     version: 2
     RefIds: []

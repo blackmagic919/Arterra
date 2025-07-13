@@ -172,7 +172,7 @@ public class SkyBoidHerbivore : Authoring
         {
             if (!active) return;
             //use gravity if not flying
-            tCollider.Update(EntityJob.cxt, settings.collider);
+            tCollider.Update(settings.collider, this);
             if (!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
             EntityManager.AddHandlerEvent(controller.Update);
 
@@ -186,7 +186,7 @@ public class SkyBoidHerbivore : Authoring
             }
             else if (TaskIndex <= 11) DetectPredator();
             
-            Recognition.DetectMapInteraction(position, 
+            TerrainInteractor.DetectMapInteraction(position, 
             OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
             OnInGas: vitality.ProcessInGas);

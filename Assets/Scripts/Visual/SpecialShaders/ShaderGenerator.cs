@@ -118,7 +118,7 @@ public class ShaderGenerator
         foreach (ShaderUpdateTask task in shaderUpdateTasks){
             if (task == null || !task.active)
                 continue;
-            task.Release(GenerationPreset.memoryHandle);
+            task.Release(ref GenerationPreset.memoryHandle);
         }
     }
 
@@ -190,8 +190,7 @@ public class ShaderGenerator
         ComputeBuffer memoryReference = GenerationPreset.memoryHandle.Storage;
         ComputeBuffer addressesReference = GenerationPreset.memoryHandle.Address;
 
-        for (int i = 0; i < numShaders; i++)
-        {
+        for (int i = 0; i < numShaders; i++){
             CopyGeoCount(shadGeoCStart + i);
             geoShaderAddresses[i] = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, GEO_VERTEX_STRIDE * 3, baseGeoCounter);
             TranscribeGeometry(memoryReference, addressesReference, (int)geoShaderAddresses[i], shadGeoCStart + i);
@@ -227,8 +226,7 @@ public class ShaderGenerator
         int numShaders = shaders.Count;
         uint[] shaderDrawArgs = new uint[numShaders];
 
-        for (int i = 0; i < numShaders; i++)
-        {
+        for (int i = 0; i < numShaders; i++) {
             shaderDrawArgs[i] = UtilityBuffers.AllocateArgs();
             GetDrawArgs(UtilityBuffers.ArgumentBuffer, (int)shaderDrawArgs[i], shadGeoCStart + i);
         }
@@ -307,7 +305,7 @@ public class ShaderGenerator
 
             uint2 memAddress = request.GetData<uint2>().ToArray()[0];
             if (memAddress.x != 0) return; //No geometry to readback
-            shader.Release(GenerationPreset.memoryHandle);
+            shader.Release(ref GenerationPreset.memoryHandle);
             return;
         }
         AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)shader.address, OnAddressRecieved);
@@ -331,7 +329,7 @@ public class ShaderGenerator
             Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)dispArgs);
         }
 
-        public void Release(GenerationPreset.MemoryHandle memory)
+        public void Release(ref GenerationPreset.MemoryHandle memory)
         {
             if (!active) return;
             active = false;

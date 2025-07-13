@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using UnityEditor;
 using UnityEngine;
 using WorldConfig;
 
 
 [Serializable]
-public class ToolTag : TagRegistry.IProperty
-{
+public class ToolTag : TagRegistry.IProperty {
     /// <summary> The speed at which the user can terraform the terrain. As terraforming is a 
     /// continuous process, the speed is measured in terms of change in density per frame. </summary>
     public float TerraformSpeed;
@@ -17,12 +17,28 @@ public class ToolTag : TagRegistry.IProperty
     /// <summary> Whether or not the material removed by this tool will give 
     /// the player the corresponding item. </summary>
     public bool GivesItem;
-    public object Clone()
-    {
-        return new ToolTag
-        {
+    public virtual object Clone() {
+        return new ToolTag {
             TerraformSpeed = TerraformSpeed,
+            ToolDamage = ToolDamage,
             GivesItem = GivesItem
+        };
+    }
+}
+
+[Serializable]
+public class ConverterToolTag : ToolTag {
+    [Header("Convertable Bounds")]
+    public WorldConfig.Generation.Structure.StructureData.CheckInfo ConvertBounds;
+    public string ConvertTarget;
+
+    public override object Clone() {
+        return new ConverterToolTag {
+            TerraformSpeed = TerraformSpeed,
+            ToolDamage = ToolDamage,
+            GivesItem = GivesItem,
+            ConvertBounds = ConvertBounds,
+            ConvertTarget = ConvertTarget,
         };
     }
 }
@@ -31,12 +47,14 @@ public class ToolTag : TagRegistry.IProperty
 public struct TagRegistry
 {
     public static readonly IProperty[] TagTemplates = new IProperty[] {
-        null, new ToolTag(), new ToolTag(), new ToolTag(), new ToolTag()
+        null, new ToolTag(), new ToolTag(), new ToolTag(), new ToolTag(),
+        new ConverterToolTag()
     };
-    public enum Tags
-    {
+    public enum Tags {
         //Tools
-        None = 0, BareHand = 1, Axe = 2, Shovel = 3, Pickaxe = 4
+        None = 0, BareHand = 1, Axe = 2, Shovel = 3, Pickaxe = 4,
+        //Converters
+        Flammable = 5,
     }
 
     public interface IProperty

@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aba0e1d8d02674d9ca7672d55a581c42, type: 3}
+  m_Name: FlintAndSteel
+  m_EditorClassIdentifier: 
+  Name: FlintAndSteel
+  Tags:
+    Reg:
+      value: []
+  Recipe:
+    Names:
+      value:
+      - FlintAndSteel
+      - Wood
+      - Plank
+    entry:
+      value:
+      - data: 104086
+      - data: 111796
+      - data: 0
+      - data: 0
+      - data: 111796
+      - data: 122076
+      - data: 30840
+      - data: 182472
+      - data: 0
+      - data: 30840
+      - data: 0
+      - data: 182472
+      - data: 0
+      - data: 182472
+      - data: 182472
+      - data: 182472
+    result:
+      data: 255
+  references:
+    version: 2
+    RefIds: []

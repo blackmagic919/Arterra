@@ -110,7 +110,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             if(!active) return;
 
             tCollider.useGravity = true;
-            Recognition.DetectMapInteraction(position, OnInSolid: null,
+            TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
             OnInLiquid: (dens) => {
                 tCollider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
                 tCollider.velocity.y *= 1 - settings.collider.friction;
@@ -122,7 +122,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
                 tCollider.transform.rotation = Quaternion.LookRotation(gDir, math.up());
                 tCollider.velocity *= 1 - settings.StickFriction;
             }
-            tCollider.Update(EntityJob.cxt, settings.collider);
+            tCollider.Update(settings.collider, this);
             EntityManager.AddHandlerEvent(controller.Update);
         }
 

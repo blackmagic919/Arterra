@@ -11,11 +11,13 @@ struct DrawTriangle{
 struct Settings{
     float TotalHeight;
     int MaxLayers;
-    int TexInd;
+    int TexIndex;
     float4 BaseColor;
     float4 TopColor;
     float Scale;
     float CenterHeight;
+    float WindFrequency;
+    float WindStrength;
 };
 
 StructuredBuffer<Settings> VariantSettings;

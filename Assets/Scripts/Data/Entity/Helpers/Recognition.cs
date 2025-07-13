@@ -177,60 +177,6 @@ public class Recognition {
         return ret;
     }
 
-    public static void DetectMapInteraction(float3 originGS, Action<float> OnInSolid = null, Action<float> OnInLiquid = null, Action<float> OnInGas = null) {
-        static (float, float) TrilinearBlend(float3 posGS) {
-            //Calculate Density
-            int x0 = (int)Math.Floor(posGS.x); int x1 = x0 + 1;
-            int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
-            int z0 = (int)Math.Floor(posGS.z); int z1 = z0 + 1;
-
-            uint c000 = CPUMapManager.SampleMap(new int3(x0, y0, z0)).data;
-            uint c100 = CPUMapManager.SampleMap(new int3(x1, y0, z0)).data;
-            uint c010 = CPUMapManager.SampleMap(new int3(x0, y1, z0)).data;
-            uint c110 = CPUMapManager.SampleMap(new int3(x1, y1, z0)).data;
-            uint c001 = CPUMapManager.SampleMap(new int3(x0, y0, z1)).data;
-            uint c101 = CPUMapManager.SampleMap(new int3(x1, y0, z1)).data;
-            uint c011 = CPUMapManager.SampleMap(new int3(x0, y1, z1)).data;
-            uint c111 = CPUMapManager.SampleMap(new int3(x1, y1, z1)).data;
-
-            float xd = posGS.x - x0;
-            float yd = posGS.y - y0;
-            float zd = posGS.z - z0;
-
-            float c00 = (c000 & 0xFF) * (1 - xd) + (c100 & 0xFF) * xd;
-            float c01 = (c001 & 0xFF) * (1 - xd) + (c101 & 0xFF) * xd;
-            float c10 = (c010 & 0xFF) * (1 - xd) + (c110 & 0xFF) * xd;
-            float c11 = (c011 & 0xFF) * (1 - xd) + (c111 & 0xFF) * xd;
-
-            float c0 = c00 * (1 - yd) + c10 * yd;
-            float c1 = c01 * (1 - yd) + c11 * yd;
-            float density = c0 * (1 - zd) + c1 * zd;
-
-            c000 = c000 >> 8 & 0xFF; c100 = c100 >> 8 & 0xFF;
-            c010 = c010 >> 8 & 0xFF; c110 = c110 >> 8 & 0xFF;
-            c001 = c001 >> 8 & 0xFF; c101 = c101 >> 8 & 0xFF;
-            c011 = c011 >> 8 & 0xFF; c111 = c111 >> 8 & 0xFF;
-
-            c00 = c000 * (1 - xd) + c100 * xd;
-            c01 = c001 * (1 - xd) + c101 * xd;
-            c10 = c010 * (1 - xd) + c110 * xd;
-            c11 = c011 * (1 - xd) + c111 * xd;
-
-            c0 = c00 * (1 - yd) + c10 * yd;
-            c1 = c01 * (1 - yd) + c11 * yd;
-            float viscosity = c0 * (1 - zd) + c1 * zd;
-            return (density, viscosity);
-        }
-
-        (float density, float viscoity) = TrilinearBlend(originGS);
-        if (viscoity > CPUMapManager.IsoValue) OnInSolid?.Invoke(viscoity);
-        else if (density - viscoity > CPUMapManager.IsoValue) OnInLiquid?.Invoke(density - viscoity);
-        else OnInGas?.Invoke(density);
-
-        //int3 coordGS = (int3)math.round(centerGS);
-        //int material = SampleMap(coordGS).material;
-    }
-
     public static float GetColliderDist(Entity a, Entity b) {
         if (a == null || b == null) return float.PositiveInfinity;
         var reg = Config.CURRENT.Generation.Entities;
@@ -393,35 +339,22 @@ public class RHerbivore : Recognition{
         if(!rInfo.IsPrey) return null;
         Registry<MaterialData> matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
 
-        MapData deltaOrig = mapData;
-        MapData deltaNew = mapData;
-
         string key = plant.Replacement;
-        if (!String.IsNullOrEmpty(key) && matInfo.Contains(key))
-            deltaNew.material = matInfo.RetrieveIndex(key);
-        if (plant.ReplaceState == WorldConfig.Generation.Item.Authoring.State.Liquid)
-                deltaNew.viscosity = 0;
-        //Remove old material
-        MaterialData deltaMatInfo = matInfo.Retrieve(deltaOrig.material);
-        if (deltaMatInfo.OnRemoving(preyCoord, self)) return null;
-        mapData.viscosity -= deltaOrig.viscosity;
-        mapData.density -= deltaOrig.density;
-        deltaMatInfo.OnRemoved(preyCoord, deltaOrig);
-        CPUMapManager.SetMap(mapData, preyCoord);
-
-        if (deltaOrig.IsLiquid) deltaOrig.viscosity = 0;
-        WorldConfig.Generation.Item.IItem nMat = matInfo.Retrieve(mapData.material).AcquireItem(deltaOrig);
-        if (deltaNew.density == 0) return nMat;
-
-        //Place new material
-        deltaMatInfo = matInfo.Retrieve(deltaNew.material);
-        if (deltaMatInfo.OnPlacing(preyCoord, self)) return nMat;
-        mapData.material = deltaNew.material;
-        mapData.viscosity += deltaNew.viscosity;
-        mapData.density += deltaNew.density;
-        deltaMatInfo.OnPlaced(preyCoord, deltaNew);
-        CPUMapManager.SetMap(mapData, preyCoord);
-        return nMat;
+        WorldConfig.Generation.Item.IItem nMat = matInfo.Retrieve(mapData.material).AcquireItem(mapData);
+        if (!String.IsNullOrEmpty(key) && matInfo.Contains(key)) {
+            int newMaterial = matInfo.RetrieveIndex(key);
+            if (!MaterialData.SwapMaterial(preyCoord, newMaterial, self))
+                return null;
+            return nMat;
+        } else {
+            if (matInfo.Retrieve(mapData.material).OnRemoving(preyCoord, self))
+                return null;
+            matInfo.Retrieve(mapData.material).OnRemoved(preyCoord, mapData);
+            mapData.viscosity = 0;
+            mapData.density = 0;
+            CPUMapManager.SetMap(mapData, preyCoord);
+            return nMat;
+        }
     }
 
 
@@ -431,7 +364,6 @@ public class RHerbivore : Recognition{
         public StructureData.CheckInfo Bounds;
         //If null, gradually removes it
         public string Replacement;
-        public WorldConfig.Generation.Item.Authoring.State ReplaceState;
 
         readonly static int3[] dp = new int3[6]{
             new (0, 0, 1),

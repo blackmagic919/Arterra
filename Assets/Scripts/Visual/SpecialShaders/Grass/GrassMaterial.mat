@@ -128,8 +128,8 @@ Material:
     - _TrampleDistortion: 0.3
     - _TrampleSize: 1
     - _WSToUVScale: 0.5
-    - _WindAmplitude: 0.1
-    - _WindTimeMult: 0.1
+    - _WindAmplitude: 0.5
+    - _WindTimeMult: 0.025
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:

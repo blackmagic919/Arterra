@@ -15,15 +15,17 @@ MonoBehaviour:
   Name: PineLeaves
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 5
+        value:
+          value:
+            rid: 6432722648275615826
   Names:
   - PineLeaves:Solid
   - Void
   - PineLeaves
   - InsetQuad
   - PineLeaves
-  SolidItem: 0
-  LiquidItem: 1
   terrainData:
     Texture: 2
     textureScale: 2
@@ -43,6 +45,17 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
+  SolidItem: 0
+  LiquidItem: 1
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 6432722648275615826
+      type: {class: ConverterToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0.25
+        ToolDamage: 2
+        GivesItem: 0
+        ConvertBounds:
+          data: 4286643968
+        ConvertTarget: Fire

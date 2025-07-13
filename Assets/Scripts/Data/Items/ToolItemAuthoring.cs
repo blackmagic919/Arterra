@@ -111,12 +111,11 @@ namespace WorldConfig.Generation.Item
             if (!RayTestSolid(PlayerHandler.data, out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
                 return;
-            var localSettings = settings;
             bool RemoveSolid(int3 GCoord, float speed)
             {
                 MapData mapData = CPUMapManager.SampleMap(GCoord);
                 int material = mapData.material; ToolTag tag = PlayerInteraction.settings.DefaultTerraform;
-                if (MatInfo.GetMostSpecificTag(localSettings.ToolTag, material, out TagRegistry.IProperty prop))
+                if (MatInfo.GetMostSpecificTag(settings.ToolTag, material, out TagRegistry.IProperty prop))
                     tag = prop as ToolTag;
 
                 MapData prev = mapData;
@@ -127,7 +126,7 @@ namespace WorldConfig.Generation.Item
                 return true;
             }
 
-            CPUMapManager.Terraform(hitPt, localSettings.TerraformRadius, RemoveSolid, CallOnMapRemoving);
+            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolid, CallOnMapRemoving);
             UpdateDisplay();
 
             if (durability > 0) return;

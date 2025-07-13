@@ -5,7 +5,8 @@
 
 //Information stored for every material
 struct AtmosphericData{
-    float3 scatterCoeffs;
+    float3 inScatterCoeffs;
+    float3 outScatterCoeffs;
     float3 extinctCoeff;
     uint LightIntensity; 
 };
@@ -57,7 +58,7 @@ OpticalInfo SampleMapData(float3 samplePointWS){
         uint info = _ChunkInfoBuffer[pointAddress];
         int material = info >> 16 & 0x7FFF;
         mapData.opticalDensity = mad((info & 0xFF), blendInfo.corner[i], mapData.opticalDensity);
-        mapData.scatterCoeffs = mad(_MatAtmosphericData[material].scatterCoeffs, blendInfo.corner[i], mapData.scatterCoeffs);
+        mapData.scatterCoeffs = mad(_MatAtmosphericData[material].inScatterCoeffs, blendInfo.corner[i], mapData.scatterCoeffs);
         mapData.extinctionCoeff = mad(_MatAtmosphericData[material].extinctCoeff, blendInfo.corner[i], mapData.extinctionCoeff);
     }
 
@@ -87,7 +88,7 @@ OpticalDepth SampleOpticalDepth(float3 samplePointWS){
         uint info = _ChunkInfoBuffer[pointAddress];
         int material = info >> 16 & 0x7FFF;
         depth.opticalDensity = mad((info & 0xFF), blendInfo.corner[i], depth.opticalDensity);
-        depth.scatterCoeffs = mad(_MatAtmosphericData[material].scatterCoeffs, blendInfo.corner[i], depth.scatterCoeffs);
+        depth.scatterCoeffs = mad(_MatAtmosphericData[material].outScatterCoeffs, blendInfo.corner[i], depth.scatterCoeffs);
     }
 
     return depth;
@@ -110,7 +111,7 @@ OpticalDepth SampleOpticalDepthRaw(float3 samplePointWS){
     uint info = _ChunkInfoBuffer[pointAddress];
     int material = info >> 16 & 0x7FFF;
     depth.opticalDensity = (info & 0xFF);
-    depth.scatterCoeffs = _MatAtmosphericData[material].scatterCoeffs;
+    depth.scatterCoeffs = _MatAtmosphericData[material].inScatterCoeffs;
 
     return depth;
 }
@@ -134,7 +135,7 @@ OpticalInfo SampleMapDataRaw(float3 samplePointWS){
     uint info = _ChunkInfoBuffer[pointAddress];
     int material = info >> 16 & 0x7FFF;
     mapData.opticalDensity = (info & 0xFF);
-    mapData.scatterCoeffs = _MatAtmosphericData[material].scatterCoeffs; 
+    mapData.scatterCoeffs = _MatAtmosphericData[material].inScatterCoeffs; 
     mapData.extinctionCoeff = _MatAtmosphericData[material].extinctCoeff;
 
     return mapData;

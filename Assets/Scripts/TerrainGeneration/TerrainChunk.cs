@@ -59,7 +59,6 @@ namespace TerrainGeneration{
         protected Status status;
         /// <summary> The depth of the chunk's neighbors. This is used to blend the chunk's mesh with its neighbors. </summary>
         protected uint neighborDepth;
-        private Mesh runtimeMesh;
 
         /// <summary>
         /// A bitmap container describing the types of requested tasks for the chunk. To request the

@@ -135,6 +135,7 @@ Shader "Unlit/CraftingShader"
                 if(any(distToEdge < _GridSize))
                     return _GridColor;
 
+                float pointDensity = 0;
                 float pDensity = 0; uint parent = 0; 
                 int offset = IN.offset * (GridWidth + 1) * (GridWidth + 1);
                 Influences2D blend = GetBlendInfo(gridPos);
@@ -144,13 +145,14 @@ Shader "Unlit/CraftingShader"
                     int index = cCoord.x * (GridWidth + 1) + cCoord.y;
 
                     uint mapData = CraftingInfo[index + offset];
-                    float nDensity = density(mapData) * blend.corner[i];
-                    if(density(mapData) >= IsoValue && nDensity >= density(parent)) 
-                        parent = mapData & 0xFFFFFF00 | (uint)nDensity;
-                    pDensity += nDensity;
+                    float nDensity = ((int)density(mapData) - (int)IsoValue) * blend.corner[i];
+                    if(nDensity >= pDensity) {
+                        parent = mapData;
+                        pDensity = nDensity;
+                    } pointDensity += nDensity;
                 }
 
-                if(pDensity < IsoValue)
+                if(pointDensity < 0)
                     discard;
 
                 fixed3 MainColor;

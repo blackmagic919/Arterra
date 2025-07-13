@@ -18,6 +18,7 @@ MonoBehaviour:
       value: []
   Children:
     value:
+    - value: {fileID: 11400000, guid: 2e0d936259c764d4c8aa713c6e672836, type: 2}
     - value: {fileID: 11400000, guid: 699c4002676a54319a646bfb02695c02, type: 2}
     - value: {fileID: 11400000, guid: 87d51d85178724468a03508d3cf204d5, type: 2}
     - value: {fileID: 11400000, guid: c720bdfa8837d4b3b9ac4840ef5d76db, type: 2}

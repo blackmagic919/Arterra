@@ -13,19 +13,21 @@ MonoBehaviour:
   m_Name: WaterMat
   m_EditorClassIdentifier: 
   Name: Water
+  Tags:
+    Reg:
+      value: []
   Names:
   - Void
   - Water:Liquid
   - Water
-  SolidItem: 0
-  LiquidItem: 1
   terrainData:
     Texture: 2
     textureScale: 2
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
-    ScatterCoeffs: {x: 0.00005, y: 0.00025, z: 0.0006}
+    InScatterCoeffs: {x: 0.00025, y: 0.00125, z: 0.003}
+    OutScatterCoeffs: {x: 0.0015, y: 0.002, z: 0.00225}
     GroundExtinction: {x: 0.03, y: 0.006, z: 0.003}
     LightIntensity: 0
   liquidData:
@@ -38,3 +40,8 @@ MonoBehaviour:
     waveStrength: 0.5
     waveScale: {x: 0.2, y: 0.045}
     waveSpeed: {x: 2, y: 5}
+  SolidItem: 0
+  LiquidItem: 1
+  references:
+    version: 2
+    RefIds: []

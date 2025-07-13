@@ -32,6 +32,10 @@ MonoBehaviour:
         value:
           value:
             rid: 6432722648275615819
+      - Tag: 5
+        value:
+          value:
+            rid: 6432722696530559048
   Children:
     value:
     - value: {fileID: 11400000, guid: 2a37c22a11b7a406da4fbaf59dceb18b, type: 2}
@@ -63,3 +67,12 @@ MonoBehaviour:
         TerraformSpeed: 50
         ToolDamage: 0
         GivesItem: 0
+    - rid: 6432722696530559048
+      type: {class: ConverterToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0
+        ToolDamage: 0
+        GivesItem: 0
+        ConvertBounds:
+          data: 2130738944
+        ConvertTarget: Ash

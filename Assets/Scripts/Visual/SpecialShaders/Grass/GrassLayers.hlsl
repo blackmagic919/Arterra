@@ -53,6 +53,8 @@ struct Settings{
     float4 TopColor;
     float Scale;
     float CenterHeight;
+    float WindFrequency;
+    float WindStrength;
 };
 
 StructuredBuffer<Settings> VariantSettings;
@@ -66,8 +68,6 @@ uint addressIndex;
 Texture2DArray _Textures;
 SamplerState sampler_Textures;
 TEXTURE2D(_WindNoiseTexture); SAMPLER(sampler_WindNoiseTexture); float4 _WindNoiseTexture_ST;
-float _WindTimeMult;
-float _WindAmplitude;
 
 float2 mapCoordinates(float3 worldPos)
 {
@@ -116,11 +116,11 @@ half3 Fragment(VertexOutput input) : SV_Target {
     float height = input.height.x;
 
     // Calculate wind
-    float2 windUV = TRANSFORM_TEX(uv, _WindNoiseTexture) + _Time.y * _WindTimeMult;
-    float2 windNoise = SAMPLE_TEXTURE2D(_WindNoiseTexture, sampler_WindNoiseTexture, windUV).xy * 2 - 1;
-    uv = uv + windNoise * (_WindAmplitude * height);
-
     Settings cxt = VariantSettings[input.variant];
+    float2 windUV = TRANSFORM_TEX(uv, _WindNoiseTexture) + _Time.y * cxt.WindFrequency;
+    float2 windNoise = SAMPLE_TEXTURE2D(_WindNoiseTexture, sampler_WindNoiseTexture, windUV).xy * 2 - 1;
+    uv = uv + windNoise * (cxt.WindStrength * height);
+
     float3 detailNoise = _Textures.Sample(sampler_Textures, float3(uv, cxt.TexIndex));
     float value;
     if(height > cxt.CenterHeight)

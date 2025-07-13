@@ -95,6 +95,42 @@ namespace WorldConfig.Generation.Material
         /// <param name="mapData">The <see cref="MapData"/> object describing the exact amount and state of material that 
         /// has been removed and its identity. </param>
         public abstract Item.IItem AcquireItem(in MapData mapData);
+        
+        /// <summary> Called whenever an entity touches the solid form of this material.
+        /// Specifically, when an entity's collider overlaps a point that <see cref="MapData.IsSolid"/>
+        /// and this material is the main contributor to that point's density </summary>
+        /// <param name="entity">The entity that is touching the solid ground</param>
+        public virtual void OnEntityTouchSolid(Entity.Entity entity) { }
+
+        /// <summary> Called whenever an entity touches the liquid form of this material.
+        /// Specifically, when an entity's collider overlaps a point that <see cref="MapData.IsLiquid"/>
+        /// and this material is the main contributor to that point's density </summary>
+        /// <param name="entity">The entity that is touching the solid ground</param>
+        public virtual void OnEntityTouchLiquid(Entity.Entity entity) { }
+
+        /// <summary> A static utility function to swap a mapData's material with another material
+        /// handling all the necessary handler calls to <see cref="OnPlacing"/>, <see cref="OnRemoved"/>,
+        /// etc., that this requires. </summary>
+        /// <param name="GCoord">The coordinate in grid space of the mapEntry whose material is being swapped</param>
+        /// <param name="newMaterial">The new material that is being put at this location</param>
+        /// <param name="caller">The caller who is making this request; given to material handles </param>
+        /// <returns>Whether or not the material was successfully swapped.</returns>
+        public static bool SwapMaterial(int3 GCoord, int newMaterial, Entity.Entity caller = null) {
+            MapData mapData = CPUMapManager.SampleMap(GCoord);
+            if (mapData.IsNull) return false;
+            var MatInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            if (MatInfo.Retrieve(mapData.material).OnRemoving(GCoord, caller))
+                return false;
+            MatInfo.Retrieve(mapData.material).OnRemoved(GCoord, mapData);
+            if (MatInfo.Retrieve(mapData.material).OnPlacing(GCoord, caller)) {
+                CPUMapManager.SetMap(new MapData { material = mapData.material }, GCoord);
+                return false;
+            }
+            mapData.material = newMaterial;
+            MatInfo.Retrieve(mapData.material).OnPlaced(GCoord, mapData);
+            CPUMapManager.SetMap(mapData, GCoord);
+            return true;
+        }
 
         /// <summary>
         /// The apperance of the terrain when the material <see cref="MapData.IsSolid">is solid</see>. 
@@ -165,15 +201,20 @@ namespace WorldConfig.Generation.Material
         public struct AtmosphericData
         {
             /// <summary>
-            /// How much this gaseous material reflects light traveling through it. The channels, ordered rgb, and each describe how 
+            /// How much this gaseous material reflects light traveling through it towards the viewer. The channels, ordered rgb, and each describe how 
             /// much of that wavelength is reflected when light encounters the material. As light travels through the material,
             /// lower wavelengths will be more prominent with a thinner optical density (the amount of atmosphere the light travels through)
             /// while higher wavelengths will be more prominent with a thicker optical density.
             /// </summary> <remarks>as a percentage, between 0 and 1</remarks>
-            public Vector3 ScatterCoeffs;
+            public Vector3 InScatterCoeffs;
             /// <summary>
-            /// When light travels from a surface fragment to the camera, how quickly the light is scattered away. The channels, ordered rgb, 
-            /// describe how much of that wavelength is reflected away from the camera as light travels through it. A higher ground extinction
+            /// How much this gaseous material reflects light traveling through it away from the viewer. The channels, ordered rgb, and each describe how 
+            /// much of that wavelength is reflected when light encounters the material.
+            /// </summary> <remarks>as a percentage, between 0 and 1</remarks>
+            public Vector3 OutScatterCoeffs;
+            /// <summary>
+            /// When light travels from a surface fragment to the camera, how quickly the light is scattered away. Deescribes 
+            /// how much of that wavelength is reflected away from the camera as light travels through it. A higher ground extinction
             /// will result in lower visibility of distant objects. 
             /// </summary> <remarks>as a percentage, between 0 and 1</remarks>
             public Vector3 GroundExtinction;

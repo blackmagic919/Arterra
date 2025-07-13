@@ -16,7 +16,8 @@ const static int3x2 dNA[3] = {
 
 //Information stored for every material
 struct AtmosphericData{
-    float3 scatterCoeffs;
+    float3 inScatterCoeffs;
+    float3 outScatterCoeffs;
     float3 extinctCoeff;
     uint LightIntensity; 
     //Divided SolidLight: r -> 0x1F, g -> 0x3E, b -> 0x7C00,

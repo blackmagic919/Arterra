@@ -13,9 +13,16 @@ MonoBehaviour:
   m_Name: NaturalTexs
   m_EditorClassIdentifier: 
   Name: C:Natural
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 8466ba0fecdf646c784435d423970f8a, type: 2}
     - value: {fileID: 11400000, guid: ac986daa79de841deaea2ddcf2300386, type: 2}
     - value: {fileID: 11400000, guid: de8ba080a6a214002b31233860bde6c4, type: 2}
     - value: {fileID: 11400000, guid: 547a2ea883b154fad9bdf6517d05da56, type: 2}
+    - value: {fileID: 11400000, guid: 3d71fe07011174c1785826fa9f3d714f, type: 2}
+  references:
+    version: 2
+    RefIds: []
