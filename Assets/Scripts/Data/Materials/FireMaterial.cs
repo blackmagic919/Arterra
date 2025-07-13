@@ -4,7 +4,6 @@ using Unity.Burst;
 using System;
 using WorldConfig.Generation.Structure;
 using MapStorage;
-using System.Reflection.Metadata;
 /*
 y
 ^      0  5        z

@@ -59,6 +59,11 @@ public class OctreeTerrain : MonoBehaviour
     /// on different threads back into the main thread.
     /// </remarks>
     public static ConcurrentQueue<GenTask> RequestQueue;
+
+    /// <summary> A queue to reinjects events into the main thread
+    /// not directly tied to a specific chunk.
+    /// </summary>
+    public static ConcurrentQueue<Action> ActionReinjectionQueue;
     
     private static WorldConfig.Quality.Terrain s;
     private int3 prevViewerPos;
@@ -193,7 +198,7 @@ public class OctreeTerrain : MonoBehaviour
         {
             if (!RequestQueue.TryDequeue(out GenTask gen))
                 return;
-            if(gen.chunk == null || !gen.chunk.active) 
+            if(gen.chunk != null && !gen.chunk.active) 
                 continue;
             Profiler.BeginSample("Task Number: " + gen.id);
             gen.task();

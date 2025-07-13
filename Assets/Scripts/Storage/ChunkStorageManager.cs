@@ -85,32 +85,32 @@ public static class Chunk
                     Directory.CreateDirectory(mapPath);
 
                 string fileAdd = chunkFinder.GetMapPath(CCoord);
-                chunkFinder.TryAddMap(CCoord);
+                chunkFinder.TryRemoveMap(CCoord);
                 SaveChunkToBin(fileAdd, chunkCopy);
+                chunkFinder.TryAddMap(CCoord);
                 chunkCopy.Dispose();
             } catch (Exception e) {
                 Debug.Log($"Failed on Saving Chunk Data for Chunk: {CCoord} with exception {e}");
+                chunkCopy.Dispose();
             }
         });
     }
 
     private static void SaveChunkToBin(string fileAdd, CPUMapManager.ChunkPtr chunk)
     {
-        using (FileStream fs = File.Create(fileAdd))
-        {
-            MemoryStream mapStream = WriteChunkMaps(chunk, out ChunkHeader header);
-            MemoryStream headerStream = WriteChunkHeader(header);
-            headerStream.Seek(0, SeekOrigin.Begin);
-            headerStream.CopyTo(fs);
-            headerStream.Close();
+        using FileStream fs = File.Create(fileAdd);
+        MemoryStream mapStream = WriteChunkMaps(chunk, out ChunkHeader header);
+        MemoryStream headerStream = WriteChunkHeader(header);
+        headerStream.Seek(0, SeekOrigin.Begin);
+        headerStream.CopyTo(fs);
+        headerStream.Close();
 
-            mapStream.Seek(0, SeekOrigin.Begin);
-            mapStream.CopyTo(fs);
-            mapStream.Close();
+        mapStream.Seek(0, SeekOrigin.Begin);
+        mapStream.CopyTo(fs);
+        mapStream.Close();
 
-            fs.Flush();
-            fs.Close();
-        }
+        fs.Flush();
+        fs.Close();
     }
 
     private static void SaveEntityToJsonSync(string fileAdd, List<Entity> entities){
@@ -484,11 +484,13 @@ public static class Chunk
             int3 RCoord = CSToRS(CCoord);
             int hash = HashCoord(RCoord);
 
-            if(!regions[hash].active || math.any(regions[hash].RCoord != RCoord)) 
-                ReconstructRegion(RCoord);
-            if(!regions[hash].MapChunks.Contains(CCoord)) 
-                return false;
-            address = GetMapPath(CCoord);
+            lock (this) {
+                if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
+                    ReconstructRegion(RCoord);
+                if (!regions[hash].MapChunks.Contains(CCoord))
+                    return false;
+                address = GetMapPath(CCoord);
+            }
             return true;
         }
 
@@ -496,12 +498,14 @@ public static class Chunk
             address = null;
             int3 RCoord = CSToRS(CCoord);
             int hash = HashCoord(RCoord);
-
-            if(!regions[hash].active || math.any(regions[hash].RCoord != RCoord)) 
-                ReconstructRegion(RCoord);
-            if(!regions[hash].EntityChunks.Contains(CCoord)) 
-                return false;
-            address = GetEntityPath(CCoord);
+            
+            lock (this) {
+                if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
+                    ReconstructRegion(RCoord);
+                if(!regions[hash].EntityChunks.Contains(CCoord)) 
+                    return false;
+                address = GetEntityPath(CCoord);   
+            }
             return true;
         }
 
@@ -528,21 +532,47 @@ public static class Chunk
         }
 
         public void TryAddMap(int3 CCoord){
+            int3 RCoord = CSToRS(CCoord);
+            int hash = HashCoord(RCoord);
+            
+            lock (this) {
+                if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
+                    ReconstructRegion(RCoord);
+                if(!regions[hash].MapChunks.Contains(CCoord))
+                    regions[hash].MapChunks.Add(CCoord);
+            }
+        }
+        
+        public bool TryRemoveMap(int3 CCoord){
+            int3 RCoord = CSToRS(CCoord);
+            int hash = HashCoord(RCoord);
+
+            lock (this) {
+                if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
+                    return false;
+                return regions[hash].MapChunks.Remove(CCoord);
+            }
+        }
+        
+        public bool TryRemoveEntity(int3 CCoord){
             int3 RCoord = CSToRS(CCoord); int hash = HashCoord(RCoord);
 
-            if(!regions[hash].active || math.any(regions[hash].RCoord != RCoord)) 
-                ReconstructRegion(RCoord);
-            if(!regions[hash].MapChunks.Contains(CCoord))
-                regions[hash].MapChunks.Add(CCoord);
+            lock (this) {
+                if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
+                    return false;
+                return regions[hash].EntityChunks.Remove(CCoord);
+            }
         }
 
-        public void TryAddEntity(int3 CCoord){
+        public void TryAddEntity(int3 CCoord) {
             int3 RCoord = CSToRS(CCoord); int hash = HashCoord(RCoord);
 
-            if(!regions[hash].active || math.any(regions[hash].RCoord != RCoord)) 
-                ReconstructRegion(RCoord);
-            if(!regions[hash].EntityChunks.Contains(CCoord))
-                regions[hash].EntityChunks.Add(CCoord);
+            lock (this) {
+                if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
+                    ReconstructRegion(RCoord);
+                if (!regions[hash].EntityChunks.Contains(CCoord))
+                    regions[hash].EntityChunks.Add(CCoord);
+            }
         }
 
         public string GetMapPath(int3 CCoord){
