@@ -107,7 +107,7 @@ namespace MapStorage {
             if (!AddressDict[chunkHash].isDirty) return;
             ChunkPtr chunk = new ChunkPtr(MapMetaData[chunkHash],
                 SectionedMemory, chunkHash * numPoints);
-            Chunk.SaveChunkToBinSync(chunk, CCoord);
+            Chunk.SaveChunkToBinAsync(chunk, CCoord);
         }
 
         /// <summary> Allocates a new chunk in the CPU Map Manager. This will setup handlers

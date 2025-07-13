@@ -68,49 +68,49 @@ public static class Chunk
     /// <summary>Saves a chunk's map information to the file system at the appropriate location. 
     /// The chunk's map information is saved in a multi-resolution compressed binary format
     /// to the correct location for the chunk within the world's file system(<see cref="ChunkFinder.chunkPath"/>).  
-    /// See <see cref="ChunkHeader"/> for information on this format. </summary>
+    /// See <see cref="ChunkHeader"/> for information on this format. The function saves the chunk data
+    /// with background task to avoid blocking the main thread. </summary>
     /// <param name="chunk">A <see cref="CPUMapManager.ChunkPtr"/> referencing the chunk's map in memory</param>
     /// <param name="CCoord">The coordinate in chunk space of the Chunk associated with the map 
     /// information. Used to identify the location to store the resulting file(s). </param>
-    public static void SaveChunkToBinSync(CPUMapManager.ChunkPtr chunk, int3 CCoord){
-        try{
-            string mapPath = chunkFinder.GetMapRegionPath(CCoord);
-            
-            if (!Directory.Exists(mapPath))
-                Directory.CreateDirectory(mapPath);
-
-            string fileAdd = chunkFinder.GetMapPath(CCoord);
-            chunkFinder.TryAddMap(CCoord);
-            SaveChunkToBinAsync(fileAdd, chunk); 
-        } catch(Exception e){
-            Debug.Log($"Failed on Saving Chunk Data for Chunk: {CCoord} with exception {e}");
-        }
-    }
-
-    private static void SaveChunkToBinAsync(string fileAdd, CPUMapManager.ChunkPtr chunk)
-    {
+    public static void SaveChunkToBinAsync(CPUMapManager.ChunkPtr chunk, int3 CCoord){
         int numPointsAxis = maxChunkSize;
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
         CPUMapManager.ChunkPtr chunkCopy = chunk.Copy(numPoints);
-        Task.Run(() =>
-        {
-            using (FileStream fs = File.Create(fileAdd))
-            {
-                MemoryStream mapStream = WriteChunkMaps(chunkCopy, out ChunkHeader header);
+        Task.Run(() => {
+            try {
+                string mapPath = chunkFinder.GetMapRegionPath(CCoord);
+
+                if (!Directory.Exists(mapPath))
+                    Directory.CreateDirectory(mapPath);
+
+                string fileAdd = chunkFinder.GetMapPath(CCoord);
+                chunkFinder.TryAddMap(CCoord);
+                SaveChunkToBin(fileAdd, chunkCopy);
                 chunkCopy.Dispose();
-                MemoryStream headerStream = WriteChunkHeader(header);
-                headerStream.Seek(0, SeekOrigin.Begin);
-                headerStream.CopyTo(fs);
-                headerStream.Close();
-
-                mapStream.Seek(0, SeekOrigin.Begin);
-                mapStream.CopyTo(fs);
-                mapStream.Close();
-
-                fs.Flush();
-                fs.Close();
+            } catch (Exception e) {
+                Debug.Log($"Failed on Saving Chunk Data for Chunk: {CCoord} with exception {e}");
             }
         });
+    }
+
+    private static void SaveChunkToBin(string fileAdd, CPUMapManager.ChunkPtr chunk)
+    {
+        using (FileStream fs = File.Create(fileAdd))
+        {
+            MemoryStream mapStream = WriteChunkMaps(chunk, out ChunkHeader header);
+            MemoryStream headerStream = WriteChunkHeader(header);
+            headerStream.Seek(0, SeekOrigin.Begin);
+            headerStream.CopyTo(fs);
+            headerStream.Close();
+
+            mapStream.Seek(0, SeekOrigin.Begin);
+            mapStream.CopyTo(fs);
+            mapStream.Close();
+
+            fs.Flush();
+            fs.Close();
+        }
     }
 
     private static void SaveEntityToJsonSync(string fileAdd, List<Entity> entities){
