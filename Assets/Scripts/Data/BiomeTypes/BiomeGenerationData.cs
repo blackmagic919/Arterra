@@ -21,7 +21,7 @@ public class Generation : ScriptableObject
     /// Surface biomes have their unique selection space and only need to not overlap
     /// other surface biomes within <see cref="SurfaceBiomes"/>. <seealso cref="SBiomeInfo"/> </summary> 
     [SerializeField]
-    public Registry<CInfo<SurfaceBiome>> SurfaceBiomes;
+    public Catalogue<CInfo<SurfaceBiome>> SurfaceBiomes;
     /// <summary>
     /// The registry containing all cave biomes that can be generated.
     /// Cave biomes generate underneath the surface of the world and have their unique
@@ -30,7 +30,7 @@ public class Generation : ScriptableObject
     /// </summary> <remarks> Cave biomes can be used to create different cave formations, mineral placement,
     /// or underground biomes independent of what the surface biome is. </remarks>
     [SerializeField]
-    public Registry<CInfo<CaveBiome>> CaveBiomes;
+    public Catalogue<CInfo<CaveBiome>> CaveBiomes;
     /// <summary>
     /// The registry containing all sky biomes that can be generated.
     /// Sky biomes generate above the surface of the world and have their unique sample
@@ -38,7 +38,7 @@ public class Generation : ScriptableObject
     /// </summary>  <remarks> Sky biomes can be used to create different cloud patterns, weather or effects in the 
     /// sky independently of what the surface biome is. </remarks>
     [SerializeField]
-    public Registry<CInfo<CaveBiome>> SkyBiomes;
+    public Catalogue<CInfo<CaveBiome>> SkyBiomes;
 }
 
 /// <summary>

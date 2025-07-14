@@ -13,8 +13,8 @@ public class ConsumableItemAuthoring : AuthoringTemplate<ConsumbaleItem> {
 [System.Serializable]
 public class ConsumbaleItem : IItem{
     public uint data;
-    private static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
-    private static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
+    private static Catalogue<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+    private static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
     [JsonIgnore]
     public bool IsStackable => true;
     [JsonIgnore]
@@ -73,7 +73,7 @@ public class ConsumbaleItem : IItem{
         amount.text = ((data & 0xFFFF) / (float)0xFF).ToString();
     }
 
-    public void ClearDisplay(){
+    public void ClearDisplay(Transform parent){
         if (display == null) return;
         Indicators.StackableItems.Release(display);
         display = null;

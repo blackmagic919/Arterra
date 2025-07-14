@@ -12,7 +12,7 @@ public class Generation : ScriptableObject
     /// <summary> The registry containing all materials that can be generated. The number of materials that can be generated is limited by this registry.
     /// See <see cref="MaterialData"/> for more information. </summary>
     [SerializeField]
-    public Registry<MaterialData> MaterialDictionary;
+    public Catalogue<MaterialData> MaterialDictionary;
     /// <summary> The liquid fine wave texture that is blended with <see cref="liquidCoarseWave"/> to create waves. This can
     /// be tuned by <see cref="MaterialData.liquidData"/> depending on the liquid that is being displayed. </summary>
     [UISetting(Ignore = true)]

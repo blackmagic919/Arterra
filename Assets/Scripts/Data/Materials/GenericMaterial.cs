@@ -45,7 +45,7 @@ namespace WorldConfig.Generation.Material
             return GenericItemFromMap(mapData, RetrieveKey(SolidItem), RetrieveKey(LiquidItem));
         }
 
-        private static Registry<Item.Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+        private static Catalogue<Item.Authoring> ItemInfo => Config.CURRENT.Generation.Items;
 
         /// <summary>  Creates a generic item from map information of what has been removed. 
         /// This is the standard logic for item acquirement for most materials. Returns a 

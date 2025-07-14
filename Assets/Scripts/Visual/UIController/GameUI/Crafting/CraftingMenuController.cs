@@ -18,13 +18,14 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
     private MapData[] craftingData;
     private Display Rendering;
     private UpdateTask eventTask;
-    public int FitRecipe = -1;
+    private RegistrySearchDisplay<CraftingAuthoring> RecipeSearch;
 
     private int GridWidth;
     private int AxisWidth => GridWidth + 1;
     private int GridCount => AxisWidth * AxisWidth;
     private int2 GridSize => (int2)(float2)Rendering.crafting.Transform.sizeDelta / GridWidth;
     private uint Fence = 0;
+    private int FitRecipe = -1;
 
     public struct Display {
         public Grid crafting;
@@ -53,8 +54,15 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         int numMapTotal = GridCount * (settings.NumMaxSelections + 1);
         craftingData = new MapData[numMapTotal];
         Rendering.craftingBuffer = new ComputeBuffer(numMapTotal, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
-
         Recipe.ConstructTree(settings.Recipes.Reg.Select(r => r.Recipe).ToArray(), dim: GridCount);
+        RecipeSearch = new RegistrySearchDisplay<CraftingAuthoring>(
+            Registry<CraftingAuthoring>.FromCatalogue(Config.CURRENT.System.Crafting.value.Recipes),
+            craftingMenu.transform.Find("SearchArea"),
+            craftingMenu.transform.Find("SearchArea").Find("SearchBar").GetComponentInChildren<TMP_InputField>(),
+            craftingMenu.transform.Find("SearchArea").Find("RecipeShelf").GetChild(0).GetChild(0),
+            settings.MaxRecipeSearchDisplay
+        );
+
         InitializeCraftingArea();
         InitializeSelections();
         craftingMenu.SetActive(false);
@@ -65,7 +73,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
 
     public Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(settings.DisplayIcon).self;
     public GameObject GetDispContent() => craftingMenu;
-    
+
     public void Activate() {
         eventTask = new IndirectUpdate(Update);
         TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
@@ -79,8 +87,9 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         Clear();
         UpdateDisplay();
         craftingMenu.SetActive(true);
+        RecipeSearch.Activate();
     }
-    
+
     public void Deactivate() {
         eventTask.active = false;
         for (int i = 0; i < GridCount; i++) {
@@ -89,6 +98,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         }
         InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence(Fence, "3.0::Window"));
         craftingMenu.SetActive(false);
+        RecipeSearch.Deactivate();
     }
 
     private void InitializeCraftingArea() {
@@ -310,6 +320,89 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         pointInfo.density -= deltaDensity;
         pointInfo.viscosity = math.min(pointInfo.viscosity, pointInfo.density);
         return pointInfo;
+    }
+
+    public class RegistrySearchDisplay<T> where T : ISlot {
+        private Registry<T> registry;
+        private Transform SearchMenu;
+        private TMP_InputField SearchInput;
+        private Transform SelectionContainer;
+        private T[] DisplaySlots;
+        private int MaxSlotsDisplay;
+
+        public RegistrySearchDisplay(
+            Registry<T> registry,
+            Transform SearchMenu,
+            TMP_InputField SearchInput,
+            Transform SelectionContainer,
+            int MaxSlotsDisplay
+
+        ) {
+            this.registry = registry;
+            this.SearchMenu = SearchMenu;
+            this.SearchInput = SearchInput;
+            this.SelectionContainer = SelectionContainer;
+            this.MaxSlotsDisplay = math.min(MaxSlotsDisplay, registry.Count());
+            SearchInput.onValueChanged.AddListener(ProcessSearchRequest);
+            DisplaySlots = new T[MaxSlotsDisplay];
+            SearchInput.DeactivateInputField();
+        }
+
+        public void Activate() {
+            SearchInput.ActivateInputField();
+            ProcessSearchRequest("");
+            SearchMenu.gameObject.SetActive(true);
+        }
+
+        public void Deactivate() {
+            ClearDisplay();
+            SearchInput.DeactivateInputField();
+            SearchMenu.gameObject.SetActive(false);
+        }
+
+        private void ProcessSearchRequest(string input) {
+            List<int> closestEntries = FindClosestEntries(input);
+            ClearDisplay();
+            for (int i = 0; i < closestEntries.Count(); i++) {
+                DisplaySlots[i] = registry.Retrieve(closestEntries[i]);
+                DisplaySlots[i].AttachDisplay(SelectionContainer);
+            }
+        }
+
+        private void ClearDisplay() {
+            foreach (T slot in DisplaySlots) {
+                if (slot == null) continue;
+                slot.ClearDisplay(SelectionContainer);
+            }
+        }
+
+        private List<int> FindClosestEntries(string input) {
+            int[] entryDist = new int[registry.Count()];
+            for (int i = 0; i < entryDist.Length; i++) {
+                entryDist[i] = CalculateEditDistance(input, registry.RetrieveName(i));
+            }
+
+            List<int> sortedIndices = Enumerable.Range(0, registry.Count()).ToList();
+            sortedIndices.Sort((a, b) => entryDist[a].CompareTo(entryDist[b]));
+            return sortedIndices.GetRange(0, MaxSlotsDisplay).ToList();
+        }
+        private int CalculateEditDistance(string a, string b) {
+            int[,] dp = new int[a.Length + 1, b.Length + 1];
+            for (int i = a.Length; i >= 0; i--) dp[i, b.Length] = a.Length - i;
+            for (int j = b.Length; j >= 0; j--) dp[a.Length, j] = b.Length - j;
+            for (int i = a.Length - 1; i >= 0; i--) {
+                for (int j = b.Length - 1; j >= 0; j--) {
+                    if (a[i] == b[j]) dp[i, j] = dp[i + 1, j + 1];
+                    else {
+                        int best = dp[i + 1, j + 1];
+                        best = math.min(best, dp[i + 1, j]);
+                        best = math.min(best, dp[i, j + 1]);
+                        dp[i, j] = best + 1;
+                    }
+                }
+            }
+            return dp[0, 0];
+        }
     }
 
     public struct KTree {

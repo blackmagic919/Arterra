@@ -49,7 +49,7 @@ namespace TerrainGeneration{
     /// is updated.
     /// </summary>
     public static class TerrainUpdate {
-        private static Registry<MaterialData> MaterialDictionary;
+        private static Catalogue<MaterialData> MaterialDictionary;
         private static ConcurrentQueue<int3> UpdateCoordinates; //GCoord
         private static TerrainUpdation settings;
         /*We have to keep track of the points we already 

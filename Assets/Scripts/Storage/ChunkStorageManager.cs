@@ -13,7 +13,6 @@ using WorldConfig.Generation.Entity;
 using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Buffers;
-using UnityEngine.Profiling;
 using System.Threading.Tasks;
 //using System.Diagnostics;
 
@@ -48,20 +47,24 @@ public static class Chunk
     /// <summary>Saves a list of entities associated with a chunk to the file system at the appropriate location.
     /// Entities associated with a chunk are saved in a compressed json format to the correct location for
     /// the chunk within the world's file system. See <see cref="ChunkFinder.entityPath"/> for more information </summary>
+    /// <remarks>The function saves the chunk data with background task to avoid blocking the main thread. </remarks>
     /// <param name="entities">A list containing all <see cref="Entity">Entities</see> associated with the chunk(typically within its bounds). </param>
     /// <param name="CCoord">The coordinate in chunk space of the Chunk associated with the entities. 
     /// This information used to identify the location to store the resulting file(s). </param>
-    public static void SaveEntitiesToJsonSync(List<Entity> entities, int3 CCoord){
-        try{
+    public static async void SaveEntitiesToJsonAsync(List<Entity> entities, int3 CCoord){
+        try {
             string entityPath = chunkFinder.GetEntityRegionPath(CCoord);
-            if(!Directory.Exists(entityPath))
+            if (!Directory.Exists(entityPath))
                 Directory.CreateDirectory(entityPath);
 
-            string fileAdd = chunkFinder.GetEntityPath(CCoord);
+            string fileAdd;
+            while (!chunkFinder.TryGetEntityChunk(CCoord, out fileAdd, AcquireLock: true))
+                await Task.Yield();
+            SaveEntityToJson(fileAdd, entities);
             chunkFinder.TryAddEntity(CCoord);
-            SaveEntityToJsonSync(fileAdd, entities);
-        } catch(Exception e){
+        } catch (Exception e) {
             Debug.Log($"Failed on Saving Entity Data for Chunk: {CCoord} with exception {e}");
+            chunkFinder.TryRemoveEntity(CCoord);
         }
     }
 
@@ -73,27 +76,28 @@ public static class Chunk
     /// <param name="chunk">A <see cref="CPUMapManager.ChunkPtr"/> referencing the chunk's map in memory</param>
     /// <param name="CCoord">The coordinate in chunk space of the Chunk associated with the map 
     /// information. Used to identify the location to store the resulting file(s). </param>
-    public static void SaveChunkToBinAsync(CPUMapManager.ChunkPtr chunk, int3 CCoord){
+    public static async void SaveChunkToBinAsync(CPUMapManager.ChunkPtr chunk, int3 CCoord){
         int numPointsAxis = maxChunkSize;
         int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
         CPUMapManager.ChunkPtr chunkCopy = chunk.Copy(numPoints);
-        Task.Run(() => {
-            try {
-                string mapPath = chunkFinder.GetMapRegionPath(CCoord);
+        try {
+            string mapPath = chunkFinder.GetMapRegionPath(CCoord);
 
-                if (!Directory.Exists(mapPath))
-                    Directory.CreateDirectory(mapPath);
+            if (!Directory.Exists(mapPath))
+                Directory.CreateDirectory(mapPath);
+            
+            string fileAdd;
+            while (!chunkFinder.TryGetMapChunk(CCoord, out fileAdd, AcquireLock: true))
+                await Task.Yield();
 
-                string fileAdd = chunkFinder.GetMapPath(CCoord);
-                chunkFinder.TryRemoveMap(CCoord);
-                SaveChunkToBin(fileAdd, chunkCopy);
-                chunkFinder.TryAddMap(CCoord);
-                chunkCopy.Dispose();
-            } catch (Exception e) {
-                Debug.Log($"Failed on Saving Chunk Data for Chunk: {CCoord} with exception {e}");
-                chunkCopy.Dispose();
-            }
-        });
+            SaveChunkToBin(fileAdd, chunkCopy);
+            chunkFinder.TryAddMap(CCoord);
+            chunkCopy.Dispose();
+        } catch (Exception e) {
+            Debug.Log($"Failed on Saving Chunk Data for Chunk: {CCoord} with exception {e}");
+            chunkFinder.TryRemoveMap(CCoord);
+            chunkCopy.Dispose();
+        }
     }
 
     private static void SaveChunkToBin(string fileAdd, CPUMapManager.ChunkPtr chunk)
@@ -113,7 +117,7 @@ public static class Chunk
         fs.Close();
     }
 
-    private static void SaveEntityToJsonSync(string fileAdd, List<Entity> entities){
+    private static void SaveEntityToJson(string fileAdd, List<Entity> entities){
         using (FileStream fs = File.Create(fileAdd))
         {
             MemoryStream headerStream = WriteChunkHeader(SerializeEntities(entities));
@@ -149,6 +153,7 @@ public static class Chunk
             if(!chunkFinder.TryGetMapChunk(sCC, out string chunkAdd)) continue;
             MapData[] chunkMap = ReadChunkBin(chunkAdd, clampedDepth, out _);
             CopyTo(map, chunkMap, dSC, clampedDepth);
+            chunkFinder.TryAddMap(sCC);
         }}}
         return map;
 
@@ -176,8 +181,11 @@ public static class Chunk
         if (chunkFinder.TryGetMapChunk(CCoord, out string chunkAdd)) {
             info.map = ReadChunkBin(chunkAdd, 0, out ChunkHeader header);
             info.mapMeta = header.MapEntryMetaData;
+            chunkFinder.TryAddMap(CCoord);
+        } if (chunkFinder.TryGetEntityChunk(CCoord, out string entityAdd)){
+            info.entities = ReadEntityJson(entityAdd);
+            chunkFinder.TryAddEntity(CCoord);
         }
-        if (chunkFinder.TryGetEntityChunk(CCoord, out string entityAdd)) info.entities = ReadEntityJson(entityAdd);
         return info;
     }
     
@@ -281,7 +289,7 @@ public static class Chunk
         var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         int[] materialIndexCache = new int[header.RegisterNames.Count];
         for (int i = 0; i < header.RegisterNames.Count; i++) { materialIndexCache[i] = mReg.RetrieveIndex(header.RegisterNames[i]); }
-        for(int i = 0; i < map.Length; i++){ map[i].material = materialIndexCache[(int)map[i].material]; }
+        for(int i = 0; i < map.Length; i++){ map[i].material = materialIndexCache[map[i].material]; }
     }
 
     private static MemoryStream WriteChunkHeader(object header){
@@ -479,7 +487,7 @@ public static class Chunk
             return RCoord;
         } 
 
-        public bool TryGetMapChunk(int3 CCoord, out string address){
+        public bool TryGetMapChunk(int3 CCoord, out string address, bool AcquireLock = false){
             address = null;
             int3 RCoord = CSToRS(CCoord);
             int hash = HashCoord(RCoord);
@@ -487,14 +495,17 @@ public static class Chunk
             lock (this) {
                 if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
                     ReconstructRegion(RCoord);
-                if (!regions[hash].MapChunks.Contains(CCoord))
-                    return false;
-                address = GetMapPath(CCoord);
-            }
+                if (!regions[hash].MapChunks.TryGetValue(CCoord, out bool isModifying)) {
+                    if (AcquireLock) regions[hash].MapChunks.Add(CCoord, true);
+                    else return false;
+                } else if (isModifying) return false;
+                else regions[hash].MapChunks[CCoord] = true;
+            } 
+            address = GetMapPath(CCoord);
             return true;
         }
 
-        public bool TryGetEntityChunk(int3 CCoord, out string address){
+        public bool TryGetEntityChunk(int3 CCoord, out string address, bool AcquireLock = false){
             address = null;
             int3 RCoord = CSToRS(CCoord);
             int hash = HashCoord(RCoord);
@@ -502,33 +513,14 @@ public static class Chunk
             lock (this) {
                 if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
                     ReconstructRegion(RCoord);
-                if(!regions[hash].EntityChunks.Contains(CCoord)) 
-                    return false;
-                address = GetEntityPath(CCoord);   
+                if(!regions[hash].EntityChunks.TryGetValue(CCoord, out bool isModifying)){
+                    if(AcquireLock) regions[hash].EntityChunks.Add(CCoord, true);
+                    else return false;
+                } else if (isModifying) return false;
+                else regions[hash].EntityChunks[CCoord] = true;
             }
+            address = GetEntityPath(CCoord);
             return true;
-        }
-
-        private void ReconstructRegion(int3 RCoord){
-            string RegionAddress = MapRegionPath(RCoord);
-            string EntityAddress = EntityRegionPath(RCoord);
-            ChunkRegion region = new (RCoord);
-            PopulateChunkDict(ref region.MapChunks, RegionAddress);
-            PopulateChunkDict(ref region.EntityChunks, EntityAddress);
-            regions[HashCoord(RCoord)] = region;
-
-            static void PopulateChunkDict(ref HashSet<int3> dict, string regionAddress){
-                if(!Directory.Exists(regionAddress)) return;
-                string[] chunkFiles = Directory.GetFiles(regionAddress, "Chunk*"+fileExtension);
-                foreach(string chunkFile in chunkFiles){
-                    try{
-                    string[] split = Path.GetRelativePath(regionAddress, chunkFile).Split('_', '.');
-                    int3 CCoord = new(int.Parse(split[1]), int.Parse(split[2]), int.Parse(split[3]));
-                    dict.Add(CCoord);
-                    } catch (Exception) { } 
-                    //We ignore the file if it's not in the correct format
-                }
-            }
         }
 
         public void TryAddMap(int3 CCoord){
@@ -538,11 +530,20 @@ public static class Chunk
             lock (this) {
                 if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
                     ReconstructRegion(RCoord);
-                if(!regions[hash].MapChunks.Contains(CCoord))
-                    regions[hash].MapChunks.Add(CCoord);
+                regions[hash].MapChunks[CCoord] = false;
             }
         }
         
+        public void TryAddEntity(int3 CCoord) {
+            int3 RCoord = CSToRS(CCoord); int hash = HashCoord(RCoord);
+
+            lock (this) {
+                if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
+                    ReconstructRegion(RCoord);
+                regions[hash].EntityChunks[CCoord] = false;
+            }
+        }
+
         public bool TryRemoveMap(int3 CCoord){
             int3 RCoord = CSToRS(CCoord);
             int hash = HashCoord(RCoord);
@@ -564,17 +565,6 @@ public static class Chunk
             }
         }
 
-        public void TryAddEntity(int3 CCoord) {
-            int3 RCoord = CSToRS(CCoord); int hash = HashCoord(RCoord);
-
-            lock (this) {
-                if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
-                    ReconstructRegion(RCoord);
-                if (!regions[hash].EntityChunks.Contains(CCoord))
-                    regions[hash].EntityChunks.Add(CCoord);
-            }
-        }
-
         public string GetMapPath(int3 CCoord){
             int3 RCoord = CSToRS(CCoord);
             return chunkPath + "Region_" + RCoord.x + "_" + RCoord.y + "_" + RCoord.z + '/' +
@@ -592,18 +582,40 @@ public static class Chunk
 
         private string MapRegionPath(int3 RCoord) => chunkPath + "Region_" + RCoord.x + "_" + RCoord.y + "_" + RCoord.z + '/';
         private string EntityRegionPath(int3 RCoord) => entityPath + "Region_" + RCoord.x + "_" + RCoord.y + "_" + RCoord.z + '/';
+        
+        private void ReconstructRegion(int3 RCoord){
+            string RegionAddress = MapRegionPath(RCoord);
+            string EntityAddress = EntityRegionPath(RCoord);
+            ChunkRegion region = new (RCoord);
+            PopulateChunkDict(ref region.MapChunks, RegionAddress);
+            PopulateChunkDict(ref region.EntityChunks, EntityAddress);
+            regions[HashCoord(RCoord)] = region;
+
+            static void PopulateChunkDict(ref Dictionary<int3, bool> dict, string regionAddress){
+                if(!Directory.Exists(regionAddress)) return;
+                string[] chunkFiles = Directory.GetFiles(regionAddress, "Chunk*"+fileExtension);
+                foreach(string chunkFile in chunkFiles){
+                    try{
+                    string[] split = Path.GetRelativePath(regionAddress, chunkFile).Split('_', '.');
+                    int3 CCoord = new(int.Parse(split[1]), int.Parse(split[2]), int.Parse(split[3]));
+                    dict.Add(CCoord, false);
+                    } catch (Exception) { } 
+                    //We ignore the file if it's not in the correct format
+                }
+            }
+        }
     }
 
     private struct ChunkRegion{
         public int3 RCoord;
-        public HashSet<int3> MapChunks;
-        public HashSet<int3> EntityChunks;
+        public Dictionary<int3, bool> MapChunks;
+        public Dictionary<int3, bool> EntityChunks;
         public bool active;
 
         public ChunkRegion(int3 RCoord){
             this.RCoord = RCoord;
-            MapChunks = new HashSet<int3>();
-            EntityChunks = new HashSet<int3>();
+            MapChunks = new Dictionary<int3, bool>();
+            EntityChunks = new Dictionary<int3, bool>();
             active = true;
         }
     }

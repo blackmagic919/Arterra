@@ -76,7 +76,7 @@ public class Info
     [JsonIgnore]
     public IEnumerable<TerrainStructure> StructureSerial{
         get{
-            Registry<Structure.StructureData> reg = Config.CURRENT.Generation.Structures.value.StructureDictionary;
+            Catalogue<Structure.StructureData> reg = Config.CURRENT.Generation.Structures.value.StructureDictionary;
             return Structures.value.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Structure])));
         }
     }
@@ -86,7 +86,7 @@ public class Info
     [JsonIgnore]
     public IEnumerable<EntityGen> EntitySerial{
         get{
-            Registry<Entity.Authoring> reg = Config.CURRENT.Generation.Entities;
+            Catalogue<Entity.Authoring> reg = Config.CURRENT.Generation.Entities;
             return Entities.value.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Entity])));
         }
     }
@@ -101,7 +101,7 @@ public class Info
     /// <returns>An ordered collection of the recoupled with the external <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry</returns>
     public IEnumerable<BMaterial> MaterialSerial(List<Option<BMaterial> > Materials){
         if(Materials == null) return null;
-        Registry<Material.MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        Catalogue<Material.MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         return Materials.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Material])));
     }
 

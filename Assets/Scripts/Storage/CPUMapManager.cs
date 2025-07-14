@@ -83,7 +83,7 @@ namespace MapStorage {
 
         static void SaveAllChunksSync() {
             for (int i = 0; i < _ChunkManagers.Length; i++) {
-                SaveChunk(i);
+                SaveChunk(i, true);
             }
         }
 
@@ -98,16 +98,18 @@ namespace MapStorage {
             return hash;
         }
 
-        private static void SaveChunk(int chunkHash) {
+        private static void SaveChunk(int chunkHash, bool await = false) {
             if (!AddressDict[chunkHash].valid) return;
-            AddressDict[chunkHash].Dispose();
+            DisposeChunk(chunkHash);
             int3 CCoord = AddressDict[chunkHash].CCoord;
 
-            EntityManager.ReleaseChunkEntities(CCoord);
+            EntityManager.ReleaseChunkEntities(CCoord, await);
             if (!AddressDict[chunkHash].isDirty) return;
             ChunkPtr chunk = new ChunkPtr(MapMetaData[chunkHash],
                 SectionedMemory, chunkHash * numPoints);
-            Chunk.SaveChunkToBinAsync(chunk, CCoord);
+            System.Threading.Tasks.Task awaitableTask = System.Threading.Tasks.Task.Run(() =>
+                Chunk.SaveChunkToBinAsync(chunk, CCoord));
+            if (await) awaitableTask.Wait();
         }
 
         /// <summary> Allocates a new chunk in the CPU Map Manager. This will setup handlers
@@ -144,8 +146,6 @@ namespace MapStorage {
             return AccessChunk(HashCoord(CCoord));
         }
         internal unsafe static NativeArray<MapData> AccessChunk(int chunkHash) {
-            if (!AddressDict[chunkHash].valid) return default(NativeArray<MapData>);
-
             //Unsafe slice of code
             MapData* memStart = ((MapData*)NativeArrayUnsafeUtility.GetUnsafePtr(SectionedMemory)) + (chunkHash * numPoints);
             NativeArray<MapData> nativeSlice = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<MapData>((void*)memStart, numPoints, Allocator.None);
@@ -428,22 +428,32 @@ namespace MapStorage {
         /// from in GPU memory and where it is written to in <see cref="SectionedMemory"/>. </param>
         public static void BeginMapReadback(int3 CCoord) { //Need a wrapper class to maintain reference to the native array
             int GPUChunkHash = GPUMapManager.HashCoord(CCoord);
-            int CPUChunkHash = HashCoord(CCoord);
 
-            AsyncGPUReadback.Request(GPUMapManager.Address, size: 8, offset: 20 * GPUChunkHash, ret => onChunkAddressRecieved(ret, CPUChunkHash));
+            AsyncGPUReadback.Request(GPUMapManager.Address, size: 8, offset: 20 * GPUChunkHash, ret => onChunkAddressRecieved(ret, CCoord));
         }
 
-        static unsafe void onChunkAddressRecieved(AsyncGPUReadbackRequest request, int chunkHash) {
+        static unsafe void onChunkAddressRecieved(AsyncGPUReadbackRequest request, int3 CCoord) {
             if (!initialized) return;
+            int CPUChunkHash = HashCoord(CCoord);
             uint2 memHandle = request.GetData<uint2>()[0];
-            ChunkMapInfo destChunk = AddressDict[chunkHash];
-            if (!destChunk.valid) return;
+            ChunkMapInfo destChunk = AddressDict[CPUChunkHash];
+            if (math.any(CCoord != destChunk.CCoord))
+                return;
 
             int memAddress = (int)memHandle.x;
             int meshSkipInc = (int)memHandle.y;
 
-            NativeArray<MapData> dest = AccessChunk(chunkHash);
-            AsyncGPUReadback.RequestIntoNativeArray(ref dest, GPUMapManager.Storage, size: 4 * numPoints, offset: 4 * memAddress);
+            NativeArray<MapData> dest = AccessChunk(CPUChunkHash);
+            AsyncGPUReadback.RequestIntoNativeArray(ref dest, GPUMapManager.Storage, size: 4 * numPoints, offset: 4 * memAddress, _ => OnReadbackComplete(CCoord));
+
+            static void OnReadbackComplete(int3 CCoord) {
+                if (!initialized) return;
+                int CPUChunkHash = HashCoord(CCoord);
+                if (math.any(CCoord != AddressDict[CPUChunkHash].CCoord))
+                    return;
+                ActivateChunk(CPUChunkHash);
+            }
+
         }
 
         /// <summary> Converts from grid space to chunk space using integer mathematics. Chunk Space is a coordinate
@@ -549,7 +559,7 @@ namespace MapStorage {
             public int3 CCoord;
             /// <summary> Whether the data region within <see cref="SectionedMemory"/> associated with 
             /// this object has contains real chunk data. This will be set as long as one chunk which 
-            /// <see cref="HashCoord">hashes</see> to this object calls <see cref="AllocateChunk"/> </summary>
+            /// <see cref="HashCoord">hashes</see> to this object calls <see cref="BeginMapReadback"/> </summary>
             public bool valid;
             /// <summary>Whether this chunk will be saved to disk when unloaded from memory. Whether 
             /// any entry within its chunk's map information has been modified. </summary>
@@ -559,13 +569,25 @@ namespace MapStorage {
             /// <param name="CCoord">The coordinate in chunk space of the chunk being managed</param>
             public ChunkMapInfo(int3 CCoord) {
                 this.CCoord = CCoord;
-                valid = true;
+                valid = false;
                 isDirty = false;
             }
+        }
 
-            /// <summary> Invalidates the chunk map data indicating to 
-            /// processes that it should no longer be modified </summary>
-            public void Dispose() => valid = false;
+        /// <summary> Invalidates the chunk map data indicating to 
+        /// processes that it should no longer be modified </summary>
+        private static void DisposeChunk(int chunkHash) {
+            var chead = AddressDict[chunkHash];
+            chead.valid = false;
+            AddressDict[chunkHash] = chead;
+        }
+
+        /// <summary> Invalidates the chunk map data indicating to 
+        /// processes that it should no longer be modified </summary>
+        private static void ActivateChunk(int chunkHash) {
+            var chead = AddressDict[chunkHash];
+            chead.valid = true;
+            AddressDict[chunkHash] = chead;
         }
 
         /// <summary> A wrapper structure containing a specific chunk's map data 
@@ -591,11 +613,13 @@ namespace MapStorage {
                 this.offset = offset;
                 mapMeta = metaData?.ToArray();
             }
-
-            public ChunkPtr Copy(int Length)
-            {
-                ChunkPtr ret = new ChunkPtr
-                {
+            /// <summary>Copies the <see cref="data">MapData</see> pointed to by this chunk ptr
+            /// to a new location and returns a ChunkPtr referencing it.</summary>
+            /// <param name="Length">The amount of points that are to be copied from the position 
+            /// <see cref="offset"/> in <see cref="data"/></param>
+            /// <returns>A ChunkPtr containing the newly copied map information</returns>
+            public ChunkPtr Copy(int Length) {
+                ChunkPtr ret = new ChunkPtr {
                     mapMeta = mapMeta?.ToArray(),
                     data = new NativeArray<MapData>(Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory),
                     offset = 0
@@ -604,13 +628,13 @@ namespace MapStorage {
                 return ret;
             }
 
-            public void Dispose()
-            {
-                if (data.IsCreated)
-                {
+            /// <summary>Releases the mapdata pointed to by this chunkptr; only call 
+            /// this if the chunkptr has its own copy of the mapData </summary>
+            public void Dispose() {
+                if (data.IsCreated) {
                     data.Dispose();
                 }
-            }            
+            }
         }
 
         /// <summary> A wrapper structure containing all the unamanged handlers necessary

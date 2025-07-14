@@ -53,7 +53,7 @@ public class Category<T> : ScriptableObject where T : Category<T>
 }
 
 [Serializable]
-public struct Registry<T> : IRegister, ICloneable where T : Category<T>
+public struct Catalogue<T> : IRegister, ICloneable where T : Category<T>
 {
     public Option<Category<T>> Category;
     [HideInInspector]
@@ -163,13 +163,11 @@ public struct Registry<T> : IRegister, ICloneable where T : Category<T>
         }
     }
 
-    public object Clone()
-    {
-        return new Registry<T> { Reg = Reg };
-    }
+    public object Clone() => new Catalogue<T> { Reg = Reg };
+    
+    public int Count() => Reg.Count;
 
-    internal bool GetMostSpecificTag(TagRegistry.Tags bareHand, int material, out ToolTag tag)
-    {
+    internal bool GetMostSpecificTag(TagRegistry.Tags bareHand, int material, out ToolTag tag) {
         throw new NotImplementedException();
     }
 
@@ -194,7 +192,7 @@ public struct Registry<T> : IRegister, ICloneable where T : Category<T>
 }
 
 [Serializable]
-public struct DynamicRegistry<T> : IRegister, ICloneable
+public struct Registry<T> : IRegister, ICloneable
 {
     public List<Pair> Reg;
     [HideInInspector]
@@ -202,12 +200,22 @@ public struct DynamicRegistry<T> : IRegister, ICloneable
     [JsonIgnore]
     private Dictionary<string, int> Index;
 
-    public void Construct()
-    {
+    public static Registry<T> FromCatalogue<TR>(Catalogue<TR> registry) where TR : Category<TR>, T {
+        Registry<T> NewRegistry = new Registry<T>();
+        NewRegistry.Reg = new List<Pair>(new Pair[registry.Count()]);
+        for (int i = 0; i < registry.Count(); i++) {
+            NewRegistry.Reg[i] = new Pair {
+                Name = registry.RetrieveName(i),
+                _value = new Option<T> { value = registry.Retrieve(i) }
+            };
+        }
+        NewRegistry.Construct();
+        return NewRegistry;
+    }
+    public void Construct() {
         Index = new Dictionary<string, int>();
         Reg ??= new List<Pair>();
-        for (int i = 0; i < Reg.Count; i++)
-        {
+        for (int i = 0; i < Reg.Count; i++) {
             Index.Add(Reg[i].Name, i);
         }
     }
@@ -271,11 +279,9 @@ public struct DynamicRegistry<T> : IRegister, ICloneable
         return true;
     }
 
-    public object Clone()
-    {
-        return new DynamicRegistry<T> { Reg = Reg };
-    }
+    public object Clone() => new Registry<T> { Reg = Reg };
 
+    public int Count() => Reg.Count;
     [Serializable]
     public struct Pair : ICloneable
     {
@@ -302,6 +308,7 @@ public struct DynamicRegistry<T> : IRegister, ICloneable
 
 public interface IRegister
 {
+    public abstract int Count();
     public abstract void Construct();
     public abstract string RetrieveName(int index);
     public abstract int RetrieveIndex(string name);

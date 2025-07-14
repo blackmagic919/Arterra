@@ -17,7 +17,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
     [UISetting(Ignore = true)]
     public Option<Player> _Entity;
     public Option<PlayerSettings> _Setting;
-    public static Registry<WorldConfig.Generation.Item.Authoring> ItemRegistry => Config.CURRENT.Generation.Items;
+    public static Catalogue<WorldConfig.Generation.Item.Authoring> ItemRegistry => Config.CURRENT.Generation.Items;
     
     [JsonIgnore]
     public override Entity Entity { get => new Player(); }

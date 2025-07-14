@@ -18,9 +18,9 @@ public class BucketItemAuthoring : AuthoringTemplate<BucketItem> {
 public class BucketItem : IItem{
     public uint data;
     public IItem content;
-    private static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
-    private static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
-    private static Registry<Material.MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;  
+    private static Catalogue<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+    private static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
+    private static Catalogue<Material.MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;  
     private BucketItemAuthoring settings => ItemInfo.Retrieve(Index) as BucketItemAuthoring;
 
     [JsonIgnore]
@@ -86,9 +86,9 @@ public class BucketItem : IItem{
         AttachChildDisplay();
     }
 
-    public void ClearDisplay(){
+    public void ClearDisplay(Transform parent){
         if (display == null) return;
-        content?.ClearDisplay();
+        content?.ClearDisplay(display.transform);
         Indicators.HolderItems.Release(display);
         display = null;
     }
@@ -101,7 +101,7 @@ public class BucketItem : IItem{
         if(mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
         CPUMapManager.Terraform(hitPt, settings.TerraformRadius, AddFromBucket, PlayerInteraction.CallOnMapPlacing);
         if(content.AmountRaw != 0) return;
-        content.ClearDisplay();
+        content.ClearDisplay(display.transform);
         content = null;
     }
 

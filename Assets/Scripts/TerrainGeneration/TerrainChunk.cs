@@ -377,7 +377,7 @@ namespace TerrainGeneration{
                 if (status.CanUpdateMesh == Status.State.Pending) {
                     status.CanUpdateMesh = Status.State.InProgress;
                     RequestQueue.Enqueue(new GenTask {
-                        task = () => { CreateMesh(OnChunkCreated); },
+                        task = () => CreateMesh(OnChunkCreated),
                         id = (int)priorities.mesh,
                         chunk = this
                     });
@@ -524,7 +524,7 @@ namespace TerrainGeneration{
             /// that it isn't released while the chunk is holding it. On release, it's necessary to unsubscribe to allow the map to be released </summary>
             public override void ReleaseChunk() {
                 //if we are still holding onto the map handle, release it
-                if (mapHandle != -1) GPUMapManager.UnsubscribeHandle((uint)mapHandle);
+                if (mapHandle != -1) GPUMapManager.UnsubscribeHandle(mapHandle);
                 base.ReleaseChunk();
             }
             /// <exclude />
@@ -552,11 +552,14 @@ namespace TerrainGeneration{
             /// </summary> <param name="callback"><see cref="TerrainChunk.ReadMapData(Action)"/></param>
             protected override void ReadMapData(Action callback = null) {
 
-                if (!GPUMapManager.IsChunkRegisterable(CCoord, depth)) { callback?.Invoke(); return; }
-                GenerateDefaultMap();
+                if (!GPUMapManager.IsChunkRegisterable(CCoord, depth)) {
+                    callback?.Invoke();
+                    return;
+                }
 
+                GenerateDefaultMap();
                 Map.Generator.GeoGenOffsets bufferOffsets = Map.Generator.bufferOffsets;
-                if (mapHandle != -1) GPUMapManager.UnsubscribeHandle((uint)mapHandle);
+                if (mapHandle != -1) GPUMapManager.UnsubscribeHandle(mapHandle);
                 mapHandle = GPUMapManager.RegisterChunkVisual(CCoord, depth, UtilityBuffers.GenerationBuffer, bufferOffsets.mapStart);
                 if (mapHandle == -1) return;
 
@@ -581,7 +584,7 @@ namespace TerrainGeneration{
                 } else {
                     int directAddress = (int)GPUMapManager.GetHandle(mapHandle).x;
                     Generator.MeshCreator.GenerateVisualMesh(CCoord, directAddress, IsoLevel, mapChunkSize, depth, neighborDepth);
-                    GPUMapManager.UnsubscribeHandle((uint)mapHandle);
+                    GPUMapManager.UnsubscribeHandle(mapHandle);
                     mapHandle = -1;
                 }
 

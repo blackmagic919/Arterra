@@ -41,7 +41,9 @@ public class Crafting : ScriptableObject{
     /// This is the maximum amount of recipes that will be shown in case too many recipes are
     /// within <see cref="MaxRecipeDistance"/> of the player's crafting grid. </summary>
     public int NumMaxSelections; //5
-    /// <summary> The registry of all recipes that can be crafted within the game. See <see cref="Recipe"/> for more information. </summary>
-    public Registry<CraftingAuthoring> Recipes; 
+    /// <summary>The maximum number of recipes that will be displayed when they are searched in the UI panel </summary>
+    public int MaxRecipeSearchDisplay;
+    /// <summary> The registry of all recipes that can be crafted within the game. See <see cref="CraftingRecipe"/> for more information. </summary>
+    public Catalogue<CraftingAuthoring> Recipes; 
 }
 }

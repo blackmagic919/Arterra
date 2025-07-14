@@ -221,7 +221,7 @@ public static class PaginatedUIEditor
     public static void VerifyUpdateHooks(FieldInfo field){
         if(Attribute.IsDefined(field, typeof(UIModifiable))){
             UIModifiable modTag = Attribute.GetCustomAttribute(field, typeof(UIModifiable)) as UIModifiable;
-            DynamicRegistry<Action> hooks = Config.CURRENT.System.GameplayModifyHooks;
+            Registry<Action> hooks = Config.CURRENT.System.GameplayModifyHooks;
             if(!hooks.Contains(modTag.CallbackName)) return;
             hooks.Retrieve(modTag.CallbackName).Invoke();
         }

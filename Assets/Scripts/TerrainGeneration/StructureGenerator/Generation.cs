@@ -15,7 +15,7 @@ public class Generation : ScriptableObject
     /// The number of structures that can be generated is limited by this registry.
     /// See <see cref="StructureData"/> for more info.
     /// </summary>
-    public Registry<StructureData> StructureDictionary;
+    public Catalogue<StructureData> StructureDictionary;
     /// <summary>
     /// The amount of structures that attempt to be placed per <see cref="TerrainGeneration.TerrainChunk.RealChunk"> Real Chunk </see>
     /// sampled. The higher this value, the more structures that will attempt to be placed per the same region of space resulting in 

@@ -27,7 +27,7 @@ public class QuadSetting : Category<QuadSetting>
     public Data GetInfo()
     {
         Data serial = info;
-        Registry<TextureContainer> texReg = Config.CURRENT.Generation.Textures;
+        Catalogue<TextureContainer> texReg = Config.CURRENT.Generation.Textures;
         serial.TextureIndex = texReg.RetrieveIndex(NameRegister.value[serial.TextureIndex]);
         return serial;
     }

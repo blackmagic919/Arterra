@@ -12,6 +12,7 @@ using WorldConfig.Generation.Entity;
 using System.Collections.Concurrent;
 using UnityEngine.Profiling;
 using MapStorage;
+using System.Threading.Tasks;
 
 public static class EntityManager
 {
@@ -66,23 +67,24 @@ public static class EntityManager
         ReleaseE(entityId);
         cb?.Invoke();
     });
-    
-    public static unsafe void ReleaseChunkEntities(int3 CCoord){
+
+    public static unsafe void ReleaseChunkEntities(int3 CCoord, bool await = false) {
         int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         CPUMapManager.ChunkMapInfo mapInfo = CPUMapManager.AddressDict[CPUMapManager.HashCoord(CCoord)];
-        if(!mapInfo.valid) return; 
+        if (!mapInfo.valid) return;
         //mapinfo.CCoord is coord of previous chunk
-        Bounds bounds = new (((float3)mapInfo.CCoord + 0.5f) * mapChunkSize, (float3)mapChunkSize);
+        Bounds bounds = new(((float3)mapInfo.CCoord + 0.5f) * mapChunkSize, (float3)mapChunkSize);
 
         List<Entity> Entities = new List<Entity>();
         ESTree.QueryExclusive(bounds, (Entity entity) => {
-            if(entity == null) return;
+            if (entity == null) return;
             //This is the only entity that is not serialized and saved
-            if(entity.info.entityId == PlayerHandler.data.info.entityId) return;
+            if (entity.info.entityId == PlayerHandler.data.info.entityId) return;
             ReleaseEntity(entity.info.entityId);
             Entities.Add(entity);
-        }); 
-        MapStorage.Chunk.SaveEntitiesToJsonSync(Entities, mapInfo.CCoord);
+        });
+        Task awaitableTask = Task.Run(() => Chunk.SaveEntitiesToJsonAsync(Entities, mapInfo.CCoord));
+        if (await) awaitableTask.Wait();
     }
     public unsafe static void ReleaseE(Guid entityId){
         if(!EntityIndex.ContainsKey(entityId)) {
@@ -176,7 +178,7 @@ public static class EntityManager
         entityTranscriber.SetInt("bSTART_entities", bufferOffsets.prunedStart);
 
         //Ensure the entity dictionary has the player. This is non-negotiable and must always be ensured
-        Registry<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities;
+        Catalogue<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities;
         if(EntityDictionary.Contains("Player") && EntityDictionary.Retrieve("Player").GetType() != typeof(PlayerStreamer))
             EntityDictionary.TryRemove("Player");
         if(!EntityDictionary.Contains("Player")) {

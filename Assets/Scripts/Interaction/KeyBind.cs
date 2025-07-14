@@ -124,14 +124,14 @@ public static class InputPoller
 {
     private class KeyBinder{
         public SharedLinkedList<ActionBind> KeyBinds;
-        public DynamicRegistry<uint> LayerHeads;
-        public ref Registry<KeyBind> KeyMappings => ref Config.CURRENT.GamePlay.Input;
-        public ref Registry<KeyBind> DefaultMappings => ref Config.TEMPLATE.GamePlay.Input;
+        public Registry<uint> LayerHeads;
+        public ref Catalogue<KeyBind> KeyMappings => ref Config.CURRENT.GamePlay.Input;
+        public ref Catalogue<KeyBind> DefaultMappings => ref Config.TEMPLATE.GamePlay.Input;
 
         public KeyBinder(){
             Config.CURRENT.System.GameplayModifyHooks.Add("KeyBindReconstruct", ReconstructMappings);
             KeyBinds = new SharedLinkedList<ActionBind>(MaxActionBinds);
-            LayerHeads = new DynamicRegistry<uint>();
+            LayerHeads = new Registry<uint>();
             LayerHeads.Construct();
             DefaultMappings.Construct();
             ReconstructMappings();
@@ -150,7 +150,7 @@ public static class InputPoller
         private void ReconstructMappings(){
             KeyMappings.Construct();
             //Rebind all currently bound actions
-            foreach(DynamicRegistry<uint>.Pair head in LayerHeads.Reg){
+            foreach(Registry<uint>.Pair head in LayerHeads.Reg){
                 uint current = head.Value;
                 do{
                     ref ActionBind BoundAction = ref KeyBinds.RefVal(current);
@@ -171,7 +171,7 @@ public static class InputPoller
     private static StateStack SStack;
     //Getter is ref otherwise modification would be impossible as we have copy
     private static ref SharedLinkedList<ActionBind> KeyBinds => ref Binder.KeyBinds;
-    private static ref DynamicRegistry<uint> LayerHeads => ref Binder.LayerHeads;
+    private static ref Registry<uint> LayerHeads => ref Binder.LayerHeads;
     private static Queue<Action> KeyBindChanges;
     private static UpdateTask eventTask;
     private static HashSet<string> GlobalExclusion;
@@ -209,7 +209,7 @@ public static class InputPoller
         //Explicit lexicographic-name ordering
         GlobalExclusion.Clear();
         LayerExclusion.Clear();
-        foreach(DynamicRegistry<uint>.Pair head in LayerHeads.Reg){
+        foreach(Registry<uint>.Pair head in LayerHeads.Reg){
             uint current = head.Value; LayerExclusion.Clear();
             do{
                 ActionBind BoundAction = KeyBinds.Value(current);
@@ -428,14 +428,14 @@ public static class InputPoller
 
     public class StateStack {
         private SharedLinkedList<ActionBind> StackBinds;
-        private DynamicRegistry<uint> LayerHeads;
-        private DynamicRegistry<uint> StackEntries;
+        private Registry<uint> LayerHeads;
+        private Registry<uint> StackEntries;
         private const int MaxStackBinds = 5000;
 
         public StateStack() {
             StackBinds = new(MaxStackBinds);
-            LayerHeads = new DynamicRegistry<uint>();
-            StackEntries = new DynamicRegistry<uint>();
+            LayerHeads = new Registry<uint>();
+            StackEntries = new Registry<uint>();
             LayerHeads.Construct();
             StackEntries.Construct();
         }

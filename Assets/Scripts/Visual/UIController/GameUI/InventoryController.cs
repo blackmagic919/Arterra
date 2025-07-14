@@ -44,7 +44,7 @@ public static class InventoryController
     private static UpdateTask EventTask;
 
     private static uint Fence;
-    private static Registry<Authoring> ItemSettings;
+    private static Catalogue<Authoring> ItemSettings;
     public static IItem Selected=>Primary.Info[SelectedIndex];
     public static Authoring SelectedSetting=>ItemSettings.Retrieve(Primary.Info[SelectedIndex].Index);
     public static IItem Cursor;
@@ -196,7 +196,7 @@ public static class InventoryController
         CursorDisplay.Object.SetActive(false);
 
         IItem cursor = Cursor;
-        cursor.ClearDisplay();
+        cursor.ClearDisplay(CursorDisplay.Object.transform);
         Cursor = null;
         if (!GetMouseTarget(out Inventory Inv, out int index)) {
             DropItem(cursor);
@@ -320,7 +320,7 @@ public static class InventoryController
         public void ReleaseDisplay() {
             for (int i = 0; i < capacity; i++) {
                 Indicators.ItemSlots.Release(Display.Slots[i].Object);
-                Info[i]?.ClearDisplay();
+                Info[i]?.ClearDisplay(Display.Slots[i].transform);
             }
             GameObject.Destroy(Display.Region);
             Display = null;
@@ -429,7 +429,7 @@ public static class InventoryController
             LLAdd((uint)SlotIndex, tail);
             OnRemoveElement?.Invoke(SlotIndex);
 
-            Info[SlotIndex].ClearDisplay();
+            Info[SlotIndex].ClearDisplay(Display.Slots[SlotIndex].transform);
             Info[SlotIndex] = null;
             tail = math.min(tail, (uint)SlotIndex);
             length--;

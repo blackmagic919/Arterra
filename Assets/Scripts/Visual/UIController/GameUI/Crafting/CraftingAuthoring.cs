@@ -13,11 +13,30 @@ namespace WorldConfig.Intrinsic{
     /// to be created via Unity's Inspector. </summary>
     [Serializable]
     [CreateAssetMenu(menuName = "Settings/Crafting/Recipe")]
-    public class CraftingAuthoring : Category<CraftingAuthoring> {
+    public class CraftingAuthoring : Category<CraftingAuthoring>, ISlot {
         /// <summary> The recipe that is being authored. </summary>
         public CraftingRecipe Recipe;
+
+        /// <summary> Controls how recipes are created as UI slots. See <see cref="ISlot"/> for more information </summary>
+        /// <param name="parent">The parent object containing the new slot</param>
+        public void AttachDisplay(Transform parent) {
+            GameObject selection = Indicators.RecipeSelections.Get();
+            selection.name = $"Recipe::{Name}";
+            selection.transform.SetParent(parent, false);
+            UnityEngine.UI.Image image = selection.transform.GetChild(0).GetComponentInChildren<UnityEngine.UI.Image>();
+            IItem resultItem = Recipe.ResultItem; resultItem.Create(Recipe.ResultIndex, 0);
+            image.sprite = Config.CURRENT.Generation.Textures.Retrieve(resultItem.TexIndex).self;
+        }
+
+        /// <summary> Releases UI slot objects associated with this recipe. See <see cref="ISlot"/> for more information </summary>
+        /// /// <param name="parent">The parent object containing the slot to be removed</param>
+        public void ClearDisplay(Transform parent) {
+            GameObject selection = parent.Find($"Recipe::{Name}")?.gameObject;
+            if (selection == null) return;
+            Indicators.RecipeSelections.Release(selection);
+        }
     }
-    
+
     /// <summary> A recipe describing a configuration of materials on the crafting grid
     /// that will create a specific item. Modifying recipes create an unfair advantage
     /// or upend the difficulty progression. </summary>
@@ -31,7 +50,7 @@ namespace WorldConfig.Intrinsic{
         /// correspond to a grid of points whose size is dictated by <see cref="Crafting.GridWidth"/>.
         /// If this grid matches  the player's crafting grid, the recipe is considered
         /// craftable and the result may be obtained. No two recipes should be identical,
-        /// although this is not enforced. </summary> <remarks>The <see cref="CPUMapManager.MapData.isDirty"/> flag
+        /// although this is not enforced. </summary> <remarks>The <see cref="MapData.isDirty"/> flag
         /// is repurposed to indicate if an entry should be ignored when being matched. This is useful if a component
         /// of the recipe is not essential to its creation, such as any empty entries. </remarks>
         public Option<List<MapData>> entry;
@@ -45,7 +64,7 @@ namespace WorldConfig.Intrinsic{
         [JsonIgnore]
         public int ResultIndex {
             get {
-                Registry<Authoring> reg = Config.CURRENT.Generation.Items;
+                Catalogue<Authoring> reg = Config.CURRENT.Generation.Items;
                 return reg.RetrieveIndex(Names.value[(int)result.Index]);
             }
         }
@@ -55,7 +74,7 @@ namespace WorldConfig.Intrinsic{
         [JsonIgnore]
         public IItem ResultItem {
             get {
-                Registry<Authoring> reg = Config.CURRENT.Generation.Items;
+                Catalogue<Authoring> reg = Config.CURRENT.Generation.Items;
                 return reg.Retrieve(Names.value[(int)result.Index]).Item;
             }
         }
@@ -66,7 +85,7 @@ namespace WorldConfig.Intrinsic{
         /// <param name="Index">The index within <see cref="entry"/> of the entry that is retrieved</param>
         /// <returns>The deserialized map information of the recipe's entry at the specified <paramref name="Index"/>.</returns>
         public MapData EntrySerial(int Index) {
-            Registry<MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            Catalogue<MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             MapData p = entry.value[Index];
             if (!reg.Contains(Names.value[p.material])) return p;
             p.material = reg.RetrieveIndex(Names.value[p.material]);
@@ -81,7 +100,7 @@ namespace WorldConfig.Intrinsic{
         public int EntryMat(int index) {
             if (entry.value[index].IsGaseous) return -1;
             if (Names.value == null) return entry.value[index].material;
-            Registry<MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            Catalogue<MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             return reg.RetrieveIndex(Names.value[entry.value[index].material]);
         }
 

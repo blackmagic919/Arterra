@@ -29,7 +29,7 @@ public class ShellSetting : Category<ShellSetting>
     public Data GetInfo()
     {
         Data serial = info;
-        Registry<TextureContainer> texReg = Config.CURRENT.Generation.Textures;
+        Catalogue<TextureContainer> texReg = Config.CURRENT.Generation.Textures;
         serial.TextureIndex = texReg.RetrieveIndex(NameRegister.value[serial.TextureIndex]);
         return serial;
     }

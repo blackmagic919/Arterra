@@ -8,7 +8,7 @@ using static MapStorage.CPUMapManager;
 
 public static class TerrainInteractor {
 
-    private static Registry<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+    private static Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
     private static bool TrilinearBlend(ref Span<int> c, float3 d, out int corner) {
         float c00 = c[0] * (1 - d.x) + c[4] * d.x;
         float c01 = c[1] * (1 - d.x) + c[5] * d.x;

@@ -10,7 +10,7 @@ using Unity.Mathematics;
 public class ProceduralInsetQuads : GeoShader
 {
     [Tooltip("A mesh to create foliage from")]
-    [SerializeField] public Registry<QuadSetting> settings = default;
+    [SerializeField] public Catalogue<QuadSetting> settings = default;
     [JsonIgnore][UISetting(Ignore = true)]
     public Option<Material> material;
     [JsonIgnore] private ComputeShader quadCompute;
@@ -18,7 +18,7 @@ public class ProceduralInsetQuads : GeoShader
 
     public override Material GetMaterial() => material.value;
     public override IRegister GetRegistry() => settings;
-    public override void SetRegistry(IRegister reg) => settings = (Registry<QuadSetting>)reg;
+    public override void SetRegistry(IRegister reg) => settings = (Catalogue<QuadSetting>)reg;
 
     public override void PresetData(int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
     {

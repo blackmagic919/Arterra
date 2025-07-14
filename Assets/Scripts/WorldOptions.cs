@@ -98,7 +98,7 @@ namespace WorldConfig
             /// Hence, it is recommended to not define a new variant if the generation pattern can be reused from another variant. 
             /// <seealso href="https://blackmagic919.github.io/AboutMe/2024/11/03/GeoShaders/">More Info</seealso>
             /// </summary>
-            public Registry<Quality.GeoShader> GeoShaders;
+            public Catalogue<Quality.GeoShader> GeoShaders;
             /// <summary> See here for more information: <see cref="Quality.Memory"/>  </summary>
             public Option<Quality.Memory> Memory;
         }
@@ -121,7 +121,7 @@ namespace WorldConfig
             /// The number of noise functions available to be sample is limited to whatever is in this registry. 
             /// See <see cref="Generation.Noise"/> for more information. </summary>
             [UISetting(Message = "Controls How The World Is Generated")]
-            public Registry<Generation.Noise> Noise;
+            public Catalogue<Generation.Noise> Noise;
             /// <summary> See here for more information: <see cref="Generation.Map"/> </summary>
             public Option<Generation.Map> Terrain;
             /// <summary> See here for more information: <see cref="Generation.Surface"/>  </summary>
@@ -137,14 +137,14 @@ namespace WorldConfig
             /// <summary> The registry containing all items referencable in any way throughout the game. Any item
             /// not in this registry will not be recognized by the game and usage/deserialization of it may 
             /// result in undefined behavior. See here for more information: <see cref="Generation.Item.Authoring"/> </summary>
-            public Registry<Generation.Item.Authoring> Items;
+            public Catalogue<Generation.Item.Authoring> Items;
             /// <summary>The registry containing all entities referencable in any way throughout the game. Any entity
             /// not in this registry will not be recognized by the game and usage/deserialization of it may 
             /// result in undefined behavior. See here for more information: <see cref="Generation.Entity.Authoring"/> </summary>
-            public Registry<Generation.Entity.Authoring> Entities;
+            public Catalogue<Generation.Entity.Authoring> Entities;
             /// <summary> A registry containing all textures used within the game. Similar to a texture 
             /// atlas, this registry is copied to the GPU and to be referenced by shaders. </summary>
-            public Registry<TextureContainer> Textures;
+            public Catalogue<TextureContainer> Textures;
         }
 
         /// <summary>
@@ -159,7 +159,7 @@ namespace WorldConfig
             [UIModifiable(CallbackName = "KeyBindReconstruct")]
             /// <summary> The registry of all keybinds that are used to bind player input to actions within the game.
             /// See <see cref="Gameplay.KeyBind"/> for more information. </summary>
-            public Registry<Gameplay.KeyBind> Input;//
+            public Catalogue<Gameplay.KeyBind> Input;//
             /// <summary> Controls how the player moves through the world. See <see cref="Gameplay.Movement"/> for more information. </summary>
             [UISetting(Message = "Controls How The Player Interacts With The World")]
             public Option<Gameplay.Player.Settings> Player;
@@ -198,7 +198,7 @@ namespace WorldConfig
             [HideInInspector]
             [JsonIgnore]
             [UISetting(Ignore = true)]
-            public DynamicRegistry<Action> GameplayModifyHooks;
+            public Registry<Action> GameplayModifyHooks;
         }
 
         [OnDeserialized]

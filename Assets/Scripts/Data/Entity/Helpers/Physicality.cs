@@ -151,7 +151,7 @@ public struct Vitality{
             int amount = Mathf.FloorToInt(delta) + (random.NextFloat() < math.frac(delta) ? 1 : 0);
             if(amount == 0) return null;
     
-            Registry<WorldConfig.Generation.Item.Authoring> registry = Config.CURRENT.Generation.Items;
+            Catalogue<WorldConfig.Generation.Item.Authoring> registry = Config.CURRENT.Generation.Items;
             int itemindex = registry.RetrieveIndex(LootTable.value[index].ItemName);
             WorldConfig.Generation.Item.IItem item = registry.Retrieve(itemindex).Item;
             item.Create(itemindex, amount);

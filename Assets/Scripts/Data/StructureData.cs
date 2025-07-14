@@ -46,7 +46,7 @@ public class StructureData : Category<StructureData>
     [JsonIgnore]
     public IEnumerable<PointInfo> SerializePoints{
         get{
-            Registry<Material.MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            Catalogue<Material.MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             return map.value.Select(x => Serialize(x, reg.RetrieveIndex(Materials.value[x.material])));
         }
     }

@@ -47,8 +47,8 @@ public class Interaction : ICloneable{
 
 public static class PlayerInteraction
 {
-    private static Registry<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-    private static Registry<Authoring> itemInfo => Config.CURRENT.Generation.Items;
+    private static Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+    private static Catalogue<Authoring> itemInfo => Config.CURRENT.Generation.Items;
     public static Interaction settings => Config.CURRENT.GamePlay.Player.value.Interaction;
     private static PlayerStreamer.Player data => PlayerHandler.data;
 

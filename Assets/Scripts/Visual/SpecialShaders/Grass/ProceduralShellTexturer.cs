@@ -9,7 +9,7 @@ using Unity.Mathematics;
 [CreateAssetMenu(menuName = "ShaderData/ShellTexture/Generator")]
 public class ProceduralShellTexturer : GeoShader
 {
-    public Registry<ShellSetting> settings = default;
+    public Catalogue<ShellSetting> settings = default;
     [JsonIgnore]
     [UISetting(Ignore = true)]
     public Option<Material> material;
@@ -18,7 +18,7 @@ public class ProceduralShellTexturer : GeoShader
 
     public override Material GetMaterial() => material.value;
     public override IRegister GetRegistry() => settings;
-    public override void SetRegistry(IRegister reg) => settings = (Registry<ShellSetting>)reg;
+    public override void SetRegistry(IRegister reg) => settings = (Catalogue<ShellSetting>)reg;
 
     public override void PresetData(int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
     {

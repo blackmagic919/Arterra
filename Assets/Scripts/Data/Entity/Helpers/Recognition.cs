@@ -209,8 +209,8 @@ public class RCarnivore : Recognition{
 
     public override void Construct(){
         AwarenessTable = new Dictionary<int, Recognizable>();
-        Registry<Authoring> eReg = Config.CURRENT.Generation.Entities;
-        Registry<WorldConfig.Generation.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
+        Catalogue<Authoring> eReg = Config.CURRENT.Generation.Entities;
+        Catalogue<WorldConfig.Generation.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
 
         if(Predators.value != null){
         for(int i = 0; i < Predators.value.Count; i++){
@@ -278,9 +278,9 @@ public class RHerbivore : Recognition{
 
     public override void Construct(){
         AwarenessTable = new Dictionary<int, Recognizable>();
-        Registry<Authoring> eReg = Config.CURRENT.Generation.Entities;
+        Catalogue<Authoring> eReg = Config.CURRENT.Generation.Entities;
         IRegister mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        Registry<WorldConfig.Generation.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
+        Catalogue<WorldConfig.Generation.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
 
 
         if(Predators.value != null){
@@ -337,7 +337,7 @@ public class RHerbivore : Recognition{
         Plant plant = Prey.value[rInfo.Preference];
         if(!plant.Bounds.Contains(mapData)) return null;
         if(!rInfo.IsPrey) return null;
-        Registry<MaterialData> matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        Catalogue<MaterialData> matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
 
         string key = plant.Replacement;
         WorldConfig.Generation.Item.IItem nMat = matInfo.Retrieve(mapData.material).AcquireItem(mapData);

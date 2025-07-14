@@ -136,7 +136,7 @@ public static class GenerationPreset
         {
             static void SerializeGeoShader(MaterialData mat, ref MaterialData.TerrainData terr){
                 if (!terr.GeoShaderIndex.HasGeoShader) return;
-                Registry<WorldConfig.Quality.GeoShader> shaderInfo = Config.CURRENT.Quality.GeoShaders;
+                Catalogue<WorldConfig.Quality.GeoShader> shaderInfo = Config.CURRENT.Quality.GeoShaders;
                 ref MaterialData.TerrainData.GeoShaderInfo info = ref terr.GeoShaderIndex;
                 string Key = mat.RetrieveKey((int)info.MajorIndex);
                 info.HasGeoShader = false; //If we fail any checks here on out, ignore this entry
@@ -151,7 +151,7 @@ public static class GenerationPreset
             }
             Release();
             WorldConfig.Generation.Material.Generation matInfo = Config.CURRENT.Generation.Materials.value;
-            Registry<TextureContainer> textureInfo = Config.CURRENT.Generation.Textures;
+            Catalogue<TextureContainer> textureInfo = Config.CURRENT.Generation.Textures;
             List<MaterialData> MaterialDictionary = matInfo.MaterialDictionary.Reg;
             MaterialData.TerrainData[] MaterialTerrain = new MaterialData.TerrainData[MaterialDictionary.Count];
 

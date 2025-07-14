@@ -25,13 +25,13 @@ public static class Indicators
     public static ObjectPool<GameObject> ItemSlots;
     public static ObjectPool<GameObject> StackableItems;
     public static ObjectPool<GameObject> HolderItems;
+    public static ObjectPool<GameObject> RecipeSelections;
     public static GameObject SelectionIndicator;
     public static GameObject DamageIndicator;
     public static GameObject BarIndicator;
-    public static void Initialize()
-    {
+    public static void Initialize() {
         static void OnActivate(GameObject indicator) => indicator.SetActive(true);
-        static void OnDeactivate(GameObject indicator){
+        static void OnDeactivate(GameObject indicator) {
             indicator.transform.SetParent(null, false);
             indicator.SetActive(false);
         }
@@ -51,17 +51,19 @@ public static class Indicators
         GameObject ItemSlot = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Slot");
         GameObject StackableItem = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/StackableItem");
         GameObject HolderItem = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/HolderItem");
+        GameObject RecipeSelection = Resources.Load<GameObject>("Prefabs/GameUI/Crafting/RecipeSelection");
 
-        ItemSlots = new ObjectPool<GameObject>(() =>
-        {
+        ItemSlots = new ObjectPool<GameObject>(() => {
             return GameObject.Instantiate(ItemSlot);
         }, OnActivate, OnDeactivate, OnDestroy, true, 25, 100);
-        StackableItems = new ObjectPool<GameObject>(() =>
-        {
+        StackableItems = new ObjectPool<GameObject>(() => {
             return GameObject.Instantiate(StackableItem);
         }, OnActivate, OnDeactivate, OnDestroy, true, 5, 40);
         HolderItems = new ObjectPool<GameObject>(() => {
             return GameObject.Instantiate(HolderItem);
+        }, OnActivate, OnDeactivate, OnDestroy, true, 5, 20);
+        RecipeSelections = new ObjectPool<GameObject>(() => {
+            return GameObject.Instantiate(RecipeSelection);
         }, OnActivate, OnDeactivate, OnDestroy, true, 5, 20);
     }
 

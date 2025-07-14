@@ -158,7 +158,7 @@ namespace WorldConfig.Generation.Material
 
             InventoryController.CursorDisplay.Object.SetActive(false);
             Item.IItem cursor = InventoryController.Cursor;
-            cursor.ClearDisplay();
+            cursor.ClearDisplay(InventoryController.CursorDisplay.Object.transform);
             InventoryController.Cursor = null;
 
             if (cont.inv.Info[index] == null)

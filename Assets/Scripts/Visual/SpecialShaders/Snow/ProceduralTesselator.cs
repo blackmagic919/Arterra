@@ -9,7 +9,7 @@ using Unity.Mathematics;
 [CreateAssetMenu(menuName = "ShaderData/Tesselation/Generator")]
 public class ProceduralTesselator : GeoShader
 {
-    public Registry<TesselSettings> settings = default;
+    public Catalogue<TesselSettings> settings = default;
     [JsonIgnore][UISetting(Ignore = true)]
     public Option<Material> material;
     [JsonIgnore] private ComputeShader tesselCompute;
@@ -18,7 +18,7 @@ public class ProceduralTesselator : GeoShader
     // Start is called before the first frame update
     public override Material GetMaterial() => material.value;
     public override IRegister GetRegistry() => settings;
-    public override void SetRegistry(IRegister reg) => settings = (Registry<TesselSettings>)reg;
+    public override void SetRegistry(IRegister reg) => settings = (Catalogue<TesselSettings>)reg;
     
     public override void PresetData(int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
     {

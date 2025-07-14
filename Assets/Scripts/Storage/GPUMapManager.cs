@@ -14,7 +14,7 @@ namespace MapStorage{
         private static ComputeShader multiMapTranscribe;
         private static ComputeShader simplifyMap;
         private static uint[] MapLookup;
-        private static uint2[] HandleDict;
+        private static int2[] HandleDict;
         private static ComputeBuffer _ChunkAddressDict;
         private static GenerationPreset.MemoryHandle memorySpace;
         /// <summary> How far from the user processes on the GPU can lookup information about the world. The radius 
@@ -47,11 +47,12 @@ namespace MapStorage{
             int numChunks = numChunksAxis * numChunksAxis * numChunksAxis;
 
             MapLookup = new uint[numChunks];
-            HandleDict = new uint2[numChunks + 1];
-            for (uint i = 1; i < numChunks + 1; i++) {
-                HandleDict[i] = new(i - 1, (uint)((i + 1) % HandleDict.Length));
+            HandleDict = new int2[numChunks + 1];
+            for (int i = 1; i < numChunks; i++) {
+                HandleDict[i] = new(i - 1, i + 1);
             }
-            HandleDict[1].x = (uint)numChunks;
+            HandleDict[numChunks] = new int2(numChunks - 1, 1);
+            HandleDict[1].x = numChunks;
             HandleDict[0].y = 1; //Free position
 
             _ChunkAddressDict = new ComputeBuffer(numChunks, sizeof(uint) * 5, ComputeBufferType.Structured);
@@ -89,7 +90,7 @@ namespace MapStorage{
             uint address = memorySpace.AllocateMemoryDirect(mapSize, 1);
             TranscribeMap(mapData, address, rdOff, mapChunkSize + 3, mapChunkSize, 1);
             TranscribeEdgeFaces(mapData, address, rdOff, mapChunkSize + 3, mapChunkSize + 3, numPoints);
-            uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new uint2(address, 0);
+            uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new int2((int)address, 0);
             LightBaker.RegisterChunk(oCCoord, mapChunkSize, address, 1 << depth);
 
             RegisterChunk(oCCoord, depth, handleAddress);
@@ -115,7 +116,7 @@ namespace MapStorage{
             int mapSize = numPoints + numPointsFaces + LightBaker.GetLightMapLength();
             uint address = memorySpace.AllocateMemoryDirect(mapSize, 1);
             TranscribeMap(mapData, address, rdOff, mapChunkSize, mapChunkSize);
-            uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new uint2(address, 0);
+            uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new int2((int)address, 0);
             LightBaker.RegisterChunk(oCCoord, mapChunkSize, address, 1 << depth);
 
             RegisterChunk(oCCoord, depth, handleAddress);
@@ -126,7 +127,7 @@ namespace MapStorage{
         /// <returns>Two integers: 1. the address within <see cref="DirectAddress">the direct unmanaged memory 
         /// address buffer</see> of the address within <see cref="Storage"/> of the stored chunk information, and
         /// 2. the amount of references held by either the hasmap or <see cref="SubscribeHandle">manually</see>.</returns>
-        public static uint2 GetHandle(int handleAddress) => HandleDict[handleAddress];
+        public static int2 GetHandle(int handleAddress) => HandleDict[handleAddress];
         /// <summary>Prevents the stored map information from being garbage collected even if other chunks completely
         /// replace it in the hashmap making it unaccessible. Increments the amount of references held to the 
         /// map information pointed to by <i>handleAddress</i> by one. </summary>
@@ -138,11 +139,11 @@ namespace MapStorage{
         /// of the map information if it is the last reference held. Specifically, decrements the amount of references held to the 
         /// map information pointed to by <i>handleAddress</i> by one. </summary>
         /// <param name="handleAddress">The handle returned from <see cref="RegisterChunkReal"/> or <see cref="RegisterChunkVisual"/></param>
-        public static void UnsubscribeHandle(uint handleAddress) {
+        public static void UnsubscribeHandle(int handleAddress) {
             HandleDict[handleAddress].y--;
             if (HandleDict[handleAddress].y > 0) return;
             //Release chunk if no one is subscribed
-            memorySpace.ReleaseMemory(HandleDict[handleAddress].x);
+            memorySpace.ReleaseMemory((uint)HandleDict[handleAddress].x);
             FreeHandle(handleAddress);
         }
 
@@ -157,7 +158,7 @@ namespace MapStorage{
             if (math.any(dim <= 0)) return; //We're not going to save it
 
             //Request Memory Address
-            uint count = (uint)(dim.x * dim.y * dim.z);
+            int count = dim.x * dim.y * dim.z;
             HandleDict[handleAddress].y += count;
 
             int3 dCoord;
@@ -168,12 +169,12 @@ namespace MapStorage{
                         uint prevAdd = MapLookup[hash];
                         MapLookup[hash] = handleAddress;
                         if (prevAdd == 0) continue;
-                        UnsubscribeHandle(prevAdd);
+                        UnsubscribeHandle((int)prevAdd);
                     }
                 }
             }
             //Fill out Compute Buffer Memory Handles
-            ReplaceAddress(memorySpace.Address, HandleDict[handleAddress].x, oCCoord, dim, cOff, depth);
+            ReplaceAddress(memorySpace.Address, (uint)HandleDict[handleAddress].x, oCCoord, dim, cOff, depth);
         }
 
         /// <summary> Whether or not the chunk will be stored and tracked by <see cref="GPUMapManager"/> if 
@@ -193,16 +194,16 @@ namespace MapStorage{
         }
 
         private static uint AllocateHandle() {
-            uint free = HandleDict[0].y;
+            int free = HandleDict[0].y;
             HandleDict[HandleDict[free].x].y = HandleDict[free].y;
             HandleDict[HandleDict[free].y].x = HandleDict[free].x;
             HandleDict[0].y = HandleDict[free].y;
-            return free;
+            return (uint)free;
         }
 
-        private static void FreeHandle(uint index) {
-            uint free = HandleDict[0].y;
-            HandleDict[index] = new uint2(HandleDict[free].x, free);
+        private static void FreeHandle(int index) {
+            int free = HandleDict[0].y;
+            HandleDict[index] = new int2(HandleDict[free].x, free);
             HandleDict[HandleDict[free].x].y = index;
             HandleDict[free].x = index;
             HandleDict[0].y = index;

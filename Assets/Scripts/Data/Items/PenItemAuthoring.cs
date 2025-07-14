@@ -20,8 +20,8 @@ namespace WorldConfig.Generation.Item
     {
         public uint data;
         public float durability;
-        private static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
-        private static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
+        private static Catalogue<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+        private static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
         [JsonIgnore]
         public bool IsStackable => false;
         [JsonIgnore]
@@ -82,7 +82,7 @@ namespace WorldConfig.Generation.Item
             UpdateDisplay();
         }
 
-        public void ClearDisplay()
+        public void ClearDisplay(Transform parent)
         {
             if (display == null) return;
             Indicators.HolderItems.Release(display);
@@ -104,8 +104,8 @@ namespace WorldConfig.Generation.Item
         private uint SelectedCorner;
         private PenItem item;
 
-        public static Registry<WorldConfig.Generation.Item.Authoring> ItemInfo => WorldConfig.Config.CURRENT.Generation.Items;
-        public static Registry<MaterialData> MatInfo => WorldConfig.Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        public static Catalogue<Authoring> ItemInfo => WorldConfig.Config.CURRENT.Generation.Items;
+        public static Catalogue<MaterialData> MatInfo => WorldConfig.Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         public static InteractionHandler Create(PenItem item)
         {
             InteractionHandler h = new InteractionHandler();

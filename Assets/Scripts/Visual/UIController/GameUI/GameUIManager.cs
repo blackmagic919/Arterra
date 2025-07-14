@@ -23,5 +23,5 @@ public interface ISlot {
     /// <summary> Attaches the UI panel to be displayed representing the Item to the UI object. </summary>
     public void AttachDisplay(Transform pSlot);
     /// <summary> This handle is called when the Display UI is to be cleared  </summary>
-    public void ClearDisplay();
+    public void ClearDisplay(Transform pSlot);
 }

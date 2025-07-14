@@ -29,9 +29,9 @@ namespace WorldConfig.Generation.Item
     {
         public uint data;
         public float durability;
-        private static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
-        private static Registry<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        private static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
+        private static Catalogue<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+        private static Catalogue<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        private static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
         [JsonIgnore]
         public bool IsStackable => false;
         [JsonIgnore]
@@ -99,7 +99,7 @@ namespace WorldConfig.Generation.Item
             UpdateDisplay();
         }
 
-        public void ClearDisplay()
+        public void ClearDisplay(Transform parent)
         {
             if (display == null) return;
             Indicators.HolderItems.Release(display);
