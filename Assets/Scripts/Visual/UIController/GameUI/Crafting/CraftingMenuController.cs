@@ -5,68 +5,49 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
 using WorldConfig;
-using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
 using WorldConfig.Intrinsic;
 using MapStorage;
 using TMPro;
+using TerrainGeneration;
+using WorldConfig.Generation.Material;
 
 public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
+    public static CraftingMenuController instance;
+    public CraftingRecipeSearch RecipeSearch;
     private Crafting settings;
     private KTree Recipe;
     private GameObject craftingMenu;
     private MapData[] craftingData;
     private Display Rendering;
     private UpdateTask eventTask;
-    private RegistrySearchDisplay<CraftingAuthoring> RecipeSearch;
 
     private int GridWidth;
-    private int AxisWidth => GridWidth + 1;
-    private int GridCount => AxisWidth * AxisWidth;
+    internal int AxisWidth => GridWidth + 1;
+    internal int GridCount => AxisWidth * AxisWidth;
     private int2 GridSize => (int2)(float2)Rendering.crafting.Transform.sizeDelta / GridWidth;
     private uint Fence = 0;
     private int FitRecipe = -1;
-
-    public struct Display {
-        public Grid crafting;
-        public Grid[] selections;
-        public RectTransform[] corners;
-        public ComputeBuffer craftingBuffer;
-        public bool IsDirty;
-        public struct Grid {
-            public GameObject Object;
-            public RectTransform Transform;
-            public Image Display;
-            public Grid(GameObject obj) {
-                Object = obj;
-                Transform = obj.GetComponent<RectTransform>();
-                Display = obj.GetComponent<Image>();
-            }
-        }
-    }
 
     // Start is called before the first frame update
     public CraftingMenuController(Crafting settings) {
         this.settings = settings;
         craftingMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Crafting/CraftingMenu"), GameUIManager.UIHandle.transform);
-        
+
         GridWidth = settings.GridWidth;
-        int numMapTotal = GridCount * (settings.NumMaxSelections + 1);
+        int numMapTotal = GridCount * (settings.NumMaxSelections + 2);
         craftingData = new MapData[numMapTotal];
         Rendering.craftingBuffer = new ComputeBuffer(numMapTotal, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
         Recipe.ConstructTree(settings.Recipes.Reg.Select(r => r.Recipe).ToArray(), dim: GridCount);
-        RecipeSearch = new RegistrySearchDisplay<CraftingAuthoring>(
-            Registry<CraftingAuthoring>.FromCatalogue(Config.CURRENT.System.Crafting.value.Recipes),
-            craftingMenu.transform.Find("SearchArea"),
-            craftingMenu.transform.Find("SearchArea").Find("SearchBar").GetComponentInChildren<TMP_InputField>(),
-            craftingMenu.transform.Find("SearchArea").Find("RecipeShelf").GetChild(0).GetChild(0),
-            settings.MaxRecipeSearchDisplay
-        );
+        RecipeSearch = new CraftingRecipeSearch(craftingMenu.transform);
 
         InitializeCraftingArea();
         InitializeSelections();
         craftingMenu.SetActive(false);
         Fence = 0;
+
+        instance?.Release();
+        instance = this;
     }
 
     public void Release(){ Rendering.craftingBuffer.Release(); }
@@ -125,22 +106,26 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         Rendering.selections = new Display.Grid[settings.NumMaxSelections];
         for(int i = 0; i < settings.NumMaxSelections; i++){
             Display.Grid grid = new(GameObject.Instantiate(SelectionGrid, SelectionArea.transform));
-            grid.Display.color = new Color((i+1)/255.0f, 0, 0);
+            grid.Display.color = new Color((i+2)/255.0f, 0, 0);
             Rendering.selections[i] = grid;
         }
     }
 
-    private void UpdateDisplay(){
+    internal void UpdateDisplay(){
         if(!Rendering.IsDirty) return;
         Rendering.IsDirty = false;
         Rendering.craftingBuffer.SetData(craftingData);
     }
+    
+    internal void ReflectGridRecipe(CraftingRecipe recipe, int gridIndex) {
+        for(int i = 0; i < GridCount; i++)
+            craftingData[GridCount * gridIndex + i] = recipe.EntrySerial(i);
+    }
 
     // Update is called once per frame
-    private void Update(MonoBehaviour mono)
-    {
-        if(!eventTask.active) return; 
-        
+    private void Update(MonoBehaviour mono) {
+        if (!eventTask.active) return;
+
         //Crafting Point Scaling
         EvaluateInfluence((int2 corner, float influence) => {
             int index = corner.x * AxisWidth + corner.y;
@@ -152,9 +137,13 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
     }   
 
     private void EvaluateInfluence(Action<int2, float> callback){
-        int2 origin = (int2)((float3)Rendering.crafting.Transform.position).xy - GridSize * GridWidth;
+        Vector3[] corners = new Vector3[4];
+        Rendering.crafting.Transform.GetWorldCorners(corners);
+        int2 origin = new int2((int)corners[0].x, (int)corners[0].y);
         float2 relativePos = (((float3)Input.mousePosition).xy - origin) / GridSize;
-        int2 gridPos = (int2)math.clamp(relativePos, 0, GridWidth - 1);
+        if (math.any(relativePos < 0) || math.any(relativePos >= instance.GridWidth))
+            return;
+        int2 gridPos = (int2)math.floor(relativePos);
         for(int i = 0; i < 4; i++){
             int2 corner = gridPos + new int2(i / 2, i % 2);
             float2 L1Dist =  1 - math.abs(relativePos - corner);
@@ -177,7 +166,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         });
     }
 
-    public bool CraftRecipe(out IItem result){
+    private bool CraftRecipe(out IItem result){
         result = null;
         if(FitRecipe == -1) return false;
 
@@ -226,12 +215,9 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         List<int> recipes = Recipe.QueryNearestLimit(target, settings.MaxRecipeDistance, settings.NumMaxSelections);
         FitRecipe = recipes.Count > 0 ? recipes[0] : -1;
 
-        for(int r = 0; r < recipes.Count; r++){
-            CraftingRecipe recipe = Recipe.Table[recipes[r]];
-            for(int i = 0; i < GridCount; i++){
-                craftingData[GridCount * (r + 1) + i] = recipe.EntrySerial(i);
-            }
-        }
+        for (int r = 0; r < recipes.Count; r++) 
+            ReflectGridRecipe(Recipe.Table[recipes[r]], r+2);
+            
         for(int i = 0; i < Rendering.selections.Length; i++){
             if(i < recipes.Count){
                 if(!Rendering.selections[i].Object.activeSelf)
@@ -241,13 +227,16 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         }
     }
 
-    public void Clear(){
-        for(int i = 0; i < craftingData.Length; i++){
+    private void Clear() {
+        for (int i = 0; i < craftingData.Length; i++) {
+            if (i == GridCount) i = 2 * GridCount; //skip the selection data
             craftingData[i] = new MapData();
-        } Rendering.IsDirty = true; 
-        for(int i = 0; i < Rendering.selections.Length; i++){
+        }
+        Rendering.IsDirty = true;
+        for (int i = 0; i < Rendering.selections.Length; i++) {
             Rendering.selections[i].Object.SetActive(false);
-        } FitRecipe = -1;
+        }
+        FitRecipe = -1;
     }
     
      private void CraftEntry(float _) {
@@ -322,86 +311,186 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         return pointInfo;
     }
 
-    public class RegistrySearchDisplay<T> where T : ISlot {
-        private Registry<T> registry;
-        private Transform SearchMenu;
+    public struct Display {
+        public Grid crafting;
+        public Grid[] selections;
+        public RectTransform[] corners;
+        public ComputeBuffer craftingBuffer;
+        public bool IsDirty;
+        public struct Grid {
+            public GameObject Object;
+            public RectTransform Transform;
+            public Image Display;
+            public Grid(GameObject obj) {
+                Object = obj;
+                Transform = obj.GetComponent<RectTransform>();
+                Display = obj.GetComponent<Image>();
+            }
+        }
+    }
+
+    public class CraftingRecipeSearch {
+        private Transform Menu;
+        private Transform SearchContainer;
         private TMP_InputField SearchInput;
-        private Transform SelectionContainer;
-        private T[] DisplaySlots;
-        private int MaxSlotsDisplay;
+        private RegistrySearchDisplay<CraftingAuthoring> RecipeSearch;
 
-        public RegistrySearchDisplay(
-            Registry<T> registry,
-            Transform SearchMenu,
-            TMP_InputField SearchInput,
-            Transform SelectionContainer,
-            int MaxSlotsDisplay
+        private Transform RecipeDisplay;
+        private Display.Grid RecipeGrid;
+        private IndirectUpdate HighlightTask;
 
-        ) {
-            this.registry = registry;
-            this.SearchMenu = SearchMenu;
-            this.SearchInput = SearchInput;
-            this.SelectionContainer = SelectionContainer;
-            this.MaxSlotsDisplay = math.min(MaxSlotsDisplay, registry.Count());
-            SearchInput.onValueChanged.AddListener(ProcessSearchRequest);
-            DisplaySlots = new T[MaxSlotsDisplay];
-            SearchInput.DeactivateInputField();
+
+        public CraftingRecipeSearch(Transform craftingMenu) {
+            var settings = Config.CURRENT.System.Crafting.value;
+            Menu = craftingMenu.transform.Find("SearchArea");
+            SearchInput = Menu.Find("SearchBar").GetComponentInChildren<TMP_InputField>();
+            SearchContainer = Menu.Find("RecipeShelf").GetChild(0).GetChild(0);
+            RecipeDisplay = Menu.Find("RecipeDisplay");
+            HighlightTask = null;
+
+            Registry<CraftingAuthoring> registry = Registry<CraftingAuthoring>.FromCatalogue(Config.CURRENT.System.Crafting.value.Recipes);
+            GridUIManager RecipeContainer = new GridUIManager(SearchContainer.gameObject,
+                Indicators.RecipeSelections.Get, settings.MaxRecipeSearchDisplay);
+            RecipeSearch = new RegistrySearchDisplay<CraftingAuthoring>(
+                registry, Menu, SearchInput, RecipeContainer
+            );
+
+            RecipeGrid = new(RecipeDisplay.Find("RecipeGrid").gameObject);
+            RecipeGrid.Display.color = new Color(1 / 255.0f, 1, 0);
+            SearchInput.onValueChanged.AddListener(DeactivateRecipeDisplay);
+            DeactivateRecipeDisplay();
         }
 
-        public void Activate() {
-            SearchInput.ActivateInputField();
-            ProcessSearchRequest("");
-            SearchMenu.gameObject.SetActive(true);
+        internal void Activate() {
+            RecipeSearch.Activate();
+            InputPoller.AddKeyBindChange(() => {
+                InputPoller.AddBinding(new InputPoller.ActionBind("Select",
+                    CraftingMenuSelect, InputPoller.ActionBind.Exclusion.None), "3.0::Window");
+            });
         }
 
-        public void Deactivate() {
-            ClearDisplay();
-            SearchInput.DeactivateInputField();
-            SearchMenu.gameObject.SetActive(false);
+        internal void Deactivate() {
+            DeactivateRecipeDisplay();
+            RecipeSearch.Deactivate();
         }
 
-        private void ProcessSearchRequest(string input) {
-            List<int> closestEntries = FindClosestEntries(input);
-            ClearDisplay();
-            for (int i = 0; i < closestEntries.Count(); i++) {
-                DisplaySlots[i] = registry.Retrieve(closestEntries[i]);
-                DisplaySlots[i].AttachDisplay(SelectionContainer);
-            }
+        public void ActivateRecipeDisplay(CraftingRecipe recipe) {
+            if (HighlightTask != null)
+                HighlightTask.active = false;
+            HighlightTask = new IndirectUpdate(HighlightGridMaterial);
+            OctreeTerrain.MainLoopUpdateTasks.Enqueue(HighlightTask);
+            SearchContainer.gameObject.SetActive(false);
+            RecipeDisplay.gameObject.SetActive(true);
+            instance.ReflectGridRecipe(recipe, 1);
+
+            HighlightGridMaterial(null);
+            instance.Rendering.IsDirty = true;
+            instance.UpdateDisplay();
         }
 
-        private void ClearDisplay() {
-            foreach (T slot in DisplaySlots) {
-                if (slot == null) continue;
-                slot.ClearDisplay(SelectionContainer);
-            }
+        public void DeactivateRecipeDisplay(string _ = null) {
+            if(HighlightTask != null)
+                HighlightTask.active = false;
+            HighlightTask = null;
+            
+            SearchContainer.gameObject.SetActive(true);
+            RecipeDisplay.gameObject.SetActive(false);
         }
 
-        private List<int> FindClosestEntries(string input) {
-            int[] entryDist = new int[registry.Count()];
-            for (int i = 0; i < entryDist.Length; i++) {
-                entryDist[i] = CalculateEditDistance(input, registry.RetrieveName(i));
-            }
-
-            List<int> sortedIndices = Enumerable.Range(0, registry.Count()).ToList();
-            sortedIndices.Sort((a, b) => entryDist[a].CompareTo(entryDist[b]));
-            return sortedIndices.GetRange(0, MaxSlotsDisplay).ToList();
+        private void CraftingMenuSelect(float _) {
+            if (!SearchContainer.gameObject.activeSelf) return;
+            if (!RecipeSearch.GridContainer.GetMouseSelected(out int index))
+                return;
+            ActivateRecipeDisplay(RecipeSearch.SlotEntries[index].Recipe);
         }
-        private int CalculateEditDistance(string a, string b) {
-            int[,] dp = new int[a.Length + 1, b.Length + 1];
-            for (int i = a.Length; i >= 0; i--) dp[i, b.Length] = a.Length - i;
-            for (int j = b.Length; j >= 0; j--) dp[a.Length, j] = b.Length - j;
-            for (int i = a.Length - 1; i >= 0; i--) {
-                for (int j = b.Length - 1; j >= 0; j--) {
-                    if (a[i] == b[j]) dp[i, j] = dp[i + 1, j + 1];
-                    else {
-                        int best = dp[i + 1, j + 1];
-                        best = math.min(best, dp[i + 1, j]);
-                        best = math.min(best, dp[i, j + 1]);
-                        dp[i, j] = best + 1;
-                    }
+
+        Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        private void HighlightGridMaterial(MonoBehaviour _) {
+            if (!GetMouseOverMaterial(out int material))
+                material = -1;
+            bool changed = false;
+            for (int i = 0; i < instance.GridCount; i++) {
+                if (instance.craftingData[instance.GridCount + i].material == material) {
+                    //Update the visuals if the mouse-over material changes
+                    changed |= !instance.craftingData[instance.GridCount + i].isDirty;
+                    instance.craftingData[instance.GridCount + i].isDirty = true;
+                } else {
+                    changed |= instance.craftingData[instance.GridCount + i].isDirty;
+                    instance.craftingData[instance.GridCount + i].isDirty = false;
                 }
             }
-            return dp[0, 0];
+            if (!changed) return;
+            instance.Rendering.IsDirty = true;
+            RecipeDisplay.Find("RecipeMaterial")
+                .GetComponent<TextMeshProUGUI>().text = material >= 0 ?
+                matInfo.RetrieveName(material) : "";
+            instance.UpdateDisplay();
+        }
+        private bool GetMouseOverMaterial(out int material) {
+            Vector3[] corners = new Vector3[4];
+            RecipeGrid.Transform.GetWorldCorners(corners);
+            int2 origin = new((int)corners[0].x, (int)corners[0].y);
+            float2 GridSize = (float2)RecipeGrid.Transform.sizeDelta / instance.GridWidth;
+
+            float2 relativePos = (((float3)Input.mousePosition).xy - origin) / GridSize;
+            if (math.any(relativePos < 0) || math.any(relativePos >= instance.GridWidth)) {
+                material = 0; return false;
+            }
+            int2 gridPos = (int2)math.floor(relativePos);
+            MapData[] cornerInfo = new MapData[4];
+
+            for (int i = 0; i < 4; i++) {
+                int2 corner = gridPos + new int2(i / 2, i % 2);
+                int index = corner.x * instance.AxisWidth + corner.y;
+                cornerInfo[i] = instance.craftingData[instance.GridCount + index];
+            }
+
+            return DetermineMaterial(relativePos - gridPos, cornerInfo, out material);
+        }
+        
+
+        private static bool DetermineMaterial(float2 d, MapData[] m, out int material) {
+            static bool BilinearBlend(ref Span<int> c, float2 d, out int corner) {
+                float c0 = c[0] * (1 - d.x) + c[2] * d.x;
+                float c1 = c[1] * (1 - d.x) + c[3] * d.x;
+
+                corner = 0;
+                float density = c0 * (1 - d.y) + c1 * d.y;
+                if (density < CPUMapManager.IsoValue) return false;
+
+                float mDens = 0;
+                for (int i = 0; i < 4; i++) {
+                    int2 cn = new(i & 0x2, i & 0x1);
+                    float cDens = (c[3 - i] - CPUMapManager.IsoValue) *
+                        math.abs(d.x - cn.x) * math.abs(d.y - cn.y);
+                    if (cDens < mDens) continue;
+                    mDens = cDens;
+                    corner = 3 - i;
+                }
+                return true;
+            }
+            
+            //ensure we have a fraction < 1
+            d = math.frac(d);
+            material = -1;
+
+            Span<int> c = stackalloc int[4] {
+                m[0].LiquidDensity, m[1].LiquidDensity,
+                m[2].LiquidDensity, m[3].LiquidDensity
+            };
+
+            if (BilinearBlend(ref c, d, out int corner) && !m[corner].IsNull) {
+                material = m[corner].material;
+                return true;   
+            }
+
+            c[0] = m[0].SolidDensity; c[1] = m[1].SolidDensity;
+            c[2] = m[2].SolidDensity; c[3] = m[3].SolidDensity;
+
+            if (BilinearBlend(ref c, d, out corner) && !m[corner].IsNull) {
+                material = m[corner].material;
+                return true;
+            } else return false;
         }
     }
 

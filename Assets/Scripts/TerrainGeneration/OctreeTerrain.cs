@@ -204,7 +204,7 @@ public class OctreeTerrain : MonoBehaviour
             gen.task();
             Profiler.EndSample();
             FrameGPULoad += taskLoadTable[gen.id];
-        }
+        } 
     }
 
     /// <summary>

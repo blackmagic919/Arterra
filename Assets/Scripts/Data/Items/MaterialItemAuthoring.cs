@@ -75,8 +75,9 @@ public class MaterialItemAuthoring : AuthoringTemplate<MaterialItem> {}
             display = null;
         }
         
-        private void UpdateDisplay(){
-            if(display == null) return;
+        
+        private void UpdateDisplay() {
+            if (display == null) return;
             TMPro.TextMeshProUGUI amount = display.GetComponentInChildren<TMPro.TextMeshProUGUI>();
             amount.text = ((data & 0xFFFF) / (float)0xFF).ToString();
         }

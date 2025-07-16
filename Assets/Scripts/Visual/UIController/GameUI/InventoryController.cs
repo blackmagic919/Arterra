@@ -35,34 +35,33 @@ namespace WorldConfig.Gameplay{
         public Color BaseColor;
     }
 }
-public static class InventoryController
-{
+public static class InventoryController {
     public static WorldConfig.Gameplay.Inventory settings => Config.CURRENT.GamePlay.Inventory.value;
     public static Inventory Primary => PlayerHandler.data.PrimaryI; //Hotbar
     public static Inventory Secondary => PlayerHandler.data.SecondaryI; //Inventory
-    public static Inventory.SlotDisplay CursorDisplay;
+    public static InventorySlotDisplay CursorDisplay;
     private static UpdateTask EventTask;
 
     private static uint Fence;
     private static Catalogue<Authoring> ItemSettings;
-    public static IItem Selected=>Primary.Info[SelectedIndex];
-    public static Authoring SelectedSetting=>ItemSettings.Retrieve(Primary.Info[SelectedIndex].Index);
+    public static IItem Selected => Primary.Info[SelectedIndex];
+    public static Authoring SelectedSetting => ItemSettings.Retrieve(Primary.Info[SelectedIndex].Index);
     public static IItem Cursor;
     public static int SelectedIndex = 0;
 
-    
+
     private static void OnEnterSecondary(int i) { Secondary.Info[i].OnEnterSecondary(); }
-    private static void OnLeaveSecondary(int i){Secondary.Info[i].OnLeaveSecondary();}
-    private static void OnEnterPrimary(int i){
-        if(i == SelectedIndex) Selected.OnSelect();
+    private static void OnLeaveSecondary(int i) { Secondary.Info[i].OnLeaveSecondary(); }
+    private static void OnEnterPrimary(int i) {
+        if (i == SelectedIndex) Selected.OnSelect();
         Primary.Info[i].OnEnterPrimary();
     }
-    private static void OnLeavePrimary(int i){
-        if(i == SelectedIndex) Selected.OnDeselect();
+    private static void OnLeavePrimary(int i) {
+        if (i == SelectedIndex) Selected.OnDeselect();
         Primary.Info[i].OnLeavePrimary();
     }
 
-    public static void Initialize(){
+    public static void Initialize() {
         GameObject Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Panel"), GameUIManager.UIHandle.transform);
 
         ItemSettings = Config.CURRENT.Generation.Items;
@@ -70,9 +69,9 @@ public static class InventoryController
         Secondary.InitializeDisplay(Menu.transform.GetChild(0).GetChild(1).gameObject);
 
         Cursor = null;
-        CursorDisplay = new Inventory.SlotDisplay(Indicators.ItemSlots.Get());
+        CursorDisplay = new InventorySlotDisplay(Indicators.ItemSlots.Get());
         CursorDisplay.Object.transform.SetParent(Menu.transform);
-        Secondary.Display.Parent.SetActive(false);
+        Secondary.Display.parent.SetActive(false);
         CursorDisplay.Object.SetActive(false);
 
         InputPoller.AddBinding(new InputPoller.ActionBind("Open Inventory", Activate), "3.0::Window");
@@ -92,8 +91,8 @@ public static class InventoryController
         PanelNavbarManager.Activate();
     }
     private static void Deactivate(float _) {
-        Deactivate();
         PanelNavbarManager.Deactivate();
+        Deactivate();
     }
     public static void Activate() {
         InputPoller.AddStackPoll(new InputPoller.ActionBind("Frame:Inventory", (float _) => InputPoller.SetCursorLock(false)), "CursorLock");
@@ -104,40 +103,37 @@ public static class InventoryController
             InputPoller.AddBinding(new InputPoller.ActionBind("Deselect", DeselectDrag), "3.0::Window");
         });
         CursorDisplay.Object.SetActive(false);
-        Secondary.Display.Parent.SetActive(true);
+        Secondary.Display.parent.SetActive(true);
         Primary.Display.Transform.anchoredPosition = new Vector2(0, 0);
     }
 
-    public static void Deactivate(){
-        PanelNavbarManager.Deactivate();
+    public static void Deactivate() {
         InputPoller.RemoveStackPoll("Frame:Inventory", "CursorLock");
         InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence(Fence, "3.0::Window"));
-        Secondary.Display.Parent.SetActive(false);
+        Secondary.Display.parent.SetActive(false);
     }
 
-    private static void ReApplyHandles(){
+    private static void ReApplyHandles() {
         //When the inventory is loaded from a save
-        for(int i = 0; i < Primary.Info.Length; i++){
-            if(Primary.Info[i] == null) continue;
+        for (int i = 0; i < Primary.Info.Length; i++) {
+            if (Primary.Info[i] == null) continue;
             Primary.Info[i].OnEnterPrimary();
         }
-        for(int i = 0; i < Secondary.Info.Length; i++){
-            if(Secondary.Info[i] == null) continue;
+        for (int i = 0; i < Secondary.Info.Length; i++) {
+            if (Secondary.Info[i] == null) continue;
             Secondary.Info[i].OnEnterSecondary();
         }
         Selected?.OnSelect();
     }
 
-    private static void AddHotbarKeybinds()
-    {
-        static void ChangeSelected(int index)
-        {
+    private static void AddHotbarKeybinds() {
+        static void ChangeSelected(int index) {
             Selected?.OnDeselect();
-            Primary.Display.Slots[SelectedIndex].Icon.color = settings.BaseColor;
+            Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.BaseColor;
 
             SelectedIndex = index % settings.PrimarySlotCount;
             Selected?.OnSelect();
-            Primary.Display.Slots[SelectedIndex].Icon.color = settings.SelectedColor;
+            Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.SelectedColor;
         }
         InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar1", (float _) => ChangeSelected(0)), "2.0::Subscene");
         InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar2", (float _) => ChangeSelected(1)), "2.0::Subscene");
@@ -148,10 +144,10 @@ public static class InventoryController
         InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar7", (float _) => ChangeSelected(6)), "2.0::Subscene");
         InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar8", (float _) => ChangeSelected(7)), "2.0::Subscene");
         InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar9", (float _) => ChangeSelected(8)), "2.0::Subscene");
-        Primary.Display.Slots[SelectedIndex].Icon.color = settings.SelectedColor; //Set the inital selected color
+        Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.SelectedColor; //Set the inital selected color
     }
-    
-    private static bool GetMouseTarget(out Inventory Inv, out int index){
+
+    private static bool GetMouseTarget(out Inventory Inv, out int index) {
         Inv = null;
         if (Primary.Display.GetMouseSelected(out index)) {
             Inv = Primary;
@@ -160,7 +156,7 @@ public static class InventoryController
         } else return false;
         return true;
     }
-    
+
     public static void DropItem(IItem item) {
         DropItem(item, PlayerHandler.data.position,
         PlayerHandler.data.collider.transform.rotation);
@@ -177,8 +173,7 @@ public static class InventoryController
         EntityManager.CreateEntity(Entity);
     }
 
-    private static void SelectDrag(float _ = 0)
-    {
+    private static void SelectDrag(float _ = 0) {
         if (!GetMouseTarget(out Inventory Inv, out int index))
             return;
 
@@ -191,8 +186,8 @@ public static class InventoryController
         CursorDisplay.Object.SetActive(true);
     }
 
-    private static void DeselectDrag(float _ = 0){
-        if(Cursor == null) return;
+    private static void DeselectDrag(float _ = 0) {
+        if (Cursor == null) return;
         CursorDisplay.Object.SetActive(false);
 
         IItem cursor = Cursor;
@@ -211,7 +206,7 @@ public static class InventoryController
             Primary.AddStackable(cursor);
         } else if (!Secondary.AddEntry(cursor, out int _)) DropItem(cursor);
     }
-    
+
     //The Slot is changed to reflect what remains
     //if stackable, add to primary then secondary, else add to secondary then primary
     public static void AddEntry(IItem e) {
@@ -227,7 +222,7 @@ public static class InventoryController
                 Primary.AddEntry(e, out int _);
         }
     }
-    public static int RemoveStackable(int delta, int itemIndex = -1, int SelIndex = -1){
+    public static int RemoveStackable(int delta, int itemIndex = -1, int SelIndex = -1) {
         bool TryFromIndex(int SelIndex, out int amount) {
             amount = 0;
             if (SelIndex == -1) return false;
@@ -238,16 +233,17 @@ public static class InventoryController
             return true;
         }
 
-        if(TryFromIndex(SelIndex, out int rem)) return rem;
+        if (TryFromIndex(SelIndex, out int rem)) return rem;
         if (TryFromIndex(SelectedIndex, out rem)) return rem;
         if (Primary.EntryDict.ContainsKey(itemIndex)) {
             return Primary.RemoveStackableKey(itemIndex, delta);
         } else if (Secondary.EntryDict.ContainsKey(itemIndex)) {
             return Secondary.RemoveStackableKey(itemIndex, delta);
-        } return 0;
+        }
+        return 0;
     }
 
-    public static void Update(MonoBehaviour mono){
+    public static void Update(MonoBehaviour mono) {
         if (Cursor == null) return;
         CursorDisplay.Object.transform.position = Input.mousePosition;
     }
@@ -261,7 +257,7 @@ public static class InventoryController
         [JsonIgnore]
         public Dictionary<int, int> EntryDict;
         [JsonIgnore]
-        public InventDisplay Display;
+        public GridUIManager Display;
         public uint capacity;
         public uint length;
         public uint tail;
@@ -287,12 +283,12 @@ public static class InventoryController
             SlotCount = math.max(SlotCount, 0) + 1;
             IItem[] nInfo = new IItem[SlotCount];
             LLNode[] nEntryLL = new LLNode[SlotCount];
-            for (int i = SlotCount-1; i < capacity; i++) {
+            for (int i = SlotCount - 1; i < capacity; i++) {
                 OnRemoveElement?.Invoke((int)i);
                 OnRelease?.Invoke(Info[i]);
                 RemoveEntry((int)i);
             }
-            for (int i = 0; i < math.min(SlotCount-1, capacity); i++) {
+            for (int i = 0; i < math.min(SlotCount - 1, capacity); i++) {
                 nInfo[i] = Info[i];
                 nEntryLL[i] = EntryLL[i];
             }
@@ -307,11 +303,16 @@ public static class InventoryController
                     EntryLL[i] = new LLNode(i, i);
                     tail = (int)i;
                 } else LLAdd(i, (uint)tail);
-            } capacity = (uint)SlotCount - 1;
+            }
+            capacity = (uint)SlotCount - 1;
         }
 
         public void InitializeDisplay(GameObject Parent) {
-            Display = new InventDisplay(Parent, (int)capacity);
+            GameObject Root = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Inventory"), Parent.transform);
+            GameObject GridContent = Root.transform.GetChild(0).GetChild(0).gameObject;
+            Display = new GridUIManager(GridContent,
+                Indicators.ItemSlots.Get, (int)capacity,
+                Root);
             for (int i = 0; i < capacity; i++) {
                 Info[i]?.AttachDisplay(Display.Slots[i].transform);
             }
@@ -319,10 +320,10 @@ public static class InventoryController
 
         public void ReleaseDisplay() {
             for (int i = 0; i < capacity; i++) {
-                Indicators.ItemSlots.Release(Display.Slots[i].Object);
+                Indicators.ItemSlots.Release(Display.Slots[i]);
                 Info[i]?.ClearDisplay(Display.Slots[i].transform);
             }
-            GameObject.Destroy(Display.Region);
+            GameObject.Destroy(Display.root);
             Display = null;
         }
 
@@ -531,8 +532,7 @@ public static class InventoryController
         }
 
         [OnSerializing]
-        public void OnSerializing(StreamingContext cxt)
-        {
+        public void OnSerializing(StreamingContext cxt) {
             //Marks updated slots dirty so they are rendered properlly when deserialized
             // (Register Name, Index) -> Name Index
             Dictionary<string, int> lookup = new Dictionary<string, int>();
@@ -544,7 +544,7 @@ public static class InventoryController
                 lookup.TryAdd(name, lookup.Count);
                 item.Index = lookup[name];
             }
-            
+
             for (int i = 0; i < Info.Length; i++) {
                 Serialize(ref Info[i]);
             }
@@ -553,8 +553,7 @@ public static class InventoryController
         }
 
         [OnDeserialized]
-        public void OnDeserialized(StreamingContext cxt)
-        {
+        public void OnDeserialized(StreamingContext cxt) {
             List<string> names = SerializedNames;
             void Deserialize(ref IItem item) {
                 if (item is null) return;
@@ -567,7 +566,7 @@ public static class InventoryController
                 if (Info[i] is null) continue;
                 Deserialize(ref Info[i]);
                 EntryDict.TryAdd(Info[i].Index, i);
-            } 
+            }
         }
 
         public struct LLNode {
@@ -578,67 +577,15 @@ public static class InventoryController
                 n = next;
             }
         }
+    }
 
-        public class InventDisplay {
-            public GameObject Parent => Region.transform.parent.gameObject;
-            public GameObject Region;
-            public RectTransform RTransform;
-            public GameObject Object;
-            public RectTransform Transform;
-            public GridLayoutGroup Grid;
-            public SlotDisplay[] Slots;
-            private int2 DisplaySlotSize {
-                get {
-                    float2 rectSize = Transform.rect.size + 2 * Grid.spacing;
-                    float2 gridSize = Grid.cellSize + Grid.spacing;
-                    return math.max((int2)math.floor(rectSize / gridSize), new int2(1, 1));
-                }
-            }
-            public InventDisplay(GameObject root, int slotCount) {
-                Region = GameObject.Instantiate(Resources.Load<GameObject>(
-                    "Prefabs/GameUI/Inventory/Inventory"), root.transform);
-                RTransform = Region.GetComponent<RectTransform>();
-                Object = Region.transform.GetChild(0).GetChild(0).gameObject;
-                Transform = Object.GetComponent<RectTransform>();
-                Grid = Object.GetComponent<GridLayoutGroup>();
-                Slots = new SlotDisplay[slotCount];
-
-                for (int i = 0; i < slotCount; i++) {
-                    GameObject slot = Indicators.ItemSlots.Get();
-                    slot.transform.SetParent(Object.transform);
-                    Slots[i] = new SlotDisplay(slot);
-                }
-            }
-            
-            public bool GetMouseSelected(out int index){
-                int2 slot = GetSlotIndex(((float3)Input.mousePosition).xy);
-                index = 0;
-
-                int2 dispSize = DisplaySlotSize;
-                if (math.any(slot < 0) || math.any(slot >= dispSize)) return false;
-                index = slot.y * dispSize.x + slot.x;
-                return index < Slots.Length;
-            }
-
-            private int2 GetSlotIndex(float2 pos) {
-                float2 pOff = pos - ((float3)RTransform.position).xy;
-                pOff.x *= RTransform.pivot.x * (-2) + 1;
-                pOff.y *= RTransform.pivot.y * (-2) + 1;
-                int2 slotInd = (int2)math.floor(pOff / (float2)(Grid.cellSize + Grid.spacing));
-                return slotInd;
-            }
-        }
-        
-        public struct SlotDisplay
-        {
-            public Image Icon;
-            public GameObject Object;
-            public readonly Transform transform => Object.transform;
-            public SlotDisplay(GameObject obj)
-            {
-                Object = obj;
-                Icon = obj.transform.GetComponent<Image>();
-            }
+    public struct InventorySlotDisplay {
+        public Image Icon;
+        public GameObject Object;
+        public readonly Transform transform => Object.transform;
+        public InventorySlotDisplay(GameObject obj) {
+            Object = obj;
+            Icon = obj.transform.GetComponent<Image>();
         }
     }
 }

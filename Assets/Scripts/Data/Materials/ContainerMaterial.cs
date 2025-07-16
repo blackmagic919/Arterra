@@ -126,15 +126,16 @@ namespace WorldConfig.Generation.Material
             cont.inv.ResizeInventory(SlotCount, Item => InventoryController.DropItem(Item, GCoord));
         }
 
-        private void DeactivateWindow() {
+        private void DeactivateWindow() { 
+            //IMPORTANT: The order in which these functions are called is VERY important
+            PanelNavbarManager.Remove(name);
+            PanelNavbarManager.Deactivate();
             if (OpenedInventory != null) {
-                OpenedInventory.Deactivate();
                 InputPoller.AddKeyBindChange(() => {
                     InputPoller.RemoveContextFence(OpenedInventory.Fence, "3.0::Window");
                     OpenedInventory = null;
                 });
             }
-            PanelNavbarManager.Remove(name);
             InventoryController.Deactivate();
         }
 
@@ -192,16 +193,12 @@ namespace WorldConfig.Generation.Material
                 this.settings = settings;
             }
 
-            internal void ReleaseDisplay() {
-                inv.ReleaseDisplay();
-            }
-
             public Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(
                 settings.Names[settings.DisplayIcon]).self;
-            public GameObject GetDispContent() => inv.Display.Region;
+            public GameObject GetDispContent() => inv.Display.root;
             public void Release() => inv.ReleaseDisplay();
-            public void Activate() => inv.Display.Region.SetActive(true);
-            public void Deactivate() => inv.Display.Region.SetActive(false);
+            public void Activate() => inv.Display.root.SetActive(true);
+            public void Deactivate() => inv.Display.root.SetActive(false);
         }
     }
 }

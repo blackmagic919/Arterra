@@ -105,14 +105,13 @@ namespace WorldConfig.Generation.Item
             Indicators.HolderItems.Release(display);
             display = null;
         }
+        
 
-        private void TerrainRemove(float _)
-        {
+        private void TerrainRemove(float _) {
             if (!RayTestSolid(PlayerHandler.data, out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
                 return;
-            bool RemoveSolid(int3 GCoord, float speed)
-            {
+            bool RemoveSolid(int3 GCoord, float speed) {
                 MapData mapData = CPUMapManager.SampleMap(GCoord);
                 int material = mapData.material; ToolTag tag = PlayerInteraction.settings.DefaultTerraform;
                 if (MatInfo.GetMostSpecificTag(settings.ToolTag, material, out TagRegistry.IProperty prop))

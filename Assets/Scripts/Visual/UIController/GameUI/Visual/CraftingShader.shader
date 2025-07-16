@@ -11,6 +11,7 @@ Shader "Unlit/CraftingShader"
         _StencilWriteMask ("Stencil Write Mask", Float) = 255
         _StencilReadMask ("Stencil Read Mask", Float) = 255
         _ColorMask ("Color Mask", Float) = 15
+        _SelectedColor("Selected Color", Color) = (0.1, 0.8, 0.1, 1.0)
     }
     SubShader
     {
@@ -50,7 +51,7 @@ Shader "Unlit/CraftingShader"
             {
                 float4 positionCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
-                float offset : TEXCOORD1;
+                float2 offset : TEXCOORD1;
             };
 
             struct matTerrain{
@@ -82,6 +83,7 @@ Shader "Unlit/CraftingShader"
             SamplerState sampler_LiquidFineWave;
             Texture2D _LiquidCoarseWave;
             SamplerState sampler_LiquidCoarseWave;
+            float3 _SelectedColor;
             fixed3 _GridColor;
             float _GridSize;
             float _TexScale;
@@ -91,7 +93,7 @@ Shader "Unlit/CraftingShader"
                 v2f o;
                 o.positionCS = UnityObjectToClipPos(v.positionOS);
                 o.uv = v.uv;
-                o.offset = v.color.r * 255.0f;
+                o.offset = v.color.rg;
                 return o;
             }
 
@@ -127,6 +129,7 @@ Shader "Unlit/CraftingShader"
             uint density(uint data) { return data & 0x000000FF; }
             uint viscosity(uint data) { return (data & 0x0000FF00) >> 8; }
             uint material(uint data) { return (data & 0x7FFF0000) >> 16; }
+            bool isDirty(uint data) { return (data & 0x80000000) != 0; }
 
             fixed3 frag (v2f IN) : SV_Target
             {
@@ -135,9 +138,8 @@ Shader "Unlit/CraftingShader"
                 if(any(distToEdge < _GridSize))
                     return _GridColor;
 
-                float pointDensity = 0;
-                float pDensity = 0; uint parent = 0; 
-                int offset = IN.offset * (GridWidth + 1) * (GridWidth + 1);
+                float3 solidParent = 0; float3 liquidParent = 0;
+                int offset = (IN.offset.r * 255.0f) * (GridWidth + 1) * (GridWidth + 1);
                 Influences2D blend = GetBlendInfo(gridPos);
 
                 [unroll]for(int i = 0; i < 4; i++){
@@ -145,20 +147,27 @@ Shader "Unlit/CraftingShader"
                     int index = cCoord.x * (GridWidth + 1) + cCoord.y;
 
                     uint mapData = CraftingInfo[index + offset];
-                    float nDensity = ((int)density(mapData) - (int)IsoValue) * blend.corner[i];
-                    if(nDensity >= pDensity) {
-                        parent = mapData;
-                        pDensity = nDensity;
-                    } pointDensity += nDensity;
+                    float solidDensity = (int)viscosity(mapData) * blend.corner[i];
+                    float liquidDensity = (int)density(mapData) * blend.corner[i] - solidDensity;
+                    if(solidDensity >= solidParent.y && viscosity(mapData) > IsoValue) {
+                        solidParent.y = solidDensity;
+                        solidParent.z = mapData;
+                    } if(liquidDensity >= liquidParent.y && density(mapData) > IsoValue) {
+                        liquidParent.y = liquidDensity;
+                        liquidParent.z = mapData;
+                    } 
+                    solidParent.x += solidDensity;
+                    liquidParent.x += liquidDensity;
                 }
 
-                if(pointDensity < 0)
-                    discard;
-
-                fixed3 MainColor;
-                bool isSolid = viscosity(parent) >= IsoValue;
-                MainColor = isSolid ? GetMatColor(IN.uv / _TexScale, material(parent)) : GetLiquidColor(IN.uv / _TexScale, material(parent));
-                return MainColor;
+                if(solidParent.x >= IsoValue){
+                    if (isDirty(solidParent.z) && IN.offset.g > 0) return _SelectedColor;
+                    else return GetMatColor(IN.uv / _TexScale, material(solidParent.z));
+                } else if(liquidParent.x >= IsoValue){
+                    if (isDirty(liquidParent.z) && IN.offset.g > 0) return _SelectedColor;
+                    else return GetLiquidColor(IN.uv / _TexScale, material(liquidParent.z));
+                } else discard;
+                return 0;
             }
 
             ENDHLSL

@@ -103,9 +103,9 @@ namespace WorldConfig.Generation.Item
             Indicators.HolderItems.Release(display);
             display = null;
         }
+        
 
-        private void TerrainModify(float _)
-        {
+        private void TerrainModify(float _) {
             if (!RayTestSolid(PlayerHandler.data, out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
                 return;

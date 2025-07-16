@@ -20,20 +20,19 @@ namespace WorldConfig.Intrinsic{
         /// <summary> Controls how recipes are created as UI slots. See <see cref="ISlot"/> for more information </summary>
         /// <param name="parent">The parent object containing the new slot</param>
         public void AttachDisplay(Transform parent) {
-            GameObject selection = Indicators.RecipeSelections.Get();
-            selection.name = $"Recipe::{Name}";
-            selection.transform.SetParent(parent, false);
-            UnityEngine.UI.Image image = selection.transform.GetChild(0).GetComponentInChildren<UnityEngine.UI.Image>();
+            UnityEngine.UI.Image image = parent.transform.GetChild(0).GetComponentInChildren<UnityEngine.UI.Image>();
             IItem resultItem = Recipe.ResultItem; resultItem.Create(Recipe.ResultIndex, 0);
             image.sprite = Config.CURRENT.Generation.Textures.Retrieve(resultItem.TexIndex).self;
+            image.color = new Color(1, 1, 1, 1);
         }
 
         /// <summary> Releases UI slot objects associated with this recipe. See <see cref="ISlot"/> for more information </summary>
         /// /// <param name="parent">The parent object containing the slot to be removed</param>
         public void ClearDisplay(Transform parent) {
-            GameObject selection = parent.Find($"Recipe::{Name}")?.gameObject;
-            if (selection == null) return;
-            Indicators.RecipeSelections.Release(selection);
+            UnityEngine.UI.Image image = parent.transform.GetChild(0)?.GetComponentInChildren<UnityEngine.UI.Image>();
+            if (image == null) return;
+            image.sprite = null;
+            image.color = new Color(0, 0, 0, 0);
         }
     }
 

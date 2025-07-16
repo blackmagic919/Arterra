@@ -76,29 +76,49 @@ namespace TerrainGeneration{
                     SetMap = value;
                 }
             }
+
+            internal int _createMap;
+            internal int _shrinkMap;
+            internal int _setMap;
+            internal int _updateMesh;
+            internal int _canUpdateMesh;
+
             /// <summary> Whether or not the chunk needs to regenerate the map data. This is true by default when creating a new chunk </summary>
-            public State CreateMap;
-            /// <summary>
-            /// If it is of higher resolution, whether or not it can be shrunk down to a lower resolution. This is not used
-            /// currently with an Octree model, but for a flat grid model, this would be used to shrink the map down to a lower resolution.
-            /// </summary>
-            public State ShrinkMap;
+            public State CreateMap {
+                readonly get => (State)_createMap;
+                set => _createMap = (int)value;
+            }
+            /// <summary> If it is of higher resolution, whether or not it can be shrunk down to a lower resolution. This is not used
+            /// currently with an Octree model, but for a flat grid model, this would be used to shrink the map down to a lower resolution. </summary>
+            public State ShrinkMap {
+                readonly get => (State)_shrinkMap;
+                set => _shrinkMap = (int)value;
+            }
             /// <summary>
             /// Whether or not the chunk needs to copy its map information from the CPU to the GPU. 
             /// To visually update chunk, it must be copied to the GPU.
             /// </summary>
-            public State SetMap;
+            public State SetMap {
+                readonly get => (State)_setMap;
+                set => _setMap = (int)value;
+            }
             /// <summary>
             /// Whether or not the chunk can recreate its mesh information. This will eventually allow the mesh to be updated
             /// when it reaches the proper update cycle to recieve out-of-bound information from chunks outside itself. 
             /// This is true by default when creating a new chunk.
             /// </summary>
-            public State UpdateMesh;
+            public State UpdateMesh {
+                readonly get => (State)_updateMesh;
+                set => _updateMesh = (int)value;
+            }
             /// <summary>
             /// Whether or not the chunk can update its mesh data. Do not set this directly, <see cref="UpdateMesh"/> 
             /// automatically sets this value when the chunk is actually able to update its mesh data. 
             /// </summary>
-            public State CanUpdateMesh;
+            public State CanUpdateMesh {
+                readonly get => (State)_canUpdateMesh;
+                set => _canUpdateMesh = (int)value;
+            }
 
             /// <summary> The enum describing the current 
             /// progress of any chunk update request.  </summary>
@@ -267,6 +287,16 @@ namespace TerrainGeneration{
             if (!active) return; //Can't reflect a chunk that hasn't been read yet
             status.SetMap = Status.Initiate(status.SetMap);
             status.UpdateMesh = Status.Initiate(status.UpdateMesh);
+        }
+
+        /// <summary>
+        /// Requests the chunk to reflect its CPU-side map data visually by setting status flags, 
+        /// similar to <see cref="ReflectChunk"/>, but is a thread safe operation.
+        /// </summary>
+        public void ReflectChunkThread() {
+            if (!active) return;
+            System.Threading.Interlocked.CompareExchange(ref status._setMap, (int)Status.State.Pending, (int)Status.State.Finished);
+            System.Threading.Interlocked.CompareExchange(ref status._updateMesh, (int)Status.State.Pending, (int)Status.State.Finished);
         }
 
         /// <summary>Overridable event when deleting CPU-cached mesh information </summary>

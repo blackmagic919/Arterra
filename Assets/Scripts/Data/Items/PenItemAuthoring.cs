@@ -88,9 +88,9 @@ namespace WorldConfig.Generation.Item
             Indicators.HolderItems.Release(display);
             display = null;
         }
+        
 
-        internal void UpdateDisplay()
-        {
+        internal void UpdateDisplay() {
             if (display == null) return;
             Transform durbBar = display.transform.Find("Bar");
             durbBar.GetComponent<UnityEngine.UI.Image>().fillAmount = durability / settings.MaxDurability;

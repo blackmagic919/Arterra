@@ -496,7 +496,8 @@ namespace MapStorage {
             if (!mapInfo.valid || math.any(mapInfo.CCoord != CCoord))
                 return;
 
-            //Update Handles
+            //This write operation is thread save because mapData is 32-bit 
+            //and cannot be internally corrupted by any write operation
             SectionedMemory[CIndex * numPoints + PIndex] = data;
             var chunkMapInfo = AddressDict[CIndex];
             chunkMapInfo.isDirty = true;
@@ -505,17 +506,16 @@ namespace MapStorage {
         }
 
         private static void ReflectNeighbors(int3 CCoord, bool3 IsBordering) {
-            for (int x = IsBordering.x ? -1 : 0 ; x <= 0; x++) {
+            for (int x = IsBordering.x ? -1 : 0; x <= 0; x++) {
             for (int y = IsBordering.y ? -1 : 0; y <= 0; y++) {
             for (int z = IsBordering.z ? -1 : 0; z <= 0; z++) {
                 int3 NeighborCC = CCoord + new int3(x,y,z);
                 int3 HCoord = ((NeighborCC % numChunksAxis) + numChunksAxis) % numChunksAxis;
                 int CIndex = HCoord.x * numChunksAxis * numChunksAxis + HCoord.y * numChunksAxis + HCoord.z;
                 ChunkMapInfo mapInfo = AddressDict[CIndex];
-                //Not available(currently readingback) || Out of Bounds
                 if (!mapInfo.valid || math.any(mapInfo.CCoord != NeighborCC))
                     return;
-                _ChunkManagers[CIndex].ReflectChunk();
+                _ChunkManagers[CIndex].ReflectChunkThread();
             }}};
         }
 

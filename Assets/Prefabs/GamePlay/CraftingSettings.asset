@@ -18,6 +18,7 @@ MonoBehaviour:
   PointSizeMultiplier: 2
   MaxRecipeDistance: 64
   NumMaxSelections: 5
+  MaxRecipeSearchDisplay: 20
   Recipes:
     Category:
       value: {fileID: 11400000, guid: ee7d1d539469b426aba308ae37b1074d, type: 2}
@@ -37,3 +38,4 @@ MonoBehaviour:
     - {fileID: 11400000, guid: d4317c7dbbf4b41a8b2f6d5c33ad49ec, type: 2}
     - {fileID: 11400000, guid: 6a4a901536f2643058724a0e4be6f7b1, type: 2}
     - {fileID: 11400000, guid: 838a4cdf609d944b1acc764f433d346c, type: 2}
+    - {fileID: 11400000, guid: 6b924b8e1af7d44bb990835c4ee9354c, type: 2}
