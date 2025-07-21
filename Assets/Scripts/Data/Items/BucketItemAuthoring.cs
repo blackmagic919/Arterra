@@ -145,25 +145,26 @@ public class BucketItem : IItem{
         MapData pointInfo = CPUMapManager.SampleMap(GCoord);
         MapData delta = pointInfo;
         int liquidDensity = pointInfo.LiquidDensity;
-        delta.density = math.min(PlayerInteraction.GetStaggeredDelta(liquidDensity, -brushStrength), 0xFFFF);
+        delta.density = math.min(PlayerInteraction.GetStaggeredDelta(liquidDensity, -brushStrength), IItem.MaxAmountRaw);
         Material.MaterialData material = MatInfo.Retrieve(pointInfo.material);
+        IItem newItem = material.OnRemoved(GCoord, delta);
         delta.viscosity = 0;
         if (liquidDensity >= CPUMapManager.IsoValue){
             if (content == null) {
-                content = material.AcquireItem(delta);
-                if (content == null) return false;
-                AttachChildDisplay();
+                content = newItem;
+                if (content == null) {
+                    return false;
+                } AttachChildDisplay();
             } else {
-                if (content.AmountRaw == 0xFFFF) return false;
-                IItem newMat = material.AcquireItem(delta);
-                if (newMat == null) return false;
-                if (newMat.Index != content.Index) return false;
-                content.AmountRaw = math.min(content.AmountRaw + newMat.AmountRaw, 0xFFFF);
+                if (content.AmountRaw == IItem.MaxAmountRaw ||
+                    newItem == null || newItem.Index != content.Index) {
+                    material.OnPlaced(GCoord, delta); //Undo our action
+                    return false;
+                } content.AmountRaw = math.min(content.AmountRaw + newItem.AmountRaw, IItem.MaxAmountRaw);
             }
         }
 
         pointInfo.density -= delta.density;
-        material.OnRemoved(GCoord, delta);
         CPUMapManager.SetMap(pointInfo, GCoord);
         return true;
     }

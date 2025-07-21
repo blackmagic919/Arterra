@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: ArcticFox
   m_EditorClassIdentifier: 
   Name: ArcticFox
+  Tags:
+    Reg:
+      value: []
   Controller:
     value: {fileID: 4750899653113466454, guid: 8343b5d50431e447d9e94a3e130209d1, type: 3}
   Profile:
@@ -60,7 +63,7 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 84
+        profileStart: 44
       collider:
         size:
           x: 0.75
@@ -68,8 +71,8 @@ MonoBehaviour:
           z: 0.75
         friction: 0.25
       movement:
-        walkSpeed: 3
-        runSpeed: 7
+        walkSpeed: 4.5
+        runSpeed: 10.5
         acceleration: 200
         rotSpeed: 180
         pathDistance: 31
@@ -119,3 +122,6 @@ MonoBehaviour:
           ConsumptionRate: 0.5
           MateCost: 4
           weight: 0.75
+  references:
+    version: 2
+    RefIds: []

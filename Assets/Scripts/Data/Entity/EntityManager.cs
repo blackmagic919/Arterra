@@ -106,7 +106,6 @@ public static class EntityManager
         EntityHandler.RemoveAt(EntityHandler.Count - 1);
     }
     public unsafe static void InitializeE(int3 GCoord, uint entityIndex){
-        
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
         Entity newEntity = authoring.Entity;
         newEntity.info.entityId = Guid.NewGuid();
@@ -546,7 +545,6 @@ public static class EntityManager
 }
 
 public class EntityJob : UpdateTask{
-    private float cumulativeDelta;
     public bool dispatched = false;
     private JobHandle handle;
     public static Context cxt;
@@ -554,7 +552,6 @@ public class EntityJob : UpdateTask{
     public unsafe EntityJob(){
         active = true;
         dispatched = false;
-        cumulativeDelta = 0;
         cxt = new Context{
             Profile = (ProfileE*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
             mapContext = new CPUMapManager.MapContext{
@@ -579,10 +576,8 @@ public class EntityJob : UpdateTask{
     }
 
     public override void Update(MonoBehaviour mono){
-        cumulativeDelta += Time.fixedDeltaTime;
         if(!Complete()) return;
-        cxt.deltaTime = cumulativeDelta;
-        cumulativeDelta = 0;
+        cxt.deltaTime = Time.fixedDeltaTime;
 
         while(EntityManager.HandlerEvents.TryDequeue(out Action action)){
             action.Invoke();

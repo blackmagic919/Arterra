@@ -24,12 +24,12 @@ MonoBehaviour:
       - Water
     entry:
       value:
-      - data: 104086
-      - data: 131222
+      - data: 111871
+      - data: 150527
       - data: 0
       - data: 0
-      - data: 131222
-      - data: 104086
+      - data: 150527
+      - data: 111871
       - data: 0
       - data: 0
       - data: 0

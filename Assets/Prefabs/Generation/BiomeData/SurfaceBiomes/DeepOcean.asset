@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: DeepOcean
   m_EditorClassIdentifier: 
   Name: DeepOcean
+  Tags:
+    Reg:
+      value: []
   info:
     value:
       NameRegister:
@@ -104,10 +107,13 @@ MonoBehaviour:
       InfluenceStart: 0
       InfluenceOffStart: 0
       AtmosphereStart: 0
-      TerrainEnd: 0.15
+      TerrainEnd: 0.25
       ErosionEnd: 1
       SquashEnd: 1
       InfluenceEnd: 1
       InfluenceOffEnd: 1
       AtmosphereEnd: 1
       biome: 0
+  references:
+    version: 2
+    RefIds: []

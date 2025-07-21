@@ -111,7 +111,7 @@ MonoBehaviour:
           x: 3
           y: 3
           z: 3
-        profileStart: 250
+        profileStart: 484
       collider:
         size:
           x: 1
@@ -119,8 +119,8 @@ MonoBehaviour:
           z: 1
         friction: 0.25
       movement:
-        walkSpeed: 3
-        runSpeed: 7
+        walkSpeed: 4.5
+        runSpeed: 10.5
         acceleration: 100
         rotSpeed: 180
         pathDistance: 32
@@ -143,7 +143,7 @@ MonoBehaviour:
             x: 1
             y: 1
             z: 1
-          profileStart: 277
+          profileStart: 511
       physicality:
         value:
           MaxHealth: 25

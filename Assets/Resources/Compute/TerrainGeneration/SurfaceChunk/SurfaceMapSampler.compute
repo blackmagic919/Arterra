@@ -41,16 +41,13 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float rawMaps[6];
     rawMaps[1] = GetRawNoise2D(id.xy, erosionSampler);
     rawMaps[2] = GetRawNoise2D(id.xy, squashSampler);
-    rawMaps[3] = GetRawNoise2D(id.xy, PVSampler);
-    rawMaps[4] = GetRawNoise2D(id.xy, continentalSampler);
 
-    float PVNoise = interpolateValue(rawMaps[3], PVSampler) * 2 - 1;
-    float continentalNoise = interpolateValue(rawMaps[4], continentalSampler);
     float erosionNoise = interpolateValue(rawMaps[1], erosionSampler);
+    float terrainHeight = GetErodedNoise2D(id.xy, erosionNoise, PVSampler, continentalSampler);
     float squashNoise = interpolateValue(rawMaps[2], squashSampler) * squashHeight;
 
     surfData data;
-    rawMaps[0] = continentalNoise + PVNoise * erosionNoise;
+    rawMaps[0] = terrainHeight;
     data.terrain = rawMaps[0] * maxTerrainHeight + heightOffset;
     data.squash = squashNoise;
 

@@ -20,15 +20,15 @@ MonoBehaviour:
   - Moss:Solid
   - Void
   - Moss
-  SolidItem: 0
-  LiquidItem: 1
+  - Dirt
   terrainData:
     Texture: 2
     textureScale: 2
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
-    ScatterCoeffs: {x: 0, y: 0, z: 0}
+    InScatterCoeffs: {x: 0, y: 0, z: 0}
+    OutScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}
     LightIntensity: 0
   liquidData:
@@ -42,11 +42,20 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   SpreadChance: 0.05
-  SpreadMaterial: Dirt
+  SpreadMaterial: 3
+  DecayChance: 0
+  DecayMaterial: 0
   SpreadBounds:
     data: 2944466688
   NeighborBounds:
     data: 2130771712
+  MaterialDrops:
+    SolidLootTable:
+      value: []
+    DefaultSolidLoot: 0
+    LiquidLootTable:
+      value: []
+    DefaultLiquidLoot: 1
   references:
     version: 2
     RefIds: []

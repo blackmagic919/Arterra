@@ -138,7 +138,12 @@ Shader "Unlit/CraftingShader"
                 if(any(distToEdge < _GridSize))
                     return _GridColor;
 
-                float3 solidParent = 0; float3 liquidParent = 0;
+                
+                float2 solidParent = 0; 
+                uint solidMat = 0;
+                float2 liquidParent = 0;
+                uint liquidMat = 0;
+
                 int offset = (IN.offset.r * 255.0f) * (GridWidth + 1) * (GridWidth + 1);
                 Influences2D blend = GetBlendInfo(gridPos);
 
@@ -149,23 +154,24 @@ Shader "Unlit/CraftingShader"
                     uint mapData = CraftingInfo[index + offset];
                     float solidDensity = (int)viscosity(mapData) * blend.corner[i];
                     float liquidDensity = (int)density(mapData) * blend.corner[i] - solidDensity;
-                    if(solidDensity >= solidParent.y && viscosity(mapData) > IsoValue) {
+                    if(solidDensity >= solidParent.y && viscosity(mapData) >= IsoValue) {
                         solidParent.y = solidDensity;
-                        solidParent.z = mapData;
-                    } if(liquidDensity >= liquidParent.y && density(mapData) > IsoValue) {
+                        solidMat = mapData;
+                    } if(liquidDensity >= liquidParent.y && density(mapData) 
+                        - viscosity(mapData) >= IsoValue) {
                         liquidParent.y = liquidDensity;
-                        liquidParent.z = mapData;
+                        liquidMat = mapData;
                     } 
                     solidParent.x += solidDensity;
                     liquidParent.x += liquidDensity;
                 }
 
                 if(solidParent.x >= IsoValue){
-                    if (isDirty(solidParent.z) && IN.offset.g > 0) return _SelectedColor;
-                    else return GetMatColor(IN.uv / _TexScale, material(solidParent.z));
+                    if (isDirty(solidMat) && IN.offset.g > 0) return _SelectedColor;
+                    else return GetMatColor(IN.uv / _TexScale, material(solidMat));
                 } else if(liquidParent.x >= IsoValue){
-                    if (isDirty(liquidParent.z) && IN.offset.g > 0) return _SelectedColor;
-                    else return GetLiquidColor(IN.uv / _TexScale, material(liquidParent.z));
+                    if (isDirty(liquidMat) && IN.offset.g > 0) return _SelectedColor;
+                    else return GetLiquidColor(IN.uv / _TexScale, material(liquidMat));
                 } else discard;
                 return 0;
             }

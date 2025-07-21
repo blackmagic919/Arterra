@@ -357,8 +357,8 @@ public static class InventoryController {
             if (!Info[SlotIndex].IsStackable) return;
 
             IItem sMat = Info[SlotIndex];
-            if (sMat.AmountRaw != 0xFFFF) {
-                int delta = math.min(sMat.AmountRaw + mat.AmountRaw, 0xFFFF) - sMat.AmountRaw;
+            if (sMat.AmountRaw != IItem.MaxAmountRaw) {
+                int delta = math.min(sMat.AmountRaw + mat.AmountRaw, IItem.MaxAmountRaw) - sMat.AmountRaw;
                 sMat.AmountRaw += delta;
                 mat.AmountRaw -= delta;
                 DictUpdate(SlotIndex);
@@ -378,9 +378,9 @@ public static class InventoryController {
                 int SlotIndex = DictPeek(mat.Index);
                 if (SlotIndex == -1) break;
                 IItem sMat = Info[SlotIndex];
-                if (sMat.AmountRaw == 0xFFFF) break;
+                if (sMat.AmountRaw == IItem.MaxAmountRaw) break;
 
-                int delta = math.min(sMat.AmountRaw + mat.AmountRaw, 0xFFFF) - sMat.AmountRaw;
+                int delta = math.min(sMat.AmountRaw + mat.AmountRaw, IItem.MaxAmountRaw) - sMat.AmountRaw;
                 sMat.AmountRaw += delta;
                 mat.AmountRaw -= delta;
                 DictUpdate(SlotIndex);

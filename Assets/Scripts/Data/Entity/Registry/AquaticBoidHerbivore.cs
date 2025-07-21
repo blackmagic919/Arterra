@@ -49,7 +49,7 @@ public class AquaticBoidHerbivore : Authoring
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class Animal : Entity, IMateable, IAttackable
+    public class Animal : Entity, IMateable, IAttackable, ICollidable
     {  
         public Vitality vitality;
         public PathFinder.PathInfo pathFinder;
@@ -96,28 +96,28 @@ public class AquaticBoidHerbivore : Authoring
         public int3 GCoord => (int3)math.floor(origin); 
         [JsonIgnore]
         public bool IsDead => vitality.IsDead;
-        public void TakeDamage(float damage, float3 knockback, Entity attacker){
-            if(!vitality.Damage(damage)) return;
+        [JsonIgnore]
+        public float Weight => settings.Physicality.weight;
+        [JsonIgnore]
+        public float3 Velocity => tCollider.velocity;
+        [JsonIgnore]
+        public Bounds Bounds => new Bounds(position, settings.collider.size);
+
+        public void TakeDamage(float damage, float3 knockback, Entity attacker) {
+            if (!vitality.Damage(damage)) return;
             Indicators.DisplayDamageParticle(position, knockback);
             tCollider.velocity += knockback;
-            
-            if(IsDead) return;
-            if(attacker == null) return; //If environmental damage, we don't need to retaliate
+
+            if (IsDead) return;
+            if (attacker == null) return; //If environmental damage, we don't need to retaliate
             TaskTarget = attacker.info.entityId;
             Recognition.Recognizable recog = settings.Recognition.Recognize(attacker);
-            if(recog.IsPredator) TaskIndex = 10u; //if predator run away
-            else if(recog.IsMate) TaskIndex = 11u; //if mate fight back
-            else if(recog.IsPrey) TaskIndex = 11u; //if prey fight back
+            if (recog.IsPredator) TaskIndex = 10u; //if predator run away
+            else if (recog.IsMate) TaskIndex = 11u; //if mate fight back
+            else if (recog.IsPrey) TaskIndex = 11u; //if prey fight back
             else TaskIndex = settings.Recognition.FightAggressor ? 11u : 10u; //if unknown, depends
-            if(TaskIndex == 11 && attacker is not IAttackable) TaskIndex = 10u;  //Don't try to attack a non-attackable entity
+            if (TaskIndex == 11 && attacker is not IAttackable) TaskIndex = 10u;  //Don't try to attack a non-attackable entity
             pathFinder.hasPath = false;
-        }
-
-        public void ProcessFallDamage(float zVelDelta){
-            if(zVelDelta <= Vitality.FallDmgThresh) return;
-            float damage = zVelDelta - Vitality.FallDmgThresh;    
-            damage = math.pow(damage, settings.Physicality.weight);
-            EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
 
         public void Interact(Entity caller) { }
@@ -127,6 +127,13 @@ public class AquaticBoidHerbivore : Authoring
             var item = settings.decomposition.LootItem(amount, ref random);
             TaskDuration -= amount;
             return item;
+        }
+
+        public void ProcessFallDamage(float zVelDelta) {
+            if (zVelDelta <= Vitality.FallDmgThresh) return;
+            float damage = zVelDelta - Vitality.FallDmgThresh;
+            damage = math.pow(damage, settings.Physicality.weight);
+            EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
 
         //Not thread safe

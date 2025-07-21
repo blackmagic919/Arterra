@@ -29,9 +29,9 @@ namespace WorldConfig.Generation.Item
     {
         public uint data;
         public float durability;
-        private static Catalogue<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
-        private static Catalogue<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        private static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
+        protected static Catalogue<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+        protected static Catalogue<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        protected static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
         [JsonIgnore]
         public bool IsStackable => false;
         [JsonIgnore]
@@ -52,7 +52,7 @@ namespace WorldConfig.Generation.Item
         }
 
         public IRegister GetRegistry() => Config.CURRENT.Generation.Items;
-        public object Clone() => new ToolItem { data = data, durability = durability };
+        public virtual object Clone() => new ToolItem { data = data, durability = durability };
         public void Create(int Index, int AmountRaw)
         {
             this.Index = Index;
@@ -65,8 +65,8 @@ namespace WorldConfig.Generation.Item
         public void OnLeavePrimary() { }
         public void UpdateEItem() { }
 
-        private int[] KeyBinds;
-        public void OnSelect()
+        protected int[] KeyBinds;
+        public virtual void OnSelect()
         {
             InputPoller.AddKeyBindChange(() =>
             {
@@ -75,7 +75,7 @@ namespace WorldConfig.Generation.Item
             });
         }
 
-        public void OnDeselect()
+        public virtual void OnDeselect()
         {
             InputPoller.AddKeyBindChange(() =>
             {
@@ -107,7 +107,7 @@ namespace WorldConfig.Generation.Item
         }
         
 
-        private void TerrainRemove(float _) {
+        protected void TerrainRemove(float _) {
             if (!RayTestSolid(PlayerHandler.data, out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
                 return;
@@ -133,7 +133,7 @@ namespace WorldConfig.Generation.Item
             InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
         }
 
-        private void UpdateDisplay() {
+        protected void UpdateDisplay() {
             if (display == null) return;
             Transform durbBar = display.transform.Find("Bar");
             durbBar.GetComponent<UnityEngine.UI.Image>().fillAmount = durability / settings.MaxDurability;

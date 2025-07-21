@@ -48,8 +48,13 @@ MonoBehaviour:
     data: 4278255488
   NeighborBounds:
     data: 4278255360
-  SolidItem: 0
-  LiquidItem: 1
+  MaterialDrops:
+    SolidLootTable:
+      value: []
+    DefaultSolidLoot: 0
+    LiquidLootTable:
+      value: []
+    DefaultLiquidLoot: 1
   references:
     version: 2
     RefIds: []

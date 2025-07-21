@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using MapStorage;
+using BeziWebSocketSharp;
 
 
 namespace WorldConfig.Generation.Material
@@ -75,11 +76,12 @@ namespace WorldConfig.Generation.Material
         
         /// <summary> Called whenever the player is during the process of removing the terrain; called for all the materials
         /// that will be removed by the player. Importantly, this is answered <b>after</b> the material has been removed
-        /// from the terrain. </summary>
+        /// from the terrain. Also indicates what item should be given in return for removing this amount of this material </summary>
         /// <param name="GCoord">The coordinate in grid space of the entry that has been updated. It is guaranteed
         /// that the map entry at GCoord will be of the same material as the instance that recieves the update.</param>
         /// <param name="amount">The amount of material that was removed from the terrain</param>
-        public virtual void OnRemoved(int3 GCoord, in MapData amount) { }
+        /// <returns> The item to be given to the caller through this action </returns>
+        public virtual Item.IItem OnRemoved(int3 GCoord, in MapData amount) { return null;  }
 
         /// <summary> Called whenever the player is during the process of placing the terrain; called for all the materials
         /// that are placed by the player. Importantly, this is answered for the new material states that are placed; if a previous 
@@ -90,11 +92,6 @@ namespace WorldConfig.Generation.Material
         /// <param name="amount">The amount of material that was added to the terrain</param>
         public virtual void OnPlaced(int3 GCoord, in MapData amount){}
 
-        /// <summary> Called while modifying the terrain to indicate which item should be provided to the user
-        /// in exchange for removing the specified amount of terrain.</summary>
-        /// <param name="mapData">The <see cref="MapData"/> object describing the exact amount and state of material that 
-        /// has been removed and its identity. </param>
-        public abstract Item.IItem AcquireItem(in MapData mapData);
         
         /// <summary> Called whenever an entity touches the solid form of this material.
         /// Specifically, when an entity's collider overlaps a point that <see cref="MapData.IsSolid"/>
@@ -113,15 +110,19 @@ namespace WorldConfig.Generation.Material
         /// etc., that this requires. </summary>
         /// <param name="GCoord">The coordinate in grid space of the mapEntry whose material is being swapped</param>
         /// <param name="newMaterial">The new material that is being put at this location</param>
+        /// <param name="ReplacedItem"> The item produced as a result of removing the original material at this location 
+        /// given for the caller to decide how to handle </param>
         /// <param name="caller">The caller who is making this request; given to material handles </param>
         /// <returns>Whether or not the material was successfully swapped.</returns>
-        public static bool SwapMaterial(int3 GCoord, int newMaterial, Entity.Entity caller = null) {
+        public static bool SwapMaterial(int3 GCoord, int newMaterial, out Item.IItem ReplacedItem, Entity.Entity caller = null) {
             MapData mapData = CPUMapManager.SampleMap(GCoord);
+            ReplacedItem = null;
+
             if (mapData.IsNull) return false;
             var MatInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             if (MatInfo.Retrieve(mapData.material).OnRemoving(GCoord, caller))
                 return false;
-            MatInfo.Retrieve(mapData.material).OnRemoved(GCoord, mapData);
+            ReplacedItem = MatInfo.Retrieve(mapData.material).OnRemoved(GCoord, mapData);
             if (MatInfo.Retrieve(mapData.material).OnPlacing(GCoord, caller)) {
                 CPUMapManager.SetMap(new MapData { material = mapData.material }, GCoord);
                 return false;
@@ -132,6 +133,8 @@ namespace WorldConfig.Generation.Material
             return true;
         }
 
+        private static Catalogue<Item.Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+
         /// <summary>
         /// The apperance of the terrain when the material <see cref="MapData.IsSolid">is solid</see>. 
         /// When a material is solid, it will be under or adjacent to a mesh. If it is adjacent, the mesh will display the 
@@ -139,8 +142,7 @@ namespace WorldConfig.Generation.Material
         /// </summary>
         [System.Serializable]
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        public struct TerrainData
-        {
+        public struct TerrainData {
             /// <summary>
             /// The index within the <see cref="Names"> Name Registry </see> of the name within the external <see cref="Config.GenerationSettings.Textures"/> registry,
             /// of the texture that is displayed when a mesh primitive is rendered with this material. This index must always refer to a valid texture if it can be solid.
@@ -158,8 +160,7 @@ namespace WorldConfig.Generation.Material
             /// <summary> Information about how the material should be handled by <see cref="Quality.GeoShader">Geoshaders</see> which
             /// are responsible for an assortment of mildly performance intensive mesh-based visual effects. </summary>
             [Serializable]
-            public struct GeoShaderInfo
-            {
+            public struct GeoShaderInfo {
                 /// <summary> The raw data described by these settings. This is the raw 
                 /// compacted information recieved by the GPU </summary>
                 [HideInInspector]
@@ -179,7 +180,7 @@ namespace WorldConfig.Generation.Material
                     get => data & 0xFFFF;
                     set => data = (value & 0xFFFF) | (data & 0xFFFF0000);
                 }
-                
+
                 /// <summary> Whether or not the material possesses a geoshader and is processed by the geoshader system.
                 /// If a material does not possess a geoshader, it is filtered out at an early stage 
                 /// and does not tax the geoshader/rendering system.  </summary>
@@ -270,13 +271,140 @@ namespace WorldConfig.Generation.Material
             /// </summary>
             public Vector2 waveSpeed;
         }
+        
+        /// <summary> An optional handler for most materials that handles how items
+            /// are given in return for removing a specified amount of material
+            /// depending on the state of the material removed. </summary>
+            [Serializable]
+            public struct ItemLooter {
+                /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
+                /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is solid. 
+                /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
+                public int SolidItem;
+                /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
+                /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is liquid. 
+                /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
+                public int LiquidItem;
+
+                /// <summary>  Creates a generic item from map information of what has been removed. 
+                /// This is the standard logic for item acquirement for most materials. Returns a 
+                /// solid item if <see cref="MapData.SolidDensity"/> is nonzero, a liquid material otherwise,
+                /// or null if a suitable item cannot be found. </summary>
+                /// <param name="mapData">The map data indicating the amount of material removed
+                /// and the state it was removed as</param>
+                /// <param name="Names">The <see cref="Names"> name registry </see> specific to the material
+                /// holding this object. </param>
+                /// <returns>The item that was created from this operation, or null.</returns>
+                public Item.IItem LootItem(in MapData mapData, in List<string> Names) {
+                    if (mapData.IsNull) return null;
+                    if (mapData.density == 0) return null;
+                    Item.IItem item;
+                    if (mapData.SolidDensity > 0) {
+                        if (SolidItem >= Names.Count || SolidItem < 0) return null;
+                        int SIndex = ItemInfo.RetrieveIndex(Names[SolidItem]);
+                        item = ItemInfo.Retrieve(SIndex).Item;
+                        item.Create(SIndex, mapData.SolidDensity);
+                    } else {
+                        if (LiquidItem >= Names.Count || LiquidItem < 0) return null;
+                        int LIndex = ItemInfo.RetrieveIndex(Names[LiquidItem]);
+                        item = ItemInfo.Retrieve(LIndex).Item;
+                        item.Create(LIndex, mapData.LiquidDensity);
+                    }
+                    return item;
+                }
+            }
+            
+        /// <summary> An optional handler for materials which are capable of dropping
+        /// multiple types of items on a probabilistic basis. </summary>
+        [Serializable]
+        public struct MultiLooter{
+            /// <summary> The list of materials that can optionally be
+            /// dropped if the material being removed is solid. </summary>
+            public Option<List<LootInfo>> SolidLootTable;
+            /// <summary> The index within the <see cref="Names"> name registry </see> of the name within the external registry, 
+            /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is solid
+            /// and no other material in <see cref="SolidLootTable"/> is selected. If the index does not point to a valid name 
+            /// (e.g. -1), no item will be picked up when the material is removed. </summary>
+            public int DefaultSolidLoot;
+            /// <summary> The list of materials that can optionally be
+            /// dropped if the material being removed is liquid. </summary>
+            public Option<List<LootInfo>> LiquidLootTable;
+            /// <summary> The index within the <see cref="Names"> name registry </see> of the name within the external registry, 
+            /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is liquid
+            /// and no other material in <see cref="LiquidLootTable"/> is selected. If the index does not point to a valid name 
+            /// (e.g. -1), no item will be picked up when the material is removed. </summary>
+            public int DefaultLiquidLoot;
+
+            /// <summary>  Creates a generic item from map information of what has been removed. 
+            /// This is the standard logic for item acquirement for most materials. Returns a 
+            /// solid item if <see cref="MapData.SolidDensity"/> is nonzero, a liquid material otherwise,
+            /// or null if a suitable item cannot be found. </summary>
+            /// <param name="mapData">The map data indicating the amount of material removed
+            /// and the state it was removed as</param>
+            /// <param name="Names">The <see cref="Names"> name registry </see> specific to the material
+            /// holding this object. </param>
+            /// <returns>The item that was created from this operation, or null.</returns>
+            public Item.IItem LootItem(in MapData mapData, in List<string> Names) {
+                Unity.Mathematics.Random random = new Unity.Mathematics.Random(
+                    (uint)Environment.TickCount ^ mapData.data
+                );
+                if (mapData.SolidDensity > 0)
+                    return GetTableItem(mapData.SolidDensity, DefaultSolidLoot, SolidLootTable,
+                    Names, ref random);
+                else
+                    return GetTableItem(mapData.LiquidDensity, DefaultLiquidLoot, LiquidLootTable,
+                    Names, ref random);
+            }
+            private readonly Item.IItem GetTableItem(
+                int amount,
+                int DefaultLoot,
+                List<LootInfo> LootTable,
+                List<string> Names,
+                ref Unity.Mathematics.Random random
+            ) {
+                if (amount <= 0) return null;
+
+                if (LootTable != null) {
+                    foreach (LootInfo info in LootTable) {
+                        if (random.NextFloat() > info.DropChance)
+                            continue;
+                        return CreateItem(Names, info.DropItem, amount);
+                    }
+                }
+
+                return CreateItem(Names, DefaultLoot, amount);
+            }
+
+            private static Item.IItem CreateItem(List<string> Names, int DropItem, int amount) {
+                if (DropItem < 0 || DropItem >= Names.Count) return null;
+                string name = Names[DropItem];
+                if (name.IsNullOrEmpty()) return null;
+                if (amount == 0) return null;
+
+                int Index = ItemInfo.RetrieveIndex(name);
+                Item.IItem item = ItemInfo.Retrieve(Index).Item;
+                item.Create(Index, amount);
+                return item;
+            }
+            /// <summary> The settings describing an optional material that can be dropped
+            /// and how often it should be dropped. </summary>
+            [Serializable]
+            public struct LootInfo{
+                /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
+                /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when if the material is randomly selected.
+                /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
+                public int DropItem;
+                /// <summary> The chance the material is dropped. This is resampled 
+                /// only once everytime any amount of material is removed. </summary>
+                public float DropChance;
+            }
+        }
 
         /// <summary> Returns the registry entry's name of a registry reference coupled with the <see cref="Names">name register</see> </summary>
         /// <param name="index">The index within the <see cref="Names">name register</see> of the name of the reference</param>
-        /// <returns>The name of the reference in an external registry. a string containing "NULL" if a name for <paramref name="index"/> cannot be found. </returns>
-        public string RetrieveKey(int index)
-        {
-            if (index < 0 || index >= Names.Count) return "NULL";
+        /// <returns>The name of the reference in an external registry or null if a name for <paramref name="index"/> cannot be found. </returns>
+        public string RetrieveKey(int index) {
+            if (index < 0 || index >= Names.Count) return null;
             return Names[index];
         }
     }

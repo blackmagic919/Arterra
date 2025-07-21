@@ -48,13 +48,13 @@ public struct TagRegistry
 {
     public static readonly IProperty[] TagTemplates = new IProperty[] {
         null, new ToolTag(), new ToolTag(), new ToolTag(), new ToolTag(),
-        new ConverterToolTag()
+        new ConverterToolTag(), new ConverterToolTag()
     };
     public enum Tags {
         //Tools
         None = 0, BareHand = 1, Axe = 2, Shovel = 3, Pickaxe = 4,
         //Converters
-        Flammable = 5,
+        Flammable = 5, Tillable = 6,
     }
 
     public interface IProperty

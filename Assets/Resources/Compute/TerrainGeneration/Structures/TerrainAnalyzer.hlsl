@@ -11,12 +11,11 @@ float GetNoiseCentered(float val, float center){
 uint SampleTerrain (float3 position)
 {
     //Get SurfaceData
-    float PV = GetNoise2D(position.xz, PVSampler) * 2 - 1;
-    float continental = GetNoise2D(position.xz, continentalSampler);
     float erosion = GetNoise2D(position.xz, erosionSampler);
+    float terrainHeight = GetErodedNoise2D(position.xz, erosion, PVSampler, continentalSampler);
     float squashFactor = GetNoise2D(position.xz, squashSampler) * squashHeight;
 
-    float terrainHeight = (continental + PV * erosion) * maxTerrainHeight + heightOffset;
+    terrainHeight = terrainHeight * maxTerrainHeight + heightOffset;
 
     //Get Base Density
     float caveShape = GetNoise(position, caveShapeSampler);

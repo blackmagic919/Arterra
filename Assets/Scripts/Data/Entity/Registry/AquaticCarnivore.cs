@@ -86,20 +86,20 @@ public class AquaticCarnivore : Authoring
         public int3 GCoord => (int3)math.floor(origin); 
         [JsonIgnore]
         public bool IsDead => vitality.IsDead;
-        public void TakeDamage(float damage, float3 knockback, Entity attacker){
-            if(!vitality.Damage(damage)) return;
+        public void TakeDamage(float damage, float3 knockback, Entity attacker) {
+            if (!vitality.Damage(damage)) return;
             Indicators.DisplayDamageParticle(position, knockback);
             tCollider.velocity += knockback;
 
-            if(IsDead) return;
-            if(attacker == null) return; //If environmental damage, we don't need to retaliate
+            if (IsDead) return;
+            if (attacker == null) return; //If environmental damage, we don't need to retaliate
             TaskTarget = attacker.info.entityId;
             Recognition.Recognizable recog = settings.Recognition.Recognize(attacker);
-            if(recog.IsPredator) TaskIndex = 11u; //if predator run away
-            else if(recog.IsMate) TaskIndex = 12u; //if mate fight back
-            else if(recog.IsPrey) TaskIndex = 12u; //if prey fight back
+            if (recog.IsPredator) TaskIndex = 11u; //if predator run away
+            else if (recog.IsMate) TaskIndex = 12u; //if mate fight back
+            else if (recog.IsPrey) TaskIndex = 12u; //if prey fight back
             else TaskIndex = settings.Recognition.FightAggressor ? 12u : 11u; //if unknown, depends
-            if(TaskIndex == 12 && attacker is not IAttackable) TaskIndex = 11u;  //Don't try to attack a non-attackable entity
+            if (TaskIndex == 12 && attacker is not IAttackable) TaskIndex = 11u;  //Don't try to attack a non-attackable entity
             pathFinder.hasPath = false;
         }
 

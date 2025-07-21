@@ -10,14 +10,9 @@ int SampleBiome (float3 position)
     float surfData[6];
     surfData[1] = GetRawNoise2D(position.xz, erosionSampler);
     surfData[2] = GetRawNoise2D(position.xz, squashSampler);
-    surfData[3] = GetRawNoise2D(position.xz, PVSampler);
-    surfData[4] = GetRawNoise2D(position.xz, continentalSampler);
 
-    float PVNoise = interpolateValue(surfData[3], PVSampler) * 2 - 1;
-    float continentalNoise = interpolateValue(surfData[4], continentalSampler);
     float erosionNoise = interpolateValue(surfData[1], erosionSampler);
-
-    surfData[0] = continentalNoise + PVNoise * erosionNoise;
+    surfData[0] = GetErodedNoise2D(position.xz, erosionNoise, PVSampler, continentalSampler);
     surfData[3] = GetRawNoise2D(position.xz, InfHeightSampler);
     surfData[4] = GetRawNoise2D(position.xz, InfOffsetSampler);
     surfData[5] = GetRawNoise2D(position.xz, atmosphereSampler);

@@ -38,7 +38,8 @@ MonoBehaviour:
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
-    ScatterCoeffs: {x: 0, y: 0, z: 0}
+    InScatterCoeffs: {x: 0, y: 0, z: 0}
+    OutScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}
     LightIntensity: 0
   liquidData:
@@ -51,8 +52,9 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
-  SolidItem: 0
-  LiquidItem: 1
+  MaterialDrops:
+    SolidItem: 0
+    LiquidItem: 1
   references:
     version: 2
     RefIds:

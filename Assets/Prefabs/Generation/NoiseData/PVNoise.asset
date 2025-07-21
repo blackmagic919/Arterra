@@ -13,10 +13,13 @@ MonoBehaviour:
   m_Name: PVNoise
   m_EditorClassIdentifier: 
   Name: PeakValley
-  noiseScale: 500
-  octaves: 9
-  persistance: 0.25
-  lacunarity: 1.25
+  Tags:
+    Reg:
+      value: []
+  noiseScale: 5000
+  octaves: 4
+  persistance: 0.5
+  lacunarity: 1.5
   seedOffset: 12
   interpolation:
     value:
@@ -32,32 +35,35 @@ MonoBehaviour:
         inWeight: 0
         outWeight: 0
       - serializedVersion: 3
-        time: 0.24293496
-        value: 0.13033763
-        inSlope: 1.1991302
-        outSlope: 1.1991302
+        time: 0.40067953
+        value: 0.1253026
+        inSlope: 0.011818501
+        outSlope: 0.011818501
         tangentMode: 0
         weightedMode: 0
         inWeight: 0.33333334
-        outWeight: 0.33333334
+        outWeight: 0.3120752
       - serializedVersion: 3
-        time: 0.5002326
-        value: 0.5002129
-        inSlope: -0.0048627686
-        outSlope: -0.0048627686
+        time: 0.88864166
+        value: 0.39933437
+        inSlope: 0.0118446015
+        outSlope: 0.0118446015
         tangentMode: 0
         weightedMode: 0
         inWeight: 0.33333334
-        outWeight: 0.08760724
+        outWeight: 1
       - serializedVersion: 3
         time: 1
-        value: 1
-        inSlope: -0
-        outSlope: -0
+        value: 1.0023575
+        inSlope: 0.039128926
+        outSlope: 0.039128926
         tangentMode: 0
         weightedMode: 0
-        inWeight: 0.614642
+        inWeight: 0.9756009
         outWeight: 0
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+  references:
+    version: 2
+    RefIds: []

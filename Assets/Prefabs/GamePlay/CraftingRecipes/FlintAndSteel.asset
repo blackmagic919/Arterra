@@ -20,8 +20,8 @@ MonoBehaviour:
     Names:
       value:
       - FlintAndSteel
-      - Wood
-      - Plank
+      - Coal
+      - Iron
     entry:
       value:
       - data: 104086

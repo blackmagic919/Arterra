@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Coyote
   m_EditorClassIdentifier: 
   Name: Coyote
+  Tags:
+    Reg:
+      value: []
   Controller:
     value: {fileID: 6344444734217580524, guid: 0d22b432cfe3a45ea997cf4da8e776a3, type: 3}
   Profile:
@@ -60,7 +63,7 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 156
+        profileStart: 104
       collider:
         size:
           x: 0.75
@@ -68,8 +71,8 @@ MonoBehaviour:
           z: 0.75
         friction: 0.25
       movement:
-        walkSpeed: 3
-        runSpeed: 7
+        walkSpeed: 4.5
+        runSpeed: 10.5
         acceleration: 100
         rotSpeed: 180
         pathDistance: 31
@@ -115,3 +118,6 @@ MonoBehaviour:
           ConsumptionRate: 0.5
           MateCost: 4
           weight: 0.75
+  references:
+    version: 2
+    RefIds: []

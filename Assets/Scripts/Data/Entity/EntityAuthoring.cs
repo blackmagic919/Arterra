@@ -69,8 +69,10 @@ public abstract class Entity: IRegistered{
     /// require knowledge of other entity's positions; however entities that aren't spatially bound may not fulfill 
     /// this contract if it no system requires its location.  </summary>
     public abstract float3 position{get; set;}
-
-    public abstract float3 origin{get; set;}
+    /// <summary>A single line property for retrieving and setting the entity's origin in grid space.
+    /// Unlike <see cref="position"/>, the origin is the lowest point within the object's collider while
+    /// the position describes the center of the collider. </summary>
+    public abstract float3 origin { get; set; }
     /// <summary>
     /// A callback to draw any gizmos that the entity may need to draw. This is only for 
     /// debugging purposes in UnityEditor to draw any annotations related to entities. This will

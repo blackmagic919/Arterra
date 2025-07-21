@@ -13,14 +13,6 @@ namespace WorldConfig.Generation.Material
     /// and is accessible to users who click on the item. </summary>
     [CreateAssetMenu(menuName = "Generation/MaterialData/ContainerMat")]
     public class ContainerMaterial : MaterialData {
-        /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
-        /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is solid. 
-        /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
-        public int SolidItem;
-        /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
-        /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is liquid. 
-        /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
-        public int LiquidItem;
         /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the 
         /// texture within the texture registry of the icon displayed on the <see cref="PanelNavbarManager">Navbar</see>
         /// referring to the Container.  </summary>
@@ -46,13 +38,10 @@ namespace WorldConfig.Generation.Material
 
         }
 
-        /// <summary> See <see cref="MaterialData.AcquireItem"/> for more information. </summary>
-        /// <param name="mapData">The map data indicating the amount of material removed
-        /// and the state it was removed as</param>
-        /// <returns>The item to give.</returns>
-        public override Item.IItem AcquireItem(in MapData mapData) {
-            return GenericMaterial.GenericItemFromMap(mapData, RetrieveKey(SolidItem), RetrieveKey(LiquidItem));
-        }
+        /// <summary> The handler controlling how materials are dropped when
+        /// <see cref="OnRemoved"/> is called. See 
+        /// <see cref="MaterialData.ItemLooter"/> for more info.  </summary>
+        public ItemLooter MaterialDrops;
 
         private ContainerInventory OpenedInventory = null;
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
@@ -87,26 +76,32 @@ namespace WorldConfig.Generation.Material
             return true;
         }
 
-        public override void OnRemoved(int3 GCoord, in MapData amount) {
+        /// <summary> See <see cref="MaterialData.OnRemoved"/> for more information. </summary>
+        /// <param name="amount">The map data indicating the amount of material removed
+        /// and the state it was removed as</param>
+        /// <param name="GCoord">The location of the map information being</param>
+        /// <returns>The item to give.</returns>
+        public override Item.IItem OnRemoved(int3 GCoord, in MapData amount) {
             MapData info = CPUMapManager.SampleMap(GCoord);
-            if (info.IsNull || amount.IsNull) return;
-            if (!info.IsSolid) return;
+            if (info.IsNull || amount.IsNull) return null;
+            if (!info.IsSolid) return MaterialDrops.LootItem(amount, Names);
             if (OpenedInventory != null && math.all(OpenedInventory.position == GCoord))
                 DeactivateWindow();
             if (!CPUMapManager.TryGetExistingMapMeta(GCoord, out ContainerInventory cont))
-                return;
+                return MaterialDrops.LootItem(amount, Names);
             int SolidDensity = info.SolidDensity - amount.SolidDensity;
             if (SolidDensity < CPUMapManager.IsoValue) {
                 foreach (Item.IItem item in cont.inv.Info)
                     InventoryController.DropItem(item, GCoord);
                 CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
-                return;
+                return MaterialDrops.LootItem(amount, Names);
             }
 
             float progress = (SolidDensity - CPUMapManager.IsoValue) /
                              (255.0f - CPUMapManager.IsoValue);
             int SlotCount = Mathf.FloorToInt(MaxSlotCount * progress) + 1;
             cont.inv.ResizeInventory(SlotCount, Item => InventoryController.DropItem(Item, GCoord));
+            return MaterialDrops.LootItem(amount, Names);
         }
 
         public override void OnPlaced(int3 GCoord, in MapData amount) {

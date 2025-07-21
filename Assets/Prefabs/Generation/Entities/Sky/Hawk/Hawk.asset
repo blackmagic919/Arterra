@@ -99,7 +99,7 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 48
+        profileStart: 168
       collider:
         size:
           x: 0.6
@@ -107,9 +107,9 @@ MonoBehaviour:
           z: 0.6
         friction: 0.25
       movement:
-        walkSpeed: 2
-        runSpeed: 10
-        acceleration: 150
+        walkSpeed: 3
+        runSpeed: 20
+        acceleration: 200
         rotSpeed: 180
         pathDistance: 31
         AverageIdleTime: 2.5
@@ -119,7 +119,7 @@ MonoBehaviour:
             x: 2
             y: 3
             z: 2
-          profileStart: 60
+          profileStart: 180
         AverageFlightTime: 25
         FlyBiasWeight: 0.25
         VerticalFreedom: 0.5

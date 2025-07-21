@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: ArcticHare
   m_EditorClassIdentifier: 
   Name: ArcticHare
+  Tags:
+    Reg:
+      value: []
   Controller:
     value: {fileID: 1363864841180675569, guid: 9f3da586f65d14207adc445c8018826b, type: 3}
   Profile:
@@ -60,7 +63,7 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 72
+        profileStart: 56
       collider:
         size:
           x: 0.5
@@ -68,8 +71,8 @@ MonoBehaviour:
           z: 0.5
         friction: 0.25
       movement:
-        walkSpeed: 3
-        runSpeed: 5
+        walkSpeed: 4
+        runSpeed: 7.5
         acceleration: 200
         rotSpeed: 180
         pathDistance: 31
@@ -105,7 +108,6 @@ MonoBehaviour:
               Bounds:
                 data: 4286643968
               Replacement: Dirt
-              ReplaceState: 0
       physicality:
         value:
           MaxHealth: 6
@@ -122,3 +124,6 @@ MonoBehaviour:
           ConsumptionRate: 0.25
           MateCost: 2
           weight: 0.5
+  references:
+    version: 2
+    RefIds: []

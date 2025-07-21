@@ -21,6 +21,7 @@ MonoBehaviour:
   - Fire
   - Shell
   - Flames
+  - Ash
   terrainData:
     Texture: 1
     textureScale: 3
@@ -44,14 +45,15 @@ MonoBehaviour:
   SpreadChance: 1
   SpreadTag: 5
   DecayChance: 0.5
-  DecayMaterial: Ash
+  DecayMaterial: 4
   ContactDamage: 0.5
   SpreadBounds:
     data: 4286643968
   NeighborBounds:
     data: 2130771712
-  SolidItem: 0
-  LiquidItem: 0
+  MaterialDrops:
+    SolidItem: 0
+    LiquidItem: 0
   references:
     version: 2
     RefIds: []

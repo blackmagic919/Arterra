@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: Grassy
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 6
+        value:
+          value:
+            rid: 6432722916811472969
   Children:
     value:
     - value: {fileID: 11400000, guid: 116dbc651ae144517a09709a031fd843, type: 2}
@@ -28,4 +32,13 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: c1c364aa971c94d9da804acddfd3e37d, type: 2}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 6432722916811472969
+      type: {class: ConverterToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 100
+        ToolDamage: 1
+        GivesItem: 1
+        ConvertBounds:
+          data: 4286643968
+        ConvertTarget: TilledSoil

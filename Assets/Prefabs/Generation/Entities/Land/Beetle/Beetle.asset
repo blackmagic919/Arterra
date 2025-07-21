@@ -51,7 +51,7 @@ MonoBehaviour:
           x: 2
           y: 2
           z: 2
-        profileStart: 200
+        profileStart: 116
       collider:
         size:
           x: 0.3
@@ -59,8 +59,8 @@ MonoBehaviour:
           z: 0.3
         friction: 0.25
       movement:
-        walkSpeed: 1
-        runSpeed: 2
+        walkSpeed: 1.5
+        runSpeed: 3
         acceleration: 150
         rotSpeed: 180
         pathDistance: 24
@@ -98,12 +98,10 @@ MonoBehaviour:
               Bounds:
                 data: 4286643968
               Replacement: Dirt
-              ReplaceState: 0
             - Material: Grass
               Bounds:
                 data: 4286643968
               Replacement: Dirt
-              ReplaceState: 0
       physicality:
         value:
           MaxHealth: 2

@@ -13,21 +13,23 @@ MonoBehaviour:
   m_Name: SnowMat
   m_EditorClassIdentifier: 
   Name: Snow
+  Tags:
+    Reg:
+      value: []
   Names:
   - Snow:Solid
   - Void
   - Snow
   - Tesselation
   - FreshSnow
-  SolidItem: 0
-  LiquidItem: 1
   terrainData:
     Texture: 2
     textureScale: 4
     GeoShaderIndex:
       data: 2147680260
   AtmosphereScatter:
-    ScatterCoeffs: {x: 0, y: 0, z: 0}
+    InScatterCoeffs: {x: 0, y: 0, z: 0}
+    OutScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}
     LightIntensity: 0
   liquidData:
@@ -40,3 +42,9 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
+  MaterialDrops:
+    SolidItem: 0
+    LiquidItem: 1
+  references:
+    version: 2
+    RefIds: []

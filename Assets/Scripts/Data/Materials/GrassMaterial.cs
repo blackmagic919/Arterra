@@ -4,6 +4,7 @@ using Unity.Burst;
 using System;
 using WorldConfig.Generation.Structure;
 using MapStorage;
+using System.Collections.Generic;
 /*
 y
 ^      0  5        z
@@ -26,13 +27,17 @@ namespace WorldConfig.Generation.Material{
         /// <summary> The chance that grass will spread to a neighboring entry. </summary>
         [Range(0, 1)]
         public float SpreadChance;
-        /// <summary>  If not null, the name of the material attempting to be spread to must be for the grass to spread to it. </summary>
-        public string SpreadMaterial;
+        /// <summary> The name of the material within the <see cref="MaterialData.Names">name registry</see> of the 
+        /// material within the <see cref="WorldConfig.Generation.Material">material registry</see> of the material
+        /// to spread onto</summary>
+        public int SpreadMaterial;
         /// <summary>The chance that the grass will decay and become <see cref="DecayMaterial"/> when randomly updated. </summary>
         [Range(0, 1)]
         public float DecayChance = 0;
-        /// <summary>The material that grass will become once it decays if it does decay</summary>
-        public string DecayMaterial;
+        /// <summary> The name of the material within the <see cref="MaterialData.Names">name registry</see> of the 
+        /// material within the <see cref="WorldConfig.Generation.Material">material registry</see> of the material
+        /// that grass will become once it decays if it does decay</summary>
+        public int DecayMaterial;
         /// <summary> The <see cref="MapData"/> requirements of the material that the grass can spread onto.  </summary>
 
         [Header("Spread Bounds")]
@@ -56,7 +61,8 @@ namespace WorldConfig.Generation.Material{
         public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng) {
             MapData cur = CPUMapManager.SampleMap(GCoord); //Current 
             if (!cur.IsSolid) return;
-            SpreadGrass(cur, GCoord, prng);
+            SpreadGrass(cur, GCoord, ref prng);
+            DecayGrass(GCoord, ref prng);
         }
 
         /// <summary> Mandatory callback for when grass is forcibly updated. Do nothing here. </summary>
@@ -67,28 +73,33 @@ namespace WorldConfig.Generation.Material{
         }
 
 
-        internal void SpreadGrass(MapData cur, int3 GCoord, Unity.Mathematics.Random prng) {
+        private void SpreadGrass(MapData cur, int3 GCoord, ref Unity.Mathematics.Random prng) {
             var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-            int spreadMat = matInfo.RetrieveIndex(SpreadMaterial);
-
+            if (SpreadChance <= 0) return;
+ 
+            int spreadMat = matInfo.RetrieveIndex(RetrieveKey(SpreadMaterial));
             int3 delta = int3.zero;
             for (delta.x = -1; delta.x <= 1; delta.x++) {
                 for (delta.y = -1; delta.y <= 1; delta.y++) {
                     for (delta.z = -1; delta.z <= 1; delta.z++) {
-                        if (prng.NextFloat() >= SpreadChance) continue;
                         if (math.all(delta == int3.zero)) continue;
+                        if (prng.NextFloat() >= SpreadChance) continue;
                         int3 NCoord = GCoord + delta;
                         MapData neighbor = CPUMapManager.SampleMap(NCoord);
                         if (!CanSpread(neighbor, NCoord, spreadMat)) continue;
-                        if (!SwapMaterial(NCoord, cur.material))
+                        if (!SwapMaterial(NCoord, cur.material, out _)) //Discard dropped item
                             continue;
                     }
                 }
             }
+        }
+
+        private void DecayGrass(int3 GCoord, ref Unity.Mathematics.Random prng) {
+            var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
 
             if (prng.NextFloat() >= DecayChance) return;
-            if (DecayMaterial != null && !String.IsNullOrEmpty(DecayMaterial)) {
-                SwapMaterial(GCoord, matInfo.RetrieveIndex(DecayMaterial));
+            if (!String.IsNullOrEmpty(RetrieveKey(DecayMaterial))) {
+                SwapMaterial(GCoord, matInfo.RetrieveIndex(RetrieveKey(DecayMaterial)), out _);
             } else {
                 MapData info = CPUMapManager.SampleMap(GCoord);
                 if (matInfo.Retrieve(info.material).OnRemoving(GCoord, null))
@@ -112,21 +123,19 @@ namespace WorldConfig.Generation.Material{
             return false;
         }
 
-        /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
-        /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is solid. 
-        /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
-        public int SolidItem;
-        /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
-        /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is liquid. 
-        /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
-        public int LiquidItem;
+        /// <summary> The handler controlling how materials are dropped when
+        /// <see cref="OnRemoved"/> is called. See <see cref="MaterialData.MultiLooter"/> 
+        /// for more info.  </summary>
+        public MultiLooter MaterialDrops;
 
-        /// <summary> See <see cref="MaterialData.AcquireItem"/> for more information. </summary>
-        /// <param name="mapData">The map data indicating the amount of material removed
+
+        /// <summary> See <see cref="MaterialData.OnRemoved"/> for more information. </summary>
+        /// <param name="amount">The map data indicating the amount of material removed
         /// and the state it was removed as</param>
+        /// <param name="GCoord">The location of the map information being</param>
         /// <returns>The item to give.</returns>
-        public override Item.IItem AcquireItem(in MapData mapData) {
-            return GenericMaterial.GenericItemFromMap(mapData, RetrieveKey(SolidItem), RetrieveKey(LiquidItem));
+        public override Item.IItem OnRemoved(int3 GCoord, in MapData amount) {
+            return MaterialDrops.LootItem(amount, Names);
         }
     }
 }

@@ -100,10 +100,10 @@ namespace MapStorage {
 
         private static void SaveChunk(int chunkHash, bool await = false) {
             if (!AddressDict[chunkHash].valid) return;
-            DisposeChunk(chunkHash);
             int3 CCoord = AddressDict[chunkHash].CCoord;
-
             EntityManager.ReleaseChunkEntities(CCoord, await);
+            
+            DisposeChunk(chunkHash);
             if (!AddressDict[chunkHash].isDirty) return;
             ChunkPtr chunk = new ChunkPtr(MapMetaData[chunkHash],
                 SectionedMemory, chunkHash * numPoints);

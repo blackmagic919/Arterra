@@ -340,16 +340,17 @@ public class RHerbivore : Recognition{
         Catalogue<MaterialData> matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
 
         string key = plant.Replacement;
-        WorldConfig.Generation.Item.IItem nMat = matInfo.Retrieve(mapData.material).AcquireItem(mapData);
         if (!String.IsNullOrEmpty(key) && matInfo.Contains(key)) {
             int newMaterial = matInfo.RetrieveIndex(key);
-            if (!MaterialData.SwapMaterial(preyCoord, newMaterial, self))
+            if (!MaterialData.SwapMaterial(preyCoord, newMaterial,
+                out WorldConfig.Generation.Item.IItem nMat, self))
                 return null;
             return nMat;
         } else {
             if (matInfo.Retrieve(mapData.material).OnRemoving(preyCoord, self))
                 return null;
-            matInfo.Retrieve(mapData.material).OnRemoved(preyCoord, mapData);
+            WorldConfig.Generation.Item.IItem nMat =
+                matInfo.Retrieve(mapData.material).OnRemoved(preyCoord, mapData);
             mapData.viscosity = 0;
             mapData.density = 0;
             CPUMapManager.SetMap(mapData, preyCoord);

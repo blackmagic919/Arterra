@@ -3,6 +3,7 @@ using UnityEngine;
 using TerrainGeneration;
 using WorldConfig;
 using TerrainGeneration.Surface;
+using Newtonsoft.Json;
 
 namespace WorldConfig.Generation{
 /// <summary>
@@ -89,20 +90,27 @@ public class Surface : ScriptableObject{
     /// by reducing the density of the map as the height approaches infinity. <seealso cref="WorldConfig.Generation.Map.heightFalloff"/>.
     /// </summary>
     public string AtmosphereNoise;
-
+    
     /// <summary> The index of the noise function described by <see cref="ContinentalNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int ContinentalIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(ContinentalNoise);
     /// <summary> The index of the noise function described by <see cref="ErosionNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int ErosionIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(ErosionNoise);
     /// <summary> The index of the noise function described by <see cref="PVNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int PVIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(PVNoise);
     /// <summary> The index of the noise function described by <see cref="SquashNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int SquashIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(SquashNoise);
     /// <summary> The index of the noise function described by <see cref="InfHeightNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int InfHeightIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(InfHeightNoise);
     /// <summary> The index of the noise function described by <see cref="InfOffsetNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int InfOffsetIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(InfOffsetNoise);
     /// <summary> The index of the noise function described by <see cref="AtmosphereNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int AtmosphereIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(AtmosphereNoise);
 }}
 

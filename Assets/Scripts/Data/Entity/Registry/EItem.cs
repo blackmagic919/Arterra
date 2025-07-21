@@ -22,12 +22,14 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
     [JsonIgnore]
     public override EntitySetting Setting { get => _Setting.value; set => _Setting.value = (EItemSetting)value; }
     [Serializable]
-    public class EItemSetting : EntitySetting{
+    public class EItemSetting : EntitySetting {
         public float GroundStickDist;
         public float StickFriction;
         public int2 SpriteSampleSize;
         public float AlphaClip;
         public float ExtrudeHeight;
+        public float MergeRadius;
+        public float DecayTime;
     }
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
@@ -55,6 +57,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public int3 GCoord => (int3)math.floor(origin); 
         [JsonIgnore]
         public bool IsDead => true;
+        public float decomposition;
 
         public void Interact(Entity targert) { }
         public IItem Collect(float amount) {
@@ -82,16 +85,17 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public EItemEntity(TerrainColliderJob.Transform origin, IItem item){
             tCollider.transform = origin;
             tCollider.velocity = 0;
+            decomposition = float.MaxValue;
             
             this.item = new Registerable<IItem>(item);
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
-        } 
+        }
 
         //This function shouldn't be used
-        public override void Initialize(EntitySetting setting, GameObject Controller, int3 GCoord)
-        {
+        public override void Initialize(EntitySetting setting, GameObject Controller, int3 GCoord) {
             settings = (EItemSetting)setting;
             controller = new EItemController(Controller, this);
+            decomposition = math.min(settings.DecayTime, decomposition);
             tCollider.transform.position = GCoord;
             tCollider.useGravity = true;
         }
@@ -108,8 +112,8 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public override void Update()
         {
             if(!active) return;
-
             tCollider.useGravity = true;
+
             TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
             OnInLiquid: (dens) => {
                 tCollider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
@@ -117,7 +121,13 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
                 tCollider.useGravity = false;
             }, OnInGas: null);
 
-            if(item.Value == null)  EntityManager.ReleaseEntity(info.entityId);
+            decomposition -= EntityJob.cxt.deltaTime;
+            if (decomposition <= 0)
+                item.Value = null;
+            MergeNearbyEItems();
+
+            if (item.Value == null || item.Value.AmountRaw == 0)
+                EntityManager.ReleaseEntity(info.entityId);
             if(tCollider.GetGroundDir(settings.GroundStickDist, settings.collider, EntityJob.cxt.mapContext, out float3 gDir)){
                 tCollider.transform.rotation = Quaternion.LookRotation(gDir, math.up());
                 tCollider.velocity *= 1 - settings.StickFriction;
@@ -126,7 +136,43 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             EntityManager.AddHandlerEvent(controller.Update);
         }
 
-        public override void Disable(){
+        private void MergeNearbyEItems() {
+            if (item.Value == null) return;
+            if (!item.Value.IsStackable) return;
+            if (item.Value.AmountRaw >= IItem.MaxAmountRaw) return;
+
+            void MergeWithEItem(EItemEntity neighbor) {
+                if (item.Value == null || item.Value.AmountRaw == 0)
+                    return; //Already merged by neighbor
+                if (neighbor == null) return;
+                if (neighbor.item.Value == null) return;
+                if (neighbor.item.Value.Index != item.Value.Index)
+                    return;
+                int delta = math.min(item.Value.AmountRaw
+                    + neighbor.item.Value.AmountRaw, IItem.MaxAmountRaw)
+                    - item.Value.AmountRaw;
+                item.Value.AmountRaw += delta;
+                neighbor.item.Value.AmountRaw -= delta;
+                if (neighbor.item.Value.AmountRaw == 0)
+                    neighbor.item.Value = null;
+            }
+
+            Bounds bounds = new Bounds(position, new float3(settings.MergeRadius * 2));
+            EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
+                if (nEntity == null) return;
+                if (nEntity.info.entityId == info.entityId) return;
+                if (nEntity.info.entityType != info.entityType) return;
+
+                EItemEntity nItem = nEntity as EItemEntity;
+                if (nItem.item.Value == null) return;
+                if (nItem.item.Value.Index != item.Value.Index)
+                    return;
+                EntityManager.AddHandlerEvent(() => MergeWithEItem(nItem));
+            });
+        }
+        
+
+        public override void Disable() {
             controller.Dispose();
         }
     }

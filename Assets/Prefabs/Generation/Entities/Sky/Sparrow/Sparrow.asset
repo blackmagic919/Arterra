@@ -99,7 +99,7 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 24
+        profileStart: 192
       collider:
         size:
           x: 0.75
@@ -107,8 +107,8 @@ MonoBehaviour:
           z: 0.75
         friction: 0.25
       movement:
-        walkSpeed: 2
-        runSpeed: 6
+        walkSpeed: 3
+        runSpeed: 9
         acceleration: 100
         rotSpeed: 180
         pathDistance: 16
@@ -119,7 +119,7 @@ MonoBehaviour:
             x: 2
             y: 3
             z: 2
-          profileStart: 36
+          profileStart: 204
         AverageFlightTime: 100
         SeperationWeight: 0.75
         AlignmentWeight: 0.4
@@ -175,7 +175,6 @@ MonoBehaviour:
               Bounds:
                 data: 4286643968
               Replacement: Dirt
-              ReplaceState: 0
   references:
     version: 2
     RefIds: []

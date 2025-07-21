@@ -77,6 +77,8 @@ namespace WorldConfig.Generation.Item {
         public bool IsStackable { get; }
         /// <summary> The amount of the item that is stored. Used when determing how to stack identical items </summary>
         public int AmountRaw { get; set; }
+        /// <summary>The maximum amount of item that all systems can stably support.</summary>
+        public const int MaxAmountRaw = 0xFFFF;
         /// <summary> The index within the <see cref="Config.GenerationSettings.Textures"> texture registry </see> of the item's texture.
         /// This is obtained by using the <see cref="IRegistered.Index"/> within the <see cref="WorldConfig.Config.GenerationSettings.Items"> item registry </see>
         /// to obtain the <see cref="Authoring.TextureName"/> of the texture which can be used to find the texture in the external

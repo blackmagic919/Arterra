@@ -235,17 +235,15 @@ public static class PlayerInteraction
         int solidDensity = pointInfo.SolidDensity;
         delta.density = GetStaggeredDelta(solidDensity, -brushStrength);
         delta.viscosity = delta.density;
-        if (solidDensity >= CPUMapManager.IsoValue && ObtainMat) {
-            MaterialData material = matInfo.Retrieve(pointInfo.material);
-            IItem matItem = material.AcquireItem(delta);
-            if (matItem == null) return false;
-            int prevAmount = matItem.AmountRaw;
-            InventoryController.AddEntry(matItem);
-            if (prevAmount == matItem.AmountRaw) return false;
-        }
+        
         pointInfo.viscosity -= delta.viscosity;
         pointInfo.density -= delta.density;
-        matInfo.Retrieve(pointInfo.material).OnRemoved(GCoord, delta);
+        IItem matItem = matInfo.Retrieve(pointInfo.material).OnRemoved(GCoord, delta);
+        if (solidDensity >= CPUMapManager.IsoValue && ObtainMat) {
+            if (matItem == null) return false;
+            InventoryController.AddEntry(matItem);
+            if (matItem.AmountRaw != 0) InventoryController.DropItem(matItem);
+        }
         CPUMapManager.SetMap(pointInfo, GCoord);
         return true;
     }
@@ -259,16 +257,14 @@ public static class PlayerInteraction
         int liquidDensity = pointInfo.LiquidDensity;
         delta.density = GetStaggeredDelta(liquidDensity, -brushStrength);
         delta.viscosity = 0;
-        if (liquidDensity >= CPUMapManager.IsoValue){
-            MaterialData material = matInfo.Retrieve(pointInfo.material);
-            IItem matItem = material.AcquireItem(delta);
-            if (matItem == null) return false;
-            int prevAmount = matItem.AmountRaw;
-            InventoryController.AddEntry(matItem);
-            if (prevAmount == matItem.AmountRaw) return false;
-        }
+        
         pointInfo.density -= delta.density;
-        matInfo.Retrieve(pointInfo.material).OnRemoved(GCoord, delta);
+        IItem matItem = matInfo.Retrieve(pointInfo.material).OnRemoved(GCoord, delta);
+        if (liquidDensity >= CPUMapManager.IsoValue) {
+            if (matItem == null) return false;
+            InventoryController.AddEntry(matItem);
+            if (matItem.AmountRaw != 0) InventoryController.DropItem(matItem);
+        }
         CPUMapManager.SetMap(pointInfo, GCoord);
         return true;
     }

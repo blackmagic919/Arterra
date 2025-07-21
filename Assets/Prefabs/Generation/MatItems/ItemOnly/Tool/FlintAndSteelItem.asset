@@ -21,7 +21,8 @@ MonoBehaviour:
   MaterialState: 0
   TerraformRadius: 1
   MaxDurability: 100
-  ToolTag: 5
+  ToolTag: 1
+  ConverterTag: 5
   references:
     version: 2
     RefIds: []

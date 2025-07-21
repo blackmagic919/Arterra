@@ -88,7 +88,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             //Invulnerability means we don't even process the request
             if (Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability) return;
             if (!vitality.Damage(damage)) return;
-            Indicators.DisplayDamageParticle(position, knockback);
+            EntityManager.AddHandlerEvent(() => Indicators.DisplayDamageParticle(position, knockback));
             collider.velocity += knockback;
 
             if (status == StreamingStatus.Disconnected) return;

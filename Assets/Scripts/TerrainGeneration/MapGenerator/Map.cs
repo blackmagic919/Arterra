@@ -2,6 +2,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using Unity.Collections;
 using WorldConfig;
+using Newtonsoft.Json;
 
 
 namespace WorldConfig.Generation{
@@ -79,18 +80,25 @@ public class Map : ScriptableObject{
     /// </summary>
     public string FineTerrainNoise;
     /// <summary> The index of the noise function described by <see cref="CaveFrequencyNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int CaveFrequencyIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(CaveFrequencyNoise);
     /// <summary> The index of the noise function described by <see cref="CaveSizeNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int CaveSizeIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(CaveSizeNoise);
     /// <summary> The index of the noise function described by <see cref="CaveShapeNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int CaveShapeIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(CaveShapeNoise);
     /// <summary> The index of the noise function described by <see cref="CoarseMaterialNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int CoarseMaterialIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(CoarseMaterialNoise);
     /// <summary> The index of the noise function described by <see cref="FineMaterialNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int FineMaterialIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(FineMaterialNoise);
     /// <summary> The index of the noise function described by <see cref="CoarseTerrainNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int CoarseTerrainIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(CoarseTerrainNoise);
     /// <summary> The index of the noise function described by <see cref="FineTerrainNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
     public int FineTerrainIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(FineTerrainNoise);
 }}
 

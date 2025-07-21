@@ -13,18 +13,21 @@ MonoBehaviour:
   m_Name: PlankMat
   m_EditorClassIdentifier: 
   Name: Plank
+  Tags:
+    Reg:
+      value: []
   Names:
   - Plank:Solid
   - Void
   - Plank
-  SolidItem: 0
-  LiquidItem: 1
   terrainData:
     Texture: 2
     textureScale: 2
-    GeoShaderIndex: -1
+    GeoShaderIndex:
+      data: 0
   AtmosphereScatter:
-    ScatterCoeffs: {x: 0, y: 0, z: 0}
+    InScatterCoeffs: {x: 0, y: 0, z: 0}
+    OutScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}
     LightIntensity: 0
   liquidData:
@@ -37,3 +40,9 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
+  MaterialDrops:
+    SolidItem: 0
+    LiquidItem: 1
+  references:
+    version: 2
+    RefIds: []

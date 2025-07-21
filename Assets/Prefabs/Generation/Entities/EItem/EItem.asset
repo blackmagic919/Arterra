@@ -51,7 +51,7 @@ MonoBehaviour:
           x: 2
           y: 2
           z: 2
-        profileStart: 474
+        profileStart: 12
       collider:
         size:
           x: 0.5
@@ -65,6 +65,8 @@ MonoBehaviour:
         y: 32
       AlphaClip: 0.2
       ExtrudeHeight: 2.5
+      MergeRadius: 1
+      DecayTime: 300
   references:
     version: 2
     RefIds: []

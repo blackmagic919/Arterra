@@ -252,12 +252,12 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
 
         if (data.LiquidDensity != 0) {
             MapData lData = data; lData.viscosity = 0;
-            IItem item = matInfo.Retrieve(lData.material).AcquireItem(data);
+            IItem item = matInfo.Retrieve(lData.material).OnRemoved(int.MinValue, data);
             InventoryController.AddEntry(item);
         }
 
         if (data.SolidDensity != 0) {
-            IItem item = matInfo.Retrieve(data.material).AcquireItem(data);
+            IItem item = matInfo.Retrieve(data.material).OnRemoved(int.MinValue, data);
             InventoryController.AddEntry(item);
         }
     }

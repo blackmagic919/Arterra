@@ -12,8 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd2c618eff9714d1b8dad6fccbcfbf1e, type: 3}
   m_Name: MapSettings
   m_EditorClassIdentifier: 
-  waterMat: Water
-  waterHeight: -4
+  waterHeight: 75
   heightFalloff: 500
   atmosphereFalloff: 0.005
   CaveFrequencyNoise: CaveFrequency

@@ -143,9 +143,9 @@ MonoBehaviour:
           z: 2
         friction: 0.25
       movement:
-        walkSpeed: 2
-        runSpeed: 8
-        acceleration: 180
+        walkSpeed: 4
+        runSpeed: 18
+        acceleration: 200
         rotSpeed: 180
         pathDistance: 31
         AverageIdleTime: 2.5
@@ -180,12 +180,10 @@ MonoBehaviour:
               Bounds:
                 data: 4286643968
               Replacement: Dirt
-              ReplaceState: 0
             - Material: Grass
               Bounds:
                 data: 4286643968
               Replacement: Dirt
-              ReplaceState: 0
       physicality:
         value:
           MaxHealth: 20

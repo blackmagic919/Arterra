@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Fox
   m_EditorClassIdentifier: 
   Name: Fox
+  Tags:
+    Reg:
+      value: []
   Controller:
     value: {fileID: 5025472046583946829, guid: 419a2bdc199a94b1e86df75c0fc27a4d, type: 3}
   Profile:
@@ -60,7 +63,7 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 12
+        profileStart: 20
       collider:
         size:
           x: 0.75
@@ -68,8 +71,8 @@ MonoBehaviour:
           z: 0.75
         friction: 0.25
       movement:
-        walkSpeed: 3
-        runSpeed: 7
+        walkSpeed: 4.5
+        runSpeed: 10.5
         acceleration: 200
         rotSpeed: 180
         pathDistance: 31
@@ -119,3 +122,6 @@ MonoBehaviour:
           ConsumptionRate: 0.5
           MateCost: 4
           weight: 0.75
+  references:
+    version: 2
+    RefIds: []

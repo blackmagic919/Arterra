@@ -54,7 +54,7 @@ MonoBehaviour:
           x: 2
           y: 2
           z: 2
-        profileStart: 241
+        profileStart: 530
       collider:
         size:
           x: 0.5
@@ -62,8 +62,8 @@ MonoBehaviour:
           z: 0.5
         friction: 0.25
       movement:
-        walkSpeed: 1
-        runSpeed: 2
+        walkSpeed: 1.5
+        runSpeed: 3
         acceleration: 100
         rotSpeed: 180
         pathDistance: 16
@@ -86,7 +86,7 @@ MonoBehaviour:
             x: 1
             y: 1
             z: 1
-          profileStart: 249
+          profileStart: 538
       decomposition:
         LootTable:
           value:
@@ -137,17 +137,14 @@ MonoBehaviour:
               Bounds:
                 data: 4286643968
               Replacement: PlantMatter
-              ReplaceState: 1
             - Material: Moss
               Bounds:
                 data: 4286643968
               Replacement: Dirt
-              ReplaceState: 0
             - Material: SaturatedWater
               Bounds:
                 data: 4278255488
               Replacement: Water
-              ReplaceState: 1
   references:
     version: 2
     RefIds: []

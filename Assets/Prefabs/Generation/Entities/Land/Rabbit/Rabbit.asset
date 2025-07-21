@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Rabbit
   m_EditorClassIdentifier: 
   Name: Rabbit
+  Tags:
+    Reg:
+      value: []
   Controller:
     value: {fileID: 2959545676224314254, guid: 1463d059da03d4eccafc62aeec7150a7, type: 3}
   Profile:
@@ -60,7 +63,7 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 0
+        profileStart: 32
       collider:
         size:
           x: 0.5
@@ -68,8 +71,8 @@ MonoBehaviour:
           z: 0.5
         friction: 0.25
       movement:
-        walkSpeed: 3
-        runSpeed: 5
+        walkSpeed: 4
+        runSpeed: 7.5
         acceleration: 200
         rotSpeed: 180
         pathDistance: 31
@@ -106,7 +109,6 @@ MonoBehaviour:
               Bounds:
                 data: 4286643968
               Replacement: Dirt
-              ReplaceState: 0
       physicality:
         value:
           MaxHealth: 6
@@ -123,3 +125,6 @@ MonoBehaviour:
           ConsumptionRate: 0.25
           MateCost: 2
           weight: 0.5
+  references:
+    version: 2
+    RefIds: []

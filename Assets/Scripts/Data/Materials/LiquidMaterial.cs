@@ -133,21 +133,18 @@ namespace WorldConfig.Generation.Material{
             PropogateLiquid(GCoord, prng);
         }
 
-        /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
-        /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is solid. 
-        /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
-        public int SolidItem;
-        /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
-        /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is liquid. 
-        /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
-        public int LiquidItem;
+        /// <summary> The handler controlling how materials are dropped when
+        /// <see cref="OnRemoved"/> is called. See 
+        /// <see cref="MaterialData.ItemLooter"/> for more info.  </summary>
+        public ItemLooter MaterialDrops;
 
-        /// <summary> See <see cref="MaterialData.AcquireItem"/> for more information. </summary>
-        /// <param name="mapData">The map data indicating the amount of material removed
+        /// <summary> See <see cref="MaterialData.OnRemoved"/> for more information. </summary>
+        /// <param name="amount">The map data indicating the amount of material removed
         /// and the state it was removed as</param>
+        /// <param name="GCoord">The location of the map information being</param>
         /// <returns>The item to give.</returns>
-        public override Item.IItem AcquireItem(in MapData mapData) {
-            return GenericMaterial.GenericItemFromMap(mapData, RetrieveKey(SolidItem), RetrieveKey(LiquidItem));
+        public override Item.IItem OnRemoved(int3 GCoord, in MapData amount) {
+            return MaterialDrops.LootItem(amount, Names);
         }
     }
 }

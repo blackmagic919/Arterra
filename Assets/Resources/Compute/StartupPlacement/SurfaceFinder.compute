@@ -18,11 +18,9 @@ float2 startPosXZ;
 float SampleSurfaceHeight (float2 position)
 {
     //Get SurfaceData
-    float PV = GetNoise2D(position, PVSampler) * 2 - 1;
-    float continental = GetNoise2D(position, continentalSampler);
     float erosion = GetNoise2D(position, erosionSampler);
-    float squashFactor = GetNoise2D(position, squashSampler) * squashHeight;
-    return (continental + PV * erosion) * maxTerrainHeight + heightOffset;
+    float terrainHeight = GetErodedNoise2D(position, erosion, PVSampler, continentalSampler);
+    return terrainHeight * maxTerrainHeight + heightOffset;
 }
 
 [numthreads(1,1,1)]
