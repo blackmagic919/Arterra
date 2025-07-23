@@ -1,11 +1,10 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 #pragma multi_compile _ DIRECT_DEALLOCATE
+#include "Assets/Resources/Compute/MemoryStructures/Heap/LLRBOps.hlsl"
 
 const static uint InitBlockSize = 3;
 
-RWStructuredBuffer<uint> _SourceMemory;
-RWStructuredBuffer<uint2> _Heap;
 
 #ifdef DIRECT_DEALLOCATE
 StructuredBuffer<uint> _Address;
@@ -15,52 +14,6 @@ StructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
 #endif
 
-void Swap(uint a, uint b){
-    uint2 temp = _Heap[a];
-    _Heap[a] = _Heap[b];
-    _Heap[b] = temp;
-
-    //Update Linked List for positions
-    _SourceMemory[_Heap[a].x - 2] = a;
-    _SourceMemory[_Heap[b].x - 2] = b;
-}
-
-void SinkBlock(uint node){
-    while(2*node <= _Heap[0].x){
-        uint maxChild = 2*node;
-        if(2*node + 1 <= _Heap[0].x && _Heap[2*node + 1].y > _Heap[maxChild].y)
-            maxChild = 2*node + 1;
-
-        if(_Heap[node].y >= _Heap[maxChild].y)
-            break;
-
-        Swap(node, maxChild);
-        node = maxChild;
-    }
-}
-
-void SwimBlock(uint node){
-    while(node > 1){
-        uint parent = floor(node/2); //Better to be explicit
-
-        if(_Heap[parent].y >= _Heap[node].y)
-            break;
-
-        Swap(node, parent);
-        node = parent;
-    }
-}
-
-void RemoveBlock(uint node){
-    Swap(node, _Heap[0].x);
-    _Heap[0].x--;
-
-    //Sort the last node at this new position
-    //If it does swim, the new block at this position won't sink
-    //If it doesn't swim, the same node will be at this position
-    SwimBlock(node);
-    SinkBlock(node);
-}
 
 uint PrevBlockIndex(uint blockIndex){
     uint ret = 0;
@@ -107,30 +60,26 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint startIndex = blockAddress;
     uint endIndex = blockAddress + _SourceMemory[blockAddress-1];
 
-    //We merge blocks to keep memory from fragmenting
-    //Because we merge all empty adjacent blocks upon deallocation
-    //it is impossible for two empty blocks to be adjacent to each other
     uint pBlockAddress = PrevBlockIndex(blockAddress);
     uint nBlockAddress = NextBlockIndex(blockAddress);
 
-    if(pBlockAddress != 0){
+    if(pBlockAddress != 0) {
         startIndex = pBlockAddress;
-        RemoveBlock(_SourceMemory[pBlockAddress-2]);
-    } 
-
-    if(nBlockAddress != 0){
-        endIndex = nBlockAddress + _SourceMemory[nBlockAddress-1];
-        RemoveBlock(_SourceMemory[nBlockAddress-2]);
-    }
-
-    uint HeapEndIndex = ++_Heap[0].x;
+        pBlockAddress = _SourceMemory[pBlockAddress - 2];
+    } if(nBlockAddress != 0) endIndex = nBlockAddress + _SourceMemory[nBlockAddress-1];
+ 
     uint newBlockSize = endIndex - startIndex;
-    //Init Heap Block
-    _Heap[HeapEndIndex] = uint2(startIndex, newBlockSize);
     //Init Memory LL-Block
-    _SourceMemory[startIndex-2] = HeapEndIndex;
+    _SourceMemory[startIndex-2] = _Heap[0].x + 1;
     _SourceMemory[startIndex-1] = newBlockSize;
     _SourceMemory[startIndex + newBlockSize] = newBlockSize;
     
-    SwimBlock(HeapEndIndex);
+    AddBlock(startIndex);
+
+    //We merge blocks to keep memory from fragmenting
+    //Because we merge all empty adjacent blocks upon deallocation
+    //it is impossible for two empty blocks to be adjacent to each other
+    if(pBlockAddress != 0) RemoveBlock(pBlockAddress);
+    //It is possible the next block's heap ptr has been changed by the previous remove
+    if(nBlockAddress != 0) RemoveBlock(_SourceMemory[nBlockAddress - 2]);
 }

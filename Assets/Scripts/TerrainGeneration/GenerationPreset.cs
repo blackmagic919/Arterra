@@ -539,7 +539,7 @@ public static class GenerationPreset
 
             _GPUMemorySource = new ComputeBuffer(settings.StorageSize, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             //2 channels, 1 for size, 2 for memory address
-            _EmptyBlockHeap = new ComputeBuffer(settings.HeapSize, sizeof(uint) * 2, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+            _EmptyBlockHeap = new ComputeBuffer(settings.HeapSize, sizeof(uint) * 4, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             _AddressBuffer = new ComputeBuffer(settings.AddressSize+1, sizeof(uint) * 2, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
 
             addressLL = new uint2[settings.AddressSize+1];

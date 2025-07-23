@@ -10,14 +10,14 @@ const static uint InitBlockSize = 3;
 */
 
 RWStructuredBuffer<uint> _SourceMemory;
-RWStructuredBuffer<uint2> _Heap;
+RWStructuredBuffer<uint4> _Heap;
 uint _BufferSize4Bytes;
 
 [numthreads(1,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    _Heap[0] = uint2(1, 0); //size of filled heap, null
-    _Heap[1] = uint2(2, _BufferSize4Bytes - InitBlockSize); //Start index in memory, size of empty block(prioritized)
+    _Heap[0] = uint4(1, 0, 1, 0); //size of filled heap, null
+    _Heap[1] = uint4(2, 0, 0, 0); //Start index in memory, size of empty block(prioritized)
 
     _SourceMemory[0] = 1; //address of position in heap
     _SourceMemory[1] = _BufferSize4Bytes - InitBlockSize; //Size
