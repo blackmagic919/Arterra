@@ -16,7 +16,7 @@ MonoBehaviour:
   Tags:
     Reg:
       value:
-      - Tag: 6
+      - Tag: 1001
         value:
           value:
             rid: 6432722916811472969
@@ -28,7 +28,6 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: a70ff850dbb6e4430aa5c218a292e16b, type: 2}
     - value: {fileID: 11400000, guid: 91d2fe59fd0fb4794b499fc43effd541, type: 2}
     - value: {fileID: 11400000, guid: 97944f8888ed848af8ee0254b9acf91b, type: 2}
-    - value: {fileID: 11400000, guid: 4294a1b3d397b4bc4a494788192b0665, type: 2}
     - value: {fileID: 11400000, guid: c1c364aa971c94d9da804acddfd3e37d, type: 2}
   references:
     version: 2
@@ -39,6 +38,8 @@ MonoBehaviour:
         TerraformSpeed: 100
         ToolDamage: 1
         GivesItem: 1
-        ConvertBounds:
+        _convertBounds:
           data: 4286643968
+        _neighborBounds:
+          data: 2130738944
         ConvertTarget: TilledSoil

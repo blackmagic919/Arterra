@@ -15,7 +15,15 @@ MonoBehaviour:
   Name: Dirt
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 2000
+        value:
+          value:
+            rid: 6432722988684804190
+      - Tag: 1001
+        value:
+          value:
+            rid: 6432722988684804189
   Names:
   - Dirt:Solid
   - Void
@@ -45,4 +53,23 @@ MonoBehaviour:
     LiquidItem: 1
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 6432722988684804189
+      type: {class: ConverterToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0.5
+        ToolDamage: 2
+        GivesItem: 0
+        _convertBounds:
+          data: 4286643968
+        _neighborBounds:
+          data: 2130738944
+        ConvertTarget: TilledSoil
+    - rid: 6432722988684804190
+      type: {class: ConvertibleTag, ns: , asm: Assembly-CSharp}
+      data:
+        _convertBounds:
+          data: 4286586880
+        _neighborBounds:
+          data: 2130738944
+        GivesItem: 0

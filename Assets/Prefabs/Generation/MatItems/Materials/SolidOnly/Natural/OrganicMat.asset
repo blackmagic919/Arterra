@@ -16,21 +16,24 @@ MonoBehaviour:
   Tags:
     Reg:
       value:
-      - Tag: 5
+      - Tag: 1000
         value:
           value:
             rid: 6432722648275615824
   Children:
     value:
-    - value: {fileID: 11400000, guid: c53bc6cecb20249aead859815e2ff583, type: 2}
+    - value: {fileID: 11400000, guid: 1471a3ce72283487c8625fe6783bedb0, type: 2}
     - value: {fileID: 11400000, guid: 877c920efebfb4e15bfc341d9b395995, type: 2}
+    - value: {fileID: 11400000, guid: 4294a1b3d397b4bc4a494788192b0665, type: 2}
     - value: {fileID: 11400000, guid: 78d4ae6a530564b959843399cfd956d3, type: 2}
     - value: {fileID: 11400000, guid: 07d2832ea77354ad688f41842d2458f8, type: 2}
-    - value: {fileID: 11400000, guid: a549dc98ff67b49aaac7fd0c59f51234, type: 2}
+    - value: {fileID: 11400000, guid: 797a3fe4eb0e144cd8e57086ef253166, type: 2}
     - value: {fileID: 11400000, guid: 72eb2a86f07ef473ca5c536aeec133ce, type: 2}
     - value: {fileID: 11400000, guid: 0d3f3b37a74564114b9a437870248d11, type: 2}
     - value: {fileID: 11400000, guid: 1f9f68ebe27844430b8188a0426091e2, type: 2}
     - value: {fileID: 11400000, guid: 7b57b4e08c05c4ff386c642fd205567a, type: 2}
+    - value: {fileID: 11400000, guid: da5171de0458042558c3867d4f7abec4, type: 2}
+    - value: {fileID: 11400000, guid: ef71f8643b1b94c82b328091705c321d, type: 2}
   references:
     version: 2
     RefIds:
@@ -40,6 +43,8 @@ MonoBehaviour:
         TerraformSpeed: 0.25
         ToolDamage: 2
         GivesItem: 0
-        ConvertBounds:
-          data: 4286643968
+        _convertBounds:
+          data: 0
+        _neighborBounds:
+          data: 0
         ConvertTarget: FireAsh

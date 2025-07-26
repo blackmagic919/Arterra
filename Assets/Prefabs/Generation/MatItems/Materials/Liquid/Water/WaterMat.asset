@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: Water
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 2002
+        value:
+          value:
+            rid: 6432722988684804188
   Names:
   - Void
   - Water:Liquid
@@ -45,4 +49,12 @@ MonoBehaviour:
     LiquidItem: 1
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 6432722988684804188
+      type: {class: ConvertibleTag, ns: , asm: Assembly-CSharp}
+      data:
+        _convertBounds:
+          data: 2130771840
+        _neighborBounds:
+          data: 4278255360
+        GivesItem: 0

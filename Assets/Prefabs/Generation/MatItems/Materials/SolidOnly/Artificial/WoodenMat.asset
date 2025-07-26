@@ -20,7 +20,7 @@ MonoBehaviour:
         value:
           value:
             rid: 5818089348897964116
-      - Tag: 5
+      - Tag: 1000
         value:
           value:
             rid: 6432722648275615827
@@ -44,6 +44,8 @@ MonoBehaviour:
         TerraformSpeed: 0.25
         ToolDamage: 2
         GivesItem: 0
-        ConvertBounds:
+        _convertBounds:
           data: 4286643968
+        _neighborBounds:
+          data: 2130738944
         ConvertTarget: FireAsh

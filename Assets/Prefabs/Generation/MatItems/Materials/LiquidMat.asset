@@ -13,7 +13,13 @@ MonoBehaviour:
   m_Name: LiquidMat
   m_EditorClassIdentifier: 
   Name: C:Liquid
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
-    - value: {fileID: 11400000, guid: db0066818616147b9bd124a81c0ff506, type: 2}
+    - value: {fileID: 11400000, guid: cd07f3440f21c48f997885a1fe5c093a, type: 2}
     - value: {fileID: 11400000, guid: 32f8aefaf1a274a97a58c68cdcc6c600, type: 2}
+  references:
+    version: 2
+    RefIds: []

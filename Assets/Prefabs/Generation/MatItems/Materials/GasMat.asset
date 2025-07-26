@@ -16,10 +16,6 @@ MonoBehaviour:
   Tags:
     Reg:
       value:
-      - Tag: 1
-        value:
-          value:
-            rid: 6432722648275615816
       - Tag: 2
         value:
           value:
@@ -31,11 +27,11 @@ MonoBehaviour:
       - Tag: 4
         value:
           value:
-            rid: 6432722648275615819
-      - Tag: 5
+            rid: 6432722648275615818
+      - Tag: 1
         value:
           value:
-            rid: 6432722696530559048
+            rid: 6432722648275615818
   Children:
     value:
     - value: {fileID: 11400000, guid: 2a37c22a11b7a406da4fbaf59dceb18b, type: 2}
@@ -43,12 +39,6 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 6432722648275615816
-      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
-      data:
-        TerraformSpeed: 50
-        ToolDamage: 0
-        GivesItem: 0
     - rid: 6432722648275615817
       type: {class: ToolTag, ns: , asm: Assembly-CSharp}
       data:
@@ -61,18 +51,3 @@ MonoBehaviour:
         TerraformSpeed: 50
         ToolDamage: 0
         GivesItem: 0
-    - rid: 6432722648275615819
-      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
-      data:
-        TerraformSpeed: 50
-        ToolDamage: 0
-        GivesItem: 0
-    - rid: 6432722696530559048
-      type: {class: ConverterToolTag, ns: , asm: Assembly-CSharp}
-      data:
-        TerraformSpeed: 0
-        ToolDamage: 0
-        GivesItem: 0
-        ConvertBounds:
-          data: 2130738944
-        ConvertTarget: Ash

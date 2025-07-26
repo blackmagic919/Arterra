@@ -17,7 +17,7 @@ Shader "Unlit/Snow"
     {
         Tags { "RenderType"="Opaque" }
         LOD 100
-        Cull[_Cull]
+        Cull Back
 
         Pass
         {

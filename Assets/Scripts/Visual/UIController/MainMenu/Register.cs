@@ -27,7 +27,7 @@ public class Category<T> : ScriptableObject where T : Category<T>
         var children = GetChildren()?.value;
         BackEdge invertedDependency = new BackEdge(parent, this);
         //If children is null, then it is the leaf type being contained
-        if (children == null)
+        if (children == null)//
         {
             inv.Add(invertedDependency);
             flat.Add((T)this);
@@ -137,8 +137,8 @@ public struct Catalogue<T> : IRegister, ICloneable where T : Category<T>
         return true;
     }
 
-    public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, string name, out TagRegistry.IProperty prop) => GetMostSpecificTag(tag, RetrieveIndex(name), out prop);
-    public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, int index, out TagRegistry.IProperty prop)
+    public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, string name, out object prop) => GetMostSpecificTag(tag, RetrieveIndex(name), out prop);
+    public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, int index, out object prop)
     {
         prop = null;
         if (index < 0 || index >= Reg.Count) return false;

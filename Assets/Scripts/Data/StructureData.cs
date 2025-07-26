@@ -185,6 +185,10 @@ public class StructureData : Category<StructureData>
             return pt.LiquidDensity >= (data & 0xFF) && pt.LiquidDensity <= ((data >> 8) & 0xFF) && 
                pt.SolidDensity >= ((data >> 16) & 0xFF) && pt.SolidDensity <= ((data >> 24) & 0xFF);
         }
+        /// <summary> Whether or not the check's bounds are null, meaning that
+        /// the check is always valid. Equivalent the min and max bounds being
+        /// set to their maximum range. </summary>
+        public bool IsNull => data == 0xFF00FF00;
     }
 
     /// <summary> A single map entry contained by the structure. Contains <see cref="CPUDensityManager.MapData">

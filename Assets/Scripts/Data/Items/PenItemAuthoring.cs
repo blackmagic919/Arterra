@@ -294,7 +294,7 @@ namespace WorldConfig.Generation.Item
             if (item == null) return;
             MapData orig = CPUMapManager.SampleMap(hitCoord);
             ToolTag prop = PlayerInteraction.settings.DefaultTerraform.value;
-            if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out TagRegistry.IProperty tag))
+            if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out object tag))
                 prop = tag as ToolTag;
 
             if (!PlayerInteraction.HandleAddSolid(InventoryController.Primary.Info[nextSlot], hitCoord, prop.TerraformSpeed, out MapData change))
@@ -311,7 +311,7 @@ namespace WorldConfig.Generation.Item
             if (item == null) return;
             MapData orig = CPUMapManager.SampleMap(hitCoord);
             ToolTag prop = PlayerInteraction.settings.DefaultTerraform.value;
-            if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out TagRegistry.IProperty tag))
+            if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out object tag))
                 prop = tag as ToolTag;
 
             MapData prev = orig;

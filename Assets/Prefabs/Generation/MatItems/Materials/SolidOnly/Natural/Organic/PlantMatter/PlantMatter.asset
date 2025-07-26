@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: PlantMatter
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 2001
+        value:
+          value:
+            rid: 6432722988684804183
   Names:
   - PlantMatter:Solid
   - Void
@@ -45,4 +49,12 @@ MonoBehaviour:
     LiquidItem: 1
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 6432722988684804183
+      type: {class: ConvertibleTag, ns: , asm: Assembly-CSharp}
+      data:
+        _convertBounds:
+          data: 4286643968
+        _neighborBounds:
+          data: 4278255360
+        GivesItem: 0

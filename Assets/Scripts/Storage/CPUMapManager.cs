@@ -787,7 +787,7 @@ namespace MapStorage {
         public readonly int SolidDensity {
             get => viscosity;
         }
-        
+
         /// <summary> How much liquid material is contained in the location of this <see cref="MapData"/>.
         /// Directly effects the shape of liquid surfaces. Equivalent to <i>(density - viscosity)</i> </summary>
         public readonly int LiquidDensity {
@@ -814,10 +814,14 @@ namespace MapStorage {
 
         /// <summary>A backdoor method to modify the material for serialization 
         /// without marking the entry as dirty(<see cref="isDirty"/>). </summary>
-        public int _material 
-        {
+        public int _material {
             readonly get => (int)((data >> 16) & 0x7FFF);
             set => data = (data & 0x8000FFFF) | (uint)((value & 0x7FFF) << 16);
         }
+
+        /// <summary> The maximum value for <see cref="density"/> supported by the game </summary>
+        public static int MaxDensity => 0xFF;
+        /// <summary> The maximum value for <see cref="viscosity"/> supported by the game </summary>
+        public static int MaxViscosity => 0xFF;
     }
 }

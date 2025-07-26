@@ -312,11 +312,11 @@ namespace WorldConfig.Generation.Material
                     return item;
                 }
             }
-            
+
         /// <summary> An optional handler for materials which are capable of dropping
         /// multiple types of items on a probabilistic basis. </summary>
         [Serializable]
-        public struct MultiLooter{
+        public struct MultiLooter {
             /// <summary> The list of materials that can optionally be
             /// dropped if the material being removed is solid. </summary>
             public Option<List<LootInfo>> SolidLootTable;
@@ -324,7 +324,7 @@ namespace WorldConfig.Generation.Material
             /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is solid
             /// and no other material in <see cref="SolidLootTable"/> is selected. If the index does not point to a valid name 
             /// (e.g. -1), no item will be picked up when the material is removed. </summary>
-            public int DefaultSolidLoot;
+            public DefaultLoot DefaultSolidLoot;
             /// <summary> The list of materials that can optionally be
             /// dropped if the material being removed is liquid. </summary>
             public Option<List<LootInfo>> LiquidLootTable;
@@ -332,7 +332,7 @@ namespace WorldConfig.Generation.Material
             /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is liquid
             /// and no other material in <see cref="LiquidLootTable"/> is selected. If the index does not point to a valid name 
             /// (e.g. -1), no item will be picked up when the material is removed. </summary>
-            public int DefaultLiquidLoot;
+            public DefaultLoot DefaultLiquidLoot;
 
             /// <summary>  Creates a generic item from map information of what has been removed. 
             /// This is the standard logic for item acquirement for most materials. Returns a 
@@ -356,22 +356,25 @@ namespace WorldConfig.Generation.Material
             }
             private readonly Item.IItem GetTableItem(
                 int amount,
-                int DefaultLoot,
+                DefaultLoot DefaultLoot,
                 List<LootInfo> LootTable,
                 List<string> Names,
                 ref Unity.Mathematics.Random random
             ) {
                 if (amount <= 0) return null;
+                int dropAmount;
 
                 if (LootTable != null) {
                     foreach (LootInfo info in LootTable) {
                         if (random.NextFloat() > info.DropChance)
                             continue;
-                        return CreateItem(Names, info.DropItem, amount);
+                        dropAmount = Mathf.RoundToInt(amount * info.DropMultiplier);
+                        return CreateItem(Names, info.DropItem, dropAmount);
                     }
                 }
-
-                return CreateItem(Names, DefaultLoot, amount);
+                
+                dropAmount = Mathf.RoundToInt(amount * DefaultLoot.DropMultiplier);
+                return CreateItem(Names, DefaultLoot.DropItem, dropAmount);
             }
 
             private static Item.IItem CreateItem(List<string> Names, int DropItem, int amount) {
@@ -388,7 +391,7 @@ namespace WorldConfig.Generation.Material
             /// <summary> The settings describing an optional material that can be dropped
             /// and how often it should be dropped. </summary>
             [Serializable]
-            public struct LootInfo{
+            public struct LootInfo {
                 /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
                 /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when if the material is randomly selected.
                 /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
@@ -396,6 +399,21 @@ namespace WorldConfig.Generation.Material
                 /// <summary> The chance the material is dropped. This is resampled 
                 /// only once everytime any amount of material is removed. </summary>
                 public float DropChance;
+                /// <summary> How much the material is multiplied by when it is dropped. </summary>
+                public float DropMultiplier;
+            }
+
+            /// <summary> Settings describing the default loot that is dropped when no other loot is selected.
+            /// The only difference between this and the <see cref="LootInfo"/> is that it does not
+            /// specify a drop chance as it will always be dropped if no other loot is dropped. </summary>
+            [Serializable]
+            public struct DefaultLoot {
+                /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
+                /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when if the material is randomly selected.
+                /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
+                public int DropItem;
+                /// <summary> How much the material is multiplied by when it is dropped. </summary>
+                public float DropMultiplier;
             }
         }
 

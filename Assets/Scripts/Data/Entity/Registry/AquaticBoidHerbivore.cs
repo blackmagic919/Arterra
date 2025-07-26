@@ -49,7 +49,7 @@ public class AquaticBoidHerbivore : Authoring
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class Animal : Entity, IMateable, IAttackable, ICollidable
+    public class Animal : Entity, IMateable, IAttackable
     {  
         public Vitality vitality;
         public PathFinder.PathInfo pathFinder;
@@ -96,12 +96,6 @@ public class AquaticBoidHerbivore : Authoring
         public int3 GCoord => (int3)math.floor(origin); 
         [JsonIgnore]
         public bool IsDead => vitality.IsDead;
-        [JsonIgnore]
-        public float Weight => settings.Physicality.weight;
-        [JsonIgnore]
-        public float3 Velocity => tCollider.velocity;
-        [JsonIgnore]
-        public Bounds Bounds => new Bounds(position, settings.collider.size);
 
         public void TakeDamage(float damage, float3 knockback, Entity attacker) {
             if (!vitality.Damage(damage)) return;

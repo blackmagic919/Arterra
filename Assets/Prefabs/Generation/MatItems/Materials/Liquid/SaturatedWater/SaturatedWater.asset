@@ -41,20 +41,20 @@ MonoBehaviour:
     waveScale: {x: 0.2, y: 0.045}
     waveSpeed: {x: 2, y: 5}
   SpreadChance: 0.1
-  SpreadMaterial: Water
+  SpreadTag: 2002
   DecayChance: 0
-  DecayMaterial: 
-  SpreadBounds:
-    data: 4278255488
-  NeighborBounds:
-    data: 4278255360
+  DecayMaterial: 0
   MaterialDrops:
     SolidLootTable:
       value: []
-    DefaultSolidLoot: 0
+    DefaultSolidLoot:
+      DropItem: 0
+      DropMultiplier: 1
     LiquidLootTable:
       value: []
-    DefaultLiquidLoot: 1
+    DefaultLiquidLoot:
+      DropItem: 1
+      DropMultiplier: 1
   references:
     version: 2
     RefIds: []

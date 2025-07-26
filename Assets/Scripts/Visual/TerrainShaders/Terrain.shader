@@ -32,7 +32,7 @@ Shader "Unlit/Terrain"
 
             ZWrite On
             ColorMask 0
-            Cull[_Cull]
+            Cull Back
 
             HLSLPROGRAM
             // Required to compile gles 2.0 with standard srp library

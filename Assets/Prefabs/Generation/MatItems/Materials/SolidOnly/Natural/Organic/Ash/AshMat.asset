@@ -24,7 +24,7 @@ MonoBehaviour:
         value:
           value:
             rid: 6432722648275615828
-      - Tag: 5
+      - Tag: 1000
         value:
           value:
             rid: 6432722696530559049
@@ -76,6 +76,8 @@ MonoBehaviour:
         TerraformSpeed: 0
         ToolDamage: 0
         GivesItem: 0
-        ConvertBounds:
+        _convertBounds:
+          data: 4278255360
+        _neighborBounds:
           data: 4278255360
         ConvertTarget: Ash

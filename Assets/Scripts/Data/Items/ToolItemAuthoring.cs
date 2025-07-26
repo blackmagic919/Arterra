@@ -77,10 +77,10 @@ namespace WorldConfig.Generation.Item
 
         public virtual void OnDeselect()
         {
-            InputPoller.AddKeyBindChange(() =>
-            {
+            InputPoller.AddKeyBindChange(() => {
                 if (KeyBinds == null) return;
                 InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
+                KeyBinds = null;
             });
         }
 
@@ -114,7 +114,7 @@ namespace WorldConfig.Generation.Item
             bool RemoveSolid(int3 GCoord, float speed) {
                 MapData mapData = CPUMapManager.SampleMap(GCoord);
                 int material = mapData.material; ToolTag tag = PlayerInteraction.settings.DefaultTerraform;
-                if (MatInfo.GetMostSpecificTag(settings.ToolTag, material, out TagRegistry.IProperty prop))
+                if (MatInfo.GetMostSpecificTag(settings.ToolTag, material, out object prop))
                     tag = prop as ToolTag;
 
                 MapData prev = mapData;

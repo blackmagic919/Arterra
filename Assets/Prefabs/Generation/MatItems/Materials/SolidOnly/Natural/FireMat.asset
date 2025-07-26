@@ -42,14 +42,10 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   SpreadChance: 1
-  SpreadTag: 5
+  SpreadTag: 1000
   DecayChance: 0.5
   DecayMaterial: -1
   ContactDamage: 0.5
-  SpreadBounds:
-    data: 4286643968
-  NeighborBounds:
-    data: 2130771712
   MaterialDrops:
     SolidItem: 0
     LiquidItem: 0

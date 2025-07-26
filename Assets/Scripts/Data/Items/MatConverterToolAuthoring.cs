@@ -48,10 +48,8 @@ namespace WorldConfig.Generation.Item
             bool ModifySolid(int3 GCoord, float speed) {
                 MapData mapData = CPUMapManager.SampleMap(GCoord);
                 int material = mapData.material;
-                if (!MatInfo.GetMostSpecificTag(settings.ConverterTag, material, out TagRegistry.IProperty prop))
+                if (!IMaterialConverting.CanConvert(mapData, GCoord, settings.ConverterTag, out ConverterToolTag tag))
                     return false;
-                ConverterToolTag tag = prop as ConverterToolTag;
-                if (!tag.ConvertBounds.Contains(mapData)) return false;
                 if (UnityEngine.Random.Range(0.0f, 1.0f) > tag.TerraformSpeed)
                     return false;
                 if (!MaterialData.SwapMaterial(GCoord, MatInfo.RetrieveIndex(tag.ConvertTarget), out IItem origItem))

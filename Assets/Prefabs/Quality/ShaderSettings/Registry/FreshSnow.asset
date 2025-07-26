@@ -13,5 +13,11 @@ MonoBehaviour:
   m_Name: FreshSnow
   m_EditorClassIdentifier: 
   Name: FreshSnow
+  Tags:
+    Reg:
+      value: []
   info:
-    tesselationFactor: 3
+    tesselationFactor: 2
+  references:
+    version: 2
+    RefIds: []

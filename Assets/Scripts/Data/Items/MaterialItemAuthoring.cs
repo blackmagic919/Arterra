@@ -1,7 +1,5 @@
 using UnityEngine;
 using Newtonsoft.Json;
-using System;
-using WorldConfig;
 
 namespace WorldConfig.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Material")] 

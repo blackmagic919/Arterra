@@ -146,9 +146,9 @@ public static class PlayerInteraction
         return staggeredDelta + ((Time.frameCount % remInvFreq) == 0 ? 1 : 0);
     }
 
-    public static int GetStaggeredDelta(int baseDensity, float deltaDensity){
+    public static int GetStaggeredDelta(int baseDensity, float deltaDensity, int maxDensity = 255) {
         int staggeredDelta = (deltaDensity > 0 ? 1 : -1) * GetStaggeredDelta(math.abs(deltaDensity));
-        return Mathf.Abs(Mathf.Clamp(baseDensity + staggeredDelta, 0, 255) - baseDensity);
+        return Mathf.Abs(Mathf.Clamp(baseDensity + staggeredDelta, 0, maxDensity) - baseDensity);
     }
 
     public static bool HandleAddSolid(IItem matItem, int3 GCoord, float brushStrength, out MapData pointInfo){
@@ -222,7 +222,7 @@ public static class PlayerInteraction
     private static bool RemoveSolidBareHand(int3 GCoord, float speed){
         MapData mapData = CPUMapManager.SampleMap(GCoord);
         int material = mapData.material; ToolTag tag = settings.DefaultTerraform;
-        if (matInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, material, out TagRegistry.IProperty prop))
+        if (matInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, material, out object prop))
             tag = prop as ToolTag;
         return HandleRemoveSolid(ref mapData, GCoord, speed * tag.TerraformSpeed, tag.GivesItem);
     }

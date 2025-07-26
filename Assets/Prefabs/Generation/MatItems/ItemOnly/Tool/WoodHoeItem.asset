@@ -22,7 +22,7 @@ MonoBehaviour:
   TerraformRadius: 1
   MaxDurability: 100
   ToolTag: 1
-  ConverterTag: 6
+  ConverterTag: 1001
   references:
     version: 2
     RefIds: []
