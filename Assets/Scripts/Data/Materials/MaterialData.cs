@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using MapStorage;
-using BeziWebSocketSharp;
 
 
 namespace WorldConfig.Generation.Material
@@ -378,7 +377,7 @@ namespace WorldConfig.Generation.Material
             private static Item.IItem CreateItem(List<string> Names, int DropItem, int amount) {
                 if (DropItem < 0 || DropItem >= Names.Count) return null;
                 string name = Names[DropItem];
-                if (name.IsNullOrEmpty()) return null;
+                if (String.IsNullOrEmpty(name)) return null;
                 if (amount == 0) return null;
 
                 int Index = ItemInfo.RetrieveIndex(name);
