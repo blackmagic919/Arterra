@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1cbb11f6eccf844d2bbaa784a6cd4cdf, type: 3}
+  m_Script: {fileID: 11500000, guid: c14023f60fba149f790c1b3abdaafdbe, type: 3}
   m_Name: TilledSoilMat
   m_EditorClassIdentifier: 
   Name: TilledSoil
@@ -19,11 +19,11 @@ MonoBehaviour:
       - Tag: 2000
         value:
           value:
-            rid: 6432722988684804176
+            rid: 6432723091861012552
       - Tag: 1002
         value:
           value:
-            rid: 6432722988684804177
+            rid: 6432723091861012553
   Names:
   - Dirt:Solid
   - Void
@@ -49,10 +49,16 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
-  SpreadChance: 0
-  SpreadTag: 0
+  SelfCondition:
+    data: 4286643968
   DecayChance: 0.05
-  DecayMaterial: 3
+  DecayResult:
+    check:
+      bounds:
+        data: 0
+      flags: 4
+    _material: 2147483651
+    _offset: 537395712
   MaterialDrops:
     SolidLootTable:
       value: []
@@ -67,7 +73,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 6432722988684804176
+    - rid: 6432723091861012552
       type: {class: ConvertibleTag, ns: , asm: Assembly-CSharp}
       data:
         _convertBounds:
@@ -75,7 +81,7 @@ MonoBehaviour:
         _neighborBounds:
           data: 2130738944
         GivesItem: 0
-    - rid: 6432722988684804177
+    - rid: 6432723091861012553
       type: {class: ConvertibleToolTag, ns: , asm: Assembly-CSharp}
       data:
         TerraformSpeed: 0.5

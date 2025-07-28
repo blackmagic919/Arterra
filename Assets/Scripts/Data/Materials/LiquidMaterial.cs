@@ -3,6 +3,7 @@ using Unity.Mathematics;
 using Unity.Burst;
 using MapStorage;
 using static MapStorage.CPUMapManager;
+using Utils;
 /*
 y
 ^      0  5        z
@@ -33,15 +34,6 @@ namespace WorldConfig.Generation.Material{
     [BurstCompile]
     [CreateAssetMenu(menuName = "Generation/MaterialData/LiquidMat")]
     public class LiquidMaterial : MaterialData {
-            readonly static int3[] dP = new int3[6]{
-            new (0,1,0),
-            new (0,-1,0),
-            new (1,0,0),
-            new (0,0,-1),
-            new (-1,0,0),
-            new (0,0,1),
-        };
-
         [BurstCompile]
         private static void TransferLiquid(ref MapData a1, ref MapData b1) {
             int amount = a1.LiquidDensity; //Amount that's transferred
@@ -76,8 +68,11 @@ namespace WorldConfig.Generation.Material{
             if (cur.IsSolid) return false;
 
             int material = cur.material;
-            MapData[] map = {SampleMap(GCoord + dP[0]), SampleMap(GCoord + dP[1]), SampleMap(GCoord + dP[2]),
-                         SampleMap(GCoord + dP[3]), SampleMap(GCoord + dP[4]), SampleMap(GCoord + dP[5])};
+            MapData[] map = {
+                SampleMap(GCoord + CustomUtility.dP[0]), SampleMap(GCoord + CustomUtility.dP[1]),
+                SampleMap(GCoord + CustomUtility.dP[2]), SampleMap(GCoord + CustomUtility.dP[3]),
+                SampleMap(GCoord + CustomUtility.dP[4]), SampleMap(GCoord + CustomUtility.dP[5])
+            };
 
 
             for (int i = 0; i < 6; i++) {
@@ -105,13 +100,13 @@ namespace WorldConfig.Generation.Material{
                 }
             }
 
-            SetMap(cur, GCoord);
+            SetMap(cur, GCoord, false);
             for (int i = 0; i < 6; i++) {
                 //Update the map
-                SetMap(map[i], GCoord + dP[i]);
+                SetMap(map[i], GCoord + CustomUtility.dP[i], false);
                 //If state changed, add it to be updated
-                if ((((ChangeState >> i) & 0x1) ^ (map[i].IsLiquid ? 1 : 0)) != 0)
-                    TerrainGeneration.TerrainUpdate.AddUpdate(GCoord + dP[i]);
+                if ((((ChangeState >> i) & 0x1) ^ (map[i].IsLiquid ? 1 : 0)) != 0 || map[i].IsSolid)
+                    TerrainGeneration.TerrainUpdate.AddUpdate(GCoord + CustomUtility.dP[i]);
             }
             return true;
         }

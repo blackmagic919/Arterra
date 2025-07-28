@@ -23,6 +23,7 @@ struct Settings{
     float InflationFactor;
     float4 LeafColor;
     int TexIndex;
+    int QuadType;
 };
 
 StructuredBuffer<Settings> VariantSettings;
@@ -77,7 +78,7 @@ half3 Fragment(VertexOutput IN) : SV_TARGET{
     float2 windUV = TRANSFORM_TEX(mapCoordinates(IN.positionWS), _WindNoiseTexture) + _Time.y * _WindTimeMult;
     // Sample the wind noise texture and remap to range from -1 to 1
     float2 windNoise = SAMPLE_TEXTURE2D(_WindNoiseTexture, sampler_WindNoiseTexture, windUV).xy * 2 - 1;
-    IN.uv = clamp(IN.uv + windNoise * _WindAmplitude, 0, 1);
+    IN.uv = clamp(IN.uv + windNoise * _WindAmplitude, 0, 0.992);
 
     Settings cxt = VariantSettings[IN.variant];
     clip(_Textures.Sample(sampler_Textures, float3(IN.uv, cxt.TexIndex)).a - _AlphaClip);

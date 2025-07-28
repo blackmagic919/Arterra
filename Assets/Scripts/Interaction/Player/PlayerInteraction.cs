@@ -170,17 +170,33 @@ public static class PlayerInteraction
             return false;
 
         //If adding solid density, override water
-        MapData delta = pointInfo;
-        delta.density = GetStaggeredDelta(solidDensity, brushStrength);
-        delta.density = InventoryController.RemoveStackable(delta.density, matItem.Index);
-        delta.viscosity = delta.density;
+        int solidDelta = GetStaggeredDelta(solidDensity, brushStrength);
+        solidDelta = InventoryController.RemoveStackable(solidDelta, matItem.Index);
+        solidDelta = math.min(pointInfo.viscosity + solidDelta, 255) - pointInfo.viscosity;
 
-        solidDensity += delta.density;
-        delta.density = math.min(pointInfo.density + delta.density, 255) - pointInfo.density;
-        delta.viscosity = math.min(pointInfo.viscosity + delta.viscosity, 255) - pointInfo.viscosity;
-        pointInfo.density += delta.density;
+        //Remove previous liquid if there's any
+        MapData delta = pointInfo;
+        delta.viscosity = 0;
+        delta.density = solidDelta + pointInfo.density
+            - math.min(pointInfo.density + solidDelta, 255);
+
+        MaterialData authoring;
+        if (delta.LiquidDensity != 0) {
+            authoring = matInfo.Retrieve(pointInfo.material);
+            if (authoring.OnRemoving(GCoord, PlayerHandler.data))
+                return false;
+            //Don't collect liquid this way--discard it
+            authoring.OnRemoved(GCoord, delta);
+            //Remove the liquid density to place the new solid density
+            pointInfo.density -= delta.density;
+        }
+
+        delta.viscosity = solidDelta;
+        delta.density = solidDelta;
         pointInfo.viscosity += delta.viscosity;
-        if(solidDensity >= CPUMapManager.IsoValue)
+        pointInfo.density += delta.density;
+
+        if (pointInfo.viscosity >= CPUMapManager.IsoValue)
             pointInfo.material = selected;
         matInfo.Retrieve(pointInfo.material).OnPlaced(GCoord, delta);
         CPUMapManager.SetMap(pointInfo, GCoord);

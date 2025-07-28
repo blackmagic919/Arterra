@@ -199,9 +199,20 @@ public struct ProfileE {
 #if UNITY_EDITOR
 [CustomPropertyDrawer(typeof(ProfileE))]
 public class MapDataDrawer : PropertyDrawer{
+    private static readonly Dictionary<string, bool> _foldouts = new();
     /// <summary>  Callback for when the GUI needs to be rendered for the property. </summary>
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
+        string path = property.propertyPath;
+        if (!_foldouts.ContainsKey(path))
+            _foldouts[path] = false;
+
+        _foldouts[path] = EditorGUI.Foldout(
+            new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight),
+            _foldouts[path], label, true); // triangle on left, label is clickable
+
+        if (!_foldouts[path]) return;
+        
         SerializedProperty boundProp = property.FindPropertyRelative("bounds").FindPropertyRelative("data");
         uint data = boundProp.uintValue;
 
@@ -214,8 +225,9 @@ public class MapDataDrawer : PropertyDrawer{
             (int)((data >> 16) & 0xFF),
             (int)((data >> 24) & 0xFF)
         };
-
-        Rect rect = new (position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+        
+        Rect rect = new(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+        rect.y += EditorGUIUtility.singleLineHeight;
         
         EditorGUI.MultiIntField(rect, new GUIContent[] { new ("Liquid L"), new ("Liquid U") }, densityB);
         rect.y += EditorGUIUtility.singleLineHeight;
@@ -256,7 +268,8 @@ public class MapDataDrawer : PropertyDrawer{
     /// <summary>  Callback for when the GUI needs to know the height of the Inspector element. </summary>
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        return EditorGUIUtility.singleLineHeight * 3;
+        bool isExpanded = _foldouts.TryGetValue(property.propertyPath, out bool val) && val;
+        return isExpanded ? EditorGUIUtility.singleLineHeight * 4 : EditorGUIUtility.singleLineHeight;
     }
 }
 #endif

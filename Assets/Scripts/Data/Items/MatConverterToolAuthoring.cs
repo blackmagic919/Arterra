@@ -50,7 +50,7 @@ namespace WorldConfig.Generation.Item
                 int material = mapData.material;
                 if (!IMaterialConverting.CanConvert(mapData, GCoord, settings.ConverterTag, out ConverterToolTag tag))
                     return false;
-                if (UnityEngine.Random.Range(0.0f, 1.0f) > tag.TerraformSpeed)
+                if (UnityEngine.Random.Range(0.0f, 1.0f) >= tag.TerraformSpeed)
                     return false;
                 if (!MaterialData.SwapMaterial(GCoord, MatInfo.RetrieveIndex(tag.ConvertTarget), out IItem origItem))
                     return false;

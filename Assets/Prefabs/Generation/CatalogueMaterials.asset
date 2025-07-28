@@ -24,6 +24,10 @@ MonoBehaviour:
         value:
           value:
             rid: 5818089297814487228
+      - Tag: 5
+        value:
+          value:
+            rid: 6432723101265428555
       - Tag: 3
         value:
           value:
@@ -53,4 +57,10 @@ MonoBehaviour:
       data:
         TerraformSpeed: 50
         ToolDamage: 0.5
+        GivesItem: 1
+    - rid: 6432723101265428555
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0
+        ToolDamage: 0
         GivesItem: 1

@@ -28,7 +28,6 @@ namespace WorldConfig.Generation.Material{
     public class ConditionedGrowthMat : MaterialData {
         public Option<List<MapSamplePoint>> ConversionData;
         public Option<List<MapSampleRegion>> ConvertRegions;
-        [Header("Self Condition")]
         public StructureData.CheckInfo SelfCondition;
 
         private static Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
@@ -39,54 +38,16 @@ namespace WorldConfig.Generation.Material{
             foreach (MapSampleRegion region in ConvertRegions.value) {
                 if (prng.NextFloat() > region.convertChance) continue;
 
-                int i = (int)region.checkStart;
-                for (; i <= region.checkEnd; i++) {
+                if (!VerifySampleChecks(
+                    this, ConversionData.value,
+                    new int2((int)region.checkStart, (int)region.checkEnd), GCoord
+                )) continue;
+
+                for (int i = (int)region.convertStart; i <= region.convertEnd; i++) {
                     MapSamplePoint point = ConversionData.value[i];
-                    if (!SatisfiesCheck(point, GCoord)) break;
-                }
-                if (i <= region.checkEnd) continue;
-                for (i = (int)region.convertStart; i <= region.convertEnd; i++) {
-                    MapSamplePoint point = ConversionData.value[i];
-                    PlaceEntry(point, GCoord, ref prng);
+                    point.PlaceEntry(this, GCoord, ref prng);
                 }
             }
-        }
-
-        private void PlaceEntry(MapSamplePoint pt, int3 BaseCoord, ref Unity.Mathematics.Random prng) {
-            int3 GCoord = BaseCoord + pt.Offset;
-            MapData cur = CPUMapManager.SampleMap(GCoord);
-            if (cur.IsNull) return;
-
-            MapData newData = new MapData { data = 0 };
-            if (pt.HasMaterialCheck) {
-                newData.material = matInfo.RetrieveIndex(RetrieveKey((int)pt.material));
-            } else newData.material = cur.material;
-            newData.viscosity = Mathf.RoundToInt(pt.CheckBounds.MinSolid +
-                prng.NextFloat() * (pt.CheckBounds.MaxSolid - pt.CheckBounds.MinSolid));
-
-            int liquidDensity = Mathf.RoundToInt(pt.CheckBounds.MinLiquid +
-                prng.NextFloat() * (pt.CheckBounds.MaxLiquid - pt.CheckBounds.MinLiquid));
-            newData.density = Mathf.Clamp(newData.viscosity + liquidDensity, 0, MapData.MaxDensity);
-
-
-            if (matInfo.Retrieve(cur.material).OnRemoving(GCoord, null))
-                return;
-
-            if (matInfo.Retrieve(newData.material).OnPlacing(GCoord, null))
-                return;
-
-            matInfo.Retrieve(cur.material).OnRemoved(GCoord, cur);
-            matInfo.Retrieve(newData.material).OnPlaced(GCoord, newData);
-            CPUMapManager.SetMap(newData, GCoord);
-        }
-        
-        public bool SatisfiesCheck(MapSamplePoint pt, int3 BaseCoord) {
-            int3 GCoord = BaseCoord + pt.Offset;
-            MapData mapData = CPUMapManager.SampleMap(GCoord);
-            if (!pt.CheckBounds.Contains(mapData)) return false;
-            if (!pt.HasMaterialCheck) return true;
-            int material = matInfo.RetrieveIndex(RetrieveKey((int)pt.material));
-            return mapData.material == material;
         }
 
         public override void PropogateMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default) {
@@ -107,9 +68,26 @@ namespace WorldConfig.Generation.Material{
             return MaterialDrops.LootItem(amount, Names);
         }
 
+        public static bool VerifySampleChecks(MaterialData mat,
+            List<MapSamplePoint> checks, int2 range,
+            int3 GCoord, bool UseExFlag = true
+        ) {
+            bool allC = true; bool anyC = false; bool any0 = false;
+            for(int i = range.x; i <= range.y; i++){
+                MapSamplePoint samplePoint = checks[i];
+                if (samplePoint.check.ExFlag && UseExFlag) continue;
+                bool valid = samplePoint.SatisfiesCheck(mat, GCoord);
+                allC = allC && (valid || !samplePoint.check.AndFlag);
+                anyC = anyC || (valid && samplePoint.check.OrFlag);
+                any0 = any0 || samplePoint.check.OrFlag;
+            } 
+            if(allC && (!any0 || anyC)) return true;
+            else return false;
+        }
+
         [Serializable]
         public struct MapSamplePoint {
-            public StructureData.CheckInfo CheckBounds;
+            public Entity.ProfileE check;
             public uint _material;
             public uint _offset;
 
@@ -133,6 +111,64 @@ namespace WorldConfig.Generation.Material{
                     else _material &= 0x7FFFFFFF;
                 }
             }
+
+            public bool SatisfiesCheck(MaterialData mat, int3 BaseCoord) {
+                int3 GCoord = BaseCoord + Offset;
+                MapData mapData = CPUMapManager.SampleMap(GCoord);
+                if (!check.bounds.Contains(mapData)) return false;
+                if (!HasMaterialCheck) return true;
+                int checkMat = matInfo.RetrieveIndex(
+                    mat.RetrieveKey((int)material));
+                return mapData.material == checkMat;
+            }
+
+            public void PlaceEntry(MaterialData mat, int3 BaseCoord, ref Unity.Mathematics.Random prng, bool DropItem = false) {
+                int3 GCoord = BaseCoord + Offset;
+                MapData cur = CPUMapManager.SampleMap(GCoord);
+                if (cur.IsNull) return;
+
+                MapData newData = new MapData { data = 0 };
+
+                if (HasMaterialCheck) {
+                    newData.material = matInfo.RetrieveIndex(mat.RetrieveKey((int)material));
+                } else newData.material = cur.material;
+
+
+                if (check.flags != 0) {
+                    newData.viscosity = cur.viscosity;
+                    newData.density = cur.density;
+                } else {
+                    newData.viscosity = Mathf.RoundToInt(check.bounds.MinSolid +
+                        prng.NextFloat() * (check.bounds.MaxSolid - check.bounds.MinSolid));
+                    int liquidDensity = Mathf.RoundToInt(check.bounds.MinLiquid +
+                        prng.NextFloat() * (check.bounds.MaxLiquid - check.bounds.MinLiquid));
+                    newData.density = Mathf.Clamp(newData.viscosity + liquidDensity, 0, MapData.MaxDensity);
+                }
+
+                MapData deltaC = cur; MapData deltaN = newData;
+                if (newData.material == cur.material) {
+                    //If it's the same material, recalculate cur as the delta viscosity and density
+                    deltaC.viscosity -= math.min(cur.SolidDensity, newData.SolidDensity);
+                    deltaC.density = deltaC.viscosity + deltaC.LiquidDensity
+                        - math.min(cur.LiquidDensity, newData.LiquidDensity);
+
+                    deltaN.viscosity = math.max(cur.viscosity, newData.viscosity) - cur.viscosity;
+                    deltaN.density = deltaN.viscosity - cur.LiquidDensity
+                        + math.max(cur.LiquidDensity, newData.LiquidDensity);
+                }
+
+                if (matInfo.Retrieve(cur.material).OnRemoving(GCoord, null))
+                    return;
+
+                if (matInfo.Retrieve(newData.material).OnPlacing(GCoord, null))
+                    return;
+
+                Item.IItem drop = matInfo.Retrieve(cur.material).OnRemoved(GCoord, deltaC);
+                if (DropItem) InventoryController.DropItem(drop, GCoord);
+                matInfo.Retrieve(newData.material).OnPlaced(GCoord, deltaN);
+
+                CPUMapManager.SetMap(newData, GCoord);
+            }
         }
 
         [Serializable]
@@ -152,13 +188,26 @@ namespace WorldConfig.Generation.Material{
 /// It exposes the internal components of the bitmap so it can be more easily understood by the developer. </summary>
 [CustomPropertyDrawer(typeof(ConditionedGrowthMat.MapSamplePoint))]
 public class StructCheckDrawer : PropertyDrawer{
+    private static readonly Dictionary<string, bool> _foldouts = new();
     /// <summary>  Callback for when the GUI needs to be rendered for the property. </summary>
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
+        string path = property.propertyPath;
+        if (!_foldouts.ContainsKey(path))
+            _foldouts[path] = false;
+
+        _foldouts[path] = EditorGUI.Foldout(
+            new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight),
+            _foldouts[path], label, true); // triangle on left, label is clickable
+
+        if (!_foldouts[path]) return;
+
         // Draw check bounds normally
-        SerializedProperty checkProp = property.FindPropertyRelative("CheckBounds");
+        SerializedProperty checkProp = property.FindPropertyRelative("check");
         Rect rect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+        rect.y += EditorGUIUtility.singleLineHeight;
+
         EditorGUI.PropertyField(rect, checkProp);
-        rect.y += EditorGUIUtility.singleLineHeight * 2;
+        rect.y += EditorGUI.GetPropertyHeight(checkProp);
 
         SerializedProperty materialProp = property.FindPropertyRelative("_material");
         SerializedProperty offsetProp = property.FindPropertyRelative("_offset");
@@ -173,30 +222,39 @@ public class StructCheckDrawer : PropertyDrawer{
         };
 
         float labelWidth = EditorGUIUtility.labelWidth;
-        float fieldWidth = (rect.width - labelWidth) / 2f;
+        float fieldWidth = rect.width / 2f;
 
-        Rect hasMatRect = new(rect.x + labelWidth, rect.y, fieldWidth, rect.height);
-        Rect materialRect = new(hasMatRect.x + fieldWidth, rect.y, fieldWidth, rect.height);
-        EditorGUI.LabelField(rect, "HasMaterial (Material)");
+        Rect hasMatRect = new(rect.x, rect.y, fieldWidth, rect.height);
+        EditorGUI.LabelField(hasMatRect, "HasMaterial");
+        hasMatRect.x += labelWidth;
+        hasCheck = EditorGUI.Toggle(hasMatRect, hasCheck);
+
+        Rect materialRect = new(rect.x + fieldWidth, rect.y, fieldWidth, rect.height);
+        EditorGUI.LabelField(materialRect, "Material");
+        materialRect.x += labelWidth;
+        material = EditorGUI.IntField(materialRect, material);
+
         rect.y += EditorGUIUtility.singleLineHeight;
-        
-        Rect offsetLabelRect = new(rect.x, rect.y, fieldWidth, rect.height);
-        Rect offsetRect = new(offsetLabelRect.x + labelWidth, rect.y, fieldWidth * 2f, rect.height);
+        Rect offsetLabelRect = new(rect.x, rect.y, labelWidth, rect.height);
+        Rect offsetRect = new(offsetLabelRect.x + labelWidth, rect.y, rect.width - labelWidth, rect.height);
         EditorGUI.LabelField(offsetLabelRect, "Offset ");
         EditorGUI.MultiIntField(offsetRect, new GUIContent[] { new("x"), new("y"), new("z") }, offset);
         rect.y += EditorGUIUtility.singleLineHeight;
 
-        material = EditorGUI.IntField(materialRect, material);
-        hasCheck = EditorGUI.Toggle(hasMatRect, hasCheck);
         materialProp.uintValue = (uint)(material & 0x7FFFFFFF) | (hasCheck ? 0x80000000u : 0u);
         offsetProp.intValue = ((offset[0] + 512) & 0x3FF) << 20 |
             ((offset[1] + 512) & 0x3FF) << 10 | ((offset[2] + 512) & 0x3FF);
+
     }
 
     /// <summary>  Callback for when the GUI needs to know the height of the Inspector element. </summary>
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        return EditorGUIUtility.singleLineHeight * 4;
+        bool isExpanded = _foldouts.TryGetValue(property.propertyPath, out bool val) && val;
+        if (!isExpanded) return EditorGUIUtility.singleLineHeight;
+
+        SerializedProperty checkProp = property.FindPropertyRelative("check");
+        return EditorGUI.GetPropertyHeight(checkProp) + EditorGUIUtility.singleLineHeight * 3;
     }
 }
 #endif

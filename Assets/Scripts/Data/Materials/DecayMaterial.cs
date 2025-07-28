@@ -19,18 +19,16 @@ y
 
 namespace WorldConfig.Generation.Material{
 
-    /// <summary> A concrete material that will attempt to spread itself to neighboring entries 
-    /// when and only when  randomly updated. </summary>
+    /// <summary> A concrete material that will attempt to decay to one other state
+    /// after a certain amount of time. </summary>
     [BurstCompile]
-    [CreateAssetMenu(menuName = "Generation/MaterialData/GrassMat")]
-    public class GrassMaterial : MaterialData {
+    [CreateAssetMenu(menuName = "Generation/MaterialData/DecayMat")]
+    public class DecayMaterial : MaterialData {
         public StructureData.CheckInfo SelfCondition;
-        /// <summary> The chance that grass will spread to a neighboring entry. </summary>
+        public ConditionedGrowthMat.MapSamplePoint DecayResult;
+        /// <summary>The chance that the grass will decay and become <see cref="DecayMaterial"/> when randomly updated. </summary>
         [Range(0, 1)]
-        public float SpreadChance;
-        /// <summary> The tag that must be present on the material for grass to spread to it.  
-        /// The object associated with this tag in <see cref="TagRegistry"/> must be of type <see cref="ConvertableTag"/> </summary>
-        public TagRegistry.Tags SpreadTag;
+        public float DecayChance = 0;
 
 
         /// <summary> Random Material Update entry used to trigger grass growth. </summary>
@@ -40,7 +38,8 @@ namespace WorldConfig.Generation.Material{
         public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng) {
             MapData cur = CPUMapManager.SampleMap(GCoord); //Current 
             if (!SelfCondition.Contains(cur)) return;
-            SpreadGrass(cur, GCoord, ref prng);
+            if(DecayChance <= prng.NextFloat()) return;  
+            DecayResult.PlaceEntry(this, GCoord, ref prng);
         }
 
         /// <summary> Mandatory callback for when grass is forcibly updated. Do nothing here. </summary>
@@ -50,31 +49,6 @@ namespace WorldConfig.Generation.Material{
             //nothing to do here
         }
         
-        private void SpreadGrass(MapData cur, int3 GCoord, ref Unity.Mathematics.Random prng) {
-            if (SpreadChance <= 0) return;
-
-            int3 delta = int3.zero;
-            for (delta.x = -1; delta.x <= 1; delta.x++) {
-                for (delta.y = -1; delta.y <= 1; delta.y++) {
-                    for (delta.z = -1; delta.z <= 1; delta.z++) {
-                        if (prng.NextFloat() >= SpreadChance) continue;
-                        if (math.all(delta == int3.zero)) continue;
-                        int3 NCoord = GCoord + delta;
-                        MapData neighbor = CPUMapManager.SampleMap(NCoord);
-                        if (!IMaterialConverting.CanConvert(neighbor, NCoord,
-                                    SpreadTag, out ConvertibleTag tag))
-                            continue;
-                        if (!SwapMaterial(NCoord,
-                            cur.material,
-                            out Item.IItem origItem))
-                            continue;
-                        if (tag.GivesItem)
-                            InventoryController.DropItem(origItem, GCoord);
-                    }
-                }
-            }
-        }
-
 
         /// <summary> The handler controlling how materials are dropped when
         /// <see cref="OnRemoved"/> is called. See <see cref="MaterialData.MultiLooter"/> 

@@ -9,20 +9,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c9f8b4c3ecbaa4f9fb7202579d8d4666, type: 3}
-  m_Name: WoodHoeItem
+  m_Script: {fileID: 11500000, guid: fb5ab28ebaf0240359baf1d92ea3df1e, type: 3}
+  m_Name: FarmableMat
   m_EditorClassIdentifier: 
-  Name: WoodHoe
+  Name: Grassy
   Tags:
     Reg:
       value: []
-  TextureName: WoodHoe
-  MaterialName: 
-  MaterialState: 0
-  TerraformRadius: 1
-  MaxDurability: 100
-  ToolTag: 5
-  ConverterTag: 1001
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 5fbaaa9dd88394cd1a07ed891ad02b10, type: 2}
+    - value: {fileID: 11400000, guid: 269fc7ece590e4ce8aa60a04f07ddddd, type: 2}
   references:
     version: 2
     RefIds: []

@@ -13,8 +13,15 @@ MonoBehaviour:
   m_Name: CatalogueQuads
   m_EditorClassIdentifier: 
   Name: Root
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 97abaf9231ba649ac85139f8f9624c92, type: 2}
     - value: {fileID: 11400000, guid: 920ec026925254386adc03a7ef3b3160, type: 2}
     - value: {fileID: 11400000, guid: c42bddca9ddaf49469233934b9598552, type: 2}
+    - value: {fileID: 11400000, guid: 70fb5be0669e74ef695d6674639f4e02, type: 2}
+  references:
+    version: 2
+    RefIds: []

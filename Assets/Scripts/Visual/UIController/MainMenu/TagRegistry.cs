@@ -127,6 +127,7 @@ public struct TagRegistry
         { Tags.Axe, new ToolTag() },
         { Tags.Shovel, new ToolTag() },
         { Tags.Pickaxe, new ToolTag() },
+        { Tags.Hoe, new ToolTag() },
         //Converter Tags
         { Tags.Flammable, new ConverterToolTag() },
         { Tags.Tillable, new ConverterToolTag() },
@@ -139,7 +140,7 @@ public struct TagRegistry
 
     public enum Tags {
         //Tools
-        None=0, BareHand=1, Axe=2, Shovel=3, Pickaxe=4,
+        None=0, BareHand=1, Axe=2, Shovel=3, Pickaxe=4, Hoe=5,
         //Converters
         Flammable=1000, Tillable=1001, Seedable=1002,
         //Convertables

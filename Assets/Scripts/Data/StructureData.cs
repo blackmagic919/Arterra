@@ -259,6 +259,8 @@ public class StructPointDrawer : PropertyDrawer{
         uint density = data & 0xFF;
 
         Rect rect = new (position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+        EditorGUI.LabelField(rect, label);//
+        rect.y += EditorGUIUtility.singleLineHeight;
         
         material = (uint)EditorGUI.IntField(rect, "Material", (int)material);
         rect.y += EditorGUIUtility.singleLineHeight;
@@ -268,8 +270,6 @@ public class StructPointDrawer : PropertyDrawer{
         rect.y += EditorGUIUtility.singleLineHeight;
         preserve = EditorGUI.Toggle(rect, "Preserve", preserve);
         rect.y += EditorGUIUtility.singleLineHeight;
-        //isDirty = EditorGUI.Toggle(rect, "Is Dirty", isDirty);
-        //rect.y += EditorGUIUtility.singleLineHeight;
 
         //data = (isDirty ? data | 0x80000000 : data & 0x7FFFFFFF);
         data = preserve ? data | 0x80000000 : data & 0x7FFFFFFF;
@@ -283,7 +283,7 @@ public class StructPointDrawer : PropertyDrawer{
     /// <summary>  Callback for when the GUI needs to know the height of the Inspector element. </summary>
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        return EditorGUIUtility.singleLineHeight * 4;
+        return EditorGUIUtility.singleLineHeight * 5;
     }
 }
 
@@ -291,9 +291,20 @@ public class StructPointDrawer : PropertyDrawer{
 /// It exposes the internal components of the bitmap so it can be more easily understood by the developer. </summary>
 [CustomPropertyDrawer(typeof(StructureData.CheckInfo))]
 public class StructCheckDrawer : PropertyDrawer{
+    private static readonly Dictionary<string, bool> _foldouts = new();
     /// <summary>  Callback for when the GUI needs to be rendered for the property. </summary>
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
+        string path = property.propertyPath;
+        if (!_foldouts.ContainsKey(path))
+            _foldouts[path] = false;
+
+        _foldouts[path] = EditorGUI.Foldout(
+            new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight),
+            _foldouts[path], label, true); // triangle on left, label is clickable
+
+        if (!_foldouts[path]) return;
+
         SerializedProperty dataProp = property.FindPropertyRelative("data");
         uint data = dataProp.uintValue;
 
@@ -306,11 +317,12 @@ public class StructCheckDrawer : PropertyDrawer{
             (int)((data >> 24) & 0xFF)
         };
 
-        Rect rect = new (position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
-        
-        EditorGUI.MultiIntField(rect, new GUIContent[] { new ("Liquid L"), new ("Liquid U") }, densityB);
+        Rect rect = new(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
         rect.y += EditorGUIUtility.singleLineHeight;
-        EditorGUI.MultiIntField(rect, new GUIContent[] { new ("Solid L"), new ("Solid U") }, viscosityB);
+
+        EditorGUI.MultiIntField(rect, new GUIContent[] { new("Liquid L"), new("Liquid U") }, densityB);
+        rect.y += EditorGUIUtility.singleLineHeight;
+        EditorGUI.MultiIntField(rect, new GUIContent[] { new("Solid L"), new("Solid U") }, viscosityB);
         rect.y += EditorGUIUtility.singleLineHeight;
 
 
@@ -324,7 +336,8 @@ public class StructCheckDrawer : PropertyDrawer{
     /// <summary>  Callback for when the GUI needs to know the height of the Inspector element. </summary>
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        return EditorGUIUtility.singleLineHeight * 2;
+        bool isExpanded = _foldouts.TryGetValue(property.propertyPath, out bool val) && val;
+        return isExpanded ? EditorGUIUtility.singleLineHeight * 3 : EditorGUIUtility.singleLineHeight;
     }
 }
 #endif

@@ -41,14 +41,34 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
+  SelfCondition:
+    data: 4286643968
+  ConversionData:
+    value: []
+  ConvertRegions:
+    value: []
+  DefaultDecay:
+    check:
+      bounds:
+        data: 1679360000
+      flags: 0
+    _material: 0
+    _offset: 537395712
+  DefaultDecayChance: 0.5
+  MaterialDrops:
+    SolidLootTable:
+      value: []
+    DefaultSolidLoot:
+      DropItem: 0
+      DropMultiplier: 0
+    LiquidLootTable:
+      value: []
+    DefaultLiquidLoot:
+      DropItem: 0
+      DropMultiplier: 0
   SpreadChance: 1
   SpreadTag: 1000
-  DecayChance: 0.5
-  DecayMaterial: -1
   ContactDamage: 0.5
-  MaterialDrops:
-    SolidItem: 0
-    LiquidItem: 0
   references:
     version: 2
     RefIds: []

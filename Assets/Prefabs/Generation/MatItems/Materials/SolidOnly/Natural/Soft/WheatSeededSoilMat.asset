@@ -45,118 +45,238 @@ MonoBehaviour:
     waveSpeed: {x: 0, y: 0}
   ConversionData:
     value:
-    - CheckBounds:
-        data: 2357329920
+    - check:
+        bounds:
+          data: 2357329920
+        flags: 0
       _material: 2147483653
       _offset: 537396736
-    - CheckBounds:
-        data: 2357329920
-      _material: 2147483653
-      _offset: 537397760
-    - CheckBounds:
-        data: 2525757440
-      _material: 2147483652
-      _offset: 537398784
-    - CheckBounds:
-        data: 2137260032
-      _material: 0
-      _offset: 537399808
-    - CheckBounds:
-        data: 2130738944
-      _material: 0
-      _offset: 537396736
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
       _material: 0
       _offset: 538445312
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
       _material: 0
       _offset: 536348160
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
       _material: 0
       _offset: 537396737
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
       _material: 0
       _offset: 537396735
-    - CheckBounds:
-        data: 2130738944
-      _material: 0
-      _offset: 537397760
-    - CheckBounds:
-        data: 4286643968
+    - check:
+        bounds:
+          data: 2357329920
+        flags: 0
       _material: 2147483653
-      _offset: 537396736
-    - CheckBounds:
-        data: 2130738944
-      _material: 0
       _offset: 537397760
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
       _material: 0
       _offset: 538446336
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
       _material: 0
       _offset: 536349184
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
       _material: 0
       _offset: 537397761
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
       _material: 0
       _offset: 537397759
-    - CheckBounds:
-        data: 2130738944
-      _material: 0
+    - check:
+        bounds:
+          data: 3365273600
+        flags: 0
+      _material: 2147483652
       _offset: 537398784
-    - CheckBounds:
-        data: 4286643968
-      _material: 2147483653
-      _offset: 537397760
-    - CheckBounds:
-        data: 2130738944
-      _material: 0
-      _offset: 537398784
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
       _material: 0
       _offset: 538447360
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
       _material: 0
       _offset: 536350208
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
       _material: 0
       _offset: 537398785
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
       _material: 0
       _offset: 537398783
-    - CheckBounds:
-        data: 2130738944
+    - check:
+        bounds:
+          data: 2138243072
+        flags: 0
+      _material: 0
+      _offset: 537399808
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537396736
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 538445312
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 536348160
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537396737
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537396735
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537397760
+    - check:
+        bounds:
+          data: 4286643968
+        flags: 1
+      _material: 2147483653
+      _offset: 537396736
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537397760
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 538446336
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 536349184
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537397761
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537397759
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537398784
+    - check:
+        bounds:
+          data: 4286643968
+        flags: 1
+      _material: 2147483653
+      _offset: 537397760
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537398784
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 538447360
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 536350208
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537398785
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537398783
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
       _material: 0
       _offset: 537399808
   ConvertRegions:
     value:
-    - checkStart: 4
-      checkEnd: 9
+    - checkStart: 16
+      checkEnd: 21
       convertStart: 0
-      convertEnd: 0
+      convertEnd: 4
       convertChance: 0.25
-    - checkStart: 10
-      checkEnd: 16
-      convertStart: 1
-      convertEnd: 1
+    - checkStart: 22
+      checkEnd: 28
+      convertStart: 5
+      convertEnd: 9
       convertChance: 0.25
-    - checkStart: 17
-      checkEnd: 23
-      convertStart: 2
-      convertEnd: 3
+    - checkStart: 29
+      checkEnd: 35
+      convertStart: 10
+      convertEnd: 15
       convertChance: 0.75
   SelfCondition:
     data: 4286643968

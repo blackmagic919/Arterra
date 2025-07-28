@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: PineLeaves
   m_EditorClassIdentifier: 
   Name: PineLeaves
+  Tags:
+    Reg:
+      value: []
   NameRegister:
     value:
     - PineLeaf
@@ -21,3 +24,7 @@ MonoBehaviour:
     Inflation: 0
     LeafColor: {r: 0.06354573, g: 0.26415092, b: 0.09888226, a: 0}
     TextureIndex: 0
+    QuadType: 0
+  references:
+    version: 2
+    RefIds: []

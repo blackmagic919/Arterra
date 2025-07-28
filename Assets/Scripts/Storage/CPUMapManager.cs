@@ -102,7 +102,7 @@ namespace MapStorage {
             if (!AddressDict[chunkHash].valid) return;
             int3 CCoord = AddressDict[chunkHash].CCoord;
             EntityManager.ReleaseChunkEntities(CCoord, await);
-            
+
             DisposeChunk(chunkHash);
             if (!AddressDict[chunkHash].isDirty) return;
             ChunkPtr chunk = new ChunkPtr(MapMetaData[chunkHash],
@@ -134,7 +134,7 @@ namespace MapStorage {
             //Release Previous Chunk
             if (prevChunk.valid) SaveChunk(chunkHash);
             MapMetaData[chunkHash] = chunkMeta?.ToDictionary(
-                pair => pair.Key, 
+                pair => pair.Key,
                 pair => pair.Value
             );
 
@@ -233,7 +233,7 @@ namespace MapStorage {
         /// <returns>Whether or not the requested metaData could be obtained. If the metaData cannot be obtained
         /// it means the system is not capable of tracking it and the caller should not attempt to further use/create
         ///  the meta data.</returns>
-        public static bool GetOrCreateMapMeta<TMeta>(int3 GCoord, Func<TMeta> GetDefault, out TMeta ret){
+        public static bool GetOrCreateMapMeta<TMeta>(int3 GCoord, Func<TMeta> GetDefault, out TMeta ret) {
             int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
             int3 CCoord = (GCoord - MCoord) / mapChunkSize;
             int3 HCoord = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
@@ -259,9 +259,10 @@ namespace MapStorage {
             else {
                 ret = GetDefault();
                 MapMetaData[CIndex][PIndex] = ret;
-            } return true;
+            }
+            return true;
         }
-        
+
         /// <summary>Obtains the metadata of type <i>TMeta</i> at the location only if there exists
         /// metadata of the requested type. Otherwise fails. Unlike <see cref="GetOrCreateMapMeta"/>,
         /// this operation will not create/modify existing metadata</summary>
@@ -456,6 +457,21 @@ namespace MapStorage {
 
         }
 
+        /// <summary> Converts from grid space to chunk space hash and map space hash.
+        /// See <see cref="GSToCS"/> for more information on chunk space.
+        /// The map space hash is the offset of the map entry within the chunk. </summary>
+        /// <param name="GCoord">The coordinate in grid space</param>
+        /// <returns>Two integers, x: the chunk space has, y: the map space hash. </returns>
+        public static int2 GSToHashes(int3 GCoord) {
+            int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
+            int3 CCoord = (GCoord - MCoord) / mapChunkSize;
+            int3 HCoord = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
+
+            return new int2(
+                HCoord.x * numChunksAxis * numChunksAxis + HCoord.y * numChunksAxis + HCoord.z,
+                MCoord.x * mapChunkSize * mapChunkSize + MCoord.y * mapChunkSize + MCoord.z
+            );
+        }
         /// <summary> Converts from grid space to chunk space using integer mathematics. Chunk Space is a coordinate
         /// system that reserves a unique minimally dense integer coordinate for each Real Chunk. Specifically, gets 
         /// the chunk coordinate of the chunk containing this grid coordinate. </summary>
@@ -484,7 +500,9 @@ namespace MapStorage {
         /// change visually and marks the chunk as dirty when storing to disk. </summary>
         /// <param name="data">The <see cref="MapData"/> that is written(assigned) </param>
         /// <param name="GCoord">The coordinate in grid space of the entry being assinged to</param>
-        public static void SetMap(MapData data, int3 GCoord) {
+        /// <param name="AdjacentUpdates">Whether or not to update the adjacent entries in the map. 
+        /// This should always be true unless it can cause infinite cascading updates </param>
+        public static void SetMap(MapData data, int3 GCoord, bool AdjacentUpdates = true) {
             int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
             int3 CCoord = (GCoord - MCoord) / mapChunkSize;
             int3 HCoord = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
@@ -503,20 +521,27 @@ namespace MapStorage {
             chunkMapInfo.isDirty = true;
             AddressDict[CIndex] = chunkMapInfo;
             ReflectNeighbors(CCoord, MCoord == 0);
+            if (!AdjacentUpdates) return;
+            for (int i = 0; i < 6; i++) {
+                TerrainUpdate.AddUpdate(GCoord + Utils.CustomUtility.dP[i]);
+            }
         }
 
         private static void ReflectNeighbors(int3 CCoord, bool3 IsBordering) {
             for (int x = IsBordering.x ? -1 : 0; x <= 0; x++) {
-            for (int y = IsBordering.y ? -1 : 0; y <= 0; y++) {
-            for (int z = IsBordering.z ? -1 : 0; z <= 0; z++) {
-                int3 NeighborCC = CCoord + new int3(x,y,z);
-                int3 HCoord = ((NeighborCC % numChunksAxis) + numChunksAxis) % numChunksAxis;
-                int CIndex = HCoord.x * numChunksAxis * numChunksAxis + HCoord.y * numChunksAxis + HCoord.z;
-                ChunkMapInfo mapInfo = AddressDict[CIndex];
-                if (!mapInfo.valid || math.any(mapInfo.CCoord != NeighborCC))
-                    return;
-                _ChunkManagers[CIndex].ReflectChunkThread();
-            }}};
+                for (int y = IsBordering.y ? -1 : 0; y <= 0; y++) {
+                    for (int z = IsBordering.z ? -1 : 0; z <= 0; z++) {
+                        int3 NeighborCC = CCoord + new int3(x, y, z);
+                        int3 HCoord = ((NeighborCC % numChunksAxis) + numChunksAxis) % numChunksAxis;
+                        int CIndex = HCoord.x * numChunksAxis * numChunksAxis + HCoord.y * numChunksAxis + HCoord.z;
+                        ChunkMapInfo mapInfo = AddressDict[CIndex];
+                        if (!mapInfo.valid || math.any(mapInfo.CCoord != NeighborCC))
+                            return;
+                        _ChunkManagers[CIndex].ReflectChunkThread();
+                    }
+                }
+            }
+            ;
         }
 
         /// <summary> Retrieves the <see cref="MapData"/> associated with a grid coordinate if
@@ -538,6 +563,18 @@ namespace MapStorage {
 
             return SectionedMemory[CIndex * numPoints + PIndex];
         }
+
+        /// <summary> Retrieves the <see cref="MapData"/> associated with a map entry
+        /// of the given hash coordinate if it is currently being managed by <see cref="CPUMapManager"/>.
+        /// This is a faster and more direct method for sampling map information. </summary>
+        /// <param name="hash">The hash indices as provided by <see cref="GSToHashes"/></param>
+        /// <returns>The map data associated with this location.</returns>
+        public static MapData SampleMapFromHash(int2 hash) {
+            ChunkMapInfo mapInfo = AddressDict[hash.x];
+            if (!mapInfo.valid) return new MapData { data = 0xFFFFFFFF };
+            return SectionedMemory[hash.x * numPoints + hash.y];
+        }
+
 
         /// <summary> Retrieves the <see cref="MapData.viscosity"/>/<see cref="MapData.SolidDensity"/> value of the 
         /// MapData associated with the given grid coordinate if it is currently being managed by <see cref="CPUMapManager"/>,
@@ -824,4 +861,5 @@ namespace MapStorage {
         /// <summary> The maximum value for <see cref="viscosity"/> supported by the game </summary>
         public static int MaxViscosity => 0xFF;
     }
+
 }

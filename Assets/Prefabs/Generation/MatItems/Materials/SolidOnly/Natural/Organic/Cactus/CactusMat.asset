@@ -41,10 +41,10 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
+  SelfCondition:
+    data: 4286643968
   SpreadChance: 0.5
   SpreadTag: 2001
-  DecayChance: 0
-  DecayMaterial: 0
   MaterialDrops:
     SolidLootTable:
       value: []

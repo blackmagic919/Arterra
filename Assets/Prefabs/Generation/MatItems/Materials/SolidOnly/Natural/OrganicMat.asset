@@ -20,9 +20,14 @@ MonoBehaviour:
         value:
           value:
             rid: 6432722648275615824
+      - Tag: 5
+        value:
+          value:
+            rid: 6432723101265428554
   Children:
     value:
     - value: {fileID: 11400000, guid: 1471a3ce72283487c8625fe6783bedb0, type: 2}
+    - value: {fileID: 11400000, guid: cd825e373659345f5a7a582d99ed686b, type: 2}
     - value: {fileID: 11400000, guid: 877c920efebfb4e15bfc341d9b395995, type: 2}
     - value: {fileID: 11400000, guid: 4294a1b3d397b4bc4a494788192b0665, type: 2}
     - value: {fileID: 11400000, guid: 78d4ae6a530564b959843399cfd956d3, type: 2}
@@ -32,8 +37,6 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: 0d3f3b37a74564114b9a437870248d11, type: 2}
     - value: {fileID: 11400000, guid: 1f9f68ebe27844430b8188a0426091e2, type: 2}
     - value: {fileID: 11400000, guid: 7b57b4e08c05c4ff386c642fd205567a, type: 2}
-    - value: {fileID: 11400000, guid: da5171de0458042558c3867d4f7abec4, type: 2}
-    - value: {fileID: 11400000, guid: ef71f8643b1b94c82b328091705c321d, type: 2}
   references:
     version: 2
     RefIds:
@@ -44,7 +47,13 @@ MonoBehaviour:
         ToolDamage: 2
         GivesItem: 0
         _convertBounds:
-          data: 0
+          data: 4286643968
         _neighborBounds:
-          data: 0
+          data: 2130738944
         ConvertTarget: FireAsh
+    - rid: 6432723101265428554
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 100
+        ToolDamage: 2
+        GivesItem: 1

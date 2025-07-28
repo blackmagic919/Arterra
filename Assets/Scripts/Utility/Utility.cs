@@ -6,6 +6,15 @@ using Unity.Mathematics;
 
 namespace Utils {
     public static class CustomUtility {
+        public readonly static int3[] dP = new int3[6]{
+            new (0,1,0),
+            new (0,-1,0),
+            new (1,0,0),
+            new (0,0,-1),
+            new (-1,0,0),
+            new (0,0,1),
+        };
+
         static int[] xThetaRot = new int[] { 0, 2, 0, 2 };
         static int[] xThetaDir = new int[] { 1, -1, -1, 1 };
         static int[] zThetaRot = new int[] { 2, 0, 2, 0 };

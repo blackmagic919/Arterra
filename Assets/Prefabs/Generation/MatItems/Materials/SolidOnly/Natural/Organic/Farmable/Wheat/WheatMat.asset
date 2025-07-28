@@ -9,29 +9,31 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2cb3c737a29ce4a28ae2d74f4ff5e31d, type: 3}
-  m_Name: FireAshMat
+  m_Script: {fileID: 11500000, guid: ffa76965563f7462d9baf34f7b49b3c9, type: 3}
+  m_Name: WheatMat
   m_EditorClassIdentifier: 
-  Name: FireAsh
+  Name: Wheat
   Tags:
     Reg:
       value: []
   Names:
+  - Wheat:Solid
+  - WheatSeeds
   - Void
-  - Fire
-  - Shell
-  - Flames
-  - Ash
+  - WheatKernels
+  - InsetQuad
+  - WheatBristle
+  - PlantStem
   terrainData:
-    Texture: 1
-    textureScale: 3
+    Texture: 3
+    textureScale: 2
     GeoShaderIndex:
-      data: 2147614723
+      data: 2147745797
   AtmosphereScatter:
-    InScatterCoeffs: {x: 0.00025, y: 0.00025, z: 0.00025}
-    OutScatterCoeffs: {x: 0.005, y: 0.005, z: 0.005}
-    GroundExtinction: {x: 0.05, y: 0.05, z: 0.05}
-    LightIntensity: 271
+    InScatterCoeffs: {x: 0, y: 0, z: 0}
+    OutScatterCoeffs: {x: 0, y: 0, z: 0}
+    GroundExtinction: {x: 0, y: 0, z: 0}
+    LightIntensity: 0
   liquidData:
     shallowCol: {x: 0, y: 0, z: 0}
     deepCol: {x: 0, y: 0, z: 0}
@@ -48,74 +50,68 @@ MonoBehaviour:
     value:
     - check:
         bounds:
-          data: 4278255360
-        flags: 4
-      _material: 2147483652
+          data: 1679385625
+        flags: 0
+      _material: 0
       _offset: 537395712
     - check:
         bounds:
-          data: 2130738944
-        flags: 2
-      _material: 0
-      _offset: 537396736
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 2
-      _material: 0
+          data: 4286643968
+        flags: 1
+      _material: 2147483654
       _offset: 537394688
     - check:
         bounds:
           data: 2130738944
-        flags: 2
+        flags: 1
       _material: 0
       _offset: 538444288
     - check:
         bounds:
           data: 2130738944
-        flags: 2
-      _material: 2147483648
+        flags: 1
+      _material: 0
       _offset: 536347136
     - check:
         bounds:
           data: 2130738944
-        flags: 2
+        flags: 1
       _material: 0
       _offset: 537395713
     - check:
         bounds:
           data: 2130738944
-        flags: 2
+        flags: 1
       _material: 0
       _offset: 537395711
   ConvertRegions:
     value:
     - checkStart: 1
-      checkEnd: 6
+      checkEnd: 5
       convertStart: 0
       convertEnd: 0
   DefaultDecay:
     check:
       bounds:
-        data: 4278255360
-      flags: 4
-    _material: 2147483652
-    _offset: 537395712
-  DefaultDecayChance: 0.5
+        data: 0
+      flags: 0
+    _material: 0
+    _offset: 0
+  DefaultDecayChance: 0
   MaterialDrops:
     SolidLootTable:
-      value: []
+      value:
+      - DropItem: 1
+        DropChance: 0.25
+        DropMultiplier: 2
     DefaultSolidLoot:
       DropItem: 0
-      DropMultiplier: 0
+      DropMultiplier: 1
     LiquidLootTable:
       value: []
     DefaultLiquidLoot:
-      DropItem: 0
-      DropMultiplier: 0
-  SpreadChance: 1
-  SpreadTag: 1000
-  ContactDamage: 0.5
+      DropItem: 2
+      DropMultiplier: 1
   references:
     version: 2
     RefIds: []

@@ -20,6 +20,10 @@ struct Settings{
     float InflationFactor;
     float4 LeafColor;
     int TexIndex;
+    // 0 = Triple
+    // 1 = Quads Along Normal
+    // 2 = Quad facing normal
+    int QuadType;
 };
 
 StructuredBuffer<Settings> VariantSettings;
@@ -94,11 +98,12 @@ void AppendQuad(Quad quad, float3 normalOS, uint mat){
 void CreateQuadIntersects(float3 center, float3 normalOS, uint mat) {
     float3 forward = normalize(normalOS);
     float3 right = normalize(float3(-forward.y, forward.x, forward.z)); //90 deg rotation in 2 axis
-    float3 up = cross(forward, right);
+    float3 up = cross(forward, right); right = cross(up, forward); //Recalculate right to ensure orthogonality
+    Settings s = VariantSettings[mat];
 
-    AppendQuad(GetQuad(center, forward, right, mat), normalOS, mat);
-    AppendQuad(GetQuad(center, right, up, mat), normalOS, mat);
-    AppendQuad(GetQuad(center, up, forward, mat), normalOS, mat);
+    if(!(s.QuadType & 0x2)) AppendQuad(GetQuad(center, right, forward, mat), normalOS, mat);
+    if(!(s.QuadType & 0x2)) AppendQuad(GetQuad(center, up, forward, mat), normalOS, mat);
+    if(!(s.QuadType & 0x1)) AppendQuad(GetQuad(center, right, up, mat), normalOS, mat);
 }
 
 [numthreads(numThreads,1,1)]
@@ -119,7 +124,9 @@ void Main (uint3 id : SV_DispatchThreadID)
     uint material = GetShaderVariant(inputs);
 
     float3 center = GetTriangleCenter(inputs[0].positionOS, inputs[1].positionOS, inputs[2].positionOS);
-    float3 normal = GetTriangleCenter(inputs[0].normalOS, inputs[1].normalOS, inputs[2].normalOS);// If not want to inherit -> normalize(_CameraPosition - center);
+    //Use hard normal rather than smooth normals
+    float3 normal = normalize(cross(inputs[1].positionOS - inputs[0].positionOS,
+                                inputs[2].positionOS - inputs[0].positionOS));
     CreateQuadIntersects(center, normal, material);
   
 }
