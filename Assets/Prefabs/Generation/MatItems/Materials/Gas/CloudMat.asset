@@ -23,7 +23,7 @@ MonoBehaviour:
     Texture: 0
     textureScale: 5
     GeoShaderIndex:
-      data: 0
+      data: 4
   AtmosphereScatter:
     InScatterCoeffs: {x: 0.00625, y: 0.00625, z: 0.00625}
     OutScatterCoeffs: {x: 0.00625, y: 0.00625, z: 0.00625}

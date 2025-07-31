@@ -16,11 +16,11 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - Plank:Solid
+    - Wood
   Recipe:
-    Names:
-      value:
-      - Plank:Solid
-      - Wood
     entry:
       value:
       - data: 104086

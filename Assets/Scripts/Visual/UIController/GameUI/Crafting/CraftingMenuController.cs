@@ -38,7 +38,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         int numMapTotal = GridCount * (settings.NumMaxSelections + 2);
         craftingData = new MapData[numMapTotal];
         Rendering.craftingBuffer = new ComputeBuffer(numMapTotal, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
-        Recipe.ConstructTree(settings.Recipes.Reg.Select(r => r.Recipe).ToArray(), dim: GridCount);
+        Recipe.ConstructTree(settings.Recipes.Reg.Select(r => r.SerializeCopy()).ToArray(), dim: GridCount);
         RecipeSearch = new CraftingRecipeSearch(craftingMenu.transform);
 
         InitializeCraftingArea();
@@ -119,7 +119,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
     
     internal void ReflectGridRecipe(CraftingRecipe recipe, int gridIndex) {
         for(int i = 0; i < GridCount; i++)
-            craftingData[GridCount * gridIndex + i] = recipe.EntrySerial(i);
+            craftingData[GridCount * gridIndex + i] = recipe.entry.value[i];
     }
 
     // Update is called once per frame
@@ -188,7 +188,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         int amount = 0;
         for(int i = 0; i < GridCount; i++){ amount += craftingData[i].density; }
         result = recipe.ResultItem;
-        result.Create(recipe.ResultIndex, (int)math.min(math.round(recipe.result.Multiplier * amount), 0x7FFF));
+        result.Create((int)recipe.result.Index, (int)math.min(math.round(recipe.result.Multiplier * amount), 0x7FFF));
         return true;
     }
 
@@ -210,7 +210,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             MapData p = target.entry.value[i];
             p.isDirty = craftingData[i].density < CPUMapManager.IsoValue;
             target.entry.value[i] = p;
-        } target.Names = null;
+        }
 
         List<int> recipes = Recipe.QueryNearestLimit(target, settings.MaxRecipeDistance, settings.NumMaxSelections);
         FitRecipe = recipes.Count > 0 ? recipes[0] : -1;
@@ -401,7 +401,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             if (!SearchContainer.gameObject.activeSelf) return;
             if (!RecipeSearch.GridContainer.GetMouseSelected(out int index))
                 return;
-            ActivateRecipeDisplay(RecipeSearch.SlotEntries[index].Recipe);
+            ActivateRecipeDisplay(RecipeSearch.SlotEntries[index].SerializeCopy());
         }
 
         Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
@@ -516,9 +516,6 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
                 }
                 if (recipes[i].entry.value.Count > dim) {
                     recipes[i].entry.value = recipes[i].entry.value.Take(dim).ToList();
-                }
-                if (recipes[i].Names.value.Count == 0) {
-                    recipes[i].Names.value.Add("Void");
                 }
                 layer[i] = (i, recipes[i]);
             }

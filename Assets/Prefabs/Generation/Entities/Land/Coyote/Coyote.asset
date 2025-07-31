@@ -101,7 +101,7 @@ MonoBehaviour:
           FightAggressor: 1
           Prey:
             value:
-            - Camel
+            - EntityType: Camel
       physicality:
         value:
           MaxHealth: 10

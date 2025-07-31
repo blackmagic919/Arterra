@@ -155,7 +155,7 @@ MonoBehaviour:
         value:
           Predators:
             value:
-            - Hawk
+            - EntityType: Hawk
           Mates:
             value:
             - MateType: Sparrow

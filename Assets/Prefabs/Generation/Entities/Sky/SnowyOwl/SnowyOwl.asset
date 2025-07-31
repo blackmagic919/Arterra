@@ -149,7 +149,7 @@ MonoBehaviour:
           FightAggressor: 0
           Prey:
             value:
-            - ArcticHare
+            - EntityType: ArcticHare
       physicality:
         value:
           MaxHealth: 10

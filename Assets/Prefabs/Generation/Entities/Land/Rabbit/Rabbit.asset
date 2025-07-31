@@ -87,9 +87,9 @@ MonoBehaviour:
         value:
           Predators:
             value:
-            - Fox
-            - ArcticFox
-            - Hawk
+            - EntityType: Fox
+            - EntityType: ArcticFox
+            - EntityType: Hawk
           Mates:
             value:
             - MateType: Rabbit

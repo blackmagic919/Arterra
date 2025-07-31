@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
-using UnityEditor;
 using UnityEngine;
 using WorldConfig;
 using WorldConfig.Quality;
@@ -306,8 +304,7 @@ public struct Registry<T> : IRegister, ICloneable
 
 
 
-public interface IRegister
-{
+public interface IRegister {
     public abstract int Count();
     public abstract void Construct();
     public abstract string RetrieveName(int index);
@@ -315,25 +312,44 @@ public interface IRegister
     public abstract bool Contains(string name);
     public abstract bool Contains(int index);
     public abstract object Clone();
-    public static void Setup()
-    {
+    public static void Setup(Config settings) {
         //Create all registers, then convert their dependencies
-        Config.CURRENT.Generation.Noise.Construct();
-        Config.CURRENT.Generation.Entities.Construct();
-        Config.CURRENT.Generation.Textures.Construct();
-        Config.CURRENT.Generation.Biomes.value.SurfaceBiomes.Construct();
-        Config.CURRENT.Generation.Biomes.value.CaveBiomes.Construct();
-        Config.CURRENT.Generation.Biomes.value.SkyBiomes.Construct();
-        Config.CURRENT.Generation.Structures.value.StructureDictionary.Construct();
-        Config.CURRENT.Generation.Materials.value.MaterialDictionary.Construct();
-        Config.CURRENT.Generation.Items.Construct();
-        Config.CURRENT.System.Crafting.value.Recipes.Construct();
-        Config.CURRENT.Quality.GeoShaders.Construct();
+        settings.Generation.Noise.Construct();
+        settings.Generation.Entities.Construct();
+        settings.Generation.Textures.Construct();
+        settings.Generation.Biomes.value.SurfaceBiomes.Construct();
+        settings.Generation.Biomes.value.CaveBiomes.Construct();
+        settings.Generation.Biomes.value.SkyBiomes.Construct();
+        settings.Generation.Structures.value.StructureDictionary.Construct();
+        settings.Generation.Materials.value.MaterialDictionary.Construct();
+        settings.Generation.Items.Construct();
+        settings.System.Crafting.value.Recipes.Construct();
+        settings.Quality.GeoShaders.Construct();
 
-        foreach (GeoShader shader in Config.CURRENT.Quality.GeoShaders.Reg){
+        foreach (GeoShader shader in settings.Quality.GeoShaders.Reg) {
             IRegister reg = shader.GetRegistry();
             if (reg == null) continue;
             reg.Construct(); shader.SetRegistry(reg);
+        }
+    }
+
+    public static void AssociateRegistries(Config settings, ref Dictionary<string, IRegister> Association) {
+        Setup(settings);
+        Association ??= new Dictionary<string, IRegister>();
+        Association.Add("Noise", settings.Generation.Noise);
+        Association.Add("Entities", settings.Generation.Entities);
+        Association.Add("Textures", settings.Generation.Textures);
+        Association.Add("SurfaceBiomes", settings.Generation.Biomes.value.SurfaceBiomes);
+        Association.Add("CaveBiomes", settings.Generation.Biomes.value.CaveBiomes);
+        Association.Add("SkyBiomes", settings.Generation.Biomes.value.SkyBiomes);
+        Association.Add("Structures", settings.Generation.Structures.value.StructureDictionary);
+        Association.Add("Materials", settings.Generation.Materials.value.MaterialDictionary);
+        Association.Add("Items", settings.Generation.Items);
+        Association.Add("CraftingRecipes", settings.System.Crafting.value.Recipes);
+        Association.Add("GeoShaders", settings.Quality.GeoShaders);
+
+        foreach (GeoShader shader in settings.Quality.GeoShaders.Reg) {
+            Association.Add("GeoShaders::"+shader.Name, shader.GetRegistry());
         }
     }
 }

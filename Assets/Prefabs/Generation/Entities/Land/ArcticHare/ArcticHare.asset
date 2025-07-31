@@ -87,8 +87,8 @@ MonoBehaviour:
         value:
           Predators:
             value:
-            - Fox
-            - ArcticFox
+            - EntityType: Fox
+            - EntityType: ArcticFox
           Mates:
             value:
             - MateType: ArcticHare

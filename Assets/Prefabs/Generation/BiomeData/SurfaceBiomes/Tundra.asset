@@ -18,7 +18,7 @@ MonoBehaviour:
       value: []
   info:
     value:
-      NameRegister:
+      Names:
         value:
         - PineTree1
         - PineTree2

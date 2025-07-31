@@ -16,12 +16,12 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - WoodPickaxe
+    - Wood
+    - Plank
   Recipe:
-    Names:
-      value:
-      - WoodPickaxe
-      - Wood
-      - Plank
     entry:
       value:
       - data: 116936

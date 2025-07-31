@@ -21,6 +21,8 @@ MonoBehaviour:
   - Void
   - TallGrass
   - Shell
+  - WheatSeeds
+  - LettuceSeeds
   terrainData:
     Texture: 2
     textureScale: 2
@@ -47,7 +49,13 @@ MonoBehaviour:
   SpreadTag: 2000
   MaterialDrops:
     SolidLootTable:
-      value: []
+      value:
+      - DropItem: 4
+        DropChance: 0.15
+        DropMultiplier: 1
+      - DropItem: 5
+        DropChance: 0.05
+        DropMultiplier: 2
     DefaultSolidLoot:
       DropItem: 0
       DropMultiplier: 1

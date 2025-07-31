@@ -7,6 +7,7 @@ using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
 using Unity.Mathematics;
 using MapStorage;
+using UnityEngine.Rendering;
 namespace WorldConfig.Intrinsic{
 
     /// <summary> An authoring object for a crafting recipe allowing for it 
@@ -14,6 +15,10 @@ namespace WorldConfig.Intrinsic{
     [Serializable]
     [CreateAssetMenu(menuName = "Settings/Crafting/Recipe")]
     public class CraftingAuthoring : Category<CraftingAuthoring>, ISlot {
+        /// <summary> A list of names within external registries used by entries referencing external resources. When an entry
+        /// referes to an entry in an external registry it should refer to the index within this list of the name
+        /// of the entry in the external registry. </summary>
+        public Option<List<string>> Names;
         /// <summary> The recipe that is being authored. </summary>
         public CraftingRecipe Recipe;
 
@@ -21,7 +26,9 @@ namespace WorldConfig.Intrinsic{
         /// <param name="parent">The parent object containing the new slot</param>
         public void AttachDisplay(Transform parent) {
             UnityEngine.UI.Image image = parent.transform.GetChild(0).GetComponentInChildren<UnityEngine.UI.Image>();
-            IItem resultItem = Recipe.ResultItem; resultItem.Create(Recipe.ResultIndex, 0);
+
+            CraftingRecipe recipe = SerializeCopy();
+            IItem resultItem = recipe.ResultItem; resultItem.Create((int)recipe.result.Index, 0);
             image.sprite = Config.CURRENT.Generation.Textures.Retrieve(resultItem.TexIndex).self;
             image.color = new Color(1, 1, 1, 1);
         }
@@ -34,6 +41,28 @@ namespace WorldConfig.Intrinsic{
             image.sprite = null;
             image.color = new Color(0, 0, 0, 0);
         }
+
+        public CraftingRecipe SerializeCopy() {
+            Catalogue<MaterialData> matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            Catalogue<Authoring> itemInfo = Config.CURRENT.Generation.Items;
+
+            CraftingRecipe newRecipe = new CraftingRecipe();
+            newRecipe.entry.value = new List<MapData>(Recipe.entry.value);
+            newRecipe.result = Recipe.result;
+
+            for (int i = 0; i < newRecipe.entry.value.Count; i++) {
+                var mapData = newRecipe.entry.value[i];
+                if (Names.value == null || mapData.material >= Names.value.Count)
+                    continue;
+                if (!matInfo.Contains(Names.value[mapData.material]))
+                    continue;
+                mapData._material = matInfo.RetrieveIndex(Names.value[mapData.material]);
+                newRecipe.entry.value[i] = mapData;
+            }
+
+            newRecipe.result.Index = (uint)itemInfo.RetrieveIndex(Names.value[(int)Recipe.result.Index]);
+            return newRecipe;
+        }
     }
 
     /// <summary> A recipe describing a configuration of materials on the crafting grid
@@ -41,10 +70,6 @@ namespace WorldConfig.Intrinsic{
     /// or upend the difficulty progression. </summary>
     [Serializable]
     public class CraftingRecipe {
-        /// <summary> A list of names within external registries used by entries referencing external resources. When an entry
-        /// referes to an entry in an external registry it should refer to the index within this list of the name
-        /// of the entry in the external registry. </summary>
-        public Option<List<string>> Names;
         /// <summary> The entries that must be matched to successfully craft this recipe. The entries
         /// correspond to a grid of points whose size is dictated by <see cref="Crafting.GridWidth"/>.
         /// If this grid matches  the player's crafting grid, the recipe is considered
@@ -57,16 +82,6 @@ namespace WorldConfig.Intrinsic{
         /// <see cref="Result"/> for more information. </summary>
         public Result result;
 
-        /// <summary> The index of the result item in the external <see cref="Config.GenerationSettings.Items"> item registry </see>.
-        /// By default, the item stored in <see cref="Result.Index"/> is coupled to the <see cref="Names"/> list. This 
-        /// property is used to recouple it with the item registry of the current world. </summary>
-        [JsonIgnore]
-        public int ResultIndex {
-            get {
-                Catalogue<Authoring> reg = Config.CURRENT.Generation.Items;
-                return reg.RetrieveIndex(Names.value[(int)result.Index]);
-            }
-        }
 
         /// <summary> The result item of the recipe. This is the actual item given to the player if the recipe is crafted.
         /// Obtained by retrieving the item indicated by <see cref="ResultIndex"/> from the item registry. </summary>
@@ -74,22 +89,10 @@ namespace WorldConfig.Intrinsic{
         public IItem ResultItem {
             get {
                 Catalogue<Authoring> reg = Config.CURRENT.Generation.Items;
-                return reg.Retrieve(Names.value[(int)result.Index]).Item;
+                return reg.Retrieve((int)result.Index).Item;
             }
         }
 
-        /// <summary> Obtains the map entry at a specific grid index in the recipe. Accesses the
-        /// recipe's entry stored in <see cref="entry"/> at the specified index and
-        /// deserializes(recouples) any external references to the map entry's material. </summary>
-        /// <param name="Index">The index within <see cref="entry"/> of the entry that is retrieved</param>
-        /// <returns>The deserialized map information of the recipe's entry at the specified <paramref name="Index"/>.</returns>
-        public MapData EntrySerial(int Index) {
-            Catalogue<MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-            MapData p = entry.value[Index];
-            if (!reg.Contains(Names.value[p.material])) return p;
-            p.material = reg.RetrieveIndex(Names.value[p.material]);
-            return p;
-        }
 
         /// <summary> Obtains the material index of the map entry at a specific grid index in the recipe. 
         /// If the entry is dirty, the material is ignored as it is not part of the real recipe
@@ -98,9 +101,7 @@ namespace WorldConfig.Intrinsic{
         /// <returns>The material of the entry at the specified <paramref name="index"/></returns>
         public int EntryMat(int index) {
             if (entry.value[index].IsGaseous) return -1;
-            if (Names.value == null) return entry.value[index].material;
-            Catalogue<MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-            return reg.RetrieveIndex(Names.value[entry.value[index].material]);
+            return entry.value[index].material;
         }
 
         /// <summary> The result of a recipe. Indicates what is given to the player if the recipe is crafted. </summary>

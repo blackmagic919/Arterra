@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
-  m_Name: WheatItemSolid
+  m_Name: WheatStalkItem
   m_EditorClassIdentifier: 
-  Name: Wheat:Solid
+  Name: WheatStalk
   Tags:
     Reg:
       value: []
-  TextureName: WheatKernels
-  MaterialName: Wheat
+  TextureName: WheatStalk
+  MaterialName: 
   MaterialState: 0
   references:
     version: 2

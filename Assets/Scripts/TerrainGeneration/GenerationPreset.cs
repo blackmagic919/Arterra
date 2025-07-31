@@ -19,7 +19,7 @@ public static class SystemProtocol{
     /// (this excludes when the main menu is displayed). This is a static factory protocol and only 
     /// changes when modifying the system's functionality through its source code. </summary>
     public static void Startup(){
-        IRegister.Setup();
+        IRegister.Setup(Config.CURRENT);
         UtilityBuffers.Initialize();
         GenerationPreset.Initialize();
 

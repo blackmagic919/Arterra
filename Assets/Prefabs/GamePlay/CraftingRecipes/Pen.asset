@@ -16,13 +16,13 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - Pen
+    - Wood
+    - Coal
+    - Feathers
   Recipe:
-    Names:
-      value:
-      - Pen
-      - Wood
-      - Coal
-      - Feathers
     entry:
       value:
       - data: 235158

@@ -16,12 +16,12 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - WoodShovel
+    - Wood
+    - Plank
   Recipe:
-    Names:
-      value:
-      - WoodShovel
-      - Wood
-      - Plank
     entry:
       value:
       - data: 104086

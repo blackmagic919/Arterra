@@ -178,8 +178,8 @@ MonoBehaviour:
           FightAggressor: 1
           Prey:
             value:
-            - Cod
-            - Player
+            - EntityType: Cod
+            - EntityType: Player
   references:
     version: 2
     RefIds: []

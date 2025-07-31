@@ -735,16 +735,20 @@ namespace MapStorage {
                 uint data = dataProp.uintValue;
 
                 //bool isDirty = (data & 0x80000000) != 0;
-                int[] values = new int[3]{
-                (int)((data >> 16) & 0x7FFF),
-                (int)((data >> 8) & 0xFF),
-                (int)(data & 0xFF)
-            };
+                int[] values = new int[2]{
+                    (int)((data >> 8) & 0xFF),
+                    (int)(data & 0xFF)
+                };
                 bool isDirty = (data & 0x80000000) != 0;
 
                 Rect rect = new(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
 
-                EditorGUI.MultiIntField(rect, new GUIContent[] { new("Material"), new("Viscosity"), new("Density") }, values);
+                RegistryReferenceDrawer.SetupRegistries();
+                RegistryReferenceDrawer materialDrawer = new RegistryReferenceDrawer { BitMask = 0x7FFF, BitShift = 16 };
+                materialDrawer.DrawRegistryDropdown(rect, dataProp, new GUIContent("Material"),
+                    Config.TEMPLATE.Generation.Materials.value.MaterialDictionary);
+                rect.y += EditorGUIUtility.singleLineHeight;
+                EditorGUI.MultiIntField(rect, new GUIContent[] { new("Viscosity"), new("Density") }, values);
                 rect.y += EditorGUIUtility.singleLineHeight;
                 isDirty = EditorGUI.Toggle(rect, "Is Dirty", isDirty);
                 rect.y += EditorGUIUtility.singleLineHeight;
@@ -752,17 +756,16 @@ namespace MapStorage {
                 //rect.y += EditorGUIUtility.singleLineHeight;
 
                 //data = (isDirty ? data | 0x80000000 : data & 0x7FFFFFFF);
-                data = (data & 0x8000FFFF) | ((uint)values[0] << 16);
-                data = (data & 0xFFFF00FF) | (((uint)values[1] & 0xFF) << 8);
-                data = (data & 0xFFFFFF00) | ((uint)values[2] & 0xFF);
+                data = (data & 0xFFFF00FF) | (((uint)values[0] & 0xFF) << 8);
+                data = (data & 0xFFFFFF00) | ((uint)values[1] & 0xFF);
                 data = isDirty ? data | 0x80000000 : data & 0x7FFFFFFF;
 
-                dataProp.uintValue = data;
+                dataProp.uintValue = (data & 0x8000FFFF) | (dataProp.uintValue & 0x8FFF0000);
             }
 
             // Override this method to make space for the custom fields
             public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-                return EditorGUIUtility.singleLineHeight * 2;
+                return EditorGUIUtility.singleLineHeight * 3;
             }
         }
 #endif

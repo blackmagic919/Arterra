@@ -107,7 +107,7 @@ MonoBehaviour:
         value:
           Predators:
             value:
-            - Shark
+            - EntityType: Shark
           Mates:
             value:
             - MateType: Cod
@@ -124,8 +124,8 @@ MonoBehaviour:
           FightAggressor: 0
           Prey:
             value:
-            - Minnow
-            - Krill
+            - EntityType: Minnow
+            - EntityType: Krill
   references:
     version: 2
     RefIds: []

@@ -23,6 +23,7 @@ namespace WorldConfig.Generation.Item {
         /// <summary> The name of the entry within the <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see>
         /// of the texture that is displayed when the item is in a UI panel. It is also used to create an <see cref="EItem"> entity item</see> mesh
         /// if the item is dropped in the world. This must always be a valid entry. </summary>
+        [RegistryReference("Textures")]
         public string TextureName;
 
         /// <summary>
@@ -30,6 +31,7 @@ namespace WorldConfig.Generation.Item {
         /// of the material that is placed when the item is selected when placing terrain.
         /// If the material name is not a valid entry, the item will not be able to be placed as a material (e.g. a tool).
         /// </summary>
+        [RegistryReference("Materials")]
         public string MaterialName;
         /// <summary>
         /// If the material is <see cref="MaterialName">placable as a material</see>, whether it should place the material indicated

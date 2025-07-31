@@ -17,18 +17,19 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Wheat:Solid
+  - WheatStalk
   - WheatSeeds
   - Void
   - WheatKernels
+  - PlantStem
+  - Wheat
   - InsetQuad
   - WheatBristle
-  - PlantStem
   terrainData:
     Texture: 3
-    textureScale: 2
+    textureScale: 0.75
     GeoShaderIndex:
-      data: 2147745797
+      data: 2147876871
   AtmosphereScatter:
     InScatterCoeffs: {x: 0, y: 0, z: 0}
     OutScatterCoeffs: {x: 0, y: 0, z: 0}
@@ -50,15 +51,21 @@ MonoBehaviour:
     value:
     - check:
         bounds:
-          data: 1679385625
+          data: 2130738944
         flags: 0
       _material: 0
       _offset: 537395712
     - check:
         bounds:
           data: 4286643968
-        flags: 1
-      _material: 2147483654
+        flags: 2
+      _material: 2147483652
+      _offset: 537394688
+    - check:
+        bounds:
+          data: 4286643968
+        flags: 2
+      _material: 2147483653
       _offset: 537394688
     - check:
         bounds:
@@ -87,7 +94,7 @@ MonoBehaviour:
   ConvertRegions:
     value:
     - checkStart: 1
-      checkEnd: 5
+      checkEnd: 6
       convertStart: 0
       convertEnd: 0
   DefaultDecay:

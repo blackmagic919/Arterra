@@ -165,6 +165,7 @@ public struct Vitality {
         }
         [Serializable]
         public struct LootInfo {
+            [RegistryReference("Items")]
             public string ItemName;
             public float DropAmount;
         }

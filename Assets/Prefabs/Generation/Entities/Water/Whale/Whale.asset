@@ -684,8 +684,8 @@ MonoBehaviour:
           FightAggressor: 1
           Prey:
             value:
-            - Minnow
-            - Krill
+            - EntityType: Minnow
+            - EntityType: Krill
   references:
     version: 2
     RefIds: []

@@ -10,22 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 66ff41b42a059454fb8d77bbe838e3e7, type: 3}
-  m_Name: WheatSeededSoilMat
+  m_Name: LettuceSeededSoilMat
   m_EditorClassIdentifier: 
-  Name: WheatSeededSoil
+  Name: LettuceSeededSoil
   Tags:
     Reg:
       value: []
   Names:
   - Dirt:Solid
   - Void
-  - SeededSoil
-  - WheatSeeds
-  - Wheat
-  - PlantStem
+  - LettuceSeededSoil
+  - LettuceSeeds
+  - Lettuce
   terrainData:
     Texture: 2
-    textureScale: 2
+    textureScale: 1
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
@@ -47,100 +46,112 @@ MonoBehaviour:
     value:
     - check:
         bounds:
-          data: 2357329920
+          data: 2524971008
         flags: 0
-      _material: 2147483653
+      _material: 2147483652
       _offset: 537396736
     - check:
         bounds:
-          data: 840499200
+          data: 755630080
         flags: 0
       _material: 0
       _offset: 538445312
     - check:
         bounds:
-          data: 840499200
+          data: 755630080
         flags: 0
       _material: 0
       _offset: 536348160
     - check:
         bounds:
-          data: 840499200
+          data: 755630080
         flags: 0
       _material: 0
       _offset: 537396737
     - check:
         bounds:
-          data: 840499200
+          data: 755630080
         flags: 0
       _material: 0
       _offset: 537396735
     - check:
         bounds:
-          data: 2357329920
+          data: 336199680
         flags: 0
-      _material: 2147483653
+      _material: 0
       _offset: 537397760
-    - check:
-        bounds:
-          data: 840499200
-        flags: 0
-      _material: 0
-      _offset: 538446336
-    - check:
-        bounds:
-          data: 840499200
-        flags: 0
-      _material: 0
-      _offset: 536349184
-    - check:
-        bounds:
-          data: 840499200
-        flags: 0
-      _material: 0
-      _offset: 537397761
-    - check:
-        bounds:
-          data: 840499200
-        flags: 0
-      _material: 0
-      _offset: 537397759
     - check:
         bounds:
           data: 3365273600
         flags: 0
       _material: 2147483652
-      _offset: 537398784
+      _offset: 537396736
     - check:
         bounds:
-          data: 840499200
+          data: 1261568000
         flags: 0
       _material: 0
-      _offset: 538447360
+      _offset: 538445312
     - check:
         bounds:
-          data: 840499200
+          data: 1261568000
         flags: 0
       _material: 0
-      _offset: 536350208
+      _offset: 536348160
     - check:
         bounds:
-          data: 840499200
+          data: 1261568000
         flags: 0
       _material: 0
-      _offset: 537398785
+      _offset: 537396737
     - check:
         bounds:
-          data: 840499200
+          data: 1261568000
         flags: 0
       _material: 0
-      _offset: 537398783
+      _offset: 537396735
     - check:
         bounds:
-          data: 2138243072
+          data: 839057408
         flags: 0
       _material: 0
-      _offset: 537399808
+      _offset: 537397760
+    - check:
+        bounds:
+          data: 4291297280
+        flags: 0
+      _material: 2147483652
+      _offset: 537396736
+    - check:
+        bounds:
+          data: 2135949312
+        flags: 0
+      _material: 0
+      _offset: 538445312
+    - check:
+        bounds:
+          data: 2135949312
+        flags: 0
+      _material: 0
+      _offset: 536348160
+    - check:
+        bounds:
+          data: 2135949312
+        flags: 0
+      _material: 0
+      _offset: 537396737
+    - check:
+        bounds:
+          data: 2135949312
+        flags: 0
+      _material: 0
+      _offset: 537396735
+    - check:
+        bounds:
+          data: 1261568000
+        flags: 0
+      _material: 0
+      _offset: 537397760
     - check:
         bounds:
           data: 2130738944
@@ -179,105 +190,93 @@ MonoBehaviour:
       _offset: 537397760
     - check:
         bounds:
-          data: 4286643968
+          data: 2525003520
         flags: 1
-      _material: 2147483653
+      _material: 2147483652
       _offset: 537396736
     - check:
         bounds:
           data: 2130738944
         flags: 1
       _material: 0
+      _offset: 538445312
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 536348160
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537396737
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537396735
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
       _offset: 537397760
     - check:
         bounds:
-          data: 2130738944
+          data: 3365306112
         flags: 1
-      _material: 0
-      _offset: 538446336
+      _material: 2147483652
+      _offset: 537396736
     - check:
         bounds:
           data: 2130738944
         flags: 1
       _material: 0
-      _offset: 536349184
+      _offset: 538445312
     - check:
         bounds:
           data: 2130738944
         flags: 1
       _material: 0
-      _offset: 537397761
+      _offset: 536348160
     - check:
         bounds:
           data: 2130738944
         flags: 1
       _material: 0
-      _offset: 537397759
+      _offset: 537396737
     - check:
         bounds:
           data: 2130738944
         flags: 1
       _material: 0
-      _offset: 537398784
+      _offset: 537396735
     - check:
         bounds:
-          data: 4286643968
+          data: 2130738944
         flags: 1
-      _material: 2147483653
+      _material: 0
       _offset: 537397760
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 1
-      _material: 0
-      _offset: 537398784
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 1
-      _material: 0
-      _offset: 538447360
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 1
-      _material: 0
-      _offset: 536350208
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 1
-      _material: 0
-      _offset: 537398785
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 1
-      _material: 0
-      _offset: 537398783
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 1
-      _material: 0
-      _offset: 537399808
   ConvertRegions:
     value:
-    - checkStart: 16
-      checkEnd: 21
+    - checkStart: 18
+      checkEnd: 23
       convertStart: 0
-      convertEnd: 4
-      convertChance: 0.25
-    - checkStart: 22
-      checkEnd: 28
-      convertStart: 5
-      convertEnd: 9
-      convertChance: 0.25
-    - checkStart: 29
+      convertEnd: 5
+      convertChance: 0.333
+    - checkStart: 24
+      checkEnd: 29
+      convertStart: 6
+      convertEnd: 11
+      convertChance: 0.333
+    - checkStart: 30
       checkEnd: 35
-      convertStart: 10
-      convertEnd: 15
-      convertChance: 0.75
+      convertStart: 12
+      convertEnd: 17
+      convertChance: 0.333
   SelfCondition:
     data: 4286643968
   MaterialDrops:

@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb5ab28ebaf0240359baf1d92ea3df1e, type: 3}
+  m_Name: SeedySoil
+  m_EditorClassIdentifier: 
+  Name: SeedySoil
+  Tags:
+    Reg:
+      value:
+      - Tag: 1001
+        value:
+          value:
+            rid: 6432723101265428557
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 57f5795f8d4fe415ab042b95edcd3c18, type: 2}
+    - value: {fileID: 11400000, guid: 0080dd7521a4c42f08784e48da4d46cd, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 6432723101265428557
+      type: {class: ConverterToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 100
+        ToolDamage: 2
+        GivesItem: 1
+        _convertBounds:
+          data: 4286643968
+        _neighborBounds:
+          data: 4278255360
+        ConvertTarget: TilledSoil

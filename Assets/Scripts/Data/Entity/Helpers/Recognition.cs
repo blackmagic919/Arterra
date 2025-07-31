@@ -19,7 +19,7 @@ public interface IMateable{
 public class Recognition {
     //There is no explicit order with predators, an entity will run
     //from the closest predator to it.
-    public Option<List<string>> Predators;
+    public Option<List<EntityWrapper>> Predators;
     //Mates are entities that can breed with the entity, and the offspring they create
     public Option<List<Mate>> Mates;
     //Edible items produced by entities
@@ -38,12 +38,22 @@ public class Recognition {
     }
     [Serializable]
     public struct Mate {
+        [RegistryReference("Entities")]
         public string MateType;
+        [RegistryReference("Entities")]
         public string ChildType;
         public float AmountPerParent;
     }
+
+    [Serializable]
+    public struct EntityWrapper {
+        [RegistryReference("Entities")]
+        public string EntityType;
+    }
+
     [Serializable]
     public struct Consumable {
+        [RegistryReference("Items")]
         public string EdibleType;
         public float Nutrition;
     }
@@ -205,7 +215,7 @@ public class Recognition {
 public class RCarnivore : Recognition{
     //The order of the list describes the order of preference for the entity
     //An entity won't chase a prey if a more preferred prey is in range
-    public Option<List<string>> Prey;
+    public Option<List<EntityWrapper>> Prey;
 
     public override void Construct(){
         AwarenessTable = new Dictionary<int, Recognizable>();
@@ -214,11 +224,11 @@ public class RCarnivore : Recognition{
 
         if(Predators.value != null){
         for(int i = 0; i < Predators.value.Count; i++){
-            int entityIndex = eReg.RetrieveIndex(Predators.value[i]);
+            int entityIndex = eReg.RetrieveIndex(Predators.value[i].EntityType);
             AwarenessTable.TryAdd(entityIndex, new Recognizable(i, 1));
         }} if(Prey.value != null) {
         for(int i = 0; i < Prey.value.Count; i++){
-            int entityIndex = eReg.RetrieveIndex(Prey.value[i]);
+            int entityIndex = eReg.RetrieveIndex(Prey.value[i].EntityType);
             AwarenessTable.TryAdd(entityIndex,  new Recognizable(i, 2));
         }} if(Mates.value != null) { 
         for(int i = 0; i < Mates.value.Count; i++){
@@ -285,7 +295,7 @@ public class RHerbivore : Recognition{
 
         if(Predators.value != null){
         for(int i = 0; i < Predators.value.Count; i++){
-            int entityIndex = eReg.RetrieveIndex(Predators.value[i]);
+            int entityIndex = eReg.RetrieveIndex(Predators.value[i].EntityType);
             AwarenessTable.TryAdd(entityIndex, new Recognizable(i, 1));
         }}  if(Mates.value != null) { 
         for(int i = 0; i < Mates.value.Count; i++){
@@ -361,10 +371,12 @@ public class RHerbivore : Recognition{
 
     [Serializable]
     public struct Plant{
+        [RegistryReference("Materials")]
         public string Material;
-        public StructureData.CheckInfo Bounds;
+        [RegistryReference("Materials")]
         //If null, gradually removes it
         public string Replacement;
+        public StructureData.CheckInfo Bounds;
 
         readonly static int3[] dp = new int3[6]{
             new (0, 0, 1),

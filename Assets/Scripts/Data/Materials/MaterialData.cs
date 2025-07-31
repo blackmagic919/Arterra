@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using MapStorage;
+using WorldConfig.Quality;
 
 
 namespace WorldConfig.Generation.Material
@@ -146,6 +147,7 @@ namespace WorldConfig.Generation.Material
             /// The index within the <see cref="Names"> Name Registry </see> of the name within the external <see cref="Config.GenerationSettings.Textures"/> registry,
             /// of the texture that is displayed when a mesh primitive is rendered with this material. This index must always refer to a valid texture if it can be solid.
             /// </summary>
+            [RegistryReference("Textures")]
             public int Texture;
             /// <summary>
             /// The scale of the texture when it is drawn to the terrain. The scale difference between world space and 
@@ -276,13 +278,16 @@ namespace WorldConfig.Generation.Material
             /// depending on the state of the material removed. </summary>
             [Serializable]
             public struct ItemLooter {
+                
                 /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
                 /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is solid. 
                 /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
+                [RegistryReference("Items")]
                 public int SolidItem;
                 /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
                 /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is liquid. 
                 /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
+                [RegistryReference("Items")]
                 public int LiquidItem;
 
                 /// <summary>  Creates a generic item from map information of what has been removed. 
@@ -395,6 +400,7 @@ namespace WorldConfig.Generation.Material
                 /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
                 /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when if the material is randomly selected.
                 /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
+                [RegistryReference("Items")]
                 public int DropItem;
                 /// <summary> The chance the material is dropped. This is resampled 
                 /// only once everytime any amount of material is removed. </summary>
@@ -411,6 +417,7 @@ namespace WorldConfig.Generation.Material
                 /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
                 /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when if the material is randomly selected.
                 /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
+                [RegistryReference("Items")]
                 public int DropItem;
                 /// <summary> How much the material is multiplied by when it is dropped. </summary>
                 public float DropMultiplier;
@@ -433,34 +440,44 @@ namespace WorldConfig.Generation.Material
     [CustomPropertyDrawer(typeof(MaterialData.TerrainData.GeoShaderInfo))]
     public class GeoShaderIndexDrawer : PropertyDrawer {
         /// <summary>  Callback for when the GUI needs to be rendered for the property. </summary>
-        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
-        {
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             SerializedProperty dataProp = property.FindPropertyRelative("data");
-            uint data = dataProp.uintValue;
 
-            //bool isDirty = (data & 0x80000000) != 0;
-            bool hasGeoShader = (data & 0x80000000) != 0;
-            int[] indices = new int[] { (int)(data >> 16) & 0x7FFF, (int)data & 0xFFFF };
+            bool hasGeoShader = ( dataProp.uintValue & 0x80000000) != 0;
 
             Rect rect = new(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
-
-            if (hasGeoShader){
-                EditorGUI.MultiIntField(rect, new GUIContent[] { new GUIContent("Batch#"), new GUIContent("Variant#") }, indices);
-                rect.y += EditorGUIUtility.singleLineHeight;
-            }
+            
             hasGeoShader = EditorGUI.Toggle(rect, "HasShader", hasGeoShader);
             rect.y += EditorGUIUtility.singleLineHeight;
-            
-            data = hasGeoShader ? data | 0x80000000 : data & 0x7FFFFFFF;
-            data = (data & 0x8000FFFF) | (((uint)indices[0] & 0x7FFF) << 16);
-            data = (data & 0xFFFF0000) | ((uint)indices[1] & 0xFFFF);
-            dataProp.uintValue = data;
+
+            if (hasGeoShader) {
+                RegistryReferenceDrawer.SetupRegistries();
+                RegistryReferenceDrawer batchRefDrawer = new RegistryReferenceDrawer { BitMask = 0x7FFF, BitShift = 16 };
+                Catalogue<GeoShader> GeoShaderRegistry = Config.TEMPLATE.Quality.GeoShaders;
+
+                batchRefDrawer.DrawRegistryDropdown(rect, dataProp, new GUIContent("Batch#"), GeoShaderRegistry);
+                rect.y += EditorGUIUtility.singleLineHeight;
+
+                RegistryReferenceDrawer variantRefDrawer = new RegistryReferenceDrawer { BitMask = 0xFFFF, BitShift = 0 };
+                string BatchName = batchRefDrawer.GetReferenceName(dataProp);
+                if (GeoShaderRegistry.Contains(BatchName)) {
+                    IRegister VariantShaderRegistry = GeoShaderRegistry.Retrieve(BatchName).GetRegistry();
+                    variantRefDrawer.DrawRegistryDropdown(rect, dataProp, new GUIContent("Variant#"), VariantShaderRegistry);
+                    rect.y += EditorGUIUtility.singleLineHeight;   
+                }
+            }
+
+            dataProp.uintValue = hasGeoShader ?
+                dataProp.uintValue | 0x80000000 :
+                dataProp.uintValue & 0x7FFFFFFF;
         }
 
         /// <summary>  Callback for when the GUI needs to know the height of the Inspector element. </summary>
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            return EditorGUIUtility.singleLineHeight * 2;
+            SerializedProperty dataProp = property.FindPropertyRelative("data");
+            uint data = dataProp.uintValue;
+            return EditorGUIUtility.singleLineHeight * ((data & 0x80000000) != 0 ? 3 : 1);
         }
     }
 #endif

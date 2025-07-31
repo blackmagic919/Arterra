@@ -67,7 +67,7 @@ public class DensityDeconstructor : MonoBehaviour
             throw new Exception("Grid size cannot be zero");
         if(initialized) Release(); 
         if(Config.CURRENT == null) MapStorage.World.Activate();
-        IRegister.Setup(); //Initialize Register LUTS
+        IRegister.Setup(Config.CURRENT); //Initialize Register LUTS
         if(!TerrainGeneration.GenerationPreset.active) TerrainGeneration.GenerationPreset.Initialize(); // Initialize Material Information
         if(!UtilityBuffers.active) UtilityBuffers.Initialize(); //Initialize Utility Buffers Which Stores Geometry
         Structure.Initialize();
@@ -323,16 +323,16 @@ public class DensityDeconstructor : MonoBehaviour
         foreach(var pair in MaterialDict){
             materials[pair.Value] = reg.RetrieveName(pair.Key);
         }
-        Structure.Materials.value = materials.ToList();
+        Structure.Names.value = materials.ToList();
     }
 
     private void DeserializeMaterials(){
         List<int> MaterialLUT = new List<int>();
         var reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        if(Structure.Materials.value == null || Structure.Materials.value.Count == 0) 
+        if(Structure.Names.value == null || Structure.Names.value.Count == 0) 
             return;
-        for(int i = 0; i < Structure.Materials.value.Count; i++){
-            MaterialLUT.Add(reg.RetrieveIndex(Structure.Materials.value[i]));
+        for(int i = 0; i < Structure.Names.value.Count; i++){
+            MaterialLUT.Add(reg.RetrieveIndex(Structure.Names.value[i]));
         }
         for(int i = 0; i < Structure.map.value.Count; i++){
             StructureData.PointInfo p = Structure.map.value[i];

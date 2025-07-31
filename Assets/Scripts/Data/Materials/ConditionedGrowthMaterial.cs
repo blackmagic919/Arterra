@@ -7,6 +7,7 @@ using WorldConfig.Generation.Structure;
 using MapStorage;
 using System.Collections.Generic;
 using WorldConfig.Generation.Material;
+using WorldConfig;
 /*
 y
 ^      0  5        z
@@ -187,7 +188,7 @@ namespace WorldConfig.Generation.Material{
 /// <summary> A utility class to override serialization of <see cref="StructureData.CheckInfo"/> into a Unity Inspector format.
 /// It exposes the internal components of the bitmap so it can be more easily understood by the developer. </summary>
 [CustomPropertyDrawer(typeof(ConditionedGrowthMat.MapSamplePoint))]
-public class StructCheckDrawer : PropertyDrawer{
+public class StructCheckDrawer : PropertyDrawer {
     private static readonly Dictionary<string, bool> _foldouts = new();
     /// <summary>  Callback for when the GUI needs to be rendered for the property. </summary>
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
@@ -213,7 +214,6 @@ public class StructCheckDrawer : PropertyDrawer{
         SerializedProperty offsetProp = property.FindPropertyRelative("_offset");
 
         uint matInfo = materialProp.uintValue;
-        int material = (int)(matInfo & 0x7FFFFFFF);
         bool hasCheck = (matInfo & 0x80000000) != 0;
         int[] offset = new int[3]{
             (int)((offsetProp.intValue >> 20) & 0x3FF) - 512,
@@ -229,10 +229,13 @@ public class StructCheckDrawer : PropertyDrawer{
         hasMatRect.x += labelWidth;
         hasCheck = EditorGUI.Toggle(hasMatRect, hasCheck);
 
-        Rect materialRect = new(rect.x + fieldWidth, rect.y, fieldWidth, rect.height);
-        EditorGUI.LabelField(materialRect, "Material");
-        materialRect.x += labelWidth;
-        material = EditorGUI.IntField(materialRect, material);
+        if (hasCheck) {
+            Rect materialRect = new(rect.x + fieldWidth, rect.y, fieldWidth, rect.height);
+            RegistryReferenceDrawer.SetupRegistries();
+            RegistryReferenceDrawer materialDrawer = new RegistryReferenceDrawer { BitMask = 0x7FFFFFFF, BitShift = 0 };
+            materialDrawer.DrawRegistryDropdown(materialRect, materialProp, new GUIContent("Material"),
+                Config.TEMPLATE.Generation.Materials.value.MaterialDictionary);
+        }
 
         rect.y += EditorGUIUtility.singleLineHeight;
         Rect offsetLabelRect = new(rect.x, rect.y, labelWidth, rect.height);
@@ -241,15 +244,14 @@ public class StructCheckDrawer : PropertyDrawer{
         EditorGUI.MultiIntField(offsetRect, new GUIContent[] { new("x"), new("y"), new("z") }, offset);
         rect.y += EditorGUIUtility.singleLineHeight;
 
-        materialProp.uintValue = (uint)(material & 0x7FFFFFFF) | (hasCheck ? 0x80000000u : 0u);
+        materialProp.uintValue = (materialProp.uintValue & 0x7FFFFFFF) | (hasCheck ? 0x80000000u : 0u);
         offsetProp.intValue = ((offset[0] + 512) & 0x3FF) << 20 |
             ((offset[1] + 512) & 0x3FF) << 10 | ((offset[2] + 512) & 0x3FF);
 
     }
 
     /// <summary>  Callback for when the GUI needs to know the height of the Inspector element. </summary>
-    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
-    {
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
         bool isExpanded = _foldouts.TryGetValue(property.propertyPath, out bool val) && val;
         if (!isExpanded) return EditorGUIUtility.singleLineHeight;
 

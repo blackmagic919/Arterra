@@ -15,7 +15,7 @@ MonoBehaviour:
   Name: Cirrus
   info:
     value:
-      NameRegister:
+      Names:
         value:
         - Water
         - Air

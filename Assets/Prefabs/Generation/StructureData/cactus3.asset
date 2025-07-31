@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: cactus3
   m_EditorClassIdentifier: 
   Name: Cactus3
+  Tags:
+    Reg:
+      value: []
   settings:
     value:
       GridSize:
@@ -22,6 +25,10 @@ MonoBehaviour:
       minimumLOD: 0
       randThetaRot: 1
       randPhiRot: 0
+  Names:
+    value:
+    - Air
+    - Cactus
   map:
     value:
     - data: 5911
@@ -298,7 +305,6 @@ MonoBehaviour:
         z: 4
       checkInfo:
         data: 2130738944
-  Materials:
-    value:
-    - Air
-    - Cactus
+  references:
+    version: 2
+    RefIds: []

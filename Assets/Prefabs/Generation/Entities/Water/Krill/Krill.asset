@@ -113,7 +113,7 @@ MonoBehaviour:
         value:
           Predators:
             value:
-            - Cod
+            - EntityType: Cod
           Mates:
             value:
             - MateType: Krill

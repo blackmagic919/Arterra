@@ -16,12 +16,12 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - WoodHoe
+    - Wood
+    - Plank
   Recipe:
-    Names:
-      value:
-      - WoodHoe
-      - Wood
-      - Plank
     entry:
       value:
       - data: 131071

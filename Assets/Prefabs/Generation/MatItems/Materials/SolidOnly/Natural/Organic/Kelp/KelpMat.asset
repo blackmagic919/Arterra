@@ -22,7 +22,6 @@ MonoBehaviour:
   - Kelp
   - InsetQuad
   - KelpLeaves
-  - PlantMatter
   terrainData:
     Texture: 2
     textureScale: 2

@@ -149,8 +149,8 @@ MonoBehaviour:
           FightAggressor: 1
           Prey:
             value:
-            - Sparrow
-            - Rabbit
+            - EntityType: Sparrow
+            - EntityType: Rabbit
       physicality:
         value:
           MaxHealth: 12

@@ -75,8 +75,8 @@ MonoBehaviour:
         value:
           Predators:
             value:
-            - Spider
-            - Bat
+            - EntityType: Spider
+            - EntityType: Bat
           Mates:
             value:
             - MateType: Beetle

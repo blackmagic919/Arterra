@@ -75,7 +75,7 @@ MonoBehaviour:
         value:
           Predators:
             value:
-            - Bat
+            - EntityType: Bat
           Mates:
             value:
             - MateType: Spider
@@ -90,7 +90,7 @@ MonoBehaviour:
           FightAggressor: 1
           Prey:
             value:
-            - Beetle
+            - EntityType: Beetle
       physicality:
         value:
           MaxHealth: 3

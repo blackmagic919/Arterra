@@ -16,12 +16,12 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - Embers:Solid
+    - Coal
+    - Wood
   Recipe:
-    Names:
-      value:
-      - Embers:Solid
-      - Coal
-      - Wood
     entry:
       value:
       - data: 169622

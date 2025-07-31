@@ -147,8 +147,8 @@ MonoBehaviour:
           FightAggressor: 0
           Prey:
             value:
-            - Spider
-            - Beetle
+            - EntityType: Spider
+            - EntityType: Beetle
       physicality:
         value:
           MaxHealth: 5

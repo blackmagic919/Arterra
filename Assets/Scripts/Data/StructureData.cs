@@ -16,8 +16,15 @@ namespace WorldConfig.Generation.Structure{
 [CreateAssetMenu(fileName = "Structure_Data", menuName = "Generation/Structure/Structure Data")]
 public class StructureData : Category<StructureData>
 {
+    
     /// <summary>  See <see cref="StructureData.Settings"/> for more information. </summary>
     public Option<Settings> settings;
+    /// <summary>
+    /// The names of all materials within the external <see cref="Config.GenerationSettings.Materials"/> registry that
+    /// are used in the structure. All entries that require references to a material may indicate the index within
+    /// this list of the name of the material in the external registry.
+    /// </summary>
+    public Option<List<string>> Names;
     /// <summary>
     /// The map information contained by the structure. This is the list of map entries that 
     /// define the structure, linearly encoded through the dimensions specified in <see cref="Settings.GridSize"/>.
@@ -34,12 +41,6 @@ public class StructureData : Category<StructureData>
     /// </summary>
     [SerializeField]
     public Option<List<CheckPoint>> checks;
-    /// <summary>
-    /// The names of all materials within the external <see cref="Config.GenerationSettings.Materials"/> registry that
-    /// are used in the structure. All entries that require references to a material may indicate the index within
-    /// this list of the name of the material in the external registry.
-    /// </summary>
-    public Option<List<string>> Materials;
 
     /// <summary> A getter property that deserializes the structure's map data by recoupling them with the current world's configuration. This involves
     /// retrieving the real indices of the materials within the external <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry. </summary>
@@ -47,7 +48,7 @@ public class StructureData : Category<StructureData>
     public IEnumerable<PointInfo> SerializePoints{
         get{
             Catalogue<Material.MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-            return map.value.Select(x => Serialize(x, reg.RetrieveIndex(Materials.value[x.material])));
+            return map.value.Select(x => Serialize(x, reg.RetrieveIndex(Names.value[x.material])));
         }
     }
     private PointInfo Serialize(PointInfo x, int Index){
@@ -60,12 +61,12 @@ public class StructureData : Category<StructureData>
     public void Initialize(){
         map.value ??= new List<PointInfo>((int)(settings.value.GridSize.x * settings.value.GridSize.y * settings.value.GridSize.z));
         checks.value ??= new List<CheckPoint>();
-        Materials.value ??= new List<string>();
+        Names.value ??= new List<string>();
     }
 
     /// <summary>
     /// A check that the structure must perform before it can be placed at a certain location
-    /// in the world. A check involves sampling the map relative to its desired placement 
+    /// in the world. A check involves sampling the map relative to its desired placement //
     /// location and orientation and verifying that the obtained map information is consistent
     /// with the set of requirements specified in <see cref="CheckInfo"/> .
     /// </summary>
@@ -254,16 +255,19 @@ public class StructPointDrawer : PropertyDrawer{
 
         //bool isDirty = (data & 0x80000000) != 0;
         bool preserve = (data & 0x80000000) != 0;
-        uint material = (data >> 16) & 0x7FFF;
         uint viscosity = (data >> 8) & 0xFF;
         uint density = data & 0xFF;
 
         Rect rect = new (position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
         EditorGUI.LabelField(rect, label);//
         rect.y += EditorGUIUtility.singleLineHeight;
-        
-        material = (uint)EditorGUI.IntField(rect, "Material", (int)material);
+
+        RegistryReferenceDrawer.SetupRegistries();
+        RegistryReferenceDrawer materialDrawer = new RegistryReferenceDrawer { BitMask = 0x7FFF, BitShift = 16 };
+            materialDrawer.DrawRegistryDropdown(rect, dataProp, new GUIContent("Material"),
+                Config.TEMPLATE.Generation.Materials.value.MaterialDictionary);
         rect.y += EditorGUIUtility.singleLineHeight;
+
         viscosity = (uint)EditorGUI.IntField(rect, "Viscosity", (int)viscosity);
         rect.y += EditorGUIUtility.singleLineHeight;
         density = (uint)EditorGUI.IntField(rect, "Density", (int)density);
@@ -273,11 +277,10 @@ public class StructPointDrawer : PropertyDrawer{
 
         //data = (isDirty ? data | 0x80000000 : data & 0x7FFFFFFF);
         data = preserve ? data | 0x80000000 : data & 0x7FFFFFFF;
-        data = (data & 0x8000FFFF) | (material << 16);
         data = (data & 0xFFFF00FF) | ((viscosity & 0xFF) << 8);
         data = (data & 0xFFFFFF00) | (density & 0xFF);
 
-        dataProp.uintValue = data;
+        dataProp.uintValue = (data & 0x8000FFFF) | (dataProp.uintValue & 0x7FFF0000);
     }
 
     /// <summary>  Callback for when the GUI needs to know the height of the Inspector element. </summary>

@@ -204,7 +204,7 @@ MonoBehaviour:
         z: 0
       checkInfo:
         data: 2130771840
-  Materials:
+  Names:
     value:
     - Air
     - Kelp

@@ -72,6 +72,7 @@ public class ConvertibleToolTag : ToolTag, IMaterialConverting {
 
 [Serializable]
 public class ConverterToolTag : ConvertibleToolTag {
+    [RegistryReference("Materials")]
     public string ConvertTarget;
     public override object Clone() {
         return new ConverterToolTag {

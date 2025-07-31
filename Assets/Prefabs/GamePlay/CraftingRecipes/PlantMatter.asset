@@ -16,11 +16,11 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - PlantMatter:Solid
+    - Grass
   Recipe:
-    Names:
-      value:
-      - PlantMatter:Solid
-      - Grass
     entry:
       value:
       - data: 104086

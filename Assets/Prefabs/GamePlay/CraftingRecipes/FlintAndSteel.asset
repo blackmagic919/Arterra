@@ -16,12 +16,12 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - FlintAndSteel
+    - Wood
+    - Plank
   Recipe:
-    Names:
-      value:
-      - FlintAndSteel
-      - Wood
-      - Plank
     entry:
       value:
       - data: 104086

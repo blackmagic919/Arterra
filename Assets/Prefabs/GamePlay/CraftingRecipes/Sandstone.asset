@@ -16,11 +16,11 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - Sandstone:Solid
+    - Sand
   Recipe:
-    Names:
-      value:
-      - Sandstone:Solid
-      - Sand
     entry:
       value:
       - data: 104086

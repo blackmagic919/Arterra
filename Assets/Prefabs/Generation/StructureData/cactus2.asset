@@ -278,7 +278,7 @@ MonoBehaviour:
         z: 3
       checkInfo:
         data: 2130738944
-  Materials:
+  Names:
     value:
     - Air
     - Cactus

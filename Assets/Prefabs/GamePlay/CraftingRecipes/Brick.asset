@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: Brick
   m_EditorClassIdentifier: 
   Name: Brick
+  Names:
+    value:
+    - Brick:Solid
+    - Stone
+    - Clay
   Recipe:
-    Names:
-      value:
-      - Brick:Solid
-      - Stone
-      - Clay
     entry:
       value:
       - data: 104086

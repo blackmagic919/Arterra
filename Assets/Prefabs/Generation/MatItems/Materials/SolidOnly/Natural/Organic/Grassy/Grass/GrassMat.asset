@@ -23,7 +23,7 @@ MonoBehaviour:
   - Shell
   - LushGrass
   - WheatSeeds
-  - Dirt
+  - LettuceSeeds
   terrainData:
     Texture: 2
     textureScale: 2
@@ -52,8 +52,11 @@ MonoBehaviour:
     SolidLootTable:
       value:
       - DropItem: 5
-        DropChance: 0.2
+        DropChance: 0.15
         DropMultiplier: 1
+      - DropItem: 6
+        DropChance: 0.05
+        DropMultiplier: 2
     DefaultSolidLoot:
       DropItem: 0
       DropMultiplier: 1

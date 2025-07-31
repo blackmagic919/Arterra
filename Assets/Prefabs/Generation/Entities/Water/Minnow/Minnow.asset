@@ -115,8 +115,8 @@ MonoBehaviour:
         value:
           Predators:
             value:
-            - Cod
-            - Whale
+            - EntityType: Cod
+            - EntityType: Whale
           Mates:
             value:
             - MateType: Minnow

@@ -20,6 +20,10 @@ MonoBehaviour:
         value:
           value:
             rid: 6432722916811472969
+      - Tag: 5
+        value:
+          value:
+            rid: 6432723101265428556
   Children:
     value:
     - value: {fileID: 11400000, guid: 116dbc651ae144517a09709a031fd843, type: 2}
@@ -43,3 +47,9 @@ MonoBehaviour:
         _neighborBounds:
           data: 2130738944
         ConvertTarget: TilledSoil
+    - rid: 6432723101265428556
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0
+        ToolDamage: 0
+        GivesItem: 0

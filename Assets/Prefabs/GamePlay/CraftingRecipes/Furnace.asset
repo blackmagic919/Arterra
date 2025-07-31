@@ -16,11 +16,11 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - Furnace:Solid
+    - Stone
   Recipe:
-    Names:
-      value:
-      - Furnace:Solid
-      - Stone
     entry:
       value:
       - data: 104086

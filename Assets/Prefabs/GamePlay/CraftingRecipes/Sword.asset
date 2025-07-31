@@ -16,12 +16,12 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - Sword
+    - Wood
+    - Rock
   Recipe:
-    Names:
-      value:
-      - Sword
-      - Wood
-      - Rock
     entry:
       value:
       - data: 116936

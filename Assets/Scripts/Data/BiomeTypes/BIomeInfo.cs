@@ -36,7 +36,7 @@ public class Info
     /// within this list of the name of the entry within the registry that they are referencing. This allows for the biome
     /// module to be decoupled from the rest of the world's configuration. 
     /// </summary>
-    public Option<List<string> > NameRegister;
+    public Option<List<string> > Names;
 
     /// <summary> A list containing the generation pattern of solid materials within the biome. This list is considered
     /// only if the density of the map entry is greater than <see cref="Quality.Terrain.IsoLevel"/>(i.e. undeground).
@@ -77,7 +77,7 @@ public class Info
     public IEnumerable<TerrainStructure> StructureSerial{
         get{
             Catalogue<Structure.StructureData> reg = Config.CURRENT.Generation.Structures.value.StructureDictionary;
-            return Structures.value.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Structure])));
+            return Structures.value.Select(x => Serialize(x.value, reg.RetrieveIndex(Names.value[x.value.Structure])));
         }
     }
 
@@ -87,22 +87,22 @@ public class Info
     public IEnumerable<EntityGen> EntitySerial{
         get{
             Catalogue<Entity.Authoring> reg = Config.CURRENT.Generation.Entities;
-            return Entities.value.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Entity])));
+            return Entities.value.Select(x => Serialize(x.value, reg.RetrieveIndex(Names.value[x.value.Entity])));
         }
     }
 
     /// <summary>
-    /// Retrieves the deserialized version of a list of materials that are coupled through a reference to the <see cref="NameRegister"/> 
+    /// Retrieves the deserialized version of a list of materials that are coupled through a reference to the <see cref="Names"/> 
     /// by recoupling them with the current world's configuration. This involves retrieving the real indices 
     /// of the materials within the external external <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry.
     /// </summary>
-    /// <param name="Materials">The list of materials that are coupled with <see cref="NameRegister"/> that is to be decoupled. This is either 
+    /// <param name="Materials">The list of materials that are coupled with <see cref="Names"/> that is to be decoupled. This is either 
     /// <see cref="GroundMaterials"/> or <see cref="SurfaceMaterials"/>. </param>
     /// <returns>An ordered collection of the recoupled with the external <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry</returns>
     public IEnumerable<BMaterial> MaterialSerial(List<Option<BMaterial> > Materials){
         if(Materials == null) return null;
         Catalogue<Material.MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        return Materials.Select(x => Serialize(x.value, reg.RetrieveIndex(NameRegister.value[x.value.Material])));
+        return Materials.Select(x => Serialize(x.value, reg.RetrieveIndex(Names.value[x.value.Material])));
     }
 
     TerrainStructure Serialize(TerrainStructure x, int Index){
@@ -128,9 +128,11 @@ public class Info
     [Serializable]
     public struct BMaterial
     {
-        /// <summary> The index of the name of the material within the <see cref="NameRegister"/>.
+        
+        /// <summary> The index of the name of the material within the <see cref="Names"/>.
         /// Once recoupled, this will point to the real index within the external 
         /// <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry. </summary>
+        [RegistryReference("Materials", "/info/value/Names")]
         public int Material;
         /// <summary>
         /// The preferred material size that the material should be generated at. The material size
@@ -178,15 +180,17 @@ public class Info
         /// generate as all structure points will attempt to place the first structure. </remarks>
         [Range(0, 1)]
         public float ChancePerStructurePoint;
-        /// <summary> The index of the name within the <see cref="NameRegister"/>, of the structure within 
+        /// <summary> The index of the name within the <see cref="Names"/>, of the structure within 
         /// the external registry <see cref="WorldConfig.Config.GenerationSettings.Structures"/> </summary>
+        [RegistryReference("Structures", "/info/value/Names")]
         public int Structure;
     }
     /// <summary> The settings for the generation pattern of a single entity within a biome. </summary>
     [Serializable]
     public struct EntityGen{
-        /// <summary> The index of the name within the <see cref="NameRegister"/>, of the entity within 
+        /// <summary> The index of the name within the <see cref="Names"/>, of the entity within 
         /// the external registry <see cref="WorldConfig.Config.GenerationSettings.Entities"/> </summary>
+        [RegistryReference("Entities", "/info/value/Names")]
         public int Entity;
         /// <summary> The chance that the entity will be spawned at a given coordinate <b>for every coordinate</b> it
         /// can generate at within a chunk. Whether an entity can generate at a coodrinate is determined by

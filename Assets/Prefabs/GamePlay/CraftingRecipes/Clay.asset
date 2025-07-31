@@ -16,12 +16,12 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - Clay:Solid
+    - Sand
+    - Water
   Recipe:
-    Names:
-      value:
-      - Clay:Solid
-      - Sand
-      - Water
     entry:
       value:
       - data: 111871
