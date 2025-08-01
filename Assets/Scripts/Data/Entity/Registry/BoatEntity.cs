@@ -25,9 +25,9 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
     public class BoatSetting : EntitySetting{
         public float GroundStickDist;
         public float StickFriction;
-        public int2 SpriteSampleSize;
-        public float AlphaClip;
-        public float ExtrudeHeight;
+        //public int2 SpriteSampleSize;
+        //public float AlphaClip;
+        //public float ExtrudeHeight;
     }
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it

@@ -94,7 +94,7 @@ public class BoatItem : IItem{
         Entity.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Boat");
         Entity.info.entityId = Guid.NewGuid();
         EntityManager.CreateEntity(Entity);
-        InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
+        //InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
     }
     
     private void AttachChildDisplay(){

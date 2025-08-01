@@ -27,13 +27,13 @@ MonoBehaviour:
           x: 0
           y: 0
           z: 0
-        profileStart: 0
+        profileStart: 539
       collider:
         size:
-          x: 0
-          y: 0
-          z: 0
-        friction: 0
+          x: 1
+          y: 1
+          z: 1
+        friction: 0.5
       GroundStickDist: 0
       StickFriction: 0
       SpriteSampleSize:
