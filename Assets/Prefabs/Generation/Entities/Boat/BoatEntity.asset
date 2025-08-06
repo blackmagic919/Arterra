@@ -30,17 +30,12 @@ MonoBehaviour:
         profileStart: 539
       collider:
         size:
-          x: 1
-          y: 1
-          z: 1
+          x: 5
+          y: 5
+          z: 5
         friction: 0.5
       GroundStickDist: 0
       StickFriction: 0
-      SpriteSampleSize:
-        x: 0
-        y: 0
-      AlphaClip: 0
-      ExtrudeHeight: 0
   references:
     version: 2
     RefIds: []

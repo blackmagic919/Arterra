@@ -32,10 +32,13 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class Boat : Entity
+    public class Boat : Entity, IRidable, IAttackable
     {  
         public TerrainColliderJob tCollider;
         public Unity.Mathematics.Random random;
+
+        private Guid RiderTarget = Guid.Empty;
+
         [JsonIgnore]
         private BoatController controller;
         [JsonIgnore]
@@ -99,7 +102,44 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             EntityManager.AddHandlerEvent(controller.Update);
         }
 
-        public override void Disable(){
+        // IRidable implementation
+        public Transform GetRiderRoot() {
+            return controller.transform;
+        }
+        public void WalkInDirection(float3 aim) {
+            aim = new(aim.x, 0, aim.z);
+            if (Vector3.Magnitude(aim) <= 1E-05f) return;
+            tCollider.velocity += EntityJob.cxt.deltaTime * aim;           
+        }
+        public void Dismount() { 
+            if (RiderTarget == Guid.Empty) return;
+            Entity target = EntityManager.GetEntity(RiderTarget);
+            if (target == null || target is not IRider rider)
+                return;
+
+            EntityManager.AddHandlerEvent(() =>rider.OnDismounted(this));
+            RiderTarget = Guid.Empty;
+        }
+
+        // IAttackable implementation
+        public bool IsDead => false;
+
+        public void Interact(Entity caller) {
+            if (caller == null) return;
+            if (caller is not IRider rider) return;
+            if (RiderTarget != Guid.Empty) return; //Already has a rider
+            RiderTarget = caller.info.entityId;
+            EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
+
+        }
+        public WorldConfig.Generation.Item.IItem Collect(float collectRate) {
+            return null; // Boats are not collectible
+        }
+
+        public void TakeDamage(float damage, float3 knockback, Entity attacker = null) {
+        }
+
+        public override void Disable() {
             controller.Dispose();
         }
     }
@@ -108,7 +148,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
     {
         private Boat entity;
         private GameObject gameObject;
-        private Transform transform;
+        internal Transform transform;
 
         private bool active = false;
 
