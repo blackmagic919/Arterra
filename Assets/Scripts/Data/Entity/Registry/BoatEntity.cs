@@ -22,12 +22,15 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
     [JsonIgnore]
     public override EntitySetting Setting { get => _Setting.value; set => _Setting.value = (BoatSetting)value; }
     [Serializable]
-    public class BoatSetting : EntitySetting{
+    public class BoatSetting : EntitySetting {
         public float GroundStickDist;
         public float StickFriction;
         //public int2 SpriteSampleSize;
         //public float AlphaClip;
         //public float ExtrudeHeight;
+        public float MaxSpeed;
+
+        public float Acceleration;
     }
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
@@ -109,7 +112,9 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
         public void WalkInDirection(float3 aim) {
             aim = new(aim.x, 0, aim.z);
             if (Vector3.Magnitude(aim) <= 1E-05f) return;
-            tCollider.velocity += EntityJob.cxt.deltaTime * aim;           
+            if (math.length(tCollider.velocity) > settings.MaxSpeed) return;
+
+            tCollider.velocity += settings.Acceleration *EntityJob.cxt.deltaTime * aim;           
         }
         public void Dismount() { 
             if (RiderTarget == Guid.Empty) return;

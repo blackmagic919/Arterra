@@ -36,6 +36,8 @@ MonoBehaviour:
         friction: 0.5
       GroundStickDist: 0
       StickFriction: 0
+      MaxSpeed: 5
+      Acceleration: 10
   references:
     version: 2
     RefIds: []
