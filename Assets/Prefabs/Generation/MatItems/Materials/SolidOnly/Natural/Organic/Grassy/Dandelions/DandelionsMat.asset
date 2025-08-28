@@ -17,12 +17,13 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Dandelions:Solid
-  - Void
-  - Dandelions
-  - Shell
-  - Dandelions
-  - Dirt
+    value:
+    - Dandelions:Solid
+    - Void
+    - Dandelions
+    - Shell
+    - Dandelions
+    - Dirt
   terrainData:
     Texture: 2
     textureScale: 2

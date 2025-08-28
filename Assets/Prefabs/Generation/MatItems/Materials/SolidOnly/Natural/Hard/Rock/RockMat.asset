@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Rock:Solid
-  - Void
-  - Rock
+    value:
+    - Rock:Solid
+    - Void
+    - Rock
   terrainData:
     Texture: 2
     textureScale: 4

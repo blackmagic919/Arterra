@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Hardwood:Solid
-  - Void
-  - Hardwood
+    value:
+    - Hardwood:Solid
+    - Void
+    - Hardwood
   terrainData:
     Texture: 2
     textureScale: 2

@@ -89,8 +89,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint indexOffset = _StructureIndexes[structureIndex].x;
 
     //Evaluate chunk coord with LoD
-    uint3 chunkOriginLoD = uint3(ceil(chunkOrigin / (float)meshSkipInc));
-    uint3 chunkEndLoD = uint3(min(chunkSize, chunkEnd / meshSkipInc));
+    uint3 chunkOriginLoD = uint3(min(chunkSize, round(chunkOrigin / (float)meshSkipInc)));
+    uint3 chunkEndLoD = uint3(min(chunkSize, round(chunkEnd / (float)meshSkipInc)));
     chunkOriginLoD = min(chunkOriginLoD, chunkEndLoD);
 
     uint3 originDist = chunkOriginLoD*meshSkipInc - origin;
@@ -113,11 +113,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         uint y = (pos / structLength.z) % structLength.y;
         uint z = pos % structLength.z;
 
-        uint xReal = x * meshSkipInc;
-        uint yReal = y * meshSkipInc;
-        uint zReal = z * meshSkipInc;
+        uint3 real = uint3(x, y, z) * meshSkipInc;
         
-        uint3 structCoord = structOrigin + xAxis * xReal + yAxis * yReal + zAxis * zReal;
+        uint3 structCoord = structOrigin + xAxis * real.x + yAxis * real.y + zAxis * real.z;
+        structCoord = clamp(structCoord, 0, sizes);
         uint3 chunkCoord = chunkOriginLoD + uint3(x,y,z) + wOffset;
 
         //structCoord = min(structCoord, sizes - 1);

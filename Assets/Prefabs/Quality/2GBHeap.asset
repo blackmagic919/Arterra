@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9933ec2c3a294ea88de025ab5caf6a9, type: 3}
   m_Name: 2GBHeap
   m_EditorClassIdentifier: 
-  StorageSize: 500000000
+  StorageSize: 250000000
   HeapSize: 50000
   AddressSize: 50000

@@ -22,26 +22,27 @@ MonoBehaviour:
     - Wood
     - Plank
   Recipe:
-    entry:
-      value:
-      - data: 104086
-      - data: 111796
-      - data: 0
-      - data: 0
-      - data: 111796
-      - data: 122076
-      - data: 30840
-      - data: 182472
-      - data: 0
-      - data: 30840
-      - data: 0
-      - data: 182472
-      - data: 0
-      - data: 182472
-      - data: 182472
-      - data: 182472
-    result:
-      data: 255
-  references:
-    version: 2
-    RefIds: []
+    value:
+      entry:
+        value:
+        - data: 104086
+        - data: 111796
+        - data: 0
+        - data: 0
+        - data: 111796
+        - data: 122076
+        - data: 30840
+        - data: 182472
+        - data: 0
+        - data: 30840
+        - data: 0
+        - data: 182472
+        - data: 0
+        - data: 182472
+        - data: 182472
+        - data: 182472
+      result:
+        data: 255
+    references:
+      version: 2
+      RefIds: []

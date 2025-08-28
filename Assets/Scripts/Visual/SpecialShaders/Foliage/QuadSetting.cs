@@ -10,7 +10,7 @@ public class QuadSetting : Category<QuadSetting>
     /// <summary>The registry names of all entries referencing registries within <see cref="info"/>. When an element such as
     /// a material, structure, or entry needs to reference an entry in an external registry, they can indicate the index
     /// within this list of the name of the entry within the registry that they are referencing. </summary>
-    public Option<List<string> > NameRegister;
+    public Option<List<string> > Names;
     //This is seperated so we have just the raw data independent of 
     //anything we might have inherited and so-on
     public Data info;
@@ -21,6 +21,7 @@ public class QuadSetting : Category<QuadSetting>
         [Tooltip("Distance Extruded Along Normal")]
         public float Inflation; //0f   
         public Color LeafColor;
+        [RegistryReference("Textures")]
         public int TextureIndex;
         // 0 = Triple
         // 1 = Quads Along Normal
@@ -31,7 +32,7 @@ public class QuadSetting : Category<QuadSetting>
     {
         Data serial = info;
         Catalogue<TextureContainer> texReg = Config.CURRENT.Generation.Textures;
-        serial.TextureIndex = texReg.RetrieveIndex(NameRegister.value[serial.TextureIndex]);
+        serial.TextureIndex = texReg.RetrieveIndex(Names.value[serial.TextureIndex]);
         return serial;
     }
 }

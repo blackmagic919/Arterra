@@ -22,26 +22,27 @@ MonoBehaviour:
     - Sand
     - Water
   Recipe:
-    entry:
-      value:
-      - data: 111871
-      - data: 150527
-      - data: 0
-      - data: 0
-      - data: 150527
-      - data: 111871
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-    result:
-      data: 510
-  references:
-    version: 2
-    RefIds: []
+    value:
+      entry:
+        value:
+        - data: 111871
+        - data: 150527
+        - data: 0
+        - data: 0
+        - data: 150527
+        - data: 111871
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+      result:
+        data: 510
+    references:
+      version: 2
+      RefIds: []

@@ -1,10 +1,9 @@
 #ifndef FOLIAGE_INCLUDED
 #define FOLIAGE_INCLUDED
 
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
 #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
-#include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
 
 struct DrawTriangle{
     uint3 vertex[3];

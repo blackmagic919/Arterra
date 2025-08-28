@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Furnace:Solid
-  - Void
-  - Furnace
+    value:
+    - Furnace:Solid
+    - Void
+    - Furnace
   terrainData:
     Texture: 2
     textureScale: 2

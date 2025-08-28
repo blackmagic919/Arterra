@@ -17,8 +17,9 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Void
-  - Water:Liquid
+    value:
+    - Void
+    - Water:Liquid
   terrainData:
     Texture: 0
     textureScale: 5

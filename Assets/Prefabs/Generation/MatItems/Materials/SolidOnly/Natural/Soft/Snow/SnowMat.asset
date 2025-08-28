@@ -17,11 +17,12 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Snow:Solid
-  - Void
-  - Snow
-  - Tesselation
-  - FreshSnow
+    value:
+    - Snow:Solid
+    - Void
+    - Snow
+    - Tesselation
+    - FreshSnow
   terrainData:
     Texture: 2
     textureScale: 4

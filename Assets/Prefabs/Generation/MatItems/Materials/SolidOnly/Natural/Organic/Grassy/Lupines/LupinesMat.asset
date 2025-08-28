@@ -17,12 +17,13 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Lupines:Solid
-  - Void
-  - Lupines
-  - Shell
-  - Lupine
-  - Dirt
+    value:
+    - Lupines:Solid
+    - Void
+    - Lupines
+    - Shell
+    - Lupine
+    - Dirt
   terrainData:
     Texture: 2
     textureScale: 2

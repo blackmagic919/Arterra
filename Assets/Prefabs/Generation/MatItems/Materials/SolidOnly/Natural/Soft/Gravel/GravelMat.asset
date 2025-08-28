@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Gravel:Solid
-  - Void
-  - Gravel
+    value:
+    - Gravel:Solid
+    - Void
+    - Gravel
   terrainData:
     Texture: 2
     textureScale: 4

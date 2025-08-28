@@ -21,26 +21,27 @@ MonoBehaviour:
     - Plank:Solid
     - Wood
   Recipe:
-    entry:
-      value:
-      - data: 104086
-      - data: 104086
-      - data: 0
-      - data: 0
-      - data: 104086
-      - data: 104086
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-    result:
-      data: 1020
-  references:
-    version: 2
-    RefIds: []
+    value:
+      entry:
+        value:
+        - data: 104086
+        - data: 104086
+        - data: 0
+        - data: 0
+        - data: 104086
+        - data: 104086
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+      result:
+        data: 1020
+    references:
+      version: 2
+      RefIds: []

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: OakLeaves
   m_EditorClassIdentifier: 
   Name: OakLeaves
-  NameRegister:
+  Names:
     value:
     - OakLeaf
   info:

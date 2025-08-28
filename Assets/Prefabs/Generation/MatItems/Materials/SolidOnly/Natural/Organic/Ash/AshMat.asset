@@ -29,9 +29,10 @@ MonoBehaviour:
           value:
             rid: 6432722696530559049
   Names:
-  - Ash:Solid
-  - Void
-  - Ash
+    value:
+    - Ash:Solid
+    - Void
+    - Ash
   terrainData:
     Texture: 2
     textureScale: 2

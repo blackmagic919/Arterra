@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Brick:Solid
-  - Void
-  - Brick
+    value:
+    - Brick:Solid
+    - Void
+    - Brick
   terrainData:
     Texture: 2
     textureScale: 2

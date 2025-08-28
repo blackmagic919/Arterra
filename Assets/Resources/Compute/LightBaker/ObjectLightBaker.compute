@@ -29,7 +29,8 @@ void BakeLights (uint3 id : SV_DispatchThreadID)
     uint isDirty = 0;
     uint numCoords = subChunkSize * subChunkSize * subChunkSize;
     for(uint i = 0; i < numCoords; i++){
-        uint3 sMCoord = int3(i / (subChunkSize * subChunkSize), (i / subChunkSize) % subChunkSize, i % subChunkSize);
+        uint3 sMCoord = int3(i / (subChunkSize * subChunkSize),
+            (i / subChunkSize) % subChunkSize, i % subChunkSize);
         uint3 mapCoord = sMCoord + SubChunkOrigin;
         uint mIndex = indexFromCoord(mapCoord);
 

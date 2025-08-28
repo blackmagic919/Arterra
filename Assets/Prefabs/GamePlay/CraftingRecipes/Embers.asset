@@ -22,26 +22,27 @@ MonoBehaviour:
     - Coal
     - Wood
   Recipe:
-    entry:
-      value:
-      - data: 169622
-      - data: 104086
-      - data: 0
-      - data: 0
-      - data: 104086
-      - data: 169622
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-      - data: 0
-    result:
-      data: 255
-  references:
-    version: 2
-    RefIds: []
+    value:
+      entry:
+        value:
+        - data: 169622
+        - data: 104086
+        - data: 0
+        - data: 0
+        - data: 104086
+        - data: 169622
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+        - data: 0
+      result:
+        data: 255
+    references:
+      version: 2
+      RefIds: []

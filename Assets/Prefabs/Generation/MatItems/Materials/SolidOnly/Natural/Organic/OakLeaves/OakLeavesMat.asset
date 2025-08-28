@@ -21,11 +21,12 @@ MonoBehaviour:
           value:
             rid: 6432722648275615825
   Names:
-  - OakLeaves:Solid
-  - Void
-  - OakLeaves
-  - InsetQuad
-  - OakLeaves
+    value:
+    - OakLeaves:Solid
+    - Void
+    - OakLeaves
+    - InsetQuad
+    - OakLeaves
   terrainData:
     Texture: 2
     textureScale: 2

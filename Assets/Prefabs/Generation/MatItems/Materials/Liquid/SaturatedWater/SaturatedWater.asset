@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Void
-  - SaturatedWater:Liquid
-  - Water
+    value:
+    - Void
+    - SaturatedWater:Liquid
+    - Water
   terrainData:
     Texture: 2
     textureScale: 2
@@ -31,13 +32,11 @@ MonoBehaviour:
     GroundExtinction: {x: 0.03, y: 0.005, z: 0.003}
     LightIntensity: 0
   liquidData:
-    shallowCol: {x: 0.19, y: 1, z: 0.8}
-    deepCol: {x: 0, y: 0.4, z: 0.7}
+    shallowCol: {r: 0.60784316, g: 1, b: 0.9218972, a: 0.15686275}
+    deepCol: {r: 0, g: 0.32456332, b: 0.50980395, a: 0.88235295}
     colFalloff: 0.05
-    depthOpacity: 0.025
-    smoothness: 0.25
     waveBlend: 0.5
-    waveStrength: 0.5
+    waveStrength: 0.05
     waveScale: {x: 0.2, y: 0.045}
     waveSpeed: {x: 2, y: 5}
   SelfCondition:

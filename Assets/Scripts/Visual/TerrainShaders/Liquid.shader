@@ -7,9 +7,8 @@ Shader "Unlit/LiquidShader"
 
     SubShader//
     {
-        Tags {"RenderPipeline" = "UniversalPipeline"  "Queue" = "Transparent" "RenderType"="Transparent" }
+        Tags {"RenderPipeline" = "UniversalPipeline"  "Queue" = "Transparent" "RenderType"="Opaque" }
         ZWrite On
-		Blend SrcAlpha OneMinusSrcAlpha
 
         Pass
         {
@@ -23,9 +22,6 @@ Shader "Unlit/LiquidShader"
             #define _SPECULAR_COLOR
             #pragma multi_compile _ _ADDITIONAL_LIGHTS
             #pragma multi_compile _ INDIRECT 
-            
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             
             #include "LiquidShader.hlsl"
             ENDHLSL

@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Plank:Solid
-  - Void
-  - Plank
+    value:
+    - Plank:Solid
+    - Void
+    - Plank
   terrainData:
     Texture: 2
     textureScale: 2

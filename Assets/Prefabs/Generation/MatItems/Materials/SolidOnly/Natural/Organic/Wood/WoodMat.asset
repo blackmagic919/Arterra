@@ -21,9 +21,10 @@ MonoBehaviour:
           value:
             rid: 5818089297814487231
   Names:
-  - Wood:Solid
-  - Void
-  - Wood
+    value:
+    - Wood:Solid
+    - Void
+    - Wood
   terrainData:
     Texture: 2
     textureScale: 2

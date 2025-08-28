@@ -17,12 +17,13 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Dirt:Solid
-  - Void
-  - WheatSeededSoil
-  - WheatSeeds
-  - Wheat
-  - PlantStem
+    value:
+    - Dirt:Solid
+    - Void
+    - WheatSeededSoil
+    - WheatSeeds
+    - Wheat
+    - PlantStem
   terrainData:
     Texture: 2
     textureScale: 2

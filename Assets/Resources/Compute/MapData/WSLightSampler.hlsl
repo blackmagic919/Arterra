@@ -37,7 +37,7 @@ uint SampleLight(float3 samplePointWS){
     int3 CSCoord = WSToCS(samplePointWS);
     CInfo cHandle = _ChunkAddressDict[HashCoord(CSCoord)];
     float4 light = 0; //rgb -> Light, s -> Shadow
-
+    
     if(!Contains(cHandle, CSCoord)) return 0; else{
     float3 MSPoint = WSToMS(samplePointWS) / (cHandle.offset & 0xFF);
     MSPoint += float3(
@@ -77,6 +77,7 @@ uint SampleLight(float3 samplePointWS){
                   ((uint)round(light.x));
     return lightC;
 }}
+
 
 
 //We don't allow Out-Of-Bounds Rehashing, and we don't look at if it's underground or not

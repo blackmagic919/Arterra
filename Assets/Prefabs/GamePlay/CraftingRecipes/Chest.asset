@@ -21,26 +21,27 @@ MonoBehaviour:
     - Chest:Solid
     - Plank
   Recipe:
-    entry:
-      value:
-      - data: 104086
-      - data: 104086
-      - data: 104086
-      - data: 104086
-      - data: 104086
-      - data: 19275
-      - data: 19275
-      - data: 104086
-      - data: 104086
-      - data: 19275
-      - data: 19275
-      - data: 104086
-      - data: 104086
-      - data: 104086
-      - data: 104086
-      - data: 104086
-    result:
-      data: 128
-  references:
-    version: 2
-    RefIds: []
+    value:
+      entry:
+        value:
+        - data: 104086
+        - data: 104086
+        - data: 104086
+        - data: 104086
+        - data: 104086
+        - data: 19275
+        - data: 19275
+        - data: 104086
+        - data: 104086
+        - data: 19275
+        - data: 19275
+        - data: 104086
+        - data: 104086
+        - data: 104086
+        - data: 104086
+        - data: 104086
+      result:
+        data: 128
+    references:
+      version: 2
+      RefIds: []

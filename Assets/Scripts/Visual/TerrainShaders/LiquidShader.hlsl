@@ -1,5 +1,4 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
 #include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
 
@@ -14,11 +13,9 @@ struct v2f
 
 
 struct liquidMat{
-    float3 WaterShallowCol;
-    float3 WaterDeepCol;
+    float4 WaterShallowCol;
+    float4 WaterDeepCol;
     float WaterColFalloff;
-    float DepthOpacity;
-    float Smoothness;
     float WaveBlend;
     float WaveStrength;
     float2 WaveScale;
@@ -34,6 +31,9 @@ TEXTURE2D(_LiquidCoarseWave);
 SAMPLER(sampler_LiquidCoarseWave);
 TEXTURE2D(_CameraDepthTexture);
 SAMPLER(sampler_CameraDepthTexture);
+TEXTURE2D(_CameraOpaqueTexture);
+SAMPLER(sampler_CameraOpaqueTexture);
+
 
 #ifdef INDIRECT
 float4x4 _LocalToWorld;
@@ -132,30 +132,31 @@ half4 frag (v2f IN) : SV_Target
 
     liquidMat matData = _MatLiquidData[IN.material];
 
-    float screenDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, UV);
-    float linearDepth = LinearEyeDepth(screenDepth, _ZBufferParams) * length(viewVector);
-    float dstToWater = IN.positionCS.w;
 
-    float3 viewDir = normalize(viewVector);
     float2 waveOffsetFine = float2(_Time.x * matData.WaveSpeed.x, _Time.x * matData.WaveSpeed.x * 0.75);
     float2 waveOffsetCoarse = float2(_Time.x * matData.WaveSpeed.y * -0.5, _Time.x * matData.WaveSpeed.y * -0.25);
 
     float3 waveNormalFine = triplanar(_LiquidFineWave, sampler_LiquidFineWave, IN.positionWS, matData.WaveScale.x, IN.normalWS, waveOffsetFine);
     float3 waveNormalCoarse = triplanar(_LiquidCoarseWave, sampler_LiquidCoarseWave, IN.positionWS, matData.WaveScale.y, IN.normalWS, waveOffsetCoarse);
     float3 waveNormal = lerp(waveNormalCoarse, waveNormalFine, matData.WaveBlend);
-    float3 specWaveNormal = normalize(lerp(IN.normalWS, blend_rnm(IN.normalWS, waveNormal), matData.WaveStrength));
+    waveNormal = normalize(blend_rnm(IN.normalWS, waveNormal));
 
-    float waterDepth = linearDepth - dstToWater;
-    
-    float3 waterCol = lerp(matData.WaterShallowCol, matData.WaterDeepCol, 1 - exp(-waterDepth * matData.WaterColFalloff));
-    float waterAlpha = 1 - exp(-waterDepth * matData.DepthOpacity);
+    UV += waveNormal * matData.WaveStrength;
+    float3 groundColor = SAMPLE_TEXTURE2D(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, UV).rgb;
+
+    float screenDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, UV);
+    float linearDepth = LinearEyeDepth(screenDepth, _ZBufferParams) * length(viewVector);
+    float dstToWater = IN.positionCS.w;
+
+    float waterDepth = max(linearDepth - dstToWater, 0);
+    float4 waterCol = lerp(matData.WaterShallowCol, matData.WaterDeepCol, 1 - exp(-waterDepth * matData.WaterColFalloff));
 
     uint light = SampleLight(IN.positionWS);
     float shadow = 1.0 - (light >> 30 & 0x3) / 3.0f;
-    float3 DynamicLight = LambertShade(waterCol, specWaveNormal, shadow);
+    float3 DynamicLight = LambertShade(waterCol, IN.normalWS, shadow);
     float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
     ObjectLight = mad((1 - ObjectLight), unity_AmbientGround, ObjectLight * 2.5f); //linear interpolation
-    ObjectLight *= waterCol;
+    ObjectLight *= waterCol.rgb;
 
-	return float4(max(DynamicLight, ObjectLight), waterAlpha);
+	return float4(lerp(groundColor, max(DynamicLight, ObjectLight), waterCol.a), 1);
 }

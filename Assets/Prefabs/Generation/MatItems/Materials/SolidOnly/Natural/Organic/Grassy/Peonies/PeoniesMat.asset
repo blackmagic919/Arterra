@@ -17,12 +17,13 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Peonies:Solid
-  - Void
-  - Peonies
-  - Shell
-  - Peony
-  - Dirt
+    value:
+    - Peonies:Solid
+    - Void
+    - Peonies
+    - Shell
+    - Peony
+    - Dirt
   terrainData:
     Texture: 2
     textureScale: 2

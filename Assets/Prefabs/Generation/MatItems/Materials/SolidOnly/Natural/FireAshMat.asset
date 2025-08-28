@@ -17,11 +17,12 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Void
-  - Fire
-  - Shell
-  - Flames
-  - Ash
+    value:
+    - Void
+    - Fire
+    - Shell
+    - Flames
+    - Ash
   terrainData:
     Texture: 1
     textureScale: 3

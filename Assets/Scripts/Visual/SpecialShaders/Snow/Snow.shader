@@ -27,7 +27,6 @@ Shader "Unlit/Snow"
             // make fog work
             #pragma skip_variants SHADOWS_*
 
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
             #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
             #include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
@@ -76,11 +75,11 @@ Shader "Unlit/Snow"
             }
 
             float3 triplanarNorm(Texture2D text, SamplerState sample, float4 text_ST, float3 worldPos, float3 blendAxes){
-                    float3 xProjection = UnpackNormal(SAMPLE_TEXTURE2D(text, sample, TRANSFORM_TEX(worldPos.yz, text))) * blendAxes.x;
-                    float3 yProjection = UnpackNormal(SAMPLE_TEXTURE2D(text, sample, TRANSFORM_TEX(worldPos.xz, text))) * blendAxes.y;
-                    float3 zProjection = UnpackNormal(SAMPLE_TEXTURE2D(text, sample, TRANSFORM_TEX(worldPos.xy, text))) * blendAxes.z;
-                
-                    return normalize(xProjection + yProjection + zProjection);
+                float3 xProjection = UnpackNormal(SAMPLE_TEXTURE2D(text, sample, TRANSFORM_TEX(worldPos.yz, text))) * blendAxes.x;
+                float3 yProjection = UnpackNormal(SAMPLE_TEXTURE2D(text, sample, TRANSFORM_TEX(worldPos.xz, text))) * blendAxes.y;
+                float3 zProjection = UnpackNormal(SAMPLE_TEXTURE2D(text, sample, TRANSFORM_TEX(worldPos.xy, text))) * blendAxes.z;
+            
+                return normalize(xProjection + yProjection + zProjection);
             }
             
             float3 blend_rnm(float3 n1, float3 n2)

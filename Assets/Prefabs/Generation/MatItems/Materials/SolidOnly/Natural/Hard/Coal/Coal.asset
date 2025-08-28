@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Coal:Solid
-  - Void
-  - Coal
+    value:
+    - Coal:Solid
+    - Void
+    - Coal
   terrainData:
     Texture: 2
     textureScale: 4

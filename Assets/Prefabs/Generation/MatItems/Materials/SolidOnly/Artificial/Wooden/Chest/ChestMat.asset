@@ -17,10 +17,11 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Chest:Solid
-  - Void
-  - Chest
-  - ChestIcon
+    value:
+    - Chest:Solid
+    - Void
+    - Chest
+    - ChestIcon
   terrainData:
     Texture: 2
     textureScale: 1

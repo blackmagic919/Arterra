@@ -21,7 +21,7 @@ namespace WorldConfig.Generation.Material
         /// within the registry that they are referencing. This allows for the material module to be decoupled from the rest 
         /// of the world's configuration. 
         /// </summary>
-        public List<string> Names;
+        public Option<List<string> > Names;
 
         /// <summary> Settings controlling the appearance of the terrain when the material is solid. See <see cref="TerrainData"/> for more info. </summary>
         public TerrainData terrainData;
@@ -239,22 +239,14 @@ namespace WorldConfig.Generation.Material
         {
             /// <summary> The color, ordered rgb, of the liquid as the view depth through it approaches zero. That is,
             /// as the depth of the liquid approaches zero relative to the viewer's perspective. </summary>
-            public Vector3 shallowCol;
+            public Color shallowCol;
             /// <summary> The color, ordered rgb, of the liquid as the view depth through it approaches infinity. That is,
             /// as the depth of the liquid approaches infinity relative to the viewer's perspective. </summary>
-            public Vector3 deepCol;
+            public Color deepCol;
             /// <summary> How quickly does the color transition from <see cref="shallowCol"/> to <see cref="deepCol"/> as the
             /// depth increases. </summary>
             [Range(0, 1)]
             public float colFalloff;
-            /// <summary>  How quickly the liquid's surface transitions from being transparent to opaque as the view depth through 
-            /// it approaches infinity. </summary>
-            [Range(0, 1)]
-            public float depthOpacity;
-            /// <summary> How smooth are waves on the liquid's surface. A higher value will result in smoother waves while a lower value will result
-            /// in more constrasted, sharp waves. </summary>
-            [Range(0, 1)]
-            public float smoothness;
             /// <summary> How large/coarse are the waves. Specifically, how much the waves are blended between a <see cref="Generation.liquidCoarseWave">coarse</see> wave
             /// map and a <see cref="Generation.liquidFineWave">fine</see> wave map. </summary>
             [Range(0, 1)]
@@ -428,8 +420,8 @@ namespace WorldConfig.Generation.Material
         /// <param name="index">The index within the <see cref="Names">name register</see> of the name of the reference</param>
         /// <returns>The name of the reference in an external registry or null if a name for <paramref name="index"/> cannot be found. </returns>
         public string RetrieveKey(int index) {
-            if (index < 0 || index >= Names.Count) return null;
-            return Names[index];
+            if (index < 0 || index >= Names.value.Count) return null;
+            return Names.value[index];
         }
     }
 

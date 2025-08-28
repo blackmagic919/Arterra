@@ -17,11 +17,12 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Embers:Solid
-  - Void
-  - Embers
+    value:
+    - Void
+    - Embers
+    - Embers:Solid
   terrainData:
-    Texture: 2
+    Texture: 1
     textureScale: 2
     GeoShaderIndex:
       data: 0
@@ -41,8 +42,8 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   MaterialDrops:
-    SolidItem: 0
-    LiquidItem: 1
+    SolidItem: 2
+    LiquidItem: 0
   references:
     version: 2
     RefIds: []

@@ -17,10 +17,11 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - PlantStem:Solid
-  - Void
-  - PlantStem
-  - WheatSeededSoil
+    value:
+    - PlantStem:Solid
+    - Void
+    - PlantStem
+    - WheatSeededSoil
   terrainData:
     Texture: 2
     textureScale: 0.25

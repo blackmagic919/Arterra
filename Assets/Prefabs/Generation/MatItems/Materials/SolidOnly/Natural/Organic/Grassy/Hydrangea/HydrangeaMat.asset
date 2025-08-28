@@ -17,12 +17,13 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Hydrangea:Solid
-  - Void
-  - Hydrangea
-  - Shell
-  - Hydrangea
-  - Dirt
+    value:
+    - Hydrangea:Solid
+    - Void
+    - Hydrangea
+    - Shell
+    - Hydrangea
+    - Dirt
   terrainData:
     Texture: 2
     textureScale: 2

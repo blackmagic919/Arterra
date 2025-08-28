@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using UnityEngine.Events;
 using WorldConfig;
 using UnityEngine.Profiling;
+using MapStorage;
 
 namespace TerrainGeneration{
 /// <summary>
@@ -144,22 +145,26 @@ public class OctreeTerrain : MonoBehaviour
     }
 
     
-    private void OnDrawGizmos(){
-        /* uint curChunk = chunks.Head();
-        int count = 0;
-        do{
-            TerrainChunk chunk = chunks.nodes[curChunk].Value;
-            curChunk = chunks.Next(curChunk);
+    #if UNITY_EDITOR
+    private void OnDrawGizmos() {
+        UnityEditor.SceneView sceneView = UnityEditor.SceneView.lastActiveSceneView;
+        float3 sceneViewPos = sceneView.camera.transform.position;
+        int3 GCoord = (int3)CPUMapManager.WSToGS(math.floor(sceneViewPos));
+        Octree.Node node = new() { };
+        for (int depth = s.MaxDepth; depth >= 0; depth--) {
+            int size = s.mapChunkSize * (1 << depth);
+            int3 MCoord = ((GCoord % size) + size) % size;
+            int3 CCoord = (GCoord - MCoord) / s.mapChunkSize;
+            node.origin = CCoord * s.mapChunkSize;
+            node.size = (uint)size;
+            if (IsBalanced(ref node)) break;
+        }
 
-            if(chunk == null) continue;
-            else {
-                Gizmos.color = Color.white;
-                Gizmos.DrawWireCube(((float3)chunk.origin + s.mapChunkSize/2) * s.lerpScale, (float3)chunk.size * s.lerpScale);
-            }
-            count++;
-        } while(curChunk != chunks.Head());*/
+        Gizmos.color = Color.white;
+        Gizmos.DrawWireCube(CPUMapManager.GSToWS(node.origin + (float3)node.size / 2), (float3)node.size * s.lerpScale);
         Indicators.OnDrawGizmos();
     }
+    #endif
 
     private void Update()
     {
@@ -643,7 +648,7 @@ public class OctreeTerrain : MonoBehaviour
         /// <param name="chunksRadius">The chunk radius around the viewer of layer <paramref name="depth"/> = 0</param>
         /// <returns>The maximum number of nodes in the given octree settings</returns>
         public static int GetMaxNodes(int depth, int balanceF, int chunksRadius){
-            int numChunks = 0; chunksRadius++;
+            int numChunks = 0;
             int pLayerSize = 0;
             for(int i = 0; i < depth; i++){
                 int layerDiameter = GetAxisChunksDepth(i, balanceF, (uint)chunksRadius);
@@ -653,29 +658,47 @@ public class OctreeTerrain : MonoBehaviour
             }
             return numChunks;
         }
+        
+        /// <summary> Returns the depth of the chunk containing a position at a 
+        /// given distance from the viewer. </summary>
+        /// <param name="chunkDist">The distance in chunk space from the viewer</param>
+        /// <param name="balanceF">The balance factor of the octree(<paramref name="balanceF"/> + 1 : 1))</param>
+        /// <param name="chunksRadius">The chunk radius around the viewer of layer depth = 0</param>
+        /// <returns>The depth of the chunk at this distance</returns>
+        public static int GetDepthOfDistance(float chunkDist, int balanceF, uint chunksRadius) {
+            int depth;
+            for(depth = 0; depth < 32; depth++){
+                int size = 1 << depth;
+                int balance = size >> (balanceF - 1);
+                int dist = Mathf.FloorToInt(chunkDist / size) * size;
+                if (dist - chunksRadius < balance)
+                    break;
+            }
+            return depth;
+        }
 
         /// <summary>
-        /// Gets the diameter of an octree defined by balanceFactor, and chunkRadius for nodes at a specified depth. 
-        /// This is calculated by determining the maximum radius of chunks at the given depth which can be 
-        /// balanced given any viewer position. 
-        /// </summary>
-        /// <remarks>
-        /// Since the octree is centered around a viewer, nodes of a certain depth form a cubic shell around the viewer.
-        /// The diameter thus is the side length of this cube. 
-        /// </remarks>
-        /// <param name="depth">The specific depth of the given octree whose maximum node diameter is queried</param>
-        /// <param name="balanceF">The balance factor of the octree(<paramref name="balanceF"/> + 1 : 1)</param>
-        /// <param name="chunksRadius">The chunk radius around the viewer of layer <paramref name="depth"/> = 0</param>
-        /// <returns>
-        /// The maximum diameter in terms of the amount of nodes of the specified <paramref name="depth"/> that can exist
-        /// given the octree's settings.
-        /// </returns>
-        public static int GetAxisChunksDepth(int depth, int balanceF, uint chunksRadius){
-            int radius =(int)((1 << math.max(depth - balanceF + 2, 0)) + chunksRadius);
-            int remainder = (chunksRadius % (1 << depth)) != 0 ? 1 : 0;
-            int pDiam = (radius >> depth) + remainder + 1;
-            return pDiam * 2;
-        }
+            /// Gets the diameter of an octree defined by balanceFactor, and chunkRadius for nodes at a specified depth. 
+            /// This is calculated by determining the maximum radius of chunks at the given depth which can be 
+            /// balanced given any viewer position. 
+            /// </summary>
+            /// <remarks>
+            /// Since the octree is centered around a viewer, nodes of a certain depth form a cubic shell around the viewer.
+            /// The diameter thus is the side length of this cube. 
+            /// </remarks>
+            /// <param name="depth">The specific depth of the given octree whose maximum node diameter is queried</param>
+            /// <param name="balanceF">The balance factor of the octree(<paramref name="balanceF"/> + 1 : 1)</param>
+            /// <param name="chunksRadius">The chunk radius around the viewer of layer <paramref name="depth"/> = 0</param>
+            /// <returns>
+            /// The maximum diameter in terms of the amount of nodes of the specified <paramref name="depth"/> that can exist
+            /// given the octree's settings.
+            /// </returns>
+            public static int GetAxisChunksDepth(int depth, int balanceF, uint chunksRadius) {
+                int radius = (int)((1 << math.max(depth - balanceF + 2, 0)) + chunksRadius);
+                int remainder = (chunksRadius % (1 << depth)) != 0 ? 1 : 0;
+                int pDiam = (radius >> depth) + remainder + 1;
+                return pDiam * 2;
+            }
 
         /// <summary>
         /// Creates an octree with the specified settings--depth, balance factor, and chunk radius.

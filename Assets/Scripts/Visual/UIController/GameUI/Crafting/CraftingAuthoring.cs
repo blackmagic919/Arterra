@@ -20,7 +20,7 @@ namespace WorldConfig.Intrinsic{
         /// of the entry in the external registry. </summary>
         public Option<List<string>> Names;
         /// <summary> The recipe that is being authored. </summary>
-        public CraftingRecipe Recipe;
+        public Option<CraftingRecipe> Recipe;
 
         /// <summary> Controls how recipes are created as UI slots. See <see cref="ISlot"/> for more information </summary>
         /// <param name="parent">The parent object containing the new slot</param>
@@ -47,8 +47,8 @@ namespace WorldConfig.Intrinsic{
             Catalogue<Authoring> itemInfo = Config.CURRENT.Generation.Items;
 
             CraftingRecipe newRecipe = new CraftingRecipe();
-            newRecipe.entry.value = new List<MapData>(Recipe.entry.value);
-            newRecipe.result = Recipe.result;
+            newRecipe.entry.value = new List<MapData>(Recipe.value.entry.value);
+            newRecipe.result = Recipe.value.result;
 
             for (int i = 0; i < newRecipe.entry.value.Count; i++) {
                 var mapData = newRecipe.entry.value[i];
@@ -60,7 +60,8 @@ namespace WorldConfig.Intrinsic{
                 newRecipe.entry.value[i] = mapData;
             }
 
-            newRecipe.result.Index = (uint)itemInfo.RetrieveIndex(Names.value[(int)Recipe.result.Index]);
+            newRecipe.result.Index = (uint)itemInfo.RetrieveIndex(
+                Names.value[(int)Recipe.value.result.Index]);
             return newRecipe;
         }
     }

@@ -21,9 +21,10 @@ MonoBehaviour:
           value:
             rid: 6432722988684804188
   Names:
-  - Void
-  - Water:Liquid
-  - Water
+    value:
+    - Void
+    - Water:Liquid
+    - Water
   terrainData:
     Texture: 2
     textureScale: 2
@@ -35,13 +36,11 @@ MonoBehaviour:
     GroundExtinction: {x: 0.03, y: 0.006, z: 0.003}
     LightIntensity: 0
   liquidData:
-    shallowCol: {x: 0.19, y: 0.9, z: 1}
-    deepCol: {x: 0.05, y: 0.4, z: 1}
+    shallowCol: {r: 0.3726415, g: 0.77981764, b: 1, a: 0.09803922}
+    deepCol: {r: 0, g: 0.19870609, b: 0.78431374, a: 0.78431374}
     colFalloff: 0.05
-    depthOpacity: 0.025
-    smoothness: 0.25
     waveBlend: 0.5
-    waveStrength: 0.5
+    waveStrength: 0.05
     waveScale: {x: 0.2, y: 0.045}
     waveSpeed: {x: 2, y: 5}
   MaterialDrops:

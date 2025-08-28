@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace WorldConfig.Generation.Biome{
@@ -76,6 +77,8 @@ public struct SurfaceBiome : IBiomeCondition{
 
     /// <exclude><remarks> This is an internal pointer to the biome's generation information that is populated by the <see cref="BDict"/> </remarks> </exclude>
     [HideInInspector]
+    [UISetting(Ignore = true)]
+    [JsonIgnore]
     public int biome;
 
     /// <summary> See <seealso cref="IBiomeCondition.GetDimensions"/> for more info </summary>

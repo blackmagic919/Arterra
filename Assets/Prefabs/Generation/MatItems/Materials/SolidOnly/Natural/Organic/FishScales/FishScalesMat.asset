@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - FishScales:Solid
-  - Void
-  - FishScales
+    value:
+    - FishScales:Solid
+    - Void
+    - FishScales
   terrainData:
     Texture: 2
     textureScale: 2

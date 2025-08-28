@@ -46,7 +46,7 @@ public class ProceduralInsetQuads : GeoShader
         variantTable?.Release();
     }
 
-    public override void ProcessGeoShader(GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, int baseGeoCount)
+    public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount)
     {
         if (settings.Reg.Count == 0) return;
         int idFoliageKernel = quadCompute.FindKernel("Main");

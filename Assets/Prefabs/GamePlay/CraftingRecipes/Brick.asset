@@ -18,24 +18,26 @@ MonoBehaviour:
     - Brick:Solid
     - Stone
     - Clay
+  
   Recipe:
-    entry:
-      value:
-      - data: 104086
-      - data: 169622
-      - data: 104086
-      - data: 169622
-      - data: 104086
-      - data: 169622
-      - data: 104086
-      - data: 169622
-      - data: 104086
-      - data: 169622
-      - data: 104086
-      - data: 169622
-      - data: 104086
-      - data: 169622
-      - data: 104086
-      - data: 169622
-    result:
-      data: 255
+    value:
+      entry:
+        value:
+        - data: 104086
+        - data: 169622
+        - data: 104086
+        - data: 169622
+        - data: 104086
+        - data: 169622
+        - data: 104086
+        - data: 169622
+        - data: 104086
+        - data: 169622
+        - data: 104086
+        - data: 169622
+        - data: 104086
+        - data: 169622
+        - data: 104086
+        - data: 169622
+      result:
+        data: 255

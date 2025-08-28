@@ -17,10 +17,11 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Moss:Solid
-  - Void
-  - Moss
-  - Dirt
+    value:
+    - Moss:Solid
+    - Void
+    - Moss
+    - Dirt
   terrainData:
     Texture: 2
     textureScale: 2

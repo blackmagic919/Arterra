@@ -18,7 +18,7 @@ MonoBehaviour:
   MinChunkRadius: 1
   Balance: 2
   MapExtendDist: 26
-  MaxStructureDepth: 2
+  MaxStructureDepth: 3
   MaxGeoShaderDepth: 0
   lerpScale: 1
   IsoLevel: 0.5

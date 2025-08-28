@@ -17,11 +17,12 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Dirt:Solid
-  - Void
-  - LettuceSeededSoil
-  - LettuceSeeds
-  - Lettuce
+    value:
+    - Dirt:Solid
+    - Void
+    - LettuceSeededSoil
+    - LettuceSeeds
+    - Lettuce
   terrainData:
     Texture: 2
     textureScale: 1

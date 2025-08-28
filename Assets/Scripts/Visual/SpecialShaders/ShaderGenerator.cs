@@ -145,7 +145,7 @@ public class ShaderGenerator
     }
 
 
-    public void FilterGeometry(GenerationPreset.MemoryHandle memory, int triAddress, int vertAddress)
+    public void FilterGeometry(MemoryBufferHandler memory, int triAddress, int vertAddress)
     {
 
         int numShaders = shaders.Count;
@@ -161,7 +161,7 @@ public class ShaderGenerator
         FilterShaderGeometry(memStorage, memAddresses, vertAddress, triAddress);
     }
 
-    public void ProcessGeoShaders(GenerationPreset.MemoryHandle memory, int vertAddress, int triAddress)
+    public void ProcessGeoShaders(MemoryBufferHandler memory, int vertAddress, int triAddress)
     {
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 1, 0); //clear base count
         for (int i = 0; i < shaders.Count; i++){
@@ -329,7 +329,7 @@ public class ShaderGenerator
             Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)dispArgs);
         }
 
-        public void Release(ref GenerationPreset.MemoryHandle memory)
+        public void Release(ref MemoryBufferHandler memory)
         {
             if (!active) return;
             active = false;

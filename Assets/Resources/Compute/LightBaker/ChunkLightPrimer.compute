@@ -54,8 +54,25 @@ void CleanChunk (uint3 id : SV_DispatchThreadID)
     _MemoryBuffer[wAddress] = rLight;
 
     if((rLight & 0x7FFF7FFF) == 0) return;
+
+    //Figure out neighboring dirty info
+    uint isDirty = 0;
     MCoord = ((id % subChunkSize) + subChunkSize) % subChunkSize;
+    if(MCoord.x == subChunkSize - 1) isDirty |= 0x1;
+    if(MCoord.x == 0) isDirty |= 0x2;
+    if(MCoord.y == subChunkSize - 1) isDirty |= 0x4;
+    if(MCoord.y == 0) isDirty |= 0x8;
+    if(MCoord.z == subChunkSize - 2 && (rLight & 0x7FFF0000) != 0) 
+        isDirty |= 0x10;
+    if(MCoord.z == 0 && (rLight & 0x7FFF) != 0) 
+        isDirty |= 0x20;
+    
     int3 SCoord = (id - MCoord) / subChunkSize; //get subchunk coordinate
+    uint SIndex = indexFromCoordManual(SCoord, subChunksAxis);
+    int address = wHandle.address + chunkLHOffset + SIndex/4; uint shift = (SIndex % 4) * 8;
+    //Set neighboring dirty info
+    InterlockedOr(_MemoryBuffer[address], (isDirty & 0x3F) << shift); 
+
     AddDirtySubchunk(wHandle, SCoord, 0x40);
 }
 
@@ -97,7 +114,7 @@ void CopyHash (uint3 id : SV_DispatchThreadID)
         ind = bSTART.x + ((ind + DirtySubChunks[bCOUNT.x].x) % QueueSize);
         DirtySubChunks[ind] = uint2(CIndex, SIndex);
         bitMap |= (0x1 << (i*8 + 6));
-    }
+    } 
 
     uint wAddress = _DirectAddress[nChunkAddress].y + chunkLHOffset + id.x;
     //shadow subchunks are always dirty

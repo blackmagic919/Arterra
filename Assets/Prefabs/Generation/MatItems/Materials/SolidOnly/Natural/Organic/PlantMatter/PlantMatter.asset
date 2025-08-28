@@ -21,9 +21,10 @@ MonoBehaviour:
           value:
             rid: 6432722988684804183
   Names:
-  - PlantMatter:Solid
-  - Void
-  - PlantMatter
+    value:
+    - PlantMatter:Solid
+    - Void
+    - PlantMatter
   terrainData:
     Texture: 2
     textureScale: 2

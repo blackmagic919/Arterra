@@ -16,7 +16,7 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
-  NameRegister:
+  Names:
     value:
     - PeonyVoronoi
   info:

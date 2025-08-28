@@ -21,26 +21,27 @@ MonoBehaviour:
     - Bucket
     - Wood
   Recipe:
-    entry:
-      value:
-      - data: 104086
-      - data: 104086
-      - data: 104086
-      - data: 104086
-      - data: 104086
-      - data: 6425
-      - data: 6425
-      - data: 6425
-      - data: 104086
-      - data: 6425
-      - data: 6425
-      - data: 6425
-      - data: 104086
-      - data: 104086
-      - data: 104086
-      - data: 104086
-    result:
-      data: 255
-  references:
-    version: 2
-    RefIds: []
+    value:
+      entry:
+        value:
+        - data: 104086
+        - data: 104086
+        - data: 104086
+        - data: 104086
+        - data: 104086
+        - data: 6425
+        - data: 6425
+        - data: 6425
+        - data: 104086
+        - data: 6425
+        - data: 6425
+        - data: 6425
+        - data: 104086
+        - data: 104086
+        - data: 104086
+        - data: 104086
+      result:
+        data: 255
+    references:
+      version: 2
+      RefIds: []

@@ -17,10 +17,11 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Cactus:Solid
-  - Void
-  - Cactus
-  - PlantMatter
+    value:
+    - Cactus:Solid
+    - Void
+    - Cactus
+    - PlantMatter
   terrainData:
     Texture: 2
     textureScale: 2

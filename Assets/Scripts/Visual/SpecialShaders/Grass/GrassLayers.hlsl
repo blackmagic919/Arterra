@@ -25,7 +25,6 @@
 #define GRASSLAYERS_INCLUDED
 
 // Include some helper functions
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
 #include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
@@ -38,8 +37,7 @@ struct DrawTriangle{
 struct VertexOutput {
     float3 positionWS   : TEXCOORD0; // Position in world space
     float3 normalWS     : TEXCOORD1; // Normal vector in world space
-    float2 uv  : TEXCOORD2; // UV
-    float2 height : TEXCOORD3; // Height of the layer
+    float3 uv  : TEXCOORD2; // UV
     nointerpolation int variant : TEXCOORD4;//
 
     float4 positionCS   : SV_POSITION;
@@ -98,12 +96,12 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
     VertexInfo v = UnpackVertex(input);
     output.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
     output.normalWS = normalize(mul(_LocalToWorld, float4(v.normalOS, 0)).xyz);
-    output.uv = mapCoordinates(output.positionWS) * VariantSettings[v.variant].Scale;
+    output.uv.xy = mapCoordinates(output.positionWS) * VariantSettings[v.variant].Scale;
     output.positionCS = TransformWorldToHClip(output.positionWS);
     output.variant = v.variant;
 
     float height = (uint)((input.z >> 24) & 0xFF) / 255.0f;
-    output.height.xy = height;
+    output.uv.z = height;
 
     return output;
 }
@@ -113,7 +111,7 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
 half3 Fragment(VertexOutput input) : SV_Target {
 
     float2 uv = input.uv;
-    float height = input.height.x;
+    float height = input.uv.z;
 
     // Calculate wind
     Settings cxt = VariantSettings[input.variant];
@@ -131,8 +129,7 @@ half3 Fragment(VertexOutput input) : SV_Target {
     clip(value-0.5f);
 
     // Lerp between the two grass colors based on layer height
-    float colorLerp = input.height.y;
-    float3 albedo = lerp(cxt.BaseColor, cxt.TopColor, colorLerp).rgb;
+    float3 albedo = lerp(cxt.BaseColor, cxt.TopColor, height).rgb;
     float3 normal = NormalizeNormalPerPixel(input.normalWS);
 
     uint light = SampleLight(input.positionWS);

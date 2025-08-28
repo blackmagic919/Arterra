@@ -3,6 +3,7 @@ using UnityEngine;
 using Unity.Mathematics;
 using TerrainGeneration;
 using WorldConfig;
+using WorldConfig.Quality;
 
 namespace MapStorage{
     /// <summary> A static centralized gateway for all CPU-side operations to access or attach resources capable of accessing
@@ -16,7 +17,7 @@ namespace MapStorage{
         private static uint[] MapLookup;
         private static int2[] HandleDict;
         private static ComputeBuffer _ChunkAddressDict;
-        private static GenerationPreset.MemoryHandle memorySpace;
+        private static MemoryBufferHandler memorySpace;
         /// <summary> How far from the user processes on the GPU can lookup information about the world. The radius 
         /// in chunk space of the perfect hash-map which enables random access lookups of map information on the GPU.  </summary>
         public static int numChunksRadius;
@@ -57,7 +58,15 @@ namespace MapStorage{
 
             _ChunkAddressDict = new ComputeBuffer(numChunks, sizeof(uint) * 5, ComputeBufferType.Structured);
             _ChunkAddressDict.SetData(Enumerable.Repeat(0u, numChunks * 5).ToArray());
-            memorySpace = GenerationPreset.memoryHandle;
+
+            //This isn't an mathematical upper limit because we're not accounting for light map size and temporary 
+            //duplication but in practice, GetDepthOfDistance and GetMaxNodes always overestimate.
+            int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
+            int depth = OctreeTerrain.Octree.GetDepthOfDistance(numChunksRadius, rSettings.Balance, (uint)rSettings.MinChunkRadius);
+            int memSize = (numPoints + LightBaker.GetLightMapLength()) * OctreeTerrain.Octree.GetMaxNodes(depth, rSettings.Balance, rSettings.MinChunkRadius);
+            memorySpace = new MemoryBufferHandler(new Memory {
+                StorageSize = memSize
+            });
 
             initialized = true;
         }
@@ -65,6 +74,7 @@ namespace MapStorage{
         /// <summary> Releases all resources used by <see cref="GPUMapManager"/> to manage and track
         /// map information on the GPU. Call this once on cleanup when the world is unloaded  </summary>
         public static void Release() {
+            memorySpace?.Release();
             _ChunkAddressDict?.Release();
             initialized = false;
         }

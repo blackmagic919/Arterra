@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Feathers:Solid
-  - Void
-  - Feathers
+    value:
+    - Feathers:Solid
+    - Void
+    - Feathers
   terrainData:
     Texture: 2
     textureScale: 2

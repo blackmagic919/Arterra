@@ -17,12 +17,13 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - TallGrass:Solid
-  - Void
-  - TallGrass
-  - Shell
-  - WheatSeeds
-  - LettuceSeeds
+    value:
+    - TallGrass:Solid
+    - Void
+    - TallGrass
+    - Shell
+    - WheatSeeds
+    - LettuceSeeds
   terrainData:
     Texture: 2
     textureScale: 2

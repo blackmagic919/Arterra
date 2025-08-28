@@ -6,6 +6,7 @@ using System.Linq;
 using Unity.Collections;
 using Utils;
 using WorldConfig;
+using WorldConfig.Quality;
 
 namespace TerrainGeneration.Readback{
 using static OctreeTerrain;
@@ -280,7 +281,7 @@ public class GeometryHandle : UpdateTask
     public RenderParams rp = default;
     /// <summary> The memory handle of the buffer where the geometry is stored. Specifically, the geometry will be stored in 
     /// <see cref="GenerationPreset.MemoryHandle._GPUMemorySource"/> of this memory handle. </summary>
-    public GenerationPreset.MemoryHandle memory = default;
+    public MemoryBufferHandler memory = default;
     /// <summary> The index of the material used for rendering the geometry indirectly. This index is used to reference the material in
     /// <see cref="WorldConfig.Intrinsic.Readback.indirectTerrainMats"/>. </summary>
     public int matIndex = -1;
@@ -298,7 +299,7 @@ public class GeometryHandle : UpdateTask
     /// <param name="addressIndex">The <see cref="addressIndex">><b>indirect</b> address</see> of the geometry within the memory handle.</param>
     /// <param name="argsAddress">The <see cref="argsAddress">location</see> of the rendering arguments to render the geometry. </param>
     /// <param name="matIndex">The material index of the material used to render the geometry, See <see cref="matIndex"/> for more info. </param>
-    public GeometryHandle(RenderParams rp, GenerationPreset.MemoryHandle memory, uint addressIndex, uint argsAddress, int matIndex)
+    public GeometryHandle(RenderParams rp, MemoryBufferHandler memory, uint addressIndex, uint argsAddress, int matIndex)
     {
         this.addressIndex = addressIndex;
         this.memory = memory;

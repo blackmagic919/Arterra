@@ -25,10 +25,11 @@ MonoBehaviour:
           value:
             rid: 6432723091861012553
   Names:
-  - Dirt:Solid
-  - Void
-  - TilledSoil
-  - Dirt
+    value:
+    - Dirt:Solid
+    - Void
+    - TilledSoil
+    - Dirt
   terrainData:
     Texture: 2
     textureScale: 2

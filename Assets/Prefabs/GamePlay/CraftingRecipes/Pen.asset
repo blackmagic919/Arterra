@@ -23,26 +23,27 @@ MonoBehaviour:
     - Coal
     - Feathers
   Recipe:
-    entry:
-      value:
-      - data: 235158
-      - data: 32125
-      - data: 0
-      - data: 0
-      - data: 32125
-      - data: 104086
-      - data: 32125
-      - data: 0
-      - data: 0
-      - data: 32125
-      - data: 104086
-      - data: 32125
-      - data: 0
-      - data: 0
-      - data: 32125
-      - data: 169622
-    result:
-      data: 255
-  references:
-    version: 2
-    RefIds: []
+    value:
+      entry:
+        value:
+        - data: 235158
+        - data: 32125
+        - data: 0
+        - data: 0
+        - data: 32125
+        - data: 104086
+        - data: 32125
+        - data: 0
+        - data: 0
+        - data: 32125
+        - data: 104086
+        - data: 32125
+        - data: 0
+        - data: 0
+        - data: 32125
+        - data: 169622
+      result:
+        data: 255
+    references:
+      version: 2
+      RefIds: []

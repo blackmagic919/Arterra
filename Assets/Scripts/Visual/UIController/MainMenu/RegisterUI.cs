@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEditor;
 using WorldConfig;
 using Unity.Mathematics;
-using UnityEditor.Rendering;
 using System.Linq;
 
 
@@ -17,6 +16,7 @@ public class RegistryReference : PropertyAttribute {
     }
 }
 
+#if UNITY_EDITOR
 [CustomPropertyDrawer(typeof(RegistryReference))]
 public class RegistryReferenceDrawer : PropertyDrawer {
     public int BitShift = 0;
@@ -211,3 +211,4 @@ public class SearchablePopup : PopupWindowContent {
         EditorGUILayout.EndScrollView();
     }
 }
+#endif

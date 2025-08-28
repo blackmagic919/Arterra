@@ -1,4 +1,5 @@
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
+#include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
 
 Texture2DArray _Textures;
 SamplerState sampler_Textures;
@@ -42,14 +43,12 @@ float3 frag (v2f IN) : SV_Target
 {
     float3 textureColor = _Textures.Sample(sampler_Textures, float3(IN.uv, IN.texInd)).xyz;
 
-    InputData lightingInput = (InputData)0;
-	lightingInput.positionWS = IN.positionWS;
-	lightingInput.normalWS = normalize(IN.normalWS);
-    lightingInput.viewDirectionWS = GetWorldSpaceNormalizeViewDir(IN.positionWS);
-	lightingInput.shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
+    uint light = SampleLight(IN.positionWS);
+    float shadow = 1.0 - (light >> 30 & 0x3) / 3.0f;
+    float3 DynamicLight = LambertShade(textureColor, IN.normalWS, shadow);
+    float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
+    ObjectLight = mad((1 - ObjectLight), unity_AmbientGround, ObjectLight * 2.5f); //linear interpolation
+    ObjectLight *= textureColor;
 
-	SurfaceData surfaceInput = (SurfaceData)0;
-	surfaceInput.albedo = textureColor;
-
-	return UniversalFragmentPBR(lightingInput, surfaceInput);
+    return float4(max(DynamicLight, ObjectLight), 1);
 }

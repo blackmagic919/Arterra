@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Iron:Solid
-  - Void
-  - IronOre
+    value:
+    - Iron:Solid
+    - Void
+    - IronOre
   terrainData:
     Texture: 2
     textureScale: 4

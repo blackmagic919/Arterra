@@ -98,9 +98,8 @@ MarchCube ReadCube(int3 coord){
 }
 
 
-float Interpolate(float p1Val, float p2Val) {
-    //If p1Val != p2Val, Epsilon is lost through float conversion, otherwise Epsilon prevents Nan
-    return ((IsoLevel - p1Val) / (p2Val - p1Val + Epsilon.x)); 
+float SolidInterpolate(float p1Val, float p2Val) {
+    return (IsoLevel - p1Val) / (p2Val - p1Val);
 }
 
 void AddVertices(int3 coord, int caseIndex, uint IsWater, in MarchCube cube){
@@ -122,10 +121,10 @@ void AddVertices(int3 coord, int caseIndex, uint IsWater, in MarchCube cube){
         //Get point densities
         float p1Val = cube.corners[pInd.x].density[IsWater];
         float p2Val = cube.corners[pInd.y].density[IsWater];
-        float interpFactor = Interpolate(p1Val, p2Val);
+        float interpFactor = SolidInterpolate(p1Val, p2Val);
 
-        newVert.norm = GetVertexNormal(p1, p2, interpFactor, IsWater);
         newVert.tri = (p1 + interpFactor * (p2 - p1));
+        newVert.norm = GetVertexNormal(p1, p2, interpFactor, IsWater);
         if((p1Val > p2Val) ^ IsWater) newVert.material = uint2(cube.corners[pInd.x].material, cube.corners[pInd.y].material);
         else newVert.material = uint2(cube.corners[pInd.y].material, cube.corners[pInd.x].material);
 

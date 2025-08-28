@@ -1,10 +1,8 @@
 using Newtonsoft.Json;
 using UnityEngine;
-using TerrainGeneration;
 using WorldConfig;
 using WorldConfig.Quality;
 using System.Linq;
-using Unity.Mathematics;
 
 [CreateAssetMenu(menuName = "ShaderData/Tesselation/Generator")]
 public class ProceduralTesselator : GeoShader
@@ -44,7 +42,7 @@ public class ProceduralTesselator : GeoShader
         variantTable?.Release();
     }
     
-    public override void ProcessGeoShader(GenerationPreset.MemoryHandle memoryHandle, int vertAddress, int triAddress, int baseGeoCount)
+    public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount)
     {
         if (settings.Reg.Count == 0) return;
         int kernel = tesselCompute.FindKernel("Main");

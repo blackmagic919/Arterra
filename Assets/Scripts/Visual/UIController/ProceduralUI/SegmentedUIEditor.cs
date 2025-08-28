@@ -137,7 +137,7 @@ public static class SegmentedUIEditor
         if(layout == null) layout = content.AddComponent<VerticalLayoutGroup>();
         if(filter == null) filter = content.AddComponent<ContentSizeFitter>();
         layout.childControlHeight = false;
-        layout.childControlWidth = false;
+        layout.childControlWidth = true;
         layout.padding.left = 25;
         layout.childAlignment = TextAnchor.UpperCenter;
         filter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;

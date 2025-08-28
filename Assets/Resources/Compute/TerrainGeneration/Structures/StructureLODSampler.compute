@@ -64,17 +64,16 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint seed = (Random(chunkCoord) ^ Random(LoD)) + overlapOffset;
     uint numPoints = uint((numPoints0 * pow(abs(LoDFalloff), -LoD)) / chunkOverlap + RandomFloat(seed)); //Random to process fractional points 
 
+    uint appendInd = 0;
+    InterlockedAdd(counter[bCOUNTER], numPoints, appendInd);
     for(uint i = 0; i < numPoints; i++){
         float3 position = (Random3(seed) * chunkSize) - offsetCoord * (int)chunkSize;
 
         structurePoint newStructure;
         newStructure.position = position;
         newStructure.LoD = (uint)LoD;
-        
-        uint appendInd = 0;
-        InterlockedAdd(counter[bCOUNTER], 1u, appendInd);
-        structures[appendInd + bSTART] = newStructure;
 
+        structures[appendInd + bSTART + i] = newStructure;
         seed += chunkOverlap; 
     }
 }

@@ -17,10 +17,11 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Lettuce
-  - LettuceSeeds
-  - Void
-  - LettuceLeaves
+    value:
+    - Lettuce
+    - LettuceSeeds
+    - Void
+    - LettuceLeaves
   terrainData:
     Texture: 3
     textureScale: 0.75

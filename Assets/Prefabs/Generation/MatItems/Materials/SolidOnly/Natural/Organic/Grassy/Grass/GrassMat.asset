@@ -17,13 +17,14 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Grass:Solid
-  - Void
-  - Grass
-  - Shell
-  - LushGrass
-  - WheatSeeds
-  - LettuceSeeds
+    value:
+    - Grass:Solid
+    - Void
+    - Grass
+    - Shell
+    - LushGrass
+    - WheatSeeds
+    - LettuceSeeds
   terrainData:
     Texture: 2
     textureScale: 2

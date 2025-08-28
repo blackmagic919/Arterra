@@ -17,14 +17,15 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - WheatStalk
-  - WheatSeeds
-  - Void
-  - WheatKernels
-  - PlantStem
-  - Wheat
-  - InsetQuad
-  - WheatBristle
+    value:
+    - WheatStalk
+    - WheatSeeds
+    - Void
+    - WheatKernels
+    - PlantStem
+    - Wheat
+    - InsetQuad
+    - WheatBristle
   terrainData:
     Texture: 3
     textureScale: 0.75

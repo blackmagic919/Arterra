@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Clay:Solid
-  - Void
-  - Clay
+    value:
+    - Clay:Solid
+    - Void
+    - Clay
   terrainData:
     Texture: 2
     textureScale: 2

@@ -22,26 +22,27 @@ MonoBehaviour:
     - Wood
     - Rock
   Recipe:
-    entry:
-      value:
-      - data: 116936
-      - data: 25700
-      - data: 104086
-      - data: 0
-      - data: 25700
-      - data: 104086
-      - data: 32125
-      - data: 0
-      - data: 104086
-      - data: 32125
-      - data: 169622
-      - data: 32125
-      - data: 0
-      - data: 0
-      - data: 32125
-      - data: 169622
-    result:
-      data: 255
-  references:
-    version: 2
-    RefIds: []
+    value:
+      entry:
+        value:
+        - data: 116936
+        - data: 25700
+        - data: 104086
+        - data: 0
+        - data: 25700
+        - data: 104086
+        - data: 32125
+        - data: 0
+        - data: 104086
+        - data: 32125
+        - data: 169622
+        - data: 32125
+        - data: 0
+        - data: 0
+        - data: 32125
+        - data: 169622
+      result:
+        data: 255
+    references:
+      version: 2
+      RefIds: []

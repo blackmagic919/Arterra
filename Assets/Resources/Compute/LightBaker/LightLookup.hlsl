@@ -144,7 +144,7 @@ void AddDirtyNeighboringChunkSubChunks(int3 CCoord, int3 SCoord, int skipInc, ui
     //Note: nHandle.CCoord is coord of the origin of the actual chunk
     //While CCoord is the CCoord of a chunk possibly with the actual adjacent chunk
     uint nSkip = (nHandle.offset & 0xFF);
-    SCoord /= nSkip; //takes floor of the division
+    SCoord = (SCoord - (((SCoord % nSkip) + nSkip) % nSkip)) / nSkip;  //takes floor of the division
     SCoord = ((SCoord % subChunksAxis) + subChunksAxis) % subChunksAxis;
 
     nSkip = max(skipInc / nSkip, 1);
@@ -165,13 +165,14 @@ bool IsNeighborPropogating(int3 CCoord, int3 SCoord, int skipInc){
         CInfo nHandle = _AddressDict[HashCoord(nCCoord)];
         if(!Contains(nHandle, nCCoord)) continue;
 
-        uint nSkip = (nHandle.offset & 0xFF); nSCoord /= nSkip; 
+        uint nSkip = (nHandle.offset & 0xFF); 
+        nSCoord = (nSCoord - (((nSCoord % nSkip) + nSkip) % nSkip)) / nSkip; 
         nSCoord = ((nSCoord % subChunksAxis) + subChunksAxis) % subChunksAxis;
 
         nSkip = max(skipInc / nSkip, 1);
         for(uint k = 0; k < nSkip * nSkip; k++){
             int2 dSC = int2(k / nSkip, k % nSkip);
-            int3 nSC = clamp(nSCoord + mul(dNA[j/2u], dSC), 0, subChunksAxis-1);
+            int3 nSC = clamp(nSCoord + mul(dNA[j >> 1], dSC), 0, subChunksAxis-1);
             uint SIndex = indexFromCoordManual(nSC, subChunksAxis);
             uint heapInfo = _MemoryBuffer[nHandle.address + chunkLHOffset + SIndex / 4];
             heapInfo >>= ((SIndex % 4) * 8);

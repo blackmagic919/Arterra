@@ -189,7 +189,7 @@ namespace WorldConfig.Generation.Material
             }
 
             public Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(
-                settings.Names[settings.DisplayIcon]).self;
+                settings.Names.value[settings.DisplayIcon]).self;
             public GameObject GetDispContent() => inv.Display.root;
             public void Release() => inv.ReleaseDisplay();
             public void Activate() => inv.Display.root.SetActive(true);

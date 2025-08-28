@@ -17,11 +17,12 @@ MonoBehaviour:
     Reg:
       value: []
   Names:
-  - Kelp:Solid
-  - Void
-  - Kelp
-  - InsetQuad
-  - KelpLeaves
+    value:
+    - Kelp:Solid
+    - Void
+    - Kelp
+    - InsetQuad
+    - KelpLeaves
   terrainData:
     Texture: 2
     textureScale: 2

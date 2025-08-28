@@ -21,11 +21,12 @@ MonoBehaviour:
           value:
             rid: 6432722648275615826
   Names:
-  - PineLeaves:Solid
-  - Void
-  - PineLeaves
-  - InsetQuad
-  - PineLeaves
+    value:
+    - PineLeaves:Solid
+    - Void
+    - PineLeaves
+    - InsetQuad
+    - PineLeaves
   terrainData:
     Texture: 2
     textureScale: 2

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: KelpLeaves
   m_EditorClassIdentifier: 
   Name: KelpLeaves
-  NameRegister:
+  Names:
     value:
     - KelpLeaf
   info:
