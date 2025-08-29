@@ -307,6 +307,4 @@ public static class RideMovement {
         float3 aim = root.right * strength;
         mount.WalkInDirection(aim);
     }
-    
-
 }

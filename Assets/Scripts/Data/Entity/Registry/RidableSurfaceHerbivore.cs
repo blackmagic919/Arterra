@@ -131,7 +131,7 @@ public class RidableSurfaceHerbivore : Authoring
             if (RiderTarget != Guid.Empty) return;
 
             RiderTarget = caller.info.entityId;
-            if (TaskIndex < 6) TaskIndex = 9;
+            if (TaskIndex < 6) TaskIndex = 6;
             EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
         }
 

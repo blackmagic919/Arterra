@@ -23,6 +23,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
     public override EntitySetting Setting { get => _Setting.value; set => _Setting.value = (BoatSetting)value; }
     [Serializable]
     public class BoatSetting : EntitySetting {
+        public float rotSpeed = 180;
         public float GroundStickDist;
         public float StickFriction;
         //public int2 SpriteSampleSize;
@@ -97,7 +98,11 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
                 tCollider.useGravity = false;
             }, OnInGas: null);
 
-            if(tCollider.GetGroundDir(settings.GroundStickDist, settings.collider, EntityJob.cxt.mapContext, out float3 gDir)){
+            if (RiderTarget != Guid.Empty) {
+                float3 aim = math.normalize(new float3(tCollider.velocity.x, 0, tCollider.velocity.z));
+                tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, 
+                Quaternion.LookRotation(aim), settings.rotSpeed * EntityJob.cxt.deltaTime);
+            } else if (tCollider.GetGroundDir(settings.GroundStickDist, settings.collider, EntityJob.cxt.mapContext, out float3 gDir)) {
                 tCollider.transform.rotation = Quaternion.LookRotation(gDir, math.up());
                 tCollider.velocity *= 1 - settings.StickFriction;
             }
@@ -110,12 +115,12 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             return controller.transform;
         }
         public void WalkInDirection(float3 aim) {
-            aim = new(aim.x, 0, aim.z);
             Debug.Log($"Walking in direction: {aim}");
+            aim = new(aim.x, 0, aim.z);
             if (Vector3.Magnitude(aim) <= 1E-05f) return;
             if (math.length(tCollider.velocity) > settings.MaxSpeed) return;
 
-            tCollider.velocity += settings.Acceleration *EntityJob.cxt.deltaTime * aim;           
+            tCollider.velocity += settings.Acceleration * EntityJob.cxt.deltaTime * aim;           
         }
         public void Dismount() { 
             if (RiderTarget == Guid.Empty) return;
@@ -170,11 +175,6 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             float3 GCoord = new (entity.GCoord);
             this.transform.position = CPUMapManager.GSToWS(entity.position);
 
-        }
-
-        private void OnMeshRecieved(ReadbackTask<SVert>.SharedMeshInfo meshInfo){
-            if(active) meshFilter.sharedMesh = meshInfo.GenerateMesh(UnityEngine.Rendering.IndexFormat.UInt32);
-            meshInfo.Release();
         }
 
         public void Update(){

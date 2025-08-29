@@ -30,14 +30,14 @@ MonoBehaviour:
         profileStart: 539
       collider:
         size:
-          x: 5
-          y: 5
-          z: 5
-        friction: 0.5
+          x: 2.5
+          y: 1.5
+          z: 2.5
+        friction: 0.25
       GroundStickDist: 0
       StickFriction: 0
-      MaxSpeed: 5
-      Acceleration: 10
+      MaxSpeed: 10
+      Acceleration: 150
   references:
     version: 2
     RefIds: []
