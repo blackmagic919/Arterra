@@ -17,9 +17,9 @@ public class BoatItemAuthoring : AuthoringTemplate<BoatItem> {
 
 public class BoatItem : IItem{
     public uint data;
-    private static Registry<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
-    private static Registry<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
-    private static Registry<Material.MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;  
+    private static Catalogue<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+    private static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
+    private static Catalogue<Material.MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;  
     private BoatItemAuthoring settings => ItemInfo.Retrieve(Index) as BoatItemAuthoring;
 
     [JsonIgnore]
@@ -79,7 +79,7 @@ public class BoatItem : IItem{
         AttachChildDisplay();
     }
 
-    public void ClearDisplay(){
+    public void ClearDisplay(Transform parent){
         if (display == null) return;
         Indicators.HolderItems.Release(display);
         display = null;

@@ -16,31 +16,32 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
+  Names:
+    value:
+    - Boat
+    - Wood
   Recipe:
-    Names:
-      value:
-      - Boat
-      - Wood
-    entry:
-      value:
-      - data: 2147490073
-      - data: 104086
-      - data: 100231
-      - data: 2147490073
-      - data: 104086
-      - data: 2147490073
-      - data: 2147490073
-      - data: 2147490073
-      - data: 104086
-      - data: 2147490073
-      - data: 2147490073
-      - data: 2147490073
-      - data: 2147490073
-      - data: 104086
-      - data: 100231
-      - data: 2147490073
-    result:
-      data: 255
+    value:
+      entry:
+        value:
+        - data: 2147490073
+        - data: 104086
+        - data: 100231
+        - data: 2147490073
+        - data: 104086
+        - data: 2147490073
+        - data: 2147490073
+        - data: 2147490073
+        - data: 104086
+        - data: 2147490073
+        - data: 2147490073
+        - data: 2147490073
+        - data: 2147490073
+        - data: 104086
+        - data: 100231
+        - data: 2147490073
+      result:
+        data: 255
   references:
     version: 2
     RefIds: []

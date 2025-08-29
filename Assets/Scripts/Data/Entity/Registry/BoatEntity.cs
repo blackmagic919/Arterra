@@ -15,7 +15,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
     [UISetting(Ignore = true)][JsonIgnore]
     public Option<Boat> _Entity;
     public Option<BoatSetting> _Setting;
-    public static Registry<WorldConfig.Generation.Item.Authoring> ItemRegistry => Config.CURRENT.Generation.Items;
+    public static Catalogue<WorldConfig.Generation.Item.Authoring> ItemRegistry => Config.CURRENT.Generation.Items;
     
     [JsonIgnore]
     public override Entity Entity { get => new Boat(); }
@@ -90,7 +90,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             if(!active) return;
 
             tCollider.useGravity = true;
-            Recognition.DetectMapInteraction(position, OnInSolid: null,
+            TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
             OnInLiquid: (dens) => {
                 tCollider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
                 tCollider.velocity.y *= 1 - settings.collider.friction;
@@ -101,7 +101,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
                 tCollider.transform.rotation = Quaternion.LookRotation(gDir, math.up());
                 tCollider.velocity *= 1 - settings.StickFriction;
             }
-            tCollider.Update(EntityJob.cxt, settings.collider);
+            tCollider.Update(settings.collider, this);
             EntityManager.AddHandlerEvent(controller.Update);
         }
 
@@ -111,6 +111,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
         }
         public void WalkInDirection(float3 aim) {
             aim = new(aim.x, 0, aim.z);
+            Debug.Log($"Walking in direction: {aim}");
             if (Vector3.Magnitude(aim) <= 1E-05f) return;
             if (math.length(tCollider.velocity) > settings.MaxSpeed) return;
 
