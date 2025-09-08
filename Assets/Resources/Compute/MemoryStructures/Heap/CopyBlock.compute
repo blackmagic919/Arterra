@@ -1,0 +1,29 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Copy
+const static uint numthreads = 64;
+const static uint threadCopySize = 16;
+
+StructuredBuffer<uint> _SourceMemory;
+RWStructuredBuffer<uint2> _AddressDict;
+
+RWStructuredBuffer<uint> _DestMemory;
+RWStructuredBuffer<uint2> _DeferredAddressDict;
+uint addressIndex;
+
+[numthreads(numthreads,1,1)]
+void Copy (uint3 id : SV_DispatchThreadID) {
+    uint rAddress = _AddressDict[addressIndex].x;
+    if(rAddress == 0) return; //Source alloc not made
+
+    uint wAddress = _DeferredAddressDict[addressIndex].x;
+    if(wAddress == 0) return; //Dest alloc not made
+
+    uint count = _SourceMemory[rAddress.x - 1];
+    uint offset = id.x * threadCopySize;
+    if(offset >= count) return;
+
+    count = min(count - offset, threadCopySize);
+    [unroll] for(uint i = offset; i < count + offset; i++){
+        _DestMemory[wAddress + i] = _SourceMemory[rAddress.x + i];
+    }
+}

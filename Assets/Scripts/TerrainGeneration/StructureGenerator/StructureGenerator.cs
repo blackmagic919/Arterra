@@ -80,7 +80,11 @@ public class Creator
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 4, 0);
         Generator.SampleStructureLoD(Config.CURRENT.Generation.Structures.value.maxLoD, chunkSize, depth, chunkCoord);
         Generator.IdentifyStructures(offset, IsoLevel);
-        this.StructureDataIndex = Generator.TranscribeStructures(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address);
+
+        uint addressIndex = TerrainGeneration.GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer,
+            STRUCTURE_STRIDE_WORD, Generator.offsets.prunedCounter);
+        this.StructureDataIndex = Generator.TranscribeStructures(GenerationPreset.memoryHandle.GetBlockBuffer(addressIndex),
+            GenerationPreset.memoryHandle.Address, addressIndex);
 
         return;
     }
@@ -103,8 +107,9 @@ public class Creator
     public void GenerateStrucutresGPU(int chunkSize, int skipInc, int mapStart, float IsoLevel, int wChunkSize = -1, int wOffset = 0)
     {
         if(wChunkSize == -1) wChunkSize = chunkSize;
-        ComputeBuffer structCount = Generator.GetStructCount(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, (int)StructureDataIndex, STRUCTURE_STRIDE_WORD);
-        Generator.ApplyStructures(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address, structCount, 
+        ComputeBuffer blockSource = GenerationPreset.memoryHandle.GetBlockBuffer(StructureDataIndex);
+        ComputeBuffer structCount = Generator.GetStructCount(blockSource, GenerationPreset.memoryHandle.Address, (int)StructureDataIndex, STRUCTURE_STRIDE_WORD);
+        Generator.ApplyStructures(blockSource, GenerationPreset.memoryHandle.Address, structCount, 
                         (int)StructureDataIndex, mapStart, chunkSize, skipInc, wOffset, wChunkSize, IsoLevel);
 
         return;
@@ -306,9 +311,8 @@ public static class Generator
     /// <param name="addresses">The buffer containing the direct address within <paramref name="memory"/> where the information will be stored. </param>
     /// <returns>The index within <paramref name="addresses"/> of the location that contains the direct address to the 
     /// region within <paramref name="memory"/> where the information will be stored. </returns>
-    public static uint TranscribeStructures(ComputeBuffer memory, ComputeBuffer addresses)
+    public static uint TranscribeStructures(ComputeBuffer memory, ComputeBuffer addresses, uint addressIndex)
     {
-        uint addressIndex = TerrainGeneration.GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, STRUCTURE_STRIDE_WORD, offsets.prunedCounter);
         ComputeBuffer args = UtilityBuffers.CountToArgs(structureDataTranscriber, UtilityBuffers.GenerationBuffer, offsets.structureCounter);
 
         structureDataTranscriber.SetBuffer(0, "_MemoryBuffer", memory);

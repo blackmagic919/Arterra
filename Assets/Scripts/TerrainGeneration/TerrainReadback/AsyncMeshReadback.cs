@@ -70,7 +70,6 @@ public class AsyncMeshReadback
         triangleTranscriber.SetBuffer(kernel, "triDict", UtilityBuffers.GenerationBuffer);
         triangleTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
         triangleTranscriber.SetInt("bSTART_Dict", offsets.dictStart);
-        triangleTranscriber.SetBuffer(kernel, "_MemoryBuffer", GenerationPreset.memoryHandle.Storage);
         triangleTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
 
         kernel = vertexTranscriber.FindKernel("Transcribe");
@@ -78,7 +77,6 @@ public class AsyncMeshReadback
         vertexTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
         vertexTranscriber.SetInt("bCOUNTER", offsets.vertexCounter);
         vertexTranscriber.SetInt("bSTART", offsets.vertStart);
-        vertexTranscriber.SetBuffer(kernel, "_MemoryBuffer", GenerationPreset.memoryHandle.Storage);
         vertexTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
     }
 
@@ -179,7 +177,8 @@ public class AsyncMeshReadback
         }
 
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Storage, size: 4, offset: 4 * ((int)memAddress.x - 1), ret => onSizeRecieved(ret, memAddress, geoHandle, RBTask));
+        ComputeBuffer sourceStorage = GenerationPreset.memoryHandle.GetBlockBuffer(geoHandle.addressIndex);
+        AsyncGPUReadback.Request(sourceStorage, size: 4, offset: 4 * ((int)memAddress.x - 1), ret => onSizeRecieved(ret, memAddress, geoHandle, RBTask));
     }
     private delegate void ReadbackSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask);
     private void onTriSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask)
@@ -192,7 +191,8 @@ public class AsyncMeshReadback
 
         RBTask.RBMesh.IndexBuffer[geoHandle.matIndex] = new NativeArray<uint>(memSize, Allocator.Persistent);
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[geoHandle.matIndex], GenerationPreset.memoryHandle.Storage, size: 4 * memSize, offset: 4 * triStartWord, ret => onDataRecieved(geoHandle, RBTask));
+        ComputeBuffer sourceStorage = GenerationPreset.memoryHandle.GetBlockBuffer(geoHandle.addressIndex);
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[geoHandle.matIndex], sourceStorage, size: 4 * memSize, offset: 4 * triStartWord, ret => onDataRecieved(geoHandle, RBTask));
     }
 
     private void onVertSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle,  ReadbackTask<IVertFormat.TVert> RBTask){
@@ -206,7 +206,8 @@ public class AsyncMeshReadback
         RBTask.RBMesh.VertexBuffer = new NativeArray<IVertFormat.TVert>(vertCount, Allocator.Persistent);
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
         //Async says async but is run on main thread(kind of confusing)
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, GenerationPreset.memoryHandle.Storage, size: 4 * memSize, offset: 4 * vertStartWord, ret => onDataRecieved(geoHandle, RBTask));
+        ComputeBuffer sourceStorage = GenerationPreset.memoryHandle.GetBlockBuffer(geoHandle.addressIndex);
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, sourceStorage, size: 4 * memSize, offset: 4 * vertStartWord, ret => onDataRecieved(geoHandle, RBTask));
     }
 
     private void onDataRecieved(GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask)
@@ -232,8 +233,8 @@ public class AsyncMeshReadback
             shadowCastingMode = ShadowCastingMode.On,
             matProps = new MaterialPropertyBlock()
         };
-        rp.matProps.SetBuffer("Vertices", GenerationPreset.memoryHandle.Storage);
-        rp.matProps.SetBuffer("Triangles", GenerationPreset.memoryHandle.Storage);
+        rp.matProps.SetBuffer("Vertices", GenerationPreset.memoryHandle.GetBlockBuffer(vertAddress));
+        rp.matProps.SetBuffer("Triangles", GenerationPreset.memoryHandle.GetBlockBuffer(triAddress));
         rp.matProps.SetBuffer("_AddressDict", GenerationPreset.memoryHandle.Address);
 
         rp.matProps.SetInt("triAddress", triAddress);
@@ -247,18 +248,27 @@ public class AsyncMeshReadback
 
     private void TranscribeVertices(int addressIndex, int vertCounter){
         ComputeBuffer args = UtilityBuffers.CountToArgs(vertexTranscriber, UtilityBuffers.GenerationBuffer, countOffset: vertCounter);
+        ComputeBuffer source = GenerationPreset.memoryHandle.GetBlockBuffer(addressIndex);
+
+        int kernel = vertexTranscriber.FindKernel("Transcribe");
+        vertexTranscriber.SetBuffer(kernel, "_MemoryBuffer", source);
         vertexTranscriber.SetInt("addressIndex", addressIndex);
-        vertexTranscriber.DispatchIndirect(0, args);
+
+        vertexTranscriber.DispatchIndirect(kernel, args);
     }
 
     private void TranscribeTriangles(int addressIndex, int triCounter, int triStart)
     {
         ComputeBuffer args = UtilityBuffers.CountToArgs(triangleTranscriber, UtilityBuffers.GenerationBuffer, countOffset: triCounter);
+        ComputeBuffer source = GenerationPreset.memoryHandle.GetBlockBuffer(addressIndex);
+
+        int kernel = triangleTranscriber.FindKernel("Transcribe");
+        triangleTranscriber.SetBuffer(kernel, "_MemoryBuffer", source);
         triangleTranscriber.SetInt("bCOUNTER_Tri", triCounter);
         triangleTranscriber.SetInt("bSTART_Tri", triStart);
         triangleTranscriber.SetInt("triAddress", addressIndex);
 
-        triangleTranscriber.DispatchIndirect(0, args);
+        triangleTranscriber.DispatchIndirect(kernel, args);
     }
     
 }

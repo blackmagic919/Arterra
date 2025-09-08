@@ -9,9 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c9933ec2c3a294ea88de025ab5caf6a9, type: 3}
-  m_Name: 2GBHeap
+  m_Script: {fileID: 11500000, guid: 0e494cbf4ba0e4a8391e9407a840c4e4, type: 3}
+  m_Name: BalancedMemory
   m_EditorClassIdentifier: 
-  StorageSize: 250000000
-  HeapSize: 50000
-  AddressSize: 50000
+  StorageSize: 187500000
+  HeapSize: 25000
+  AddressSize: 25000
+  InitBlockCount: 5
+  OverflowHandlerSizeReq: 0.4

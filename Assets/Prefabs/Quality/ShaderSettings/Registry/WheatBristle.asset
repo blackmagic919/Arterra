@@ -20,7 +20,7 @@ MonoBehaviour:
     value:
     - WheatBristle
   info:
-    QuadSize: 0.75
+    QuadSize: 1
     Inflation: 0.375
     LeafColor: {r: 0.8396226, g: 0.6758894, b: 0.2653524, a: 0}
     TextureIndex: 0

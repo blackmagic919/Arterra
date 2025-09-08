@@ -34,8 +34,8 @@ public class Creator
         int numOfPoints = numPointsAxes * numPointsAxes;
         
         uint mapAddressIndex = GenerationPreset.memoryHandle.AllocateMemoryDirect(numOfPoints, (int)SURFDATA_STRIDE_4BYTE);
-        Generator.TranscribeSurfaceMap(GenerationPreset.memoryHandle.Storage, GenerationPreset.memoryHandle.Address,
-                            (int)mapAddressIndex, numOfPoints);
+        Generator.TranscribeSurfaceMap(GenerationPreset.memoryHandle.GetBlockBuffer(mapAddressIndex),
+            GenerationPreset.memoryHandle.Address, (int)mapAddressIndex, numOfPoints);
         SurfaceMapAddress = mapAddressIndex;
     }
 

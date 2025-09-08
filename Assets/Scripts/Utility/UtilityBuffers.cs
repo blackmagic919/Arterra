@@ -8,7 +8,7 @@ public static class UtilityBuffers
     public static ComputeBuffer indirectArgs;
     public static ComputeBuffer appendCount;
 
-    public static ComputeShader indirectCopyCount;
+    public static ComputeShader indirectCopy;
     public static ComputeShader indirectCountToArgs;
     public static ComputeShader clearRange;
     public static ComputeShader prefixCountToArgs;
@@ -71,7 +71,7 @@ public static class UtilityBuffers
         //This buffer will be slower but will be written to a lot by CPU
         TransferBuffer = new ComputeBuffer(maxPoints, 4, ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
 
-        indirectCopyCount = Resources.Load<ComputeShader>("Compute/Utility/CopyCount");
+        indirectCopy = Resources.Load<ComputeShader>("Compute/Utility/Copy");
         indirectCountToArgs = Resources.Load<ComputeShader>("Compute/Utility/CountToArgs");
         clearRange = Resources.Load<ComputeShader>("Compute/Utility/ClearCounters");
         prefixCountToArgs = Resources.Load<ComputeShader>("Compute/Utility/PrefixArgsCreator");
@@ -93,25 +93,41 @@ public static class UtilityBuffers
         clearRange.Dispatch(0, 1, 1, 1);
     }
 
-    public static ComputeBuffer CopyCount(ComputeBuffer source, ComputeBuffer dest = null, int readOffset = 0, int writeOffset = 0, Queue<ComputeBuffer> bufferQueue = null)
-    {
+    public static ComputeBuffer CopyCount(ComputeBuffer source, ComputeBuffer dest = null, int readOffset = 0, int writeOffset = 0) {
         ComputeBuffer count;
         
         if(dest != null){
             count = dest;
-        } else if(bufferQueue != null){
-            count = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
-            bufferQueue.Enqueue(count);
-        } else count = appendCount;
+        }else count = appendCount;
         
-        indirectCopyCount.SetBuffer(0, "source", source);
-        indirectCopyCount.SetInt("readOffset", readOffset);
-        indirectCopyCount.SetBuffer(0, "destination", count);
-        indirectCopyCount.SetInt("writeOffset", writeOffset);
+        int kernel = indirectCopy.FindKernel("CopyCount");
+        indirectCopy.SetBuffer(kernel, "source", source);
+        indirectCopy.SetInt("readOffset", readOffset);
+        indirectCopy.SetBuffer(kernel, "destination", count);
+        indirectCopy.SetInt("writeOffset", writeOffset);
 
-        indirectCopyCount.Dispatch(0, 1, 1, 1);
+        indirectCopy.Dispatch(kernel, 1, 1, 1);
 
         return count;
+    }
+
+    public static bool CopyBuffer(ComputeBuffer source, ComputeBuffer dest, int readOffset = 0, int writeOffset = 0, int count = 0) {
+        if (count <= 0) return false;
+        if (source == null || dest == null) return false;
+        if (source.count < readOffset + count) return false;
+        if (dest.count < writeOffset + count) return false;
+
+        int kernel = indirectCopy.FindKernel("CopyBuffer");
+        indirectCopy.SetBuffer(kernel, "source", source);
+        indirectCopy.SetInt("readOffset", readOffset);
+        indirectCopy.SetBuffer(kernel, "destination", dest);
+        indirectCopy.SetInt("writeOffset", writeOffset);
+        indirectCopy.SetInt("count", count);
+
+        indirectCopy.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
+        int threadGroups = Mathf.CeilToInt(count / (float)threadGroupSize);
+        indirectCopy.Dispatch(kernel, threadGroups, 1, 1);
+        return true;
     }
 
     public static ComputeBuffer CountToArgs(ComputeShader shader, ComputeBuffer count, int countOffset = 0, int kernel = 0) {

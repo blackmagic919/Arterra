@@ -42,7 +42,6 @@ public static class SpriteExtruder{
         triangleTranscriber.SetInt("bCOUNTER_Tri", offsets.triangleCounter);
         triangleTranscriber.SetInt("bSTART_Tri", offsets.triangleStart);
         triangleTranscriber.SetInt("bSTART_Dict", offsets.dictStart);
-        triangleTranscriber.SetBuffer(kernel, "_MemoryBuffer", GenerationPreset.memoryHandle.Storage);
         triangleTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
         
         kernel = vertexTranscriber.FindKernel("Transcribe");
@@ -50,7 +49,6 @@ public static class SpriteExtruder{
         vertexTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
         vertexTranscriber.SetInt("bCOUNTER", offsets.vertexCounter);
         vertexTranscriber.SetInt("bSTART", offsets.vertexStart);
-        vertexTranscriber.SetBuffer(kernel, "_MemoryBuffer", GenerationPreset.memoryHandle.Storage);
         vertexTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
     }
 
@@ -75,11 +73,15 @@ public static class SpriteExtruder{
             OnMeshRecieved(ret);
         }, 1);
         RBTask.AddTask(); RBTask.AddTask();
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)vertAddress, (ret) => OnAddressRecieved(ret, RBTask, onVertSizeRecieved));
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)triAddress, (ret) => OnAddressRecieved(ret, RBTask, onTriSizeRecieved));
+        ComputeBuffer source = GenerationPreset.memoryHandle.GetBlockBuffer(vertAddress);
+        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)vertAddress, (ret) =>
+            OnAddressRecieved(source, ret, RBTask, onVertSizeRecieved));
+        source = GenerationPreset.memoryHandle.GetBlockBuffer(triAddress);
+        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)triAddress, (ret) =>
+            OnAddressRecieved(source, ret, RBTask, onTriSizeRecieved));
     }
 
-    static void OnAddressRecieved(AsyncGPUReadbackRequest request, ReadbackTask<SVert> RBTask, ReadbackSizeRecieved OnSizeRecieved){
+    static void OnAddressRecieved(ComputeBuffer source, AsyncGPUReadbackRequest request, ReadbackTask<SVert> RBTask, ReadbackSizeRecieved OnSizeRecieved){
         uint2 memAddress = request.GetData<uint2>().ToArray()[0];
 
         if(memAddress.x == 0){
@@ -87,25 +89,25 @@ public static class SpriteExtruder{
             return;
         }
         
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Storage, size: 4, offset: 4*((int)memAddress.x - 1), (ret) => OnSizeRecieved(ret, memAddress, RBTask));
+        AsyncGPUReadback.Request(source, size: 4, offset: 4*((int)memAddress.x - 1), (ret) => OnSizeRecieved(source, ret, memAddress, RBTask));
     }
 
-    private delegate void ReadbackSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, ReadbackTask<SVert> RBTask);
-    static void onVertSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, ReadbackTask<SVert> RBTask){
+    private delegate void ReadbackSizeRecieved(ComputeBuffer source, AsyncGPUReadbackRequest request, uint2 address, ReadbackTask<SVert> RBTask);
+    static void onVertSizeRecieved(ComputeBuffer source, AsyncGPUReadbackRequest request, uint2 address, ReadbackTask<SVert> RBTask){
         int memSize = request.GetData<int>().ToArray()[0] - VERTEX_STRIDE_WORD;
         int vertCount = memSize / VERTEX_STRIDE_WORD;
         int vertStartWord = (int)(address.y * VERTEX_STRIDE_WORD);
 
         RBTask.RBMesh.VertexBuffer = new NativeArray<SVert>(vertCount, Allocator.Persistent);
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, GenerationPreset.memoryHandle.Storage, size: 4 * memSize, offset: 4 * vertStartWord, ret => RBTask.OnRBRecieved());
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, source, size: 4 * memSize, offset: 4 * vertStartWord, ret => RBTask.OnRBRecieved());
     }
 
-    static void onTriSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, ReadbackTask<SVert> RBTask){
+    static void onTriSizeRecieved(ComputeBuffer source, AsyncGPUReadbackRequest request, uint2 address, ReadbackTask<SVert> RBTask){
         int memSize = request.GetData<int>().ToArray()[0] - TRI_STRIDE_WORD;
         int triStartWord = (int)(address.y * TRI_STRIDE_WORD);
 
         RBTask.RBMesh.IndexBuffer[0] = new NativeArray<uint>(memSize, Allocator.Persistent);
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[0], GenerationPreset.memoryHandle.Storage, size: 4 * memSize, offset: 4 * triStartWord, ret => RBTask.OnRBRecieved());
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[0], source, size: 4 * memSize, offset: 4 * triStartWord, ret => RBTask.OnRBRecieved());
     }
 
     public static void GenerateMesh(ExtrudeSettings settings){
@@ -125,17 +127,21 @@ public static class SpriteExtruder{
 
     public static void TranscribeVertices(int address, int vertCounter){
         ComputeBuffer args = UtilityBuffers.CountToArgs(vertexTranscriber, UtilityBuffers.GenerationBuffer, countOffset: vertCounter);
-        vertexTranscriber.SetInt("addressIndex", address);
-        
         int kernel = vertexTranscriber.FindKernel("Transcribe");
+        vertexTranscriber.SetInt("addressIndex", address);
+        vertexTranscriber.SetBuffer(kernel, "_MemoryBuffer", GenerationPreset.memoryHandle.GetBlockBuffer(address));
+
         vertexTranscriber.DispatchIndirect(kernel, args);
     }
 
     public static void TranscribeTriangles(int address, int triCounter){
         ComputeBuffer args = UtilityBuffers.CountToArgs(triangleTranscriber, UtilityBuffers.GenerationBuffer, countOffset: triCounter);
+        ComputeBuffer source = GenerationPreset.memoryHandle.GetBlockBuffer(address);
+
+        int kernel = triangleTranscriber.FindKernel("Transcribe");
+        triangleTranscriber.SetBuffer(kernel, "_MemoryBuffer", source);
         triangleTranscriber.SetInt("triAddress", address);
         
-        int kernel = triangleTranscriber.FindKernel("Transcribe");
         triangleTranscriber.DispatchIndirect(kernel, args);
     }
 

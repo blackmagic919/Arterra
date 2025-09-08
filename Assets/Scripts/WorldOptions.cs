@@ -100,7 +100,7 @@ namespace WorldConfig
             /// </summary>
             public Catalogue<Quality.GeoShader> GeoShaders;
             /// <summary> See here for more information: <see cref="Quality.Memory"/>  </summary>
-            public Option<Quality.Memory> Memory;
+            public Option<Quality.BalancedMemory> Memory;
         }
 
         /// <summary>

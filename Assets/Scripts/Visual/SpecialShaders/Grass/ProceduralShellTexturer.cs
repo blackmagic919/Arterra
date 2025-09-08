@@ -49,13 +49,14 @@ public class ProceduralShellTexturer : GeoShader
     {
         if (settings.Reg.Count == 0) return;
         int kernel = shellCompute.FindKernel("Main");
-        ComputeBuffer memory = memoryHandle.Storage;
+        ComputeBuffer vertSource = memoryHandle.GetBlockBuffer(vertAddress);
+        ComputeBuffer triSource = memoryHandle.GetBlockBuffer(triAddress);
         ComputeBuffer addresses = memoryHandle.Address;
 
         ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(shellCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
-        shellCompute.SetBuffer(kernel, "SourceVertices", memory);
-        shellCompute.SetBuffer(kernel, "SourceTriangles", memory);
+        shellCompute.SetBuffer(kernel, "SourceVertices", vertSource);
+        shellCompute.SetBuffer(kernel, "SourceTriangles", triSource);
         shellCompute.SetBuffer(kernel, "_AddressDict", addresses);
         shellCompute.SetInt("vertAddress", vertAddress);
         shellCompute.SetInt("triAddress", triAddress);

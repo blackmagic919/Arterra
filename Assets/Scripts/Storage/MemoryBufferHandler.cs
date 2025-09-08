@@ -1,3 +1,4 @@
+using System;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -10,16 +11,17 @@ namespace WorldConfig.Quality {
     /// <seealso href = "https://blackmagic919.github.io/AboutMe/2024/08/18/Memory-Heap/"/> 
     /// </summary>
     public class MemoryBufferHandler {
-        private ComputeShader HeapSetupShader;
-        private ComputeShader AllocateShader;
-        private ComputeShader DeallocateShader;
-        private ComputeShader ClearMemShader;
+        protected ComputeShader HeapSetupShader;
+        protected ComputeShader AllocateShader;
+        protected ComputeShader DeallocateShader;
+        protected ComputeShader d_AllocateShader;
+        protected ComputeShader d_DeallocateShader;
 
-        private ComputeBuffer _GPUMemorySource;
-        private ComputeBuffer _EmptyBlockHeap;
-        private ComputeBuffer _AddressBuffer;
-        private uint2[] addressLL;
-        private bool initialized;
+        protected ComputeBuffer _GPUMemorySource;
+        protected ComputeBuffer _EmptyBlockHeap;
+        protected ComputeBuffer _AddressBuffer;
+        protected uint2[] addressLL;
+        protected bool initialized;
 
         /// <summary>
         /// Initializes the <see cref="MemoryBufferHandler"/>. Allocates a memory heap on the GPU for use in the terrain generation process.
@@ -29,14 +31,11 @@ namespace WorldConfig.Quality {
         public MemoryBufferHandler(Memory settings) {
             if (initialized) Release();
 
-            HeapSetupShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/PrepareHeap");
-            AllocateShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/AllocateData");
-            DeallocateShader = Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/DeallocateData");
-
             _GPUMemorySource = new ComputeBuffer(settings.StorageSize, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             //2 channels, 1 for size, 2 for memory address
             _EmptyBlockHeap = new ComputeBuffer(settings.HeapSize, sizeof(uint) * 2, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             _AddressBuffer = new ComputeBuffer(settings.AddressSize + 1, sizeof(uint) * 2, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+            Preset();
 
             addressLL = new uint2[settings.AddressSize + 1];
             addressLL[0].y = 1;
@@ -49,19 +48,49 @@ namespace WorldConfig.Quality {
         /// Releases all buffers used by the MemoryHandle.
         /// Call this method before the program exits to prevent memory leaks.
         /// </summary>
-        public void Release() {
+        public virtual void Release() {
             _GPUMemorySource?.Release();
             _EmptyBlockHeap?.Release();
             _AddressBuffer?.Release();
             initialized = false;
         }
 
+        private void Preset() {
+            HeapSetupShader = GameObject.Instantiate(Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/PrepareHeap"));
+            AllocateShader = GameObject.Instantiate(Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/AllocateData"));
+            DeallocateShader = GameObject.Instantiate(Resources.Load<ComputeShader>("Compute/MemoryStructures/Heap/DeallocateData"));
+            AllocateShader.DisableKeyword("DEFERRED_ALLOCATE");
+            DeallocateShader.DisableKeyword("DEFERRED_DEALLOCATE");
+            d_AllocateShader = GameObject.Instantiate(AllocateShader);
+            d_DeallocateShader = GameObject.Instantiate(DeallocateShader);
+            AllocateShader.DisableKeyword("DIRECT_ALLOCATE");
+            DeallocateShader.DisableKeyword("DIRECT_DEALLOCATE");
+            d_AllocateShader.EnableKeyword("DIRECT_ALLOCATE");
+            d_DeallocateShader.EnableKeyword("DIRECT_DEALLOCATE");
+
+            AllocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
+            AllocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
+            AllocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer);
+
+            d_AllocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
+            d_AllocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
+            d_AllocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer);
+
+            DeallocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
+            DeallocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
+            DeallocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer);
+
+            d_DeallocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
+            d_DeallocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
+        }
+
         private void PrepareMemory(Memory settings) {
-            HeapSetupShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
-            HeapSetupShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
+            int kernel = HeapSetupShader.FindKernel("Prepare");
+            HeapSetupShader.SetBuffer(kernel, "_SourceMemory", _GPUMemorySource);
+            HeapSetupShader.SetBuffer(kernel, "_Heap", _EmptyBlockHeap);
             HeapSetupShader.SetInt("_BufferSize4Bytes", settings.StorageSize);
 
-            HeapSetupShader.Dispatch(0, 1, 1, 1);
+            HeapSetupShader.Dispatch(kernel, 1, 1, 1);
         }
 
         /// <summary>
@@ -88,20 +117,16 @@ namespace WorldConfig.Quality {
         /// and the second being relative to the requested <paramref name = "stride" /> <paramref name="stride"/>.
         /// </remarks>
         /// </returns>
-        public uint AllocateMemoryDirect(int count, int stride) {
+        public virtual uint AllocateMemoryDirect(int count, int stride) {
             if (!initialized) return 0;
 
             uint addressIndex = addressLL[0].y;
             //Allocate Memory
-            AllocateShader.EnableKeyword("DIRECT_ALLOCATE");
-            AllocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
-            AllocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
-            AllocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer);
-            AllocateShader.SetInt("addressIndex", (int)addressIndex);
-            AllocateShader.SetInt("allocCount", count);
-            AllocateShader.SetInt("allocStride", stride);
+            d_AllocateShader.SetInt("addressIndex", (int)addressIndex);
+            d_AllocateShader.SetInt("allocCount", count);
+            d_AllocateShader.SetInt("allocStride", stride);
 
-            AllocateShader.Dispatch(0, 1, 1, 1);
+            d_AllocateShader.Dispatch(0, 1, 1, 1);
 
             //Head node always points to first free node, remove node from LL to mark allocated
             uint pAddress = addressLL[addressIndex].x;//should always be 0
@@ -122,16 +147,12 @@ namespace WorldConfig.Quality {
         /// <param name="stride"><see cref="AllocateMemoryDirect(int, int)"/></param>
         /// <param name="countOffset">The 4-byte offset within the buffer of the count.</param>
         /// <returns> <see cref="AllocateMemoryDirect(int, int)"/> </returns>
-        public uint AllocateMemory(ComputeBuffer count, int stride, int countOffset = 0) {
+        public virtual uint AllocateMemory(ComputeBuffer count, int stride, int countOffset = 0) {
             if (!initialized) return 0;
 
             uint addressIndex = addressLL[0].y;
 
             //Allocate Memory
-            AllocateShader.DisableKeyword("DIRECT_ALLOCATE");
-            AllocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
-            AllocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
-            AllocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer);
             AllocateShader.SetInt("addressIndex", (int)addressIndex);
             AllocateShader.SetInt("countOffset", countOffset);
 
@@ -159,13 +180,9 @@ namespace WorldConfig.Quality {
         /// The address of the entry within the <see cref="Address"/> buffer which points to the
         /// allocated memory block within the <see cref="Storage"/> buffer. 
         /// </param>
-        public void ReleaseMemory(uint addressIndex) {//
+        public virtual void ReleaseMemory(uint addressIndex) {
             if (!initialized || addressIndex == 0) return;
             //Release Memory
-            DeallocateShader.DisableKeyword("DIRECT_DEALLOCATE");
-            DeallocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
-            DeallocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
-            DeallocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer);
             DeallocateShader.SetInt("addressIndex", (int)addressIndex);
 
             DeallocateShader.Dispatch(0, 1, 1, 1);
@@ -187,40 +204,13 @@ namespace WorldConfig.Quality {
         /// </summary>
         /// <param name="address">A compute buffer containing the 4-byte sized and aligned address within <see cref="Storage"/> of the memroy block.</param>
         /// <param name="countOffset">The 4-byte offset within <paramref name="address"/> of the entry containing the address to the memory block</param>
-        public void ReleaseMemoryDirect(ComputeBuffer address, int countOffset = 0) {
+        public virtual void ReleaseMemoryDirect(ComputeBuffer address, int countOffset = 0) {
             if (!initialized) return;
             //Allocate Memory
-            DeallocateShader.EnableKeyword("DIRECT_DEALLOCATE");
-            DeallocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
-            DeallocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
-            DeallocateShader.SetBuffer(0, "_Address", address);
-            DeallocateShader.SetInt("countOffset", countOffset);
+            d_DeallocateShader.SetBuffer(0, "_Address", address);
+            d_DeallocateShader.SetInt("countOffset", countOffset);
 
-            DeallocateShader.Dispatch(0, 1, 1, 1);
-        }
-
-        const int WorkerThreads = 64;
-
-        /// <summary>
-        /// Clears a memory block of size <paramref name="count"/> * <paramref name="stride"/> with the specified <paramref name="stride"/> 
-        /// at the given <paramref name="address"/> on the <see cref="Storage"/> buffer. The unit is a 4-byte integer(word) and byte-level allocation is not supported. 
-        /// This operation is done in parallel on the GPU and is more efficient than clearing memory on the CPU.
-        /// </summary>
-        /// <param name="address"> The address of the entry within the <see cref="Address"/> buffer which points to the memory block to be cleared within the <see cref="Storage"/> buffer. </param>
-        /// <param name="count"> The amount of structures of size <paramref name = "stride" /> to be cleared adjacently. The total size that is cleared is (<paramref name="count"/> * <paramref name="stride"/>) </param>
-        /// <param name="stride"> The alignment of structures relative to <see cref="Storage"/>, every entry will be at a relative address that is a multiple of <paramref name = "stride" /> </param>
-        public void ClearMemory(int address, int count, int stride) {
-            if (!initialized || address == 0) return;
-            ClearMemShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
-            ClearMemShader.SetBuffer(0, "_AddressDict", _AddressBuffer);
-            ClearMemShader.SetInt("addressIndex", address);
-            ClearMemShader.SetInt("freeCount", count);
-            ClearMemShader.SetInt("freeStride", stride);
-
-            ClearMemShader.SetInt("workerCount", WorkerThreads);
-            ClearMemShader.GetKernelThreadGroupSizes(0, out uint threadsAxis, out _, out _);
-            int threadGroups = Mathf.CeilToInt(WorkerThreads / (float)threadsAxis);
-            ClearMemShader.Dispatch(0, threadGroups, 1, 1);
+            d_DeallocateShader.Dispatch(0, 1, 1, 1);
         }
 
         /// <summary> The primary memory buffer used for long-term memory storage in the terrain generation process. </summary>
@@ -228,5 +218,8 @@ namespace WorldConfig.Quality {
         /// <summary> A buffer containing addresses to memory blocks within the <see cref="Storage"/> buffer. This buffer tracks the 
         /// raw 4-byte address as well as the address relative to the requested stride during allocation of each memory block. </summary>
         public ComputeBuffer Address => _AddressBuffer;
+
+        public virtual ComputeBuffer GetBlockBuffer(uint index) { return _GPUMemorySource; }
+        public virtual ComputeBuffer GetBlockBuffer(int index) { return _GPUMemorySource; }
     }
 }

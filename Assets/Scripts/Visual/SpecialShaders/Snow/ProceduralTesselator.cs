@@ -46,13 +46,14 @@ public class ProceduralTesselator : GeoShader
     {
         if (settings.Reg.Count == 0) return;
         int kernel = tesselCompute.FindKernel("Main");
-        ComputeBuffer memory = memoryHandle.Storage;
+        ComputeBuffer vertSource = memoryHandle.GetBlockBuffer(vertAddress);
+        ComputeBuffer triSource = memoryHandle.GetBlockBuffer(triAddress);
         ComputeBuffer addresses = memoryHandle.Address;
 
         ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(tesselCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
-        tesselCompute.SetBuffer(kernel, "SourceVertices", memory);
-        tesselCompute.SetBuffer(kernel, "SourceTriangles", memory);
+        tesselCompute.SetBuffer(kernel, "SourceVertices", vertSource);
+        tesselCompute.SetBuffer(kernel, "SourceTriangles", triSource);
         tesselCompute.SetBuffer(kernel, "_AddressDict", addresses);
         tesselCompute.SetInt("vertAddress", vertAddress);
         tesselCompute.SetInt("triAddress", triAddress);

@@ -178,7 +178,7 @@ namespace Utils {
             static void PlaceDecodeSmall(int3 v, Action<int3> cb) {
                 cb(new(v.x, v.y, v.z));
                 cb(new(v.y, v.x, v.z));
-                cb(new (v.y, v.z, v.x));
+                cb(new(v.y, v.z, v.x));
             }
 
             static void PlaceDecodeLarge(int3 v, Action<int3> cb) {
@@ -187,7 +187,7 @@ namespace Utils {
                 cb(new(v.y, v.x, v.z));
                 cb(new(v.z, v.x, v.y));
                 cb(new(v.y, v.z, v.x));
-                cb(new (v.z, v.y, v.x));
+                cb(new(v.z, v.y, v.x));
             }
 
             for (int majorAxis = 0; majorAxis <= radius; majorAxis++) {

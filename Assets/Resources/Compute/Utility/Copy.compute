@@ -1,0 +1,25 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CopyCount
+#pragma kernel CopyBuffer
+
+StructuredBuffer<uint> source;
+uint readOffset;
+
+RWStructuredBuffer<uint> destination;
+uint writeOffset;
+
+[numthreads(1,1,1)]
+void CopyCount (uint3 id : SV_DispatchThreadID)
+{
+    destination[writeOffset] = source[readOffset];
+}
+
+uint count;
+
+[numthreads(256,1,1)]
+void CopyBuffer (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= count)
+        return;
+    destination[writeOffset + id.x] = source[readOffset + id.x];
+}

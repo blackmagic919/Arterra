@@ -50,13 +50,14 @@ public class ProceduralInsetQuads : GeoShader
     {
         if (settings.Reg.Count == 0) return;
         int idFoliageKernel = quadCompute.FindKernel("Main");
-        ComputeBuffer memory = memoryHandle.Storage;
+        ComputeBuffer vertSource = memoryHandle.GetBlockBuffer(vertAddress);
+        ComputeBuffer triSource = memoryHandle.GetBlockBuffer(triAddress);
         ComputeBuffer addresses = memoryHandle.Address;
 
         ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(quadCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
-        quadCompute.SetBuffer(idFoliageKernel, "SourceVertices", memory);
-        quadCompute.SetBuffer(idFoliageKernel, "SourceTriangles", memory);
+        quadCompute.SetBuffer(idFoliageKernel, "SourceVertices", vertSource);
+        quadCompute.SetBuffer(idFoliageKernel, "SourceTriangles", triSource);
         quadCompute.SetBuffer(idFoliageKernel, "_AddressDict", addresses);
         quadCompute.SetInt("vertAddress", vertAddress);
         quadCompute.SetInt("triAddress", triAddress);

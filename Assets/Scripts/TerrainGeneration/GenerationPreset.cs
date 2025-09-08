@@ -83,7 +83,7 @@ public static class GenerationPreset
     /// <exclude />
     public static EntityHandle entityHandle;
     /// <summary> Holds a reference to a long-term storage GPU buffer used in the terrain generation process. <seealso cref="MemoryHandle"/> </summary>
-    public static WorldConfig.Quality.MemoryBufferHandler memoryHandle;
+    public static WorldConfig.Quality.MemoryOccupancyBalancer memoryHandle;
     /// <summary> Whether or not the GenerationPreset has been <see cref="Initialize"/>d. If not, generation will be unable to occur </summary>
     public static bool active;
 
@@ -98,7 +98,7 @@ public static class GenerationPreset
         biomeHandle.Initialize();
         structHandle.Initialize();
         entityHandle.Initialize();
-        memoryHandle = new MemoryBufferHandler(Config.CURRENT.Quality.Memory.value);
+        memoryHandle = new MemoryOccupancyBalancer(Config.CURRENT.Quality.Memory.value);
     }
 
     /// <summary>

@@ -220,7 +220,7 @@ public static class EntityManager
 
         kernel = entityTranscriber.FindKernel("CSMain");
         uint address = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, ENTITY_STRIDE_WORD, bufferOffsets.prunedCounter);
-        entityTranscriber.SetBuffer(kernel, "_MemoryBuffer", GenerationPreset.memoryHandle.Storage);
+        entityTranscriber.SetBuffer(kernel, "_MemoryBuffer", GenerationPreset.memoryHandle.GetBlockBuffer(address));
         entityTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
         entityTranscriber.SetInt("addressIndex", (int)address);
 
@@ -231,16 +231,16 @@ public static class EntityManager
     }
 
     public static void BeginEntityReadback(uint address, int3 CCoord){
-        static void OnEntitySizeRecieved(AsyncGPUReadbackRequest request, uint2 memHandle, Action<NativeArray<GenPoint>> callback){
+        void OnEntitySizeRecieved(AsyncGPUReadbackRequest request, uint2 memHandle, Action<NativeArray<GenPoint>> callback){
             int memSize = (int)(request.GetData<uint>()[0] - ENTITY_STRIDE_WORD);
             int entityStartWord = ENTITY_STRIDE_WORD * (int)memHandle.y;
-            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Storage, size: memSize * 4, offset: 4 * entityStartWord, (req) => callback.Invoke(req.GetData<GenPoint>()));
+            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.GetBlockBuffer(address), size: memSize * 4, offset: 4 * entityStartWord, (req) => callback.Invoke(req.GetData<GenPoint>()));
         }
-        static void OnEntityAddressRecieved(AsyncGPUReadbackRequest request, Action<NativeArray<GenPoint>> callback){
+        void OnEntityAddressRecieved(AsyncGPUReadbackRequest request, Action<NativeArray<GenPoint>> callback){
             uint2 memHandle = request.GetData<uint2>()[0];
             if(memHandle.x == 0) return; // No entities
 
-            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Storage, size: 4, offset: 4 * ((int)memHandle.x - 1), (req) => OnEntitySizeRecieved(req, memHandle, callback));
+            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.GetBlockBuffer(address), size: 4, offset: 4 * ((int)memHandle.x - 1), (req) => OnEntitySizeRecieved(req, memHandle, callback));
         }
 
         Action<NativeArray<GenPoint>> callback = (entities) => OnEntitiesRecieved(entities, address, CCoord);

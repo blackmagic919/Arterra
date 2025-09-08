@@ -3,7 +3,7 @@
 #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
 
 const static int numThreads = 256;
-const static float cullThresh = 0.3;
+const static float cullThresh = 0.15;
 
 struct Quad {
     float3 topLeft;

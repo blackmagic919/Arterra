@@ -159,7 +159,6 @@ public static class Generator
         int numPointsAxes = rSettings.mapChunkSize;
         bufferOffsets = new GeoGenOffsets(new int3(numPointsAxes, numPointsAxes, numPointsAxes), rSettings.Balance, 0);
         
-        baseGenCompute.SetBuffer(0, "_SurfMemoryBuffer", GenerationPreset.memoryHandle.Storage);
         baseGenCompute.SetBuffer(0, "_SurfAddressDict", GenerationPreset.memoryHandle.Address);
         baseGenCompute.SetInt("caveFreqSampler", mesh.CaveFrequencyIndex);
         baseGenCompute.SetInt("caveSizeSampler", mesh.CaveSizeIndex);
@@ -178,7 +177,6 @@ public static class Generator
         baseGenCompute.SetInt("bSTART_map", bufferOffsets.rawMapStart);
         baseGenCompute.SetInt("bSTART_biome", bufferOffsets.biomeMapStart);
 
-        biomeGenCompute.SetBuffer(0, "_SurfMemoryBuffer", GenerationPreset.memoryHandle.Storage);
         biomeGenCompute.SetBuffer(0, "_SurfAddressDict", GenerationPreset.memoryHandle.Address);
         biomeGenCompute.SetInt("caveSizeSampler", mesh.CaveSizeIndex);
         biomeGenCompute.SetInt("caveShapeSampler", mesh.CaveShapeIndex);
@@ -237,6 +235,9 @@ public static class Generator
     /// <summary> See <see cref="Creator.GenerateBaseChunk(float3, uint, int, int, float)"/> for info. </summary>
     public static void GenerateBaseData( Vector3 offset, uint surfaceData, int numPointsPerAxis, int mapSkip, float IsoLevel)
     {
+        ComputeBuffer source = GenerationPreset.memoryHandle.GetBlockBuffer(surfaceData);
+        baseGenCompute.SetBuffer(0, "_SurfMemoryBuffer", source);
+
         baseGenCompute.SetFloat("IsoLevel", IsoLevel);
         baseGenCompute.SetInt("surfAddress", (int)surfaceData);
         baseGenCompute.SetInt("numPointsPerAxis", numPointsPerAxis);
@@ -250,6 +251,8 @@ public static class Generator
 
     /// <summary> See <see cref="Creator.PopulateBiomes(float3, uint, int, int)"/> for info. </summary>
     public static void GenerateBiomeData(Vector3 offset, uint surfaceData, int numPointsPerAxis, int mapSkip){
+        ComputeBuffer source = GenerationPreset.memoryHandle.GetBlockBuffer(surfaceData);
+        biomeGenCompute.SetBuffer(0, "_SurfMemoryBuffer", source);
         biomeGenCompute.SetInt("numPointsPerAxis", numPointsPerAxis);
         biomeGenCompute.SetInt("surfAddress", (int)surfaceData);
         SetSampleData(biomeGenCompute, offset, mapSkip);

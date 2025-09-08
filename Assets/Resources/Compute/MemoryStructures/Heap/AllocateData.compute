@@ -1,10 +1,7 @@
+#include "Assets/Resources/Compute/MemoryStructures/Heap/HeapOperations.hlsl"
 #pragma kernel CSMain
 #pragma multi_compile _ DIRECT_ALLOCATE
-
-const static uint InitBlockSize = 3;
-
-RWStructuredBuffer<uint> _SourceMemory;
-RWStructuredBuffer<uint2> _Heap;
+#pragma multi_compile _ TRACKING
 
 RWStructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
@@ -20,45 +17,11 @@ uint allocStride;
 uint countOffset;
 #endif
 
+#ifdef TRACKING
+RWStructuredBuffer<uint2> _Occupancy;
+uint buffIndex;
+#endif
 
-void Swap(uint a, uint b){
-    uint2 temp = _Heap[a];
-    _Heap[a] = _Heap[b];
-    _Heap[b] = temp;
-
-    //Update Linked List for positions
-    _SourceMemory[_Heap[a].x - 2] = a;
-    _SourceMemory[_Heap[b].x - 2] = b;
-}
-
-void SinkBlock(uint node){
-    while(2*node <= _Heap[0].x){
-        uint maxChild = 2*node;
-        if(2*node + 1 <= _Heap[0].x && _Heap[2*node + 1].y > _Heap[maxChild].y)
-            maxChild = 2*node + 1;
-
-        if(_Heap[node].y >= _Heap[maxChild].y)
-            break;
-
-        Swap(node, maxChild);
-        node = maxChild;
-    }
-}
-//Allocate at smallest(not guaranteed) block to prevent memory fracture
-//The use of this makes the exact focus of the heap ambiguous
-uint FindSmallestBlock(uint node, uint size){
-    while(2*node <= _Heap[0].x){
-        uint maxChild = 2*node;
-        if(2*node + 1 <= _Heap[0].x && _Heap[2*node + 1].y > _Heap[maxChild].y)
-            maxChild = 2*node + 1;
-        
-        if(size > _Heap[maxChild].y)
-            break;
-        
-        node = maxChild;
-    }
-    return node;
-}
 
 //Time Complexity: O(log n)
 [numthreads(1,1,1)]
@@ -73,14 +36,19 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     stride = allocStride;
 #endif
     uint allocSize = (count + 1) * stride; //Add 1 to make space for padding
+    uint totalSize = allocSize + InitBlockSize;
 
     //Don't allocate 0 size blocks
-    if(count == 0 || allocSize + InitBlockSize > _Heap[1].y){
+    if(count == 0 || totalSize > _Heap[1].y){
         _AddressDict[addressIndex] = uint2(0, 0); //INDICATE NOT ALLOCATED
         return; 
     }
-
-    uint rNode = FindSmallestBlock(1u, allocSize + InitBlockSize);
+//
+#ifdef TRACKING
+    _Occupancy[buffIndex].x += totalSize;
+    _Occupancy[buffIndex].y++;
+#endif
+    uint rNode = FindSmallestBlock(totalSize, 0);
     uint2 root = _Heap[rNode]; uint rAddress = root.x; uint rBlockSize = root.y;
     uint padding = (stride - (rAddress % stride)) % stride; //we mod again so there is no padding if rAddress is a multiple of stride
 
@@ -93,13 +61,13 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     _SourceMemory[rAddress + allocSize] = allocSize;
 
     //Create new empty block
-    uint address = rAddress + (allocSize + InitBlockSize);
-    uint blockSize = rBlockSize - (allocSize + InitBlockSize);
+    uint address = rAddress + (totalSize);
+    uint blockSize = rBlockSize - (totalSize);
 
     _Heap[rNode] = uint2(address, blockSize);
     _SourceMemory[address-2] = rNode;
     _SourceMemory[address-1] = blockSize;
     _SourceMemory[address + blockSize] = blockSize;
 
-    SinkBlock(rNode);
+    SinkBlock(rNode, 0);
 }

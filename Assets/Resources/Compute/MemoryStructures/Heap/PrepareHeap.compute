@@ -1,5 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CSMain
+#pragma kernel Prepare
+#pragma kernel PrepareBalanced
 
 const static uint InitBlockSize = 3;
 /*
@@ -14,7 +15,7 @@ RWStructuredBuffer<uint2> _Heap;
 uint _BufferSize4Bytes;
 
 [numthreads(1,1,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void Prepare (uint3 id : SV_DispatchThreadID)
 {
     _Heap[0] = uint2(1, 0); //size of filled heap, null
     _Heap[1] = uint2(2, _BufferSize4Bytes - InitBlockSize); //Start index in memory, size of empty block(prioritized)
@@ -23,3 +24,4 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     _SourceMemory[1] = _BufferSize4Bytes - InitBlockSize; //Size
     _SourceMemory[_BufferSize4Bytes - 1] = _BufferSize4Bytes - InitBlockSize; //Size
 }
+

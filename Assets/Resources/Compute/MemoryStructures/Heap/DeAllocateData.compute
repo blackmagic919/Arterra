@@ -1,103 +1,27 @@
-// Each #kernel tells which function to compile; you can have many kernels
+#include "Assets/Resources/Compute/MemoryStructures/Heap/HeapOperations.hlsl"
 #pragma kernel CSMain
 #pragma multi_compile _ DIRECT_DEALLOCATE
-
-const static uint InitBlockSize = 3;
-
-RWStructuredBuffer<uint> _SourceMemory;
-RWStructuredBuffer<uint2> _Heap;
+#pragma multi_compile _ TRACKING
 
 #ifdef DIRECT_DEALLOCATE
-StructuredBuffer<uint> _Address;
+StructuredBuffer<uint> _AddressDict;
 uint countOffset;
 #else
 StructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
 #endif
 
-void Swap(uint a, uint b){
-    uint2 temp = _Heap[a];
-    _Heap[a] = _Heap[b];
-    _Heap[b] = temp;
-
-    //Update Linked List for positions
-    _SourceMemory[_Heap[a].x - 2] = a;
-    _SourceMemory[_Heap[b].x - 2] = b;
-}
-
-void SinkBlock(uint node){
-    while(2*node <= _Heap[0].x){
-        uint maxChild = 2*node;
-        if(2*node + 1 <= _Heap[0].x && _Heap[2*node + 1].y > _Heap[maxChild].y)
-            maxChild = 2*node + 1;
-
-        if(_Heap[node].y >= _Heap[maxChild].y)
-            break;
-
-        Swap(node, maxChild);
-        node = maxChild;
-    }
-}
-
-void SwimBlock(uint node){
-    while(node > 1){
-        uint parent = floor(node/2); //Better to be explicit
-
-        if(_Heap[parent].y >= _Heap[node].y)
-            break;
-
-        Swap(node, parent);
-        node = parent;
-    }
-}
-
-void RemoveBlock(uint node){
-    Swap(node, _Heap[0].x);
-    _Heap[0].x--;
-
-    //Sort the last node at this new position
-    //If it does swim, the new block at this position won't sink
-    //If it doesn't swim, the same node will be at this position
-    SwimBlock(node);
-    SinkBlock(node);
-}
-
-uint PrevBlockIndex(uint blockIndex){
-    uint ret = 0;
-
-    if(blockIndex > 2){ //Not Head of LinkedList
-
-        uint pBlockEnd = blockIndex - InitBlockSize;
-        uint pBlockSize = _SourceMemory[pBlockEnd];
-        uint pBlockIndex = pBlockEnd - pBlockSize;
-
-        uint pBlockHeapIndex = _SourceMemory[pBlockIndex - 2];
-
-        if(pBlockHeapIndex != 0) //Is not allocated 
-            ret = pBlockIndex;
-    }
-    return ret;
-}
-
-uint NextBlockIndex(uint blockIndex){
-    uint ret = 0;
-
-    //It's not possible for an allocated block to be the tail of the LL
-    uint nBlockIndex = blockIndex + _SourceMemory[blockIndex-1] + InitBlockSize;
-    uint nBlockHeapIndex = _SourceMemory[nBlockIndex - 2];
-
-    if(nBlockHeapIndex != 0) //Is not allocated
-        ret = nBlockIndex;
-
-    return ret;
-}
+#ifdef TRACKING
+RWStructuredBuffer<uint2> _Occupancy;
+uint buffIndex;
+#endif
 
 //Time complexity O(3log n) -> O(log n) for release
 [numthreads(1,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
 #ifdef DIRECT_DEALLOCATE
-    uint blockAddress = _Address[countOffset];
+    uint blockAddress = _AddressDict[countOffset];
 #else
     uint blockAddress = _AddressDict[addressIndex].x;
 #endif
@@ -106,6 +30,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     uint startIndex = blockAddress;
     uint endIndex = blockAddress + _SourceMemory[blockAddress-1];
+#ifdef TRACKING
+    _Occupancy[buffIndex].x -= (endIndex - startIndex) + InitBlockSize;
+    _Occupancy[buffIndex].y--;
+#endif
 
     //We merge blocks to keep memory from fragmenting
     //Because we merge all empty adjacent blocks upon deallocation
@@ -115,12 +43,12 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     if(pBlockAddress != 0){
         startIndex = pBlockAddress;
-        RemoveBlock(_SourceMemory[pBlockAddress-2]);
+        RemoveBlock(_SourceMemory[pBlockAddress-2], 0);
     } 
 
     if(nBlockAddress != 0){
         endIndex = nBlockAddress + _SourceMemory[nBlockAddress-1];
-        RemoveBlock(_SourceMemory[nBlockAddress-2]);
+        RemoveBlock(_SourceMemory[nBlockAddress-2], 0);
     }
 
     uint HeapEndIndex = ++_Heap[0].x;
@@ -132,5 +60,5 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     _SourceMemory[startIndex-1] = newBlockSize;
     _SourceMemory[startIndex + newBlockSize] = newBlockSize;
     
-    SwimBlock(HeapEndIndex);
+    SwimBlock(HeapEndIndex, 0);
 }
