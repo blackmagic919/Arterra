@@ -6,14 +6,7 @@ using MapStorage;
 
 namespace WorldConfig.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Boat")] 
-public class BoatItemAuthoring : AuthoringTemplate<BoatItem> {
-    /// <summary> The radius, in grid space, of the spherical region around the user's
-    /// cursor that will be modified when the user terraforms the terrain. </summary>
-    public int TerraformRadius = 1;
-    /// <summary> The speed at which the user can terraform the terrain. As terraforming is a 
-    /// continuous process, the speed is measured in terms of change in density per frame. </summary>
-    public float TerraformSpeed = 50;
-}
+public class BoatItemAuthoring : AuthoringTemplate<BoatItem> {}
 
 public class BoatItem : IItem{
     public uint data;
@@ -67,16 +60,15 @@ public class BoatItem : IItem{
     public void UpdateEItem(){} 
     
     private GameObject display;
-    public void AttachDisplay(Transform parent) {
+    public void AttachDisplay(Transform parent){
         if (display != null) {
             display.transform.SetParent(parent, false);
             return;
         }
 
-        display = Indicators.HolderItems.Get();
+        display = Indicators.StackableItems.Get();
         display.transform.SetParent(parent, false);
         display.transform.GetComponent<UnityEngine.UI.Image>().sprite = TextureAtlas.Retrieve(ItemInfo.Retrieve(Index).TextureName).self;
-        AttachChildDisplay();
     }
 
     public void ClearDisplay(Transform parent){
@@ -94,12 +86,6 @@ public class BoatItem : IItem{
         Entity.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Boat");
         Entity.info.entityId = Guid.NewGuid();
         EntityManager.CreateEntity(Entity);
-        //InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
+        InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
     }
-    
-    private void AttachChildDisplay(){
-        if(display == null) return;
-        Transform child = display.transform.Find("Item");
-    }
-    
 }}

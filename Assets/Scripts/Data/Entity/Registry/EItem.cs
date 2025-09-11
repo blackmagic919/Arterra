@@ -64,7 +64,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             if (item.Value == null) return null;
             IItem ret;
             if (!item.Value.IsStackable) {
-                ret = item.Value;
+                ret = (IItem)item.Value.Clone();
             } else {
                 int delta = Mathf.FloorToInt(amount) + (random.NextFloat() < math.frac(amount) ? 1 : 0);
                 ret = (IItem)item.Value.Clone();
@@ -104,6 +104,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         {
             settings = (EItemSetting)setting;
             controller = new EItemController(Controller, this);
+            decomposition = math.min(settings.DecayTime, decomposition);
             tCollider.useGravity = true;
             GCoord = this.GCoord;
         }
@@ -126,12 +127,13 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
                 item.Value = null;
             MergeNearbyEItems();
 
-            if (item.Value == null || item.Value.AmountRaw == 0)
+            if (item.Value == null || item.Value.AmountRaw == 0){
                 EntityManager.ReleaseEntity(info.entityId);
-            if(tCollider.GetGroundDir(settings.GroundStickDist, settings.collider, EntityJob.cxt.mapContext, out float3 gDir)){
-                tCollider.transform.rotation = Quaternion.LookRotation(gDir, math.up());
-                tCollider.velocity *= 1 - settings.StickFriction;
             }
+            if (tCollider.GetGroundDir(settings.GroundStickDist, settings.collider, EntityJob.cxt.mapContext, out float3 gDir)) {
+                    tCollider.transform.rotation = Quaternion.LookRotation(gDir, math.up());
+                    tCollider.velocity *= 1 - settings.StickFriction;
+                }
             tCollider.Update(settings.collider, this);
             EntityManager.AddHandlerEvent(controller.Update);
         }

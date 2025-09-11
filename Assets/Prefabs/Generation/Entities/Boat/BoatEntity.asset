@@ -31,13 +31,21 @@ MonoBehaviour:
       collider:
         size:
           x: 2.5
-          y: 1.5
+          y: 1
           z: 2.5
-        friction: 0.25
-      GroundStickDist: 0
-      StickFriction: 0
-      MaxSpeed: 10
+        friction: 0.2
+      rotSpeed: 180
+      MaxWaterSpeed: 10
+      MaxLandSpeed: 1
       Acceleration: 150
+      groundStickDist: 0.15
+      durability:
+        MaxHealth: 2
+        NaturalRegen: 0.75
+        InvincTime: 0.1
+        HoldBreathTime: 5
+        weight: 0.05
+      ItemDrop: Boat
   references:
     version: 2
     RefIds: []

@@ -759,7 +759,7 @@ namespace MapStorage {
                 data = (data & 0xFFFFFF00) | ((uint)values[1] & 0xFF);
                 data = isDirty ? data | 0x80000000 : data & 0x7FFFFFFF;
 
-                dataProp.uintValue = (data & 0x8000FFFF) | (dataProp.uintValue & 0x8FFF0000);
+                dataProp.uintValue = (data & 0x8000FFFF) | (dataProp.uintValue & 0x7FFF0000);
             }
 
             // Override this method to make space for the custom fields

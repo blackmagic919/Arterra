@@ -42,6 +42,6 @@ MonoBehaviour:
         - data: 104086
       result:
         data: 255
-    references:
-      version: 2
-      RefIds: []
+  references:
+    version: 2
+    RefIds: []

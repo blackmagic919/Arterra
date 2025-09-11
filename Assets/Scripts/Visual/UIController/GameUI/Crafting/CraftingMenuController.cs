@@ -173,14 +173,13 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         CraftingRecipe recipe = Recipe.Table[FitRecipe];
         for(int i = 0; i < GridCount; i++){
             if (recipe.entry.value[i].isDirty) continue;
+            
             if (recipe.entry.value[i].IsGaseous) {
                 if (craftingData[i].IsGaseous) continue;
                 else return false;
-            }
-
-            if (recipe.entry.value[i].IsSolid && !craftingData[i].IsSolid)
+            } else if (recipe.entry.value[i].IsSolid && !craftingData[i].IsSolid)
                 return false;
-            if (recipe.entry.value[i].IsLiquid && !craftingData[i].IsLiquid)
+            else if (recipe.entry.value[i].IsLiquid && !craftingData[i].IsLiquid)
                 return false;
             if (craftingData[i].material != recipe.EntryMat(i)) return false;
         }

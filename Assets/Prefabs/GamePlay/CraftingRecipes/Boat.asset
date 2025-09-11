@@ -20,26 +20,27 @@ MonoBehaviour:
     value:
     - Boat
     - Wood
+    - Plank
   Recipe:
     value:
       entry:
         value:
-        - data: 2147490073
+        - data: 25700
         - data: 104086
         - data: 100231
-        - data: 2147490073
+        - data: 6425
         - data: 104086
-        - data: 2147490073
-        - data: 2147490073
-        - data: 2147490073
+        - data: 164482
+        - data: 6425
+        - data: 6425
         - data: 104086
-        - data: 2147490073
-        - data: 2147490073
-        - data: 2147490073
-        - data: 2147490073
+        - data: 164482
+        - data: 6425
+        - data: 6425
+        - data: 25700
         - data: 104086
         - data: 100231
-        - data: 2147490073
+        - data: 6425
       result:
         data: 255
   references:

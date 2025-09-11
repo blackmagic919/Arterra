@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using WorldConfig;
@@ -20,56 +21,42 @@ public interface ICollidable {
     public Bounds Bounds { get; }
 }
 
-public struct Vitality {
+public class MinimalVitality {
     [Serializable]
     public class Stats {
         public float MaxHealth;
         public float NaturalRegen;
-        public float AttackDistance;
-        public float AttackDamage;
-        public float AttackCooldown;
-        public float KBStrength;
         public float InvincTime;
         public float HoldBreathTime;
-        [Range(0, 1)]
-        public float HuntThreshold;
-        [Range(0, 1)]
-        public float MateThreshold;
-        public float PregnacyLength;
-        public float ConsumptionRate;
-        public float MateCost; //Everything );
-
         [Range(0, 1)]
         public float weight;
     }
 
-    private Stats stats;
+    [JsonIgnore]
+    protected Stats stats;
     public float health;
     public float invincibility;
-    public float attackCooldown;
     public float healthPercent => health / stats.MaxHealth;
     public float breath;
     public float breathPercent => breath / stats.HoldBreathTime;
     public bool IsDead => health <= 0;
     public const float FallDmgThresh = 10;
-    public Vitality(Stats stats, ref Unity.Mathematics.Random random) {
+    public MinimalVitality(Stats stats, ref Unity.Mathematics.Random random) {
         this.stats = stats;
         invincibility = 0;
-        attackCooldown = 0;
-        float initHealth = math.clamp(stats.HuntThreshold + (stats.MateThreshold - stats.HuntThreshold) * random.NextFloat(), 0, 1);
-        health = stats.MaxHealth * initHealth;
+        health = stats.MaxHealth;
         breath = stats.HoldBreathTime;
     }
 
-    public void Deserialize(Stats stats) {
+    public MinimalVitality() {}
+
+    public virtual void Deserialize(Stats stats) {
         this.stats = stats;
         invincibility = 0;
-        attackCooldown = 0;
     }
 
-    public void Update() {
+    public virtual void Update() {
         invincibility = math.max(invincibility - EntityJob.cxt.deltaTime, 0);
-        attackCooldown = math.max(attackCooldown - EntityJob.cxt.deltaTime, 0);
         if (IsDead) return;
         float delta = math.min(health + stats.NaturalRegen * EntityJob.cxt.deltaTime,
                       stats.MaxHealth) - health;
@@ -80,16 +67,6 @@ public struct Vitality {
         invincibility = stats.InvincTime;
         delta = health - math.max(health - delta, 0);
         health -= delta;
-        return true;
-    }
-
-    public bool Attack(Entity target, Entity self) {
-        if (attackCooldown > 0) return false;
-        if (target is not IAttackable) return false;
-        attackCooldown = stats.AttackCooldown;
-        float damage = stats.AttackDamage;
-        float3 knockback = math.normalize(target.position - self.position) * stats.KBStrength;
-        EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback, self));
         return true;
     }
 
@@ -144,7 +121,57 @@ public struct Vitality {
         if (self is IAttackable target && target.IsDead) return; //If dead don't process suffocation
         if (breath <= 0) ProcessSuffocation(self, density);
     }
+}
 
+public class Vitality : MinimalVitality {
+    [Serializable]
+    public class Stats : MinimalVitality.Stats{
+        public float AttackDistance;
+        public float AttackDamage;
+        public float AttackCooldown;
+        public float KBStrength;
+        [Range(0, 1)]
+        public float HuntThreshold;
+        [Range(0, 1)]
+        public float MateThreshold;
+        public float PregnacyLength;
+        public float ConsumptionRate;
+        public float MateCost; //Everything );
+    }
+    [JsonIgnore]
+    private Stats CStats => stats as Stats;
+    public float attackCooldown;
+    public Vitality(Stats stats, ref Unity.Mathematics.Random random) : base(stats, ref random){
+        this.stats = stats;
+        invincibility = 0;
+        attackCooldown = 0;
+        float initHealth = math.clamp(stats.HuntThreshold + (stats.MateThreshold - stats.HuntThreshold) * random.NextFloat(), 0, 1);
+        health = stats.MaxHealth * initHealth;
+        breath = stats.HoldBreathTime;
+    }
+
+    public Vitality() {}
+
+    public override void Deserialize(MinimalVitality.Stats stats) {
+        this.stats = stats;
+        invincibility = 0;
+        attackCooldown = 0;
+    }
+
+    public override void Update() {
+        attackCooldown = math.max(attackCooldown - EntityJob.cxt.deltaTime, 0);
+        base.Update();
+    }
+
+    public bool Attack(Entity target, Entity self) {
+        if (attackCooldown > 0) return false;
+        if (target is not IAttackable) return false;
+        attackCooldown = CStats.AttackCooldown;
+        float damage = CStats.AttackDamage;
+        float3 knockback = math.normalize(target.position - self.position) * CStats.KBStrength;
+        EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback, self));
+        return true;
+    }
     [Serializable]
     public struct Decomposition {
         public Option<List<LootInfo>> LootTable;
