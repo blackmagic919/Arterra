@@ -2,8 +2,6 @@
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/MarchingTables.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/CMapDataSampler.hlsl"
-#define SAMPLE_TERRAIN 0
-#define SAMPLE_WATER 1
 
 struct vertex{
     float3 tri;
@@ -11,13 +9,8 @@ struct vertex{
     int2 material; //x = base, y = water
 };
 
-struct CubeCorner{
-    float density[2];
-    int material;
-};
-
 struct MarchCube{
-    CubeCorner corners[8];
+    Corner corners[8];
 };
 
 struct pInfo{
@@ -64,9 +57,6 @@ const static int numThreads = 8;
 * +---------> x  /
 */
 
-//Map Info
-float IsoLevel;
-
 //Output
 RWStructuredBuffer<uint> counter;
 uint3 counterInd; //x -> vertex, y -> baseTri, z -> waterTri
@@ -87,22 +77,17 @@ MarchCube ReadCube(int3 coord){
     [unroll]for(int i = 0; i < 8; i++){
         int3 sCoord = clamp(coord + positionFromIndex[i], 0, numCubesPerAxis + 2);
         uint mapData = ReadMapData(sCoord);
-        float density = (mapData & 0xFF) / 255.0f;
-        float viscosity = ((mapData >> 8) & 0xFF) / 255.0f;
-
-        cube.corners[i].density[0] = viscosity;
-        cube.corners[i].density[1] = density - viscosity;
-        cube.corners[i].material = ((mapData >> 16) & 0x7FFF);
+        cube.corners[i] = SampleStateInfo(mapData);
     }
     return cube;
 }
 
 
-float SolidInterpolate(float p1Val, float p2Val) {
+float InvLerp(float p1Val, float p2Val) {
     return (IsoLevel - p1Val) / (p2Val - p1Val);
 }
 
-void AddVertices(int3 coord, int caseIndex, uint IsWater, in MarchCube cube){
+void AddVertices(int3 coord, int caseIndex, uint state, in MarchCube cube){
     uint CClass = CellClass(caseIndex);
     uint count = VertexCount(CClass); 
     for (uint i = 0; i < count; i++) {
@@ -119,13 +104,13 @@ void AddVertices(int3 coord, int caseIndex, uint IsWater, in MarchCube cube){
 
         vertex newVert;
         //Get point densities
-        float p1Val = cube.corners[pInd.x].density[IsWater];
-        float p2Val = cube.corners[pInd.y].density[IsWater];
-        float interpFactor = SolidInterpolate(p1Val, p2Val);
+        float p1Val = cube.corners[pInd.x].density[state];
+        float p2Val = cube.corners[pInd.y].density[state];
+        float interpFactor = InvLerp(p1Val, p2Val);
 
         newVert.tri = (p1 + interpFactor * (p2 - p1));
-        newVert.norm = GetVertexNormal(p1, p2, interpFactor, IsWater);
-        if((p1Val > p2Val) ^ IsWater) newVert.material = uint2(cube.corners[pInd.x].material, cube.corners[pInd.y].material);
+        newVert.norm = GetVertexNormal(p1, p2, interpFactor, state);
+        if((p1Val > p2Val) ^ (state != 0)) newVert.material = uint2(cube.corners[pInd.x].material, cube.corners[pInd.y].material);
         else newVert.material = uint2(cube.corners[pInd.y].material, cube.corners[pInd.x].material);
 
         //Append Vertex
@@ -164,22 +149,27 @@ void March (uint3 id : SV_DispatchThreadID)
         return;
 
     int3 oCoord = int3(id.xyz);
-    MarchCube cube = ReadCube(oCoord);
+    MarchCube cube = ReadCube(oCoord);//
 
-    uint baseIndex = 0; uint waterIndex = 0;
+    uint terrIndex = 0;
+    uint tspIndex = 0;
+    uint waterIndex = 0;
     [unroll] for(uint u = 0; u < 8; u++){
-        if ((cube.corners[u].density[0]) >= IsoLevel) baseIndex |= (1 << u);
+        if ((cube.corners[u].density[0]) >= IsoLevel) terrIndex |= (1 << u);
         if ((cube.corners[u].density[1]) >= IsoLevel) waterIndex |= (1 << u);
+        if ((cube.corners[u].density[2]) >= IsoLevel) tspIndex |= (1 << u);
     }
 
     //Generate Water first so terrain can override its geometry
     AddVertices(oCoord, waterIndex, SAMPLE_WATER, cube);
-    AddVertices(oCoord, baseIndex, SAMPLE_TERRAIN, cube);
+    AddVertices(oCoord, tspIndex, SAMPLE_TSP, cube);
+    AddVertices(oCoord, terrIndex, SAMPLE_TERRAIN, cube);
 
     //Only add triangles if a valid cube
     if(any(id >= (uint)numCubesPerAxis)) 
         return;
     
-    AddTriangulation(baseIndex, oCoord, int2(bSTART_baseT, counterInd.y));
+    AddTriangulation(terrIndex, oCoord, int2(bSTART_baseT, counterInd.y));
+    AddTriangulation(tspIndex, oCoord, int2(bSTART_waterT, counterInd.z));
     AddTriangulation(waterIndex, oCoord, int2(bSTART_waterT, counterInd.z));
 }

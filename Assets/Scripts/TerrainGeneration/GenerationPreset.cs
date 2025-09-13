@@ -129,62 +129,62 @@ public static class GenerationPreset
         ComputeBuffer terrainData;
         ComputeBuffer liquidData;
         ComputeBuffer atmosphericData;
+        ComputeBuffer metaProperties;
 
         /// <summary> Initializes the <see cref="MaterialHandle" />. Deserializes and copies all information to 
-        /// the GPU for use in the terrain generation process. Information is stored in global GPU buffers 
-        /// <c>_MatTerrainData</c>, <c>_MatAtmosphericData</c>, <c>_MatLiquidData</c>, and <c>_Textures</c>. </summary>
-        public void Initialize()
-        {
-            static void SerializeGeoShader(MaterialData mat, ref MaterialData.TerrainData terr){
-                if (!terr.GeoShaderIndex.HasGeoShader) return;
-                Catalogue<WorldConfig.Quality.GeoShader> shaderInfo = Config.CURRENT.Quality.GeoShaders;
-                ref MaterialData.TerrainData.GeoShaderInfo info = ref terr.GeoShaderIndex;
-                string Key = mat.RetrieveKey((int)info.MajorIndex);
-                info.HasGeoShader = false; //If we fail any checks here on out, ignore this entry
-                if (!shaderInfo.Contains(Key)) return;
+            /// the GPU for use in the terrain generation process. Information is stored in global GPU buffers 
+            /// <c>_MatTerrainData</c>, <c>_MatAtmosphericData</c>, <c>_MatLiquidData</c>, and <c>_Textures</c>. </summary>
+            public void Initialize() {
+                static void SerializeGeoShader(MaterialData mat, ref MaterialData.TerrainData terr) {
+                    if (!terr.GeoShaderIndex.HasGeoShader) return;
+                    Catalogue<WorldConfig.Quality.GeoShader> shaderInfo = Config.CURRENT.Quality.GeoShaders;
+                    ref MaterialData.TerrainData.GeoShaderInfo info = ref terr.GeoShaderIndex;
+                    string Key = mat.RetrieveKey((int)info.MajorIndex);
+                    info.HasGeoShader = false; //If we fail any checks here on out, ignore this entry
+                    if (!shaderInfo.Contains(Key)) return;
 
-                info.MajorIndex = (uint)shaderInfo.RetrieveIndex(Key);
-                IRegister subReg = shaderInfo.Retrieve((int)info.MajorIndex).GetRegistry();
-                Key = mat.RetrieveKey((int)info.MinorIndex);
-                if (subReg == null || !subReg.Contains(Key)) return;
-                info.MinorIndex = (uint)subReg.RetrieveIndex(Key);
-                info.HasGeoShader = true;
+                    info.MajorIndex = (uint)shaderInfo.RetrieveIndex(Key);
+                    IRegister subReg = shaderInfo.Retrieve((int)info.MajorIndex).GetRegistry();
+                    Key = mat.RetrieveKey((int)info.MinorIndex);
+                    if (subReg == null || !subReg.Contains(Key)) return;
+                    info.MinorIndex = (uint)subReg.RetrieveIndex(Key);
+                    info.HasGeoShader = true;
+                }
+                Release();
+                WorldConfig.Generation.Material.Generation matInfo = Config.CURRENT.Generation.Materials.value;
+                Catalogue<TextureContainer> textureInfo = Config.CURRENT.Generation.Textures;
+                List<MaterialData> MaterialDictionary = matInfo.MaterialDictionary.Reg;
+                MaterialData.TerrainData[] MaterialTerrain = new MaterialData.TerrainData[MaterialDictionary.Count];
+
+                int numMats = MaterialDictionary.Count;
+                terrainData = new ComputeBuffer(numMats, sizeof(float) + sizeof(int) * 3, ComputeBufferType.Structured);
+                atmosphericData = new ComputeBuffer(numMats, sizeof(float) * 9 + sizeof(uint), ComputeBufferType.Structured);
+                liquidData = new ComputeBuffer(numMats, sizeof(float) * (4 * 2 + 2 * 2 + 3), ComputeBufferType.Structured);
+
+                for (int i = 0; i < MaterialDictionary.Count; i++) {
+                    MaterialData material = MaterialDictionary[i];
+                    MaterialData.TerrainData terrain = material.terrainData;
+                    string Key = material.RetrieveKey(terrain.Texture);
+
+                    if (textureInfo.Contains(Key)) terrain.Texture = textureInfo.RetrieveIndex(Key);
+                    SerializeGeoShader(material, ref terrain);
+
+                    MaterialTerrain[i] = terrain;
+                }
+
+                atmosphericData.SetData(MaterialDictionary.Select(e => e.AtmosphereScatter).ToArray());
+                liquidData.SetData(MaterialDictionary.Select(e => e.liquidData).ToArray());
+                terrainData.SetData(MaterialTerrain);
+                //Bad naming scheme -> (value.texture.value.texture)
+                Texture2DArray textures = GenerateTextureArray(textureInfo.Reg.Select(e => e.self.texture).ToArray());
+                Shader.SetGlobalTexture("_Textures", textures);
+                Shader.SetGlobalBuffer("_MatTerrainData", terrainData);
+                Shader.SetGlobalBuffer("_MatAtmosphericData", atmosphericData);
+                Shader.SetGlobalBuffer("_MatLiquidData", liquidData);
+
+                Shader.SetGlobalTexture("_LiquidFineWave", matInfo.liquidFineWave.value);
+                Shader.SetGlobalTexture("_LiquidCoarseWave", matInfo.liquidCoarseWave.value);
             }
-            Release();
-            WorldConfig.Generation.Material.Generation matInfo = Config.CURRENT.Generation.Materials.value;
-            Catalogue<TextureContainer> textureInfo = Config.CURRENT.Generation.Textures;
-            List<MaterialData> MaterialDictionary = matInfo.MaterialDictionary.Reg;
-            MaterialData.TerrainData[] MaterialTerrain = new MaterialData.TerrainData[MaterialDictionary.Count];
-
-            int numMats = MaterialDictionary.Count;
-            terrainData = new ComputeBuffer(numMats, sizeof(float) + sizeof(int) * 2, ComputeBufferType.Structured);
-            atmosphericData = new ComputeBuffer(numMats, sizeof(float) * 9 + sizeof(uint), ComputeBufferType.Structured);
-            liquidData = new ComputeBuffer(numMats, sizeof(float) * (4 * 2 + 2 * 2 + 3), ComputeBufferType.Structured);
-
-            for(int i = 0; i < MaterialDictionary.Count; i++) {
-                MaterialData material = MaterialDictionary[i]; 
-                MaterialData.TerrainData terrain = material.terrainData;
-                string Key = material.RetrieveKey(terrain.Texture);
-                
-                if(textureInfo.Contains(Key)) terrain.Texture = textureInfo.RetrieveIndex(Key);
-                SerializeGeoShader(material, ref terrain);
-
-                MaterialTerrain[i] = terrain;
-            }
-
-            atmosphericData.SetData(MaterialDictionary.Select(e => e.AtmosphereScatter).ToArray());
-            liquidData.SetData(MaterialDictionary.Select(e => e.liquidData).ToArray());
-            terrainData.SetData(MaterialTerrain);
-            //Bad naming scheme -> (value.texture.value.texture)
-            Texture2DArray textures = GenerateTextureArray(textureInfo.Reg.Select(e => e.self.texture).ToArray());
-            Shader.SetGlobalTexture("_Textures", textures); 
-            Shader.SetGlobalBuffer("_MatTerrainData", terrainData);
-            Shader.SetGlobalBuffer("_MatAtmosphericData", atmosphericData);
-            Shader.SetGlobalBuffer("_MatLiquidData", liquidData);
-
-            Shader.SetGlobalTexture("_LiquidFineWave", matInfo.liquidFineWave.value);
-            Shader.SetGlobalTexture("_LiquidCoarseWave", matInfo.liquidCoarseWave.value);
-        }
 
         /// <summary> Releases all buffers and textures used by the MaterialHandle. 
         /// Call this method before the program exits to prevent memory leaks. </summary>

@@ -3,8 +3,6 @@
 #include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/TransVoxelTables.hlsl"
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/CMapDataSampler.hlsl"
-#define SAMPLE_TERRAIN 0
-#define SAMPLE_WATER 1
 
 const static int POINT_STRIDE_4BYTE = 2;
 //multipled with (u, v, chunkSize)
@@ -44,12 +42,7 @@ uint bSTART_dict;
 uint bSTART_verts;
 uint bSTART_baseT;
 uint bSTART_waterT;
-float IsoLevel;
 
-struct Corner{
-    float density[2];
-    int material;
-};
 
 struct GridFace{
     Corner corners[9];
@@ -61,12 +54,7 @@ GridFace ReadGrid(int2 coord, int skip, int align){
     [unroll]for(int i = 0; i < 9; i++){
         int3 sCoord = int3(coord + positionFromIndex[i].xy * skip, numCubesPerAxis);
         uint mapData = ReadMapData(mul(ChunkAlign[align], sCoord));
-        float density = (mapData & 0xFF) / 255.0f;
-        float viscosity = ((mapData >> 8) & 0xFF) / 255.0f;
-
-        face.corners[i].density[0] = viscosity;
-        face.corners[i].density[1] = density - viscosity;
-        face.corners[i].material = ((mapData >> 16) & 0x7FFF);
+        face.corners[i] = SampleStateInfo(mapData);
     } return face;
 }
 
@@ -86,7 +74,7 @@ bool IsEnd(int data){ return (data & 0x80000000) != 0; }
 bool MergeFace(int data){ return (data & 0x40000000) != 0; }
 float Interpolate(float p1Val, float p2Val) { return ((IsoLevel - p1Val) / (p2Val - p1Val + Epsilon.x));  }
 
-void AddVertices(int2 coordUV, int caseIndex, uint IsWater, in GridFace face, in FaceInfo info){
+void AddVertices(int2 coordUV, int caseIndex, uint state, in GridFace face, in FaceInfo info){
     uint CClass = CellClass(caseIndex);
     uint count = VertexCount(CClass); 
     for (uint i = 0; i < count; i++) {
@@ -107,8 +95,8 @@ void AddVertices(int2 coordUV, int caseIndex, uint IsWater, in GridFace face, in
 
         vertex newVert;
         //Get point densities
-        float p1Val = face.corners[GridCorner[pInd.x]].density[IsWater];
-        float p2Val = face.corners[GridCorner[pInd.y]].density[IsWater];
+        float p1Val = face.corners[GridCorner[pInd.x]].density[state];
+        float p2Val = face.corners[GridCorner[pInd.y]].density[state];
         float interpFactor = Interpolate(p1Val, p2Val);
 
         //The actual position of the corner
@@ -117,8 +105,8 @@ void AddVertices(int2 coordUV, int caseIndex, uint IsWater, in GridFace face, in
         p2Pos += (info.transStart - cornerP2.z * info.transWidth) * ChunkPlane[Align(info.data)];
         newVert.tri = p1Pos + interpFactor * (p2Pos - p1Pos);
 
-        newVert.norm = GetVertexNormal(p1, p2, interpFactor, IsWater);
-        if((p1Val > p2Val) ^ IsWater) newVert.material = uint2(face.corners[GridCorner[pInd.x]].material, face.corners[GridCorner[pInd.y]].material);
+        newVert.norm = GetVertexNormal(p1, p2, interpFactor, state);
+        if((p1Val > p2Val) ^ (state != 0)) newVert.material = uint2(face.corners[GridCorner[pInd.x]].material, face.corners[GridCorner[pInd.y]].material);
         else newVert.material = uint2(face.corners[GridCorner[pInd.y]].material, face.corners[GridCorner[pInd.x]].material);
 
         //Append Vertex
@@ -177,18 +165,23 @@ void MarchTransition (uint3 id : SV_DispatchThreadID)
         return;
     
     GridFace face = ReadGrid(coordUV, SkipInc(info.data), Align(info.data));
-    uint baseIndex = 0; uint waterIndex = 0;
+    uint terrIndex = 0; 
+    uint tspIndex = 0;
+    uint waterIndex = 0;
     [unroll] for(uint u = 0; u < 9; u++){
-        if ((face.corners[WindingOrder[u]].density[0]) < IsoLevel) baseIndex |= (1 << u);
+        if ((face.corners[WindingOrder[u]].density[0]) < IsoLevel) terrIndex |= (1 << u);
         if ((face.corners[WindingOrder[u]].density[1]) < IsoLevel) waterIndex |= (1 << u);
+        if ((face.corners[WindingOrder[u]].density[2]) < IsoLevel) tspIndex |= (1 << u);
     }
 
     AddVertices(coordUV, waterIndex, SAMPLE_WATER, face, info);
-    AddVertices(coordUV, baseIndex, SAMPLE_TERRAIN, face, info);
+    AddVertices(coordUV, tspIndex, SAMPLE_TSP, face, info);
+    AddVertices(coordUV, terrIndex, SAMPLE_TERRAIN, face, info);
 
     if(any(coordUV >= numCubesPerAxis))
         return;
 
-    AddTriangulation(coordUV, baseIndex, int2(bSTART_baseT, counterInd.y), info);
+    AddTriangulation(coordUV, terrIndex, int2(bSTART_baseT, counterInd.y), info);
+    AddTriangulation(coordUV, tspIndex, int2(bSTART_waterT, counterInd.z), info);
     AddTriangulation(coordUV, waterIndex, int2(bSTART_waterT, counterInd.z), info);
 }

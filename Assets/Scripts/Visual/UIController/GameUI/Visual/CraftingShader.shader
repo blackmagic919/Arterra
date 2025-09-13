@@ -57,6 +57,7 @@ Shader "Unlit/CraftingShader"
             struct matTerrain{
                 int texIndex;
                 float baseTextureScale;
+                uint flipStateRendering;
                 int geoShaderInd;
             };
 

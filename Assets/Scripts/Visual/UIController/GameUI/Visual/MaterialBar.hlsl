@@ -16,6 +16,7 @@ struct v2f
 struct matTerrain{
     int texIndex;
     float baseTextureScale;
+    uint flipStateRendering;
     int geoShaderInd;
 };
 

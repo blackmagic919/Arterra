@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
-  m_Name: Embers
+  m_Name: GlassMat
   m_EditorClassIdentifier: 
-  Name: Embers
+  Name: Glass
   Tags:
     Reg:
       value: []
@@ -21,9 +21,12 @@ MonoBehaviour:
     - Void
     - Embers
     - Embers:Solid
+    - Glass:Solid
+    - Glass
   terrainData:
-    Texture: 1
+    Texture: 4
     textureScale: 2
+    FlipStateRendering: 1
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
@@ -32,18 +35,15 @@ MonoBehaviour:
     GroundExtinction: {x: 0, y: 0, z: 0}
     LightIntensity: 25372
   liquidData:
-    shallowCol: {r: 0, g: 0, b: 0, a: 0}
-    deepCol: {r: 0, g: 0, b: 0, a: 0}
-    colFalloff: 0
-    waveBlend: 0
-    waveStrength: 0
-    waveScale: {x: 0, y: 0}
+    shallowCol: {r: 1, g: 1, b: 1, a: 0.039215688}
+    deepCol: {r: 0.47378963, g: 0.6603051, b: 0.8584906, a: 1}
+    colFalloff: 0.001
+    waveBlend: 0.216
+    waveStrength: 0.05
+    waveScale: {x: 1, y: 1}
     waveSpeed: {x: 0, y: 0}
-  metaData:
-    LightIntensity: 25372
-    FlipStateRendeing: 0
   MaterialDrops:
-    SolidItem: 2
+    SolidItem: 3
     LiquidItem: 0
   references:
     version: 2

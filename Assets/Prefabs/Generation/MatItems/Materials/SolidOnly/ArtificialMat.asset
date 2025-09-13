@@ -13,8 +13,15 @@ MonoBehaviour:
   m_Name: ArtificialMat
   m_EditorClassIdentifier: 
   Name: C:Artificial
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 2455ac7490f864286a7c62e00bb9ed04, type: 2}
     - value: {fileID: 11400000, guid: a9a12945b84c448bd8abc13ee9bc958e, type: 2}
     - value: {fileID: 11400000, guid: fcd2aed15d3f44eb89b806eeaf4ef595, type: 2}
+    - value: {fileID: 11400000, guid: beccafbf2bab14c2ca8dae9bd42a0d2c, type: 2}
+  references:
+    version: 2
+    RefIds: []

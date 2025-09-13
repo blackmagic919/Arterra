@@ -4,6 +4,7 @@
 struct matTerrain{
     int textureIndex;
     float baseTextureScale;
+    uint flipStateRendering;
     int geoShaderInd;
 };
 

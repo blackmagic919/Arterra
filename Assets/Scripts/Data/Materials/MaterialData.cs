@@ -29,7 +29,6 @@ namespace WorldConfig.Generation.Material
         public AtmosphericData AtmosphereScatter;
         /// <summary> Settings controlling the appearance of the terrain when the material is liquid. See <see cref="LiquidData"/> for more info. </summary>
         public LiquidData liquidData;
-
         /// <summary>
         /// Called whenever a map entry of this material has been modified. This method can be
         /// overrided to provide specific behavior when a certain material has been modified. See
@@ -154,6 +153,13 @@ namespace WorldConfig.Generation.Material
             /// the UV space of the texture when it is being sampled. A larger value will result in a larger texture on the terrain.
             /// </summary>
             public float textureScale;
+            /// <summary>
+            /// Determines whether or not to reverse the rendering material for solids and liquids. If true(not 0)
+            /// the material as a liquid will be rendered using opaque shading using settings from <see cref="TerrainData"/>
+            /// and the material as a solid will be rendered using transparent shading using settings from <see cref="LiquidData"/>.
+            /// This is especially useful for transparent geometry(like glass).
+            /// </summary>
+            public uint FlipStateRendering;
             /// <summary> The information describing what type of <see cref="Quality.GeoShader"/> to render the current 
             /// material with if it is responsible for creating a mesh triangle. See <see cref="GeoShaderInfo"/> for more info.</summary>
             public GeoShaderInfo GeoShaderIndex;
@@ -266,9 +272,9 @@ namespace WorldConfig.Generation.Material
         }
         
         /// <summary> An optional handler for most materials that handles how items
-            /// are given in return for removing a specified amount of material
-            /// depending on the state of the material removed. </summary>
-            [Serializable]
+        /// are given in return for removing a specified amount of material
+        /// depending on the state of the material removed. </summary>
+        [Serializable]
             public struct ItemLooter {
                 
                 /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 

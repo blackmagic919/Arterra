@@ -34,15 +34,16 @@ MonoBehaviour:
     GroundExtinction: {x: 0.05, y: 0.05, z: 0.05}
     LightIntensity: 271
   liquidData:
-    shallowCol: {x: 0, y: 0, z: 0}
-    deepCol: {x: 0, y: 0, z: 0}
+    shallowCol: {r: 0, g: 0, b: 0, a: 0}
+    deepCol: {r: 0, g: 0, b: 0, a: 0}
     colFalloff: 0
-    depthOpacity: 0
-    smoothness: 0
     waveBlend: 0
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
+  metaData:
+    LightIntensity: 271
+    FlipStateRendeing: 0
   SelfCondition:
     data: 4286643968
   ConversionData:

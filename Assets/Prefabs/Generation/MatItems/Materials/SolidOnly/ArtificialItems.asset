@@ -25,6 +25,7 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: 066474d0a2bfa4600b725f5c258b274f, type: 2}
     - value: {fileID: 11400000, guid: 6c595e59c52504031904529272be70d9, type: 2}
     - value: {fileID: 11400000, guid: ae71dc3e4abd649ecbab5dbc374c7d0e, type: 2}
+    - value: {fileID: 11400000, guid: f941424c55e9c4cfca7d3e14bb831647, type: 2}
   references:
     version: 2
     RefIds:
@@ -32,4 +33,5 @@ MonoBehaviour:
       type: {class: ToolTag, ns: , asm: Assembly-CSharp}
       data:
         TerraformSpeed: 5
+        ToolDamage: 0
         GivesItem: 0
