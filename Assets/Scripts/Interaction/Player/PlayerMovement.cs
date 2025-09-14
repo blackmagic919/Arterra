@@ -4,6 +4,7 @@ using System;
 using WorldConfig;
 using WorldConfig.Gameplay.Player;
 using System.Collections.Generic;
+using WorldConfig.Generation.Entity;
 namespace WorldConfig.Gameplay.Player{
     /// <summary>
     /// A collection of settings that describe how the player moves.
@@ -247,6 +248,7 @@ public static class RideMovement {
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
     private static int[] KeyBinds = null;
     private static IRidable mount;
+    private static bool IsActive => mount != null && (mount as Entity).active;
 
     public static void Initialize() {
         KeyBinds = null;
@@ -286,14 +288,14 @@ public static class RideMovement {
     }
 
     public static void Update() {
-        if (mount == null) return;
+        if (!IsActive) return;
         Transform root = mount.GetRiderRoot();
         float3 rootPos = MapStorage.CPUMapManager.WSToGS(root.position);
         PlayerHandler.data.position = rootPos + new float3(0, PlayerHandler.data.settings.collider.size.y/2, 0);
     }
 
     private static void MoveForward(float strength) {
-        if (mount == null) return;
+        if (!IsActive) return;
         if (math.abs(strength) <= 1E-05f) return;
         Transform root = mount.GetRiderRoot();
         float3 aim = root.forward * strength;
@@ -301,7 +303,7 @@ public static class RideMovement {
     }
 
     private static void Rotate(float strength) {
-        if (mount == null) return;
+        if (!IsActive) return;
         if (math.abs(strength) <= 1E-05f) return;
         Transform root = mount.GetRiderRoot();
         float3 aim = root.right * strength;

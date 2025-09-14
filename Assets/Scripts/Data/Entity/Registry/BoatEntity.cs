@@ -5,12 +5,7 @@ using Newtonsoft.Json;
 using WorldConfig;
 using WorldConfig.Generation.Item;
 using WorldConfig.Generation.Entity;
-using static TerrainGeneration.Readback.IVertFormat;
-using TerrainGeneration.Readback;
 using MapStorage;
-using System.Collections.Generic;
-using WorldConfig.Gameplay.Player;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Boat")]
 public class BoatEntity : WorldConfig.Generation.Entity.Authoring
@@ -136,12 +131,11 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
         }
 
         // IRidable implementation
-        public Transform GetRiderRoot() {
-            return controller.transform;
-        }
+        public Transform GetRiderRoot() => controller.RideRoot;
         public void WalkInDirection(float3 aim) {
             aim = new(aim.x, 0, aim.z);
             if (Vector3.Magnitude(aim) <= 1E-05f) return;
+            this.controller.SetAimAngle(aim);
 
             if (math.length(tCollider.velocity) <= settings.MaxLandSpeed &&
                 PlayerHandler.data.collider.SampleCollision(origin, new float3(
@@ -156,7 +150,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
                         tCollider.velocity += settings.Acceleration * EntityJob.cxt.deltaTime * aim;
                     }, OnInGas: null
                 );
-            }   
+            }
         }
         public void Dismount() { 
             if (RiderTarget == Guid.Empty) return;
@@ -194,34 +188,49 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
     public class BoatController
     {
         private Boat entity;
+        private Animator animator;
         private GameObject gameObject;
         internal Transform transform;
+        internal Transform RideRoot;
 
         private bool active = false;
+        private float angle;
 
-        private MeshFilter meshFilter;
-
-        public BoatController(GameObject GameObject, Entity Entity)
-        {
+        public BoatController(GameObject GameObject, Entity Entity) {
             this.gameObject = Instantiate(GameObject);
             this.transform = gameObject.transform;
+            this.animator = gameObject.GetComponent<Animator>();
             this.entity = (Boat)Entity;
             this.active = true;
+            this.angle = 0;
 
-            float3 GCoord = new (entity.GCoord);
             this.transform.position = CPUMapManager.GSToWS(entity.position);
+            this.RideRoot = gameObject.transform.Find("Armature").Find("root").Find("base");
 
         }
 
-        public void Update(){
-            if(!entity.active) return;
-            if(gameObject == null) return;
+        public void Update() {
+            if (!entity.active) return;
+            if (gameObject == null) return;
             TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
             this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
+
+            float minSpeed = math.min(entity.settings.MaxLandSpeed, entity.settings.MaxWaterSpeed) * 0.5f;
+            if (Vector2.SqrMagnitude(entity.tCollider.velocity.xz) < minSpeed * minSpeed) {
+                this.animator.SetBool("Paddle", false);
+                return;
+            }
+
+            this.animator.SetBool("Paddle", true);
+            if (angle <= -15) this.animator.SetTrigger("Left");
+            else if (angle >= 15) this.animator.SetTrigger("Right");
+            else this.animator.SetTrigger("Forward");
         }
 
-        public void Dispose(){ 
-            if(!active) return;
+        public void SetAimAngle(float3 aim) { angle = Vector3.Angle(this.entity.tCollider.velocity, aim); }
+
+        public void Dispose() {
+            if (!active) return;
             active = false;
 
             Destroy(gameObject);

@@ -41,11 +41,11 @@ MonoBehaviour:
     GroundExtinction: {x: 0, y: 0, z: 0}
     LightIntensity: 0
   liquidData:
-    shallowCol: {r: 1, g: 1, b: 1, a: 0.039215688}
-    deepCol: {r: 0.68778926, g: 0.804297, b: 0.9056604, a: 0.09803922}
-    colFalloff: 0.184
-    waveBlend: 0.345
-    waveStrength: 0.168
+    shallowCol: {r: 0, g: 0, b: 0, a: 0}
+    deepCol: {r: 0, g: 0, b: 0, a: 0}
+    colFalloff: 0
+    waveBlend: 0
+    waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   MaterialDrops:

@@ -33,13 +33,13 @@ MonoBehaviour:
     InScatterCoeffs: {x: 0, y: 0, z: 0}
     OutScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}
-    LightIntensity: 25372
+    LightIntensity: 0
   liquidData:
     shallowCol: {r: 1, g: 1, b: 1, a: 0.039215688}
     deepCol: {r: 0.47378963, g: 0.6603051, b: 0.8584906, a: 1}
     colFalloff: 0.001
     waveBlend: 0.216
-    waveStrength: 0.05
+    waveStrength: 0.025
     waveScale: {x: 1, y: 1}
     waveSpeed: {x: 0, y: 0}
   MaterialDrops:

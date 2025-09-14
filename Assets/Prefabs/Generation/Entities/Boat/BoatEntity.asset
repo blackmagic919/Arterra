@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 1752805397856205576, guid: 2fd04441772cd554485b96b3a19b98d5, type: 3}
+    value: {fileID: 8805435554256740750, guid: d5a933883362a406cbc670e4ffadf8f2, type: 3}
   Profile:
     value: []
   _Setting:
@@ -31,14 +31,14 @@ MonoBehaviour:
       collider:
         size:
           x: 2.5
-          y: 1
+          y: 1.5
           z: 2.5
         friction: 0.2
       rotSpeed: 180
       MaxWaterSpeed: 10
       MaxLandSpeed: 1
       Acceleration: 150
-      groundStickDist: 0.15
+      groundStickDist: 0.1
       durability:
         MaxHealth: 2
         NaturalRegen: 0.75

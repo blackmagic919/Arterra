@@ -1,6 +1,5 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Prepare
-#pragma kernel PrepareBalanced
 
 const static uint InitBlockSize = 3;
 /*

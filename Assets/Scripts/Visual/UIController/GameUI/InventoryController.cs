@@ -314,17 +314,29 @@ public static class InventoryController {
                 Indicators.ItemSlots.Get, (int)capacity,
                 Root);
             for (int i = 0; i < capacity; i++) {
-                Info[i]?.AttachDisplay(Display.Slots[i].transform);
+                AttachDisplay(i);
             }
         }
 
         public void ReleaseDisplay() {
             for (int i = 0; i < capacity; i++) {
                 Indicators.ItemSlots.Release(Display.Slots[i]);
-                Info[i]?.ClearDisplay(Display.Slots[i].transform);
+                ClearDisplay(i);
             }
             GameObject.Destroy(Display.root);
             Display = null;
+        }
+
+        private void AttachDisplay(int index) {
+            if (Info == null || index >= Info.Length) return;
+            if (Display == null || index >= Display.Slots.Length) return;
+            Info[index]?.AttachDisplay(Display.Slots[index].transform);
+        }
+
+        private void ClearDisplay(int index) {
+            if (Info == null || index >= Info.Length) return;
+            if (Display == null || index >= Display.Slots.Length) return;
+            Info[index]?.ClearDisplay(Display.Slots[index].transform);
         }
 
         public void AddCallbacks(Action<int> OnAddItem = null, Action<int> OnRemoveItem = null) {
@@ -429,8 +441,7 @@ public static class InventoryController {
             LLRemove((uint)SlotIndex);
             LLAdd((uint)SlotIndex, tail);
             OnRemoveElement?.Invoke(SlotIndex);
-
-            Info[SlotIndex].ClearDisplay(Display.Slots[SlotIndex].transform);
+            ClearDisplay(SlotIndex);
             Info[SlotIndex] = null;
             tail = math.min(tail, (uint)SlotIndex);
             length--;
@@ -445,7 +456,7 @@ public static class InventoryController {
 
             LLRemove((uint)head);
             Info[head] = entry.Clone() as IItem;
-            Info[head].AttachDisplay(Display.Slots[head].transform);
+            AttachDisplay(head);
             entry.AmountRaw = 0;
             DictEnqueue(head);
             OnAddElement?.Invoke(head);
@@ -461,7 +472,7 @@ public static class InventoryController {
 
             LLRemove((uint)index);
             Info[index] = entry.Clone() as IItem;
-            Info[index].AttachDisplay(Display.Slots[index].transform);
+            AttachDisplay(index);
             entry.AmountRaw = 0;
             DictEnqueue(index);
             OnAddElement?.Invoke(index);
