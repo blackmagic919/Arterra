@@ -73,9 +73,7 @@ float2 mapCoordinates(float3 worldPos)
     float2 projXZ = worldPos.xz;
     float2 projYZ = worldPos.yz;
 
-    float2 worldUV = (projXY + projXZ + projYZ) / 3;
-
-    return worldUV;
+    return (projXY + projXZ + projYZ) / 3;
 }
 
 float4 _CameraPosition;
@@ -110,7 +108,7 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
 // Fragment functions
 half3 Fragment(VertexOutput input) : SV_Target {
 
-    float2 uv = input.uv;
+    float2 uv = input.uv.xy;
     float height = input.uv.z;
 
     // Calculate wind

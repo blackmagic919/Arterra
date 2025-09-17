@@ -13,6 +13,18 @@ MonoBehaviour:
   m_Name: ChestItemSolid
   m_EditorClassIdentifier: 
   Name: Chest:Solid
+  Tags:
+    Reg:
+      value:
+      - Tag: 9000
+        value:
+          value:
+            rid: -2
   TextureName: Chest
   MaterialName: Chest
   MaterialState: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }

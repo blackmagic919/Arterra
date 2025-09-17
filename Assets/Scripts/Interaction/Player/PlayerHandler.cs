@@ -54,7 +54,7 @@ public static class PlayerHandler
     public static void Initialize() {
         active = false;
         data = LoadPlayerData();
-        EntityManager.CreateE(data);
+        EntityManager.DeserializeE(data);
 
         camera = GameObject.Find("CameraHandler").transform;
         camera.SetParent(data.player.transform, worldPositionStays: false);
@@ -119,7 +119,7 @@ public static class PlayerHandler
         DateTime currentTime = data.currentTime;
         data = PlayerStreamer.Player.Build();
         data.currentTime = currentTime;
-        EntityManager.CreateEntity(data, () => {
+        EntityManager.DeserializeEntity(data, () => {
             camera.SetParent(data.player.transform, worldPositionStays: false);
             cb?.Invoke();
         });

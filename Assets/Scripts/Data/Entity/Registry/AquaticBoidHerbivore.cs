@@ -21,36 +21,33 @@ public class AquaticBoidHerbivore : Authoring
     [Serializable]
     public class AnimalSetting : EntitySetting{
         public Movement movement;
-        public Swim swim;
-        public Vitality.Aquatic aquatic;
+        public Movement.BoidFlight swim;
+        public Movement.Aquatic aquatic;
         public Vitality.Decomposition decomposition;
         public Option<Vitality.Stats> physicality;
         public Option<RHerbivore> recognition;
         public RHerbivore Recognition => recognition;
         public Vitality.Stats Physicality => physicality;
-        [Serializable]
-        public struct Swim{
-            public float SwarmTime; //25 sec -> how often to mindlessly swarm
-            public float SeperationWeight; //0.75
-            public float AlignmentWeight; //0.5
-            public float CohesionWeight; //0.25
-            public int InfluenceDist; //24
-            public int SwimDist; //5
-            public int MaxSwarmSize; //8
-        }
 
-        public override void Preset(){ 
+        public override void Preset(uint entityType){ 
             uint pEnd = profile.bounds.x * profile.bounds.y * profile.bounds.z;
             aquatic.SurfaceProfile.profileStart = profile.profileStart + pEnd;
             Recognition.Construct();
-            base.Preset();
+
+            movement.InitGenome(entityType);
+            aquatic.InitGenome(entityType);
+            Physicality.InitGenome(entityType);
+            Recognition.InitGenome(entityType);
+
+            base.Preset(entityType);
         }
     }
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
     public class Animal : Entity, IMateable, IAttackable
-    {  
+    {
+        public Genetics genetics;
         public Vitality vitality;
         public PathFinder.PathInfo pathFinder;
         public TerrainColliderJob tCollider;
@@ -96,6 +93,11 @@ public class AquaticBoidHerbivore : Authoring
         public int3 GCoord => (int3)math.floor(origin); 
         [JsonIgnore]
         public bool IsDead => vitality.IsDead;
+        [JsonIgnore]
+        public Genetics Genetics {
+            get => this.genetics;
+            set => this.genetics = value;
+        }
 
         public void TakeDamage(float damage, float3 knockback, Entity attacker) {
             if (!vitality.Damage(damage)) return;
@@ -132,7 +134,7 @@ public class AquaticBoidHerbivore : Authoring
 
         //Not thread safe
         public bool CanMateWith(Entity entity){
-            if(vitality.healthPercent < settings.Physicality.MateThreshold) return false;
+            if(vitality.healthPercent < genetics.Get(settings.Physicality.MateThreshold)) return false;
             if(vitality.IsDead) return false;
             if(TaskIndex >= 7) return false;
             return settings.Recognition.CanMateWith(entity);
@@ -140,19 +142,18 @@ public class AquaticBoidHerbivore : Authoring
 
         public void MateWith(Entity entity){
             if(!CanMateWith(entity)) return;
-            if(settings.Recognition.MateWithEntity(entity, ref random))
-                vitality.Damage(settings.Physicality.MateCost);
+            if(settings.Recognition.MateWithEntity(genetics, entity, ref random))
+                vitality.Damage(genetics.Get(settings.Physicality.MateCost));
             TaskDuration = settings.Physicality.PregnacyLength;
             TaskIndex = 7;
         }
-
-        public override void Initialize(EntitySetting setting, GameObject Controller, int3 GCoord)
-        {
+        public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (AnimalSetting)setting;
             controller = new AnimalController(Controller, this);
             //The seed is the entity's memory address
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
-            this.vitality = new Vitality(settings.Physicality, ref random);
+            this.genetics ??= new Genetics(this.info.entityType, ref random);
+            this.vitality = new Vitality(settings.Physicality, this.genetics);
             this.tCollider = new TerrainColliderJob(GCoord, true, ProcessFallDamage);
 
             pathFinder.hasPath = false;
@@ -166,7 +167,7 @@ public class AquaticBoidHerbivore : Authoring
         {
             settings = (AnimalSetting)setting;
             controller = new AnimalController(Controller, this);
-            vitality.Deserialize(settings.Physicality);
+            vitality.Deserialize(settings.Physicality, genetics);
             tCollider.OnHitGround = ProcessFallDamage;
             random.state ^= (uint)GetHashCode();
             GCoord = this.GCoord;
@@ -182,7 +183,8 @@ public class AquaticBoidHerbivore : Authoring
 
             TerrainInteractor.DetectMapInteraction(position, 
                 OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
-                OnInLiquid: (dens) => vitality.ProcessInLiquidAquatic(this, ref tCollider, dens, settings.aquatic.DrownTime),
+                OnInLiquid: (dens) => vitality.ProcessInLiquidAquatic(this, ref tCollider, dens,
+                    genetics.Get(settings.aquatic.DrownTime)),
                 OnInGas:(dens) => {
                     vitality.ProcessInGasAquatic(this, ref tCollider, dens);
                     if(TaskIndex < 14) TaskIndex = 14; //Flop on ground
@@ -199,7 +201,9 @@ public class AquaticBoidHerbivore : Authoring
         }
 
         private unsafe void DetectPredator(){
-            if(!settings.Recognition.FindClosestPredator(this, out Entity predator))
+            if(!settings.Recognition.FindClosestPredator(this,
+                genetics.Get(settings.Recognition.SightDistance),
+                out Entity predator))
                 return;
 
             int PathDist = settings.Recognition.FleeDistance;
@@ -216,13 +220,15 @@ public class AquaticBoidHerbivore : Authoring
                 TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
                 TaskIndex = 0; //Go Idle
                 return;
-            } if (vitality.healthPercent > settings.Physicality.MateThreshold || 
-                vitality.healthPercent < settings.Physicality.HuntThreshold){
+            }
+            if (vitality.healthPercent > genetics.Get(settings.Physicality.MateThreshold) ||
+                vitality.healthPercent < genetics.Get(settings.Physicality.HuntThreshold)
+            ) {
                 TaskDuration = math.min(0, TaskDuration); //try to land to mate
             }  TaskIndex = 1;
 
             CalculateBoidDirection();
-            byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, settings.swim.SwimDist + 1, settings.profile, EntityJob.cxt, out int pLen);
+            byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, settings.swim.PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
         }
 
@@ -243,7 +249,7 @@ public class AquaticBoidHerbivore : Authoring
                 float3 boidPos = tCollider.transform.position;
 
                 if(math.all(nBoid.flightDirection == 0)) return;
-                if(math.distance(boidPos, nBoidPos) < settings.swim.SwimDist) 
+                if(math.distance(boidPos, nBoidPos) < settings.swim.PathDist) 
                     boidDMtrx.SeperationDir += boidPos - nBoidPos;
                 boidDMtrx.AlignmentDir += nBoid.flightDirection;
                 boidDMtrx.CohesionDir += nBoidPos;
@@ -257,11 +263,11 @@ public class AquaticBoidHerbivore : Authoring
             if(boidDMtrx.count == 0) return;
             float3 influenceDir;
             if(boidDMtrx.count > settings.swim.MaxSwarmSize) //the sign of seperation is flipped for this case
-                influenceDir = settings.swim.SeperationWeight * boidDMtrx.SeperationDir / boidDMtrx.count - 
-                settings.swim.CohesionWeight * (boidDMtrx.CohesionDir / boidDMtrx.count - position);
-            else influenceDir = settings.swim.SeperationWeight * boidDMtrx.SeperationDir / boidDMtrx.count +
-                settings.swim.AlignmentWeight * (boidDMtrx.AlignmentDir / boidDMtrx.count - flightDirection) +
-                settings.swim.CohesionWeight * (boidDMtrx.CohesionDir / boidDMtrx.count - position);
+                influenceDir = genetics.Get(settings.swim.SeperationWeight) * boidDMtrx.SeperationDir / boidDMtrx.count - 
+                genetics.Get(settings.swim.CohesionWeight) * (boidDMtrx.CohesionDir / boidDMtrx.count - position);
+            else influenceDir = genetics.Get(settings.swim.SeperationWeight) * boidDMtrx.SeperationDir / boidDMtrx.count +
+                genetics.Get(settings.swim.AlignmentWeight) * (boidDMtrx.AlignmentDir / boidDMtrx.count - flightDirection) +
+                genetics.Get(settings.swim.CohesionWeight) * (boidDMtrx.CohesionDir / boidDMtrx.count - position);
             
             flightDirection = Normalize(flightDirection + influenceDir);
         }
@@ -280,21 +286,22 @@ public class AquaticBoidHerbivore : Authoring
 
         private unsafe bool IsSurfacing(){
             if(vitality.breath > 0) return false; //In air
-            if(settings.aquatic.SurfaceThreshold == 0) return false; //Doesn't drown
-            if(-vitality.breath > settings.aquatic.SurfaceThreshold * settings.aquatic.DrownTime) 
+            if(genetics.Get(settings.aquatic.SurfaceThreshold) == 0) return false; //Doesn't drown
+            if(-vitality.breath > genetics.Get(settings.aquatic.SurfaceThreshold)
+                * genetics.Get(settings.aquatic.DrownTime)) 
                 return false; //Still holding breath
             return true;
         }
 
         //Task 0
         public static void Idle(Animal self){
-            if(self.vitality.healthPercent < self.settings.Physicality.HuntThreshold) 
+            if(self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.HuntThreshold)) 
                 self.TaskIndex = 2;
-            else if(self.vitality.healthPercent > self.settings.Physicality.MateThreshold) 
+            else if(self.vitality.healthPercent > self.genetics.Get(self.settings.Physicality.MateThreshold)) 
                 self.TaskIndex = 5;
             if(self.TaskDuration <= 0) {
                 self.flightDirection = self.RandomDirection();
-                self.TaskDuration = self.settings.swim.SwarmTime * self.random.NextFloat(0f, 2f);
+                self.TaskDuration = self.genetics.Get(self.settings.swim.AverageFlightTime) * self.random.NextFloat(0f, 2f);
                 self.BoidFly();
                 return;
             } else self.TaskDuration -= EntityJob.cxt.deltaTime;
@@ -309,10 +316,11 @@ public class AquaticBoidHerbivore : Authoring
         public static unsafe void FollowFlight(Animal self){
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
-            self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+                self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
 
             if(!self.pathFinder.hasPath) {
-                self.TaskDuration = self.settings.swim.SwarmTime * self.random.NextFloat(0f, 2f);
+                self.TaskDuration = self.genetics.Get(self.settings.swim.AverageFlightTime) * self.random.NextFloat(0f, 2f);
                 self.BoidFly();
             }
         }
@@ -320,23 +328,27 @@ public class AquaticBoidHerbivore : Authoring
 
         //Task 2
         private static unsafe void FindPrey(Animal self){
-            if(!self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position), out int3 preyPos)){
-                self.TaskDuration = self.settings.swim.SwarmTime * self.random.NextFloat(0f, 2f);
+            if(!self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
+                self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 preyPos)
+            ){
+                self.TaskDuration = self.genetics.Get(self.settings.swim.AverageFlightTime) * self.random.NextFloat(0f, 2f);
                 self.BoidFly();
                 return;
             }
-            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, preyPos - self.GCoord, self.settings.Recognition.PlantFindDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, preyPos - self.GCoord,
+                self.genetics.GetInt(self.settings.Recognition.PlantFindDist) + 1, self.settings.profile,
+                EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 3;
 
             //If it can't get to the prey and is currently at the closest position it can be
             if(math.all(self.pathFinder.destination == self.GCoord)){
                 float dist = Recognition.GetColliderDist(self, preyPos);
-                if(dist <= self.settings.Physicality.AttackDistance){
+                if(dist <= self.genetics.Get(self.settings.Physicality.AttackDistance)){
                     self.TaskDuration = 1 / math.max(self.settings.Physicality.ConsumptionRate, 0.0001f);
                     self.TaskIndex = 4;
                 } else {
-                    self.TaskDuration = self.settings.swim.SwarmTime * self.random.NextFloat(0f, 2f);
+                    self.TaskDuration = self.genetics.Get(self.settings.swim.AverageFlightTime) * self.random.NextFloat(0f, 2f);
                     self.BoidFly();
                 }
             } 
@@ -345,11 +357,14 @@ public class AquaticBoidHerbivore : Authoring
         //Task 3
         private static unsafe void ChasePrey(Animal self){
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
-            self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
             if(self.pathFinder.hasPath) return;
 
-            if(self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position), out int3 preyPos) && 
-            Recognition.GetColliderDist(self, preyPos) <= self.settings.Physicality.AttackDistance){
+            if(self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
+                self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 preyPos) && 
+                Recognition.GetColliderDist(self, preyPos) <= self.genetics.Get(self.settings.Physicality.AttackDistance)
+            ){
                 self.TaskDuration = 1 / math.max(self.settings.Physicality.ConsumptionRate, 0.0001f);
                 self.TaskIndex = 4;
             } else self.TaskIndex = 2;
@@ -359,11 +374,12 @@ public class AquaticBoidHerbivore : Authoring
         private static unsafe void EatFood(Animal self){
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if(self.TaskDuration <= 0){
-                if(self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position), out int3 foodPos)){
+                if(self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
+                self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 foodPos)){
                     WorldConfig.Generation.Item.IItem item = self.settings.Recognition.ConsumeFood(self, foodPos);
                     if(item != null && self.settings.Recognition.CanConsume(item, out float nutrition))
                         self.vitality.Heal(nutrition);  
-                    self.TaskDuration = self.settings.swim.SwarmTime * self.random.NextFloat(0f, 2f);
+                    self.TaskDuration = self.genetics.Get(self.settings.swim.AverageFlightTime) * self.random.NextFloat(0f, 2f);
                     self.BoidFly();
                 } else self.TaskIndex = 2;
             }
@@ -371,9 +387,11 @@ public class AquaticBoidHerbivore : Authoring
 
         //Task 5
         private static unsafe void FindMate(Animal self){
-            if(self.vitality.healthPercent < self.settings.Physicality.MateThreshold ||
-              !self.settings.Recognition.FindPreferredMate(self, out Entity mate)){
-                self.TaskDuration = self.settings.swim.SwarmTime * self.random.NextFloat(0f, 2f);
+            if(self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.MateThreshold) ||
+              !self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(self.settings.Recognition.SightDistance),
+              out Entity mate)
+            ){
+                self.TaskDuration = self.genetics.Get(self.settings.swim.AverageFlightTime) * self.random.NextFloat(0f, 2f);
                 self.BoidFly();
                 return;
             }
@@ -386,15 +404,18 @@ public class AquaticBoidHerbivore : Authoring
 
         //Task 6
         private static unsafe void ChaseMate(Animal self){//I feel you man
-            if(!self.settings.Recognition.FindPreferredMate(self, out Entity mate)){
+            if(!self.settings.Recognition.FindPreferredMate(self,
+                self.genetics.Get(self.settings.Recognition.SightDistance), out Entity mate)
+            ){
                 self.TaskIndex = 5;
                 return;
             }
 
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, mate.origin,
-            self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
             float mateDist = Recognition.GetColliderDist(self, mate);
-            if(mateDist < self.settings.Physicality.AttackDistance) {
+            if(mateDist < self.genetics.Get(self.settings.Physicality.AttackDistance)) {
                 EntityManager.AddHandlerEvent(() => (mate as IMateable).MateWith(self));
                 self.MateWith(mate);
                 return;
@@ -408,15 +429,18 @@ public class AquaticBoidHerbivore : Authoring
         private static void Reproduce(Animal self){
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if(self.TaskDuration > 0) return;
-            self.TaskDuration = self.settings.swim.SwarmTime * self.random.NextFloat(0f, 2f);
+            self.TaskDuration = self.genetics.Get(self.settings.swim.AverageFlightTime) * self.random.NextFloat(0f, 2f);
             self.BoidFly();
         }
 
         //Task 8 swim up
         private static unsafe void SwimUp(Animal self){
-            float swimIntensity = self.settings.aquatic.DrownTime * self.settings.aquatic.SurfaceThreshold / math.min(-self.vitality.breath, -0.001f);
+            float swimIntensity = self.genetics.Get(self.settings.aquatic.DrownTime)
+                * self.genetics.Get(self.settings.aquatic.SurfaceThreshold) / math.min(-self.vitality.breath, -0.001f);
+            
             float3 swimDir = Normalize(self.RandomDirection() + math.up() * math.max(0, swimIntensity)); 
-            byte* path = PathFinder.FindMatchAlongRay(self.GCoord, in swimDir, self.settings.movement.pathDistance + 1, self.settings.profile, 
+            int PathDist = self.settings.movement.pathDistance;
+            byte* path = PathFinder.FindMatchAlongRay(self.GCoord, in swimDir, PathDist + 1, self.settings.profile, 
             self.settings.aquatic.SurfaceProfile, EntityJob.cxt, out int pLen, out bool _);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 9;
@@ -425,7 +449,8 @@ public class AquaticBoidHerbivore : Authoring
         //Task 9 follow swim up path
         private static unsafe void Surface(Animal self){
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
-            self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
             if(!self.pathFinder.hasPath) {
                 self.TaskIndex = 8;
                 return;
@@ -440,7 +465,7 @@ public class AquaticBoidHerbivore : Authoring
         private static unsafe void RunFromTarget(Animal self){
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) self.TaskTarget = Guid.Empty;
-            else if(Recognition.GetColliderDist(self, target) > self.settings.Recognition.SightDistance)
+            else if(Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
@@ -455,7 +480,8 @@ public class AquaticBoidHerbivore : Authoring
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             } 
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
-            self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
         }
         
         //Task 11
@@ -463,7 +489,7 @@ public class AquaticBoidHerbivore : Authoring
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) 
                 self.TaskTarget = Guid.Empty;
-            else if(Recognition.GetColliderDist(self, target) > self.settings.Recognition.SightDistance)
+            else if(Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
@@ -478,8 +504,9 @@ public class AquaticBoidHerbivore : Authoring
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             } 
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, target.origin,
-            self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
-            if(Recognition.GetColliderDist(self, target) < self.settings.Physicality.AttackDistance) {
+                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
+            if(Recognition.GetColliderDist(self, target) < self.genetics.Get(self.settings.Physicality.AttackDistance)) {
                 self.TaskIndex = 12;
                 return;
             }
@@ -498,7 +525,7 @@ public class AquaticBoidHerbivore : Authoring
                 return;
             }
             float targetDist = Recognition.GetColliderDist(tEntity, self);
-            if(targetDist > self.settings.Physicality.AttackDistance) {
+            if(targetDist > self.genetics.Get(self.settings.Physicality.AttackDistance)) {
                 self.TaskIndex = 11;
                 return;
             }
@@ -517,8 +544,9 @@ public class AquaticBoidHerbivore : Authoring
 
         //Task 13
         private static unsafe void RunFromPredator(Animal self){
-            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, self.settings.movement.runSpeed, 
-            self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
+                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
             if(!self.pathFinder.hasPath) {
                 self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
                 self.TaskIndex = 0;

@@ -10,9 +10,10 @@ using WorldConfig.Generation.Material;
 using MapStorage;
 
 
-public interface IMateable{
+public interface IMateable {
     public void MateWith(Entity entity);
     public bool CanMateWith(Entity entity);
+    public Genetics Genetics{ get; set; }
 }
 
 [Serializable]
@@ -24,7 +25,7 @@ public class Recognition {
     public Option<List<Mate>> Mates;
     //Edible items produced by entities
     public Option<List<Consumable>> Edibles;
-    public int SightDistance;
+    public Genetics.GeneFeature SightDistance;
     public int FleeDistance;
     public bool FightAggressor;
 
@@ -43,6 +44,7 @@ public class Recognition {
         [RegistryReference("Entities")]
         public string ChildType;
         public float AmountPerParent;
+        public float GeneMutationRate;
     }
 
     [Serializable]
@@ -88,13 +90,14 @@ public class Recognition {
         }
     }
 
-    public bool FindClosestPredator(Entity self, out Entity entity) {
+    public void InitGenome(uint entityType) { Genetics.AddGene(entityType, ref SightDistance); }
+    public bool FindClosestPredator(Entity self, float sightDist, out Entity entity) {
         entity = null; if (AwarenessTable == null) return false;
         if (Predators.value == null || Predators.value.Count == 0) return false;
 
-        Entity cEntity = null; float closestDist = SightDistance + 1;
+        Entity cEntity = null; float closestDist = sightDist + 1;
         Dictionary<int, Recognition.Recognizable> Awareness = AwarenessTable;
-        Bounds bounds = new(self.position, 2 * new float3(SightDistance));
+        Bounds bounds = new(self.position, 2 * new float3(sightDist));
         EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
             if (nEntity == null) return;
             if (nEntity.info.entityId == self.info.entityId) return;
@@ -112,15 +115,15 @@ public class Recognition {
     }
 
     //Finds the most preferred mate it can see, then the closest one it prefers
-    public bool FindPreferredMate(Entity self, out Entity entity) {
+    public bool FindPreferredMate(Entity self, float sightDist, out Entity entity) {
         entity = null; if (AwarenessTable == null) return false;
         if (Mates.value == null || Mates.value.Count == 0) return false;
 
         Entity cEntity = null; int pPref = -1;
-        float closestDist = SightDistance + 1;
+        float closestDist = sightDist + 1;
 
         Dictionary<int, Recognizable> Awareness = AwarenessTable;
-        Bounds bounds = new(self.position, 2 * new float3(SightDistance));
+        Bounds bounds = new(self.position, 2 * new float3(sightDist));
         EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
             if (nEntity == null) return;
             if (!Awareness.ContainsKey((int)nEntity.info.entityType)) return;
@@ -146,18 +149,29 @@ public class Recognition {
     }
 
 
-    public bool MateWithEntity(Entity entity, ref Unity.Mathematics.Random random) {
+    public bool MateWithEntity(Genetics genetics, Entity entity, ref Unity.Mathematics.Random random) {
         if (Mates.value == null) return false;
         if (AwarenessTable == null) return false;
         int index = (int)entity.info.entityType;
         if (!AwarenessTable.ContainsKey(index)) return false;
-        Mate mate = Mates.value[AwarenessTable[index].Preference];
-        float delta = mate.AmountPerParent;
+        if (entity is not IMateable mate) return false;
+
+        Mate ofsp = Mates.value[AwarenessTable[index].Preference];
+        float delta = ofsp.AmountPerParent;
         int amount = Mathf.FloorToInt(delta) + (random.NextFloat() < math.frac(delta) ? 1 : 0);
-        uint childIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex(mate.ChildType);
+        uint childIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex(ofsp.ChildType);
 
         for (int i = 0; i < amount; i++) {
-            EntityManager.InitializeEntity((int3)entity.position, childIndex);
+            Entity child = Config.CURRENT.Generation.Entities.Retrieve((int)childIndex).Entity;
+            EntityManager.CreateEntity((int3)entity.position, childIndex, child);
+            if (child is not IMateable childM) continue;
+
+            childM.Genetics = genetics.CrossGenes(
+                mate.Genetics,
+                ofsp.GeneMutationRate,
+                childIndex,
+                ref random
+            );
         }
 
         return true;
@@ -243,15 +257,15 @@ public class RCarnivore : Recognition{
     }
 
     //Finds most preferred it can see, then the closest one it prefers
-    public bool FindPreferredPrey(Entity self, out Entity entity, Func<Entity, bool> CanHunt = null){
+    public bool FindPreferredPrey(Entity self, float sightDist, out Entity entity, Func<Entity, bool> CanHunt = null){
         entity = null; if(AwarenessTable == null) return false;
         if(Prey.value == null || Prey.value.Count == 0) return false;
 
         Entity cEntity = null; int pPref = -1;
-        float closestDist = SightDistance + 1;
+        float closestDist = sightDist + 1;
 
         Dictionary<int, Recognizable> Awareness = AwarenessTable;
-        Bounds bounds = new (self.position, 2 * new float3(SightDistance));
+        Bounds bounds = new (self.position, 2 * new float3(sightDist));
         EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
             if(nEntity == null) return;
             if(nEntity.info.entityId == self.info.entityId) return;
@@ -280,7 +294,7 @@ public class RCarnivore : Recognition{
 
 [Serializable]
 public class RHerbivore : Recognition{
-    public int PlantFindDist;
+    public Genetics.GeneFeature PlantFindDist;
     //The order of the list describes the order of preference for the entity
     //An entity won't chase a prey if a more preferred prey is in range
     public Option<List<Plant>> Prey;
@@ -314,13 +328,13 @@ public class RHerbivore : Recognition{
     }
 
     //Finds the closest prey near it
-    public bool FindPreferredPrey(int3 center, out int3 entry){
+    public bool FindPreferredPrey(int3 center, int pFindDist, out int3 entry){
         int3 dx = new int3(0); entry = new int3(0);
         Dictionary<int, Recognizable> Awareness = AwarenessTable;
         float minDist = -1;
-        for(dx.x = -PlantFindDist; dx.x < PlantFindDist; dx.x++){
-        for(dx.y = -PlantFindDist; dx.y < PlantFindDist; dx.y++){
-        for(dx.z = -PlantFindDist; dx.z < PlantFindDist; dx.z++){
+        for(dx.x = -pFindDist; dx.x < pFindDist; dx.x++){
+        for(dx.y = -pFindDist; dx.y < pFindDist; dx.y++){
+        for(dx.z = -pFindDist; dx.z < pFindDist; dx.z++){
             int3 GCoord = center + dx;
             MapData mapInfo = CPUMapManager.SampleMap(GCoord);
             int mIndex = mapInfo.material + materialStart;

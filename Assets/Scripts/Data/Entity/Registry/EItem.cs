@@ -82,20 +82,17 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         }
 
         public unsafe EItemEntity(){}
-        public EItemEntity(TerrainColliderJob.Transform origin, IItem item){
-            tCollider.transform = origin;
-            tCollider.velocity = 0;
-            decomposition = float.MaxValue;
-            
+        public EItemEntity(IItem item, Quaternion rot = default) {
             this.item = new Registerable<IItem>(item);
-            this.random = new Unity.Mathematics.Random((uint)GetHashCode());
+            tCollider.transform.rotation = rot;
         }
 
         //This function shouldn't be used
-        public override void Initialize(EntitySetting setting, GameObject Controller, int3 GCoord) {
+        public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (EItemSetting)setting;
             controller = new EItemController(Controller, this);
-            decomposition = math.min(settings.DecayTime, decomposition);
+            random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(0, int.MaxValue));
+            decomposition = settings.DecayTime;
             tCollider.transform.position = GCoord;
             tCollider.useGravity = true;
         }

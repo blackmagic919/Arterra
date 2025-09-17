@@ -50,17 +50,26 @@ public static class EntityManager
         return EntityHandler[entityIndex];
     }
     
-    public static void InitializeChunkEntity(GenPoint genInfo, int3 CCoord){
+    private static void InitializeChunkEntity(GenPoint genInfo, int3 CCoord){
         int mapSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
-        AddHandlerEvent(() => InitializeE(GCoord, genInfo.entityIndex));
+        Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)genInfo.entityIndex];
+        Entity newEntity = authoring.Entity;
+        AddHandlerEvent(() => InitializeE(newEntity, GCoord, genInfo.entityIndex));
     }
-    public static void InitializeEntity(int3 GCoord, uint entityIndex, Action cb = null) => AddHandlerEvent(() => {
-        InitializeE(GCoord, entityIndex);
-        cb?.Invoke();
-    });
-    public static void CreateEntity(Entity sEntity, Action cb = null) => AddHandlerEvent(() => {
-        CreateE(sEntity);
+    public static void CreateEntity(float3 GCoord, uint entityIndex, Entity sEntity = null, Action cb = null) {
+        if (sEntity == null) {
+            Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
+            sEntity = authoring.Entity;
+        }
+        
+        AddHandlerEvent(() => {
+            InitializeE(sEntity, GCoord, entityIndex);
+            cb?.Invoke();
+        });
+    }
+    public static void DeserializeEntity(Entity sEntity, Action cb = null) => AddHandlerEvent(() => {
+        DeserializeE(sEntity);
         cb?.Invoke();
     });
     public static void ReleaseEntity(Guid entityId, Action cb = null) => AddHandlerEvent(() => {
@@ -105,20 +114,19 @@ public static class EntityManager
         }
         EntityHandler.RemoveAt(EntityHandler.Count - 1);
     }
-    public unsafe static void InitializeE(int3 GCoord, uint entityIndex){
+    public unsafe static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex){
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
-        Entity newEntity = authoring.Entity;
-        newEntity.info.entityId = Guid.NewGuid();
-        newEntity.info.entityType = entityIndex;
-        newEntity.active = true;
+        nEntity.info.entityId = Guid.NewGuid();
+        nEntity.info.entityType = entityIndex;
+        nEntity.active = true;
 
-        EntityIndex[newEntity.info.entityId] = EntityHandler.Count;
-        newEntity.Initialize(authoring.Setting, authoring.Controller, GCoord);
-        EntityHandler.Add(newEntity);
-        ESTree.Insert(newEntity);
+        EntityIndex[nEntity.info.entityId] = EntityHandler.Count;
+        nEntity.Initialize(authoring.Setting, authoring.Controller, GCoord);
+        EntityHandler.Add(nEntity);
+        ESTree.Insert(nEntity);
     }
 
-    public unsafe static void CreateE(Entity sEntity){
+    public unsafe static void DeserializeE(Entity sEntity){
         var reg = Config.CURRENT.Generation.Entities;
         Authoring authoring = reg.Retrieve((int)sEntity.info.entityType);
         sEntity.active = true;
@@ -139,16 +147,16 @@ public static class EntityManager
     public static void DeserializeEntities(List<Entity> entities){
         if(entities == null) return;
         foreach(Entity sEntity in entities){
-            CreateEntity(sEntity);
+            DeserializeEntity(sEntity);
         }
     }
-    
 
-    public static void Initialize(){
+
+    public static void Initialize() {
         EntityHandler = new List<Entity>();
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
         EntityIndex = new Dictionary<Guid, int>();
-        Executor = new EntityJob{active = false};
+        Executor = new EntityJob { active = false };
         HandlerEvents = new ConcurrentQueue<Action>();
         Indicators.Initialize();
 
@@ -178,23 +186,27 @@ public static class EntityManager
 
         //Ensure the entity dictionary has the player. This is non-negotiable and must always be ensured
         Catalogue<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities;
-        if(EntityDictionary.Contains("Player") && EntityDictionary.Retrieve("Player").GetType() != typeof(PlayerStreamer))
+        if (EntityDictionary.Contains("Player") && EntityDictionary.Retrieve("Player").GetType() != typeof(PlayerStreamer))
             EntityDictionary.TryRemove("Player");
-        if(!EntityDictionary.Contains("Player")) {
+        if (!EntityDictionary.Contains("Player")) {
             PlayerStreamer PlayerEntity = Resources.Load<PlayerStreamer>("Prefabs/GameUI/PlayerEntity");
             EntityDictionary.Add("Player", PlayerEntity);
         }
-        foreach(Authoring entity in EntityDictionary.Reg) entity.Setting.Preset();
+
+        Genetics.ClearGeneology();
+        for (int i = 0; i < EntityDictionary.Reg.Count; i++) {
+            EntityDictionary.Retrieve(i).Setting.Preset((uint)i);
+        }
     }
 
-    public unsafe static void Release(){
+    public unsafe static void Release() {
         //Debug.Log(EntityHandler.Length);
-        Executor.Complete(); 
-        foreach (Entity entity in EntityHandler){
+        Executor.Complete();
+        foreach (Entity entity in EntityHandler) {
             entity.Disable();
         }
         List<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities.Reg;
-        foreach(Authoring entity in EntityDictionary) entity.Setting.Unset();
+        foreach (Authoring entity in EntityDictionary) entity.Setting.Unset();
     }
 
     public static uint PlanEntities(int biomeStart, int3 CCoord, int chunkSize){

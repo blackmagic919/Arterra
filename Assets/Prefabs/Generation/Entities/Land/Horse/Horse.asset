@@ -143,11 +143,17 @@ MonoBehaviour:
           z: 2
         friction: 0.25
       movement:
-        walkSpeed: 4
-        runSpeed: 18
+        walkSpeed:
+          mean: 4
+          var: 0.5
+          geneWeight: 0.25
+        runSpeed:
+          mean: 16
+          var: 0.75
+          geneWeight: 0.75
+        pathDistance: 31
         acceleration: 200
         rotSpeed: 180
-        pathDistance: 31
         AverageIdleTime: 2.5
       decomposition:
         LootTable:
@@ -161,45 +167,89 @@ MonoBehaviour:
             value: []
           Mates:
             value:
-            - MateType: Camel
-              ChildType: Camel
+            - MateType: Horse
+              ChildType: Horse
               AmountPerParent: 0.5
+              GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: TallGrass:Solid
               Nutrition: 12.75
             - EdibleType: Grass:Solid
               Nutrition: 7.25
-          SightDistance: 31
+          SightDistance:
+            mean: 31
+            var: 0.25
+            geneWeight: 0.75
           FleeDistance: 5
           FightAggressor: 0
-          PlantFindDist: 10
+          PlantFindDist:
+            mean: 10
+            var: 0.5
+            geneWeight: 0.5
           Prey:
             value:
             - Material: TallGrass
+              Replacement: Dirt
               Bounds:
                 data: 4286643968
-              Replacement: Dirt
             - Material: Grass
+              Replacement: Dirt
               Bounds:
                 data: 4286643968
-              Replacement: Dirt
       physicality:
         value:
-          MaxHealth: 20
-          NaturalRegen: -0.01
-          AttackDistance: 2
-          AttackDamage: 6
-          AttackCooldown: 3
-          KBStrength: 5
-          InvincTime: 0.25
-          HoldBreathTime: 10
-          HuntThreshold: 0.4
-          MateThreshold: 0.8
+          weight: 0.65
+          MaxHealth:
+            mean: 20
+            var: 0.5
+            geneWeight: 1
+          InitHealth:
+            mean: 0.5
+            var: 0.33
+            geneWeight: 0.1
+          NaturalRegen:
+            mean: -0.01
+            var: 0.75
+            geneWeight: 0.5
+          InvincTime:
+            mean: 0.25
+            var: 1
+            geneWeight: 0.5
+          HoldBreathTime:
+            mean: 10
+            var: 1
+            geneWeight: 0.05
+          AttackDistance:
+            mean: 2
+            var: 0.75
+            geneWeight: 0.75
+          AttackDamage:
+            mean: 6
+            var: 0.5
+            geneWeight: 0.66
+          AttackCooldown:
+            mean: 3
+            var: 0.75
+            geneWeight: 0.33
+          KBStrength:
+            mean: 5
+            var: 0.5
+            geneWeight: 0.33
+          HuntThreshold:
+            mean: 0.4
+            var: 0.5
+            geneWeight: 0.1
+          MateThreshold:
+            mean: 0.8
+            var: 0.25
+            geneWeight: 0.1
+          MateCost:
+            mean: 8
+            var: 0.5
+            geneWeight: 0.66
           PregnacyLength: 6
           ConsumptionRate: 0.25
-          MateCost: 8
-          weight: 0.85
   references:
     version: 2
     RefIds: []

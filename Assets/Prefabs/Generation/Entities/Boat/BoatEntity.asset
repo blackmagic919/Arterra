@@ -40,10 +40,26 @@ MonoBehaviour:
       Acceleration: 150
       groundStickDist: 0.1
       durability:
-        MaxHealth: 2
-        NaturalRegen: 0.75
+        MaxHealth: 
+          mean: 2
+          var: 0
+          geneWeight: 0
+        InitHealth:
+          mean: 1
+          var: 0
+          geneWeight: 0
+        NaturalRegen:
+          mean: 0.75
+          var: 0
+          geneWeight: 0
         InvincTime: 0.1
+          mean: 0.1
+          var: 0
+          geneWeight: 0
         HoldBreathTime: 5
+          mean: 5
+          var: 0
+          geneWeight: 0
         weight: 0.05
       ItemDrop: Boat
   references:

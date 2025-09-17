@@ -107,11 +107,17 @@ MonoBehaviour:
           z: 0.75
         friction: 0.25
       movement:
-        walkSpeed: 3
-        runSpeed: 9
+        walkSpeed:
+          mean: 3
+          var: 0.5
+          geneWeight: 0.25
+        runSpeed:
+          mean: 9
+          var: 0.5
+          geneWeight: 0.75
+        pathDistance: 16
         acceleration: 100
         rotSpeed: 180
-        pathDistance: 16
         AverageIdleTime: 2.5
       flight:
         profile:
@@ -120,10 +126,22 @@ MonoBehaviour:
             y: 3
             z: 2
           profileStart: 204
-        AverageFlightTime: 100
-        SeperationWeight: 0.75
-        AlignmentWeight: 0.4
-        CohesionWeight: 0.15
+        AverageFlightTime:
+          mean: 100
+          var: 0.5
+          geneWeight: 0.15
+        SeperationWeight:
+          mean: 0.75
+          var: 0.5
+          geneWeight: 0.05
+        AlignmentWeight:
+          mean: 0.4
+          var: 0.5
+          geneWeight: 0.05
+        CohesionWeight:
+          mean: 0.15
+          var: 0.75
+          geneWeight: 0.05
         InfluenceDist: 10
         PathDist: 5
         MaxSwarmSize: 8
@@ -137,20 +155,57 @@ MonoBehaviour:
         DecompositionTime: 100
       physicality:
         value:
-          MaxHealth: 4
-          NaturalRegen: -0.005
-          AttackDistance: 2
-          AttackDamage: 1
-          AttackCooldown: 1
-          KBStrength: 1
-          InvincTime: 0.25
-          HoldBreathTime: 10
-          HuntThreshold: 0.4
-          MateThreshold: 0.8
+          weight: 0.15
+          MaxHealth:
+            mean: 4
+            var: 0.5
+            geneWeight: 1
+          InitHealth:
+            mean: 0.5
+            var: 0.33
+            geneWeight: 0.1
+          NaturalRegen:
+            mean: -0.005
+            var: 0.75
+            geneWeight: 0.5
+          InvincTime:
+            mean: 0.25
+            var: 1
+            geneWeight: 0.5
+          HoldBreathTime:
+            mean: 10
+            var: 1
+            geneWeight: 0.05
+          AttackDistance:
+            mean: 2
+            var: 0.75
+            geneWeight: 0.33
+          AttackDamage:
+            mean: 1
+            var: 0.5
+            geneWeight: 0.25
+          AttackCooldown:
+            mean: 1
+            var: 0.75
+            geneWeight: 0.4
+          KBStrength:
+            mean: 0.75
+            var: 0.5
+            geneWeight: 0.33
+          HuntThreshold:
+            mean: 0.4
+            var: 0.5
+            geneWeight: 0.1
+          MateThreshold:
+            mean: 0.8
+            var: 0.25
+            geneWeight: 0.1
+          MateCost:
+            mean: 1
+            var: 0.5
+            geneWeight: 0.66
           PregnacyLength: 4
           ConsumptionRate: 0.25
-          MateCost: 1
-          weight: 0.25
       recognition:
         value:
           Predators:
@@ -161,20 +216,29 @@ MonoBehaviour:
             - MateType: Sparrow
               ChildType: Sparrow
               AmountPerParent: 0.5
+              GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: Grass:Solid
+              Nutrition: 3
+            - EdibleType: TallGrass:Solid
               Nutrition: 4
-          SightDistance: 20
+          SightDistance:
+            mean: 20
+            var: 0.25
+            geneWeight: 0.75
           FleeDistance: 5
           FightAggressor: 0
-          PlantFindDist: 5
+          PlantFindDist:
+            mean: 0
+            var: 0
+            geneWeight: 0
           Prey:
             value:
             - Material: Grass
+              Replacement: Dirt
               Bounds:
                 data: 4286643968
-              Replacement: Dirt
   references:
     version: 2
     RefIds: []

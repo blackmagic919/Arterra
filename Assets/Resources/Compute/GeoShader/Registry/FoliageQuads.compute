@@ -3,7 +3,6 @@
 #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
 
 const static int numThreads = 256;
-const static float cullThresh = 0.15;
 
 struct Quad {
     float3 topLeft;
@@ -125,9 +124,6 @@ void Main (uint3 id : SV_DispatchThreadID)
     inputs[1] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.y];
     inputs[2] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.z];
     uint material = GetShaderVariant(inputs);
-
-    if(getArea(inputs[0].positionOS, inputs[1].positionOS, inputs[2].positionOS) < cullThresh)
-        return;
 
     float3 center = GetTriangleCenter(inputs[0].positionOS, inputs[1].positionOS, inputs[2].positionOS);
     //Use hard normal rather than smooth normals

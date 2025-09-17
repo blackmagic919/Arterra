@@ -24,33 +24,45 @@ public interface ICollidable {
 public class MinimalVitality {
     [Serializable]
     public class Stats {
-        public float MaxHealth;
-        public float NaturalRegen;
-        public float InvincTime;
-        public float HoldBreathTime;
         [Range(0, 1)]
         public float weight;
+        public Genetics.GeneFeature MaxHealth;
+        public Genetics.GeneFeature InitHealth;
+        public Genetics.GeneFeature NaturalRegen;
+        public Genetics.GeneFeature InvincTime;
+        public Genetics.GeneFeature HoldBreathTime;
+
+        public virtual void InitGenome(uint entityType) {
+            Genetics.AddGene(entityType, ref MaxHealth);
+            Genetics.AddGene(entityType, ref InitHealth);
+            Genetics.AddGene(entityType, ref NaturalRegen);
+            Genetics.AddGene(entityType, ref InvincTime);
+            Genetics.AddGene(entityType, ref HoldBreathTime);
+        }
     }
 
     [JsonIgnore]
     protected Stats stats;
+    protected Genetics genetics;
     public float health;
     public float invincibility;
-    public float healthPercent => health / stats.MaxHealth;
+    public float healthPercent => health / genetics.Get(stats.MaxHealth);
     public float breath;
-    public float breathPercent => breath / stats.HoldBreathTime;
+    public float breathPercent => breath / genetics.Get(stats.HoldBreathTime);
     public bool IsDead => health <= 0;
     public const float FallDmgThresh = 10;
-    public MinimalVitality(Stats stats, ref Unity.Mathematics.Random random) {
+    public MinimalVitality(Stats stats, Genetics genetics = null) {
+        this.genetics = genetics ?? new Genetics();
         this.stats = stats;
         invincibility = 0;
-        health = stats.MaxHealth;
-        breath = stats.HoldBreathTime;
+        health = genetics.Get(stats.InitHealth) * genetics.Get(stats.MaxHealth);
+        breath = genetics.Get(stats.HoldBreathTime);
     }
 
-    public MinimalVitality() {}
+    public MinimalVitality() { }
 
-    public virtual void Deserialize(Stats stats) {
+    public virtual void Deserialize(Stats stats, Genetics genetics = null) {
+        this.genetics = genetics ?? new Genetics();
         this.stats = stats;
         invincibility = 0;
     }
@@ -58,13 +70,14 @@ public class MinimalVitality {
     public virtual void Update() {
         invincibility = math.max(invincibility - EntityJob.cxt.deltaTime, 0);
         if (IsDead) return;
-        float delta = math.min(health + stats.NaturalRegen * EntityJob.cxt.deltaTime,
-                      stats.MaxHealth) - health;
+        float delta = math.min(health + genetics.Get(stats.NaturalRegen)
+                    * EntityJob.cxt.deltaTime, genetics.Get(stats.MaxHealth))
+                    - health;
         health += delta;
     }
     public bool Damage(float delta) {
         if (invincibility > 0) return false;
-        invincibility = stats.InvincTime;
+        invincibility = genetics.Get(stats.InvincTime);
         delta = health - math.max(health - delta, 0);
         health -= delta;
         return true;
@@ -73,7 +86,7 @@ public class MinimalVitality {
     public void Heal(float delta, bool force = false) {
         if (force) { health += delta; return; }
         if (IsDead) return;
-        health = math.min(health + delta, stats.MaxHealth);
+        health = math.min(health + delta, genetics.Get(stats.MaxHealth));
     }
 
     public void ProcessSuffocation(Entity self, float density) {
@@ -85,7 +98,7 @@ public class MinimalVitality {
     }
 
     public void ProcessInGas(float density) {
-        breath = stats.HoldBreathTime;
+        breath = genetics.Get(stats.HoldBreathTime);
     }
 
     public void ProcessInLiquid(Entity self, ref TerrainColliderJob tCollider, float density) {
@@ -114,7 +127,7 @@ public class MinimalVitality {
     }
 
     public void ProcessInGasAquatic(Entity self, ref TerrainColliderJob tCollider, float density) {
-        if (breath < 0) breath = stats.HoldBreathTime;
+        if (breath < 0) breath = genetics.Get(stats.HoldBreathTime);
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
         tCollider.useGravity = true;
 
@@ -125,34 +138,43 @@ public class MinimalVitality {
 
 public class Vitality : MinimalVitality {
     [Serializable]
-    public class Stats : MinimalVitality.Stats{
-        public float AttackDistance;
-        public float AttackDamage;
-        public float AttackCooldown;
-        public float KBStrength;
-        [Range(0, 1)]
-        public float HuntThreshold;
-        [Range(0, 1)]
-        public float MateThreshold;
+    public class Stats : MinimalVitality.Stats {
+        public Genetics.GeneFeature AttackDistance;
+        public Genetics.GeneFeature AttackDamage;
+        public Genetics.GeneFeature AttackCooldown;
+        public Genetics.GeneFeature KBStrength;
+        public Genetics.GeneFeature HuntThreshold;
+        public Genetics.GeneFeature MateThreshold;
+        public Genetics.GeneFeature MateCost; //Everything );
         public float PregnacyLength;
         public float ConsumptionRate;
-        public float MateCost; //Everything );
+
+        public override void InitGenome(uint entityType) {
+            base.InitGenome(entityType);
+
+            Genetics.AddGene(entityType, ref AttackDistance);
+            Genetics.AddGene(entityType, ref AttackDamage);
+            Genetics.AddGene(entityType, ref AttackCooldown);
+            Genetics.AddGene(entityType, ref KBStrength);
+            Genetics.AddGene(entityType, ref HuntThreshold);
+            Genetics.AddGene(entityType, ref MateThreshold);
+            Genetics.AddGene(entityType, ref MateCost);
+        }
     }
     [JsonIgnore]
     private Stats CStats => stats as Stats;
     public float attackCooldown;
-    public Vitality(Stats stats, ref Unity.Mathematics.Random random) : base(stats, ref random){
+    public Vitality(Stats stats, Genetics genetics = null) : base(stats, genetics) {
         this.stats = stats;
         invincibility = 0;
         attackCooldown = 0;
-        float initHealth = math.clamp(stats.HuntThreshold + (stats.MateThreshold - stats.HuntThreshold) * random.NextFloat(), 0, 1);
-        health = stats.MaxHealth * initHealth;
-        breath = stats.HoldBreathTime;
+        breath = genetics.Get(stats.HoldBreathTime);
     }
 
-    public Vitality() {}
+    public Vitality() { }
 
-    public override void Deserialize(MinimalVitality.Stats stats) {
+    public override void Deserialize(MinimalVitality.Stats stats, Genetics genetics = null) {
+        this.genetics = genetics ?? new Genetics();
         this.stats = stats;
         invincibility = 0;
         attackCooldown = 0;
@@ -166,9 +188,9 @@ public class Vitality : MinimalVitality {
     public bool Attack(Entity target, Entity self) {
         if (attackCooldown > 0) return false;
         if (target is not IAttackable) return false;
-        attackCooldown = CStats.AttackCooldown;
-        float damage = CStats.AttackDamage;
-        float3 knockback = math.normalize(target.position - self.position) * CStats.KBStrength;
+        attackCooldown = genetics.Get(CStats.AttackCooldown);
+        float damage = genetics.Get(CStats.AttackDamage);
+        float3 knockback = math.normalize(target.position - self.position) * genetics.Get(CStats.KBStrength);
         EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback, self));
         return true;
     }
@@ -196,16 +218,5 @@ public class Vitality : MinimalVitality {
             public string ItemName;
             public float DropAmount;
         }
-    }
-
-    [Serializable]
-    public struct Aquatic {
-        public float DrownTime;
-        [Range(0, 1)]
-        //Threshold at which the entity will try to swim to the surface
-        public float SurfaceThreshold;
-        public float JumpStickDistance;
-        public float JumpStrength;
-        public EntitySetting.ProfileInfo SurfaceProfile;
     }
 }

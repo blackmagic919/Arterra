@@ -111,7 +111,6 @@ MonoBehaviour:
           x: 3
           y: 3
           z: 3
-        profileStart: 484
       collider:
         size:
           x: 1
@@ -119,11 +118,17 @@ MonoBehaviour:
           z: 1
         friction: 0.25
       movement:
-        walkSpeed: 4.5
-        runSpeed: 10.5
+        walkSpeed:
+          mean: 4.5
+          var: 0.45
+          geneWeight: 0.25
+        runSpeed:
+          mean: 12
+          var: 0.5
+          geneWeight: 0.75
+        pathDistance: 32
         acceleration: 100
         rotSpeed: 180
-        pathDistance: 32
         AverageIdleTime: 1.5
       decomposition:
         LootTable:
@@ -133,9 +138,15 @@ MonoBehaviour:
           - ItemName: FishScales:Solid
             DropAmount: 13
         DecompositionTime: 200
-      aquaticBehavior:
-        DrownTime: Infinity
-        SurfaceThreshold: 0
+      aquatic:
+        DrownTime:
+          mean: Infinity
+          var: 0
+          geneWeight: 0
+        SurfaceThreshold:
+          mean: 0
+          var: 0
+          geneWeight: 0
         JumpStickDistance: 0.05
         JumpStrength: 3
         SurfaceProfile:
@@ -143,23 +154,59 @@ MonoBehaviour:
             x: 1
             y: 1
             z: 1
-          profileStart: 511
       physicality:
         value:
-          MaxHealth: 25
-          NaturalRegen: -0.01
-          AttackDistance: 3
-          AttackDamage: 5
-          AttackCooldown: 1
-          KBStrength: 5
-          InvincTime: 0.25
-          HoldBreathTime: 10
-          HuntThreshold: 0.4
-          MateThreshold: 0.8
+          weight: 0.7
+          MaxHealth:
+            mean: 25
+            var: 0.5
+            geneWeight: 1
+          InitHealth:
+            mean: 0.5
+            var: 0.33
+            geneWeight: 0.1
+          NaturalRegen:
+            mean: -0.01
+            var: 0.75
+            geneWeight: 0.5
+          InvincTime:
+            mean: 0.25
+            var: 1
+            geneWeight: 0.5
+          HoldBreathTime:
+            mean: 15
+            var: 1
+            geneWeight: 0.05
+          AttackDistance:
+            mean: 2
+            var: 0.75
+            geneWeight: 0.75
+          AttackDamage:
+            mean: 5
+            var: 0.75
+            geneWeight: 0.75
+          AttackCooldown:
+            mean: 1
+            var: 0.75
+            geneWeight: 0.5
+          KBStrength:
+            mean: 5
+            var: 0.5
+            geneWeight: 0.25
+          HuntThreshold:
+            mean: 0.4
+            var: 0.5
+            geneWeight: 0.1
+          MateThreshold:
+            mean: 0.8
+            var: 0.25
+            geneWeight: 0.1
+          MateCost:
+            mean: 7
+            var: 0.5
+            geneWeight: 0.66
           PregnacyLength: 4
           ConsumptionRate: 0.5
-          MateCost: 7
-          weight: 0.3
       recognition:
         value:
           Predators:
@@ -169,11 +216,15 @@ MonoBehaviour:
             - MateType: Shark
               ChildType: Shark
               AmountPerParent: 0.5
+              GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: FishMeat
               Nutrition: 51.2
-          SightDistance: 24
+          SightDistance:
+            mean: 24
+            var: 0.25
+            geneWeight: 0.75
           FleeDistance: 5
           FightAggressor: 1
           Prey:

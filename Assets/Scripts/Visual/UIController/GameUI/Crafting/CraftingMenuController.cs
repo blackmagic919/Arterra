@@ -275,14 +275,15 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
 
         Authoring sItemSetting = InventoryController.SelectedSetting;
-        if(!matInfo.Contains(sItemSetting.MaterialName)) return pointInfo;
-        int selected = matInfo.RetrieveIndex(sItemSetting.MaterialName);
+        if (sItemSetting is not PlaceableItem mSettings) return pointInfo;
+        if (!matInfo.Contains(mSettings.MaterialName)) return pointInfo;
+        int selected = matInfo.RetrieveIndex(mSettings.MaterialName);
 
         if(pointInfo.IsGaseous && pointInfo.material != selected){
             InventoryAddMapData(pointInfo);
 
             pointInfo.density = InventoryController.RemoveStackable(pointInfo.density);
-            pointInfo.viscosity = sItemSetting.IsSolid ? pointInfo.density : 0;
+            pointInfo.viscosity = mSettings.IsSolid ? pointInfo.density : 0;
             pointInfo.material = selected;
         }else if(pointInfo.material == selected){
             //If adding solid density, override water
@@ -290,7 +291,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             deltaDensity = InventoryController.RemoveStackable(deltaDensity);
 
             pointInfo.density = math.min(pointInfo.density + deltaDensity, 255);
-            if(sItemSetting.IsSolid) pointInfo.viscosity = pointInfo.density;
+            if(mSettings.IsSolid) pointInfo.viscosity = pointInfo.density;
             if(pointInfo.IsSolid || pointInfo.IsLiquid) pointInfo.material = selected;
         }
         return pointInfo;

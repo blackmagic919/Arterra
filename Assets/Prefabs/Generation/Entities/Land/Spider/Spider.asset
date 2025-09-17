@@ -59,11 +59,17 @@ MonoBehaviour:
           z: 0.3
         friction: 0.25
       movement:
-        walkSpeed: 3
-        runSpeed: 6
+        walkSpeed:
+          mean: 3
+          var: 0.45
+          geneWeight: 0.25
+        runSpeed:
+          mean: 6
+          var: 0.5
+          geneWeight: 0.75
+        pathDistance: 24
         acceleration: 150
         rotSpeed: 180
-        pathDistance: 24
         AverageIdleTime: 2.5
       decomposition:
         LootTable:
@@ -81,11 +87,15 @@ MonoBehaviour:
             - MateType: Spider
               ChildType: Spider
               AmountPerParent: 0.5
+              GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: BugMush
               Nutrition: 76.8
-          SightDistance: 24
+          SightDistance:
+            mean: 24
+            var: 0.25
+            geneWeight: 0.75
           FleeDistance: 5
           FightAggressor: 1
           Prey:
@@ -93,20 +103,57 @@ MonoBehaviour:
             - EntityType: Beetle
       physicality:
         value:
-          MaxHealth: 3
-          NaturalRegen: -0.002
-          AttackDistance: 3
-          AttackDamage: 0.5
-          AttackCooldown: 1
-          KBStrength: 2
-          InvincTime: 0.25
-          HoldBreathTime: 10
-          HuntThreshold: 0.4
-          MateThreshold: 0.8
+          weight: 0.1
+          MaxHealth:
+            mean: 3
+            var: 0.5
+            geneWeight: 1
+          InitHealth:
+            mean: 0.5
+            var: 0.33
+            geneWeight: 0.1
+          NaturalRegen:
+            mean: -0.002
+            var: 0.75
+            geneWeight: 0.5
+          InvincTime:
+            mean: 0.25
+            var: 1
+            geneWeight: 0.5
+          HoldBreathTime:
+            mean: 10
+            var: 1
+            geneWeight: 0.05
+          AttackDistance:
+            mean: 2
+            var: 0.75
+            geneWeight: 0.75
+          AttackDamage:
+            mean: 0.5
+            var: 0.75
+            geneWeight: 0.75
+          AttackCooldown:
+            mean: 1
+            var: 0.75
+            geneWeight: 0.5
+          KBStrength:
+            mean: 0.75
+            var: 0.5
+            geneWeight: 0.25
+          HuntThreshold:
+            mean: 0.4
+            var: 0.5
+            geneWeight: 0.1
+          MateThreshold:
+            mean: 0.8
+            var: 0.25
+            geneWeight: 0.1
+          MateCost:
+            mean: 0.75
+            var: 0.5
+            geneWeight: 0.66
           PregnacyLength: 4
           ConsumptionRate: 0.5
-          MateCost: 0.75
-          weight: 0.1
   references:
     version: 2
     RefIds: []

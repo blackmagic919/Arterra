@@ -116,7 +116,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         }
 
         //This function shouldn't be used
-        public override void Initialize(EntitySetting setting, GameObject Controller, int3 GCoord)
+        public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord)
         {
             settings = (PlayerSettings)setting;
             collider.OnHitGround = ProcessFallDamage;

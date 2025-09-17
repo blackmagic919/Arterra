@@ -63,20 +63,14 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
         [JsonIgnore]
         public bool IsDead => vitality.IsDead;
 
-        public unsafe Boat() { }
-        public Boat(TerrainColliderJob.Transform origin){
-            tCollider.transform = origin;
-            tCollider.velocity = 0;
-            
-            this.random = new Unity.Mathematics.Random((uint)GetHashCode());
-        } 
+        public unsafe Boat() { } 
 
-        //This function shouldn't be used
-        public override void Initialize(EntitySetting setting, GameObject Controller, int3 GCoord)
+        public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord)
         {
             settings = (BoatSetting)setting;
             controller = new BoatController(Controller, this);
-            vitality = new MinimalVitality(settings.durability, ref random);
+            vitality = new MinimalVitality(settings.durability);
+            random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(0, int.MaxValue));
             tCollider.transform.position = GCoord;
             tCollider.useGravity = true;
         }
@@ -85,7 +79,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
         {
             settings = (BoatSetting)setting;
             controller = new BoatController(Controller, this);
-            if(vitality == null) vitality = new MinimalVitality(settings.durability, ref random);
+            if(vitality == null) vitality = new MinimalVitality(settings.durability);
             else vitality.Deserialize(settings.durability);
 
             tCollider.useGravity = true;

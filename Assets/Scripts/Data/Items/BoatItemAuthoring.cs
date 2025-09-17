@@ -79,13 +79,8 @@ public class BoatItem : IItem{
 
     private void PlaceBoat(float _){
         if(!PlayerInteraction.RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
-        WorldConfig.Generation.Entity.Entity Entity = new BoatEntity.Boat(new TerrainColliderJob.Transform{
-            position = hitPt,
-            rotation = PlayerHandler.data.collider.transform.rotation,
-        });
-        Entity.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Boat");
-        Entity.info.entityId = Guid.NewGuid();
-        EntityManager.CreateEntity(Entity);
+        uint eIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Boat");
+        EntityManager.CreateEntity(hitPt, eIndex);
         InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
     }
 }}

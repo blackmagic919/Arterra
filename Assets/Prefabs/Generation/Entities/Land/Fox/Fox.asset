@@ -71,11 +71,17 @@ MonoBehaviour:
           z: 0.75
         friction: 0.25
       movement:
-        walkSpeed: 4.5
-        runSpeed: 10.5
+        walkSpeed:
+          mean: 4.5
+          var: 0.45
+          geneWeight: 0.25
+        runSpeed:
+          mean: 10
+          var: 0.5
+          geneWeight: 0.75
+        pathDistance: 31
         acceleration: 200
         rotSpeed: 180
-        pathDistance: 31
         AverageIdleTime: 2.5
       decomposition:
         LootTable:
@@ -92,14 +98,19 @@ MonoBehaviour:
             - MateType: Fox
               ChildType: Fox
               AmountPerParent: 0.5
+              GeneMutationRate: 0.05
             - MateType: ArcticFox
               ChildType: ArcticFox
               AmountPerParent: 0.5
+              GeneMutationRate: 0.15
           Edibles:
             value:
             - EdibleType: Meat
               Nutrition: 25.6
-          SightDistance: 31
+          SightDistance:
+            mean: 31
+            var: 0.25
+            geneWeight: 0.75
           FleeDistance: 5
           FightAggressor: 0
           Prey:
@@ -108,20 +119,57 @@ MonoBehaviour:
             - EntityType: ArcticHare
       physicality:
         value:
-          MaxHealth: 10
-          NaturalRegen: -0.01
-          AttackDistance: 3
-          AttackDamage: 3
-          AttackCooldown: 1
-          KBStrength: 2
-          InvincTime: 0.25
-          HoldBreathTime: 10
-          HuntThreshold: 0.4
-          MateThreshold: 0.8
+          weight: 0.75
+          MaxHealth:
+            mean: 10
+            var: 0.5
+            geneWeight: 1
+          InitHealth:
+            mean: 0.5
+            var: 0.33
+            geneWeight: 0.1
+          NaturalRegen:
+            mean: -0.01
+            var: 0.75
+            geneWeight: 0.5
+          InvincTime:
+            mean: 0.25
+            var: 1
+            geneWeight: 0.5
+          HoldBreathTime:
+            mean: 10
+            var: 1
+            geneWeight: 0.05
+          AttackDistance:
+            mean: 2
+            var: 0.75
+            geneWeight: 0.75
+          AttackDamage:
+            mean: 3
+            var: 0.75
+            geneWeight: 0.75
+          AttackCooldown:
+            mean: 1
+            var: 0.75
+            geneWeight: 0.5
+          KBStrength:
+            mean: 2
+            var: 0.5
+            geneWeight: 0.25
+          HuntThreshold:
+            mean: 0.4
+            var: 0.5
+            geneWeight: 0.1
+          MateThreshold:
+            mean: 0.8
+            var: 0.25
+            geneWeight: 0.1
+          MateCost:
+            mean: 4
+            var: 0.5
+            geneWeight: 0.66
           PregnacyLength: 4
           ConsumptionRate: 0.5
-          MateCost: 4
-          weight: 0.75
   references:
     version: 2
     RefIds: []

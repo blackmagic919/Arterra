@@ -137,15 +137,19 @@ public struct TagRegistry
         { Tags.Grassy, new ConvertibleTag() },
         { Tags.Vegetative, new ConvertibleTag() },
         { Tags.AquaMicrobial, new ConvertibleTag() },
+        //Interaction Type
+        { Tags.FocusedPlace, null }
     };
 
     public enum Tags {
         //Tools
-        None=0, BareHand=1, Axe=2, Shovel=3, Pickaxe=4, Hoe=5,
+        None = 0, BareHand = 1, Axe = 2, Shovel = 3, Pickaxe = 4, Hoe = 5,
         //Converters
-        Flammable=1000, Tillable=1001, Seedable=1002,
+        Flammable = 1000, Tillable = 1001, Seedable = 1002,
         //Convertables
-        Grassy=2000, Vegetative=2001, AquaMicrobial=2002,
+        Grassy = 2000, Vegetative = 2001, AquaMicrobial = 2002,
+        //Interactions
+        FocusedPlace = 9000,
     }//
 
     public Option<List<Pair>> Reg;
@@ -174,9 +178,9 @@ public struct TagRegistry
             if (tag == Tags.None) pair.value.value = null;
             else
             {
-                if (pair.value.value != null && pair.value.value.GetType() == TagTemplates[tag].GetType())
+                if (pair.value.value != null && pair.value.value.GetType() == TagTemplates[tag]?.GetType())
                     continue;
-                pair.value.value = TagTemplates[tag].Clone() as ICloneable;
+                pair.value.value = TagTemplates[tag]?.Clone() as ICloneable;
 
             } Reg.value[i] = pair;//
         }

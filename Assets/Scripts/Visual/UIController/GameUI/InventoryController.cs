@@ -164,13 +164,10 @@ public static class InventoryController {
 
     public static void DropItem(IItem item, float3 location, Quaternion rotation = default) {
         if (item == null) return;
-        WorldConfig.Generation.Entity.Entity Entity = new EItem.EItemEntity(new TerrainColliderJob.Transform {
-            position = location,
-            rotation = rotation,
-        }, item);
-        Entity.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("EntityItem");
+        WorldConfig.Generation.Entity.Entity Entity = new EItem.EItemEntity(item, rotation);
+        uint eIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("EntityItem");
         Entity.info.entityId = Guid.NewGuid();
-        EntityManager.CreateEntity(Entity);
+        EntityManager.CreateEntity(math.round(location), eIndex, Entity);
     }
 
     private static void SelectDrag(float _ = 0) {

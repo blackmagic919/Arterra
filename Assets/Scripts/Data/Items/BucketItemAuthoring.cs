@@ -97,8 +97,9 @@ public class BucketItem : IItem{
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         
         if(content == null || !PlayerInteraction.RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
-        Authoring mat = ItemInfo.Retrieve(content.Index);
-        if(mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
+        Authoring authoring = ItemInfo.Retrieve(content.Index);
+        if (authoring is not PlaceableItem mat) return;
+        if (mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
         CPUMapManager.Terraform(hitPt, settings.TerraformRadius, AddFromBucket, PlayerInteraction.CallOnMapPlacing);
         if(content.AmountRaw != 0) return;
         content.ClearDisplay(display.transform);
@@ -109,11 +110,12 @@ public class BucketItem : IItem{
         float IsoLevel = Mathf.RoundToInt(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255);
         brushStrength *= settings.TerraformSpeed * Time.deltaTime;
         if(brushStrength == 0) return false;
-        Authoring cSettings = ItemInfo.Retrieve(content.Index);
-        if(!cSettings.IsLiquid) return false;
+        Authoring authoring = ItemInfo.Retrieve(content.Index);
+        if (authoring is not PlaceableItem mat) return false;
+        if (!mat.IsLiquid) return false;
 
         MapData pointInfo = CPUMapManager.SampleMap(GCoord);
-        int selected = MatInfo.RetrieveIndex(cSettings.MaterialName);
+        int selected = MatInfo.RetrieveIndex(mat.MaterialName);
         int liquidDensity = pointInfo.LiquidDensity;
         if(liquidDensity >= IsoLevel && pointInfo.material != selected)
             return false;

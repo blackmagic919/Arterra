@@ -22,18 +22,23 @@ public class AquaticCarnivore : Authoring
     public class AnimalSetting : EntitySetting{
         public Movement movement;
         public Vitality.Decomposition decomposition;
-        public Vitality.Aquatic aquaticBehavior;
+        public Movement.Aquatic aquatic;
         public Option<Vitality.Stats> physicality;
         public Option<RCarnivore> recognition;
         public RCarnivore Recognition => recognition;
         public Vitality.Stats Physicality => physicality;
 
-        public override void Preset()
+        public override void Preset(uint entityType)
         {
             uint pEnd = profile.bounds.x * profile.bounds.y * profile.bounds.z;
-            aquaticBehavior.SurfaceProfile.profileStart = profile.profileStart + pEnd;
+            aquatic.SurfaceProfile.profileStart = profile.profileStart + pEnd;
             Recognition.Construct();
-            base.Preset();
+
+            movement.InitGenome(entityType);
+            aquatic.InitGenome(entityType);
+            Physicality.InitGenome(entityType);
+            Recognition.InitGenome(entityType);
+            base.Preset(entityType);
         }
     }
 
@@ -41,6 +46,7 @@ public class AquaticCarnivore : Authoring
     //**If you release here the controller might still be accessing it
     public class Animal : Entity, IAttackable, IMateable
     {  
+        public Genetics genetics;
         public Vitality vitality;
         public PathFinder.PathInfo pathFinder;
         public TerrainColliderJob tCollider;
@@ -86,6 +92,11 @@ public class AquaticCarnivore : Authoring
         public int3 GCoord => (int3)math.floor(origin); 
         [JsonIgnore]
         public bool IsDead => vitality.IsDead;
+        [JsonIgnore]
+        public Genetics Genetics {
+            get => this.genetics;
+            set => this.genetics = value;
+        }
         public void TakeDamage(float damage, float3 knockback, Entity attacker) {
             if (!vitality.Damage(damage)) return;
             Indicators.DisplayDamageParticle(position, knockback);
@@ -119,26 +130,26 @@ public class AquaticCarnivore : Authoring
         }
         //Not thread safe
         public bool CanMateWith(Entity entity){
-            if(vitality.healthPercent < settings.Physicality.MateThreshold) return false;
+            if(vitality.healthPercent < genetics.Get(settings.Physicality.MateThreshold))
+                return false;
             if(vitality.IsDead) return false;
             if(TaskIndex >= 8) return false;
             return settings.Recognition.CanMateWith(entity);
         }
         public void MateWith(Entity entity){
             if(!CanMateWith(entity)) return;
-            if(settings.Recognition.MateWithEntity(entity, ref random))
-                vitality.Damage(settings.Physicality.MateCost);
+            if(settings.Recognition.MateWithEntity(genetics, entity, ref random))
+                vitality.Damage(genetics.Get(settings.Physicality.MateCost));
             TaskDuration = settings.Physicality.PregnacyLength;
             TaskIndex = 8;
         }
-
-        public override void Initialize(EntitySetting setting, GameObject Controller, int3 GCoord)
-        {
+        public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (AnimalSetting)setting;
             controller = new AnimalController(Controller, this);
             //The seed is the entity's memory address
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
-            this.vitality = new Vitality(settings.Physicality, ref random);
+            this.genetics ??= new Genetics(this.info.entityType, ref random);
+            this.vitality = new Vitality(settings.Physicality, this.genetics);
             this.tCollider = new TerrainColliderJob(GCoord, true, ProcessFallDamage);
             pathFinder.hasPath = false;
 
@@ -152,7 +163,7 @@ public class AquaticCarnivore : Authoring
         {
             settings = (AnimalSetting)setting;
             controller = new AnimalController(Controller, this);
-            vitality.Deserialize(settings.Physicality);
+            vitality.Deserialize(settings.Physicality, genetics);
             tCollider.OnHitGround = ProcessFallDamage;
             random.state ^= (uint)GetHashCode();
             GCoord = this.GCoord;
@@ -168,7 +179,8 @@ public class AquaticCarnivore : Authoring
 
             TerrainInteractor.DetectMapInteraction(position, 
             OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
-            OnInLiquid: (dens) => vitality.ProcessInLiquidAquatic(this, ref tCollider, dens, settings.aquaticBehavior.DrownTime),
+            OnInLiquid: (dens) => vitality.ProcessInLiquidAquatic(this, ref tCollider, dens,
+                genetics.Get(settings.aquatic.DrownTime)),
             OnInGas:(dens) => {
                 vitality.ProcessInGasAquatic(this, ref tCollider, dens);
                 if(TaskIndex < 15) TaskIndex = 15; //Flop on ground
@@ -186,8 +198,9 @@ public class AquaticCarnivore : Authoring
 
         //Always detect unless already running from predator
         private unsafe void DetectPredator(){
-            if(!settings.Recognition.FindClosestPredator(this, out Entity predator))
-                return;
+            if(!settings.Recognition.FindClosestPredator(this,
+                genetics.Get(settings.Recognition.SightDistance), out Entity predator
+            )) { return; }
 
             int PathDist = settings.Recognition.FleeDistance;
             float3 rayDir = position - predator.position;
@@ -198,8 +211,9 @@ public class AquaticCarnivore : Authoring
 
         private unsafe bool IsSurfacing(){
             if(vitality.breath > 0) return false; //In air
-            if(settings.aquaticBehavior.SurfaceThreshold == 0) return false; //Doesn't drown
-            if(-vitality.breath > settings.aquaticBehavior.SurfaceThreshold * settings.aquaticBehavior.DrownTime) 
+            if(genetics.Get(settings.aquatic.SurfaceThreshold) == 0) return false; //Doesn't drown
+            if(-vitality.breath > genetics.Get(settings.aquatic.SurfaceThreshold)
+                * genetics.Get(settings.aquatic.DrownTime))
                 return false; //Still holding breath
             return true;
         }
@@ -209,9 +223,9 @@ public class AquaticCarnivore : Authoring
             if(self.TaskDuration <= 0){
                 self.TaskIndex = 1;
             } else self.TaskDuration -= EntityJob.cxt.deltaTime;
-            if(self.vitality.healthPercent < self.settings.Physicality.HuntThreshold) 
+            if(self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.HuntThreshold)) 
                 self.TaskIndex = 3;
-            else if(self.vitality.healthPercent > self.settings.Physicality.MateThreshold) 
+            else if(self.vitality.healthPercent > self.genetics.Get(self.settings.Physicality.MateThreshold)) 
                 self.TaskIndex = 6;
         }
 
@@ -230,7 +244,8 @@ public class AquaticCarnivore : Authoring
         //Task 2
         private static unsafe void FollowPath(Animal self){
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
-            self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+                self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
             if(self.pathFinder.hasPath) return;
             self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
             self.TaskIndex = 0;
@@ -239,8 +254,10 @@ public class AquaticCarnivore : Authoring
         //Task 3
         private static unsafe void FindPrey(Animal self){
             //Use mate threshold not hunt because the entity may lose the target while eating
-            if(self.vitality.healthPercent > self.settings.Physicality.MateThreshold ||
-            !self.settings.Recognition.FindPreferredPrey(self, out Entity prey)){
+            if(self.vitality.healthPercent > self.genetics.Get(self.settings.Physicality.MateThreshold) ||
+                !self.settings.Recognition.FindPreferredPrey(self, self.genetics.Get(
+                self.settings.Recognition.SightDistance), out Entity prey)
+            ){
                 self.TaskIndex = 1;
                 return;   
             }
@@ -253,20 +270,25 @@ public class AquaticCarnivore : Authoring
 
             //If it can't get to the prey and is currently at the closest position it can be
             if(math.all(self.pathFinder.destination == self.GCoord) &&
-            Recognition.GetColliderDist(prey, self) > self.settings.Physicality.AttackDistance) 
+                Recognition.GetColliderDist(prey, self) >
+                self.Genetics.Get(self.settings.Physicality.AttackDistance)
+            ) 
                 self.TaskIndex = 1;
         }
 
         //Task 4
         private static unsafe void ChasePrey(Animal self){
-            if(!self.settings.Recognition.FindPreferredPrey(self, out Entity prey)){
+            if(!self.settings.Recognition.FindPreferredPrey(self, self.genetics.Get(
+                self.settings.Recognition.SightDistance), out Entity prey)
+            ){
                 self.TaskIndex = 3;
                 return;
             }
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, prey.origin,
-            self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
             float preyDist = Recognition.GetColliderDist(self, prey);
-            if(preyDist < self.settings.Physicality.AttackDistance) {
+            if(preyDist < self.Genetics.Get(self.settings.Physicality.AttackDistance)) {
                 self.TaskIndex = 5;
                 return;
             } if(!self.pathFinder.hasPath) {
@@ -278,9 +300,11 @@ public class AquaticCarnivore : Authoring
         //Task 5
         private static void Attack(Animal self){
             self.TaskIndex = 3;
-            if(!self.settings.Recognition.FindPreferredPrey(self, out Entity prey)) return;
+            if(!self.settings.Recognition.FindPreferredPrey(self, self.genetics.Get(
+                self.settings.Recognition.SightDistance), out Entity prey))
+                return;
             float preyDist = Recognition.GetColliderDist(self, prey);
-            if(preyDist > self.settings.Physicality.AttackDistance) return;
+            if(preyDist > self.Genetics.Get(self.settings.Physicality.AttackDistance)) return;
             if(prey is not IAttackable) return;
             self.TaskIndex = 5;
 
@@ -301,8 +325,10 @@ public class AquaticCarnivore : Authoring
         }
         //Task 6
         private static unsafe void FindMate(Animal self){
-            if(self.vitality.healthPercent < self.settings.Physicality.MateThreshold 
-            || !self.settings.Recognition.FindPreferredMate(self, out Entity mate)){
+            if(self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.MateThreshold) 
+                || !self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
+                self.settings.Recognition.SightDistance), out Entity mate)
+            ){
                 self.TaskIndex = 1;
                 return;   
             }
@@ -315,15 +341,18 @@ public class AquaticCarnivore : Authoring
 
         //Task 7 
         private static unsafe void ChaseMate(Animal self){//I feel you man
-            if(!self.settings.Recognition.FindPreferredMate(self, out Entity mate)){
+            if(!self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
+                self.settings.Recognition.SightDistance), out Entity mate)
+            ){
                 self.TaskIndex = 6;
                 return;
             }
 
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, mate.origin,
-            self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+                self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
             float mateDist = Recognition.GetColliderDist(self, mate);
-            if(mateDist < self.settings.Physicality.AttackDistance) {
+            if(mateDist < self.Genetics.Get(self.settings.Physicality.AttackDistance)) {
                 EntityManager.AddHandlerEvent(() => (mate as IMateable).MateWith(self));
                 self.MateWith(mate);
                 return;
@@ -355,10 +384,13 @@ public class AquaticCarnivore : Authoring
 
         //Task 9 swim up
         private static unsafe void SwimUp(Animal self){
-            float swimIntensity = self.settings.aquaticBehavior.DrownTime * self.settings.aquaticBehavior.SurfaceThreshold / math.min(-self.vitality.breath, -0.001f);
+            float swimIntensity = self.genetics.Get(self.settings.aquatic.DrownTime)
+                * self.genetics.Get(self.settings.aquatic.SurfaceThreshold) / math.min(-self.vitality.breath, -0.001f);
+
             float3 swimDir = Normalize(self.RandomDirection() + math.up() * math.max(0, swimIntensity)); 
-            byte* path = PathFinder.FindMatchAlongRay(self.GCoord, in swimDir, self.settings.movement.pathDistance + 1, self.settings.profile, 
-            self.settings.aquaticBehavior.SurfaceProfile, EntityJob.cxt, out int pLen, out bool _);
+            byte* path = PathFinder.FindMatchAlongRay(self.GCoord, in swimDir,
+                self.settings.movement.pathDistance + 1, self.settings.profile, 
+                self.settings.aquatic.SurfaceProfile, EntityJob.cxt, out int pLen, out bool _);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 10;
         }
@@ -366,7 +398,8 @@ public class AquaticCarnivore : Authoring
         //Task 10 follow swim up path
         private static unsafe void Surface(Animal self){
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
-            self.settings.movement.walkSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+                self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
             if(!self.pathFinder.hasPath) {
                 self.TaskIndex = 9;
                 return;
@@ -379,7 +412,7 @@ public class AquaticCarnivore : Authoring
         private static unsafe void RunFromTarget(Animal self){
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) self.TaskTarget = Guid.Empty;
-            else if(Recognition.GetColliderDist(self, target) > self.settings.Recognition.SightDistance)
+            else if(Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.TaskIndex = 0;
@@ -393,7 +426,8 @@ public class AquaticCarnivore : Authoring
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             } 
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
-            self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
         }
         
         //Task 12
@@ -401,7 +435,7 @@ public class AquaticCarnivore : Authoring
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if(target == null) 
                 self.TaskTarget = Guid.Empty;
-            else if(Recognition.GetColliderDist(self, target) > self.settings.Recognition.SightDistance)
+            else if(Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
             if(self.TaskTarget == Guid.Empty) {
                 self.TaskIndex = 0;
@@ -415,8 +449,9 @@ public class AquaticCarnivore : Authoring
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             } 
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, target.origin,
-            self.settings.movement.runSpeed, self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
-            if(Recognition.GetColliderDist(self, target) < self.settings.Physicality.AttackDistance) {
+                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
+            if(Recognition.GetColliderDist(self, target) < self.Genetics.Get(self.settings.Physicality.AttackDistance)) {
                 self.TaskIndex = 13;
                 return;
             }
@@ -435,7 +470,7 @@ public class AquaticCarnivore : Authoring
             }
 
             float targetDist = Recognition.GetColliderDist(tEntity, self);
-            if(targetDist > self.settings.Physicality.AttackDistance) {
+            if(targetDist > self.Genetics.Get(self.settings.Physicality.AttackDistance)) {
                 self.TaskIndex = 12;
                 return;
             }
@@ -452,8 +487,9 @@ public class AquaticCarnivore : Authoring
 
         //Task 14
         private static unsafe void RunFromPredator(Animal self){
-            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, self.settings.movement.runSpeed, 
-            self.settings.movement.rotSpeed, self.settings.movement.acceleration, true);
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
+                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
             if(!self.pathFinder.hasPath) {
                 self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
                 self.TaskIndex = 0;
@@ -470,8 +506,8 @@ public class AquaticCarnivore : Authoring
             }
 
             if(self.tCollider.SampleCollision(self.origin,  new float3(self.settings.collider.size.x, 
-            -self.settings.aquaticBehavior.JumpStickDistance, self.settings.collider.size.z), EntityJob.cxt.mapContext, out _)) {
-                self.tCollider.velocity.y += self.settings.aquaticBehavior.JumpStrength;
+            -self.settings.aquatic.JumpStickDistance, self.settings.collider.size.z), EntityJob.cxt.mapContext, out _)) {
+                self.tCollider.velocity.y += self.settings.aquatic.JumpStrength;
             }
         }
 

@@ -2,8 +2,8 @@ using UnityEngine;
 using Newtonsoft.Json;
 
 namespace WorldConfig.Generation.Item{
-[CreateAssetMenu(menuName = "Generation/Items/Material")] 
-public class MaterialItemAuthoring : AuthoringTemplate<MaterialItem> {}
+    [CreateAssetMenu(menuName = "Generation/Items/Material")]
+    public class MaterialItemAuthoring : PlaceableTemplate<MaterialItem> {}
 
     [System.Serializable]
     public struct MaterialItem : IItem

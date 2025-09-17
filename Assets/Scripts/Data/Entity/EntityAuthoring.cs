@@ -55,7 +55,7 @@ public abstract class Entity: IRegistered{
     /// <param name="setting">The setting of the entity. Specific to the authoring entry it's instantiated from. </param>
     /// <param name="controller">The controller responsible for displaying the entity. Passed from <see cref="Authoring.Controller"/> </param>
     /// <param name="GCoord">The position in grid space the entity was placed at. </param>
-    public abstract void Initialize(EntitySetting setting, GameObject controller, int3 GCoord);
+    public abstract void Initialize(EntitySetting setting, GameObject controller, float3 GCoord);
     /// <summary>
     /// Deserializes the entity's instance. Some of the entity's information may be retrieved from serialization
     /// while others may need to be thrown away. This function is called when the entity is deserialized 
@@ -121,10 +121,11 @@ public abstract class EntitySetting{
     /// <summary> The actual dimensions of the entity used for collisions and hit-box detection </summary>
     public TerrainColliderJob.Settings collider;
     /// <summary> Presets any information shared by all instances of the entity. This is only called once per entity type within
-    /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information.
-    /// </summary> <remarks> For example, if the entity uses a state machine it can allocate function pointers to each state within the machine such that
+    /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information. </summary>
+    /// <param name="entityType">The index of the entity type within the <see cref="WorldConfig.Config.GenerationSettings.Entities"/> registry.</param>
+    /// <remarks> For example, if the entity uses a state machine it can allocate function pointers to each state within the machine such that
     /// they may be referenced through an edge list. </remarks>
-    public virtual void Preset(){
+    public virtual void Preset(uint entityType){
         //Preset any default values here
     }
     /// <summary> A callback to release any information set by <see cref="Preset"/>. Called once per entity type within the 
@@ -155,7 +156,7 @@ public abstract class EntitySetting{
         /// that contains the profiles for all entities. This should not be modified and will be assigned in runtime by the configuration of the entity registry.
         /// The size of the information read at this location is determined by <see cref="bounds"/>.
         /// </summary>
-        [HideInInspector][UISetting(Ignore = true)][JsonIgnore]
+        [NonSerialized][HideInInspector][UISetting(Ignore = true)][JsonIgnore]
         public uint profileStart;
     }
 }

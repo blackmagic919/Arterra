@@ -107,11 +107,17 @@ MonoBehaviour:
           z: 0.5
         friction: 0.25
       movement:
-        walkSpeed: 3
-        runSpeed: 15
+        walkSpeed:
+          mean: 3
+          var: 0.45
+          geneWeight: 0.25
+        runSpeed:
+          mean: 15
+          var: 0.5
+          geneWeight: 0.75
+        pathDistance: 31
         acceleration: 100
         rotSpeed: 180
-        pathDistance: 31
         AverageIdleTime: 2.5
       flight:
         profile:
@@ -120,8 +126,14 @@ MonoBehaviour:
             y: 3
             z: 2
           profileStart: 228
-        AverageFlightTime: 20
-        FlyBiasWeight: 0.25
+        AverageFlightTime:
+          mean: 20
+          var: 0.5
+          geneWeight: 0.175
+        FlyBiasWeight:
+          mean: 0.25
+          var: 1
+          geneWeight: 0.2
         VerticalFreedom: 0.5
       decomposition:
         LootTable:
@@ -140,11 +152,15 @@ MonoBehaviour:
             - MateType: SnowyOwl
               ChildType: SnowyOwl
               AmountPerParent: 0.5
+              GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: Meat
               Nutrition: 19.2
-          SightDistance: 30
+          SightDistance:
+            mean: 30
+            var: 0.25
+            geneWeight: 0.75
           FleeDistance: 5
           FightAggressor: 0
           Prey:
@@ -152,20 +168,57 @@ MonoBehaviour:
             - EntityType: ArcticHare
       physicality:
         value:
-          MaxHealth: 10
-          NaturalRegen: -0.01
-          AttackDistance: 4
-          AttackDamage: 3
-          AttackCooldown: 0.75
-          KBStrength: 2
-          InvincTime: 0.5
-          HoldBreathTime: 10
-          HuntThreshold: 0.4
-          MateThreshold: 0.7
+          weight: 0.25
+          MaxHealth:
+            mean: 10
+            var: 0.5
+            geneWeight: 1
+          InitHealth:
+            mean: 0.5
+            var: 0.33
+            geneWeight: 0.1
+          NaturalRegen:
+            mean: -0.01
+            var: 0.75
+            geneWeight: 0.5
+          InvincTime:
+            mean: 0.25
+            var: 1
+            geneWeight: 0.5
+          HoldBreathTime:
+            mean: 10
+            var: 1
+            geneWeight: 0.05
+          AttackDistance:
+            mean: 2
+            var: 0.75
+            geneWeight: 0.75
+          AttackDamage:
+            mean: 4
+            var: 0.75
+            geneWeight: 0.75
+          AttackCooldown:
+            mean: 1
+            var: 0.75
+            geneWeight: 0.5
+          KBStrength:
+            mean: 2
+            var: 0.5
+            geneWeight: 0.25
+          HuntThreshold:
+            mean: 0.4
+            var: 0.5
+            geneWeight: 0.1
+          MateThreshold:
+            mean: 0.7
+            var: 0.3
+            geneWeight: 0.1
+          MateCost:
+            mean: 4
+            var: 0.5
+            geneWeight: 0.66
           PregnacyLength: 5
           ConsumptionRate: 0.05
-          MateCost: 4
-          weight: 0.25
   references:
     version: 2
     RefIds: []

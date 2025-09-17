@@ -12,7 +12,7 @@ namespace WorldConfig.Generation.Item
     //This type inherits ToolItemAuthoring which inherits AuthoringTemplate<ToolItem>  which
     //inherits Authoring which inherits Category<Authoring>
     [CreateAssetMenu(menuName = "Generation/Items/MatConverter")]
-    public class MatConverterAuthoring : AuthoringTemplate<MatConverterItem>{
+    public class MatConverterAuthoring : PlaceableTemplate<MatConverterItem>{
         /// <summary> The radius, in grid space, of the spherical region around the user's
         /// cursor that will be modified when the user terraforms the terrain. </summary>
         public int TerraformRadius = 1;

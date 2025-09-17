@@ -337,7 +337,8 @@ namespace WorldConfig.Generation.Item
                 slot %= settings.PrimarySlotCount;
                 if (InventoryController.Primary.Info[slot] == null) continue;
                 Authoring authoring = ItemInfo.Retrieve(InventoryController.Primary.Info[slot].Index);
-                if (!MatInfo.Contains(authoring.MaterialName) || !authoring.IsSolid) continue;
+                if (authoring is not PlaceableItem mSettings) continue;
+                if (!mSettings.IsSolid || !MatInfo.Contains(mSettings.MaterialName)) continue;
                 return true;
             }
             return false;

@@ -62,23 +62,53 @@ MonoBehaviour:
           z: 0.5
         friction: 0.25
       movement:
-        walkSpeed: 1.5
-        runSpeed: 3
+        walkSpeed:
+          mean: 1.5
+          var: 0.5
+          geneWeight: 0.25
+        runSpeed:
+          mean: 3
+          var: 0.5
+          geneWeight: 0.75
+        pathDistance: 16
         acceleration: 100
         rotSpeed: 180
-        pathDistance: 16
         AverageIdleTime: 2.5
       swim:
-        SwarmTime: 60
-        SeperationWeight: 0.7
-        AlignmentWeight: 0.4
-        CohesionWeight: 0.15
+        profile:
+          bounds:
+            x: 0
+            y: 0
+            z: 0
+          profileStart: 0
+        AverageFlightTime:
+          mean: 60
+          var: 0.5
+          geneWeight: 0.15
+        SeperationWeight:
+          mean: 0.7
+          var: 0.5
+          geneWeight: 0.05
+        AlignmentWeight:
+          mean: 0.4
+          var: 0.5
+          geneWeight: 0.05
+        CohesionWeight:
+          mean: 0.15
+          var: 0.75
+          geneWeight: 0.05
         InfluenceDist: 10
-        SwimDist: 4
+        PathDist: 4
         MaxSwarmSize: 10
       aquatic:
-        DrownTime: Infinity
-        SurfaceThreshold: 0
+        DrownTime:
+          mean: Infinity
+          var: 0
+          geneWeight: 0
+        SurfaceThreshold:
+          mean: 0
+          var: 0
+          geneWeight: 0
         JumpStickDistance: 0.05
         JumpStrength: 2
         SurfaceProfile:
@@ -95,20 +125,57 @@ MonoBehaviour:
         DecompositionTime: 50
       physicality:
         value:
-          MaxHealth: 2
-          NaturalRegen: -0.002
-          AttackDistance: 3
-          AttackDamage: 0.1
-          AttackCooldown: 0.5
-          KBStrength: 0.1
-          InvincTime: 0.25
-          HoldBreathTime: 15
-          HuntThreshold: 0.4
-          MateThreshold: 0.8
+          weight: 0.05
+          MaxHealth:
+            mean: 2
+            var: 0.5
+            geneWeight: 1
+          InitHealth:
+            mean: 0.5
+            var: 0.33
+            geneWeight: 0.1
+          NaturalRegen:
+            mean: -0.002
+            var: 0.75
+            geneWeight: 0.5
+          InvincTime:
+            mean: 0.25
+            var: 1
+            geneWeight: 0.5
+          HoldBreathTime:
+            mean: 15
+            var: 1
+            geneWeight: 0.05
+          AttackDistance:
+            mean: 2
+            var: 0.75
+            geneWeight: 0.5
+          AttackDamage:
+            mean: 0.25
+            var: 0.5
+            geneWeight: 0.25
+          AttackCooldown:
+            mean: 0.5
+            var: 0.5
+            geneWeight: 0.4
+          KBStrength:
+            mean: 0.1
+            var: 0.5
+            geneWeight: 0.33
+          HuntThreshold:
+            mean: 0.4
+            var: 0.5
+            geneWeight: 0.1
+          MateThreshold:
+            mean: 0.8
+            var: 0.25
+            geneWeight: 0.1
+          MateCost:
+            mean: 0.5
+            var: 0.5
+            geneWeight: 0.66
           PregnacyLength: 4
           ConsumptionRate: 0.25
-          MateCost: 0.5
-          weight: 0.1
       recognition:
         value:
           Predators:
@@ -119,6 +186,7 @@ MonoBehaviour:
             - MateType: Krill
               ChildType: Krill
               AmountPerParent: 0.8
+              GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: Kelp:Solid
@@ -127,24 +195,30 @@ MonoBehaviour:
               Nutrition: 12.75
             - EdibleType: SaturatedWater:Liquid
               Nutrition: 7.65
-          SightDistance: 16
+          SightDistance:
+            mean: 16
+            var: 0.25
+            geneWeight: 0.75
           FleeDistance: 5
           FightAggressor: 0
-          PlantFindDist: 5
+          PlantFindDist:
+            mean: 6
+            var: 0.66
+            geneWeight: 0.4
           Prey:
             value:
             - Material: Kelp
-              Bounds:
-                data: 4286643968
               Replacement: PlantMatter
-            - Material: Moss
               Bounds:
                 data: 4286643968
+            - Material: Moss
               Replacement: Dirt
+              Bounds:
+                data: 4286643968
             - Material: SaturatedWater
+              Replacement: Water
               Bounds:
                 data: 4278255488
-              Replacement: Water
   references:
     version: 2
     RefIds: []

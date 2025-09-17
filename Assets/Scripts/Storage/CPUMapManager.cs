@@ -415,9 +415,39 @@ namespace MapStorage {
                 int3 dR = GCoord - tPointGSInt;
                 int sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
                 float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius + 1, sqrDistWS);
-                if (handleTerraform(GCoord, brushStrength))
-                    TerrainUpdate.AddUpdate(GCoord);
+                handleTerraform(GCoord, brushStrength);
             });
+        }
+
+        /// <summary> Finds a singular location that can be validly terraformed, as determined by the <paramref name="canTerraform"/> callback. 
+        /// If found, the location returned will be the closest position to the center of the terraformed area (<paramref name="tPointGS"/>). </summary>
+        /// <param name="tPointGS">The center in grid space of the circle that is terraformed</param>
+        /// <param name="terraformRadius">The radius in grid space of the circle that is terraformed</param>
+        /// <param name="canTerraform">The callback that will be called for every map coordinate to determine if the point 
+        /// can be terraformed</param>
+        /// <param name="terraformPoint">If a valid coordinate was successfully found, the coordinate
+        /// which can be terraformed. </param>
+        /// <returns> Whether or not a location was found </returns>
+        public static bool FindTerraformable(
+            float3 tPointGS,
+            int terraformRadius,
+            Func<int3, bool> canTerraform,
+            out int3 terraformPoint
+        ) {
+            int3 tfmPt = 0;
+            bool terminated = false;
+            int3 tPointGSInt = (int3)math.round(tPointGS);
+            Utils.CustomUtility.OrderedLoop(terraformRadius, GCoord => {
+                if (terminated) return;
+                GCoord += tPointGSInt;
+                int3 dR = GCoord - tPointGSInt;
+                int sqrDistWS = dR.x * dR.x + dR.y * dR.y + dR.z * dR.z;
+                float brushStrength = 1.0f - Mathf.InverseLerp(0, terraformRadius * terraformRadius + 1, sqrDistWS);
+                terminated = canTerraform.Invoke(GCoord);
+                tfmPt = GCoord;
+            });
+            terraformPoint = tfmPt;
+            return terminated;
         }
 
         /// <summary> Reads back the map information associated with the Chunk Coord(<i>CCoord</i>) from the GPU to the CPU.
@@ -499,9 +529,9 @@ namespace MapStorage {
         /// change visually and marks the chunk as dirty when storing to disk. </summary>
         /// <param name="data">The <see cref="MapData"/> that is written(assigned) </param>
         /// <param name="GCoord">The coordinate in grid space of the entry being assinged to</param>
-        /// <param name="AdjacentUpdates">Whether or not to update the adjacent entries in the map. 
+        /// <param name="PropogateUpdates">Whether or not to notify entries in the map of updation. 
         /// This should always be true unless it can cause infinite cascading updates </param>
-        public static void SetMap(MapData data, int3 GCoord, bool AdjacentUpdates = true) {
+        public static void SetMap(MapData data, int3 GCoord, bool PropogateUpdates = true) {
             int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
             int3 CCoord = (GCoord - MCoord) / mapChunkSize;
             int3 HCoord = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
@@ -520,7 +550,8 @@ namespace MapStorage {
             chunkMapInfo.isDirty = true;
             AddressDict[CIndex] = chunkMapInfo;
             ReflectNeighbors(CCoord, MCoord == 0);
-            if (!AdjacentUpdates) return;
+            if (!PropogateUpdates) return;
+            TerrainUpdate.AddUpdate(GCoord);
             for (int i = 0; i < 6; i++) {
                 TerrainUpdate.AddUpdate(GCoord + Utils.CustomUtility.dP[i]);
             }
