@@ -27,14 +27,12 @@ public class MinimalVitality {
         [Range(0, 1)]
         public float weight;
         public Genetics.GeneFeature MaxHealth;
-        public Genetics.GeneFeature InitHealth;
         public Genetics.GeneFeature NaturalRegen;
         public Genetics.GeneFeature InvincTime;
         public Genetics.GeneFeature HoldBreathTime;
 
         public virtual void InitGenome(uint entityType) {
             Genetics.AddGene(entityType, ref MaxHealth);
-            Genetics.AddGene(entityType, ref InitHealth);
             Genetics.AddGene(entityType, ref NaturalRegen);
             Genetics.AddGene(entityType, ref InvincTime);
             Genetics.AddGene(entityType, ref HoldBreathTime);
@@ -55,7 +53,7 @@ public class MinimalVitality {
         this.genetics = genetics ?? new Genetics();
         this.stats = stats;
         invincibility = 0;
-        health = genetics.Get(stats.InitHealth) * genetics.Get(stats.MaxHealth);
+        health = genetics.Get(stats.MaxHealth);
         breath = genetics.Get(stats.HoldBreathTime);
     }
 
@@ -169,6 +167,12 @@ public class Vitality : MinimalVitality {
         invincibility = 0;
         attackCooldown = 0;
         breath = genetics.Get(stats.HoldBreathTime);
+        //Higher mate cost => higher starting health for children
+        health = genetics.Get(stats.MaxHealth) * Mathf.Lerp(
+            math.min(genetics.Get(stats.HuntThreshold), genetics.Get(stats.MateThreshold)),
+            genetics.Get(stats.MateThreshold),
+            (genetics.GetRawGene(stats.MateCost) + 1) / 2
+        );
     }
 
     public Vitality() { }
@@ -197,12 +201,21 @@ public class Vitality : MinimalVitality {
     [Serializable]
     public struct Decomposition {
         public Option<List<LootInfo>> LootTable;
-        public float DecompositionTime; //~300 seconds
-        public WorldConfig.Generation.Item.IItem LootItem(float collectRate, ref Unity.Mathematics.Random random) {
+        public Genetics.GeneFeature DecompositionTime; //~300 seconds
+        public void InitGenome(uint entityType) {
+            Genetics.AddGene(entityType, ref DecompositionTime);
+            ref List<LootInfo> table = ref LootTable.value;
+            for (int i = 0; i < table.Count; i++) {
+                LootInfo loot = table[i];
+                Genetics.AddGene(entityType, ref loot.DropAmount);
+                table[i] = loot;
+            }
+        }
+        public WorldConfig.Generation.Item.IItem LootItem(Genetics genetics, float collectRate, ref Unity.Mathematics.Random random) {
             if (LootTable.value == null || LootTable.value.Count == 0) return null;
             int index = random.NextInt(LootTable.value.Count);
 
-            float delta = LootTable.value[index].DropAmount * collectRate;
+            float delta = genetics.Get(LootTable.value[index].DropAmount) * collectRate;
             int amount = Mathf.FloorToInt(delta) + (random.NextFloat() < math.frac(delta) ? 1 : 0);
             if (amount == 0) return null;
 
@@ -216,7 +229,7 @@ public class Vitality : MinimalVitality {
         public struct LootInfo {
             [RegistryReference("Items")]
             public string ItemName;
-            public float DropAmount;
+            public Genetics.GeneFeature DropAmount;
         }
     }
 }

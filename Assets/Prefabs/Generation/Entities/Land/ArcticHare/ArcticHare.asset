@@ -87,8 +87,14 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Meat
-            DropAmount: 4
-        DecompositionTime: 200
+            DropAmount:
+              mean: 4
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 200
+          var: 0.5
+          geneWeight: 0.05
       recognition:
         value:
           Predators:
@@ -99,16 +105,25 @@ MonoBehaviour:
             value:
             - MateType: Rabbit
               ChildType: Rabbit
-              AmountPerParent: 0.5
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
               GeneMutationRate: 0.15
             - MateType: ArcticHare
               ChildType: ArcticHare
-              AmountPerParent: 0.5
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: Grass:Solid
-              Nutrition: 12.75
+              Nutrition:
+                mean: 12.75
+                var: 0.5
+                geneWeight: 0.1
           SightDistance:
             mean: 16
             var: 0.25

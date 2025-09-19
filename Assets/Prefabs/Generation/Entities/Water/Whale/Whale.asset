@@ -638,10 +638,19 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: FishMeat
-            DropAmount: 20
+            DropAmount:
+              mean: 20
+              var: 1
+              geneWeight: 0.05
           - ItemName: FishScales:Solid
-            DropAmount: 15
-        DecompositionTime: 600
+            DropAmount:
+              mean: 15
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 600
+          var: 0.5
+          geneWeight: 0.05
       aquatic:
         DrownTime:
           mean: 200
@@ -719,14 +728,23 @@ MonoBehaviour:
             value:
             - MateType: Whale
               ChildType: Whale
-              AmountPerParent: 0.5
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: FishMeat
-              Nutrition: 150
+              Nutrition:
+                mean: 50
+                var: 0.5
+                geneWeight: 0.1
             - EdibleType: BugMush
-              Nutrition: 192
+              Nutrition:
+                mean: 80
+                var: 0.5
+                geneWeight: 0.1
           SightDistance:
             mean: 32
             var: 0.25

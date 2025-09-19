@@ -12,7 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9407988208a348ad834c5fcf39e2f91, type: 3}
   m_Name: ToggleFly
   m_EditorClassIdentifier: 
-  Name: ToggleFly
+  Name: Toggle Fly
+  Tags:
+    Reg:
+      value: []
   bindings:
     value:
     - Key: 102
@@ -24,3 +27,6 @@ MonoBehaviour:
     - Key: 303
       PollType: 2
       IsAlias: 1
+  references:
+    version: 2
+    RefIds: []

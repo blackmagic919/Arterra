@@ -40,7 +40,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         [JsonIgnore]
         public Animator animator;
         public DateTime currentTime;
-        public Quaternion cameraRot;
+        public TerrainColliderJob.Transform camera;
         public InventoryController.Inventory PrimaryI;
         public InventoryController.Inventory SecondaryI;
         public PlayerVitality vitality;
@@ -100,7 +100,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 
         public static Player Build() {
             Player p = new();
-            p.cameraRot = Quaternion.identity;
+            p.camera.rotation = Quaternion.identity;
             p.PrimaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.PrimarySlotCount);
             p.SecondaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.SecondarySlotCount);
             p.currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.Time.value.startHour);
@@ -121,7 +121,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             settings = (PlayerSettings)setting;
             collider.OnHitGround = ProcessFallDamage;
             player = GameObject.Instantiate(Controller);
-            animator = player.GetComponent<Animator>();
+            animator = player.transform.GetChild(0).GetComponent<Animator>();
             player.transform.SetPositionAndRotation(positionWS, collider.transform.rotation);
         }
 
@@ -131,7 +131,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             settings = (PlayerSettings)setting;
             GCoord = (int3)this.origin;
             player = GameObject.Instantiate(Controller);
-            animator = player.GetComponent<Animator>();
+            animator = player.transform.GetChild(0).GetComponent<Animator>();
             player.transform.SetPositionAndRotation(positionWS, collider.transform.rotation);
             collider.OnHitGround = ProcessFallDamage;
             if (IsDead) PlayDead();

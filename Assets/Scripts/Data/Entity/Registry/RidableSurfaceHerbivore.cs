@@ -47,6 +47,7 @@ public class RidableSurfaceHerbivore : Authoring
             movement.InitGenome(entityType);
             Physicality.InitGenome(entityType);
             Recognition.InitGenome(entityType);
+            decomposition.InitGenome(entityType);
 
             base.Preset(entityType);
         }
@@ -54,25 +55,29 @@ public class RidableSurfaceHerbivore : Authoring
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class Animal : Entity, IAttackable, IMateable, IRidable
-    {  
-        public Genetics genetics;
-        public Vitality vitality;
-        public PathFinder.PathInfo pathFinder;
-        public TerrainColliderJob tCollider;
-        public Unity.Mathematics.Random random;
-        public Guid TaskTarget;
-        public uint TaskIndex;
-        public float TaskDuration;
-
+    public class Animal : Entity, IAttackable, IMateable, IRidable {
+        [JsonProperty]
+        private Genetics genetics;
+        [JsonProperty]
+        private Vitality vitality;
+        [JsonProperty]
+        private PathFinder.PathInfo pathFinder;
+        [JsonProperty]
+        private TerrainColliderJob tCollider;
+        [JsonProperty]
+        private Unity.Mathematics.Random random;
+        [JsonProperty]
+        private Guid TaskTarget;
+        [JsonProperty]
+        private uint TaskIndex;
+        [JsonProperty]
+        private float TaskDuration;
+        [JsonProperty]
         private Guid RiderTarget;
-        
-        [JsonIgnore]
+
         private AnimalController controller;
-        [JsonIgnore]
-        public AnimalSetting settings;
-        [JsonIgnore]
-        public static Action<Animal>[] TaskRegistry = new Action<Animal>[]{
+        private AnimalSetting settings;
+        private static Action<Animal>[] TaskRegistry = new Action<Animal>[]{
             Idle, //0
             RandomPath, //1
             FollowPath,//2
@@ -101,7 +106,7 @@ public class RidableSurfaceHerbivore : Authoring
             set => tCollider.transform.position = value;
         }
         [JsonIgnore]
-        public int3 GCoord => (int3)math.floor(origin); 
+        public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
         public bool IsDead => vitality.IsDead;
         [JsonIgnore]
@@ -126,9 +131,9 @@ public class RidableSurfaceHerbivore : Authoring
             if (TaskIndex == 11 && attacker is not IAttackable) TaskIndex = 10u;  //Don't try to attack a non-attackable entity
             pathFinder.hasPath = false;
         }
-        public void ProcessFallDamage(float zVelDelta){
-            if(zVelDelta <= Vitality.FallDmgThresh) return;
-            float damage = zVelDelta - Vitality.FallDmgThresh;    
+        public void ProcessFallDamage(float zVelDelta) {
+            if (zVelDelta <= Vitality.FallDmgThresh) return;
+            float damage = zVelDelta - Vitality.FallDmgThresh;
             damage = math.pow(damage, settings.Physicality.weight);
             EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
@@ -137,7 +142,7 @@ public class RidableSurfaceHerbivore : Authoring
             if (caller == null) return;
             if (caller is not IRider) return;
             //Don't allow riding if the caller hit it
-            if (caller.info.entityId == TaskTarget) return; 
+            if (caller.info.entityId == TaskTarget) return;
             IRider rider = (IRider)caller;
             if (RiderTarget != Guid.Empty) return;
 
@@ -146,24 +151,23 @@ public class RidableSurfaceHerbivore : Authoring
             EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
         }
 
-        public WorldConfig.Generation.Item.IItem Collect(float amount)
-        {
+        public WorldConfig.Generation.Item.IItem Collect(float amount) {
             if (!IsDead) return null; //You can't collect resources until the entity is dead
-            var item = settings.decomposition.LootItem(amount, ref random);
+            var item = settings.decomposition.LootItem(genetics, amount, ref random);
             TaskDuration -= amount;
             return item;
         }
-        
+
         //Not thread safe
-        public bool CanMateWith(Entity entity){
-            if(vitality.healthPercent < genetics.Get(settings.Physicality.MateThreshold)) return false;
-            if(vitality.IsDead) return false;
-            if(TaskIndex >= 8) return false;
+        public bool CanMateWith(Entity entity) {
+            if (vitality.healthPercent < genetics.Get(settings.Physicality.MateThreshold)) return false;
+            if (vitality.IsDead) return false;
+            if (TaskIndex >= 8) return false;
             return settings.Recognition.CanMateWith(entity);
         }
-        public void MateWith(Entity entity){
-            if(!CanMateWith(entity)) return;
-            if(settings.Recognition.MateWithEntity(genetics, entity, ref random))
+        public void MateWith(Entity entity) {
+            if (!CanMateWith(entity)) return;
+            if (settings.Recognition.MateWithEntity(genetics, entity, ref random))
                 vitality.Damage(genetics.Get(settings.Physicality.MateCost));
             TaskDuration = settings.Physicality.PregnacyLength;
             TaskIndex = 5;
@@ -175,14 +179,14 @@ public class RidableSurfaceHerbivore : Authoring
             if (target == null || target is not IRider rider)
                 return;
 
-            EntityManager.AddHandlerEvent(() =>rider.OnDismounted(this));
+            EntityManager.AddHandlerEvent(() => rider.OnDismounted(this));
             RiderTarget = Guid.Empty;
             //Return to idling if following rider commands
             if (TaskIndex == 6) TaskIndex = 0;
         }
 
         public void WalkInDirection(float3 aim) {
-            aim = new (aim.x, 0, aim.z);
+            aim = new(aim.x, 0, aim.z);
             if (Vector3.Magnitude(aim) <= 1E-05f) return;
             if (math.length(tCollider.velocity) > genetics.Get(settings.movement.runSpeed))
                 return;
@@ -190,8 +194,7 @@ public class RidableSurfaceHerbivore : Authoring
             tCollider.velocity += settings.movement.acceleration * EntityJob.cxt.deltaTime * aim;
         }
 
-        public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord)
-        {
+        public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (AnimalSetting)setting;
             controller = new AnimalController(Controller, this);
             //The seed is the entity's memory address
@@ -209,43 +212,46 @@ public class RidableSurfaceHerbivore : Authoring
             TaskIndex = 0;
         }
 
-        public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord)
-        {
+        public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
             settings = (AnimalSetting)setting;
             controller = new AnimalController(Controller, this);
             vitality.Deserialize(settings.Physicality, genetics);
             tCollider.OnHitGround = ProcessFallDamage;
             random.state ^= (uint)GetHashCode();
             GCoord = this.GCoord;
+
+            if (RiderTarget == Guid.Empty) return;
+            Entity entity = EntityManager.GetEntity(RiderTarget);
+            if (entity != null && entity is IRider rider)
+            EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
         }
 
 
-        public override void Update()
-        {
-            if(!active) return;
+        public override void Update() {
+            if (!active) return;
             tCollider.Update(settings.collider, this);
             EntityManager.AddHandlerEvent(controller.Update);
 
             tCollider.useGravity = true;
-            TerrainInteractor.DetectMapInteraction(position, 
+            TerrainInteractor.DetectMapInteraction(position,
             OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
             OnInGas: vitality.ProcessInGas);
             if (!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
-            
+
             vitality.Update();
             TaskRegistry[(int)TaskIndex].Invoke(this);
             //Shared high priority states
-            if(TaskIndex != 14 && vitality.IsDead) {
-                TaskDuration = settings.decomposition.DecompositionTime;
+            if (TaskIndex != 14 && vitality.IsDead) {
+                TaskDuration = genetics.Get(settings.decomposition.DecompositionTime);
                 TaskIndex = 14;
-            } else if(TaskIndex <= 12)  DetectPredator();
+            } else if (TaskIndex <= 12) DetectPredator();
         }
 
-        
+
         //Always detect unless already running from predator
-        private unsafe void DetectPredator(){
-            if(!settings.Recognition.FindClosestPredator(this, genetics.Get(
+        private unsafe void DetectPredator() {
+            if (!settings.Recognition.FindClosestPredator(this, genetics.Get(
                 settings.Recognition.SightDistance), out Entity predator))
                 return;
 
@@ -257,12 +263,12 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         //Task 0
-        private static void Idle(Animal self){
-            if(self.TaskDuration <= 0){
+        private static void Idle(Animal self) {
+            if (self.TaskDuration <= 0) {
                 self.TaskIndex = 1;
             } else self.TaskDuration -= EntityJob.cxt.deltaTime;
-            
-            if(self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.HuntThreshold))
+
+            if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.HuntThreshold))
                 self.TaskIndex = 7; //Hunt for food
             else if (self.RiderTarget != Guid.Empty)
                 self.TaskIndex = 6; //Follow rider
@@ -271,10 +277,10 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         // Task 1
-        private static unsafe void RandomPath(Animal self){
+        private static unsafe void RandomPath(Animal self) {
             int PathDist = self.settings.movement.pathDistance;
-            int3 dP = new (self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist));
-            if(PathFinder.VerifyProfile(self.GCoord + dP, self.settings.profile, EntityJob.cxt)) {
+            int3 dP = new(self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist));
+            if (PathFinder.VerifyProfile(self.GCoord + dP, self.settings.profile, EntityJob.cxt)) {
                 byte* path = PathFinder.FindPath(self.GCoord, dP, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
                 self.TaskIndex = 2;
@@ -283,23 +289,23 @@ public class RidableSurfaceHerbivore : Authoring
 
 
         //Task 2
-        private static unsafe void FollowPath(Animal self){
-            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
+        private static unsafe void FollowPath(Animal self) {
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
-            if(self.pathFinder.hasPath) return;
+            if (self.pathFinder.hasPath) return;
             self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
             self.TaskIndex = 0;
         }
-        
+
         //Task 3
-        private static unsafe void FindMate(Animal self){
-            if(self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.MateThreshold)
+        private static unsafe void FindMate(Animal self) {
+            if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.MateThreshold)
                 || !self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
-            ){
+            ) {
                 self.TaskIndex = 1;
-                return;   
+                return;
             }
             int PathDist = self.settings.movement.pathDistance;
             int3 destination = (int3)math.round(mate.origin) - self.GCoord;
@@ -309,8 +315,7 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         //Task 4
-        private static unsafe void ChaseMate(Animal self)
-        {//I feel you man
+        private static unsafe void ChaseMate(Animal self) {//I feel you man
             if (!self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
             ) {
@@ -322,7 +327,7 @@ public class RidableSurfaceHerbivore : Authoring
                 self.Genetics.GetInt(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration
             );
-            
+
             float mateDist = Recognition.GetColliderDist(self, mate);
             if (mateDist < self.genetics.Get(self.settings.Physicality.AttackDistance)) {
                 EntityManager.AddHandlerEvent(() => (mate as IMateable).MateWith(self));
@@ -336,9 +341,9 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         //Task 5 (I will never get here)
-        private static void Reproduce(Animal self){
+        private static void Reproduce(Animal self) {
             self.TaskDuration -= EntityJob.cxt.deltaTime;
-            if(self.TaskDuration > 0) return;
+            if (self.TaskDuration > 0) return;
             self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
             self.TaskIndex = 0;
         }
@@ -353,13 +358,12 @@ public class RidableSurfaceHerbivore : Authoring
 
             if (math.length(self.tCollider.velocity.xz) < 1E-05f) return;
             float3 aim = math.normalize(new float3(self.tCollider.velocity.x, 0, self.tCollider.velocity.z));
-            self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation, 
+            self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation,
             Quaternion.LookRotation(aim), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
         }
 
         //Task 7
-        private static unsafe void FindPrey(Animal self)
-        {
+        private static unsafe void FindPrey(Animal self) {
             if (!self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
                 self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 preyPos)
             ) {
@@ -378,125 +382,124 @@ public class RidableSurfaceHerbivore : Authoring
                 if (dist <= self.genetics.Get(self.settings.Physicality.AttackDistance)) {
                     self.TaskDuration = 1 / math.max(self.settings.Physicality.ConsumptionRate, 0.0001f);
                     self.TaskIndex = 9;
-                }
-                else {
+                } else {
                     self.TaskIndex = 1;
                 }
             }
         }
 
         //Task 8
-        private static unsafe void ChasePrey(Animal self){
-            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
+        private static unsafe void ChasePrey(Animal self) {
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
-            if(self.pathFinder.hasPath) return;
+            if (self.pathFinder.hasPath) return;
 
-            if(self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
-                self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 preyPos) && 
+            if (self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
+                self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 preyPos) &&
                 Recognition.GetColliderDist(self, preyPos) <= self.genetics.Get(self.settings.Physicality.AttackDistance)
-            ){
+            ) {
                 self.TaskDuration = 1 / math.max(self.settings.Physicality.ConsumptionRate, 0.0001f);
                 self.TaskIndex = 9;
             } else self.TaskIndex = 7;
         }
 
         //Task 9
-        private static unsafe void EatFood(Animal self){
+        private static unsafe void EatFood(Animal self) {
             self.TaskDuration -= EntityJob.cxt.deltaTime;
-            if(self.TaskDuration <= 0){
-                if(self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
+            if (self.TaskDuration <= 0) {
+                if (self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
                     self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 foodPos)
-                ){
+                ) {
                     WorldConfig.Generation.Item.IItem item = self.settings.Recognition.ConsumeFood(self, foodPos);
-                    if(item != null && self.settings.Recognition.CanConsume(item, out float nutrition))
-                        self.vitality.Heal(nutrition);  
+                    if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition))
+                        self.vitality.Heal(nutrition);
                     self.TaskIndex = 0;
                 } else self.TaskIndex = 7;
             }
         }
 
         //Task 10
-        private static unsafe void RunFromTarget(Animal self){
+        private static unsafe void RunFromTarget(Animal self) {
             Entity target = EntityManager.GetEntity(self.TaskTarget);
-            if(target == null) self.TaskTarget = Guid.Empty;
-            else if(Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
+            if (target == null) self.TaskTarget = Guid.Empty;
+            else if (Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
-            if(self.TaskTarget == Guid.Empty) {
+            if (self.TaskTarget == Guid.Empty) {
                 self.TaskIndex = 0;
                 return;
             }
 
-            if(!self.pathFinder.hasPath) {
+            if (!self.pathFinder.hasPath) {
                 int PathDist = self.settings.Recognition.FleeDistance;
                 float3 rayDir = self.position - target.position;
                 byte* path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
-            } 
-            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, 
+            }
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
         }
-        
+
         //Task 11
-        private static unsafe void ChaseTarget(Animal self){
+        private static unsafe void ChaseTarget(Animal self) {
             Entity target = EntityManager.GetEntity(self.TaskTarget);
-            if(target == null) 
+            if (target == null)
                 self.TaskTarget = Guid.Empty;
-            else if(Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
+            else if (Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
-            if(self.TaskTarget == Guid.Empty) {
+            if (self.TaskTarget == Guid.Empty) {
                 self.TaskIndex = 0;
                 return;
             }
 
-            if(!self.pathFinder.hasPath) {
+            if (!self.pathFinder.hasPath) {
                 int PathDist = self.settings.movement.pathDistance;
                 int3 destination = (int3)math.round(target.origin) - self.GCoord;
                 byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
-            } 
+            }
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, target.origin,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
-            if(Recognition.GetColliderDist(self, target) < self.genetics.Get(self.settings.Physicality.AttackDistance)) {
+            if (Recognition.GetColliderDist(self, target) < self.genetics.Get(self.settings.Physicality.AttackDistance)) {
                 self.TaskIndex = 12;
                 return;
             }
         }
 
         //Task 12
-        private static void AttackTarget(Animal self){
+        private static void AttackTarget(Animal self) {
             Entity tEntity = EntityManager.GetEntity(self.TaskTarget);
-            if(tEntity == null) 
+            if (tEntity == null)
                 self.TaskTarget = Guid.Empty;
-            else if(tEntity is not IAttackable)
+            else if (tEntity is not IAttackable)
                 self.TaskTarget = Guid.Empty;
-            if(self.TaskTarget == Guid.Empty) {
+            if (self.TaskTarget == Guid.Empty) {
                 self.TaskIndex = 0;
                 return;
             }
             float targetDist = Recognition.GetColliderDist(tEntity, self);
-            if(targetDist > self.genetics.Get(self.settings.Physicality.AttackDistance)) {
+            if (targetDist > self.genetics.Get(self.settings.Physicality.AttackDistance)) {
                 self.TaskIndex = 11;
                 return;
             }
 
             float3 atkDir = math.normalize(tEntity.position - self.position); atkDir.y = 0;
-            if(math.any(atkDir != 0)) self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation, 
+            if (math.any(atkDir != 0)) self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation,
             Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
 
             IAttackable target = tEntity as IAttackable;
-            if(target.IsDead) self.TaskIndex = 0;
+            if (target.IsDead) self.TaskIndex = 0;
             else self.vitality.Attack(tEntity, self);
         }
 
         //Task 13
-        private static unsafe void RunFromPredator(Animal self){
+        private static unsafe void RunFromPredator(Animal self) {
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
-            if(!self.pathFinder.hasPath) {
+            if (!self.pathFinder.hasPath) {
                 self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
                 self.TaskIndex = 0;
                 return;
@@ -504,123 +507,122 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         //Task 14
-        private static void Death(Animal self){
+        private static void Death(Animal self) {
             if (self.RiderTarget != Guid.Empty) {
                 self.Dismount();
             }
 
             self.TaskDuration -= EntityJob.cxt.deltaTime;
-            if(!self.IsDead){ //Bring back from the dead 
+            if (!self.IsDead) { //Bring back from the dead 
                 self.TaskIndex = 0;
                 return;
             }
             //Kill the entity
-            if(self.TaskDuration <= 0) EntityManager.ReleaseEntity(self.info.entityId);
+            if (self.TaskDuration <= 0) EntityManager.ReleaseEntity(self.info.entityId);
         }
 
-        public override void Disable(){
+        public override void Disable() {
             controller.Dispose();
         }
 
-        public override void OnDrawGizmos(){
-            if(!active) return;
-            Gizmos.color = info.entityType % 2 == 0 ? Color.red : Color.blue; 
+        public override void OnDrawGizmos() {
+            if (!active) return;
+            Gizmos.color = info.entityType % 2 == 0 ? Color.red : Color.blue;
             Gizmos.DrawWireCube(CPUMapManager.GSToWS(position), settings.collider.size * 2);
             PathFinder.PathInfo finder = pathFinder; //copy so we don't modify the original
-            if(finder.hasPath){
+            if (finder.hasPath) {
                 int ind = finder.currentInd;
-                while(ind != finder.path.Length){
+                while (ind != finder.path.Length) {
                     int dir = finder.path[ind];
                     int3 dest = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
-                    Gizmos.DrawLine(CPUMapManager.GSToWS(finder.currentPos), 
+                    Gizmos.DrawLine(CPUMapManager.GSToWS(finder.currentPos),
                                     CPUMapManager.GSToWS(dest));
                     finder.currentPos = dest;
                     ind++;
                 }
             }
         }
+        
+        private class AnimalController {
+            private Animal entity;
+            private Animator animator;
+            private GameObject gameObject;
+            internal Transform RideRoot;
+            private Transform transform;
+            private bool active = false;
+            private int AnimatorTask;
+            private static readonly string[] AnimationNames = new string[]{
+                "IsIdling",  null, "IsWalking", null, "IsWalking", "IsCuddling",  
+                null, null, "IsWalking", "IsEating", "IsRunning", "IsRunning", 
+                "IsAttacking", "IsRunning", "IsDead"
+            };
 
-    }
+            public AnimalController(GameObject GameObject, Animal entity){
+                this.entity = entity;
+                this.gameObject = GameObject.Instantiate(GameObject);
+                this.transform = gameObject.transform;
+                this.animator = gameObject.GetComponent<Animator>();
+                this.RideRoot = gameObject.transform.Find("Armature").Find("root").Find("base");
+                this.AnimatorTask = 0;
+                this.active = true;
 
-    private class AnimalController {
-        private Animal entity;
-        private Animator animator;
-        private GameObject gameObject;
-        internal Transform RideRoot;
-        private Transform transform;
-        private bool active = false;
-        private int AnimatorTask;
-        private static readonly string[] AnimationNames = new string[]{
-            "IsIdling",  null, "IsWalking", null, "IsWalking", "IsCuddling",  
-            null, null, "IsWalking", "IsEating", "IsRunning", "IsRunning", 
-            "IsAttacking", "IsRunning", "IsDead"
-        };
+                Indicators.SetupIndicators(gameObject);
+                transform.position = CPUMapManager.GSToWS(entity.position);
+            }
 
-        public AnimalController(GameObject GameObject, Animal entity){
-            this.entity = entity;
-            this.gameObject = GameObject.Instantiate(GameObject);
-            this.transform = gameObject.transform;
-            this.animator = gameObject.GetComponent<Animator>();
-            this.RideRoot = gameObject.transform.Find("Armature").Find("root").Find("base");
-            this.AnimatorTask = 0;
-            this.active = true;
-
-            Indicators.SetupIndicators(gameObject);
-            transform.position = CPUMapManager.GSToWS(entity.position);
-        }
-
-        public void Update() {
-            if (!entity.active) return;
-            if (gameObject == null) return;
-            this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), entity.tCollider.transform.rotation);
+            public void Update() {
+                if (!entity.active) return;
+                if (gameObject == null) return;
+                this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), entity.tCollider.transform.rotation);
 #if UNITY_EDITOR
-            if (UnityEditor.Selection.Contains(gameObject)) Debug.Log(entity.TaskIndex);
+                if (UnityEditor.Selection.Contains(gameObject)) Debug.Log(entity.TaskIndex);
 #endif
 
-            Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
-            if (AnimatorTask == 6) UpdateRidingAnimations();
-            if (AnimatorTask == entity.TaskIndex) return;
-            if (AnimatorTask == 6) DisableRidingAnimations();
+                Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
+                if (AnimatorTask == 6) UpdateRidingAnimations();
+                if (AnimatorTask == entity.TaskIndex) return;
+                if (AnimatorTask == 6) DisableRidingAnimations();
 
-            if (AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], false);
-            AnimatorTask = (int)entity.TaskIndex;
-            if (AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], true);
+                if (AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], false);
+                AnimatorTask = (int)entity.TaskIndex;
+                if (AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], true);
 
-            void UpdateRidingAnimations() {
-                if (math.length(entity.tCollider.velocity) <= 1E-05f) {
-                    animator.SetBool("IsIdling", true);
-                } else animator.SetBool("IsIdling", false);
+                void UpdateRidingAnimations() {
+                    if (math.length(entity.tCollider.velocity) <= 1E-05f) {
+                        animator.SetBool("IsIdling", true);
+                    } else animator.SetBool("IsIdling", false);
 
-                if (math.length(entity.tCollider.velocity) > 1E-05F
-                    && math.length(entity.tCollider.velocity)
-                    <= entity.genetics.Get(entity.settings.movement.walkSpeed)
-                ) {
-                    animator.SetBool("IsWalking", true);
-                } else animator.SetBool("IsWalking", false);
+                    if (math.length(entity.tCollider.velocity) > 1E-05F
+                        && math.length(entity.tCollider.velocity)
+                        <= entity.genetics.Get(entity.settings.movement.walkSpeed)
+                    ) {
+                        animator.SetBool("IsWalking", true);
+                    } else animator.SetBool("IsWalking", false);
 
-                if (math.length(entity.tCollider.velocity)
-                    > entity.genetics.Get(entity.settings.movement.walkSpeed)
-                ) {
-                    animator.SetBool("IsRunning", true);
-                } else animator.SetBool("IsRunning", false);
+                    if (math.length(entity.tCollider.velocity)
+                        > entity.genetics.Get(entity.settings.movement.walkSpeed)
+                    ) {
+                        animator.SetBool("IsRunning", true);
+                    } else animator.SetBool("IsRunning", false);
+                }
+                
+                void DisableRidingAnimations() {
+                    animator.SetBool("IsIdling", false);
+                    animator.SetBool("IsWalking", false);
+                    animator.SetBool("IsRunning", false);
+                }
             }
-            
-            void DisableRidingAnimations() {
-                animator.SetBool("IsIdling", false);
-                animator.SetBool("IsWalking", false);
-                animator.SetBool("IsRunning", false);
+
+            public void Dispose(){
+                if(!active) return;
+                active = false;
+
+                GameObject.Destroy(gameObject);
             }
-        }
 
-        public void Dispose(){
-            if(!active) return;
-            active = false;
-
-            GameObject.Destroy(gameObject);
-        }
-
-        ~AnimalController(){
-            Dispose();
+            ~AnimalController(){
+                Dispose();
+            }
         }
     }
 }

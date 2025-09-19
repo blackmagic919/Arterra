@@ -1,0 +1,635 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!319 &31900000
+AvatarMask:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: PedalMovementMask
+  m_Mask: 01000000000000000000000001000000010000000000000000000000000000000000000001000000010000000000000000000000
+  m_Elements:
+  - m_Path: 
+    m_Weight: 1
+  - m_Path: Belt1.001
+    m_Weight: 0
+  - m_Path: Belt2.001
+    m_Weight: 0
+  - m_Path: Belt3.001
+    m_Weight: 0
+  - m_Path: Boots.001
+    m_Weight: 0
+  - m_Path: Boots.002
+    m_Weight: 0
+  - m_Path: Eyebrows.001
+    m_Weight: 0
+  - m_Path: Eyes.002
+    m_Weight: 0
+  - m_Path: Hair_Base.001
+    m_Weight: 0
+  - m_Path: hRig
+    m_Weight: 1
+  - m_Path: hRig/armControl.L
+    m_Weight: 0
+  - m_Path: hRig/armControl.L/armControl.L_end
+    m_Weight: 0
+  - m_Path: hRig/armControl.R
+    m_Weight: 0
+  - m_Path: hRig/armControl.R/armControl.R_end
+    m_Weight: 0
+  - m_Path: hRig/armControl.R.002
+    m_Weight: 0
+  - m_Path: hRig/armControl.R.002/armControl.R.002_end
+    m_Weight: 0
+  - m_Path: hRig/armPole.L
+    m_Weight: 0
+  - m_Path: hRig/armPole.L/armPole.L_end
+    m_Weight: 0
+  - m_Path: hRig/armPole.R
+    m_Weight: 0
+  - m_Path: hRig/armPole.R/armPole.R_end
+    m_Weight: 0
+  - m_Path: hRig/footControl.L
+    m_Weight: 1
+  - m_Path: hRig/footControl.L/footControl.L_end
+    m_Weight: 1
+  - m_Path: hRig/footControl.R
+    m_Weight: 1
+  - m_Path: hRig/footControl.R/footControl.R_end
+    m_Weight: 1
+  - m_Path: hRig/footPole.L
+    m_Weight: 1
+  - m_Path: hRig/footPole.L/footPole.L_end
+    m_Weight: 1
+  - m_Path: hRig/footPole.R
+    m_Weight: 1
+  - m_Path: hRig/footPole.R/footPole.R_end
+    m_Weight: 1
+  - m_Path: hRig/spine
+    m_Weight: 1
+  - m_Path: hRig/spine/pelvis.L
+    m_Weight: 1
+  - m_Path: hRig/spine/pelvis.L/pelvis.L_end
+    m_Weight: 1
+  - m_Path: hRig/spine/pelvis.R
+    m_Weight: 1
+  - m_Path: hRig/spine/pelvis.R/pelvis.R_end
+    m_Weight: 1
+  - m_Path: hRig/spine/spine.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/base
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/base/base_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/breast.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/breast.L/breast.L_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/breast.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/breast.R/breast.R_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/forearm.L.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/forearm.L.002/forearm.L.002_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/handle
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/handle/handle_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.01.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.01.L/f_index.01.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.01.L/f_index.01.L/f_index.02.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.01.L/f_index.01.L/f_index.02.L/f_index.03.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.01.L/f_index.01.L/f_index.02.L/f_index.03.L/f_index.03.L_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.01.L/thumb.01.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.01.L/thumb.01.L/thumb.02.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.01.L/thumb.01.L/thumb.02.L/thumb.03.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.01.L/thumb.01.L/thumb.02.L/thumb.03.L/thumb.03.L_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.02.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.02.L/f_middle.01.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.02.L/f_middle.01.L/f_middle.02.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.02.L/f_middle.01.L/f_middle.02.L/f_middle.03.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.02.L/f_middle.01.L/f_middle.02.L/f_middle.03.L/f_middle.03.L_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.03.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.03.L/f_ring.01.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.03.L/f_ring.01.L/f_ring.02.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.03.L/f_ring.01.L/f_ring.02.L/f_ring.03.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.03.L/f_ring.01.L/f_ring.02.L/f_ring.03.L/f_ring.03.L_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.04.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.04.L/f_pinky.01.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.04.L/f_pinky.01.L/f_pinky.02.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.04.L/f_pinky.01.L/f_pinky.02.L/f_pinky.03.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/palm.04.L/f_pinky.01.L/f_pinky.02.L/f_pinky.03.L/f_pinky.03.L_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.01.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.01.R/f_index.01.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.01.R/f_index.01.R/f_index.02.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.01.R/f_index.01.R/f_index.02.R/f_index.03.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.01.R/f_index.01.R/f_index.02.R/f_index.03.R/f_index.03.R_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.01.R/thumb.01.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.01.R/thumb.01.R/thumb.02.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.01.R/thumb.01.R/thumb.02.R/thumb.03.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.01.R/thumb.01.R/thumb.02.R/thumb.03.R/thumb.03.R_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.02.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.02.R/f_middle.01.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.02.R/f_middle.01.R/f_middle.02.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.02.R/f_middle.01.R/f_middle.02.R/f_middle.03.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.02.R/f_middle.01.R/f_middle.02.R/f_middle.03.R/f_middle.03.R_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.03.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.03.R/f_ring.01.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.03.R/f_ring.01.R/f_ring.02.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.03.R/f_ring.01.R/f_ring.02.R/f_ring.03.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.03.R/f_ring.01.R/f_ring.02.R/f_ring.03.R/f_ring.03.R_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.04.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.04.R/f_pinky.01.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.04.R/f_pinky.01.R/f_pinky.02.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.04.R/f_pinky.01.R/f_pinky.02.R/f_pinky.03.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R/hand.R/palm.04.R/f_pinky.01.R/f_pinky.02.R/f_pinky.03.R/f_pinky.03.R_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/brow.B.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/brow.B.L/brow.B.L.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/brow.B.L/brow.B.L.001/brow.B.L.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/brow.B.L/brow.B.L.001/brow.B.L.002/brow.B.L.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/brow.B.L/brow.B.L.001/brow.B.L.002/brow.B.L.003/brow.B.L.003_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/brow.B.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/brow.B.R/brow.B.R.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/brow.B.R/brow.B.R.001/brow.B.R.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/brow.B.R/brow.B.R.001/brow.B.R.002/brow.B.R.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/brow.B.R/brow.B.R.001/brow.B.R.002/brow.B.R.003/brow.B.R.003_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/cheek.T.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/cheek.T.L/cheek.T.L.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/cheek.T.L/cheek.T.L.001/nose.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/cheek.T.L/cheek.T.L.001/nose.L/nose.L.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/cheek.T.L/cheek.T.L.001/nose.L/nose.L.001/nose.L.001_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/cheek.T.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/cheek.T.R/cheek.T.R.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/cheek.T.R/cheek.T.R.001/nose.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/cheek.T.R/cheek.T.R.001/nose.R/nose.R.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/cheek.T.R/cheek.T.R.001/nose.R/nose.R.001/nose.R.001_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/ear.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/ear.L/ear.L.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/ear.L/ear.L.001/ear.L.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/ear.L/ear.L.001/ear.L.002/ear.L.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/ear.L/ear.L.001/ear.L.002/ear.L.003/ear.L.004
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/ear.L/ear.L.001/ear.L.002/ear.L.003/ear.L.004/ear.L.004_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/ear.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/ear.R/ear.R.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/ear.R/ear.R.001/ear.R.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/ear.R/ear.R.001/ear.R.002/ear.R.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/ear.R/ear.R.001/ear.R.002/ear.R.003/ear.R.004
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/ear.R/ear.R.001/ear.R.002/ear.R.003/ear.R.004/ear.R.004_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/eye.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/eye.L/eye.L_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/eye.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/eye.R/eye.R_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001/forehead.L.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001/forehead.L.002/temple.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001/forehead.L.002/temple.L/jaw.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001/forehead.L.002/temple.L/jaw.L/jaw.L.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001/forehead.L.002/temple.L/jaw.L/jaw.L.001/chin.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001/forehead.L.002/temple.L/jaw.L/jaw.L.001/chin.L/cheek.B.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001/forehead.L.002/temple.L/jaw.L/jaw.L.001/chin.L/cheek.B.L/cheek.B.L.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001/forehead.L.002/temple.L/jaw.L/jaw.L.001/chin.L/cheek.B.L/cheek.B.L.001/brow.T.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001/forehead.L.002/temple.L/jaw.L/jaw.L.001/chin.L/cheek.B.L/cheek.B.L.001/brow.T.L/brow.T.L.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001/forehead.L.002/temple.L/jaw.L/jaw.L.001/chin.L/cheek.B.L/cheek.B.L.001/brow.T.L/brow.T.L.001/brow.T.L.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001/forehead.L.002/temple.L/jaw.L/jaw.L.001/chin.L/cheek.B.L/cheek.B.L.001/brow.T.L/brow.T.L.001/brow.T.L.002/brow.T.L.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.L/forehead.L.001/forehead.L.002/temple.L/jaw.L/jaw.L.001/chin.L/cheek.B.L/cheek.B.L.001/brow.T.L/brow.T.L.001/brow.T.L.002/brow.T.L.003/brow.T.L.003_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001/forehead.R.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001/forehead.R.002/temple.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001/forehead.R.002/temple.R/jaw.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001/forehead.R.002/temple.R/jaw.R/jaw.R.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001/forehead.R.002/temple.R/jaw.R/jaw.R.001/chin.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001/forehead.R.002/temple.R/jaw.R/jaw.R.001/chin.R/cheek.B.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001/forehead.R.002/temple.R/jaw.R/jaw.R.001/chin.R/cheek.B.R/cheek.B.R.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001/forehead.R.002/temple.R/jaw.R/jaw.R.001/chin.R/cheek.B.R/cheek.B.R.001/brow.T.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001/forehead.R.002/temple.R/jaw.R/jaw.R.001/chin.R/cheek.B.R/cheek.B.R.001/brow.T.R/brow.T.R.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001/forehead.R.002/temple.R/jaw.R/jaw.R.001/chin.R/cheek.B.R/cheek.B.R.001/brow.T.R/brow.T.R.001/brow.T.R.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001/forehead.R.002/temple.R/jaw.R/jaw.R.001/chin.R/cheek.B.R/cheek.B.R.001/brow.T.R/brow.T.R.001/brow.T.R.002/brow.T.R.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/forehead.R/forehead.R.001/forehead.R.002/temple.R/jaw.R/jaw.R.001/chin.R/cheek.B.R/cheek.B.R.001/brow.T.R/brow.T.R.001/brow.T.R.002/brow.T.R.003/brow.T.R.003_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/jaw
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/jaw/chin
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/jaw/chin/chin.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/jaw/chin/chin.001/chin.001_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.L/lid.T.L.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.L/lid.T.L.001/lid.T.L.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.L/lid.T.L.001/lid.T.L.002/lid.T.L.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.L/lid.T.L.001/lid.T.L.002/lid.T.L.003/lid.B.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.L/lid.T.L.001/lid.T.L.002/lid.T.L.003/lid.B.L/lid.B.L.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.L/lid.T.L.001/lid.T.L.002/lid.T.L.003/lid.B.L/lid.B.L.001/lid.B.L.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.L/lid.T.L.001/lid.T.L.002/lid.T.L.003/lid.B.L/lid.B.L.001/lid.B.L.002/lid.B.L.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.L/lid.T.L.001/lid.T.L.002/lid.T.L.003/lid.B.L/lid.B.L.001/lid.B.L.002/lid.B.L.003/lid.B.L.003_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.R/lid.T.R.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.R/lid.T.R.001/lid.T.R.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.R/lid.T.R.001/lid.T.R.002/lid.T.R.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.R/lid.T.R.001/lid.T.R.002/lid.T.R.003/lid.B.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.R/lid.T.R.001/lid.T.R.002/lid.T.R.003/lid.B.R/lid.B.R.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.R/lid.T.R.001/lid.T.R.002/lid.T.R.003/lid.B.R/lid.B.R.001/lid.B.R.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.R/lid.T.R.001/lid.T.R.002/lid.T.R.003/lid.B.R/lid.B.R.001/lid.B.R.002/lid.B.R.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lid.T.R/lid.T.R.001/lid.T.R.002/lid.T.R.003/lid.B.R/lid.B.R.001/lid.B.R.002/lid.B.R.003/lid.B.R.003_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lip.B.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lip.B.L/lip.B.L.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lip.B.L/lip.B.L.001/lip.B.L.001_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lip.B.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lip.B.R/lip.B.R.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lip.B.R/lip.B.R.001/lip.B.R.001_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lip.T.L
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lip.T.L/lip.T.L.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lip.T.L/lip.T.L.001/lip.T.L.001_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lip.T.R
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lip.T.R/lip.T.R.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/lip.T.R/lip.T.R.001/lip.T.R.001_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/nose
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/nose/nose.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/nose/nose.001/nose.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/nose/nose.001/nose.002/nose.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/nose/nose.001/nose.002/nose.003/nose.004
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/nose/nose.001/nose.002/nose.003/nose.004/nose.004_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/tongue
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/tongue/tongue.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/tongue/tongue.001/tongue.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/face/tongue/tongue.001/tongue.002/tongue.002_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.015
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.015/hair.1.016
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.015/hair.1.016/hair.1.017
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.015/hair.1.016/hair.1.017/hair.1.018
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.015/hair.1.016/hair.1.017/hair.1.018/hair.1.018_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.019
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.019/hair.1.013
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.019/hair.1.013/hair.1.014
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.019/hair.1.013/hair.1.014/hair.1.014_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.020
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.020/hair.1.011
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.020/hair.1.011/hair.1.012
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.020/hair.1.011/hair.1.012/hair.1.012_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.021
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.021/hair.1.005
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.021/hair.1.005/hair.1.006
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.021/hair.1.005/hair.1.006/hair.1.006_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.022
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.022/hair.1.001
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.022/hair.1.001/hair.1.002
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.022/hair.1.001/hair.1.002/hair.1.003
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.022/hair.1.001/hair.1.002/hair.1.003/hair.1.003_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.023
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.023/hair.1.024
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.023/hair.1.024/hair.1.025
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.023/hair.1.024/hair.1.025/hair.1.026
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.023/hair.1.024/hair.1.025/hair.1.026/hair.1.026_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.027
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.027/hair.1.028
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.027/hair.1.028/hair.1.029
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.027/hair.1.028/hair.1.029/hair.1.030
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.027/hair.1.028/hair.1.029/hair.1.030/hair.1.030_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.031
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.031/hair.1.032
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.031/hair.1.032/hair.1.033
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.031/hair.1.032/hair.1.033/hair.1.034
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.031/hair.1.032/hair.1.033/hair.1.034/hair.1.034_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.035
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.035/hair.1.036
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.035/hair.1.036/hair.1.037
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.035/hair.1.036/hair.1.037/hair.1.038
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.035/hair.1.036/hair.1.037/hair.1.038/hair.1.038_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.039
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.039/hair.1.040
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.039/hair.1.040/hair.1.042
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.039/hair.1.040/hair.1.042/hair.1.041
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.039/hair.1.040/hair.1.042/hair.1.041/hair.1.041_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.043
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.043/hair.1.044
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.043/hair.1.044/hair.1.045
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.043/hair.1.044/hair.1.045/hair.1.046
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.043/hair.1.044/hair.1.045/hair.1.046/hair.1.046_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.047
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.047/hair.1.048
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.047/hair.1.048/hair.1.049
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.047/hair.1.048/hair.1.049/hair.1.050
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.047/hair.1.048/hair.1.049/hair.1.050/hair.1.050_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.051
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.051/hair.1.052
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.051/hair.1.052/hair.1.053
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.051/hair.1.052/hair.1.053/hair.1.054
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.051/hair.1.052/hair.1.053/hair.1.054/hair.1.054_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.055
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.055/hair.1.056
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.055/hair.1.056/hair.1.057
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.055/hair.1.056/hair.1.057/hair.1.058
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.055/hair.1.056/hair.1.057/hair.1.058/hair.1.059
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.055/hair.1.056/hair.1.057/hair.1.058/hair.1.059/hair.1.059_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.060
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.060/hair.1.061
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.060/hair.1.061/hair.1.062
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.060/hair.1.061/hair.1.062/hair.1.063
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.060/hair.1.061/hair.1.062/hair.1.063/hair.1.063_end
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.064
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.064/hair.1.008
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.064/hair.1.008/hair.1.009
+    m_Weight: 0
+  - m_Path: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006/hair.1.064/hair.1.008/hair.1.009/hair.1.009_end
+    m_Weight: 0
+  - m_Path: hRig/spine/thigh.L
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.L/shin.L
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.L/shin.L/foot.L
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.L/shin.L/foot.L/heel.02.L
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.L/shin.L/foot.L/heel.02.L/heel.02.L_end
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.L/shin.L/foot.L/toe.L
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.L/shin.L/foot.L/toe.L/toe.L_end
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.R
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.R/shin.R
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.R/shin.R/foot.R
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.R/shin.R/foot.R/heel.02.R
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.R/shin.R/foot.R/heel.02.R/heel.02.R_end
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.R/shin.R/foot.R/toe.R
+    m_Weight: 1
+  - m_Path: hRig/spine/thigh.R/shin.R/foot.R/toe.R/toe.R_end
+    m_Weight: 1
+  - m_Path: hRig/tail
+    m_Weight: 1
+  - m_Path: hRig/tail/tail_end
+    m_Weight: 1
+  - m_Path: overgarment.001
+    m_Weight: 0
+  - m_Path: Pants
+    m_Weight: 0
+  - m_Path: Retop_Body
+    m_Weight: 0
+  - m_Path: SmallBelt.001
+    m_Weight: 0
+  - m_Path: undergarment
+    m_Weight: 0

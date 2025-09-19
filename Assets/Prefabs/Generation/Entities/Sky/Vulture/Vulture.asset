@@ -139,10 +139,19 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Meat
-            DropAmount: 10
+            DropAmount:
+              mean: 10
+              var: 1
+              geneWeight: 0.05
           - ItemName: Feathers:Solid
-            DropAmount: 8
-        DecompositionTime: 200
+            DropAmount:
+              mean: 8
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 200
+          var: 0.5
+          geneWeight: 0.05
       recognition:
         value:
           Predators:
@@ -151,12 +160,18 @@ MonoBehaviour:
             value:
             - MateType: Vulture
               ChildType: Vulture
-              AmountPerParent: 0.5
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: Meat
-              Nutrition: 7
+              Nutrition:
+                mean: 7
+                var: 0.5
+                geneWeight: 0.1
           SightDistance:
             mean: 30
             var: 0.25

@@ -77,7 +77,7 @@ public static class DayNightContoller
 
     private static void UpdateSunFlareShimmer(){
         const float ShimmerRate = 50f;
-        float angleDiff = Vector3.Dot(sunFlare.transform.forward, PlayerHandler.camera.transform.forward);
+        float angleDiff = Vector3.Dot(sunFlare.transform.forward, PlayerHandler.camera.forward);
         float pulse = Mathf.Sin(angleDiff * ShimmerRate) * 0.5f + 0.5f;
         sunFlare.lensFlareData.elements[2].uniformScale = 2.5f + 2.5f * pulse;
         sunFlare.lensFlareData.elements[3].uniformScale = 5 + 2.5f * (1-pulse);

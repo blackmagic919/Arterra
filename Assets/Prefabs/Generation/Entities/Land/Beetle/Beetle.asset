@@ -75,8 +75,14 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: BugMush
-            DropAmount: 1
-        DecompositionTime: 75
+            DropAmount:
+              mean: 1
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 75
+          var: 0.5
+          geneWeight: 0.05
       recognition:
         value:
           Predators:
@@ -87,14 +93,23 @@ MonoBehaviour:
             value:
             - MateType: Beetle
               ChildType: Beetle
-              AmountPerParent: 0.5
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: Moss:Solid
-              Nutrition: 12.75
+              Nutrition:
+                mean: 12.75
+                var: 0.5
+                geneWeight: 0.1
             - EdibleType: Grass:Solid
-              Nutrition: 12.75
+              Nutrition:
+                mean: 12.75
+                var: 0.5
+                geneWeight: 0.1
           SightDistance:
             mean: 12
             var: 0.25

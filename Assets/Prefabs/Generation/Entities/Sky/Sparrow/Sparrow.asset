@@ -149,10 +149,19 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Meat
-            DropAmount: 6
+            DropAmount:
+              mean: 6
+              var: 1
+              geneWeight: 0.05
           - ItemName: Feathers:Solid
-            DropAmount: 8
-        DecompositionTime: 100
+            DropAmount:
+              mean: 8
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 100
+          var: 0.5
+          geneWeight: 0.05
       physicality:
         value:
           weight: 0.15
@@ -215,14 +224,23 @@ MonoBehaviour:
             value:
             - MateType: Sparrow
               ChildType: Sparrow
-              AmountPerParent: 0.5
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: Grass:Solid
-              Nutrition: 3
+              Nutrition:
+                mean: 3
+                var: 0.5
+                geneWeight: 0.1
             - EdibleType: TallGrass:Solid
-              Nutrition: 4
+              Nutrition:
+                mean: 4
+                var: 0.5
+                geneWeight: 0.1
           SightDistance:
             mean: 20
             var: 0.25

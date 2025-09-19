@@ -43,7 +43,7 @@ public class Recognition {
         public string MateType;
         [RegistryReference("Entities")]
         public string ChildType;
-        public float AmountPerParent;
+        public Genetics.GeneFeature AmountPerParent;
         public float GeneMutationRate;
     }
 
@@ -57,7 +57,7 @@ public class Recognition {
     public struct Consumable {
         [RegistryReference("Items")]
         public string EdibleType;
-        public float Nutrition;
+        public Genetics.GeneFeature Nutrition;
     }
 
     [Serializable]
@@ -90,7 +90,19 @@ public class Recognition {
         }
     }
 
-    public void InitGenome(uint entityType) { Genetics.AddGene(entityType, ref SightDistance); }
+    public void InitGenome(uint entityType) {
+        Genetics.AddGene(entityType, ref SightDistance);
+        for (int i = 0; i < Mates.value.Count; i++) {
+            Mate mate = Mates.value[i];
+            Genetics.AddGene(entityType, ref mate.AmountPerParent);
+            Mates.value[i] = mate;
+        } 
+        for (int i = 0; i < Edibles.value.Count; i++) {
+            Consumable consumable = Edibles.value[i];
+            Genetics.AddGene(entityType, ref consumable.Nutrition);
+            Edibles.value[i] = consumable;
+        } 
+    }
     public bool FindClosestPredator(Entity self, float sightDist, out Entity entity) {
         entity = null; if (AwarenessTable == null) return false;
         if (Predators.value == null || Predators.value.Count == 0) return false;
@@ -157,7 +169,7 @@ public class Recognition {
         if (entity is not IMateable mate) return false;
 
         Mate ofsp = Mates.value[AwarenessTable[index].Preference];
-        float delta = ofsp.AmountPerParent;
+        float delta = genetics.Get(ofsp.AmountPerParent);
         int amount = Mathf.FloorToInt(delta) + (random.NextFloat() < math.frac(delta) ? 1 : 0);
         uint childIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex(ofsp.ChildType);
 
@@ -177,12 +189,12 @@ public class Recognition {
         return true;
     }
 
-    public bool CanConsume(WorldConfig.Generation.Item.IItem item, out float nutrition) {
+    public bool CanConsume(Genetics genetics, WorldConfig.Generation.Item.IItem item, out float nutrition) {
         nutrition = 0;
         if (Edibles.value == null) return false;
         if (AwarenessTable == null) return false;
         if (!AwarenessTable.ContainsKey(-item.Index)) return false;
-        nutrition = Edibles.value[AwarenessTable[-item.Index].Preference].Nutrition;
+        nutrition = genetics.Get(Edibles.value[AwarenessTable[-item.Index].Preference].Nutrition);
         if (item.IsStackable) nutrition *= item.AmountRaw / 255.0f;
         return true;
     }

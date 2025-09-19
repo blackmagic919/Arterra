@@ -22,9 +22,6 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
     [Serializable]
     public class BoatSetting : EntitySetting {
         public float rotSpeed = 180;
-        //public int2 SpriteSampleSize;
-        //public float AlphaClip;
-        //public float ExtrudeHeight;
         public float MaxWaterSpeed;
         public float MaxLandSpeed;
         public float Acceleration;
@@ -36,18 +33,16 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class Boat : Entity, IRidable, IAttackable
-    {  
-        public MinimalVitality vitality;
-        public TerrainColliderJob tCollider;
-        public Unity.Mathematics.Random random;
-
+    public class Boat : Entity, IRidable, IAttackable {
+        [JsonProperty]
+        private MinimalVitality vitality;
+        [JsonProperty]
+        private TerrainColliderJob tCollider;
+        [JsonProperty]
         private Guid RiderTarget = Guid.Empty;
 
-        [JsonIgnore]
         private BoatController controller;
-        [JsonIgnore]
-        public BoatSetting settings;
+        private BoatSetting settings;
         [JsonIgnore]
         public override float3 position {
             get => tCollider.transform.position + settings.collider.size / 2;
@@ -59,31 +54,83 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             set => tCollider.transform.position = value;
         }
         [JsonIgnore]
-        public int3 GCoord => (int3)math.floor(origin); 
+        public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
         public bool IsDead => vitality.IsDead;
 
-        public unsafe Boat() { } 
+        public void Dismount() {
+            if (RiderTarget == Guid.Empty) return;
+            Entity target = EntityManager.GetEntity(RiderTarget);
+            if (target == null || target is not IRider rider)
+                return;
 
-        public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord)
-        {
+            EntityManager.AddHandlerEvent(() => rider.OnDismounted(this));
+            RiderTarget = Guid.Empty;
+        }
+
+        public void Interact(Entity caller) {
+            if (caller == null) return;
+            if (caller is not IRider rider) return;
+            if (RiderTarget != Guid.Empty) return; //Already has a rider
+            RiderTarget = caller.info.entityId;
+            EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
+
+        }
+        public IItem Collect(float collectRate) {
+            return null; // Boats are not collectible
+        }
+
+        public void TakeDamage(float damage, float3 knockback, Entity attacker = null) {
+            if (!vitality.Damage(damage)) return;
+            Indicators.DisplayDamageParticle(position, knockback);
+            tCollider.velocity += knockback;
+        }
+
+        // IRidable implementation
+        public Transform GetRiderRoot() => controller.RideRoot;
+        public void WalkInDirection(float3 aim) {
+            aim = new(aim.x, 0, aim.z);
+            if (Vector3.Magnitude(aim) <= 1E-05f) return;
+            this.controller.SetAimAngle(aim);
+
+            if (math.length(tCollider.velocity) <= settings.MaxLandSpeed &&
+                PlayerHandler.data.collider.SampleCollision(origin, new float3(
+                settings.collider.size.x, -settings.groundStickDist, settings.collider.size.z), out _)
+            ) {
+                tCollider.velocity += settings.Acceleration * EntityJob.cxt.deltaTime * aim;
+            } else {
+                float3 basePos = position + (float3)(Vector3.down * settings.groundStickDist);
+                TerrainInteractor.DetectMapInteraction(basePos, OnInSolid: null,
+                    OnInLiquid: (dens) => {
+                        if (math.length(tCollider.velocity) > settings.MaxWaterSpeed) return;
+                        tCollider.velocity += settings.Acceleration * EntityJob.cxt.deltaTime * aim;
+                    }, OnInGas: null
+                );
+            }
+        }
+
+        public unsafe Boat() { }
+        public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (BoatSetting)setting;
             controller = new BoatController(Controller, this);
             vitality = new MinimalVitality(settings.durability);
-            random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(0, int.MaxValue));
             tCollider.transform.position = GCoord;
             tCollider.useGravity = true;
         }
 
-        public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord)
-        {
+        public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
             settings = (BoatSetting)setting;
             controller = new BoatController(Controller, this);
-            if(vitality == null) vitality = new MinimalVitality(settings.durability);
+            if (vitality == null) vitality = new MinimalVitality(settings.durability);
             else vitality.Deserialize(settings.durability);
 
             tCollider.useGravity = true;
             GCoord = this.GCoord;
+
+            if (RiderTarget == Guid.Empty) return;
+            Entity entity = EntityManager.GetEntity(RiderTarget);
+            if (entity != null && entity is IRider rider)
+            EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
         }
 
 
@@ -124,115 +171,64 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             InventoryController.DropItem(dropItem, position);
         }
 
-        // IRidable implementation
-        public Transform GetRiderRoot() => controller.RideRoot;
-        public void WalkInDirection(float3 aim) {
-            aim = new(aim.x, 0, aim.z);
-            if (Vector3.Magnitude(aim) <= 1E-05f) return;
-            this.controller.SetAimAngle(aim);
-
-            if (math.length(tCollider.velocity) <= settings.MaxLandSpeed &&
-                PlayerHandler.data.collider.SampleCollision(origin, new float3(
-                settings.collider.size.x, -settings.groundStickDist, settings.collider.size.z), out _)
-            ) {
-                tCollider.velocity += settings.Acceleration * EntityJob.cxt.deltaTime * aim;
-            } else {
-                float3 basePos = position + (float3)(Vector3.down * settings.groundStickDist);
-                TerrainInteractor.DetectMapInteraction(basePos, OnInSolid: null,
-                    OnInLiquid: (dens) => {
-                        if (math.length(tCollider.velocity) > settings.MaxWaterSpeed) return;
-                        tCollider.velocity += settings.Acceleration * EntityJob.cxt.deltaTime * aim;
-                    }, OnInGas: null
-                );
-            }
-        }
-        public void Dismount() { 
-            if (RiderTarget == Guid.Empty) return;
-            Entity target = EntityManager.GetEntity(RiderTarget);
-            if (target == null || target is not IRider rider)
-                return;
-
-            EntityManager.AddHandlerEvent(() =>rider.OnDismounted(this));
-            RiderTarget = Guid.Empty;
-        }
-
-        public void Interact(Entity caller) {
-            if (caller == null) return;
-            if (caller is not IRider rider) return;
-            if (RiderTarget != Guid.Empty) return; //Already has a rider
-            RiderTarget = caller.info.entityId;
-            EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
-
-        }
-        public WorldConfig.Generation.Item.IItem Collect(float collectRate) {
-            return null; // Boats are not collectible
-        }
-
-        public void TakeDamage(float damage, float3 knockback, Entity attacker = null) {
-            if (!vitality.Damage(damage)) return;
-            Indicators.DisplayDamageParticle(position, knockback);
-            tCollider.velocity += knockback;
-        }
-
         public override void Disable() {
             controller.Dispose();
         }
-    }
+        
+        private class BoatController
+        {
+            private Boat entity;
+            private Animator animator;
+            private GameObject gameObject;
+            internal Transform transform;
+            internal Transform RideRoot;
 
-    public class BoatController
-    {
-        private Boat entity;
-        private Animator animator;
-        private GameObject gameObject;
-        internal Transform transform;
-        internal Transform RideRoot;
+            private bool active = false;
+            private float angle;
 
-        private bool active = false;
-        private float angle;
+            public BoatController(GameObject GameObject, Entity Entity) {
+                this.gameObject = Instantiate(GameObject);
+                this.transform = gameObject.transform;
+                this.animator = gameObject.GetComponent<Animator>();
+                this.entity = (Boat)Entity;
+                this.active = true;
+                this.angle = 0;
 
-        public BoatController(GameObject GameObject, Entity Entity) {
-            this.gameObject = Instantiate(GameObject);
-            this.transform = gameObject.transform;
-            this.animator = gameObject.GetComponent<Animator>();
-            this.entity = (Boat)Entity;
-            this.active = true;
-            this.angle = 0;
+                this.transform.position = CPUMapManager.GSToWS(entity.position);
+                this.RideRoot = gameObject.transform.Find("Armature").Find("root").Find("base");
 
-            this.transform.position = CPUMapManager.GSToWS(entity.position);
-            this.RideRoot = gameObject.transform.Find("Armature").Find("root").Find("base");
-
-        }
-
-        public void Update() {
-            if (!entity.active) return;
-            if (gameObject == null) return;
-            TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
-            this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
-
-            float minSpeed = math.min(entity.settings.MaxLandSpeed, entity.settings.MaxWaterSpeed) * 0.5f;
-            if (Vector2.SqrMagnitude(entity.tCollider.velocity.xz) < minSpeed * minSpeed) {
-                this.animator.SetBool("Paddle", false);
-                return;
             }
 
-            this.animator.SetBool("Paddle", true);
-            if (angle <= -15) this.animator.SetTrigger("Left");
-            else if (angle >= 15) this.animator.SetTrigger("Right");
-            else this.animator.SetTrigger("Forward");
+            public void Update() {
+                if (!entity.active) return;
+                if (gameObject == null) return;
+                TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+                this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
+
+                float minSpeed = math.min(entity.settings.MaxLandSpeed, entity.settings.MaxWaterSpeed) * 0.5f;
+                if (Vector2.SqrMagnitude(entity.tCollider.velocity.xz) < minSpeed * minSpeed) {
+                    this.animator.SetBool("Paddle", false);
+                    return;
+                }
+
+                this.animator.SetBool("Paddle", true);
+                if (angle <= -15) this.animator.SetTrigger("Left");
+                else if (angle >= 15) this.animator.SetTrigger("Right");
+                else this.animator.SetTrigger("Forward");
+            }
+
+            public void SetAimAngle(float3 aim) { angle = Vector3.Angle(this.entity.tCollider.velocity, aim); }
+
+            public void Dispose() {
+                if (!active) return;
+                active = false;
+
+                Destroy(gameObject);
+            }
+            ~BoatController(){
+                Dispose();
+            }
         }
-
-        public void SetAimAngle(float3 aim) { angle = Vector3.Angle(this.entity.tCollider.velocity, aim); }
-
-        public void Dispose() {
-            if (!active) return;
-            active = false;
-
-            Destroy(gameObject);
-        }
-        ~BoatController(){
-            Dispose();
-        }
-
     }
 }
 

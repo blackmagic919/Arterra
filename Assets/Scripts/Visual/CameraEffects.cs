@@ -13,7 +13,7 @@ public class CameraEffects
         if (IsShaking) yield break; //Stop
         IsShaking = true;
 
-        Transform CameraLocalT = PlayerHandler.camera.GetChild(0).transform;
+        Transform CameraLocalT = PlayerHandler.camera.subTsf;
         Quaternion OriginRot = CameraLocalT.localRotation;
         Quaternion RandomRot = Quaternion.Euler(new(0, 0, UnityEngine.Random.Range(-180f, 180f) * rStrength));
 

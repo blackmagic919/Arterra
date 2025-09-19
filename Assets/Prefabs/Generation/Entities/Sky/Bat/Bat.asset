@@ -139,8 +139,14 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Meat
-            DropAmount: 3
-        DecompositionTime: 200
+            DropAmount:
+              mean: 3
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 200
+          var: 0.5
+          geneWeight: 0.05
       recognition:
         value:
           Predators:
@@ -149,12 +155,18 @@ MonoBehaviour:
             value:
             - MateType: Bat
               ChildType: Bat
-              AmountPerParent: 0.5
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: BugMush
-              Nutrition: 76.5
+              Nutrition:
+                mean: 56.5
+                var: 0.5
+                geneWeight: 0.1
           SightDistance:
             mean: 30
             var: 0.25

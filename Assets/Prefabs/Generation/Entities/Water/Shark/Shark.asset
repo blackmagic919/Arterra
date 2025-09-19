@@ -134,10 +134,19 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: FishMeat
-            DropAmount: 17
+            DropAmount:
+              mean: 17
+              var: 1
+              geneWeight: 0.05
           - ItemName: FishScales:Solid
-            DropAmount: 13
-        DecompositionTime: 200
+            DropAmount:
+              mean: 13
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 200
+          var: 0.5
+          geneWeight: 0.05
       aquatic:
         DrownTime:
           mean: Infinity
@@ -215,12 +224,18 @@ MonoBehaviour:
             value:
             - MateType: Shark
               ChildType: Shark
-              AmountPerParent: 0.5
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: FishMeat
-              Nutrition: 51.2
+              Nutrition:
+                mean: 51.2
+                var: 0.5
+                geneWeight: 0.1
           SightDistance:
             mean: 24
             var: 0.25

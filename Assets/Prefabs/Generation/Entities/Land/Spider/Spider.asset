@@ -75,8 +75,14 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: BugMush
-            DropAmount: 2
-        DecompositionTime: 100
+            DropAmount:
+              mean: 2
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 100
+          var: 0.5
+          geneWeight: 0.05
       recognition:
         value:
           Predators:
@@ -86,12 +92,18 @@ MonoBehaviour:
             value:
             - MateType: Spider
               ChildType: Spider
-              AmountPerParent: 0.5
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: BugMush
-              Nutrition: 76.8
+              Nutrition:
+                mean: 56.8
+                var: 0.5
+                geneWeight: 0.1
           SightDistance:
             mean: 24
             var: 0.25

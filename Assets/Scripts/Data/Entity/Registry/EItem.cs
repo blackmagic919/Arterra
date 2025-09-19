@@ -34,15 +34,17 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class EItemEntity : Entity, IAttackable
-    {  
-        public TerrainColliderJob tCollider;
-        public Unity.Mathematics.Random random;
-        public Registerable<IItem> item;
-        [JsonIgnore]
+    public class EItemEntity : Entity, IAttackable {
+        [JsonProperty]
+        private TerrainColliderJob tCollider;
+        [JsonProperty]
+        private Unity.Mathematics.Random random;
+        [JsonProperty]
+        private Registerable<IItem> item;
+        [JsonProperty]
+        private float decomposition;
         private EItemController controller;
-        [JsonIgnore]
-        public EItemSetting settings;
+        private EItemSetting settings;
         [JsonIgnore]
         public override float3 position {
             get => tCollider.transform.position + settings.collider.size / 2;
@@ -54,10 +56,9 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             set => tCollider.transform.position = value;
         }
         [JsonIgnore]
-        public int3 GCoord => (int3)math.floor(origin); 
+        public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
         public bool IsDead => true;
-        public float decomposition;
 
         public void Interact(Entity targert) { }
         public IItem Collect(float amount) {
@@ -76,12 +77,12 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             return ret;
         }
 
-        public void TakeDamage(float damage, float3 knockback, Entity attacker){
+        public void TakeDamage(float damage, float3 knockback, Entity attacker) {
             Indicators.DisplayDamageParticle(position, knockback);
             tCollider.velocity += knockback;
         }
 
-        public unsafe EItemEntity(){}
+        public unsafe EItemEntity() { }
         public EItemEntity(IItem item, Quaternion rot = default) {
             this.item = new Registerable<IItem>(item);
             tCollider.transform.rotation = rot;
@@ -97,8 +98,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             tCollider.useGravity = true;
         }
 
-        public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord)
-        {
+        public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
             settings = (EItemSetting)setting;
             controller = new EItemController(Controller, this);
             decomposition = math.min(settings.DecayTime, decomposition);
@@ -107,9 +107,8 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         }
 
 
-        public override void Update()
-        {
-            if(!active) return;
+        public override void Update() {
+            if (!active) return;
             tCollider.useGravity = true;
 
             TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
@@ -124,13 +123,13 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
                 item.Value = null;
             MergeNearbyEItems();
 
-            if (item.Value == null || item.Value.AmountRaw == 0){
+            if (item.Value == null || item.Value.AmountRaw == 0) {
                 EntityManager.ReleaseEntity(info.entityId);
             }
             if (tCollider.GetGroundDir(settings.GroundStickDist, settings.collider, EntityJob.cxt.mapContext, out float3 gDir)) {
-                    tCollider.transform.rotation = Quaternion.LookRotation(gDir, math.up());
-                    tCollider.velocity *= 1 - settings.StickFriction;
-                }
+                tCollider.transform.rotation = Quaternion.LookRotation(gDir, math.up());
+                tCollider.velocity *= 1 - settings.StickFriction;
+            }
             tCollider.Update(settings.collider, this);
             EntityManager.AddHandlerEvent(controller.Update);
         }
@@ -169,64 +168,63 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
                 EntityManager.AddHandlerEvent(() => MergeWithEItem(nItem));
             });
         }
-        
+
 
         public override void Disable() {
             controller.Dispose();
         }
-    }
-
-    public class EItemController
-    {
-        private EItemEntity entity;
-        private GameObject gameObject;
-        private Transform transform;
-
-        private bool active = false;
-
-        private MeshFilter meshFilter;
-
-        public EItemController(GameObject GameObject, Entity Entity)
+        
+        private class EItemController
         {
-            this.gameObject = Instantiate(GameObject);
-            this.transform = gameObject.transform;
-            this.entity = (EItemEntity)Entity;
-            this.active = true;
+            private EItemEntity entity;
+            private GameObject gameObject;
+            private Transform transform;
 
-            float3 GCoord = new (entity.GCoord);
-            this.transform.position = CPUMapManager.GSToWS(entity.position);
+            private bool active = false;
 
-            meshFilter = gameObject.GetComponent<MeshFilter>();
-            SpriteExtruder.Extrude(new SpriteExtruder.ExtrudeSettings{
-                ImageIndex = entity.item.Value.TexIndex,
-                SampleSize = entity.settings.SpriteSampleSize,
-                AlphaClip = entity.settings.AlphaClip,
-                ExtrudeHeight = entity.settings.ExtrudeHeight,
-            }, OnMeshRecieved);
+            private MeshFilter meshFilter;
+
+            public EItemController(GameObject GameObject, Entity Entity)
+            {
+                this.gameObject = Instantiate(GameObject);
+                this.transform = gameObject.transform;
+                this.entity = (EItemEntity)Entity;
+                this.active = true;
+
+                float3 GCoord = new (entity.GCoord);
+                this.transform.position = CPUMapManager.GSToWS(entity.position);
+
+                meshFilter = gameObject.GetComponent<MeshFilter>();
+                SpriteExtruder.Extrude(new SpriteExtruder.ExtrudeSettings{
+                    ImageIndex = entity.item.Value.TexIndex,
+                    SampleSize = entity.settings.SpriteSampleSize,
+                    AlphaClip = entity.settings.AlphaClip,
+                    ExtrudeHeight = entity.settings.ExtrudeHeight,
+                }, OnMeshRecieved);
+            }
+
+            private void OnMeshRecieved(ReadbackTask<SVert>.SharedMeshInfo meshInfo){
+                if(active) meshFilter.sharedMesh = meshInfo.GenerateMesh(UnityEngine.Rendering.IndexFormat.UInt32);
+                meshInfo.Release();
+            }
+
+            public void Update(){
+                if(!entity.active) return;
+                if(gameObject == null) return;
+                TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+                this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
+            }
+
+            public void Dispose(){ 
+                if(!active) return;
+                active = false;
+
+                Destroy(gameObject);
+            }
+            ~EItemController(){
+                Dispose();
+            }
         }
-
-        private void OnMeshRecieved(ReadbackTask<SVert>.SharedMeshInfo meshInfo){
-            if(active) meshFilter.sharedMesh = meshInfo.GenerateMesh(UnityEngine.Rendering.IndexFormat.UInt32);
-            meshInfo.Release();
-        }
-
-        public void Update(){
-            if(!entity.active) return;
-            if(gameObject == null) return;
-            TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
-            this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
-        }
-
-        public void Dispose(){ 
-            if(!active) return;
-            active = false;
-
-            Destroy(gameObject);
-        }
-        ~EItemController(){
-            Dispose();
-        }
-
     }
 }
 

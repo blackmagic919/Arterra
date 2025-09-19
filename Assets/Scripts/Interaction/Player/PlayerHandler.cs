@@ -5,6 +5,7 @@ using TerrainGeneration;
 using WorldConfig;
 using System;
 using UnityEngine.PlayerLoop;
+using WorldConfig.Gameplay.Player;
 
 
 namespace WorldConfig.Gameplay.Player{
@@ -49,17 +50,16 @@ public static class PlayerHandler
 {
     public static PlayerStreamer.Player data;
     public static CameraEffects cEffects;
-    public static Transform camera;
+    public static PlayerCamera camera;
     public static bool active = false;
     public static void Initialize() {
         active = false;
         data = LoadPlayerData();
         EntityManager.DeserializeE(data);
 
-        camera = GameObject.Find("CameraHandler").transform;
-        camera.SetParent(data.player.transform, worldPositionStays: false);
+        camera = new PlayerCamera();
         cEffects = new CameraEffects();
-        OctreeTerrain.viewer = camera; //set octree's viewer to current player
+        OctreeTerrain.viewer = data.player.transform; //set octree's viewer to current player
 
         PlayerMovement.Initialize();
         PlayerInteraction.Initialize();
@@ -73,9 +73,10 @@ public static class PlayerHandler
         if (!active && OctreeTerrain.RequestQueue.IsEmpty)
             active = true;
         if(!active) return;
+        camera.Update();
         PlayerMovement.Update();
-        camera.localRotation = data.cameraRot;
         PlayerStatDisplay.UpdateIndicator(data.vitality);
+        
     }
 
     public static void FixedUpdate(MonoBehaviour mono){
@@ -86,7 +87,6 @@ public static class PlayerHandler
         OnInLiquid: (dens) => data.vitality.ProcessInLiquid(data, dens), 
         OnInGas: data.vitality.ProcessInGas);
         data.collider.FixedUpdate(data.settings.collider);
-        data.player.transform.SetPositionAndRotation(data.positionWS, data.collider.transform.rotation);
     }
 
     public static void Release(){
@@ -120,7 +120,8 @@ public static class PlayerHandler
         data = PlayerStreamer.Player.Build();
         data.currentTime = currentTime;
         EntityManager.DeserializeEntity(data, () => {
-            camera.SetParent(data.player.transform, worldPositionStays: false);
+            camera.ReParent(data.player.transform);
+            OctreeTerrain.viewer = data.player.transform; 
             cb?.Invoke();
         });
     }

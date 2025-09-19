@@ -139,10 +139,19 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Meat
-            DropAmount: 7
+            DropAmount:
+              mean: 7
+              var: 1
+              geneWeight: 0.05
           - ItemName: Feathers:Solid
-            DropAmount: 10
-        DecompositionTime: 200
+            DropAmount:
+              mean: 10
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 200
+          var: 0.5
+          geneWeight: 0.05
       recognition:
         value:
           Predators:
@@ -151,12 +160,18 @@ MonoBehaviour:
             value:
             - MateType: Hawk
               ChildType: Hawk
-              AmountPerParent: 0.5
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: Meat
-              Nutrition: 25.6
+              Nutrition:
+                mean: 25.6
+                var: 0.5
+                geneWeight: 0.1
           SightDistance:
             mean: 36
             var: 0.25

@@ -3,8 +3,6 @@ using UnityEngine;
 using Newtonsoft.Json;
 using System;
 using Unity.Mathematics;
-using System.Linq;
-using UnityEditor.PackageManager;
 
 public class Genetics {
     [Serializable]
@@ -53,10 +51,14 @@ public class Genetics {
         NormalizeGenes();
     }
 
+    public float GetRawGene(GeneFeature gene) {
+        if (_genes == null) return gene.mean;
+        return math.clamp(_genes[gene.geneIndex], -1, 1);
+    }
     public float Get(GeneFeature gene) {
         if (_genes == null) return gene.mean;
         if (!float.IsFinite(gene.mean)) return gene.mean;
-        float interp = math.clamp(_genes[gene.geneIndex], 0, 1);
+        float interp = math.clamp(_genes[gene.geneIndex], -1, 1);
         return gene.mean + gene.mean * gene.var * interp;
     }
 
@@ -90,16 +92,24 @@ public class Genetics {
 
     private void NormalizeGenes() {
         List<GeneFeature> geneTemplate = EntityGenetics[entityIndex];
-        double normalization = 0;
+        double totalWeight = 0;
+        double avgGeneStrength = 0;
 
         for (int i = 0; i < _genes.Length; i++) {
-            normalization += _genes[i] * _genes[i] * geneTemplate[i].geneWeight;
-        }
-        normalization = math.sqrt(normalization);
-        if (normalization == 0) return;
+            totalWeight += geneTemplate[i].geneWeight;
+        } for (int i = 0; i < _genes.Length; i++) {
+            _genes[i] = math.clamp(_genes[i], -1, 1);
+            avgGeneStrength += _genes[i] * _genes[i] * (geneTemplate[i].geneWeight / totalWeight);
+        } avgGeneStrength = math.sqrt(avgGeneStrength);
+        //Only apply normalization if avg gene strength is abnormally high
+        if (avgGeneStrength <= 0.5f) return;
 
         for (int i = 0; i < _genes.Length; i++) {
-            _genes[i] = (float)(_genes[i] * math.sqrt(geneTemplate[i].geneWeight) / normalization);
+            float magnitude = math.abs(_genes[i]);
+            float sign = math.sign(_genes[i]);
+            _genes[i] = sign * magnitude *
+                (float)(1 - avgGeneStrength *
+                (geneTemplate[i].geneWeight / totalWeight));
         }
     }
     

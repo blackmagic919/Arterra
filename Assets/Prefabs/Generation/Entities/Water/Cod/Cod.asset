@@ -54,7 +54,6 @@ MonoBehaviour:
           x: 2
           y: 2
           z: 2
-        profileStart: 512
       collider:
         size:
           x: 0.5
@@ -78,27 +77,35 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: FishMeat
-            DropAmount: 7.5
+            DropAmount:
+              mean: 7.5
+              var: 1
+              geneWeight: 0.05
           - ItemName: FishScales:Solid
-            DropAmount: 10
-        DecompositionTime: 200
+            DropAmount:
+              mean: 10
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 200
+          var: 0.5
+          geneWeight: 0.05
       aquatic:
         DrownTime:
-          mean: 0
+          mean: Infinity
           var: 0
           geneWeight: 0
         SurfaceThreshold:
           mean: 0
           var: 0
           geneWeight: 0
-        JumpStickDistance: 0
-        JumpStrength: 0
+        JumpStickDistance: 0.05
+        JumpStrength: 3
         SurfaceProfile:
           bounds:
-            x: 0
-            y: 0
-            z: 0
-          profileStart: 0
+            x: 1
+            y: 1
+            z: 1
       physicality:
         value:
           weight: 0.3
@@ -161,14 +168,23 @@ MonoBehaviour:
             value:
             - MateType: Cod
               ChildType: Cod
-              AmountPerParent: 0.5
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: FishMeat
-              Nutrition: 80
+              Nutrition:
+                mean: 40
+                var: 0.5
+                geneWeight: 0.1
             - EdibleType: BugMush
-              Nutrition: 102.4
+              Nutrition:
+                mean: 50
+                var: 0.5
+                geneWeight: 0.1
           SightDistance:
             mean: 20
             var: 0.25

@@ -121,10 +121,19 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: FishMeat
-            DropAmount: 2.5
+            DropAmount:
+              mean: 2.5
+              var: 1
+              geneWeight: 0.05
           - ItemName: FishScales:Solid
-            DropAmount: 3
-        DecompositionTime: 100
+            DropAmount:
+              mean: 3
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 100
+          var: 0.5
+          geneWeight: 0.05
       physicality:
         value:
           weight: 0.15
@@ -188,16 +197,28 @@ MonoBehaviour:
             value:
             - MateType: Minnow
               ChildType: Minnow
-              AmountPerParent: 0.8
+              AmountPerParent:
+                mean: 0.8
+                var: 0.25
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: Moss:Solid
-              Nutrition: 20.4
+              Nutrition:
+                mean: 20.4
+                var: 0.5
+                geneWeight: 0.05
             - EdibleType: Kelp:Solid
-              Nutrition: 15
+              Nutrition:
+                mean: 15
+                var: 0.5
+                geneWeight: 0.05
             - EdibleType: SaturatedWater:Liquid
-              Nutrition: 12.75
+              Nutrition:
+                mean: 12.75
+                var: 0.5
+                geneWeight: 0.05
           SightDistance:
             mean: 16
             var: 0.25

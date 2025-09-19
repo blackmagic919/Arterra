@@ -121,8 +121,14 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: BugMush
-            DropAmount: 0.5
-        DecompositionTime: 50
+            DropAmount:
+              mean: 0.5
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 50
+          var: 0.5
+          geneWeight: 0.05
       physicality:
         value:
           weight: 0.05
@@ -185,16 +191,28 @@ MonoBehaviour:
             value:
             - MateType: Krill
               ChildType: Krill
-              AmountPerParent: 0.8
+              AmountPerParent:
+                mean: 0.8
+                var: 0.25
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: Kelp:Solid
-              Nutrition: 20.4
+              Nutrition:
+                mean: 20.4
+                var: 0.5
+                geneWeight: 0.05
             - EdibleType: Moss:Solid
-              Nutrition: 12.75
+              Nutrition:
+                mean: 12.75
+                var: 0.5
+                geneWeight: 0.05
             - EdibleType: SaturatedWater:Liquid
-              Nutrition: 7.65
+              Nutrition:
+                mean: 7.65
+                var: 0.5
+                geneWeight: 0.05
           SightDistance:
             mean: 16
             var: 0.25

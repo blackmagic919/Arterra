@@ -87,7 +87,10 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Meat
-            DropAmount: 8
+            DropAmount:
+              mean: 8
+              var: 1
+              geneWeight: 0.05
         DecompositionTime: 200
       recognition:
         value:
@@ -97,12 +100,18 @@ MonoBehaviour:
             value:
             - MateType: ArcticFox
               ChildType: ArcticFox
-              AmountPerParent: 0.5
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
               GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: Meat
-              Nutrition: 25.6
+              Nutrition:
+                mean: 25.6
+                var: 0.5
+                geneWeight: 0.1
           SightDistance:
             mean: 31
             var: 0.25

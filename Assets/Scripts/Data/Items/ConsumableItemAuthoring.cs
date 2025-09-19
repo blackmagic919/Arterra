@@ -91,6 +91,7 @@ public class ConsumbaleItem : IItem{
         delta = AmountRaw - math.max(AmountRaw - delta, 0);
         player.vitality.Heal(delta / 255.0f * settings.NutritionValue);
         InventoryController.RemoveStackable(delta, Index);
+        player.animator.SetBool("IsEating", true);
     }
     
     private void UpdateDisplay(){

@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 575893146433189521, guid: 2ee69fbffd75f483ebfc5bfbd8709056, type: 3}
+    value: {fileID: 2758236328317862729, guid: 3f474f15b1873425baffca027dfebe50, type: 3}
   Profile:
     value:
     - bounds:
@@ -63,7 +63,6 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 0
       collider:
         size:
           x: 1

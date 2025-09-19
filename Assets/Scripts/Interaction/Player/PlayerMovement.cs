@@ -43,12 +43,10 @@ namespace WorldConfig.Gameplay.Player{
         }
     }
 }
-public static class PlayerMovement
-{
+public class PlayerMovement {
     public static WorldConfig.Gameplay.Player.Camera Camera => Config.CURRENT.GamePlay.Player.value.Camera;
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
     private static ref PlayerStreamer.Player data => ref PlayerHandler.data;
-    private static PlayerCamera cameraInput;
     public static bool IsSprinting;
     public static float2 InputDir;
 
@@ -61,12 +59,16 @@ public static class PlayerMovement
         FlightMovement.Initialize();
         SwimMovement.Initialize();
         RideMovement.Initialize();
-        cameraInput = new PlayerCamera(data);
     }
 
-    public static void Update(){ 
-        cameraInput.LookRotation(ref data);
+    public static void Update() {
         InputPoller.InvokeStackTop("Movement::Update");
+        data.player.transform.SetPositionAndRotation(data.positionWS, data.collider.transform.rotation);
+    }
+
+    public static void SetAnimatorSpeed(float speed) {
+        speed = Mathf.InverseLerp(0, Setting.runSpeed, speed);
+        PlayerHandler.data.animator.SetFloat("Speed", math.lerp(PlayerHandler.data.animator.GetFloat("Speed"), speed, 0.35f));
     }
 }
 
@@ -79,8 +81,10 @@ public static class SurfaceMovement {
         InputPoller.AddStackPoll(new InputPoller.ActionBind("GroundMove::2", _ => PlayerHandler.data.collider.useGravity = true), "Movement::Gravity");
         InputPoller.AddBinding(new InputPoller.ActionBind("Jump", (_null_) => {
             TerrainColliderJob.Settings collider = PlayerHandler.data.settings.collider;
-            if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _))
+            if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
                 velocity += Setting.jumpForce * (float3)Vector3.up;
+                PlayerHandler.data.animator.SetBool("IsJumping", true);
+            }
         }), "4.0::Movement");
     }
 
@@ -91,12 +95,14 @@ public static class SurfaceMovement {
         if (math.length(velocity.xz) < moveSpeed)
             velocity.xz += deltaV;
 
-        if (math.length(deltaV) > 0.1f) {
-            if (PlayerMovement.IsSprinting) PlayerHandler.data.animator.SetTrigger("IsRunning");
-            else PlayerHandler.data.animator.SetTrigger("IsWalking");
+        if (PlayerHandler.data.animator.GetBool("IsJumping") && PlayerHandler.data.animator.GetBool("_InProgress")) {
+            TerrainColliderJob.Settings collider = PlayerHandler.data.settings.collider;
+            if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
+                PlayerHandler.data.animator.SetBool("IsJumping", false);
+            }
         }
-        ;
 
+        PlayerMovement.SetAnimatorSpeed(math.length(velocity.xz));
         PlayerMovement.IsSprinting = false;
         PlayerMovement.InputDir = float2.zero;
     }
@@ -116,10 +122,12 @@ public static class SwimMovement{
     }
 
     public static void StartSwim(float _) {
+        PlayerHandler.data.animator.SetBool("IsSwimming", true);
+        PlayerHandler.data.animator.SetBool("IsJumping", false);
         if (isSwimming) return;
         if (!OveridableStates.Contains(InputPoller.PeekTop("Movement::Update")))
             return;
-
+        
         isSwimming = true;
         AddHandles();
     }
@@ -156,18 +164,14 @@ public static class SwimMovement{
     }
 
     public static void Update(){
-        float3 desiredMove = ((float3)(PlayerHandler.camera.forward*PlayerMovement.InputDir.y + PlayerHandler.camera.right*PlayerMovement.InputDir.x));
+        float3 desiredMove = (float3)(PlayerHandler.camera.forward*PlayerMovement.InputDir.y + PlayerHandler.camera.right*PlayerMovement.InputDir.x);
         float3 deltaV = Setting.acceleration * Time.deltaTime * desiredMove;
 
         velocity.y *= 1 - PlayerHandler.data.settings.collider.friction;
         if(PlayerMovement.IsSprinting && math.length(velocity) < MoveSpeed) velocity += deltaV;
         else if(!PlayerMovement.IsSprinting && math.length(velocity.xz) < MoveSpeed) velocity.xz += deltaV.xz;
-
-        if(math.length(deltaV) > 0.1f){
-            if(PlayerMovement.IsSprinting) PlayerHandler.data.animator.SetTrigger("IsRunning");
-            else PlayerHandler.data.animator.SetTrigger("IsWalking");
-        };
         
+        PlayerMovement.SetAnimatorSpeed(math.length(velocity));
         PlayerMovement.IsSprinting = false;
         PlayerMovement.InputDir = float2.zero;
     }
@@ -187,12 +191,12 @@ public static class FlightMovement {
     public static void OnFlightRuleChanged() {
         bool EnableFlight = Config.CURRENT.GamePlay.Gamemodes.value.Flight;
         if (!EnableFlight) {
-            InputPoller.TryRemove("ToggleFly", "4.0::Movement");
+            InputPoller.TryRemove("Toggle Fly", "4.0::Movement");
             if (KeyBinds != null) RemoveHandles();
             return;
         }
 
-        if (InputPoller.TryAdd(new InputPoller.ActionBind("ToggleFly", (_null_) => {
+        if (InputPoller.TryAdd(new InputPoller.ActionBind("Toggle Fly", (_null_) => {
             if (KeyBinds == null) AddHandles();
             else RemoveHandles();
         }), "4.0::Movement"))
@@ -200,6 +204,7 @@ public static class FlightMovement {
     }
     private static void AddHandles() {
         if (!OveridableStates.Contains(InputPoller.PeekTop("Movement::Update"))) return;
+        PlayerHandler.data.animator.SetBool("IsJumping", false);
         InputPoller.AddStackPoll(new InputPoller.ActionBind("FlightMove::1", _ => Update()), "Movement::Update");
         InputPoller.AddStackPoll(new InputPoller.ActionBind("FlightMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
         InputPoller.AddKeyBindChange(() => {
@@ -234,9 +239,9 @@ public static class FlightMovement {
         if (math.length(deltaV) > 0.1f) {
             if (PlayerMovement.IsSprinting) PlayerHandler.data.animator.SetTrigger("IsRunning");
             else PlayerHandler.data.animator.SetTrigger("IsWalking");
-        }
-        ;
+        };
 
+        PlayerMovement.SetAnimatorSpeed(math.length(velocity));
         PlayerMovement.IsSprinting = false;
         PlayerMovement.InputDir = float2.zero;
     }
@@ -249,6 +254,7 @@ public static class RideMovement {
     private static int[] KeyBinds = null;
     private static IRidable mount;
     private static bool IsActive => mount != null && (mount as Entity).active;
+    private static Transform SubTransform => PlayerHandler.data.player.transform.GetChild(0).transform;
 
     public static void Initialize() {
         KeyBinds = null;
@@ -264,6 +270,8 @@ public static class RideMovement {
         PlayerHandler.data.collider.velocity = float3.zero;
         InputPoller.AddStackPoll(new InputPoller.ActionBind("RideMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
         InputPoller.AddStackPoll(new InputPoller.ActionBind("RideMove::1", _ => Update()), "Movement::Update");
+        PlayerHandler.data.animator.SetBool("IsSitting", true);
+        PlayerHandler.data.animator.SetBool("IsJumping", false);
 
         InputPoller.AddKeyBindChange(() => {
             KeyBinds = new int[2];
@@ -278,6 +286,10 @@ public static class RideMovement {
     public static void RemoveHandles() {
         InputPoller.RemoveStackPoll("RideMove::1", "Movement::Update");
         InputPoller.RemoveStackPoll("RideMove::2", "Movement::Gravity");
+        PlayerHandler.data.animator.SetBool("IsSitting", false);
+        SubTransform.transform.localRotation = Quaternion.identity;
+
+
         InputPoller.AddKeyBindChange(() => {
             if (KeyBinds == null) return;
             InputPoller.RemoveContextFence((uint)KeyBinds[0], "4.0::Movement");
@@ -291,7 +303,8 @@ public static class RideMovement {
         if (!IsActive) return;
         Transform root = mount.GetRiderRoot();
         float3 rootPos = MapStorage.CPUMapManager.WSToGS(root.position);
-        PlayerHandler.data.position = rootPos + new float3(0, PlayerHandler.data.settings.collider.size.y/2, 0);
+        PlayerHandler.data.position = rootPos + new float3(0, PlayerHandler.data.settings.collider.size.y / 2, 0);
+        SubTransform.rotation = root.rotation;
     }
 
     private static void MoveForward(float strength) {
