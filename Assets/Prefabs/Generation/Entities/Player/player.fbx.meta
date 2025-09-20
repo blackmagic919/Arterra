@@ -8,7 +8,7 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Material
-    second: {fileID: -876546973899608171, guid: aae5e4e0647e14a8d9d53f950b6bec08, type: 3}
+    second: {fileID: 2100000, guid: 07dbbc9f04818457a8ed51ec5730951e, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -22,7 +22,98 @@ ModelImporter:
     removeConstantScaleCurves: 0
     motionNodeName: 
     animationImportErrors: 
-    animationImportWarnings: 
+    animationImportWarnings: "\nClip 'hRig|awake' has import animation warnings that
+      might lower retargeting quality:\nNote: Activate translation DOF on avatar
+      to improve retargeting quality.\n\t'spine' has translation animation that will
+      be discarded.\n\t'spine' is inbetween humanoid transforms and has rotation
+      animation that will be discarded.\n\t'spine.004' is inbetween humanoid transforms
+      and has rotation animation that will be discarded.\n\t'spine.006' is inbetween
+      humanoid transforms and has rotation animation that will be discarded.\n\t'palm.01.L'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.02.L'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.03.L'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.04.L'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
+      'hRig|eat' has import animation warnings that might lower retargeting quality:\nNote:
+      Activate translation DOF on avatar to improve retargeting quality.\n\t'spine.004'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.04.L'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.03.R'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.04.R'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
+      'hRig|fall_down' has import animation warnings that might lower retargeting
+      quality:\nNote: Activate translation DOF on avatar to improve retargeting quality.\n\t'spine'
+      has translation animation that will be discarded.\n\t'spine' is inbetween humanoid
+      transforms and has rotation animation that will be discarded.\n\t'spine.004'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.01.L'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.02.L'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.03.L'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.04.L'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
+      'hRig|hRigAction' has import animation warnings that might lower retargeting
+      quality:\nNote: Activate translation DOF on avatar to improve retargeting quality.\n\t'spine'
+      has translation animation that will be discarded.\n\t'spine' is inbetween humanoid
+      transforms and has rotation animation that will be discarded.\n\t'spine.004'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      has scale animation that will be discarded.\n\t'palm.01.L' is inbetween humanoid
+      transforms and has rotation animation that will be discarded.\n\t'palm.02.L'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.03.L'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.04.L'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.01.R'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.02.R'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.03.R'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.04.R'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
+      'hRig|jumpBegin' has import animation warnings that might lower retargeting
+      quality:\nNote: Activate translation DOF on avatar to improve retargeting quality.\n\t'spine'
+      has translation animation that will be discarded.\n\t'spine.004' is inbetween
+      humanoid transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.02.R'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
+      'hRig|jumpEnd' has import animation warnings that might lower retargeting quality:\nNote:
+      Activate translation DOF on avatar to improve retargeting quality.\n\t'spine'
+      has translation animation that will be discarded.\n\t'spine.004' is inbetween
+      humanoid transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'palm.02.R'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
+      'hRig|punchL' has import animation warnings that might lower retargeting quality:\nNote:
+      Activate translation DOF on avatar to improve retargeting quality.\n\t'spine'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'spine.004'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
+      'hRig|punchR' has import animation warnings that might lower retargeting quality:\nNote:
+      Activate translation DOF on avatar to improve retargeting quality.\n\t'spine'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'spine.004'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
+      'hRig|run' has import animation warnings that might lower retargeting quality:\nNote:
+      Activate translation DOF on avatar to improve retargeting quality.\n\t'spine'
+      has translation animation that will be discarded.\n\t'spine.004' is inbetween
+      humanoid transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      has scale animation that will be discarded.\n\nClip 'hRig|shiftLeft' has import
+      animation warnings that might lower retargeting quality:\nNote: Activate translation
+      DOF on avatar to improve retargeting quality.\n\t'spine' has translation animation
+      that will be discarded.\n\t'spine' is inbetween humanoid transforms and has
+      rotation animation that will be discarded.\n\nClip 'hRig|shiftRight' has import
+      animation warnings that might lower retargeting quality:\nNote: Activate translation
+      DOF on avatar to improve retargeting quality.\n\t'spine' has translation animation
+      that will be discarded.\n\t'spine' is inbetween humanoid transforms and has
+      rotation animation that will be discarded.\n\nClip 'hRig|swim' has import animation
+      warnings that might lower retargeting quality:\nNote: Activate translation
+      DOF on avatar to improve retargeting quality.\n\t'spine.004' is inbetween humanoid
+      transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
+      'hRig|swing' has import animation warnings that might lower retargeting quality:\nNote:
+      Activate translation DOF on avatar to improve retargeting quality.\n\t'spine.004'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n\nClip
+      'hRig|walk' has import animation warnings that might lower retargeting quality:\nNote:
+      Activate translation DOF on avatar to improve retargeting quality.\n\t'spine'
+      has translation animation that will be discarded.\n\t'spine.004' is inbetween
+      humanoid transforms and has rotation animation that will be discarded.\n\t'spine.006'
+      is inbetween humanoid transforms and has rotation animation that will be discarded.\n"
     animationRetargetingWarnings: 
     animationDoRetargetingWarnings: 0
     importAnimatedCustomProperties: 0

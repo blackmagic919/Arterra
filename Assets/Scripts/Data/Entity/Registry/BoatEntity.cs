@@ -212,9 +212,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
                 }
 
                 this.animator.SetBool("Paddle", true);
-                if (angle <= -15) this.animator.SetTrigger("Left");
-                else if (angle >= 15) this.animator.SetTrigger("Right");
-                else this.animator.SetTrigger("Forward");
+                this.animator.SetFloat("Direction", Mathf.InverseLerp(-90, 90, angle));
             }
 
             public void SetAimAngle(float3 aim) { angle = Vector3.Angle(this.entity.tCollider.velocity, aim); }

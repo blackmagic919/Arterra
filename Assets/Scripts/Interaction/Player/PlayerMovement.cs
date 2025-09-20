@@ -236,11 +236,6 @@ public static class FlightMovement {
         if (math.length(velocity.xz) < MoveSpeed)
             velocity.xz += deltaV;
 
-        if (math.length(deltaV) > 0.1f) {
-            if (PlayerMovement.IsSprinting) PlayerHandler.data.animator.SetTrigger("IsRunning");
-            else PlayerHandler.data.animator.SetTrigger("IsWalking");
-        };
-
         PlayerMovement.SetAnimatorSpeed(math.length(velocity));
         PlayerMovement.IsSprinting = false;
         PlayerMovement.InputDir = float2.zero;

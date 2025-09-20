@@ -53,8 +53,8 @@ public class MinimalVitality {
         this.genetics = genetics ?? new Genetics();
         this.stats = stats;
         invincibility = 0;
-        health = genetics.Get(stats.MaxHealth);
-        breath = genetics.Get(stats.HoldBreathTime);
+        health = this.genetics.Get(stats.MaxHealth);
+        breath = this.genetics.Get(stats.HoldBreathTime);
     }
 
     public MinimalVitality() { }
