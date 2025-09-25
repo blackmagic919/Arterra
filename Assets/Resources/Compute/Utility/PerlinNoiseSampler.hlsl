@@ -67,7 +67,7 @@ float GetRawNoise(float3 id, uint samplerIndex, float3 sOffset){
     for(uint i = _NoiseIndexes[samplerIndex].x; i < _NoiseIndexes[samplerIndex + 1].x; i++)
     {
         float3 sample = (sPos + _NoiseOffsets[i] + sOffset) / settings.noiseScale * frequency;
-        float perlinValue = (snoise(sample) + 1) / 2.0f; //Default range -1 to 1
+        float perlinValue = snoise(sample); //Default range -1 to 1
         noiseHeight += perlinValue * amplitude;
         maxHeight += amplitude;
         
@@ -75,7 +75,7 @@ float GetRawNoise(float3 id, uint samplerIndex, float3 sOffset){
         frequency *= settings.lacunarity; //frequency increases -> size of noise sampling increases -> more random
     }
 
-    return noiseHeight / maxHeight;
+    return (noiseHeight / maxHeight + 1.0f) / 2.0f;
 }
 
 
@@ -91,7 +91,7 @@ float GetRawNoise2D(float2 id, uint samplerIndex, float2 sOffset){
     for(uint i = _NoiseIndexes[samplerIndex].x; i < _NoiseIndexes[samplerIndex + 1].x; i++)
     {
         float2 sample = (sPos + _NoiseOffsets[i].xy + sOffset) / settings.noiseScale * frequency;
-        float perlinValue = (snoise2D(sample) + 1) / 2.0f; //Default range -1 to 1
+        float perlinValue = snoise2D(sample);
         noiseHeight += perlinValue * amplitude;
         maxHeight += amplitude;
         
@@ -99,7 +99,7 @@ float GetRawNoise2D(float2 id, uint samplerIndex, float2 sOffset){
         frequency *= settings.lacunarity; //frequency increases -> size of noise sampling increases -> more random
     }
 
-    return noiseHeight / maxHeight;
+    return (noiseHeight / maxHeight + 1.0f) / 2.0f; //Default range -1 to 1
 }
 
 

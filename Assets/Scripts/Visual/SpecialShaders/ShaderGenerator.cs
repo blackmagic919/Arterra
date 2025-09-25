@@ -116,7 +116,7 @@ public class ShaderGenerator
     public void ReleaseGeometry()
     {
         foreach (ShaderUpdateTask task in shaderUpdateTasks){
-            if (task == null || !task.active)
+            if (task == null || !task.Active)
                 continue;
             task.Release(ref GenerationPreset.memoryHandle);
         }
@@ -303,7 +303,7 @@ public class ShaderGenerator
 
     private static void ReleaseEmptyShaders(ShaderUpdateTask shader){
         void OnAddressRecieved(AsyncGPUReadbackRequest request){
-            if (!shader.active) return;
+            if (!shader.Active) return;
 
             uint2 memAddress = request.GetData<uint2>().ToArray()[0];
             if (memAddress.x != 0) return; //No geometry to readback
@@ -313,7 +313,12 @@ public class ShaderGenerator
         AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)shader.address, OnAddressRecieved);
     }
 
-    public class ShaderUpdateTask : UpdateTask {
+    public class ShaderUpdateTask : IUpdateSubscriber {
+        private bool active = false;
+        public bool Active {
+            get => active;
+            set => active = value;
+        }
         public uint address;
         public uint dispArgs;
         RenderParams rp;
@@ -324,7 +329,7 @@ public class ShaderGenerator
             this.active = true;
         }
 
-        public override void Update(MonoBehaviour mono = null) {
+        public void Update(MonoBehaviour mono = null) {
             Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)dispArgs);
         }
 

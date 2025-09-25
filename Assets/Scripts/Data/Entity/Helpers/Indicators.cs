@@ -25,6 +25,7 @@ public static class Indicators
     public static ObjectPool<GameObject> ItemSlots;
     public static ObjectPool<GameObject> StackableItems;
     public static ObjectPool<GameObject> HolderItems;
+    public static ObjectPool<GameObject> ToolItems;
     public static ObjectPool<GameObject> RecipeSelections;
     public static GameObject SelectionIndicator;
     public static GameObject DamageIndicator;
@@ -51,6 +52,7 @@ public static class Indicators
         GameObject ItemSlot = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Slot");
         GameObject StackableItem = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/StackableItem");
         GameObject HolderItem = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/HolderItem");
+        GameObject ToolItem = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/ToolItem");
         GameObject RecipeSelection = Resources.Load<GameObject>("Prefabs/GameUI/Crafting/RecipeSelection");
 
         ItemSlots = new ObjectPool<GameObject>(() => {
@@ -61,6 +63,9 @@ public static class Indicators
         }, OnActivate, OnDeactivate, OnDestroy, true, 5, 40);
         HolderItems = new ObjectPool<GameObject>(() => {
             return GameObject.Instantiate(HolderItem);
+        }, OnActivate, OnDeactivate, OnDestroy, true, 5, 20);
+        ToolItems = new ObjectPool<GameObject>(() => {
+            return GameObject.Instantiate(ToolItem);
         }, OnActivate, OnDeactivate, OnDestroy, true, 5, 20);
         RecipeSelections = new ObjectPool<GameObject>(() => {
             return GameObject.Instantiate(RecipeSelection);

@@ -253,7 +253,7 @@ namespace WorldConfig.Generation.Item
             float3 max = bounds.max;
             return new((index & 0x1) == 0 ? min.x : max.x,
                     (index & 0x2) == 0 ? min.y : max.y,
-                    (index & 0x3) == 0 ? min.z : max.z);
+                    (index & 0x4) == 0 ? min.z : max.z);
         }
 
         private static Bounds SetCorner(Bounds bounds, ref uint index, float3 pos)

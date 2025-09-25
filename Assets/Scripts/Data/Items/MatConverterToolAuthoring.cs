@@ -27,8 +27,8 @@ namespace WorldConfig.Generation.Item
         public override void OnSelect() {
             InputPoller.AddKeyBindChange(() => {
                 KeyBinds = new int[2];
-                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place", TerrainModify, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-                KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", TerrainRemove, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place", TerrainModify), "5.0::GamePlay");
+                KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", TerrainRemove), "5.0::GamePlay");
             });
         }
 
@@ -65,6 +65,7 @@ namespace WorldConfig.Generation.Item
             if (durability > 0) return;
             //Removes itself
             InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
+            InputPoller.SuspendKeybindPropogation("Place", InputPoller.ActionBind.Exclusion.ExcludeLayer);
         }
     }
 }

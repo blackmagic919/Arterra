@@ -20,7 +20,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
     private GameObject craftingMenu;
     private MapData[] craftingData;
     private Display Rendering;
-    private UpdateTask eventTask;
+    private IUpdateSubscriber eventTask;
 
     private int GridWidth;
     internal int AxisWidth => GridWidth + 1;
@@ -72,7 +72,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
     }
 
     public void Deactivate() {
-        eventTask.active = false;
+        eventTask.Active = false;
         for (int i = 0; i < GridCount; i++) {
             if (craftingData[i].density == 0) continue;
             InventoryAddMapData(craftingData[i]);
@@ -124,7 +124,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
 
     // Update is called once per frame
     private void Update(MonoBehaviour mono) {
-        if (!eventTask.active) return;
+        if (!eventTask.Active) return;
 
         //Crafting Point Scaling
         EvaluateInfluence((int2 corner, float influence) => {
@@ -376,7 +376,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
 
         public void ActivateRecipeDisplay(CraftingRecipe recipe) {
             if (HighlightTask != null)
-                HighlightTask.active = false;
+                HighlightTask.Active = false;
             HighlightTask = new IndirectUpdate(HighlightGridMaterial);
             OctreeTerrain.MainLoopUpdateTasks.Enqueue(HighlightTask);
             SearchContainer.gameObject.SetActive(false);
@@ -390,7 +390,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
 
         public void DeactivateRecipeDisplay(string _ = null) {
             if(HighlightTask != null)
-                HighlightTask.active = false;
+                HighlightTask.Active = false;
             HighlightTask = null;
             
             SearchContainer.gameObject.SetActive(true);

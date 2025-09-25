@@ -1,25 +1,25 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public abstract class UpdateTask
+public interface IUpdateSubscriber
 {
-    public bool active = false;
-    public virtual void Update(MonoBehaviour mono = null){
-        //Do Something
-    }
+    public bool Active{ get; set; }
+    public void Update(MonoBehaviour mono = null);
 }
 
-public class IndirectUpdate : UpdateTask{
+public class IndirectUpdate : IUpdateSubscriber{
+    private bool active = false;
+    public bool Active {
+        get => active;
+        set => active = value;
+    }
     Action<MonoBehaviour> callback;
     public IndirectUpdate(Action<MonoBehaviour> callback){
         this.active = true;
         this.callback = callback;
     }
-    public override void Update(MonoBehaviour mono = null)
+    public void Update(MonoBehaviour mono = null)
     {
         callback.Invoke(mono);
-        base.Update(mono);
     }
 }

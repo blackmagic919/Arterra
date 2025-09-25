@@ -68,6 +68,19 @@ public static class PlayerInteraction {
         return CPUMapManager.RayCastTerrain(data.position, PlayerHandler.camera.forward, settings.ReachDistance, RayTestSolid, out hitPt);
     }
 
+    public static bool CylinderTestSolid(PlayerStreamer.Player data, out float3 hitPt) {
+        static uint CylinderTestSolid(int3 coord) {
+            MapData pointInfo = CPUMapManager.SampleMap(coord);
+            return (uint)pointInfo.viscosity;
+        }
+        const float radius = 1;
+        if (RayTestSolid(data, out hitPt) && math.lengthsq(hitPt - data.position) < radius * radius * 4)
+            return true;
+        float3 forward = PlayerHandler.camera.forward;
+        return CPUMapManager.CylinderCastTerrain(data.position + 2 * radius * forward,
+            forward, radius, settings.ReachDistance, CylinderTestSolid, out hitPt);
+    }
+
     public static bool RayTestLiquid(PlayerStreamer.Player data, out float3 hitPt) {
         static uint RayTestLiquid(int3 coord) {
             MapData pointInfo = CPUMapManager.SampleMap(coord);
@@ -119,7 +132,7 @@ public static class PlayerInteraction {
 
     private static void RemoveTerrain(float _) {
         if (!PlayerHandler.active) return;
-        if (!RayTestSolid(data, out float3 hitPt)) return;
+        if (!CylinderTestSolid(data, out float3 hitPt)) return;
         if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var entity)) {
             return;
         }

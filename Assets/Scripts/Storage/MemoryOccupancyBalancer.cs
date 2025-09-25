@@ -154,7 +154,17 @@ namespace WorldConfig.Quality{
             return MemoryBlocks[index]._Storage;
         }
 
+        public bool GetBlockBufferSafe(int index, out ComputeBuffer buffer) {
+            index = addressBuffers[index]; buffer = null;
+            if (!initialized) return false;
+            if (index < 0 || index >= MemoryBlocks.Count)
+                return false;
+            buffer = MemoryBlocks[(int)index]._Storage;
+            return true;
+        }
+
         public override uint AllocateMemory(ComputeBuffer count, int stride, int countOffset = 0) {
+            if (!initialized) return 0;
             this.AllocateShader.SetBuffer(0, "_SourceMemory", curAlloc._Storage);
             this.AllocateShader.SetBuffer(0, "_Heap", curAlloc._Heap);
             this.AllocateShader.SetInt("buffIndex", AllocBufferIndex);
@@ -164,6 +174,7 @@ namespace WorldConfig.Quality{
         }
 
         public override uint AllocateMemoryDirect(int count, int stride) {
+            if (!initialized) return 0;
             this.d_AllocateShader.SetBuffer(0, "_SourceMemory", curAlloc._Storage);
             this.d_AllocateShader.SetBuffer(0, "_Heap", curAlloc._Heap);
             this.d_AllocateShader.SetInt("buffIndex", AllocBufferIndex);
@@ -173,6 +184,7 @@ namespace WorldConfig.Quality{
         }
 
         public override void ReleaseMemory(uint addressIndex) {
+            if (!initialized) return;
             int buffInd = addressBuffers[addressIndex];
             BufferAllocation alloc = MemoryBlocks[buffInd];
             this.DeallocateShader.SetBuffer(0, "_SourceMemory", alloc._Storage);

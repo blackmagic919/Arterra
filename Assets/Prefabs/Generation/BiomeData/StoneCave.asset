@@ -35,8 +35,8 @@ MonoBehaviour:
         value:
         - value:
             Material: 0
-            genSize: 0.431
-            genShape: 0.541
+            genSize: 0.5
+            genShape: 0.5
             frequency: 1
             height: 0
         - value:
@@ -47,20 +47,20 @@ MonoBehaviour:
             height: 0
         - value:
             Material: 2
-            genSize: 0.577
-            genShape: 0.253
-            frequency: 0.3
+            genSize: 0.2
+            genShape: 0.6
+            frequency: 0.4
             height: 0
         - value:
             Material: 3
-            genSize: 0.537
-            genShape: 0.851
-            frequency: 0.25
+            genSize: 0.3
+            genShape: 0.25
+            frequency: 0.4
             height: 0
         - value:
             Material: 4
-            genSize: 0.206
-            genShape: 0.44
+            genSize: 0.8
+            genShape: 0.2
             frequency: 0.6
             height: 0
         - value:

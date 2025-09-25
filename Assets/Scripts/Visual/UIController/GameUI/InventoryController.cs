@@ -40,7 +40,7 @@ public static class InventoryController {
     public static Inventory Primary => PlayerHandler.data.PrimaryI; //Hotbar
     public static Inventory Secondary => PlayerHandler.data.SecondaryI; //Inventory
     public static InventorySlotDisplay CursorDisplay;
-    private static UpdateTask EventTask;
+    private static IUpdateSubscriber EventTask;
 
     private static uint Fence;
     private static Catalogue<Authoring> ItemSettings;

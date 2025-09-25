@@ -78,8 +78,6 @@ OpticalInfo CumulativeMapInfo(float3 rayOrigin, float3 rayDir, float rayLength){
     return info;
 }
 
-
-
 float3 opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
     float3 densitySamplePoint = rayOrigin;
     float stepSize = rayLength / (_NumOpticalDepthPoints - 1);

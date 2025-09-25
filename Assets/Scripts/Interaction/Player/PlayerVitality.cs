@@ -49,7 +49,7 @@ public class PlayerVitality
     public void Update(){
         Invincibility = math.max(Invincibility - EntityJob.cxt.deltaTime, 0);
         AttackCooldown = math.max(AttackCooldown - EntityJob.cxt.deltaTime, 0);
-        if(IsDead) return;
+        if (IsDead) return;
         float delta = math.min(health + settings.NaturalRegen * EntityJob.cxt.deltaTime, 
                       settings.MaxHealth) - health;
         health += delta;

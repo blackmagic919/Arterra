@@ -12,7 +12,7 @@ public static class LoadingHandler
     public static Image Background;
     public static Slider slider;
     public static TextMeshProUGUI taskText;
-    private static UpdateTask eventTask;
+    private static IUpdateSubscriber eventTask;
     private static float finishedLoad;
     public static string[] taskDescriptions = {
         "Generating Surface Data",
@@ -34,8 +34,8 @@ public static class LoadingHandler
     }
 
     public static void Activate(){
-        if(eventTask != null && eventTask.active) 
-            eventTask.active = false;
+        if(eventTask != null && eventTask.Active) 
+            eventTask.Active = false;
         eventTask = new IndirectUpdate(Update);
         MainLoopUpdateTasks.Enqueue(eventTask);
         LoadingScreen.SetActive(true);
@@ -46,7 +46,7 @@ public static class LoadingHandler
     {
         if(RequestQueue.IsEmpty){
             LoadingScreen.SetActive(false);
-            eventTask.active = false;
+            eventTask.Active = false;
             return;
         }
         float totalRemainingLoad = 0; 

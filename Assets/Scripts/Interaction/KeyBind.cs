@@ -173,7 +173,7 @@ public static class InputPoller
     private static ref SharedLinkedList<ActionBind> KeyBinds => ref Binder.KeyBinds;
     private static ref Registry<uint> LayerHeads => ref Binder.LayerHeads;
     private static Queue<Action> KeyBindChanges;
-    private static UpdateTask eventTask;
+    private static IUpdateSubscriber eventTask;
     private static HashSet<string> GlobalExclusion;
     private static HashSet<string> LayerExclusion;
 

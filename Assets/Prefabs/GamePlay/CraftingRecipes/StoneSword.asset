@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aba0e1d8d02674d9ca7672d55a581c42, type: 3}
+  m_Name: StoneSword
+  m_EditorClassIdentifier: 
+  Name: StoneSword
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - StoneSword
+    - Wood
+    - Rock
+  Recipe:
+    value:
+      entry:
+        value:
+        - data: 116936
+        - data: 25700
+        - data: 104086
+        - data: 0
+        - data: 25700
+        - data: 104086
+        - data: 32125
+        - data: 0
+        - data: 104086
+        - data: 32125
+        - data: 169622
+        - data: 32125
+        - data: 0
+        - data: 0
+        - data: 32125
+        - data: 169622
+      result:
+        data: 255
+  references:
+    version: 2
+    RefIds: []

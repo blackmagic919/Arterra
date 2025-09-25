@@ -54,7 +54,6 @@ MonoBehaviour:
           x: 2
           y: 2
           z: 2
-        profileStart: 521
       collider:
         size:
           x: 0.75
@@ -80,7 +79,6 @@ MonoBehaviour:
             x: 0
             y: 0
             z: 0
-          profileStart: 0
         AverageFlightTime:
           mean: 60
           var: 0.5
@@ -116,7 +114,6 @@ MonoBehaviour:
             x: 1
             y: 1
             z: 1
-          profileStart: 529
       decomposition:
         LootTable:
           value:
@@ -141,10 +138,6 @@ MonoBehaviour:
             mean: 3
             var: 0.5
             geneWeight: 1
-          InitHealth:
-            mean: 0.5
-            var: 0.33
-            geneWeight: 0.1
           NaturalRegen:
             mean: -0.002
             var: 0.75
@@ -175,11 +168,11 @@ MonoBehaviour:
             geneWeight: 0.33
           HuntThreshold:
             mean: 0.4
-            var: 0.5
+            var: 0.25
             geneWeight: 0.1
           MateThreshold:
             mean: 0.8
-            var: 0.25
+            var: 0.125
             geneWeight: 0.1
           MateCost:
             mean: 0.5

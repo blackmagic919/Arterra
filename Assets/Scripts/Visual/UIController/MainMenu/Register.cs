@@ -136,8 +136,7 @@ public struct Catalogue<T> : IRegister, ICloneable where T : Category<T>
     }
 
     public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, string name, out object prop) => GetMostSpecificTag(tag, RetrieveIndex(name), out prop);
-    public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, int index, out object prop)
-    {
+    public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, int index, out object prop) {
         prop = null;
         if (index < 0 || index >= Reg.Count) return false;
         Category<T>.BackEdge cur = InvertedDependency[index];

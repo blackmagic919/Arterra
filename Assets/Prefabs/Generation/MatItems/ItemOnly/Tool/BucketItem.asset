@@ -13,6 +13,12 @@ MonoBehaviour:
   m_Name: BucketItem
   m_EditorClassIdentifier: 
   Name: Bucket
+  Tags:
+    Reg:
+      value: []
   TextureName: Bucket
-  MaterialName: 
-  MaterialState: 0
+  TerraformRadius: 1
+  TerraformSpeed: 200
+  references:
+    version: 2
+    RefIds: []

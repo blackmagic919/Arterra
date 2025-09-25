@@ -674,10 +674,6 @@ MonoBehaviour:
             mean: 60
             var: 0.5
             geneWeight: 1
-          InitHealth:
-            mean: 0.5
-            var: 0.33
-            geneWeight: 0.1
           NaturalRegen:
             mean: -0.01
             var: 0.75
@@ -708,11 +704,11 @@ MonoBehaviour:
             geneWeight: 0.25
           HuntThreshold:
             mean: 0.4
-            var: 0.5
+            var: 0.25
             geneWeight: 0.1
           MateThreshold:
             mean: 0.8
-            var: 0.25
+            var: 0.125
             geneWeight: 0.1
           MateCost:
             mean: 15

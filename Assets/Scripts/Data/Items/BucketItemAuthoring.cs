@@ -96,7 +96,7 @@ public class BucketItem : IItem{
     private void PlaceLiquid(float _){
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         
-        if(content == null || !PlayerInteraction.RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
+        if (content == null || !PlayerInteraction.RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
         Authoring authoring = ItemInfo.Retrieve(content.Index);
         if (authoring is not PlaceableItem mat) return;
         if (mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
@@ -146,11 +146,11 @@ public class BucketItem : IItem{
 
         MapData pointInfo = CPUMapManager.SampleMap(GCoord);
         MapData delta = pointInfo;
+        delta.viscosity = 0;
         int liquidDensity = pointInfo.LiquidDensity;
         delta.density = math.min(PlayerInteraction.GetStaggeredDelta(liquidDensity, -brushStrength), IItem.MaxAmountRaw);
         Material.MaterialData material = MatInfo.Retrieve(pointInfo.material);
         IItem newItem = material.OnRemoved(GCoord, delta);
-        delta.viscosity = 0;
         if (liquidDensity >= CPUMapManager.IsoValue){
             if (content == null) {
                 content = newItem;

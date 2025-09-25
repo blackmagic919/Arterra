@@ -99,7 +99,6 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 192
       collider:
         size:
           x: 0.75
@@ -125,7 +124,6 @@ MonoBehaviour:
             x: 2
             y: 3
             z: 2
-          profileStart: 204
         AverageFlightTime:
           mean: 100
           var: 0.5
@@ -169,10 +167,6 @@ MonoBehaviour:
             mean: 4
             var: 0.5
             geneWeight: 1
-          InitHealth:
-            mean: 0.5
-            var: 0.33
-            geneWeight: 0.1
           NaturalRegen:
             mean: -0.005
             var: 0.75
@@ -203,11 +197,11 @@ MonoBehaviour:
             geneWeight: 0.33
           HuntThreshold:
             mean: 0.4
-            var: 0.5
+            var: 0.25
             geneWeight: 0.1
           MateThreshold:
             mean: 0.8
-            var: 0.25
+            var: 0.125
             geneWeight: 0.1
           MateCost:
             mean: 1

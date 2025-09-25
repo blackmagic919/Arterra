@@ -194,6 +194,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
                 float3 GCoord = new (entity.GCoord);
                 this.transform.position = CPUMapManager.GSToWS(entity.position);
 
+                if(entity.item.Value == null) return; 
                 meshFilter = gameObject.GetComponent<MeshFilter>();
                 SpriteExtruder.Extrude(new SpriteExtruder.ExtrudeSettings{
                     ImageIndex = entity.item.Value.TexIndex,

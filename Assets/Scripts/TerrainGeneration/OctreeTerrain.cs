@@ -30,19 +30,19 @@ public class OctreeTerrain : MonoBehaviour
     /// once every update loop. The update loop occurs
     /// once every frame before the late update loop.
     /// </summary>
-    public static Queue<UpdateTask> MainLoopUpdateTasks;
+    public static Queue<IUpdateSubscriber> MainLoopUpdateTasks;
     /// <summary>
     /// A queue containing subscribed tasks that are executed
     /// once every late update loop. The late update loop
     /// occurs once every frame after the update loop.
     /// </summary>
-    public static Queue<UpdateTask> MainLateUpdateTasks;
+    public static Queue<IUpdateSubscriber> MainLateUpdateTasks;
     /// <summary>
     /// A queue containing subscribed tasks that are executed
     /// once every fixed update loop. The fixed update loop is
     /// akin to a game-tick and is frame-independent. 
     /// </summary>
-    public static Queue<UpdateTask> MainFixedUpdateTasks;
+    public static Queue<IUpdateSubscriber> MainFixedUpdateTasks;
     /// <summary>
     /// A queue containing coroutines which will be synchronized and updated
     /// by Unity's main update loop. Unity does not allow injection into its synchronization
@@ -124,9 +124,9 @@ public class OctreeTerrain : MonoBehaviour
         octree = new Octree(s.MaxDepth, s.Balance, s.MinChunkRadius);
         chunks = new ConstrainedLL<TerrainChunk>((uint)(Octree.GetMaxNodes(s.MaxDepth, s.Balance, s.MinChunkRadius) + 1));
 
-        MainLoopUpdateTasks = new Queue<UpdateTask>();
-        MainLateUpdateTasks = new Queue<UpdateTask>();
-        MainFixedUpdateTasks = new Queue<UpdateTask>();
+        MainLoopUpdateTasks = new Queue<IUpdateSubscriber>();
+        MainLateUpdateTasks = new Queue<IUpdateSubscriber>();
+        MainFixedUpdateTasks = new Queue<IUpdateSubscriber>();
         MainCoroutines = new Queue<System.Collections.IEnumerator>();
         RequestQueue = new ConcurrentQueue<GenTask>();
         SystemProtocol.Startup();
@@ -177,12 +177,12 @@ public class OctreeTerrain : MonoBehaviour
     }
     private void LateUpdate(){ ProcessUpdateTasks(MainLateUpdateTasks); }
     private void FixedUpdate(){ ProcessUpdateTasks(MainFixedUpdateTasks); }
-    private void ProcessUpdateTasks(Queue<UpdateTask> taskQueue)
+    private void ProcessUpdateTasks(Queue<IUpdateSubscriber> taskQueue)
     {
         int UpdateTaskCount = taskQueue.Count;
         for(int i = 0; i < UpdateTaskCount; i++){
-            UpdateTask task = taskQueue.Dequeue();
-            if(!task.active)
+            IUpdateSubscriber task = taskQueue.Dequeue();
+            if(!task.Active)
                 continue;
             task.Update(this);
             taskQueue.Enqueue(task);

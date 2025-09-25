@@ -73,7 +73,7 @@ namespace TerrainGeneration{
             MaterialDictionary = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             UpdateCoordinates = new ConcurrentQueue<int3>();
             IncludedCoords = new FlagList(numPoints);
-            Executor = new Manager { active = true };
+            Executor = new Manager();
             OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
             UpdateTick = 0;
         }
@@ -96,7 +96,12 @@ namespace TerrainGeneration{
         /// Update Task that is tied with the <see cref="OctreeTerrain.MainFixedUpdateTasks"/>. 
         /// It is responsible for updating the map entries within Unity's fixed update loop.
         /// </summary>
-        public class Manager : UpdateTask {
+        public class Manager : IUpdateSubscriber {
+            private bool active = false;
+            public bool Active {
+                get => active;
+                set => active = value;
+            }
             /// <summary> Whether or not the job is currently running; whether the job
             /// currently has threads in the thread pool executing it. </summary>
             public bool dispatched = false;
@@ -134,7 +139,7 @@ namespace TerrainGeneration{
             /// Updates the map entries in the update queue. 
             /// The map entries are updated in the order they were added.
             /// </summary> <param name="mono"><see cref="UpdateTask.Update"/> </param>
-            public override void Update(MonoBehaviour mono) {
+            public void Update(MonoBehaviour mono) {
                 if (!PlayerHandler.active) return;
                 UpdateTick = (UpdateTick + 1) % settings.UpdateTickDelay;
                 if (UpdateTick != 0) return;

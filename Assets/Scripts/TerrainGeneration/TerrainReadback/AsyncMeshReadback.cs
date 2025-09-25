@@ -147,7 +147,7 @@ public class AsyncMeshReadback
 
         //Readback shared vertices
         GeometryHandle vertHandle = this.vertexHandle; //Get reference here so that it doesn't change when lambda evaluates
-        if(vertHandle == null || !vertHandle.active)
+        if(vertHandle == null || !vertHandle.Active)
             return;
         AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)vertHandle.addressIndex, ret => OnAddressRecieved(ret, vertHandle, RBTask, onVertSizeRecieved));
         RBTask.AddTask();
@@ -155,7 +155,7 @@ public class AsyncMeshReadback
         //Readback mesh triangles
         for(int matIndex = 0; matIndex < numMeshes; matIndex++){
             GeometryHandle geoHandle = triHandles[matIndex];
-            if(geoHandle == null || !geoHandle.active)
+            if(geoHandle == null || !geoHandle.Active)
                 continue;
             //Begin readback of data
             AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)geoHandle.addressIndex, ret => OnAddressRecieved(ret, geoHandle, RBTask, onTriSizeRecieved));
@@ -165,7 +165,9 @@ public class AsyncMeshReadback
 
     private void OnAddressRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask, ReadbackSizeRecieved onSizeRecieved)
     {
-        if (geoHandle == null || !geoHandle.active) //Info was depreceated
+        if (geoHandle == null || !geoHandle.Active) //Info was depreceated
+            return;
+        if(!GenerationPreset.memoryHandle.GetBlockBufferSafe((int)geoHandle.addressIndex, out ComputeBuffer sourceStorage))
             return;
 
         uint2 memAddress = request.GetData<uint2>().ToArray()[0];
@@ -177,13 +179,14 @@ public class AsyncMeshReadback
         }
 
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
-        ComputeBuffer sourceStorage = GenerationPreset.memoryHandle.GetBlockBuffer(geoHandle.addressIndex);
         AsyncGPUReadback.Request(sourceStorage, size: 4, offset: 4 * ((int)memAddress.x - 1), ret => onSizeRecieved(ret, memAddress, geoHandle, RBTask));
     }
     private delegate void ReadbackSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask);
     private void onTriSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask)
     {
-        if (geoHandle == null || !geoHandle.active)  //Info was depreceated
+        if (geoHandle == null || !geoHandle.Active)  //Info was depreceated
+            return;
+        if(!GenerationPreset.memoryHandle.GetBlockBufferSafe((int)geoHandle.addressIndex, out ComputeBuffer sourceStorage))
             return;
 
         int memSize = (int)(request.GetData<uint>().ToArray()[0] - TRI_STRIDE_WORD); //subtract one triangle for padding
@@ -191,12 +194,13 @@ public class AsyncMeshReadback
 
         RBTask.RBMesh.IndexBuffer[geoHandle.matIndex] = new NativeArray<uint>(memSize, Allocator.Persistent);
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
-        ComputeBuffer sourceStorage = GenerationPreset.memoryHandle.GetBlockBuffer(geoHandle.addressIndex);
         AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[geoHandle.matIndex], sourceStorage, size: 4 * memSize, offset: 4 * triStartWord, ret => onDataRecieved(geoHandle, RBTask));
     }
 
     private void onVertSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle,  ReadbackTask<IVertFormat.TVert> RBTask){
-        if (geoHandle == null || !geoHandle.active) 
+        if (geoHandle == null || !geoHandle.Active) 
+            return;
+        if(!GenerationPreset.memoryHandle.GetBlockBufferSafe((int)geoHandle.addressIndex, out ComputeBuffer sourceStorage))
             return;
 
         int memSize = (int)(request.GetData<uint>().ToArray()[0] - MESH_VERTEX_STRIDE_WORD); //subtract one triangle for padding
@@ -206,13 +210,12 @@ public class AsyncMeshReadback
         RBTask.RBMesh.VertexBuffer = new NativeArray<IVertFormat.TVert>(vertCount, Allocator.Persistent);
         //AsyncGPUReadback.Request size and offset are in units of bytes... 
         //Async says async but is run on main thread(kind of confusing)
-        ComputeBuffer sourceStorage = GenerationPreset.memoryHandle.GetBlockBuffer(geoHandle.addressIndex);
         AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, sourceStorage, size: 4 * memSize, offset: 4 * vertStartWord, ret => onDataRecieved(geoHandle, RBTask));
     }
 
     private void onDataRecieved(GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask)
     {
-        if (geoHandle == null || !geoHandle.active)  //Info was depreceated
+        if (geoHandle == null || !geoHandle.Active)  //Info was depreceated
             return;
             
         RBTask.OnRBRecieved();
@@ -285,8 +288,13 @@ public enum ReadbackMaterial{
 /// <summary> A handle to geometry that is stored in <see cref="GenerationPreset.MemoryHandle._GPUMemorySource"> long term GPU storage </see>. 
 /// If the geometry is triangles(an index buffer), the handle will also store information for rendering the geometry indirectly,
 /// by using vertex information stored in a <see cref="AsyncMeshReadback.vertexHandle"> seperate geometry handle </see>.  </summary>
-public class GeometryHandle : UpdateTask
+public class GeometryHandle : IUpdateSubscriber
 {
+    private bool active = false;
+    public bool Active {
+        get => active;
+        set => active = value;
+    }
     /// <summary> The <see cref="RenderParams"/> describing how the geometry should be rendered indirectly if it is to be rendered. </summary>
     public RenderParams rp = default;
     /// <summary> The memory handle of the buffer where the geometry is stored. Specifically, the geometry will be stored in 
@@ -350,7 +358,7 @@ public class GeometryHandle : UpdateTask
     /// This done every frame through unity's update loop through <see cref="MainLoopUpdateTasks"/>.
     /// See <see cref="UpdateTask"/> for more information. </summary>
     /// <param name="mono">See <see cref="UpdateTask.Update(MonoBehaviour)"/> for more info. </param>
-    public override void Update(MonoBehaviour mono = null)
+    public void Update(MonoBehaviour mono = null)
     {
         if (!active)
             return;

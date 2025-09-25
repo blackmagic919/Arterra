@@ -63,7 +63,6 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        profileStart: 104
       collider:
         size:
           x: 0.75
@@ -91,7 +90,10 @@ MonoBehaviour:
               mean: 8
               var: 1
               geneWeight: 0.05
-        DecompositionTime: 200
+        DecompositionTime:
+          mean: 0
+          var: 0
+          geneWeight: 0
       recognition:
         value:
           Predators:
@@ -128,10 +130,6 @@ MonoBehaviour:
             mean: 10
             var: 0.5
             geneWeight: 1
-          InitHealth:
-            mean: 0.5
-            var: 0.33
-            geneWeight: 0.1
           NaturalRegen:
             mean: -0.01
             var: 0.75
@@ -162,11 +160,11 @@ MonoBehaviour:
             geneWeight: 0.25
           HuntThreshold:
             mean: 0.4
-            var: 0.5
+            var: 0.25
             geneWeight: 0.1
           MateThreshold:
             mean: 0.8
-            var: 0.25
+            var: 0.125
             geneWeight: 0.1
           MateCost:
             mean: 4

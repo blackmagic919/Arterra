@@ -47,7 +47,7 @@ public static class DayNightContoller
     private static LensFlareComponentSRP sunFlare;
     private static Light Sun;
     private static Light Moon;
-    private static UpdateTask eventTask;
+    private static IUpdateSubscriber eventTask;
 
     // Start is called before the first frame update
     public static void Initialize()

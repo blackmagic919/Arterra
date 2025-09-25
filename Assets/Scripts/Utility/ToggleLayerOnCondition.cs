@@ -1,6 +1,8 @@
 using UnityEngine;
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.Animations;
+#endif
 
 public class ToggleLayerOnCondition : StateMachineBehaviour {
     public enum ConditionType { Bool, Int, Float }
@@ -84,23 +86,19 @@ public class ToggleLayerOnCondition : StateMachineBehaviour {
         }
     }
 }
-
+#if UNITY_EDITOR
 [CustomPropertyDrawer(typeof(ToggleLayerOnCondition.Condition))]
-public class ConditionDrawer : PropertyDrawer
-{
-    private AnimatorController GetAnimatorController(SerializedProperty property)
-    {
+public class ConditionDrawer : PropertyDrawer {
+    private AnimatorController GetAnimatorController(SerializedProperty property) {
         Object target = property.serializedObject.targetObject;
         string path = AssetDatabase.GetAssetPath(target);
-        if (!string.IsNullOrEmpty(path))
-        {
+        if (!string.IsNullOrEmpty(path)) {
             return AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
         }
         return null;
     }
 
-    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
-    {
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
         EditorGUI.BeginProperty(position, label, property);
 
         SerializedProperty paramNameProp = property.FindPropertyRelative("parameterName");
@@ -116,13 +114,11 @@ public class ConditionDrawer : PropertyDrawer
         string[] paramNames = new string[0];
         AnimatorControllerParameterType[] paramTypes = new AnimatorControllerParameterType[0];
 
-        if (controller != null)
-        {
+        if (controller != null) {
             var parameters = controller.parameters;
             paramNames = new string[parameters.Length];
             paramTypes = new AnimatorControllerParameterType[parameters.Length];
-            for (int i = 0; i < parameters.Length; i++)
-            {
+            for (int i = 0; i < parameters.Length; i++) {
                 paramNames[i] = parameters[i].name;
                 paramTypes[i] = parameters[i].type;
             }
@@ -135,15 +131,12 @@ public class ConditionDrawer : PropertyDrawer
         int selected = Mathf.Max(0, System.Array.IndexOf(paramNames, paramNameProp.stringValue));
         Rect paramRect = new Rect(position.x, position.y, third, position.height);
 
-        if (paramNames.Length > 0)
-        {
+        if (paramNames.Length > 0) {
             int newIndex = EditorGUI.Popup(paramRect, selected, paramNames);
-            if (newIndex != selected || string.IsNullOrEmpty(paramNameProp.stringValue))
-            {
+            if (newIndex != selected || string.IsNullOrEmpty(paramNameProp.stringValue)) {
                 paramNameProp.stringValue = paramNames[newIndex];
                 // Infer type
-                switch (paramTypes[newIndex])
-                {
+                switch (paramTypes[newIndex]) {
                     case AnimatorControllerParameterType.Bool:
                         typeProp.enumValueIndex = (int)ToggleLayerOnCondition.ConditionType.Bool;
                         break;
@@ -158,9 +151,7 @@ public class ConditionDrawer : PropertyDrawer
                         break;
                 }
             }
-        }
-        else
-        {
+        } else {
             paramNameProp.stringValue = EditorGUI.TextField(paramRect, paramNameProp.stringValue);
         }
 
@@ -172,8 +163,7 @@ public class ConditionDrawer : PropertyDrawer
         Rect valueRect = new Rect(compRect.xMax + spacing, position.y, third, position.height);
         var condType = (ToggleLayerOnCondition.ConditionType)typeProp.enumValueIndex;
 
-        switch (condType)
-        {
+        switch (condType) {
             case ToggleLayerOnCondition.ConditionType.Bool:
                 EditorGUI.PropertyField(valueRect, boolProp, GUIContent.none);
                 break;
@@ -188,3 +178,4 @@ public class ConditionDrawer : PropertyDrawer
         EditorGUI.EndProperty();
     }
 }
+#endif

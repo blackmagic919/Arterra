@@ -1,6 +1,8 @@
 using UnityEngine;
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.Animations;
+#endif
 
 public class ResetAnimatorParameters : StateMachineBehaviour {
     [System.Serializable]
@@ -44,7 +46,7 @@ public class ResetAnimatorParameters : StateMachineBehaviour {
     public override void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex) {
         ApplyParameters(animator, onExitParameters);
     }
-
+#if UNITY_EDITOR
     [CustomPropertyDrawer(typeof(ResetAnimatorParameters.ParameterToSet))]
     public class ResetParameterDrawer : PropertyDrawer {
         private AnimatorController GetAnimatorController(SerializedProperty property) {
@@ -132,4 +134,5 @@ public class ResetAnimatorParameters : StateMachineBehaviour {
             EditorGUI.EndProperty();
         }
     }
+#endif
 }

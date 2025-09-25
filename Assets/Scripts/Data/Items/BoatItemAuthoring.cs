@@ -73,7 +73,7 @@ public class BoatItem : IItem{
 
     public void ClearDisplay(Transform parent){
         if (display == null) return;
-        Indicators.HolderItems.Release(display);
+        Indicators.StackableItems.Release(display);
         display = null;
     }
 

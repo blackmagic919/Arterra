@@ -71,7 +71,7 @@ namespace WorldConfig.Generation.Item
             InputPoller.AddKeyBindChange(() =>
             {
                 KeyBinds = new int[1];
-                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", TerrainRemove, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", TerrainRemove), "5.0::GamePlay");
             });
         }
 
@@ -84,8 +84,8 @@ namespace WorldConfig.Generation.Item
             });
         }
 
-        private GameObject display;
-        public void AttachDisplay(Transform parent)
+        protected GameObject display;
+        public virtual void AttachDisplay(Transform parent)
         {
             if (display != null)
             {
@@ -93,21 +93,22 @@ namespace WorldConfig.Generation.Item
                 return;
             }
 
-            display = Indicators.HolderItems.Get();
+            display = Indicators.ToolItems.Get();
             display.transform.SetParent(parent, false);
             display.transform.GetComponent<UnityEngine.UI.Image>().sprite = TextureAtlas.Retrieve(ItemInfo.Retrieve(Index).TextureName).self;
             UpdateDisplay();
         }
 
-        public void ClearDisplay(Transform parent)
+        public virtual void ClearDisplay(Transform parent)
         {
             if (display == null) return;
-            Indicators.HolderItems.Release(display);
+            Indicators.ToolItems.Release(display);
             display = null;
         }
-        
+
 
         protected void TerrainRemove(float _) {
+            if (settings.ToolTag == TagRegistry.Tags.None) return;
             if (!RayTestSolid(PlayerHandler.data, out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
                 return;
@@ -131,9 +132,10 @@ namespace WorldConfig.Generation.Item
             if (durability > 0) return;
             //Removes itself
             InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
+            InputPoller.SuspendKeybindPropogation("Remove", InputPoller.ActionBind.Exclusion.ExcludeLayer);
         }
 
-        protected void UpdateDisplay() {
+        protected virtual void UpdateDisplay() {
             if (display == null) return;
             Transform durbBar = display.transform.Find("Bar");
             durbBar.GetComponent<UnityEngine.UI.Image>().fillAmount = durability / settings.MaxDurability;

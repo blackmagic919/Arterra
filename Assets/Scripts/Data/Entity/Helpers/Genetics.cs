@@ -10,7 +10,8 @@ public class Genetics {
         public float mean;
         public float var;
         public float geneWeight;
-        [HideInInspector][NonSerialized]
+        [HideInInspector]
+        [NonSerialized]
         public int geneIndex;
     }
     private static Dictionary<uint, List<GeneFeature>> EntityGenetics;
@@ -97,10 +98,12 @@ public class Genetics {
 
         for (int i = 0; i < _genes.Length; i++) {
             totalWeight += geneTemplate[i].geneWeight;
-        } for (int i = 0; i < _genes.Length; i++) {
+        }
+        for (int i = 0; i < _genes.Length; i++) {
             _genes[i] = math.clamp(_genes[i], -1, 1);
             avgGeneStrength += _genes[i] * _genes[i] * (geneTemplate[i].geneWeight / totalWeight);
-        } avgGeneStrength = math.sqrt(avgGeneStrength);
+        }
+        avgGeneStrength = math.sqrt(avgGeneStrength);
         //Only apply normalization if avg gene strength is abnormally high
         if (avgGeneStrength <= 0.5f) return;
 
@@ -112,7 +115,7 @@ public class Genetics {
                 (geneTemplate[i].geneWeight / totalWeight));
         }
     }
-    
+
     private static float NextGaussian(float stdDev, ref Unity.Mathematics.Random rng) {
         double u1 = 1.0f - rng.NextFloat();
         double u2 = 1.0f - rng.NextFloat();

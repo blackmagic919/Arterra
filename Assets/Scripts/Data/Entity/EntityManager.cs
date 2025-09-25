@@ -28,13 +28,6 @@ public static class EntityManager
     const int MAX_ENTITY_COUNT = 10000; //10k ~ 5mb
 
     public static void AddHandlerEvent(Action action){
-
-        //If there's no job running directly execute it
-        lock(Executor){
-        if(!Executor.active) {
-            Executor = new EntityJob(); //make new one to reset
-            OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
-        } } 
         HandlerEvents.Enqueue(action);
     }
 
@@ -156,8 +149,9 @@ public static class EntityManager
         EntityHandler = new List<Entity>();
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
         EntityIndex = new Dictionary<Guid, int>();
-        Executor = new EntityJob { active = false };
         HandlerEvents = new ConcurrentQueue<Action>();
+        Executor = new EntityJob();
+        OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
         Indicators.Initialize();
 
         int numPointsPerAxis = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
@@ -244,15 +238,19 @@ public static class EntityManager
 
     public static void BeginEntityReadback(uint address, int3 CCoord){
         void OnEntitySizeRecieved(AsyncGPUReadbackRequest request, uint2 memHandle, Action<NativeArray<GenPoint>> callback){
+            if (!GenerationPreset.memoryHandle.GetBlockBufferSafe((int)address, out ComputeBuffer block))
+                return;
             int memSize = (int)(request.GetData<uint>()[0] - ENTITY_STRIDE_WORD);
             int entityStartWord = ENTITY_STRIDE_WORD * (int)memHandle.y;
-            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.GetBlockBuffer(address), size: memSize * 4, offset: 4 * entityStartWord, (req) => callback.Invoke(req.GetData<GenPoint>()));
+            AsyncGPUReadback.Request(block, size: memSize * 4, offset: 4 * entityStartWord, (req) => callback.Invoke(req.GetData<GenPoint>()));
         }
         void OnEntityAddressRecieved(AsyncGPUReadbackRequest request, Action<NativeArray<GenPoint>> callback){
+            if (!GenerationPreset.memoryHandle.GetBlockBufferSafe((int)address, out ComputeBuffer block))
+                return;
             uint2 memHandle = request.GetData<uint2>()[0];
             if(memHandle.x == 0) return; // No entities
 
-            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.GetBlockBuffer(address), size: 4, offset: 4 * ((int)memHandle.x - 1), (req) => OnEntitySizeRecieved(req, memHandle, callback));
+            AsyncGPUReadback.Request(block, size: 4, offset: 4 * ((int)memHandle.x - 1), (req) => OnEntitySizeRecieved(req, memHandle, callback));
         }
 
         Action<NativeArray<GenPoint>> callback = (entities) => OnEntitiesRecieved(entities, address, CCoord);
@@ -556,13 +554,17 @@ public static class EntityManager
     }
 }
 
-public class EntityJob : UpdateTask{
+public class EntityJob : IUpdateSubscriber{
+    //Always active
+    public bool Active {
+        get => true;
+        set { return; }
+    }
     public bool dispatched = false;
     private JobHandle handle;
     public static Context cxt;
 
     public unsafe EntityJob(){
-        active = true;
         dispatched = false;
         cxt = new Context{
             Profile = (ProfileE*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
@@ -587,21 +589,17 @@ public class EntityJob : UpdateTask{
         return true;
     }
 
-    public override void Update(MonoBehaviour mono){
+    public void Update(MonoBehaviour mono){
         if(!Complete()) return;
         cxt.deltaTime = Time.fixedDeltaTime;
 
         while(EntityManager.HandlerEvents.TryDequeue(out Action action)){
             action.Invoke();
         } EntityManager.HandlerEvents.Clear();
-
-        foreach(Entity entity in EntityManager.EntityHandler){
+        
+        if (EntityManager.EntityHandler.Count == 0) return;
+        foreach (Entity entity in EntityManager.EntityHandler) {
             EntityManager.ESTree.AssertEntityLocation(entity);
-        }
-
-        if(EntityManager.EntityHandler.Count == 0){
-            this.active = false;
-            return;
         }
 
         handle = cxt.Schedule(EntityManager.EntityHandler.Count, 16);
