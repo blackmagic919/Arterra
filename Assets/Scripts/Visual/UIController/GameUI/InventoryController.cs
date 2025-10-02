@@ -435,7 +435,7 @@ public static class InventoryController {
 
         public void ReleaseDisplay() {
             if (Display == null) return;
-            for (int i = 0; i < capacity; i++) {
+            for (int i = 0; i < Display.Slots.Length; i++) {
                 ClearDisplay(i);
                 Indicators.ItemSlots.Release(Display.Slots[i]);
             }
@@ -478,6 +478,14 @@ public static class InventoryController {
                 if (Info[i] == null) continue;
                 RemoveEntry(i);
             }
+        }
+
+        public bool RemoveEntry(IItem item) {
+            if (item == null) return false;
+            if (!EntryDict.ContainsKey(item.Index)) return false;
+            int SlotIndex = EntryDict[item.Index];
+            RemoveEntry(SlotIndex);
+            return true;
         }
 
         public void CopyTo(Inventory newInv, int sourceStart = 0, int destStart = 0, int length = int.MaxValue) {

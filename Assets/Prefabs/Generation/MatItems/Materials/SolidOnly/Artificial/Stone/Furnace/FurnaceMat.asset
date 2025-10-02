@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ef77fbab4752a4878ad291f54a5303d8, type: 3}
+  m_Script: {fileID: 11500000, guid: 1c41f9b649b76234e928db08e337b04b, type: 3}
   m_Name: FurnaceMat
   m_EditorClassIdentifier: 
   Name: Furnace
@@ -19,14 +19,12 @@ MonoBehaviour:
   Names:
     value:
     - Furnace:Solid
-    - Void
-    - Hearthstone
-    - Rock
-    - 
     - FurnaceIcon
+    - Void
     - Furnace
+    - Rock
   terrainData:
-    Texture: 2
+    Texture: 0
     textureScale: 1
     FlipStateRendering: 0
     GeoShaderIndex:
@@ -50,61 +48,61 @@ MonoBehaviour:
         bounds:
           data: 4286611200
         flags: 1
-      _material: 2147483654
+      _material: 2147483651
       _offset: 537394688
     - check:
         bounds:
           data: 4286611200
         flags: 1
-      _material: 2147483651
+      _material: 2147483652
       _offset: 536347136
     - check:
         bounds:
           data: 4286611200
         flags: 1
-      _material: 2147483651
+      _material: 2147483652
       _offset: 538444288
     - check:
         bounds:
           data: 4286611200
         flags: 1
-      _material: 2147483651
+      _material: 2147483652
       _offset: 536348160
     - check:
         bounds:
           data: 4286611200
         flags: 1
-      _material: 2147483651
+      _material: 2147483652
       _offset: 538445312
     - check:
         bounds:
           data: 4286611200
         flags: 1
-      _material: 2147483651
+      _material: 2147483652
       _offset: 537396736
     - check:
         bounds:
           data: 4286611200
         flags: 1
-      _material: 2147483651
+      _material: 2147483652
       _offset: 537395711
     - check:
         bounds:
           data: 4286611200
         flags: 1
-      _material: 2147483651
+      _material: 2147483652
       _offset: 538444287
     - check:
         bounds:
           data: 4286611200
         flags: 1
-      _material: 2147483651
+      _material: 2147483652
       _offset: 536347135
     - check:
         bounds:
           data: 4286611200
         flags: 1
-      _material: 2147483651
+      _material: 2147483652
       _offset: 537396735
     - check:
         bounds:
@@ -116,11 +114,13 @@ MonoBehaviour:
   randYRot: 1
   randXRot: 0
   randZRot: 0
-  DisplayIcon: 5
-  MaxSlotCount: 20
+  DisplayIcon: 1
+  MaxSlotCount: 5
+  FuelTag: 1003
+  InputTag: 2003
   MaterialDrops:
     SolidItem: 0
-    LiquidItem: 1
+    LiquidItem: 2
   references:
     version: 2
     RefIds: []

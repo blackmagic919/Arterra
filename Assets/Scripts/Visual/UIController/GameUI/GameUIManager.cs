@@ -14,7 +14,7 @@ public static class GameUIManager {
         LoadingHandler.Initialize();
         PanelNavbarManager.Initialize();
         InventoryController.Initialize();
-        
+
         PauseHandler.Initialize();
         GameOverHandler.Initialize();
         DayNightContoller.Initialize();
@@ -223,3 +223,6 @@ public class GridUIManager {
         return slotInd;
     }
 }
+
+/// <summary>
+/// Dynamic three-column layout gen

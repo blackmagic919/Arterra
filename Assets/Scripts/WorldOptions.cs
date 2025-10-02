@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using System;
 using System.Runtime.Serialization;
 using Unity.Mathematics;
+using MapStorage;
 
 namespace WorldConfig {
     /// <summary>
@@ -171,6 +172,8 @@ namespace WorldConfig {
         public struct SystemSettings {
             /// <summary> Controls how the player can create items. See <see cref="Gameplay.Crafting"/> for more information. </summary>
             public Option<Intrinsic.Crafting> Crafting;
+            /// <summary> The registry containing all furnace formulas.
+            public Catalogue<WorldConfig.Generation.Furnace.FurnaceFormula> FurnaceFormulas;
             /// <summary> Controls how the player's armor is displayed. See <see cref="Gameplay.Armor"/> for more information. </summary>
             public Option<Intrinsic.Armor> Armor;
             /// <summary> Controls how the terrain is updated. See <see cref="Intrinsic.TerrainUpdation"/> for more information. </summary>
