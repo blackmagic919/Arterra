@@ -27,7 +27,7 @@ public class SparrowController : EntityController
     public void FixedUpdate(){
         if(!entity.active) return;
         EntityManager.AssertEntityLocation(entity, entity.GCoord);    
-        TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+        TerrainCollider.Transform rTransform = entity.tCollider.transform;
         rTransform.position = CPUDensityManager.GSToWS(rTransform.position - settings.collider.offset);
         this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
     }
@@ -62,7 +62,7 @@ public class SparrowController : EntityController
     public unsafe void OnDrawGizmos(){
         if(!active) return;
         Gizmos.color = Color.green; 
-        TerrainColliderJob tCollider = entity.tCollider;
+        TerrainCollider tCollider = entity.tCollider;
         Gizmos.DrawWireCube(transform.position, settings.collider.size * 2);
         float3 location = tCollider.transform.position - settings.collider.offset;
         Gizmos.DrawLine(CPUDensityManager.GSToWS(location), CPUDensityManager.GSToWS(location + entity.flightDirection));

@@ -7,19 +7,19 @@ using WorldConfig.Generation.Entity;
 using MapStorage;
 
 [CreateAssetMenu(menuName = "Generation/Entity/AquaticBoidHerbivore")]
-public class AquaticBoidHerbivore : Authoring
-{
-    [UISetting(Ignore = true)][JsonIgnore]
+public class AquaticBoidHerbivore : Authoring {
+    [UISetting(Ignore = true)]
+    [JsonIgnore]
     public Option<Animal> _Entity;
     public Option<AnimalSetting> _Setting;
-    
+
     [JsonIgnore]
     public override Entity Entity { get => new Animal(); }
     [JsonIgnore]
     public override EntitySetting Setting { get => _Setting.value; set => _Setting.value = (AnimalSetting)value; }
 
     [Serializable]
-    public class AnimalSetting : EntitySetting{
+    public class AnimalSetting : EntitySetting {
         public Movement movement;
         public Movement.BoidFlight swim;
         public Movement.Aquatic aquatic;
@@ -29,7 +29,7 @@ public class AquaticBoidHerbivore : Authoring
         public RHerbivore Recognition => recognition;
         public Vitality.Stats Physicality => physicality;
 
-        public override void Preset(uint entityType){ 
+        public override void Preset(uint entityType) {
             uint pEnd = profile.bounds.x * profile.bounds.y * profile.bounds.z;
             aquatic.SurfaceProfile.profileStart = profile.profileStart + pEnd;
             Recognition.Construct();
@@ -54,7 +54,7 @@ public class AquaticBoidHerbivore : Authoring
         [JsonProperty]
         private PathFinder.PathInfo pathFinder;
         [JsonProperty]
-        private TerrainColliderJob tCollider;
+        private TerrainCollider tCollider;
         [JsonProperty]
         private Unity.Mathematics.Random random;
         [JsonProperty]
@@ -95,6 +95,8 @@ public class AquaticBoidHerbivore : Authoring
             get => tCollider.transform.position;
             set => tCollider.transform.position = value;
         }
+        [JsonIgnore]
+        public Quaternion Facing => tCollider.transform.rotation;
         [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
@@ -159,7 +161,7 @@ public class AquaticBoidHerbivore : Authoring
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.genetics ??= new Genetics(this.info.entityType, ref random);
             this.vitality = new Vitality(settings.Physicality, this.genetics);
-            this.tCollider = new TerrainColliderJob(GCoord, true, ProcessFallDamage);
+            this.tCollider = new TerrainCollider(GCoord, true, ProcessFallDamage);
 
             pathFinder.hasPath = false;
             flightDirection = RandomDirection();
@@ -603,7 +605,7 @@ public class AquaticBoidHerbivore : Authoring
             Gizmos.DrawWireCube(CPUMapManager.GSToWS(position), settings.collider.size * 2);
             Gizmos.DrawLine(CPUMapManager.GSToWS(position), CPUMapManager.GSToWS(position + flightDirection));
         }
-        
+
         private class AnimalController {
             private Animal entity;
             private Animator animator;
@@ -617,7 +619,7 @@ public class AquaticBoidHerbivore : Authoring
                 "IsAttacking", "IsRunning", "IsFlopping", "IsDead"
             };
 
-            public AnimalController(GameObject GameObject, Animal entity){
+            public AnimalController(GameObject GameObject, Animal entity) {
                 this.entity = entity;
                 this.gameObject = Instantiate(GameObject);
                 this.transform = gameObject.transform;
@@ -629,32 +631,32 @@ public class AquaticBoidHerbivore : Authoring
                 transform.position = CPUMapManager.GSToWS(entity.position);
             }
 
-            public void Update(){
-                if(!entity.active) return;
-                if(gameObject == null) return;
-                TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+            public void Update() {
+                if (!entity.active) return;
+                if (gameObject == null) return;
+                TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
 #if UNITY_EDITOR
-                if(UnityEditor.Selection.Contains(gameObject)) {
+                if (UnityEditor.Selection.Contains(gameObject)) {
                     Debug.Log(entity.TaskIndex);
                 }
 #endif
 
                 Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
-                if(AnimatorTask == entity.TaskIndex) return;
-                if(AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], false);
+                if (AnimatorTask == entity.TaskIndex) return;
+                if (AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], false);
                 AnimatorTask = (int)entity.TaskIndex;
-                if(AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], true);
+                if (AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], true);
             }
 
-            public void Dispose(){
-                if(!active) return;
+            public void Dispose() {
+                if (!active) return;
                 active = false;
 
                 Destroy(gameObject);
             }
 
-            ~AnimalController(){
+            ~AnimalController() {
                 Dispose();
             }
         }

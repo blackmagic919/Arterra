@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80ae62d4a8db64373ab2031aa7690b4a, type: 3}
+  m_Name: AnimalByproductItems
+  m_EditorClassIdentifier: 
+  Name: AnimalByproduct
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 5f1c775c8062c4822ad748ebf93e6ec6, type: 2}
+    - value: {fileID: 11400000, guid: d0dc5bc754925403cbcff5f0f2a6917a, type: 2}
+    - value: {fileID: 11400000, guid: 39631be9667ff48509a41321ee1c5ace, type: 2}
+  references:
+    version: 2
+    RefIds: []

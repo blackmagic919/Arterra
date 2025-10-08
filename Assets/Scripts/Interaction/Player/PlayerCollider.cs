@@ -16,7 +16,7 @@ public class PlayerCollider {
     [JsonIgnore]
     public Action<float> OnHitGround;
 
-    public TerrainColliderJob.Transform transform;
+    public TerrainCollider.Transform transform;
     public float3 velocity;
     public bool useGravity;
 
@@ -311,14 +311,13 @@ public class PlayerCollider {
         return vel - math.dot(vel, dir) * dir;
     }
 
-    public PlayerCollider(TerrainColliderJob.Transform trans, Action<float> OnHitGround = null) {
+    public PlayerCollider(TerrainCollider.Transform trans) {
         this.transform = trans;
-        this.OnHitGround = OnHitGround;
         this.useGravity = true;
         velocity = 0;
     }
 
-    public void FixedUpdate(TerrainColliderJob.Settings settings) {
+    public void FixedUpdate(TerrainCollider.Settings settings) {
         transform.position += velocity * Time.fixedDeltaTime;
         if (useGravity) velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
 
@@ -334,7 +333,7 @@ public class PlayerCollider {
         velocity.xz *= 1 - settings.friction;
     }
 
-    public void JobUpdate(EntityJob.Context cxt, TerrainColliderJob.Settings settings) {
+    public void JobUpdate(EntityJob.Context cxt, TerrainCollider.Settings settings) {
         transform.position += velocity * cxt.deltaTime;
         if (useGravity) velocity += cxt.gravity * cxt.deltaTime;
 

@@ -230,6 +230,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: d3a8b9fe9f11e4edfbc4ef2aacefb168, type: 2}
         - {fileID: 11400000, guid: f5ca4fb057fd741018fe9f1c77abd656, type: 2}
         - {fileID: 11400000, guid: 88b32c56015ac41bdbcd816fa9ca8af8, type: 2}
+        - {fileID: 11400000, guid: b4aa92ea3f0914c64824c56e7598bd50, type: 2}
   _GamePlay:
     value:
       Input:
@@ -310,6 +311,7 @@ MonoBehaviour:
           Flight: 0
           Invulnerability: 0
           Intangiblity: 0
+          KeepInventory: 0
       Inventory:
         value:
           PrimarySlotCount: 5
@@ -472,6 +474,8 @@ MonoBehaviour:
     value:
       Crafting:
         value: {fileID: 11400000, guid: b6eb14945e6ce4e35a36d2502ba1cf4f, type: 2}
+      Armor:
+        value: {fileID: 11400000, guid: 360677af915224c978e39e88db696d39, type: 2}
       TerrainUpdation:
         value:
           RandomUpdatesPerChunk: 250

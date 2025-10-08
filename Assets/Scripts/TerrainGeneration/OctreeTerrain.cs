@@ -161,7 +161,7 @@ public class OctreeTerrain : MonoBehaviour
         }
 
         Gizmos.color = Color.white;
-        Gizmos.DrawWireCube(CPUMapManager.GSToWS(node.origin + (float3)node.size / 2), (float3)node.size * s.lerpScale);
+        //Gizmos.DrawWireCube(CPUMapManager.GSToWS(node.origin + (float3)node.size / 2), (float3)node.size * s.lerpScale);
         Indicators.OnDrawGizmos();
     }
     #endif

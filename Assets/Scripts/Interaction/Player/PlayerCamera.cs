@@ -1,5 +1,6 @@
 using System;
 using MapStorage;
+using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -28,53 +29,57 @@ namespace WorldConfig.Gameplay.Player {
 
     public class PlayerCamera {
         private static Camera S => Config.CURRENT.GamePlay.Player.value.Camera;
-        private static ref PlayerStreamer.Player data => ref PlayerHandler.data;
-        private static ref Quaternion m_CharacterTargetRot => ref data.collider.transform.rotation;
-        private static ref Quaternion m_CameraTargetRot => ref data.camera.rotation;
-        public float3 forward => perspectives[activePersp].forward;
-        public float3 right => perspectives[activePersp].right;
-        public Transform subTsf => transform.GetChild(0);
-        private UnityEngine.Camera camera;
-        private Transform transform;
+        private WeakReference<PlayerStreamer.Player> _context;
+        private PlayerStreamer.Player context => _context.TryGetTarget(out PlayerStreamer.Player tg) ? tg : null;
+        private ref Quaternion characterRot => ref context.collider.transform.rotation;
+        [JsonIgnore]
+        public Quaternion Facing => perspectives[activePersp].rotation;
+        [JsonProperty]
+        private TerrainCollider.Transform camTsf;
+        [JsonProperty]
+        private int cullingMask;
         private bool moved;
         private float2 Rot;
 
         private ICameraPerspective[] perspectives;
         private int activePersp = 0;
 
-        public PlayerCamera() {
+        public PlayerCamera() { camTsf.rotation = Quaternion.identity; }
+
+        public void Deserailize(PlayerStreamer.Player context) {
+            this._context = new WeakReference<PlayerStreamer.Player>(context);
+            cullingMask = PlayerHandler.Camera.GetChild(0).GetComponent<UnityEngine.Camera>().cullingMask;
             moved = true;
-            transform = GameObject.Find("CameraHandler").transform;
-            camera = subTsf.GetComponent<UnityEngine.Camera>();
-            InputPoller.AddBinding(new InputPoller.ActionBind("Look Horizontal", LookX), "4.5::Movement");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Look Vertical", LookY), "4.5::Movement");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Toggle Perspective", TogglePerspective), "2.5::Subscene");
 
             activePersp = 0;
             perspectives = new ICameraPerspective[]{
-                new FirstPersonCamera(),
-                new LockedThirdPerson(),
-                new FreeRotateThirdPerson(),
-            }; perspectives[0].Activate(this);
-
-            ReParent(data.player.transform);
+                new FirstPersonCamera(this),
+                new LockedThirdPerson(this),
+                new FreeRotateThirdPerson(this),
+            }; perspectives[0].Activate();
         }
 
-        public void ReParent(Transform t) => transform.SetParent(t, worldPositionStays: false);
-
-        private void LookX(float x) {
-            Rot.x = x * S.Sensitivity;
-            moved = true;
+        public static void Initialize() {
+            InputPoller.AddBinding(new InputPoller.ActionBind("Look Horizontal", LookX), "4.5::Movement");
+            InputPoller.AddBinding(new InputPoller.ActionBind("Look Vertical", LookY), "4.5::Movement");
+            InputPoller.AddBinding(new InputPoller.ActionBind("Toggle Perspective", TogglePerspective), "2.5::Subscene");
+        }
+        private static void LookX(float x) {
+            PlayerCamera self = PlayerHandler.data.camera; //reaquire active self
+            self.Rot.x = x * S.Sensitivity;
+            self.moved = true;
         }
 
-        private void LookY(float y) {
-            Rot.y = y * S.Sensitivity;
-            moved = true;
+        private static void LookY(float y) {
+            PlayerCamera self = PlayerHandler.data.camera; //reaquire active self
+            self.Rot.y = y * S.Sensitivity;
+            self.moved = true;
         }
 
-        private void TogglePerspective(float _) {
-            activePersp = (activePersp + 1) % perspectives.Length;
-            perspectives[activePersp].Activate(this);
+        private static void TogglePerspective(float _) {
+            PlayerCamera self = PlayerHandler.data.camera; //reaquire active self
+            self.activePersp = (self.activePersp + 1) % self.perspectives.Length;
+            self.perspectives[self.activePersp].Activate();
         }
 
         static Quaternion ClampRotationAroundXAxis(Quaternion q) {
@@ -104,9 +109,12 @@ namespace WorldConfig.Gameplay.Player {
             return (uint)pointInfo.viscosity;
         }
 
-        public void Update() {
-            perspectives[activePersp].Update(this);
-            transform.SetLocalPositionAndRotation(data.camera.position, data.camera.rotation);
+        public void Update(Transform CamTsf) {
+            perspectives[activePersp].Update();
+            CamTsf.SetLocalPositionAndRotation(camTsf.position, camTsf.rotation);
+            UnityEngine.Camera cam = CamTsf.GetChild(0).GetComponent<UnityEngine.Camera>();
+            if (cullingMask == cam.cullingMask) return;
+            cam.cullingMask = cullingMask;
         }
 
         static void SetAnimatorLook(float pitch, float deltaYaw) {
@@ -118,157 +126,171 @@ namespace WorldConfig.Gameplay.Player {
         }
 
         private interface ICameraPerspective {
-            public void Activate(PlayerCamera cm);
-            public void Update(PlayerCamera cm);
-            public float3 forward { get; }
-            public float3 right { get; }
+            public void Activate();
+            public void Update();
+            public Quaternion rotation { get; }
         }
 
         private class FirstPersonCamera : ICameraPerspective {
-            public float3 forward => PlayerHandler.camera.transform.forward;
-            public float3 right => PlayerHandler.camera.transform.right;
-            public void Activate(PlayerCamera cm) {
-                data.camera.position = new float3(0, 2.5f, 0);
-                data.camera.rotation.eulerAngles = new(data.camera.rotation.eulerAngles.x, 0, 0);
-                cm.camera.cullingMask &= ~(1 << LayerMask.NameToLayer("Self"));
+            private WeakReference<PlayerCamera> _camera;
+            private Quaternion SmoothCharacterRot;
+            private Quaternion SmoothCameraRot;
+            private PlayerCamera camera => _camera.TryGetTarget(out PlayerCamera tg) ? tg : null;
+            public Quaternion rotation => math.mul(math.normalize(camera.characterRot), math.normalize(camera?.camTsf.rotation ?? Quaternion.identity));
+            public FirstPersonCamera(PlayerCamera cm) {
+                this._camera = new WeakReference<PlayerCamera>(cm);
             }
-            public void Update(PlayerCamera cm) {
-                if (!cm.moved) return;
-                cm.moved = false;
-
-                m_CharacterTargetRot *= Quaternion.Euler(0f, cm.Rot.y, 0f);
-                m_CameraTargetRot *= Quaternion.Euler(-cm.Rot.x, 0f, 0f);
+            public void Activate() {
+                camera.camTsf.position = new float3(0, 2.5f, 0);
+                camera.camTsf.rotation.eulerAngles = new(camera.camTsf.rotation.eulerAngles.x, 0, 0);
+                camera.cullingMask &= ~(1 << LayerMask.NameToLayer("Self"));
+                SmoothCharacterRot = camera.characterRot;
+                SmoothCameraRot = camera.camTsf.rotation;
+            }
+            public void Update() {
+                if (!camera.moved) return;
+                camera.moved = false;
+                
+                SmoothCharacterRot *= Quaternion.Euler(0f, camera.Rot.y, 0f);
+                SmoothCameraRot *= Quaternion.Euler(-camera.Rot.x, 0f, 0f);
 
                 if (S.clampVerticalRotation)
-                    m_CameraTargetRot = ClampRotationAroundXAxis(m_CameraTargetRot);
+                    SmoothCameraRot = ClampRotationAroundXAxis(SmoothCameraRot);
 
                 if (S.smooth) {
-                    data.collider.transform.rotation = Quaternion.Slerp(data.collider.transform.rotation, m_CharacterTargetRot,
+                    camera.characterRot = Quaternion.Slerp(camera.characterRot, SmoothCharacterRot,
                         S.smoothTime * Time.deltaTime);
-                    data.camera.rotation = Quaternion.Slerp(data.camera.rotation, m_CameraTargetRot,
+                    camera.camTsf.rotation = Quaternion.Slerp(camera.camTsf.rotation, SmoothCharacterRot,
                         S.smoothTime * Time.deltaTime);
                 } else {
-                    data.collider.transform.rotation = m_CharacterTargetRot;
-                    data.camera.rotation = m_CameraTargetRot;
+                    camera.characterRot = SmoothCharacterRot;
+                    camera.camTsf.rotation = SmoothCameraRot;
                 }
-                SetAnimatorLook(GetAngleX(m_CameraTargetRot), cm.Rot.y);
+                SetAnimatorLook(GetAngleX(camera.camTsf.rotation), camera.Rot.y);
             }
         }
 
         private class LockedThirdPerson : ICameraPerspective {
-            public float3 forward => PlayerHandler.camera.transform.forward;
-            public float3 right => PlayerHandler.camera.transform.right;
+            private readonly WeakReference<PlayerCamera> _camera;
+            private Quaternion SmoothCharacterRot;
+            private Quaternion SmoothCameraRot;
+            private PlayerCamera camera => _camera.TryGetTarget(out PlayerCamera tg) ? tg : null;
+            public Quaternion rotation => math.mul(math.normalize(camera.characterRot), math.normalize(camera?.camTsf.rotation ?? Quaternion.identity));
             const float height = 2.5f;
             const float distance = 10f;
-            public void Activate(PlayerCamera cm) {
-                cm.camera.cullingMask |= 1 << LayerMask.NameToLayer("Self");
-                SetCameraOffset(cm);
+            public LockedThirdPerson(PlayerCamera cm) {
+                this._camera = new WeakReference<PlayerCamera>(cm);
             }
-            public void Update(PlayerCamera cm) {
-                if (!cm.moved) return;
-                cm.moved = false;
+            public void Activate() {
+                camera.camTsf.position = new float3(0, 2.5f, 0);
+                camera.camTsf.rotation.eulerAngles = new(camera.camTsf.rotation.eulerAngles.x, 0, 0);
+                camera.cullingMask |= 1 << LayerMask.NameToLayer("Self");
+                SmoothCharacterRot = camera.characterRot;
+                SmoothCameraRot = camera.camTsf.rotation;
+            }
+            public void Update() {
+                if (!camera.moved) return;
+                camera.moved = false;
 
-                m_CharacterTargetRot *= Quaternion.Euler(0f, cm.Rot.y, 0f);
-                m_CameraTargetRot *= Quaternion.Euler(-cm.Rot.x, 0f, 0f);
+                SmoothCharacterRot *= Quaternion.Euler(0f, camera.Rot.y, 0f);
+                SmoothCameraRot *= Quaternion.Euler(-camera.Rot.x, 0f, 0f);
 
                 if (S.clampVerticalRotation)
-                    m_CameraTargetRot = ClampRotationAroundXAxis(m_CameraTargetRot);
+                    SmoothCameraRot = ClampRotationAroundXAxis(SmoothCameraRot);
 
                 if (S.smooth) {
-                    data.collider.transform.rotation = Quaternion.Slerp(data.collider.transform.rotation, m_CharacterTargetRot,
+                    camera.characterRot = Quaternion.Slerp(camera.characterRot, SmoothCharacterRot,
                         S.smoothTime * Time.deltaTime);
-                    data.camera.rotation = Quaternion.Slerp(data.camera.rotation, m_CameraTargetRot,
+                    camera.camTsf.rotation = Quaternion.Slerp(camera.camTsf.rotation, SmoothCameraRot,
                         S.smoothTime * Time.deltaTime);
                 } else {
-                    data.collider.transform.rotation = m_CharacterTargetRot;
-                    data.camera.rotation = m_CameraTargetRot;
+                    camera.characterRot = SmoothCharacterRot;
+                    camera.camTsf.rotation = SmoothCameraRot;
                 }
-                SetCameraOffset(cm);
-                SetAnimatorLook(GetAngleX(m_CameraTargetRot), cm.Rot.y);
+                SetCameraOffset(camera);
+                SetAnimatorLook(GetAngleX(camera.camTsf.rotation), camera.Rot.y);
             }
 
             private void SetCameraOffset(PlayerCamera cm) {
                 float backDist = distance;
                 float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
-                if (CPUMapManager.RayCastTerrain(data.position, -cm.forward, distGS, RayTestSolid, out float3 hitPt))
-                    backDist = math.distance(hitPt, data.position);
+                if (CPUMapManager.RayCastTerrain(cm.context.position, cm.Facing * Vector3.back, distGS, RayTestSolid, out float3 hitPt))
+                    backDist = math.distance(hitPt, cm.context.position);
 
-                float3 backOffset = math.mul(math.normalize(data.camera.rotation), new float3(0, 0, -backDist));
+                float3 backOffset = math.mul(math.normalize(cm.camTsf.rotation), new float3(0, 0, -backDist));
                 //Camera local rotation will have Y-axis rotation applied to it
-                data.camera.position = (float3)Vector3.up * height + backOffset;
+                cm.camTsf.position = (float3)Vector3.up * height + backOffset;
             }
         }
 
         private class FreeRotateThirdPerson : ICameraPerspective {
-            public float3 forward {
+            private readonly WeakReference<PlayerCamera> _camera;
+            private Quaternion SmoothCharacterRot;
+            private Quaternion SmoothCameraRot;
+            private PlayerCamera camera => _camera.TryGetTarget(out PlayerCamera tg) ? tg : null;
+            public Quaternion rotation {
                 get {
-                    Quaternion yaw = Quaternion.Euler(0f, data.collider.transform.rotation.eulerAngles.y, 0f);
-                    Quaternion pitch = Quaternion.Euler(data.camera.rotation.eulerAngles.x, 0f, 0f);
+                    Quaternion yaw = Quaternion.Euler(0f, camera.characterRot.eulerAngles.y, 0f);
+                    Quaternion pitch = Quaternion.Euler(camera.camTsf.rotation.eulerAngles.x, 0f, 0f);
 
-                    Quaternion combined = math.mul(yaw, pitch);
-                    return math.mul(combined, new float3(0, 0, 1));
-                }
-            }
-            public float3 right {
-                get {
-                    Quaternion yaw = Quaternion.Euler(0f, data.collider.transform.rotation.eulerAngles.y, 0f);
-                    Quaternion pitch = Quaternion.Euler(data.camera.rotation.eulerAngles.x, 0f, 0f);
-
-                    Quaternion combined = math.mul(yaw, pitch);
-                    return math.mul(combined, new float3(1, 0, 0));
+                    return math.mul(yaw, pitch);
                 }
             }
             const float height = 2.5f;
             const float distance = 10f;
             private float yaw;
             private float pitch;
-            public void Activate(PlayerCamera cm) {
-                cm.camera.cullingMask |= 1 << LayerMask.NameToLayer("Self");
-                
+            public FreeRotateThirdPerson(PlayerCamera cm) {
+                this._camera = new WeakReference<PlayerCamera>(cm);
+            }
+            public void Activate() {
+                camera.cullingMask |= 1 << LayerMask.NameToLayer("Self");
                 pitch = 0; yaw = 180;
-                data.camera.rotation = Quaternion.AngleAxis(yaw, Vector3.up);
-                SetCameraOffset(cm);
+                SmoothCharacterRot = camera.characterRot;
+                SmoothCameraRot = Quaternion.AngleAxis(yaw, Vector3.up);
+                camera.camTsf.rotation = SmoothCameraRot;
+                SetCameraOffset(camera);
             }
 
-            public void Update(PlayerCamera cm) {
-                if (!cm.moved) return;
-                cm.moved = false;
+            public void Update() {
+                if (!camera.moved) return;
+                camera.moved = false;
 
                 float rotation = PlayerMovement.InputDir.x * S.Sensitivity;
-                m_CharacterTargetRot *= Quaternion.Euler(0, rotation, 0);
+                SmoothCharacterRot *= Quaternion.Euler(0, rotation, 0);
                 PlayerMovement.InputDir.x = 0; //Stop lateral movement
                 yaw -= rotation;
 
-                yaw += cm.Rot.y;
-                pitch -= cm.Rot.x;
+                yaw += camera.Rot.y;
+                pitch -= camera.Rot.x;
                 if (S.clampVerticalRotation)
                     pitch = Mathf.Clamp(pitch, S.MinimumX, S.MaximumX);
 
-                m_CameraTargetRot = Quaternion.AngleAxis(yaw, Vector3.up) *
+                SmoothCameraRot = Quaternion.AngleAxis(yaw, Vector3.up) *
                                     Quaternion.AngleAxis(pitch, Vector3.right);
                 if (S.smooth) {
-                    data.collider.transform.rotation = Quaternion.Slerp(data.collider.transform.rotation, m_CharacterTargetRot,
+                    camera.characterRot = Quaternion.Slerp(camera.characterRot, SmoothCharacterRot,
                         S.smoothTime * Time.deltaTime);
-                    data.camera.rotation = Quaternion.Slerp(data.camera.rotation, m_CameraTargetRot,
+                    camera.camTsf.rotation = Quaternion.Slerp(camera.camTsf.rotation, SmoothCameraRot,
                         S.smoothTime * Time.deltaTime);
                 } else {
-                    data.collider.transform.rotation = m_CharacterTargetRot;
-                    data.camera.rotation = m_CameraTargetRot;
+                    camera.characterRot = SmoothCharacterRot;
+                    camera.camTsf.rotation = SmoothCameraRot;
                 }
-                SetCameraOffset(cm);
-                SetAnimatorLook(GetAngleX(m_CameraTargetRot), rotation);
+                SetCameraOffset(camera);
+                SetAnimatorLook(GetAngleX(camera.camTsf.rotation), rotation);
             }
-
-            private void SetCameraOffset(PlayerCamera cm) {
+            
+            private static void SetCameraOffset(PlayerCamera cm) {
                 float backDist = distance;
                 float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
-                float3 dir = math.mul(math.normalize(data.camera.rotation), new float3(0, 0, -1));
-                dir = math.mul(math.normalize(data.collider.transform.rotation), dir);
-                if (CPUMapManager.RayCastTerrain(data.position, dir, distGS, RayTestSolid, out float3 hitPt))
-                    backDist = math.distance(hitPt, data.position);
-                
-                float3 backOffset = math.mul(math.normalize(data.camera.rotation), new float3(0, 0, -backDist));
-                data.camera.position = (float3)Vector3.up * height + backOffset;
+                float3 dir = math.mul(math.normalize(cm.camTsf.rotation), new float3(0, 0, -1));
+                dir = math.mul(math.normalize(cm.characterRot), dir);
+                if (CPUMapManager.RayCastTerrain(cm.context.position, dir, distGS, RayTestSolid, out float3 hitPt))
+                    backDist = math.distance(hitPt, cm.context.position);
+
+                float3 backOffset = math.mul(math.normalize(cm.camTsf.rotation), new float3(0, 0, -backDist));
+                cm.camTsf.position = (float3)Vector3.up * height + backOffset;
             }
         }
     }

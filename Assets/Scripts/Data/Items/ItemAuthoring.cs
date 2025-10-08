@@ -67,40 +67,16 @@ namespace WorldConfig.Generation.Item {
         public void Create(int Index, int AmountRaw) { }
 
         /// <summary>
-        /// An event hook that is called on the frame when the item enters the <see cref="InventoryController.Secondary"> Secondary </see> inventory.
-        /// This is an airtight state, meaning <see cref="OnLeaveSecondary"/> must be called before <see cref="OnEnterSecondary"/> can be called 
-        /// a second time.
-        /// </summary>
-        public void OnEnterSecondary(); //Called upon entering the secondary inventory
-        /// <summary>
-        /// An event hook that is called on the frame when the item leaves the <see cref="InventoryController.Secondary"> Secondary </see> inventory.
-        /// This is an airtight state meaning <see cref="OnEnterSecondary"/> must be called before <see cref="OnLeaveSecondary"/> can be called.
-        /// </summary>
-        public void OnLeaveSecondary();//Called upon leaving the secondary inventory
-        /// <summary>
         /// An event hook that is called on the frame when the item enters the <see cref="InventoryController.Primary"> Primary </see> inventory.
         /// This is an airtight state, meaning <see cref="OnLeavePrimary"/> must be called before <see cref="OnEnterPrimary"/> can be called
         /// a second time.
         /// </summary>
-        public void OnEnterPrimary(); //Called upon entering the primary inventory
+        public void OnEnter(ItemContext cxt); //Called upon entering the primary inventory
         /// <summary>
         /// An event hook that is called on the frame when the item leaves the <see cref="InventoryController.Primary"> Primary </see> inventory.
         /// This is an airtight state meaning <see cref="OnEnterPrimary"/> must be called before <see cref="OnLeavePrimary"/> can be called.
         /// </summary>
-        public void OnLeavePrimary(); //Called upon leaaving the primary inventory
-        /// <summary>
-        /// An event hook that is called on the frame when the item is held within the <see cref="InventoryController.Selected"> selected slot </see> of the 
-        /// <see cref="InventoryController.Primary">Primary</see> inventory. This is an airtight state, meaning <see cref="OnDeselect"/> must be
-        /// called before <see cref="OnSelect"/> can be called a second time. Furthermore, it is an exclusive state meaning no other item
-        /// can be selected while this item is selected.
-        /// </summary>
-        public void OnSelect(); //Called upon becoming the selected item
-        /// <summary>
-        /// An event hook that is called on the frame when the item is no longer held within the <see cref="InventoryController.Selected"> selected slot </see> of the
-        /// <see cref="InventoryController.Primary">Primary</see> inventory. This is an airtight state, meaning <see cref="OnSelect"/> must be called
-        /// before <see cref="OnDeselect"/> can be called.
-        /// </summary>
-        public void OnDeselect(); //Called upon no longer being the selectd item
+        public void OnLeave(ItemContext cxt); //Called upon leaaving the primary inventory
         /// <summary> An event hook that is called every frame the item is held by an <see cref="EItem">EntityItem</see>. </summary>
         /// <remarks> TODO: This has yet to be implemented </remarks>
         public void UpdateEItem(); //Called every frame it is an Entity Item

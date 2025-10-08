@@ -37,10 +37,11 @@ namespace WorldConfig.Gameplay{
 }
 public static class InventoryController {
     public static WorldConfig.Gameplay.Inventory settings => Config.CURRENT.GamePlay.Inventory.value;
-    public static Inventory Primary => PlayerHandler.data.PrimaryI; //Hotbar
-    public static Inventory Secondary => PlayerHandler.data.SecondaryI; //Inventory
+    public static Inventory Primary; //Hotbar
+    public static Inventory Secondary; //Inventory
     public static InventorySlotDisplay CursorDisplay;
     private static IUpdateSubscriber EventTask;
+    private static GameObject Menu;
 
     private static uint Fence;
     private static Catalogue<Authoring> ItemSettings;
@@ -49,40 +50,64 @@ public static class InventoryController {
     public static IItem Cursor;
     public static int SelectedIndex = 0;
 
-
-    private static void OnEnterSecondary(int i) { Secondary.Info[i].OnEnterSecondary(); }
-    private static void OnLeaveSecondary(int i) { Secondary.Info[i].OnLeaveSecondary(); }
-    private static void OnEnterPrimary(int i) {
-        if (i == SelectedIndex) Selected.OnSelect();
-        Primary.Info[i].OnEnterPrimary();
+    private static ItemContext GetSecondaryCxt(ItemContext cxt) => cxt.SetupScenario(PlayerHandler.data, ItemContext.Scenario.ActivePlayerSecondary);
+    private static ItemContext GetPrimaryCxt(ItemContext cxt) {
+        if (cxt.InvId == SelectedIndex)
+            return HeldCxt;
+        return cxt.SetupScenario(PlayerHandler.data, ItemContext.Scenario.ActivePlayerPrimary);
     }
-    private static void OnLeavePrimary(int i) {
-        if (i == SelectedIndex) Selected.OnDeselect();
-        Primary.Info[i].OnLeavePrimary();
-    }
+    private static ItemContext HeldCxt => new ItemContext(Primary, PlayerHandler.data, ItemContext.Scenario.ActivePlayerSelected, SelectedIndex);
 
     public static void Initialize() {
-        GameObject Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Panel"), GameUIManager.UIHandle.transform);
-
+        Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Panel"), GameUIManager.UIHandle.transform);
         ItemSettings = Config.CURRENT.Generation.Items;
-        Primary.InitializeDisplay(Menu.transform.GetChild(0).GetChild(0).gameObject);
-        Secondary.InitializeDisplay(Menu.transform.GetChild(0).GetChild(1).gameObject);
 
         Cursor = null;
         CursorDisplay = new InventorySlotDisplay(Indicators.ItemSlots.Get());
         CursorDisplay.Object.transform.SetParent(Menu.transform);
+
+        RebindInventories(null, PlayerHandler.data);
         Secondary.Display.parent.SetActive(false);
         CursorDisplay.Object.SetActive(false);
 
         InputPoller.AddBinding(new InputPoller.ActionBind("Open Inventory", Activate), "3.0::Window");
         AddHotbarKeybinds();
-        ReApplyHandles();
 
         EventTask = new IndirectUpdate(Update);
         TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(EventTask);
+    }
 
-        Secondary.AddCallbacks(OnEnterSecondary, OnLeaveSecondary);
-        Primary.AddCallbacks(OnEnterPrimary, OnLeavePrimary);
+    private static bool RebindInventories(PlayerStreamer.Player old, PlayerStreamer.Player cur) {
+        var prms = (old, cur);
+        return RebindInventories(ref prms);
+    }
+    private static bool RebindInventories(ref (PlayerStreamer.Player old, PlayerStreamer.Player cur) cxt) {
+        cxt.old?.PrimaryI.ReleaseDisplay();
+        cxt.old?.SecondaryI.ReleaseDisplay();
+        cxt.old?.PrimaryI.UnapplyHandles();
+        cxt.old?.SecondaryI.UnapplyHandles();
+
+        if (Config.CURRENT.GamePlay.Gamemodes.value.KeepInventory) {
+            cxt.cur.PrimaryI = cxt.old?.PrimaryI ?? cxt.cur.PrimaryI;
+            cxt.cur.SecondaryI = cxt.old?.SecondaryI ?? cxt.cur.PrimaryI;
+        }
+
+        Primary = cxt.cur.PrimaryI;
+        Secondary = cxt.cur.SecondaryI;
+        Primary.InitializeDisplay(Menu.transform.GetChild(0).GetChild(0).gameObject);
+        Secondary.InitializeDisplay(Menu.transform.GetChild(0).GetChild(1).gameObject);
+
+        //Primary.ReapplyHandles will automatically call OnEnter and OnLeave
+        Secondary.AddCallbacks(GetSecondaryCxt, GetSecondaryCxt);
+        Primary.AddCallbacks(GetPrimaryCxt, GetPrimaryCxt);
+        Secondary.ReapplyHandles();
+        Primary.ReapplyHandles();
+
+        cxt.cur.Events.AddEvent<(PlayerStreamer.Player, PlayerStreamer.Player)>(
+            EntityEvents.EventType.OnRespawn,
+            RebindInventories
+        );
+        return false;
     }
 
 
@@ -113,26 +138,13 @@ public static class InventoryController {
         Secondary.Display.parent.SetActive(false);
     }
 
-    private static void ReApplyHandles() {
-        //When the inventory is loaded from a save
-        for (int i = 0; i < Primary.Info.Length; i++) {
-            if (Primary.Info[i] == null) continue;
-            Primary.Info[i].OnEnterPrimary();
-        }
-        for (int i = 0; i < Secondary.Info.Length; i++) {
-            if (Secondary.Info[i] == null) continue;
-            Secondary.Info[i].OnEnterSecondary();
-        }
-        Selected?.OnSelect();
-    }
-
     private static void AddHotbarKeybinds() {
         static void ChangeSelected(int index) {
-            Selected?.OnDeselect();
+            Selected?.OnLeave(HeldCxt);
             Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.BaseColor;
 
             SelectedIndex = index % settings.PrimarySlotCount;
-            Selected?.OnSelect();
+            Selected?.OnEnter(HeldCxt);
             Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.SelectedColor;
         }
         InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar1", (float _) => ChangeSelected(0)), "2.0::Subscene");
@@ -195,9 +207,9 @@ public static class InventoryController {
             return;
         }
 
-        if (Inv.Info[index] == null)
-            Inv.AddEntry(cursor, index);
-        else if (Inv.Info[index].IsStackable && cursor.Index == Inv.Info[index].Index) {
+        if (Inv.Info[index] == null) {
+            Inv.AddEntry(cursor, index);  
+        } else if (Inv.Info[index].IsStackable && cursor.Index == Inv.Info[index].Index) {
             Inv.AddStackable(cursor, index);
         } else if (Primary.EntryDict.ContainsKey(cursor.Index) && Inv.Info[index].IsStackable) {
             Primary.AddStackable(cursor);
@@ -247,7 +259,7 @@ public static class InventoryController {
 
 
 
-    public class Inventory {
+    public class Inventory : IInventory {
         public IItem[] Info;
         public LLNode[] EntryLL;
         public List<string> SerializedNames;
@@ -258,8 +270,8 @@ public static class InventoryController {
         public uint capacity;
         public uint length;
         public uint tail;
-        private Action<int> OnAddElement;
-        private Action<int> OnRemoveElement;
+        private ItemContext.FinishSetup OnAddElement;
+        private ItemContext.FinishSetup OnRemoveElement;
 
         public Inventory(int SlotCount) {
             SlotCount += 1;
@@ -281,7 +293,7 @@ public static class InventoryController {
             IItem[] nInfo = new IItem[SlotCount];
             LLNode[] nEntryLL = new LLNode[SlotCount];
             for (int i = SlotCount - 1; i < capacity; i++) {
-                OnRemoveElement?.Invoke((int)i);
+                OnRemoveElement?.Invoke(new ItemContext(this, i));
                 OnRelease?.Invoke(Info[i]);
                 RemoveEntry((int)i);
             }
@@ -336,7 +348,24 @@ public static class InventoryController {
             Info[index]?.ClearDisplay(Display.Slots[index].transform);
         }
 
-        public void AddCallbacks(Action<int> OnAddItem = null, Action<int> OnRemoveItem = null) {
+        public void ReapplyHandles() {
+            for (int i = 0; i < Info.Length; i++) {
+                if (Info[i] == null) continue;
+                Info[i].OnEnter(OnAddElement(new ItemContext(this, i)));
+            }
+        }
+
+        public void UnapplyHandles() {
+            for (int i = 0; i < Info.Length; i++) {
+                if (Info[i] == null) continue;
+                Info[i].OnLeave(OnRemoveElement(new ItemContext(this, i)));
+            }
+        }
+
+        public void AddCallbacks(
+            ItemContext.FinishSetup OnAddItem = null,
+            ItemContext.FinishSetup OnRemoveItem = null
+        ) {
             OnAddElement = OnAddItem;
             OnRemoveElement = OnRemoveItem;
         }
@@ -437,7 +466,7 @@ public static class InventoryController {
             }
             LLRemove((uint)SlotIndex);
             LLAdd((uint)SlotIndex, tail);
-            OnRemoveElement?.Invoke(SlotIndex);
+            OnRemoveElement?.Invoke(new ItemContext(this, SlotIndex));
             ClearDisplay(SlotIndex);
             Info[SlotIndex] = null;
             tail = math.min(tail, (uint)SlotIndex);
@@ -456,7 +485,7 @@ public static class InventoryController {
             AttachDisplay(head);
             entry.AmountRaw = 0;
             DictEnqueue(head);
-            OnAddElement?.Invoke(head);
+            OnAddElement?.Invoke(new ItemContext(this, head));
 
             return true;
         }
@@ -472,7 +501,7 @@ public static class InventoryController {
             AttachDisplay(index);
             entry.AmountRaw = 0;
             DictEnqueue(index);
-            OnAddElement?.Invoke(index);
+            OnAddElement?.Invoke(new ItemContext(this, index));
 
             return true;
         }

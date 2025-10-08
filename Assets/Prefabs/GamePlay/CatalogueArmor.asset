@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e913c5820b31447ea06cd6665610f2f, type: 3}
+  m_Name: CatalogueArmor
+  m_EditorClassIdentifier: 
+  Name: Root
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: fadc756720f6a4182b97d71e3de36636, type: 2}
+    - value: {fileID: 11400000, guid: 3338a643a91ce46c7acaf3d561c74427, type: 2}
+    - value: {fileID: 11400000, guid: 591dc530620c54b759d237a4a367f2a1, type: 2}
+    - value: {fileID: 11400000, guid: bc6a0787a2681492caff668b424319d8, type: 2}
+    - value: {fileID: 11400000, guid: 1fc92fb80a4f1492db1512114ede1384, type: 2}
+    - value: {fileID: 11400000, guid: 374f954baf1d54f6db9b098f8fe5748b, type: 2}
+    - value: {fileID: 11400000, guid: d9d862e0dadb8459693a8eb3da9c7d0a, type: 2}
+    - value: {fileID: 11400000, guid: 274e8e3b5727e46459d12088f6163d2e, type: 2}
+    - value: {fileID: 11400000, guid: b6e90b048eb7c4cf8b4a686676a5ebeb, type: 2}
+    - value: {fileID: 11400000, guid: b7ccc91a8f170449cb11551465bbd90d, type: 2}
+  references:
+    version: 2
+    RefIds: []

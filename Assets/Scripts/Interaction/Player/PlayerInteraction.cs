@@ -6,7 +6,6 @@ using WorldConfig;
 using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
 using WorldConfig.Gameplay.Player;
-using TerrainGeneration;
 
 namespace WorldConfig.Gameplay.Player {
 /// <summary>
@@ -60,39 +59,38 @@ public static class PlayerInteraction {
         InputPoller.AddBinding(new InputPoller.ActionBind("Remove", RemoveTerrain), "5.0::GamePlay");
     }
 
-    public static bool RayTestSolid(PlayerStreamer.Player data, out float3 hitPt) {
+    public static bool RayTestSolid<T>(T entity, out float3 hitPt) where T : WorldConfig.Generation.Entity.Entity, IAttackable {
         static uint RayTestSolid(int3 coord) {
             MapData pointInfo = CPUMapManager.SampleMap(coord);
             return (uint)pointInfo.viscosity;
         }
-        return CPUMapManager.RayCastTerrain(data.position, PlayerHandler.camera.forward, settings.ReachDistance, RayTestSolid, out hitPt);
+        return CPUMapManager.RayCastTerrain(entity.position, entity.Forward, settings.ReachDistance, RayTestSolid, out hitPt);
     }
 
-    public static bool CylinderTestSolid(PlayerStreamer.Player data, out float3 hitPt) {
+    public static bool CylinderTestSolid<T>(T entity, out float3 hitPt) where T : WorldConfig.Generation.Entity.Entity, IAttackable {
         static uint CylinderTestSolid(int3 coord) {
             MapData pointInfo = CPUMapManager.SampleMap(coord);
             return (uint)pointInfo.viscosity;
         }
         const float radius = 1;
-        if (RayTestSolid(data, out hitPt) && math.lengthsq(hitPt - data.position) < radius * radius * 4)
+        if (RayTestSolid(entity, out hitPt) && math.lengthsq(hitPt - entity.position) < radius * radius * 4)
             return true;
-        float3 forward = PlayerHandler.camera.forward;
-        return CPUMapManager.CylinderCastTerrain(data.position + 2 * radius * forward,
-            forward, radius, settings.ReachDistance, CylinderTestSolid, out hitPt);
+        return CPUMapManager.CylinderCastTerrain(entity.position + 2 * radius * entity.Forward,
+            entity.Forward, radius, settings.ReachDistance, CylinderTestSolid, out hitPt);
     }
 
-    public static bool RayTestLiquid(PlayerStreamer.Player data, out float3 hitPt) {
+    public static bool RayTestLiquid<T>(T entity, out float3 hitPt) where T : WorldConfig.Generation.Entity.Entity, IAttackable {
         static uint RayTestLiquid(int3 coord) {
             MapData pointInfo = CPUMapManager.SampleMap(coord);
             return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
         }
-        return CPUMapManager.RayCastTerrain(data.position, PlayerHandler.camera.forward, settings.ReachDistance, RayTestLiquid, out hitPt);
+        return CPUMapManager.RayCastTerrain(entity.position, entity.Forward, settings.ReachDistance, RayTestLiquid, out hitPt);
     }
 
     private static void PlaceTerrain(float _) {
         if (!PlayerHandler.active) return;
         bool rayHit = false;
-        float3 hitPt = data.position + (float3)PlayerHandler.camera.forward * settings.ReachDistance;
+        float3 hitPt = data.position + PlayerHandler.data.Forward * settings.ReachDistance;
         if (RayTestSolid(data, out float3 terrHit)) {
             hitPt = terrHit;
             rayHit = true;

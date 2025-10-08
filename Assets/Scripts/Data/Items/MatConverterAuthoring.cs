@@ -57,12 +57,28 @@ namespace WorldConfig.Generation.Item
             this.Index = Index;
             this.AmountRaw = AmountRaw;
         }
-
-        public void OnEnterSecondary() { }
-        public void OnLeaveSecondary() { }
-        public void OnEnterPrimary() { }
-        public void OnLeavePrimary() { }
         public void UpdateEItem() { }
+
+        protected int[] KeyBinds;
+        public void OnEnter(ItemContext cxt) {
+            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            InputPoller.AddKeyBindChange(() => {
+                KeyBinds = new int[1];
+                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind(
+                    "Place",
+                    _ => PlayerModifyTerrain(cxt),
+                    InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            });
+        }
+
+        public void OnLeave(ItemContext cxt) {
+            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            InputPoller.AddKeyBindChange(() => {
+                if (KeyBinds == null) return;
+                InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
+                KeyBinds = null;
+            });
+        }
 
         private GameObject display;
         public void AttachDisplay(Transform parent) {
@@ -93,26 +109,10 @@ namespace WorldConfig.Generation.Item
 
         private MatConverterAuthoring settings => ItemInfo.Retrieve(Index) as MatConverterAuthoring;
 
-        protected int[] KeyBinds;
-        public void OnSelect() {
-            InputPoller.AddKeyBindChange(() => {
-                KeyBinds = new int[1];
-                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place", TerrainModify,
-                    InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-            });
-        }
-
-        public void OnDeselect() {
-            InputPoller.AddKeyBindChange(() => {
-                if (KeyBinds == null) return;
-                InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
-                KeyBinds = null;
-            });
-        }
-
-        private void TerrainModify(float _) {
-            if (!RayTestSolid(PlayerHandler.data, out float3 hitPt)) return;
-            if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
+        private void PlayerModifyTerrain(ItemContext cxt) {
+            if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
+            if (!RayTestSolid(player, out float3 hitPt)) return;
+            if (EntityManager.ESTree.FindClosestAlongRay(player.position, hitPt, player.info.entityId, out var _))
                 return;
             if (settings.MaterialName == null) {
                 Debug.LogError("MaterialName is not set for MatConverterItem at index " + Index);
@@ -141,7 +141,7 @@ namespace WorldConfig.Generation.Item
 
             if (AmountRaw > 0) return;
             //Removes itself
-            InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
+            cxt.TryRemove();
         }
     }
 }

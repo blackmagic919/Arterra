@@ -44,7 +44,7 @@ public class ItemController : EntityController
     public unsafe void FixedUpdate(){
         if(!entity.active) return;
         EntityManager.AssertEntityLocation(entity, entity.GCoord);    
-        TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+        TerrainCollider.Transform rTransform = entity.tCollider.transform;
         rTransform.position = CPUDensityManager.GSToWS(rTransform.position - settings.collider.offset);
         this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
     }

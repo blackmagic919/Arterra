@@ -119,7 +119,7 @@ public abstract class EntitySetting{
     [JsonIgnore]
     public ProfileInfo profile;
     /// <summary> The actual dimensions of the entity used for collisions and hit-box detection </summary>
-    public TerrainColliderJob.Settings collider;
+    public TerrainCollider.Settings collider;
     /// <summary> Presets any information shared by all instances of the entity. This is only called once per entity type within
     /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information. </summary>
     /// <param name="entityType">The index of the entity type within the <see cref="WorldConfig.Config.GenerationSettings.Entities"/> registry.</param>

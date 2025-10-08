@@ -346,9 +346,10 @@ public interface IRegister {
         Association.Add("Items", settings.Generation.Items);
         Association.Add("CraftingRecipes", settings.System.Crafting.value.Recipes);
         Association.Add("GeoShaders", settings.Quality.GeoShaders);
+        Association.Add("ArmorVariants", settings.System.Armor.value.Variants);
 
         foreach (GeoShader shader in settings.Quality.GeoShaders.Reg) {
-            Association.Add("GeoShaders::"+shader.Name, shader.GetRegistry());
+            Association.Add("GeoShaders::" + shader.Name, shader.GetRegistry());
         }
     }
 }

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a6a7e8dd1906462d913b21e32bf1f3d, type: 3}
+  m_Name: ArmorSettings
+  m_EditorClassIdentifier: 
+  DisplayIcon: ChestplateIcon
+  TargetSlotDistance: 0.2
+  HeadBone:
+    BonePath: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006
+  Variants:
+    Category:
+      value: {fileID: 11400000, guid: e618b0cb29bea44f388775d42be8d859, type: 2}
+    Reg:
+    - {fileID: 11400000, guid: fadc756720f6a4182b97d71e3de36636, type: 2}

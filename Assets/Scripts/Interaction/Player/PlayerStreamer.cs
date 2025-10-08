@@ -5,11 +5,9 @@ using Newtonsoft.Json;
 using WorldConfig.Generation.Entity;
 using WorldConfig;
 using WorldConfig.Generation.Item;
-using System.Collections.Generic;
-using System.Linq;
 using TerrainGeneration;
-using System.Runtime.Serialization;
 using MapStorage;
+using WorldConfig.Gameplay.Player;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Player")]
 public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
@@ -40,12 +38,16 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         [JsonIgnore]
         public Animator animator;
         public DateTime currentTime;
-        public TerrainColliderJob.Transform camera;
+        public PlayerCamera camera;
         public InventoryController.Inventory PrimaryI;
         public InventoryController.Inventory SecondaryI;
+        public ArmorInventory ArmorI;
         public PlayerVitality vitality;
         public PlayerCollider collider;
         public StreamingStatus status;
+
+        [JsonIgnore]
+        public EntityEvents Events = new();
 
         [JsonIgnore]
         public override float3 position
@@ -68,6 +70,12 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         }
         [JsonIgnore]
         public bool IsDead { get => vitality.IsDead; }
+        [JsonIgnore]
+        public Quaternion Facing => camera.Facing;
+        [JsonIgnore]
+        public float3 Forward => camera.Facing * Vector3.forward;
+        [JsonIgnore]
+        public float3 Right => camera.Facing * Vector3.right;
         
         public void Interact(Entity target) { }
         public IItem Collect(float collectRate)
@@ -82,11 +90,15 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             vitality.health -= (itemDelta / itemCount) * PlayerVitality.settings.DecompositionTime;
             return ret;
         }
-
-        public void TakeDamage(float damage, float3 knockback, Entity attacker = null)
-        {
+        public void TakeDamage(float damage, float3 knockback, Entity attacker = null) {
             //Invulnerability means we don't even process the request
             if (Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability) return;
+            if (vitality.Invincibility > 0) return;
+            
+            var cxt = (damage, knockback, attacker);
+            Events.Invoke(EntityEvents.EventType.OnDamaged, ref cxt);
+            (damage, knockback, attacker) = cxt;
+            
             if (!vitality.Damage(damage)) return;
             EntityManager.AddHandlerEvent(() => Indicators.DisplayDamageParticle(position, knockback));
             collider.velocity += knockback;
@@ -100,15 +112,16 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 
         public static Player Build() {
             Player p = new();
-            p.camera.rotation = Quaternion.identity;
+            p.camera = new PlayerCamera();
             p.PrimaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.PrimarySlotCount);
             p.SecondaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.SecondarySlotCount);
+            p.ArmorI = new ArmorInventory();
             p.currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.Time.value.startHour);
             p.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             p.info.entityId = Guid.NewGuid();
 
             p.settings = Config.CURRENT.Generation.Entities.Retrieve((int)p.info.entityType).Setting as PlayerSettings;
-            p.collider = new PlayerCollider(new TerrainColliderJob.Transform(0, Quaternion.LookRotation(Vector3.forward, Vector3.up)));
+            p.collider = new PlayerCollider(new TerrainCollider.Transform(0, Quaternion.LookRotation(Vector3.forward, Vector3.up)));
             p.vitality = new PlayerVitality();
             p.status = StreamingStatus.Live;
             StartupPlacer.PlaceOnSurface(p);
@@ -121,7 +134,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             settings = (PlayerSettings)setting;
             collider.OnHitGround = ProcessFallDamage;
             player = GameObject.Instantiate(Controller);
-            animator = player.transform.GetChild(0).GetComponent<Animator>();
+            animator = player.transform.Find("Player").GetComponent<Animator>();
             player.transform.SetPositionAndRotation(positionWS, collider.transform.rotation);
         }
 
@@ -131,9 +144,10 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             settings = (PlayerSettings)setting;
             GCoord = (int3)this.origin;
             player = GameObject.Instantiate(Controller);
-            animator = player.transform.GetChild(0).GetComponent<Animator>();
+            animator = player.transform.Find("Player").GetComponent<Animator>();
             player.transform.SetPositionAndRotation(positionWS, collider.transform.rotation);
             collider.OnHitGround = ProcessFallDamage;
+            camera.Deserailize(this);
             if (IsDead) PlayDead();
         }
 
@@ -202,6 +216,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 
         public void ProcessFallDamage(float zVelDelta)
         {
+            Events.Invoke(EntityEvents.EventType.OnHitGround, ref zVelDelta);
             if (zVelDelta <= Vitality.FallDmgThresh) return;
             float dmgIntensity = zVelDelta - Vitality.FallDmgThresh;
             dmgIntensity = math.pow(dmgIntensity, Config.CURRENT.GamePlay.Player.value.Physicality.value.weight);

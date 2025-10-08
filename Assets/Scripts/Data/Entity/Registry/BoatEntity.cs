@@ -37,9 +37,11 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
         [JsonProperty]
         private MinimalVitality vitality;
         [JsonProperty]
-        private TerrainColliderJob tCollider;
+        private TerrainCollider tCollider;
         [JsonProperty]
         private Guid RiderTarget = Guid.Empty;
+        [JsonIgnore]
+        public Quaternion Facing => tCollider.transform.rotation;
 
         private BoatController controller;
         private BoatSetting settings;
@@ -202,7 +204,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             public void Update() {
                 if (!entity.active) return;
                 if (gameObject == null) return;
-                TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+                TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
 
                 float minSpeed = math.min(entity.settings.MaxLandSpeed, entity.settings.MaxWaterSpeed) * 0.5f;

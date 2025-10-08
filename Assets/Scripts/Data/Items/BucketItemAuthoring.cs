@@ -50,28 +50,24 @@ public class BucketItem : IItem{
         this.Index = Index;
         this.AmountRaw = AmountRaw;
     }
-    
-    public void OnEnterSecondary() { } 
-    public void OnLeaveSecondary(){}
-    public void OnEnterPrimary(){} 
-    public void OnLeavePrimary(){} 
-
+    public void UpdateEItem(){} 
     private int[] KeyBinds;
-    public void OnSelect(){
+    public void OnEnter(ItemContext cxt) {
+        if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         InputPoller.AddKeyBindChange(() => {
             KeyBinds = new int[2];
-            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place", PlaceLiquid, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-            KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", RemoveLiquid, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place", _ => PlaceLiquid(cxt), InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", _ => RemoveLiquid(cxt), InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
         }); 
     } 
-    public void OnDeselect(){
+    public void OnLeave(ItemContext cxt) {
+        if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         InputPoller.AddKeyBindChange(() => {
             if (KeyBinds == null) return;
             InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
             InputPoller.RemoveKeyBind((uint)KeyBinds[1], "5.0::GamePlay");
         });
     } 
-    public void UpdateEItem(){} 
     
     private GameObject display;
     public void AttachDisplay(Transform parent) {
@@ -93,10 +89,11 @@ public class BucketItem : IItem{
         display = null;
     }
 
-    private void PlaceLiquid(float _){
+    private void PlaceLiquid(ItemContext cxt){
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         
-        if (content == null || !PlayerInteraction.RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
+        if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
+        if (content == null || !PlayerInteraction.RayTestLiquid(player, out float3 hitPt)) return;
         Authoring authoring = ItemInfo.Retrieve(content.Index);
         if (authoring is not PlaceableItem mat) return;
         if (mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
@@ -135,8 +132,9 @@ public class BucketItem : IItem{
         return true;
     }
 
-    private void RemoveLiquid(float _){
-        if(!PlayerInteraction.RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
+    private void RemoveLiquid(ItemContext cxt){
+        if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
+        if (!PlayerInteraction.RayTestLiquid(player, out float3 hitPt)) return;
         CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveToBucket, PlayerInteraction.CallOnMapRemoving);
     }
 

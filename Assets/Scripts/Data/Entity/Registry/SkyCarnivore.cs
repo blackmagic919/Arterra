@@ -53,7 +53,7 @@ public class SkyCarnivore : Authoring
         [JsonProperty]
         private PathFinder.PathInfo pathFinder;
         [JsonProperty]
-        private TerrainColliderJob tCollider;
+        private TerrainCollider tCollider;
         [JsonProperty]
         private Unity.Mathematics.Random random;
         [JsonProperty]
@@ -91,6 +91,8 @@ public class SkyCarnivore : Authoring
             get => tCollider.transform.position;
             set => tCollider.transform.position = value;
         }
+        [JsonIgnore]
+        public Quaternion Facing => tCollider.transform.rotation;
         [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
@@ -154,7 +156,7 @@ public class SkyCarnivore : Authoring
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.genetics ??= new Genetics(this.info.entityType, ref random);
             this.vitality = new Vitality(settings.Physicality, this.genetics);
-            this.tCollider = new TerrainColliderJob(GCoord, true, ProcessFallDamage);
+            this.tCollider = new TerrainCollider(GCoord, true, ProcessFallDamage);
             pathFinder.hasPath = false;
             TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
             TaskTarget = Guid.Empty;
@@ -614,7 +616,7 @@ public class SkyCarnivore : Authoring
             public void Update() {
                 if (!entity.active) return;
                 if (gameObject == null) return;
-                TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+                TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
                 // #if UNITY_EDITOR
                 //            if(UnityEditor.Selection.Contains(gameObject)) {

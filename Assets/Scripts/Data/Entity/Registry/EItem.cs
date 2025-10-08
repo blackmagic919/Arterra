@@ -36,7 +36,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
     //**If you release here the controller might still be accessing it
     public class EItemEntity : Entity, IAttackable {
         [JsonProperty]
-        private TerrainColliderJob tCollider;
+        private TerrainCollider tCollider;
         [JsonProperty]
         private Unity.Mathematics.Random random;
         [JsonProperty]
@@ -55,6 +55,8 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             get => tCollider.transform.position;
             set => tCollider.transform.position = value;
         }
+        [JsonIgnore]
+        public Quaternion Facing => tCollider.transform.rotation;
         [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
@@ -212,7 +214,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             public void Update(){
                 if(!entity.active) return;
                 if(gameObject == null) return;
-                TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+                TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
             }
 

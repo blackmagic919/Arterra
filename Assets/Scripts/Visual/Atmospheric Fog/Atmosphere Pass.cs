@@ -58,12 +58,13 @@ public class AtmospherePass : ScriptableRenderPass
         if (!initialized) return;
         RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
         descriptor.depthBufferBits = 0;
-
+        
         ConfigureInput(ScriptableRenderPassInput.Color);
         colorBuffer = renderingData.cameraData.renderer.cameraColorTargetHandle;
         //We need copy from depth buffer because transparent pass needs depth texture of opaque pass, and fog needs depth texture of transparent pass
         depthBuffer = renderingData.cameraData.renderer.cameraDepthTargetHandle;
         temporaryBuffer = RTHandles.Alloc(descriptor, FilterMode.Bilinear);
+        
     }
 
     // The actual execution of the pass. This is where custom rendering occurs.

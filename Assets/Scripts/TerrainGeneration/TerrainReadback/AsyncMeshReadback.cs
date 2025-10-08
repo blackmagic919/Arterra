@@ -353,18 +353,17 @@ public class GeometryHandle : IUpdateSubscriber
             UtilityBuffers.ReleaseArgs(this.argsAddress);
     }
 
-    /// <summary> Updates the geometry handle to pass any indirect render commands it may have.
-    /// If the geometry handle renders indirectly, the command to do so will be issued here.
-    /// This done every frame through unity's update loop through <see cref="MainLoopUpdateTasks"/>.
-    /// See <see cref="UpdateTask"/> for more information. </summary>
-    /// <param name="mono">See <see cref="UpdateTask.Update(MonoBehaviour)"/> for more info. </param>
-    public void Update(MonoBehaviour mono = null)
-    {
-        if (!active)
-            return;
+        /// <summary> Updates the geometry handle to pass any indirect render commands it may have.
+        /// If the geometry handle renders indirectly, the command to do so will be issued here.
+        /// This done every frame through unity's update loop through <see cref="MainLoopUpdateTasks"/>.
+        /// See <see cref="UpdateTask"/> for more information. </summary>
+        /// <param name="mono">See <see cref="UpdateTask.Update(MonoBehaviour)"/> for more info. </param>
+        public void Update(MonoBehaviour mono = null) {
+            if (!active)
+                return;
 
-        //Offset in bytes = address * 4 args per address * 4 bytes per arg
-        Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)argsAddress);
+            //Offset in bytes = address * 4 args per address * 4 bytes per arg
+            Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)argsAddress);
     }
 }
 

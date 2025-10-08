@@ -44,13 +44,9 @@ namespace WorldConfig.Generation.Item{
             this.Index = Index;
             this.AmountRaw = AmountRaw;
         }
-
-        public readonly void OnEnterSecondary() { }
-        public readonly void OnLeaveSecondary() { }
-        public readonly void OnEnterPrimary() { }
-        public readonly void OnLeavePrimary() { }
-        public readonly void OnSelect() { }
-        public readonly void OnDeselect() { }
+        
+        public readonly void OnEnter(ItemContext cxt) { }
+        public readonly void OnLeave(ItemContext cxt) { }
         public readonly void UpdateEItem() { } 
 
         private GameObject display;

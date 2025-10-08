@@ -20,7 +20,7 @@ MonoBehaviour:
   TerraformRadius: 0
   MaxDurability: 100
   ToolTag: 0
-  AttackDamage: 4
+  AttackDamage: 5
   KnockBackStrength: 4
   AttackCooldown: 0.5
   CritChance: 0.25

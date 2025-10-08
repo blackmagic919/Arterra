@@ -24,6 +24,7 @@ namespace WorldConfig.Generation.Item
 
     [Serializable]
     public class WeaponToolItem : ToolItem, IUpdateSubscriber {
+        private ItemContext cxt;
         private bool active = false;
         public bool Active {
             get => active;
@@ -31,17 +32,25 @@ namespace WorldConfig.Generation.Item
         }
         private WeaponToolItemAuthoring settings => ItemInfo.Retrieve(Index) as WeaponToolItemAuthoring;
         public override object Clone() => new WeaponToolItem { data = data, durability = durability };
-        public override void OnSelect() {
+        public override void OnEnter(ItemContext cxt) {
+            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             OctreeTerrain.MainLoopUpdateTasks.Enqueue(this);
             this.active = true;
+            this.cxt = cxt;
             InputPoller.AddKeyBindChange(() => {
                 KeyBinds = new int[1];
-                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", AttackEntity, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind(
+                    "Remove", PlayerAttack,
+                    InputPoller.ActionBind.Exclusion.ExcludeLayer),
+                    "5.0::GamePlay"
+                );
             });
         }
 
-        public override void OnDeselect() {
+        public override void OnLeave(ItemContext cxt) {
+            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             this.active = false;
+            this.cxt = null;
             InputPoller.AddKeyBindChange(() => {
                 if (KeyBinds == null) return;
                 InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
@@ -67,37 +76,40 @@ namespace WorldConfig.Generation.Item
 
         public void Update(MonoBehaviour mono = null) {
             if (display == null) return;
-            float progress = PlayerHandler.data.vitality.AttackCooldown / settings.AttackCooldown;
+            if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
+            float progress = player.vitality.AttackCooldown / settings.AttackCooldown;
             display.GetComponent<UnityEngine.UI.Image>().fillAmount = 1 - progress;
         }
 
-        private void AttackEntity(float _) {
-            if (PlayerHandler.data.vitality.AttackCooldown > 0) return;
-            PlayerHandler.data.vitality.AttackCooldown = settings.AttackCooldown;
-            float3 hitPt = PlayerHandler.data.position + (float3)PlayerHandler.camera.forward
+        private void PlayerAttack(float _) {
+            if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
+            if (player.vitality.AttackCooldown > 0) return;
+            player.vitality.AttackCooldown = settings.AttackCooldown;
+            float3 hitPt = player.position
+                + player.Forward
                 * Config.CURRENT.GamePlay.Player.value.Interaction.value.ReachDistance;
 
-            if (RayTestSolid(PlayerHandler.data, out float3 terrHit)) hitPt = terrHit;
-            if (!EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out WorldConfig.Generation.Entity.Entity entity))
+            if (RayTestSolid(player, out float3 terrHit)) hitPt = terrHit;
+            if (!EntityManager.ESTree.FindClosestAlongRay(player.position, hitPt, player.info.entityId, out Entity.Entity entity))
                 return;
             void PlayerDamageEntity(WorldConfig.Generation.Entity.Entity target) {
                 if (!target.active) return;
                 if (target is not IAttackable) return;
                 IAttackable atkEntity = target as IAttackable;
-                float3 knockback = math.normalize(target.position - PlayerHandler.data.position)
+                float3 knockback = math.normalize(target.position - player.position)
                     * settings.KnockBackStrength;
 
                 float atkDmg = settings.AttackDamage;
                 if (UnityEngine.Random.Range(0, 1) <= settings.CritChance)
                     atkDmg *= settings.CritMultiplier;
 
-                atkEntity.TakeDamage(atkDmg, knockback, PlayerHandler.data);
+                atkEntity.TakeDamage(atkDmg, knockback, player);
 
-                PlayerHandler.data.animator.SetTrigger("Swing");
+                player.animator.SetTrigger("Swing");
                 durability--;
             
                 if (durability > 0) return;
-                InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
+                cxt.TryRemove();
             }
             EntityManager.AddHandlerEvent(() => PlayerDamageEntity(entity));
         }

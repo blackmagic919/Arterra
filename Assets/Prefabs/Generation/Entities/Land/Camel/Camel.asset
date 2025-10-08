@@ -162,6 +162,11 @@ MonoBehaviour:
               mean: 25
               var: 1
               geneWeight: 0.05
+          - ItemName: Leather:Solid
+            DropAmount:
+              mean: 15
+              var: 1
+              geneWeight: 0.05
         DecompositionTime:
           mean: 200
           var: 0.5

@@ -44,7 +44,6 @@ namespace WorldConfig.Gameplay.Player{
     }
 }
 public class PlayerMovement {
-    public static WorldConfig.Gameplay.Player.Camera Camera => Config.CURRENT.GamePlay.Player.value.Camera;
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
     private static ref PlayerStreamer.Player data => ref PlayerHandler.data;
     public static bool IsSprinting;
@@ -80,7 +79,7 @@ public static class SurfaceMovement {
         InputPoller.AddStackPoll(new InputPoller.ActionBind("GroundMove::1", _ => Update()), "Movement::Update");
         InputPoller.AddStackPoll(new InputPoller.ActionBind("GroundMove::2", _ => PlayerHandler.data.collider.useGravity = true), "Movement::Gravity");
         InputPoller.AddBinding(new InputPoller.ActionBind("Jump", (_null_) => {
-            TerrainColliderJob.Settings collider = PlayerHandler.data.settings.collider;
+            TerrainCollider.Settings collider = PlayerHandler.data.settings.collider;
             if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
                 velocity += Setting.jumpForce * (float3)Vector3.up;
                 PlayerHandler.data.animator.SetBool("IsJumping", true);
@@ -89,14 +88,14 @@ public static class SurfaceMovement {
     }
 
     public static void Update() {
-        float2 desiredMove = ((float3)(PlayerHandler.camera.forward * PlayerMovement.InputDir.y + PlayerHandler.camera.right * PlayerMovement.InputDir.x)).xz;
+        float2 desiredMove = (PlayerHandler.data.Forward * PlayerMovement.InputDir.y + PlayerHandler.data.Right * PlayerMovement.InputDir.x).xz;
         float2 deltaV = Setting.acceleration * Time.deltaTime * desiredMove;
 
         if (math.length(velocity.xz) < moveSpeed)
             velocity.xz += deltaV;
 
         if (PlayerHandler.data.animator.GetBool("IsJumping") && PlayerHandler.data.animator.GetBool("_InProgress")) {
-            TerrainColliderJob.Settings collider = PlayerHandler.data.settings.collider;
+            TerrainCollider.Settings collider = PlayerHandler.data.settings.collider;
             if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
                 PlayerHandler.data.animator.SetBool("IsJumping", false);
             }
@@ -164,7 +163,7 @@ public static class SwimMovement{
     }
 
     public static void Update(){
-        float3 desiredMove = (float3)(PlayerHandler.camera.forward*PlayerMovement.InputDir.y + PlayerHandler.camera.right*PlayerMovement.InputDir.x);
+        float3 desiredMove = PlayerHandler.data.Forward *PlayerMovement.InputDir.y + PlayerHandler.data.Right *PlayerMovement.InputDir.x;
         float3 deltaV = Setting.acceleration * Time.deltaTime * desiredMove;
 
         velocity.y *= 1 - PlayerHandler.data.settings.collider.friction;
@@ -229,7 +228,7 @@ public static class FlightMovement {
     }
 
     public static void Update() {
-        float2 desiredMove = ((float3)(PlayerHandler.camera.forward * PlayerMovement.InputDir.y + PlayerHandler.camera.right * PlayerMovement.InputDir.x)).xz;
+        float2 desiredMove = (PlayerHandler.data.Forward * PlayerMovement.InputDir.y + PlayerHandler.data.Right * PlayerMovement.InputDir.x).xz;
         float2 deltaV = Setting.acceleration * Time.deltaTime * desiredMove * Setting.flightSpeedMultiplier;
 
         velocity.y *= 1 - PlayerHandler.data.settings.collider.friction;

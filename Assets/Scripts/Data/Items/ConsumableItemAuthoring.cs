@@ -42,17 +42,21 @@ public class ConsumbaleItem : IItem{
         this.Index = Index;
         this.AmountRaw = AmountRaw;
     }
-    public void OnEnterSecondary() { } 
-    public void OnLeaveSecondary(){}
-    public void OnEnterPrimary(){} 
-    public void OnLeavePrimary(){} 
-    public void OnSelect(){
+    public void UpdateEItem() { }
+    public void OnEnter(ItemContext cxt) {
+        if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         InputPoller.AddKeyBindChange(() => {
             KeyBinds = new uint[1];
-            KeyBinds[0] = InputPoller.AddBinding(new InputPoller.ActionBind("Place", ConsumeFood, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            KeyBinds[0] = InputPoller.AddBinding(new InputPoller.ActionBind(
+                "Place",
+                _ => ConsumeFood(cxt),
+                InputPoller.ActionBind.Exclusion.ExcludeLayer),
+                "5.0::GamePlay"
+            );
         });
     } 
-    public void OnDeselect(){
+    public void OnLeave(ItemContext cxt) {
+        if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         InputPoller.AddKeyBindChange(() => {
             if (KeyBinds == null) return;
             InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
@@ -78,20 +82,20 @@ public class ConsumbaleItem : IItem{
         Indicators.StackableItems.Release(display);
         display = null;
     }
-    public void UpdateEItem() { }
 
-    private void ConsumeFood(float _)
+    private void ConsumeFood(ItemContext cxt)
     {
         if (AmountRaw == 0) return;
         int delta = GetStaggeredDelta(settings.ConsumptionRate);
         if (delta == 0) return;
-        ref PlayerStreamer.Player player = ref PlayerHandler.data;
+        if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
         if (player.vitality.healthPercent >= 1) return;
 
+        player.animator.SetBool("IsEating", true);
         delta = AmountRaw - math.max(AmountRaw - delta, 0);
         player.vitality.Heal(delta / 255.0f * settings.NutritionValue);
-        InventoryController.RemoveStackable(delta, Index);
-        player.animator.SetBool("IsEating", true);
+        AmountRaw -= delta;
+        if(AmountRaw == 0) cxt.TryRemove();//
     }
     
     private void UpdateDisplay(){

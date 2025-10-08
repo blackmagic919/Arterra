@@ -63,7 +63,7 @@ public class RidableSurfaceHerbivore : Authoring
         [JsonProperty]
         private PathFinder.PathInfo pathFinder;
         [JsonProperty]
-        private TerrainColliderJob tCollider;
+        private TerrainCollider tCollider;
         [JsonProperty]
         private Unity.Mathematics.Random random;
         [JsonProperty]
@@ -105,6 +105,8 @@ public class RidableSurfaceHerbivore : Authoring
             get => tCollider.transform.position;
             set => tCollider.transform.position = value;
         }
+        [JsonIgnore]
+        public Quaternion Facing => tCollider.transform.rotation;
         [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
@@ -201,7 +203,7 @@ public class RidableSurfaceHerbivore : Authoring
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.genetics ??= new Genetics(this.info.entityType, ref random);
             this.vitality = new Vitality(settings.Physicality, this.genetics);
-            this.tCollider = new TerrainColliderJob(GCoord, true, ProcessFallDamage);
+            this.tCollider = new TerrainCollider(GCoord, true, ProcessFallDamage);
             pathFinder.hasPath = false;
             tCollider.transform.position = GCoord;
 

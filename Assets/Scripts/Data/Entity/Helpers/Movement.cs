@@ -25,7 +25,7 @@ public struct Movement {
         return math.normalize(var);
     }
 
-    public static void FollowStaticPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, ref TerrainColliderJob tCollider, float moveSpeed,
+    public static void FollowStaticPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, ref TerrainCollider tCollider, float moveSpeed,
                         float rotSpeed, float acceleration, bool AllowVerticalRotation = false) {
         //Entity has fallen off path
         finder.stepDuration++;
@@ -58,7 +58,7 @@ public struct Movement {
         }
     }
 
-    public static void FollowDynamicPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, ref TerrainColliderJob tCollider, float3 target,
+    public static void FollowDynamicPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, ref TerrainCollider tCollider, float3 target,
                             float moveSpeed, float rotSpeed, float acceleration, bool AllowVerticalRotation = false) {
         finder.stepDuration++;
         if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > profile.bounds)) finder.hasPath = false;

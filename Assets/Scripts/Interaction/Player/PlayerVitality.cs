@@ -10,7 +10,7 @@ namespace WorldConfig.Gameplay.Player {
     /// <summary> Settings describing the player's vitaltiy, or the 
     /// combat ability and/or physical statistics of the player. </summary>
     [Serializable]
-    public class Physicality{
+    public class Physicality : ICloneable {
         /// <summary>The base damage the player deals when attacking entities without using any items. </summary>
         public float AttackDamage = 2;
         /// <summary>The amount of time in seconds between successive attacks from the player that will be processed.</summary>
@@ -24,6 +24,20 @@ namespace WorldConfig.Gameplay.Player {
 
         [Range(0, 1)]
         public float weight;
+
+        public object Clone() {
+            return new Physicality {
+                AttackDamage = AttackDamage,
+                AttackFrequency = AttackFrequency,
+                KnockBackStrength = KnockBackStrength,
+                InvincTime = InvincTime,
+                HoldBreathTime = HoldBreathTime,
+                MaxHealth = MaxHealth,
+                NaturalRegen = NaturalRegen,
+                DecompositionTime = DecompositionTime,
+                weight = weight
+            };
+        }
     }
 }
 public class PlayerVitality
@@ -73,11 +87,11 @@ public class PlayerVitality
     {
         if (AttackCooldown > 0) return;
         AttackCooldown = settings.AttackFrequency;
-        float3 hitPt = PlayerHandler.data.position + (float3)PlayerHandler.camera.forward * interact.ReachDistance;
+        float3 hitPt = PlayerHandler.data.position + PlayerHandler.data.Forward * interact.ReachDistance;
         if (PlayerInteraction.RayTestSolid(PlayerHandler.data, out float3 terrHit)) hitPt = terrHit;
         if (!EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out WorldConfig.Generation.Entity.Entity entity))
             return;
-        static void PlayerDamageEntity(WorldConfig.Generation.Entity.Entity target)
+        static void PlayerDamageEntity(Entity target)
         {
             if (!target.active) return;
             if (target is not IAttackable) return;

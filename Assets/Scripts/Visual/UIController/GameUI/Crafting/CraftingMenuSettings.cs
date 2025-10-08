@@ -20,6 +20,7 @@ public class Crafting : ScriptableObject{
     /// <summary> The name of the texture within the texture registry of 
     /// the icon displayed on the <see cref="PanelNavbarManager">Navbar</see>
     /// referring to Crafting.  </summary>
+    [RegistryReference("Textures")]
     public string DisplayIcon;
     /// <summary> The width of the square grid in terms of grid spaces. As recipe entries are stored on 
     /// grid corners, the amount of entries necessary to fill the grid is <c> (GridWidth + 1)^2 </c>. 

@@ -22,6 +22,7 @@ public static class PanelNavbarManager {
         SelectedPanel = null;
 
         Add(new CraftingMenuController(Config.CURRENT.System.Crafting), "Crafting");
+        Add(new ArmorController(Config.CURRENT.System.Armor), "Armor");
     }
 
     public static void Release() {

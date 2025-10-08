@@ -34,7 +34,7 @@ namespace WorldConfig.Gameplay{
     /// can drastically change the player's experience.
     /// </summary>
     [Serializable]
-    public struct Gamemodes{
+    public struct Gamemodes {
         /// <summary> Whether the player can toggle flight; whether the player can fly </summary>
         [UIModifiable(CallbackName = "Gamemode:Flight")]
         public bool Flight;
@@ -43,40 +43,58 @@ namespace WorldConfig.Gameplay{
         public bool Invulnerability;
         /// <summary> Whether the player will collide with solid objects and be subject to in-game forces.</summary>
         public bool Intangiblity;
+        /// <summary> Whether the player can keep their inventory on death </summary>
+        public bool KeepInventory;
     }
 }
 
 public static class PlayerHandler
 {
     public static PlayerStreamer.Player data;
+    public static Transform Viewer;
+    public static Transform Camera;
     public static CameraEffects cEffects;
-    public static PlayerCamera camera;
     public static bool active = false;
     public static void Initialize() {
+        Viewer = GameObject.Find("Viewer").transform;
+        Camera = Viewer.Find("CameraHandler");
+
         active = false;
         data = LoadPlayerData();
         EntityManager.DeserializeE(data);
 
-        camera = new PlayerCamera();
+        var prms = (data, data);
+        RebindPlayer(ref prms);
+
         cEffects = new CameraEffects();
         OctreeTerrain.viewer = data.player.transform; //set octree's viewer to current player
 
+        PlayerCamera.Initialize();
         PlayerMovement.Initialize();
         PlayerInteraction.Initialize();
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(new IndirectUpdate(Update));
         OctreeTerrain.MainFixedUpdateTasks.Enqueue(new IndirectUpdate(FixedUpdate));
     }
 
+    static bool RebindPlayer(ref (PlayerStreamer.Player old, PlayerStreamer.Player cur) cxt) {
+        Viewer.SetParent(cxt.cur.player.transform, worldPositionStays: false);
+        cxt.cur.Events.AddEvent<(PlayerStreamer.Player, PlayerStreamer.Player)>(
+            EntityEvents.EventType.OnRespawn,
+            RebindPlayer
+        );
+        return false;
+    }
+
     // Update is called once per frame
-    public static void Update(MonoBehaviour mono) { 
-        if(!data.active) return;
+    public static void Update(MonoBehaviour mono) {
+        if (!data.active) return;
         if (!active && OctreeTerrain.RequestQueue.IsEmpty)
             active = true;
-        if(!active) return;
-        camera.Update();
+        if (!active) return;
+        data.camera.Update(Camera);
         PlayerMovement.Update();
         PlayerStatDisplay.UpdateIndicator(data.vitality);
-        
+
     }
 
     public static void FixedUpdate(MonoBehaviour mono){
@@ -116,12 +134,14 @@ public static class PlayerHandler
     }
 
     public static void RespawnPlayer(Action cb = null){
-        DateTime currentTime = data.currentTime;
-        data = PlayerStreamer.Player.Build();
-        data.currentTime = currentTime;
-        EntityManager.DeserializeEntity(data, () => {
-            camera.ReParent(data.player.transform);
-            OctreeTerrain.viewer = data.player.transform; 
+        PlayerStreamer.Player nPlayer = PlayerStreamer.Player.Build();
+        EntityManager.DeserializeEntity(nPlayer, () => {
+            //Answer hooks
+            var prms = (data, nPlayer);
+            data.Events.Invoke(EntityEvents.EventType.OnRespawn, ref prms);
+            
+            OctreeTerrain.viewer = nPlayer.player.transform;
+            data = nPlayer;
             cb?.Invoke();
         });
     }

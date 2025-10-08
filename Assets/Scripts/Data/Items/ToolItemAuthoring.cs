@@ -59,24 +59,19 @@ namespace WorldConfig.Generation.Item
             this.AmountRaw = AmountRaw;
             this.durability = settings.MaxDurability;
         }
-        public void OnEnterSecondary() { }
-        public void OnLeaveSecondary() { }
-        public void OnEnterPrimary() { }
-        public void OnLeavePrimary() { }
         public void UpdateEItem() { }
-
         protected int[] KeyBinds;
-        public virtual void OnSelect()
-        {
-            InputPoller.AddKeyBindChange(() =>
-            {
+        public virtual void OnEnter(ItemContext cxt) {
+            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            InputPoller.AddKeyBindChange(() => {
                 KeyBinds = new int[1];
-                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", TerrainRemove), "5.0::GamePlay");
+                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove",
+                    _ => PlayerRemoveTerrain(cxt)),
+                    "5.0::GamePlay");
             });
         }
-
-        public virtual void OnDeselect()
-        {
+        public virtual void OnLeave(ItemContext cxt) {
+            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             InputPoller.AddKeyBindChange(() => {
                 if (KeyBinds == null) return;
                 InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
@@ -107,10 +102,11 @@ namespace WorldConfig.Generation.Item
         }
 
 
-        protected void TerrainRemove(float _) {
+        protected void PlayerRemoveTerrain(ItemContext cxt) {
             if (settings.ToolTag == TagRegistry.Tags.None) return;
-            if (!RayTestSolid(PlayerHandler.data, out float3 hitPt)) return;
-            if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var _))
+            if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
+            if (!RayTestSolid(player, out float3 hitPt)) return;
+            if (EntityManager.ESTree.FindClosestAlongRay(player.position, hitPt, player.info.entityId, out var _))
                 return;
             bool RemoveSolid(int3 GCoord, float speed) {
                 MapData mapData = CPUMapManager.SampleMap(GCoord);
@@ -131,7 +127,7 @@ namespace WorldConfig.Generation.Item
 
             if (durability > 0) return;
             //Removes itself
-            InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
+            cxt.TryRemove();
             InputPoller.SuspendKeybindPropogation("Remove", InputPoller.ActionBind.Exclusion.ExcludeLayer);
         }
 

@@ -12,6 +12,9 @@ public interface IAttackable {
     public void Interact(Entity caller);
     public WorldConfig.Generation.Item.IItem Collect(float collectRate);
     public void TakeDamage(float damage, float3 knockback, Entity attacker = null);
+    public Quaternion Facing { get; }
+    public float3 Forward => Facing * Vector3.forward;
+    public float3 Right => Facing * Vector3.right;
     public bool IsDead { get; }
 }
 
@@ -38,6 +41,7 @@ public class MinimalVitality {
             Genetics.AddGene(entityType, ref HoldBreathTime);
         }
     }
+
 
     [JsonIgnore]
     protected Stats stats;
@@ -99,7 +103,7 @@ public class MinimalVitality {
         breath = genetics.Get(stats.HoldBreathTime);
     }
 
-    public void ProcessInLiquid(Entity self, ref TerrainColliderJob tCollider, float density) {
+    public void ProcessInLiquid(Entity self, ref TerrainCollider tCollider, float density) {
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
         tCollider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
         tCollider.useGravity = false;
@@ -109,7 +113,7 @@ public class MinimalVitality {
         ProcessSuffocation(self, density);
     }
 
-    public void ProcessInLiquidAquatic(Entity self, ref TerrainColliderJob tCollider, float density, float drownTime) {
+    public void ProcessInLiquidAquatic(Entity self, ref TerrainCollider tCollider, float density, float drownTime) {
         if (breath >= 0) breath = -drownTime;
 
         const float Epsilon = 0.001f;
@@ -124,7 +128,7 @@ public class MinimalVitality {
         if (breath >= -Epsilon) ProcessSuffocation(self, density);
     }
 
-    public void ProcessInGasAquatic(Entity self, ref TerrainColliderJob tCollider, float density) {
+    public void ProcessInGasAquatic(Entity self, ref TerrainCollider tCollider, float density) {
         if (breath < 0) breath = genetics.Get(stats.HoldBreathTime);
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
         tCollider.useGravity = true;

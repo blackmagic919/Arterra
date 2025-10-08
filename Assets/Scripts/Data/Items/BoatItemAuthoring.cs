@@ -38,26 +38,27 @@ public class BoatItem : IItem{
         this.Index = Index;
         this.AmountRaw = AmountRaw;
     }
-    
-    public void OnEnterSecondary() { } 
-    public void OnLeaveSecondary(){}
-    public void OnEnterPrimary(){} 
-    public void OnLeavePrimary(){} 
-
+    public void UpdateEItem(){} 
     private int[] KeyBinds;
-    public void OnSelect(){
+    public void OnEnter(ItemContext cxt) {
+        if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         InputPoller.AddKeyBindChange(() => {
             KeyBinds = new int[1];
-            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place", PlaceBoat, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind(
+                "Place",
+                _ => PlaceBoat(cxt),
+                InputPoller.ActionBind.Exclusion.ExcludeLayer),
+                "5.0::GamePlay"
+            );
         }); 
     } 
-    public void OnDeselect(){
+    public void OnLeave(ItemContext cxt) {
+        if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         InputPoller.AddKeyBindChange(() => {
             if (KeyBinds == null) return;
             InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
         });
     } 
-    public void UpdateEItem(){} 
     
     private GameObject display;
     public void AttachDisplay(Transform parent){
@@ -77,8 +78,9 @@ public class BoatItem : IItem{
         display = null;
     }
 
-    private void PlaceBoat(float _){
-        if(!PlayerInteraction.RayTestLiquid(PlayerHandler.data, out float3 hitPt)) return;
+    private void PlaceBoat(ItemContext cxt){
+        if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
+        if (!PlayerInteraction.RayTestLiquid(player, out float3 hitPt)) return;
         uint eIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Boat");
         EntityManager.CreateEntity(hitPt, eIndex);
         InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);

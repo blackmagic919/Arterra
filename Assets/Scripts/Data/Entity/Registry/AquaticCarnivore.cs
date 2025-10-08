@@ -54,7 +54,7 @@ public class AquaticCarnivore : Authoring
         [JsonProperty]
         private PathFinder.PathInfo pathFinder;
         [JsonProperty]
-        private TerrainColliderJob tCollider;
+        private TerrainCollider tCollider;
         [JsonProperty]
         private Unity.Mathematics.Random random;
         [JsonProperty]
@@ -94,6 +94,8 @@ public class AquaticCarnivore : Authoring
             get => tCollider.transform.position;
             set => tCollider.transform.position = value;
         }
+        [JsonIgnore]
+        public Quaternion Facing => tCollider.transform.rotation;
         [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
@@ -155,7 +157,7 @@ public class AquaticCarnivore : Authoring
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.genetics ??= new Genetics(this.info.entityType, ref random);
             this.vitality = new Vitality(settings.Physicality, this.genetics);
-            this.tCollider = new TerrainColliderJob(GCoord, true, ProcessFallDamage);
+            this.tCollider = new TerrainCollider(GCoord, true, ProcessFallDamage);
             pathFinder.hasPath = false;
 
             //Start by Idling   
@@ -581,7 +583,7 @@ public class AquaticCarnivore : Authoring
             public void Update(){
                 if(!entity.active) return;
                 if(gameObject == null) return;
-                TerrainColliderJob.Transform rTransform = entity.tCollider.transform;
+                TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
 
                 Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);

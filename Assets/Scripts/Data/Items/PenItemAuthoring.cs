@@ -4,6 +4,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using WorldConfig.Generation.Material;
 using MapStorage;
+using WorldConfig.Gameplay;
 
 namespace WorldConfig.Generation.Item
 {
@@ -50,19 +51,16 @@ namespace WorldConfig.Generation.Item
             this.AmountRaw = AmountRaw;
             this.durability = settings.MaxDurability;
         }
-        public void OnEnterSecondary() { }
-        public void OnLeaveSecondary() { }
-        public void OnEnterPrimary() { }
-        public void OnLeavePrimary() { }
-        public void UpdateEItem() { }
-        public void OnSelect()
-        {
+
+        public void UpdateEItem(){}
+        public void OnEnter(ItemContext cxt) {
+            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (handler != null) handler.Release();
-            handler = InteractionHandler.Create(this);
+            handler = InteractionHandler.Create(this, cxt);
         }
 
-        public void OnDeselect()
-        {
+        public void OnLeave(ItemContext cxt) {
+            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             handler.Release();
             handler = null;
         }
@@ -98,6 +96,7 @@ namespace WorldConfig.Generation.Item
     }
     class InteractionHandler
     {
+        private ItemContext cxt;
         private int[] KeyBinds;
         private Bounds SelectBounds; //Inclusive
         private GameObject Selector;
@@ -106,11 +105,12 @@ namespace WorldConfig.Generation.Item
 
         public static Catalogue<Authoring> ItemInfo => WorldConfig.Config.CURRENT.Generation.Items;
         public static Catalogue<MaterialData> MatInfo => WorldConfig.Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        public static InteractionHandler Create(PenItem item)
+        public static InteractionHandler Create(PenItem item, ItemContext cxt)
         {
             InteractionHandler h = new InteractionHandler();
             h.SelectedCorner = 0;
             h.item = item; //Watch out, this can create a circular reference
+            h.cxt = cxt;
 
             InputPoller.AddKeyBindChange(() => {
                 h.KeyBinds = new int[4];
@@ -142,8 +142,10 @@ namespace WorldConfig.Generation.Item
 
         public void SelectPoint(float _)
         {
+            if (!cxt.TryGetHolder(out PlayerStreamer.Player player))
+                return;
             if (Selector != null) {
-                Ray cRay = new Ray(PlayerHandler.data.position, PlayerHandler.camera.forward);
+                Ray cRay = new Ray(player.position, player.Forward);
                 float crnDist = GetDistClosestCorner(SelectBounds, cRay, out SelectedCorner);
                 if (crnDist > item.settings.SelectionRefreshDist) {
                     Selector.SetActive(false);
@@ -164,7 +166,9 @@ namespace WorldConfig.Generation.Item
             InputPoller.SuspendKeybindPropogation("Remove");
             InputPoller.SuspendKeybindPropogation("Place");
             if (Selector == null) return;
-            Ray cRay = new Ray(PlayerHandler.data.position, PlayerHandler.camera.forward);
+            if (!cxt.TryGetHolder(out PlayerStreamer.Player player))
+                return;
+            Ray cRay = new Ray(player.position, player.Forward);
             float3 projection = GetProjOntoRay(cRay, GetCorner(SelectBounds, SelectedCorner));
             Bounds nBounds = SetCorner(SelectBounds, ref SelectedCorner, math.round(projection));
             if (GetVolume(nBounds.size + new Vector3(1, 1, 1)) < item.settings.MaximumSelectionVolume)
@@ -229,11 +233,13 @@ namespace WorldConfig.Generation.Item
             float t = math.dot(toPoint, dir);
             return origin + t * dir;
         }
-        private static bool FindNearest(out int3 hitCoord)
+        private bool FindNearest(out int3 hitCoord)
         {
             hitCoord = int3.zero;
-            if (!PlayerInteraction.RayTestSolid(PlayerHandler.data, out float3 hitPt)) return false;
-            Ray ray = new Ray(PlayerHandler.data.position, PlayerHandler.camera.forward);
+            if (!cxt.TryGetHolder(out PlayerStreamer.Player player))
+                return false;
+            if (!PlayerInteraction.RayTestSolid(player, out float3 hitPt)) return false;
+            Ray ray = new Ray(player.position, player.Forward);
             int3 hitOrig = (int3)math.floor(hitPt);
 
             hitCoord = hitOrig;
@@ -296,14 +302,14 @@ namespace WorldConfig.Generation.Item
             ToolTag prop = PlayerInteraction.settings.DefaultTerraform.value;
             if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out object tag))
                 prop = tag as ToolTag;
-
-            if (!PlayerInteraction.HandleAddSolid(InventoryController.Primary.Info[nextSlot], hitCoord, prop.TerraformSpeed, out MapData change))
+            if (!cxt.TryGetInventory(out InventoryController.Inventory inv)) return;
+            if (!PlayerInteraction.HandleAddSolid(inv.Info[nextSlot], hitCoord, prop.TerraformSpeed, out MapData change))
                 return;
             int delta = math.abs(change.SolidDensity - orig.SolidDensity);
             item.durability -= prop.ToolDamage * delta;
             item.UpdateDisplay();
             if (item.durability > 0) return;
-            InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
+            cxt.TryRemove();
         }
 
         void RemoveSolidWithDurability(int3 hitCoord)
@@ -323,20 +329,21 @@ namespace WorldConfig.Generation.Item
             item.UpdateDisplay();
 
             if (item.durability > 0) return;
-            InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
+            cxt.TryRemove();
         }
 
-        private static bool FindNextSolidMat(out int slot)
+        private bool FindNextSolidMat(out int slot)
         {
-            int start = InventoryController.SelectedIndex;
+            int start = cxt.InvId; slot = 0;
             var settings = WorldConfig.Config.CURRENT.GamePlay.Inventory.value;
+            if (!cxt.TryGetInventory(out InventoryController.Inventory inv))
+                return false;
             for (slot = (start + 1) % settings.PrimarySlotCount;
                 slot != start;
-                slot = (slot + 1) % settings.PrimarySlotCount)
-            {
+                slot = (slot + 1) % settings.PrimarySlotCount) {
                 slot %= settings.PrimarySlotCount;
-                if (InventoryController.Primary.Info[slot] == null) continue;
-                Authoring authoring = ItemInfo.Retrieve(InventoryController.Primary.Info[slot].Index);
+                if (inv.Info[slot] == null) continue;
+                Authoring authoring = ItemInfo.Retrieve(inv.Info[slot].Index);
                 if (authoring is not PlaceableItem mSettings) continue;
                 if (!mSettings.IsSolid || !MatInfo.Contains(mSettings.MaterialName)) continue;
                 return true;

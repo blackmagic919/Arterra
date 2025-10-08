@@ -61,7 +61,7 @@ public class RegistryReferenceDrawer : PropertyDrawer {
         if (GUI.Button(labelRect, string.IsNullOrEmpty(currentValue) ? "[Select]" : currentValue, EditorStyles.popup)) {
             SearchablePopup popup = new SearchablePopup(
                 options,
-                currentIndex,
+                currentIndex + 1,
                 (i, val) => {
                     SetReferenceName(property, val);
                     property.serializedObject.ApplyModifiedProperties();
