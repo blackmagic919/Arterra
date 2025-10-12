@@ -293,7 +293,10 @@ public static class InventoryController {
             IItem[] nInfo = new IItem[SlotCount];
             LLNode[] nEntryLL = new LLNode[SlotCount];
             for (int i = SlotCount - 1; i < capacity; i++) {
-                OnRemoveElement?.Invoke(new ItemContext(this, i));
+                Info[i].OnLeave(
+                    OnRemoveElement?
+                    .Invoke(new ItemContext(this, i))
+                );
                 OnRelease?.Invoke(Info[i]);
                 RemoveEntry((int)i);
             }
@@ -466,7 +469,10 @@ public static class InventoryController {
             }
             LLRemove((uint)SlotIndex);
             LLAdd((uint)SlotIndex, tail);
-            OnRemoveElement?.Invoke(new ItemContext(this, SlotIndex));
+            Info[SlotIndex].OnLeave(
+                OnRemoveElement?
+                .Invoke(new ItemContext(this, SlotIndex))
+            );
             ClearDisplay(SlotIndex);
             Info[SlotIndex] = null;
             tail = math.min(tail, (uint)SlotIndex);
@@ -485,7 +491,7 @@ public static class InventoryController {
             AttachDisplay(head);
             entry.AmountRaw = 0;
             DictEnqueue(head);
-            OnAddElement?.Invoke(new ItemContext(this, head));
+            Info[head].OnEnter(OnAddElement?.Invoke(new ItemContext(this, head)));
 
             return true;
         }
@@ -501,7 +507,7 @@ public static class InventoryController {
             AttachDisplay(index);
             entry.AmountRaw = 0;
             DictEnqueue(index);
-            OnAddElement?.Invoke(new ItemContext(this, index));
+            Info[index].OnEnter(OnAddElement?.Invoke(new ItemContext(this, index)));
 
             return true;
         }

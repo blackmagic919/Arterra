@@ -57,6 +57,12 @@ float SampleDensity(int3 coord, uint state) {
     return SampleStateInfo(mapData).density[state];
 }
 
+static const int3x3 VertexDir[3] = {
+    int3x3(0, 0, 1, 1, 0, 0, 0, 1, 0), //+x
+    int3x3(1, 0, 0, 0, 0, 1, 0, 1, 0), //+y
+    int3x3(1, 0, 0, 0, 1, 0, 0, 0, 1) //+y
+};
+
 float3 CalculateNormal(int3 cCoord, uint state) {
 	int3 offsetX = int3(1, 0, 0);
 	int3 offsetY = int3(0, 1, 0);
@@ -70,9 +76,13 @@ float3 CalculateNormal(int3 cCoord, uint state) {
 }
 
 
-float3 GetVertexNormal(int3 p1Coord, int3 p2Coord, float interp, uint state){
+float3 GetVertexNormal(int3 p1Coord, int dir, float interp, uint state){
+    float3 dir3 = mul(VertexDir[dir], int3(0, 0, 1));
+    int3 p2Coord = p1Coord + dir3;
     float3 p1Norm = CalculateNormal(p1Coord, state);
     float3 p2Norm = CalculateNormal(p2Coord, state);
 
-    return p1Norm + interp*(p2Norm - p1Norm);
+    float3 Norm = p1Norm + interp*(p2Norm - p1Norm);
+    Norm = max(Norm, dir3 * 0.1f);
+    return Norm;
 }

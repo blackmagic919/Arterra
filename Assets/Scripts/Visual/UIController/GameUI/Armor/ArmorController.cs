@@ -69,7 +69,7 @@ public class ArmorController : PanelNavbarManager.INavPanel {
             EntityEvents.EventType.OnDamaged,
             playerArmor.OnDamaged
         );
-        
+
         cxt.cur.Events.AddEvent<(PlayerStreamer.Player, PlayerStreamer.Player)>(
             EntityEvents.EventType.OnRespawn,
             RebindPlayer
@@ -229,6 +229,7 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         if (SelectedIndex == -1) return;
         InventoryController.InventorySlotDisplay disp = InventoryController.CursorDisplay;
         IItem cursor = InventoryController.Cursor;
+        cursor.ClearDisplay(disp.Object.transform);
         InventoryController.Cursor = null;
         disp.Object.SetActive(false);
 

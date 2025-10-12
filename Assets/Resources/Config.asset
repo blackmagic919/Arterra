@@ -86,6 +86,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 7b4e2faa5dd7946afa734226a4f31e69, type: 2}
         - {fileID: 11400000, guid: 42853399eb5784d1e8b46bd19c8a60ec, type: 2}
         - {fileID: 11400000, guid: 94936744a56fded4f881fc58918b5b99, type: 2}
+        - {fileID: 11400000, guid: 6cc707657a39949c1839a41ca8d35a32, type: 2}
         - {fileID: 11400000, guid: a4c2c1088d7014561a762498ec205ec9, type: 2}
         - {fileID: 11400000, guid: 799801124b62142afb39063d7fdef2d0, type: 2}
         - {fileID: 11400000, guid: d6b9381607c524d0e8e9440fc45d6e5b, type: 2}
@@ -111,9 +112,10 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 02fabfde62aaa41f29f7bf79160ea3fc, type: 2}
         - {fileID: 11400000, guid: 98222d75ff0ef411d877d033b7fa95c6, type: 2}
         - {fileID: 11400000, guid: 9fb5b167f9dc94450b7f339704eae542, type: 2}
-        - {fileID: 11400000, guid: d0dc5bc754925403cbcff5f0f2a6917a, type: 2}
-        - {fileID: 11400000, guid: 5f1c775c8062c4822ad748ebf93e6ec6, type: 2}
         - {fileID: 11400000, guid: 49c1b340b96b54a3d9db8609da15ea67, type: 2}
+        - {fileID: 11400000, guid: 5f1c775c8062c4822ad748ebf93e6ec6, type: 2}
+        - {fileID: 11400000, guid: d0dc5bc754925403cbcff5f0f2a6917a, type: 2}
+        - {fileID: 11400000, guid: 39631be9667ff48509a41321ee1c5ace, type: 2}
         - {fileID: 11400000, guid: 8af60393695e748478c78bcb4c27aa54, type: 2}
         - {fileID: 11400000, guid: f04298b580570461997a737161f25f08, type: 2}
         - {fileID: 11400000, guid: 5ea9df1e485a742b39afbef7c6c2f921, type: 2}
@@ -172,6 +174,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 22c43a811976b4dd4843b4cf9b006ebc, type: 2}
         - {fileID: 11400000, guid: 2994eef646ac942fe908e0298c28d370, type: 2}
         - {fileID: 11400000, guid: 571d39d0da01c4a27bb5d476bed98b6b, type: 2}
+        - {fileID: 11400000, guid: 5c979e4e94a0b480ab87cdab89266c1d, type: 2}
         - {fileID: 11400000, guid: d49a13364ad454ed991c2b7515482caa, type: 2}
         - {fileID: 11400000, guid: 45cf4233e977d45c5a594feceebc026f, type: 2}
         - {fileID: 11400000, guid: fad0045fac0b5411eaed4261a728b70a, type: 2}
@@ -218,6 +221,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 5da1873ed991744f1a071d9c5a834943, type: 2}
         - {fileID: 11400000, guid: 1cd4a365b425d464e9525c6224b27ec1, type: 2}
         - {fileID: 11400000, guid: 560cf86965f224d7199e038e5a30beaa, type: 2}
+        - {fileID: 11400000, guid: 9f2aa36b8f17e4160b2aaf0449f7e2bb, type: 2}
         - {fileID: 11400000, guid: d06b2b0ad3d794abba77b8b97103f80f, type: 2}
         - {fileID: 11400000, guid: 315f78ddccde946d1850e0765035b8c2, type: 2}
         - {fileID: 11400000, guid: 0bb667c8999684e82837aa87ee1decb3, type: 2}
@@ -299,7 +303,7 @@ MonoBehaviour:
             value:
               AttackDamage: 2
               AttackFrequency: 0.25
-              KnockBackStrength: 20
+              KnockBackStrength: 10
               InvincTime: 0.25
               HoldBreathTime: 15
               MaxHealth: 20

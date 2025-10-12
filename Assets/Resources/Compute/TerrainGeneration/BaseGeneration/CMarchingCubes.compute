@@ -109,7 +109,7 @@ void AddVertices(int3 coord, int caseIndex, uint state, in MarchCube cube){
         float interpFactor = InvLerp(p1Val, p2Val);
 
         newVert.tri = (p1 + interpFactor * (p2 - p1));
-        newVert.norm = GetVertexNormal(p1, p2, interpFactor, state);
+        newVert.norm = GetVertexNormal(p1, pInd.z, interpFactor, state);
         if((p1Val > p2Val) ^ (state != 0)) newVert.material = uint2(cube.corners[pInd.x].material, cube.corners[pInd.y].material);
         else newVert.material = uint2(cube.corners[pInd.y].material, cube.corners[pInd.x].material);
 

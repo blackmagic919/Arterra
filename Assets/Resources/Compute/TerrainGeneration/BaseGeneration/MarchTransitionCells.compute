@@ -105,7 +105,7 @@ void AddVertices(int2 coordUV, int caseIndex, uint state, in GridFace face, in F
         p2Pos += (info.transStart - cornerP2.z * info.transWidth) * ChunkPlane[Align(info.data)];
         newVert.tri = p1Pos + interpFactor * (p2Pos - p1Pos);
 
-        newVert.norm = GetVertexNormal(p1, p2, interpFactor, state);
+        newVert.norm = GetVertexNormal(p1, DictPlane[Align(info.data)][pInd.z], interpFactor, state);
         if((p1Val > p2Val) ^ (state != 0)) newVert.material = uint2(face.corners[GridCorner[pInd.x]].material, face.corners[GridCorner[pInd.y]].material);
         else newVert.material = uint2(face.corners[GridCorner[pInd.y]].material, face.corners[GridCorner[pInd.x]].material);
 
