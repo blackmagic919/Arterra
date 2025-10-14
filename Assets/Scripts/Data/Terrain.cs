@@ -59,11 +59,6 @@ public class Terrain : ScriptableObject
     /// larger chunks can contain a larger amount of structures, the process becomes exponentially more expensive. </remarks>
     public int MaxStructureDepth; // >= 0 obviously
 
-    /// <summary> The maximum depth within the terrain octree of chunks that will be attempted to be geoshaded. </summary>
-    /// <remarks> There is a large fixed cost with rendering geoshaded geometry which makes it not feasible to render it for all chunks. 
-    /// Moreover, these aesthetic effects become less noticable farther away. </remarks>
-    public int MaxGeoShaderDepth;
-
     /// <summary> The final scaling factor of the terrain; the scale between the grid space and the world space. </summary>
     [UISetting(Alias = "Terrain Scale")]
     public float lerpScale = 1f;

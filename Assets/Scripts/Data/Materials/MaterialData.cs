@@ -451,7 +451,7 @@ namespace WorldConfig.Generation.Material
             if (hasGeoShader) {
                 RegistryReferenceDrawer.SetupRegistries();
                 RegistryReferenceDrawer batchRefDrawer = new RegistryReferenceDrawer { BitMask = 0x7FFF, BitShift = 16 };
-                Catalogue<GeoShader> GeoShaderRegistry = Config.TEMPLATE.Quality.GeoShaders;
+                Catalogue<GeoShader> GeoShaderRegistry = Config.TEMPLATE.Quality.GeoShaders.value.Categories;
 
                 batchRefDrawer.DrawRegistryDropdown(rect, dataProp, new GUIContent("Batch#"), GeoShaderRegistry);
                 rect.y += EditorGUIUtility.singleLineHeight;

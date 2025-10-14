@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a233328e4022d46d9bd6e4587745039b, type: 3}
+  m_Name: GeoShaderSettings
+  m_EditorClassIdentifier: 
+  Categories:
+    Category:
+      value: {fileID: 11400000, guid: 00c37db2acf2c48c79afca0ec338f8e4, type: 2}
+    Reg: []
+  MaxGeoShaderDepth: 0
+  levels:
+    value:
+    - Level: 0
+      Distance: 24
+      IncreaseSize: 0
+    - Level: 1
+      Distance: 32
+      IncreaseSize: 0
+    - Level: 2
+      Distance: 64
+      IncreaseSize: 1
+    - Level: 3
+      Distance: 128
+      IncreaseSize: 1

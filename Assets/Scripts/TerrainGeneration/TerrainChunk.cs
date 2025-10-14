@@ -19,7 +19,7 @@ namespace TerrainGeneration{
     /// manage all information pertaining to that specific region of space. When a different terrain chunk
     /// is created in the same region, the old chunk is destroyed and the new chunk is created in its place.
     /// </summary>
-    public class TerrainChunk {
+    public class TerrainChunk : IOctreeChunk{
         /// <summary> The index of the chunk's octree ndoe in the <see cref="OctreeTerrain.octree"/> </summary>
         public uint index;
         /// <summary> Whether or not the chunk is active. A chunk can exist and not be active if it's a zombie </summary>
@@ -196,7 +196,7 @@ namespace TerrainGeneration{
             //This is ok because origin is guaranteed to be a multiple of mapChunkSize by the Octree
             CCoord = origin / rSettings.mapChunkSize;
             depth = math.floorlog2(size / rSettings.mapChunkSize);
-            neighborDepth = OctreeTerrain.GetNeighborDepths(index);
+            neighborDepth = octree.GetNeighborDepths(index);
 
             meshObject = new GameObject("Terrain Chunk");
             meshObject.transform.localScale = Vector3.one * rSettings.lerpScale * (1 << depth);
@@ -232,10 +232,10 @@ namespace TerrainGeneration{
         public virtual void VerifyChunk() {
             if (!active) return;
             //These two functions are self-verifying, so they will only execute if necessary
-            OctreeTerrain.SubdivideChunk(index);
-            OctreeTerrain.MergeSiblings(index);
+            octree.SubdivideChunk(index);
+            octree.MergeSiblings(index);
 
-            uint nNeighbor = OctreeTerrain.GetNeighborDepths(index);
+            uint nNeighbor = octree.GetNeighborDepths(index);
             if (nNeighbor == neighborDepth) return;
             neighborDepth = nNeighbor;
             status.UpdateMesh = Status.Initiate(status.UpdateMesh);
@@ -248,8 +248,7 @@ namespace TerrainGeneration{
         public void Kill() {
             if (!active) return;
             active = false;
-
-            ReapChunk(index);
+            octree.ReapChunk(index);
         }
 
         /// <summary>
@@ -346,7 +345,7 @@ namespace TerrainGeneration{
         protected virtual void ReadMapData(Action callback = null) { }
         /// <summary> The generation task which creates the mesh information for the chunk. This is the final step in generating the chunk's information. 
         /// Optionally chunks will place structures and generate geoshaded geometry if they have cached structure information from <see cref="ReadMapData"/> 
-        /// and their depth is less than or equal to <see cref="WorldConfig.Quality.Terrain.MaxGeoShaderDepth"/> respectively.
+        /// and their depth is less than or equal to <see cref="WorldConfig.Quality.GeoShaderSettings.MaxGeoShaderDepth"/> respectively.
         /// </summary> <param name="UpdateCallback">The callback function that's returned the mesh constructor once the mesh has been readback</param>
         protected virtual void CreateMesh(Action<ReadbackTask<TVert>.SharedMeshInfo> UpdateCallback = null) { }
         /// <exclude />
@@ -460,7 +459,7 @@ namespace TerrainGeneration{
             /// <param name="UpdateCallback"><see cref="TerrainChunk.CreateMesh(Action{ReadbackTask{TVert}.SharedMeshInfo})"/></param>
             protected override void CreateMesh(Action<ReadbackTask<TVert>.SharedMeshInfo> UpdateCallback = null) {
                 Generator.MeshCreator.GenerateRealMesh(CCoord, IsoLevel, mapChunkSize, neighborDepth);
-                ClearFilter(); ReapChunk(index);
+                ClearFilter(); octree.ReapChunk(index);
 
                 Map.Generator.GeoGenOffsets bufferOffsets = Map.Generator.bufferOffsets;
                 Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets.vertexCounter);
@@ -468,7 +467,7 @@ namespace TerrainGeneration{
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, (int)ReadbackMaterial.water);
                 Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
 
-                if (depth <= rSettings.MaxGeoShaderDepth)
+                if (depth <= Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
                     Generator.GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
                 else
                     Generator.GeoShaders.ReleaseGeometry();
@@ -618,7 +617,7 @@ namespace TerrainGeneration{
                     mapHandle = -1;
                 }
 
-                ReapChunk(index);
+                octree.ReapChunk(index);
                 ClearFilter();
 
                 Map.Generator.GeoGenOffsets bufferOffsets = Map.Generator.bufferOffsets;
@@ -627,7 +626,7 @@ namespace TerrainGeneration{
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, (int)ReadbackMaterial.water);
                 Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
 
-                if (depth <= rSettings.MaxGeoShaderDepth)
+                if (depth <= Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
                     Generator.GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
                 else
                     Generator.GeoShaders.ReleaseGeometry();

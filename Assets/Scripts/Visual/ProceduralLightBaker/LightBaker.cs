@@ -55,7 +55,7 @@ public static class LightBaker
     public static void Initialize()
     {
         WorldConfig.Quality.Terrain terrain = Config.CURRENT.Quality.Terrain;
-        int NumChunks = OctreeTerrain.Octree.GetMaxNodes(terrain.MaxDepth, terrain.Balance, terrain.MinChunkRadius);
+        int NumChunks = OctreeTerrain.BalancedOctree.GetMaxNodes(terrain.MaxDepth, terrain.Balance, terrain.MinChunkRadius);
         int SubChunkCount = Settings.SubChunkDivisions * Settings.SubChunkDivisions * Settings.SubChunkDivisions;
         int SubChunkSize = terrain.mapChunkSize / Settings.SubChunkDivisions;
         SubChunkCount *= NumChunks;

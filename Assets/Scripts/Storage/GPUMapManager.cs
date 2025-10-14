@@ -39,7 +39,7 @@ namespace MapStorage{
             simplifyMap = Resources.Load<ComputeShader>("Compute/MapData/DensitySimplificator");
 
             lerpScale = rSettings.lerpScale;
-            int BaseMapLength = OctreeTerrain.Octree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
+            int BaseMapLength = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
             int MapDiameter = BaseMapLength + rSettings.MapExtendDist * 2;
 
             mapChunkSize = rSettings.mapChunkSize;
@@ -62,8 +62,8 @@ namespace MapStorage{
             //This isn't an mathematical upper limit because we're not accounting for light map size and temporary 
             //duplication but in practice, GetDepthOfDistance and GetMaxNodes always overestimate.
             int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
-            int depth = OctreeTerrain.Octree.GetDepthOfDistance(numChunksRadius, rSettings.Balance, (uint)rSettings.MinChunkRadius);
-            int memSize = (numPoints + LightBaker.GetLightMapLength()) * OctreeTerrain.Octree.GetMaxNodes(depth, rSettings.Balance, rSettings.MinChunkRadius);
+            int depth = OctreeTerrain.BalancedOctree.GetDepthOfDistance(numChunksRadius, rSettings.Balance, (uint)rSettings.MinChunkRadius);
+            int memSize = (numPoints + LightBaker.GetLightMapLength()) * OctreeTerrain.BalancedOctree.GetMaxNodes(depth, rSettings.Balance, rSettings.MinChunkRadius);
             memorySpace = new MemoryBufferHandler(new Memory {
                 StorageSize = memSize
             });

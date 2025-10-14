@@ -11,6 +11,7 @@ using Unity.Mathematics;
 public class ShaderGenerator
 {
     private List<GeoShader> shaders;
+    private static GeoShaderSettings rSettings => Config.CURRENT.Quality.GeoShaders.value;
     public static ComputeShader matSizeCounter;
     public static ComputeShader filterGeometry;
     public static ComputeShader sizePrefixSum;
@@ -91,8 +92,8 @@ public class ShaderGenerator
         geoTranscriber.SetBuffer(0, "ShaderPrefixes", UtilityBuffers.GenerationBuffer);
         geoTranscriber.SetInt("bSTART_oGeo", shadGeoStart);
 
-        for (int i = 0; i < Config.CURRENT.Quality.GeoShaders.Reg.Count; i++){
-            GeoShader shader = Config.CURRENT.Quality.GeoShaders.Retrieve(i);
+        for (int i = 0; i < rSettings.Categories.Reg.Count; i++){
+            GeoShader shader = rSettings.Categories.Retrieve(i);
             shader.PresetData(fBaseGeoStart, matSizeCStart + i, baseGeoCounter, shadGeoStart, i);
             Material mat = shader.GetMaterial();
             LightBaker.SetupLightSampler(mat);
@@ -100,14 +101,14 @@ public class ShaderGenerator
     }
 
     public static void Release(){
-        foreach (GeoShader shader in Config.CURRENT.Quality.GeoShaders.Reg){
+        foreach (GeoShader shader in rSettings.Categories.Reg){
             shader.Release();
         }
     }
 
     public ShaderGenerator(Transform transform, Bounds boundsOS)
     {
-        this.shaders = Config.CURRENT.Quality.GeoShaders.Reg;
+        this.shaders = rSettings.Categories.Reg;
         this.transform = transform;
         this.shaderBounds = CustomUtility.TransformBounds(transform, boundsOS);
         this.shaderUpdateTasks = new ShaderUpdateTask[this.shaders.Count];

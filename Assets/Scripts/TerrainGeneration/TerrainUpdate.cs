@@ -66,7 +66,7 @@ namespace TerrainGeneration{
             settings = Config.CURRENT.System.TerrainUpdation.value;
             WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
             int numPointsChunk = rSettings.mapChunkSize;
-            int numChunksAxis = OctreeTerrain.Octree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
+            int numChunksAxis = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
             numPointsAxis = numChunksAxis * numPointsChunk;
             int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 

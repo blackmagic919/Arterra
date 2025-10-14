@@ -467,7 +467,7 @@ public static class Chunk
             entityPath = World.WORLD_SELECTION.First.Value.Path + "/EntityData/";
 
             WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
-            numChunksAxis = OctreeTerrain.Octree.GetAxisChunksDepth(rSettings.MaxDepth, rSettings.Balance, (uint)rSettings.MinChunkRadius);
+            numChunksAxis = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(rSettings.MaxDepth, rSettings.Balance, (uint)rSettings.MinChunkRadius);
             numChunksAxis = math.max((numChunksAxis << rSettings.MaxDepth) >> rSettings.FileRegionDepth, 1);
             regionChunkSize = 1 << rSettings.FileRegionDepth;
 

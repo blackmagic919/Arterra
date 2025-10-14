@@ -67,8 +67,8 @@ namespace MapStorage {
 
             int numPointsAxis = mapChunkSize;
             numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
-
-            numChunksAxis = OctreeTerrain.Octree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
+            numChunksAxis = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
+            
             _ChunkManagers = new TerrainChunk[numChunks];
             MapMetaData = new ConcurrentDictionary<uint, object>[numChunks];
             SectionedMemory = new NativeArray<MapData>(numChunks * numPoints, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);

@@ -28,12 +28,7 @@ MonoBehaviour:
       Terrain:
         value: {fileID: 11400000, guid: 42017e3b5b1824df087b77161e2e61f3, type: 2}
       GeoShaders:
-        Category:
-          value: {fileID: 11400000, guid: 00c37db2acf2c48c79afca0ec338f8e4, type: 2}
-        Reg:
-        - {fileID: 11400000, guid: 416aff69279c14e2ebb1f76e050273ce, type: 2}
-        - {fileID: 11400000, guid: e11232fbec10841a4a488fcc70cc241f, type: 2}
-        - {fileID: 11400000, guid: aad37b9e5794849e98fbbc9c685c00d1, type: 2}
+        value: {fileID: 11400000, guid: 86d1798c7c090406e9596962eda43895, type: 2}
       Memory:
         value: {fileID: 11400000, guid: 0db2044d581d94e4f9b4bea303ee7f68, type: 2}
   _Generation:

@@ -137,7 +137,7 @@ public static class GenerationPreset
             public void Initialize() {
                 static void SerializeGeoShader(MaterialData mat, ref MaterialData.TerrainData terr) {
                     if (!terr.GeoShaderIndex.HasGeoShader) return;
-                    Catalogue<WorldConfig.Quality.GeoShader> shaderInfo = Config.CURRENT.Quality.GeoShaders;
+                    Catalogue<GeoShader> shaderInfo = Config.CURRENT.Quality.GeoShaders.value.Categories;
                     ref MaterialData.TerrainData.GeoShaderInfo info = ref terr.GeoShaderIndex;
                     string Key = mat.RetrieveKey((int)info.MajorIndex);
                     info.HasGeoShader = false; //If we fail any checks here on out, ignore this entry

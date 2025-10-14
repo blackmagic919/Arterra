@@ -323,9 +323,9 @@ public interface IRegister {
         settings.Generation.Materials.value.MaterialDictionary.Construct();
         settings.Generation.Items.Construct();
         settings.System.Crafting.value.Recipes.Construct();
-        settings.Quality.GeoShaders.Construct();
-
-        foreach (GeoShader shader in settings.Quality.GeoShaders.Reg) {
+        settings.Quality.GeoShaders.value.Categories.Construct();
+        
+        foreach (GeoShader shader in settings.Quality.GeoShaders.value.Categories.Reg) {
             IRegister reg = shader.GetRegistry();
             if (reg == null) continue;
             reg.Construct(); shader.SetRegistry(reg);
@@ -345,10 +345,10 @@ public interface IRegister {
         Association.Add("Materials", settings.Generation.Materials.value.MaterialDictionary);
         Association.Add("Items", settings.Generation.Items);
         Association.Add("CraftingRecipes", settings.System.Crafting.value.Recipes);
-        Association.Add("GeoShaders", settings.Quality.GeoShaders);
+        Association.Add("GeoShaders", settings.Quality.GeoShaders.value.Categories);
         Association.Add("ArmorVariants", settings.System.Armor.value.Variants);
 
-        foreach (GeoShader shader in settings.Quality.GeoShaders.Reg) {
+        foreach (GeoShader shader in settings.Quality.GeoShaders.value.Categories.Reg) {
             Association.Add("GeoShaders::" + shader.Name, shader.GetRegistry());
         }
     }

@@ -92,13 +92,8 @@ namespace WorldConfig
             public Option<Quality.LightBaker> Lighting;
             /// <summary> See here for more information: <see cref="Quality.Terrain"/>  </summary>
             public Option<Quality.Terrain> Terrain;
-            /// <summary>
-            /// Contains all geoshader variants. Each entry should contain a unique geometry generation pattern. The number
-            /// of entries is equal to the number of batches sorted and processed within <seealso cref="ShaderGenerator"/>. 
-            /// Hence, it is recommended to not define a new variant if the generation pattern can be reused from another variant. 
-            /// <seealso href="https://blackmagic919.github.io/AboutMe/2024/11/03/GeoShaders/">More Info</seealso>
-            /// </summary>
-            public Catalogue<Quality.GeoShader> GeoShaders;
+            /// <summary> See here for more information: <see cref="Quality.GeoShaderSettings"/> </summary>
+            public Option<Quality.GeoShaderSettings> GeoShaders;
             /// <summary> See here for more information: <see cref="Quality.Memory"/>  </summary>
             public Option<Quality.BalancedMemory> Memory;
         }
