@@ -19,10 +19,11 @@ namespace WorldConfig.Quality {
         /// <remarks> There is a large fixed cost with rendering geoshaded geometry which makes it not feasible to render it for all chunks. 
         /// Moreover, these aesthetic effects become less noticable farther away. </remarks>
         public int MaxGeoShaderDepth;
-        /// <summary>
-        /// Settings controlling different levels of details of geoshaders within a chunk
-        /// (subchunk level of detail). See <see cref="DetailLevel"/> for more information
-        /// </summary>
+        /// <summary> The minimum distance the player must move to update 
+        /// the persisted geoshader subchunks in the world. </summary>
+        public float SubchunkUpdateThresh;
+        /// <summary> Settings controlling different levels of details of geoshaders within a chunk
+        /// (subchunk level of detail). See <see cref="DetailLevel"/> for more information </summary>
         public Option<List<DetailLevel>> levels;
         /// <summary> A single subchunk detail level within a chunk. 
         /// A detail level indicates the amount of geometry geoshaders

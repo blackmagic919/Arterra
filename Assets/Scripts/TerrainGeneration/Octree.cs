@@ -7,6 +7,8 @@ namespace TerrainGeneration {
     /// <summary>A generic interface all chunks managed by the <see cref="Octree{T}"/>
     /// system must fulfill. </summary>
     public interface IOctreeChunk {
+        /// <summary> Whether or not the chunk is active and recieving updates</summary>
+        public bool Active { get; }
         /// <summary>An absolute command to destroy the chunk and 
         /// release all associated resources. </summary>
         public void Destroy();
@@ -27,9 +29,9 @@ namespace TerrainGeneration {
         /// <exclude />
         protected ConstrainedLL<TChunk> chunks;
         /// <exclude />
-        protected int MaxDepth;
+        public int MaxDepth;
         /// <exclude />
-        protected int MinChunkSize;
+        public int MinChunkSize;
 
         /// <summary>
         /// Creates an octree with the specified settings--depth, balance factor, and chunk radius.
@@ -69,13 +71,25 @@ namespace TerrainGeneration {
         /// <param name="numRtNodes">The number of root nodes
         /// to create. Multiple root nodes can enable seemless
         /// transitions around a target. </param>
-        protected virtual void Initialize(int numRtNodes = 1) {
+        /// <param name="center">The center of the octree in grid space</param>
+        protected virtual void Initialize(int numRtNodes = 1, int3 center = default) {
             int maxChunkSize = MinChunkSize * (1 << MaxDepth);
             Queue<uint> tree = new Queue<uint>();
-            Node root = new Node { size = (uint)maxChunkSize * 2, origin = -maxChunkSize, child = 0 };
+            Node root = new Node {
+                size = (uint)(maxChunkSize * numRtNodes),
+                origin = center - (maxChunkSize * numRtNodes/2),
+                child = 0
+            };
             root.ClearChunk();
 
             AddOctreeChildren(ref root, 0, child => BuildTree(child), numRtNodes);
+        }
+        
+        public virtual void Release(){
+            ForEachChunk(chunk => chunk.Destroy());
+            Array.Clear(nodes, 0, nodes.Length);
+            nodes[0].child = 1;
+            chunks.Release();
         }
 
         /// <summary> Executes a function for every real 
@@ -102,7 +116,7 @@ namespace TerrainGeneration {
         }
 
         private void AddOctreeChildren(ref Node parent, uint parentIndex, Action<uint> OnAddChild, int cDim = 2) {
-            uint childSize = parent.size >> 1; uint sibling = 0;
+            uint childSize = parent.size / (uint)cDim; uint sibling = 0;
             int numChildren = cDim * cDim * cDim;
             for (int i = 0; i < numChildren; i++) {
                 sibling = AddNode(new Node {

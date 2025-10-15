@@ -98,6 +98,7 @@ namespace TerrainGeneration{
         /// </summary>
         public class Manager : IUpdateSubscriber {
             private bool active = false;
+            /// <exclude />
             public bool Active {
                 get => active;
                 set => active = value;
@@ -138,7 +139,7 @@ namespace TerrainGeneration{
             /// <summary>
             /// Updates the map entries in the update queue. 
             /// The map entries are updated in the order they were added.
-            /// </summary> <param name="mono"><see cref="UpdateTask.Update"/> </param>
+            /// </summary> <param name="mono"><see cref="IUpdateSubscriber.Update"/> </param>
             public void Update(MonoBehaviour mono) {
                 if (!PlayerHandler.active) return;
                 UpdateTick = (UpdateTick + 1) % settings.UpdateTickDelay;

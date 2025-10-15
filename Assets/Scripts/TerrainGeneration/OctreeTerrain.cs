@@ -107,11 +107,11 @@ namespace TerrainGeneration{
             /// The chunk that the task is associated with. If the chunk is destroyed,
             /// deactivated, or null, the task will be ignored and discarded when answering.
             /// </summary>
-            public TerrainChunk chunk;
+            public IOctreeChunk chunk;
             /// <summary>
             /// Constructs a new GenTask with the given action, id, and chunk.
             /// </summary>
-            public GenTask(Action task, int id, TerrainChunk chunk) {
+            public GenTask(Action task, int id, IOctreeChunk chunk) {
                 this.task = task;
                 this.id = id;
                 this.chunk = chunk;
@@ -199,7 +199,7 @@ namespace TerrainGeneration{
             while (FrameGPULoad < s.maxFrameLoad) {
                 if (!RequestQueue.TryDequeue(out GenTask gen))
                     return;
-                if (gen.chunk != null && !gen.chunk.active)
+                if (gen.chunk != null && !gen.chunk.Active)
                     continue;
                 Profiler.BeginSample("Task Number: " + gen.id);
                 gen.task();

@@ -24,6 +24,8 @@ namespace TerrainGeneration{
         public uint index;
         /// <summary> Whether or not the chunk is active. A chunk can exist and not be active if it's a zombie </summary>
         public bool active;
+        /// <exclude />
+        public bool Active => active;
         /// <summary> The origin of the chunk in grid space. The origin is the bottom left corner of the chunk</summary>
         public int3 origin;
         /// <summary> The chunk's coordinate in chunk space of the smallest terrain chunk(real chunks). This is the coordinate space 
@@ -56,7 +58,7 @@ namespace TerrainGeneration{
         /// <exclude />
         protected int mapSkipInc => 1 << depth;
         /// <summary> The status of the chunk which describes the type of generation that needs to be done. </summary>
-        protected Status status;
+        public Status status;
         /// <summary> The depth of the chunk's neighbors. This is used to blend the chunk's mesh with its neighbors. </summary>
         protected uint neighborDepth;
 
@@ -243,7 +245,7 @@ namespace TerrainGeneration{
 
         /// <summary>
         /// If the chunk is <see cref="active"/>, it will be deactivated, thus turning it into a zombie.
-        /// Simultaneously, all dependencies(zombies) waiting on the chunk will be reaped, <seealso cref="OctreeTerrain.ReapChunk(uint)"/>
+        /// Simultaneously, all dependencies(zombies) waiting on the chunk will be reaped, <seealso cref="Octree{T}.ReapChunk(uint)"/>
         /// </summary>
         public void Kill() {
             if (!active) return;
