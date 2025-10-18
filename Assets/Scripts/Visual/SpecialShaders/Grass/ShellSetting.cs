@@ -5,8 +5,7 @@ using UnityEngine;
 using WorldConfig;
 
 [CreateAssetMenu(menuName = "ShaderData/ShellTexture/Setting")]
-public class ShellSetting : Category<ShellSetting>
-{
+public class ShellSetting : Category<ShellSetting> {
     public static int DataSize => sizeof(float) * 13 + sizeof(int) * 2;
     /// <summary>The registry names of all entries referencing registries within <see cref="info"/>. When an element such as
     /// a material, structure, or entry needs to reference an entry in an external registry, they can indicate the index
@@ -26,12 +25,17 @@ public class ShellSetting : Category<ShellSetting>
         public float WindFrequency;
         public float WindStrength;
     }
-    
-    public Data GetInfo()
-    {
+
+    public Data GetInfo() {
         Data serial = info;
         Catalogue<TextureContainer> texReg = Config.CURRENT.Generation.Textures;
         serial.TextureIndex = texReg.RetrieveIndex(Names.value[serial.TextureIndex]);
         return serial;
     }
+}
+
+[Serializable]
+public struct ShellLevel {
+    public int skipFactor;
+    public static int DataSize => sizeof(int);
 }

@@ -1,5 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CSMain
+#pragma kernel GetPrefixSize
+#pragma kernel CountSubChunkSizes
 
 StructuredBuffer<uint> prefixSizes;
 uint bCOUNT_oGeo;
@@ -8,7 +9,30 @@ RWStructuredBuffer<uint> counter;
 uint bCOUNT_write;
 
 [numthreads(1,1,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void GetPrefixSize (uint3 id : SV_DispatchThreadID)
 {
     counter[bCOUNT_write] = (prefixSizes[bCOUNT_oGeo+1] - prefixSizes[bCOUNT_oGeo]);
+}
+
+
+struct DrawTriangle{
+    uint3 vertices[3];
+    uint BaseSCInd;
+};
+
+RWStructuredBuffer<uint> SubChunkInfo;
+StructuredBuffer<DrawTriangle> DrawTriangles;
+uint bSTART_oGeo;
+uint bSTART_sChunkI;
+
+[numthreads(128, 1, 1)]
+void CountSubChunkSizes (uint3 id : SV_DispatchThreadID)
+{
+    uint start = prefixSizes[bCOUNT_oGeo];
+    uint length = prefixSizes[bCOUNT_oGeo+1] - start;
+    if(id.x >= length)
+        return;
+    
+    int SubChunkInd = DrawTriangles[bSTART_oGeo + start + id.x].BaseSCInd;
+    InterlockedAdd(SubChunkInfo[bSTART_sChunkI + SubChunkInd], 1);
 }

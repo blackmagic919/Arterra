@@ -103,6 +103,21 @@ namespace TerrainGeneration {
             } while (curChunk != chunks.Head());
         }
 
+        /// <summary> Retrieves all real leaf chunks
+        /// currently held by the octree </summary>
+        /// <returns>An array containing all leaf chunks</returns>
+        public TChunk[] GetAllChunks() {
+            int count = 0;
+            ForEachChunk(_ => count++);
+            TChunk[] chunks = new TChunk[count];
+            count = 0;
+
+            ForEachChunk(chunk => {
+                chunks[count] = chunk;
+                count++;
+            }); return chunks;
+        }
+
         /// <summary>Subdivides the octree node to create a fully balanced subtree. </summary>
         /// <param name="root"></param>
         protected void BuildTree(uint root) {

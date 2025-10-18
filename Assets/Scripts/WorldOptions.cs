@@ -5,8 +5,7 @@ using Newtonsoft.Json;
 using System;
 using System.Runtime.Serialization;
 
-namespace WorldConfig
-{
+namespace WorldConfig {
     /// <summary>
     /// Config is the root class anchoring a settings tree which contains
     /// all settings for the game. Any trivial constants not inherent to the functionality
@@ -15,8 +14,7 @@ namespace WorldConfig
     /// will be loaded before loading each world. 
     /// </summary>
     [CreateAssetMenu(menuName = "Generation/WorldOptions")]
-    public class Config : ScriptableObject
-    {
+    public class Config : ScriptableObject {
         private static Config _current;
         private static Config _template;
         /// <summary>
@@ -26,8 +24,7 @@ namespace WorldConfig
         /// it is likely the same instance as the <see cref="TEMPLATE"/>. It only means that the tree 
         /// sufficiently describes all settings for the world.
         /// </summary>
-        public static Config CURRENT
-        {
+        public static Config CURRENT {
             get => _current;
             set => _current = value;
         }
@@ -38,8 +35,7 @@ namespace WorldConfig
         /// nature of the tree <seealso cref="Option{T}"/>, some portions of <see cref="CURRENT"/> may be subsets of this tree, 
         /// but it should not be assumed that the two are the same.
         /// </summary>
-        public static Config TEMPLATE
-        {
+        public static Config TEMPLATE {
             get => _template;
             set => _template = value;
         }
@@ -83,8 +79,7 @@ namespace WorldConfig
         /// of their device. Quality settings cannot be changed during gameplay (once a world is loaded).
         /// </summary>
         [Serializable]
-        public struct QualitySettings
-        {
+        public struct QualitySettings {
             /// <summary> See here for more information: <see cref="Quality.Atmosphere"/>  </summary>
             [UISetting(Message = "Improve Performance By Reducing Quality")]
             public Option<Quality.Atmosphere> Atmosphere;
@@ -110,8 +105,7 @@ namespace WorldConfig
         /// to be trapped within the terrain. It is recommended to adjust these settings only before first loading a world.
         /// </remarks>
         [Serializable]
-        public struct GenerationSettings
-        {
+        public struct GenerationSettings {
             /// <summary> The registry containing settings for all noise functions used in the world's generation. 
             /// The number of noise functions available to be sample is limited to whatever is in this registry. 
             /// See <see cref="Generation.Noise"/> for more information. </summary>
@@ -149,8 +143,7 @@ namespace WorldConfig
         /// Thus, systems referencing them should be prepared for changes at any time during runtime.
         /// </summary>
         [Serializable]
-        public struct GamePlaySettings
-        {
+        public struct GamePlaySettings {
             [UIModifiable(CallbackName = "KeyBindReconstruct")]
             /// <summary> The registry of all keybinds that are used to bind player input to actions within the game.
             /// See <see cref="Gameplay.KeyBind"/> for more information. </summary>
@@ -174,8 +167,7 @@ namespace WorldConfig
         /// future for advanced users and developers to modify. 
         /// </summary>
         [Serializable]
-        public struct SystemSettings
-        {
+        public struct SystemSettings {
             /// <summary> Controls how the player can create items. See <see cref="Gameplay.Crafting"/> for more information. </summary>
             public Option<Intrinsic.Crafting> Crafting;
             /// <summary> Controls how the player's armor is displayed. See <see cref="Gameplay.Armor"/> for more information. </summary>
@@ -199,8 +191,7 @@ namespace WorldConfig
         }
 
         [OnDeserialized]
-        internal void OnDeserialized(StreamingContext context = default)
-        {
+        internal void OnDeserialized(StreamingContext context = default) {
             object defaultOptions = TEMPLATE;
             object thisRef = this;
             SegmentedUIEditor.SupplementTree(ref thisRef, ref defaultOptions);
@@ -210,8 +201,7 @@ namespace WorldConfig
         /// Creates a new instance of the <see cref="Config"/> object by instantiating
         /// the <see cref="TEMPLATE"/> and setting the seed to a random value.
         /// </summary> <returns>The newly created<see cref="Config"/> object.</returns>
-        public static Config Create()
-        {
+        public static Config Create() {
             Config newOptions = Instantiate(TEMPLATE);
             newOptions.Seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
             return newOptions;
@@ -223,8 +213,7 @@ namespace WorldConfig
     /// basic functionality necessary for modification and storage
     /// of <see cref="Option{T}"/> objects within the <see cref="Config"/> tree.
     /// </summary>
-    public interface IOption
-    {
+    public interface IOption {
         /// <summary> Returns whether the object has been modified. An option
         /// is dirty if its subtree is not the same as the template.  </summary>
         bool IsDirty { get; }
@@ -272,8 +261,7 @@ namespace WorldConfig
     /// </remarks>
     /// <typeparam name="T"> The type of the object to be stored within the option.  </typeparam>
     [Serializable]
-    public struct Option<T> : IOption
-    {
+    public struct Option<T> : IOption {
         /// <summary> The instance stored within the option wrapper. </summary>
         [SerializeField]
         public T value;
@@ -298,8 +286,7 @@ namespace WorldConfig
         //Default value is false so it's the same if we don't store it
 
         /// <summary> Whether or not the option has been modified (i.e. different from the template) </summary>
-        public bool IsDirty
-        {
+        public bool IsDirty {
             readonly get { return isDirty; }
             set { isDirty = value; }
         }
@@ -309,8 +296,7 @@ namespace WorldConfig
         /// If it is a reference type, it will be cloned if it implements <see cref="ICloneable"/>,
         /// ILists are cloned by default by creating a new instance of the list and copying the elements.
         /// </summary>
-        public void Clone()
-        {
+        public void Clone() {
             if (isDirty) return;
             isDirty = true;
 
@@ -318,8 +304,7 @@ namespace WorldConfig
                 value = (T)(object)UnityEngine.Object.Instantiate((UnityEngine.Object)(object)value);
             else if (value is ICloneable cloneable)
                 value = (T)cloneable.Clone();
-            else if (value is IList list)
-            {
+            else if (value is IList list) {
                 value = (T)Activator.CreateInstance(list.GetType(), list);
             }
         }
@@ -331,8 +316,7 @@ namespace WorldConfig
     /// <see cref="SerializeReference"/> for more information. </summary>
     /// <typeparam name="T"></typeparam>
     [Serializable]
-    public struct ReferenceOption<T> : IOption where T : class
-    {
+    public struct ReferenceOption<T> : IOption where T : class {
         /// <summary> The instance stored within the option wrapper. </summary>
         [SerializeReference]
         public T value;
@@ -357,8 +341,7 @@ namespace WorldConfig
         //Default value is false so it's the same if we don't store it
 
         /// <summary> Whether or not the option has been modified (i.e. different from the template) </summary>
-        public bool IsDirty
-        {
+        public bool IsDirty {
             readonly get { return isDirty; }
             set { isDirty = value; }
         }
@@ -368,8 +351,7 @@ namespace WorldConfig
         /// If it is a reference type, it will be cloned if it implements <see cref="ICloneable"/>,
         /// ILists are cloned by default by creating a new instance of the list and copying the elements.
         /// </summary>
-        public void Clone()
-        {
+        public void Clone() {
             if (isDirty) return;
             isDirty = true;
 
@@ -377,8 +359,7 @@ namespace WorldConfig
                 value = (T)(object)UnityEngine.Object.Instantiate((UnityEngine.Object)(object)value);
             else if (value is ICloneable cloneable)
                 value = (T)cloneable.Clone();
-            else if (value is IList list)
-            {
+            else if (value is IList list) {
                 value = (T)Activator.CreateInstance(list.GetType(), list);
             }
         }

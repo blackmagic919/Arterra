@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: BalancedMemory
   m_EditorClassIdentifier: 
   StorageSize: 187500000
-  HeapSize: 25000
-  AddressSize: 25000
+  HeapSize: 50000
+  AddressSize: 50000
   InitBlockCount: 5
   OverflowHandlerSizeReq: 0.4

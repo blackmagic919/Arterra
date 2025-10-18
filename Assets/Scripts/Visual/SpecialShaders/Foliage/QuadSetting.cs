@@ -36,3 +36,10 @@ public class QuadSetting : Category<QuadSetting>
         return serial;
     }
 }
+
+[Serializable]
+public struct QuadLevel {
+    public float cullPercentage;
+    public float sizeInflate;
+    public static int DataSize => sizeof(float) * 2;
+}

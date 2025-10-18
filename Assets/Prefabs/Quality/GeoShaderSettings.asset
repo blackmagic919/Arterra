@@ -15,15 +15,19 @@ MonoBehaviour:
   Categories:
     Category:
       value: {fileID: 11400000, guid: 00c37db2acf2c48c79afca0ec338f8e4, type: 2}
-    Reg: []
+    Reg:
+    - {fileID: 11400000, guid: 416aff69279c14e2ebb1f76e050273ce, type: 2}
+    - {fileID: 11400000, guid: e11232fbec10841a4a488fcc70cc241f, type: 2}
+    - {fileID: 11400000, guid: aad37b9e5794849e98fbbc9c685c00d1, type: 2}
   MaxGeoShaderDepth: 0
+  SubchunkUpdateThresh: 8
   levels:
     value:
     - Level: 0
-      Distance: 24
+      Distance: 16
       IncreaseSize: 0
     - Level: 1
-      Distance: 32
+      Distance: 24
       IncreaseSize: 0
     - Level: 2
       Distance: 64

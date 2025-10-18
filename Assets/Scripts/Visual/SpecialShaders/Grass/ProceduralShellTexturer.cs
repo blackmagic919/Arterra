@@ -5,16 +5,20 @@ using WorldConfig;
 using WorldConfig.Quality;
 using System.Linq;
 using Unity.Mathematics;
+using System.Collections.Generic;
+using System;
 
 [CreateAssetMenu(menuName = "ShaderData/ShellTexture/Generator")]
 public class ProceduralShellTexturer : GeoShader
 {
     public Catalogue<ShellSetting> settings = default;
+    public Option<List<ShellLevel>> detailLevels = default;
     [JsonIgnore]
     [UISetting(Ignore = true)]
     public Option<Material> material;
     [JsonIgnore] private ComputeShader shellCompute;
     [JsonIgnore] private ComputeBuffer variantTable;
+    [JsonIgnore] private ComputeBuffer detailTable;
 
     public override Material GetMaterial() => material.value;
     public override IRegister GetRegistry() => settings;
@@ -25,6 +29,9 @@ public class ProceduralShellTexturer : GeoShader
         if (settings.Reg.Count == 0) return;
         ShellSetting.Data[] data = settings.Reg.Select(e => e.GetInfo()).ToArray();
         variantTable = new ComputeBuffer(data.Length, ShellSetting.DataSize, ComputeBufferType.Structured);
+        detailTable = new ComputeBuffer(detailLevels.value.Count, ShellLevel.DataSize, ComputeBufferType.Structured);
+        int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        detailTable.SetData(detailLevels.value);
         variantTable.SetData(data);
 
         shellCompute = Resources.Load<ComputeShader>("Compute/GeoShader/Registry/GrassLayers");
@@ -33,20 +40,23 @@ public class ProceduralShellTexturer : GeoShader
         shellCompute.SetInt("bCOUNT_base", baseGeoCount);
         shellCompute.SetInt("bSTART_oGeo", geoStart);
         shellCompute.SetInt("bCOUNT_oGeo", geoCounter);
+        shellCompute.SetInt("numPointsPerAxis", mapChunkSize);
         shellCompute.SetInt("geoInd", geoInd);
-
+        SubChunkShaderGraph.PresetSubChunkInfo(shellCompute);
+        
         shellCompute.SetBuffer(kernel, "Counters", UtilityBuffers.GenerationBuffer);
         shellCompute.SetBuffer(kernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
         shellCompute.SetBuffer(kernel, "VariantSettings", variantTable);
+        shellCompute.SetBuffer(kernel, "DetailSettings", detailTable);
         material.value.SetBuffer("VariantSettings", variantTable);
     }
 
     public override void Release(){
         variantTable?.Release();
+        detailTable?.Release();
     }
 
-    public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount)
-    {
+    public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount) {
         if (settings.Reg.Count == 0) return;
         int kernel = shellCompute.FindKernel("Main");
         ComputeBuffer vertSource = memoryHandle.GetBlockBuffer(vertAddress);

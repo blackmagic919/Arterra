@@ -1,8 +1,15 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Main
 #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#include "Assets/Resources/Compute/Utility/Random.hlsl"
 
 const static int numThreads = 256;
+
+struct Level {
+    float cullPrcnt;
+    float sizeInflate;
+};
 
 struct Quad {
     float3 topLeft;
@@ -13,6 +20,7 @@ struct Quad {
 
 struct DrawTriangle{
     uint3 vertices[3];
+    uint BaseSCInd;
 };
 
 struct Settings{
@@ -26,6 +34,7 @@ struct Settings{
     int QuadType;
 };
 
+StructuredBuffer<Level> DetailSettings;
 StructuredBuffer<Settings> VariantSettings;
 StructuredBuffer<SourceVertex> SourceVertices;
 StructuredBuffer<uint3> SourceTriangles;
@@ -60,14 +69,15 @@ float3 random(float3 st)
     return -1.0 + 2.0 * frac(sin(st) * 43758.5453123);
 }
 
-Quad GetQuad(float3 center, float3 right, float3 up, uint mat){    
+Quad GetQuad(float3 center, float3 right, float3 up, uint mat, uint baseSC){    
     Settings s = VariantSettings[mat];
+    float size = DetailSettings[GetDetailLevel(baseSC)].sizeInflate * s.QuadSize;
 
     Quad quad = (Quad)0;
-    quad.topLeft = center - right * (s.QuadSize / 2.0) + up * (s.QuadSize / 2.0);
-    quad.topRight = center + right * (s.QuadSize / 2.0) + up * (s.QuadSize / 2.0);
-    quad.bottomLeft = center - right * (s.QuadSize / 2.0) - up * (s.QuadSize / 2.0);
-    quad.bottomRight = center + right * (s.QuadSize / 2.0) - up * (s.QuadSize / 2.0);
+    quad.topLeft = center - right * (size / 2.0) + up * (size / 2.0);
+    quad.topRight = center + right * (size / 2.0) + up * (size / 2.0);
+    quad.bottomLeft = center - right * (size / 2.0) - up * (size / 2.0);
+    quad.bottomRight = center + right * (size / 2.0) - up * (size / 2.0);
 
     return quad;
 }
@@ -78,32 +88,45 @@ void AppendTri(DrawTriangle tri){
     DrawTriangles[bSTART_oGeo + appendInd] = tri;
 }
 
-void AppendQuad(Quad quad, float3 normalOS, uint mat){
+void AppendQuad(Quad quad, float3 normalOS, uint mat, uint baseSC, inout uint2 chance){
     Settings s = VariantSettings[mat];
     //Bottom triangle
     DrawTriangle lowerTri = (DrawTriangle)0;
     lowerTri.vertices[0] = InitializeDrawVertex(quad.topLeft + s.InflationFactor*normalOS, normalOS, uint2(0, 1), mat);
     lowerTri.vertices[2] = InitializeDrawVertex(quad.bottomLeft + s.InflationFactor*normalOS, normalOS, uint2(0, 0), mat);
     lowerTri.vertices[1] = InitializeDrawVertex(quad.bottomRight + s.InflationFactor*normalOS, normalOS, uint2(1, 0), mat); //Add this first because clockwise winding
-    AppendTri(lowerTri);
+    lowerTri.BaseSCInd = baseSC;
+    if (RandomFloat(quad.bottomLeft) < float(chance.x) / float(chance.y)) {
+        AppendTri(lowerTri);
+        chance.x--;
+    }
     
     //Top triangle
     DrawTriangle topTri = (DrawTriangle)0;
     topTri.vertices[0] = InitializeDrawVertex(quad.topLeft + s.InflationFactor*normalOS, normalOS, uint2(0, 1), mat);
     topTri.vertices[2] = InitializeDrawVertex(quad.bottomRight + s.InflationFactor*normalOS, normalOS, uint2(1, 0), mat);
     topTri.vertices[1] = InitializeDrawVertex(quad.topRight + s.InflationFactor*normalOS, normalOS, uint2(1, 1), mat);
-    AppendTri(topTri);
+    topTri.BaseSCInd = baseSC;
+    if (RandomFloat(quad.bottomRight) < float(chance.x) / float(chance.y)) {
+        AppendTri(topTri);
+        chance.x--;
+    } chance.y -= 2;
 }
 
-void CreateQuadIntersects(float3 center, float3 normalOS, uint mat) {
+void CreateQuadIntersects(float3 center, float3 normalOS, uint mat, uint baseSC) {
     float3 forward = normalize(normalOS);
     float3 right = normalize(float3(-forward.y, forward.x, forward.z)); //90 deg rotation in 2 axis
     float3 up = cross(forward, right); right = cross(up, forward); //Recalculate right to ensure orthogonality
     Settings s = VariantSettings[mat];
 
-    if(!(s.QuadType & 0x2)) AppendQuad(GetQuad(center, right, forward, mat), normalOS, mat);
-    if(!(s.QuadType & 0x2)) AppendQuad(GetQuad(center, up, forward, mat), normalOS, mat);
-    if(!(s.QuadType & 0x1)) AppendQuad(GetQuad(center, right, up, mat), normalOS, mat);
+    uint level = GetDetailLevel(baseSC); uint2 genChance; 
+    genChance.y =  6 - ((s.QuadType & 0x1) * 2 + (s.QuadType & 0x2) * 4);
+    float genPrcnt = (1 - DetailSettings[level].cullPrcnt) * genChance.y;
+    genChance.x = floor(genPrcnt) + (RandomFloat(center) < frac(genPrcnt) ? 1 : 0);
+
+    if(!(s.QuadType & 0x2)) AppendQuad(GetQuad(center, right, forward, mat, baseSC), normalOS, mat, baseSC, genChance);
+    if(!(s.QuadType & 0x2)) AppendQuad(GetQuad(center, up, forward, mat, baseSC), normalOS, mat, baseSC, genChance);
+    if(!(s.QuadType & 0x1)) AppendQuad(GetQuad(center, right, up, mat, baseSC), normalOS, mat, baseSC, genChance);
 }
 
 float getArea(float3 a, float3 b, float3 c) {return 0.5 * length(cross(b - a, c - a));}
@@ -123,12 +146,13 @@ void Main (uint3 id : SV_DispatchThreadID)
     inputs[0] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.x];
     inputs[1] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.y];
     inputs[2] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.z];
+    uint baseSC = GetBaseSubChunk(inputs);
     uint material = GetShaderVariant(inputs);
 
     float3 center = GetTriangleCenter(inputs[0].positionOS, inputs[1].positionOS, inputs[2].positionOS);
     //Use hard normal rather than smooth normals
     float3 normal = normalize(cross(inputs[1].positionOS - inputs[0].positionOS,
                                 inputs[2].positionOS - inputs[0].positionOS));
-    CreateQuadIntersects(center, normal, material);
+    CreateQuadIntersects(center, normal, material, baseSC);
   
 }

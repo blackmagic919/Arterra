@@ -1,5 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CSMain
+#pragma kernel FromPrefix
+#pragma kernel FromSubChunks
 
 StructuredBuffer<uint> prefixSizes;
 uint bCOUNTER_oGeo;
@@ -16,7 +17,7 @@ RWStructuredBuffer<IndirectArgs> _IndirectArgsBuffer;
 uint argOffset;
 
 [numthreads(1,1,1)] 
-void CSMain (uint3 id : SV_DispatchThreadID)
+void FromPrefix (uint3 id : SV_DispatchThreadID)
 {
     uint numTriangles = prefixSizes[bCOUNTER_oGeo+1] - prefixSizes[bCOUNTER_oGeo];
 
@@ -24,5 +25,17 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     _IndirectArgsBuffer[argOffset].numVerticesPerInstance = numTriangles * 3;
     _IndirectArgsBuffer[argOffset].startVertexIndex = 0; //vertex multiply by 3
     _IndirectArgsBuffer[argOffset].startInstanceIndex = 0;
+}
 
+RWStructuredBuffer<int3> SubChunkRegions;
+uint SubChunkInd;
+
+[numthreads(1,1,1)] 
+void FromSubChunks (uint3 id : SV_DispatchThreadID)
+{
+    int numTriangles = SubChunkRegions[SubChunkInd].z;
+    _IndirectArgsBuffer[argOffset].numInstances = numTriangles == 0 ? 0 : 1;
+    _IndirectArgsBuffer[argOffset].numVerticesPerInstance = numTriangles * 3;
+    _IndirectArgsBuffer[argOffset].startVertexIndex = 0; //vertex multiply by 3
+    _IndirectArgsBuffer[argOffset].startInstanceIndex = 0;
 }

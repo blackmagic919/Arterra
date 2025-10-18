@@ -1,4 +1,8 @@
-#pragma kernel CSMain
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#pragma kernel GetBaseSize
+#pragma kernel SetSubChunkDetail
+#pragma kernel CollectSubChunkSizes
+#pragma kernel SetSubChunkAddress
 //Use this to load info from mem buffers into generation buffer
 
 //Generation buffer binding
@@ -11,10 +15,72 @@ uint triAddress;
 uint triStride;
 
 [numthreads(1,1,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void GetBaseSize (uint3 id : SV_DispatchThreadID)
 {
     if(_AddressDict[triAddress].x == 0)
         return;
         
     counter[bCOUNTER_tri] = _MemoryBuffer[_AddressDict[triAddress].x - 1] / triStride - 1; //1 for padding
+}
+
+RWStructuredBuffer<uint> SubChunkInfo;
+RWStructuredBuffer<int3> SubChunkRegions;
+uint bSTART_sChunkI;
+uint numSubChunkRegions;
+
+[numthreads(4, 1, 1)]
+void SetSubChunkDetail(uint3 id : SV_DispatchThreadID){
+    if(id.x >= numSubChunkRegions) return;
+    int3 info = SubChunkRegions[id.x];
+    
+    uint3 start; 
+    start.x = info.x / (numPointsPerAxis * numPointsPerAxis);
+    start.y = (info.x / numPointsPerAxis) % numPointsPerAxis;
+    start.z = info.x % numPointsPerAxis;
+    int rLen = info.y;
+
+    for(int i = 0; i < rLen * rLen * rLen; i++){
+        uint3 coord = start + uint3(i / (rLen * rLen), (i / rLen) % rLen, i % rLen);
+        SubChunkInfo[bSTART_sChunkI + indexFromCoord(coord)] = info.z; //detail level
+    }
+}
+
+[numthreads(4, 1, 1)]
+void CollectSubChunkSizes(uint3 id : SV_DispatchThreadID){
+    if(id.x >= numSubChunkRegions) return;
+    int3 info = SubChunkRegions[id.x];
+    
+    uint3 start;
+    start.x = info.x / (numPointsPerAxis * numPointsPerAxis);
+    start.y = (info.x / numPointsPerAxis) % numPointsPerAxis;
+    start.z = info.x % numPointsPerAxis;
+    int rLen = info.y; int size = 0;
+
+    for(int i = 0; i < rLen * rLen * rLen; i++){
+        uint3 coord = start + uint3(i / (rLen * rLen), (i / rLen) % rLen, i % rLen);
+        size += SubChunkInfo[bSTART_sChunkI + indexFromCoord(coord)];
+    }
+    SubChunkRegions[id.x].z = size;
+}
+
+[numthreads(4, 1, 1)]
+void SetSubChunkAddress(uint3 id : SV_DispatchThreadID){
+    if(id.x >= numSubChunkRegions) return;
+    int3 info = SubChunkRegions[id.x];
+    uint2 baseAddress = _AddressDict[info.z];
+
+    uint3 start; 
+    start.x = info.x / (numPointsPerAxis * numPointsPerAxis);
+    start.y = (info.x / numPointsPerAxis) % numPointsPerAxis;
+    start.z = info.x % numPointsPerAxis;
+    int rLen = info.y; uint size = 0;
+
+    for(int i = 0; i < rLen * rLen * rLen; i++){
+        uint3 coord = start + uint3(i / (rLen * rLen), (i / rLen) % rLen, i % rLen);
+        int index = indexFromCoord(coord);
+        uint sSize = SubChunkInfo[bSTART_sChunkI + index];
+        if(baseAddress.x == 0) SubChunkInfo[bSTART_sChunkI + index] = 0;
+        else SubChunkInfo[bSTART_sChunkI + index] = baseAddress.y + size;
+        size += sSize;
+    }
 }

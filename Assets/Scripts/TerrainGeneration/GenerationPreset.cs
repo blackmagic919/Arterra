@@ -44,7 +44,7 @@ public static class SystemProtocol{
         Structure.Generator.PresetData();
         Surface.Generator.PresetData();
         Map.Generator.PresetData();
-        ShaderGenerator.PresetData();
+        SubChunkShaderGraph.PresetData();
         SpriteExtruder.PresetData();
         Readback.AsyncMeshReadback.PresetData();
     }
@@ -58,7 +58,7 @@ public static class SystemProtocol{
         MapStorage.CPUMapManager.Release();
         EntityManager.Release();
         LightBaker.Release();
-        ShaderGenerator.Release();
+        SubChunkShaderGraph.Unset();
         GenerationPreset.Release();
         AtmospherePass.Release();
         Readback.AsyncMeshReadback.Release();

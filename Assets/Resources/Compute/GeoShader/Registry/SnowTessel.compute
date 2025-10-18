@@ -4,6 +4,9 @@
 
 const static int numThreads = 256;
 
+struct Level {
+    int tslReduct;
+};
 struct DrawVertex{
     float3 positionOS;
     float3 normalOS;
@@ -16,12 +19,14 @@ struct DrawTriangle{
 
 struct PackedTriangle{
     uint3 vertices[3];
+    uint BaseSCInd;
 };
 
 
 struct Settings{
     uint tesselFactor;
 };
+StructuredBuffer<Level> DetailSettings;
 StructuredBuffer<Settings> VariantSettings;
 StructuredBuffer<SourceVertex> SourceVertices;
 StructuredBuffer<uint3> SourceTriangles;
@@ -71,7 +76,7 @@ DrawTriangle GetBaseTriangle(DrawTriangle base, float tessel){
     return tri;
 }
 
-void AppendTri(DrawTriangle tri, uint mat){
+void AppendTri(DrawTriangle tri, uint mat, uint baseSC){
     PackedTriangle packedTri = (PackedTriangle)0;
     [unroll]for(uint i = 0; i < 3; i++){
         uint3 data = PackVertices(tri.vertices[i].positionOS, 
@@ -79,7 +84,7 @@ void AppendTri(DrawTriangle tri, uint mat){
         uint depth = clamp(tri.vertices[i].uv.x * 255, 0, 255);
         data.z |= (depth & 0xFF) << 24;
         packedTri.vertices[i] = data;
-    }
+    } packedTri.BaseSCInd = baseSC;
 
     uint appendInd = 0;
     InterlockedAdd(Counters[bCOUNT_oGeo], 1, appendInd);
@@ -88,10 +93,11 @@ void AppendTri(DrawTriangle tri, uint mat){
 
 
 //Based off the diagram described here https://www.khronos.org/opengl/wiki/Tessellation
-void TesselateTri(DrawTriangle base, uint mat){
+void TesselateTri(DrawTriangle base, uint mat, uint baseSC){
     DrawTriangle tri; 
     int nTessel; int oTessel; 
     uint tesselFactor = VariantSettings[mat].tesselFactor;
+    tesselFactor = max(tesselFactor - DetailSettings[GetDetailLevel(baseSC)].tslReduct, 0);
     for(nTessel = tesselFactor - 2, oTessel = tesselFactor; nTessel >= 0; nTessel -= 2){
         DrawTriangle nBase = GetBaseTriangle(base, ((float)nTessel / tesselFactor));
         [unroll]for(uint v = 0; v < 3; v++){
@@ -101,29 +107,29 @@ void TesselateTri(DrawTriangle base, uint mat){
                 tri.vertices[2] = Interpolate(a, b, ((float)(edgePt + 1) / (oTessel)));
                 tri.vertices[1] = Interpolate(c, d, ((float)(edgePt + 1) / nTessel));
                 tri.vertices[0] = Interpolate(a, b, ((float)(edgePt + 2) / (oTessel)));
-                AppendTri(tri, mat);
+                AppendTri(tri, mat, baseSC);
 
                 tri.vertices[0] = tri.vertices[1];
                 tri.vertices[1] = Interpolate(c, d, (float)edgePt / nTessel);
-                AppendTri(tri, mat);
+                AppendTri(tri, mat, baseSC);
             }
 
             tri.vertices[2] = a;
             tri.vertices[1] = c;
             tri.vertices[0] = Interpolate(a, b, (1.0f/(oTessel)));;
-            AppendTri(tri, mat);
+            AppendTri(tri, mat, baseSC);
 
             tri.vertices[2] = Interpolate(a, b, ((float)nTessel + 1) / (oTessel));
             tri.vertices[1] = d;
             tri.vertices[0] = b;
-            AppendTri(tri, mat);
+            AppendTri(tri, mat, baseSC);
         }
 
         base = nBase;
         oTessel = nTessel;
     }
 
-    if(nTessel == -1) AppendTri(base, mat);
+    if(nTessel == -1) AppendTri(base, mat, baseSC);
 }
 
 
@@ -141,11 +147,12 @@ void Main (uint3 id : SV_DispatchThreadID)
     inputs[0] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.x];
     inputs[1] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.y];
     inputs[2] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.z];
+    uint baseSC = GetBaseSubChunk(inputs);
     uint mat = GetShaderVariant(inputs);
 
     DrawTriangle tri;
     tri.vertices[0] = MakeBaseDrawVertex(inputs[0]);
     tri.vertices[1] = MakeBaseDrawVertex(inputs[1]);
     tri.vertices[2] = MakeBaseDrawVertex(inputs[2]);
-    TesselateTri(tri, mat);
+    TesselateTri(tri, mat, baseSC);//
 }

@@ -154,6 +154,9 @@ namespace WorldConfig.Quality{
             return MemoryBlocks[index]._Storage;
         }
 
+        //Only call if using immediately and no interrupt has happened yet
+        public override ComputeBuffer Storage => curAlloc._Storage;
+
         public bool GetBlockBufferSafe(int index, out ComputeBuffer buffer) {
             index = addressBuffers[index]; buffer = null;
             if (!initialized) return false;

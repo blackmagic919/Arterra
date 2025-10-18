@@ -13,10 +13,22 @@ MonoBehaviour:
   m_Name: GeneratorTessel
   m_EditorClassIdentifier: 
   Name: Tesselation
+  Tags:
+    Reg:
+      value: []
   settings:
     Category:
       value: {fileID: 11400000, guid: b2279e4b0cd15490285aca21f4f7d602, type: 2}
     Reg:
     - {fileID: 11400000, guid: 05609345081a548d59c4259463750da9, type: 2}
+  detailLevels:
+    value:
+    - tesselReduction: 0
+    - tesselReduction: 0
+    - tesselReduction: 1
+    - tesselReduction: 1
   material:
     value: {fileID: 2100000, guid: a1430010796b74a4ea620880b197fa93, type: 2}
+  references:
+    version: 2
+    RefIds: []

@@ -1,20 +1,21 @@
 using Newtonsoft.Json;
 using UnityEngine;
-using TerrainGeneration;
 using WorldConfig;
 using WorldConfig.Quality;
 using System.Linq;
-using Unity.Mathematics;
+using System.Collections.Generic;
 
 [CreateAssetMenu(menuName = "ShaderData/QuadShader/Generator")]
 public class ProceduralInsetQuads : GeoShader
 {
     [Tooltip("A mesh to create foliage from")]
     [SerializeField] public Catalogue<QuadSetting> settings = default;
+    public Option<List<QuadLevel>> detailLevels = default;
     [JsonIgnore][UISetting(Ignore = true)]
     public Option<Material> material;
     [JsonIgnore] private ComputeShader quadCompute;
     [JsonIgnore] private ComputeBuffer variantTable;
+    [JsonIgnore] private ComputeBuffer detailTable;
 
     public override Material GetMaterial() => material.value;
     public override IRegister GetRegistry() => settings;
@@ -25,6 +26,9 @@ public class ProceduralInsetQuads : GeoShader
         if (settings.Reg.Count == 0) return;
         QuadSetting.Data[] data = settings.Reg.Select(e => e.GetInfo()).ToArray();
         variantTable = new ComputeBuffer(data.Length, QuadSetting.DataSize, ComputeBufferType.Structured);
+        detailTable = new ComputeBuffer(detailLevels.value.Count, QuadLevel.DataSize, ComputeBufferType.Structured);
+        int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        detailTable.SetData(detailLevels.value);
         variantTable.SetData(data);
 
         quadCompute = Resources.Load<ComputeShader>("Compute/GeoShader/Registry/FoliageQuads");
@@ -33,17 +37,21 @@ public class ProceduralInsetQuads : GeoShader
         quadCompute.SetBuffer(kernel, "Counters", UtilityBuffers.GenerationBuffer);
         quadCompute.SetBuffer(kernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
         quadCompute.SetBuffer(kernel, "VariantSettings", variantTable);
-        material.value.SetBuffer("VariantSettings", variantTable);
+        quadCompute.SetBuffer(kernel, "DetailSettings", detailTable);
+        quadCompute.SetInt("numPointsPerAxis", mapChunkSize);
         quadCompute.SetInt("bSTART_base", baseGeoStart);
         quadCompute.SetInt("bCOUNT_base", baseGeoCount);
         quadCompute.SetInt("bSTART_oGeo", geoStart);
         quadCompute.SetInt("bCOUNT_oGeo", geoCounter);
         quadCompute.SetInt("geoInd", geoInd);
+        SubChunkShaderGraph.PresetSubChunkInfo(quadCompute);
+        material.value.SetBuffer("VariantSettings", variantTable);
     }
 
 
     public override void Release(){
         variantTable?.Release();
+        detailTable?.Release();
     }
 
     public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount)

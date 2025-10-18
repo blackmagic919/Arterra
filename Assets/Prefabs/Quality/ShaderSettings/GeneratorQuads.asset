@@ -13,11 +13,29 @@ MonoBehaviour:
   m_Name: GeneratorQuads
   m_EditorClassIdentifier: 
   Name: InsetQuad
+  Tags:
+    Reg:
+      value: []
   settings:
     Category:
       value: {fileID: 11400000, guid: b7e67c8f6682146608ead8263b8f763e, type: 2}
     Reg:
     - {fileID: 11400000, guid: 97abaf9231ba649ac85139f8f9624c92, type: 2}
     - {fileID: 11400000, guid: 920ec026925254386adc03a7ef3b3160, type: 2}
+    - {fileID: 11400000, guid: c42bddca9ddaf49469233934b9598552, type: 2}
+    - {fileID: 11400000, guid: 70fb5be0669e74ef695d6674639f4e02, type: 2}
+  detailLevels:
+    value:
+    - cullPercentage: 0
+      sizeInflate: 1
+    - cullPercentage: 0.4
+      sizeInflate: 1.33
+    - cullPercentage: 0.6
+      sizeInflate: 1.66
+    - cullPercentage: 0.8
+      sizeInflate: 2
   material:
     value: {fileID: 2100000, guid: 6b7b7953cf23d455387bef629745f60a, type: 2}
+  references:
+    version: 2
+    RefIds: []

@@ -40,8 +40,6 @@ namespace TerrainGeneration{
         public bool IsRealChunk => depth == 0;
 
         /// <exclude />
-        protected Bounds boundsOS;
-        /// <exclude />
         protected GameObject meshObject;
         /// <exclude />
         protected GeneratorInfo Generator;
@@ -57,10 +55,16 @@ namespace TerrainGeneration{
         protected readonly int mapChunkSize;
         /// <exclude />
         protected int mapSkipInc => 1 << depth;
+        /// <summary> The manager for geo-shaded geometry generation </summary>
+        public readonly SubChunkShaderGraph GeoShaders;
         /// <summary> The status of the chunk which describes the type of generation that needs to be done. </summary>
         public Status status;
         /// <summary> The depth of the chunk's neighbors. This is used to blend the chunk's mesh with its neighbors. </summary>
         protected uint neighborDepth;
+        /// <summary>The bounds in object space of the chunk's mesh</summary>
+        public Bounds boundsOS;
+        /// <summary> The transform of the mesh object as it is shown in the world </summary>
+        public Transform MeshTransform => meshObject.transform;
 
         /// <summary>
         /// A bitmap container describing the types of requested tasks for the chunk. To request the
@@ -152,8 +156,6 @@ namespace TerrainGeneration{
         /// different processes in terrain generation 
         /// </summary>
         protected readonly struct GeneratorInfo {
-            /// <summary> The manager for geo-shaded geometry generation </summary>
-            public readonly ShaderGenerator GeoShaders;
             /// <summary> 
             /// The manager in charge of performing GPU-forward mesh rendering while
             /// reading back mesh data from the GPU to a Unity mesh object
@@ -172,7 +174,6 @@ namespace TerrainGeneration{
                 this.MeshCreator = new Map.Creator();
                 this.StructCreator = new Structure.Creator();
                 this.SurfCreator = new Surface.Creator();
-                this.GeoShaders = new ShaderGenerator(terrainChunk.meshObject.transform, terrainChunk.boundsOS);
                 this.MeshReadback = new AsyncMeshReadback(terrainChunk.meshObject.transform, terrainChunk.boundsOS);
             }
         }
@@ -218,6 +219,7 @@ namespace TerrainGeneration{
                 UpdateMesh = Status.State.Pending,
                 CanUpdateMesh = Status.State.Finished,
             };
+            GeoShaders = new SubChunkShaderGraph(this);
             Generator = new GeneratorInfo(this);
             SetupChunk();
         }
@@ -274,7 +276,7 @@ namespace TerrainGeneration{
         /// </summary>
         public virtual void ReleaseChunk() {
             ClearFilter(); //Releases Mesh Data
-            Generator.GeoShaders?.ReleaseGeometry(); //Release geoShader Geometry
+            GeoShaders?.Release(); //Release geoShader Geometry
             Generator.MeshReadback?.ReleaseAllGeometry(); //Release base geometry on GPU
             Generator.StructCreator.ReleaseStructure(); //Release structure data
             Generator.SurfCreator.ReleaseMap();
@@ -317,7 +319,7 @@ namespace TerrainGeneration{
         /// Overridable event triggered within update-loop. Primarily used to queue generation tasks
         /// based on the chunk's status flags. Expensive operations should be queued in the <see cref="RequestQueue"/>
         /// </summary>
-        public virtual void Update() { }
+        public virtual void Update() {}
 
         private void SetupChunk() {
             RequestQueue.Enqueue(new GenTask {
@@ -470,9 +472,9 @@ namespace TerrainGeneration{
                 Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
 
                 if (depth <= Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
-                    Generator.GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
+                    GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
                 else
-                    Generator.GeoShaders.ReleaseGeometry();
+                    GeoShaders.ReleaseGeometry();
                 status.CanUpdateMesh = Status.Complete(status.CanUpdateMesh);
             }
 
@@ -629,9 +631,9 @@ namespace TerrainGeneration{
                 Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
 
                 if (depth <= Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
-                    Generator.GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
+                    GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
                 else
-                    Generator.GeoShaders.ReleaseGeometry();
+                    GeoShaders.ReleaseGeometry();
                 status.CanUpdateMesh = Status.Complete(status.CanUpdateMesh);
             }
         }

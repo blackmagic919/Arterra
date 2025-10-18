@@ -12,3 +12,9 @@ public class TesselSettings : Category<TesselSettings>
         public uint tesselationFactor;//3
     }
 }
+
+[Serializable]
+public struct TesselLevel {
+    public int tesselReduction;
+    public static int DataSize => sizeof(int);
+}

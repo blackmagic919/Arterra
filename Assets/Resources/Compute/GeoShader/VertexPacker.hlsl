@@ -63,4 +63,19 @@ uint GetShaderVariant(SourceVertex vertices[3]){
     } return subVariant;
 }
 
+StructuredBuffer<uint> SubChunkInfo;
+uint bSTART_sChunkI;
+uint sChunkSize;
+uint sChunksPerAxis;
+uint GetBaseSubChunk(SourceVertex vertices[3]) {
+    int3 center = floor((vertices[0].positionOS + vertices[1].positionOS + vertices[2].positionOS) / 3);
+    int3 remainder = center % sChunkSize;
+    int3 SCoord = min((center - remainder) / sChunkSize, sChunksPerAxis - 1);
+    return SCoord.x * sChunksPerAxis * sChunksPerAxis + SCoord.y * sChunksPerAxis + SCoord.z;
+}
+
+uint GetDetailLevel(uint SubChunkIndex) {
+    return SubChunkInfo[bSTART_sChunkI + SubChunkIndex];
+}
+
 #endif

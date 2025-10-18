@@ -1,10 +1,15 @@
 // Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CSMain
+#pragma kernel Transcribe
+#pragma kernel BatchTranscribe
 
 const static uint numThreads = 256;
 
-struct DrawTriangle{
+struct RawTriangle {
     uint3 vertices[3];
+};
+struct DrawTriangle{
+    RawTriangle tri;
+    uint BaseSCInd;
 };
 
 StructuredBuffer<DrawTriangle> DrawTriangles;
@@ -12,12 +17,12 @@ StructuredBuffer<uint> ShaderPrefixes;
 uint bSTART_oGeo;
 uint bCOUNTER_oGeo;
 
-RWStructuredBuffer<DrawTriangle> _MemoryBuffer;
+RWStructuredBuffer<RawTriangle> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
 
 [numthreads(numThreads,1,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void Transcribe (uint3 id : SV_DispatchThreadID)
 {
     if(_AddressDict[addressIndex].x == 0) //Out of space
         return;
@@ -28,5 +33,24 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         return;
 
     uint triAddress = _AddressDict[addressIndex].y + id.x;
-    _MemoryBuffer[triAddress] = DrawTriangles[bSTART_oGeo + start + id.x];
+    _MemoryBuffer[triAddress] = DrawTriangles[bSTART_oGeo + start + id.x].tri;
+}
+
+RWStructuredBuffer<uint> SubChunkInfo;
+uint bSTART_sChunkI;
+
+[numthreads(numThreads,1,1)]
+void BatchTranscribe (uint3 id : SV_DispatchThreadID)
+{
+    uint start = ShaderPrefixes[bCOUNTER_oGeo];
+    uint length = ShaderPrefixes[bCOUNTER_oGeo+1] - start;
+    if(id.x >= length)
+        return;
+    
+    uint triAddress;
+    DrawTriangle tri = DrawTriangles[bSTART_oGeo + start + id.x];
+    //Note if this starts as zero, it is safe and guaranteed to stay as zero
+    if(SubChunkInfo[bSTART_sChunkI + tri.BaseSCInd] == 0) return;
+    InterlockedAdd(SubChunkInfo[bSTART_sChunkI + tri.BaseSCInd], 1, triAddress);
+    _MemoryBuffer[triAddress] = tri.tri;
 }

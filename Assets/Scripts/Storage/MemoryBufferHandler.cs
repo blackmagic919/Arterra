@@ -214,10 +214,10 @@ namespace WorldConfig.Quality {
         }
 
         /// <summary> The primary memory buffer used for long-term memory storage in the terrain generation process. </summary>
-        public ComputeBuffer Storage => _GPUMemorySource;
+        public virtual ComputeBuffer Storage => _GPUMemorySource;
         /// <summary> A buffer containing addresses to memory blocks within the <see cref="Storage"/> buffer. This buffer tracks the 
         /// raw 4-byte address as well as the address relative to the requested stride during allocation of each memory block. </summary>
-        public ComputeBuffer Address => _AddressBuffer;
+        public virtual ComputeBuffer Address => _AddressBuffer;
 
         public virtual ComputeBuffer GetBlockBuffer(uint index) { return _GPUMemorySource; }
         public virtual ComputeBuffer GetBlockBuffer(int index) { return _GPUMemorySource; }

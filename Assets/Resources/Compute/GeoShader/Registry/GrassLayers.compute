@@ -3,11 +3,16 @@
 
 const static int numThreads = 256;
 #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 
 struct DrawTriangle{
     uint3 vertices[3];
+    uint BaseSCInd;
 };
 
+struct Level {
+    int SkipInc;
+};
 struct Settings{
     float TotalHeight;
     int MaxLayers;
@@ -20,6 +25,7 @@ struct Settings{
     float WindStrength;
 };
 
+StructuredBuffer<Level> DetailSettings;
 StructuredBuffer<Settings> VariantSettings;
 StructuredBuffer<SourceVertex> SourceVertices;
 StructuredBuffer<uint3> SourceTriangles;
@@ -62,14 +68,17 @@ void Main(uint3 id : SV_DispatchThreadID){
     inputs[2] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.z];
 
     uint mat = GetShaderVariant(inputs);
+    uint baseSC = GetBaseSubChunk(inputs);
+    uint skipInc = DetailSettings[GetDetailLevel(baseSC)].SkipInc;
     Settings matSettings = VariantSettings[mat];
 
     for(int i = 0; i < matSettings.MaxLayers; i++)
     {
+        if (i % skipInc != 0) continue;
         DrawTriangle tri = (DrawTriangle)0;
         [unroll] for(int p = 0; p < 3; p++){
             tri.vertices[p] = ExtrudeVertex(inputs[p], i, mat, matSettings);
-        }
+        } tri.BaseSCInd = baseSC;
 
         int appendInd = 0;
         InterlockedAdd(Counters[bCOUNT_oGeo], 1, appendInd);
