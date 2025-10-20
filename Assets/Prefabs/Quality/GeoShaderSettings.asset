@@ -19,7 +19,7 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 416aff69279c14e2ebb1f76e050273ce, type: 2}
     - {fileID: 11400000, guid: e11232fbec10841a4a488fcc70cc241f, type: 2}
     - {fileID: 11400000, guid: aad37b9e5794849e98fbbc9c685c00d1, type: 2}
-  MaxGeoShaderDepth: 0
+  MaxGeoShaderDepth: 1
   SubchunkUpdateThresh: 8
   levels:
     value:

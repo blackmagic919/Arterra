@@ -89,7 +89,7 @@ public static class InventoryController {
 
         if (Config.CURRENT.GamePlay.Gamemodes.value.KeepInventory) {
             cxt.cur.PrimaryI = cxt.old?.PrimaryI ?? cxt.cur.PrimaryI;
-            cxt.cur.SecondaryI = cxt.old?.SecondaryI ?? cxt.cur.PrimaryI;
+            cxt.cur.SecondaryI = cxt.old?.SecondaryI ?? cxt.cur.SecondaryI;
         }
 
         Primary = cxt.cur.PrimaryI;

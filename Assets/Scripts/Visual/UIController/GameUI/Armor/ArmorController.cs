@@ -227,6 +227,8 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         IsDragging = false;
         if (!IsMouseInMenu()) return;
         if (SelectedIndex == -1) return;
+        if (InventoryController.Cursor == null) return;
+        
         InventoryController.InventorySlotDisplay disp = InventoryController.CursorDisplay;
         IItem cursor = InventoryController.Cursor;
         cursor.ClearDisplay(disp.Object.transform);

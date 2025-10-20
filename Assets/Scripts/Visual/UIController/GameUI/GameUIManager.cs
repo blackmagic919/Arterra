@@ -159,11 +159,12 @@ public class GridUIManager {
         return index < Slots.Length;
     }
 
-    private int2 GetSlotIndex(float2 pos) {
-        float2 pOff = pos - ((float3)Transform.position).xy;
+    private int2 GetSlotIndex(float2 posSC) {
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            Transform, posSC, null, out Vector2 pOff);
         pOff.x *= Transform.pivot.x * (-2) + 1;
         pOff.y *= Transform.pivot.y * (-2) + 1;
-        int2 slotInd = (int2)math.floor(pOff / (float2)(Grid.cellSize + Grid.spacing));
+        int2 slotInd = (int2)math.floor(pOff / (Grid.cellSize + Grid.spacing));
         return slotInd;
     }
 }
