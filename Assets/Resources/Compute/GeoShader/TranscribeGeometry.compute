@@ -1,6 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Transcribe
 #pragma kernel BatchTranscribe
+#pragma kernel TranscribeSortedBase
 
 const static uint numThreads = 256;
 
@@ -53,4 +54,22 @@ void BatchTranscribe (uint3 id : SV_DispatchThreadID)
     if(SubChunkInfo[bSTART_sChunkI + tri.BaseSCInd] == 0) return;
     InterlockedAdd(SubChunkInfo[bSTART_sChunkI + tri.BaseSCInd], 1, triAddress);
     _MemoryBuffer[triAddress] = tri.tri;
+}
+
+struct pInfo{
+    uint axis[3];
+};
+
+RWStructuredBuffer<pInfo> _MemoryBufferBase;
+StructuredBuffer<pInfo> SortedTriangles;
+StructuredBuffer<uint> counter;
+uint bCOUNT_base;
+uint bSTART_sort;
+
+[numthreads(numThreads,1,1)]
+void TranscribeSortedBase (uint3 id : SV_DispatchThreadID) {
+    if(id.x >= counter[bCOUNT_base])
+        return;
+    uint triAddress = _AddressDict[addressIndex].y + id.x;
+    _MemoryBufferBase[triAddress] = SortedTriangles[bSTART_sort + id.x];
 }

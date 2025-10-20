@@ -14,8 +14,7 @@ public static class UtilityBuffers
     public static ComputeShader prefixCountToArgs;
     
     const int _MaxArgsCount = (int)5E4;
-    public static GraphicsBuffer ArgumentBuffer;
-    public static uint2[] addressLL;
+    public static LogicalBlockBuffer DrawArgs;
 
     const int ARGS_STRIDE_4BYTES = 4;
 
@@ -26,32 +25,6 @@ public static class UtilityBuffers
 
     public static bool active = false;
 
-
-    public static uint AllocateArgs(){
-        
-        uint addressIndex = addressLL[0].x;
-
-        uint pAddress = addressLL[addressIndex].x;
-        uint nAddress = addressLL[addressIndex].y == 0 ? addressLL[0].x+1 : addressLL[addressIndex].y;
-        addressLL[0].x = nAddress;
-
-        addressLL[pAddress].y = nAddress;
-        addressLL[nAddress].x = pAddress;
-
-        return addressIndex;
-    }
-
-    public static void ReleaseArgs(uint addressIndex){
-        if(addressIndex == 0) return;
-
-        uint nAddress = addressLL[0].x;
-        uint pAddress = addressLL[nAddress].x;
-        addressLL[pAddress].y = addressIndex;
-        addressLL[nAddress].x = addressIndex;
-        addressLL[addressIndex] = new uint2(pAddress, nAddress);
-
-        addressLL[0].x = addressIndex;
-    }
     
     public static void Initialize(){
         if(active) return;
@@ -62,10 +35,7 @@ public static class UtilityBuffers
         int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int maxPoints = (mapChunkSize+1) * (mapChunkSize+1) * (mapChunkSize+1);
 
-        ArgumentBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, _MaxArgsCount+1, sizeof(uint) * ARGS_STRIDE_4BYTES);
-        addressLL = new uint2[_MaxArgsCount+1];
-        addressLL[0].x = 1;
-
+        DrawArgs = new LogicalBlockBuffer(GraphicsBuffer.Target.IndirectArguments, _MaxArgsCount+1, sizeof(uint) * ARGS_STRIDE_4BYTES);
         //This buffer will contain all temporary data during generation
         GenerationBuffer = new ComputeBuffer(GEN_BYTE_SIZE/4, 4, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
         //This buffer will be slower but will be written to a lot by CPU
@@ -80,13 +50,20 @@ public static class UtilityBuffers
     public static void Release(){
         indirectArgs?.Release();
         appendCount?.Release();
-        ArgumentBuffer?.Release();
+        DrawArgs?.Destroy();
         GenerationBuffer?.Release();
         TransferBuffer?.Release();
         active = false;
     }
 
-    public static void ClearRange(ComputeBuffer buffer, int length, int start){
+    public static void ClearRange(ComputeBuffer buffer, int length, int start) {
+        clearRange.SetBuffer(0, "counters", buffer);
+        clearRange.SetInt("length", length);
+        clearRange.SetInt("start", start);
+        clearRange.Dispatch(0, 1, 1, 1);
+    }
+    
+    public static void ClearRange(GraphicsBuffer buffer, int length, int start){
         clearRange.SetBuffer(0, "counters", buffer);
         clearRange.SetInt("length", length);
         clearRange.SetInt("start", start);

@@ -1,9 +1,7 @@
 
 using System.Collections.Generic;
-using System.Linq;
 using TerrainGeneration;
 using Unity.Mathematics;
-using UnityEditor.Playables;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Utils;
@@ -13,7 +11,7 @@ using WorldConfig.Quality;
 public class ShaderSubchunk : IOctreeChunk {
     /// <exclude />
     public bool Active => active;
-    public SubChunkShaderGraph.FixedOctree tree;
+    public SubChunkShaderGraph graph;
     public uint index;
     public int3 origin;
     public int size;
@@ -22,20 +20,20 @@ public class ShaderSubchunk : IOctreeChunk {
     private TerrainChunk.Status.State RefreshState;
     private ShaderUpdateTask[] activeRenders;
     private List<GeoShaderSettings.DetailLevel> Details => Config.CURRENT.Quality.GeoShaders.value.levels;
-    public ShaderSubchunk(SubChunkShaderGraph.FixedOctree parent, int3 origin, int size, uint octreeIndex) {
+    public ShaderSubchunk(SubChunkShaderGraph parent, int3 origin, int size, uint octreeIndex) {
         this.index = octreeIndex;
-        this.tree = parent;
+        this.graph = parent;
         this.origin = origin;
         this.size = size;
         this.active = true;
         this.detailLevel = CalculateDetailLevel();
-        this.RefreshState = TerrainChunk.Status.State.InProgress;
+        this.RefreshState = TerrainChunk.Status.State.Pending;
     }
     public void VerifyChunk() {
         if (!active) return;
         //These two functions are self-verifying, so they will only execute if necessary
-        tree.SubdivideChunk(index);
-        tree.MergeSiblings(index);
+        graph.tree.SubdivideChunk(index);
+        graph.tree.MergeSiblings(index);
         ReassessDetail();
     }
     public void Destroy() {
@@ -45,27 +43,32 @@ public class ShaderSubchunk : IOctreeChunk {
     public void Kill() {
         if (!active) return;
         active = false;
-        tree.ReapChunk(index);
+        graph.tree.ReapChunk(index);
     }
 
     //Because Shader Subchunks can't update spontaneously instead only
     //when the viewer has moved, Update doesn't need to be constantly called
     public void Update() {
-        if (!active) return;
         if (RefreshState == TerrainChunk.Status.State.Pending) {
             RefreshState = TerrainChunk.Status.State.InProgress;
             OctreeTerrain.RequestQueue.Enqueue(new OctreeTerrain.GenTask {
                 task = RegenerateChunk,
-                id = (int)priorities.propogation,
+                id = (int)priorities.geoshader,
                 chunk = this
             });
         }
     }
 
+    private void RegenerateChunk() {
+        RefreshState = TerrainChunk.Status.State.Finished;
+        if (IsParentUpdating()) return;
+        if (!graph.RecalculateSubChunkGeoShader(this)) {
+            this.graph.tree.ReapChunk(index);
+        }
+    }
+
     private bool IsParentUpdating() {
-        TerrainChunk parent = tree.parent;
-        if (parent.active == false)
-            return true;
+        TerrainChunk parent = graph.parent;
         if (parent.status.UpdateMesh != TerrainChunk.Status.State.Finished)
             return true;
         if (parent.status.CanUpdateMesh != TerrainChunk.Status.State.Finished)
@@ -84,12 +87,12 @@ public class ShaderSubchunk : IOctreeChunk {
     private void ReassessDetail() {
         int level = CalculateDetailLevel();
         if (detailLevel == level) return;
-        TerrainChunk.Status.Initiate(RefreshState);
+        RefreshState = TerrainChunk.Status.Initiate(RefreshState);
         detailLevel = level;
     }
 
     private int CalculateDetailLevel() {
-        int viewerDist = GetMaxDist(tree.ViewerPosGS);
+        int viewerDist = GetMaxDist(graph.tree.ViewerPosGS);
         int accDist = 0;
 
         for (int i = 0; i < Details.Count; i++) {
@@ -108,18 +111,17 @@ public class ShaderSubchunk : IOctreeChunk {
     }
 
     public int2 GetInfoRegion() {
-        int SCover = size / tree.MinChunkSize;
-        int numPtsAxis = tree.parent.size / tree.MinChunkSize;
-        int3 SOrigin = (origin - tree.parent.origin) / tree.MinChunkSize;
+        int SCover = size / graph.tree.MinChunkSize;
+        int3 SOrigin = (origin - graph.parent.origin) / graph.tree.MinChunkSize;
         int2 SCInfo;
 
-        SCInfo.x = CustomUtility.indexFromCoord(SOrigin, numPtsAxis);
-        SCInfo.y = SCover;
+        SCInfo.x = (int)CustomUtility.EncodeMorton3((uint3)SOrigin);
+        SCInfo.y = SCInfo.x + SCover * SCover * SCover;
         return SCInfo;
     }
 
     public void ApplyAllocToChunk(List<GeoShader> geoShaders, uint2[] shadInfo) {
-        tree.ReapChunk(index); ReleaseGeometry();
+        graph.tree.ReapChunk(index); ReleaseGeometry();
         RefreshState = TerrainChunk.Status.State.Finished;
         activeRenders = new ShaderUpdateTask[shadInfo.Length];
         for (int i = 0; i < shadInfo.Length; i++) {
@@ -142,13 +144,13 @@ public class ShaderSubchunk : IOctreeChunk {
         }
         AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)shader.address, OnAddressRecieved);
     }
-    
+
     public RenderParams SetupShaderMaterials(
         GeoShader shader, MemoryBufferHandler memoryHandle, uint addressIndex
     ) {
+        Transform pTransf = graph.parent.MeshTransform;
         ComputeBuffer sourceBuffer = memoryHandle.GetBlockBuffer(addressIndex);
-        Bounds boundsOS = tree.parent.boundsOS;
-        Transform pTransf = tree.parent.MeshTransform;
+        Bounds boundsOS = graph.parent.GetRelativeBoundsOS(origin, size);
         Bounds boundsWS = CustomUtility.TransformBounds(pTransf, boundsOS);
 
         RenderParams rp = new RenderParams(shader.GetMaterial()) {
@@ -164,9 +166,6 @@ public class ShaderSubchunk : IOctreeChunk {
         return rp;
     }
 
-    private void RegenerateChunk() {
-
-    }
     
     
     public class ShaderUpdateTask : IUpdateSubscriber {
@@ -188,7 +187,7 @@ public class ShaderSubchunk : IOctreeChunk {
         public void Update(MonoBehaviour mono) {
             Graphics.RenderPrimitivesIndirect(
                 rp, MeshTopology.Triangles,
-                UtilityBuffers.ArgumentBuffer,
+                UtilityBuffers.DrawArgs.Get(),
                 1, (int)dispArgs
             );
         }
@@ -198,7 +197,7 @@ public class ShaderSubchunk : IOctreeChunk {
             active = false;
 
             memory.ReleaseMemory(address);
-            UtilityBuffers.ReleaseArgs(dispArgs);
+            UtilityBuffers.DrawArgs.Release(dispArgs);
         }
     }
 }

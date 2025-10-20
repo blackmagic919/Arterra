@@ -30,7 +30,7 @@ MonoBehaviour:
       Distance: 24
       IncreaseSize: 0
     - Level: 2
-      Distance: 64
+      Distance: 32
       IncreaseSize: 1
     - Level: 3
       Distance: 128

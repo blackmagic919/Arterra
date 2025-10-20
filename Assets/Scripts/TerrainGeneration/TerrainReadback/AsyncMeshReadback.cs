@@ -62,7 +62,7 @@ public class AsyncMeshReadback
         Map.Generator.GeoGenOffsets offsets = Map.Generator.bufferOffsets;
         int kernel = meshDrawArgsCreator.FindKernel("CSMain");
         meshDrawArgsCreator.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-        meshDrawArgsCreator.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.ArgumentBuffer);
+        meshDrawArgsCreator.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.DrawArgs.Get());
         
 
         kernel = triangleTranscriber.FindKernel("Transcribe");
@@ -125,7 +125,7 @@ public class AsyncMeshReadback
         //Transcribe data to memory heap for GPU-forward render
         uint geoHeapMemoryAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, TRI_STRIDE_WORD, triCounter);
 
-        uint drawArgsAddress = UtilityBuffers.AllocateArgs(); //Allocates 4 bytes
+        uint drawArgsAddress = UtilityBuffers.DrawArgs.Allocate(); //Allocates 4 bytes
         CreateDispArg(triCounter, (int)drawArgsAddress);
 
         TranscribeTriangles((int)geoHeapMemoryAddress, triCounter, triStart);
@@ -350,7 +350,7 @@ public class GeometryHandle : IUpdateSubscriber
         if(this.addressIndex != 0)
             GenerationPreset.memoryHandle.ReleaseMemory(this.addressIndex);
         if(this.argsAddress != 0)
-            UtilityBuffers.ReleaseArgs(this.argsAddress);
+            UtilityBuffers.DrawArgs.Release(this.argsAddress);
     }
 
         /// <summary> Updates the geometry handle to pass any indirect render commands it may have.
@@ -363,7 +363,7 @@ public class GeometryHandle : IUpdateSubscriber
                 return;
 
             //Offset in bytes = address * 4 args per address * 4 bytes per arg
-            Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)argsAddress);
+            Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.DrawArgs.Get(), 1, (int)argsAddress);
     }
 }
 

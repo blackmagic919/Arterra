@@ -20,7 +20,8 @@ public static class LoadingHandler
         "Combining Map Infomation",
         "Filling Hills and Clouds",
         "Generating Terrain",
-        "Facilitating Generation"
+        "Facilitating Generation",
+        "Plating Grass and Growing Leaves"
     };
 
     //Please improve loading screen one day

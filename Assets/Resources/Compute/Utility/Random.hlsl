@@ -10,6 +10,8 @@ uint RandomState(uint seed){
     return seed;
 }
 
+
+
 float RandomFloat(uint seed){
     //output 0->1
     //exponent bias, bit shift into mantissa, subtract normalization

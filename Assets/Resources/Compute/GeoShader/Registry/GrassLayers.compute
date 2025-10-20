@@ -25,6 +25,7 @@ struct Settings{
     float WindStrength;
 };
 
+float ScaleInverse;
 StructuredBuffer<Level> DetailSettings;
 StructuredBuffer<Settings> VariantSettings;
 StructuredBuffer<SourceVertex> SourceVertices;
@@ -43,7 +44,8 @@ int bCOUNT_oGeo;
 
 uint3 ExtrudeVertex(SourceVertex v, int layerIndex, uint mat, Settings cxt){
     float height = (float)layerIndex / cxt.MaxLayers;
-    uint3 data = PackVertices(v.positionOS + v.normalOS * (height * cxt.TotalHeight), v.normalOS, mat);
+    float maxHeight = cxt.TotalHeight * ScaleInverse;
+    uint3 data = PackVertices(v.positionOS + v.normalOS * (height * maxHeight), v.normalOS, mat);
 
     uint layerHeight = clamp(height * 255, 0, 255);
     data.z |= (layerHeight & 0xFF) << 24;
@@ -58,7 +60,7 @@ void Main(uint3 id : SV_DispatchThreadID){
     uint numSourceTriangles = Counters[bCOUNT_base+1] - startIndex;
     if(id.x >= numSourceTriangles)
         return;
-
+    
     uint triIndex = Counters[bSTART_base + startIndex + id.x];
     uint3 sourceTri = SourceTriangles[_AddressDict[triAddress].y + triIndex];
 

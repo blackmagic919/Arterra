@@ -61,8 +61,6 @@ namespace TerrainGeneration{
         public Status status;
         /// <summary> The depth of the chunk's neighbors. This is used to blend the chunk's mesh with its neighbors. </summary>
         protected uint neighborDepth;
-        /// <summary>The bounds in object space of the chunk's mesh</summary>
-        public Bounds boundsOS;
         /// <summary> The transform of the mesh object as it is shown in the world </summary>
         public Transform MeshTransform => meshObject.transform;
 
@@ -174,7 +172,8 @@ namespace TerrainGeneration{
                 this.MeshCreator = new Map.Creator();
                 this.StructCreator = new Structure.Creator();
                 this.SurfCreator = new Surface.Creator();
-                this.MeshReadback = new AsyncMeshReadback(terrainChunk.meshObject.transform, terrainChunk.boundsOS);
+                this.MeshReadback = new AsyncMeshReadback(terrainChunk.meshObject.transform,
+                    terrainChunk.GetRelativeBoundsOS(terrainChunk.origin, terrainChunk.size));
             }
         }
 
@@ -206,8 +205,6 @@ namespace TerrainGeneration{
             meshObject.transform.parent = parent;
             meshObject.transform.position = (float3)(origin - (float3)Vector3.one * (rSettings.mapChunkSize / 2f)) * rSettings.lerpScale;
 
-            boundsOS = new Bounds(Vector3.one * (rSettings.mapChunkSize / 2), Vector3.one * rSettings.mapChunkSize);
-
             meshFilter = meshObject.AddComponent<MeshFilter>();
             meshRenderer = meshObject.AddComponent<MeshRenderer>();
             meshRenderer.sharedMaterials = Config.CURRENT.System.ReadBack.value.TerrainMats.ToArray();
@@ -219,9 +216,16 @@ namespace TerrainGeneration{
                 UpdateMesh = Status.State.Pending,
                 CanUpdateMesh = Status.State.Finished,
             };
-            GeoShaders = new SubChunkShaderGraph(this);
+            if (depth <= Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
+                GeoShaders = new SubChunkShaderGraph(this);
             Generator = new GeneratorInfo(this);
             SetupChunk();
+        }
+
+        public Bounds GetRelativeBoundsOS(float3 origin, float3 size) {
+            float3 center = (origin + size / 2 - this.origin) / this.size;
+            float3 length = size / this.size;
+            return new Bounds(center * rSettings.mapChunkSize, length * rSettings.mapChunkSize);
         }
 
         /// <summary>
@@ -469,12 +473,9 @@ namespace TerrainGeneration{
                 Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets.vertexCounter);
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, (int)ReadbackMaterial.terrain);
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, (int)ReadbackMaterial.water);
-                Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
 
                 if (depth <= Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
                     GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
-                else
-                    GeoShaders.ReleaseGeometry();
                 status.CanUpdateMesh = Status.Complete(status.CanUpdateMesh);
             }
 
@@ -628,12 +629,9 @@ namespace TerrainGeneration{
                 Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets.vertexCounter);
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, (int)ReadbackMaterial.terrain);
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, (int)ReadbackMaterial.water);
-                Generator.MeshReadback.BeginMeshReadback(UpdateCallback);
 
                 if (depth <= Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
                     GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
-                else
-                    GeoShaders.ReleaseGeometry();
                 status.CanUpdateMesh = Status.Complete(status.CanUpdateMesh);
             }
         }

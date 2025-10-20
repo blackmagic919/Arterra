@@ -34,6 +34,7 @@ struct Settings{
     int QuadType;
 };
 
+float ScaleInverse;
 StructuredBuffer<Level> DetailSettings;
 StructuredBuffer<Settings> VariantSettings;
 StructuredBuffer<SourceVertex> SourceVertices;
@@ -71,7 +72,7 @@ float3 random(float3 st)
 
 Quad GetQuad(float3 center, float3 right, float3 up, uint mat, uint baseSC){    
     Settings s = VariantSettings[mat];
-    float size = DetailSettings[GetDetailLevel(baseSC)].sizeInflate * s.QuadSize;
+    float size = DetailSettings[GetDetailLevel(baseSC)].sizeInflate * s.QuadSize * ScaleInverse;
 
     Quad quad = (Quad)0;
     quad.topLeft = center - right * (size / 2.0) + up * (size / 2.0);
@@ -90,11 +91,12 @@ void AppendTri(DrawTriangle tri){
 
 void AppendQuad(Quad quad, float3 normalOS, uint mat, uint baseSC, inout uint2 chance){
     Settings s = VariantSettings[mat];
+    float Infl = s.InflationFactor * ScaleInverse;
     //Bottom triangle
     DrawTriangle lowerTri = (DrawTriangle)0;
-    lowerTri.vertices[0] = InitializeDrawVertex(quad.topLeft + s.InflationFactor*normalOS, normalOS, uint2(0, 1), mat);
-    lowerTri.vertices[2] = InitializeDrawVertex(quad.bottomLeft + s.InflationFactor*normalOS, normalOS, uint2(0, 0), mat);
-    lowerTri.vertices[1] = InitializeDrawVertex(quad.bottomRight + s.InflationFactor*normalOS, normalOS, uint2(1, 0), mat); //Add this first because clockwise winding
+    lowerTri.vertices[0] = InitializeDrawVertex(quad.topLeft + Infl*normalOS, normalOS, uint2(0, 1), mat);
+    lowerTri.vertices[2] = InitializeDrawVertex(quad.bottomLeft + Infl*normalOS, normalOS, uint2(0, 0), mat);
+    lowerTri.vertices[1] = InitializeDrawVertex(quad.bottomRight + Infl*normalOS, normalOS, uint2(1, 0), mat); //Add this first because clockwise winding
     lowerTri.BaseSCInd = baseSC;
     if (RandomFloat(quad.bottomLeft) < float(chance.x) / float(chance.y)) {
         AppendTri(lowerTri);
@@ -103,9 +105,9 @@ void AppendQuad(Quad quad, float3 normalOS, uint mat, uint baseSC, inout uint2 c
     
     //Top triangle
     DrawTriangle topTri = (DrawTriangle)0;
-    topTri.vertices[0] = InitializeDrawVertex(quad.topLeft + s.InflationFactor*normalOS, normalOS, uint2(0, 1), mat);
-    topTri.vertices[2] = InitializeDrawVertex(quad.bottomRight + s.InflationFactor*normalOS, normalOS, uint2(1, 0), mat);
-    topTri.vertices[1] = InitializeDrawVertex(quad.topRight + s.InflationFactor*normalOS, normalOS, uint2(1, 1), mat);
+    topTri.vertices[0] = InitializeDrawVertex(quad.topLeft + Infl*normalOS, normalOS, uint2(0, 1), mat);
+    topTri.vertices[2] = InitializeDrawVertex(quad.bottomRight + Infl*normalOS, normalOS, uint2(1, 0), mat);
+    topTri.vertices[1] = InitializeDrawVertex(quad.topRight + Infl*normalOS, normalOS, uint2(1, 1), mat);
     topTri.BaseSCInd = baseSC;
     if (RandomFloat(quad.bottomRight) < float(chance.x) / float(chance.y)) {
         AppendTri(topTri);

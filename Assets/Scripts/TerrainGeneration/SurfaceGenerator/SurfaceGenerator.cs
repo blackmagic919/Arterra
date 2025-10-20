@@ -123,7 +123,7 @@ public static class Generator
     /// <param name="addressIndex">The indirect index within <paramref name="addresses"/> of the address
     /// within <paramref name="memory"/> where the surface map will be copied to. </param>
     /// <param name="numPoints">The <b>total</b> amount of points copied from working memory to the specified location.</param>
-    public static void TranscribeSurfaceMap(ComputeBuffer memory, ComputeBuffer addresses, int addressIndex, int numPoints){
+    public static void TranscribeSurfaceMap(ComputeBuffer memory, GraphicsBuffer addresses, int addressIndex, int numPoints){
         surfaceTranscriber.SetBuffer(0, "SurfaceMap", UtilityBuffers.GenerationBuffer);
         surfaceTranscriber.SetInt("numSurfacePoints", numPoints);
 

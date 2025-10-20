@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -10,18 +11,22 @@ using WorldConfig;
 using WorldConfig.Quality;
 
 public class SubChunkShaderGraph{
+    public TerrainChunk parent;
     public FixedOctree tree;
     private static List<GeoShader> shaders => rSettings.Categories.Reg;
     private static GeoShaderSettings rSettings => Config.CURRENT.Quality.GeoShaders.value;
-    public static ComputeShader matSizeCounter;
-    public static ComputeShader filterGeometry;
-    public static ComputeShader sizePrefixSum;
-    public static ComputeShader geoSizeCalculator;
-    public static ComputeShader geoTranscriber;
-    public static ComputeShader shaderDrawArgs;
-    public static ComputeShader geoInfoLoader;
+    private static ComputeShader geoSizeCounter;
+    private static ComputeShader filterGeometry;
+    private static ComputeShader sizePrefixSum;
+    private static ComputeShader geoSizeCalculator;
+    private static ComputeShader geoTranscriber;
+    private static ComputeShader shaderDrawArgs;
+    private static ComputeShader geoInfoLoader;
+    private static ComputeShader subChunkInfo;
     private static GeoShaderOffsets offsets;
+    private static LogicalBlockBuffer SortedSubChunks;
     private IndirectUpdate executor;
+    private BaseGeoHandle baseHandle;
     private static int SubChunkSizeOS;
     private static int SubChunksPerAxis;
     private static int NumSubChunks => SubChunksPerAxis * SubChunksPerAxis * SubChunksPerAxis;
@@ -29,56 +34,89 @@ public class SubChunkShaderGraph{
     const int GEN_TRI_STRIDE = 3*3+1;
     const int TRI_STRIDE_WORD = 3;
     public static void PresetData() {
-        matSizeCounter = Resources.Load<ComputeShader>("Compute/GeoShader/ShaderMatSizeCounter");
+        geoSizeCounter = Resources.Load<ComputeShader>("Compute/GeoShader/ShaderMatSizeCounter");
         filterGeometry = Resources.Load<ComputeShader>("Compute/GeoShader/FilterShaderGeometry");
         sizePrefixSum = Resources.Load<ComputeShader>("Compute/GeoShader/ShaderPrefixConstructor");
         geoSizeCalculator = Resources.Load<ComputeShader>("Compute/GeoShader/GeometryMemorySize");
         geoTranscriber = Resources.Load<ComputeShader>("Compute/GeoShader/TranscribeGeometry");
         shaderDrawArgs = Resources.Load<ComputeShader>("Compute/GeoShader/GeoDrawArgs");
         geoInfoLoader = Resources.Load<ComputeShader>("Compute/GeoShader/GeoInfoLoader");
+        subChunkInfo = Resources.Load<ComputeShader>("Compute/GeoShader/SubChunkInfo");
 
         int maxChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int maxSubChunkDepth = FixedOctree.GetMaxDepth(rSettings.levels.value);
         offsets = new GeoShaderOffsets(maxChunkSize, rSettings.Categories.Count(),
             maxSubChunkDepth, 0);
-
+        
         SubChunksPerAxis = 1 << maxSubChunkDepth;
         SubChunkSizeOS = maxChunkSize / SubChunksPerAxis;
 
+        WorldConfig.Quality.Terrain terrain = Config.CURRENT.Quality.Terrain;
+        int numChunksAxis = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(rSettings.MaxGeoShaderDepth, terrain.Balance, (uint)terrain.MinChunkRadius);
+        int numChunks = numChunksAxis * numChunksAxis * numChunksAxis;
+        SortedSubChunks = new LogicalBlockBuffer(GraphicsBuffer.Target.Structured, numChunks * 2, sizeof(uint) * (NumSubChunks + 1));
+
         int kernel = geoInfoLoader.FindKernel("GetBaseSize");
         geoInfoLoader.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-        geoInfoLoader.SetInt("bCOUNTER_tri", offsets.baseGeoCounter);
+        geoInfoLoader.SetInt("bCOUNT_tri", offsets.baseGeoCounter);
+        geoInfoLoader.SetInt("bCOUNT_offset", offsets.baseGeoOffset);
+        geoInfoLoader.SetInt("triStride", TRI_STRIDE_WORD);
+        kernel = geoInfoLoader.FindKernel("GetSubChunkSize");
+        geoInfoLoader.SetBuffer(kernel, "SubChunkPrefix", SortedSubChunks.Get());
+        geoInfoLoader.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
 
-        kernel = geoInfoLoader.FindKernel("SetSubChunkDetail");
-        geoInfoLoader.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
-        geoInfoLoader.SetBuffer(kernel, "SubChunkRegions", UtilityBuffers.TransferBuffer);
-        kernel = geoInfoLoader.FindKernel("CollectSubChunkSizes");
-        geoInfoLoader.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
-        geoInfoLoader.SetBuffer(kernel, "SubChunkRegions", UtilityBuffers.TransferBuffer);
-        kernel = geoInfoLoader.FindKernel("SetSubChunkAddress");
-        geoInfoLoader.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
-        geoInfoLoader.SetBuffer(kernel, "SubChunkRegions", UtilityBuffers.TransferBuffer);
-        geoInfoLoader.SetInt("bSTART_sChunkI", offsets.subChunkInfoStart);
-        geoInfoLoader.SetInt("numPointsPerAxis", SubChunksPerAxis);
+        kernel = subChunkInfo.FindKernel("SetSubChunkDetail");
+        subChunkInfo.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
+        subChunkInfo.SetBuffer(kernel, "SubChunkRegions", UtilityBuffers.TransferBuffer);
+        kernel = subChunkInfo.FindKernel("CollectSubChunkSizes");
+        subChunkInfo.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
+        subChunkInfo.SetBuffer(kernel, "SubChunkRegions", UtilityBuffers.TransferBuffer);
+        kernel = subChunkInfo.FindKernel("SetSubChunkAddress");
+        subChunkInfo.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
+        subChunkInfo.SetBuffer(kernel, "SubChunkRegions", UtilityBuffers.TransferBuffer);
+        subChunkInfo.SetInt("bSTART_sChunkI", offsets.subChunkInfoStart);
+        kernel = subChunkInfo.FindKernel("ConstructPrefixSizes");
+        subChunkInfo.SetBuffer(kernel, "SubChunkPrefix", SortedSubChunks.Get());
+        subChunkInfo.SetInt("numSubChunks", NumSubChunks);
+        kernel = subChunkInfo.FindKernel("SetGlobalDetail");
+        subChunkInfo.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
 
-        matSizeCounter.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
-        matSizeCounter.SetBuffer(0, "triangleIndexOffset", UtilityBuffers.GenerationBuffer);
-        matSizeCounter.SetBuffer(0, "shaderIndexOffset", UtilityBuffers.GenerationBuffer);
-        matSizeCounter.SetInt("bSTART_scount", offsets.matSizeCStart);
-        matSizeCounter.SetInt("bSTART_tri", offsets.triIndDictStart);
+        kernel = geoSizeCounter.FindKernel("CountShaderSizes");
+        geoSizeCounter.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+        geoSizeCounter.SetBuffer(kernel, "triangleIndexOffset", UtilityBuffers.GenerationBuffer);
+        geoSizeCounter.SetBuffer(kernel, "shaderIndexOffset", UtilityBuffers.GenerationBuffer);
+        geoSizeCounter.SetInt("bSTART_scount", offsets.matSizeCStart);
+        geoSizeCounter.SetInt("bSTART_tri", offsets.triIndDictStart);
+        geoSizeCounter.SetInt("bCOUNT_base", offsets.baseGeoCounter);
+        geoSizeCounter.SetInt("bCOUNT_offset", offsets.baseGeoOffset);
+        kernel = geoSizeCounter.FindKernel("CountSubChunkSizes");
+        geoSizeCounter.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+        geoSizeCounter.SetBuffer(kernel, "triangleIndexOffset", UtilityBuffers.GenerationBuffer);
+        geoSizeCounter.SetBuffer(kernel, "SubChunkPrefix", SortedSubChunks.Get());
+        geoSizeCounter.SetInt("sChunkSize", SubChunkSizeOS);
+        geoSizeCounter.SetInt("sChunksPerAxis", SubChunksPerAxis);
 
         sizePrefixSum.SetBuffer(0, "shaderCountOffset", UtilityBuffers.GenerationBuffer);
         sizePrefixSum.SetInt("bSTART_scount", offsets.matSizeCStart);
 
-        filterGeometry.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
-        filterGeometry.SetBuffer(0, "triangleIndexOffset", UtilityBuffers.GenerationBuffer);
-        filterGeometry.SetBuffer(0, "shaderPrefix", UtilityBuffers.GenerationBuffer);
+        kernel = filterGeometry.FindKernel("FilterShader");
+        filterGeometry.SetBuffer(kernel, "filteredIndicies", UtilityBuffers.GenerationBuffer);
+        filterGeometry.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+        filterGeometry.SetBuffer(kernel, "triangleIndexOffset", UtilityBuffers.GenerationBuffer);
+        filterGeometry.SetBuffer(kernel, "shaderPrefix", UtilityBuffers.GenerationBuffer);
         filterGeometry.SetInt("bSTART_scount", offsets.matSizeCStart);
         filterGeometry.SetInt("bSTART_tri", offsets.triIndDictStart);
-        filterGeometry.SetInt("bCOUNTER_base", offsets.baseGeoCounter);
-
-        filterGeometry.SetBuffer(0, "filteredGeometry", UtilityBuffers.GenerationBuffer);
+        filterGeometry.SetInt("bCOUNT_base", offsets.baseGeoCounter);
+        filterGeometry.SetInt("bCOUNT_offset", offsets.baseGeoOffset);
         filterGeometry.SetInt("bSTART_sort", offsets.fBaseGeoStart);
+
+        kernel = filterGeometry.FindKernel("FilterSubChunks");
+        filterGeometry.SetBuffer(kernel, "filteredGeometry", UtilityBuffers.GenerationBuffer);
+        filterGeometry.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+        filterGeometry.SetBuffer(kernel, "triangleIndexOffset", UtilityBuffers.GenerationBuffer);
+        filterGeometry.SetBuffer(kernel, "SubChunkPrefix", SortedSubChunks.Get());
+        filterGeometry.SetInt("sChunkSize", SubChunkSizeOS);
+        filterGeometry.SetInt("sChunksPerAxis", SubChunksPerAxis);
 
         kernel = geoTranscriber.FindKernel("Transcribe");
         geoTranscriber.SetBuffer(kernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
@@ -91,6 +129,12 @@ public class SubChunkShaderGraph{
         geoTranscriber.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
         geoTranscriber.SetInt("bSTART_sChunkI", offsets.subChunkInfoStart);
 
+        kernel = geoTranscriber.FindKernel("TranscribeSortedBase");
+        geoTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+        geoTranscriber.SetBuffer(kernel, "SortedTriangles", UtilityBuffers.GenerationBuffer);
+        geoTranscriber.SetInt("bCOUNT_base", offsets.baseGeoCounter);
+        geoTranscriber.SetInt("bSTART_sort", offsets.fBaseGeoStart);
+
         kernel = geoSizeCalculator.FindKernel("GetPrefixSize");
         geoSizeCalculator.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
         geoSizeCalculator.SetBuffer(kernel, "prefixSizes", UtilityBuffers.GenerationBuffer);
@@ -102,9 +146,11 @@ public class SubChunkShaderGraph{
         geoSizeCalculator.SetInt("bSTART_oGeo", offsets.shadGeoStart);
         geoSizeCalculator.SetInt("bSTART_sChunkI", offsets.subChunkInfoStart);
 
+        kernel = shaderDrawArgs.FindKernel("FromPrefix");
+        shaderDrawArgs.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.DrawArgs.Get());
         kernel = shaderDrawArgs.FindKernel("FromSubChunks");
         shaderDrawArgs.SetBuffer(kernel, "SubChunkRegions", UtilityBuffers.TransferBuffer);
-        shaderDrawArgs.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.ArgumentBuffer);
+        shaderDrawArgs.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.DrawArgs.Get());
 
         for (int i = 0; i < rSettings.Categories.Reg.Count; i++) {
             GeoShader shader = rSettings.Categories.Retrieve(i);
@@ -116,64 +162,87 @@ public class SubChunkShaderGraph{
             LightBaker.SetupLightSampler(mat);
         }
     }
-    
+
     public static void PresetSubChunkInfo(ComputeShader shader) {
         shader.SetInt("sChunkSize", SubChunkSizeOS);
         shader.SetInt("sChunksPerAxis", SubChunksPerAxis);
         shader.SetInt("bSTART_sChunkI", offsets.subChunkInfoStart);
         shader.SetBuffer(0, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
     }
+    
 
     public void Update(MonoBehaviour _) {
-        tree?.ForEachChunk(chunk => chunk.Update()); //Update
+        tree?.ForEachActiveChunk(chunk => chunk.Update()); //Update
         tree?.VerifyChunks();
     }
 
     public static void Unset(){
+        SortedSubChunks.Destroy();
         foreach (GeoShader shader in rSettings.Categories.Reg){
             shader.Release();
         }
     }
 
     public SubChunkShaderGraph(TerrainChunk parent) {
-        this.tree = new FixedOctree(parent, rSettings.levels);
-        this.tree.Initialize();
+        this.parent = parent;
+        this.tree = new FixedOctree(this, rSettings.levels);
+        this.tree.Initialize(parent.origin + parent.size / 2);
     }
 
     public void Release() {
         this.tree?.ForEachChunk(chunk => chunk.Destroy());
         if (executor != null) executor.Active = false;
+        if (baseHandle.IsSorted) SortedSubChunks.Release((uint)baseHandle.SortedSubCInd);
     }
     public void ReleaseGeometry() {
         this.tree?.ForEachChunk(chunk => chunk.ReleaseGeometry());
         if (executor != null) executor.Active = false;
+        if (baseHandle.IsSorted) SortedSubChunks.Release((uint)baseHandle.SortedSubCInd);
     }
 
     public void ComputeGeoShaderGeometry(GeometryHandle vertHandle, GeometryHandle triHandle) {
-        tree?.VerifyChunks();
+        ReleaseGeometry(); tree?.VerifyChunks();
         this.executor = new IndirectUpdate(Update);
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(executor);
 
         int triAddress = (int)triHandle.addressIndex;
         int vertAddress = (int)vertHandle.addressIndex;
-        ShaderSubchunk[] subchunks = tree.GetAllChunks();
+        this.baseHandle = new BaseGeoHandle(vertHandle, triHandle);
+
+        ShaderSubchunk[] subchunks = tree.GetAllActiveChunks();//
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, offsets.triIndDictStart, 0);
+        LoadBaseGeoInfo(GenerationPreset.memoryHandle, triHandle);
         FilterGeometry(GenerationPreset.memoryHandle, triAddress, vertAddress);
-        ProcessGeoShaders(GenerationPreset.memoryHandle, subchunks, vertAddress, triAddress);
-        uint2[][] allocs = ConvertGeometryToSubchunkRender(GenerationPreset.memoryHandle, subchunks);
+        SetSubChunkDetailLevel(subchunks);
+        ProcessGeoShaders(GenerationPreset.memoryHandle, vertAddress, triAddress);
+        uint2[][] allocs = AllocateForChunkGeometry(GenerationPreset.memoryHandle, subchunks);
         for (int i = 0; i < subchunks.Length; i++) {
             subchunks[i].ApplyAllocToChunk(shaders, allocs[i]);
         }
     }
 
-    void FilterGeometry(MemoryBufferHandler memory, int triAddress, int vertAddress) {
+    public bool RecalculateSubChunkGeoShader(ShaderSubchunk chunk) {
+        if (!baseHandle.IsValid) return false;
+        if (!baseHandle.IsSorted) SortBaseGeometry(GenerationPreset.memoryHandle);
 
+        int2 SCInfo = chunk.GetInfoRegion();
+        int triAddress = (int)baseHandle.triangles.addressIndex;
+        int vertAddress = (int)baseHandle.vertex.addressIndex;
+        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, offsets.triIndDictStart, 0);
+        LoadBaseSubChunkGeoInfo(SCInfo, baseHandle.SortedSubCInd);
+        FilterGeometry(GenerationPreset.memoryHandle, triAddress, vertAddress);
+        SetGlobalDetailLevel(chunk.detailLevel);
+        ProcessGeoShaders(GenerationPreset.memoryHandle, vertAddress, triAddress);
+        uint2[] allocs = AllocateForSubChunkGeometry(GenerationPreset.memoryHandle);
+        chunk.ApplyAllocToChunk(shaders, allocs);
+        return true;
+    }
+
+    void FilterGeometry(MemoryBufferHandler memory, int triAddress, int vertAddress) {
         int numShaders = shaders.Count;
         ComputeBuffer triStorage = memory.GetBlockBuffer(triAddress);
         ComputeBuffer vertStorage = memory.GetBlockBuffer(vertAddress);
-        ComputeBuffer memAddresses = memory.Address;
-
-        LoadBaseGeoInfo(triStorage, memAddresses, triAddress);
+        GraphicsBuffer memAddresses = memory.Address;
 
         CountGeometrySizes(vertStorage, triStorage, memAddresses, vertAddress, triAddress);
 
@@ -182,19 +251,18 @@ public class SubChunkShaderGraph{
         FilterShaderGeometry(vertStorage, triStorage, memAddresses, vertAddress, triAddress);
     }
 
-    void ProcessGeoShaders(MemoryBufferHandler memory, ShaderSubchunk[] subchunks, int vertAddress, int triAddress) {
-        SetSubChunkDetailLevel(subchunks);
+    void ProcessGeoShaders(MemoryBufferHandler memory, int vertAddress, int triAddress) {
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 1, 0); //clear base count
         for (int i = 0; i < shaders.Count; i++) {
             GeoShader geoShader = shaders[i];
-            geoShader.ProcessGeoShader(memory, vertAddress, triAddress, offsets.matSizeCStart + i);
+            geoShader.ProcessGeoShader(memory, vertAddress, triAddress, offsets.matSizeCStart + i, parent.depth);
             UtilityBuffers.CopyCount(source: UtilityBuffers.GenerationBuffer, dest: UtilityBuffers.GenerationBuffer,
                 readOffset: offsets.baseGeoCounter, writeOffset: offsets.shadGeoCStart + i + 1);
         }
     }
 
-    
-    uint2[][] ConvertGeometryToSubchunkRender(MemoryBufferHandler memory, ShaderSubchunk[] subChunks) {
+
+    uint2[][] AllocateForChunkGeometry(MemoryBufferHandler memory, ShaderSubchunk[] subChunks) {
         uint2[][] allocs = new uint2[subChunks.Length][];
         int3[] scAddrInfo = new int3[subChunks.Length];
         for (int i = 0; i < subChunks.Length; i++) {
@@ -211,7 +279,7 @@ public class SubChunkShaderGraph{
                     j * 3 + 2
                 );
                 scAddrInfo[j].z = (int)allocs[j][i].x;
-                allocs[j][i].y = UtilityBuffers.AllocateArgs();
+                allocs[j][i].y = UtilityBuffers.DrawArgs.Allocate();
                 SetSubChunkDrawArgs((int)allocs[j][i].y, j);
             }
             BatchTranscribe(memory.Storage, memory.Address,
@@ -219,74 +287,118 @@ public class SubChunkShaderGraph{
         }
         return allocs;
     }
+    
+    public uint2[] AllocateForSubChunkGeometry(MemoryBufferHandler memory)
+    {
+        int numShaders = shaders.Count;
+
+        uint2[] allocs = new uint2[numShaders];
+        GraphicsBuffer addressesReference = memory.Address;
+
+        for (int i = 0; i < numShaders; i++){
+            CopyGeoCount(offsets.shadGeoCStart + i);
+            allocs[i].x = memory.AllocateMemory(UtilityBuffers.GenerationBuffer, GEO_TRI_STRIDE, offsets.baseGeoCounter);
+            ComputeBuffer memoryReference = memory.GetBlockBuffer(allocs[i].x);
+            TranscribeGeometry(memoryReference, addressesReference, (int)allocs[i].x, offsets.shadGeoCStart + i);
+            allocs[i].y = UtilityBuffers.DrawArgs.Allocate();
+            GetDrawArgs((int)allocs[i].y, offsets.shadGeoCStart + i);
+        }
+        return allocs;
+    }
 
 
-    public void LoadBaseGeoInfo(ComputeBuffer memory, ComputeBuffer addresses, int triAddress) {
+    private void LoadBaseGeoInfo(MemoryBufferHandler memory, GeometryHandle triHandle) {
+        ComputeBuffer triStorage = memory.GetBlockBuffer(triHandle.addressIndex);
+        GraphicsBuffer addresses = memory.Address;
+        
         int kernel = geoInfoLoader.FindKernel("GetBaseSize");
-        geoInfoLoader.SetBuffer(kernel, "_MemoryBuffer", memory);
+        geoInfoLoader.SetBuffer(kernel, "_MemoryBuffer", triStorage);
         geoInfoLoader.SetBuffer(kernel, "_AddressDict", addresses);
-        geoInfoLoader.SetInt("triAddress", triAddress);
-        geoInfoLoader.SetInt("triStride", TRI_STRIDE_WORD);
+        geoInfoLoader.SetInt("triAddress", (int)triHandle.addressIndex);
         geoInfoLoader.Dispatch(kernel, 1, 1, 1);
-
     }
 
-    void CountGeometrySizes(ComputeBuffer vertMemory, ComputeBuffer triMemory, ComputeBuffer addresses, int vertAddress, int triAddress) {
-        ComputeBuffer args = UtilityBuffers.CountToArgs(matSizeCounter, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter);
-
-        matSizeCounter.SetBuffer(0, "vertices", vertMemory);
-        matSizeCounter.SetBuffer(0, "triangles", triMemory);
-        matSizeCounter.SetBuffer(0, "_AddressDict", addresses);
-        matSizeCounter.SetInt("vertAddress", vertAddress);
-        matSizeCounter.SetInt("triAddress", triAddress);
-
-        matSizeCounter.DispatchIndirect(0, args);
+    private void LoadBaseSubChunkGeoInfo(int2 SCInfo, int prefixStart) {
+        int stride = NumSubChunks + 1;
+        int kernel = geoInfoLoader.FindKernel("GetSubChunkSize");
+        geoInfoLoader.SetInt("bSTART_sChunkP", prefixStart * stride);
+        geoInfoLoader.SetInt("SCStart", SCInfo.x);
+        geoInfoLoader.SetInt("SCEnd", SCInfo.y);
+        geoInfoLoader.Dispatch(kernel, 1, 1, 1);
     }
 
-    void ConstructPrefixSum(int numShaders) {
+    private static void CountGeometrySizes(ComputeBuffer vertMemory, ComputeBuffer triMemory, GraphicsBuffer addresses, int vertAddress, int triAddress) {
+        int kernel = geoSizeCounter.FindKernel("CountShaderSizes");
+        ComputeBuffer args = UtilityBuffers.CountToArgs(geoSizeCounter, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
+        geoSizeCounter.SetBuffer(kernel, "vertices", vertMemory);
+        geoSizeCounter.SetBuffer(kernel, "triangles", triMemory);
+        geoSizeCounter.SetBuffer(kernel, "_AddressDict", addresses);
+        geoSizeCounter.SetInt("vertAddress", vertAddress);
+        geoSizeCounter.SetInt("triAddress", triAddress);
+
+        geoSizeCounter.DispatchIndirect(kernel, args);
+    }
+
+    private static void ConstructPrefixSum(int numShaders) {
         sizePrefixSum.SetInt("numShaders", numShaders);
         sizePrefixSum.Dispatch(0, 1, 1, 1);
     }
 
-    void FilterShaderGeometry(ComputeBuffer vertMemory, ComputeBuffer triMemory, ComputeBuffer addresses, int vertAddress, int triAddress) {
+    private static void FilterShaderGeometry(ComputeBuffer vertMemory, ComputeBuffer triMemory, GraphicsBuffer addresses, int vertAddress, int triAddress) {
         ComputeBuffer args = UtilityBuffers.CountToArgs(filterGeometry, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter);
 
-        filterGeometry.SetBuffer(0, "vertices", vertMemory);
-        filterGeometry.SetBuffer(0, "triangles", triMemory);
-        filterGeometry.SetBuffer(0, "_AddressDict", addresses);
+        int kernel = filterGeometry.FindKernel("FilterShader");
+        filterGeometry.SetBuffer(kernel, "vertices", vertMemory);
+        filterGeometry.SetBuffer(kernel, "triangles", triMemory);
+        filterGeometry.SetBuffer(kernel, "_AddressDict", addresses);
         filterGeometry.SetInt("vertAddress", vertAddress);
         filterGeometry.SetInt("triAddress", triAddress);
 
-        filterGeometry.DispatchIndirect(0, args);
+        filterGeometry.DispatchIndirect(kernel, args);
     }
 
 
     void CountSubChunkGeoSizes(int shadGeoCount, ShaderSubchunk[] subChunks) {
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, NumSubChunks, offsets.subChunkInfoStart);
+        CopyGeoCount(shadGeoCount);
+
+        int kernel = geoSizeCalculator.FindKernel("CountSubChunkSizes");
+        ComputeBuffer args = UtilityBuffers.CountToArgs(geoSizeCalculator, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
+        geoSizeCalculator.DispatchIndirect(kernel, args);
+
+        kernel = subChunkInfo.FindKernel("CollectSubChunkSizes");
+        subChunkInfo.SetInt("numSubChunkRegions", subChunks.Length);
+        subChunkInfo.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
+        int numThreadsAxis = (int)math.ceil((double)subChunks.Length / threadGroupSize);
+        subChunkInfo.Dispatch(kernel, numThreadsAxis, 1, 1);
+    }
+
+    void CopyGeoCount(int shadGeoCount) {
         int kernel = geoSizeCalculator.FindKernel("GetPrefixSize");
         geoSizeCalculator.SetInt("bCOUNT_oGeo", shadGeoCount);
         geoSizeCalculator.Dispatch(kernel, 1, 1, 1);
+    }
+    
+    void TranscribeGeometry(ComputeBuffer memory, GraphicsBuffer addresses, int addressIndex, int geoSizeCounter) {
+        ComputeBuffer args = UtilityBuffers.CountToArgs(geoTranscriber, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter);
 
-        kernel = geoSizeCalculator.FindKernel("CountSubChunkSizes");
-        ComputeBuffer args = UtilityBuffers.CountToArgs(geoSizeCalculator, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
-        geoSizeCalculator.DispatchIndirect(kernel, args);
-        
-        kernel = geoInfoLoader.FindKernel("CollectSubChunkSizes");
-        geoInfoLoader.SetInt("numSubChunkRegions", subChunks.Length);
-        geoInfoLoader.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
-        int numThreadsAxis = (int)math.ceil((double)subChunks.Length / threadGroupSize);
-        geoInfoLoader.Dispatch(kernel, numThreadsAxis, 1, 1);
+        int kernel = geoTranscriber.FindKernel("Transcribe");
+        geoTranscriber.SetBuffer(kernel, "_MemoryBuffer", memory);
+        geoTranscriber.SetBuffer(kernel, "_AddressDict", addresses);
+        geoTranscriber.SetInt("addressIndex", addressIndex);
+        geoTranscriber.SetInt("bCOUNTER_oGeo", geoSizeCounter);
+        geoTranscriber.DispatchIndirect(kernel, args);
     }
 
-    void BatchTranscribe(ComputeBuffer memory, ComputeBuffer addresses, int3[] SCAddressRegions, int shadGeoCount) {
+    void BatchTranscribe(ComputeBuffer memory, GraphicsBuffer addresses, int3[] SCAddressRegions, int shadGeoCount) {
         UtilityBuffers.TransferBuffer.SetData(SCAddressRegions);
-        int kernel = geoInfoLoader.FindKernel("SetSubChunkAddress");
+        int kernel = subChunkInfo.FindKernel("SetSubChunkAddress");
         //This is safe ONLY if immediately using it after allocation
-        geoInfoLoader.SetBuffer(kernel, "_AddressDict", addresses);
-        geoInfoLoader.SetInt("numSubChunkRegions", SCAddressRegions.Length);
-        geoInfoLoader.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
+        subChunkInfo.SetBuffer(kernel, "_AddressDict", addresses);
+        subChunkInfo.SetInt("numSubChunkRegions", SCAddressRegions.Length);
+        subChunkInfo.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
         int numThreadsAxis = (int)math.ceil((double)SCAddressRegions.Length / threadGroupSize);
-        geoInfoLoader.Dispatch(kernel, numThreadsAxis, 1, 1);
+        subChunkInfo.Dispatch(kernel, numThreadsAxis, 1, 1);
 
         kernel = geoTranscriber.FindKernel("BatchTranscribe");
         ComputeBuffer args = UtilityBuffers.CountToArgs(geoTranscriber, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
@@ -299,11 +411,19 @@ public class SubChunkShaderGraph{
         int3[] detailLevels = subchunks.Select(subchunk => new int3(
             subchunk.GetInfoRegion(), subchunk.detailLevel)).ToArray();
         UtilityBuffers.TransferBuffer.SetData(detailLevels);
-        int kernel = geoInfoLoader.FindKernel("SetSubChunkDetail");
-        geoInfoLoader.SetInt("numSubChunkRegions", subchunks.Length);
-        geoInfoLoader.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
+        int kernel = subChunkInfo.FindKernel("SetSubChunkDetail");
+        subChunkInfo.SetInt("numSubChunkRegions", subchunks.Length);
+        subChunkInfo.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
         int numThreadsAxis = (int)math.ceil((double)subchunks.Length / threadGroupSize);
-        geoInfoLoader.Dispatch(kernel, numThreadsAxis, 1, 1);
+        subChunkInfo.Dispatch(kernel, numThreadsAxis, 1, 1);
+    }
+
+    void SetGlobalDetailLevel(int detailLevel) {
+        int kernel = subChunkInfo.FindKernel("SetGlobalDetail");
+        subChunkInfo.SetInt("detailLevel", detailLevel);
+        subChunkInfo.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
+        int numThreadsAxis = (int)math.ceil((double)NumSubChunks / threadGroupSize);
+        subChunkInfo.Dispatch(kernel, numThreadsAxis, 1, 1);
     }
 
     void SetSubChunkDrawArgs(int address, int subChunkInd) {
@@ -312,42 +432,58 @@ public class SubChunkShaderGraph{
         shaderDrawArgs.SetInt("SubChunkInd", subChunkInd);
         shaderDrawArgs.Dispatch(kernel, 1, 1, 1);
     }
-    
 
-    /* Gen Buffer Organization
-    [ baseGeoCounter(4b) | matSizeCounters(20b) |  shadGeoCounters(20b) | subchunkLUT(256b) | triIndDict(5.25 mb) | filteredBaseGeo(5.25mb) | GeoShaderGeometry(rest of buffer)]
-    */
-    public struct GeoShaderOffsets : BufferOffsets {
-        public int baseGeoCounter; 
-        public int matSizeCStart;
-        public int shadGeoCStart;
-        public int triIndDictStart;
-        public int subChunkInfoStart;
-        public int fBaseGeoStart;
-        public int shadGeoStart;
-        private int offsetStart; private int offsetEnd;
-        /// <summary> The start of the buffer region that is used by the GeoShader generator. 
-        /// See <see cref="BufferOffsets.bufferStart"/> for more info. </summary>
-        public int bufferStart{get{return offsetStart;}}
-        /// <summary> The end of the buffer region that is used by the GeoShader generator. 
-        /// See <see cref="BufferOffsets.bufferEnd"/> for more info. </summary>
-        public int bufferEnd { get { return offsetEnd; } }
-        public GeoShaderOffsets(int maxChunkSize, int maxShaderCount, int maxSubChunkDepth, int bufferStart) {
-            int numPointsPerAxis = maxChunkSize + 1;
-            int numOfTris = (numPointsPerAxis - 1) * (numPointsPerAxis - 1) * (numPointsPerAxis - 1) * 5;
-            int subChunksPerAxis = (1 << maxSubChunkDepth);
-            int numSubChunks = subChunksPerAxis * subChunksPerAxis * subChunksPerAxis;
+    void GetDrawArgs(int address, int geoSizeCounter) {
+        int kernel = shaderDrawArgs.FindKernel("FromPrefix");
+        shaderDrawArgs.SetBuffer(kernel, "prefixSizes", UtilityBuffers.GenerationBuffer);
+        shaderDrawArgs.SetInt("bCOUNT_oGeo", geoSizeCounter);
+        shaderDrawArgs.SetInt("argOffset", address);
+        shaderDrawArgs.Dispatch(kernel, 1, 1, 1);
+    }
 
-            this.offsetStart = bufferStart;
-            baseGeoCounter = bufferStart;
-            matSizeCStart = 1 + baseGeoCounter;
-            shadGeoCStart = (maxShaderCount + 1) + matSizeCStart;
-            subChunkInfoStart = (maxShaderCount + 1) + shadGeoCStart;;
-            triIndDictStart = numSubChunks + subChunkInfoStart;
-            fBaseGeoStart = numOfTris + triIndDictStart;
-            shadGeoStart = Mathf.CeilToInt(((float)numOfTris + fBaseGeoStart) / GEN_TRI_STRIDE);
-            this.offsetEnd = (shadGeoStart + numOfTris) * GEN_TRI_STRIDE;
-        }
+    void SortBaseGeometry(MemoryBufferHandler memory) {
+        int stride = NumSubChunks + 1;
+        baseHandle.SortedSubCInd = (int)SortedSubChunks.Allocate();
+        int start = baseHandle.SortedSubCInd * stride;
+        ComputeBuffer triStorage = memory.GetBlockBuffer(baseHandle.triangles.addressIndex);
+        ComputeBuffer vertStorage = memory.GetBlockBuffer(baseHandle.vertex.addressIndex);
+        GraphicsBuffer memAddresses = memory.Address;
+        int triAddress = (int)baseHandle.triangles.addressIndex;
+        int vertAddress = (int)baseHandle.vertex.addressIndex;
+
+        LoadBaseGeoInfo(memory, baseHandle.triangles);
+        UtilityBuffers.ClearRange(SortedSubChunks.Get(), stride, start);
+
+        int kernel = geoSizeCounter.FindKernel("CountSubChunkSizes");
+        ComputeBuffer args = UtilityBuffers.CountToArgs(geoSizeCounter, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
+        geoSizeCounter.SetBuffer(kernel, "vertices", triStorage);
+        geoSizeCounter.SetBuffer(kernel, "triangles", vertStorage);
+        geoSizeCounter.SetBuffer(kernel, "_AddressDict", memAddresses);
+        geoSizeCounter.SetInt("bSTART_sChunkP", start);
+        geoSizeCounter.SetInt("vertAddress", vertAddress);
+        geoSizeCounter.SetInt("triAddress", triAddress);
+        geoSizeCounter.DispatchIndirect(kernel, args);
+
+        kernel = subChunkInfo.FindKernel("ConstructPrefixSizes");
+        subChunkInfo.SetInt("bSTART_sChunkP", start);
+        subChunkInfo.Dispatch(kernel, 1, 1, 1);
+
+        kernel = filterGeometry.FindKernel("FilterSubChunks");
+        filterGeometry.SetBuffer(kernel, "vertices", vertStorage);
+        filterGeometry.SetBuffer(kernel, "triangles", triStorage);
+        filterGeometry.SetBuffer(kernel, "_AddressDict", memAddresses);
+        filterGeometry.SetInt("vertAddress", vertAddress);
+        filterGeometry.SetInt("triAddress", triAddress);
+        filterGeometry.SetInt("bSTART_sChunkP", start);
+        args = UtilityBuffers.CountToArgs(filterGeometry, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
+        filterGeometry.DispatchIndirect(kernel, args);
+
+        kernel = geoTranscriber.FindKernel("TranscribeSortedBase");
+        geoTranscriber.SetBuffer(kernel, "_MemoryBufferBase", triStorage);
+        geoTranscriber.SetBuffer(kernel, "_AddressDict", memAddresses);
+        geoTranscriber.SetInt("addressIndex", triAddress);
+        args = UtilityBuffers.CountToArgs(geoTranscriber, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
+        geoTranscriber.DispatchIndirect(kernel, args);
     }
 
     public class FixedOctree : Octree<ShaderSubchunk> {
@@ -355,8 +491,8 @@ public class SubChunkShaderGraph{
         /// chunk space. This value is only updated when the viewer's
         /// position exceeds the viewDistUpdate threshold. </summary>
         public int3 ViewerPosGS;
-        public TerrainChunk parent;
         private List<GeoShaderSettings.DetailLevel> Details;
+        private WeakReference<SubChunkShaderGraph> Graph;
         public static int GetMaxDepth(List<GeoShaderSettings.DetailLevel> detailLevels) {
             int divisions = 0;
             foreach (var level in detailLevels)
@@ -371,15 +507,14 @@ public class SubChunkShaderGraph{
         private static int GetMinChunkSize(int depth, int rootChunkSize) {
             return rootChunkSize / (1 << depth);
         }
-        public FixedOctree(TerrainChunk parent, List<GeoShaderSettings.DetailLevel> detailLevels) :
+        public FixedOctree(SubChunkShaderGraph graph, List<GeoShaderSettings.DetailLevel> detailLevels) :
             base(GetMaxDepth(detailLevels),
-                GetMinChunkSize(GetMaxDepth(detailLevels), parent.size),
+                GetMinChunkSize(GetMaxDepth(detailLevels), graph.parent.size),
                 GetMaxNumChunks(GetMaxDepth(detailLevels))) {
+            this.Graph = new WeakReference<SubChunkShaderGraph>(graph);
             this.Details = detailLevels;
-            this.parent = parent;
         }
-        public void Initialize() {
-            int3 center = parent.origin + parent.size / 2;
+        public void Initialize(int3 center) {
             ViewerPosGS = (int3)math.round(CPUMapManager.WSToGS(OctreeTerrain.viewer.position));
             base.Initialize(1, center);
         }
@@ -413,11 +548,63 @@ public class SubChunkShaderGraph{
 
         protected override bool RemapRoot(uint node) => true;
         protected override void AddTerrainChunk(uint octreeIndex) {
+            if (!Graph.TryGetTarget(out SubChunkShaderGraph g)) return;
             ref Node node = ref nodes[octreeIndex];
-            ShaderSubchunk nChunk = new ShaderSubchunk(this, node.origin, (int)node.size, octreeIndex);
+            ShaderSubchunk nChunk = new ShaderSubchunk(g, node.origin, (int)node.size, octreeIndex);
             node.Chunk = chunks.Enqueue(nChunk);
             node.IsComplete = false;
         }
+    }
 
+    /* Gen Buffer Organization
+    [ baseGeoCounter(4b) | matSizeCounters(20b) |  shadGeoCounters(20b) | subchunkLUT(256b) | triIndDict(5.25 mb) | filteredBaseGeo(5.25mb) | GeoShaderGeometry(rest of buffer)]
+    */
+    public struct GeoShaderOffsets : BufferOffsets {
+        public int baseGeoCounter; 
+        public int baseGeoOffset; 
+        public int matSizeCStart;
+        public int shadGeoCStart;
+        public int triIndDictStart;
+        public int subChunkInfoStart;
+        public int fBaseGeoStart;
+        public int shadGeoStart;
+        private int offsetStart; private int offsetEnd;
+        /// <summary> The start of the buffer region that is used by the GeoShader generator. 
+        /// See <see cref="BufferOffsets.bufferStart"/> for more info. </summary>
+        public int bufferStart{get{return offsetStart;}}
+        /// <summary> The end of the buffer region that is used by the GeoShader generator. 
+        /// See <see cref="BufferOffsets.bufferEnd"/> for more info. </summary>
+        public int bufferEnd { get { return offsetEnd; } }
+        public GeoShaderOffsets(int maxChunkSize, int maxShaderCount, int maxSubChunkDepth, int bufferStart) {
+            int numPointsPerAxis = maxChunkSize + 1;
+            int numOfTris = (numPointsPerAxis - 1) * (numPointsPerAxis - 1) * (numPointsPerAxis - 1) * 5;
+            int subChunksPerAxis = (1 << maxSubChunkDepth);
+            int numSubChunks = subChunksPerAxis * subChunksPerAxis * subChunksPerAxis;
+
+            this.offsetStart = bufferStart;
+            baseGeoCounter = bufferStart;
+            baseGeoOffset = 1 + baseGeoCounter;
+            matSizeCStart = 1 + baseGeoOffset;
+            shadGeoCStart = (maxShaderCount + 1) + matSizeCStart;
+            subChunkInfoStart = (maxShaderCount + 1) + shadGeoCStart;;
+            triIndDictStart = numSubChunks + subChunkInfoStart;
+            fBaseGeoStart = numOfTris + triIndDictStart;
+            shadGeoStart = Mathf.CeilToInt(((float)numOfTris + fBaseGeoStart) / GEN_TRI_STRIDE);
+            this.offsetEnd = (shadGeoStart + numOfTris) * GEN_TRI_STRIDE;
+        }
+    }
+
+    private struct BaseGeoHandle{
+        public GeometryHandle vertex;
+        public GeometryHandle triangles;
+        public int SortedSubCInd;
+        public bool IsSorted => SortedSubCInd != -1;
+        public bool IsValid => vertex.Active && triangles.Active;
+
+        public BaseGeoHandle(GeometryHandle v, GeometryHandle t) {
+            this.vertex = v;
+            this.triangles = t;
+            SortedSubCInd = -1;
+        }
     }
 }

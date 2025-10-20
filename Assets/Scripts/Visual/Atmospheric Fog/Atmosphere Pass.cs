@@ -59,7 +59,7 @@ public class AtmospherePass : ScriptableRenderPass
         RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
         descriptor.depthBufferBits = 0;
         
-        ConfigureInput(ScriptableRenderPassInput.Color);
+        ConfigureInput(ScriptableRenderPassInput.Color | ScriptableRenderPassInput.Depth);
         colorBuffer = renderingData.cameraData.renderer.cameraColorTargetHandle;
         //We need copy from depth buffer because transparent pass needs depth texture of opaque pass, and fog needs depth texture of transparent pass
         depthBuffer = renderingData.cameraData.renderer.cameraDepthTargetHandle;
@@ -78,8 +78,7 @@ public class AtmospherePass : ScriptableRenderPass
             {
                 SetGlobalLightProperties(cmd, ref renderingData);
                 AtmosphereSettings.Execute(cmd);
-                // Blit from the color buffer to a temporary buffer and back. This is needed for a two-pass shader.
-                cmd.Blit(depthBuffer.rt, Shader.GetGlobalTexture("_CameraDepthTexture")); //Make sure camera depth is available in shader
+                cmd.SetGlobalTexture("_CameraDepthTexture", depthBuffer);//Make sure camera depth is available in shader
                 cmd.Blit(colorBuffer.rt, temporaryBuffer.rt, material, 0); // shader pass 0
                 cmd.Blit(temporaryBuffer.rt, colorBuffer.rt);
             }

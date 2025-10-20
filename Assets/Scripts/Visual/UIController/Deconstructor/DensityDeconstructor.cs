@@ -497,13 +497,13 @@ public class DensityDeconstructor : MonoBehaviour
         }
 
         TerrainGeneration.Readback.GeometryHandle SetupGeoHandle(int vertStart, int indexStart, int indexCounter, int matInd){
-            uint drawArgs = UtilityBuffers.AllocateArgs();
+            uint drawArgs = UtilityBuffers.DrawArgs.Allocate();
 
             int kernel = DrawArgsConstructor.FindKernel("CSMain");
             DrawArgsConstructor.SetBuffer(kernel, "counter", this.GeoBuffer);
             DrawArgsConstructor.SetInt("bCOUNTER", indexCounter);
             DrawArgsConstructor.SetInt("argOffset", (int)drawArgs);
-            DrawArgsConstructor.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.ArgumentBuffer);
+            DrawArgsConstructor.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.DrawArgs.Get());
             DrawArgsConstructor.Dispatch(kernel, 1, 1, 1);
 
             Vector3 size = new Vector3(GridSize.x, GridSize.y, GridSize.z);

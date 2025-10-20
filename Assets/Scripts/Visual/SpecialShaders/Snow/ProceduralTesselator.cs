@@ -51,13 +51,13 @@ public class ProceduralTesselator : GeoShader
         detailTable?.Release();
     }
     
-    public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount)
+    public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount, int parentDepth)
     {
         if (settings.Reg.Count == 0) return;
         int kernel = tesselCompute.FindKernel("Main");
         ComputeBuffer vertSource = memoryHandle.GetBlockBuffer(vertAddress);
         ComputeBuffer triSource = memoryHandle.GetBlockBuffer(triAddress);
-        ComputeBuffer addresses = memoryHandle.Address;
+        GraphicsBuffer addresses = memoryHandle.Address;
 
         ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(tesselCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 

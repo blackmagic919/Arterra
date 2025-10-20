@@ -56,12 +56,13 @@ public class ProceduralShellTexturer : GeoShader
         detailTable?.Release();
     }
 
-    public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount) {
+    public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount, int parentDepth) {
         if (settings.Reg.Count == 0) return;
         int kernel = shellCompute.FindKernel("Main");
         ComputeBuffer vertSource = memoryHandle.GetBlockBuffer(vertAddress);
         ComputeBuffer triSource = memoryHandle.GetBlockBuffer(triAddress);
-        ComputeBuffer addresses = memoryHandle.Address;
+        GraphicsBuffer addresses = memoryHandle.Address;
+        float invScale = 1.0f / (1 << parentDepth);
 
         ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(shellCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
@@ -70,6 +71,7 @@ public class ProceduralShellTexturer : GeoShader
         shellCompute.SetBuffer(kernel, "_AddressDict", addresses);
         shellCompute.SetInt("vertAddress", vertAddress);
         shellCompute.SetInt("triAddress", triAddress);
+        shellCompute.SetFloat("ScaleInverse", invScale);
 
         shellCompute.DispatchIndirect(kernel, args);
     }

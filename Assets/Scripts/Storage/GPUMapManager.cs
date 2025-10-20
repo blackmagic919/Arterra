@@ -235,7 +235,7 @@ namespace MapStorage{
         /// <summary> The buffer containing the hashmap structure used to facilitate GPU-side map lookup </summary>
         public static ComputeBuffer Address => _ChunkAddressDict;
         /// <summary> The buffer containing the raw unstructured list of addresses to each chunk's map information. </summary>
-        public static ComputeBuffer DirectAddress => memorySpace.Address;
+        public static GraphicsBuffer DirectAddress => memorySpace.Address;
 
 
         static void TranscribeMap(ComputeBuffer mapData, uint address, int rStart, int readAxis, int writeAxis, int rdOff = 0) {
@@ -303,7 +303,7 @@ namespace MapStorage{
             multiMapTranscribe.Dispatch(0, numThreadsAxis, numThreadsAxis, numThreadsAxis);
         }
 
-        static void ReplaceAddress(ComputeBuffer addressDict, uint address, int3 oCoord, int3 dimension, int3 offC, int depth) {
+        static void ReplaceAddress(GraphicsBuffer addressDict, uint address, int3 oCoord, int3 dimension, int3 offC, int depth) {
             dictReplaceKey.SetBuffer(0, "ChunkDict", _ChunkAddressDict);
             dictReplaceKey.SetBuffer(0, "_AddressDict", addressDict);
             dictReplaceKey.SetInt("addressIndex", (int)address);
@@ -341,7 +341,7 @@ namespace MapStorage{
             memorySpace.ReleaseMemory(address);
         }
 
-        static void SimplifyDataDirect(ComputeBuffer memory, ComputeBuffer addressDict, uint address, int3 CCoord, int meshSkipInc) {
+        static void SimplifyDataDirect(ComputeBuffer memory, GraphicsBuffer addressDict, uint address, int3 CCoord, int meshSkipInc) {
             int numPointsAxis = mapChunkSize / meshSkipInc;
 
             simplifyMap.SetBuffer(0, "_MemoryBuffer", memory);

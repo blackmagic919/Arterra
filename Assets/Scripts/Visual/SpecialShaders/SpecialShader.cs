@@ -54,7 +54,7 @@ namespace WorldConfig.Quality{
         /// of the geoshader. When adding output, this value at this location should be increased to track the last filled position. </param>
         /// <param name="geoInd"> The index within the external registry, <see cref="Config.QualitySettings.GeoShaders"/>, of the 
         /// current geoshader. </param>
-        public virtual void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount)
+        public virtual void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount, int ParentDepth)
         {
 
         }

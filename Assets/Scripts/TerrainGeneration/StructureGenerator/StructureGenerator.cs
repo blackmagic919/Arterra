@@ -311,7 +311,7 @@ public static class Generator
     /// <param name="addresses">The buffer containing the direct address within <paramref name="memory"/> where the information will be stored. </param>
     /// <returns>The index within <paramref name="addresses"/> of the location that contains the direct address to the 
     /// region within <paramref name="memory"/> where the information will be stored. </returns>
-    public static uint TranscribeStructures(ComputeBuffer memory, ComputeBuffer addresses, uint addressIndex)
+    public static uint TranscribeStructures(ComputeBuffer memory, GraphicsBuffer addresses, uint addressIndex)
     {
         ComputeBuffer args = UtilityBuffers.CountToArgs(structureDataTranscriber, UtilityBuffers.GenerationBuffer, offsets.structureCounter);
 
@@ -333,7 +333,7 @@ public static class Generator
     /// <param name="STRUCTURE_STRIDE_4BYTE">The size of the generation information of a single structure in units of 4-bytes. The amount of 
     /// unique structures can be obtained by dividing the total size of the chunk's structure generation information by this size.</param>
     /// <returns>A buffer containing the amount of structures in its first entry.</returns>
-    public static ComputeBuffer GetStructCount(ComputeBuffer memory, ComputeBuffer address, int addressIndex, int STRUCTURE_STRIDE_4BYTE)
+    public static ComputeBuffer GetStructCount(ComputeBuffer memory, GraphicsBuffer address, int addressIndex, int STRUCTURE_STRIDE_4BYTE)
     {
         ComputeBuffer structCount = UtilityBuffers.appendCount;
 
@@ -367,7 +367,7 @@ public static class Generator
     /// entry of the first entry exclusively contained by the chunk.</param>
     /// <param name="wChunkSize">The axis size of the chunk's terrain map as it currently is in <see cref="GenerationBuffer"> working memory </see>.</param>
     /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> for more info.</param>
-    public static void ApplyStructures(ComputeBuffer memory, ComputeBuffer addresses, ComputeBuffer count, int addressIndex, int mapStart, int chunkSize, int meshSkipInc, int wOffset, int wChunkSize, float IsoLevel)
+    public static void ApplyStructures(ComputeBuffer memory, GraphicsBuffer addresses, ComputeBuffer count, int addressIndex, int mapStart, int chunkSize, int meshSkipInc, int wOffset, int wChunkSize, float IsoLevel)
     {
         ComputeBuffer args = UtilityBuffers.CountToArgs(structureChunkGenerator, count);
 

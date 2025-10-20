@@ -140,7 +140,7 @@ public class ShaderGenerator
         int numShaders = shaders.Count;
         ComputeBuffer triStorage = memory.GetBlockBuffer(triAddress);
         ComputeBuffer vertStorage = memory.GetBlockBuffer(vertAddress);
-        ComputeBuffer memAddresses = memory.Address;
+        GraphicsBuffer memAddresses = memory.Address;
 
         LoadBaseGeoInfo(triStorage, memAddresses, triAddress);
 
@@ -156,13 +156,13 @@ public class ShaderGenerator
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 1, 0); //clear base count
         for (int i = 0; i < shaders.Count; i++){
             GeoShader geoShader = shaders[i];
-            geoShader.ProcessGeoShader(memory, vertAddress, triAddress, offsets.matSizeCStart + i);
+            geoShader.ProcessGeoShader(memory, vertAddress, triAddress, offsets.matSizeCStart + i, -1);
             UtilityBuffers.CopyCount(source: UtilityBuffers.GenerationBuffer, dest: UtilityBuffers.GenerationBuffer,
                 readOffset: offsets.baseGeoCounter, writeOffset: offsets.shadGeoCStart + i + 1);
         }
     }
 
-    public void LoadBaseGeoInfo(ComputeBuffer memory, ComputeBuffer addresses, int triAddress)
+    public void LoadBaseGeoInfo(ComputeBuffer memory, GraphicsBuffer addresses, int triAddress)
     {
         geoInfoLoader.SetBuffer(0, "_MemoryBuffer", memory);
         geoInfoLoader.SetBuffer(0, "_AddressDict", addresses);
@@ -178,7 +178,7 @@ public class ShaderGenerator
         int numShaders = shaders.Count;
 
         uint[] geoShaderAddresses = new uint[numShaders];
-        ComputeBuffer addressesReference = GenerationPreset.memoryHandle.Address;
+        GraphicsBuffer addressesReference = GenerationPreset.memoryHandle.Address;
 
         for (int i = 0; i < numShaders; i++){
             CopyGeoCount(offsets.shadGeoCStart + i);
@@ -193,7 +193,7 @@ public class ShaderGenerator
     public RenderParams[] SetupShaderMaterials(MemoryBufferHandler memoryHandle, uint[] address)
     {
         RenderParams[] rps = new RenderParams[shaders.Count];
-        ComputeBuffer addressBuffer = memoryHandle.Address;
+        GraphicsBuffer addressBuffer = memoryHandle.Address;
 
         for (int i = 0; i < shaders.Count; i++) {
             ComputeBuffer sourceBuffer = memoryHandle.GetBlockBuffer(address[i]);
@@ -218,8 +218,8 @@ public class ShaderGenerator
         uint[] shaderDrawArgs = new uint[numShaders];
 
         for (int i = 0; i < numShaders; i++) {
-            shaderDrawArgs[i] = UtilityBuffers.AllocateArgs();
-            GetDrawArgs(UtilityBuffers.ArgumentBuffer, (int)shaderDrawArgs[i], offsets.shadGeoCStart + i);
+            shaderDrawArgs[i] = UtilityBuffers.DrawArgs.Allocate();
+            GetDrawArgs(UtilityBuffers.DrawArgs.Get(), (int)shaderDrawArgs[i], offsets.shadGeoCStart + i);
         }
         return shaderDrawArgs;
     }
@@ -249,7 +249,7 @@ public class ShaderGenerator
         sizePrefixSum.Dispatch(0, 1, 1, 1);
     }
 
-    void FilterShaderGeometry(ComputeBuffer vertMemory, ComputeBuffer triMemory, ComputeBuffer addresses, int vertAddress, int triAddress) {
+    void FilterShaderGeometry(ComputeBuffer vertMemory, ComputeBuffer triMemory, GraphicsBuffer addresses, int vertAddress, int triAddress) {
         ComputeBuffer args = UtilityBuffers.CountToArgs(filterGeometry, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter);
 
         filterGeometry.SetBuffer(0, "vertices", vertMemory);
@@ -261,7 +261,7 @@ public class ShaderGenerator
         filterGeometry.DispatchIndirect(0, args);
     }
 
-    void TranscribeGeometry(ComputeBuffer memory, ComputeBuffer addresses, int addressIndex, int geoSizeCounter) {
+    void TranscribeGeometry(ComputeBuffer memory, GraphicsBuffer addresses, int addressIndex, int geoSizeCounter) {
         ComputeBuffer args = UtilityBuffers.CountToArgs(geoTranscriber, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter);
 
         geoTranscriber.SetBuffer(0, "_MemoryBuffer", memory);
@@ -272,7 +272,7 @@ public class ShaderGenerator
         geoTranscriber.DispatchIndirect(0, args);
     }
 
-    void CountGeometrySizes(ComputeBuffer vertMemory, ComputeBuffer triMemory, ComputeBuffer addresses, int vertAddress, int triAddress) {
+    void CountGeometrySizes(ComputeBuffer vertMemory, ComputeBuffer triMemory, GraphicsBuffer addresses, int vertAddress, int triAddress) {
         ComputeBuffer args = UtilityBuffers.CountToArgs(matSizeCounter, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter);
 
         matSizeCounter.SetBuffer(0, "vertices", vertMemory);
@@ -313,7 +313,7 @@ public class ShaderGenerator
         }
 
         public void Update(MonoBehaviour mono = null) {
-            Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.ArgumentBuffer, 1, (int)dispArgs);
+            Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.DrawArgs.Get(), 1, (int)dispArgs);
         }
 
         public void Release(ref MemoryBufferHandler memory) {
@@ -321,7 +321,7 @@ public class ShaderGenerator
             active = false;
 
             memory.ReleaseMemory(address);
-            UtilityBuffers.ReleaseArgs(dispArgs);
+            UtilityBuffers.DrawArgs.Release(dispArgs);
         }
 
         public void Release(ref MemoryOccupancyBalancer memory) {
@@ -329,7 +329,7 @@ public class ShaderGenerator
             active = false;
 
             memory.ReleaseMemory(address);
-            UtilityBuffers.ReleaseArgs(dispArgs);
+            UtilityBuffers.DrawArgs.Release(dispArgs);
         }
     }
     

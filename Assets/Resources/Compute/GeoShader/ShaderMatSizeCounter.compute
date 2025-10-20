@@ -1,29 +1,15 @@
 // Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CSMain
+#include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"//
+#pragma kernel CountShaderSizes
+#pragma kernel CountSubChunkSizes
 
 const static int numThreads = 256;
-
-struct matTerrain{
-    int textureIndex;
-    float baseTextureScale;
-    uint flipStateRendering;
-    uint geoShaderInd;
-};
-
-struct vertex{
-    float3 tri;
-    float3 norm;
-    int2 material; 
-};
 
 struct pInfo{
     uint axis[3];
 };
 
-
-StructuredBuffer<matTerrain> _MatTerrainData;
-
-StructuredBuffer<vertex> vertices;
+StructuredBuffer<SourceVertex> vertices;
 StructuredBuffer<pInfo> triangles;
 StructuredBuffer<uint2> _AddressDict;
 uint vertAddress;
@@ -34,20 +20,21 @@ RWStructuredBuffer<uint> triangleIndexOffset; //This is to facilitate paralleliz
 RWStructuredBuffer<uint> shaderIndexOffset; //This ensures vertexes are sorted by shader
 uint bSTART_scount;
 uint bSTART_tri;
-uint bCOUNTER_base;
+uint bCOUNT_base;
+uint bCOUNT_offset;
 
 
 [numthreads(numThreads,1,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void CountShaderSizes (uint3 id : SV_DispatchThreadID)
 {
-    if(id.x >= counter[bCOUNTER_base])
+    if(id.x >= counter[bCOUNT_base])
         return;
 
     triangleIndexOffset[bSTART_tri + id.x] = -1; 
-
+    uint offset = counter[bCOUNT_offset];
     //Each triangle will have 3 materials, take the minimum shader index
     uint shaderIndex = asuint(-1); 
-    pInfo vIndex = triangles[_AddressDict[triAddress].y + id.x];
+    pInfo vIndex = triangles[_AddressDict[triAddress].y + offset + id.x];
     [unroll] for(uint i = 0; i < 3; i++) {
         int material = vertices[_AddressDict[vertAddress].y + vIndex.axis[i]].material.x; // Only consider solid material
         uint sInd = _MatTerrainData[material].geoShaderInd;
@@ -57,4 +44,21 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     if(shaderIndex == asuint(-1)) return;
     InterlockedAdd(shaderIndexOffset[bSTART_scount + shaderIndex + 1], 1, triangleIndexOffset[bSTART_tri + id.x]);
+}
+
+RWStructuredBuffer<uint> SubChunkPrefix;
+uint bSTART_sChunkP;
+
+[numthreads(numThreads,1,1)]
+void CountSubChunkSizes (uint3 id : SV_DispatchThreadID){
+    if(id.x >= counter[bCOUNT_base])
+        return;
+    
+    pInfo sourceTri = triangles[_AddressDict[triAddress].y + id.x];
+    SourceVertex inputs[3];
+    inputs[0] = vertices[_AddressDict[vertAddress].y + sourceTri.axis[0]];
+    inputs[1] = vertices[_AddressDict[vertAddress].y + sourceTri.axis[1]];
+    inputs[2] = vertices[_AddressDict[vertAddress].y + sourceTri.axis[2]];
+    int baseSC = GetBaseSubChunk(inputs);
+    InterlockedAdd(SubChunkPrefix[bSTART_sChunkP + baseSC], 1, triangleIndexOffset[bSTART_tri + id.x]);
 }

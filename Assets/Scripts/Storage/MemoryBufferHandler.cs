@@ -19,8 +19,7 @@ namespace WorldConfig.Quality {
 
         protected ComputeBuffer _GPUMemorySource;
         protected ComputeBuffer _EmptyBlockHeap;
-        protected ComputeBuffer _AddressBuffer;
-        protected uint2[] addressLL;
+        protected LogicalBlockBuffer _AddressBuffer;
         protected bool initialized;
 
         /// <summary>
@@ -34,11 +33,8 @@ namespace WorldConfig.Quality {
             _GPUMemorySource = new ComputeBuffer(settings.StorageSize, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             //2 channels, 1 for size, 2 for memory address
             _EmptyBlockHeap = new ComputeBuffer(settings.HeapSize, sizeof(uint) * 2, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
-            _AddressBuffer = new ComputeBuffer(settings.AddressSize + 1, sizeof(uint) * 2, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+            _AddressBuffer = new LogicalBlockBuffer(GraphicsBuffer.Target.Structured, settings.AddressSize + 1, sizeof(uint) * 2);
             Preset();
-
-            addressLL = new uint2[settings.AddressSize + 1];
-            addressLL[0].y = 1;
 
             initialized = true;
             PrepareMemory(settings);
@@ -51,7 +47,7 @@ namespace WorldConfig.Quality {
         public virtual void Release() {
             _GPUMemorySource?.Release();
             _EmptyBlockHeap?.Release();
-            _AddressBuffer?.Release();
+            _AddressBuffer?.Destroy();
             initialized = false;
         }
 
@@ -70,15 +66,15 @@ namespace WorldConfig.Quality {
 
             AllocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
             AllocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
-            AllocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer);
+            AllocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer.Get());
 
             d_AllocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
             d_AllocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
-            d_AllocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer);
+            d_AllocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer.Get());
 
             DeallocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
             DeallocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
-            DeallocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer);
+            DeallocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer.Get());
 
             d_DeallocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
             d_DeallocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
@@ -120,21 +116,13 @@ namespace WorldConfig.Quality {
         public virtual uint AllocateMemoryDirect(int count, int stride) {
             if (!initialized) return 0;
 
-            uint addressIndex = addressLL[0].y;
+            uint addressIndex = _AddressBuffer.Allocate();
             //Allocate Memory
             d_AllocateShader.SetInt("addressIndex", (int)addressIndex);
             d_AllocateShader.SetInt("allocCount", count);
             d_AllocateShader.SetInt("allocStride", stride);
 
             d_AllocateShader.Dispatch(0, 1, 1, 1);
-
-            //Head node always points to first free node, remove node from LL to mark allocated
-            uint pAddress = addressLL[addressIndex].x;//should always be 0
-            uint nAddress = addressLL[addressIndex].y == 0 ? addressIndex + 1 : addressLL[addressIndex].y;
-
-            addressLL[pAddress].y = nAddress;
-            addressLL[nAddress].x = pAddress;
-
             return addressIndex;
         }
 
@@ -150,7 +138,7 @@ namespace WorldConfig.Quality {
         public virtual uint AllocateMemory(ComputeBuffer count, int stride, int countOffset = 0) {
             if (!initialized) return 0;
 
-            uint addressIndex = addressLL[0].y;
+            uint addressIndex = _AddressBuffer.Allocate();
 
             //Allocate Memory
             AllocateShader.SetInt("addressIndex", (int)addressIndex);
@@ -160,14 +148,6 @@ namespace WorldConfig.Quality {
             AllocateShader.SetInt("allocStride", stride);
 
             AllocateShader.Dispatch(0, 1, 1, 1);
-
-            //Head node always points to first free node, remove node from LL to mark allocated
-            uint pAddress = addressLL[addressIndex].x;//should always be 0
-            uint nAddress = addressLL[addressIndex].y == 0 ? addressIndex + 1 : addressLL[addressIndex].y;
-
-            addressLL[pAddress].y = nAddress;
-            addressLL[nAddress].x = pAddress;
-
             return addressIndex;
         }
 
@@ -184,14 +164,8 @@ namespace WorldConfig.Quality {
             if (!initialized || addressIndex == 0) return;
             //Release Memory
             DeallocateShader.SetInt("addressIndex", (int)addressIndex);
-
             DeallocateShader.Dispatch(0, 1, 1, 1);
-            //Add node back to head of LL
-            uint nAddress = addressLL[0].y;
-            uint pAddress = addressLL[nAddress].x; //Is equivalent to 0(head node), but this is more clear
-            addressLL[pAddress].y = addressIndex;
-            addressLL[nAddress].x = addressIndex;
-            addressLL[addressIndex] = new uint2(pAddress, nAddress);
+            _AddressBuffer.Release(addressIndex);
 
             //uint[] heap = new uint[6];
             //_EmptyBlockHeap.GetData(heap);
@@ -217,7 +191,7 @@ namespace WorldConfig.Quality {
         public virtual ComputeBuffer Storage => _GPUMemorySource;
         /// <summary> A buffer containing addresses to memory blocks within the <see cref="Storage"/> buffer. This buffer tracks the 
         /// raw 4-byte address as well as the address relative to the requested stride during allocation of each memory block. </summary>
-        public virtual ComputeBuffer Address => _AddressBuffer;
+        public virtual GraphicsBuffer Address => _AddressBuffer.Get();
 
         public virtual ComputeBuffer GetBlockBuffer(uint index) { return _GPUMemorySource; }
         public virtual ComputeBuffer GetBlockBuffer(int index) { return _GPUMemorySource; }

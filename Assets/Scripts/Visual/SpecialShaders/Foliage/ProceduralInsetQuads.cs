@@ -54,13 +54,14 @@ public class ProceduralInsetQuads : GeoShader
         detailTable?.Release();
     }
 
-    public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount)
+    public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount, int parentDepth)
     {
         if (settings.Reg.Count == 0) return;
         int idFoliageKernel = quadCompute.FindKernel("Main");
         ComputeBuffer vertSource = memoryHandle.GetBlockBuffer(vertAddress);
         ComputeBuffer triSource = memoryHandle.GetBlockBuffer(triAddress);
-        ComputeBuffer addresses = memoryHandle.Address;
+        GraphicsBuffer addresses = memoryHandle.Address;
+        float invScale = 1.0f / (1 << parentDepth);
 
         ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(quadCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
@@ -69,6 +70,7 @@ public class ProceduralInsetQuads : GeoShader
         quadCompute.SetBuffer(idFoliageKernel, "_AddressDict", addresses);
         quadCompute.SetInt("vertAddress", vertAddress);
         quadCompute.SetInt("triAddress", triAddress);
+        quadCompute.SetFloat("ScaleInverse", invScale);
         quadCompute.DispatchIndirect(idFoliageKernel, args);
     }
 

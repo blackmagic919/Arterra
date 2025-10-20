@@ -40,7 +40,7 @@ namespace TerrainGeneration {
         /// <param name="minChunkSize"> The size in grid space of the smallest chunk(depth = 0) handled by the octree, see <see cref="WorldConfig.Quality.Terrain.mapChunkSize"/> for more info. </param>
         /// <param name="numChunks"> The maximum amount of leaf chunks that can be held by the octree. </param>
         public Octree(int depth, int minChunkSize, int numChunks) {
-            chunks = new ConstrainedLL<TChunk>((uint)numChunks + 1);
+            chunks = new ConstrainedLL<TChunk>((uint)numChunks * 2 + 1);
             nodes = new Node[4 * numChunks + 1];
             nodes[0].child = 1; //free list
             MinChunkSize = minChunkSize;
@@ -103,7 +103,16 @@ namespace TerrainGeneration {
             } while (curChunk != chunks.Head());
         }
 
-        /// <summary> Retrieves all real leaf chunks
+        public void ForEachActiveChunk(Action<TChunk> action) {
+            uint curChunk = chunks.Head();
+            do {
+                if (chunks.nodes[curChunk].Value.Active)
+                    action(chunks.nodes[curChunk].Value);
+                curChunk = chunks.Next(curChunk);
+            } while (curChunk != chunks.Head());
+        }
+
+        /// <summary> Retrieves all leaf chunks (including zombies)
         /// currently held by the octree </summary>
         /// <returns>An array containing all leaf chunks</returns>
         public TChunk[] GetAllChunks() {
@@ -113,6 +122,21 @@ namespace TerrainGeneration {
             count = 0;
 
             ForEachChunk(chunk => {
+                chunks[count] = chunk;
+                count++;
+            }); return chunks;
+        }
+
+        /// <summary> Retrieves all active leaf chunks
+        /// currently held by the octree </summary>
+        /// <returns>An array containing all leaf chunks</returns>
+        public TChunk[] GetAllActiveChunks() {
+            int count = 0;
+            ForEachActiveChunk(_ => count++);
+            TChunk[] chunks = new TChunk[count];
+            count = 0;
+
+            ForEachActiveChunk(chunk => {
                 chunks[count] = chunk;
                 count++;
             }); return chunks;
@@ -247,7 +271,6 @@ namespace TerrainGeneration {
             uint sibling = octreeIndex;
             do {
                 uint nSibling = nodes[sibling].sibling;
-
                 ref Node node = ref nodes[sibling];
                 if (!node.IsLeaf) DestroySubtree(node.child);
                 if (node.HasChunk) {
@@ -290,7 +313,8 @@ namespace TerrainGeneration {
         private void KillSubtree(uint octreeIndex) {
             ref Node node = ref nodes[octreeIndex];
             //This will automatically delete the subtree if it has one
-            if (node.HasChunk) { chunks.nodes[node.Chunk].Value.Kill(); } else if (!node.IsLeaf) {
+            if (node.HasChunk) { chunks.nodes[node.Chunk].Value.Kill(); } 
+            else if (!node.IsLeaf) {
                 uint sibling = node.child;
                 do {
                     KillSubtree(sibling);

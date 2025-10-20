@@ -3,7 +3,7 @@
 #pragma kernel FromSubChunks
 
 StructuredBuffer<uint> prefixSizes;
-uint bCOUNTER_oGeo;
+uint bCOUNT_oGeo;
 
 struct IndirectArgs{
     uint numVerticesPerInstance;
@@ -19,7 +19,7 @@ uint argOffset;
 [numthreads(1,1,1)] 
 void FromPrefix (uint3 id : SV_DispatchThreadID)
 {
-    uint numTriangles = prefixSizes[bCOUNTER_oGeo+1] - prefixSizes[bCOUNTER_oGeo];
+    uint numTriangles = prefixSizes[bCOUNT_oGeo+1] - prefixSizes[bCOUNT_oGeo];
 
     _IndirectArgsBuffer[argOffset].numInstances = numTriangles == 0 ? 0 : 1;
     _IndirectArgsBuffer[argOffset].numVerticesPerInstance = numTriangles * 3;

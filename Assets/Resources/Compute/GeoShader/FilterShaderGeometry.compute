@@ -1,28 +1,14 @@
 // Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CSMain
-
+#include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
+#pragma kernel FilterShader
+#pragma kernel FilterSubChunks
 const static int numThreads = 256;
-
-struct matTerrain{
-    int textureIndex;
-    float baseTextureScale;
-    uint flipStateRendering;
-    uint geoShaderInd;
-};
-
-struct vertex{
-    float3 tri;
-    float3 norm;
-    int2 material; 
-};
 
 struct pInfo{
     uint axis[3];
 };
 
-StructuredBuffer<matTerrain> _MatTerrainData;
-
-StructuredBuffer<vertex> vertices;
+StructuredBuffer<SourceVertex> vertices;
 StructuredBuffer<pInfo> triangles;
 StructuredBuffer<uint2> _AddressDict;
 uint vertAddress;
@@ -33,19 +19,21 @@ StructuredBuffer<uint> triangleIndexOffset;
 StructuredBuffer<uint> shaderPrefix;
 uint bSTART_scount;
 uint bSTART_tri;
-uint bCOUNTER_base;
+uint bCOUNT_base;
+uint bCOUNT_offset;
 
-RWStructuredBuffer<uint> filteredGeometry;
+RWStructuredBuffer<uint> filteredIndicies;
 uint bSTART_sort;
 
 [numthreads(numThreads,1,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void FilterShader (uint3 id : SV_DispatchThreadID)
 {
-    if(id.x >= counter[bCOUNTER_base])
+    if(id.x >= counter[bCOUNT_base])
         return;
 
     uint shaderIndex = asuint(-1); 
-    pInfo vIndex = triangles[_AddressDict[triAddress].y + id.x];
+    uint start = counter[bCOUNT_offset];
+    pInfo vIndex = triangles[_AddressDict[triAddress].y + start + id.x];
     [unroll] for(uint i = 0; i < 3; i++) {
         int material = vertices[_AddressDict[vertAddress].y + vIndex.axis[i]].material.x; // Only consider solid material
         uint sInd = _MatTerrainData[material].geoShaderInd;
@@ -59,5 +47,29 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint offset = shaderOffset + triangleOffset; 
 
     //Now it's all sorted!!
-    filteredGeometry[bSTART_sort + offset] = id.x;
+    filteredIndicies[bSTART_sort + offset] = start + id.x;
+}
+
+StructuredBuffer<uint> SubChunkPrefix;
+RWStructuredBuffer<pInfo> filteredGeometry;
+uint bSTART_sChunkP;
+
+[numthreads(numThreads,1,1)]
+void FilterSubChunks(uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= counter[bCOUNT_base])
+        return;
+
+    pInfo sourceTri = triangles[_AddressDict[triAddress].y + id.x];
+    SourceVertex inputs[3];
+    inputs[0] = vertices[_AddressDict[vertAddress].y + sourceTri.axis[0]];
+    inputs[1] = vertices[_AddressDict[vertAddress].y + sourceTri.axis[1]];
+    inputs[2] = vertices[_AddressDict[vertAddress].y + sourceTri.axis[2]];
+    int baseSC = GetBaseSubChunk(inputs);
+
+    uint scOffset = SubChunkPrefix[bSTART_sChunkP + baseSC];
+    uint triangleOffset = triangleIndexOffset[bSTART_tri + id.x];
+    uint offset = scOffset + triangleOffset; 
+
+    filteredGeometry[bSTART_sort + offset] = sourceTri;
 }

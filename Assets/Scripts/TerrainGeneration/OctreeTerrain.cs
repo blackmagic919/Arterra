@@ -7,6 +7,7 @@ using UnityEngine.Events;
 using WorldConfig;
 using UnityEngine.Profiling;
 using MapStorage;
+using System.Linq;
 
 namespace TerrainGeneration{
     /// <summary>
@@ -23,7 +24,7 @@ namespace TerrainGeneration{
         /// The load for each task as ordered in <see cref="Utils.priorities.planning"/>.
         /// Each task's load is cumilated until the frame's load is exceeded at which point generation stops.
         /// </summary>
-        public static readonly int[] taskLoadTable = { 4, 3, 10, 1, 2, 0 };
+        public static readonly int[] taskLoadTable = { 4, 3, 10, 1, 2, 0, 3 };
         /// <summary>
         /// A queue containing subscribed tasks that are executed
         /// once every update loop. The update loop occurs
@@ -173,6 +174,12 @@ namespace TerrainGeneration{
 
             ProcessUpdateTasks(MainLoopUpdateTasks);
             ProcessCoroutines(MainCoroutines);
+
+            if(Input.GetKey(KeyCode.Backslash)) {
+                int3 CCoord = CPUMapManager.GSToCS((int3)CPUMapManager.WSToGS(viewer.position));
+                TerrainChunk c = octree.GetAllChunks().Where(c => math.all(c.CCoord == CCoord)).ToArray()[0];
+                c.GeoShaders.Update(this);
+            }
         }
         private void LateUpdate() { ProcessUpdateTasks(MainLateUpdateTasks); }
         private void FixedUpdate() { ProcessUpdateTasks(MainFixedUpdateTasks); }
