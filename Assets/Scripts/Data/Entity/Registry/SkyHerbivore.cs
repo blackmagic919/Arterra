@@ -4,16 +4,15 @@ using System;
 using Newtonsoft.Json;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
-using UnityEngine.Profiling;
 using MapStorage;
 
-[CreateAssetMenu(menuName = "Generation/Entity/SkyCarnivore")]
-public class SkyCarnivore : Authoring
+[CreateAssetMenu(menuName = "Generation/Entity/SkyHerbivore")]
+public class SkyHerbivore : Authoring
 {
     [UISetting(Ignore = true)][JsonIgnore]
     public Option<Animal> _Entity;
     public Option<AnimalSetting> _Setting;
-
+    
     [JsonIgnore]
     public override Entity Entity { get => new Animal(); }
     [JsonIgnore]
@@ -24,10 +23,11 @@ public class SkyCarnivore : Authoring
         public Movement movement;
         public Movement.Flight flight;
         public Vitality.Decomposition decomposition;
-        public Option<RCarnivore> recognition;
         public Option<Vitality.Stats> physicality;
-        public RCarnivore Recognition => recognition;
+        public Option<RHerbivore> recognition;
+        public RHerbivore Recognition => recognition;
         public Vitality.Stats Physicality => physicality;
+
         public override void Preset(uint entityType){ 
             uint pEnd = profile.bounds.x * profile.bounds.y * profile.bounds.z;
             flight.profile.profileStart = profile.profileStart + pEnd;
@@ -57,6 +57,8 @@ public class SkyCarnivore : Authoring
         [JsonProperty]
         private Unity.Mathematics.Random random;
         [JsonProperty]
+        private float3 flightDirection;
+        [JsonProperty]
         private Guid TaskTarget;
         [JsonProperty]
         private float TaskDuration;
@@ -66,12 +68,11 @@ public class SkyCarnivore : Authoring
         private AnimalSetting settings;
         private static Action<Animal>[] TaskRegistry = new Action<Animal>[]{
             Idle,
-            FindFlight,
             FollowFlight,
             FollowLanding,
             FindPrey,
             ChasePrey,
-            Attack,
+            EatFood,
             FindMate,
             ChaseMate,
             Reproduce,
@@ -111,11 +112,11 @@ public class SkyCarnivore : Authoring
             if (attacker == null) return; //If environmental damage, we don't need to retaliate
             TaskTarget = attacker.info.entityId;
             Recognition.Recognizable recog = settings.Recognition.Recognize(attacker);
-            if (recog.IsPredator) TaskIndex = 10u; //if predator run away
-            else if (recog.IsMate) TaskIndex = 11u; //if mate fight back
-            else if (recog.IsPrey) TaskIndex = 11u; //if prey fight back
-            else TaskIndex = settings.Recognition.FightAggressor ? 11u : 10u; //if unknown, depends
-            if (TaskIndex == 11 && attacker is not IAttackable) TaskIndex = 10u;  //Don't try to attack a non-attackable entity
+            if (recog.IsPredator) TaskIndex = 9u; //if predator run away
+            else if (recog.IsMate) TaskIndex = 10u; //if mate fight back
+            else if (recog.IsPrey) TaskIndex = 10u; //if prey fight back
+            else TaskIndex = settings.Recognition.FightAggressor ? 10u : 9u; //if unknown, depends
+            if (TaskIndex == 10 && attacker is not IAttackable) TaskIndex = 9u;  //Don't try to attack a non-attackable entity
             pathFinder.hasPath = false;
         }
 
@@ -138,15 +139,16 @@ public class SkyCarnivore : Authoring
             if (vitality.healthPercent < genetics.Get(settings.Physicality.MateThreshold))
                 return false;
             if (vitality.IsDead) return false;
-            if (TaskIndex >= 9) return false;
+            if (TaskIndex >= 8) return false;
             return settings.Recognition.CanMateWith(entity);
         }
+
         public void MateWith(Entity entity) {
             if (!CanMateWith(entity)) return;
             if (settings.Recognition.MateWithEntity(genetics, entity, ref random))
                 vitality.Damage(genetics.Get(settings.Physicality.MateCost));
             TaskDuration = settings.Physicality.PregnacyLength;
-            TaskIndex = 9;
+            TaskIndex = 8;
         }
 
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
@@ -158,6 +160,7 @@ public class SkyCarnivore : Authoring
             this.vitality = new Vitality(settings.Physicality, this.genetics);
             this.tCollider = new TerrainCollider(GCoord, true, ProcessFallDamage);
             pathFinder.hasPath = false;
+            flightDirection = RandomDirection();
             TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
             TaskTarget = Guid.Empty;
             TaskIndex = 0;
@@ -168,13 +171,12 @@ public class SkyCarnivore : Authoring
             controller = new AnimalController(Controller, this);
             vitality.Deserialize(settings.Physicality, genetics);
             tCollider.OnHitGround = ProcessFallDamage;
+            random.state ^= (uint)GetHashCode();
             GCoord = this.GCoord;
         }
 
-
         public override void Update() {
             if (!active) return;
-            Profiler.BeginSample($"Sampling task {TaskIndex}");
             //use gravity if not flying
             tCollider.Update(settings.collider, this);
             if (!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
@@ -182,11 +184,11 @@ public class SkyCarnivore : Authoring
 
             vitality.Update();
             TaskRegistry[(int)TaskIndex].Invoke(this);
-            if (TaskIndex != 14 && vitality.IsDead) {
+            if (TaskIndex != 13 && vitality.IsDead) {
                 TaskDuration = genetics.Get(settings.decomposition.DecompositionTime);
-                TaskIndex = 14;
-            } else if (TaskIndex <= 12) DetectPredator();
-            Profiler.EndSample();
+                flightDirection = 0;
+                TaskIndex = 13;
+            } else if (TaskIndex <= 11) DetectPredator();
 
             TerrainInteractor.DetectMapInteraction(position,
             OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
@@ -194,196 +196,46 @@ public class SkyCarnivore : Authoring
             OnInGas: vitality.ProcessInGas);
         }
 
-        //Always detect unless already running from predator
         private unsafe void DetectPredator() {
-            if (!settings.Recognition.FindClosestPredator(this, genetics.Get(
-                settings.Recognition.SightDistance), out Entity predator))
+            if (!settings.Recognition.FindClosestPredator(this,
+                genetics.Get(settings.Recognition.SightDistance),
+                out Entity predator))
                 return;
 
             int PathDist = settings.Recognition.FleeDistance;
-            float3 rayDir = position - predator.position;
-            byte* path = PathFinder.FindPathAlongRay(GCoord, ref rayDir, PathDist + 1, settings.flight.profile, EntityJob.cxt, out int pLen);
+            flightDirection = position - predator.position;
+            byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, PathDist + 1, settings.flight.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
-            TaskIndex = 13;
+            flightDirection = math.normalize(flightDirection);
+            TaskIndex = 12;
         }
 
-        private static float3 Normalize(float3 v) {
-            if (math.length(v) == 0) return math.forward();
-            else return math.normalize(v);
-            //This norm guarantees the vector will be on the edge of a cube
-        }
-
-        private float3 RandomDirection() {
-            float3 normal = new(random.NextFloat(-1, 1), random.NextFloat(-1, 1), random.NextFloat(-1, 1));
-            if (math.length(normal) == 0) return math.forward();
-            else return Normalize(normal);
-        }
 
         private unsafe void RandomFly() {
+            if (vitality.healthPercent > genetics.Get(settings.Physicality.MateThreshold) ||
+                vitality.healthPercent < genetics.Get(settings.Physicality.HuntThreshold)) {
+                TaskDuration = math.min(0, TaskDuration); //try to land to mate
+            }
+            TaskIndex = 1;
+            if (TaskDuration <= 0) {
+                FindGround();
+                return;
+            }
+
             float3 flightDir = Normalize(RandomDirection() + math.up() * random.NextFloat(0, genetics.Get(settings.flight.FlyBiasWeight)));
             flightDir.y *= settings.flight.VerticalFreedom;
             byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDir, settings.movement.pathDistance + 1,
                 settings.flight.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
-            TaskIndex = 2;
         }
 
-        private unsafe bool FindGround() {
-            float3 flightDir = Normalize(RandomDirection() + math.down()
-                * math.max(0, -TaskDuration / genetics.Get(settings.flight.AverageFlightTime)));
-            int3 dP = (int3)(flightDir * settings.movement.pathDistance);
+        public unsafe void FindGround() {
+            flightDirection = Normalize(flightDirection + math.down());
+            int3 dP = (int3)(flightDirection * settings.movement.pathDistance);
 
-            //Use the ground profile
-            byte* path = PathFinder.FindMatchAlongRay(GCoord, dP,
-                settings.movement.pathDistance + 1, settings.flight.profile,
-                settings.profile, EntityJob.cxt, out int pLen, out bool fGround);
+            byte* path = PathFinder.FindMatchAlongRay(GCoord, dP, settings.movement.pathDistance + 1, settings.flight.profile, settings.profile, EntityJob.cxt, out int pLen, out bool fGround);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
-            return fGround;
-        }
-
-        //Task 0
-        private static void Idle(Animal self) {
-            self.tCollider.useGravity = true;
-            self.TaskDuration -= EntityJob.cxt.deltaTime;
-            if (self.TaskDuration <= 0) {
-                self.TaskDuration = self.genetics.Get(self.settings.flight.AverageFlightTime) * self.random.NextFloat(0f, 2f);
-                self.TaskIndex = 1;
-                return;
-            }
-            if (self.vitality.healthPercent > self.genetics.Get(self.settings.Physicality.MateThreshold)) {
-                self.TaskIndex = 7;
-                return;
-            }
-            //Rotate towards neutral
-            ref Quaternion rotation = ref self.tCollider.transform.rotation;
-            float3 lookRotation = new(rotation.eulerAngles.x, 0, rotation.eulerAngles.z);
-            if (Vector3.Magnitude(lookRotation) > 1E-05f) rotation = Quaternion.RotateTowards(rotation, Quaternion.LookRotation(lookRotation), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
-        }
-
-        //Task 1 -> Land
-        private static unsafe void FindFlight(Animal self) {
-            self.tCollider.useGravity = false;
-            if (self.TaskDuration <= 0) {
-                bool fGround = self.FindGround();
-                if (fGround) self.TaskIndex = 3;
-                else self.TaskIndex = 2;
-                return;
-            }
-            if (self.vitality.healthPercent > self.genetics.Get(self.settings.Physicality.MateThreshold)) {
-                self.TaskDuration = math.min(0, self.TaskDuration); //try to land to mate
-                return;
-            }
-            if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.HuntThreshold)) {
-                self.TaskIndex = 4;
-                return;
-            }
-            self.RandomFly();
-        }
-
-        //Task 2 -> Fly 
-        private static unsafe void FollowFlight(Animal self) {
-            self.tCollider.useGravity = false;
-            self.TaskDuration -= EntityJob.cxt.deltaTime;
-            Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider,
-                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
-                self.settings.movement.acceleration, true);
-
-            if (!self.pathFinder.hasPath) {
-                self.TaskIndex = 1;
-            }
-        }
-
-        //Task 3 -> Landing 
-        private static unsafe void FollowLanding(Animal self) {
-            self.tCollider.useGravity = false;
-            Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider,
-                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
-                self.settings.movement.acceleration, true);
-
-            if (!self.pathFinder.hasPath) {
-                self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
-                self.TaskIndex = 0; //Landed
-            }
-        }
-
-        //Task 4 - Find Prey
-        private static unsafe void FindPrey(Animal self) {
-            self.tCollider.useGravity = false;
-            //Use mate threshold not hunt because the entity may lose the target while eating
-            if (!self.settings.Recognition.FindPreferredPrey(self, self.genetics.Get(
-                self.settings.Recognition.SightDistance), out Entity prey)
-            ) {
-                self.RandomFly();
-                return;
-            }
-
-            int PathDist = self.settings.movement.pathDistance;
-            int3 destination = (int3)math.round(prey.origin) - self.GCoord;
-            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen);
-            self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
-            self.TaskIndex = 5;
-
-            //If it can't get to the prey and is currently at the closest position it can be
-            if (math.all(self.pathFinder.destination == self.GCoord)
-                && Recognition.GetColliderDist(prey, self) >
-                self.genetics.Get(self.settings.Physicality.AttackDistance)
-            ) {
-                self.RandomFly();
-            }
-        }
-
-        //Task 5 - Chase Prey
-        private static unsafe void ChasePrey(Animal self) {
-            self.tCollider.useGravity = false;
-            if (!self.settings.Recognition.FindPreferredPrey(self, self.genetics.Get(
-                self.settings.Recognition.SightDistance), out Entity prey)
-            ) {
-                self.TaskIndex = 4;
-                return;
-            }
-            Movement.FollowDynamicPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, prey.origin,
-                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
-                self.settings.movement.acceleration, true);
-            float preyDist = Recognition.GetColliderDist(self, prey);
-            if (preyDist < self.genetics.Get(self.settings.Physicality.AttackDistance)) {
-                self.TaskIndex = 6;
-                return;
-            }
-            if (!self.pathFinder.hasPath) {
-                self.TaskIndex = 4;
-                return;
-            }
-        }
-
-        //Task 6 - Attack
-        private static void Attack(Animal self) {
-            self.tCollider.useGravity = false;
-            self.TaskIndex = 4;
-            if (!self.settings.Recognition.FindPreferredPrey(self, self.genetics.Get(
-                self.settings.Recognition.SightDistance), out Entity prey))
-                return;
-            float preyDist = Recognition.GetColliderDist(self, prey);
-            if (preyDist > self.genetics.Get(self.settings.Physicality.AttackDistance))
-                return;
-            if (prey is not IAttackable) return;
-            self.TaskIndex = 6;
-
-            float3 atkDir = math.normalize(prey.position - self.position); atkDir.y = 0;
-            self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation,
-            Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
-
-            IAttackable target = (IAttackable)prey;
-            if (target.IsDead) {
-                EntityManager.AddHandlerEvent(() => {
-                    WorldConfig.Generation.Item.IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
-                    if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition)) {
-                        self.vitality.Heal(nutrition);
-                    }
-                    if (self.vitality.healthPercent >= 1) {
-                        self.TaskIndex = 1;
-                    }
-                });
-            } else self.vitality.Attack(prey, self);
+            if (fGround) TaskIndex = 2;
         }
 
         private unsafe void RandomWalk() {
@@ -402,16 +254,139 @@ public class SkyCarnivore : Authoring
             }
         }
 
-        //Task 7
+        private static float3 Normalize(float3 v) {
+            if (math.length(v) == 0) return math.forward();
+            else return math.normalize(v);
+            //This norm guarantees the vector will be on the edge of a cube
+        }
+
+        private float3 RandomDirection() {
+            float3 normal = new(random.NextFloat(-1, 1), random.NextFloat(-1, 1), random.NextFloat(-1, 1));
+            if (math.length(normal) == 0) return math.forward();
+            else return Normalize(normal);
+        }
+
+        //Task 0
+        private static void Idle(Animal self) {
+            self.tCollider.useGravity = true;
+            if (self.vitality.healthPercent > self.genetics.Get(self.settings.Physicality.MateThreshold)) {
+                self.TaskIndex = 6;
+                return;
+            }
+            if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.HuntThreshold)) {
+                self.TaskIndex = 3;
+                return;
+            }
+
+            if (self.TaskDuration <= 0) {
+                self.TaskDuration = self.genetics.Get(self.settings.flight.AverageFlightTime) * self.random.NextFloat(0f, 2f);
+                self.flightDirection = self.RandomDirection();
+                self.RandomFly();
+                return;
+            } else self.TaskDuration -= EntityJob.cxt.deltaTime;
+
+            //Rotate towards neutral
+            ref Quaternion rotation = ref self.tCollider.transform.rotation;
+            float3 lookRotation = new(rotation.eulerAngles.x, 0, rotation.eulerAngles.z);
+            if (Vector3.Magnitude(lookRotation) > 1E-05f) rotation = Quaternion.RotateTowards(rotation, Quaternion.LookRotation(lookRotation), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
+        }
+
+        //Task 1 -> Fly 
+        private static unsafe void FollowFlight(Animal self) {
+            self.tCollider.useGravity = false;
+            self.TaskDuration -= EntityJob.cxt.deltaTime;
+            Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider,
+                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
+
+            if (!self.pathFinder.hasPath) {
+                self.RandomFly();
+            }
+        }
+
+        //Task 2 -> Landing 
+        private static unsafe void FollowLanding(Animal self) {
+            self.tCollider.useGravity = false;
+            Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider,
+                self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration, true);
+
+            if (!self.pathFinder.hasPath) {
+                self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
+                self.flightDirection = 0;
+                self.TaskIndex = 0; //Landed
+            }
+        }
+
+
+        //Task 3
+        private static unsafe void FindPrey(Animal self) {
+            self.tCollider.useGravity = true;
+            if (!self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
+                self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 preyPos)
+            ) {
+                self.RandomWalk();
+                return;
+            }
+            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, preyPos - self.GCoord,
+                self.genetics.GetInt(self.settings.Recognition.PlantFindDist) + 1, self.settings.profile,
+                EntityJob.cxt, out int pLen);
+            self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
+            self.TaskIndex = 4;
+
+            //If it can't get to the prey and is currently at the closest position it can be
+            if (math.all(self.pathFinder.destination == self.GCoord)) {
+                float dist = Recognition.GetColliderDist(self, preyPos);
+                if (dist <= self.genetics.Get(self.settings.Physicality.AttackDistance)) {
+                    self.TaskDuration = 1 / math.max(self.settings.Physicality.ConsumptionRate, 0.0001f);
+                    self.TaskIndex = 5;
+                } else {
+                    self.RandomFly();
+                }
+            }
+        }
+
+        //Task 4
+        private static unsafe void ChasePrey(Animal self) {
+            self.tCollider.useGravity = true;
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
+                self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
+                self.settings.movement.acceleration);
+            if (self.pathFinder.hasPath) return;
+
+            if (self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position), self.genetics.GetInt(
+                self.settings.Recognition.PlantFindDist), out int3 preyPos) &&
+                Recognition.GetColliderDist(self, preyPos) <= self.genetics.Get(self.settings.Physicality.AttackDistance)
+            ) {
+                self.TaskDuration = 1 / math.max(self.settings.Physicality.ConsumptionRate, 0.0001f);
+                self.TaskIndex = 5;
+            } else self.TaskIndex = 3;
+        }
+
+        //Task 5
+        private static unsafe void EatFood(Animal self) {
+            self.tCollider.useGravity = true;
+            self.TaskDuration -= EntityJob.cxt.deltaTime;
+            if (self.TaskDuration <= 0) {
+                if (self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
+                    self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 foodPos)
+                ) {
+                    WorldConfig.Generation.Item.IItem item = self.settings.Recognition.ConsumeFood(self, foodPos);
+                    if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition))
+                        self.vitality.Heal(nutrition);
+                    self.TaskIndex = 0;
+                } else self.TaskIndex = 3;
+            }
+        }
+
+        //Task 6
         private static unsafe void FindMate(Animal self) {
             self.tCollider.useGravity = true;
             if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.MateThreshold)) {
                 self.TaskIndex = 0;
                 return;
             }
-            if (!self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
-                self.settings.Recognition.SightDistance), out Entity mate)
-            ) {
+            if (!self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(self.settings.Recognition.SightDistance), out Entity mate)) {
                 self.RandomWalk();
                 return;
             }
@@ -419,16 +394,16 @@ public class SkyCarnivore : Authoring
             int3 destination = (int3)mate.origin - self.GCoord;
             byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
-            self.TaskIndex = 8;
+            self.TaskIndex = 7;
         }
 
-        //Task 8
+        //Task 7
         private static unsafe void ChaseMate(Animal self) {//I feel you man
             self.tCollider.useGravity = true;
             if (!self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
             ) {
-                self.TaskIndex = 7;
+                self.TaskIndex = 6;
                 return;
             }
 
@@ -442,29 +417,28 @@ public class SkyCarnivore : Authoring
                 return;
             }
             if (!self.pathFinder.hasPath) {
-                self.TaskIndex = 7;
+                self.TaskIndex = 6;
                 return;
             }
         }
 
-
-        //Task 9 (I will never get here)
+        //Task 8 (I will never get here)
         private static void Reproduce(Animal self) {
             self.tCollider.useGravity = true;
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if (self.TaskDuration > 0) return;
-            self.TaskIndex = 1;
+            self.RandomFly();
         }
 
-        //Task 10
+        //Task 9
         private static unsafe void RunFromTarget(Animal self) {
             self.tCollider.useGravity = false;
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if (target == null) self.TaskTarget = Guid.Empty;
-            else if (Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
+            else if (Recognition.GetColliderDist(self, target) > self.genetics.GetInt(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
             if (self.TaskTarget == Guid.Empty) {
-                self.TaskIndex = 1;
+                self.RandomFly();
                 return;
             }
 
@@ -479,17 +453,16 @@ public class SkyCarnivore : Authoring
                 self.settings.movement.acceleration, true);
         }
 
-        //Task 11
+        //Task 10
         private static unsafe void ChaseTarget(Animal self) {
             self.tCollider.useGravity = false;
             Entity target = EntityManager.GetEntity(self.TaskTarget);
             if (target == null)
                 self.TaskTarget = Guid.Empty;
-            else if (Recognition.GetColliderDist(self, target) > self.genetics.Get(
-                self.settings.Recognition.SightDistance))
+            else if (Recognition.GetColliderDist(self, target) > self.genetics.GetInt(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
             if (self.TaskTarget == Guid.Empty) {
-                self.TaskIndex = 1;
+                self.RandomFly();
                 return;
             }
 
@@ -499,18 +472,16 @@ public class SkyCarnivore : Authoring
                 byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             }
-            Movement.FollowDynamicPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, target.position,
+            Movement.FollowDynamicPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, target.origin,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration, true);
-            if (Recognition.GetColliderDist(self, target) <
-                self.genetics.Get(self.settings.Physicality.AttackDistance)
-            ) {
-                self.TaskIndex = 12;
+            if (Recognition.GetColliderDist(self, target) < self.genetics.Get(self.settings.Physicality.AttackDistance)) {
+                self.TaskIndex = 11;
                 return;
             }
         }
 
-        //Task 12
+        //Task 11
         private static void AttackTarget(Animal self) {
             self.tCollider.useGravity = false;
             Entity tEntity = EntityManager.GetEntity(self.TaskTarget);
@@ -519,12 +490,12 @@ public class SkyCarnivore : Authoring
             else if (tEntity is not IAttackable)
                 self.TaskTarget = Guid.Empty;
             if (self.TaskTarget == Guid.Empty) {
-                self.TaskIndex = 1;
+                self.RandomFly();
                 return;
             }
             float targetDist = Recognition.GetColliderDist(tEntity, self);
             if (targetDist > self.genetics.Get(self.settings.Physicality.AttackDistance)) {
-                self.TaskIndex = 11;
+                self.TaskIndex = 10;
                 return;
             }
 
@@ -533,23 +504,23 @@ public class SkyCarnivore : Authoring
             Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
 
             IAttackable target = tEntity as IAttackable;
-            if (target.IsDead) self.TaskIndex = 1;
+            if (target.IsDead) self.RandomFly();
             else self.vitality.Attack(tEntity, self);
         }
 
 
-        //Task 13
+        //Task 12
         private static unsafe void RunFromPredator(Animal self) {
             self.tCollider.useGravity = false;
             Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration, true);
             if (!self.pathFinder.hasPath) {
-                self.TaskIndex = 1;
+                self.RandomFly();
             }
         }
 
-        //Task 14
+        //Task 13
         private static void Death(Animal self) {
             self.tCollider.useGravity = true;
             self.TaskDuration -= EntityJob.cxt.deltaTime;
@@ -562,26 +533,23 @@ public class SkyCarnivore : Authoring
         }
 
 
+
         public override void Disable() {
             controller.Dispose();
         }
 
+        unsafe struct BoidDMtrx {
+            public float3 SeperationDir;
+            public float3 AlignmentDir;
+            public float3 CohesionDir;
+            public uint count;
+        }
+
         public override void OnDrawGizmos() {
             if (!active) return;
-            Gizmos.color = Color.magenta;
+            Gizmos.color = Color.green;
             Gizmos.DrawWireCube(CPUMapManager.GSToWS(position), settings.collider.size * 2);
-            PathFinder.PathInfo finder = pathFinder; //copy so we don't modify the original
-            if (finder.hasPath) {
-                int ind = finder.currentInd;
-                while (ind != finder.path.Length) {
-                    int dir = finder.path[ind];
-                    int3 dest = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
-                    Gizmos.DrawLine(CPUMapManager.GSToWS(finder.currentPos),
-                                    CPUMapManager.GSToWS(dest));
-                    finder.currentPos = dest;
-                    ind++;
-                }
-            }
+            Gizmos.DrawLine(CPUMapManager.GSToWS(position), CPUMapManager.GSToWS(position + flightDirection));
         }
 
         private class AnimalController {
@@ -591,12 +559,10 @@ public class SkyCarnivore : Authoring
             private Transform transform;
             private bool active = false;
             private int AnimatorTask;
-
-
             private static readonly string[] AnimationNames = new string[]{
-                "IsIdling",  "IsFlying", "IsFlying",  "IsFlying", "IsFlying",
-                "IsFlying", "IsAttacking",  "IsWalking", "IsWalking",  "IsCuddling",
-                "IsFlying", "IsFlying", "IsAttacking", "IsFlying",  "IsDead"
+                "IsIdling",  "IsFlying", "IsFlying",  "IsWalking", "IsWalking",
+                "IsEating", "IsWalking",  "IsWalking", "IsCuddling",  "IsFlying",
+                "IsFlying", "IsAttacking", "IsFlying", "IsDead"
             };
 
             public AnimalController(GameObject GameObject, Animal entity) {
@@ -608,6 +574,7 @@ public class SkyCarnivore : Authoring
                 this.AnimatorTask = 0;
 
                 Indicators.SetupIndicators(gameObject);
+                float3 GCoord = new(entity.GCoord);
                 transform.position = CPUMapManager.GSToWS(entity.position);
             }
 
@@ -616,11 +583,13 @@ public class SkyCarnivore : Authoring
                 if (gameObject == null) return;
                 TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
-                // #if UNITY_EDITOR
-                //            if(UnityEditor.Selection.Contains(gameObject)) {
-                //                Debug.Log(entity.TaskIndex);
-                //            }
-                // #endif
+
+#if UNITY_EDITOR
+                if (UnityEditor.Selection.Contains(gameObject)) {
+                    Debug.Log(entity.TaskIndex);
+                    Debug.Log(AnimationNames[entity.TaskIndex]);
+                }
+#endif
 
                 Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
                 if (AnimatorTask == entity.TaskIndex) return;
@@ -631,7 +600,6 @@ public class SkyCarnivore : Authoring
                     if (entity.tCollider.velocity.y >= 0) animator.SetBool("IsAscending", true);
                     else animator.SetBool("IsAscending", false);
                 }
-
             }
 
             public void Dispose() {

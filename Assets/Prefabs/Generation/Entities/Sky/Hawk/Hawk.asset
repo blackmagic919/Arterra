@@ -179,6 +179,7 @@ MonoBehaviour:
           Prey:
             value:
             - EntityType: Sparrow
+            - EntityType: Dove
             - EntityType: Rabbit
       physicality:
         value:

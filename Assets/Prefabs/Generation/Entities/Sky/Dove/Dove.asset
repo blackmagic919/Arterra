@@ -9,15 +9,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ab44b3b4d8fc54b598e191f90c84912c, type: 3}
-  m_Name: Sparrow
+  m_Script: {fileID: 11500000, guid: 82711ae57dd2b4862b085290b34f1582, type: 3}
+  m_Name: Dove
   m_EditorClassIdentifier: 
-  Name: Sparrow
+  Name: Dove
   Tags:
     Reg:
       value: []
   Controller:
-    value: {fileID: 4790501496118844506, guid: f806b471f43bf41098b6a747b7a1ee66, type: 3}
+    value: {fileID: 7134452703683011941, guid: 2e5a7cff3da864d768cd63c711ffac61, type: 3}
   Profile:
     value:
     - bounds:
@@ -128,21 +128,11 @@ MonoBehaviour:
           mean: 100
           var: 0.5
           geneWeight: 0.15
-        SeperationWeight:
-          mean: 0.75
-          var: 0.5
-          geneWeight: 0.05
-        AlignmentWeight:
-          mean: 0.4
-          var: 0.5
-          geneWeight: 0.05
-        CohesionWeight:
-          mean: 0.15
-          var: 0.75
-          geneWeight: 0.05
-        InfluenceDist: 10
-        PathDist: 5
-        MaxSwarmSize: 8
+        FlyBiasWeight:
+          mean: 0.25
+          var: 1
+          geneWeight: 0.2
+        VerticalFreedom: 0.5
       decomposition:
         LootTable:
           value:
@@ -164,7 +154,7 @@ MonoBehaviour:
         value:
           weight: 0.15
           MaxHealth:
-            mean: 4
+            mean: 6
             var: 0.5
             geneWeight: 1
           NaturalRegen:
@@ -204,7 +194,7 @@ MonoBehaviour:
             var: 0.125
             geneWeight: 0.1
           MateCost:
-            mean: 1
+            mean: 1.5
             var: 0.5
             geneWeight: 0.66
           PregnacyLength: 4
@@ -216,8 +206,8 @@ MonoBehaviour:
             - EntityType: Hawk
           Mates:
             value:
-            - MateType: Sparrow
-              ChildType: Sparrow
+            - MateType: Dove
+              ChildType: Dove
               AmountPerParent:
                 mean: 0.5
                 var: 0.75
