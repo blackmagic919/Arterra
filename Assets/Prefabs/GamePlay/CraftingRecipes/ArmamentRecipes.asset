@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a5d00d1167004a5095f570b2635cd3e, type: 3}
+  m_Name: ArmamentRecipes
+  m_EditorClassIdentifier: 
+  Name: Armaments
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: ff6be48ddc6f844d383189bbe3faf83d, type: 2}
+    - value: {fileID: 11400000, guid: 4e6800d833bc0463cb3aebcb5fe1ff0f, type: 2}
+    - value: {fileID: 11400000, guid: e380b5b7b842644f6b8c4db6b0a5482a, type: 2}
+    - value: {fileID: 11400000, guid: 4413af8621ee74e8280bc47a1430141c, type: 2}
+    - value: {fileID: 11400000, guid: ba415daf15ebd456ca73a6db4822d607, type: 2}
+    - value: {fileID: 11400000, guid: 3d4e31742e8e3440a8af456054eab85d, type: 2}
+  references:
+    version: 2
+    RefIds: []

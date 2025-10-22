@@ -32,6 +32,7 @@ MonoBehaviour:
         - Peonies
         - Horse
         - Dove
+        - Snake
       GroundMaterials:
         value:
         - value:
@@ -98,9 +99,12 @@ MonoBehaviour:
         value:
         - value:
             Entity: 10
-            ChancePerCoord: 0.0001
+            ChancePerCoord: 0.00015
         - value:
             Entity: 11
+            ChancePerCoord: 0.0003
+        - value:
+            Entity: 12
             ChancePerCoord: 0.0002
   BiomeConditions:
     value:

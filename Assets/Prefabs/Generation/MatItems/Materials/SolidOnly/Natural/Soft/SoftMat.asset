@@ -20,6 +20,10 @@ MonoBehaviour:
         value:
           value:
             rid: 5818089297814487235
+      - Tag: 13
+        value:
+          value:
+            rid: 6083762182251610191
   Children:
     value:
     - value: {fileID: 11400000, guid: f59c26f6a7afe4b8da7d243b73968ab8, type: 2}
@@ -36,5 +40,11 @@ MonoBehaviour:
       type: {class: ToolTag, ns: , asm: Assembly-CSharp}
       data:
         TerraformSpeed: 150
+        ToolDamage: 1
+        GivesItem: 1
+    - rid: 6083762182251610191
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 200
         ToolDamage: 1
         GivesItem: 1

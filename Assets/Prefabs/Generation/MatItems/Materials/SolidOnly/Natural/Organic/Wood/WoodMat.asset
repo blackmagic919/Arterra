@@ -20,6 +20,10 @@ MonoBehaviour:
         value:
           value:
             rid: 5818089297814487231
+      - Tag: 12
+        value:
+          value:
+            rid: 6083762182251610192
   Names:
     value:
     - Wood:Solid
@@ -54,5 +58,11 @@ MonoBehaviour:
       type: {class: ToolTag, ns: , asm: Assembly-CSharp}
       data:
         TerraformSpeed: 100
+        ToolDamage: 1
+        GivesItem: 1
+    - rid: 6083762182251610192
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 150
         ToolDamage: 1
         GivesItem: 1

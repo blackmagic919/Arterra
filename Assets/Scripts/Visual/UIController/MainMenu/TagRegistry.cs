@@ -125,10 +125,14 @@ public struct TagRegistry
         //Tool Tags
         { Tags.None, null },
         { Tags.BareHand, new ToolTag() },
-        { Tags.Axe, new ToolTag() },
-        { Tags.Shovel, new ToolTag() },
-        { Tags.Pickaxe, new ToolTag() },
-        { Tags.Hoe, new ToolTag() },
+        { Tags.WoodAxe, new ToolTag() },
+        { Tags.WoodShovel, new ToolTag() },
+        { Tags.WoodPickaxe, new ToolTag() },
+        { Tags.WoodHoe, new ToolTag() },
+        { Tags.StoneAxe, new ToolTag() },
+        { Tags.StoneShovel, new ToolTag() },
+        { Tags.StonePickaxe, new ToolTag() },
+        { Tags.StoneHoe, new ToolTag() },
         //Converter Tags
         { Tags.Flammable, new ConverterToolTag() },
         { Tags.Tillable, new ConverterToolTag() },
@@ -143,7 +147,8 @@ public struct TagRegistry
 
     public enum Tags {
         //Tools
-        None = 0, BareHand = 1, Axe = 2, Shovel = 3, Pickaxe = 4, Hoe = 5,
+        None = 0, BareHand = 1, WoodAxe = 2, WoodShovel = 3, WoodPickaxe = 4, WoodHoe = 5,
+        StoneAxe = 12, StoneShovel = 13, StonePickaxe=14, StoneHoe = 15,
         //Converters
         Flammable = 1000, Tillable = 1001, Seedable = 1002,
         //Convertables

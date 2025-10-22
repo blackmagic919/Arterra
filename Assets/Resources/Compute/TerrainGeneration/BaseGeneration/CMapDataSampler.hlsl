@@ -83,6 +83,5 @@ float3 GetVertexNormal(int3 p1Coord, int dir, float interp, uint state){
     float3 p2Norm = CalculateNormal(p2Coord, state);
 
     float3 Norm = p1Norm + interp*(p2Norm - p1Norm);
-    Norm = max(Norm, dir3 * 0.1f);
     return Norm;
 }

@@ -237,6 +237,10 @@ MonoBehaviour:
             geneWeight: 0.1
           Prey:
             value:
+            - Material: TallGrass
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
             - Material: Grass
               Replacement: Dirt
               Bounds:

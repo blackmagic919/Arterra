@@ -324,6 +324,7 @@ public interface IRegister {
         settings.Generation.Items.Construct();
         settings.System.Crafting.value.Recipes.Construct();
         settings.Quality.GeoShaders.value.Categories.Construct();
+        settings.System.Armor.value.Variants.Construct();
         
         foreach (GeoShader shader in settings.Quality.GeoShaders.value.Categories.Reg) {
             IRegister reg = shader.GetRegistry();

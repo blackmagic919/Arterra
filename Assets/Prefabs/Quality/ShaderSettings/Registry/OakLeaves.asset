@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: OakLeaves
   m_EditorClassIdentifier: 
   Name: OakLeaves
+  Tags:
+    Reg:
+      value: []
   Names:
     value:
     - OakLeaf
@@ -21,3 +24,7 @@ MonoBehaviour:
     Inflation: 0
     LeafColor: {r: 0.03529412, g: 0.38039216, b: 0.043137256, a: 0}
     TextureIndex: 0
+    QuadType: 0
+  references:
+    version: 2
+    RefIds: []

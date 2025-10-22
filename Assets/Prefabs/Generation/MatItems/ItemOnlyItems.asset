@@ -19,11 +19,9 @@ MonoBehaviour:
   Children:
     value:
     - value: {fileID: 11400000, guid: 5f5a37927d304487ba9db1b9c4a27fc0, type: 2}
-    - value: {fileID: 11400000, guid: 74e4a6f4b0f3c4ca6abc032adf8e810d, type: 2}
     - value: {fileID: 11400000, guid: 85bfa9e341d7845ee964171c00332dc6, type: 2}
     - value: {fileID: 11400000, guid: 94936744a56fded4f881fc58918b5b99, type: 2}
-    - value: {fileID: 11400000, guid: 6cc707657a39949c1839a41ca8d35a32, type: 2}
-    - value: {fileID: 11400000, guid: edd2ebf7b7305481cbce2d1057db8a7d, type: 2}
+    - value: {fileID: 11400000, guid: 68534f2b248e145d6b1bb161899edef0, type: 2}
   references:
     version: 2
     RefIds: []

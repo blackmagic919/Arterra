@@ -10,39 +10,39 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aba0e1d8d02674d9ca7672d55a581c42, type: 3}
-  m_Name: WoodPickaxe
+  m_Name: LeatherBoots
   m_EditorClassIdentifier: 
-  Name: WoodPickaxe
+  Name: LeatherBoots
   Tags:
     Reg:
       value: []
   Names:
     value:
-    - WoodPickaxe
-    - Wood
-    - Plank
+    - LeatherBoots
+    - Leather
+    - 
   Recipe:
     value:
       entry:
         value:
+        - data: 129786
+        - data: 110511
         - data: 116936
-        - data: 25700
-        - data: 0
-        - data: 19275
-        - data: 25700
-        - data: 111796
-        - data: 12850
-        - data: 169622
-        - data: 0
-        - data: 25700
+        - data: 131072
         - data: 116936
-        - data: 177332
-        - data: 19275
-        - data: 169622
-        - data: 177332
-        - data: 182472
+        - data: 131071
+        - data: 116936
+        - data: 156772
+        - data: 116936
+        - data: 131071
+        - data: 116936
+        - data: 156772
+        - data: 104086
+        - data: 98946
+        - data: 91236
+        - data: 116936
       result:
         data: 255
-    references:
-      version: 2
-      RefIds: []
+  references:
+    version: 2
+    RefIds: []

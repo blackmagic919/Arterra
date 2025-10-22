@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b92ab6716ab84e588c812f4df75143a, type: 3}
+  m_Name: ArmamentTextures
+  m_EditorClassIdentifier: 
+  Name: Armaments
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: bbac2c5e1b7964535a7707d1dd481b3b, type: 2}
+    - value: {fileID: 11400000, guid: 9f2aa36b8f17e4160b2aaf0449f7e2bb, type: 2}
+    - value: {fileID: 11400000, guid: e60503c66ae424e998a7367d7e738c7a, type: 2}
+    - value: {fileID: 11400000, guid: 25a7eec9af25f4a2ca36ef5a5e9bf101, type: 2}
+    - value: {fileID: 11400000, guid: 958edc50d7ba64a5f81e0db2e69e9f2c, type: 2}
+    - value: {fileID: 11400000, guid: 1cd4a365b425d464e9525c6224b27ec1, type: 2}
+    - value: {fileID: 11400000, guid: 560cf86965f224d7199e038e5a30beaa, type: 2}
+  references:
+    version: 2
+    RefIds: []

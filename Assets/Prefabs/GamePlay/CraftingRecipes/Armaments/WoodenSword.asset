@@ -10,37 +10,37 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aba0e1d8d02674d9ca7672d55a581c42, type: 3}
-  m_Name: LeatherChestplate
+  m_Name: WoodenSword
   m_EditorClassIdentifier: 
-  Name: LeatherChestplate
+  Name: WoodenSword
   Tags:
     Reg:
       value: []
   Names:
     value:
-    - LeatherChestplate
-    - Leather
-    - 
+    - WoodenSword
+    - Wood
+    - Plank
   Recipe:
     value:
       entry:
         value:
-        - data: 19275
-        - data: 159342
-        - data: 156772
         - data: 116936
-        - data: 116936
-        - data: 131071
-        - data: 116936
+        - data: 25700
         - data: 0
-        - data: 116936
-        - data: 131071
-        - data: 116936
         - data: 0
+        - data: 25700
+        - data: 104086
+        - data: 5140
+        - data: 0
+        - data: 0
+        - data: 169622
+        - data: 104086
         - data: 19275
-        - data: 159342
-        - data: 156772
-        - data: 116936
+        - data: 19275
+        - data: 169622
+        - data: 177332
+        - data: 182472
       result:
         data: 255
   references:

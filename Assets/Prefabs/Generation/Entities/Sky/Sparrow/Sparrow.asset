@@ -251,6 +251,10 @@ MonoBehaviour:
               Replacement: Dirt
               Bounds:
                 data: 4286643968
+            - Material: TallGrass
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
   references:
     version: 2
     RefIds: []

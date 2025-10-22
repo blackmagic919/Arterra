@@ -125,13 +125,13 @@ MonoBehaviour:
             y: 3
             z: 2
         AverageFlightTime:
-          mean: 0
-          var: 0
-          geneWeight: 0
+          mean: 75
+          var: 0.5
+          geneWeight: 0.2
         FlyBiasWeight:
-          mean: 0
-          var: 0
-          geneWeight: 0
+          mean: 0.2
+          var: 0.1
+          geneWeight: 0.1
         VerticalFreedom: 0.5
       decomposition:
         LootTable:
