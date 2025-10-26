@@ -28,7 +28,7 @@ namespace WorldConfig.Generation.Item
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             InputPoller.AddKeyBindChange(() => {
                 KeyBinds = new int[2];
-                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place", _ => PlayerModifyTerrain(cxt)), "5.0::GamePlay");
+                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("ConvertMaterial", _ => PlayerModifyTerrain(cxt)), "5.0::GamePlay");
                 KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", _ => PlayerRemoveTerrain(cxt)), "5.0::GamePlay");
             });
         }
@@ -64,10 +64,10 @@ namespace WorldConfig.Generation.Item
             CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, CallOnMapRemoving);
             UpdateDisplay();
 
+            InputPoller.SuspendKeybindPropogation("ConvertMaterial", InputPoller.ActionBind.Exclusion.ExcludeLayer);
             if (durability > 0) return;
             //Removes itself
             cxt.TryRemove();
-            InputPoller.SuspendKeybindPropogation("Place", InputPoller.ActionBind.Exclusion.ExcludeLayer);
         }
     }
 }

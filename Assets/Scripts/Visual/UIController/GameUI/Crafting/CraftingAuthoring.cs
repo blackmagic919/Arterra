@@ -46,10 +46,7 @@ namespace WorldConfig.Intrinsic{
             Catalogue<MaterialData> matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             Catalogue<Authoring> itemInfo = Config.CURRENT.Generation.Items;
 
-            CraftingRecipe newRecipe = new CraftingRecipe();
-            newRecipe.entry.value = new List<MapData>(Recipe.value.entry.value);
-            newRecipe.result = Recipe.value.result;
-
+            CraftingRecipe newRecipe = (CraftingRecipe)Recipe.value.Clone();
             for (int i = 0; i < newRecipe.entry.value.Count; i++) {
                 var mapData = newRecipe.entry.value[i];
                 if (Names.value == null || mapData.material >= Names.value.Count)
@@ -70,7 +67,7 @@ namespace WorldConfig.Intrinsic{
     /// that will create a specific item. Modifying recipes create an unfair advantage
     /// or upend the difficulty progression. </summary>
     [Serializable]
-    public class CraftingRecipe {
+    public class CraftingRecipe : ICloneable {
         /// <summary> The entries that must be matched to successfully craft this recipe. The entries
         /// correspond to a grid of points whose size is dictated by <see cref="Crafting.GridWidth"/>.
         /// If this grid matches  the player's crafting grid, the recipe is considered
@@ -82,6 +79,9 @@ namespace WorldConfig.Intrinsic{
         /// <summary> If the recipe can be crafted, the result that is given to the player if the recipe is crafted.
         /// <see cref="Result"/> for more information. </summary>
         public Result result;
+        /// <summary>The minimum quantity of the result item that is given to the player when the recipe is crafted
+        /// even if the calculated amount based on materials used is lower. </summary>
+        public float MinQuantity;
 
 
         /// <summary> The result item of the recipe. This is the actual item given to the player if the recipe is crafted.
@@ -130,6 +130,14 @@ namespace WorldConfig.Intrinsic{
                 readonly get => (float)(data & 0xFFFF) / 0xFF;
                 set => data = (data & 0xFFFF0000) | (((uint)math.round(value * 0xFF)) & 0xFFFF);
             }
+        }
+
+        public object Clone() {
+            CraftingRecipe newRecipe = new CraftingRecipe();
+            newRecipe.entry.value = new List<MapData>(entry.value);
+            newRecipe.result = result;
+            newRecipe.MinQuantity = MinQuantity;
+            return newRecipe;
         }
     }
 

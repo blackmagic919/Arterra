@@ -30,7 +30,7 @@ public static class World
     /// <summary> The primary startup function for loading the user's game information. Loads the <see cref="Config.TEMPLATE"> template </see>
     /// world configuration(the default world configuration) as well as finding the user's world selection meta data from the file system
     /// to load the user's last selected world's configuration. </summary>
-    public static void Activate(){ 
+    public static void Activate(){
         Config.TEMPLATE = Resources.Load<Config>("Config");
         Config.CURRENT = Config.Create();
         SegmentedUIEditor.Initialize();

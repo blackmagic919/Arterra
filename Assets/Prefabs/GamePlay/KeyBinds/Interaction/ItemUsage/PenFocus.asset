@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b9407988208a348ad834c5fcf39e2f91, type: 3}
-  m_Name: Interact
+  m_Name: PenFocus
   m_EditorClassIdentifier: 
-  Name: Interact
+  Name: PenFocus
   Tags:
     Reg:
       value: []
   bindings:
     value:
     - Key: 323
-      PollType: 2
+      PollType: 3
       IsAlias: 0
     - Key: 304
       PollType: 2
@@ -27,6 +27,7 @@ MonoBehaviour:
     - Key: 303
       PollType: 2
       IsAlias: 1
+  AdditionalTriggerCount: 0
   references:
     version: 2
     RefIds: []

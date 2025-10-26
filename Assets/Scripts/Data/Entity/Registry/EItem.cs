@@ -46,15 +46,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         private EItemController controller;
         private EItemSetting settings;
         [JsonIgnore]
-        public override float3 position {
-            get => tCollider.transform.position + settings.collider.size / 2;
-            set => tCollider.transform.position = value - settings.collider.size / 2;
-        }
-        [JsonIgnore]
-        public override float3 origin {
-            get => tCollider.transform.position;
-            set => tCollider.transform.position = value;
-        }
+        public override ref TerrainCollider.Transform transform => ref tCollider.transform;
         [JsonIgnore]
         public Quaternion Facing => tCollider.transform.rotation;
         [JsonIgnore]
@@ -66,13 +58,11 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
         public IItem Collect(float amount) {
             if (item.Value == null) return null;
             IItem ret;
-            if (!item.Value.IsStackable) {
-                ret = (IItem)item.Value.Clone();
-            } else {
-                int delta = Mathf.FloorToInt(amount) + (random.NextFloat() < math.frac(amount) ? 1 : 0);
-                ret = (IItem)item.Value.Clone();
-                ret.AmountRaw = math.max(delta, ret.AmountRaw);
-            }
+            ret = (IItem)item.Value.Clone();
+            amount *= ret.UnitSize;
+            int delta = Mathf.FloorToInt(amount) 
+                + (random.NextFloat() < math.frac(amount) ? 1 : 0);
+            ret.AmountRaw = math.max(delta, ret.AmountRaw);
             item.Value.AmountRaw -= ret.AmountRaw;
             if (item.Value.AmountRaw == 0) item.Value = null;
 
@@ -81,7 +71,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
 
         public void TakeDamage(float damage, float3 knockback, Entity attacker) {
             Indicators.DisplayDamageParticle(position, knockback);
-            tCollider.velocity += knockback;
+            velocity += knockback;
         }
 
         public unsafe EItemEntity() { }
@@ -95,9 +85,8 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             settings = (EItemSetting)setting;
             controller = new EItemController(Controller, this);
             random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(0, int.MaxValue));
+            tCollider = new TerrainCollider(this.settings.collider, GCoord);
             decomposition = settings.DecayTime;
-            tCollider.transform.position = GCoord;
-            tCollider.useGravity = true;
         }
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
@@ -115,8 +104,8 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
 
             TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
             OnInLiquid: (dens) => {
-                tCollider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-                tCollider.velocity.y *= 1 - settings.collider.friction;
+                velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
+                velocity.y *= 1 - settings.collider.friction;
                 tCollider.useGravity = false;
             }, OnInGas: null);
 
@@ -128,28 +117,25 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             if (item.Value == null || item.Value.AmountRaw == 0) {
                 EntityManager.ReleaseEntity(info.entityId);
             }
-            if (tCollider.GetGroundDir(settings.GroundStickDist, settings.collider, EntityJob.cxt.mapContext, out float3 gDir)) {
+            if (GetGroundDir(out float3 gDir)) {
                 tCollider.transform.rotation = Quaternion.LookRotation(gDir, math.up());
-                tCollider.velocity *= 1 - settings.StickFriction;
+                velocity *= 1 - settings.StickFriction;
             }
-            tCollider.Update(settings.collider, this);
+            tCollider.Update(this);
             EntityManager.AddHandlerEvent(controller.Update);
         }
 
         private void MergeNearbyEItems() {
             if (item.Value == null) return;
-            if (!item.Value.IsStackable) return;
-            if (item.Value.AmountRaw >= IItem.MaxAmountRaw) return;
+            if (item.Value.AmountRaw >= item.Value.StackLimit) return;
 
             void MergeWithEItem(EItemEntity neighbor) {
                 if (item.Value == null || item.Value.AmountRaw == 0)
                     return; //Already merged by neighbor
                 if (neighbor == null) return;
                 if (neighbor.item.Value == null) return;
-                if (neighbor.item.Value.Index != item.Value.Index)
-                    return;
                 int delta = math.min(item.Value.AmountRaw
-                    + neighbor.item.Value.AmountRaw, IItem.MaxAmountRaw)
+                    + neighbor.item.Value.AmountRaw, item.Value.StackLimit)
                     - item.Value.AmountRaw;
                 item.Value.AmountRaw += delta;
                 neighbor.item.Value.AmountRaw -= delta;
@@ -167,10 +153,17 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
                 if (nItem.item.Value == null) return;
                 if (nItem.item.Value.Index != item.Value.Index)
                     return;
+                if (item.Value.AmountRaw + nItem.item.Value.AmountRaw > item.Value.StackLimit)
+                    return;
                 EntityManager.AddHandlerEvent(() => MergeWithEItem(nItem));
             });
         }
 
+        private bool GetGroundDir( out float3 dir) => tCollider.SampleCollision(
+            transform.position,
+            new float3(settings.collider.size.x, -settings.GroundStickDist, settings.collider.size.z),
+            EntityJob.cxt.mapContext, out dir
+        );
 
         public override void Disable() {
             controller.Dispose();

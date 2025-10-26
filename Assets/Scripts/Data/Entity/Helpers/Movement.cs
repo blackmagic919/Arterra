@@ -47,8 +47,8 @@ public struct Movement {
         } else rot = Quaternion.LookRotation(aim);
 
         tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, rotSpeed * EntityJob.cxt.deltaTime);
-        if (math.length(tCollider.velocity) < moveSpeed)
-            tCollider.velocity += acceleration * EntityJob.cxt.deltaTime * aim;
+        if (math.length(tCollider.transform.velocity) < moveSpeed)
+            tCollider.transform.velocity += acceleration * EntityJob.cxt.deltaTime * aim;
 
         int3 GCoord = (int3)math.floor(tCollider.transform.position);
         if (math.all(math.abs(GCoord - nextPos) <= 1)) {
@@ -82,8 +82,8 @@ public struct Movement {
         } else rot = Quaternion.LookRotation(aim);
 
         tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, rotSpeed * EntityJob.cxt.deltaTime);
-        if (math.length(tCollider.velocity) < moveSpeed)
-            tCollider.velocity += acceleration * EntityJob.cxt.deltaTime * aim;
+        if (math.length(tCollider.transform.velocity) < moveSpeed)
+            tCollider.transform.velocity += acceleration * EntityJob.cxt.deltaTime * aim;
 
         int3 GCoord = (int3)math.floor(tCollider.transform.position);
         if (math.all(math.abs(GCoord - nextPos) <= 1)) {

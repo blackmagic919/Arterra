@@ -34,12 +34,14 @@ namespace WorldConfig.Gameplay{
         /// <summary> Accessor to unwrap the binding from the option  </summary>
         [JsonIgnore]
         public List<Binding> Bindings => bindings.value;
+        /// <summary> An additional number of times the keybind must be triggered to activate. (Ex. double click) </summary>
+        public uint AdditionalTriggerCount = 0;
         private static readonly Func<KeyCode, bool>[] PollTypes = {
             null,
-            UnityEngine.Input.GetKey,
-            UnityEngine.Input.GetKey,
-            UnityEngine.Input.GetKeyDown,
-            UnityEngine.Input.GetKeyUp,
+            Input.GetKey,
+            Input.GetKey,
+            Input.GetKeyDown,
+            Input.GetKeyUp,
         };
         /// <summary> If <see cref="BindPoll"/> is <see cref="BindPoll.Axis"/>, the 
         /// translation of <see cref="KeyCode"/> to the axis name that is being polled. </summary>
@@ -92,31 +94,47 @@ namespace WorldConfig.Gameplay{
         /// <param name="axis">If the <see cref="bindings"/> contains an <see cref="BindPoll.Axis">axis</see>, the axis
         /// value of the last axis poll in the list. </param>
         /// <returns>Whether or not the KeyBind has been triggered. </returns>
-        public bool IsTriggered(out float axis)
-        {
-            axis = 0; bool Pressed = false;
+        public bool IsTriggered(Func<KeyCode, bool> IsBlocked, out float axis) {
+            axis = 0;
+            bool Pressed = false;
+            Truthy ConsumedBind = Truthy.Unset;
             if (Bindings == null || Bindings.Count == 0) return false;
-            for (int i = Bindings.Count - 1; i >= 0; i--)
-            {
+            for (int i = Bindings.Count - 1; i >= 0; i--) {
                 Binding bind = Bindings[i];
-                if (bind.PollType == BindPoll.Exclude)
-                {
+                if (bind.PollType == BindPoll.Exclude) {
                     Pressed |= !PollTypes[(int)bind.PollType](bind.Key);
-                }
-                else if (bind.PollType == BindPoll.Axis)
-                {
+                } else if (bind.PollType == BindPoll.Axis) {
                     if (AxisMappings.ContainsKey(bind.Key))
-                        axis = UnityEngine.Input.GetAxis(AxisMappings[bind.Key]);
+                        axis = Input.GetAxis(AxisMappings[bind.Key]);
                     Pressed = true;
-                }
-                else
-                {
+                } else {
+                    if (ConsumedBind == Truthy.Unset) ConsumedBind = Truthy.False;
+                    if (!IsBlocked(bind.Key)) ConsumedBind = Truthy.True;
                     Pressed |= PollTypes[(int)bind.PollType](bind.Key);
                 }
                 if (!bind.IsAlias && !Pressed) return false;
                 if (!bind.IsAlias) Pressed = false;
             }
-            return true;
+            return ConsumedBind != Truthy.False;
+        }
+        
+        /// <summary> Consumes all pressed keys by adding them to the exclusion set. </summary>
+        /// <param name="BlockedExclusion">The exclusion set pressed keys will be added to</param>
+        public void ConsumeKeys(HashSet<KeyCode> BlockedExclusion) {
+            if (Bindings == null) return;
+            if (BlockedExclusion == null) return;
+            for (int i = Bindings.Count - 1; i >= 0; i--) {
+                Binding bind = Bindings[i];
+                if (bind.PollType != BindPoll.Down && bind.PollType != BindPoll.Hold)
+                    continue;
+                BlockedExclusion.Add(bind.Key);
+            }
+        }
+
+        private enum Truthy {
+            True = 2,
+            Unset = 1,
+            False = 0,
         }
     }
 }
@@ -170,15 +188,17 @@ public static class InputPoller
     private static KeyBinder Binder;
     private static StateStack SStack;
     //Getter is ref otherwise modification would be impossible as we have copy
+    private static Dictionary<string, (float trigTime, uint trigCount)> LastTrigger;
     private static ref SharedLinkedList<ActionBind> KeyBinds => ref Binder.KeyBinds;
     private static ref Registry<uint> LayerHeads => ref Binder.LayerHeads;
     private static Queue<Action> KeyBindChanges;
     private static IUpdateSubscriber eventTask;
-    private static HashSet<string> GlobalExclusion;
-    private static HashSet<string> LayerExclusion;
+    private static HashSet<KeyCode> GlobalExclusion;
+    private static HashSet<KeyCode> LayerExclusion;
 
     private static bool CursorLock = false;
     private const int MaxActionBinds = 10000;
+    private const float TriggerResetTime = 0.5f;
 
     public static void Initialize() {
         Binder = new KeyBinder();
@@ -187,8 +207,9 @@ public static class InputPoller
         AddStackPoll(new ActionBind("BASE", (float _) => SetCursorLock(true)), "CursorLock");
         eventTask = new IndirectUpdate(Update);
         TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
-        GlobalExclusion = new HashSet<string>();
-        LayerExclusion = new HashSet<string>();
+        GlobalExclusion = new HashSet<KeyCode>();
+        LayerExclusion = new HashSet<KeyCode>();
+        LastTrigger = new Dictionary<string, (float trigTime, uint trigCount)>();
     }
 
     public static void SetCursorLock(bool value)
@@ -209,28 +230,35 @@ public static class InputPoller
         //Explicit lexicographic-name ordering
         GlobalExclusion.Clear();
         LayerExclusion.Clear();
+        static bool IsBlocked(KeyCode key) => GlobalExclusion.Contains(key) || LayerExclusion.Contains(key);
         foreach(Registry<uint>.Pair head in LayerHeads.Reg){
             uint current = head.Value; LayerExclusion.Clear();
             do{
                 ActionBind BoundAction = KeyBinds.Value(current);
                 current = KeyBinds.Next(current);
 
-                if(GlobalExclusion.Contains(BoundAction.Binding)) continue;
-                if(LayerExclusion.Contains(BoundAction.Binding)) continue;
-
-                if(BoundAction.Binding == null) { //Context Fence/Barrier
-                    if(BoundAction.exclusion == ActionBind.Exclusion.ExcludeAll) return;
-                    if(BoundAction.exclusion == ActionBind.Exclusion.ExcludeLayer) break;
+                if (BoundAction.Binding == null) { //Context Fence/Barrier
+                    if (BoundAction.exclusion == ActionBind.Exclusion.ExcludeAll) return;
+                    if (BoundAction.exclusion == ActionBind.Exclusion.ExcludeLayer) break;
                     continue; //otherwise just a marker
-                } else if(BoundAction.exclusion != ActionBind.Exclusion.None){ 
-                    if(BoundAction.exclusion == ActionBind.Exclusion.ExcludeLayer) 
-                        LayerExclusion.Add(BoundAction.Binding);
-                    else GlobalExclusion.Add(BoundAction.Binding);
                 } 
-
+                
                 KeyBind KeyBind = Binder.Retrieve(BoundAction.Binding);
-                if(KeyBind.IsTriggered(out float axis))
-                    BoundAction.action.Invoke(axis);
+                if(KeyBind.IsTriggered(IsBlocked, out float axis)) {
+                    if (LastTrigger.TryGetValue(BoundAction.Binding, out var t)) {
+                        if (Time.time - t.trigTime > TriggerResetTime) t.trigCount = 0;
+                        else t.trigCount += 1;
+                        t.trigTime = Time.time;
+                    } else t = (Time.time, 0);
+                    if (t.trigCount >= KeyBind.AdditionalTriggerCount)
+                        BoundAction.action.Invoke(axis);
+                    LastTrigger[BoundAction.Binding] = t;
+
+                    if(BoundAction.exclusion == ActionBind.Exclusion.ExcludeLayer)
+                        KeyBind.ConsumeKeys(LayerExclusion);
+                    else if(BoundAction.exclusion == ActionBind.Exclusion.ExcludeAll)
+                        KeyBind.ConsumeKeys(GlobalExclusion);
+                }
             } while(current != head.Value);
         }
     }
@@ -257,9 +285,9 @@ public static class InputPoller
 
     public static void SuspendKeybindPropogation(string name, ActionBind.Exclusion exclusion = ActionBind.Exclusion.ExcludeLayer) {
         if (exclusion.Equals(ActionBind.Exclusion.ExcludeLayer)) {
-            LayerExclusion?.Add(name);
+            Binder.Retrieve(name).ConsumeKeys(LayerExclusion);
         } else if (exclusion.Equals(ActionBind.Exclusion.ExcludeAll)) {
-            GlobalExclusion?.Add(name);
+            Binder.Retrieve(name).ConsumeKeys(GlobalExclusion);
         }
     }
 

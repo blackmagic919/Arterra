@@ -85,15 +85,7 @@ public class AquaticCarnivore : Authoring
             Death,
         };
         [JsonIgnore]
-        public override float3 position {
-            get => tCollider.transform.position + settings.collider.size / 2;
-            set => tCollider.transform.position = value - settings.collider.size / 2;
-        }
-        [JsonIgnore]
-        public override float3 origin {
-            get => tCollider.transform.position;
-            set => tCollider.transform.position = value;
-        }
+        public override ref TerrainCollider.Transform transform => ref tCollider.transform;
         [JsonIgnore]
         public Quaternion Facing => tCollider.transform.rotation;
         [JsonIgnore]
@@ -108,7 +100,7 @@ public class AquaticCarnivore : Authoring
         public void TakeDamage(float damage, float3 knockback, Entity attacker) {
             if (!vitality.Damage(damage)) return;
             Indicators.DisplayDamageParticle(position, knockback);
-            tCollider.velocity += knockback;
+            velocity += knockback;
 
             if (IsDead) return;
             if (attacker == null) return; //If environmental damage, we don't need to retaliate
@@ -157,7 +149,7 @@ public class AquaticCarnivore : Authoring
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.genetics ??= new Genetics(this.info.entityType, ref random);
             this.vitality = new Vitality(settings.Physicality, this.genetics);
-            this.tCollider = new TerrainCollider(GCoord, true, ProcessFallDamage);
+            this.tCollider = new TerrainCollider(settings.collider, GCoord, ProcessFallDamage);
             pathFinder.hasPath = false;
 
             //Start by Idling   
@@ -178,8 +170,7 @@ public class AquaticCarnivore : Authoring
 
         public override void Update() {
             if (!active) return;
-            tCollider.Update(settings.collider, this);
-            if (!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
+            tCollider.Update(this);
             EntityManager.AddHandlerEvent(controller.Update);
 
             TerrainInteractor.DetectMapInteraction(position,
@@ -420,8 +411,8 @@ public class AquaticCarnivore : Authoring
 
         //Task 11
         private static unsafe void RunFromTarget(Animal self) {
-            Entity target = EntityManager.GetEntity(self.TaskTarget);
-            if (target == null) self.TaskTarget = Guid.Empty;
+            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
+                self.TaskTarget = Guid.Empty;
             else if (Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
             if (self.TaskTarget == Guid.Empty) {
@@ -442,8 +433,7 @@ public class AquaticCarnivore : Authoring
 
         //Task 12
         private static unsafe void ChaseTarget(Animal self) {
-            Entity target = EntityManager.GetEntity(self.TaskTarget);
-            if (target == null)
+            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
                 self.TaskTarget = Guid.Empty;
             else if (Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
@@ -469,8 +459,7 @@ public class AquaticCarnivore : Authoring
 
         //Task 13
         private static void AttackTarget(Animal self) {
-            Entity tEntity = EntityManager.GetEntity(self.TaskTarget);
-            if (tEntity == null)
+            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity tEntity))
                 self.TaskTarget = Guid.Empty;
             else if (tEntity is not IAttackable)
                 self.TaskTarget = Guid.Empty;
@@ -517,7 +506,7 @@ public class AquaticCarnivore : Authoring
 
             if (self.tCollider.SampleCollision(self.origin, new float3(self.settings.collider.size.x,
             -self.settings.aquatic.JumpStickDistance, self.settings.collider.size.z), EntityJob.cxt.mapContext, out _)) {
-                self.tCollider.velocity.y += self.settings.aquatic.JumpStrength;
+                self.velocity.y += self.settings.aquatic.JumpStrength;
             }
         }
 

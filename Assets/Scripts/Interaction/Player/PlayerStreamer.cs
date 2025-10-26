@@ -50,11 +50,9 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         public EntityEvents Events = new();
 
         [JsonIgnore]
-        public override float3 position
-        {
-            get => collider.transform.position + settings.collider.size / 2;
-            set => collider.transform.position = value - settings.collider.size / 2;
-        }
+        public override ref TerrainCollider.Transform transform => ref collider.transform;
+        [JsonIgnore]
+        public override Quaternion Facing => camera.Facing;
         [JsonIgnore]
         public float3 positionWS
         {
@@ -63,19 +61,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         }
 
         [JsonIgnore]
-        public override float3 origin
-        {
-            get => collider.transform.position;
-            set => collider.transform.position = value;
-        }
-        [JsonIgnore]
         public bool IsDead { get => vitality.IsDead; }
-        [JsonIgnore]
-        public Quaternion Facing => camera.Facing;
-        [JsonIgnore]
-        public float3 Forward => camera.Facing * Vector3.forward;
-        [JsonIgnore]
-        public float3 Right => camera.Facing * Vector3.right;
         
         public void Interact(Entity target) { }
         public IItem Collect(float collectRate)
@@ -101,7 +87,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             
             if (!vitality.Damage(damage)) return;
             EntityManager.AddHandlerEvent(() => Indicators.DisplayDamageParticle(position, knockback));
-            collider.velocity += knockback;
+            velocity += knockback;
 
             if (status == StreamingStatus.Disconnected) return;
             OctreeTerrain.MainCoroutines.Enqueue(PlayerHandler.cEffects.CameraShake(0.2f, 0.25f));
@@ -121,7 +107,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             p.info.entityId = Guid.NewGuid();
 
             p.settings = Config.CURRENT.Generation.Entities.Retrieve((int)p.info.entityType).Setting as PlayerSettings;
-            p.collider = new PlayerCollider(new TerrainCollider.Transform(0, Quaternion.LookRotation(Vector3.forward, Vector3.up)));
+            p.collider = new PlayerCollider(p.settings.collider, 0);
             p.vitality = new PlayerVitality();
             p.status = StreamingStatus.Live;
             StartupPlacer.PlaceOnSurface(p);
@@ -170,13 +156,13 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
             OnInLiquid: (dens) =>
             {
-                collider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-                collider.velocity.y *= 1 - settings.collider.friction;
+                velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
+                velocity.y *= 1 - settings.collider.friction;
                 collider.useGravity = false;
             }, OnInGas: null);
 
             //Apply gravity and take over physics updating
-            collider.JobUpdate(EntityJob.cxt, this.settings.collider);
+            collider.JobUpdate(EntityJob.cxt);
             EntityManager.AddHandlerEvent(() => player.transform.SetPositionAndRotation(this.positionWS, collider.transform.rotation));
         }
 

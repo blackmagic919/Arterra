@@ -31,12 +31,14 @@ public static class EntityManager
         HandlerEvents.Enqueue(action);
     }
 
-    public unsafe static Entity GetEntity(Guid entityId){
+    public unsafe static bool TryGetEntity(Guid entityId, out Entity entity){
+        entity = null;
         if(!EntityIndex.ContainsKey(entityId)) {
-            return null;
+            return false;
         }
         int entityInd = EntityIndex[entityId];
-        return EntityHandler[entityInd];
+        entity = EntityHandler[entityInd];
+        return true;
     }
 
     public unsafe static Entity GetEntity(int entityIndex){
@@ -107,7 +109,7 @@ public static class EntityManager
         }
         EntityHandler.RemoveAt(EntityHandler.Count - 1);
     }
-    public unsafe static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex){
+    public unsafe static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
         nEntity.info.entityId = Guid.NewGuid();
         nEntity.info.entityType = entityIndex;
@@ -449,13 +451,18 @@ public static class EntityManager
             if(current == 0) return; //Root is zero when it is empty
             TreeNode node = tree[current];
             if(node.IsLeaf){
-                if(bounds.Contains(node.bounds.min))
+                if(ContainsExclusive(bounds, node.bounds.min))
                     action.Invoke(node.GetLeaf);
                 return;
             }
             
             if(bounds.Intersects(tree[(int)node.Left].bounds)) QueryExclusive(bounds, action, (int)node.Left);
-            if(bounds.Intersects(tree[(int)node.Right].bounds)) QueryExclusive(bounds, action, (int)node.Right);
+            if (bounds.Intersects(tree[(int)node.Right].bounds)) QueryExclusive(bounds, action, (int)node.Right);
+            bool ContainsExclusive(Bounds b, float3 p) {
+                float3 Min = b.min, Max = b.max;
+                return Max.x > p.x && Max.y > p.y && Max.z > p.z &&
+                       Min.x <= p.x && Min.y <= p.y && Min.z <= p.z;
+            }
         }
 
         public readonly void QueryRay(Ray ray, float maxDist, Action<Entity> action, int current = -1){
@@ -501,7 +508,7 @@ public static class EntityManager
         }
 
 
-        public struct TreeNode{
+        public struct TreeNode {
             public Bounds bounds;
             //64-bit systems guarantee 64-bit copies are atomic for properly aligned elements
             //If 32-bit systems are used, this will not work
@@ -510,7 +517,12 @@ public static class EntityManager
             public uint Right;
             public Guid ObjId;
             public readonly bool IsLeaf => ObjId != Guid.Empty;
-            public readonly Entity GetLeaf => GetEntity(ObjId);
+            public readonly Entity GetLeaf {
+                get {
+                    TryGetEntity(ObjId, out Entity ent);
+                    return ent;
+                }
+            }
             public TreeNode(Bounds bounds){
                 this.bounds = bounds;
                 Left = 0; Right = 0;

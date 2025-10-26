@@ -48,11 +48,11 @@ namespace WorldConfig.Generation.Item {
         /// when another item of the same <see cref="IRegistered.Index"/> is encountered it may be combined with the
         /// current item and the <see cref="AmountRaw"/> increased to the sum the amounts of the two items.
         /// All items representing materials should be stackable by default. </summary>
-        public bool IsStackable { get; }
+        public int StackLimit { get => 1; }
+        public int UnitSize { get => 1; }
         /// <summary> The amount of the item that is stored. Used when determing how to stack identical items </summary>
         public int AmountRaw { get; set; }
         /// <summary>The maximum amount of item that all systems can stably support.</summary>
-        public const int MaxAmountRaw = 0xFFFF;
         /// <summary> The index within the <see cref="Config.GenerationSettings.Textures"> texture registry </see> of the item's texture.
         /// This is obtained by using the <see cref="IRegistered.Index"/> within the <see cref="WorldConfig.Config.GenerationSettings.Items"> item registry </see>
         /// to obtain the <see cref="Authoring.TextureName"/> of the texture which can be used to find the texture in the external
@@ -66,16 +66,14 @@ namespace WorldConfig.Generation.Item {
         /// <param name="AmountRaw">The amount of the item</param>
         public void Create(int Index, int AmountRaw) { }
 
-        /// <summary>
-        /// An event hook that is called on the frame when the item enters the <see cref="InventoryController.Primary"> Primary </see> inventory.
-        /// This is an airtight state, meaning <see cref="OnLeavePrimary"/> must be called before <see cref="OnEnterPrimary"/> can be called
-        /// a second time.
-        /// </summary>
+        /// <summary>  An event hook that is called on the frame when the item enters the situation context given by <paramref name="cxt"/>.
+        /// This is an airtight state, meaning <see cref="OnLeave"/> must be called before <see cref="OnEnter"/> can be called
+        /// a second time. </summary>
+        /// <param name="cxt">The context in which the item is being entered.</param>
         public void OnEnter(ItemContext cxt); //Called upon entering the primary inventory
-        /// <summary>
-        /// An event hook that is called on the frame when the item leaves the <see cref="InventoryController.Primary"> Primary </see> inventory.
-        /// This is an airtight state meaning <see cref="OnEnterPrimary"/> must be called before <see cref="OnLeavePrimary"/> can be called.
-        /// </summary>
+        /// <summary> An event hook that is called on the frame when the item leaves the  situation context given by <paramref name="cxt"/>.
+        /// This is an airtight state meaning <see cref="OnEnter"/> must be called before <see cref="OnLeave"/> can be called. </summary>
+        /// <param name="cxt">The context in which the item is being entered.</param>/// 
         public void OnLeave(ItemContext cxt); //Called upon leaaving the primary inventory
         /// <summary> An event hook that is called every frame the item is held by an <see cref="EItem">EntityItem</see>. </summary>
         /// <remarks> TODO: This has yet to be implemented </remarks>

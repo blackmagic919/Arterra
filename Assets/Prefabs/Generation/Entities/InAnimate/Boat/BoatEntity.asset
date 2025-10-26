@@ -27,7 +27,6 @@ MonoBehaviour:
           x: 0
           y: 0
           z: 0
-        profileStart: 539
       collider:
         size:
           x: 2.5
@@ -40,27 +39,23 @@ MonoBehaviour:
       Acceleration: 150
       groundStickDist: 0.1
       durability:
-        MaxHealth: 
+        weight: 0.05
+        MaxHealth:
           mean: 2
-          var: 0
-          geneWeight: 0
-        InitHealth:
-          mean: 1
           var: 0
           geneWeight: 0
         NaturalRegen:
           mean: 0.75
           var: 0
           geneWeight: 0
-        InvincTime: 0.1
-          mean: 0.1
+        InvincTime:
+          mean: 0
           var: 0
           geneWeight: 0
-        HoldBreathTime: 5
-          mean: 5
+        HoldBreathTime:
+          mean: 0
           var: 0
           geneWeight: 0
-        weight: 0.05
       ItemDrop: Boat
   references:
     version: 2

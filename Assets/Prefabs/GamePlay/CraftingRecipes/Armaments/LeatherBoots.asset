@@ -29,20 +29,21 @@ MonoBehaviour:
         - data: 110511
         - data: 116936
         - data: 131072
-        - data: 116936
-        - data: 131071
-        - data: 116936
-        - data: 156772
-        - data: 116936
-        - data: 131071
-        - data: 116936
-        - data: 156772
-        - data: 104086
         - data: 98946
-        - data: 91236
+        - data: 131072
+        - data: 131072
+        - data: 131072
+        - data: 131072
+        - data: 129786
+        - data: 110511
         - data: 116936
+        - data: 156772
+        - data: 98946
+        - data: 131072
+        - data: 131072
       result:
-        data: 255
+        data: 51
+      MinQuantity: 1
   references:
     version: 2
     RefIds: []

@@ -148,23 +148,25 @@ namespace WorldConfig.Generation.Material
             InputPoller.SuspendKeybindPropogation("Select", InputPoller.ActionBind.Exclusion.ExcludeLayer);
         }
 
-        private static void DeselectDrag(ContainerInventory cont) {
+        private static void DeselectDrag(ContainerInventory cxt) {
             if (InventoryController.Cursor == null) return;
-            if (!cont.inv.Display.GetMouseSelected(out int index)) return;
+            if (!cxt.inv.Display.GetMouseSelected(out int index)) return;
+            InputPoller.SuspendKeybindPropogation("Deselect", InputPoller.ActionBind.Exclusion.ExcludeLayer);
 
             InventoryController.CursorDisplay.Object.SetActive(false);
             Item.IItem cursor = InventoryController.Cursor;
             cursor.ClearDisplay(InventoryController.CursorDisplay.Object.transform);
             InventoryController.Cursor = null;
 
-            if (cont.inv.Info[index] == null)
-                cont.inv.AddEntry(cursor, index);
-            else if (cont.inv.Info[index].IsStackable && cursor.Index == cont.inv.Info[index].Index) {
-                cont.inv.AddStackable(cursor, index);
-            } else if (cont.inv.EntryDict.ContainsKey(cursor.Index) && cont.inv.Info[index].IsStackable) {
-                cont.inv.AddStackable(cursor);
-            } else if (!cont.inv.AddEntry(cursor, out int _)) InventoryController.DropItem(cursor);
-            InputPoller.SuspendKeybindPropogation("Deselect", InputPoller.ActionBind.Exclusion.ExcludeLayer);
+            if (cxt.inv.Info[index] == null) {
+                if(cxt.inv.AddEntry(cursor, index)) return;
+            } if (cursor.Index == cxt.inv.Info[index].Index) {
+                cxt.inv.AddStackable(cursor, index);
+                if (cursor.AmountRaw == 0) return;
+            } 
+            cxt.inv.AddStackable(cursor);
+            if (cursor.AmountRaw == 0) return;
+            InventoryController.DropItem(cursor);
         }
 
 

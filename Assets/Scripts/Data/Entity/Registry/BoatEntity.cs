@@ -46,15 +46,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
         private BoatController controller;
         private BoatSetting settings;
         [JsonIgnore]
-        public override float3 position {
-            get => tCollider.transform.position + settings.collider.size / 2;
-            set => tCollider.transform.position = value - settings.collider.size / 2;
-        }
-        [JsonIgnore]
-        public override float3 origin {
-            get => tCollider.transform.position;
-            set => tCollider.transform.position = value;
-        }
+        public override ref TerrainCollider.Transform transform => ref tCollider.transform;
         [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
@@ -62,8 +54,8 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
 
         public void Dismount() {
             if (RiderTarget == Guid.Empty) return;
-            Entity target = EntityManager.GetEntity(RiderTarget);
-            if (target == null || target is not IRider rider)
+            if (!EntityManager.TryGetEntity(RiderTarget, out Entity target) ||
+                target is not IRider rider)
                 return;
 
             EntityManager.AddHandlerEvent(() => rider.OnDismounted(this));
@@ -85,7 +77,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
         public void TakeDamage(float damage, float3 knockback, Entity attacker = null) {
             if (!vitality.Damage(damage)) return;
             Indicators.DisplayDamageParticle(position, knockback);
-            tCollider.velocity += knockback;
+            velocity += knockback;
         }
 
         // IRidable implementation
@@ -95,17 +87,17 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             if (Vector3.Magnitude(aim) <= 1E-05f) return;
             this.controller.SetAimAngle(aim);
 
-            if (math.length(tCollider.velocity) <= settings.MaxLandSpeed &&
+            if (math.length(velocity) <= settings.MaxLandSpeed &&
                 PlayerHandler.data.collider.SampleCollision(origin, new float3(
                 settings.collider.size.x, -settings.groundStickDist, settings.collider.size.z), out _)
             ) {
-                tCollider.velocity += settings.Acceleration * EntityJob.cxt.deltaTime * aim;
+                velocity += settings.Acceleration * EntityJob.cxt.deltaTime * aim;
             } else {
                 float3 basePos = position + (float3)(Vector3.down * settings.groundStickDist);
                 TerrainInteractor.DetectMapInteraction(basePos, OnInSolid: null,
                     OnInLiquid: (dens) => {
-                        if (math.length(tCollider.velocity) > settings.MaxWaterSpeed) return;
-                        tCollider.velocity += settings.Acceleration * EntityJob.cxt.deltaTime * aim;
+                        if (math.length(velocity) > settings.MaxWaterSpeed) return;
+                        velocity += settings.Acceleration * EntityJob.cxt.deltaTime * aim;
                     }, OnInGas: null
                 );
             }
@@ -116,8 +108,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             settings = (BoatSetting)setting;
             controller = new BoatController(Controller, this);
             vitality = new MinimalVitality(settings.durability);
-            tCollider.transform.position = GCoord;
-            tCollider.useGravity = true;
+            tCollider = new TerrainCollider(this.settings.collider, GCoord);
         }
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
@@ -130,9 +121,9 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             GCoord = this.GCoord;
 
             if (RiderTarget == Guid.Empty) return;
-            Entity entity = EntityManager.GetEntity(RiderTarget);
-            if (entity != null && entity is IRider rider)
-            EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
+            if (EntityManager.TryGetEntity(RiderTarget, out Entity entity) 
+                && entity is IRider rider)
+                EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
         }
 
 
@@ -144,20 +135,20 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             vitality.Update();
             TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
             OnInLiquid: (dens) => {
-                tCollider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-                tCollider.velocity.y *= 1 - settings.collider.friction;
+                velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
+                velocity.y *= 1 - settings.collider.friction;
                 tCollider.useGravity = false;
             }, OnInGas: null);
 
             if (RiderTarget != Guid.Empty) {
-                float3 aim = math.normalize(new float3(tCollider.velocity.x, 0, tCollider.velocity.z));
+                float3 aim = math.normalize(new float3(velocity.x, 0, velocity.z));
                 if (Vector3.Magnitude(aim) > 1E-05f) {
                     tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation,
                     Quaternion.LookRotation(aim), settings.rotSpeed * EntityJob.cxt.deltaTime);
                 }
             }
 
-            tCollider.Update(settings.collider, this);
+            tCollider.Update(this);
             EntityManager.AddHandlerEvent(controller.Update);
 
             if (!IsDead) return;
@@ -168,7 +159,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             //Create boat item
             int index = itemReg.RetrieveIndex(settings.ItemDrop);
             IItem dropItem = itemReg.Retrieve(index).Item;
-            dropItem.Create(index, 0xFF);
+            dropItem.Create(index, dropItem.UnitSize);
 
             InventoryController.DropItem(dropItem, position);
         }
@@ -208,7 +199,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
 
                 float minSpeed = math.min(entity.settings.MaxLandSpeed, entity.settings.MaxWaterSpeed) * 0.5f;
-                if (Vector2.SqrMagnitude(entity.tCollider.velocity.xz) < minSpeed * minSpeed) {
+                if (Vector2.SqrMagnitude(entity.velocity.xz) < minSpeed * minSpeed) {
                     this.animator.SetBool("Paddle", false);
                     return;
                 }
@@ -217,7 +208,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
                 this.animator.SetFloat("Direction", Mathf.InverseLerp(-90, 90, angle));
             }
 
-            public void SetAimAngle(float3 aim) { angle = Vector3.Angle(this.entity.tCollider.velocity, aim); }
+            public void SetAimAngle(float3 aim) { angle = Vector3.Angle(this.entity.velocity, aim); }
 
             public void Dispose() {
                 if (!active) return;

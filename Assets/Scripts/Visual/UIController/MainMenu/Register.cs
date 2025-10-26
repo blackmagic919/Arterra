@@ -163,11 +163,7 @@ public struct Catalogue<T> : IRegister, ICloneable where T : Category<T>
     public object Clone() => new Catalogue<T> { Reg = Reg };
     
     public int Count() => Reg.Count;
-
-    internal bool GetMostSpecificTag(TagRegistry.Tags bareHand, int material, out ToolTag tag) {
-        throw new NotImplementedException();
-    }
-
+    
     [Serializable]
     public struct Pair : ICloneable
     {

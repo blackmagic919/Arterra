@@ -94,8 +94,7 @@ public static class PlayerInteraction {
         if (RayTestSolid(data, out float3 terrHit)) {
             hitPt = terrHit;
             rayHit = true;
-        }
-        ;
+        };
 
         if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var entity)) {
             EntityInteract(entity);
@@ -344,7 +343,7 @@ public static class PlayerInteraction {
         public static void Initialize() {
             InputPoller.AddBinding(
                 new InputPoller.ActionBind(
-                    "Start Interact",
+                    "GetPlaceFocus",
                     (_) => IsLocked = false,
                     InputPoller.ActionBind.Exclusion.ExcludeLayer
                 ), "5.0::GamePlay"

@@ -28,21 +28,22 @@ MonoBehaviour:
         - data: 116936
         - data: 25700
         - data: 0
+        - data: 19275
+        - data: 25700
+        - data: 111796
+        - data: 12850
+        - data: 169622
         - data: 0
         - data: 25700
-        - data: 104086
-        - data: 5140
-        - data: 0
-        - data: 0
-        - data: 169622
-        - data: 104086
-        - data: 19275
+        - data: 116936
+        - data: 177332
         - data: 19275
         - data: 169622
         - data: 177332
         - data: 182472
       result:
-        data: 255
+        data: 51
+      MinQuantity: 1
   references:
     version: 2
     RefIds: []

@@ -12,7 +12,9 @@ namespace WorldConfig.Generation.Item{
         private static Catalogue<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
         private static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
         [JsonIgnore]
-        public readonly bool IsStackable => true;
+        public int StackLimit => 0xFFFF;
+        [JsonIgnore]
+        public int UnitSize => 0xFF;
         [JsonIgnore]
         public readonly int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
 
@@ -21,12 +23,6 @@ namespace WorldConfig.Generation.Item{
         {
             readonly get => (int)(data >> 16) & 0x7FFF;
             set => data = (data & 0x0000FFFF) | (((uint)value & 0x7FFF) << 16);
-        }
-        [JsonIgnore]
-        public string Display
-        {
-            readonly get => ((data & 0xFFFF) / (float)0xFF).ToString();
-            set => data = (data & 0xFFFF0000) | (((uint)Mathf.Round(uint.Parse(value) * 0xFF)) & 0xFFFF);
         }
         [JsonIgnore]
         public int AmountRaw
@@ -60,7 +56,7 @@ namespace WorldConfig.Generation.Item{
             display.transform.SetParent(parent, false);
             display.transform.GetComponent<UnityEngine.UI.Image>().sprite = TextureAtlas.Retrieve(ItemInfo.Retrieve(Index).TextureName).self;
             TMPro.TextMeshProUGUI amount = display.GetComponentInChildren<TMPro.TextMeshProUGUI>();
-            amount.text = ((data & 0xFFFF) / (float)0xFF).ToString();
+            amount.text = ((data & 0xFFFF) / (float)UnitSize).ToString();
         }
 
         public void ClearDisplay(Transform parent){
@@ -73,7 +69,7 @@ namespace WorldConfig.Generation.Item{
         private void UpdateDisplay() {
             if (display == null) return;
             TMPro.TextMeshProUGUI amount = display.GetComponentInChildren<TMPro.TextMeshProUGUI>();
-            amount.text = ((data & 0xFFFF) / (float)0xFF).ToString();
+            amount.text = ((data & 0xFFFF) / (float)UnitSize).ToString();
         }
 }
 }

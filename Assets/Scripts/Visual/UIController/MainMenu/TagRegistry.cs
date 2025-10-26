@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
 using WorldConfig;
+using WorldConfig.Generation.Entity;
 
 
 [Serializable]
@@ -86,6 +88,49 @@ public class ConverterToolTag : ConvertibleToolTag {
     }
 }
 
+public class ProjectileTag : ICloneable {
+    [RegistryReference("Entities")]
+    public string ProjectileEntity;
+    public float LaunchSpeedMultiplier = 1.0f;
+    public virtual object Clone() {
+        return new ProjectileTag {
+            ProjectileEntity = ProjectileEntity,
+            LaunchSpeedMultiplier = LaunchSpeedMultiplier
+        };
+    }
+
+    public void LaunchProjectile(float3 position, float3 velocity) {
+        LaunchProjectile(position, velocity, null);
+    }
+
+    public void LaunchProjectile(Entity parent, float3 velocity) {
+        float3 dir = math.normalize(velocity);
+        float3 rayOrigin = parent.position;
+        float3 min = parent.origin;
+        float3 max = parent.origin + parent.transform.size;
+        float3 t1 = (min - rayOrigin) / dir;
+        float3 t2 = (max - rayOrigin) / dir;
+
+        float3 tmax = math.max(t1, t2);
+        float tExit = math.cmin(tmax); // the nearest "exit" distance
+        rayOrigin += + dir * (tExit + 0.05f);
+        LaunchProjectile(rayOrigin, velocity, parent);
+    }
+
+    private void LaunchProjectile(float3 position, float3 velocity, Entity parent) {
+        var entityInfo = Config.CURRENT.Generation.Entities;
+        int entityInd = entityInfo.RetrieveIndex(ProjectileEntity);
+        var entity = Config.CURRENT.Generation.Entities.Retrieve(entityInd).Entity;
+        EntityManager.CreateEntity(position, (uint)entityInd, entity, () => {
+            entity.transform.position = position;
+            entity.transform.velocity = velocity * LaunchSpeedMultiplier;
+            entity.transform.rotation = Quaternion.LookRotation(math.normalize(velocity));
+            entity.position = position;
+            if (parent != null && parent is Projectile.ProjectileEntity pEntity)
+                pEntity.ParentId = parent.info.entityId;
+        });
+    }
+}
 
 public interface IMaterialConverting : ICloneable {
     public WorldConfig.Generation.Structure.StructureData.CheckInfo ConvertBounds { get; }
@@ -142,20 +187,24 @@ public struct TagRegistry
         { Tags.Vegetative, new ConvertibleTag() },
         { Tags.AquaMicrobial, new ConvertibleTag() },
         //Interaction Type
-        { Tags.FocusedPlace, null }
+        { Tags.FocusedPlace, null },
+        // Projectiles
+        { Tags.ArrowTag, new ProjectileTag() }
     };
 
     public enum Tags {
         //Tools
         None = 0, BareHand = 1, WoodAxe = 2, WoodShovel = 3, WoodPickaxe = 4, WoodHoe = 5,
-        StoneAxe = 12, StoneShovel = 13, StonePickaxe=14, StoneHoe = 15,
+        StoneAxe = 12, StoneShovel = 13, StonePickaxe = 14, StoneHoe = 15,
         //Converters
         Flammable = 1000, Tillable = 1001, Seedable = 1002,
         //Convertables
         Grassy = 2000, Vegetative = 2001, AquaMicrobial = 2002,
         //Interactions
         FocusedPlace = 9000,
-    }//
+        // Projectiles 
+        ArrowTag = 10000
+    }
 
     public Option<List<Pair>> Reg;
     [HideInInspector]

@@ -87,13 +87,13 @@ MonoBehaviour:
           value:
           - ItemName: Meat
             DropAmount:
-              mean: 8
+              mean: 0.03137255
               var: 1
               geneWeight: 0.05
         DecompositionTime:
-          mean: 0
-          var: 0
-          geneWeight: 0
+          mean: 175
+          var: 0.25
+          geneWeight: 0.05
       recognition:
         value:
           Predators:
@@ -111,7 +111,7 @@ MonoBehaviour:
             value:
             - EdibleType: Meat
               Nutrition:
-                mean: 25.6
+                mean: 25.60001
                 var: 0.5
                 geneWeight: 0.1
           SightDistance:

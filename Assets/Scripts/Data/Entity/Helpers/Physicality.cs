@@ -12,9 +12,6 @@ public interface IAttackable {
     public void Interact(Entity caller);
     public WorldConfig.Generation.Item.IItem Collect(float collectRate);
     public void TakeDamage(float damage, float3 knockback, Entity attacker = null);
-    public Quaternion Facing { get; }
-    public float3 Forward => Facing * Vector3.forward;
-    public float3 Right => Facing * Vector3.right;
     public bool IsDead { get; }
 }
 
@@ -105,7 +102,7 @@ public class MinimalVitality {
 
     public void ProcessInLiquid(Entity self, ref TerrainCollider tCollider, float density) {
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
-        tCollider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
+        tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
         tCollider.useGravity = false;
         if (breath > 0) return;
         //If dead don't process suffocation
@@ -121,7 +118,7 @@ public class MinimalVitality {
         tCollider.useGravity = false;
 
         if (self is IAttackable target && target.IsDead) { //If dead float to the surface
-            tCollider.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
+            tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
             return; //don't process suffocation
         }
 
@@ -165,12 +162,16 @@ public class Vitality : MinimalVitality {
     }
     [JsonIgnore]
     private Stats CStats => stats as Stats;
-    public float attackCooldown;
+    [JsonProperty]
+    private float attackCooldown;
+    [JsonProperty]
+    private bool IsHunting;
     public Vitality(Stats stats, Genetics genetics = null) : base(stats, genetics) {
         this.stats = stats;
         invincibility = 0;
         attackCooldown = 0;
         breath = genetics.Get(stats.HoldBreathTime);
+        IsHunting = false;
         //Higher mate cost => higher starting health for children
         health = genetics.Get(stats.MaxHealth) * Mathf.Lerp(
             math.min(genetics.Get(stats.HuntThreshold), genetics.Get(stats.MateThreshold)),
@@ -202,6 +203,11 @@ public class Vitality : MinimalVitality {
         EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback, self));
         return true;
     }
+
+    public bool BeginHunting() => IsHunting || (IsHunting = healthPercent < genetics.Get(CStats.HuntThreshold));
+    public bool StopHunting() => !IsHunting || !(IsHunting = healthPercent < math.lerp(genetics.Get(CStats.MateThreshold), 1, 0.5f));
+    public bool BeginMating() => healthPercent > genetics.Get(CStats.MateThreshold);
+    public bool StopMating() => healthPercent < genetics.Get(CStats.MateThreshold);
     [Serializable]
     public struct Decomposition {
         public Option<List<LootInfo>> LootTable;
@@ -219,20 +225,24 @@ public class Vitality : MinimalVitality {
             if (LootTable.value == null || LootTable.value.Count == 0) return null;
             int index = random.NextInt(LootTable.value.Count);
 
-            float delta = genetics.Get(LootTable.value[index].DropAmount) * collectRate;
-            int amount = Mathf.FloorToInt(delta) + (random.NextFloat() < math.frac(delta) ? 1 : 0);
-            if (amount == 0) return null;
-
+            float amount = genetics.Get(LootTable.value[index].DropAmount) * collectRate;
             Catalogue<WorldConfig.Generation.Item.Authoring> registry = Config.CURRENT.Generation.Items;
             int itemindex = registry.RetrieveIndex(LootTable.value[index].ItemName);
             WorldConfig.Generation.Item.IItem item = registry.Retrieve(itemindex).Item;
-            item.Create(itemindex, amount);
+
+            amount *= item.UnitSize;
+            int delta = Mathf.FloorToInt(amount)
+                + (random.NextFloat() < math.frac(amount) ? 1 : 0);
+            if (delta == 0) return null;
+            delta = math.min(delta, item.StackLimit);
+            item.Create(itemindex, delta);
             return item;
         }
         [Serializable]
         public struct LootInfo {
             [RegistryReference("Items")]
             public string ItemName;
+            //The unit amount given per second of decomposition
             public Genetics.GeneFeature DropAmount;
         }
     }

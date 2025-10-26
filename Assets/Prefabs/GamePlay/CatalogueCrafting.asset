@@ -18,30 +18,10 @@ MonoBehaviour:
       value: []
   Children:
     value:
-    - value: {fileID: 11400000, guid: 5a67f40ae4c614091a3689d2834fedc0, type: 2}
-    - value: {fileID: 11400000, guid: 8bca0cc82944c43bebfc9f590ec0638b, type: 2}
-    - value: {fileID: 11400000, guid: 1befee71d758745beb5f1b8c490b8ec4, type: 2}
-    - value: {fileID: 11400000, guid: 5cc1fea8a491146459bd5bab9c3b2b2f, type: 2}
-    - value: {fileID: 11400000, guid: 611b8b18912f94836b17ec27e8ef8132, type: 2}
-    - value: {fileID: 11400000, guid: 331cd0150c9c047f4943e18dbf7d33a7, type: 2}
-    - value: {fileID: 11400000, guid: f17841d80e5934020baceada689f7508, type: 2}
-    - value: {fileID: 11400000, guid: 95a0a7dea7e9346f3abf7b366a9bc09f, type: 2}
-    - value: {fileID: 11400000, guid: c7961b83106aa46819f8df52dfe96520, type: 2}
-    - value: {fileID: 11400000, guid: cddbf2b174ab148c2a2177b7afb552e0, type: 2}
-    - value: {fileID: 11400000, guid: 1d0ec91b2488f42c184accc303c29c25, type: 2}
-    - value: {fileID: 11400000, guid: ba415daf15ebd456ca73a6db4822d607, type: 2}
-    - value: {fileID: 11400000, guid: 3d4e31742e8e3440a8af456054eab85d, type: 2}
-    - value: {fileID: 11400000, guid: d4317c7dbbf4b41a8b2f6d5c33ad49ec, type: 2}
-    - value: {fileID: 11400000, guid: 6a4a901536f2643058724a0e4be6f7b1, type: 2}
-    - value: {fileID: 11400000, guid: 838a4cdf609d944b1acc764f433d346c, type: 2}
-    - value: {fileID: 11400000, guid: 304567a806b874d8c87a1bfc522b28b5, type: 2}
-    - value: {fileID: 11400000, guid: 6b924b8e1af7d44bb990835c4ee9354c, type: 2}
+    - value: {fileID: 11400000, guid: 5b8a5c50ce02e4ad288bf52c5686dec8, type: 2}
+    - value: {fileID: 11400000, guid: 1dfbc222faee94ab99945d2c7d7a0e2a, type: 2}
+    - value: {fileID: 11400000, guid: a4a074a5cb26f4ee2bf77c4cb5223a9f, type: 2}
     - value: {fileID: 11400000, guid: 5a6c9cf3dca65024da811e7793317125, type: 2}
-    - value: {fileID: 11400000, guid: 545714babf40c4eea9c5240103671076, type: 2}
-    - value: {fileID: 11400000, guid: 4e6800d833bc0463cb3aebcb5fe1ff0f, type: 2}
-    - value: {fileID: 11400000, guid: 4413af8621ee74e8280bc47a1430141c, type: 2}
-    - value: {fileID: 11400000, guid: ff6be48ddc6f844d383189bbe3faf83d, type: 2}
-    - value: {fileID: 11400000, guid: e380b5b7b842644f6b8c4db6b0a5482a, type: 2}
   references:
     version: 2
     RefIds: []

@@ -159,12 +159,12 @@ MonoBehaviour:
           value:
           - ItemName: Meat
             DropAmount:
-              mean: 25
+              mean: 0.09803922
               var: 1
               geneWeight: 0.05
           - ItemName: Leather:Solid
             DropAmount:
-              mean: 15
+              mean: 0.05882353
               var: 1
               geneWeight: 0.05
         DecompositionTime:

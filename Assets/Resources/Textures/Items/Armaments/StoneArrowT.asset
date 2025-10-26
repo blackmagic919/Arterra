@@ -9,12 +9,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b9407988208a348ad834c5fcf39e2f91, type: 3}
-  m_Name: Ascend
+  m_Script: {fileID: 11500000, guid: d60a39b1e4df74ed3aaaa1cb0087049e, type: 3}
+  m_Name: StoneArrowT
   m_EditorClassIdentifier: 
-  Name: Ascend
-  bindings:
-    value:
-    - Key: 32
-      PollType: 2
-      IsAlias: 0
+  Name: StoneArrow
+  Tags:
+    Reg:
+      value: []
+  self: {fileID: 21300000, guid: c542628713ccc44c699fc6914dcc6c62, type: 3}
+  references:
+    version: 2
+    RefIds: []

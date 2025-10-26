@@ -33,8 +33,6 @@ namespace WorldConfig.Generation.Item
         protected static Catalogue<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         protected static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
         [JsonIgnore]
-        public bool IsStackable => false;
-        [JsonIgnore]
         public int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
         private ToolItemAuthoring settings => ItemInfo.Retrieve(Index) as ToolItemAuthoring;
 
@@ -125,10 +123,10 @@ namespace WorldConfig.Generation.Item
             CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolid, CallOnMapRemoving);
             UpdateDisplay();
 
+            InputPoller.SuspendKeybindPropogation("Remove", InputPoller.ActionBind.Exclusion.ExcludeLayer);
             if (durability > 0) return;
             //Removes itself
             cxt.TryRemove();
-            InputPoller.SuspendKeybindPropogation("Remove", InputPoller.ActionBind.Exclusion.ExcludeLayer);
         }
 
         protected virtual void UpdateDisplay() {

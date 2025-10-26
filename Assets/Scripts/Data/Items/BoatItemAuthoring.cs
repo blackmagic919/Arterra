@@ -16,8 +16,6 @@ public class BoatItem : IItem{
     private BoatItemAuthoring settings => ItemInfo.Retrieve(Index) as BoatItemAuthoring;
 
     [JsonIgnore]
-    public bool IsStackable => false;
-    [JsonIgnore]
     public int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
 
     [JsonIgnore]
@@ -45,7 +43,7 @@ public class BoatItem : IItem{
         InputPoller.AddKeyBindChange(() => {
             KeyBinds = new int[1];
             KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind(
-                "Place",
+                "Place Entity",
                 _ => PlaceBoat(cxt),
                 InputPoller.ActionBind.Exclusion.ExcludeLayer),
                 "5.0::GamePlay"
@@ -83,6 +81,6 @@ public class BoatItem : IItem{
         if (!PlayerInteraction.RayTestLiquid(player, out float3 hitPt)) return;
         uint eIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Boat");
         EntityManager.CreateEntity(hitPt, eIndex);
-        InventoryController.Primary.RemoveEntry(InventoryController.SelectedIndex);
+        cxt.TryRemove();
     }
 }}

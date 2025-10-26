@@ -28,8 +28,6 @@ namespace WorldConfig.Generation.Item
         protected static Catalogue<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         protected static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
         [JsonIgnore]
-        public bool IsStackable => false;
-        [JsonIgnore]
         public int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
         private ArmorItemAuthoring settings => ItemInfo.Retrieve(Index) as ArmorItemAuthoring;
 

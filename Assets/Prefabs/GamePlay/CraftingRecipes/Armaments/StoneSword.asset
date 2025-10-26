@@ -42,7 +42,8 @@ MonoBehaviour:
         - data: 32125
         - data: 169622
       result:
-        data: 255
+        data: 51
+      MinQuantity: 1
   references:
     version: 2
     RefIds: []

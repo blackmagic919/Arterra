@@ -96,15 +96,7 @@ public class RidableSurfaceHerbivore : Authoring
         };
 
         [JsonIgnore]
-        public override float3 position {
-            get => tCollider.transform.position + settings.collider.size / 2;
-            set => tCollider.transform.position = value - settings.collider.size / 2;
-        }
-        [JsonIgnore]
-        public override float3 origin {
-            get => tCollider.transform.position;
-            set => tCollider.transform.position = value;
-        }
+        public override ref TerrainCollider.Transform transform => ref tCollider.transform;
         [JsonIgnore]
         public Quaternion Facing => tCollider.transform.rotation;
         [JsonIgnore]
@@ -119,7 +111,7 @@ public class RidableSurfaceHerbivore : Authoring
         public void TakeDamage(float damage, float3 knockback, Entity attacker) {
             if (!vitality.Damage(damage)) return;
             Indicators.DisplayDamageParticle(position, knockback);
-            tCollider.velocity += knockback;
+            velocity += knockback;
 
             if (IsDead) return;
             if (attacker == null) return; //If environmental damage, we don't need to retaliate
@@ -162,7 +154,7 @@ public class RidableSurfaceHerbivore : Authoring
 
         //Not thread safe
         public bool CanMateWith(Entity entity) {
-            if (vitality.healthPercent < genetics.Get(settings.Physicality.MateThreshold)) return false;
+            if (vitality.StopMating()) return false;
             if (vitality.IsDead) return false;
             if (TaskIndex >= 8) return false;
             return settings.Recognition.CanMateWith(entity);
@@ -177,8 +169,8 @@ public class RidableSurfaceHerbivore : Authoring
         public Transform GetRiderRoot() => controller.RideRoot;
         public void Dismount() {
             if (RiderTarget == Guid.Empty) return;
-            Entity target = EntityManager.GetEntity(RiderTarget);
-            if (target == null || target is not IRider rider)
+            if (!EntityManager.TryGetEntity(RiderTarget, out Entity target) ||
+                target is not IRider rider)
                 return;
 
             EntityManager.AddHandlerEvent(() => rider.OnDismounted(this));
@@ -190,10 +182,10 @@ public class RidableSurfaceHerbivore : Authoring
         public void WalkInDirection(float3 aim) {
             aim = new(aim.x, 0, aim.z);
             if (Vector3.Magnitude(aim) <= 1E-05f) return;
-            if (math.length(tCollider.velocity) > genetics.Get(settings.movement.runSpeed))
+            if (math.length(velocity) > genetics.Get(settings.movement.runSpeed))
                 return;
 
-            tCollider.velocity += settings.movement.acceleration * EntityJob.cxt.deltaTime * aim;
+            velocity += settings.movement.acceleration * EntityJob.cxt.deltaTime * aim;
         }
 
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
@@ -203,7 +195,7 @@ public class RidableSurfaceHerbivore : Authoring
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.genetics ??= new Genetics(this.info.entityType, ref random);
             this.vitality = new Vitality(settings.Physicality, this.genetics);
-            this.tCollider = new TerrainCollider(GCoord, true, ProcessFallDamage);
+            this.tCollider = new TerrainCollider(settings.collider, GCoord, ProcessFallDamage);
             pathFinder.hasPath = false;
             tCollider.transform.position = GCoord;
 
@@ -223,15 +215,15 @@ public class RidableSurfaceHerbivore : Authoring
             GCoord = this.GCoord;
 
             if (RiderTarget == Guid.Empty) return;
-            Entity entity = EntityManager.GetEntity(RiderTarget);
-            if (entity != null && entity is IRider rider)
-            EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
+            if (EntityManager.TryGetEntity(RiderTarget, out Entity entity) 
+                && entity is IRider rider)
+                EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
         }
 
 
         public override void Update() {
             if (!active) return;
-            tCollider.Update(settings.collider, this);
+            tCollider.Update(this);
             EntityManager.AddHandlerEvent(controller.Update);
 
             tCollider.useGravity = true;
@@ -239,7 +231,6 @@ public class RidableSurfaceHerbivore : Authoring
             OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
             OnInGas: vitality.ProcessInGas);
-            if (!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
 
             vitality.Update();
             TaskRegistry[(int)TaskIndex].Invoke(this);
@@ -270,11 +261,11 @@ public class RidableSurfaceHerbivore : Authoring
                 self.TaskIndex = 1;
             } else self.TaskDuration -= EntityJob.cxt.deltaTime;
 
-            if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.HuntThreshold))
+            if (self.vitality.BeginHunting())
                 self.TaskIndex = 7; //Hunt for food
             else if (self.RiderTarget != Guid.Empty)
                 self.TaskIndex = 6; //Follow rider
-            else if (self.vitality.healthPercent > self.genetics.Get(self.settings.Physicality.MateThreshold))
+            else if (self.vitality.BeginMating())
                 self.TaskIndex = 3;
         }
 
@@ -302,7 +293,7 @@ public class RidableSurfaceHerbivore : Authoring
 
         //Task 3
         private static unsafe void FindMate(Animal self) {
-            if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.MateThreshold)
+            if (self.vitality.StopMating()
                 || !self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
             ) {
@@ -358,15 +349,16 @@ public class RidableSurfaceHerbivore : Authoring
                 return;
             }
 
-            if (math.length(self.tCollider.velocity.xz) < 1E-05f) return;
-            float3 aim = math.normalize(new float3(self.tCollider.velocity.x, 0, self.tCollider.velocity.z));
+            if (math.length(self.velocity.xz) < 1E-05f) return;
+            float3 aim = math.normalize(new float3(self.velocity.x, 0, self.velocity.z));
             self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation,
             Quaternion.LookRotation(aim), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
         }
 
         //Task 7
         private static unsafe void FindPrey(Animal self) {
-            if (!self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
+            if (self.vitality.StopHunting() ||
+                !self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
                 self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 preyPos)
             ) {
                 self.TaskIndex = 1;
@@ -416,15 +408,14 @@ public class RidableSurfaceHerbivore : Authoring
                     WorldConfig.Generation.Item.IItem item = self.settings.Recognition.ConsumeFood(self, foodPos);
                     if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition))
                         self.vitality.Heal(nutrition);
-                    self.TaskIndex = 0;
-                } else self.TaskIndex = 7;
+                } self.TaskIndex = 7;
             }
         }
 
         //Task 10
         private static unsafe void RunFromTarget(Animal self) {
-            Entity target = EntityManager.GetEntity(self.TaskTarget);
-            if (target == null) self.TaskTarget = Guid.Empty;
+            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
+                self.TaskTarget = Guid.Empty;
             else if (Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
             if (self.TaskTarget == Guid.Empty) {
@@ -445,8 +436,7 @@ public class RidableSurfaceHerbivore : Authoring
 
         //Task 11
         private static unsafe void ChaseTarget(Animal self) {
-            Entity target = EntityManager.GetEntity(self.TaskTarget);
-            if (target == null)
+            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
                 self.TaskTarget = Guid.Empty;
             else if (Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
@@ -472,8 +462,7 @@ public class RidableSurfaceHerbivore : Authoring
 
         //Task 12
         private static void AttackTarget(Animal self) {
-            Entity tEntity = EntityManager.GetEntity(self.TaskTarget);
-            if (tEntity == null)
+            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity tEntity))
                 self.TaskTarget = Guid.Empty;
             else if (tEntity is not IAttackable)
                 self.TaskTarget = Guid.Empty;
@@ -590,18 +579,18 @@ public class RidableSurfaceHerbivore : Authoring
                 if (AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], true);
 
                 void UpdateRidingAnimations() {
-                    if (math.length(entity.tCollider.velocity) <= 1E-05f) {
+                    if (math.length(entity.velocity) <= 1E-05f) {
                         animator.SetBool("IsIdling", true);
                     } else animator.SetBool("IsIdling", false);
 
-                    if (math.length(entity.tCollider.velocity) > 1E-05F
-                        && math.length(entity.tCollider.velocity)
+                    if (math.length(entity.velocity) > 1E-05F
+                        && math.length(entity.velocity)
                         <= entity.genetics.Get(entity.settings.movement.walkSpeed)
                     ) {
                         animator.SetBool("IsWalking", true);
                     } else animator.SetBool("IsWalking", false);
 
-                    if (math.length(entity.tCollider.velocity)
+                    if (math.length(entity.velocity)
                         > entity.genetics.Get(entity.settings.movement.walkSpeed)
                     ) {
                         animator.SetBool("IsRunning", true);

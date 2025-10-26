@@ -16,7 +16,9 @@ public class ConsumbaleItem : IItem{
     private static Catalogue<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
     private static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
     [JsonIgnore]
-    public bool IsStackable => true;
+    public int StackLimit => 0xFFFF;
+    [JsonIgnore]
+    public int UnitSize => 0xFF;
     [JsonIgnore]
     public int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
     private ConsumableItemAuthoring settings => ItemInfo.Retrieve(Index) as ConsumableItemAuthoring;
@@ -48,7 +50,7 @@ public class ConsumbaleItem : IItem{
         InputPoller.AddKeyBindChange(() => {
             KeyBinds = new uint[1];
             KeyBinds[0] = InputPoller.AddBinding(new InputPoller.ActionBind(
-                "Place",
+                "Consume",
                 _ => ConsumeFood(cxt),
                 InputPoller.ActionBind.Exclusion.ExcludeLayer),
                 "5.0::GamePlay"
@@ -74,7 +76,7 @@ public class ConsumbaleItem : IItem{
         display.transform.SetParent(parent, false);
         display.transform.GetComponent<UnityEngine.UI.Image>().sprite = TextureAtlas.Retrieve(ItemInfo.Retrieve(Index).TextureName).self;
         TMPro.TextMeshProUGUI amount = display.GetComponentInChildren<TMPro.TextMeshProUGUI>();
-        amount.text = ((data & 0xFFFF) / (float)0xFF).ToString();
+        amount.text = ((data & 0xFFFF) / (float)UnitSize).ToString();
     }
 
     public void ClearDisplay(Transform parent){
@@ -93,7 +95,7 @@ public class ConsumbaleItem : IItem{
 
         player.animator.SetBool("IsEating", true);
         delta = AmountRaw - math.max(AmountRaw - delta, 0);
-        player.vitality.Heal(delta / 255.0f * settings.NutritionValue);
+        player.vitality.Heal(delta * settings.NutritionValue);
         AmountRaw -= delta;
         if(AmountRaw == 0) cxt.TryRemove();//
     }
@@ -101,7 +103,7 @@ public class ConsumbaleItem : IItem{
     private void UpdateDisplay(){
         if(display == null) return;
         TMPro.TextMeshProUGUI amount = display.GetComponentInChildren<TMPro.TextMeshProUGUI>();
-        amount.text = ((data & 0xFFFF) / (float)0xFF).ToString();
+        amount.text = ((data & 0xFFFF) / (float)UnitSize).ToString();
     }
 }
 }

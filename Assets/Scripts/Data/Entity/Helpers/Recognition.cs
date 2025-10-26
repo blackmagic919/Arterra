@@ -195,7 +195,7 @@ public class Recognition {
         if (AwarenessTable == null) return false;
         if (!AwarenessTable.ContainsKey(-item.Index)) return false;
         nutrition = genetics.Get(Edibles.value[AwarenessTable[-item.Index].Preference].Nutrition);
-        if (item.IsStackable) nutrition *= item.AmountRaw / 255.0f;
+        nutrition *= (float)item.AmountRaw / item.UnitSize;
         return true;
     }
 

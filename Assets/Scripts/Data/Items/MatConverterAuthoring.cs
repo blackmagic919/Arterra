@@ -29,7 +29,9 @@ namespace WorldConfig.Generation.Item
         private static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
 
         [JsonIgnore]
-        public bool IsStackable => true;
+        public int StackLimit => 0xFFFF;
+        [JsonIgnore]
+        public int UnitSize => 0xFF;
         [JsonIgnore]
         public int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
 
@@ -37,11 +39,6 @@ namespace WorldConfig.Generation.Item
         public int Index {
             get => (int)(data >> 16) & 0x7FFF;
             set => data = (data & 0x0000FFFF) | (((uint)value & 0x7FFF) << 16);
-        }
-        [JsonIgnore]
-        public string Display {
-            get => ((data & 0xFFFF) / (float)0xFF).ToString();
-            set => data = (data & 0xFFFF0000) | (((uint)Mathf.Round(uint.Parse(value) * 0xFF)) & 0xFFFF);
         }
         [JsonIgnore]
         public int AmountRaw {
@@ -65,7 +62,7 @@ namespace WorldConfig.Generation.Item
             InputPoller.AddKeyBindChange(() => {
                 KeyBinds = new int[1];
                 KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind(
-                    "Place",
+                    "ConvertMaterial",
                     _ => PlayerModifyTerrain(cxt),
                     InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
             });
@@ -91,7 +88,7 @@ namespace WorldConfig.Generation.Item
             display.transform.SetParent(parent, false);
             display.transform.GetComponent<UnityEngine.UI.Image>().sprite = TextureAtlas.Retrieve(ItemInfo.Retrieve(Index).TextureName).self;
             TMPro.TextMeshProUGUI amount = display.GetComponentInChildren<TMPro.TextMeshProUGUI>();
-            amount.text = ((data & 0xFFFF) / (float)0xFF).ToString();
+            amount.text = ((data & 0xFFFF) / (float)UnitSize).ToString();
         }
 
         public void ClearDisplay(Transform parent) {
@@ -104,7 +101,7 @@ namespace WorldConfig.Generation.Item
         private void UpdateDisplay() {
             if (display == null) return;
             TMPro.TextMeshProUGUI amount = display.GetComponentInChildren<TMPro.TextMeshProUGUI>();
-            amount.text = ((data & 0xFFFF) / (float)0xFF).ToString();
+            amount.text = ((data & 0xFFFF) / (float)UnitSize).ToString();
         }
 
         private MatConverterAuthoring settings => ItemInfo.Retrieve(Index) as MatConverterAuthoring;
@@ -132,7 +129,7 @@ namespace WorldConfig.Generation.Item
                     return false;
                 if (tag.GivesItem) InventoryController.DropItem(origItem, GCoord);
 
-                AmountRaw -= GetStaggeredDelta(AmountRaw, -tag.ToolDamage * mapData.density, IItem.MaxAmountRaw);
+                AmountRaw -= GetStaggeredDelta(AmountRaw, -tag.ToolDamage * mapData.density, StackLimit);
                 return true;
             }
 

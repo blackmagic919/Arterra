@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea04de6af2ef54ae1818a9b00ddbe9d1, type: 3}
+  m_Name: HotbarKeys
+  m_EditorClassIdentifier: 
+  Name: Hotbar
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 032c87b1430ae42a68b2aac5b4421523, type: 2}
+    - value: {fileID: 11400000, guid: d27af918d59ce4048a200cacabeac627, type: 2}
+    - value: {fileID: 11400000, guid: 263f27b39632d479aaffad68f215720f, type: 2}
+    - value: {fileID: 11400000, guid: c20fcb502b1ff4cfcbc60389b42600f1, type: 2}
+    - value: {fileID: 11400000, guid: 96e46afc73b8e4a5a89ea5768d97e17f, type: 2}
+    - value: {fileID: 11400000, guid: 32341f2bc31c54bd9aa91fc8b12f8a56, type: 2}
+    - value: {fileID: 11400000, guid: 9a417caa1252145e3956ef6c3689e816, type: 2}
+    - value: {fileID: 11400000, guid: ef4610a7cf9384233b6e52be76e3521b, type: 2}
+    - value: {fileID: 11400000, guid: 7a0af45912db0441aa2a22b4d003426a, type: 2}
+  references:
+    version: 2
+    RefIds: []

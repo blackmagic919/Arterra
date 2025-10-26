@@ -9,24 +9,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b9407988208a348ad834c5fcf39e2f91, type: 3}
-  m_Name: ToggleFly
+  m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
+  m_Name: HairItemSolid
   m_EditorClassIdentifier: 
-  Name: Toggle Fly
+  Name: Hair:Solid
   Tags:
     Reg:
       value: []
-  bindings:
-    value:
-    - Key: 102
-      PollType: 3
-      IsAlias: 0
-    - Key: 304
-      PollType: 2
-      IsAlias: 0
-    - Key: 303
-      PollType: 2
-      IsAlias: 1
+  TextureName: Hair
+  MaterialName: Hair
+  MaterialState: 0
   references:
     version: 2
     RefIds: []

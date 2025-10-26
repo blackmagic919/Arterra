@@ -24,8 +24,6 @@ public class BucketItem : IItem{
     private BucketItemAuthoring settings => ItemInfo.Retrieve(Index) as BucketItemAuthoring;
 
     [JsonIgnore]
-    public bool IsStackable => false;
-    [JsonIgnore]
     public int TexIndex => content != null ? content.TexIndex : 
     TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
 
@@ -146,7 +144,7 @@ public class BucketItem : IItem{
         MapData delta = pointInfo;
         delta.viscosity = 0;
         int liquidDensity = pointInfo.LiquidDensity;
-        delta.density = math.min(PlayerInteraction.GetStaggeredDelta(liquidDensity, -brushStrength), IItem.MaxAmountRaw);
+        delta.density = math.min(PlayerInteraction.GetStaggeredDelta(liquidDensity, -brushStrength), MapData.MaxDensity);
         Material.MaterialData material = MatInfo.Retrieve(pointInfo.material);
         IItem newItem = material.OnRemoved(GCoord, delta);
         if (liquidDensity >= CPUMapManager.IsoValue){
@@ -156,11 +154,10 @@ public class BucketItem : IItem{
                     return false;
                 } AttachChildDisplay();
             } else {
-                if (content.AmountRaw == IItem.MaxAmountRaw ||
-                    newItem == null || newItem.Index != content.Index) {
+                if (content.AmountRaw >= content.StackLimit || newItem == null || newItem.Index != content.Index) {
                     material.OnPlaced(GCoord, delta); //Undo our action
                     return false;
-                } content.AmountRaw = math.min(content.AmountRaw + newItem.AmountRaw, IItem.MaxAmountRaw);
+                } content.AmountRaw = math.min(content.AmountRaw + newItem.AmountRaw, content.StackLimit);
             }
         }
 

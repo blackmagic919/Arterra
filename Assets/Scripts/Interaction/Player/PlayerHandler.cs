@@ -104,7 +104,7 @@ public static class PlayerHandler
         OnInSolid: (dens) => data.vitality.ProcessSuffocation(data, dens), 
         OnInLiquid: (dens) => data.vitality.ProcessInLiquid(data, dens), 
         OnInGas: data.vitality.ProcessInGas);
-        data.collider.FixedUpdate(data.settings.collider);
+        data.collider.FixedUpdate();
     }
 
     public static void Release(){

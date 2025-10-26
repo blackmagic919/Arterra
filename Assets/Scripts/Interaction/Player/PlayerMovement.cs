@@ -73,7 +73,7 @@ public class PlayerMovement {
 
 public static class SurfaceMovement {
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
-    public static ref float3 velocity => ref PlayerHandler.data.collider.velocity;
+    public static ref float3 velocity => ref PlayerHandler.data.collider.transform.velocity;
     private static float moveSpeed => PlayerMovement.IsSprinting ? Setting.runSpeed : Setting.walkSpeed;
     public static void Initialize() {
         InputPoller.AddStackPoll(new InputPoller.ActionBind("GroundMove::1", _ => Update()), "Movement::Update");
@@ -112,7 +112,7 @@ public static class SwimMovement{
     private static HashSet<string> OveridableStates = new HashSet<string>{ "GroundMove::1" };
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
     private static float MoveSpeed => PlayerMovement.IsSprinting ? Setting.runSpeed : Setting.walkSpeed;
-    public static ref float3 velocity => ref PlayerHandler.data.collider.velocity;
+    public static ref float3 velocity => ref PlayerHandler.data.collider.transform.velocity;
     private static int[] KeyBinds = null;
     private static bool isSwimming = false;
 
@@ -179,7 +179,7 @@ public static class SwimMovement{
 public static class FlightMovement {
     private static HashSet<string> OveridableStates = new HashSet<string>{ "GroundMove::1", "SwimMove::1" };
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
-    public static ref float3 velocity => ref PlayerHandler.data.collider.velocity;
+    public static ref float3 velocity => ref PlayerHandler.data.collider.transform.velocity;
     private static float MoveSpeed => Setting.flightSpeedMultiplier * (PlayerMovement.IsSprinting ? Setting.runSpeed : Setting.walkSpeed);
     private static int[] KeyBinds = null;
     public static void Initialize() {
@@ -198,6 +198,7 @@ public static class FlightMovement {
         if (InputPoller.TryAdd(new InputPoller.ActionBind("Toggle Fly", (_null_) => {
             if (KeyBinds == null) AddHandles();
             else RemoveHandles();
+            velocity.y = 0;
         }), "4.0::Movement"))
             KeyBinds = null;
     }
@@ -261,7 +262,7 @@ public static class RideMovement {
             return;
         }
 
-        PlayerHandler.data.collider.velocity = float3.zero;
+        PlayerHandler.data.collider.transform.velocity = float3.zero;
         InputPoller.AddStackPoll(new InputPoller.ActionBind("RideMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
         InputPoller.AddStackPoll(new InputPoller.ActionBind("RideMove::1", _ => Update()), "Movement::Update");
         PlayerHandler.data.animator.SetBool("IsSitting", true);

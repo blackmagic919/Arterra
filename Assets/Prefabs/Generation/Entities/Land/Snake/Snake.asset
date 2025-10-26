@@ -105,7 +105,7 @@ MonoBehaviour:
           value:
           - ItemName: Meat
             DropAmount:
-              mean: 8
+              mean: 0.03137255
               var: 1
               geneWeight: 0.05
         DecompositionTime:
@@ -137,7 +137,7 @@ MonoBehaviour:
             value:
             - EdibleType: Meat
               Nutrition:
-                mean: 25.6
+                mean: 25.60001
                 var: 0.5
                 geneWeight: 0.1
           SightDistance:
@@ -145,11 +145,11 @@ MonoBehaviour:
             var: 0.25
             geneWeight: 0.75
           FleeDistance: 5
-          FightAggressor: 0
+          FightAggressor: 1
           Prey:
             value:
-            - EntityType: Horse
             - EntityType: Dove
+            - EntityType: Horse
       physicality:
         value:
           weight: 0.75

@@ -65,14 +65,33 @@ public abstract class Entity: IRegistered{
     ///  <param name="controller">The controller responsible for displaying the entity. Passed from <see cref="Authoring.Controller"/> </param>
     /// <param name="GCoord">The position in grid space the entity was placed at. </param>
     public abstract void Deserialize(EntitySetting setting, GameObject controller, out int3 GCoord);
+    /// <summary> The transform of the entity used for positioning and collision detection. </summary>
+    [JsonIgnore]
+    public abstract ref TerrainCollider.Transform transform { get; }
     /// <summary>A single line property for retrieving and setting the entity's position in grid space. Most entities 
     /// require knowledge of other entity's positions; however entities that aren't spatially bound may not fulfill 
     /// this contract if it no system requires its location.  </summary>
-    public abstract float3 position{get; set;}
+    [JsonIgnore] 
+    public float3 position {
+        get => transform.position + transform.size / 2;
+        set => transform.position = value - transform.size / 2;
+    }
     /// <summary>A single line property for retrieving and setting the entity's origin in grid space.
     /// Unlike <see cref="position"/>, the origin is the lowest point within the object's collider while
     /// the position describes the center of the collider. </summary>
-    public abstract float3 origin { get; set; }
+    [JsonIgnore] 
+    public ref float3 origin => ref transform.position;
+    /// <summary>A single line property for retrieving and setting the entity's velocity. Most entities
+    /// require knowledge of other entity's velocities; however entities that aren't spatially bound
+    /// may not fulfill this contract if it no system requires its velocity. </summary>
+    [JsonIgnore]
+    public ref float3 velocity => ref transform.velocity;
+    [JsonIgnore]
+    public virtual Quaternion Facing => transform.rotation;
+    [JsonIgnore]
+    public float3 Forward => Facing * Vector3.forward;
+    [JsonIgnore]
+    public float3 Right => Facing * Vector3.right;
     /// <summary>
     /// A callback to draw any gizmos that the entity may need to draw. This is only for 
     /// debugging purposes in UnityEditor to draw any annotations related to entities. This will

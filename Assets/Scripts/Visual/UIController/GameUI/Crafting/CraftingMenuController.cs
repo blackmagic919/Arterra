@@ -61,8 +61,8 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         InputPoller.AddKeyBindChange(() => {
             Fence = InputPoller.AddContextFence("3.0::Window", InputPoller.ActionBind.Exclusion.None);
             InputPoller.AddBinding(new InputPoller.ActionBind("Craft", CraftEntry), "3.0::Window");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Place", AddMaterial), "3.0::Window");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Remove", RemoveMaterial), "3.0::Window");
+            InputPoller.AddBinding(new InputPoller.ActionBind("CraftingGridPlace", AddMaterial), "3.0::Window");
+            InputPoller.AddBinding(new InputPoller.ActionBind("CraftingGridRemove", RemoveMaterial), "3.0::Window");
         });
 
         Clear();
@@ -166,8 +166,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         });
     }
 
-    private bool CraftRecipe(out IItem result){
-        result = null;
+    private bool CraftRecipe(){
         if(FitRecipe == -1) return false;
 
         CraftingRecipe recipe = Recipe.Table[FitRecipe];
@@ -184,10 +183,24 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             if (craftingData[i].material != recipe.EntryMat(i)) return false;
         }
 
-        int amount = 0;
-        for(int i = 0; i < GridCount; i++){ amount += craftingData[i].density; }
-        result = recipe.ResultItem;
-        result.Create((int)recipe.result.Index, (int)math.min(math.round(recipe.result.Multiplier * amount), 0x7FFF));
+        float accumulatedAmt = 0;
+        for (int i = 0; i < GridCount; i++) { accumulatedAmt += craftingData[i].density; }
+        IItem result = recipe.ResultItem;
+        accumulatedAmt *= recipe.result.Multiplier;
+        accumulatedAmt = math.max(accumulatedAmt / MapData.MaxDensity, recipe.MinQuantity);
+        accumulatedAmt *= result.UnitSize;
+
+        int totalAmount = Mathf.FloorToInt(accumulatedAmt);
+        int itemCount = Mathf.CeilToInt((float)totalAmount / result.StackLimit);
+        int amount = math.min(totalAmount, result.StackLimit);
+        for (int i = 0; i < itemCount; i++) {
+            IItem item = (IItem)result.Clone();
+            item.Create((int)recipe.result.Index, amount);
+            InventoryController.AddEntry(item);
+
+            totalAmount -= amount;
+            amount = math.min(totalAmount, result.StackLimit);
+        }
         return true;
     }
 
@@ -239,10 +252,8 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
     }
     
      private void CraftEntry(float _) {
-        if (!CraftRecipe(out IItem result) || result == null)
-            return;
-        InventoryController.AddEntry(result);
-        Clear();
+        if (CraftRecipe())
+            Clear();
     }
 
 

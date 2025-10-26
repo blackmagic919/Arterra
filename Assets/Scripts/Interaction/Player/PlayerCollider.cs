@@ -17,7 +17,7 @@ public class PlayerCollider {
     public Action<float> OnHitGround;
 
     public TerrainCollider.Transform transform;
-    public float3 velocity;
+    public float friction;
     public bool useGravity;
 
     public float3 TrilinearDisplacement(float3 posGS) {
@@ -311,38 +311,38 @@ public class PlayerCollider {
         return vel - math.dot(vel, dir) * dir;
     }
 
-    public PlayerCollider(TerrainCollider.Transform trans) {
-        this.transform = trans;
+    public PlayerCollider(in TerrainCollider.Settings settings, float3 position) {
+        this.transform = new TerrainCollider.Transform(position, 0, settings.size, Quaternion.identity);
         this.useGravity = true;
-        velocity = 0;
+        friction = settings.friction;
     }
 
-    public void FixedUpdate(TerrainCollider.Settings settings) {
-        transform.position += velocity * Time.fixedDeltaTime;
-        if (useGravity) velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
+    public void FixedUpdate() {
+        transform.position += transform.velocity * Time.fixedDeltaTime;
+        if (useGravity) transform.velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
 
         bool IsTangible = !Config.CURRENT.GamePlay.Gamemodes.value.Intangiblity;
-        if (IsTangible && TerrainInteractor.SampleContact(transform.position, settings.size, PlayerHandler.data)) {
-            if (SampleCollision(transform.position, settings.size, out float3 displacement)) {
-                float3 nVelocity = CancelVel(velocity, displacement);
-                if (useGravity) OnHitGround?.Invoke(nVelocity.y - velocity.y);
+        if (IsTangible && TerrainInteractor.SampleContact(transform.position, transform.size, PlayerHandler.data)) {
+            if (SampleCollision(transform.position, transform.size, out float3 displacement)) {
+                float3 nVelocity = CancelVel(transform.velocity, displacement);
+                if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
                 transform.position += displacement;
-                velocity = nVelocity;
+                transform.velocity = nVelocity;
             }
         };
-        velocity.xz *= 1 - settings.friction;
+        transform.velocity.xz *= 1 - friction;
     }
 
-    public void JobUpdate(EntityJob.Context cxt, TerrainCollider.Settings settings) {
-        transform.position += velocity * cxt.deltaTime;
-        if (useGravity) velocity += cxt.gravity * cxt.deltaTime;
+    public void JobUpdate(EntityJob.Context cxt) {
+        transform.position += transform.velocity * cxt.deltaTime;
+        if (useGravity) transform.velocity += cxt.gravity * cxt.deltaTime;
 
-        if (SampleCollision(transform.position, settings.size, out float3 displacement)) {
+        if (SampleCollision(transform.position, transform.size, out float3 displacement)) {
             transform.position += displacement;
-            float3 nVelocity = CancelVel(velocity, displacement);
-            if (useGravity) OnHitGround?.Invoke(nVelocity.y - velocity.y);
-            velocity = nVelocity;
+            float3 nVelocity = CancelVel(transform.velocity, displacement);
+            if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
+            transform.velocity = nVelocity;
         };
-        velocity.xz *= 1 - settings.friction;
+        transform.velocity.xz *= 1 - friction;
     }
 }

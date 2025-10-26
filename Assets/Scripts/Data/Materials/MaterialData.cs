@@ -372,7 +372,7 @@ namespace WorldConfig.Generation.Material
                         if (random.NextFloat() > info.DropChance)
                             continue;
                         dropAmount = Mathf.RoundToInt(amount * info.DropMultiplier);
-                        return CreateItem(Names, info.DropItem, dropAmount);
+                        return CreateItem(Names, info.DropItem, amount * info.DropMultiplier);
                     }
                 }
                 
@@ -380,7 +380,7 @@ namespace WorldConfig.Generation.Material
                 return CreateItem(Names, DefaultLoot.DropItem, dropAmount);
             }
 
-            private static Item.IItem CreateItem(List<string> Names, int DropItem, int amount) {
+            private static Item.IItem CreateItem(List<string> Names, int DropItem, float amount) {
                 if (DropItem < 0 || DropItem >= Names.Count) return null;
                 string name = Names[DropItem];
                 if (String.IsNullOrEmpty(name)) return null;
@@ -388,7 +388,8 @@ namespace WorldConfig.Generation.Material
 
                 int Index = ItemInfo.RetrieveIndex(name);
                 Item.IItem item = ItemInfo.Retrieve(Index).Item;
-                item.Create(Index, amount);
+                int dropAmount = Mathf.RoundToInt(amount * item.UnitSize / MapData.MaxDensity);
+                item.Create(Index, dropAmount);
                 return item;
             }
             /// <summary> The settings describing an optional material that can be dropped

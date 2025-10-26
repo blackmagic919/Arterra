@@ -20,7 +20,7 @@ public struct TerrainCollider {
     [JsonIgnore]
     public Action<float> OnHitGround;
     public Transform transform;
-    public float3 velocity;
+    public float friction;
     public bool useGravity;
 
     [BurstCompile]
@@ -317,8 +317,6 @@ public struct TerrainCollider {
         return math.any(displacement != float3.zero);
     }
 
-    public unsafe bool IsGrounded(float stickDist, in Settings settings, in MapContext cxt) => SampleCollision(transform.position, new float3(settings.size.x, -stickDist, settings.size.z), cxt, out _);
-    public unsafe bool GetGroundDir(float stickDist, in Settings settings, in MapContext cxt, out float3 dir) => SampleCollision(transform.position, new float3(settings.size.x, -stickDist, settings.size.z), cxt, out dir);
 
     [BurstCompile]
     float3 CancelVel(in float3 vel, in float3 norm) {
@@ -326,35 +324,39 @@ public struct TerrainCollider {
         return vel - math.dot(vel, dir) * dir;
     }
 
-    public void Update(in Settings settings, Entity self = null) {
-        transform.position += velocity * cxt.deltaTime;
-        if (useGravity) velocity += cxt.gravity * cxt.deltaTime;
+    public void Update(Entity self = null) {
+        transform.position += transform.velocity * cxt.deltaTime;
 
-        if (TerrainInteractor.SampleContact(transform.position, settings.size, self) && 
-            SampleCollision(transform.position, settings.size, cxt.mapContext, out float3 displacement))
-        {
+        if (TerrainInteractor.SampleContact(transform.position, transform.size, self) &&
+            SampleCollision(transform.position, transform.size, cxt.mapContext, out float3 displacement)) {
             transform.position += displacement;
-            float3 nVelocity = CancelVel(velocity, displacement);
-            if (useGravity) OnHitGround?.Invoke(nVelocity.y - velocity.y);
-            velocity = nVelocity;
-        };
-        velocity.xz *= 1 - settings.friction;
+            float3 nVelocity = CancelVel(transform.velocity, displacement);
+            if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
+            transform.velocity = nVelocity;
+            transform.velocity.xz *= 1 - friction;
+        } else if (!useGravity) transform.velocity.xz *= 1 - friction;
+        if (useGravity) transform.velocity += cxt.gravity * cxt.deltaTime;
+        else transform.velocity.y *= 1 - friction;
     }
 
-    public TerrainCollider(float3 position, bool useGravity, Action<float> OnHitGround = null) {
-        this.transform = new Transform(position, Quaternion.identity);
+    public TerrainCollider(in Settings settings, float3 position, Action<float> OnHitGround = null) {
+        this.transform = new Transform(position, 0, settings.size, Quaternion.identity);
         this.OnHitGround = OnHitGround;
-        this.useGravity = useGravity;
-        this.velocity = 0;
+        this.friction = settings.friction;
+        this.useGravity = true;
     }
 
     [BurstCompile]
     public struct Transform {
         public float3 position;
         public Quaternion rotation;
-        public Transform(float3 position, Quaternion rotation) {
+        public float3 size;
+        public float3 velocity;
+        public Transform(float3 position, float3 velocity, float3 size, Quaternion rotation) {
             this.position = position;
             this.rotation = rotation;
+            this.size = size;
+            this.velocity = velocity;
         }
     }
 

@@ -82,14 +82,19 @@ public static class InventoryController {
         return RebindInventories(ref prms);
     }
     private static bool RebindInventories(ref (PlayerStreamer.Player old, PlayerStreamer.Player cur) cxt) {
-        cxt.old?.PrimaryI.ReleaseDisplay();
-        cxt.old?.SecondaryI.ReleaseDisplay();
         cxt.old?.PrimaryI.UnapplyHandles();
         cxt.old?.SecondaryI.UnapplyHandles();
+        cxt.old?.PrimaryI.ReleaseDisplay();
+        cxt.old?.SecondaryI.ReleaseDisplay();
 
         if (Config.CURRENT.GamePlay.Gamemodes.value.KeepInventory) {
+            var curPrimary = cxt.cur.PrimaryI; var curSecondary = cxt.cur.SecondaryI;
             cxt.cur.PrimaryI = cxt.old?.PrimaryI ?? cxt.cur.PrimaryI;
             cxt.cur.SecondaryI = cxt.old?.SecondaryI ?? cxt.cur.SecondaryI;
+            if (cxt.old != null) {
+                cxt.old.PrimaryI = curPrimary;
+                cxt.old.SecondaryI = curSecondary;
+            }
         }
 
         Primary = cxt.cur.PrimaryI;
@@ -208,28 +213,22 @@ public static class InventoryController {
         }
 
         if (Inv.Info[index] == null) {
-            Inv.AddEntry(cursor, index);  
-        } else if (Inv.Info[index].IsStackable && cursor.Index == Inv.Info[index].Index) {
+            if(Inv.AddEntry(cursor, index)) return;
+        } if (cursor.Index == Inv.Info[index].Index) {
             Inv.AddStackable(cursor, index);
-        } else if (Primary.EntryDict.ContainsKey(cursor.Index) && Inv.Info[index].IsStackable) {
-            Primary.AddStackable(cursor);
-        } else if (!Secondary.AddEntry(cursor, out int _)) DropItem(cursor);
+            if (cursor.AmountRaw == 0) return;
+        } if (!Secondary.AddEntry(cursor, out int _)) DropItem(cursor);
     }
 
     //The Slot is changed to reflect what remains
     //if stackable, add to primary then secondary, else add to secondary then primary
     public static void AddEntry(IItem e) {
         if (e == null) return;
-        if (e.IsStackable) {
-            if (Primary.EntryDict.ContainsKey(e.Index)) {
-                Primary.AddStackable(e);
-                if (e.AmountRaw == 0) return;
-            }
-            Secondary.AddStackable(e);
-        } else {
-            if (!Secondary.AddEntry(e, out int _))
-                Primary.AddEntry(e, out int _);
+        if (Primary.EntryDict.ContainsKey(e.Index)) {
+            Primary.AddStackable(e);
+            if (e.AmountRaw == 0) return;
         }
+        Secondary.AddStackable(e);
     }
     public static int RemoveStackable(int delta, int itemIndex = -1, int SelIndex = -1) {
         bool TryFromIndex(int SelIndex, out int amount) {
@@ -332,8 +331,8 @@ public static class InventoryController {
 
         public void ReleaseDisplay() {
             for (int i = 0; i < capacity; i++) {
-                Indicators.ItemSlots.Release(Display.Slots[i]);
                 ClearDisplay(i);
+                Indicators.ItemSlots.Release(Display.Slots[i]);
             }
             GameObject.Destroy(Display.root);
             Display = null;
@@ -379,27 +378,21 @@ public static class InventoryController {
             IItem item = Info[firstSlot];
             if (item == null) return null;
 
-            IItem ret = null;
-            if (item.IsStackable) {
-                ret = (IItem)item.Clone();
-                int delta = Mathf.FloorToInt(collectRate) + (UnityEngine.Random.Range(0, 1) < math.frac(collectRate) ? 1 : 0);
-                ret.AmountRaw = RemoveStackableSlot(firstSlot, delta);
-            } else if (UnityEngine.Random.Range(0, 1) > math.exp(-collectRate)) {
-                ret = (IItem)item.Clone();
-                RemoveEntry(firstSlot);
-            }
+            IItem ret = (IItem)item.Clone();
+            collectRate *= item.UnitSize;
+            int delta = Mathf.FloorToInt(collectRate)
+                + (UnityEngine.Random.Range(0, 1) < math.frac(collectRate) ? 1 : 0);
+            ret.AmountRaw = RemoveStackableSlot(firstSlot, delta);
             return ret;
         }
 
         //Input: The material id, amount to add, and index to add at
-        //Input is modified with the remaineder of the amount
+        //Input is modified with the remainder of the amount
         public void AddStackable(IItem mat, int SlotIndex) {
             if (Info[SlotIndex].Index != mat.Index) return;
-            if (!Info[SlotIndex].IsStackable) return;
-
             IItem sMat = Info[SlotIndex];
-            if (sMat.AmountRaw != IItem.MaxAmountRaw) {
-                int delta = math.min(sMat.AmountRaw + mat.AmountRaw, IItem.MaxAmountRaw) - sMat.AmountRaw;
+            if (sMat.AmountRaw < sMat.StackLimit) {
+                int delta = math.min(sMat.AmountRaw + mat.AmountRaw, sMat.StackLimit) - sMat.AmountRaw;
                 sMat.AmountRaw += delta;
                 mat.AmountRaw -= delta;
                 DictUpdate(SlotIndex);
@@ -413,15 +406,13 @@ public static class InventoryController {
         //Input: The material id and amount to add
         //Input is modified with the remaineder of the amount
         public void AddStackable(IItem mat) {
-            if (!mat.IsStackable) return;
-
             while (mat.AmountRaw > 0) {
                 int SlotIndex = DictPeek(mat.Index);
                 if (SlotIndex == -1) break;
                 IItem sMat = Info[SlotIndex];
-                if (sMat.AmountRaw == IItem.MaxAmountRaw) break;
+                if (sMat.AmountRaw >= sMat.StackLimit) break;
 
-                int delta = math.min(sMat.AmountRaw + mat.AmountRaw, IItem.MaxAmountRaw) - sMat.AmountRaw;
+                int delta = math.min(sMat.AmountRaw + mat.AmountRaw, sMat.StackLimit) - sMat.AmountRaw;
                 sMat.AmountRaw += delta;
                 mat.AmountRaw -= delta;
                 DictUpdate(SlotIndex);

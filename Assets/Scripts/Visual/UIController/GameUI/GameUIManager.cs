@@ -145,7 +145,7 @@ public class GridUIManager {
         Slots = new GameObject[slotCount];
         for (int i = 0; i < slotCount; i++) {
             Slots[i] = GetSlot.Invoke();
-            Slots[i].transform.SetParent(Object.transform);
+            Slots[i].transform.SetParent(Object.transform, false);
         }
     }
 

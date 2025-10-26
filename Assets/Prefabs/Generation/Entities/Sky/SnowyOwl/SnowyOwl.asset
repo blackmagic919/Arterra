@@ -138,12 +138,12 @@ MonoBehaviour:
           value:
           - ItemName: Meat
             DropAmount:
-              mean: 7
+              mean: 0.02745098
               var: 1
               geneWeight: 0.05
           - ItemName: Feathers:Solid
             DropAmount:
-              mean: 7
+              mean: 0.02745098
               var: 1
               geneWeight: 0.05
         DecompositionTime:
@@ -167,7 +167,7 @@ MonoBehaviour:
             value:
             - EdibleType: Meat
               Nutrition:
-                mean: 19.2
+                mean: 25.60001
                 var: 0.5
                 geneWeight: 0.1
           SightDistance:

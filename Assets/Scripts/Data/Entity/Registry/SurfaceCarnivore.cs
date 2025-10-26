@@ -78,15 +78,7 @@ public class SurfaceCarnivore : Authoring {
             Death,
         };
         [JsonIgnore]
-        public override float3 position {
-            get => tCollider.transform.position + settings.collider.size / 2;
-            set => tCollider.transform.position = value - settings.collider.size / 2;
-        }
-        [JsonIgnore]
-        public override float3 origin {
-            get => tCollider.transform.position;
-            set => tCollider.transform.position = value;
-        }
+        public override ref TerrainCollider.Transform transform => ref tCollider.transform;
         [JsonIgnore]
         public Quaternion Facing => tCollider.transform.rotation;
         [JsonIgnore]
@@ -101,7 +93,7 @@ public class SurfaceCarnivore : Authoring {
         public void TakeDamage(float damage, float3 knockback, Entity attacker) {
             if (!vitality.Damage(damage)) return;
             Indicators.DisplayDamageParticle(position, knockback);
-            tCollider.velocity += knockback;
+            velocity += knockback;
 
             if (IsDead) return;
             if (attacker == null) return; //If environmental damage, we don't need to retaliate
@@ -130,7 +122,7 @@ public class SurfaceCarnivore : Authoring {
         }
         //Not thread safe
         public bool CanMateWith(Entity entity) {
-            if (vitality.healthPercent < genetics.Get(settings.Physicality.MateThreshold))
+            if (vitality.StopMating())
                 return false;
             if (vitality.IsDead) return false;
             if (TaskIndex >= 8) return false;
@@ -151,7 +143,7 @@ public class SurfaceCarnivore : Authoring {
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.genetics ??= new Genetics(this.info.entityType, ref random);
             this.vitality = new Vitality(settings.Physicality, this.genetics);
-            this.tCollider = new TerrainCollider(GCoord, true, ProcessFallDamage);
+            this.tCollider = new TerrainCollider(settings.collider, GCoord, ProcessFallDamage);
             pathFinder.hasPath = false;
 
             //Start by Idling   
@@ -172,7 +164,7 @@ public class SurfaceCarnivore : Authoring {
 
         public override void Update() {
             if (!active) return;
-            tCollider.Update(settings.collider, this);
+            tCollider.Update(this);
             EntityManager.AddHandlerEvent(controller.Update);
 
             tCollider.useGravity = true;
@@ -180,7 +172,6 @@ public class SurfaceCarnivore : Authoring {
             OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
             OnInGas: vitality.ProcessInGas);
-            if (!tCollider.useGravity) tCollider.velocity.y *= 1 - settings.collider.friction;
 
             vitality.Update();
             TaskRegistry[(int)TaskIndex].Invoke(this);
@@ -210,9 +201,9 @@ public class SurfaceCarnivore : Authoring {
             if (self.TaskDuration <= 0) {
                 self.TaskIndex = 1;
             } else self.TaskDuration -= EntityJob.cxt.deltaTime;
-            if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.HuntThreshold))
+            if (self.vitality.BeginHunting())
                 self.TaskIndex = 3;
-            else if (self.vitality.healthPercent > self.genetics.Get(self.settings.Physicality.MateThreshold))
+            else if (self.vitality.BeginMating())
                 self.TaskIndex = 6;
         }
 
@@ -241,9 +232,8 @@ public class SurfaceCarnivore : Authoring {
         //Task 3
         private static unsafe void FindPrey(Animal self) {
             //Use mate threshold not hunt because the entity may lose the target while eating
-            if (self.vitality.healthPercent > self.genetics.Get(self.settings.Physicality.MateThreshold)
-                || !self.settings.Recognition.FindPreferredPrey(self, self.genetics.Get(
-                self.settings.Recognition.SightDistance), out Entity prey)
+            if (self.vitality.StopHunting() || !self.settings.Recognition
+                    .FindPreferredPrey(self, self.genetics.Get(self.settings.Recognition.SightDistance), out Entity prey)
             ) {
                 self.TaskIndex = 1;
                 return;
@@ -311,7 +301,7 @@ public class SurfaceCarnivore : Authoring {
         }
         //Task 6
         private static unsafe void FindMate(Animal self) {
-            if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.MateThreshold)
+            if (self.vitality.StopMating()
                 || !self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
             ) {
@@ -359,8 +349,8 @@ public class SurfaceCarnivore : Authoring {
 
         //Task 9
         private static unsafe void RunFromTarget(Animal self) {
-            Entity target = EntityManager.GetEntity(self.TaskTarget);
-            if (target == null) self.TaskTarget = Guid.Empty;
+            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
+                self.TaskTarget = Guid.Empty;
             else if (Recognition.GetColliderDist(self, target)
                 > self.genetics.Get(self.settings.Recognition.SightDistance))
                 self.TaskTarget = Guid.Empty;
@@ -382,8 +372,7 @@ public class SurfaceCarnivore : Authoring {
 
         //Task 10
         private static unsafe void ChaseTarget(Animal self) {
-            Entity target = EntityManager.GetEntity(self.TaskTarget);
-            if (target == null)
+            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
                 self.TaskTarget = Guid.Empty;
             else if (Recognition.GetColliderDist(self, target)
                 > self.genetics.Get(self.settings.Recognition.SightDistance))
@@ -410,8 +399,7 @@ public class SurfaceCarnivore : Authoring {
 
         //Task 11
         private static void AttackTarget(Animal self) {
-            Entity tEntity = EntityManager.GetEntity(self.TaskTarget);
-            if (tEntity == null)
+            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity tEntity))
                 self.TaskTarget = Guid.Empty;
             else if (tEntity is not IAttackable)
                 self.TaskTarget = Guid.Empty;

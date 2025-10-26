@@ -13,8 +13,12 @@ MonoBehaviour:
   m_Name: MeatItem
   m_EditorClassIdentifier: 
   Name: Meat
+  Tags:
+    Reg:
+      value: []
   TextureName: Meat
-  MaterialName: 
-  MaterialState: 0
   ConsumptionRate: 2.5
-  NutritionValue: 2.5
+  NutritionValue: 0.02
+  references:
+    version: 2
+    RefIds: []

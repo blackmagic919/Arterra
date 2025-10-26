@@ -138,7 +138,7 @@ MonoBehaviour:
           value:
           - ItemName: Meat
             DropAmount:
-              mean: 3
+              mean: 0.01176471
               var: 1
               geneWeight: 0.05
         DecompositionTime:
@@ -162,7 +162,7 @@ MonoBehaviour:
             value:
             - EdibleType: BugMush
               Nutrition:
-                mean: 56.5
+                mean: 50
                 var: 0.5
                 geneWeight: 0.1
           SightDistance:
