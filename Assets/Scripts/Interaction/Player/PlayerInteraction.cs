@@ -107,7 +107,7 @@ public static class PlayerInteraction {
         if (selMat is not PlaceableItem setting) return;
         if (!setting.IsSolid || !matInfo.Contains(setting.MaterialName)) return;
 
-        PlayerHandler.data.animator.SetTrigger("Place");
+        PlayerHandler.data.Play("PlaceTerrain");
         if (FocusedTerraform.IsFocusedPlace(InventoryController.Selected)) {
             FocusedTerraform.Terraform(hitPt, settings.TerraformRadius, (GCoord, speed) => HandleAddSolid(
                 InventoryController.Selected,
@@ -134,7 +134,7 @@ public static class PlayerInteraction {
             return;
         }
 
-        PlayerHandler.data.animator.SetTrigger("Place");
+        PlayerHandler.data.Play("RemoveTerrain");
         CPUMapManager.Terraform(hitPt, settings.TerraformRadius,
             RemoveSolidBareHand, CallOnMapRemoving);
     }

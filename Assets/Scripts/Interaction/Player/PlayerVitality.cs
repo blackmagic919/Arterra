@@ -98,9 +98,7 @@ public class PlayerVitality
             IAttackable atkEntity = target as IAttackable;
             float3 knockback = math.normalize(target.position - PlayerHandler.data.position) * settings.KnockBackStrength;
             atkEntity.TakeDamage(settings.AttackDamage, knockback, PlayerHandler.data);
-
-            string anim = UnityEngine.Random.Range(0, 2) == 0 ? "PunchR" : "PunchL";
-            PlayerHandler.data.animator.SetTrigger(anim);
+            PlayerHandler.data.Play("Punch");
         }
         EntityManager.AddHandlerEvent(() => PlayerDamageEntity(entity));
     }

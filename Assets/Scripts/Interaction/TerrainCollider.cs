@@ -148,7 +148,9 @@ public struct TerrainCollider {
         float t = math.cmin(tMax);
         pos += normal * t;
 
-        if (t == tMax.x) { fDen = BilinearDensity(pos.y, pos.z, YZPlane, (int)pos.x, cxt); } else if (t == tMax.y) { fDen = BilinearDensity(pos.x, pos.z, XZPlane, (int)pos.y, cxt); } else { fDen = BilinearDensity(pos.x, pos.y, XYPlane, (int)pos.z, cxt); }
+        if (t == tMax.x) { fDen = BilinearDensity(pos.y, pos.z, YZPlane, (int)pos.x, cxt); }
+        else if (t == tMax.y) { fDen = BilinearDensity(pos.x, pos.z, XZPlane, (int)pos.y, cxt); } 
+        else { fDen = BilinearDensity(pos.x, pos.y, XYPlane, (int)pos.z, cxt); }
         if (fDen >= density) return 0;
 
         return math.clamp((cxt.IsoValue - density) / (fDen - density), 0, 1) * t;

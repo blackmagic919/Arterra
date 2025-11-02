@@ -273,11 +273,10 @@ public static class InventoryController {
         private ItemContext.FinishSetup OnRemoveElement;
 
         public Inventory(int SlotCount) {
-            SlotCount += 1;
             Info = new IItem[SlotCount];
             EntryDict = new Dictionary<int, int>();
             EntryLL = new LLNode[SlotCount];
-            capacity = (uint)SlotCount - 1;
+            capacity = (uint)SlotCount;
             tail = 0;
             length = 0;
             for (int i = 0; i < SlotCount; i++) {
@@ -288,10 +287,10 @@ public static class InventoryController {
         }
 
         public void ResizeInventory(int SlotCount, Action<IItem> OnRelease = null) {
-            SlotCount = math.max(SlotCount, 0) + 1;
+            SlotCount = math.max(SlotCount, 0);
             IItem[] nInfo = new IItem[SlotCount];
             LLNode[] nEntryLL = new LLNode[SlotCount];
-            for (int i = SlotCount - 1; i < capacity; i++) {
+            for (int i = SlotCount; i < capacity; i++) {
                 Info[i].OnLeave(
                     OnRemoveElement?
                     .Invoke(new ItemContext(this, i))
@@ -299,7 +298,7 @@ public static class InventoryController {
                 OnRelease?.Invoke(Info[i]);
                 RemoveEntry((int)i);
             }
-            for (int i = 0; i < math.min(SlotCount - 1, capacity); i++) {
+            for (int i = 0; i < math.min(SlotCount, capacity); i++) {
                 nInfo[i] = Info[i];
                 nEntryLL[i] = EntryLL[i];
             }
@@ -315,7 +314,7 @@ public static class InventoryController {
                     tail = (int)i;
                 } else LLAdd(i, (uint)tail);
             }
-            capacity = (uint)SlotCount - 1;
+            capacity = (uint)SlotCount;
         }
 
         public void InitializeDisplay(GameObject Parent) {

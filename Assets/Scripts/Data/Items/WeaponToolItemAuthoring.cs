@@ -34,9 +34,10 @@ namespace WorldConfig.Generation.Item
         public override object Clone() => new WeaponToolItem { data = data, durability = durability };
         public override void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
+                effect.Play("HoldItem", settings.Model.Value);
             OctreeTerrain.MainLoopUpdateTasks.Enqueue(this);
-            this.active = true;
-            this.cxt = cxt;
+            this.active = true; this.cxt = cxt;
             InputPoller.AddKeyBindChange(() => {
                 KeyBinds = new int[1];
                 KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind(
@@ -49,6 +50,8 @@ namespace WorldConfig.Generation.Item
 
         public override void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
+                effect.Play("UnHoldItem", settings.Model.Value);
             this.active = false;
             this.cxt = null;
             InputPoller.AddKeyBindChange(() => {
@@ -89,6 +92,9 @@ namespace WorldConfig.Generation.Item
                 + player.Forward
                 * Config.CURRENT.GamePlay.Player.value.Interaction.value.ReachDistance;
 
+            if (settings.OnUseAnim.Enabled && player is IActionEffect effectable)
+                effectable.Play(settings.OnUseAnim.Value);
+                    
             if (RayTestSolid(player, out float3 terrHit)) hitPt = terrHit;
             if (!EntityManager.ESTree.FindClosestAlongRay(player.position, hitPt, player.info.entityId, out Entity.Entity entity))
                 return;
@@ -104,8 +110,6 @@ namespace WorldConfig.Generation.Item
                     atkDmg *= settings.CritMultiplier;
 
                 atkEntity.TakeDamage(atkDmg, knockback, player);
-
-                player.animator.SetTrigger("Swing");
                 durability--;
             
                 if (durability > 0) return;

@@ -53,7 +53,6 @@ public static class PlayerHandler
     public static PlayerStreamer.Player data;
     public static Transform Viewer;
     public static Transform Camera;
-    public static CameraEffects cEffects;
     public static bool active = false;
     public static void Initialize() {
         Viewer = GameObject.Find("Viewer").transform;
@@ -66,9 +65,7 @@ public static class PlayerHandler
         var prms = (data, data);
         RebindPlayer(ref prms);
 
-        cEffects = new CameraEffects();
         OctreeTerrain.viewer = data.player.transform; //set octree's viewer to current player
-
         PlayerCamera.Initialize();
         PlayerMovement.Initialize();
         PlayerInteraction.Initialize();

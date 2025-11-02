@@ -93,7 +93,7 @@ public class ConsumbaleItem : IItem{
         if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
         if (player.vitality.healthPercent >= 1) return;
 
-        player.animator.SetBool("IsEating", true);
+        player.Play("Consume");
         delta = AmountRaw - math.max(AmountRaw - delta, 0);
         player.vitality.Heal(delta * settings.NutritionValue);
         AmountRaw -= delta;

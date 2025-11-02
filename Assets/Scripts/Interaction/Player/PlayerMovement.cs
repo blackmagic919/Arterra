@@ -65,9 +65,15 @@ public class PlayerMovement {
         data.player.transform.SetPositionAndRotation(data.positionWS, data.collider.transform.rotation);
     }
 
-    public static void SetAnimatorSpeed(float speed) {
-        speed = Mathf.InverseLerp(0, Setting.runSpeed, speed);
-        PlayerHandler.data.animator.SetFloat("Speed", math.lerp(PlayerHandler.data.animator.GetFloat("Speed"), speed, 0.35f));
+    public static float3 GetSpeed2D(float3 velocity) {
+        quaternion WSToOSNoScale = Quaternion.Inverse(math.normalize(PlayerHandler.data.Facing));
+        velocity = math.mul(WSToOSNoScale, velocity);
+        return new float3(velocity.x, 0, velocity.z) / Setting.runSpeed;
+    }
+    public static float3 GetSpeed3D(float3 velocity) {
+        quaternion WSToOSNoScale = Quaternion.Inverse(math.normalize(PlayerHandler.data.Facing));
+        velocity = math.mul(WSToOSNoScale, velocity);
+        return velocity / Setting.runSpeed;
     }
 }
 
@@ -82,7 +88,7 @@ public static class SurfaceMovement {
             TerrainCollider.Settings collider = PlayerHandler.data.settings.collider;
             if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
                 velocity += Setting.jumpForce * (float3)Vector3.up;
-                PlayerHandler.data.animator.SetBool("IsJumping", true);
+                PlayerHandler.data.Play("Jump");
             }
         }), "4.0::Movement");
     }
@@ -94,14 +100,13 @@ public static class SurfaceMovement {
         if (math.length(velocity.xz) < moveSpeed)
             velocity.xz += deltaV;
 
-        if (PlayerHandler.data.animator.GetBool("IsJumping") && PlayerHandler.data.animator.GetBool("_InProgress")) {
-            TerrainCollider.Settings collider = PlayerHandler.data.settings.collider;
-            if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
-                PlayerHandler.data.animator.SetBool("IsJumping", false);
-            }
+        
+        TerrainCollider.Settings collider = PlayerHandler.data.settings.collider;
+        if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
+            PlayerHandler.data.Play("Land");
         }
 
-        PlayerMovement.SetAnimatorSpeed(math.length(velocity.xz));
+        PlayerHandler.data.Play("PlayMove", PlayerMovement.GetSpeed2D(velocity));
         PlayerMovement.IsSprinting = false;
         PlayerMovement.InputDir = float2.zero;
     }
@@ -121,8 +126,8 @@ public static class SwimMovement{
     }
 
     public static void StartSwim(float _) {
-        PlayerHandler.data.animator.SetBool("IsSwimming", true);
-        PlayerHandler.data.animator.SetBool("IsJumping", false);
+        PlayerHandler.data.Play("StartSwim");
+
         if (isSwimming) return;
         if (!OveridableStates.Contains(InputPoller.PeekTop("Movement::Update")))
             return;
@@ -167,10 +172,10 @@ public static class SwimMovement{
         float3 deltaV = Setting.acceleration * Time.deltaTime * desiredMove;
 
         velocity.y *= 1 - PlayerHandler.data.settings.collider.friction;
-        if(PlayerMovement.IsSprinting && math.length(velocity) < MoveSpeed) velocity += deltaV;
-        else if(!PlayerMovement.IsSprinting && math.length(velocity.xz) < MoveSpeed) velocity.xz += deltaV.xz;
+        if (PlayerMovement.IsSprinting && math.length(velocity) < MoveSpeed) velocity += deltaV;
+        else if (!PlayerMovement.IsSprinting && math.length(velocity.xz) < MoveSpeed) velocity.xz += deltaV.xz;
         
-        PlayerMovement.SetAnimatorSpeed(math.length(velocity));
+        PlayerHandler.data.Play("PlayMove", PlayerMovement.GetSpeed3D(velocity));
         PlayerMovement.IsSprinting = false;
         PlayerMovement.InputDir = float2.zero;
     }
@@ -204,7 +209,8 @@ public static class FlightMovement {
     }
     private static void AddHandles() {
         if (!OveridableStates.Contains(InputPoller.PeekTop("Movement::Update"))) return;
-        PlayerHandler.data.animator.SetBool("IsJumping", false);
+        PlayerHandler.data.Play("Land");
+
         InputPoller.AddStackPoll(new InputPoller.ActionBind("FlightMove::1", _ => Update()), "Movement::Update");
         InputPoller.AddStackPoll(new InputPoller.ActionBind("FlightMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
         InputPoller.AddKeyBindChange(() => {
@@ -236,7 +242,7 @@ public static class FlightMovement {
         if (math.length(velocity.xz) < MoveSpeed)
             velocity.xz += deltaV;
 
-        PlayerMovement.SetAnimatorSpeed(math.length(velocity));
+        PlayerHandler.data.Play("PlayMove", PlayerMovement.GetSpeed3D(velocity));
         PlayerMovement.IsSprinting = false;
         PlayerMovement.InputDir = float2.zero;
     }
@@ -265,8 +271,7 @@ public static class RideMovement {
         PlayerHandler.data.collider.transform.velocity = float3.zero;
         InputPoller.AddStackPoll(new InputPoller.ActionBind("RideMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
         InputPoller.AddStackPoll(new InputPoller.ActionBind("RideMove::1", _ => Update()), "Movement::Update");
-        PlayerHandler.data.animator.SetBool("IsSitting", true);
-        PlayerHandler.data.animator.SetBool("IsJumping", false);
+        PlayerHandler.data.Play("SitDown");
 
         InputPoller.AddKeyBindChange(() => {
             KeyBinds = new int[2];
@@ -281,7 +286,7 @@ public static class RideMovement {
     public static void RemoveHandles() {
         InputPoller.RemoveStackPoll("RideMove::1", "Movement::Update");
         InputPoller.RemoveStackPoll("RideMove::2", "Movement::Gravity");
-        PlayerHandler.data.animator.SetBool("IsSitting", false);
+        PlayerHandler.data.Play("StandUp");
         SubTransform.transform.localRotation = Quaternion.identity;
 
 

@@ -22,6 +22,7 @@ public static class PaginatedUIEditor
             new PageListSerializer(),
             new PageKeybindSerializer(),
             new PaginatedCategorySerializer(),
+            new PageOptionalSerializer(),
         };
     }
     public static IConverter GetCustomSerializerSetting(Type type){

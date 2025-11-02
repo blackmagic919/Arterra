@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using MapStorage;
+using SharpToken;
 
 namespace WorldConfig.Generation.Item{
     [CreateAssetMenu(menuName = "Generation/Items/Bow")] 
@@ -16,6 +17,7 @@ namespace WorldConfig.Generation.Item{
         public float MaxLaunchSpeed = 20.0f;
         public float MinLaunchSpeed = 5.0f;
         public TagRegistry.Tags ArrowItemTag;
+        public Optional<GameObject> Model;
     }
 
     public class BowItem : IItem {
@@ -57,6 +59,8 @@ namespace WorldConfig.Generation.Item{
         private int[] KeyBinds;
         public void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
+                effect.Play("HoldItem", settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
                 KeyBinds = new int[2];
                 KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind(
@@ -70,10 +74,13 @@ namespace WorldConfig.Generation.Item{
         }
         public void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled) 
+                effect.Play("UnHoldItem", settings.Model);
             InputPoller.AddKeyBindChange(() => {
                 if (KeyBinds == null) return;
                 InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
                 InputPoller.RemoveKeyBind((uint)KeyBinds[1], "5.0::GamePlay");
+                if (cxt.TryGetHolder(out IActionEffect effect)) effect.Play("ReleaseBow");
             });
         }
 
@@ -83,6 +90,8 @@ namespace WorldConfig.Generation.Item{
                 drawTime = 0;
                 return;
             };
+            if (cxt.TryGetHolder(out IActionEffect effect))
+                effect.Play("DrawBow");
             drawTime += Time.deltaTime;
         }
 
@@ -93,6 +102,8 @@ namespace WorldConfig.Generation.Item{
             float drawPercent = Mathf.InverseLerp(settings.MinDrawTime, settings.FullDrawTime, timeDraw);
             float launchSpeed = Mathf.Lerp(settings.MinLaunchSpeed, settings.MaxLaunchSpeed, drawPercent);
             if (!ShootArrow(cxt, slot, launchSpeed)) return;
+            if (cxt.TryGetHolder(out IActionEffect effect))
+                effect.Play("ReleaseBow");
             durability -= 1.0f;
             if (durability > 0) return;
             cxt.TryRemove();

@@ -72,6 +72,7 @@ public class Projectile : WorldConfig.Generation.Entity.Authoring
             int index = itemReg.RetrieveIndex(settings.ItemDrop);
             IItem dropItem = itemReg.Retrieve(index).Item;
             dropItem.Create(index, dropItem.UnitSize);
+            EntityManager.ReleaseEntity(info.entityId);
             return dropItem;
         }
 
@@ -115,7 +116,7 @@ public class Projectile : WorldConfig.Generation.Entity.Authoring
                 EntityManager.ReleaseEntity(info.entityId);
                 return;
             }
-            if (tCollider.SampleCollision(tCollider.transform.position, tCollider.transform.size, EntityJob.cxt.mapContext, out float3 gDir)) {
+            if (tCollider.SampleCollision(tCollider.transform.position, tCollider.transform.size * 1.05f, EntityJob.cxt.mapContext, out float3 gDir)) {
                 switch (settings.terrainInteration) {
                     case ProjectileSetting.GroundIntrc.Stick:
                         tCollider.transform.rotation = Quaternion.LookRotation(-gDir, math.up());

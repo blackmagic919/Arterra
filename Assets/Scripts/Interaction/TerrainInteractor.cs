@@ -61,10 +61,11 @@ public static class TerrainInteractor {
         c[3] = m[3].SolidDensity; c[4] = m[4].SolidDensity; c[5] = m[5].SolidDensity;
         c[6] = m[6].SolidDensity; c[7] = m[7].SolidDensity;
 
-        if (TrilinearBlend(ref c, d, out corner) && !m[corner].IsNull)
+        if (TrilinearBlend(ref c, d, out corner)) {
+            if (m[corner].IsNull) return true;
             matInfo.Retrieve(m[corner].material)
-                .OnEntityTouchSolid(caller);
-        else return false;
+                .OnEntityTouchSolid(caller);   
+        } else return false;
         return true;
     }
 
@@ -110,9 +111,11 @@ public static class TerrainInteractor {
         c[0] = m[0].SolidDensity; c[1] = m[1].SolidDensity;
         c[2] = m[2].SolidDensity; c[3] = m[3].SolidDensity;
 
-        if (BilinearBlend(ref c, d, out corner) && !m[corner].IsNull)
+        if (BilinearBlend(ref c, d, out corner)) {
+            if (m[corner].IsNull) return true;
             matInfo.Retrieve(m[corner].material)
                 .OnEntityTouchSolid(caller);
+        }
         else return false;
         return true;
     }
@@ -272,37 +275,40 @@ public static class TerrainInteractor {
             int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
             int z0 = (int)Math.Floor(posGS.z); int z1 = z0 + 1;
 
-            uint c000 = CPUMapManager.SampleMap(new int3(x0, y0, z0)).data;
-            uint c100 = CPUMapManager.SampleMap(new int3(x1, y0, z0)).data;
-            uint c010 = CPUMapManager.SampleMap(new int3(x0, y1, z0)).data;
-            uint c110 = CPUMapManager.SampleMap(new int3(x1, y1, z0)).data;
-            uint c001 = CPUMapManager.SampleMap(new int3(x0, y0, z1)).data;
-            uint c101 = CPUMapManager.SampleMap(new int3(x1, y0, z1)).data;
-            uint c011 = CPUMapManager.SampleMap(new int3(x0, y1, z1)).data;
-            uint c111 = CPUMapManager.SampleMap(new int3(x1, y1, z1)).data;
+            MapData c000 = SampleMap(new int3(x0, y0, z0));
+            MapData c100 = SampleMap(new int3(x1, y0, z0));
+            MapData c010 = SampleMap(new int3(x0, y1, z0));
+            MapData c110 = SampleMap(new int3(x1, y1, z0));
+            MapData c001 = SampleMap(new int3(x0, y0, z1));
+            MapData c101 = SampleMap(new int3(x1, y0, z1));
+            MapData c011 = SampleMap(new int3(x0, y1, z1));
+            MapData c111 = SampleMap(new int3(x1, y1, z1));
+            if (c000.IsNull) c000.data &= 0xFFFF0000;
+            if (c100.IsNull) c100.data &= 0xFFFF0000;
+            if (c010.IsNull) c010.data &= 0xFFFF0000;
+            if (c110.IsNull) c110.data &= 0xFFFF0000;
+            if (c001.IsNull) c001.data &= 0xFFFF0000;
+            if (c101.IsNull) c101.data &= 0xFFFF0000;
+            if (c011.IsNull) c011.data &= 0xFFFF0000;
+            if (c111.IsNull) c111.data &= 0xFFFF0000;
 
             float xd = posGS.x - x0;
             float yd = posGS.y - y0;
             float zd = posGS.z - z0;
 
-            float c00 = (c000 & 0xFF) * (1 - xd) + (c100 & 0xFF) * xd;
-            float c01 = (c001 & 0xFF) * (1 - xd) + (c101 & 0xFF) * xd;
-            float c10 = (c010 & 0xFF) * (1 - xd) + (c110 & 0xFF) * xd;
-            float c11 = (c011 & 0xFF) * (1 - xd) + (c111 & 0xFF) * xd;
+            float c00 = c000.density * (1 - xd) + c100.density * xd;
+            float c01 = c001.density * (1 - xd) + c101.density * xd;
+            float c10 = c010.density * (1 - xd) + c110.density * xd;
+            float c11 = c011.density * (1 - xd) + c111.density * xd;
 
             float c0 = c00 * (1 - yd) + c10 * yd;
             float c1 = c01 * (1 - yd) + c11 * yd;
             float density = c0 * (1 - zd) + c1 * zd;
 
-            c000 = c000 >> 8 & 0xFF; c100 = c100 >> 8 & 0xFF;
-            c010 = c010 >> 8 & 0xFF; c110 = c110 >> 8 & 0xFF;
-            c001 = c001 >> 8 & 0xFF; c101 = c101 >> 8 & 0xFF;
-            c011 = c011 >> 8 & 0xFF; c111 = c111 >> 8 & 0xFF;
-
-            c00 = c000 * (1 - xd) + c100 * xd;
-            c01 = c001 * (1 - xd) + c101 * xd;
-            c10 = c010 * (1 - xd) + c110 * xd;
-            c11 = c011 * (1 - xd) + c111 * xd;
+            c00 = c000.viscosity * (1 - xd) + c100.viscosity * xd;
+            c01 = c001.viscosity * (1 - xd) + c101.viscosity * xd;
+            c10 = c010.viscosity * (1 - xd) + c110.viscosity * xd;
+            c11 = c011.viscosity * (1 - xd) + c111.viscosity * xd;
 
             c0 = c00 * (1 - yd) + c10 * yd;
             c1 = c01 * (1 - yd) + c11 * yd;

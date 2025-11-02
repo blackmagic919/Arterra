@@ -21,7 +21,7 @@ void SinkBlock(uint node, uint bStart){
         uint cur = node + bStart;
         uint maxChild = 2*node + bStart;
         uint sibling = 2*node + 1 + bStart;
-        if(2*node + 1 <= _Heap[0].x && _Heap[sibling].y > _Heap[maxChild].y)
+        if(2*node + 1 <= _Heap[bStart].x && _Heap[sibling].y > _Heap[maxChild].y)
             maxChild = sibling;
 
         if(_Heap[cur].y >= _Heap[maxChild].y)

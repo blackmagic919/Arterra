@@ -101,7 +101,8 @@ namespace WorldConfig.Gameplay.Player {
             q.z /= q.w;
             q.w = 1.0f;
 
-            return 2.0f * Mathf.Rad2Deg * Mathf.Atan(q.x);
+            float pitch = 2.0f * Mathf.Rad2Deg * Mathf.Atan(q.x);
+            return -(Mathf.InverseLerp(S.MinimumX, S.MaximumX, pitch) * 2 - 1);
         }
 
         static uint RayTestSolid(int3 coord) {
@@ -115,14 +116,6 @@ namespace WorldConfig.Gameplay.Player {
             UnityEngine.Camera cam = CamTsf.GetChild(0).GetComponent<UnityEngine.Camera>();
             if (cullingMask == cam.cullingMask) return;
             cam.cullingMask = cullingMask;
-        }
-
-        static void SetAnimatorLook(float pitch, float deltaYaw) {
-            float angleX = -(Mathf.InverseLerp(S.MinimumX, S.MaximumX, pitch) * 2 - 1);
-            PlayerHandler.data.animator.SetFloat("LookY", angleX);
-            float yaw = PlayerHandler.data.animator.GetFloat("LookX");
-            yaw = (yaw + deltaYaw) * 0.75f;
-            PlayerHandler.data.animator.SetFloat("LookX", yaw);
         }
 
         private interface ICameraPerspective {
@@ -166,7 +159,7 @@ namespace WorldConfig.Gameplay.Player {
                     camera.characterRot = SmoothCharacterRot;
                     camera.camTsf.rotation = SmoothCameraRot;
                 }
-                SetAnimatorLook(GetAngleX(camera.camTsf.rotation), camera.Rot.y);
+                PlayerHandler.data.Play("LookGradual", GetAngleX(camera.camTsf.rotation), camera.Rot.y);
             }
         }
 
@@ -208,7 +201,7 @@ namespace WorldConfig.Gameplay.Player {
                     camera.camTsf.rotation = SmoothCameraRot;
                 }
                 SetCameraOffset(camera);
-                SetAnimatorLook(GetAngleX(camera.camTsf.rotation), camera.Rot.y);
+                PlayerHandler.data.Play("LookGradual", GetAngleX(camera.camTsf.rotation), camera.Rot.y);
             }
 
             private void SetCameraOffset(PlayerCamera cm) {
@@ -278,7 +271,7 @@ namespace WorldConfig.Gameplay.Player {
                     camera.camTsf.rotation = SmoothCameraRot;
                 }
                 SetCameraOffset(camera);
-                SetAnimatorLook(GetAngleX(camera.camTsf.rotation), rotation);
+                PlayerHandler.data.Play("LookGradual", GetAngleX(camera.camTsf.rotation), rotation);
             }
             
             private static void SetCameraOffset(PlayerCamera cm) {

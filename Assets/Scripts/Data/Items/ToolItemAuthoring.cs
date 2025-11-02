@@ -9,8 +9,7 @@ using MapStorage;
 namespace WorldConfig.Generation.Item
 {
     [CreateAssetMenu(menuName = "Generation/Items/Tool")]
-    public class ToolItemAuthoring : AuthoringTemplate<ToolItem>
-    {
+    public class ToolItemAuthoring : AuthoringTemplate<ToolItem> {
         /// <summary> The radius, in grid space, of the spherical region around the user's
         /// cursor that will be modified when the user terraforms the terrain. </summary>
         public int TerraformRadius = 1;
@@ -22,6 +21,8 @@ namespace WorldConfig.Generation.Item
         /// A material's most specific tag that fits this enum will be used to determine
         /// how this tool effects it. </summary>
         public TagRegistry.Tags ToolTag;
+        public Optional<string> OnUseAnim;
+        public Optional<GameObject> Model;
     }
 
     [Serializable]
@@ -61,6 +62,8 @@ namespace WorldConfig.Generation.Item
         protected int[] KeyBinds;
         public virtual void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
+                effect.Play("HoldItem", settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
                 KeyBinds = new int[1];
                 KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove",
@@ -70,6 +73,8 @@ namespace WorldConfig.Generation.Item
         }
         public virtual void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
+                effect.Play("UnHoldItem", settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
                 if (KeyBinds == null) return;
                 InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
@@ -122,6 +127,9 @@ namespace WorldConfig.Generation.Item
 
             CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolid, CallOnMapRemoving);
             UpdateDisplay();
+
+            if (settings.OnUseAnim.Enabled && player is IActionEffect effectable)
+                effectable.Play(settings.OnUseAnim.Value);
 
             InputPoller.SuspendKeybindPropogation("Remove", InputPoller.ActionBind.Exclusion.ExcludeLayer);
             if (durability > 0) return;

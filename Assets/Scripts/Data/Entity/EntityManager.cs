@@ -450,8 +450,8 @@ public static class EntityManager
             if(current == -1) current = (int)Root;
             if(current == 0) return; //Root is zero when it is empty
             TreeNode node = tree[current];
-            if(node.IsLeaf){
-                if(ContainsExclusive(bounds, node.bounds.min))
+            if (node.IsLeaf) {
+                if (ContainsExclusive(bounds, node.bounds.center))
                     action.Invoke(node.GetLeaf);
                 return;
             }

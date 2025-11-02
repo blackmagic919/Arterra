@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1354df5070b74dd5a89f0f2287d31cd, type: 3}
+  m_Name: WoodenSwordItem
+  m_EditorClassIdentifier: 
+  Name: WoodenSword
+  Tags:
+    Reg:
+      value: []
+  TextureName: WoodenSword
+  TerraformRadius: 0
+  MaxDurability: 60
+  ToolTag: 0
+  OnUseAnim:
+    Enabled: 1
+    Value: Slash
+  Model:
+    Enabled: 1
+    Value: {fileID: 4561374205767717742, guid: 940dab2100b7e41e4a070c580e2b1cd7, type: 3}
+  AttackDamage: 3
+  KnockBackStrength: 2
+  AttackCooldown: 0.3
+  CritChance: 0.25
+  CritMultiplier: 1.5
+  references:
+    version: 2
+    RefIds: []

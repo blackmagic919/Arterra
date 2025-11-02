@@ -29,14 +29,12 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class Player : Entity, IAttackable, IRider
+    public class Player : Entity, IAttackable, IRider, IActionEffect
     {
         [JsonIgnore]
         public PlayerSettings settings;
         [JsonIgnore]
         public GameObject player;
-        [JsonIgnore]
-        public Animator animator;
         public DateTime currentTime;
         public PlayerCamera camera;
         public InventoryController.Inventory PrimaryI;
@@ -48,6 +46,8 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 
         [JsonIgnore]
         public EntityEvents Events = new();
+        [JsonIgnore]
+        public PlayerActionEffects Effects = new();
 
         [JsonIgnore]
         public override ref TerrainCollider.Transform transform => ref collider.transform;
@@ -62,6 +62,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 
         [JsonIgnore]
         public bool IsDead { get => vitality.IsDead; }
+        public void Play(string name, params object[] args) => Effects.Play(name, args);
         
         public void Interact(Entity target) { }
         public IItem Collect(float collectRate)
@@ -84,13 +85,13 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             var cxt = (damage, knockback, attacker);
             Events.Invoke(EntityEvents.EventType.OnDamaged, ref cxt);
             (damage, knockback, attacker) = cxt;
-            
+
             if (!vitality.Damage(damage)) return;
             EntityManager.AddHandlerEvent(() => Indicators.DisplayDamageParticle(position, knockback));
             velocity += knockback;
 
             if (status == StreamingStatus.Disconnected) return;
-            OctreeTerrain.MainCoroutines.Enqueue(PlayerHandler.cEffects.CameraShake(0.2f, 0.25f));
+            Effects.Play("RecieveDamage", damage, knockback);
         }
 
         public void OnMounted(IRidable mount) => RideMovement.AddHandles(mount);
@@ -120,7 +121,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             settings = (PlayerSettings)setting;
             collider.OnHitGround = ProcessFallDamage;
             player = GameObject.Instantiate(Controller);
-            animator = player.transform.Find("Player").GetComponent<Animator>();
+            Effects.Initialize(player);
             player.transform.SetPositionAndRotation(positionWS, collider.transform.rotation);
         }
 
@@ -130,11 +131,14 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             settings = (PlayerSettings)setting;
             GCoord = (int3)this.origin;
             player = GameObject.Instantiate(Controller);
-            animator = player.transform.Find("Player").GetComponent<Animator>();
+            Effects.Initialize(player);
             player.transform.SetPositionAndRotation(positionWS, collider.transform.rotation);
             collider.OnHitGround = ProcessFallDamage;
             camera.Deserailize(this);
-            if (IsDead) PlayDead();
+            if (!IsDead) return;
+
+            Effects.Play("Die");
+            SetLayerRecursively(player.transform, LayerMask.NameToLayer("Default"));
         }
 
 
@@ -180,15 +184,10 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         private void DetatchStreamer() {
             if (status == StreamingStatus.Disconnected) return;
             status = StreamingStatus.Disconnected;
-            PlayDead();
+            Effects.Play("Die");
+            SetLayerRecursively(player.transform, LayerMask.NameToLayer("Default"));
 
             GameOverHandler.Activate();
-        }
-
-        private void PlayDead()
-        {
-            animator.SetBool("IsDead", true);
-            SetLayerRecursively(player.transform, LayerMask.NameToLayer("Default"));
         }
 
         private void SetLayerRecursively(Transform obj, int layer)
@@ -199,6 +198,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
                 SetLayerRecursively(child, layer);
             }
         }
+        
 
         public void ProcessFallDamage(float zVelDelta)
         {

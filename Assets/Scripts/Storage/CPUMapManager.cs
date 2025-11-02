@@ -705,34 +705,35 @@ namespace MapStorage {
         /// <see cref="SectionedMemory"/>. One should first allocate this region through <see cref="AllocateChunk"/> before calling this function. </summary>
         /// <param name="CCoord">The coordiante of the chunk in chunk space to be read back. Used in determining both where the information is read
         /// from in GPU memory and where it is written to in <see cref="SectionedMemory"/>. </param>
-        public static void BeginMapReadback(int3 CCoord) { //Need a wrapper class to maintain reference to the native array
+        /// <param name="onReadback"> A callback that will be triggered when the map is fully readback </param>
+        public static void BeginMapReadback(int3 CCoord, Action onReadback = null) { //Need a wrapper class to maintain reference to the native array
             int GPUChunkHash = GPUMapManager.HashCoord(CCoord);
 
-            AsyncGPUReadback.Request(GPUMapManager.Address, size: 8, offset: 20 * GPUChunkHash, ret => onChunkAddressRecieved(ret, CCoord));
-        }
-
-        static unsafe void onChunkAddressRecieved(AsyncGPUReadbackRequest request, int3 CCoord) {
-            if (!initialized) return;
-            int CPUChunkHash = HashCoord(CCoord);
-            uint2 memHandle = request.GetData<uint2>()[0];
-            ChunkMapInfo destChunk = AddressDict[CPUChunkHash];
-            if (math.any(CCoord != destChunk.CCoord))
-                return;
-
-            int memAddress = (int)memHandle.x;
-            int meshSkipInc = (int)memHandle.y;
-
-            NativeArray<MapData> dest = AccessChunk(CPUChunkHash);
-            AsyncGPUReadback.RequestIntoNativeArray(ref dest, GPUMapManager.Storage, size: 4 * numPoints, offset: 4 * memAddress, _ => OnReadbackComplete(CCoord));
-
-            static void OnReadbackComplete(int3 CCoord) {
+            void OnReadbackComplete() {
                 if (!initialized) return;
                 int CPUChunkHash = HashCoord(CCoord);
                 if (math.any(CCoord != AddressDict[CPUChunkHash].CCoord))
                     return;
                 ActivateChunk(CPUChunkHash);
+                onReadback?.Invoke();
             }
 
+            unsafe void onChunkAddressRecieved(AsyncGPUReadbackRequest request) {
+                if (!initialized) return;
+                int CPUChunkHash = HashCoord(CCoord);
+                uint2 memHandle = request.GetData<uint2>()[0];
+                ChunkMapInfo destChunk = AddressDict[CPUChunkHash];
+                if (math.any(CCoord != destChunk.CCoord))
+                    return;
+
+                int memAddress = (int)memHandle.x;
+                int meshSkipInc = (int)memHandle.y;
+
+                NativeArray<MapData> dest = AccessChunk(CPUChunkHash);
+                AsyncGPUReadback.RequestIntoNativeArray(ref dest, GPUMapManager.Storage, size: 4 * numPoints, offset: 4 * memAddress, _ => OnReadbackComplete());
+            }
+
+            AsyncGPUReadback.Request(GPUMapManager.Address, size: 8, offset: 20 * GPUChunkHash, ret => onChunkAddressRecieved(ret));
         }
 
         /// <summary> Converts from grid space to chunk space hash and map space hash.
@@ -901,8 +902,8 @@ namespace MapStorage {
             AddressDict[chunkHash] = chead;
         }
 
-        /// <summary> Invalidates the chunk map data indicating to 
-        /// processes that it should no longer be modified </summary>
+        /// <summary> Activates the chunk indicating to all processes
+        /// that it can be referenced</summary>
         private static void ActivateChunk(int chunkHash) {
             var chead = AddressDict[chunkHash];
             chead.valid = true;

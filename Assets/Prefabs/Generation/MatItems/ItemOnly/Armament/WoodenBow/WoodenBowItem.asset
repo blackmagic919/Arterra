@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aee1ded06170d4b65875d0f26bac78bb, type: 3}
+  m_Name: WoodenBowItem
+  m_EditorClassIdentifier: 
+  Name: WoodenBow
+  Tags:
+    Reg:
+      value: []
+  TextureName: WoodenBow
+  MaxDurability: 50
+  MinDrawTime: 0.25
+  FullDrawTime: 2
+  MaxLaunchSpeed: 25
+  MinLaunchSpeed: 10
+  ArrowItemTag: 10000
+  Model:
+    Enabled: 1
+    Value: {fileID: 6080310472489319789, guid: e34e851d2c1f2419ba0c91564dd9e755, type: 3}
+  references:
+    version: 2
+    RefIds: []

@@ -86,10 +86,15 @@ public abstract class Entity: IRegistered{
     /// may not fulfill this contract if it no system requires its velocity. </summary>
     [JsonIgnore]
     public ref float3 velocity => ref transform.velocity;
+    /// <summary> The quaternion representing the rotation of the entity. </summary>
     [JsonIgnore]
     public virtual Quaternion Facing => transform.rotation;
+    /// <summary>The direction the entity is facing, found by multiplying the forward direction 
+    /// by the entity's <see cref="Facing">rotation</see></summary>
     [JsonIgnore]
     public float3 Forward => Facing * Vector3.forward;
+    /// <summary>The tangent to the direction the entity is facing, found by multiplying the 
+    /// right direction by the entity's <see cref="Facing">rotation</see></summary>
     [JsonIgnore]
     public float3 Right => Facing * Vector3.right;
     /// <summary>

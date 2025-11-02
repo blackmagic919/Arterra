@@ -20,7 +20,6 @@ public class ArmorController : PanelNavbarManager.INavPanel {
     private Camera Camera;
     private GameObject PlayerCamera;
     private FreeCamera CamMovement;
-    private Animator PlayerAnimator;
     private IUpdateSubscriber eventTask;
     private ArmorInventory playerArmor;
     private static uint ContextFence;
@@ -54,7 +53,6 @@ public class ArmorController : PanelNavbarManager.INavPanel {
     private bool RebindPlayer(ref (PlayerStreamer.Player old, PlayerStreamer.Player cur) cxt) {
         Transform rig = cxt.cur.player.transform.Find("Player");
         settings.BindBones(rig);
-        PlayerAnimator = cxt.cur.animator;
 
         cxt.old?.ArmorI.ReleaseDisplay();
         cxt.old?.ArmorI.UnapplyHandles();
@@ -86,7 +84,6 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         eventTask = new IndirectUpdate(Update);
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
 
-        PlayerAnimator.SetBool("DisableShuffle", true);
         InputPoller.AddKeyBindChange(() => {
             ContextFence = InputPoller.AddContextFence("3.0::Window", InputPoller.ActionBind.Exclusion.None);
             InputPoller.AddBinding(new InputPoller.ActionBind("Select",
@@ -112,7 +109,6 @@ public class ArmorController : PanelNavbarManager.INavPanel {
             InputPoller.RemoveContextFence(ContextFence, "3.0::Window");
             ContextFence = 0;
         });
-        PlayerAnimator.SetBool("DisableShuffle", false);
         SetSelectedSlot(-1);
     }
 
@@ -135,9 +131,7 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         float2 lookDir = delta / maxDist;
         lookDir = math.clamp(lookDir, -1f, 1f);
 
-        PlayerAnimator.SetFloat("LookX", -lookDir.x);
-        PlayerAnimator.SetFloat("LookY", lookDir.y);
-
+        PlayerHandler.data.Play("LookDirect", lookDir.y, -lookDir.x);
         //Rotate camera if dragging
         if (IsDragging) CamMovement.Rotate();
         ArmorInventory.ArmorSlot[] ArmorSlots = playerArmor.Display;

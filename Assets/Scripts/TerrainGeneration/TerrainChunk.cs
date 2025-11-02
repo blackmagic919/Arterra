@@ -449,16 +449,23 @@ namespace TerrainGeneration{
 
                 //Copy real chunks to CPU
                 CPUMapManager.AllocateChunk(this, info.mapMeta, CCoord);
-                CPUMapManager.BeginMapReadback(CCoord);
-                if (info.entities != null) { //If the chunk has saved entities
-                    EntityManager.DeserializeEntities(info.entities);
-                } else { //Otherwise create new entities
-                    uint entityAddress = EntityManager.PlanEntities(Map.Generator.bufferOffsets.biomeMapStart, CCoord, mapChunkSize);
-                    EntityManager.BeginEntityReadback(entityAddress, CCoord);
-                }
+                uint entityAddress = info.entities != null ? 0 :
+                    EntityManager.PlanEntities(
+                        Map.Generator.bufferOffsets.biomeMapStart,
+                        CCoord,
+                        mapChunkSize
+                    );
+                
+                CPUMapManager.BeginMapReadback(CCoord, () => {
+                    //If the chunk has saved entities
+                    if (info.entities != null) EntityManager.DeserializeEntities(info.entities);
+                    //Otherwise create new entities
+                    else EntityManager.BeginEntityReadback(entityAddress, CCoord);
+                });
                 status.UpdateMap = Status.Complete(status.UpdateMap);
                 callback?.Invoke();
             }
+            
             /// <summary> 
             /// To create the mesh, the information is gathered by sampling the GPU-side dictionary provided by the <see cref="GPUMapManager"/>,
             /// this allows the chunk to obtain information about the map data of neighboring chunks which is necessary for generating the mesh boundaries.

@@ -10,12 +10,12 @@ using UnityEngine.UI;
 using WorldConfig;
 
 [AttributeUsage(AttributeTargets.Field)]
-public sealed class UISetting : Attribute{
+public sealed class UISetting : Attribute {
     public bool Defaulting { get; set; }
     public bool Ignore { get; set; }
-    public string Message{get; set;}
-    public string Warning{get; set;}
-    public string Alias{get; set;}
+    public string Message { get; set; }
+    public string Warning { get; set; }
+    public string Alias { get; set; }
 }
 
 //Only applicable for WorldOptions
@@ -45,6 +45,7 @@ public static class SegmentedUIEditor
             new SegmentAbstractSerializer(),
             new SegmentListSerializer(),
             new SegmentCategorySerializer(),
+            new SegmentOptionalSerializer(),
         };
     }
     //
@@ -101,6 +102,7 @@ public static class SegmentedUIEditor
             else throw new Exception("Settings objects must contain either only value types or options");
         }
     }
+    
 
 
     //https://forum.unity.com/threads/layoutgroup-does-not-refresh-in-its-current-frame.458446/
@@ -131,17 +133,22 @@ public static class SegmentedUIEditor
         return Activator.CreateInstance(type);
     }
 
-   public static void SetUpLayout(GameObject content){
+    public static void SetUpLayout(GameObject content) {
         VerticalLayoutGroup layout = content.GetComponent<VerticalLayoutGroup>();
         ContentSizeFitter filter = content.GetComponent<ContentSizeFitter>();
-        if(layout == null) layout = content.AddComponent<VerticalLayoutGroup>();
-        if(filter == null) filter = content.AddComponent<ContentSizeFitter>();
+        if (layout == null) layout = content.AddComponent<VerticalLayoutGroup>();
+        if (filter == null) filter = content.AddComponent<ContentSizeFitter>();
         layout.childControlHeight = false;
-        layout.childControlWidth = true;
+        layout.childControlWidth = false;
         layout.padding.left = 25;
-        layout.childAlignment = TextAnchor.UpperCenter;
+        layout.padding.top = 50;
+        layout.childAlignment = TextAnchor.UpperLeft;
         filter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        filter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
     }
+
+    public static Transform GetSegmentContent(GameObject option) { return option.transform.Find("Content"); }
+    public static TextMeshProUGUI GetSegmentName(GameObject option) { return GetSegmentContent(option).Find("Name").GetComponent<TextMeshProUGUI>(); }
 
     public static void CreateOptionDisplay(object setting, GameObject content, ParentUpdate OnUpdate = null){
         System.Reflection.FieldInfo[] fields = setting.GetType().GetFields();
@@ -170,7 +177,7 @@ public static class SegmentedUIEditor
             object value = field.GetValue(setting); object cObject = setting; ParentUpdate nUpdate = OnUpdate;
             GameObject newOption = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Option"), content.transform);
             RectTransform transform = newOption.GetComponent<RectTransform>();
-            newOption.GetComponent<TextMeshProUGUI>().text = name;
+            GetSegmentName(newOption).GetComponent<TextMeshProUGUI>().text = name;
 
             //Extract the value of the option
             //cObject is the Option Field(value type)
@@ -266,7 +273,7 @@ public static class SegmentedUIEditor
                 dropdownField.onValueChanged.AddListener((int value) => { OnUpdate((ref object parent) => { field.SetValue(parent, enumValues.GetValue(value)); }); });
                 break;
             default:
-                Button buttonField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Drop_Arrow"), parent.transform.GetChild(0)).GetComponent<Button>(); bool isOpen = false;
+                Button buttonField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Drop_Arrow"), GetSegmentContent(parent)).GetComponent<Button>(); bool isOpen = false;
                 buttonField.onClick.AddListener(() => {
                     isOpen = !isOpen;
                     if(isOpen) CreateOptionDisplay(cValue, parent, ChildRequest);

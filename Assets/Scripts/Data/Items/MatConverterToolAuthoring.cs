@@ -26,6 +26,8 @@ namespace WorldConfig.Generation.Item
         public override object Clone() => new MatConverterToolItem { data = data, durability = durability };
         public override void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
+                effect.Play("HoldItem", settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
                 KeyBinds = new int[2];
                 KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("ConvertMaterial", _ => PlayerModifyTerrain(cxt)), "5.0::GamePlay");
@@ -35,6 +37,8 @@ namespace WorldConfig.Generation.Item
 
         public override void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
+                effect.Play("UnHoldItem", settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
                 if (KeyBinds == null) return;
                 InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
@@ -60,6 +64,9 @@ namespace WorldConfig.Generation.Item
                 durability -= tag.ToolDamage * (mapData.density / 255.0f);
                 return true;
             }
+
+            if (settings.OnUseAnim.Enabled && player is IActionEffect effectable)
+                effectable.Play(settings.OnUseAnim.Value);
 
             CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, CallOnMapRemoving);
             UpdateDisplay();

@@ -27,20 +27,20 @@ MonoBehaviour:
         value:
         - data: 116936
         - data: 25700
-        - data: 0
+        - data: 104086
         - data: 0
         - data: 25700
         - data: 104086
-        - data: 5140
+        - data: 32125
         - data: 0
-        - data: 0
-        - data: 169622
         - data: 104086
-        - data: 19275
-        - data: 19275
+        - data: 32125
         - data: 169622
-        - data: 177332
-        - data: 182472
+        - data: 32125
+        - data: 0
+        - data: 0
+        - data: 32125
+        - data: 169622
       result:
         data: 51
       MinQuantity: 1
