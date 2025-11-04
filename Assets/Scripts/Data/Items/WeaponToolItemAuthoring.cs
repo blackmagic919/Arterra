@@ -39,11 +39,10 @@ namespace WorldConfig.Generation.Item
             OctreeTerrain.MainLoopUpdateTasks.Enqueue(this);
             this.active = true; this.cxt = cxt;
             InputPoller.AddKeyBindChange(() => {
-                KeyBinds = new int[1];
-                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind(
+                InputPoller.AddBinding(new ActionBind(
                     "Remove", PlayerAttack,
-                    InputPoller.ActionBind.Exclusion.ExcludeLayer),
-                    "5.0::GamePlay"
+                    ActionBind.Exclusion.ExcludeLayer),
+                    "ITEM::WeaponTool:RM", "5.0::GamePlay"
                 );
             });
         }
@@ -55,8 +54,7 @@ namespace WorldConfig.Generation.Item
             this.active = false;
             this.cxt = null;
             InputPoller.AddKeyBindChange(() => {
-                if (KeyBinds == null) return;
-                InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
+                InputPoller.RemoveBinding("ITEM::WeaponTool:RM", "5.0::GamePlay");
             });
         }
 

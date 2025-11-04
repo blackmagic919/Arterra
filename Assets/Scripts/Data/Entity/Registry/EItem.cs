@@ -62,7 +62,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             amount *= ret.UnitSize;
             int delta = Mathf.FloorToInt(amount) 
                 + (random.NextFloat() < math.frac(amount) ? 1 : 0);
-            ret.AmountRaw = math.max(delta, ret.AmountRaw);
+            ret.AmountRaw = math.min(delta, ret.AmountRaw);
             item.Value.AmountRaw -= ret.AmountRaw;
             if (item.Value.AmountRaw == 0) item.Value = null;
 

@@ -60,9 +60,9 @@ namespace WorldConfig.Gameplay.Player {
         }
 
         public static void Initialize() {
-            InputPoller.AddBinding(new InputPoller.ActionBind("Look Horizontal", LookX), "4.5::Movement");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Look Vertical", LookY), "4.5::Movement");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Toggle Perspective", TogglePerspective), "2.5::Subscene");
+            InputPoller.AddBinding(new ActionBind("Look Horizontal", LookX), "PlayerCamera:LH", "4.5::Movement");
+            InputPoller.AddBinding(new ActionBind("Look Vertical", LookY), "PlayerCamera:LV", "4.5::Movement");
+            InputPoller.AddBinding(new ActionBind("Toggle Perspective", TogglePerspective), "PlayerCamera:TP", "2.5::Subscene");
         }
         private static void LookX(float x) {
             PlayerCamera self = PlayerHandler.data.camera; //reaquire active self

@@ -22,7 +22,6 @@ public class ConsumbaleItem : IItem{
     [JsonIgnore]
     public int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
     private ConsumableItemAuthoring settings => ItemInfo.Retrieve(Index) as ConsumableItemAuthoring;
-    private uint[] KeyBinds;
 
     [JsonIgnore]
     public int Index{
@@ -48,20 +47,18 @@ public class ConsumbaleItem : IItem{
     public void OnEnter(ItemContext cxt) {
         if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         InputPoller.AddKeyBindChange(() => {
-            KeyBinds = new uint[1];
-            KeyBinds[0] = InputPoller.AddBinding(new InputPoller.ActionBind(
+            InputPoller.AddBinding(new ActionBind(
                 "Consume",
                 _ => ConsumeFood(cxt),
-                InputPoller.ActionBind.Exclusion.ExcludeLayer),
-                "5.0::GamePlay"
+                ActionBind.Exclusion.ExcludeLayer),
+                "ITEM::Consumable:EAT", "5.0::GamePlay"
             );
         });
     } 
     public void OnLeave(ItemContext cxt) {
         if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         InputPoller.AddKeyBindChange(() => {
-            if (KeyBinds == null) return;
-            InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
+            InputPoller.RemoveBinding("ITEM::Consumable:EAT", "5.0::GamePlay");
         });
     } 
     

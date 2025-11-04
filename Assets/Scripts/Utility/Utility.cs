@@ -52,7 +52,7 @@ namespace Utils {
             return width * length;
         }
 
-        public static uint EncodeMorton2(uint2 v) { 
+        public static uint EncodeMorton2(uint2 v) {
             uint Part1By1(uint x) {
                 x &= 0x0000ffff;                // x = ---- ---- ---- ---- fedc ba98 7654 3210
                 x = (x | (x << 8)) & 0x00FF00FF; // spread by 8 bits
@@ -63,7 +63,7 @@ namespace Utils {
             }
             return Part1By1(v.x) | (Part1By1(v.y) << 1);
         }
-        public static uint EncodeMorton3(uint3 v) { 
+        public static uint EncodeMorton3(uint3 v) {
             uint Part1By2(uint x) {
                 x &= 0x000003ff;                  // x = ---- ---- ---- ---- ---- --98 7654 3210
                 x = (x ^ (x << 16)) & 0xff0000ff; // x = ---- --98 ---- ---- ---- ---- 7654 3210
@@ -71,7 +71,7 @@ namespace Utils {
                 x = (x ^ (x << 4)) & 0x030c30c3; // x = ---- --98 ---- 76-- --54 ---- 32-- --10
                 x = (x ^ (x << 2)) & 0x09249249; // x = ---- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
                 return x;
-            }  
+            }
             return Part1By2(v.x) | (Part1By2(v.y) << 1) | (Part1By2(v.z) << 2);
         }
 
@@ -234,6 +234,84 @@ namespace Utils {
                 }
             }
         }
+    }
+    
+    public class TwoWayDict<TKey, TValue>
+    {
+        private readonly Dictionary<TKey, TValue> keyToValue = new();
+        private readonly Dictionary<TValue, TKey> valueToKey = new();
+
+        // Regular indexer: access by key
+        public TValue this[TKey key] {
+            get => keyToValue[key];
+            set {
+                if (keyToValue.TryGetValue(key, out var oldValue))
+                    valueToKey.Remove(oldValue);
+
+                keyToValue[key] = value;
+                valueToKey[value] = key;
+            }
+        }
+        //ToDo: Add reverse indexer
+        public void Add(TKey key, TValue value)
+        {
+            if (keyToValue.ContainsKey(key))
+                throw new ArgumentException($"Duplicate key: {key}");
+            if (valueToKey.ContainsKey(value))
+                throw new ArgumentException($"Duplicate value: {value}");
+
+            keyToValue[key] = value;
+            valueToKey[value] = key;
+        }
+
+        public TValue GetByKey(TKey key)
+        {
+            if (!keyToValue.TryGetValue(key, out var value))
+                throw new KeyNotFoundException($"Key not found: {key}");
+            return value;
+        }
+
+        public TKey GetByValue(TValue value)
+        {
+            if (!valueToKey.TryGetValue(value, out var key))
+                throw new KeyNotFoundException($"Value not found: {value}");
+            return key;
+        }
+
+        public bool TryGetByKey(TKey key, out TValue value) => keyToValue.TryGetValue(key, out value);
+        public bool TryGetByValue(TValue value, out TKey key) => valueToKey.TryGetValue(value, out key);
+        public bool ContainsKey(TKey key) => keyToValue.ContainsKey(key);
+        public bool ContainsValue(TValue value) => valueToKey.ContainsKey(value);
+
+        public bool RemoveByKey(TKey key)
+        {
+            if (keyToValue.TryGetValue(key, out var value))
+            {
+                keyToValue.Remove(key);
+                valueToKey.Remove(value);
+                return true;
+            }
+            return false;
+        }
+
+        public bool RemoveByValue(TValue value)
+        {
+            if (valueToKey.TryGetValue(value, out var key))
+            {
+                valueToKey.Remove(value);
+                keyToValue.Remove(key);
+                return true;
+            }
+            return false;
+        }
+
+        public void Clear()
+        {
+            keyToValue.Clear();
+            valueToKey.Clear();
+        }
+
+        public int Count => keyToValue.Count;
     }
 
     public enum priorities {

@@ -7,21 +7,20 @@ public class PauseHandler
 {
     private static GameObject PauseMenu;
     private static GameObject PauseContent => PauseMenu.transform.Find("Content").gameObject;
-    private static uint Fence;
     public static void Initialize() { 
         PauseMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Pause"), GameUIManager.UIHandle.transform);
         PauseMenu.SetActive(false);
 
-        InputPoller.AddBinding(new InputPoller.ActionBind("Pause", Activate), "1.0::Menu");
+        InputPoller.AddBinding(new ActionBind("Pause", Activate), "PauseMenu:OPN", "1.0::Menu");
     }
 
     public static void Activate(float _null_){
         PauseMenu.SetActive(true);
 
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("Frame:Pause", (float _) => InputPoller.SetCursorLock(false)), "CursorLock");
+        InputPoller.AddStackPoll(new ActionBind("Frame:Pause", (float _) => InputPoller.SetCursorLock(false)), "CursorLock");
         InputPoller.AddKeyBindChange(() => {
-            Fence = InputPoller.AddContextFence("1.0::Menu", InputPoller.ActionBind.Exclusion.ExcludeAll);
-            InputPoller.AddBinding(new InputPoller.ActionBind("Pause", Deactivate), "1.0::Menu");
+            InputPoller.AddContextFence("PauseMenu", "1.0::Menu", ActionBind.Exclusion.ExcludeAll);
+            InputPoller.AddBinding(new ActionBind("Pause", Deactivate), "PauseMenu:CLS", "1.0::Menu");
         });
 
         Option<Config.GamePlaySettings> settings = Config.CURRENT._GamePlay;
@@ -43,7 +42,7 @@ public class PauseHandler
     public static void Deactivate(float _null_){
         PaginatedUIEditor.ReleaseAllChildren(PauseContent);
         InputPoller.RemoveStackPoll("Frame:Pause", "CursorLock");
-        InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence(Fence, "1.0::Menu"));
+        InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence("PauseMenu", "1.0::Menu"));
         PauseMenu.SetActive(false);
     }
 

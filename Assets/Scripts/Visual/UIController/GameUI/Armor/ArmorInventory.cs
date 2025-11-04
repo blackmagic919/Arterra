@@ -64,6 +64,7 @@ public class ArmorInventory: IInventory {
         } Display = null;
     }
     public bool AddEntry(IArmorItem item, int slot) {
+        item = item.Clone() as IArmorItem;
         List<EquipInfo.Slot> slots = item.GetEquipInfo().Regions;
         string slotName = system.RetrieveName(slot);
         if (!slots.Exists((s) => s.PlaceableSlot == slotName))

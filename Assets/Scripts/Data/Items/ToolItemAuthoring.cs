@@ -59,27 +59,21 @@ namespace WorldConfig.Generation.Item
             this.durability = settings.MaxDurability;
         }
         public void UpdateEItem() { }
-        protected int[] KeyBinds;
         public virtual void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
                 effect.Play("HoldItem", settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
-                KeyBinds = new int[1];
-                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove",
+                InputPoller.AddBinding(new ActionBind("Remove",
                     _ => PlayerRemoveTerrain(cxt)),
-                    "5.0::GamePlay");
+                    "ITEM::Tool:RM", "5.0::GamePlay");
             });
         }
         public virtual void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
                 effect.Play("UnHoldItem", settings.Model.Value);
-            InputPoller.AddKeyBindChange(() => {
-                if (KeyBinds == null) return;
-                InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
-                KeyBinds = null;
-            });
+            InputPoller.AddKeyBindChange(() => InputPoller.RemoveBinding("ITEM::Tool:RM", "5.0::GamePlay"));
         }
 
         protected GameObject display;
@@ -131,7 +125,7 @@ namespace WorldConfig.Generation.Item
             if (settings.OnUseAnim.Enabled && player is IActionEffect effectable)
                 effectable.Play(settings.OnUseAnim.Value);
 
-            InputPoller.SuspendKeybindPropogation("Remove", InputPoller.ActionBind.Exclusion.ExcludeLayer);
+            InputPoller.SuspendKeybindPropogation("Remove", ActionBind.Exclusion.ExcludeLayer);
             if (durability > 0) return;
             //Removes itself
             cxt.TryRemove();

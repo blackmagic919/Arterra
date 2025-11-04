@@ -107,6 +107,7 @@ public static class PlayerHandler
     public static void Release(){
         InputPoller.SetCursorLock(false); //Release Cursor Lock
         SavePlayerData(new Registerable<PlayerStreamer.Player>(data));
+        InventoryController.Release();
         PanelNavbarManager.Release();
     }
     

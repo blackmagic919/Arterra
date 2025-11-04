@@ -29,9 +29,10 @@ namespace WorldConfig.Generation.Item
             if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
                 effect.Play("HoldItem", settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
-                KeyBinds = new int[2];
-                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("ConvertMaterial", _ => PlayerModifyTerrain(cxt)), "5.0::GamePlay");
-                KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", _ => PlayerRemoveTerrain(cxt)), "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("ConvertMaterial", _ => PlayerModifyTerrain(cxt)),
+                    "ITEM::MCTool:CNV", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("Remove", _ => PlayerRemoveTerrain(cxt)),
+                    "ITEM::MCTool:RM", "5.0::GamePlay");
             });
         }
 
@@ -40,9 +41,8 @@ namespace WorldConfig.Generation.Item
             if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
                 effect.Play("UnHoldItem", settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
-                if (KeyBinds == null) return;
-                InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
-                InputPoller.RemoveKeyBind((uint)KeyBinds[1], "5.0::GamePlay");
+                InputPoller.RemoveBinding("ITEM::MCTool:CNV", "5.0::GamePlay");
+                InputPoller.RemoveBinding("ITEM::MCTool:RM", "5.0::GamePlay");
             });
         }
 
@@ -71,7 +71,7 @@ namespace WorldConfig.Generation.Item
             CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, CallOnMapRemoving);
             UpdateDisplay();
 
-            InputPoller.SuspendKeybindPropogation("ConvertMaterial", InputPoller.ActionBind.Exclusion.ExcludeLayer);
+            InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
             if (durability > 0) return;
             //Removes itself
             cxt.TryRemove();

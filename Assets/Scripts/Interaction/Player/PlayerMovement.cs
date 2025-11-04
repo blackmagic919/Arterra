@@ -51,9 +51,9 @@ public class PlayerMovement {
 
     public static void Initialize() {
         //These constructors will hook themselves to input modules and will not be garbage collected
-        InputPoller.AddBinding(new InputPoller.ActionBind("Move Vertical", (float y) => InputDir.y = y), "4.0::Movement");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Move Horizontal", (float x) => InputDir.x = x), "4.0::Movement");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Sprint", (float x) => { IsSprinting = true; }), "4.0::Movement");
+        InputPoller.AddBinding(new ActionBind("Move Vertical", y => InputDir.y = y), "PlayerMove:MV", "4.0::Movement");
+        InputPoller.AddBinding(new ActionBind("Move Horizontal", x => InputDir.x = x), "PlayerMove:MH", "4.0::Movement");
+        InputPoller.AddBinding(new ActionBind("Sprint", x => { IsSprinting = true; }),  "PlayerMove:SPR", "4.0::Movement");
         SurfaceMovement.Initialize();
         FlightMovement.Initialize();
         SwimMovement.Initialize();
@@ -82,15 +82,15 @@ public static class SurfaceMovement {
     public static ref float3 velocity => ref PlayerHandler.data.collider.transform.velocity;
     private static float moveSpeed => PlayerMovement.IsSprinting ? Setting.runSpeed : Setting.walkSpeed;
     public static void Initialize() {
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("GroundMove::1", _ => Update()), "Movement::Update");
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("GroundMove::2", _ => PlayerHandler.data.collider.useGravity = true), "Movement::Gravity");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Jump", (_null_) => {
+        InputPoller.AddStackPoll(new ActionBind("GroundMove::1", _ => Update()), "Movement::Update");
+        InputPoller.AddStackPoll(new ActionBind("GroundMove::2", _ => PlayerHandler.data.collider.useGravity = true), "Movement::Gravity");
+        InputPoller.AddBinding(new ActionBind("Jump", (_null_) => {
             TerrainCollider.Settings collider = PlayerHandler.data.settings.collider;
             if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
                 velocity += Setting.jumpForce * (float3)Vector3.up;
                 PlayerHandler.data.Play("Jump");
             }
-        }), "4.0::Movement");
+        }), "PMSurfaceMovement:JMP", "4.0::Movement");
     }
 
     public static void Update() {
@@ -144,16 +144,15 @@ public static class SwimMovement{
 
     //Two modes: If Sprinting, swim in direction of camera, otherwise, apply gravity but with friction on it
     private static void AddHandles(){
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("SwimMove::1", _ => Update()), "Movement::Update");
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("SwimMove::2", _ => PlayerHandler.data.collider.useGravity = true), "Movement::Gravity");
+        InputPoller.AddStackPoll(new ActionBind("SwimMove::1", _ => Update()), "Movement::Update");
+        InputPoller.AddStackPoll(new ActionBind("SwimMove::2", _ => PlayerHandler.data.collider.useGravity = true), "Movement::Gravity");
         InputPoller.AddKeyBindChange(() => {
-            KeyBinds = new int[2];
-            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Ascend", (_null_) => {
+            InputPoller.AddBinding(new ActionBind("Ascend", (_null_) => {
                 if(velocity.y < MoveSpeed) velocity.y += Setting.acceleration * Time.deltaTime;
-            }), "4.0::Movement");
-            KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Descend", (_null_) => {
+            }), "PMSwimMove:ASD", "4.0::Movement");
+            InputPoller.AddBinding(new ActionBind("Descend", (_null_) => {
                 if(velocity.y > -MoveSpeed) velocity.y -= Setting.acceleration * Time.deltaTime;
-            }), "4.0::Movement");
+            }), "PMSwimMove:DSD", "4.0::Movement");
         });
     }
 
@@ -161,8 +160,8 @@ public static class SwimMovement{
         InputPoller.RemoveStackPoll("SwimMove::1", "Movement::Update");
         InputPoller.RemoveStackPoll("SwimMove::2", "Movement::Gravity");
         InputPoller.AddKeyBindChange(() => {
-            InputPoller.RemoveKeyBind((uint)KeyBinds[0], "4.0::Movement");
-            InputPoller.RemoveKeyBind((uint)KeyBinds[1], "4.0::Movement");
+            InputPoller.RemoveBinding("PMSwimMove:ASD", "4.0::Movement");
+            InputPoller.RemoveBinding("PMSwimMove:DSD", "4.0::Movement");
             KeyBinds = null;
         });
     }
@@ -186,51 +185,55 @@ public static class FlightMovement {
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
     public static ref float3 velocity => ref PlayerHandler.data.collider.transform.velocity;
     private static float MoveSpeed => Setting.flightSpeedMultiplier * (PlayerMovement.IsSprinting ? Setting.runSpeed : Setting.walkSpeed);
-    private static int[] KeyBinds = null;
+    private static bool HasEnabledFlight;
+    private static bool IsFlying;
     public static void Initialize() {
         Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Flight", OnFlightRuleChanged);
+        HasEnabledFlight = false;
+        IsFlying = false;
         OnFlightRuleChanged();
     }
 
     public static void OnFlightRuleChanged() {
         bool EnableFlight = Config.CURRENT.GamePlay.Gamemodes.value.Flight;
-        if (!EnableFlight) {
-            InputPoller.TryRemove("Toggle Fly", "4.0::Movement");
-            if (KeyBinds != null) RemoveHandles();
-            return;
-        }
+        if (HasEnabledFlight == EnableFlight) return;
+        HasEnabledFlight = EnableFlight;
 
-        if (InputPoller.TryAdd(new InputPoller.ActionBind("Toggle Fly", (_null_) => {
-            if (KeyBinds == null) AddHandles();
-            else RemoveHandles();
-            velocity.y = 0;
-        }), "4.0::Movement"))
-            KeyBinds = null;
+        if (!EnableFlight) {
+            InputPoller.RemoveBinding("PMFlightMove:TF", "4.0::Movement");
+            RemoveHandles();
+        } else {
+            InputPoller.AddBinding(new ActionBind("Toggle Fly", (_null_) => {
+                if (IsFlying) RemoveHandles();
+                else AddHandles();
+                velocity.y = 0;
+            }), "PMFlightMove:TF", "4.0::Movement");   
+        }
     }
     private static void AddHandles() {
         if (!OveridableStates.Contains(InputPoller.PeekTop("Movement::Update"))) return;
         PlayerHandler.data.Play("Land");
+        IsFlying = true;
 
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("FlightMove::1", _ => Update()), "Movement::Update");
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("FlightMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
+        InputPoller.AddStackPoll(new ActionBind("FlightMove::1", _ => Update()), "Movement::Update");
+        InputPoller.AddStackPoll(new ActionBind("FlightMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
         InputPoller.AddKeyBindChange(() => {
-            KeyBinds = new int[2];
-            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Ascend", (_null_) => {
+            InputPoller.AddBinding(new ActionBind("Ascend", (_null_) => {
                 if (velocity.y < MoveSpeed) velocity.y += Setting.acceleration * Time.deltaTime * Setting.flightSpeedMultiplier;
-            }), "4.0::Movement");
-            KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Descend", (_null_) => {
+            }), "PMFlightMove:ASD", "4.0::Movement");
+            InputPoller.AddBinding(new ActionBind("Descend", (_null_) => {
                 if (velocity.y > -MoveSpeed) velocity.y -= Setting.acceleration * Time.deltaTime * Setting.flightSpeedMultiplier;
-            }), "4.0::Movement");
+            }), "PMFlightMove:DSD", "4.0::Movement");
         });
     }
 
     private static void RemoveHandles() {
+        IsFlying = false;
         InputPoller.RemoveStackPoll("FlightMove::1", "Movement::Update");
         InputPoller.RemoveStackPoll("FlightMove::2", "Movement::Gravity");
         InputPoller.AddKeyBindChange(() => {
-            InputPoller.RemoveKeyBind((uint)KeyBinds[0], "4.0::Movement");
-            InputPoller.RemoveKeyBind((uint)KeyBinds[1], "4.0::Movement");
-            KeyBinds = null;
+            InputPoller.RemoveBinding("PMFlightMove:ASD", "4.0::Movement");
+            InputPoller.RemoveBinding("PMFlightMove:DSD", "4.0::Movement");
         });
     }
 
@@ -252,13 +255,11 @@ public static class FlightMovement {
 public static class RideMovement {
     private static HashSet<string> OveridableStates = new HashSet<string> { "GroundMove::1", "SwimMove::1", "FlightMove::1" };
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
-    private static int[] KeyBinds = null;
     private static IRidable mount;
     private static bool IsActive => mount != null && (mount as Entity).active;
     private static Transform SubTransform => PlayerHandler.data.player.transform.GetChild(0).transform;
 
     public static void Initialize() {
-        KeyBinds = null;
         mount = null;
     }
     public static void AddHandles(IRidable mount) {
@@ -269,16 +270,15 @@ public static class RideMovement {
         }
 
         PlayerHandler.data.collider.transform.velocity = float3.zero;
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("RideMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("RideMove::1", _ => Update()), "Movement::Update");
+        InputPoller.AddStackPoll(new ActionBind("RideMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
+        InputPoller.AddStackPoll(new ActionBind("RideMove::1", _ => Update()), "Movement::Update");
         PlayerHandler.data.Play("SitDown");
 
         InputPoller.AddKeyBindChange(() => {
-            KeyBinds = new int[2];
-            KeyBinds[0] = (int)InputPoller.AddContextFence("4.0::Movement", InputPoller.ActionBind.Exclusion.ExcludeLayer);
-            InputPoller.AddBinding(new InputPoller.ActionBind("Move Vertical", MoveForward), "4.0::Movement");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Move Horizontal", Rotate), "4.0::Movement");
-            KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Dismount", _ => mount?.Dismount()), "5.0::Gameplay");
+            InputPoller.AddContextFence("PMRideMove", "4.0::Movement", ActionBind.Exclusion.ExcludeLayer);
+            InputPoller.AddBinding(new ActionBind("Move Vertical", MoveForward), "PMRideMove:MV", "4.0::Movement");
+            InputPoller.AddBinding(new ActionBind("Move Horizontal", Rotate), "PMRideMove:MH", "4.0::Movement");
+            InputPoller.AddBinding(new ActionBind("Dismount", _ => mount?.Dismount()), "PMRideMove:DSM", "5.0::Gameplay");
         });
         RideMovement.mount = mount;
     }
@@ -291,10 +291,8 @@ public static class RideMovement {
 
 
         InputPoller.AddKeyBindChange(() => {
-            if (KeyBinds == null) return;
-            InputPoller.RemoveContextFence((uint)KeyBinds[0], "4.0::Movement");
-            InputPoller.RemoveKeyBind((uint)KeyBinds[1], "5.0::Gameplay");
-            KeyBinds = null;
+            InputPoller.RemoveContextFence("PMRideMove", "4.0::Movement");
+            InputPoller.RemoveBinding("PMRideMove:DSM", "5.0::Gameplay");
         });
         mount = null;
     }

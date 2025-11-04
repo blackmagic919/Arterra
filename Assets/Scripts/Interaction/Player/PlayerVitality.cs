@@ -53,7 +53,7 @@ public class PlayerVitality
     [JsonIgnore]
     public bool IsDead{get => health <= 0; }
     public PlayerVitality(){
-        InputPoller.AddBinding(new InputPoller.ActionBind("Attack", AttackEntity), "5.0::GamePlay");
+        InputPoller.AddBinding(new ActionBind("Attack", AttackEntity), "PlayerVitality:ATK", "5.0::GamePlay");
         AttackCooldown = 0;
         Invincibility = 0;
         health = settings.MaxHealth;

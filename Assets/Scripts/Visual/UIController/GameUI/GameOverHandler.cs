@@ -23,14 +23,14 @@ public class GameOverHandler
     }
 
     public static void Activate(){
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("Frame:GameOver", (float _) => InputPoller.SetCursorLock(false)), "CursorLock");
-        InputPoller.AddKeyBindChange(() => Fence = InputPoller.AddContextFence("1.0::Menu", InputPoller.ActionBind.Exclusion.ExcludeAll));
+        InputPoller.AddStackPoll(new ActionBind("Frame:GameOver", (float _) => InputPoller.SetCursorLock(false)), "CursorLock");
+        InputPoller.AddKeyBindChange(() =>InputPoller.AddContextFence("GameOver", "1.0::Menu", ActionBind.Exclusion.ExcludeAll));
         EndMenu.SetActive(true);
     }
 
     public static void Deactivate(){
         InputPoller.RemoveStackPoll("Frame:GameOver", "CursorLock");
-        InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence(Fence, "1.0::Menu"));
+        InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence("GameOver", "1.0::Menu"));
         EndMenu.SetActive(false);
         PlayerHandler.RespawnPlayer(LoadingHandler.Activate);
     }

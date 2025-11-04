@@ -95,7 +95,6 @@ namespace WorldConfig.Generation.Item
     class InteractionHandler
     {
         private ItemContext cxt;
-        private int[] KeyBinds;
         private Bounds SelectBounds; //Inclusive
         private GameObject Selector;
         private uint SelectedCorner;
@@ -111,13 +110,11 @@ namespace WorldConfig.Generation.Item
             h.cxt = cxt;
 
             InputPoller.AddKeyBindChange(() => {
-                h.KeyBinds = new int[4];
-
-                h.KeyBinds[2] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", h.OnTerrainRemove, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-                h.KeyBinds[3] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place", h.OnTerrainAdd, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("Remove", h.OnTerrainRemove, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:RM", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("Place", h.OnTerrainAdd, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:PL", "5.0::GamePlay");
                 //When SelectPoint is triggered, DragPoint will also be triggered on the same frame, make sure SelectPoint happens first 
-                h.KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("PenDrag", h.DragPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-                h.KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("PenFocus", h.SelectPoint, InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("PenDrag", h.DragPoint, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:DR", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("PenFocus", h.SelectPoint, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:SEL", "5.0::GamePlay");
             });
             return h;
         }
@@ -129,12 +126,10 @@ namespace WorldConfig.Generation.Item
             item = default;
             InputPoller.AddKeyBindChange(() =>
             {
-                if (KeyBinds == null) return;
-                InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
-                InputPoller.RemoveKeyBind((uint)KeyBinds[1], "5.0::GamePlay");
-                InputPoller.RemoveKeyBind((uint)KeyBinds[2], "5.0::GamePlay");
-                InputPoller.RemoveKeyBind((uint)KeyBinds[3], "5.0::GamePlay");
-                KeyBinds = null;
+                InputPoller.RemoveBinding("ITEM::Pen:RM", "5.0::GamePlay");
+                InputPoller.RemoveBinding("ITEM::Pen:PL", "5.0::GamePlay");
+                InputPoller.RemoveBinding("ITEM::Pen:DR", "5.0::GamePlay");
+                InputPoller.RemoveBinding("ITEM::Pen:SEL", "5.0::GamePlay");
             });
         }
 

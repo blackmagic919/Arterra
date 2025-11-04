@@ -56,24 +56,21 @@ namespace WorldConfig.Generation.Item
         }
         public void UpdateEItem() { }
 
-        protected int[] KeyBinds;
         public void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             InputPoller.AddKeyBindChange(() => {
-                KeyBinds = new int[1];
-                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind(
+                InputPoller.AddBinding(new ActionBind(
                     "ConvertMaterial",
                     _ => PlayerModifyTerrain(cxt),
-                    InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                    ActionBind.Exclusion.ExcludeLayer),
+                    "ITEM::MatConverter:CNV", "5.0::GamePlay");
             });
         }
 
         public void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             InputPoller.AddKeyBindChange(() => {
-                if (KeyBinds == null) return;
-                InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
-                KeyBinds = null;
+                InputPoller.RemoveBinding("ITEM::MatConverter:CNV", "5.0::GamePlay");
             });
         }
 

@@ -224,7 +224,7 @@ MonoBehaviour:
             geneWeight: 0.1
           MateCost:
             mean: 4
-            var: 0.5
+            var: 0.2
             geneWeight: 0.66
           PregnacyLength: 5
           ConsumptionRate: 0.05

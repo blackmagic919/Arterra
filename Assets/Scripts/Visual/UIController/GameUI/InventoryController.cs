@@ -8,6 +8,7 @@ using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 using WorldConfig;
 using WorldConfig.Generation.Item;
 
@@ -39,15 +40,12 @@ public static class InventoryController {
     public static WorldConfig.Gameplay.Inventory settings => Config.CURRENT.GamePlay.Inventory.value;
     public static Inventory Primary; //Hotbar
     public static Inventory Secondary; //Inventory
-    public static InventorySlotDisplay CursorDisplay;
-    private static IUpdateSubscriber EventTask;
+    public static CursorManager Cursor;
     private static GameObject Menu;
 
-    private static uint Fence;
     private static Catalogue<Authoring> ItemSettings;
     public static IItem Selected => Primary.Info[SelectedIndex];
     public static Authoring SelectedSetting => ItemSettings.Retrieve(Primary.Info[SelectedIndex].Index);
-    public static IItem Cursor;
     public static int SelectedIndex = 0;
 
     private static ItemContext GetSecondaryCxt(ItemContext cxt) => cxt.SetupScenario(PlayerHandler.data, ItemContext.Scenario.ActivePlayerSecondary);
@@ -62,21 +60,20 @@ public static class InventoryController {
         Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Panel"), GameUIManager.UIHandle.transform);
         ItemSettings = Config.CURRENT.Generation.Items;
 
-        Cursor = null;
-        CursorDisplay = new InventorySlotDisplay(Indicators.ItemSlots.Get());
-        CursorDisplay.Object.transform.SetParent(Menu.transform);
-
+        Cursor = new CursorManager();
         RebindInventories(null, PlayerHandler.data);
         Secondary.Display.parent.SetActive(false);
-        CursorDisplay.Object.SetActive(false);
 
-        InputPoller.AddBinding(new InputPoller.ActionBind("Open Inventory", Activate), "3.0::Window");
+        InputPoller.AddBinding(new ActionBind("Open Inventory", Activate), "PlayerInventory:OPN", "3.5::Window");
         AddHotbarKeybinds();
-
-        EventTask = new IndirectUpdate(Update);
-        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(EventTask);
     }
 
+    public static void Release() => Cursor?.ClearCursor(HandleDisposedItem);
+    private static void HandleDisposedItem(IItem item) {
+        if (item == null) return;
+        if (!Secondary.AddEntry(item, out int _))
+            DropItem(item);
+    }
     private static bool RebindInventories(PlayerStreamer.Player old, PlayerStreamer.Player cur) {
         var prms = (old, cur);
         return RebindInventories(ref prms);
@@ -125,22 +122,28 @@ public static class InventoryController {
         Deactivate();
     }
     public static void Activate() {
-        InputPoller.AddStackPoll(new InputPoller.ActionBind("Frame:Inventory", (float _) => InputPoller.SetCursorLock(false)), "CursorLock");
+        InputPoller.AddStackPoll(new ActionBind("Frame:Inventory", _ => InputPoller.SetCursorLock(false)), "CursorLock");
         InputPoller.AddKeyBindChange(() => {
-            Fence = InputPoller.AddContextFence("3.0::Window", InputPoller.ActionBind.Exclusion.ExcludeAll);
-            InputPoller.AddBinding(new InputPoller.ActionBind("Open Inventory", Deactivate), "3.0::Window");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Select", SelectDrag), "3.0::Window");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Deselect", DeselectDrag), "3.0::Window");
+            InputPoller.AddContextFence("PlayerInventory:AllFrame", "3.0::AllWindow", ActionBind.Exclusion.None);
+            InputPoller.AddContextFence("PlayerInventory:WndFrame", "3.5::Window", ActionBind.Exclusion.ExcludeAll);
+            InputPoller.AddBinding(new ActionBind("Open Inventory", Deactivate), "PlayerInventory:CLS", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Select", Select),  "PlayerInventory:SEL", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Deselect", DeselectDrag),  "PlayerInventory:DSL", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll, ActionBind.Exclusion.ExcludeLayer), "PlayerInventory:SELA", "3.0::AllWindow");
         });
-        CursorDisplay.Object.SetActive(false);
+        Cursor.ClearCursor(HandleDisposedItem);
         Secondary.Display.parent.SetActive(true);
         Primary.Display.Transform.anchoredPosition = new Vector2(0, 0);
     }
 
     public static void Deactivate() {
         InputPoller.RemoveStackPoll("Frame:Inventory", "CursorLock");
-        InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence(Fence, "3.0::Window"));
+        InputPoller.AddKeyBindChange(() => {
+            InputPoller.RemoveContextFence("PlayerInventory:WndFrame", "3.5::Window");
+            InputPoller.RemoveContextFence("PlayerInventory:AllFrame", "3.0::AllWindow");
+        });
         Secondary.Display.parent.SetActive(false);
+        Cursor.ClearCursor(HandleDisposedItem);
     }
 
     private static void AddHotbarKeybinds() {
@@ -152,15 +155,15 @@ public static class InventoryController {
             Selected?.OnEnter(HeldCxt);
             Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.SelectedColor;
         }
-        InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar1", (float _) => ChangeSelected(0)), "2.0::Subscene");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar2", (float _) => ChangeSelected(1)), "2.0::Subscene");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar3", (float _) => ChangeSelected(2)), "2.0::Subscene");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar4", (float _) => ChangeSelected(3)), "2.0::Subscene");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar5", (float _) => ChangeSelected(4)), "2.0::Subscene");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar6", (float _) => ChangeSelected(5)), "2.0::Subscene");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar7", (float _) => ChangeSelected(6)), "2.0::Subscene");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar8", (float _) => ChangeSelected(7)), "2.0::Subscene");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Hotbar9", (float _) => ChangeSelected(8)), "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar1", (float _) => ChangeSelected(0)), "PlayerInventory:HB1", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar2", (float _) => ChangeSelected(1)), "PlayerInventory:HB2", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar3", (float _) => ChangeSelected(2)), "PlayerInventory:HB3", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar4", (float _) => ChangeSelected(3)), "PlayerInventory:HB4", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar5", (float _) => ChangeSelected(4)), "PlayerInventory:HB5", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar6", (float _) => ChangeSelected(5)), "PlayerInventory:HB6", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar7", (float _) => ChangeSelected(6)), "PlayerInventory:HB7", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar8", (float _) => ChangeSelected(7)), "PlayerInventory:HB8", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar9", (float _) => ChangeSelected(8)), "PlayerInventory:HB9", "2.0::Subscene");
         Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.SelectedColor; //Set the inital selected color
     }
 
@@ -173,7 +176,6 @@ public static class InventoryController {
         } else return false;
         return true;
     }
-
     public static void DropItem(IItem item) {
         DropItem(item, PlayerHandler.data.position,
         PlayerHandler.data.collider.transform.rotation);
@@ -187,37 +189,58 @@ public static class InventoryController {
         EntityManager.CreateEntity(math.round(location), eIndex, Entity);
     }
 
-    private static void SelectDrag(float _ = 0) {
+    private static void Select(float _ = 0) {
+        if (!Cursor.IsHolding || Cursor.IsPlacing) {
+            Cursor.ClearCursor();
+        } else {
+            Cursor.IsPlacing = true;
+            DeselectDrag();
+            return;
+        }
+
         if (!GetMouseTarget(out Inventory Inv, out int index))
             return;
 
         //Swap the cursor with the selected slot
-        Cursor = Inv.Info[index];
-        if (Cursor == null) return;
+        IItem clickedItem = Inv.Info[index];
+        if (clickedItem == null) return;
+        clickedItem = clickedItem.Clone() as IItem;
         Inv.RemoveEntry(index);
-
-        Cursor.AttachDisplay(CursorDisplay.Object.transform);
-        CursorDisplay.Object.SetActive(true);
+        Cursor.HoldItem(clickedItem);
     }
 
-    private static void DeselectDrag(float _ = 0) {
-        if (Cursor == null) return;
-        CursorDisplay.Object.SetActive(false);
 
-        IItem cursor = Cursor;
-        cursor.ClearDisplay(CursorDisplay.Object.transform);
-        Cursor = null;
+    private static void DeselectDrag(float _ = 0) {
+        if (!Cursor.IsHolding) return;
+        if (!Cursor.IsPlacing) return;
         if (!GetMouseTarget(out Inventory Inv, out int index)) {
-            DropItem(cursor);
+            Cursor.ClearCursor(DropItem);
             return;
         }
 
+        IItem remainder = null;
         if (Inv.Info[index] == null) {
-            if(Inv.AddEntry(cursor, index)) return;
-        } if (cursor.Index == Inv.Info[index].Index) {
-            Inv.AddStackable(cursor, index);
-            if (cursor.AmountRaw == 0) return;
-        } if (!Secondary.AddEntry(cursor, out int _)) DropItem(cursor);
+            if (Cursor.SplitNewItem(out remainder) && Inv.AddEntry(remainder, index))
+                Cursor.AddNewSplitItem(Inv.Info[index]);
+        } else if (Cursor.CanSplitToItem(Inv.Info[index])) {
+            if (Cursor.SplitNewItem(out remainder)) {
+                Inv.AddStackable(remainder, index);
+                Cursor.AddNewSplitItem(Inv.Info[index]);
+            }
+        } else if (!Cursor.IsSplitUp) {
+            remainder = Cursor.Item;
+            Cursor.ClearCursor();
+        }
+        if (remainder == null || remainder.AmountRaw <= 0) return;
+        HandleDisposedItem(remainder);
+    }
+    
+    private static void SelectAll(float _ = 0) {
+        if (!Cursor.IsHolding || Cursor.IsPlacing)
+            return;
+        IItem cItem = Cursor.Item;
+        cItem.AmountRaw += Primary.RemoveStackableKey(cItem.Index, cItem.StackLimit - cItem.AmountRaw);
+        cItem.AmountRaw += Secondary.RemoveStackableKey(cItem.Index, cItem.StackLimit - cItem.AmountRaw);
     }
 
     //The Slot is changed to reflect what remains
@@ -250,12 +273,6 @@ public static class InventoryController {
         }
         return 0;
     }
-
-    public static void Update(MonoBehaviour mono) {
-        if (Cursor == null) return;
-        CursorDisplay.Object.transform.position = Input.mousePosition;
-    }
-
 
 
     public class Inventory : IInventory {
@@ -291,12 +308,11 @@ public static class InventoryController {
             IItem[] nInfo = new IItem[SlotCount];
             LLNode[] nEntryLL = new LLNode[SlotCount];
             for (int i = SlotCount; i < capacity; i++) {
-                Info[i].OnLeave(
+                if(Info[i] != null) OnRelease?.Invoke(Info[i].Clone() as IItem);
+                Info[i]?.OnLeave(
                     OnRemoveElement?
                     .Invoke(new ItemContext(this, i))
-                );
-                OnRelease?.Invoke(Info[i]);
-                RemoveEntry((int)i);
+                ); RemoveEntry((int)i);
             }
             for (int i = 0; i < math.min(SlotCount, capacity); i++) {
                 nInfo[i] = Info[i];
@@ -436,6 +452,7 @@ public static class InventoryController {
         //Input: Request a certain type of stackable of a certain amount
         //Returns: The actual amount removed
         public int RemoveStackableKey(int KeyIndex, int delta) {
+            if (delta == 0) return 0;
             int start = delta; int remainder = start;
             while (remainder > 0) {
                 int SlotIndex = DictPeek(KeyIndex);
@@ -457,13 +474,17 @@ public static class InventoryController {
                 EntryDict[Index] = (int)EntryLL[SlotIndex].n;
                 if (SlotIndex == EntryDict[Index]) EntryDict.Remove(Index);
             }
+
+            if (capacity == length) tail = (uint)SlotIndex;
             LLRemove((uint)SlotIndex);
             LLAdd((uint)SlotIndex, tail);
+
             Info[SlotIndex].OnLeave(
                 OnRemoveElement?
                 .Invoke(new ItemContext(this, SlotIndex))
             );
             ClearDisplay(SlotIndex);
+            Info[SlotIndex].AmountRaw = 0;
             Info[SlotIndex] = null;
             tail = math.min(tail, (uint)SlotIndex);
             length--;
@@ -501,7 +522,6 @@ public static class InventoryController {
 
             return true;
         }
-
         private void LLAdd(uint index, uint prev) {
             if (prev == index) EntryLL[prev].n = index;
             EntryLL[index] = new LLNode(prev, EntryLL[prev].n);
@@ -558,7 +578,8 @@ public static class InventoryController {
                 next = (int)EntryLL[next].n;
             }
             uint prev = EntryLL[next].p; //get the previous node
-
+            if (prev == index) prev = EntryLL[prev].p;
+            
             LLRemove((uint)index);
             LLAdd((uint)index, prev);
             EntryDict[KeyIndex] = (int)EntryLL[end].n;
@@ -620,5 +641,98 @@ public static class InventoryController {
             Object = obj;
             Icon = obj.transform.GetComponent<Image>();
         }
+    }
+
+    public class CursorManager {
+        public IItem Item;
+        public InventorySlotDisplay Display;
+        public List<IItem> SplitItems;
+        public bool IsSplitUp => SplitItems != null && SplitItems.Count > 0;
+        public bool IsHolding => Item != null;
+        public bool IsPlacing = false;
+        private IUpdateSubscriber EventTask;
+
+        public CursorManager() {
+            Item = null;
+            SplitItems = null;
+            IsPlacing = false;
+            Display = new InventorySlotDisplay(Indicators.ItemSlots.Get());
+            Display.Object.transform.SetParent(Menu.transform);
+            Display.Object.SetActive(false);
+            EventTask = new IndirectUpdate(Update);
+            TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(EventTask);
+        }
+
+        public bool SplitNewItem(out IItem nItem) {
+            SplitItems ??= new List<IItem>();
+            int totalCount = SplitItems.Count + 1;
+            //We use min so we don't rebalance if a split item is decremented or lost
+            SplitItems.RemoveAll(s => s == null || s.Index != Item.Index);
+            int amtRaw = SplitItems.Count == 0 ? Item.AmountRaw
+                : SplitItems.Count * SplitItems.Min(s => s.AmountRaw);
+
+            for (int i = 0; i < SplitItems.Count; i++) {
+                int NewAmount = amtRaw / totalCount + (i < (amtRaw % totalCount) ? 1 : 0);
+                int OldAmount = amtRaw / SplitItems.Count + (i < (amtRaw % SplitItems.Count) ? 1 : 0);
+
+                IItem splitItem = SplitItems[i];
+                int delta = OldAmount - NewAmount;
+                delta = splitItem.AmountRaw - math.max(splitItem.AmountRaw - delta, 0);
+                splitItem.AmountRaw -= delta;
+            }
+
+            nItem = null;
+            if (amtRaw / totalCount == 0) return false;
+            nItem = Item.Clone() as IItem;
+            nItem.AmountRaw = amtRaw / totalCount;
+            return true;
+        }
+
+        public bool CanSplitToItem(IItem item) {
+            if (!IsHolding) return false;
+            if (item == null) return true;
+            if (item.Index != Item.Index) return false;
+            if (!IsSplitUp) return true;
+            return !SplitItems.Contains(item);
+        }
+        
+        public void AddNewSplitItem(IItem nItem) {
+            SplitItems ??= new List<IItem>();
+            SplitItems.Add(nItem);
+            HideCursor();
+        }
+
+        public void HoldItem(IItem item) {
+            Item = item;
+            IsPlacing = false;
+            ShowCursor();
+        }
+        public void ClearCursor(Action<IItem> OnDispose = null) {
+            if (SplitItems == null) OnDispose?.Invoke(Item);
+            HideCursor();
+            Item = null;
+            SplitItems = null;
+            IsPlacing = false;
+        }
+
+        private void HideCursor() {
+            if (Display.Object == null) return;
+            if (!Display.Object.activeSelf) return;
+            Item.ClearDisplay(Display.Object.transform);
+            Display.Object.SetActive(false);
+        }
+
+        private void ShowCursor() {
+            if (Display.Object == null) return;
+            if (Display.Object.activeSelf) return;
+            Item.AttachDisplay(Display.Object.transform);
+            Display.Object.SetActive(true);
+        }
+        
+        public void Update(MonoBehaviour _) {
+            if (Cursor == null) return;
+            Display.transform.position = Input.mousePosition;
+        }
+        
     }
 }

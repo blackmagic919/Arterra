@@ -62,14 +62,15 @@ namespace WorldConfig.Generation.Material
             InventoryController.Activate();
             InputPoller.AddKeyBindChange(() => {
                 //Overrides the default inventory close window
-                OpenedInventory.Fence = InputPoller.AddContextFence("3.0::Window", InputPoller.ActionBind.Exclusion.None);
-                InputPoller.AddBinding(new InputPoller.ActionBind("Open Inventory",
-                _ => DeactivateWindow(), InputPoller.ActionBind.Exclusion.ExcludeLayer), "3.0::Window");
+                InputPoller.AddContextFence("MAT::Container", "3.5::Window", ActionBind.Exclusion.None);
+                InputPoller.AddBinding(new ActionBind("Open Inventory",
+                    DeactivateWindow, ActionBind.Exclusion.ExcludeLayer), "MAT::Container:CL", "3.5::Window");
                 //Naturally propogate to inventory handles unless suspended manually
-                InputPoller.AddBinding(new InputPoller.ActionBind("Select",
-                _ => SelectDrag(OpenedInventory), InputPoller.ActionBind.Exclusion.None), "3.0::Window");
-                InputPoller.AddBinding(new InputPoller.ActionBind("Deselect",
-                _ => DeselectDrag(OpenedInventory), InputPoller.ActionBind.Exclusion.None), "3.0::Window");
+                InputPoller.AddBinding(new ActionBind("Deselect",
+                    DeselectDrag, ActionBind.Exclusion.None), "MAT::Container:DS", "3.5::Window");
+                InputPoller.AddBinding(new ActionBind("Select",
+                    Select, ActionBind.Exclusion.None), "MAT::Container:SL", "3.5::Window");
+                InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "MAT::Container:SELA", "3.0::AllWindow");
             });
             PanelNavbarManager.Add(OpenedInventory, name);
             PanelNavbarManager.Activate(name);
@@ -98,7 +99,7 @@ namespace WorldConfig.Generation.Material
             }
 
             float progress = (SolidDensity - CPUMapManager.IsoValue) /
-                             (255.0f - CPUMapManager.IsoValue);
+                             (MapData.MaxDensity- CPUMapManager.IsoValue);
             int SlotCount = Mathf.FloorToInt(MaxSlotCount * progress) + 1;
             cont.inv.ResizeInventory(SlotCount, Item => InventoryController.DropItem(Item, GCoord));
             return MaterialDrops.LootItem(amount, Names);
@@ -121,52 +122,74 @@ namespace WorldConfig.Generation.Material
             cont.inv.ResizeInventory(SlotCount, Item => InventoryController.DropItem(Item, GCoord));
         }
 
-        private void DeactivateWindow() { 
+        private void DeactivateWindow(float _ = 0) {
             //IMPORTANT: The order in which these functions are called is VERY important
             PanelNavbarManager.Remove(name);
             PanelNavbarManager.Deactivate();
             if (OpenedInventory != null) {
                 InputPoller.AddKeyBindChange(() => {
-                    InputPoller.RemoveContextFence(OpenedInventory.Fence, "3.0::Window");
+                    InputPoller.RemoveBinding("MAT::Container:SELA", "3.0::AllWindow");
+                    InputPoller.RemoveContextFence("MAT::Container", "3.5::Window");
                     OpenedInventory = null;
                 });
             }
             InventoryController.Deactivate();
         }
 
-        private static void SelectDrag(ContainerInventory cont) {
+
+        private static InventoryController.CursorManager Cursor => InventoryController.Cursor;
+        private void Select(float _ = 0) {
+            ContainerInventory cont = OpenedInventory;
+            if (!Cursor.IsHolding || Cursor.IsPlacing)
+                Cursor.ClearCursor();
+            else {
+                InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayerByName);
+                Cursor.IsPlacing = true;
+                DeselectDrag();
+                return;
+            };
+
             if (!cont.inv.Display.GetMouseSelected(out int index))
                 return;
-
+            
+            InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayerByName);
             //Swap the cursor with the selected slot
-            InventoryController.Cursor = cont.inv.Info[index];
-            if (InventoryController.Cursor == null) return;
+            Item.IItem clickedItem = cont.inv.Info[index];
+            if (clickedItem == null) return;
+            clickedItem = clickedItem.Clone() as Item.IItem;
             cont.inv.RemoveEntry(index);
-
-            InventoryController.Cursor.AttachDisplay(InventoryController.CursorDisplay.Object.transform);
-            InventoryController.CursorDisplay.Object.SetActive(true);
-            InputPoller.SuspendKeybindPropogation("Select", InputPoller.ActionBind.Exclusion.ExcludeLayer);
+            Cursor.HoldItem(clickedItem);
         }
 
-        private static void DeselectDrag(ContainerInventory cxt) {
-            if (InventoryController.Cursor == null) return;
-            if (!cxt.inv.Display.GetMouseSelected(out int index)) return;
-            InputPoller.SuspendKeybindPropogation("Deselect", InputPoller.ActionBind.Exclusion.ExcludeLayer);
+        private void DeselectDrag(float _ = 0) {
+            if (!Cursor.IsHolding) return;
+            if (!Cursor.IsPlacing) return;
+            ContainerInventory cont = OpenedInventory;
+            if (!cont.inv.Display.GetMouseSelected(out int index)) return;
+            InputPoller.SuspendKeybindPropogation("Deselect", ActionBind.Exclusion.ExcludeLayer);
 
-            InventoryController.CursorDisplay.Object.SetActive(false);
-            Item.IItem cursor = InventoryController.Cursor;
-            cursor.ClearDisplay(InventoryController.CursorDisplay.Object.transform);
-            InventoryController.Cursor = null;
-
-            if (cxt.inv.Info[index] == null) {
-                if(cxt.inv.AddEntry(cursor, index)) return;
-            } if (cursor.Index == cxt.inv.Info[index].Index) {
-                cxt.inv.AddStackable(cursor, index);
-                if (cursor.AmountRaw == 0) return;
-            } 
-            cxt.inv.AddStackable(cursor);
-            if (cursor.AmountRaw == 0) return;
-            InventoryController.DropItem(cursor);
+            Item.IItem remainder = null;
+            if (cont.inv.Info[index] == null) {
+                if (Cursor.SplitNewItem(out remainder) && cont.inv.AddEntry(remainder, index))
+                    Cursor.AddNewSplitItem(cont.inv.Info[index]);
+            } else if (Cursor.CanSplitToItem(cont.inv.Info[index])) {
+                if (Cursor.SplitNewItem(out remainder)) {
+                    cont.inv.AddStackable(remainder, index);
+                    Cursor.AddNewSplitItem(cont.inv.Info[index]);
+                }
+            } else if (!Cursor.IsSplitUp) {
+                remainder = Cursor.Item;
+                Cursor.ClearCursor();
+            }
+            if (remainder == null || remainder.AmountRaw <= 0) return;
+            InventoryController.DropItem(remainder);
+        }
+        
+        private void SelectAll(float _ = 0) {
+            if (!Cursor.IsHolding || Cursor.IsPlacing)
+                return;
+            Item.IItem cItem = Cursor.Item;
+            cItem.AmountRaw += OpenedInventory.inv.RemoveStackableKey(cItem.Index, cItem.StackLimit - cItem.AmountRaw);
         }
 
 
@@ -175,8 +198,6 @@ namespace WorldConfig.Generation.Material
             public int3 position;
             [JsonIgnore]
             private ContainerMaterial settings;
-            [JsonIgnore]
-            internal uint Fence;
             public ContainerInventory() {
                 //Do nothing: this is for newtonsoft deserializer
             }

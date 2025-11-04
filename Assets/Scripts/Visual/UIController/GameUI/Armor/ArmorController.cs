@@ -5,6 +5,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
 using WorldConfig;
+using WorldConfig.Gameplay;
 using WorldConfig.Generation.Entity;
 using WorldConfig.Generation.Item;
 using WorldConfig.Intrinsic;
@@ -22,7 +23,6 @@ public class ArmorController : PanelNavbarManager.INavPanel {
     private FreeCamera CamMovement;
     private IUpdateSubscriber eventTask;
     private ArmorInventory playerArmor;
-    private static uint ContextFence;
     private bool IsDragging = false;
     private bool ShowAllSlots = false;
     private int SelectedIndex = -1;
@@ -40,7 +40,6 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         ArmorPanel.transform.Find("Popups").GetComponent<Button>().onClick.AddListener(() => ShowAllSlots = !ShowAllSlots);
         PlayerCamera.SetActive(false);
         ArmorPanel.SetActive(false);
-        ContextFence = 0;
 
         settings.Variants.Construct();
         RebindPlayer(null, PlayerHandler.data);
@@ -85,13 +84,13 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
 
         InputPoller.AddKeyBindChange(() => {
-            ContextFence = InputPoller.AddContextFence("3.0::Window", InputPoller.ActionBind.Exclusion.None);
-            InputPoller.AddBinding(new InputPoller.ActionBind("Select",
-                _ => Select(), InputPoller.ActionBind.Exclusion.None), "3.0::Window");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Deselect",
-                _ => Deselect(), InputPoller.ActionBind.Exclusion.None), "3.0::Window");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Look Horizontal", CamMovement.LookX), "3.0::Window");
-            InputPoller.AddBinding(new InputPoller.ActionBind("Look Vertical", CamMovement.LookY), "3.0::Window");
+            InputPoller.AddContextFence("PlayerArmor", "3.5::Window", ActionBind.Exclusion.None);
+            InputPoller.AddBinding(new ActionBind("Select",
+                _ => Select(), ActionBind.Exclusion.None), "PlayerArmor:SEL", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Deselect",
+                _ => RotateCamera(), ActionBind.Exclusion.None), "PlayerArmor:DSL", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Look Horizontal", CamMovement.LookX), "PlayerArmor:LH", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Look Vertical", CamMovement.LookY), "PlayerArmor:LV", "3.5::Window");
         });
 
         for (int i = 0; i < playerArmor.Display.Length; i++) {
@@ -104,11 +103,7 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         eventTask.Active = false;
         PlayerCamera.SetActive(false);
         ArmorPanel.SetActive(false);
-        InputPoller.AddKeyBindChange(() => {
-            if (ContextFence == 0) return;
-            InputPoller.RemoveContextFence(ContextFence, "3.0::Window");
-            ContextFence = 0;
-        });
+        InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence("PlayerArmor", "3.5::Window"));
         SetSelectedSlot(-1);
     }
 
@@ -132,8 +127,6 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         lookDir = math.clamp(lookDir, -1f, 1f);
 
         PlayerHandler.data.Play("LookDirect", lookDir.y, -lookDir.x);
-        //Rotate camera if dragging
-        if (IsDragging) CamMovement.Rotate();
         ArmorInventory.ArmorSlot[] ArmorSlots = playerArmor.Display;
         int selected = -1;
         float minDist = float.MaxValue;
@@ -153,7 +146,7 @@ public class ArmorController : PanelNavbarManager.INavPanel {
             if (ShowAllSlots) {
                 ArmorSlots[i].active = true;
                 ArmorSlots[i].SetScale(1);
-            } 
+            }
 
             float3 originVS = Camera.WorldToViewportPoint(variant.Root.Bone.position);
             float2 slotVS = GetPositionVS(ArmorSlots[i].position.xy);
@@ -201,41 +194,35 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         }
     }
 
-    private void Select() {
+    private static InventoryController.CursorManager Cursor => InventoryController.Cursor;
+
+    private void Select(float _ = 0) {
         if (!IsMouseInMenu()) return;
-        if (SelectedIndex == -1) {
+        if (IsDragging) IsDragging = false;
+        else if (SelectedIndex == -1) {
             IsDragging = true;
             return;
-        };
-
-        InventoryController.InventorySlotDisplay disp = InventoryController.CursorDisplay;
-        InventoryController.Cursor = Selected;
-        disp.Object.SetActive(true);
-
-        if (InventoryController.Cursor == null) return;
-        playerArmor.RemoveEntry(SelectedIndex);
-        InventoryController.Cursor.AttachDisplay(disp.Object.transform);
-        InputPoller.SuspendKeybindPropogation("Select", InputPoller.ActionBind.Exclusion.ExcludeLayer);
-    }
-    private void Deselect() {
-        IsDragging = false;
-        if (!IsMouseInMenu()) return;
-        if (SelectedIndex == -1) return;
-        if (InventoryController.Cursor == null) return;
-        
-        InventoryController.InventorySlotDisplay disp = InventoryController.CursorDisplay;
-        IItem cursor = InventoryController.Cursor;
-        cursor.ClearDisplay(disp.Object.transform);
-        InventoryController.Cursor = null;
-        disp.Object.SetActive(false);
-
-        if (cursor is not ArmorInventory.IArmorItem armor
-          || !playerArmor.AddEntry(armor, SelectedIndex)
-        ) {
-            InventoryController.DropItem(cursor);
         }
-        InputPoller.SuspendKeybindPropogation("Deselect", InputPoller.ActionBind.Exclusion.ExcludeLayer);
-        
+
+        if (Cursor.IsSplitUp) return;
+        InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayerByName);
+
+        if (Cursor.IsHolding) {
+            if (Cursor.Item is not ArmorInventory.IArmorItem armor
+                || !playerArmor.AddEntry(armor, SelectedIndex)
+            ) {
+                InventoryController.DropItem(Cursor.Item);
+            } Cursor.ClearCursor();
+        } else {
+            if (Selected == null) return;
+            IItem heldItem = Selected.Clone() as IItem;
+            playerArmor.RemoveEntry(SelectedIndex);
+            Cursor.HoldItem(heldItem);
+        }
+    }
+    private void RotateCamera() {
+        if (!IsDragging) return;
+        CamMovement.Rotate();
     }
 
     private bool IsMouseInMenu() {

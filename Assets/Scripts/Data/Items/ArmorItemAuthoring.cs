@@ -60,7 +60,6 @@ namespace WorldConfig.Generation.Item
             durability -= dmg;
             dmg *= 1 - settings.DamageReduction;
             knockback *= 1 - settings.KnockbackReduction;
-            Debug.Log("here");
 
             if (durability > 0) return;
             cxt.TryRemove();

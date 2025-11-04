@@ -26,7 +26,6 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
     internal int AxisWidth => GridWidth + 1;
     internal int GridCount => AxisWidth * AxisWidth;
     private int2 GridSize => (int2)(float2)Rendering.crafting.Transform.sizeDelta / GridWidth;
-    private uint Fence = 0;
     private int FitRecipe = -1;
 
     // Start is called before the first frame update
@@ -44,7 +43,6 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         InitializeCraftingArea();
         InitializeSelections();
         craftingMenu.SetActive(false);
-        Fence = 0;
 
         instance?.Release();
         instance = this;
@@ -59,10 +57,10 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         eventTask = new IndirectUpdate(Update);
         TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
         InputPoller.AddKeyBindChange(() => {
-            Fence = InputPoller.AddContextFence("3.0::Window", InputPoller.ActionBind.Exclusion.None);
-            InputPoller.AddBinding(new InputPoller.ActionBind("Craft", CraftEntry), "3.0::Window");
-            InputPoller.AddBinding(new InputPoller.ActionBind("CraftingGridPlace", AddMaterial), "3.0::Window");
-            InputPoller.AddBinding(new InputPoller.ActionBind("CraftingGridRemove", RemoveMaterial), "3.0::Window");
+            InputPoller.AddContextFence("PlayerCraft", "3.5::Window", ActionBind.Exclusion.None);
+            InputPoller.AddBinding(new ActionBind("Craft", CraftEntry), "PlayerCraft:CFT", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("CraftingGridPlace", AddMaterial), "PlayerCraft:PL", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("CraftingGridRemove", RemoveMaterial), "PlayerCraft:RM", "3.5::Window");
         });
 
         Clear();
@@ -77,7 +75,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             if (craftingData[i].density == 0) continue;
             InventoryAddMapData(craftingData[i]);
         }
-        InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence(Fence, "3.0::Window"));
+        InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence("PlayerCraft", "3.5::Window"));
         craftingMenu.SetActive(false);
         RecipeSearch.Deactivate();
     }
@@ -375,8 +373,9 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         internal void Activate() {
             RecipeSearch.Activate();
             InputPoller.AddKeyBindChange(() => {
-                InputPoller.AddBinding(new InputPoller.ActionBind("Select",
-                    CraftingMenuSelect, InputPoller.ActionBind.Exclusion.None), "3.0::Window");
+                InputPoller.AddBinding(new ActionBind("Select",
+                    CraftingMenuSelect, ActionBind.Exclusion.None),
+                    "PlayerCraft:SEL", "3.5::Window");
             });
         }
 

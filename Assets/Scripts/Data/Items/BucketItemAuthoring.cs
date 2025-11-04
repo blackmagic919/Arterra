@@ -49,21 +49,18 @@ public class BucketItem : IItem{
         this.AmountRaw = AmountRaw;
     }
     public void UpdateEItem(){} 
-    private int[] KeyBinds;
     public void OnEnter(ItemContext cxt) {
         if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         InputPoller.AddKeyBindChange(() => {
-            KeyBinds = new int[2];
-            KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Place", _ => PlaceLiquid(cxt), InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-            KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind("Remove", _ => RemoveLiquid(cxt), InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+            InputPoller.AddBinding(new ActionBind("Place", _ => PlaceLiquid(cxt), ActionBind.Exclusion.ExcludeLayer), "ITEM:Bucket:PL", "5.0::GamePlay");
+            InputPoller.AddBinding(new ActionBind("Remove", _ => RemoveLiquid(cxt), ActionBind.Exclusion.ExcludeLayer), "ITEM:Bucket:RM", "5.0::GamePlay");
         }); 
     } 
     public void OnLeave(ItemContext cxt) {
         if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         InputPoller.AddKeyBindChange(() => {
-            if (KeyBinds == null) return;
-            InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
-            InputPoller.RemoveKeyBind((uint)KeyBinds[1], "5.0::GamePlay");
+            InputPoller.RemoveBinding("ITEM:Bucket:PL", "5.0::GamePlay");
+            InputPoller.RemoveBinding("ITEM:Bucket:RM", "5.0::GamePlay");
         });
     } 
     

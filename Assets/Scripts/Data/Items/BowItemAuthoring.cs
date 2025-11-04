@@ -56,19 +56,17 @@ namespace WorldConfig.Generation.Item{
             this.durability = settings.MaxDurability;
         }
         public void UpdateEItem() { }
-        private int[] KeyBinds;
         public void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
                 effect.Play("HoldItem", settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
-                KeyBinds = new int[2];
-                KeyBinds[0] = (int)InputPoller.AddBinding(new InputPoller.ActionBind(
+                InputPoller.AddBinding(new ActionBind(
                     "BowDraw", _ => StartDrawingBow(cxt),
-                    InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
-                KeyBinds[1] = (int)InputPoller.AddBinding(new InputPoller.ActionBind(
+                    ActionBind.Exclusion.ExcludeLayer), "ITEM:Bow:DRW", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind(
                     "BowRelease", _ => ReleaseBow(cxt),
-                    InputPoller.ActionBind.Exclusion.ExcludeLayer), "5.0::GamePlay");
+                    ActionBind.Exclusion.ExcludeLayer), "ITEM:Bow:RLS", "5.0::GamePlay");
             });
             drawTime = 0;
         }
@@ -77,9 +75,8 @@ namespace WorldConfig.Generation.Item{
             if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled) 
                 effect.Play("UnHoldItem", settings.Model);
             InputPoller.AddKeyBindChange(() => {
-                if (KeyBinds == null) return;
-                InputPoller.RemoveKeyBind((uint)KeyBinds[0], "5.0::GamePlay");
-                InputPoller.RemoveKeyBind((uint)KeyBinds[1], "5.0::GamePlay");
+                InputPoller.RemoveBinding("ITEM:Bow:DRW", "5.0::GamePlay");
+                InputPoller.RemoveBinding("ITEM:Bow:RLS", "5.0::GamePlay");
                 if (cxt.TryGetHolder(out IActionEffect effect)) effect.Play("ReleaseBow");
             });
         }

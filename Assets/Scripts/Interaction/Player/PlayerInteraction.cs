@@ -55,8 +55,8 @@ public static class PlayerInteraction {
 
     // Start is called before the first frame update
     public static void Initialize() {
-        InputPoller.AddBinding(new InputPoller.ActionBind("Place", PlaceTerrain), "5.0::GamePlay");
-        InputPoller.AddBinding(new InputPoller.ActionBind("Remove", RemoveTerrain), "5.0::GamePlay");
+        InputPoller.AddBinding(new ActionBind("Place", PlaceTerrain), "PlayerInteraction::PL", "5.0::GamePlay");
+        InputPoller.AddBinding(new ActionBind("Remove", RemoveTerrain), "PlayerInteraction::RM", "5.0::GamePlay");
     }
 
     public static bool RayTestSolid<T>(T entity, out float3 hitPt) where T : WorldConfig.Generation.Entity.Entity, IAttackable {
@@ -342,11 +342,11 @@ public static class PlayerInteraction {
 
         public static void Initialize() {
             InputPoller.AddBinding(
-                new InputPoller.ActionBind(
+                new ActionBind(
                     "GetPlaceFocus",
                     (_) => IsLocked = false,
-                    InputPoller.ActionBind.Exclusion.ExcludeLayer
-                ), "5.0::GamePlay"
+                    ActionBind.Exclusion.ExcludeLayer
+                ), "PlayerInteraction:FP", "5.0::GamePlay"
             );
             Location = 0;
             IsLocked = false;
