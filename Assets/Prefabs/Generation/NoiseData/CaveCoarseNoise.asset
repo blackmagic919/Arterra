@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: CaveCoarseNoise
   m_EditorClassIdentifier: 
   Name: CaveCoarse
-  noiseScale: 500
+  Tags:
+    Reg:
+      value: []
+  noiseScale: 1000
   octaves: 4
   persistance: 0.25
   lacunarity: 1.5
@@ -43,3 +46,6 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+  references:
+    version: 2
+    RefIds: []

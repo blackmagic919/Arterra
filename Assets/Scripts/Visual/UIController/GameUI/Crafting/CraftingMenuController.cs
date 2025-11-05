@@ -55,7 +55,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
 
     public void Activate() {
         eventTask = new IndirectUpdate(Update);
-        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
+        OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
         InputPoller.AddKeyBindChange(() => {
             InputPoller.AddContextFence("PlayerCraft", "3.5::Window", ActionBind.Exclusion.None);
             InputPoller.AddBinding(new ActionBind("Craft", CraftEntry), "PlayerCraft:CFT", "3.5::Window");

@@ -68,12 +68,7 @@ public static class InventoryController {
         AddHotbarKeybinds();
     }
 
-    public static void Release() => Cursor?.ClearCursor(HandleDisposedItem);
-    private static void HandleDisposedItem(IItem item) {
-        if (item == null) return;
-        if (!Secondary.AddEntry(item, out int _))
-            DropItem(item);
-    }
+    public static void Release() => Cursor?.ClearCursor(AddEntry);
     private static bool RebindInventories(PlayerStreamer.Player old, PlayerStreamer.Player cur) {
         var prms = (old, cur);
         return RebindInventories(ref prms);
@@ -127,11 +122,13 @@ public static class InventoryController {
             InputPoller.AddContextFence("PlayerInventory:AllFrame", "3.0::AllWindow", ActionBind.Exclusion.None);
             InputPoller.AddContextFence("PlayerInventory:WndFrame", "3.5::Window", ActionBind.Exclusion.ExcludeAll);
             InputPoller.AddBinding(new ActionBind("Open Inventory", Deactivate), "PlayerInventory:CLS", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("Select", Select),  "PlayerInventory:SEL", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("Deselect", DeselectDrag),  "PlayerInventory:DSL", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll, ActionBind.Exclusion.ExcludeLayer), "PlayerInventory:SELA", "3.0::AllWindow");
+            InputPoller.AddBinding(new ActionBind("Deselect", _ => DeselectDrag(GetMouseTarget, true)), "PlayerInventory:DSL", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Select", _ => Select(GetMouseTarget, true)),  "PlayerInventory:SEL", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("SelectPartial", _ => SelectPartial(GetMouseTarget, true)),  "PlayerInventory:SELP", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("SelectAll", _ => { SelectAll(Primary); SelectAll(Secondary); },
+                ActionBind.Exclusion.ExcludeLayer),"PlayerInventory:SELA", "3.0::AllWindow");
         });
-        Cursor.ClearCursor(HandleDisposedItem);
+        Cursor.ClearCursor(AddEntry);
         Secondary.Display.parent.SetActive(true);
         Primary.Display.Transform.anchoredPosition = new Vector2(0, 0);
     }
@@ -143,7 +140,7 @@ public static class InventoryController {
             InputPoller.RemoveContextFence("PlayerInventory:AllFrame", "3.0::AllWindow");
         });
         Secondary.Display.parent.SetActive(false);
-        Cursor.ClearCursor(HandleDisposedItem);
+        Cursor.ClearCursor(AddEntry);
     }
 
     private static void AddHotbarKeybinds() {
@@ -155,15 +152,15 @@ public static class InventoryController {
             Selected?.OnEnter(HeldCxt);
             Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.SelectedColor;
         }
-        InputPoller.AddBinding(new ActionBind("Hotbar1", (float _) => ChangeSelected(0)), "PlayerInventory:HB1", "2.0::Subscene");
-        InputPoller.AddBinding(new ActionBind("Hotbar2", (float _) => ChangeSelected(1)), "PlayerInventory:HB2", "2.0::Subscene");
-        InputPoller.AddBinding(new ActionBind("Hotbar3", (float _) => ChangeSelected(2)), "PlayerInventory:HB3", "2.0::Subscene");
-        InputPoller.AddBinding(new ActionBind("Hotbar4", (float _) => ChangeSelected(3)), "PlayerInventory:HB4", "2.0::Subscene");
-        InputPoller.AddBinding(new ActionBind("Hotbar5", (float _) => ChangeSelected(4)), "PlayerInventory:HB5", "2.0::Subscene");
-        InputPoller.AddBinding(new ActionBind("Hotbar6", (float _) => ChangeSelected(5)), "PlayerInventory:HB6", "2.0::Subscene");
-        InputPoller.AddBinding(new ActionBind("Hotbar7", (float _) => ChangeSelected(6)), "PlayerInventory:HB7", "2.0::Subscene");
-        InputPoller.AddBinding(new ActionBind("Hotbar8", (float _) => ChangeSelected(7)), "PlayerInventory:HB8", "2.0::Subscene");
-        InputPoller.AddBinding(new ActionBind("Hotbar9", (float _) => ChangeSelected(8)), "PlayerInventory:HB9", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar1", _ => ChangeSelected(0)), "PlayerInventory:HB1", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar2", _ => ChangeSelected(1)), "PlayerInventory:HB2", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar3", _ => ChangeSelected(2)), "PlayerInventory:HB3", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar4", _ => ChangeSelected(3)), "PlayerInventory:HB4", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar5", _ => ChangeSelected(4)), "PlayerInventory:HB5", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar6", _ => ChangeSelected(5)), "PlayerInventory:HB6", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar7", _ => ChangeSelected(6)), "PlayerInventory:HB7", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar8", _ => ChangeSelected(7)), "PlayerInventory:HB8", "2.0::Subscene");
+        InputPoller.AddBinding(new ActionBind("Hotbar9", _ => ChangeSelected(8)), "PlayerInventory:HB9", "2.0::Subscene");
         Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.SelectedColor; //Set the inital selected color
     }
 
@@ -189,40 +186,87 @@ public static class InventoryController {
         EntityManager.CreateEntity(math.round(location), eIndex, Entity);
     }
 
-    private static void Select(float _ = 0) {
-        if (!Cursor.IsHolding || Cursor.IsPlacing) {
-            Cursor.ClearCursor();
-        } else {
-            Cursor.IsPlacing = true;
-            DeselectDrag();
-            return;
+    public delegate bool MouseInvSelect(out Inventory Inv, out int index);
+    public static bool Select(MouseInvSelect GetSelectedInvInfo) => Select(GetSelectedInvInfo, false);
+    public static bool SelectPartial(MouseInvSelect GetSelectedInvInfo) => SelectPartial(GetSelectedInvInfo, false);
+    public static bool DeselectDrag(MouseInvSelect GetSelectedInvInfo) => DeselectDrag(GetSelectedInvInfo, false);
+    private static bool Select(MouseInvSelect GetSelectedInvInfo, bool isRoot) {
+        if (!GetSelectedInvInfo(out Inventory Inv, out int index)) {
+            if (isRoot) Cursor.ClearCursor(DropItem);
+            return false;
         }
 
-        if (!GetMouseTarget(out Inventory Inv, out int index))
-            return;
+        if (Cursor.IsHolding) {
+            if (Cursor.State == CursorManager.PlaceState.None) {
+                Cursor.State = CursorManager.PlaceState.Split;
+                DeselectDrag(GetSelectedInvInfo, isRoot);
+                return true;
+            } else if (Cursor.State == CursorManager.PlaceState.Unit) {
+                Inv.AddStackable(Cursor.Item, index);
+                Cursor.ClearCursor(AddEntry);
+                return true;
+            }
+        }
 
+        Cursor.ClearCursor(AddEntry);
         //Swap the cursor with the selected slot
         IItem clickedItem = Inv.Info[index];
-        if (clickedItem == null) return;
+        if (clickedItem == null) return true;
         clickedItem = clickedItem.Clone() as IItem;
         Inv.RemoveEntry(index);
         Cursor.HoldItem(clickedItem);
+        return true;
+    }
+
+    private static bool SelectPartial(MouseInvSelect GetSelectedInvInfo, bool isRoot) {
+        if (!GetSelectedInvInfo(out Inventory Inv, out int index)) {
+            if (isRoot) Cursor.ClearCursor(DropItem);
+            return false;
+        } else if (!Cursor.IsHolding || Cursor.State == CursorManager.PlaceState.Split) {
+            if (isRoot) Cursor.ClearCursor(DropItem);
+        } else {
+            Cursor.State = CursorManager.PlaceState.Unit;
+            //forget drag duplicates
+            Cursor.SplitItems = null; 
+            DeselectDrag(GetSelectedInvInfo, isRoot);
+            return true;
+        }
+
+        //Swap the cursor with the selected slot
+        IItem clickedItem = Inv.Info[index];
+        if (clickedItem == null) return true;
+        clickedItem = clickedItem.Clone() as IItem;
+        //Removes half of the item
+        int amount = clickedItem.AmountRaw / 2 + (clickedItem.AmountRaw % 2);
+        amount = Inv.RemoveStackableSlot(index, amount);
+        clickedItem.AmountRaw = amount;
+        Cursor.HoldItem(clickedItem);
+        return true;
     }
 
 
-    private static void DeselectDrag(float _ = 0) {
-        if (!Cursor.IsHolding) return;
-        if (!Cursor.IsPlacing) return;
-        if (!GetMouseTarget(out Inventory Inv, out int index)) {
-            Cursor.ClearCursor(DropItem);
-            return;
+    private static bool DeselectDrag(MouseInvSelect GetSelectedInvInfo, bool isRoot) {
+        if (!Cursor.IsHolding) return false;
+        if (!Cursor.IsPlacing) return false;
+        if (!GetSelectedInvInfo(out Inventory Inv, out int index)) {
+            if(isRoot) Cursor.ClearCursor(AddEntry);
+            return false;
         }
 
         IItem remainder = null;
-        if (Inv.Info[index] == null) {
-            if (Cursor.SplitNewItem(out remainder) && Inv.AddEntry(remainder, index))
-                Cursor.AddNewSplitItem(Inv.Info[index]);
-        } else if (Cursor.CanSplitToItem(Inv.Info[index])) {
+        if (Cursor.State == CursorManager.PlaceState.Split)
+            remainder = SplitCursorItem(Inv, index);
+        else if (Cursor.State == CursorManager.PlaceState.Unit)
+            remainder = PlaceUnitCursorItem(Inv, index);
+
+        if (remainder == null || remainder.AmountRaw <= 0) return true;
+        AddEntry(remainder);
+        return true;
+    }
+
+    private static IItem SplitCursorItem(Inventory Inv, int index) {
+        IItem remainder = null;
+        if (Cursor.CanSplitToItem(Inv.Info[index])) {
             if (Cursor.SplitNewItem(out remainder)) {
                 Inv.AddStackable(remainder, index);
                 Cursor.AddNewSplitItem(Inv.Info[index]);
@@ -231,27 +275,46 @@ public static class InventoryController {
             remainder = Cursor.Item;
             Cursor.ClearCursor();
         }
-        if (remainder == null || remainder.AmountRaw <= 0) return;
-        HandleDisposedItem(remainder);
+        return remainder;
     }
     
-    private static void SelectAll(float _ = 0) {
+    private static IItem PlaceUnitCursorItem(Inventory Inv, int index) {
+        IItem mOverSlot = Inv.Info[index];
+        if (Cursor.Item.AmountRaw <= 0) return null;
+        IItem remainder = null;
+        if (Cursor.CanSplitToItem(Inv.Info[index])) {
+            remainder = Cursor.Item.Clone() as IItem;
+            int amount = math.min(remainder.UnitSize, remainder.AmountRaw);
+            remainder.AmountRaw = amount;
+            Inv.AddStackable(remainder, index);
+            Cursor.AddNewSplitItem(Inv.Info[index], false);
+            Cursor.Item.AmountRaw -= amount - remainder.AmountRaw;
+            if (Cursor.Item.AmountRaw == 0) Cursor.ClearCursor();
+        }
+        return remainder;
+    }
+
+    
+    public static bool SelectAll(Inventory inv) {
         if (!Cursor.IsHolding || Cursor.IsPlacing)
-            return;
+            return false;
         IItem cItem = Cursor.Item;
-        cItem.AmountRaw += Primary.RemoveStackableKey(cItem.Index, cItem.StackLimit - cItem.AmountRaw);
-        cItem.AmountRaw += Secondary.RemoveStackableKey(cItem.Index, cItem.StackLimit - cItem.AmountRaw);
+        cItem.AmountRaw += inv.RemoveStackableKey(cItem.Index, cItem.StackLimit - cItem.AmountRaw);
+        return true;
     }
 
     //The Slot is changed to reflect what remains
     //if stackable, add to primary then secondary, else add to secondary then primary
     public static void AddEntry(IItem e) {
         if (e == null) return;
-        if (Primary.EntryDict.ContainsKey(e.Index)) {
+        if (Primary.EntryDict.ContainsKey(e.Index))
             Primary.AddStackable(e);
-            if (e.AmountRaw == 0) return;
-        }
+        if (e.AmountRaw == 0) return;
         Secondary.AddStackable(e);
+        if (e.AmountRaw == 0) return;
+        Primary.AddStackable(e);
+        if (e.AmountRaw == 0) return;
+        DropItem(e);
     }
     public static int RemoveStackable(int delta, int itemIndex = -1, int SelIndex = -1) {
         bool TryFromIndex(int SelIndex, out int amount) {
@@ -404,6 +467,7 @@ public static class InventoryController {
         //Input: The material id, amount to add, and index to add at
         //Input is modified with the remainder of the amount
         public void AddStackable(IItem mat, int SlotIndex) {
+            if (Info[SlotIndex] == null) {AddEntry(mat, SlotIndex); return; }
             if (Info[SlotIndex].Index != mat.Index) return;
             IItem sMat = Info[SlotIndex];
             if (sMat.AmountRaw < sMat.StackLimit) {
@@ -649,13 +713,14 @@ public static class InventoryController {
         public List<IItem> SplitItems;
         public bool IsSplitUp => SplitItems != null && SplitItems.Count > 0;
         public bool IsHolding => Item != null;
-        public bool IsPlacing = false;
+        public bool IsPlacing => State != PlaceState.None;
+        public PlaceState State;
         private IUpdateSubscriber EventTask;
 
         public CursorManager() {
             Item = null;
             SplitItems = null;
-            IsPlacing = false;
+            State = PlaceState.None;
             Display = new InventorySlotDisplay(Indicators.ItemSlots.Get());
             Display.Object.transform.SetParent(Menu.transform);
             Display.Object.SetActive(false);
@@ -696,23 +761,24 @@ public static class InventoryController {
             return !SplitItems.Contains(item);
         }
         
-        public void AddNewSplitItem(IItem nItem) {
+        public void AddNewSplitItem(IItem nItem, bool hideCursor = true) {
             SplitItems ??= new List<IItem>();
             SplitItems.Add(nItem);
-            HideCursor();
+            if(hideCursor) HideCursor();
         }
 
         public void HoldItem(IItem item) {
             Item = item;
-            IsPlacing = false;
+            State = PlaceState.None;
             ShowCursor();
         }
         public void ClearCursor(Action<IItem> OnDispose = null) {
-            if (SplitItems == null) OnDispose?.Invoke(Item);
+            if (!(State == PlaceState.Split && IsSplitUp))
+                OnDispose?.Invoke(Item);
             HideCursor();
             Item = null;
             SplitItems = null;
-            IsPlacing = false;
+            State = PlaceState.None;
         }
 
         private void HideCursor() {
@@ -728,11 +794,16 @@ public static class InventoryController {
             Item.AttachDisplay(Display.Object.transform);
             Display.Object.SetActive(true);
         }
-        
+
         public void Update(MonoBehaviour _) {
             if (Cursor == null) return;
             Display.transform.position = Input.mousePosition;
         }
-        
+
+        public enum PlaceState {
+            None,
+            Split,
+            Unit,
+        }
     }
 }

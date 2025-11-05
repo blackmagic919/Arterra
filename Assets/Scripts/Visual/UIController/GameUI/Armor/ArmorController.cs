@@ -87,7 +87,7 @@ public class ArmorController : PanelNavbarManager.INavPanel {
             InputPoller.AddContextFence("PlayerArmor", "3.5::Window", ActionBind.Exclusion.None);
             InputPoller.AddBinding(new ActionBind("Select",
                 _ => Select(), ActionBind.Exclusion.None), "PlayerArmor:SEL", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("Deselect",
+            InputPoller.AddBinding(new ActionBind("Drag Subscene Perspective",
                 _ => RotateCamera(), ActionBind.Exclusion.None), "PlayerArmor:DSL", "3.5::Window");
             InputPoller.AddBinding(new ActionBind("Look Horizontal", CamMovement.LookX), "PlayerArmor:LH", "3.5::Window");
             InputPoller.AddBinding(new ActionBind("Look Vertical", CamMovement.LookY), "PlayerArmor:LV", "3.5::Window");
@@ -196,7 +196,7 @@ public class ArmorController : PanelNavbarManager.INavPanel {
 
     private static InventoryController.CursorManager Cursor => InventoryController.Cursor;
 
-    private void Select(float _ = 0) {
+    private void Select() {
         if (!IsMouseInMenu()) return;
         if (IsDragging) IsDragging = false;
         else if (SelectedIndex == -1) {

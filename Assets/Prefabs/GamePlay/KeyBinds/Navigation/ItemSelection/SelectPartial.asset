@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b9407988208a348ad834c5fcf39e2f91, type: 3}
-  m_Name: Deselect
+  m_Name: SelectPartial
   m_EditorClassIdentifier: 
-  Name: Deselect
+  Name: SelectPartial
   Tags:
     Reg:
       value: []
   bindings:
     value:
-    - Key: 323
-      PollType: 2
+    - Key: 324
+      PollType: 3
       IsAlias: 0
   AdditionalTriggerCount: 0
   references:

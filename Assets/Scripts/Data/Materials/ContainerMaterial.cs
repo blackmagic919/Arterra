@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using WorldConfig.Gameplay;
+using WorldConfig.Generation.Item;
 
 namespace WorldConfig.Generation.Material
 {
@@ -57,7 +58,7 @@ namespace WorldConfig.Generation.Material
             if (!CPUMapManager.GetOrCreateMapMeta(GCoord, () => new ContainerInventory
                 (GCoord, SlotCount), out OpenedInventory))
                 return false;
-            
+
             OpenedInventory.InitializeDisplay(this);
             InventoryController.Activate();
             InputPoller.AddKeyBindChange(() => {
@@ -70,6 +71,7 @@ namespace WorldConfig.Generation.Material
                     DeselectDrag, ActionBind.Exclusion.None), "MAT::Container:DS", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("Select",
                     Select, ActionBind.Exclusion.None), "MAT::Container:SL", "3.5::Window");
+                InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial),  "MAT::Container:SELP", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "MAT::Container:SELA", "3.0::AllWindow");
             });
             PanelNavbarManager.Add(OpenedInventory, name);
@@ -99,7 +101,7 @@ namespace WorldConfig.Generation.Material
             }
 
             float progress = (SolidDensity - CPUMapManager.IsoValue) /
-                             (MapData.MaxDensity- CPUMapManager.IsoValue);
+                             (MapData.MaxDensity - CPUMapManager.IsoValue);
             int SlotCount = Mathf.FloorToInt(MaxSlotCount * progress) + 1;
             cont.inv.ResizeInventory(SlotCount, Item => InventoryController.DropItem(Item, GCoord));
             return MaterialDrops.LootItem(amount, Names);
@@ -138,59 +140,24 @@ namespace WorldConfig.Generation.Material
 
 
         private static InventoryController.CursorManager Cursor => InventoryController.Cursor;
+        private bool GetMouseSelected(out InventoryController.Inventory inv, out int index) {
+            inv = OpenedInventory.inv;
+            return OpenedInventory.inv.Display.GetMouseSelected(out index);
+        }
         private void Select(float _ = 0) {
-            ContainerInventory cont = OpenedInventory;
-            if (!Cursor.IsHolding || Cursor.IsPlacing)
-                Cursor.ClearCursor();
-            else {
-                InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayerByName);
-                Cursor.IsPlacing = true;
-                DeselectDrag();
-                return;
-            };
-
-            if (!cont.inv.Display.GetMouseSelected(out int index))
-                return;
-            
-            InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayerByName);
-            //Swap the cursor with the selected slot
-            Item.IItem clickedItem = cont.inv.Info[index];
-            if (clickedItem == null) return;
-            clickedItem = clickedItem.Clone() as Item.IItem;
-            cont.inv.RemoveEntry(index);
-            Cursor.HoldItem(clickedItem);
+            if (!InventoryController.Select(GetMouseSelected)) return;
+            InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayer);
         }
 
         private void DeselectDrag(float _ = 0) {
-            if (!Cursor.IsHolding) return;
-            if (!Cursor.IsPlacing) return;
-            ContainerInventory cont = OpenedInventory;
-            if (!cont.inv.Display.GetMouseSelected(out int index)) return;
+            if (!InventoryController.DeselectDrag(GetMouseSelected)) return;
             InputPoller.SuspendKeybindPropogation("Deselect", ActionBind.Exclusion.ExcludeLayer);
-
-            Item.IItem remainder = null;
-            if (cont.inv.Info[index] == null) {
-                if (Cursor.SplitNewItem(out remainder) && cont.inv.AddEntry(remainder, index))
-                    Cursor.AddNewSplitItem(cont.inv.Info[index]);
-            } else if (Cursor.CanSplitToItem(cont.inv.Info[index])) {
-                if (Cursor.SplitNewItem(out remainder)) {
-                    cont.inv.AddStackable(remainder, index);
-                    Cursor.AddNewSplitItem(cont.inv.Info[index]);
-                }
-            } else if (!Cursor.IsSplitUp) {
-                remainder = Cursor.Item;
-                Cursor.ClearCursor();
-            }
-            if (remainder == null || remainder.AmountRaw <= 0) return;
-            InventoryController.DropItem(remainder);
         }
-        
-        private void SelectAll(float _ = 0) {
-            if (!Cursor.IsHolding || Cursor.IsPlacing)
-                return;
-            Item.IItem cItem = Cursor.Item;
-            cItem.AmountRaw += OpenedInventory.inv.RemoveStackableKey(cItem.Index, cItem.StackLimit - cItem.AmountRaw);
+        private void SelectPartial(float _ = 0) {
+            if (!InventoryController.SelectPartial(GetMouseSelected)) return;
+            InputPoller.SuspendKeybindPropogation("SelectPartial", ActionBind.Exclusion.ExcludeLayer);
         }
+        private void SelectAll(float _ = 0) => InventoryController.SelectAll(OpenedInventory.inv);
 
 
         public class ContainerInventory : PanelNavbarManager.INavPanel {
