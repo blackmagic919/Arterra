@@ -167,7 +167,7 @@ MonoBehaviour:
               mean: 0.03921569
               var: 1
               geneWeight: 0.05
-          - ItemName: Hair:Solid
+          - ItemName: Hair
             DropAmount:
               mean: 0.01960785
               var: 1

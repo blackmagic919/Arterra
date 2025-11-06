@@ -141,7 +141,7 @@ MonoBehaviour:
               mean: 0.03921569
               var: 1
               geneWeight: 0.05
-          - ItemName: Feathers:Solid
+          - ItemName: Feather
             DropAmount:
               mean: 0.03137255
               var: 1

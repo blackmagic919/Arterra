@@ -78,7 +78,7 @@ MonoBehaviour:
               mean: 0.007843138
               var: 1
               geneWeight: 0.05
-          - ItemName: String:Solid
+          - ItemName: String
             DropAmount:
               mean: 0.01176471
               var: 1

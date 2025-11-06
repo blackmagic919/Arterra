@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Pool;
 using UnityEngine.UI;
 using UnityEngine.Video;
 using WorldConfig;
@@ -407,7 +408,25 @@ public static class InventoryController {
             }
         }
 
+        public void InitializeDisplay(GridUIManager gridManager) {
+            Display = gridManager;
+            for (int i = 0; i < capacity; i++) {
+                AttachDisplay(i);
+            }
+        }
+
+        public void ReleaseDisplay(ObjectPool<GameObject> pool) {
+            if (Display == null) return;
+            for (int i = 0; i < capacity; i++) {
+                ClearDisplay(i);
+                pool.Release(Display.Slots[i]);
+            } 
+            GameObject.Destroy(Display.root);
+            Display = null;
+        }
+
         public void ReleaseDisplay() {
+            if (Display == null) return;
             for (int i = 0; i < capacity; i++) {
                 ClearDisplay(i);
                 Indicators.ItemSlots.Release(Display.Slots[i]);

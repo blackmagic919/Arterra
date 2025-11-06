@@ -9,16 +9,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
-  m_Name: HairItemSolid
+  m_Script: {fileID: 11500000, guid: 50bc8f8d6f85d46e8ad5b0825e3d8930, type: 3}
+  m_Name: StringItem
   m_EditorClassIdentifier: 
-  Name: Hair:Solid
+  Name: String
   Tags:
     Reg:
       value: []
-  TextureName: Hair
-  MaterialName: Hair
-  MaterialState: 0
+  TextureName: String
   references:
     version: 2
     RefIds: []

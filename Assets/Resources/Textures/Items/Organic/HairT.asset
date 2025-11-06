@@ -9,16 +9,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
-  m_Name: FeathersItemSolid
+  m_Script: {fileID: 11500000, guid: d60a39b1e4df74ed3aaaa1cb0087049e, type: 3}
+  m_Name: HairT
   m_EditorClassIdentifier: 
-  Name: Feathers:Solid
+  Name: Hair
   Tags:
     Reg:
       value: []
-  TextureName: Feathers
-  MaterialName: Feathers
-  MaterialState: 0
+  self: {fileID: 21300000, guid: 9ab2adefad8ad4ecc928c9c1944da66f, type: 3}
   references:
     version: 2
     RefIds: []

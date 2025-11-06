@@ -24,7 +24,7 @@ MonoBehaviour:
     - Plank:Solid
   Recipe:
     value:
-      entry:
+      materials:
         value:
         - Index: 2
           Amount: 1
@@ -58,9 +58,29 @@ MonoBehaviour:
           Amount: 0.5
         - Index: 3
           Amount: 1
+      items:
+        value:
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
       result:
-        data: 65587
-      NoSubUnitCreation: 0
+        data: 65791
+      NoSubUnitCreation: 1
   references:
     version: 2
     RefIds: []

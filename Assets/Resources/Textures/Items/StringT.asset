@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d60a39b1e4df74ed3aaaa1cb0087049e, type: 3}
-  m_Name: HairT
+  m_Name: StringT
   m_EditorClassIdentifier: 
-  Name: Hair
+  Name: String
   Tags:
     Reg:
       value: []
-  self: {fileID: 21300000, guid: 20b2fb59248ec4a668a66e2183081767, type: 3}
+  self: {fileID: 21300000, guid: 508f7bbc272684c66a66c72fb54b65d0, type: 3}
   references:
     version: 2
     RefIds: []

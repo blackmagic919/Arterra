@@ -16,7 +16,7 @@ MonoBehaviour:
   GridWidth: 3
   CraftSpeed: 600
   PointSizeMultiplier: 2
-  MaxRecipeDistance: 0.5
+  MaxRecipeDistance: 2
   NumMaxSelections: 5
   MaxRecipeSearchDisplay: 20
   Recipes:

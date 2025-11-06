@@ -23,6 +23,7 @@ public static class Indicators
 {
     public static WorldConfig.Gameplay.Statistics Stats => Config.CURRENT.GamePlay.Statistics;
     public static ObjectPool<GameObject> ItemSlots;
+    public static ObjectPool<GameObject> TransparentSlots;
     public static ObjectPool<GameObject> StackableItems;
     public static ObjectPool<GameObject> HolderItems;
     public static ObjectPool<GameObject> ToolItems;
@@ -54,6 +55,7 @@ public static class Indicators
         GameObject HolderItem = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/HolderItem");
         GameObject ToolItem = Resources.Load<GameObject>("Prefabs/GameUI/Inventory/ToolItem");
         GameObject RecipeSelection = Resources.Load<GameObject>("Prefabs/GameUI/Crafting/RecipeSelection");
+        GameObject TransparentSlot = Resources.Load<GameObject>("Prefabs/GameUI/Crafting/TransparentSlot");
 
         ItemSlots = new ObjectPool<GameObject>(() => {
             return GameObject.Instantiate(ItemSlot);
@@ -70,6 +72,9 @@ public static class Indicators
         RecipeSelections = new ObjectPool<GameObject>(() => {
             return GameObject.Instantiate(RecipeSelection);
         }, OnActivate, OnDeactivate, OnDestroy, true, 5, 20);
+        TransparentSlots = new ObjectPool<GameObject>(() => {
+            return GameObject.Instantiate(TransparentSlot);
+        }, OnActivate, OnDeactivate, OnDestroy, true, 5, 16);
     }
 
     public static void SetupIndicators(GameObject entity){

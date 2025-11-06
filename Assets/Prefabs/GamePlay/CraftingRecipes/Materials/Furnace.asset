@@ -23,7 +23,7 @@ MonoBehaviour:
     - Stone:Solid
   Recipe:
     value:
-      entry:
+      materials:
         value:
         - Index: 2
           Amount: 1
@@ -57,6 +57,26 @@ MonoBehaviour:
           Amount: 1
         - Index: 2
           Amount: 1
+      items:
+        value:
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
       result:
         data: 67066
       NoSubUnitCreation: 0

@@ -3,11 +3,9 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using WorldConfig.Generation.Material;
 using WorldConfig.Generation.Item;
 using Unity.Mathematics;
 using MapStorage;
-using UnityEngine.Rendering;
 using System.Runtime.InteropServices;
 namespace WorldConfig.Intrinsic{
 
@@ -46,14 +44,19 @@ namespace WorldConfig.Intrinsic{
         public CraftingRecipe SerializeCopy() {
             Catalogue<Authoring> itemInfo = Config.CURRENT.Generation.Items;
             CraftingRecipe newRecipe = (CraftingRecipe)Recipe.value.Clone();
-            for (int i = 0; i < newRecipe.entry.value.Count; i++) {
-                var ingredient = newRecipe.entry.value[i];
-                if (Names.value == null || ingredient.Index >= Names.value.Count)
-                    continue;
-                if (!itemInfo.Contains(Names.value[ingredient.Index]))
-                    continue;
-                ingredient.Index = itemInfo.RetrieveIndex(Names.value[ingredient.Index]);
-                newRecipe.entry.value[i] = ingredient;
+            SerializeIngredientList(newRecipe.materials.value);
+            SerializeIngredientList(newRecipe.items.value);
+
+            void SerializeIngredientList(List<CraftingRecipe.Ingredient> ings) {
+                for (int i = 0; i < ings.Count; i++) {
+                    var ingredient = ings[i];
+                    if (Names.value == null || ingredient.Index >= Names.value.Count)
+                        continue;
+                    if (!itemInfo.Contains(Names.value[ingredient.Index]))
+                        continue;
+                    ingredient.Index = itemInfo.RetrieveIndex(Names.value[ingredient.Index]);
+                    ings[i] = ingredient;
+                }
             }
 
             if (!itemInfo.Contains(Names.value[(int)Recipe.value.result.Index]))
@@ -69,14 +72,16 @@ namespace WorldConfig.Intrinsic{
     /// or upend the difficulty progression. </summary>
     [Serializable]
     public class CraftingRecipe : ICloneable {
-        /// <summary> The entries that must be matched to successfully craft this recipe. The entries
+        /// <summary> The materials that must be matched to successfully craft this recipe. Materials
         /// correspond to a grid of points whose size is dictated by <see cref="Crafting.GridWidth"/>.
-        /// If this grid matches  the player's crafting grid, the recipe is considered
-        /// craftable and the result may be obtained. No two recipes should be identical,
-        /// although this is not enforced. </summary> <remarks>The <see cref="MapData.isDirty"/> flag
-        /// is repurposed to indicate if an entry should be ignored when being matched. This is useful if a component
-        /// of the recipe is not essential to its creation, such as any empty entries. </remarks>
-        public Option<List<Ingredient>> entry;
+        /// This grid must match the player's crafting grid for the recipe to be considered
+        /// craftable and the result to be obtained. </summary> 
+        public Option<List<Ingredient>> materials;
+        /// <summary> The items that must be matched to successfully craft this recipe. Items
+        /// correspond to the slots between the grid lines dictated by <see cref="Crafting.GridWidth"/>.
+        /// These slots must match the player's crafting slots for the recipe to be considered
+        /// craftable and the result to be obtained. </summary> 
+        public Option<List<Ingredient>> items;
         /// <summary> If the recipe can be crafted, the result that is given to the player if the recipe is crafted.
         /// <see cref="Result"/> for more information. </summary>
         public Result result;
@@ -121,14 +126,26 @@ namespace WorldConfig.Intrinsic{
         /// <param name="index">The index within <see cref="entry"/> of the entry whose material is retrieved</param>
         /// <returns>The material of the entry at the specified <paramref name="index"/></returns>
         public double NormalInd(int index) {
+            if (index < materials.value.Count) return GetNormalMatInd(index);
+            return GetNormalItemInd(index - materials.value.Count);
+        }
+
+        private double GetNormalMatInd(int index) {
             Catalogue<Authoring> itemInfo = Config.CURRENT.Generation.Items;
             IRegister matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-            Ingredient ing = entry.value[index];
+            Ingredient ing = materials.value[index];
             if (ing.Amount == 0) return 0;
             Authoring setting = itemInfo.Retrieve(ing.Index);
             if (setting is not PlaceableItem mSettings) return 0;
             if (!matInfo.Contains(mSettings.MaterialName)) return 0;
             return ((double)matInfo.RetrieveIndex(mSettings.MaterialName)) / matInfo.Count();
+        }
+
+        private double GetNormalItemInd(int index) {
+            Catalogue<Authoring> itemInfo = Config.CURRENT.Generation.Items;
+            IRegister matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            Ingredient ing = items.value[index];
+            return ((double)ing.Index) / itemInfo.Count();
         }
 
         /// <summary> The result of a recipe. Indicates what is given to the player if the recipe is crafted. </summary>
@@ -160,7 +177,8 @@ namespace WorldConfig.Intrinsic{
 
         public object Clone() {
             CraftingRecipe newRecipe = new CraftingRecipe();
-            newRecipe.entry.value = new List<Ingredient>(entry.value);
+            newRecipe.materials.value = new List<Ingredient>(materials.value);
+            newRecipe.items.value = new List<Ingredient>(items.value);
             newRecipe.result = result;
             newRecipe.NoSubUnitCreation = NoSubUnitCreation;
             return newRecipe;

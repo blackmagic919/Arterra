@@ -18,18 +18,13 @@ MonoBehaviour:
       value: []
   Children:
     value:
-    - value: {fileID: 11400000, guid: d5a5c4017424e40899c47217b012e337, type: 2}
-    - value: {fileID: 11400000, guid: 27090e495931c4c71a14ec337860ef86, type: 2}
     - value: {fileID: 11400000, guid: 717b9bf3d82c74f7db056808bcdff118, type: 2}
     - value: {fileID: 11400000, guid: a908d54cac7a543889802488b49c0a1b, type: 2}
-    - value: {fileID: 11400000, guid: 702365bdb01984735b371aa2220223b1, type: 2}
-    - value: {fileID: 11400000, guid: 7f8905d33e3f444b7a334ade4c6bbf85, type: 2}
-    - value: {fileID: 11400000, guid: f37caa8ca70fe4315917f00eeb882126, type: 2}
-    - value: {fileID: 11400000, guid: 592746ddbe7b941508d010282e2919c8, type: 2}
-    - value: {fileID: 11400000, guid: 5da1873ed991744f1a071d9c5a834943, type: 2}
     - value: {fileID: 11400000, guid: 00010ae8d40ca47298ac0d9454129160, type: 2}
     - value: {fileID: 11400000, guid: ca9a95566e5a34f57babdbfcfed0159c, type: 2}
+    - value: {fileID: 11400000, guid: a062f1b450bdf4ab4a7d24f6446e6e05, type: 2}
     - value: {fileID: 11400000, guid: 09985f94c03e24e58ac23bc583ffc688, type: 2}
+    - value: {fileID: 11400000, guid: 9bf78f965a7d4468ab2d51c16d5ccc2b, type: 2}
   references:
     version: 2
     RefIds: []

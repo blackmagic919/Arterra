@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b92ab6716ab84e588c812f4df75143a, type: 3}
+  m_Name: OrganicT
+  m_EditorClassIdentifier: 
+  Name: Organic
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: f37caa8ca70fe4315917f00eeb882126, type: 2}
+    - value: {fileID: 11400000, guid: 22c43a811976b4dd4843b4cf9b006ebc, type: 2}
+    - value: {fileID: 11400000, guid: 7f8905d33e3f444b7a334ade4c6bbf85, type: 2}
+    - value: {fileID: 11400000, guid: c5970441f27614b13b100e2bf080ee53, type: 2}
+    - value: {fileID: 11400000, guid: 5da1873ed991744f1a071d9c5a834943, type: 2}
+    - value: {fileID: 11400000, guid: 27090e495931c4c71a14ec337860ef86, type: 2}
+    - value: {fileID: 11400000, guid: 702365bdb01984735b371aa2220223b1, type: 2}
+    - value: {fileID: 11400000, guid: d5a5c4017424e40899c47217b012e337, type: 2}
+    - value: {fileID: 11400000, guid: 592746ddbe7b941508d010282e2919c8, type: 2}
+  references:
+    version: 2
+    RefIds: []
