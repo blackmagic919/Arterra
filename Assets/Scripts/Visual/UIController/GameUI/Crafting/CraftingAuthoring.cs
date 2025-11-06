@@ -8,6 +8,7 @@ using WorldConfig.Generation.Item;
 using Unity.Mathematics;
 using MapStorage;
 using UnityEngine.Rendering;
+using System.Runtime.InteropServices;
 namespace WorldConfig.Intrinsic{
 
     /// <summary> An authoring object for a crafting recipe allowing for it 
@@ -43,20 +44,20 @@ namespace WorldConfig.Intrinsic{
         }
 
         public CraftingRecipe SerializeCopy() {
-            Catalogue<MaterialData> matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             Catalogue<Authoring> itemInfo = Config.CURRENT.Generation.Items;
-
             CraftingRecipe newRecipe = (CraftingRecipe)Recipe.value.Clone();
             for (int i = 0; i < newRecipe.entry.value.Count; i++) {
-                var mapData = newRecipe.entry.value[i];
-                if (Names.value == null || mapData.material >= Names.value.Count)
+                var ingredient = newRecipe.entry.value[i];
+                if (Names.value == null || ingredient.Index >= Names.value.Count)
                     continue;
-                if (!matInfo.Contains(Names.value[mapData.material]))
+                if (!itemInfo.Contains(Names.value[ingredient.Index]))
                     continue;
-                mapData._material = matInfo.RetrieveIndex(Names.value[mapData.material]);
-                newRecipe.entry.value[i] = mapData;
+                ingredient.Index = itemInfo.RetrieveIndex(Names.value[ingredient.Index]);
+                newRecipe.entry.value[i] = ingredient;
             }
 
+            if (!itemInfo.Contains(Names.value[(int)Recipe.value.result.Index]))
+                Debug.Log(name);
             newRecipe.result.Index = (uint)itemInfo.RetrieveIndex(
                 Names.value[(int)Recipe.value.result.Index]);
             return newRecipe;
@@ -75,13 +76,12 @@ namespace WorldConfig.Intrinsic{
         /// although this is not enforced. </summary> <remarks>The <see cref="MapData.isDirty"/> flag
         /// is repurposed to indicate if an entry should be ignored when being matched. This is useful if a component
         /// of the recipe is not essential to its creation, such as any empty entries. </remarks>
-        public Option<List<MapData>> entry;
+        public Option<List<Ingredient>> entry;
         /// <summary> If the recipe can be crafted, the result that is given to the player if the recipe is crafted.
         /// <see cref="Result"/> for more information. </summary>
         public Result result;
-        /// <summary>The minimum quantity of the result item that is given to the player when the recipe is crafted
-        /// even if the calculated amount based on materials used is lower. </summary>
-        public float MinQuantity;
+        /// <summary> Whether or not the recipe can be extended for quantities less than the minimum required amount</summary>
+        public bool NoSubUnitCreation;
 
 
         /// <summary> The result item of the recipe. This is the actual item given to the player if the recipe is crafted.
@@ -94,15 +94,41 @@ namespace WorldConfig.Intrinsic{
             }
         }
 
+        /// <summary>
+        /// A structure representing the information
+        /// of a single ingredient in a recipe.
+        /// </summary>
+        [Serializable] [StructLayout(LayoutKind.Sequential)]
+        public struct Ingredient {
+            /// <summary>  The index within the item registry of the item that needs to be placed here.
+            /// This will be ignored if Amount is 0. </summary>
+            [RegistryReference("Items")]
+            public int Index;
+            /// <summary> The amount of unit material that will be used to create a unit amount of 
+            /// result. If <see cref="NoSubUnitCreation"/> is true, the amount that must be present
+            /// to create the recipe. </summary>
+            public float Amount;
+            /// <exclude />
+            [NonSerialized][HideInInspector]
+            [JsonIgnore][UISetting(Ignore = true)]
+            public uint flags;
+        }
+
 
         /// <summary> Obtains the material index of the map entry at a specific grid index in the recipe. 
         /// If the entry is dirty, the material is ignored as it is not part of the real recipe
         /// and is not used when testing whether the recipe is craftable. </summary>
         /// <param name="index">The index within <see cref="entry"/> of the entry whose material is retrieved</param>
         /// <returns>The material of the entry at the specified <paramref name="index"/></returns>
-        public int EntryMat(int index) {
-            if (entry.value[index].IsGaseous) return -1;
-            return entry.value[index].material;
+        public double NormalInd(int index) {
+            Catalogue<Authoring> itemInfo = Config.CURRENT.Generation.Items;
+            IRegister matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            Ingredient ing = entry.value[index];
+            if (ing.Amount == 0) return 0;
+            Authoring setting = itemInfo.Retrieve(ing.Index);
+            if (setting is not PlaceableItem mSettings) return 0;
+            if (!matInfo.Contains(mSettings.MaterialName)) return 0;
+            return ((double)matInfo.RetrieveIndex(mSettings.MaterialName)) / matInfo.Count();
         }
 
         /// <summary> The result of a recipe. Indicates what is given to the player if the recipe is crafted. </summary>
@@ -134,9 +160,9 @@ namespace WorldConfig.Intrinsic{
 
         public object Clone() {
             CraftingRecipe newRecipe = new CraftingRecipe();
-            newRecipe.entry.value = new List<MapData>(entry.value);
+            newRecipe.entry.value = new List<Ingredient>(entry.value);
             newRecipe.result = result;
-            newRecipe.MinQuantity = MinQuantity;
+            newRecipe.NoSubUnitCreation = NoSubUnitCreation;
             return newRecipe;
         }
     }
@@ -152,17 +178,17 @@ public class RecipeResultDrawer : PropertyDrawer{
         SerializedProperty dataProp = property.FindPropertyRelative("data");
         uint data = dataProp.uintValue;
 
-        uint index = (data >> 16) & 0xFFFF;
         float multiplier = (data & 0xFFFF) / 255f;
-
         Rect rect = new (position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
-
-        index = (uint)EditorGUI.IntField(rect, "Index", (int)index);
+        
+        RegistryReferenceDrawer.SetupRegistries();
+        RegistryReferenceDrawer itemsDrawer = new RegistryReferenceDrawer {  BitMask = 0x7FFF, BitShift = 16 };
+            itemsDrawer.DrawRegistryDropdown(rect, dataProp, new GUIContent("Items"), Config.TEMPLATE.Generation.Items);
         rect.y += EditorGUIUtility.singleLineHeight;
+        
         multiplier = EditorGUI.FloatField(rect, "Multiplier", multiplier);
         rect.y += EditorGUIUtility.singleLineHeight;
 
-        data = (data & 0x0000FFFF) | (index << 16);
         data = (data & 0xFFFF0000) | ((uint)Mathf.Round(multiplier * 255f) & 0xFFFF);
 
         dataProp.uintValue = data;

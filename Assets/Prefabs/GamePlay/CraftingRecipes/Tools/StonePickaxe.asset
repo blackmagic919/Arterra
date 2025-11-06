@@ -18,32 +18,49 @@ MonoBehaviour:
       value: []
   Names:
     value:
+    - 
     - StonePickaxe
-    - Wood
-    - Rock
+    - Wood:Solid
+    - Rock:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 116936
-        - data: 25700
-        - data: 0
-        - data: 19275
-        - data: 25700
-        - data: 111796
-        - data: 12850
-        - data: 169622
-        - data: 0
-        - data: 25700
-        - data: 116936
-        - data: 177332
-        - data: 19275
-        - data: 169622
-        - data: 177332
-        - data: 182472
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 3
+          Amount: 0.25
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 3
+          Amount: 0.5
+        - Index: 0
+          Amount: 0
+        - Index: 3
+          Amount: 0.25
+        - Index: 3
+          Amount: 0.5
+        - Index: 3
+          Amount: 1
       result:
-        data: 51
-      MinQuantity: 1
+        data: 65791
+      NoSubUnitCreation: 1
   references:
     version: 2
     RefIds: []

@@ -13,31 +13,54 @@ MonoBehaviour:
   m_Name: Brick
   m_EditorClassIdentifier: 
   Name: Brick
+  Tags:
+    Reg:
+      value: []
   Names:
     value:
+    - 
     - Brick:Solid
-    - Stone
-    - Clay
-  
+    - Rock:Solid
+    - Clay:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 104086
-        - data: 169622
-        - data: 104086
-        - data: 169622
-        - data: 104086
-        - data: 169622
-        - data: 104086
-        - data: 169622
-        - data: 104086
-        - data: 169622
-        - data: 104086
-        - data: 169622
-        - data: 104086
-        - data: 169622
-        - data: 104086
-        - data: 169622
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 3
+          Amount: 1
+        - Index: 3
+          Amount: 1
+        - Index: 3
+          Amount: 1
+        - Index: 3
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 3
+          Amount: 1
+        - Index: 3
+          Amount: 1
+        - Index: 3
+          Amount: 1
+        - Index: 3
+          Amount: 1
       result:
-        data: 255
+        data: 67576
+      NoSubUnitCreation: 0
+  references:
+    version: 2
+    RefIds: []

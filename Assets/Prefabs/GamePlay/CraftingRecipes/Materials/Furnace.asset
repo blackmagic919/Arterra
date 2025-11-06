@@ -18,30 +18,48 @@ MonoBehaviour:
       value: []
   Names:
     value:
+    - 
     - Furnace:Solid
-    - Stone
+    - Stone:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 19275
-        - data: 19275
-        - data: 104086
-        - data: 104086
-        - data: 19275
-        - data: 19275
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
       result:
-        data: 255
-    references:
-      version: 2
-      RefIds: []
+        data: 67066
+      NoSubUnitCreation: 0
+  references:
+    version: 2
+    RefIds: []

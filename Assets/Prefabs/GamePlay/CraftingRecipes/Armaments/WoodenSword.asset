@@ -18,32 +18,49 @@ MonoBehaviour:
       value: []
   Names:
     value:
+    - 
     - WoodenSword
-    - Wood
-    - Plank
+    - Wood:Solid
+    - Plank:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 116936
-        - data: 25700
-        - data: 104086
-        - data: 0
-        - data: 25700
-        - data: 104086
-        - data: 32125
-        - data: 0
-        - data: 104086
-        - data: 32125
-        - data: 169622
-        - data: 32125
-        - data: 0
-        - data: 0
-        - data: 32125
-        - data: 169622
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 3
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 3
+          Amount: 1
       result:
-        data: 51
-      MinQuantity: 1
+        data: 65791
+      NoSubUnitCreation: 1
   references:
     version: 2
     RefIds: []

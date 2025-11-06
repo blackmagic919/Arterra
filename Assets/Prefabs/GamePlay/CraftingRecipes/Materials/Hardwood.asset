@@ -18,30 +18,48 @@ MonoBehaviour:
       value: []
   Names:
     value:
+    - 
     - Hardwood:Solid
-    - Wood
+    - Wood:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 0
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 0
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
       result:
-        data: 191
-    references:
-      version: 2
-      RefIds: []
+        data: 66556
+      NoSubUnitCreation: 0
+  references:
+    version: 2
+    RefIds: []

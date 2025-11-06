@@ -18,31 +18,48 @@ MonoBehaviour:
       value: []
   Names:
     value:
+    - 
     - Bucket
-    - Wood
+    - Wood:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 6425
-        - data: 6425
-        - data: 6425
-        - data: 104086
-        - data: 6425
-        - data: 6425
-        - data: 6425
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
       result:
-        data: 51
-      MinQuantity: 1
+        data: 65791
+      NoSubUnitCreation: 1
   references:
     version: 2
     RefIds: []

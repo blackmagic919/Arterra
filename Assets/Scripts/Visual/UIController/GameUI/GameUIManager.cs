@@ -125,9 +125,10 @@ public class GridUIManager {
     public GameObject[] Slots;
     private int2 DisplaySlotSize {
         get {
-            float2 rectSize = Transform.rect.size + 2 * Grid.spacing;
+            float2 rectSize = Transform.rect.size;
             float2 gridSize = Grid.cellSize + Grid.spacing;
-            return math.max((int2)math.floor(rectSize / gridSize), new int2(1, 1));
+            int2 slots = (int2)math.floor((rectSize + (float2)Grid.spacing) / gridSize);
+            return math.max(slots, new int2(1, 1));
         }
     }
 

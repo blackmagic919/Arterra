@@ -139,7 +139,6 @@ namespace WorldConfig.Generation.Material
         }
 
 
-        private static InventoryController.CursorManager Cursor => InventoryController.Cursor;
         private bool GetMouseSelected(out InventoryController.Inventory inv, out int index) {
             inv = OpenedInventory.inv;
             return OpenedInventory.inv.Display.GetMouseSelected(out index);

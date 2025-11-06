@@ -18,32 +18,49 @@ MonoBehaviour:
       value: []
   Names:
     value:
+    - 
     - FlintAndSteel
-    - Coal
-    - Iron
+    - Coal:Solid
+    - Iron:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 104086
-        - data: 111796
-        - data: 0
-        - data: 0
-        - data: 111796
-        - data: 122076
-        - data: 30840
-        - data: 182472
-        - data: 0
-        - data: 30840
-        - data: 0
-        - data: 182472
-        - data: 0
-        - data: 182472
-        - data: 182472
-        - data: 182472
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 3
+          Amount: 0.5
+        - Index: 3
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 3
+          Amount: 0.5
+        - Index: 0
+          Amount: 0
+        - Index: 3
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 3
+          Amount: 1
+        - Index: 3
+          Amount: 1
+        - Index: 3
+          Amount: 1
       result:
-        data: 51
-      MinQuantity: 1
+        data: 65791
+      NoSubUnitCreation: 1
   references:
     version: 2
     RefIds: []

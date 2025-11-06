@@ -3,6 +3,7 @@ using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using UnityEngine;
 using WorldConfig;
+using WorldConfig.Generation.Material;
 
 namespace WorldConfig.Generation.Item {
     /// <summary> A template for creating an item. To create an inspector serializable object, the 

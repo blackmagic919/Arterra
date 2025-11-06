@@ -18,32 +18,48 @@ MonoBehaviour:
       value: []
   Names:
     value:
-    - LeatherLeggings
-    - Leather
     - 
+    - LeatherLeggings
+    - Leather:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 116936
-        - data: 116936
-        - data: 116936
-        - data: 116936
-        - data: 131072
-        - data: 131072
-        - data: 131072
-        - data: 129786
-        - data: 131072
-        - data: 131072
-        - data: 131072
-        - data: 129786
-        - data: 116936
-        - data: 116936
-        - data: 116936
-        - data: 116936
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
       result:
-        data: 51
-      MinQuantity: 1
+        data: 65791
+      NoSubUnitCreation: 1
   references:
     version: 2
     RefIds: []

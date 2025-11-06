@@ -34,6 +34,9 @@ namespace WorldConfig.Generation.Material{
     [BurstCompile]
     [CreateAssetMenu(menuName = "Generation/MaterialData/LiquidMat")]
     public class LiquidMaterial : MaterialData {
+        /// <summary> The chance that a random update will perform checks to 
+        /// propogate the liquid. Increasing this value may reduce performance. </summary>
+        public float RandomUpdatePropogateChance;
         [BurstCompile]
         private static void TransferLiquid(ref MapData a1, ref MapData b1) {
             int amount = a1.LiquidDensity; //Amount that's transferred
@@ -117,7 +120,7 @@ namespace WorldConfig.Generation.Material{
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
         [BurstCompile]
         public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng) {
-            PropogateLiquid(GCoord, prng);
+            if (prng.NextFloat() < RandomUpdatePropogateChance) PropogateLiquid(GCoord, prng);
         }
 
         /// <summary> Updates the liquid material to perform liquid physics.  </summary>

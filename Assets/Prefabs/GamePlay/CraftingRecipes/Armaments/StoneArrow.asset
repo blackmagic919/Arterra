@@ -18,34 +18,50 @@ MonoBehaviour:
       value: []
   Names:
     value:
-    - StoneArrow
-    - Rock
-    - Wood
-    - Feathers
     - 
+    - StoneArrow
+    - Feathers:Solid
+    - Wood:Solid
+    - Rock:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 260858
-        - data: 274994
-        - data: 262144
-        - data: 262144
-        - data: 274994
-        - data: 195322
-        - data: 274994
-        - data: 262144
-        - data: 262144
-        - data: 274994
-        - data: 195322
-        - data: 274994
-        - data: 262144
-        - data: 262144
-        - data: 274994
-        - data: 129786
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 3
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 3
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 4
+          Amount: 1
       result:
-        data: 1020
-      MinQuantity: 1
+        data: 66556
+      NoSubUnitCreation: 0
   references:
     version: 2
     RefIds: []

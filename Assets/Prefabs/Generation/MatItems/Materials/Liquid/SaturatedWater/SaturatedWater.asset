@@ -24,6 +24,7 @@ MonoBehaviour:
   terrainData:
     Texture: 2
     textureScale: 2
+    FlipStateRendering: 0
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
@@ -39,12 +40,9 @@ MonoBehaviour:
     waveStrength: 0.05
     waveScale: {x: 0.2, y: 0.045}
     waveSpeed: {x: 2, y: 5}
-  metaData:
-    LightIntensity: 0
-    FlipStateRendeing: 0
   SelfCondition:
     data: 4278255488
-  SpreadChance: 0.1
+  SpreadChance: 0.0015
   SpreadTag: 2002
   MaterialDrops:
     SolidLootTable:

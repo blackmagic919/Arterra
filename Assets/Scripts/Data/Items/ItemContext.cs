@@ -70,6 +70,7 @@ namespace WorldConfig.Generation.Item {
             ActivePlayerPrimary,
             ActivePlayerSelected,
             ActivePlayerArmor,
+            ActivePlayerCraftingGrid,
         }
     }
 

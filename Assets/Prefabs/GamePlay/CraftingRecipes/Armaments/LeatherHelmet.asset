@@ -18,33 +18,48 @@ MonoBehaviour:
       value: []
   Names:
     value:
-    - LeatherHelmet
-    - Leather
     - 
-    - Air
+    - LeatherHelmet
+    - Leather:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 131072
-        - data: 116936
-        - data: 110511
-        - data: 116936
-        - data: 131072
-        - data: 131072
-        - data: 131072
-        - data: 116936
-        - data: 131072
-        - data: 131072
-        - data: 131072
-        - data: 116936
-        - data: 196608
-        - data: 116936
-        - data: 110511
-        - data: 116936
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
       result:
-        data: 51
-      MinQuantity: 1
+        data: 65791
+      NoSubUnitCreation: 0
   references:
     version: 2
     RefIds: []

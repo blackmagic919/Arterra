@@ -18,30 +18,48 @@ MonoBehaviour:
       value: []
   Names:
     value:
+    - 
     - Glass:Solid
-    - Sand
+    - Sand:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
-        - data: 104086
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
       result:
-        data: 255
+        data: 68596
+      NoSubUnitCreation: 0
   references:
     version: 2
     RefIds: []

@@ -37,7 +37,7 @@ public class Crafting : ScriptableObject{
     /// <summary> The maximum L1 distance between a recipe entry and the player's crafting grid
     /// for the recipe to be displayed in the crafting menu. The point is to show only the 
     /// closest recipes to the player's input to avoid cluttering the crafting menu. </summary>
-    public int MaxRecipeDistance; //64
+    public float MaxRecipeDistance; //64
     /// <summary> The maximum amount of selections that will be displayed under the crafting grid.
     /// This is the maximum amount of recipes that will be shown in case too many recipes are
     /// within <see cref="MaxRecipeDistance"/> of the player's crafting grid. </summary>

@@ -18,31 +18,48 @@ MonoBehaviour:
       value: []
   Names:
     value:
+    - 
     - String:Solid
-    - Hair
+    - Hair:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 104086
-        - data: 104086
-        - data: 0
-        - data: 0
-        - data: 104086
-        - data: 104086
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 2
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
       result:
-        data: 255
-      MinQuantity: 0
+        data: 66301
+      NoSubUnitCreation: 0
   references:
     version: 2
     RefIds: []

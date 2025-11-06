@@ -75,7 +75,7 @@ Shader "Unlit/CraftingShader"
 
             StructuredBuffer<matTerrain> _MatTerrainData;
             StructuredBuffer<liquidMat> _MatLiquidData;
-            uint IsoValue; float GridWidth;
+            float GridWidth;
 
             //A lot of global textures
             Texture2DArray _Textures;
@@ -98,7 +98,13 @@ Shader "Unlit/CraftingShader"
                 return o;
             }
 
-            StructuredBuffer<uint> CraftingInfo;
+            struct Ingredient {
+                int Index;
+                float Amount;
+                uint Flags;
+            };
+            //
+            StructuredBuffer<Ingredient> CraftingInfo;
 
             fixed3 GetMatColor(float2 uv, int index){
                 matTerrain matData = _MatTerrainData[index];
@@ -126,11 +132,12 @@ Shader "Unlit/CraftingShader"
             
                 return lerp(matData.WaterShallowCol, matData.WaterDeepCol, abs(waveNormal.y)); //Give illusion of shadows
             }
-            
-            uint density(uint data) { return data & 0x000000FF; }
-            uint viscosity(uint data) { return (data & 0x0000FF00) >> 8; }
-            uint material(uint data) { return (data & 0x7FFF0000) >> 16; }
-            bool isDirty(uint data) { return (data & 0x80000000) != 0; }
+
+            inline float sharpMap(float x, float pU, float pL) {
+                if (x < 0.5) return 0.4 * pow(2.0 * x, pL);
+                else return 1.0 - 0.6 * pow(2.0 * (1.0 - x), pU);
+            }
+
 
             fixed3 frag (v2f IN) : SV_Target
             {
@@ -139,40 +146,28 @@ Shader "Unlit/CraftingShader"
                 if(any(distToEdge < _GridSize))
                     return _GridColor;
 
-                
-                float2 solidParent = 0; 
-                uint solidMat = 0;
-                float2 liquidParent = 0;
-                uint liquidMat = 0;
-
+                float densAmt = 0;
+                Ingredient selIng = (Ingredient)0; selIng.Amount = -1.0f;
                 int offset = (IN.offset.r * 255.0f) * (GridWidth + 1) * (GridWidth + 1);
                 Influences2D blend = GetBlendInfo(gridPos);
 
                 [unroll]for(int i = 0; i < 4; i++){
-                    int2 cCoord = blend.origin + int2(i % 2, i / 2);
-                    int index = cCoord.x * (GridWidth + 1) + cCoord.y;
+                    int2 cCoord = gridPos + int2(i % 2, i / 2);
+                    int index = cCoord.x + cCoord.y * (GridWidth + 1);
 
-                    uint mapData = CraftingInfo[index + offset];
-                    float solidDensity = (int)viscosity(mapData) * blend.corner[i];
-                    float liquidDensity = (int)density(mapData) * blend.corner[i] - solidDensity;
-                    if(solidDensity >= solidParent.y && viscosity(mapData) >= IsoValue) {
-                        solidParent.y = solidDensity;
-                        solidMat = mapData;
-                    } if(liquidDensity >= liquidParent.y && density(mapData) 
-                        - viscosity(mapData) >= IsoValue) {
-                        liquidParent.y = liquidDensity;
-                        liquidMat = mapData;
-                    } 
-                    solidParent.x += solidDensity;
-                    liquidParent.x += liquidDensity;
+                    Ingredient ing = CraftingInfo[index + offset];
+                    ing.Amount = sharpMap(ing.Amount, 175.0f, 0.75f);//
+
+                    densAmt += ing.Amount * blend.corner[i];
+                    if (ing.Amount <= 0) continue;
+                    ing.Amount -= distance(cCoord, gridPos);
+                    if (ing.Amount > selIng.Amount) selIng = ing;
                 }
-
-                if(solidParent.x >= IsoValue){
-                    if (isDirty(solidMat) && IN.offset.g > 0) return _SelectedColor;
-                    else return GetMatColor(IN.uv / _TexScale, material(solidMat));
-                } else if(liquidParent.x >= IsoValue){
-                    if (isDirty(liquidMat) && IN.offset.g > 0) return _SelectedColor;
-                    else return GetLiquidColor(IN.uv / _TexScale, material(liquidMat));
+                float blendWeight = smoothstep(0, 0.25, densAmt);
+                float finalAmt = lerp(selIng.Amount, densAmt, blendWeight);
+                if(finalAmt > 0){
+                    if ((selIng.Flags & 0x1) && IN.offset.g > 0) return _SelectedColor;
+                    else return GetMatColor(IN.uv / _TexScale, selIng.Index);
                 } else discard;
                 return 0;
             }

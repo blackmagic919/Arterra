@@ -18,31 +18,49 @@ MonoBehaviour:
       value: []
   Names:
     value:
+    - 
     - Embers:Solid
-    - Coal
-    - Wood
+    - Wood:Solid
+    - Coal:Solid
   Recipe:
     value:
       entry:
         value:
-        - data: 169622
-        - data: 104086
-        - data: 0
-        - data: 0
-        - data: 104086
-        - data: 169622
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
-        - data: 0
+        - Index: 2
+          Amount: 1
+        - Index: 3
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 3
+          Amount: 1
+        - Index: 2
+          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
       result:
-        data: 255
-    references:
-      version: 2
-      RefIds: []
+        data: 66046
+      NoSubUnitCreation: 0
+  references:
+    version: 2
+    RefIds: []
