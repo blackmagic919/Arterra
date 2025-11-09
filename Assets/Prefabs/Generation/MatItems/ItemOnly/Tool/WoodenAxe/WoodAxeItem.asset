@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: WoodAxe
+  Description: Wooden Tool For Chopping Wooden Materials
   TerraformRadius: 1
   MaxDurability: 100
   ToolTag: 2

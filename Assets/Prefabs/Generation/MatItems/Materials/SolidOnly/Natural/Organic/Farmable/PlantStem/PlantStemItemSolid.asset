@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: PlantStem
+  Description: Supporting Structure of a Plant
   MaterialName: PlantStem
   MaterialState: 0
   references:

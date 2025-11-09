@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: DirtItemSolid
   m_EditorClassIdentifier: 
   Name: Dirt:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: Dirt
+  Description: Loose Earthy Material found Covering the Ground
   MaterialName: Dirt
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

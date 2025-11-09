@@ -17,8 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: Boat
-  MaterialName: 
-  MaterialState: 0
+  Description: Basic Wooden Vessel for Transportation Across Waterbodies
   references:
     version: 2
     RefIds: []

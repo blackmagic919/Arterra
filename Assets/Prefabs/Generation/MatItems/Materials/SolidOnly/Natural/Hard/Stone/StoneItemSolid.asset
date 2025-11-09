@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: StoneItemSolid
   m_EditorClassIdentifier: 
   Name: Stone:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: Stone
+  Description: Pressurized Mineral Found Underground
   MaterialName: Stone
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

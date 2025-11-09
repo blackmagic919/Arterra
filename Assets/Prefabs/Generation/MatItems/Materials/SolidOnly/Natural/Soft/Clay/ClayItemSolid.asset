@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: ClayItemSolid
   m_EditorClassIdentifier: 
   Name: Clay:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: Clay
+  Description: Soft Moldable Material found near Bodies of Water
   MaterialName: Clay
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

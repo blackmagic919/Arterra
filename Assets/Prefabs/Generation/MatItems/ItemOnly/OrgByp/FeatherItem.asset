@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: Feather
+  Description: 'Common Quill Plucked from an Avian Bird '
   references:
     version: 2
     RefIds: []

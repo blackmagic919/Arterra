@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: GrassItemSolid
   m_EditorClassIdentifier: 
   Name: Grass:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: Grass
+  Description: Common Green Vegetation found Growing on the Ground
   MaterialName: Grass
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

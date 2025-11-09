@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: SandItemSolid
   m_EditorClassIdentifier: 
   Name: Sand:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: Sand
+  Description: Fine Granular Material found on Beaches and Deserts
   MaterialName: Sand
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: IronIngot
+  Description: Sturdy Metal used in Forging Equipment.
   MaterialName: Iron
   MaterialState: 0
   references:

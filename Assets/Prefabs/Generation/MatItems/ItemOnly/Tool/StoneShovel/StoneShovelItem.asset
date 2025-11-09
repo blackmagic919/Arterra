@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: StoneShovel
+  Description: Stone Tool For Removing Loose and Soft Materials
   TerraformRadius: 1
   MaxDurability: 200
   ToolTag: 13

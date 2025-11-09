@@ -317,26 +317,32 @@ public static class InventoryController {
         if (e.AmountRaw == 0) return;
         DropItem(e);
     }
-    public static int RemoveStackable(int delta, int itemIndex = -1, int SelIndex = -1) {
+    public static int RemoveStackable(int delta, int itemIndex = -1, int SelIndex = -1, Action<IItem> OnRemoved = null) {
         bool TryFromIndex(int SelIndex, out int amount) {
             amount = 0;
             if (SelIndex == -1) return false;
             if (Primary.Info[SelIndex] == null) return false;
             if (itemIndex != -1 && Primary.Info[SelIndex].Index != itemIndex)
                 return false;
-            amount = Primary.RemoveStackableSlot(SelIndex, delta);
+            if (OnRemoved != null) {
+                IItem removed = Primary.Info[SelIndex].Clone() as IItem;
+                amount = Primary.RemoveStackableSlot(SelIndex, delta);
+                removed.AmountRaw = amount;
+                OnRemoved.Invoke(removed);
+            } else amount = Primary.RemoveStackableSlot(SelIndex, delta);
             return true;
         }
 
         if (TryFromIndex(SelIndex, out int rem)) return rem;
         if (TryFromIndex(SelectedIndex, out rem)) return rem;
         if (Primary.EntryDict.ContainsKey(itemIndex)) {
-            return Primary.RemoveStackableKey(itemIndex, delta);
+            return Primary.RemoveStackableKey(itemIndex, delta, OnRemoved);
         } else if (Secondary.EntryDict.ContainsKey(itemIndex)) {
-            return Secondary.RemoveStackableKey(itemIndex, delta);
+            return Secondary.RemoveStackableKey(itemIndex, delta, OnRemoved);
         }
         return 0;
     }
+
 
 
     public class Inventory : IInventory {
@@ -372,11 +378,10 @@ public static class InventoryController {
             IItem[] nInfo = new IItem[SlotCount];
             LLNode[] nEntryLL = new LLNode[SlotCount];
             for (int i = SlotCount; i < capacity; i++) {
-                if(Info[i] != null) OnRelease?.Invoke(Info[i].Clone() as IItem);
-                Info[i]?.OnLeave(
-                    OnRemoveElement?
-                    .Invoke(new ItemContext(this, i))
-                ); RemoveEntry((int)i);
+                if (Info[i] != null) OnRelease?.Invoke(Info[i].Clone() as IItem);
+                ItemContext cxt = new(this, i);
+                cxt = OnRemoveElement?.Invoke(cxt) ?? cxt;
+                Info[i]?.OnLeave(cxt); RemoveEntry((int)i);
             }
             for (int i = 0; i < math.min(SlotCount, capacity); i++) {
                 nInfo[i] = Info[i];
@@ -415,11 +420,11 @@ public static class InventoryController {
             }
         }
 
-        public void ReleaseDisplay(ObjectPool<GameObject> pool) {
+        public void ReleaseDisplay(Action<GameObject> Release) {
             if (Display == null) return;
             for (int i = 0; i < capacity; i++) {
                 ClearDisplay(i);
-                pool.Release(Display.Slots[i]);
+                Release(Display.Slots[i]);
             } 
             GameObject.Destroy(Display.root);
             Display = null;
@@ -450,14 +455,36 @@ public static class InventoryController {
         public void ReapplyHandles() {
             for (int i = 0; i < Info.Length; i++) {
                 if (Info[i] == null) continue;
-                Info[i].OnEnter(OnAddElement(new ItemContext(this, i)));
+                ItemContext cxt = new(this, i);
+                cxt = OnAddElement?.Invoke(cxt) ?? cxt;
+                Info[i].OnEnter(cxt);
             }
         }
 
         public void UnapplyHandles() {
             for (int i = 0; i < Info.Length; i++) {
                 if (Info[i] == null) continue;
-                Info[i].OnLeave(OnRemoveElement(new ItemContext(this, i)));
+                ItemContext cxt = new(this, i);
+                cxt = OnRemoveElement?.Invoke(cxt) ?? cxt;
+                Info[i].OnLeave(cxt);
+            }
+        }
+
+        public void Clear() {
+            for (int i = 0; i < Info.Length; i++) {
+                if (Info[i] == null) continue;
+                RemoveEntry(i);
+            }
+        }
+
+        public void CopyTo(Inventory newInv, int sourceStart = 0, int destStart = 0, int length = int.MaxValue) {
+            sourceStart = (int)math.min(capacity, sourceStart);
+            destStart = (int)math.min(newInv.capacity, destStart);
+            length = (int)math.min(math.min(length, capacity - sourceStart), newInv.capacity - destStart);
+            for (int i = 0; i < length; i++) {
+                if (newInv.Info[destStart + i] != null) newInv.RemoveEntry(i);
+                if (Info[sourceStart + i] == null) continue;
+                newInv.AddEntry(Info[sourceStart + i].Clone() as IItem, destStart + i);
             }
         }
 
@@ -534,7 +561,7 @@ public static class InventoryController {
 
         //Input: Request a certain type of stackable of a certain amount
         //Returns: The actual amount removed
-        public int RemoveStackableKey(int KeyIndex, int delta) {
+        public int RemoveStackableKey(int KeyIndex, int delta, Action<IItem> OnRemove = null) {
             if (delta == 0) return 0;
             int start = delta; int remainder = start;
             while (remainder > 0) {
@@ -544,7 +571,11 @@ public static class InventoryController {
                 IItem mat = Info[SlotIndex];
                 delta = mat.AmountRaw - math.max(mat.AmountRaw - remainder, 0);
                 mat.AmountRaw -= delta; remainder -= delta;
-                if (mat.AmountRaw != 0) DictUpdate(SlotIndex);
+                if (OnRemove != null) {
+                    IItem removed = mat.Clone() as IItem;
+                    removed.AmountRaw = delta;
+                    OnRemove(removed);
+                } if (mat.AmountRaw != 0) DictUpdate(SlotIndex);
                 else RemoveEntry(SlotIndex);
             }
             return start - remainder;
@@ -562,10 +593,10 @@ public static class InventoryController {
             LLRemove((uint)SlotIndex);
             LLAdd((uint)SlotIndex, tail);
 
-            Info[SlotIndex].OnLeave(
-                OnRemoveElement?
-                .Invoke(new ItemContext(this, SlotIndex))
-            );
+            ItemContext cxt = new(this, SlotIndex);
+            cxt = OnRemoveElement?.Invoke(cxt) ?? cxt;
+            Info[SlotIndex].OnLeave(cxt);
+
             ClearDisplay(SlotIndex);
             Info[SlotIndex].AmountRaw = 0;
             Info[SlotIndex] = null;
@@ -585,7 +616,9 @@ public static class InventoryController {
             AttachDisplay(head);
             entry.AmountRaw = 0;
             DictEnqueue(head);
-            Info[head].OnEnter(OnAddElement?.Invoke(new ItemContext(this, head)));
+            ItemContext cxt = new(this, head);
+            cxt = OnAddElement?.Invoke(cxt) ?? cxt;
+            Info[head].OnEnter(cxt);
 
             return true;
         }
@@ -601,7 +634,9 @@ public static class InventoryController {
             AttachDisplay(index);
             entry.AmountRaw = 0;
             DictEnqueue(index);
-            Info[index].OnEnter(OnAddElement?.Invoke(new ItemContext(this, index)));
+            ItemContext cxt = new(this, index);
+            cxt = OnAddElement?.Invoke(cxt) ?? cxt;
+            Info[index].OnEnter(cxt);
 
             return true;
         }

@@ -40,6 +40,8 @@ public class RegistrySearchDisplay<T> where T : ISlot {
     public GridUIManager GridContainer;
     public T[] SlotEntries;
     private int NumSlots;
+    private string SearchQuery = "";
+    private int PageIndex = 0;
 
     public RegistrySearchDisplay(
         Registry<T> registry,
@@ -51,11 +53,29 @@ public class RegistrySearchDisplay<T> where T : ISlot {
         this.SearchMenu = SearchMenu;
         this.SearchInput = SearchInput;
         this.GridContainer = GridContainer;
-        SearchInput.onValueChanged.AddListener(ProcessSearchRequest);
         SearchInput.DeactivateInputField();
+        SearchInput.onValueChanged.AddListener(ProcessSearchRequest);
         SlotEntries = new T[GridContainer.Slots.Count()];
         NumSlots = math.min(SlotEntries.Length, registry.Count());
     }
+
+    public void AddPaginateButtons(Button prev, Button next) {
+        prev.onClick.RemoveAllListeners();
+        next.onClick.RemoveAllListeners();
+        prev.onClick.AddListener(PreviousPage);
+        next.onClick.AddListener(NextPage);
+        if (PageIndex == 0) prev.interactable = false;
+        void NextPage() {
+            ProcessSearchRequest(SearchQuery, PageIndex + 1);
+            next.interactable = PageIndex < registry.Count() / NumSlots;
+            prev.interactable = true;
+        } void PreviousPage() {
+            ProcessSearchRequest(SearchQuery, PageIndex - 1);
+            prev.interactable = PageIndex > 0;
+            next.interactable = true;
+        }
+    }
+
 
     public void Activate() {
         SearchInput.ActivateInputField();
@@ -69,9 +89,12 @@ public class RegistrySearchDisplay<T> where T : ISlot {
         SearchMenu.gameObject.SetActive(false);
     }
 
-    private void ProcessSearchRequest(string input) {
-        List<int> closestEntries = FindClosestEntries(input);
+    private void ProcessSearchRequest(string input) => ProcessSearchRequest(input, 0);
+    private void ProcessSearchRequest(string input, int pageIndex = 0) {
         ClearDisplay();
+        this.SearchQuery = input;
+        this.PageIndex = math.clamp(pageIndex, 0, registry.Count() / NumSlots);
+        List<int> closestEntries = FindClosestEntries(input, PageIndex);
         for (int i = 0; i < closestEntries.Count; i++) {
             SlotEntries[i] = registry.Retrieve(closestEntries[i]);
             SlotEntries[i].AttachDisplay(GridContainer.Slots[i].transform);
@@ -86,7 +109,7 @@ public class RegistrySearchDisplay<T> where T : ISlot {
         }
     }
 
-    private List<int> FindClosestEntries(string input) {
+    private List<int> FindClosestEntries(string input, int pageIndex) {
         int[] entryDist = new int[registry.Count()];
         for (int i = 0; i < entryDist.Length; i++) {
             entryDist[i] = CalculateEditDistance(input, registry.RetrieveName(i));
@@ -94,7 +117,9 @@ public class RegistrySearchDisplay<T> where T : ISlot {
 
         List<int> sortedIndices = Enumerable.Range(0, registry.Count()).ToList();
         sortedIndices.Sort((a, b) => entryDist[a].CompareTo(entryDist[b]));
-        return sortedIndices.GetRange(0, NumSlots).ToList();
+        int end = math.min(registry.Count(), (pageIndex+1) * NumSlots);
+        int start = math.max(end - NumSlots, 0);
+        return sortedIndices.GetRange(start, end-start).ToList();
     }
     private int CalculateEditDistance(string a, string b) {
         int[,] dp = new int[a.Length + 1, b.Length + 1];
@@ -136,7 +161,8 @@ public class GridUIManager {
         GameObject GridUIComponent,
         Func<GameObject> GetSlot,
         int slotCount,
-        GameObject root = null
+        GameObject root = null, 
+        Func<GameObject, GameObject> GetSlotDisplay = null
     ) {
         this.Object = GridUIComponent;
         this.Transform = Object.GetComponent<RectTransform>();
@@ -145,8 +171,9 @@ public class GridUIManager {
 
         Slots = new GameObject[slotCount];
         for (int i = 0; i < slotCount; i++) {
-            Slots[i] = GetSlot.Invoke();
-            Slots[i].transform.SetParent(Object.transform, false);
+            GameObject Slot = GetSlot.Invoke();
+            Slot.transform.SetParent(Object.transform, false);
+            Slots[i] = GetSlotDisplay?.Invoke(Slot) ?? Slot;
         }
     }
 

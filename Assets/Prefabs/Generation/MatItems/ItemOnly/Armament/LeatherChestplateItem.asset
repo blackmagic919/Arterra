@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: LeatherChestplate
+  Description: Wearable ChestPlate Made of Leather
   EquipInfo:
     Regions:
       value:

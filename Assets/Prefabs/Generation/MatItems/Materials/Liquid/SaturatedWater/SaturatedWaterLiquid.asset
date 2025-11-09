@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: SaturatedWaterLiquid
   m_EditorClassIdentifier: 
   Name: SaturatedWater:Liquid
+  Tags:
+    Reg:
+      value: []
   TextureName: Water
+  Description: Water Saturated With Nutrients and Plankton
   MaterialName: SaturatedWater
   MaterialState: 1
+  references:
+    version: 2
+    RefIds: []

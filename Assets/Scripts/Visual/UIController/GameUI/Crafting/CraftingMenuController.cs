@@ -21,12 +21,12 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
     public CraftingRecipeSearch RecipeSearch;
     private KTree Recipe;
     private GameObject craftingMenu;
-    private Display Rendering;
+    public Display Rendering;
     private IUpdateSubscriber eventTask;
     private ComputeBuffer craftingBuffer;
     private int TotalGrids;
 
-    private int GridWidth;
+    public int GridWidth;
     internal int AxisWidth => GridWidth + 1;
     internal int GridCount => AxisWidth * AxisWidth;
     private int2 GridSize => (int2)(float2)(Rendering.crafting.display.Transform.sizeDelta
@@ -77,7 +77,6 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         Refresh();
         UpdateDisplay();
         craftingMenu.SetActive(true);
-        RecipeSearch.Activate();
         Rendering.InitializeDisplay(GridWidth);
     }
 
@@ -151,7 +150,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
 
         //Crafting Point Scaling
         EvaluateInfluence((corner, influence) => {
-            int index = corner.x * AxisWidth + corner.y;
+            int index = corner.x + corner.y * AxisWidth;
             RectTransform craftingPoint = Rendering.corners[index];
             craftingPoint.transform.localScale = new Vector3(1, 1, 1) * math.lerp(1, settings.PointSizeMultiplier, influence);
         });
@@ -188,7 +187,75 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         CraftRecipe();
         Refresh();
     }
-    
+
+    private void Refresh() {
+        Rendering.crafting.RefreshInventoryGrid(Rendering.MainGridMatItems);
+        CraftingRecipe target = Rendering.SerializeToRecipe();
+        List<int> recipes = Recipe.QueryNearestLimit(target, settings.MaxRecipeDistance, settings.NumMaxSelections);
+        FitRecipe = recipes.Count > 0 ? recipes[0] : -1;
+
+        for (int r = 0; r < recipes.Count; r++) {
+            Rendering.selections[r].RefreshGridWithRecipe(Recipe.Table[recipes[r]], GridWidth);
+        }
+
+        for (int i = 0; i < Rendering.selections.Length; i++) {
+            CraftingGrid grid = Rendering.selections[i];
+            if (i < recipes.Count) {
+                if (!grid.display.Object.activeSelf)
+                    grid.display.Object.SetActive(true);
+            } else if (i >= recipes.Count && Rendering.selections[i].display.Object.activeSelf) {
+                grid.ReleaseDisplay();
+                grid.display.Object.SetActive(false);
+            }
+        }
+        Rendering.IsDirty = true;
+    }
+
+    private void Clear(Action<IItem> ReleaseItem = null) {
+        InventoryController.Inventory inv = Rendering.MainGridMatItems;
+        for (int i = 0; i < inv.Info.Length; i++) {
+            ReleaseItem?.Invoke(inv.Info[i]);
+            inv.RemoveEntry(i);
+        }
+        Rendering.IsDirty = true;
+        inv = Rendering.crafting.NonMatInventory;
+        for (int i = 0; i < inv.Info.Length; i++) {
+            ReleaseItem?.Invoke(inv.Info[i]);
+            inv.RemoveEntry(i);
+        }
+        Rendering.IsDirty = true;
+
+        for (int i = 0; i < Rendering.selections.Length; i++) {
+            Rendering.selections[i].display.Object.SetActive(false);
+        }
+        FitRecipe = -1;
+    }
+
+
+    private void FlashIndicator() {
+        CraftingRecipe recipe = Recipe.Table[FitRecipe];
+        GetInsufficientEntries(Rendering.MainGridMatItems.Info, recipe.materials.value, index => {
+            Animator anim = Rendering.corners[index].GetComponent<Animator>();
+            anim.SetTrigger("Flash");
+        });
+        GetInsufficientEntries(Rendering.crafting.NonMatInventory.Info, recipe.items.value, index => {
+            Animator anim = Rendering.crafting.NonMatInventory.Display.Slots[index].GetComponent<Animator>();
+            anim.SetTrigger("Flash");
+        });
+        
+
+        void GetInsufficientEntries(IItem[] inv, List<CraftingRecipe.Ingredient> recipe, Action<int> OnFindEntry) {
+            for (int i = 0; i < recipe.Count(); i++) {
+                IItem placedItem = inv[i];
+                CraftingRecipe.Ingredient ingred = recipe[i];
+                if (placedItem == null) continue;
+                if (ingred.Amount <= 0) continue;
+                float unitAmt = ((float)placedItem.AmountRaw) / placedItem.UnitSize;
+                OnFindEntry.Invoke(i);
+            }
+        }
+    }
+
     private bool CraftRecipe() {
         if (FitRecipe == -1) return false;
 
@@ -199,11 +266,16 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             return false;
         float minIngred = math.min(minMat, minItem);
 
-        if (recipe.NoSubUnitCreation && minIngred < 1) return false;
+        if (recipe.NoSubUnitCreation && minIngred < 1) {
+            //Indicate to user which ingredients are insufficient
+            FlashIndicator();
+            return false;
+        }
+
         //Clear grid of that amount
         ConsumeIngredientList(Rendering.MainGridMatItems, recipe.materials.value, minIngred);
         ConsumeIngredientList(Rendering.crafting.NonMatInventory, recipe.items.value, minIngred);
-        
+
         IItem result = recipe.ResultItem;
         minIngred *= recipe.result.Multiplier * result.UnitSize;
 
@@ -247,49 +319,98 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             }
         }
     }
+    
+    public void MatchRecipe(CraftingRecipe recipe) {
+        if (recipe == null) return;
+        Dictionary<int, int> Deficit = new Dictionary<int, int>();
+        Dictionary<int, int> Surplus = new Dictionary<int, int>();
+        Catalogue<Authoring> itemInfo = Config.CURRENT.Generation.Items;
 
-    private void Refresh() {
-        Rendering.crafting.RefreshInventoryGrid(Rendering.MainGridMatItems);
-        CraftingRecipe target = Rendering.SerializeToRecipe();
-        List<int> recipes = Recipe.QueryNearestLimit(target, settings.MaxRecipeDistance, settings.NumMaxSelections);
-        FitRecipe = recipes.Count > 0 ? recipes[0] : -1;
+        bool alreadyMatch = true; float maxBatchPossible = float.MaxValue;
+        //Twice combined capacity so we don't overflow
+        uint tempCapacity = Rendering.MainGridMatItems.capacity + Rendering.crafting.NonMatInventory.capacity;
+        InventoryController.Inventory tempInv = new InventoryController.Inventory(2 * (int)tempCapacity);
+        int itemOffset = (int)Rendering.MainGridMatItems.capacity;
+        Rendering.MainGridMatItems.CopyTo(tempInv, 0, 0);
+        Rendering.crafting.NonMatInventory.CopyTo(tempInv, 0, itemOffset);
+        Rendering.MainGridMatItems.Clear(); Rendering.crafting.NonMatInventory.Clear();
+        AccumulateRequiredIngredients(Rendering.MainGridMatItems, recipe.materials.value, 0);
+        AccumulateRequiredIngredients(Rendering.crafting.NonMatInventory, recipe.items.value, itemOffset);
 
-        for (int r = 0; r < recipes.Count; r++) {
-            Rendering.selections[r].RefreshGridWithRecipe(Recipe.Table[recipes[r]], GridWidth);
+        //Aquire items from inventory
+        foreach (int item in Deficit.Keys) {
+            if (!Surplus.TryGetValue(item, out int surplus))
+                surplus = 0;
+
+            int required = Deficit[item];
+            if (alreadyMatch) required = Mathf.FloorToInt(required * maxBatchPossible);
+            if (surplus > required) continue;
+            surplus += InventoryController.RemoveStackable(required - surplus, item,
+                OnRemoved: item => tempInv.AddStackable(item));
+            Surplus[item] = surplus;
         }
 
-        for (int i = 0; i < Rendering.selections.Length; i++) {
-            CraftingGrid grid = Rendering.selections[i];
-            if (i < recipes.Count) {
-                if (!grid.display.Object.activeSelf)
-                    grid.display.Object.SetActive(true);
-            } else if (i >= recipes.Count && Rendering.selections[i].display.Object.activeSelf) {
-                grid.ReleaseDisplay();
-                grid.display.Object.SetActive(false);
+        PlaceRequiredIngredients(Rendering.MainGridMatItems, recipe.materials.value);
+        PlaceRequiredIngredients(Rendering.crafting.NonMatInventory, recipe.items.value);
+        Refresh(); UpdateDisplay();
+        
+        //Dispose of temporaryInventory
+        for(int i = 0; i < tempInv.capacity; i++) {
+            IItem item = tempInv.Info[i];
+            if (item == null) continue;
+            item = item.Clone() as IItem;
+            InventoryController.AddEntry(item);
+            tempInv.RemoveEntry(i);
+        }
+
+        void AccumulateRequiredIngredients(InventoryController.Inventory inv, List<CraftingRecipe.Ingredient> ingList, int offset) {
+            for (int i = 0; i < ingList.Count; i++) {
+                CraftingRecipe.Ingredient ing = ingList[i];
+                IItem item = tempInv.Info[offset + i];
+
+                //Add Surplus
+                if (item != null) {
+                    if (Surplus.ContainsKey(item.Index)) {
+                        Surplus[item.Index] += item.AmountRaw;
+                    } else Surplus[item.Index] = item.AmountRaw;
+                }
+
+                if (ing.Amount <= 0)
+                    alreadyMatch &= item == null;
+                else {
+                    //Init so we can query valid UnitSize
+                    if (item == null || item.Index != ing.Index) {
+                        item = itemInfo.Retrieve(ing.Index).Item;
+                        item.Create(ing.Index, 0);
+                    }
+
+                    int required = Mathf.CeilToInt(ing.Amount * item.UnitSize);
+                    alreadyMatch &= item.AmountRaw >= required; //Not possible if Index != ing.Index
+                    maxBatchPossible = math.min(item.StackLimit / required, maxBatchPossible);
+                    if (Deficit.ContainsKey(item.Index)) Deficit[ing.Index] += required;
+                    else Deficit[ing.Index] = required;
+                }
             }
         }
-        Rendering.IsDirty = true;
+
+        void PlaceRequiredIngredients(InventoryController.Inventory dest, List<CraftingRecipe.Ingredient> ingList) {
+            for (int i = 0; i < ingList.Count; i++) {
+                CraftingRecipe.Ingredient ing = ingList[i];
+                if (ing.Amount <= 0) continue;
+                IItem item = itemInfo.Retrieve(ing.Index).Item;
+                item.Create(ing.Index, 0);
+                float req = ing.Amount * item.UnitSize;
+                int amount = Mathf.CeilToInt(Surplus[ing.Index] * req / Deficit[ing.Index]);
+                tempInv.RemoveStackableKey(ing.Index, amount, item => {
+                    if (dest.Info[i] == null) dest.AddEntry(item, i);
+                    else dest.Info[i].AmountRaw += item.AmountRaw;
+                });
+            }   
+        }
     }
     
-    private void Clear(Action<IItem> ReleaseItem = null) {
-        InventoryController.Inventory inv = Rendering.MainGridMatItems;
-        for (int i = 0; i < inv.Info.Length; i++) {
-            ReleaseItem?.Invoke(inv.Info[i]);
-            inv.RemoveEntry(i);
-        } Rendering.IsDirty = true;
-        inv = Rendering.crafting.NonMatInventory;
-        for (int i = 0; i < inv.Info.Length; i++) {
-            ReleaseItem?.Invoke(inv.Info[i]);
-            inv.RemoveEntry(i);
-        } Rendering.IsDirty = true;
 
-        for (int i = 0; i < Rendering.selections.Length; i++) {
-            Rendering.selections[i].display.Object.SetActive(false);
-        }
-        FitRecipe = -1;
-    }
-
-    struct Display {
+    public struct Display {
         public CraftingGrid crafting;
         public CraftingGrid[] selections;
         public RectTransform[] corners;
@@ -342,7 +463,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             GameObject craftingPoint = Resources.Load<GameObject>("Prefabs/GameUI/Crafting/CraftingPoint");
             for (int i = 0; i < corners.Length; i++) {
                 corners[i] = GameObject.Instantiate(craftingPoint, crafting.display.Transform).GetComponent<RectTransform>();
-                corners[i].transform.Translate(new Vector3((i / AxisWidth) * GridSize.x, (i % AxisWidth) * GridSize.y, 0));
+                corners[i].transform.Translate(new Vector3((i % AxisWidth) * GridSize.x, (i / AxisWidth) * GridSize.y, 0));
             }
         }
 
@@ -362,7 +483,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         }
     }
 
-    private class CraftingGrid {
+    public class CraftingGrid {
         private int gridIndex;
         public Grid display;
         public CraftingRecipe.Ingredient[] GridData;
@@ -414,7 +535,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             }
 
             ingredients = recipe.items.value;
-            NonMatInventory?.ReleaseDisplay(Indicators.TransparentSlots);
+            ReleaseDisplay();
             NonMatInventory = new InventoryController.Inventory(ingredients.Count());
             NonMatInventory.AddCallbacks(GetCraftingCxt, GetCraftingCxt);
             for (int i = 0; i < ingredients.Count(); i++) {
@@ -438,14 +559,33 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             GameObject Root = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Inventory"), display.Object.transform);
             GameObject GridContent = Root.transform.GetChild(0).GetChild(0).gameObject;
             GridUIManager Display = new GridUIManager(GridContent,
-                Indicators.TransparentSlots.Get,
-                (int)NonMatInventory.capacity, Root);
+                Indicators.TransparentSlots.Get, (int)NonMatInventory.capacity, Root,
+                Obj => {
+                GameObject frame = Obj.transform.GetChild(0).gameObject;
+                ResizeSlotRect(frame, Vector2.one * 0.75f);
+                return frame;
+            });
+            
             NonMatInventory.InitializeDisplay(Display);
             NonMatInventory.Display.Grid.cellSize = display.Transform.sizeDelta / GridWidth;
             NonMatInventory.Display.Grid.spacing = float2.zero;
         }
 
-        public void ReleaseDisplay() => NonMatInventory.ReleaseDisplay(Indicators.TransparentSlots);
+        public void ReleaseDisplay() {
+            NonMatInventory?.ReleaseDisplay(frame => {
+                ResizeSlotRect(frame, Vector2.one);
+                Indicators.TransparentSlots.Release(frame.transform.parent.gameObject);
+            });
+        }
+
+        public static void ResizeSlotRect(GameObject slot, Vector2 size) {
+            RectTransform tnsf = slot.GetComponent<RectTransform>();
+            tnsf.anchorMin = Vector2.one * 0.5f - size/2.0f;
+            tnsf.anchorMax = Vector2.one * 0.5f + size/2.0f;
+            tnsf.offsetMin = Vector2.zero;
+            tnsf.offsetMax = Vector2.zero;
+        }
+
         public struct Grid {
             public GameObject Object;
             public RectTransform Transform;
@@ -456,135 +596,6 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
                 Display = obj.GetComponent<Image>();
                 Display.color = new Color(gridIndex / 255.0f, 0, 0);
             }
-        }
-    }
-
-    public class CraftingRecipeSearch {
-        private Transform Menu;
-        private Transform SearchContainer;
-        private TMP_InputField SearchInput;
-        private RegistrySearchDisplay<CraftingAuthoring> RecipeSearch;
-
-        private Transform RecipeDisplay;
-        private CraftingGrid RecipeGrid;
-        private IndirectUpdate HighlightTask;
-
-
-        public CraftingRecipeSearch(Transform craftingMenu, ref int GridIndex) {
-            var settings = Config.CURRENT.System.Crafting.value;
-            Menu = craftingMenu.transform.Find("SearchArea");
-            SearchInput = Menu.Find("SearchBar").GetComponentInChildren<TMP_InputField>();
-            SearchContainer = Menu.Find("RecipeShelf").GetChild(0).GetChild(0);
-            RecipeDisplay = Menu.Find("RecipeDisplay");
-            HighlightTask = null;
-
-            Registry<CraftingAuthoring> registry = Registry<CraftingAuthoring>.FromCatalogue(Config.CURRENT.System.Crafting.value.Recipes);
-            GridUIManager RecipeContainer = new GridUIManager(SearchContainer.gameObject,
-                Indicators.RecipeSelections.Get, settings.MaxRecipeSearchDisplay);
-            RecipeSearch = new RegistrySearchDisplay<CraftingAuthoring>(
-                registry, Menu, SearchInput, RecipeContainer
-            );
-
-            RecipeGrid = new(RecipeDisplay.Find("RecipeGrid").gameObject, instance.GridWidth, GridIndex);
-            Image img = RecipeGrid.display.Display;
-            img.color = new Color(img.color.r, 1, 0);
-            GridIndex++;
-
-            SearchInput.onValueChanged.AddListener(DeactivateRecipeDisplay);
-            DeactivateRecipeDisplay();
-        }
-
-        public void CopyToBuffer(CraftingRecipe.Ingredient[] SharedData) {
-            RecipeGrid.CopyToBuffer(SharedData);
-        }
-        internal void Activate() {
-            RecipeSearch.Activate();
-            InputPoller.AddKeyBindChange(() => {
-                InputPoller.AddBinding(new ActionBind("Select",
-                    CraftingMenuSelect, ActionBind.Exclusion.None),
-                    "PlayerCraft:SEL", "3.5::Window");
-            });
-        }
-
-        internal void Deactivate() {
-            DeactivateRecipeDisplay();
-            RecipeSearch.Deactivate();
-        }
-
-        public void ActivateRecipeDisplay(CraftingRecipe recipe) {
-            if (HighlightTask != null)
-                HighlightTask.Active = false;
-            HighlightTask = new IndirectUpdate(HighlightGridMaterial);
-            OctreeTerrain.MainLoopUpdateTasks.Enqueue(HighlightTask);
-            RecipeGrid.RefreshGridWithRecipe(recipe, instance.GridWidth);
-            SearchContainer.gameObject.SetActive(false);
-            RecipeDisplay.gameObject.SetActive(true);
-
-            HighlightGridMaterial(null);
-            instance.Rendering.IsDirty = true;
-        }
-
-        public void DeactivateRecipeDisplay(string _ = null) {
-            if (HighlightTask != null)
-                HighlightTask.Active = false;
-            HighlightTask = null;
-
-            SearchContainer.gameObject.SetActive(true);
-            RecipeDisplay.gameObject.SetActive(false);
-        }
-
-        private void CraftingMenuSelect(float _) {
-            if (!SearchContainer.gameObject.activeSelf) return;
-            if (!RecipeSearch.GridContainer.GetMouseSelected(out int index))
-                return;
-            ActivateRecipeDisplay(RecipeSearch.SlotEntries[index].SerializeCopy());
-        }
-
-        Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        private void HighlightGridMaterial(MonoBehaviour _) {
-            if (!GetMouseOverMaterial(out int material))
-                material = -1;
-            bool changed = false;
-            for (int i = 0; i < instance.GridCount; i++) {
-                bool IsTarget = RecipeGrid.GridData[i].Index == material;
-                //Update the visuals if the mouse-over material changes
-                changed |= ((RecipeGrid.GridData[i].flags & 0x1) != 0) ^ IsTarget;
-                RecipeGrid.GridData[i].flags = IsTarget ? 1u : 0;
-            }
-            if (!changed) return;
-            instance.Rendering.IsDirty = true;
-            RecipeDisplay.Find("RecipeMaterial")
-                .GetComponent<TextMeshProUGUI>().text = material >= 0 ?
-                matInfo.RetrieveName(material) : "";
-        }
-        private bool GetMouseOverMaterial(out int material) {
-            Vector3[] corners = new Vector3[4];
-            RecipeGrid.display.Transform.GetWorldCorners(corners);
-            int2 origin = new((int)corners[0].x, (int)corners[0].y);
-            float2 worldSize = (Vector2)(corners[2] - corners[0]);
-            float2 GridSize = worldSize / instance.GridWidth;
-
-            material = 0;
-            float2 relativePos = (((float3)Input.mousePosition).xy - origin) / GridSize;
-            if (math.any(relativePos < 0) || math.any(relativePos >= instance.GridWidth)) {
-                return false;
-            }
-            int2 gridPos = (int2)math.floor(relativePos);
-            float maxAmount = float.MinValue;
-            
-            for (int i = 0; i < 4; i++) {
-                int2 corner = gridPos + new int2(i / 2, i % 2);
-                int index = corner.x + corner.y * instance.AxisWidth;
-                float d = math.distance(corner, relativePos);
-
-                float scaledAmt = RecipeGrid.GridData[index].Amount - d;
-                if (scaledAmt > maxAmount) {
-                    material = (int)RecipeGrid.GridData[index].Index;
-                    maxAmount = scaledAmt;
-                }
-            }
-
-            return maxAmount > 0;
         }
     }
 

@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: HardwoodItemSolid
   m_EditorClassIdentifier: 
   Name: Hardwood:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: Hardwood
+  Description: Wood that has been Reinforced
   MaterialName: Hardwood
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

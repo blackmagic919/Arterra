@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: BrickItemSolid
   m_EditorClassIdentifier: 
   Name: Brick:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: Brick
+  Description: Sturdy Building Material made from Stone and Clay
   MaterialName: Brick
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

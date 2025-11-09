@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: WoodShovel
+  Description: Wooden Tool For Removing Loose and Soft Materials
   TerraformRadius: 1
   MaxDurability: 100
   ToolTag: 3

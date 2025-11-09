@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: PineLeaves
+  Description: Dark Green Leaves of a Pine Tree
   MaterialName: PineLeaves
   MaterialState: 0
   references:

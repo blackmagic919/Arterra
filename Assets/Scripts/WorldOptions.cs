@@ -144,10 +144,10 @@ namespace WorldConfig {
         /// </summary>
         [Serializable]
         public struct GamePlaySettings {
-            [UIModifiable(CallbackName = "KeyBindReconstruct")]
             /// <summary> The registry of all keybinds that are used to bind player input to actions within the game.
             /// See <see cref="Gameplay.KeyBind"/> for more information. </summary>
-            public Catalogue<Gameplay.KeyBind> Input;//
+            [UIModifiable(CallbackName = "KeyBindReconstruct")]
+            public Catalogue<Gameplay.KeyBind> Input;
             /// <summary> Controls how the player moves through the world. See <see cref="Gameplay.Movement"/> for more information. </summary>
             [UISetting(Message = "Controls How The Player Interacts With The World")]
             public Option<Gameplay.Player.Settings> Player;

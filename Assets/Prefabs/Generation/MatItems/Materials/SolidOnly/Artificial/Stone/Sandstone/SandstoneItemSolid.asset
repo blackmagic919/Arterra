@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: SandstoneItemSolid
   m_EditorClassIdentifier: 
   Name: Sandstone:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: Sandstone
+  Description: Robust Material made of Packed Sand
   MaterialName: Sandstone
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

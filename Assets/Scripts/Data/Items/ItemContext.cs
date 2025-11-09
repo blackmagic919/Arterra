@@ -15,7 +15,7 @@ namespace WorldConfig.Generation.Item {
         ) {
             this.Inv = new WeakReference<IInventory>(inv);
             this.InvId = InvId;
-            scenario = default;
+            scenario = Scenario.Default;
             Holder = null;
         }
 
@@ -64,6 +64,7 @@ namespace WorldConfig.Generation.Item {
         }
 
         public enum Scenario {
+            Default,
             ActivePlayerSecondary,
             //Note: If ActivePlayerSelected enters,
             //this handler's leave wll not be called

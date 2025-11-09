@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: RockItemSolid
   m_EditorClassIdentifier: 
   Name: Rock:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: Rock
+  Description: Common Mineral Found Underground
   MaterialName: Rock
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

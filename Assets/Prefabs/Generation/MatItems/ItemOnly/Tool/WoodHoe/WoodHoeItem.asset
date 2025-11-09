@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: WoodHoe
+  Description: Wooden Tool For Tilling and Cutting Plant Matter
   TerraformRadius: 1
   MaxDurability: 100
   ToolTag: 5

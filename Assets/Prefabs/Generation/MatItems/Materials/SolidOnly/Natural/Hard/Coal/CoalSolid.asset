@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: CoalSolid
   m_EditorClassIdentifier: 
   Name: Coal:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: CoalItem
+  Description: Dark Combustible Mineral found Underground
   MaterialName: Coal
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

@@ -11,7 +11,7 @@ Shader "Unlit/CraftingShader"
         _StencilWriteMask ("Stencil Write Mask", Float) = 255
         _StencilReadMask ("Stencil Read Mask", Float) = 255
         _ColorMask ("Color Mask", Float) = 15
-        _SelectedColor("Selected Color", Color) = (0.1, 0.8, 0.1, 1.0)
+        _SelectedColor("Selected Color", Color) = (0.5, 0.5, 0.5, 0.5)
     }
     SubShader
     {
@@ -84,7 +84,7 @@ Shader "Unlit/CraftingShader"
             SamplerState sampler_LiquidFineWave;
             Texture2D _LiquidCoarseWave;
             SamplerState sampler_LiquidCoarseWave;
-            float3 _SelectedColor;
+            float4 _SelectedColor;
             fixed3 _GridColor;
             float _GridSize;
             float _TexScale;
@@ -156,7 +156,7 @@ Shader "Unlit/CraftingShader"
                     int index = cCoord.x + cCoord.y * (GridWidth + 1);
 
                     Ingredient ing = CraftingInfo[index + offset];
-                    ing.Amount = sharpMap(ing.Amount, 175.0f, 0.75f);//
+                    ing.Amount = sharpMap(ing.Amount, 175.0f, 1);
 
                     densAmt += ing.Amount * blend.corner[i];
                     if (ing.Amount <= 0) continue;
@@ -166,8 +166,10 @@ Shader "Unlit/CraftingShader"
                 float blendWeight = smoothstep(0, 0.25, densAmt);
                 float finalAmt = lerp(selIng.Amount, densAmt, blendWeight);
                 if(finalAmt > 0){
-                    if ((selIng.Flags & 0x1) && IN.offset.g > 0) return _SelectedColor;
-                    else return GetMatColor(IN.uv / _TexScale, selIng.Index);
+                    fixed3 matColor = GetMatColor(IN.uv / _TexScale, selIng.Index);
+                    if ((selIng.Flags & 0x1) && IN.offset.g > 0) 
+                        return lerp(matColor, _SelectedColor.rgb, _SelectedColor.a);
+                    else return matColor;
                 } else discard;
                 return 0;
             }

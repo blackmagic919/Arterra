@@ -17,11 +17,16 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: FlintAndSteel
-  MaterialName: 
-  MaterialState: 0
+  Description: Tool For Lighting Fires
   TerraformRadius: 1
   MaxDurability: 100
   ToolTag: 1
+  OnUseAnim:
+    Enabled: 0
+    Value: 
+  Model:
+    Enabled: 0
+    Value: {fileID: 0}
   ConverterTag: 1000
   references:
     version: 2

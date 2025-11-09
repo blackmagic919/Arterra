@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: Dandelions
+  Description: Common Flower Known for White Floating Seedlings
   MaterialName: Dandelions
   MaterialState: 0
   references:

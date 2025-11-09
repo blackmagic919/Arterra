@@ -32,6 +32,9 @@ namespace WorldConfig.Generation.Item {
         /// is created from to retrieve the item's shared information contained within its <see cref="Authoring"/> object.
         /// </summary>
         public virtual IItem Item { get; }
+        /// <summary>An(optional) description of the item 
+        /// used as helpful tooltips for the player. </summary>
+        public string Description;
     }
 
     /// <summary>
@@ -45,11 +48,13 @@ namespace WorldConfig.Generation.Item {
     /// As long as the event itself is safe, the item can do whatever it wants allowing for a very
     /// flexible system. </remarks>
     public interface IItem : ICloneable, IRegistered, ISlot {
-        /// <summary> Whether the item can be stacked with other items of the same type. If the item is stackable,
-        /// when another item of the same <see cref="IRegistered.Index"/> is encountered it may be combined with the
-        /// current item and the <see cref="AmountRaw"/> increased to the sum the amounts of the two items.
-        /// All items representing materials should be stackable by default. </summary>
+        /// <summary> How much of the item can be combined together before the item is considered full. If 
+        /// an item is not full, when another item of the same <see cref="IRegistered.Index"/> is encountered it may 
+        /// be combined with the current item and the <see cref="AmountRaw"/> increased to the sum the amounts of the two items. </summary>
         public int StackLimit { get => 1; }
+        /// <summary> The <see cref="AmountRaw">raw amount</see> of an item that is considered a unit
+        /// amount. For exmaple, if five units of an item is added to an item, <see cref="AmountRaw"/>
+        /// will increase by (5 * UnitSize).  </summary>
         public int UnitSize { get => 1; }
         /// <summary> The amount of the item that is stored. Used when determing how to stack identical items </summary>
         public int AmountRaw { get; set; }

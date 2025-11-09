@@ -17,8 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: Pen
-  MaterialName: 
-  MaterialState: 0
+  Description: Building Tool For Selecting and Previewing Terrain Modification
   SelectionRefreshDist: 2
   MaximumSelectionVolume: 32
   MaxDurability: 100

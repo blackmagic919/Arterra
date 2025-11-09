@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: FishScales
+  Description: Skin of an Aquatic Creature
   MaterialName: FishScales
   MaterialState: 0
   references:

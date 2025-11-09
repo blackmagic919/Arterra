@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: Hair
+  Description: Folicle Strands Found Growing on Animals such as Horses
   references:
     version: 2
     RefIds: []

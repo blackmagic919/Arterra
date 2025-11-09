@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: CactusItemSolid
   m_EditorClassIdentifier: 
   Name: Cactus:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: Cactus
+  Description: Prickly Plant found in Deserts
   MaterialName: Cactus
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

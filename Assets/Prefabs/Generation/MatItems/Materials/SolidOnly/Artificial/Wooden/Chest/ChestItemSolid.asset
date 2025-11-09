@@ -21,6 +21,7 @@ MonoBehaviour:
           value:
             rid: -2
   TextureName: Chest
+  Description: Placeable Container for Storing Items
   MaterialName: Chest
   MaterialState: 0
   references:

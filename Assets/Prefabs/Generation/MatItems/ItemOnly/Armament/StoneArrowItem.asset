@@ -21,6 +21,7 @@ MonoBehaviour:
           value:
             rid: 6083762249953443912
   TextureName: StoneArrow
+  Description: Simple Projectile Fired from a Bow
   references:
     version: 2
     RefIds:

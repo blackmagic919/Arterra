@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: GravelitemSolid
   m_EditorClassIdentifier: 
   Name: Gravel:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: Gravel
+  Description: Coarse Grainy Rocks found Underground or near Bodies of Water
   MaterialName: Gravel
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []

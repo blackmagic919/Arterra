@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7901563181754693926}
   - component: {fileID: 6254223928699190699}
+  - component: {fileID: 3893817068782974351}
   - component: {fileID: 956903578862522427}
   m_Layer: 5
   m_Name: CraftingPoint
@@ -45,6 +46,28 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3044659386928156394}
   m_CullTransparentMesh: 1
+--- !u!95 &3893817068782974351
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3044659386928156394}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: fafdf3d296c5e4667bde257fcb96f429, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!114 &956903578862522427
 MonoBehaviour:
   m_ObjectHideFlags: 0

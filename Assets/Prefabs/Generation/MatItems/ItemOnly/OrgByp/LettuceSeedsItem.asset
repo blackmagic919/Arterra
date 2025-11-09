@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: LettuceSeeds
+  Description: Seeds For Growing Edible Lettuce
   MaterialName: LettuceSeededSoil
   MaterialState: 0
   TerraformRadius: 1

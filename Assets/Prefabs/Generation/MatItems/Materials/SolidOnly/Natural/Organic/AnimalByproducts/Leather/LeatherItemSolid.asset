@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: Leather
+  Description: Skin of a Large Animal Suitable for making Clothing and Armor
   MaterialName: Leather
   MaterialState: 0
   references:

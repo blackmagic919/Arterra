@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: Lupines
+  Description: Colorfully Detailed Purple Wildflower
   MaterialName: Lupines
   MaterialState: 0
   references:

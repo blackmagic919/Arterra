@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: TallGrass
+  Description: Luscious Dark Green Variant of Grass
   MaterialName: TallGrass
   MaterialState: 0
   references:

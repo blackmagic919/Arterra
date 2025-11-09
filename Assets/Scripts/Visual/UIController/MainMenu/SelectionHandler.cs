@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using TMPro;
 using static MapStorage.World;
 using UnityEditor;
+using UnityEditor.Playables;
 
 public class SelectionHandler : MonoBehaviour
 {
@@ -31,8 +32,8 @@ public class SelectionHandler : MonoBehaviour
         active = true;
 
         sAnimator.SetTrigger("Unmask");
-        TestState("MaskRockBreak", InitializeDisplay);
-        TestState("UnmaskedAnimation", () => {
+        Utils.CustomUtility.TestState(sAnimator, "MaskRockBreak", InitializeDisplay);
+        Utils.CustomUtility.TestState(sAnimator, "UnmaskedAnimation", () => {
             sAnimator.ResetTrigger("Unmask");
             callback?.Invoke();
         }); 
@@ -42,21 +43,12 @@ public class SelectionHandler : MonoBehaviour
         active = false;
 
         sAnimator.SetTrigger("Mask");
-        TestState("MaskedAnimation", () => {
+        Utils.CustomUtility.TestState(sAnimator,
+            "MaskedAnimation", () => {
             sAnimator.ResetTrigger("Mask");
             ReleaseSelectionInfo();
             callback?.Invoke();
         });
-    }
-
-
-    private async static void TestState(string state, Action callback = null){
-        while(true) {
-            if(sAnimator == null) return;
-            if(sAnimator.GetCurrentAnimatorStateInfo(0).IsName(state)) break;
-            await Task.Yield();
-        }
-        callback?.Invoke();
     }
 
     public static void Return() { 

@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: Glass
+  Description: Transparent Material made of Molten Sand
   MaterialName: Glass
   MaterialState: 0
   references:

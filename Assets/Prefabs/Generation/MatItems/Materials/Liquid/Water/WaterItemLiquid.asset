@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: WaterItemLiquid
   m_EditorClassIdentifier: 
   Name: Water:Liquid
+  Tags:
+    Reg:
+      value: []
   TextureName: Water
+  Description: Refreshing Fluid Found In Abundance
   MaterialName: Water
   MaterialState: 1
+  references:
+    version: 2
+    RefIds: []

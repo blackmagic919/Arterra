@@ -17,6 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: LeatherBoots
+  Description: Wearable Boots Made of Leather
   EquipInfo:
     Regions:
       value:

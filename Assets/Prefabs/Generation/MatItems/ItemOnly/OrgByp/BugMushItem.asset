@@ -17,8 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   TextureName: BugMush
-  MaterialName: 
-  MaterialState: 0
+  Description: Protein Rich Remains of Bugs
   ConsumptionRate: 10
   NutritionValue: 0.25
   references:

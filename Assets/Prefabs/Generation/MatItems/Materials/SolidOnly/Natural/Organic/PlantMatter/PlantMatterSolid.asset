@@ -13,6 +13,13 @@ MonoBehaviour:
   m_Name: PlantMatterSolid
   m_EditorClassIdentifier: 
   Name: PlantMatter:Solid
+  Tags:
+    Reg:
+      value: []
   TextureName: PlantMatter
+  Description: Dead Plant Matter Used as Scaffolding for New Plants such as Cactus
   MaterialName: PlantMatter
   MaterialState: 0
+  references:
+    version: 2
+    RefIds: []
