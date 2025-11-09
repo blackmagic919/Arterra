@@ -234,25 +234,32 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
 
     private void FlashIndicator() {
         CraftingRecipe recipe = Recipe.Table[FitRecipe];
-        GetInsufficientEntries(Rendering.MainGridMatItems.Info, recipe.materials.value, index => {
+        int2 offset = Rendering.GetNormalizationOffset();
+        GetInsufficientEntries(Rendering.MainGridMatItems.Info, recipe.materials.value, AxisWidth,
+        index => {
             Animator anim = Rendering.corners[index].GetComponent<Animator>();
             anim.SetTrigger("Flash");
         });
-        GetInsufficientEntries(Rendering.crafting.NonMatInventory.Info, recipe.items.value, index => {
-            Animator anim = Rendering.crafting.NonMatInventory.Display.Slots[index].GetComponent<Animator>();
+        GetInsufficientEntries(Rendering.crafting.NonMatInventory.Info, recipe.items.value, GridWidth,
+        index => {
+            GameObject slot = Rendering.crafting.NonMatInventory.Display.Slots[index];
+            Animator anim = slot.transform.parent.GetComponent<Animator>();
             anim.SetTrigger("Flash");
         });
         
 
-        void GetInsufficientEntries(IItem[] inv, List<CraftingRecipe.Ingredient> recipe, Action<int> OnFindEntry) {
-            for (int i = 0; i < recipe.Count(); i++) {
-                IItem placedItem = inv[i];
-                CraftingRecipe.Ingredient ingred = recipe[i];
+        void GetInsufficientEntries(IItem[] inv, List<CraftingRecipe.Ingredient> recipe, int side, Action<int> OnFindEntry) {
+            for (int x = 0; x < side; x++) {
+            for (int y = 0; y < side; y++) {
+                int index = x + y * side;
+                CraftingRecipe.Ingredient ingred = recipe[index];
+                index = (x + offset.x) + (y + offset.y) * side;
+                IItem placedItem = index >= inv.Length ? null : inv[index];
                 if (placedItem == null) continue;
                 if (ingred.Amount <= 0) continue;
                 float unitAmt = ((float)placedItem.AmountRaw) / placedItem.UnitSize;
-                OnFindEntry.Invoke(i);
-            }
+                if (unitAmt < 1) OnFindEntry.Invoke(index);
+            }}
         }
     }
 
@@ -260,9 +267,12 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         if (FitRecipe == -1) return false;
 
         CraftingRecipe recipe = Recipe.Table[FitRecipe];
-        if (!VerifyIngredientList(Rendering.MainGridMatItems.Info, recipe.materials.value, out float minMat))
+        int2 offset = Rendering.GetNormalizationOffset();
+        if (!VerifyIngredientList(Rendering.MainGridMatItems.Info,
+            recipe.materials.value, offset, AxisWidth, out float minMat))
             return false;
-        if (!VerifyIngredientList(Rendering.crafting.NonMatInventory.Info, recipe.items.value, out float minItem))
+        if (!VerifyIngredientList(Rendering.crafting.NonMatInventory.Info,
+            recipe.items.value, offset, GridWidth, out float minItem))
             return false;
         float minIngred = math.min(minMat, minItem);
 
@@ -273,8 +283,10 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         }
 
         //Clear grid of that amount
-        ConsumeIngredientList(Rendering.MainGridMatItems, recipe.materials.value, minIngred);
-        ConsumeIngredientList(Rendering.crafting.NonMatInventory, recipe.items.value, minIngred);
+        ConsumeIngredientList(Rendering.MainGridMatItems, recipe.materials.value,
+            offset, AxisWidth, minIngred);
+        ConsumeIngredientList(Rendering.crafting.NonMatInventory, recipe.items.value,
+            offset, GridWidth, minIngred);
 
         IItem result = recipe.ResultItem;
         minIngred *= recipe.result.Multiplier * result.UnitSize;
@@ -292,11 +304,14 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         }
         return true;
 
-        static bool VerifyIngredientList(IItem[] inv, List<CraftingRecipe.Ingredient> recipe, out float minIngred) {
+        static bool VerifyIngredientList(IItem[] inv, List<CraftingRecipe.Ingredient> recipe, int2 offset, int side, out float minIngred) {
             minIngred = float.MaxValue;
-            for (int i = 0; i < recipe.Count(); i++) {
-                IItem placedItem = inv[i];
-                CraftingRecipe.Ingredient ingred = recipe[i];
+            for (int x = 0; x < side; x++) {
+            for (int y = 0; y < side; y++) {
+                int index = x + y * side;
+                CraftingRecipe.Ingredient ingred = recipe[index];
+                index = (x + offset.x) + (y + offset.y) * side;
+                IItem placedItem = index >= inv.Length ? null : inv[index];
                 if (placedItem == null || placedItem.AmountRaw == 0) {
                     if (ingred.Amount <= 0) continue;
                     else return false;
@@ -304,19 +319,22 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
                 else if (placedItem.Index != ingred.Index) return false;
                 float unitAmt = ((float)placedItem.AmountRaw) / placedItem.UnitSize;
                 minIngred = math.min(minIngred, unitAmt / ingred.Amount);
-            }
+            }}
             return true;
         }
 
-        static void ConsumeIngredientList(InventoryController.Inventory inv, List<CraftingRecipe.Ingredient> recipe, float minIngred) {
-            for (int i = 0; i < recipe.Count(); i++) {
-                IItem placedItem = inv.Info[i];
-                CraftingRecipe.Ingredient ingred = recipe[i];
+        static void ConsumeIngredientList(InventoryController.Inventory inv, List<CraftingRecipe.Ingredient> recipe, int2 offset, int side, float minIngred) {
+            for (int x = 0; x < side; x++) {
+            for (int y = 0; y < side; y++) {
+                int index = x + y * side;
+                CraftingRecipe.Ingredient ingred = recipe[index];
+                index = (x + offset.x) + (y + offset.y) * side;
+                IItem placedItem = index >= inv.capacity ? null : inv.Info[index];
                 if (ingred.Amount <= 0) continue;
                 if (placedItem == null || placedItem.AmountRaw == 0) continue;
                 int delta = Mathf.CeilToInt(placedItem.UnitSize * minIngred);
-                inv.RemoveStackableSlot(i, delta);
-            }
+                inv.RemoveStackableSlot(index, delta);
+            }}
         }
     }
     
@@ -437,21 +455,42 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             corners = new RectTransform[GridCount];
             IsDirty = false;
         }
+
+        public int2 GetNormalizationOffset() {
+            int2 minOffset = instance.AxisWidth;
+            for(int x = 0; x < instance.AxisWidth; x++) {
+            for(int y = 0; y < instance.AxisWidth; y++) {
+                int index = x + y * instance.AxisWidth;
+                if(MainGridMatItems.Info[index] == null) continue;
+                minOffset = math.min(minOffset, new (x, y));
+            }}
+            for(int x = 0; x < instance.GridWidth; x++) {
+            for(int y = 0; y < instance.GridWidth; y++) {
+                int index = x + y * instance.GridWidth;
+                if(crafting.NonMatInventory.Info[index] == null) continue;
+                minOffset = math.min(minOffset, new (x, y));
+            }}
+            return minOffset;
+        }
         
         public CraftingRecipe SerializeToRecipe() {
-            static CraftingRecipe.Ingredient[] SerializeIngArray(InventoryController.Inventory inv) {
-                CraftingRecipe.Ingredient[] ingArray = new CraftingRecipe.Ingredient[inv.capacity]; 
-                for (int i = 0; i < inv.capacity; i++) {
-                    ingArray[i] = new CraftingRecipe.Ingredient { Index = 0, Amount = 0 };
-                    IItem item = inv.Info[i];
+            static CraftingRecipe.Ingredient[] SerializeIngArray(InventoryController.Inventory inv, int2 offset, int side) {
+                CraftingRecipe.Ingredient[] ingArray = new CraftingRecipe.Ingredient[inv.capacity];
+                for (int x = offset.x; x < side; x++) {
+                for (int y = offset.y; y < side; y++) {
+                    int index = x + y * side;
+                    IItem item = inv.Info[index];
                     if (item == null) continue;
-                    ingArray[i].Amount = CraftingGrid.SmoothSplitLerp(
+                    index = (x - offset.x) + (y - offset.y) * side;
+                    ingArray[index].Amount = CraftingGrid.SmoothSplitLerp(
                         item.AmountRaw, item.UnitSize, item.StackLimit);
-                    ingArray[i].Index = item.Index;
-                } return ingArray;
+                    ingArray[index].Index = item.Index;
+                }}
+                return ingArray;
             }
-            CraftingRecipe.Ingredient[] matGrid = SerializeIngArray(MainGridMatItems);
-            CraftingRecipe.Ingredient[] itemGrid = SerializeIngArray(crafting.NonMatInventory);
+            int2 offset = GetNormalizationOffset();
+            CraftingRecipe.Ingredient[] matGrid = SerializeIngArray(MainGridMatItems, offset, instance.AxisWidth);
+            CraftingRecipe.Ingredient[] itemGrid = SerializeIngArray(crafting.NonMatInventory, offset, instance.GridWidth);
             return new CraftingRecipe {
                 materials = new Option<List<CraftingRecipe.Ingredient>> { value = matGrid.ToList() },
                 items = new Option<List<CraftingRecipe.Ingredient>> { value = itemGrid.ToList() }
