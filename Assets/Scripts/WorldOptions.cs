@@ -187,7 +187,7 @@ namespace WorldConfig {
             [HideInInspector]
             [JsonIgnore]
             [UISetting(Ignore = true)]
-            public Registry<Action> GameplayModifyHooks;
+            public Registry<ChildUpdate> GameplayModifyHooks;
         }
 
         [OnDeserialized]

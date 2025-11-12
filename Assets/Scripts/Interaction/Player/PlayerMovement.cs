@@ -186,14 +186,15 @@ public static class FlightMovement {
     private static bool HasEnabledFlight;
     private static bool IsFlying;
     public static void Initialize() {
-        Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Flight", OnFlightRuleChanged);
-        HasEnabledFlight = false;
         IsFlying = false;
-        OnFlightRuleChanged();
+        HasEnabledFlight = false;
+        Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Flight", OnFlightRuleChanged);
+        object EnableFlight = Config.CURRENT.GamePlay.Gamemodes.value.Flight;
+        OnFlightRuleChanged(ref EnableFlight);
     }
 
-    public static void OnFlightRuleChanged() {
-        bool EnableFlight = Config.CURRENT.GamePlay.Gamemodes.value.Flight;
+    public static void OnFlightRuleChanged(ref object flightRule) {
+        bool EnableFlight = (bool)flightRule; 
         if (HasEnabledFlight == EnableFlight) return;
         HasEnabledFlight = EnableFlight;
 

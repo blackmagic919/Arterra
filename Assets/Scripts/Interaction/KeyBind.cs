@@ -152,21 +152,24 @@ public static class InputPoller {
             LayerHeads = new Registry<uint>();
             LayerHeads.Construct();
             DefaultMappings.Construct();
-            ReconstructMappings();
+            object Mappings = KeyMappings;
+            ReconstructMappings(ref Mappings);
+            KeyMappings = (Catalogue<KeyBind>)Mappings;
         }
-        private void AssertMapping(string name) {
-            if (KeyMappings.Contains(name)) return; //We are missing the binding
+        private void AssertMapping(Catalogue<KeyBind> NewMappings, string name) {
+            if (NewMappings.Contains(name)) return; //We are missing the binding
             KeyBind binding = DefaultMappings.Retrieve(name);
             if (binding.Equals(default)) throw new Exception("Cannot Find Keybind Name"); //There is no such binding
             binding.bindings.Clone(); // We need to clone the bindings
-            KeyMappings.Add(name, binding);
+            NewMappings.Add(name, binding);
         }
 
 
         //We need to check if the mappings have been changed
         //Because mappings can change at any time during runtime
-        private void ReconstructMappings() {
-            KeyMappings.Construct();
+        private void ReconstructMappings(ref object nMaps) {
+            Catalogue<KeyBind> NewMappings = (Catalogue<KeyBind>)nMaps;
+            NewMappings.Construct();
             //Rebind all currently bound actions
             foreach (Registry<uint>.Pair head in LayerHeads.Reg) {
                 uint current = head.Value;
@@ -174,13 +177,14 @@ public static class InputPoller {
                     ref ActionBind BoundAction = ref KeyBinds.RefVal(current);
                     current = KeyBinds.Next(current);
                     if (BoundAction.Binding == null) continue; //Context Fence/Barrier
-                    AssertMapping(BoundAction.Binding);
+                    AssertMapping(NewMappings, BoundAction.Binding);
                 } while (current != head.Value);
-            }
+            } nMaps = NewMappings;
         }
 
         public KeyBind Retrieve(string name) {
-            if (!KeyMappings.Contains(name)) AssertMapping(name);
+            if (!KeyMappings.Contains(name))
+                AssertMapping(KeyMappings, name);
             return KeyMappings.Retrieve(name);
         }
     }

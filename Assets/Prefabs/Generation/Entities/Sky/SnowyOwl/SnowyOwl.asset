@@ -227,7 +227,7 @@ MonoBehaviour:
             var: 0.2
             geneWeight: 0.66
           PregnacyLength: 5
-          ConsumptionRate: 0.05
+          ConsumptionRate: 0.5
   references:
     version: 2
     RefIds: []

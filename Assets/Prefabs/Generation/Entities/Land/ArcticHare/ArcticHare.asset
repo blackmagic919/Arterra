@@ -87,7 +87,7 @@ MonoBehaviour:
           value:
           - ItemName: Meat
             DropAmount:
-              mean: 4
+              mean: 0.02352941
               var: 1
               geneWeight: 0.05
         DecompositionTime:

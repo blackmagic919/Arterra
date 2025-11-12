@@ -26,7 +26,7 @@ public class ArmorController : PanelNavbarManager.INavPanel {
     private bool IsDragging = false;
     private bool ShowAllSlots = false;
     private int SelectedIndex = -1;
-    private IItem Selected => playerArmor.Info[SelectedIndex];
+    private IItem Selected => SelectedIndex < 0 ? null : playerArmor.Info[SelectedIndex];
     private static ItemContext GetArmorCxt(ItemContext cxt) => cxt.SetupScenario(PlayerHandler.data, ItemContext.Scenario.ActivePlayerArmor);
     public ArmorController(Armor settings) {
         this.settings = settings;

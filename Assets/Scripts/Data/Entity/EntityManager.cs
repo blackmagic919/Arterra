@@ -575,9 +575,11 @@ public class EntityJob : IUpdateSubscriber{
     public bool dispatched = false;
     private JobHandle handle;
     public static Context cxt;
+    private float accumulatedTime;
 
     public unsafe EntityJob(){
         dispatched = false;
+        accumulatedTime = 0;
         cxt = new Context{
             Profile = (ProfileE*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
             mapContext = new CPUMapManager.MapContext{
@@ -589,7 +591,7 @@ public class EntityJob : IUpdateSubscriber{
             },
 
             gravity = Physics.gravity / Config.CURRENT.Quality.Terrain.value.lerpScale,
-            deltaTime = Time.fixedDeltaTime
+            deltaTime = 0
         };
     }
 
@@ -602,9 +604,12 @@ public class EntityJob : IUpdateSubscriber{
     }
 
     public void Update(MonoBehaviour mono){
-        if(!Complete()) return;
+        accumulatedTime += Time.fixedDeltaTime;
+        if (!Complete()) return;
+        cxt.totDeltaTime = accumulatedTime;
         cxt.deltaTime = Time.fixedDeltaTime;
-
+        accumulatedTime = 0;
+        
         while(EntityManager.HandlerEvents.TryDequeue(out Action action)){
             action.Invoke();
         } EntityManager.HandlerEvents.Clear();
@@ -622,8 +627,9 @@ public class EntityJob : IUpdateSubscriber{
         [NativeDisableUnsafePtrRestriction]
         [ReadOnly] public unsafe ProfileE* Profile;
         [ReadOnly] public unsafe CPUMapManager.MapContext mapContext;
-        [ReadOnly] public float3 gravity; 
+        [ReadOnly] public float3 gravity;
         [ReadOnly] public float deltaTime;
+        [ReadOnly] public float totDeltaTime;
         public unsafe void Execute(int index){
             Profiler.BeginSample(EntityManager.GetEntity(index).GetType().ToString());
             EntityManager.GetEntity(index).Update();

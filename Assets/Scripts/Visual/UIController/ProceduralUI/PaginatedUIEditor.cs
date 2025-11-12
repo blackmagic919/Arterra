@@ -112,9 +112,9 @@ public static class PaginatedUIEditor
                 
                 void ChildRequest(ChildUpdate childCallback) { 
                     void ParentReceive(ref object parentObject){
-                        VerifyUpdateHooks(oField); //Use the original field
                         ((IOption)cObject).Clone();
                         childCallback(ref cObject);
+                        VerifyUpdateHooks(oField, ref cObject); //Use the original field
                         oField.SetValue(parentObject, cObject);
                     }
                     OnUpdate(ParentReceive);
@@ -140,9 +140,9 @@ public static class PaginatedUIEditor
         object cValue = value; //Capture the object to streamline changes
         void ChildRequest(ChildUpdate childCallback) { 
             void ParentReceive(ref object parentObject){
-                VerifyUpdateHooks(field);
                 cValue = field.GetValue(parentObject);
                 childCallback(ref cValue); 
+                VerifyUpdateHooks(field, ref cValue);
                 field.SetValue(parentObject, cValue);
             }
             OnUpdate(ParentReceive);
@@ -153,40 +153,45 @@ public static class PaginatedUIEditor
                 TMP_InputField inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); 
                 inputField.text = value.ToString();
                 inputField.onEndEdit.AddListener((string value) => { 
-                    OnUpdate((ref object parent) => {field.SetValue(parent, int.Parse(value));}); 
-                    VerifyUpdateHooks(field);
+                    object obj = int.Parse(value);
+                    VerifyUpdateHooks(field, ref obj);
+                    OnUpdate((ref object parent) => field.SetValue(parent, obj)); 
                 });
                 break;
             case Type t when t == typeof(uint):
                 inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); 
                 inputField.text = value.ToString();
                 inputField.onEndEdit.AddListener((string value) => { 
-                    OnUpdate((ref object parent) => {field.SetValue(parent, uint.Parse(value));});
-                    VerifyUpdateHooks(field);
+                    object obj = uint.Parse(value);
+                    VerifyUpdateHooks(field, ref obj);
+                    OnUpdate((ref object parent) => field.SetValue(parent, obj));
                 });
                 break;
             case Type t when t == typeof(float):
                 inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); 
                 inputField.text = value.ToString();
-                inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {
-                    field.SetValue(parent, float.Parse(value));}); 
-                    VerifyUpdateHooks(field);
+                inputField.onEndEdit.AddListener((string value) => { 
+                    object obj = float.Parse(value);
+                    VerifyUpdateHooks(field, ref obj);
+                    OnUpdate((ref object parent) => field.SetValue(parent, obj));
                 });
                 break;
             case Type t when t == typeof(string):
                 inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); 
                 inputField.text = value == null ? "New Entry" : value.ToString();
-                inputField.onEndEdit.AddListener((string value) => { 
-                    OnUpdate((ref object parent) => {field.SetValue(parent, value);}); 
-                    VerifyUpdateHooks(field);
+                inputField.onEndEdit.AddListener((string value) => {
+                    object obj = value;
+                    VerifyUpdateHooks(field, ref obj);
+                    OnUpdate((ref object parent) => field.SetValue(parent, obj)); 
                 });
                 break;
             case Type t when t == typeof(bool):
                 Toggle toggleField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Bool_Input"), parent.transform).GetComponent<Toggle>(); 
                 toggleField.isOn = (bool)value;
                 toggleField.onValueChanged.AddListener((bool value) => { 
-                    OnUpdate((ref object parent) => {field.SetValue(parent, value);}); 
-                    VerifyUpdateHooks(field);
+                    object obj = value;
+                    VerifyUpdateHooks(field, ref obj);
+                    OnUpdate((ref object parent) => field.SetValue(parent, obj)); 
                 });
                 break;
             case Type t when t.IsEnum:
@@ -197,8 +202,9 @@ public static class PaginatedUIEditor
                 Array enumValues = Enum.GetValues(t);
                 dropdownField.value = Array.IndexOf(enumValues, value);
                 dropdownField.onValueChanged.AddListener((int value) => { 
-                    OnUpdate((ref object parent) => { field.SetValue(parent, enumValues.GetValue(value)); }); 
-                    VerifyUpdateHooks(field);
+                    object obj = enumValues.GetValue(value);
+                    VerifyUpdateHooks(field, ref obj);
+                    OnUpdate((ref object parent) => field.SetValue(parent, obj)); 
                 });
                 break;
             default: //create new page
@@ -219,12 +225,12 @@ public static class PaginatedUIEditor
         }
     }
 
-    public static void VerifyUpdateHooks(FieldInfo field){
+    public static void VerifyUpdateHooks(FieldInfo field, ref object value){
         if(Attribute.IsDefined(field, typeof(UIModifiable))){
             UIModifiable modTag = Attribute.GetCustomAttribute(field, typeof(UIModifiable)) as UIModifiable;
-            Registry<Action> hooks = Config.CURRENT.System.GameplayModifyHooks;
+            Registry<ChildUpdate> hooks = Config.CURRENT.System.GameplayModifyHooks;
             if(!hooks.Contains(modTag.CallbackName)) return;
-            hooks.Retrieve(modTag.CallbackName).Invoke();
+            hooks.Retrieve(modTag.CallbackName).Invoke(ref value);
         }
     }
 }

@@ -23,11 +23,13 @@ public static class PlayerStatDisplay
         breathStat = HealthBar.transform.Find("BreathBar").GetComponent<Image>();
 
         Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Invulnerability", ToggleInvulnerability);
-        ToggleInvulnerability();
+        object vulnerability = Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability;
+        ToggleInvulnerability(ref vulnerability);
     }
 
-    public static void ToggleInvulnerability(){
-        if((!Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability) == HealthBar.activeSelf)
+    public static void ToggleInvulnerability(ref object vulnerability){
+        bool isVulnerable = (bool)vulnerability;
+        if((!isVulnerable) == HealthBar.activeSelf)
             return;
         HealthBar.SetActive(!Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability);
     }

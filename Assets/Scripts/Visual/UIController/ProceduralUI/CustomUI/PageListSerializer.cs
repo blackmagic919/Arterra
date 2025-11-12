@@ -18,9 +18,9 @@ public class PageListSerializer : IConverter{
         object cValue = value; //Capture the object to streamline changes
         void ChildRequest(ChildUpdate childCallback) { 
             void ParentReceive(ref object parentObject){
-                VerifyUpdateHooks(field);
                 cValue = field.GetValue(parentObject);
                 childCallback(ref cValue); 
+                VerifyUpdateHooks(field, ref cValue);
                 field.SetValue(parentObject, cValue);
             }
             OnUpdate(ParentReceive);

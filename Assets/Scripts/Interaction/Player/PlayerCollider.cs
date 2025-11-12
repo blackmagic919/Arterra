@@ -334,8 +334,8 @@ public class PlayerCollider {
     }
 
     public void JobUpdate(EntityJob.Context cxt) {
-        transform.position += transform.velocity * cxt.deltaTime;
-        if (useGravity) transform.velocity += cxt.gravity * cxt.deltaTime;
+        transform.position += transform.velocity * cxt.totDeltaTime;
+        if (useGravity) transform.velocity += cxt.gravity * cxt.totDeltaTime;
 
         if (SampleCollision(transform.position, transform.size, out float3 displacement)) {
             transform.position += displacement;

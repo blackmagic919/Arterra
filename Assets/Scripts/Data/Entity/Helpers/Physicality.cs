@@ -231,8 +231,7 @@ public class Vitality : MinimalVitality {
             WorldConfig.Generation.Item.IItem item = registry.Retrieve(itemindex).Item;
 
             amount *= item.UnitSize;
-            int delta = Mathf.FloorToInt(amount)
-                + (random.NextFloat() < math.frac(amount) ? 1 : 0);
+            int delta = Mathf.FloorToInt(amount) + (random.NextFloat() < math.frac(amount) ? 1 : 0);
             if (delta == 0) return null;
             delta = math.min(delta, item.StackLimit);
             item.Create(itemindex, delta);

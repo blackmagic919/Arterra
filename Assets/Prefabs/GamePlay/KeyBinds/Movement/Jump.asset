@@ -13,8 +13,15 @@ MonoBehaviour:
   m_Name: Jump
   m_EditorClassIdentifier: 
   Name: Jump
+  Tags:
+    Reg:
+      value: []
   bindings:
     value:
     - Key: 32
       PollType: 3
       IsAlias: 0
+  AdditionalTriggerCount: 0
+  references:
+    version: 2
+    RefIds: []

@@ -327,7 +327,7 @@ public struct TerrainCollider {
     }
 
     public void Update(Entity self = null) {
-        transform.position += transform.velocity * cxt.deltaTime;
+        transform.position += transform.velocity * cxt.totDeltaTime;
 
         if (TerrainInteractor.SampleContact(transform.position, transform.size, self) &&
             SampleCollision(transform.position, transform.size, cxt.mapContext, out float3 displacement)) {
@@ -337,7 +337,7 @@ public struct TerrainCollider {
             transform.velocity = nVelocity;
             transform.velocity.xz *= 1 - friction;
         } else if (!useGravity) transform.velocity.xz *= 1 - friction;
-        if (useGravity) transform.velocity += cxt.gravity * cxt.deltaTime;
+        if (useGravity) transform.velocity += cxt.gravity * cxt.totDeltaTime;
         else transform.velocity.y *= 1 - friction;
     }
 

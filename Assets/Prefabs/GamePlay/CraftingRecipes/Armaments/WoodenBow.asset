@@ -60,6 +60,10 @@ MonoBehaviour:
           Amount: 1
       items:
         value:
+        - Index: 3
+          Amount: 0.5
+        - Index: 0
+          Amount: 0
         - Index: 0
           Amount: 0
         - Index: 0
@@ -68,16 +72,12 @@ MonoBehaviour:
           Amount: 0.5
         - Index: 0
           Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
         - Index: 3
           Amount: 0.5
-        - Index: 0
-          Amount: 0
-        - Index: 3
-          Amount: 0.5
-        - Index: 0
-          Amount: 0
-        - Index: 0
-          Amount: 0
       result:
         data: 65791
       NoSubUnitCreation: 1
