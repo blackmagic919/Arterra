@@ -156,7 +156,7 @@ Shader "Unlit/CraftingShader"
                     int index = cCoord.x + cCoord.y * (GridWidth + 1);
 
                     Ingredient ing = CraftingInfo[index + offset];
-                    ing.Amount = sharpMap(ing.Amount, 175.0f, 1);
+                    ing.Amount = sharpMap(ing.Amount, 175.0f, 0.5f);
 
                     densAmt += ing.Amount * blend.corner[i];
                     if (ing.Amount <= 0) continue;

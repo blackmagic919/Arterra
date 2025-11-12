@@ -40,9 +40,6 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
         private TerrainCollider tCollider;
         [JsonProperty]
         private Guid RiderTarget = Guid.Empty;
-        [JsonIgnore]
-        public Quaternion Facing => tCollider.transform.rotation;
-
         private BoatController controller;
         private BoatSetting settings;
         [JsonIgnore]

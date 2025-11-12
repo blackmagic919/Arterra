@@ -1,12 +1,8 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
-using System.Threading.Tasks;
 using UnityEngine.UI;
 using TMPro;
 using static MapStorage.World;
-using UnityEditor;
-using UnityEditor.Playables;
 
 public class SelectionHandler : MonoBehaviour
 {
@@ -32,23 +28,23 @@ public class SelectionHandler : MonoBehaviour
         active = true;
 
         sAnimator.SetTrigger("Unmask");
-        Utils.CustomUtility.TestState(sAnimator, "MaskRockBreak", InitializeDisplay);
-        Utils.CustomUtility.TestState(sAnimator, "UnmaskedAnimation", () => {
+        new AnimatorAwaitTask(sAnimator, "MaskRockBreak", InitializeDisplay).Invoke();
+        new AnimatorAwaitTask(sAnimator, "UnmaskedAnimation", () => {
             sAnimator.ResetTrigger("Unmask");
             callback?.Invoke();
-        }); 
+        }).Invoke(); 
     }
     public static void Deactivate(Action callback = null){
         if(!active) return;
         active = false;
 
         sAnimator.SetTrigger("Mask");
-        Utils.CustomUtility.TestState(sAnimator,
+        new AnimatorAwaitTask(sAnimator,
             "MaskedAnimation", () => {
             sAnimator.ResetTrigger("Mask");
             ReleaseSelectionInfo();
             callback?.Invoke();
-        });
+        }).Invoke();
     }
 
     public static void Return() { 

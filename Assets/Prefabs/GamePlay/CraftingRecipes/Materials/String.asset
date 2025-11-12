@@ -59,20 +59,20 @@ MonoBehaviour:
           Amount: 0
       items:
         value:
-        - Index: 0
-          Amount: 0
-        - Index: 0
-          Amount: 0
-        - Index: 0
-          Amount: 0
-        - Index: 0
-          Amount: 0
-        - Index: 0
-          Amount: 0
-        - Index: 0
-          Amount: 0
         - Index: 2
           Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
         - Index: 0
           Amount: 0
         - Index: 0

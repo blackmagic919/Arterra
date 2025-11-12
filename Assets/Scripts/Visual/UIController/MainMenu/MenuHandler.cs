@@ -20,27 +20,21 @@ public class MenuHandler : MonoBehaviour
         if(active) return;
         active = true;
 
-        TestState("MaskedAnimation", () => {
+        new AnimatorAwaitTask(sAnimator, "MaskedAnimation", () => {
             sAnimator.SetTrigger("Unmask");
-            TestState("UnmaskedAnimation", callback); 
-        });
+            new AnimatorAwaitTask(sAnimator, "UnmaskedAnimation", callback).Invoke(); 
+        }).Invoke();
     }
     public static void Deactivate(Action callback = null){ 
         if(!active) return;
         active = false;
 
-        TestState("UnmaskedAnimation", () => {
+        new AnimatorAwaitTask(sAnimator, "UnmaskedAnimation", () => {
             sAnimator.SetTrigger("Mask");
-            TestState("MaskedAnimation", callback);
-        });
+            new AnimatorAwaitTask(sAnimator, "MaskedAnimation", callback).Invoke();
+        }).Invoke();
     }
 
-    private async static void TestState(string state, Action callback = null){
-        while(sAnimator != null && !sAnimator.GetCurrentAnimatorStateInfo(0).IsName(state)) {
-            await Task.Yield();
-        }
-        callback?.Invoke();
-    }
 
     public void Quit(){ 
         if(!active) return; 

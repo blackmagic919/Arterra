@@ -87,8 +87,6 @@ public class AquaticCarnivore : Authoring
         [JsonIgnore]
         public override ref TerrainCollider.Transform transform => ref tCollider.transform;
         [JsonIgnore]
-        public Quaternion Facing => tCollider.transform.rotation;
-        [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
         public bool IsDead => vitality.IsDead;

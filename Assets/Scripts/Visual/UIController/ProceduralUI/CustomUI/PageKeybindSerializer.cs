@@ -40,8 +40,8 @@ public class PageKeybindSerializer : IConverter{
             nBindings.IsDirty = true;
             OnUpdate((ref object option) => {
                 KeyBind nKeyBind = (KeyBind)field.GetValue(option);
-                KeyBind nKB = ScriptableObject.Instantiate(nKeyBind);
-                nKB.bindings = nBindings;
+                nKeyBind = ScriptableObject.Instantiate(nKeyBind);
+                nKeyBind.bindings = nBindings;
 
                 field.SetValue(option, nKeyBind);
                 ReflectKeybind(parent, field, nKeyBind, OnUpdate);

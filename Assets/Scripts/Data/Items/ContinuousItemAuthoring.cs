@@ -18,12 +18,12 @@ namespace WorldConfig.Generation.Item {
 
         [JsonIgnore]
         public int Index{
-            get => (int)(data >> 16) & 0x7FFF;
+            readonly get => (int)(data >> 16) & 0x7FFF;
             set => data = (data & 0x0000FFFF) | (((uint)value & 0x7FFF) << 16);
         }
         [JsonIgnore]
         public int AmountRaw{
-            get => (int)(data & 0xFFFF);
+            readonly get => (int)(data & 0xFFFF);
             set
             {
                 data = (data & 0x7FFF0000) | ((uint)value & 0xFFFF);

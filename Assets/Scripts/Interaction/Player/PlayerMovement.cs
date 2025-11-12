@@ -118,7 +118,6 @@ public static class SwimMovement{
     public static WorldConfig.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
     private static float MoveSpeed => PlayerMovement.IsSprinting ? Setting.runSpeed : Setting.walkSpeed;
     public static ref float3 velocity => ref PlayerHandler.data.collider.transform.velocity;
-    private static int[] KeyBinds = null;
     private static bool isSwimming = false;
 
     public static void Initialize() {
@@ -162,7 +161,6 @@ public static class SwimMovement{
         InputPoller.AddKeyBindChange(() => {
             InputPoller.RemoveBinding("PMSwimMove:ASD", "4.0::Movement");
             InputPoller.RemoveBinding("PMSwimMove:DSD", "4.0::Movement");
-            KeyBinds = null;
         });
     }
 

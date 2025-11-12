@@ -66,7 +66,7 @@ namespace WorldConfig.Generation.Item
             shadow.color = new (1, 1, 1, 0.4f);
         }
 
-        public virtual void ClearDisplay(Transform parent) {
+        public override void ClearDisplay(Transform parent) {
             if (display == null) return;
             display.GetComponent<UnityEngine.UI.Image>().fillAmount = 1;
             UnityEngine.UI.Image shadow = display.transform.Find("Item").GetComponent<UnityEngine.UI.Image>();

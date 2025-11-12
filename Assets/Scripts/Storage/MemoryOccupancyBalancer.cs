@@ -8,7 +8,6 @@ using UnityEngine.Rendering;
 namespace WorldConfig.Quality{
     //Strategy: 
     public class MemoryOccupancyBalancer : MemoryBufferHandler {
-
         private ComputeBuffer _OccupancyBuffer;
         private List<BufferAllocation> MemoryBlocks;
         private BufferAllocation curAlloc => MemoryBlocks[AllocBufferIndex];

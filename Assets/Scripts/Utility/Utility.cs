@@ -7,14 +7,6 @@ using System.Threading.Tasks;
 
 namespace Utils {
     public static class CustomUtility {
-        public async static void TestState(Animator sAnimator, string state, Action callback = null){
-            while(true) {
-                if(sAnimator == null) return;
-                if(sAnimator.GetCurrentAnimatorStateInfo(0).IsName(state)) break;
-                await Task.Yield();
-            }
-            callback?.Invoke();
-        }
         public readonly static int3[] dP = new int3[6]{
             new (0,1,0),
             new (0,-1,0),

@@ -148,6 +148,7 @@ public class GridUIManager {
     public RectTransform Transform;
     public GridLayoutGroup Grid;
     public GameObject[] Slots;
+    private bool2 reverseAxis;
     private int2 DisplaySlotSize {
         get {
             float2 rectSize = Transform.rect.size;
@@ -167,6 +168,7 @@ public class GridUIManager {
         this.Object = GridUIComponent;
         this.Transform = Object.GetComponent<RectTransform>();
         this.Grid = Object.GetComponent<GridLayoutGroup>();
+        this.reverseAxis = false;
         this.root = root;
 
         Slots = new GameObject[slotCount];
@@ -183,9 +185,23 @@ public class GridUIManager {
 
         int2 dispSize = DisplaySlotSize;
         if (math.any(slot < 0) || math.any(slot >= dispSize)) return false;
+        if (reverseAxis.x) slot.x = (dispSize.x-1) - slot.x;
+        if (reverseAxis.y) slot.y = (dispSize.y-1) - slot.y;
         index = slot.y * dispSize.x + slot.x;
         return index < Slots.Length;
     }
+
+    public void ChangeAlginment(GridLayoutGroup.Corner corner) {
+        Grid.startCorner = corner;
+        reverseAxis = corner switch {
+            GridLayoutGroup.Corner.UpperLeft => new bool2(false, false),
+            GridLayoutGroup.Corner.UpperRight => new bool2(true, false),
+            GridLayoutGroup.Corner.LowerLeft => new bool2(false, true),
+            GridLayoutGroup.Corner.LowerRight => new bool2(true, true),
+            _ => new bool2(false, false)
+        };
+    }
+
 
     private int2 GetSlotIndex(float2 posSC) {
         RectTransformUtility.ScreenPointToLocalPointInRectangle(

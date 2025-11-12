@@ -46,27 +46,27 @@ public class AtmospherePass : ScriptableRenderPass
         initialized = true;
     }
 
-    public static void Release()
-    {
+    public static void Release() {
         if (material != null) UnityEngine.Object.Destroy(material);
         AtmosphereSettings.ReleaseData();
         initialized = false;
     }
 
-    public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
-    {
+    [Obsolete]
+    public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData) {
         if (!initialized) return;
         RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
         descriptor.depthBufferBits = 0;
-        
+
         ConfigureInput(ScriptableRenderPassInput.Color | ScriptableRenderPassInput.Depth);
         colorBuffer = renderingData.cameraData.renderer.cameraColorTargetHandle;
         //We need copy from depth buffer because transparent pass needs depth texture of opaque pass, and fog needs depth texture of transparent pass
         depthBuffer = renderingData.cameraData.renderer.cameraDepthTargetHandle;
         temporaryBuffer = RTHandles.Alloc(descriptor, FilterMode.Bilinear);
-        
-    }
 
+    }
+    
+    [Obsolete]
     // The actual execution of the pass. This is where custom rendering occurs.
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {

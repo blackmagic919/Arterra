@@ -4,13 +4,9 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
 using WorldConfig;
-using WorldConfig.Generation.Material;
 using WorldConfig.Intrinsic;
 using static CraftingMenuController;
 using UnityEngine.EventSystems;
-using System;
-using UnityEditor;
-using UnityEditor.Animations;
 using System.Collections.Generic;
 using WorldConfig.Generation.Item;
 
@@ -27,6 +23,7 @@ public class CraftingRecipeSearch {
     private IndirectUpdate HighlightTask;
     private IngredientTable IngredeintList;
     private CraftingRecipe ActiveRecipe;
+     private AnimatorAwaitTask ClosingTask;
     private int PrevHighlightedItemSlot;
 
     public CraftingRecipeSearch(Transform craftingMenu, ref int GridIndex) {
@@ -81,6 +78,7 @@ public class CraftingRecipeSearch {
     }
 
     internal void Activate() {
+        ClosingTask?.Disable();
         RecipeSearch.Activate();
         animator.SetBool("IsOpen", true);
         ToggleSearch.Lock();
@@ -94,12 +92,12 @@ public class CraftingRecipeSearch {
     internal void Deactivate() {
         ToggleSearch.Unlock();
         animator.SetBool("IsOpen", false);
-        Utils.CustomUtility.TestState(animator,
-            "ClosedAnim", () => {
+        ClosingTask?.Disable();
+        ClosingTask = new AnimatorAwaitTask(animator, "ClosedAnim", () => {
             DeactivateRecipeDisplay();
             RecipeSearch.Deactivate();
             Menu.gameObject.SetActive(false);
-        });
+        }); ClosingTask.Invoke();
     }
 
     public void ActivateRecipeDisplay(CraftingAuthoring template) {

@@ -19,6 +19,7 @@ public struct Optional<T>
     }
 }
 
+#if UNITY_EDITOR
 
 [CustomPropertyDrawer(typeof(Optional<>))]
 public class OptionalPropertyDrawer : PropertyDrawer {
@@ -51,6 +52,7 @@ public class OptionalPropertyDrawer : PropertyDrawer {
         return EditorGUI.GetPropertyHeight(property.FindPropertyRelative("Value"));
     }
 }
+#endif
 
 
 public class PageOptionalSerializer : PaginatedUIEditor.IConverter {
@@ -99,8 +101,7 @@ public class PageOptionalSerializer : PaginatedUIEditor.IConverter {
 }
 
 
-public class SegmentOptionalSerializer : SegmentedUIEditor.IConverter
-{
+public class SegmentOptionalSerializer : SegmentedUIEditor.IConverter {
     public bool CanConvert(Type iType, Type fType) { return iType.IsGenericType && iType.GetGenericTypeDefinition() == typeof(Optional<>); }
 
     public void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate) {
@@ -121,9 +122,8 @@ public class SegmentOptionalSerializer : SegmentedUIEditor.IConverter
 
         if (enabled) CreateOptionDisplay(value, parent, OnUpdate);
     }
-    
-    public void Deserialize(ref object destination, ref object source)
-    { //Default Behavior
-        SupplementTree(ref destination, ref source); 
+
+    public void Deserialize(ref object destination, ref object source) { //Default Behavior
+        SupplementTree(ref destination, ref source);
     }
 }

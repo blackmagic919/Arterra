@@ -1,9 +1,5 @@
-using System;
-using Newtonsoft.Json;
-using Unity.Mathematics;
+ using Newtonsoft.Json;
 using UnityEngine;
-using MapStorage;
-using SharpToken;
 
 namespace WorldConfig.Generation.Item{
     [CreateAssetMenu(menuName = "Generation/Items/Bow")] 

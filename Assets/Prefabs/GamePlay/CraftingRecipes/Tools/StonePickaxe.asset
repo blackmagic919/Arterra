@@ -49,13 +49,13 @@ MonoBehaviour:
         - Index: 2
           Amount: 1
         - Index: 3
-          Amount: 0.5
+          Amount: 0.75
         - Index: 0
           Amount: 0
         - Index: 3
           Amount: 0.25
         - Index: 3
-          Amount: 0.5
+          Amount: 0.75
         - Index: 3
           Amount: 1
       items:

@@ -72,8 +72,7 @@ float2 mapCoordinates(float3 worldPos)
     float2 projXY = worldPos.xy;
     float2 projXZ = worldPos.xz;
     float2 projYZ = worldPos.yz;
-
-    return (projXY + projXZ + projYZ) / 3;
+    return (projXY + projXZ + projYZ) / 3.0;
 }
 
 float4 _CameraPosition;
@@ -92,6 +91,7 @@ VertexOutput Vertex(uint vertexID: SV_VertexID)
     uint3 input = _StorageMemory[triAddress].vertex[vertexIndex];
 
     VertexInfo v = UnpackVertex(input);
+    
     output.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
     output.normalWS = normalize(mul(_LocalToWorld, float4(v.normalOS, 0)).xyz);
     output.uv.xy = mapCoordinates(output.positionWS) * VariantSettings[v.variant].Scale;

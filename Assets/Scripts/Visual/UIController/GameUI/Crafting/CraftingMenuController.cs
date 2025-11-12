@@ -7,12 +7,7 @@ using UnityEngine.UI;
 using WorldConfig;
 using WorldConfig.Generation.Item;
 using WorldConfig.Intrinsic;
-using MapStorage;
-using TMPro;
 using TerrainGeneration;
-using WorldConfig.Generation.Material;
-using UnityEditor.Playables;
-using WorldConfig.Gameplay;
 
 
 public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
@@ -258,14 +253,13 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
                 if (placedItem == null) continue;
                 if (ingred.Amount <= 0) continue;
                 float unitAmt = ((float)placedItem.AmountRaw) / placedItem.UnitSize;
-                if (unitAmt < 1) OnFindEntry.Invoke(index);
+                if (unitAmt / ingred.Amount < 1) OnFindEntry.Invoke(index);
             }}
         }
     }
 
     private bool CraftRecipe() {
         if (FitRecipe == -1) return false;
-
         CraftingRecipe recipe = Recipe.Table[FitRecipe];
         int2 offset = Rendering.GetNormalizationOffset();
         if (!VerifyIngredientList(Rendering.MainGridMatItems.Info,
@@ -608,6 +602,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             NonMatInventory.InitializeDisplay(Display);
             NonMatInventory.Display.Grid.cellSize = display.Transform.sizeDelta / GridWidth;
             NonMatInventory.Display.Grid.spacing = float2.zero;
+            NonMatInventory.Display.ChangeAlginment(GridLayoutGroup.Corner.LowerLeft);
         }
 
         public void ReleaseDisplay() {

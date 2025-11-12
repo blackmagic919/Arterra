@@ -137,7 +137,7 @@ public class MinimalVitality {
 
 public class Vitality : MinimalVitality {
     [Serializable]
-    public class Stats : MinimalVitality.Stats {
+    public new class Stats : MinimalVitality.Stats {
         public Genetics.GeneFeature AttackDistance;
         public Genetics.GeneFeature AttackDamage;
         public Genetics.GeneFeature AttackCooldown;

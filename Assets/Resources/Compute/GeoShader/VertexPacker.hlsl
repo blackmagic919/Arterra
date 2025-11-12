@@ -14,7 +14,7 @@ struct SourceVertex{
     int2 material; 
 };
 
-struct matTerrain{//
+struct matTerrain{
     int textureIndex;
     float baseTextureScale;
     uint flipStateRendering;
@@ -22,7 +22,7 @@ struct matTerrain{//
 };
 
 StructuredBuffer<matTerrain> _MatTerrainData;
-int geoInd;
+uint geoInd;
 
 VertexInfo UnpackVertex(uint3 data){
     VertexInfo v = (VertexInfo)0;

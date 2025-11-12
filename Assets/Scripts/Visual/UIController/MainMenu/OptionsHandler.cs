@@ -25,11 +25,11 @@ public class OptionsHandler : MonoBehaviour
         active = true;
         
         sAnimator.SetTrigger("Unmask");
-        TestState("MaskRockBreak", InitializeDisplay);
-        TestState("UnmaskedAnimation", () => {
+        new AnimatorAwaitTask(sAnimator, "MaskRockBreak", InitializeDisplay).Invoke();
+        new AnimatorAwaitTask(sAnimator,  "UnmaskedAnimation", () => {
             sAnimator.ResetTrigger("Unmask");
             callback?.Invoke();
-        }); 
+        }).Invoke(); 
     }
     public static void Deactivate(Action callback = null){ 
         if(!active) return;
@@ -37,11 +37,11 @@ public class OptionsHandler : MonoBehaviour
         
         _ = SaveOptions();
         sAnimator.SetTrigger("Mask");
-        TestState("MaskedAnimation", () => {
+        new AnimatorAwaitTask(sAnimator, "MaskedAnimation", () => {
             sAnimator.ResetTrigger("Mask");
             ReleaseDisplay(infoContent); 
             callback?.Invoke();
-        });
+        }).Invoke();
     }
 
     public static void TogglePanel(){
@@ -49,14 +49,6 @@ public class OptionsHandler : MonoBehaviour
         else Activate();
     }
 
-    private async static void TestState(string state, Action callback = null){
-        while(true) {
-            if(sAnimator == null) return;
-            if(sAnimator.GetCurrentAnimatorStateInfo(0).IsName(state)) break;
-            await Task.Yield();
-        }
-        callback?.Invoke();
-    }
 
     public static void EditName(){
         WORLD_SELECTION.First.Value = new WorldMeta{
@@ -72,10 +64,10 @@ public class OptionsHandler : MonoBehaviour
         //Don't call deactivate because it will save the options
         //Which Delete already does
         sAnimator.SetTrigger("Mask");
-        TestState("MaskedAnimation", () => {
-            ReleaseDisplay(infoContent); 
+        new AnimatorAwaitTask(sAnimator, "MaskedAnimation", () => {
+            ReleaseDisplay(infoContent);
             MenuHandler.Activate();
-        });
+        }).Invoke();
         active = false;
     }
 

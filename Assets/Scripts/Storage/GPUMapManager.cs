@@ -64,9 +64,9 @@ namespace MapStorage{
             int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
             int depth = OctreeTerrain.BalancedOctree.GetDepthOfDistance(numChunksRadius, rSettings.Balance, (uint)rSettings.MinChunkRadius);
             int memSize = (numPoints + LightBaker.GetLightMapLength()) * OctreeTerrain.BalancedOctree.GetMaxNodes(depth, rSettings.Balance, rSettings.MinChunkRadius);
-            memorySpace = new MemoryBufferHandler(new Memory {
-                StorageSize = memSize
-            });
+            Memory settings = ScriptableObject.CreateInstance<Memory>();
+            settings.StorageSize = memSize;
+            memorySpace = new MemoryBufferHandler(settings);
 
             initialized = true;
         }
