@@ -10,7 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d60a39b1e4df74ed3aaaa1cb0087049e, type: 3}
-  m_Name: FurnaceLitT
+  m_Name: FurnaceIconT
   m_EditorClassIdentifier: 
-  Name: FurnaceLit
-  self: {fileID: 21300000, guid: 632929167eb454b5ea25c2e2ced3f7d6, type: 3}
+  Name: FurnaceIcon
+  Tags:
+    Reg:
+      value: []
+  self: {fileID: 21300000, guid: dac084074acf946219b8be49e457b506, type: 3}
+  references:
+    version: 2
+    RefIds: []

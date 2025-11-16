@@ -363,7 +363,7 @@ public class DensityDeconstructor : MonoBehaviour
     }
 
     void GetDataFromMesh(Mesh mesh){
-        ComputeShader SDFConstructor = Resources.Load<ComputeShader>("Compute/Deconstructor/MeshDeconstructor");
+        ComputeShader SDFConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/MeshDeconstructor");
         ComputeBuffer vertexBuffer = new ComputeBuffer(mesh.vertexCount, sizeof(float)*3);
         ComputeBuffer indexBuffer = new ComputeBuffer(mesh.triangles.Length, sizeof(uint));
         vertexBuffer.SetData(mesh.vertices); indexBuffer.SetData(mesh.triangles);
@@ -423,8 +423,8 @@ public class DensityDeconstructor : MonoBehaviour
         public const int TRI_STRIDE_WORD = 3;
 
         public ModelManager(uint3 GridSize, Transform transform, float IsoLevel, ComputeBuffer MapBuffer, ComputeBuffer GeoBuffer, int bufferStart){
-            this.ModelConstructor = Resources.Load<ComputeShader>("Compute/Deconstructor/ModelConstructor");
-            this.IndexLinker = Resources.Load<ComputeShader>("Compute/Deconstructor/ModelIndexLinker");
+            this.ModelConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/ModelConstructor");
+            this.IndexLinker = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/ModelIndexLinker");
             this.DrawArgsConstructor = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
             this.GeoBuffer = GeoBuffer;
             this.MapBuffer = MapBuffer;
@@ -570,7 +570,7 @@ public class DensityDeconstructor : MonoBehaviour
 
         public GridManager(uint3 GridSize, Transform transform, ComputeBuffer GeoBuffer, ref SelectionArray SelectionArray, int bufferStart) {
             this.GridMaterial = new Material(Shader.Find("Unlit/GridShader"));
-            this.GridConstructor = Resources.Load<ComputeShader>("Compute/Deconstructor/GridConstructor");
+            this.GridConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/GridConstructor");
             this.offsets = new GridOffsets(new int3(GridSize), bufferStart, 4, 3);
             this.SelectionBuffer = new ComputeBuffer(SelectionArray.SelectionData.Length, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
             this.GeoBuffer = GeoBuffer;

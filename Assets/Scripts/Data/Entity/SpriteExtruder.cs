@@ -19,9 +19,9 @@ public static class SpriteExtruder{
 
 
     public static void PresetData(){
-        ImageExtruder = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/SpriteExtruder");
-        triangleTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/TranscribeTriangles");
-        vertexTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/TranscribeVertices");
+        ImageExtruder = Resources.Load<ComputeShader>("Compute/CGeometry/Extruder/SpriteExtruder");
+        triangleTranscriber = Resources.Load<ComputeShader>("Compute/CGeometry/Extruder/TranscribeTriangles");
+        vertexTranscriber = Resources.Load<ComputeShader>("Compute/CGeometry/Extruder/TranscribeVertices");
         int2 maxSampleSize = ((EItem.EItemSetting)Config.CURRENT.Generation.Entities.Retrieve("EntityItem").Setting).SpriteSampleSize;
         offsets = new ExtruderOffsets(maxSampleSize, 0, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD);
 

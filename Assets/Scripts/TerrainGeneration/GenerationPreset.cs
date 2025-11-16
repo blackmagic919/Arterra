@@ -45,6 +45,7 @@ public static class SystemProtocol{
         Surface.Generator.PresetData();
         Map.Generator.PresetData();
         SubChunkShaderGraph.PresetData();
+        RegionReconstructor.PresetData();
         SpriteExtruder.PresetData();
         Readback.AsyncMeshReadback.PresetData();
     }
@@ -420,7 +421,7 @@ public static class GenerationPreset
             indexBuffer = new ComputeBuffer(StructureDictionary.Count + 1, sizeof(uint) * 2, ComputeBufferType.Structured); //By doubling stride, we compress the prefix sums
             mapBuffer = new ComputeBuffer(map.Count, sizeof(uint), ComputeBufferType.Structured);
             checksBuffer = new ComputeBuffer(checks.Count, sizeof(float) * 3 + sizeof(uint), ComputeBufferType.Structured);
-            settingsBuffer = new ComputeBuffer(StructureDictionary.Count, sizeof(int) * 4 + sizeof(uint) * 2, ComputeBufferType.Structured);
+            settingsBuffer = new ComputeBuffer(StructureDictionary.Count, sizeof(int) * 4 + sizeof(uint) * 3, ComputeBufferType.Structured);
 
             indexBuffer.SetData(indexPrefixSum);
             mapBuffer.SetData(map.ToArray());

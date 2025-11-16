@@ -18,7 +18,7 @@ public class Creator
     /// of the beginning of the structure information for this chunk.
     /// </summary>
     public uint StructureDataIndex;
-    const int STRUCTURE_STRIDE_WORD = 3 + 2 + 1;
+    const int STRUCTURE_STRIDE_WORD = 3 + 1;
 
     /// <summary>  Releases any intermediate structure information sheld by this instance. Call this to ensure
     /// that no memory is being held by a chunk being disposed. See <seealso cref="StructureDataIndex"/>. </summary>
@@ -137,7 +137,7 @@ public static class Generator
     static ComputeShader structureDataTranscriber;//
     static ComputeShader structureSizeCounter;//
 
-    const int STRUCTURE_STRIDE_WORD = 3 + 2 + 1;
+    const int STRUCTURE_STRIDE_WORD = 3 + 1;
     const int SAMPLE_STRIDE_WORD = 3 + 1;
     const int CHECK_STRIDE_WORD = 2;
 

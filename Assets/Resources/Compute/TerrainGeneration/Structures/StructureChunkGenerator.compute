@@ -6,21 +6,21 @@
 
 
 const static int numThreads = 8;
-const static uint POINT_STRIDE_4BYTES = 3 + 1 + 2;
-
 struct structureInfo{
     float3 structurePos;
-    uint structureIndex;
-    uint2 rotation;
+    uint meta;
 };
 
 struct settings{
     uint3 size;
     int minimumLOD;
-    uint randThetaRot;
-    uint randPhiRot;
+    uint randYRot;
+    uint randXRot;
+    uint randZRot;
 };
 
+inline uint3 GetRot(uint meta) { return uint3((meta >> 2) & 0x3, meta & 0x3, (meta >> 4) & 0x3); }
+inline uint GetStructureIndex(uint meta) { return meta >> 6; }
 uint density(uint data) { return data & 0x000000FF; }
 uint viscosity(uint data) { return (data & 0x0000FF00) >> 8; }
 uint material(uint data) { return (data & 0x7FFF0000) >> 16; }
@@ -60,8 +60,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     structureInfo structure = _MemoryBuffer[structureAddress];
     //can't use implicit concatenation because -1.5 -> -1 while 1.5 -> 1, positive ints for current chunk, negative for adjacent ones
     int3 origin = int3(floor(structure.structurePos));
-    uint2 rotation = structure.rotation;
-    uint structureIndex = structure.structureIndex;
+    uint3 rotation = GetRot(structure.meta);
+    uint structureIndex = GetStructureIndex(structure.meta);
 
     settings StructureSettings = _StructureSettings[structureIndex];
     uint3 sizes = StructureSettings.size;
@@ -69,15 +69,15 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     //Where in the chunk to start generation
     uint3 chunkOrigin = uint3(max(0, origin));
 
-    int3 xAxis = int3(mul(RotationLookupTable[rotation.x][rotation.y], float3(1, 0, 0)));
+    int3 xAxis = int3(mul(RotationLookupTable[rotation.y][rotation.x][rotation.z], float3(1, 0, 0)));
     int3 xDir = abs(xAxis);
     bool xFlipped = dot(xAxis, float3(1, 1, 1)) < 0;
 
-    int3 yAxis = int3(mul(RotationLookupTable[rotation.x][rotation.y], float3(0, 1, 0)));
+    int3 yAxis = int3(mul(RotationLookupTable[rotation.y][rotation.x][rotation.z], float3(0, 1, 0)));
     int3 yDir = abs(yAxis);
     bool yFlipped = dot(yAxis, float3(1, 1, 1)) < 0;
 
-    int3 zAxis = int3(mul(RotationLookupTable[rotation.x][rotation.y], float3(0, 0, 1)));
+    int3 zAxis = int3(mul(RotationLookupTable[rotation.y][rotation.x][rotation.z], float3(0, 0, 1)));
     int3 zDir = abs(zAxis);
     bool zFlipped = dot(zAxis, float3(1, 1, 1)) < 0;
 

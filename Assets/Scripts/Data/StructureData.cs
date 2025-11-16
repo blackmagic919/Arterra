@@ -112,18 +112,26 @@ public class StructureData : Category<StructureData>
         /// </summary>
         public int minimumLOD;
 
-        /// <summary> Whether or not placement of the structure may include random rotations around the vertical-axis. Rotations are
+        /// <summary> Whether or not placement of the structure may include random rotations around the vertical(y)-axis. Rotations are
         /// possible by changing the axis and order the structure's contents are read when being placed in the world.
         /// </summary>
         [Range(0, 1)]
-        public uint randThetaRot;
+        public uint randYRot;
         /// <summary>
-        /// Whether or not placement of the structure may include random rotations around the horizontal-axis. The horizontal
-        /// axis that it is rotated upon may shift depending on the <see cref="randThetaRot"/>. Rotations are possible by changing 
+        /// Whether or not placement of the structure may include random rotations around the major horizontal(x)-axis. The horizontal
+        /// axis that it is rotated upon may shift depending on the <see cref="randYRot"/>. Rotations are possible by changing 
         /// the axis and order the structure's contents are read when being placed in the world.
         /// </summary>
         [Range(0, 1)]
-        public uint randPhiRot;
+        public uint randXRot;
+        /// <summary>
+        /// Whether or not placement of the structure may include random rotations around the mino horizontal(z)-axis. The horizontal
+        /// axis that it is rotated upon may shift depending on the <see cref="randYRot"/> and <see cref="randXRot"/>. Rotations 
+        /// are possible by changing the axis and order the structure's contents are read when being placed in the world.
+        /// </summary>
+        [Range(0, 1)]
+        public uint randZRot;
+        
     }
     /// <summary>
     /// The requirements that are tested against a map entry sampled by a <see cref="CheckPoint"/>. The

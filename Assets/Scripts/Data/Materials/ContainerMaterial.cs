@@ -13,10 +13,11 @@ namespace WorldConfig.Generation.Material
     /// <summary> A container material which can hold items in its meta-data
     /// and is accessible to users who click on the item. </summary>
     [CreateAssetMenu(menuName = "Generation/MaterialData/ContainerMat")]
-    public class ContainerMaterial : MaterialData {
+    public class ContainerMaterial : PlaceableStructureMat {
         /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the 
         /// texture within the texture registry of the icon displayed on the <see cref="PanelNavbarManager">Navbar</see>
         /// referring to the Container.  </summary>
+        [RegistryReference("Textures")] 
         public int DisplayIcon;
         /// <summary> The maximum amount of item slots this container will have
         /// if it is at maximum density. The actual amount of slots will scale between
@@ -36,7 +37,8 @@ namespace WorldConfig.Generation.Material
         /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
         public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng) {
-
+            if (!VerifyStructurePlaceement(GCoord))
+                DropInventoryContent(GCoord);
         }
 
         /// <summary> The handler controlling how materials are dropped when
@@ -48,15 +50,18 @@ namespace WorldConfig.Generation.Material
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
             if (caller == null || caller.info.entityType != Config.CURRENT.Generation.Entities.RetrieveIndex("Player"))
                 return false;
-            if (PlayerMovement.IsSprinting) return false;
+            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                return false;
             MapData info = CPUMapManager.SampleMap(GCoord);
             if (info.IsNull || !info.IsSolid) return false;
 
-            float progress = (info.SolidDensity - CPUMapManager.IsoValue) /
-                             (255.0f - CPUMapManager.IsoValue);
-            int SlotCount = Mathf.FloorToInt(MaxSlotCount * progress) + 1;
+            if (!VerifyStructurePlaceement(GCoord)) {
+                DropInventoryContent(GCoord);
+                return false;
+            }
+
             if (!CPUMapManager.GetOrCreateMapMeta(GCoord, () => new ContainerInventory
-                (GCoord, SlotCount), out OpenedInventory))
+                (GCoord, MaxSlotCount), out OpenedInventory))
                 return false;
 
             OpenedInventory.InitializeDisplay(this);
@@ -90,20 +95,10 @@ namespace WorldConfig.Generation.Material
             if (!info.IsSolid) return MaterialDrops.LootItem(amount, Names);
             if (OpenedInventory != null && math.all(OpenedInventory.position == GCoord))
                 DeactivateWindow();
-            if (!CPUMapManager.TryGetExistingMapMeta(GCoord, out ContainerInventory cont))
-                return MaterialDrops.LootItem(amount, Names);
             int SolidDensity = info.SolidDensity - amount.SolidDensity;
-            if (SolidDensity < CPUMapManager.IsoValue) {
-                foreach (Item.IItem item in cont.inv.Info)
-                    InventoryController.DropItem(item, GCoord);
-                CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
-                return MaterialDrops.LootItem(amount, Names);
-            }
+            if (!VerifyStructurePlaceement(GCoord) || SolidDensity < CPUMapManager.IsoValue)
+                DropInventoryContent(GCoord);
 
-            float progress = (SolidDensity - CPUMapManager.IsoValue) /
-                             (MapData.MaxDensity - CPUMapManager.IsoValue);
-            int SlotCount = Mathf.FloorToInt(MaxSlotCount * progress) + 1;
-            cont.inv.ResizeInventory(SlotCount, Item => InventoryController.DropItem(Item, GCoord));
             return MaterialDrops.LootItem(amount, Names);
         }
 
@@ -157,6 +152,14 @@ namespace WorldConfig.Generation.Material
             InputPoller.SuspendKeybindPropogation("SelectPartial", ActionBind.Exclusion.ExcludeLayer);
         }
         private void SelectAll(float _ = 0) => InventoryController.SelectAll(OpenedInventory.inv);
+
+        private void DropInventoryContent(int3 GCoord) {
+            if (!CPUMapManager.TryGetExistingMapMeta(GCoord, out ContainerInventory cont))
+                return;
+            foreach (IItem item in cont.inv.Info)
+                InventoryController.DropItem(item, GCoord);
+            CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
+        }
 
 
         public class ContainerInventory : PanelNavbarManager.INavPanel {

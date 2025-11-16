@@ -73,17 +73,16 @@ namespace WorldConfig.Generation.Material{
             List<MapSamplePoint> checks, int2 range,
             int3 GCoord, bool UseExFlag = true
         ) {
-            bool allC = true; bool anyC = false; bool any0 = false;
+            bool anyC = false; bool any0 = false;
             for(int i = range.x; i <= range.y; i++){
                 MapSamplePoint samplePoint = checks[i];
                 if (samplePoint.check.ExFlag && UseExFlag) continue;
                 bool valid = samplePoint.SatisfiesCheck(mat, GCoord);
-                allC = allC && (valid || !samplePoint.check.AndFlag);
+                if (samplePoint.check.AndFlag && !valid) return false;
                 anyC = anyC || (valid && samplePoint.check.OrFlag);
                 any0 = any0 || samplePoint.check.OrFlag;
-            } 
-            if(allC && (!any0 || anyC)) return true;
-            else return false;
+            }
+            return !any0 || anyC;
         }
 
         [Serializable]
@@ -102,7 +101,7 @@ namespace WorldConfig.Generation.Material{
 
             public uint material {
                 readonly get => _material & 0x7FFFFFFF;
-                set => _material = value & 0x7FFFFFFF;
+                set => _material = value & 0x7FFFFFFF | (_material & 0x80000000);
             }
 
             public bool HasMaterialCheck {

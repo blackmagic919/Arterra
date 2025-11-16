@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
+  m_Script: {fileID: 11500000, guid: ef77fbab4752a4878ad291f54a5303d8, type: 3}
   m_Name: FurnaceMat
   m_EditorClassIdentifier: 
   Name: Furnace
@@ -20,10 +20,15 @@ MonoBehaviour:
     value:
     - Furnace:Solid
     - Void
+    - Hearthstone
+    - Rock
+    - 
+    - FurnaceIcon
     - Furnace
   terrainData:
     Texture: 2
-    textureScale: 2
+    textureScale: 1
+    FlipStateRendering: 0
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
@@ -32,15 +37,87 @@ MonoBehaviour:
     GroundExtinction: {x: 0, y: 0, z: 0}
     LightIntensity: 0
   liquidData:
-    shallowCol: {x: 0, y: 0, z: 0}
-    deepCol: {x: 0, y: 0, z: 0}
+    shallowCol: {r: 0, g: 0, b: 0, a: 0}
+    deepCol: {r: 0, g: 0, b: 0, a: 0}
     colFalloff: 0
-    depthOpacity: 0
-    smoothness: 0
     waveBlend: 0
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
+  Structure:
+    value:
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 0
+      _material: 2147483654
+      _offset: 537394688
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 0
+      _material: 2147483651
+      _offset: 536347136
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 0
+      _material: 2147483651
+      _offset: 538444288
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 0
+      _material: 2147483651
+      _offset: 536348160
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 0
+      _material: 2147483651
+      _offset: 538445312
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 0
+      _material: 2147483651
+      _offset: 537396736
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 0
+      _material: 2147483651
+      _offset: 537395711
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 0
+      _material: 2147483651
+      _offset: 538444287
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 0
+      _material: 2147483651
+      _offset: 536347135
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 0
+      _material: 2147483651
+      _offset: 537396735
+    - check:
+        bounds:
+          data: 1677754112
+        flags: 0
+      _material: 3
+      _offset: 537395712
+  SelfIndex: 0
+  randYRot: 1
+  randXRot: 0
+  randZRot: 0
+  DisplayIcon: 5
+  MaxSlotCount: 20
   MaterialDrops:
     SolidItem: 0
     LiquidItem: 1

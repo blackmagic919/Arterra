@@ -186,8 +186,6 @@ public struct TagRegistry
         { Tags.Grassy, new ConvertibleTag() },
         { Tags.Vegetative, new ConvertibleTag() },
         { Tags.AquaMicrobial, new ConvertibleTag() },
-        //Interaction Type
-        { Tags.FocusedPlace, null },
         // Projectiles
         { Tags.ArrowTag, new ProjectileTag() }
     };
@@ -200,8 +198,6 @@ public struct TagRegistry
         Flammable = 1000, Tillable = 1001, Seedable = 1002,
         //Convertables
         Grassy = 2000, Vegetative = 2001, AquaMicrobial = 2002,
-        //Interactions
-        FocusedPlace = 9000,
         // Projectiles 
         ArrowTag = 10000
     }

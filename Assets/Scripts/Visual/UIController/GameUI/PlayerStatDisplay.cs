@@ -31,7 +31,7 @@ public static class PlayerStatDisplay
         bool isVulnerable = (bool)vulnerability;
         if((!isVulnerable) == HealthBar.activeSelf)
             return;
-        HealthBar.SetActive(!Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability);
+        HealthBar.SetActive(!isVulnerable);
     }
 
     public static void UpdateIndicator(PlayerVitality vitality){

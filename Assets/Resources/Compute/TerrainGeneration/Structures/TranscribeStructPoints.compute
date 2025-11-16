@@ -2,12 +2,10 @@
 #pragma kernel CSMain
 
 const static uint numThreads = 128;
-const static uint POINT_STRIDE_4BYTES = 3 + 1 + 2;
 
 struct structureInfo{
     float3 structurePos;
-    uint structureIndex;
-    uint2 rotation;
+    uint meta;
 };
 
 RWStructuredBuffer<structureInfo> _MemoryBuffer;

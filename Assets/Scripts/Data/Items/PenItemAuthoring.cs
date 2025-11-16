@@ -53,7 +53,7 @@ namespace WorldConfig.Generation.Item
         public void UpdateEItem(){}
         public void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-            if (handler != null) handler.Release();
+            handler?.Release();
             handler = InteractionHandler.Create(this, cxt);
         }
 
@@ -123,7 +123,7 @@ namespace WorldConfig.Generation.Item
         {
             Selector?.SetActive(false);
             Selector = null;
-            item = default;
+            item = null;
             InputPoller.AddKeyBindChange(() =>
             {
                 InputPoller.RemoveBinding("ITEM::Pen:RM", "5.0::GamePlay");
@@ -175,7 +175,7 @@ namespace WorldConfig.Generation.Item
             if (Selector == null)
             {
                 if (!FindNearest(out int3 hitCoord)) return;
-                if (!FindNextSolidMat(out int nextSlot)) return;
+                if (!FindNextSolidMat(out IItem nextSlot)) return;
                 AddNextSolidWithDurability(hitCoord, nextSlot);
                 return;
             }
@@ -186,7 +186,7 @@ namespace WorldConfig.Generation.Item
                 {
                     for (coord.z = (int)SelectBounds.min.z; coord.z <= SelectBounds.max.z; coord.z++)
                     {
-                        if (!FindNextSolidMat(out int slot)) return;
+                        if (!FindNextSolidMat(out IItem slot)) return;
                         AddNextSolidWithDurability(coord, slot);
                     }
                 }
@@ -288,15 +288,14 @@ namespace WorldConfig.Generation.Item
             return closest;
         }
 
-        void AddNextSolidWithDurability(int3 hitCoord, int nextSlot)
+        void AddNextSolidWithDurability(int3 hitCoord, IItem AddItem)
         {
             if (item == null) return;
             MapData orig = CPUMapManager.SampleMap(hitCoord);
             ToolTag prop = PlayerInteraction.settings.DefaultTerraform.value;
             if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out object tag))
                 prop = tag as ToolTag;
-            if (!cxt.TryGetInventory(out InventoryController.Inventory inv)) return;
-            if (!PlayerInteraction.HandleAddSolid(inv.Info[nextSlot], hitCoord, prop.TerraformSpeed, out MapData change))
+            if (!PlayerInteraction.HandleAddSolid(AddItem, hitCoord, prop.TerraformSpeed, out MapData change))
                 return;
             int delta = math.abs(change.SolidDensity - orig.SolidDensity);
             item.durability -= prop.ToolDamage * delta;
@@ -325,18 +324,16 @@ namespace WorldConfig.Generation.Item
             cxt.TryRemove();
         }
 
-        private bool FindNextSolidMat(out int slot)
+        private bool FindNextSolidMat(out IItem slotItem)
         {
-            int start = cxt.InvId; slot = 0;
-            var settings = WorldConfig.Config.CURRENT.GamePlay.Inventory.value;
+            int start = cxt.InvId; slotItem = null;
             if (!cxt.TryGetInventory(out InventoryController.Inventory inv))
                 return false;
-            for (slot = (start + 1) % settings.PrimarySlotCount;
-                slot != start;
-                slot = (slot + 1) % settings.PrimarySlotCount) {
-                slot %= settings.PrimarySlotCount;
-                if (inv.Info[slot] == null) continue;
-                Authoring authoring = ItemInfo.Retrieve(inv.Info[slot].Index);
+            int capacity = (int)inv.capacity;
+            for (int slot = (start + 1) % capacity; slot != start; slot = (slot + 1) % capacity) {
+                slotItem = inv.Info[slot];
+                if (slotItem == null) continue;
+                Authoring authoring = ItemInfo.Retrieve(slotItem.Index);
                 if (authoring is not PlaceableItem mSettings) continue;
                 if (!mSettings.IsSolid || !MatInfo.Contains(mSettings.MaterialName)) continue;
                 return true;

@@ -134,7 +134,53 @@ public class AsyncMeshReadback
         //Thus to indicate that they aren't being handled, initialize persistant buffers here
         RenderParams rp = GetRenderParams((int)geoHeapMemoryAddress, (int)this.vertexHandle.addressIndex, matIndex);
         triHandles[matIndex] = new GeometryHandle(rp, GenerationPreset.memoryHandle, geoHeapMemoryAddress, drawArgsAddress, matIndex);
+        MainLateUpdateTasks.Enqueue(triHandles[matIndex]);
+    }
+    
+    /// <summary> Offloads(copies) triangles(index buffer) to long term GPU storage. Unlike
+    /// <see cref="OffloadTrisToGPU"/> this method does not immediately try to render the geometry indirectly.  </summary>
+    /// <param name="triCounter">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see> 
+    /// storing the amount of triangles to be copied. </param>
+    /// <param name="triStart">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see> 
+    /// of the start of the triangles(index buffer).</param>
+    /// <param name="matIndex">The index within <see cref="WorldConfig.Intrinsic.Readback.indirectTerrainMats"/> of the material to use
+    /// for geometry referenced by these triangles if it is to be indirectly rendered. </param>
+    public void OffloadTrisToGPUNoRender(int triCounter, int triStart, int matIndex)
+    {
+        triHandles[matIndex]?.Release();
 
+        //Transcribe data to memory heap for GPU-forward render
+        uint geoHeapMemoryAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, TRI_STRIDE_WORD, triCounter);
+        TranscribeTriangles((int)geoHeapMemoryAddress, triCounter, triStart);
+        
+        triHandles[matIndex] = new GeometryHandle{
+            addressIndex = geoHeapMemoryAddress,
+            memory = GenerationPreset.memoryHandle,
+            matIndex = matIndex
+        };
+    }
+    public void CreateRenderParamsForMaterial(int triCounter, int matIndex, Material mat) {
+        uint drawArgsAddress = UtilityBuffers.DrawArgs.Allocate(); //Allocates 4 bytes
+        CreateDispArg(triCounter, (int)drawArgsAddress);
+        
+        RenderParams rp = new RenderParams(mat) {
+            worldBounds = this.shaderBounds,
+            shadowCastingMode = ShadowCastingMode.On,
+            matProps = new MaterialPropertyBlock()
+        };
+        
+        rp.matProps.SetBuffer("Vertices", GenerationPreset.memoryHandle.GetBlockBuffer(vertexHandle.addressIndex));
+        rp.matProps.SetBuffer("Triangles", GenerationPreset.memoryHandle.GetBlockBuffer(triHandles[matIndex].addressIndex));
+        rp.matProps.SetBuffer("_AddressDict", GenerationPreset.memoryHandle.Address);
+
+        rp.matProps.SetInt("triAddress", (int)triHandles[matIndex].addressIndex);
+        rp.matProps.SetInt("vertAddress", (int)vertexHandle.addressIndex);
+        
+        rp.matProps.SetInt("_Vertex4ByteStride", MESH_VERTEX_STRIDE_WORD);
+        rp.matProps.SetMatrix("_LocalToWorld", this.transform.localToWorldMatrix);
+        
+        triHandles[matIndex].argsAddress = drawArgsAddress;
+        triHandles[matIndex].rp = rp;
         MainLateUpdateTasks.Enqueue(triHandles[matIndex]);
     }
 
@@ -142,23 +188,23 @@ public class AsyncMeshReadback
     /// to a <see cref="ReadbackTask{T}"> CPU mesh object </see>. This is an asynchronous task that retrieves the data once
     /// the CPU and GPU states are synchronized. </summary>
     /// <param name="callback"> The callback to be called once the readback is complete. The callback will be provided the readback <see cref="ReadbackTask{T}.SharedMeshInfo"/> </param>
-    public void BeginMeshReadback(Action<ReadbackTask<IVertFormat.TVert>.SharedMeshInfo> callback){
-        ReadbackTask<IVertFormat.TVert> RBTask = new ReadbackTask<IVertFormat.TVert>((ReadbackTask<IVertFormat.TVert>.SharedMeshInfo ret) => { callback(ret); ReleaseAllGeometry();}, (int)numMeshes);
+    public void BeginMeshReadback(Action<ReadbackTask<IVertFormat.TVert>.SharedMeshInfo> callback) {
+        ReadbackTask<IVertFormat.TVert> RBTask = new ReadbackTask<IVertFormat.TVert>((ReadbackTask<IVertFormat.TVert>.SharedMeshInfo ret) => { callback(ret); ReleaseAllGeometry(); }, (int)numMeshes);
 
         //Readback shared vertices
         GeometryHandle vertHandle = this.vertexHandle; //Get reference here so that it doesn't change when lambda evaluates
-        if(vertHandle == null || !vertHandle.Active)
+        if (vertHandle == null || !vertHandle.Active)
             return;
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)vertHandle.addressIndex, ret => OnAddressRecieved(ret, vertHandle, RBTask, onVertSizeRecieved));
+        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8 * (int)vertHandle.addressIndex, ret => OnAddressRecieved(ret, vertHandle, RBTask, onVertSizeRecieved));
         RBTask.AddTask();
 
         //Readback mesh triangles
-        for(int matIndex = 0; matIndex < numMeshes; matIndex++){
+        for (int matIndex = 0; matIndex < numMeshes; matIndex++) {
             GeometryHandle geoHandle = triHandles[matIndex];
-            if(geoHandle == null || !geoHandle.Active)
+            if (geoHandle == null || !geoHandle.Active)
                 continue;
             //Begin readback of data
-            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)geoHandle.addressIndex, ret => OnAddressRecieved(ret, geoHandle, RBTask, onTriSizeRecieved));
+            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8 * (int)geoHandle.addressIndex, ret => OnAddressRecieved(ret, geoHandle, RBTask, onTriSizeRecieved));
             RBTask.AddTask();
         }
     }
@@ -228,10 +274,10 @@ public class AsyncMeshReadback
         meshDrawArgsCreator.Dispatch(0, 1, 1, 1);
     }
 
+
     private RenderParams GetRenderParams(int triAddress, int vertAddress, int matIndex)
     {
-        RenderParams rp = new RenderParams(settings.indirectTerrainMats[matIndex])
-        {
+        RenderParams rp = new RenderParams(settings.indirectTerrainMats[matIndex]) {
             worldBounds = this.shaderBounds,
             shadowCastingMode = ShadowCastingMode.On,
             matProps = new MaterialPropertyBlock()

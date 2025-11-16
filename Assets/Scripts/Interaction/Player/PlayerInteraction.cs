@@ -108,23 +108,12 @@ public static class PlayerInteraction {
         if (!setting.IsSolid || !matInfo.Contains(setting.MaterialName)) return;
 
         PlayerHandler.data.Play("PlaceTerrain");
-        if (FocusedTerraform.IsFocusedPlace(InventoryController.Selected)) {
-            FocusedTerraform.Terraform(hitPt, settings.TerraformRadius, (GCoord, speed) => HandleAddSolid(
-                InventoryController.Selected,
-                GCoord,
-                speed * settings.DefaultTerraform.value.TerraformSpeed,
-                out MapData _
-            ), (GCoord) => !CallOnMapPlacing(GCoord) && 
-                CanPlaceSolid(InventoryController.Selected, CPUMapManager.SampleMap(GCoord), out int _)
-            );
-        } else {
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, (GCoord, speed) => HandleAddSolid(
-                InventoryController.Selected,
-                GCoord,
-                speed * settings.DefaultTerraform.value.TerraformSpeed,
-                out MapData _
-            ), CallOnMapPlacing);
-        }
+        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, (GCoord, speed) => HandleAddSolid(
+            InventoryController.Selected,
+            GCoord,
+            speed * settings.DefaultTerraform.value.TerraformSpeed,
+            out MapData _
+        ), CallOnMapPlacing);
     }
 
     private static void RemoveTerrain(float _) {
@@ -304,11 +293,10 @@ public static class PlayerInteraction {
         return true;
     }
 
-    public static bool HandleRemoveLiquid(int3 GCoord, float brushStrength) {
+    public static bool HandleRemoveLiquid(ref MapData pointInfo, int3 GCoord, float brushStrength, bool ObtainMat = true) {
         brushStrength *= Time.deltaTime;
         if (brushStrength == 0) return false;
 
-        MapData pointInfo = CPUMapManager.SampleMap(GCoord);
         MapData delta = pointInfo;
         int liquidDensity = pointInfo.LiquidDensity;
         delta.density = GetStaggeredDelta(liquidDensity, -brushStrength);
@@ -316,7 +304,7 @@ public static class PlayerInteraction {
 
         pointInfo.density -= delta.density;
         IItem matItem = matInfo.Retrieve(pointInfo.material).OnRemoved(GCoord, delta);
-        if (liquidDensity >= CPUMapManager.IsoValue) {
+        if (liquidDensity >= CPUMapManager.IsoValue && ObtainMat) {
             if (matItem == null) return false;
             InventoryController.AddEntry(matItem);
             if (matItem.AmountRaw != 0) InventoryController.DropItem(matItem);
@@ -336,49 +324,4 @@ public static class PlayerInteraction {
         }
     }
 
-    private static class FocusedTerraform {
-        private static int3 Location;
-        private static bool IsLocked;
-
-        public static void Initialize() {
-            InputPoller.AddBinding(
-                new ActionBind(
-                    "GetPlaceFocus",
-                    (_) => IsLocked = false,
-                    ActionBind.Exclusion.ExcludeLayer
-                ), "PlayerInteraction:FP", "5.0::GamePlay"
-            );
-            Location = 0;
-            IsLocked = false;
-        }
-
-        public static bool IsFocusedPlace(IItem selected) {
-            if (selected == null) return false;
-            if (itemInfo.GetMostSpecificTag(TagRegistry.Tags.FocusedPlace,
-                itemInfo.RetrieveName(selected.Index), out _)
-            ) return true;
-            return false;
-        }
-
-        public static bool Terraform(
-            float3 tPointGS,
-            int terraformRadius,
-            Func<int3, float, bool> handleTerraform,
-            Func<int3, bool> canTerraform
-        ) {
-            //Recalculate lock position
-            if (math.cmax(math.abs(Location - tPointGS)) > 2 * terraformRadius)
-                IsLocked = false;
-            if (!IsLocked || !canTerraform.Invoke(Location)) {
-                if (!CPUMapManager.FindTerraformable(
-                    tPointGS, terraformRadius,
-                    canTerraform, out int3 loc))
-                    return false;
-                Location = loc;
-                IsLocked = true;
-            }
-            handleTerraform(Location, 1.0f);
-            return true;
-        }
-    }
 }

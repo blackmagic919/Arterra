@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aba0e1d8d02674d9ca7672d55a581c42, type: 3}
   m_Name: Chest
   m_EditorClassIdentifier: 
-  Name: Chest
+  Name: ChestLatch
   Tags:
     Reg:
       value: []
@@ -21,6 +21,7 @@ MonoBehaviour:
     - 
     - Chest:Solid
     - Plank:Solid
+    - Hardwood:Solid
   Recipe:
     value:
       materials:
@@ -29,7 +30,17 @@ MonoBehaviour:
           Amount: 1
         - Index: 2
           Amount: 1
+        - Index: 0
+          Amount: 0
         - Index: 2
+          Amount: 1
+        - Index: 3
+          Amount: 1
+        - Index: 3
+          Amount: 1
+        - Index: 3
+          Amount: 1
+        - Index: 3
           Amount: 1
         - Index: 2
           Amount: 1
@@ -37,26 +48,16 @@ MonoBehaviour:
           Amount: 1
         - Index: 0
           Amount: 0
-        - Index: 0
-          Amount: 0
-        - Index: 2
-          Amount: 1
         - Index: 2
           Amount: 1
         - Index: 0
           Amount: 0
         - Index: 0
           Amount: 0
-        - Index: 2
-          Amount: 1
-        - Index: 2
-          Amount: 1
-        - Index: 2
-          Amount: 1
-        - Index: 2
-          Amount: 1
-        - Index: 2
-          Amount: 1
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
       items:
         value:
         - Index: 0

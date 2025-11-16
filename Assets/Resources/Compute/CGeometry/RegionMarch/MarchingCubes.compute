@@ -1,16 +1,17 @@
 #pragma kernel March
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/MarchingTables.hlsl"
-#include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/CMapDataSampler.hlsl"
+#include "Assets/Resources/Compute/CGeometry/RegionMarch/MapDataSampler.hlsl"
 
 struct vertex{
     float3 tri;
     float3 norm;
-    int2 material; //x = base, y = water
+    int2 info; //x = base, y = water
 };
 
 struct MarchCube{
     Corner corners[8];
+    uint flags[8];
 };
 
 struct pInfo{
@@ -75,13 +76,20 @@ uint bSTART_waterT;
 MarchCube ReadCube(int3 coord){
     MarchCube cube;
     [unroll]for(int i = 0; i < 8; i++){
-        int3 sCoord = clamp(coord + positionFromIndex[i], 0, numCubesPerAxis + 2);
+        int3 sCoord = coord + positionFromIndex[i];
         uint mapData = ReadMapData(sCoord);
+        cube.flags[i] = ReadFlags(sCoord);
         cube.corners[i] = SampleStateInfo(mapData);
     }
     return cube;
 }
 
+inline uint2 PackVertInfo(in MarchCube cube, int2 index) {
+    uint2 info;
+    info.x = (cube.corners[index.x].material & 0x00FFFFFF) | ((cube.flags[index.x] & 0xFF) << 24);
+    info.y = (cube.corners[index.y].material & 0x00FFFFFF) | ((cube.flags[index.y] & 0xFF) << 24);
+    return info;
+}
 
 float InvLerp(float p1Val, float p2Val) {
     return (IsoLevel - p1Val) / (p2Val - p1Val);
@@ -100,7 +108,7 @@ void AddVertices(int3 coord, int caseIndex, uint state, in MarchCube cube){
         int3 p1 = coord + positionFromIndex[pInd.x];
         int3 p2 = coord + positionFromIndex[pInd.y];
 
-        if(any((uint)p2 >= numPointsPerAxis)) continue; //Out of Bounds
+        if(any(p2 >= (numCubesPerAxis + 1))) continue; //Out of Bounds
 
         vertex newVert;
         //Get point densities
@@ -110,8 +118,8 @@ void AddVertices(int3 coord, int caseIndex, uint state, in MarchCube cube){
 
         newVert.tri = (p1 + interpFactor * (p2 - p1));
         newVert.norm = GetVertexNormal(p1, pInd.z, interpFactor, state);
-        if((p1Val > p2Val) ^ (state == 0)) pInd.xy = pInd.yx; 
-        newVert.material = uint2(cube.corners[pInd.x].material, cube.corners[pInd.y].material);
+        if((p1Val > p2Val) ^ (state == 0)) pInd.xy = pInd.yx;
+        newVert.info = PackVertInfo(cube, pInd);
 
         //Append Vertex
         int appendInd = 0;
@@ -119,7 +127,7 @@ void AddVertices(int3 coord, int caseIndex, uint state, in MarchCube cube){
         vertexes[bSTART_verts + appendInd] = newVert;
 
         //Set To Dictionary
-        triangleDict[3 * indexFromCoord(coord) + pInd.z + bSTART_dict] = appendInd;
+        triangleDict[3 * indexFromCoordIrregular(coord, numCubesPerAxis.yz + 1) + pInd.z + bSTART_dict] = appendInd;
     }
 }
 
@@ -131,7 +139,7 @@ void AddTriangulation(int caseIndex, int3 coord, int2 info){
         [unroll] for(uint v = 0; v < 3; v++){ //Get the dict index locations of the vertices
             uint vertexIndex = Triangulation(CClass, 3*i + v);
             int3 cornerInfo = cornerIndexFromEdge[Vertices(caseIndex, vertexIndex)];
-            baseTri.axis[v] = indexFromCoord(coord + positionFromIndex[cornerInfo.x]) * 3 + cornerInfo.z;
+            baseTri.axis[v] = indexFromCoordIrregular(coord + positionFromIndex[cornerInfo.x], numCubesPerAxis.yz + 1) * 3 + cornerInfo.z;
         }
 
         //Append Base Triangle
@@ -145,12 +153,11 @@ void AddTriangulation(int caseIndex, int3 coord, int2 info){
 [numthreads(numThreads,numThreads,numThreads)]
 void March (uint3 id : SV_DispatchThreadID)
 {
-    if (any(id >= numPointsPerAxis))
+    int3 oCoord = int3(id.xyz);
+    if (any(oCoord >= (numCubesPerAxis + 1)))
         return;
 
-    int3 oCoord = int3(id.xyz);
     MarchCube cube = ReadCube(oCoord);//
-
     uint terrIndex = 0;
     uint tspIndex = 0;
     uint waterIndex = 0;
@@ -166,7 +173,7 @@ void March (uint3 id : SV_DispatchThreadID)
     AddVertices(oCoord, terrIndex, SAMPLE_TERRAIN, cube);
 
     //Only add triangles if a valid cube
-    if(any(id >= (uint)numCubesPerAxis)) 
+    if(any(oCoord >= numCubesPerAxis)) 
         return;
     
     AddTriangulation(terrIndex, oCoord, int2(bSTART_baseT, counterInd.y));

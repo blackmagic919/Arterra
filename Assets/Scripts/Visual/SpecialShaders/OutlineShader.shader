@@ -5,13 +5,13 @@ Shader "Unlit/OutlineShader"
         _WireframeWidth("Wireframe width threshold", float) = 0.005
         _WireframeColor("Wireframe front colour", Color) = (0.5, 0.5, 0.5, 1.0)
         _BackgroundColor("Background color", Color) = (0, 0.5, 0, 0.25)
-         _VertexColor("Vertex Color", Color) = (0.6, 0.25, 0, 0.25)
+        _VertexColor("Vertex Color", Color) = (0.6, 0.25, 0, 0.25)
         _VertexSize("Vertex size", float) = 0.02
         _DepthOpacity("Depth Opacity", float) = 0.5
     }
     SubShader
     {
-        Tags { "RenderPipeline" = "UniversalPipeline"  "Queue" = "Overlay" "RenderType"="Transparent" }
+        Tags { "RenderPipeline" = "UniversalPipeline" "Queue" = "Overlay" "RenderType"="Transparent" }
         LOD 100
         Blend SrcAlpha OneMinusSrcAlpha
 
