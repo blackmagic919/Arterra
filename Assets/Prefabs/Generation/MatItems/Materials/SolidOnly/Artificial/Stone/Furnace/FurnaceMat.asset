@@ -49,67 +49,67 @@ MonoBehaviour:
     - check:
         bounds:
           data: 4286611200
-        flags: 0
+        flags: 1
       _material: 2147483654
       _offset: 537394688
     - check:
         bounds:
           data: 4286611200
-        flags: 0
+        flags: 1
       _material: 2147483651
       _offset: 536347136
     - check:
         bounds:
           data: 4286611200
-        flags: 0
+        flags: 1
       _material: 2147483651
       _offset: 538444288
     - check:
         bounds:
           data: 4286611200
-        flags: 0
+        flags: 1
       _material: 2147483651
       _offset: 536348160
     - check:
         bounds:
           data: 4286611200
-        flags: 0
+        flags: 1
       _material: 2147483651
       _offset: 538445312
     - check:
         bounds:
           data: 4286611200
-        flags: 0
+        flags: 1
       _material: 2147483651
       _offset: 537396736
     - check:
         bounds:
           data: 4286611200
-        flags: 0
+        flags: 1
       _material: 2147483651
       _offset: 537395711
     - check:
         bounds:
           data: 4286611200
-        flags: 0
+        flags: 1
       _material: 2147483651
       _offset: 538444287
     - check:
         bounds:
           data: 4286611200
-        flags: 0
+        flags: 1
       _material: 2147483651
       _offset: 536347135
     - check:
         bounds:
           data: 4286611200
-        flags: 0
+        flags: 1
       _material: 2147483651
       _offset: 537396735
     - check:
         bounds:
           data: 1677754112
-        flags: 0
+        flags: 1
       _material: 3
       _offset: 537395712
   SelfIndex: 0

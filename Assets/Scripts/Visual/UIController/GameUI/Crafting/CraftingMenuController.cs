@@ -78,7 +78,10 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
     public void Deactivate() {
         eventTask.Active = false;
         Clear(InventoryController.AddEntry);
-        InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence("PlayerCraft", "3.5::Window"));
+        InputPoller.AddKeyBindChange(() => {
+            InputPoller.RemoveContextFence("PlayerCraft", "3.5::Window");
+            InputPoller.RemoveBinding("PlayerCraft:SELA", "3.0::AllWindow");
+        });
         Rendering.ReleaseDisplay();
         craftingMenu.SetActive(false);
         RecipeSearch.Deactivate();

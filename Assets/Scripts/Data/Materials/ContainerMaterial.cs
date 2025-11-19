@@ -63,7 +63,7 @@ namespace WorldConfig.Generation.Material
             if (!CPUMapManager.GetOrCreateMapMeta(GCoord, () => new ContainerInventory
                 (GCoord, MaxSlotCount), out OpenedInventory))
                 return false;
-
+            
             OpenedInventory.InitializeDisplay(this);
             InventoryController.Activate();
             InputPoller.AddKeyBindChange(() => {
@@ -160,8 +160,6 @@ namespace WorldConfig.Generation.Material
                 InventoryController.DropItem(item, GCoord);
             CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
         }
-
-
         public class ContainerInventory : PanelNavbarManager.INavPanel {
             public InventoryController.Inventory inv;
             public int3 position;
@@ -175,6 +173,8 @@ namespace WorldConfig.Generation.Material
                 position = GCoord;
             }
 
+            //Ideally we should provide a callback in OnAddElement and OnRemoveElement
+            //But it is difficult reapply and applying the hooks whenever the material is closed
             internal void InitializeDisplay(ContainerMaterial settings) {
                 inv.InitializeDisplay(GameUIManager.UIHandle);
                 this.settings = settings;

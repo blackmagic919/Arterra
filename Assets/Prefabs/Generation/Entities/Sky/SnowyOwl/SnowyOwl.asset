@@ -159,7 +159,7 @@ MonoBehaviour:
             - MateType: SnowyOwl
               ChildType: SnowyOwl
               AmountPerParent:
-                mean: 0.5
+                mean: 0.25
                 var: 0.75
                 geneWeight: 0.25
               GeneMutationRate: 0.05
@@ -167,7 +167,7 @@ MonoBehaviour:
             value:
             - EdibleType: Meat
               Nutrition:
-                mean: 25.60001
+                mean: 12.8
                 var: 0.5
                 geneWeight: 0.1
           SightDistance:

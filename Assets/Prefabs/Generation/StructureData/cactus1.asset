@@ -23,7 +23,7 @@ MonoBehaviour:
         y: 13
         z: 4
       minimumLOD: 0
-      randYRot: 0
+      randYRot: 1
       randXRot: 0
       randZRot: 0
   Names:

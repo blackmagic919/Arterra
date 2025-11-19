@@ -1,10 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
-using System.Threading.Tasks;
-using UnityEditorInternal;
 
 namespace Utils {
     public static class CustomUtility {

@@ -33,6 +33,8 @@ MonoBehaviour:
         - Horse
         - Dove
         - Snake
+        - MonarchButterfly
+        - MorphoButterfly
       GroundMaterials:
         value:
         - value:
@@ -106,6 +108,12 @@ MonoBehaviour:
         - value:
             Entity: 12
             ChancePerCoord: 0.0002
+        - value:
+            Entity: 13
+            ChancePerCoord: 0.00025
+        - value:
+            Entity: 14
+            ChancePerCoord: 0.00025
   BiomeConditions:
     value:
       TerrainStart: 0.4

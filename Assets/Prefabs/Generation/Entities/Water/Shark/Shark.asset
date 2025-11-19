@@ -221,7 +221,7 @@ MonoBehaviour:
             - MateType: Shark
               ChildType: Shark
               AmountPerParent:
-                mean: 0.5
+                mean: 0.25
                 var: 0.75
                 geneWeight: 0.25
               GeneMutationRate: 0.05
@@ -229,7 +229,7 @@ MonoBehaviour:
             value:
             - EdibleType: FishMeat
               Nutrition:
-                mean: 51.2
+                mean: 25.6
                 var: 0.5
                 geneWeight: 0.1
           SightDistance:

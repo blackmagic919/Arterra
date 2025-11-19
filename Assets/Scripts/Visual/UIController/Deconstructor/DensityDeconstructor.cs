@@ -133,7 +133,10 @@ public class DensityDeconstructor : MonoBehaviour
         if (Selected.Count > 0){ //Map Data Editor
             GUILayout.Label("MapData", headerStyle);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Material");  curData.material = EditorGUILayout.IntField(curData.material, GUILayout.Width(100)); 
+            var reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            string currentMaterial = reg.RetrieveName(curData.material);
+            GUILayout.Label("Material");  currentMaterial = EditorGUILayout.TextArea(currentMaterial, GUILayout.Width(100));
+            if (reg.Contains(currentMaterial)) curData.material = reg.RetrieveIndex(currentMaterial);
             GUILayout.EndHorizontal();GUILayout.BeginHorizontal();
             GUILayout.Label("Density"); curData.density = (int)(GUILayout.HorizontalSlider(curData.density/255.0f, 0.0f, 1.0f, GUILayout.Width(100)) * 255);
             GUILayout.EndHorizontal(); GUILayout.BeginHorizontal();
@@ -295,7 +298,7 @@ public class DensityDeconstructor : MonoBehaviour
     }
 
     void FloodFill(Func<int, bool> action){
-        Queue<int3> queue = new Queue<int3>(Selected.Select(e => new int3((int)(e % GridSize.x), (int)(e / GridSize.x % GridSize.y), (int)(e / (GridSize.x * GridSize.y) % GridSize.z))));
+        Queue<int3> queue = new Queue<int3>(Selected.Select(e => new int3((int)(e / (GridSize.y * GridSize.z)), (int)((e / GridSize.z) % GridSize.y), (int)(e % GridSize.z))));
 
         while(queue.Count > 0){
             int3 point = queue.Dequeue();
@@ -329,14 +332,14 @@ public class DensityDeconstructor : MonoBehaviour
     private void DeserializeMaterials(){
         List<int> MaterialLUT = new List<int>();
         var reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        if(Structure.Names.value == null || Structure.Names.value.Count == 0) 
+        if (Structure.Names.value == null || Structure.Names.value.Count == 0)
             return;
         for(int i = 0; i < Structure.Names.value.Count; i++){
             MaterialLUT.Add(reg.RetrieveIndex(Structure.Names.value[i]));
-        }
+        } 
         for(int i = 0; i < Structure.map.value.Count; i++){
             StructureData.PointInfo p = Structure.map.value[i];
-            p.material = MaterialLUT[p.material];
+            p.material = MaterialLUT[math.clamp(p.material, 0, MaterialLUT.Count()-1)];
             Structure.map.value[i] = p;
         }
     }

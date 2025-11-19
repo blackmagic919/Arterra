@@ -115,7 +115,7 @@ MonoBehaviour:
           var: 0.5
           geneWeight: 0.75
         pathDistance: 31
-        acceleration: 200
+        acceleration: 150
         rotSpeed: 180
         AverageIdleTime: 2.5
       flight:
@@ -159,7 +159,7 @@ MonoBehaviour:
             - MateType: Hawk
               ChildType: Hawk
               AmountPerParent:
-                mean: 0.5
+                mean: 0.25
                 var: 0.75
                 geneWeight: 0.25
               GeneMutationRate: 0.05
@@ -167,7 +167,7 @@ MonoBehaviour:
             value:
             - EdibleType: Meat
               Nutrition:
-                mean: 25.60001
+                mean: 12.8
                 var: 0.5
                 geneWeight: 0.1
           SightDistance:

@@ -23,8 +23,14 @@ MonoBehaviour:
         y: 20
         z: 10
       minimumLOD: 0
-      randThetaRot: 1
-      randPhiRot: 0
+      randYRot: 1
+      randXRot: 0
+      randZRot: 0
+  Names:
+    value:
+    - Air
+    - PineLeaves
+    - Wood
   map:
     value:
     - data: 0
@@ -2047,11 +2053,6 @@ MonoBehaviour:
         z: 5
       checkInfo:
         data: 2130738944
-  Names:
-    value:
-    - Air
-    - PineLeaves
-    - Wood
   references:
     version: 2
     RefIds: []

@@ -28,7 +28,7 @@ MonoBehaviour:
         - Index: 2
           Amount: 1
         - Index: 2
-          Amount: 1
+          Amount: 0.5
         - Index: 0
           Amount: 0
         - Index: 0
@@ -38,14 +38,14 @@ MonoBehaviour:
         - Index: 0
           Amount: 0
         - Index: 2
-          Amount: 1
+          Amount: 0.5
         - Index: 2
           Amount: 1
         - Index: 2
           Amount: 1
         - Index: 0
           Amount: 0
-        - Index: 1
+        - Index: 2
           Amount: 1
         - Index: 0
           Amount: 0
@@ -53,7 +53,7 @@ MonoBehaviour:
           Amount: 0
         - Index: 0
           Amount: 0
-        - Index: 1
+        - Index: 2
           Amount: 1
         - Index: 0
           Amount: 0

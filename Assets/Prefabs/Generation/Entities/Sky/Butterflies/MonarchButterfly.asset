@@ -1,0 +1,255 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab44b3b4d8fc54b598e191f90c84912c, type: 3}
+  m_Name: MonarchButterfly
+  m_EditorClassIdentifier: 
+  Name: MonarchButterfly
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 2213818148618205409, guid: da4bcb92b36344434bc943f301ec129f, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 2
+          y: 2
+          z: 2
+      collider:
+        size:
+          x: 0.5
+          y: 0.5
+          z: 0.5
+        friction: 0.25
+      movement:
+        walkSpeed:
+          mean: 2
+          var: 0.5
+          geneWeight: 0.25
+        runSpeed:
+          mean: 4.5
+          var: 0.5
+          geneWeight: 0.75
+        pathDistance: 16
+        acceleration: 100
+        rotSpeed: 180
+        AverageIdleTime: 1
+      flight:
+        profile:
+          bounds:
+            x: 2
+            y: 2
+            z: 2
+        AverageFlightTime:
+          mean: 50
+          var: 0.5
+          geneWeight: 0.15
+        SeperationWeight:
+          mean: 0.75
+          var: 0.5
+          geneWeight: 0.05
+        AlignmentWeight:
+          mean: 0.4
+          var: 0.5
+          geneWeight: 0.05
+        CohesionWeight:
+          mean: 0.15
+          var: 0.75
+          geneWeight: 0.05
+        InfluenceDist: 10
+        PathDist: 5
+        MaxSwarmSize: 8
+      decomposition:
+        LootTable:
+          value:
+          - ItemName: BugMush
+            DropAmount:
+              mean: 0.01176471
+              var: 1
+              geneWeight: 0.05
+        DecompositionTime:
+          mean: 60
+          var: 0.5
+          geneWeight: 0.05
+      physicality:
+        value:
+          weight: 0.15
+          MaxHealth:
+            mean: 2
+            var: 0.5
+            geneWeight: 1
+          NaturalRegen:
+            mean: -0.002
+            var: 0.75
+            geneWeight: 0.5
+          InvincTime:
+            mean: 0.25
+            var: 1
+            geneWeight: 0.5
+          HoldBreathTime:
+            mean: 10
+            var: 1
+            geneWeight: 0.05
+          AttackDistance:
+            mean: 2
+            var: 0.75
+            geneWeight: 0.33
+          AttackDamage:
+            mean: 0.2
+            var: 0.5
+            geneWeight: 0.25
+          AttackCooldown:
+            mean: 1
+            var: 0.75
+            geneWeight: 0.4
+          KBStrength:
+            mean: 0.1
+            var: 0.5
+            geneWeight: 0.33
+          HuntThreshold:
+            mean: 0.4
+            var: 0.25
+            geneWeight: 0.1
+          MateThreshold:
+            mean: 0.8
+            var: 0.125
+            geneWeight: 0.1
+          MateCost:
+            mean: 0.5
+            var: 0.5
+            geneWeight: 0.66
+          PregnacyLength: 4
+          ConsumptionRate: 0.25
+      recognition:
+        value:
+          Predators:
+            value: []
+          Mates:
+            value:
+            - MateType: MonarchButterfly
+              ChildType: MonarchButterfly
+              AmountPerParent:
+                mean: 0.5
+                var: 0.5
+                geneWeight: 0.25
+              GeneMutationRate: 0.05
+            - MateType: MorphoButterfly
+              ChildType: MorphoButterfly
+              AmountPerParent:
+                mean: 0.3
+                var: 0.5
+                geneWeight: 0.25
+              GeneMutationRate: 0.05
+          Edibles:
+            value:
+            - EdibleType: Hydrangea:Solid
+              Nutrition:
+                mean: 5.1
+                var: 0.5
+                geneWeight: 0.1
+            - EdibleType: Lupines:Solid
+              Nutrition:
+                mean: 5.1
+                var: 0.5
+                geneWeight: 0.1
+            - EdibleType: Peonies:Solid
+              Nutrition:
+                mean: 3.4
+                var: 0.5
+                geneWeight: 0.1
+            - EdibleType: Dandelions:Solid
+              Nutrition:
+                mean: 2.55
+                var: 0.5
+                geneWeight: 0.1
+          SightDistance:
+            mean: 20
+            var: 0.25
+            geneWeight: 0.75
+          FleeDistance: 5
+          FightAggressor: 0
+          PlantFindDist:
+            mean: 4
+            var: 0.5
+            geneWeight: 0.1
+          Prey:
+            value:
+            - Material: Hydrangea
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+            - Material: Lupines
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+            - Material: Peonies
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+            - Material: Dandelions
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+  references:
+    version: 2
+    RefIds: []

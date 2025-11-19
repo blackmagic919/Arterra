@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Kelp2
   m_EditorClassIdentifier: 
   Name: Kelp2
+  Tags:
+    Reg:
+      value: []
   settings:
     value:
       GridSize:
@@ -20,8 +23,12 @@ MonoBehaviour:
         y: 40
         z: 1
       minimumLOD: 0
-      randThetaRot: 1
-      randPhiRot: 0
+      randYRot: 1
+      randXRot: 0
+      randZRot: 0
+  Names:
+    value:
+    - Kelp
   map:
     value:
     - data: 44975
@@ -84,6 +91,6 @@ MonoBehaviour:
         z: 0
       checkInfo:
         data: 2130771840
-  Names:
-    value:
-    - Kelp
+  references:
+    version: 2
+    RefIds: []

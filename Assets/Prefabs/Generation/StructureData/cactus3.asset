@@ -23,8 +23,9 @@ MonoBehaviour:
         y: 13
         z: 5
       minimumLOD: 0
-      randThetaRot: 1
-      randPhiRot: 0
+      randYRot: 1
+      randXRot: 0
+      randZRot: 0
   Names:
     value:
     - Air

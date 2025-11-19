@@ -11,6 +11,8 @@ uint RandomState(uint seed){
 }
 
 
+const static uint magicNum1 = 0x28199210;
+const static uint magicNum2 = 0x93183191;//
 
 float RandomFloat(uint seed){
     //output 0->1
@@ -20,9 +22,10 @@ float RandomFloat(uint seed){
 uint Random(uint seed) { return RandomState(seed); }
 uint Random(float seed) { return RandomState(asuint(seed)); }
 uint Random(int seed) { return RandomState(asuint(seed)); }
-uint Random(int2 seed) { return RandomState(asuint(seed.x)) ^ RandomState(asuint(seed.y)); }
-uint Random(int3 seed) { return RandomState(asuint(seed.x)) ^ RandomState(asuint(seed.y)) ^ RandomState(asuint(seed.z)); }
-uint Random(float3 seed) { return RandomState(asuint(seed.x)) ^ RandomState(asuint(seed.y)) ^ RandomState(asuint(seed.z)); }
+uint Random(int2 seed) { return RandomState(asuint(seed.x)) ^ RandomState(asuint(seed.y) ^ magicNum1); }
+uint Random(int3 seed) { return RandomState(asuint(seed.x)) ^ RandomState(asuint(seed.y) ^ magicNum1) ^ RandomState(asuint(seed.z) ^ magicNum2); }
+uint Random(float3 seed) { return RandomState(asuint(seed.x)) ^ RandomState(asuint(seed.y) ^ magicNum1) ^ RandomState(asuint(seed.z) ^ magicNum2); }
+
 
 float RandomFloat(float seed){ return RandomFloat(asuint(seed)); }
 float RandomFloat(float2 seed){ return RandomFloat(RandomState(asuint(seed.x)) ^ RandomState(asuint(seed.y))); }

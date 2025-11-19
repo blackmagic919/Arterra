@@ -612,19 +612,18 @@ public class SkyBoidHerbivore : Authoring
 #if UNITY_EDITOR
                 if (UnityEditor.Selection.Contains(gameObject)) {
                     Debug.Log(entity.TaskIndex);
-                    Debug.Log(AnimationNames[entity.TaskIndex]);
                 }
 #endif
 
                 Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
+                if (AnimationNames[AnimatorTask] == "IsFlying") {
+                    if (entity.velocity.y >= -1E-4f) animator.SetBool("IsAscending", true);
+                    else animator.SetBool("IsAscending", false);
+                } 
                 if (AnimatorTask == entity.TaskIndex) return;
                 if (AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], false);
                 AnimatorTask = (int)entity.TaskIndex;
                 if (AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], true);
-                if (AnimationNames[AnimatorTask] == "IsFlying") {
-                    if (entity.velocity.y >= 0) animator.SetBool("IsAscending", true);
-                    else animator.SetBool("IsAscending", false);
-                }
             }
 
             public void Dispose() {

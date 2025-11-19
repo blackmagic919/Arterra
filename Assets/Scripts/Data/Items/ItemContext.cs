@@ -72,6 +72,7 @@ namespace WorldConfig.Generation.Item {
             ActivePlayerSelected,
             ActivePlayerArmor,
             ActivePlayerCraftingGrid,
+            MaterialContainer,
         }
     }
 
