@@ -2,17 +2,26 @@
 #include "Assets/Resources/Compute/TerrainGeneration/Structures/StructIDSettings.hlsl"
 const static int Epsilon = 0.0001;
 
-float GetNoiseCentered(float val, float center){
-    float ret = (val > center) ? 1-smoothstep(center, 1, val)
-                : smoothstep(0, center, val);
-    return ret;
+float GetNoiseCentered(float val, float center)
+{
+    val = saturate(val);
+
+    float base;
+    if (val > center) base = 1 - smoothstep(center, 1, val);
+    else base = smoothstep(0, center, val);
+
+    //Counterscale the middle
+    float ratio = abs(center * 2 - 1);
+    float exponent = lerp(4.0, 1.0, ratio);
+    return pow(base, exponent);
 }
 
 uint SampleTerrain (float3 position)
 {
     //Get SurfaceData
+    float2 warpOffset = GetDomainWarpOffset2D(position.xz, majorWarpSampler, minorWarpSampler);
     float erosion = GetNoise2D(position.xz, erosionSampler);
-    float terrainHeight = GetErodedNoise2D(position.xz, erosion, PVSampler, continentalSampler);
+    float terrainHeight = GetErodedNoise2D(position.xz, erosion, warpOffset, continentalSampler);
     float squashFactor = GetNoise2D(position.xz, squashSampler) * squashHeight;
 
     terrainHeight = terrainHeight * maxTerrainHeight + heightOffset;

@@ -20,7 +20,7 @@ public struct Movement {
         Genetics.AddGene(entityType, ref runSpeed);
     }
 
-    private static float3 Normalize(float3 var) {
+    public static float3 Normalize(float3 var) {
         if (math.all(var == 0)) return new float3(0, 1, 0);
         return math.normalize(var);
     }
@@ -93,6 +93,64 @@ public struct Movement {
         }
     }
 
+        public static void CalculateBoidDirection(Entity self, Genetics genes, BoidFlight settings) {
+            BoidDMtrx boidDMtrx = new() {
+                SeperationDir = float3.zero,
+                AlignmentDir = float3.zero,
+                CohesionDir = float3.zero,
+                count = 0
+            };
+
+            unsafe void OnEntityFound(Entity nEntity) {
+                if (nEntity == null) return;
+                if (nEntity.info.entityType != self.info.entityType) return;
+                IBoid nBoid = (IBoid)nEntity;
+                float3 nBoidPos = nEntity.transform.position;
+                float3 boidPos = self.transform.position;
+
+                if (math.all(nBoid.MoveDirection == 0)) return;
+                if (math.distance(boidPos, nBoidPos) < settings.PathDist)
+                    boidDMtrx.SeperationDir += boidPos - nBoidPos;
+                boidDMtrx.AlignmentDir += nBoid.MoveDirection;
+                boidDMtrx.CohesionDir += nBoidPos;
+                boidDMtrx.count++;
+            }
+
+            EntityManager.ESTree.Query(new(self.origin,
+                2 * new float3(settings.InfluenceDist)),
+            OnEntityFound);
+
+            if (boidDMtrx.count == 0) return;
+            float3 influenceDir;
+            IBoid boidSelf = self as IBoid;
+            if (boidDMtrx.count > settings.MaxSwarmSize) //the sign of seperation is flipped for this case
+                influenceDir = genes.Get(settings.SeperationWeight) * boidDMtrx.SeperationDir / boidDMtrx.count -
+                genes.Get(settings.CohesionWeight) * (boidDMtrx.CohesionDir / boidDMtrx.count - self.position);
+            else influenceDir = genes.Get(settings.SeperationWeight) * boidDMtrx.SeperationDir / boidDMtrx.count +
+                genes.Get(settings.AlignmentWeight) * (boidDMtrx.AlignmentDir / boidDMtrx.count - boidSelf.MoveDirection) +
+                genes.Get(settings.CohesionWeight) * (boidDMtrx.CohesionDir / boidDMtrx.count - self.position);
+            boidSelf.MoveDirection = Normalize(boidSelf.MoveDirection + influenceDir);
+        }
+
+        public static float3 RandomDirection(ref Unity.Mathematics.Random random) {
+            float3 normal = new(random.NextFloat(-1, 1), random.NextFloat(-1, 1), random.NextFloat(-1, 1));
+            if (math.length(normal) == 0) return math.forward();
+            else return Normalize(normal);
+        }
+
+        public static float3 RandomDirection2D(ref Unity.Mathematics.Random random) {
+            float3 normal = new(random.NextFloat(-1, 1), 0, random.NextFloat(-1, 1));
+            if (math.length(normal) == 0) return math.forward();
+            else return Normalize(normal);
+        }
+
+        struct BoidDMtrx {
+            public float3 SeperationDir;
+            public float3 AlignmentDir;
+            public float3 CohesionDir;
+            public uint count;
+        }
+
     [Serializable]
     public struct Aquatic {
         public Genetics.GeneFeature DrownTime;
@@ -141,4 +199,9 @@ public struct Movement {
             Genetics.AddGene(entityType, ref CohesionWeight);
         }
     }
+
+    public interface IBoid {
+        public float3 MoveDirection{get; set;}
+    }
+
 }

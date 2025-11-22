@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: InfluenceHeight
   m_EditorClassIdentifier: 
   Name: InfluenceHeight
+  Tags:
+    Reg:
+      value: []
   noiseScale: 5000
   octaves: 4
   persistance: 0.25
@@ -52,3 +55,6 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+  references:
+    version: 2
+    RefIds: []

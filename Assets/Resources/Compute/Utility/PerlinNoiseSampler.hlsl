@@ -125,15 +125,32 @@ float3 SampleDerivNoise2D(float2 position, float stepSize){
     return float3(s00, dx, dy);
 }
 
-float2 GetDomainWarpOffset2D(float2 position, uint warpSampler){
-    float2 q = float2(
-        GetNoise2D((position + float2(0, 0)) / skipInc, warpSampler),
-        GetNoise2D((position + float2(5.2f, 1.3f)) / skipInc, warpSampler)
-    );
-    return 4.0f * q;
+float4 SampleDerivNoise3D(float3 position, float stepSize){
+    float s000 = snoise(position);
+    float s100 = snoise(position + float3(stepSize, 0, 0));
+    float s010 = snoise(position + float3(0, stepSize, 0));
+    float s001 = snoise(position + float3(0, 0, stepSize));
+
+    float dx = (s100 - s000) / stepSize;
+    float dy = (s010 - s000) / stepSize;
+    float dz = (s001 - s000) / stepSize;
+
+    return float4(s000, dx, dy, dz);
 }
 
-float GetErodedNoise2D(float2 id, float erosion, uint warpSampler, uint samplerIndex){
+float2 GetDomainWarpOffset2D(float2 id, uint majorWarp, uint minorWarp){
+    float2 position = id * skipInc;
+    float2 q = float2(
+        GetNoise2D((position + float2(0, 0)) / skipInc, majorWarp),
+        GetNoise2D((position + float2(5.2f, 1.3f)) / skipInc, majorWarp)
+    ) * 4.0f;
+    return float2 (
+        GetNoise2D((position + q + float2(1.7f, 9.2f)) / skipInc, minorWarp),
+        GetNoise2D((position + q + float2(8.3f, 2.8f)) / skipInc, minorWarp)
+    );//
+}
+
+float GetErodedNoise2D(float2 id, float erosion, float2 warpOffset, uint samplerIndex){
     NoiseSetting settings = _NoiseSettings[samplerIndex];
     float2 sPos = id * skipInc;
 
@@ -141,16 +158,37 @@ float GetErodedNoise2D(float2 id, float erosion, uint warpSampler, uint samplerI
     float frequency = 1;
     float maxHeight = 0;
     float3 noiseHeight = 0;
-
-    float2 warpOffset = GetDomainWarpOffset2D(sPos, warpSampler);
-    for(uint i = _NoiseIndexes[samplerIndex].x; i < _NoiseIndexes[samplerIndex + 1].x; i++)
-    {
+    for(uint i = _NoiseIndexes[samplerIndex].x; i < _NoiseIndexes[samplerIndex + 1].x; i++) {
         float2 sample = (sPos + _NoiseOffsets[i].xy + sOffset.xz) / settings.noiseScale * frequency + warpOffset;
         float3 simplexValue = SampleDerivNoise2D(sample, 1 / settings.noiseScale * frequency);
-        simplexValue.x = simplexValue.x;
 
         float octaveAmplitude = amplitude / (1 + dot(noiseHeight.yz, noiseHeight.yz) * erosion);
         noiseHeight.yz += simplexValue.yz * octaveAmplitude;
+        noiseHeight.x += simplexValue.x * octaveAmplitude;
+        maxHeight += amplitude;
+        
+        amplitude *= settings.persistence; //amplitude decreases -> effect of samples decreases 
+        frequency *= settings.lacunarity; //frequency increases -> size of noise sampling increases -> more random
+    }
+
+    return interpolateValue((noiseHeight.x / maxHeight + 1) / 2.0f, samplerIndex);
+}
+
+
+float GetErodedNoise3D(float3 id, float erosion, float3 warpOffset, uint samplerIndex){
+    NoiseSetting settings = _NoiseSettings[samplerIndex];
+    float3 sPos = id * skipInc;
+
+    float amplitude = 1;
+    float frequency = 1;
+    float maxHeight = 0;
+    float4 noiseHeight = 0;
+    for(uint i = _NoiseIndexes[samplerIndex].x; i < _NoiseIndexes[samplerIndex + 1].x; i++) {
+        float3 sample = (sPos + _NoiseOffsets[i] + sOffset) / settings.noiseScale * frequency + warpOffset;
+        float4 simplexValue = SampleDerivNoise3D(sample, 1 / settings.noiseScale * frequency);
+
+        float octaveAmplitude = amplitude / (1 + dot(noiseHeight.yzw, noiseHeight.yzw) * erosion);
+        noiseHeight.yzw += simplexValue.yzw * octaveAmplitude;
         noiseHeight.x += simplexValue.x * octaveAmplitude;
         maxHeight += amplitude;
         

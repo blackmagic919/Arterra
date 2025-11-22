@@ -76,7 +76,8 @@ public static class Generator
         surfaceDataSampler.SetBuffer(0, "surfMap", UtilityBuffers.GenerationBuffer);
 
         surfaceDataSampler.SetInt("continentalSampler", surface.ContinentalIndex);
-        surfaceDataSampler.SetInt("PVSampler", surface.PVIndex);
+        surfaceDataSampler.SetInt("majorWarpSampler", surface.MajorWarpIndex);
+        surfaceDataSampler.SetInt("minorWarpSampler", surface.MinorWarpIndex);
         surfaceDataSampler.SetInt("erosionSampler", surface.ErosionIndex);
         surfaceDataSampler.SetInt("squashSampler", surface.SquashIndex);
         surfaceDataSampler.SetInt("InfHeightSampler", surface.InfHeightIndex);

@@ -451,7 +451,7 @@ Light:
   serializedVersion: 11
   m_Type: 1
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 0
+  m_Intensity: 2
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -513,13 +513,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1141363917}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.5820489, y: -0.20655245, z: 0.1559595, w: 0.77086437}
-  m_LocalPosition: {x: 133.84367, y: 351.2331, z: 368.07913}
+  m_LocalRotation: {x: -0.09257967, y: 0.2576275, z: -0.024806645, w: -0.96147895}
+  m_LocalPosition: {x: 132.97, y: 351.2331, z: 368.07913}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 74.11, y: -30, z: 0}
+  m_LocalEulerAnglesHint: {x: 371, y: -30, z: 0}
 --- !u!1 &1203352153
 GameObject:
   m_ObjectHideFlags: 0
@@ -901,11 +901,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   IsoLevel: 0.5
   Structure: {fileID: 11400000, guid: e6b21e984b6fd4423a13276606ed02f7, type: 2}
-  savePath: acacia_tree1
+  savePath: acacia3
   SDFoffset:
-    x: 12
+    x: 8
     y: 0
-    z: 8
+    z: 4.5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

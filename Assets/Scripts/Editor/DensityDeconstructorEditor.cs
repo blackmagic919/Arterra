@@ -39,5 +39,13 @@ public class DensityDeconstructorEditor : Editor
         {
             deconstructor.ConvertMesh();
         }
+        if(GUILayout.Button("Resize"))
+        {
+            deconstructor.ResizeStructure();
+        }
+        if(GUILayout.Button("Shift"))
+        {
+            deconstructor.ShiftStructure();
+        }
     }
 }

@@ -47,9 +47,7 @@ public class Surface : ScriptableObject{
     public float MaxInfluenceHeight;
     /// <summary>
     /// The name of the noise sampler in the <see cref="WorldConfig.Config.GenerationSettings.Noise">Noise</see> registry that generates the continental noise
-    /// map, or the coarse terrain height for large-scale features. The continental noise is blended with <see cref="PVNoise"/> by 
-    /// the <see cref="ErosionNoise"/> factor. 
-    /// </summary>
+    /// map, or the coarse terrain height for large-scale features. </summary>
     [UISetting(Message = "Surface Generation")]
     public string ContinentalNoise;
     /// <summary>
@@ -59,11 +57,13 @@ public class Surface : ScriptableObject{
     /// </summary>
     public string ErosionNoise;
     /// <summary>
-    /// The name of the noise sampler in the <see cref="WorldConfig.Config.GenerationSettings.Noise">Noise</see> registry that generates the PV noise map,
-    /// or the fine terrain height for small-scale features. The PVNoise is blended with <see cref="ContinentalNoise"/> by 
-    /// the <see cref="ErosionNoise"/> factor. 
-    /// </summary>
-    public string PVNoise;
+    /// The name of the noise sampler in the <see cref="WorldConfig.Config.GenerationSettings.Noise">Noise</see> registry that generates the Major Domain Warp 
+    /// noise map, or specifically the primary noise map which distorts the domain at which the terrain height noise maps are sampled. </summary>
+    public string MajorWarpNoise;
+    /// <summary>
+    /// The name of the noise sampler in the <see cref="WorldConfig.Config.GenerationSettings.Noise">Noise</see> registry that generates the Minor Domain Warp 
+    /// noise map, or specifically the secondary noise map which distorts the domain at which the terrain height noise maps are sampled. </summary>
+    public string MinorWarpNoise;
     /// <summary>
     /// The name of the noise sampler in the <see cref="WorldConfig.Config.GenerationSettings.Noise">Noise</see> registry that generates the squash noise map.
     /// The squash noise map dictates, for each 2D surface coordinate, the distance below the surface where the density falloff
@@ -97,9 +97,12 @@ public class Surface : ScriptableObject{
     /// <summary> The index of the noise function described by <see cref="ErosionNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
     [JsonIgnore]
     public int ErosionIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(ErosionNoise);
-    /// <summary> The index of the noise function described by <see cref="PVNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    /// <summary> The index of the noise function described by <see cref="MajorWarpNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
     [JsonIgnore]
-    public int PVIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(PVNoise);
+    public int MajorWarpIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(MajorWarpNoise);
+    /// <summary> The index of the noise function described by <see cref="MinorWarpNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    [JsonIgnore]
+    public int MinorWarpIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(MinorWarpNoise);
     /// <summary> The index of the noise function described by <see cref="SquashNoise"/> in the <see cref="WorldConfig.Config.GenerationSettings.Noise">noise</see> registry </summary>
     [JsonIgnore]
     public int SquashIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(SquashNoise);

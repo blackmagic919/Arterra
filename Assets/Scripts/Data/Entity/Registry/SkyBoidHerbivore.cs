@@ -45,7 +45,7 @@ public class SkyBoidHerbivore : Authoring
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class Animal : Entity, IMateable, IAttackable {
+    public class Animal : Entity, IMateable, IAttackable, Movement.IBoid {
         [JsonProperty]
         private Genetics genetics;
         [JsonProperty]
@@ -84,6 +84,8 @@ public class SkyBoidHerbivore : Authoring
         };
         [JsonIgnore]
         public override ref TerrainCollider.Transform transform => ref tCollider.transform;
+        [JsonIgnore]
+        public float3 MoveDirection{get => flightDirection; set => flightDirection = value; }
         [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
@@ -150,7 +152,7 @@ public class SkyBoidHerbivore : Authoring
             this.vitality = new Vitality(settings.Physicality, this.genetics);
             this.tCollider = new TerrainCollider(settings.collider, GCoord, ProcessFallDamage);
             pathFinder.hasPath = false;
-            flightDirection = RandomDirection();
+            flightDirection = Movement.RandomDirection(ref random);
             TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
             TaskTarget = Guid.Empty;
             TaskIndex = 0;
@@ -212,57 +214,18 @@ public class SkyBoidHerbivore : Authoring
                 return;
             }
 
-            CalculateBoidDirection();
+            Movement.CalculateBoidDirection(this, genetics, settings.flight);
             byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, settings.flight.PathDist + 1, settings.flight.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
         }
 
         public unsafe void FindGround() {
-            flightDirection = Normalize(flightDirection + math.down());
+            flightDirection = Movement.Normalize(flightDirection + math.down());
             int3 dP = (int3)(flightDirection * settings.flight.PathDist);
 
             byte* path = PathFinder.FindMatchAlongRay(GCoord, dP, settings.flight.PathDist + 1, settings.flight.profile, settings.profile, EntityJob.cxt, out int pLen, out bool fGround);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
             if (fGround) TaskIndex = 2;
-        }
-
-        public unsafe void CalculateBoidDirection() {
-            BoidDMtrx boidDMtrx = new() {
-                SeperationDir = float3.zero,
-                AlignmentDir = float3.zero,
-                CohesionDir = float3.zero,
-                count = 0
-            };
-
-            unsafe void OnEntityFound(Entity nEntity) {
-                if (nEntity == null) return;
-                if (nEntity.info.entityType != info.entityType) return;
-                Animal nBoid = (Animal)nEntity;
-                float3 nBoidPos = nBoid.tCollider.transform.position;
-                float3 boidPos = tCollider.transform.position;
-
-                if (math.all(nBoid.flightDirection == 0)) return;
-                if (math.distance(boidPos, nBoidPos) < settings.flight.PathDist)
-                    boidDMtrx.SeperationDir += boidPos - nBoidPos;
-                boidDMtrx.AlignmentDir += nBoid.flightDirection;
-                boidDMtrx.CohesionDir += nBoidPos;
-                boidDMtrx.count++;
-            }
-
-            EntityManager.ESTree.Query(new((float3)GCoord,
-                2 * new float3(settings.flight.InfluenceDist)),
-            OnEntityFound);
-
-            if (boidDMtrx.count == 0) return;
-            float3 influenceDir;
-            if (boidDMtrx.count > settings.flight.MaxSwarmSize) //the sign of seperation is flipped for this case
-                influenceDir = genetics.Get(settings.flight.SeperationWeight) * boidDMtrx.SeperationDir / boidDMtrx.count -
-                genetics.Get(settings.flight.CohesionWeight) * (boidDMtrx.CohesionDir / boidDMtrx.count - position);
-            else influenceDir = genetics.Get(settings.flight.SeperationWeight) * boidDMtrx.SeperationDir / boidDMtrx.count +
-                genetics.Get(settings.flight.AlignmentWeight) * (boidDMtrx.AlignmentDir / boidDMtrx.count - flightDirection) +
-                genetics.Get(settings.flight.CohesionWeight) * (boidDMtrx.CohesionDir / boidDMtrx.count - position);
-
-            flightDirection = Normalize(flightDirection + influenceDir);
         }
 
         private unsafe void RandomWalk() {
@@ -281,18 +244,6 @@ public class SkyBoidHerbivore : Authoring
             }
         }
 
-        private static float3 Normalize(float3 v) {
-            if (math.length(v) == 0) return math.forward();
-            else return math.normalize(v);
-            //This norm guarantees the vector will be on the edge of a cube
-        }
-
-        private float3 RandomDirection() {
-            float3 normal = new(random.NextFloat(-1, 1), random.NextFloat(-1, 1), random.NextFloat(-1, 1));
-            if (math.length(normal) == 0) return math.forward();
-            else return Normalize(normal);
-        }
-
         //Task 0
         private static void Idle(Animal self) {
             self.tCollider.useGravity = true;
@@ -307,7 +258,7 @@ public class SkyBoidHerbivore : Authoring
 
             if (self.TaskDuration <= 0) {
                 self.TaskDuration = self.genetics.Get(self.settings.flight.AverageFlightTime) * self.random.NextFloat(0f, 2f);
-                self.flightDirection = self.RandomDirection();
+                self.flightDirection = Movement.RandomDirection(ref self.random);
                 self.BoidFly();
                 return;
             } else self.TaskDuration -= EntityJob.cxt.deltaTime;
@@ -349,8 +300,11 @@ public class SkyBoidHerbivore : Authoring
         //Task 3
         private static unsafe void FindPrey(Animal self) {
             self.tCollider.useGravity = true;
-            if (self.vitality.StopHunting() ||
-                !self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
+            if (self.vitality.StopHunting()) {
+                self.BoidFly();
+            }
+
+            if (!self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
                 self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 preyPos)
             ) {
                 self.RandomWalk();
@@ -561,13 +515,6 @@ public class SkyBoidHerbivore : Authoring
 
         public override void Disable() {
             controller.Dispose();
-        }
-
-        unsafe struct BoidDMtrx {
-            public float3 SeperationDir;
-            public float3 AlignmentDir;
-            public float3 CohesionDir;
-            public uint count;
         }
 
         public override void OnDrawGizmos() {

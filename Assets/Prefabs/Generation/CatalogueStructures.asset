@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: CatalogueStructures
   m_EditorClassIdentifier: 
   Name: Root
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 223a31f324fab4c83ab64f10979b618f, type: 2}
@@ -27,3 +30,9 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: b5f3bff5259124954b1c0a8f42c44d58, type: 2}
     - value: {fileID: 11400000, guid: fae56133983264f288ff71c7bc8e623e, type: 2}
     - value: {fileID: 11400000, guid: 0e299fb91ad6a4ce1810c0989155e997, type: 2}
+    - value: {fileID: 11400000, guid: e6b21e984b6fd4423a13276606ed02f7, type: 2}
+    - value: {fileID: 11400000, guid: 2b630cea8e224482c929150699fdf4a7, type: 2}
+    - value: {fileID: 11400000, guid: ec1f6974e36e542b0a9b9a26a52c7e19, type: 2}
+  references:
+    version: 2
+    RefIds: []

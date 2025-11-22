@@ -127,7 +127,7 @@ public class AquaticCarnivore : Authoring
         }
         //Not thread safe
         public bool CanMateWith(Entity entity) {
-            if (vitality.healthPercent < genetics.Get(settings.Physicality.MateThreshold))
+            if (vitality.StopMating())
                 return false;
             if (vitality.IsDead) return false;
             if (TaskIndex >= 8) return false;
@@ -217,9 +217,9 @@ public class AquaticCarnivore : Authoring
             if (self.TaskDuration <= 0) {
                 self.TaskIndex = 1;
             } else self.TaskDuration -= EntityJob.cxt.deltaTime;
-            if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.HuntThreshold))
+            if (self.vitality.BeginHunting())
                 self.TaskIndex = 3;
-            else if (self.vitality.healthPercent > self.genetics.Get(self.settings.Physicality.MateThreshold))
+            else if (self.vitality.BeginMating())
                 self.TaskIndex = 6;
         }
 
@@ -248,7 +248,7 @@ public class AquaticCarnivore : Authoring
         //Task 3
         private static unsafe void FindPrey(Animal self) {
             //Use mate threshold not hunt because the entity may lose the target while eating
-            if (self.vitality.healthPercent > self.genetics.Get(self.settings.Physicality.MateThreshold) ||
+            if (self.vitality.StopHunting() ||
                 !self.settings.Recognition.FindPreferredPrey(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity prey)
             ) {
@@ -322,7 +322,7 @@ public class AquaticCarnivore : Authoring
         }
         //Task 6
         private static unsafe void FindMate(Animal self) {
-            if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.MateThreshold)
+            if (self.vitality.StopMating()
                 || !self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
             ) {

@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: CaveShape
   m_EditorClassIdentifier: 
   Name: CaveShape
+  Tags:
+    Reg:
+      value: []
   noiseScale: 5000
   octaves: 4
   persistance: 0.25
@@ -23,23 +26,53 @@ MonoBehaviour:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
-        time: 0
+        time: -0.002986908
         value: 0
-        inSlope: 1
-        outSlope: 1
-        tangentMode: 34
+        inSlope: 0.0840515
+        outSlope: 0.0840515
+        tangentMode: 0
         weightedMode: 0
         inWeight: 0
-        outWeight: 0
+        outWeight: 0.36654666
+      - serializedVersion: 3
+        time: 0.43653208
+        value: 0.19822194
+        inSlope: 1.4846177
+        outSlope: 1.4846177
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 1
+      - serializedVersion: 3
+        time: 0.49838617
+        value: 0.4963172
+        inSlope: 5.561754
+        outSlope: 5.561754
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.25823462
+      - serializedVersion: 3
+        time: 0.55887717
+        value: 0.73546046
+        inSlope: 2.1407726
+        outSlope: 2.1407726
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.12029111
       - serializedVersion: 3
         time: 1
         value: 1
-        inSlope: 1
-        outSlope: 1
-        tangentMode: 34
+        inSlope: 0.096746065
+        outSlope: 0.096746065
+        tangentMode: 0
         weightedMode: 0
-        inWeight: 0
+        inWeight: 0.33158264
         outWeight: 0
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+  references:
+    version: 2
+    RefIds: []

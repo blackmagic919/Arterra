@@ -24,6 +24,10 @@ struct matTerrain{
 StructuredBuffer<matTerrain> _MatTerrainData;
 uint geoInd;
 
+float3 safeNormalize(float3 n) {
+    return (dot(n, n) > 1e-12) ? normalize(n) : float3(0,0,1);
+}
+
 VertexInfo UnpackVertex(uint3 data){
     VertexInfo v = (VertexInfo)0;
 

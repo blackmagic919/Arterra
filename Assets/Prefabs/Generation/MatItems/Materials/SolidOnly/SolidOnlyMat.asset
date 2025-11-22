@@ -13,7 +13,13 @@ MonoBehaviour:
   m_Name: SolidOnlyMat
   m_EditorClassIdentifier: 
   Name: C:Solid
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: c8bdc732764ee44b3b20e8f3d76461e4, type: 2}
     - value: {fileID: 11400000, guid: d61682910c0024e41a742b1373dbf367, type: 2}
+  references:
+    version: 2
+    RefIds: []

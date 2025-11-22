@@ -103,7 +103,7 @@ MonoBehaviour:
       InfluenceStart: 0
       InfluenceOffStart: 0
       AtmosphereStart: 0
-      TerrainEnd: 0.4
+      TerrainEnd: 0.375
       ErosionEnd: 1
       SquashEnd: 1
       InfluenceEnd: 1

@@ -45,7 +45,7 @@ bool IsCurShader(uint info){return (info & 0x80000000) && ((info >> 16 & 0x7FFF)
 DrawVertex MakeBaseDrawVertex(SourceVertex v){
     DrawVertex o = (DrawVertex)0;
     o.positionOS = v.positionOS;
-    o.normalOS = v.normalOS;
+    o.normalOS = safeNormalize(v.normalOS);
     o.uv = IsCurShader(_MatTerrainData[v.material.x].geoShaderInd) ? 1 : 0;
     return o;
 }

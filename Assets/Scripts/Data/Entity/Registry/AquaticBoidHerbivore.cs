@@ -46,7 +46,7 @@ public class AquaticBoidHerbivore : Authoring {
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class Animal : Entity, IMateable, IAttackable {
+    public class Animal : Entity, IMateable, IAttackable, Movement.IBoid {
         [JsonProperty]
         private Genetics genetics;
         [JsonProperty]
@@ -87,6 +87,8 @@ public class AquaticBoidHerbivore : Authoring {
         };
         [JsonIgnore]
         public override ref TerrainCollider.Transform transform => ref tCollider.transform;
+        [JsonIgnore]
+        public float3 MoveDirection{get => flightDirection; set => flightDirection = value; }
         [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
@@ -131,7 +133,7 @@ public class AquaticBoidHerbivore : Authoring {
 
         //Not thread safe
         public bool CanMateWith(Entity entity) {
-            if (vitality.healthPercent < genetics.Get(settings.Physicality.MateThreshold)) return false;
+            if (vitality.StopMating()) return false;
             if (vitality.IsDead) return false;
             if (TaskIndex >= 7) return false;
             return settings.Recognition.CanMateWith(entity);
@@ -154,7 +156,7 @@ public class AquaticBoidHerbivore : Authoring {
             this.tCollider = new TerrainCollider(settings.collider, GCoord, ProcessFallDamage);
 
             pathFinder.hasPath = false;
-            flightDirection = RandomDirection();
+            flightDirection = Movement.RandomDirection(ref random);
             TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
             TaskTarget = Guid.Empty;
             TaskIndex = 0;
@@ -210,72 +212,19 @@ public class AquaticBoidHerbivore : Authoring {
 
 
         private unsafe void BoidFly() {
+            if (vitality.BeginMating() || vitality.BeginHunting()) {
+                TaskDuration = math.min(0, TaskDuration);
+            }
             if (TaskDuration <= 0) {
                 TaskDuration = settings.movement.AverageIdleTime * random.NextFloat(0f, 2f);
                 TaskIndex = 0; //Go Idle
                 return;
             }
-            if (vitality.healthPercent > genetics.Get(settings.Physicality.MateThreshold) ||
-                vitality.healthPercent < genetics.Get(settings.Physicality.HuntThreshold)
-            ) {
-                TaskDuration = math.min(0, TaskDuration); //try to land to mate
-            }
             TaskIndex = 1;
 
-            CalculateBoidDirection();
+            Movement.CalculateBoidDirection(this, genetics, settings.swim);
             byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, settings.swim.PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
-        }
-
-        private unsafe void CalculateBoidDirection() {
-            BoidDMtrx boidDMtrx = new() {
-                SeperationDir = float3.zero,
-                AlignmentDir = float3.zero,
-                CohesionDir = float3.zero,
-                count = 0
-            };
-
-            unsafe void OnEntityFound(Entity nEntity) {
-                if (nEntity == null) return;
-                if (nEntity.info.entityType != info.entityType) return;
-                Animal nBoid = (Animal)nEntity;
-                float3 nBoidPos = nBoid.tCollider.transform.position;
-                float3 boidPos = tCollider.transform.position;
-
-                if (math.all(nBoid.flightDirection == 0)) return;
-                if (math.distance(boidPos, nBoidPos) < settings.swim.PathDist)
-                    boidDMtrx.SeperationDir += boidPos - nBoidPos;
-                boidDMtrx.AlignmentDir += nBoid.flightDirection;
-                boidDMtrx.CohesionDir += nBoidPos;
-                boidDMtrx.count++;
-            }
-
-            EntityManager.ESTree.Query(new((float3)GCoord,
-                2 * new float3(settings.swim.InfluenceDist)),
-            OnEntityFound);
-
-            if (boidDMtrx.count == 0) return;
-            float3 influenceDir;
-            if (boidDMtrx.count > settings.swim.MaxSwarmSize) //the sign of seperation is flipped for this case
-                influenceDir = genetics.Get(settings.swim.SeperationWeight) * boidDMtrx.SeperationDir / boidDMtrx.count -
-                genetics.Get(settings.swim.CohesionWeight) * (boidDMtrx.CohesionDir / boidDMtrx.count - position);
-            else influenceDir = genetics.Get(settings.swim.SeperationWeight) * boidDMtrx.SeperationDir / boidDMtrx.count +
-                genetics.Get(settings.swim.AlignmentWeight) * (boidDMtrx.AlignmentDir / boidDMtrx.count - flightDirection) +
-                genetics.Get(settings.swim.CohesionWeight) * (boidDMtrx.CohesionDir / boidDMtrx.count - position);
-
-            flightDirection = Normalize(flightDirection + influenceDir);
-        }
-
-        private static float3 Normalize(float3 v) {
-            if (math.length(v) == 0) return math.forward();
-            else return math.normalize(v);
-            //This norm guarantees the vector will be on the edge of a cube
-        }
-
-        private float3 RandomDirection() {
-            float3 normal = new(random.NextFloat(-1, 1), random.NextFloat(-1, 1), random.NextFloat(-1, 1));
-            if (math.length(normal) == 0) return math.forward();
-            else return Normalize(normal);
         }
 
         private unsafe bool IsSurfacing() {
@@ -289,12 +238,12 @@ public class AquaticBoidHerbivore : Authoring {
 
         //Task 0
         private static void Idle(Animal self) {
-            if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.HuntThreshold))
+            if (self.vitality.BeginHunting())
                 self.TaskIndex = 2;
-            else if (self.vitality.healthPercent > self.genetics.Get(self.settings.Physicality.MateThreshold))
+            else if (self.vitality.BeginMating())
                 self.TaskIndex = 5;
             if (self.TaskDuration <= 0) {
-                self.flightDirection = self.RandomDirection();
+                self.flightDirection = Movement.RandomDirection(ref self.random);
                 self.TaskDuration = self.genetics.Get(self.settings.swim.AverageFlightTime) * self.random.NextFloat(0f, 2f);
                 self.BoidFly();
                 return;
@@ -312,9 +261,7 @@ public class AquaticBoidHerbivore : Authoring {
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration, true);
-
             if (!self.pathFinder.hasPath) {
-                self.TaskDuration = self.genetics.Get(self.settings.swim.AverageFlightTime) * self.random.NextFloat(0f, 2f);
                 self.BoidFly();
             }
         }
@@ -322,7 +269,7 @@ public class AquaticBoidHerbivore : Authoring {
 
         //Task 2
         private static unsafe void FindPrey(Animal self) {
-            if (!self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
+            if (self.vitality.StopHunting() || !self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
                 self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 preyPos)
             ) {
                 self.TaskDuration = self.genetics.Get(self.settings.swim.AverageFlightTime) * self.random.NextFloat(0f, 2f);
@@ -365,7 +312,7 @@ public class AquaticBoidHerbivore : Authoring {
         }
 
         //Task 4
-        private static unsafe void EatFood(Animal self) {
+        private static void EatFood(Animal self) {
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if (self.TaskDuration <= 0) {
                 if (self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
@@ -373,15 +320,13 @@ public class AquaticBoidHerbivore : Authoring {
                     WorldConfig.Generation.Item.IItem item = self.settings.Recognition.ConsumeFood(self, foodPos);
                     if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition))
                         self.vitality.Heal(nutrition);
-                    self.TaskDuration = self.genetics.Get(self.settings.swim.AverageFlightTime) * self.random.NextFloat(0f, 2f);
-                    self.BoidFly();
                 } else self.TaskIndex = 2;
             }
         }
 
         //Task 5
         private static unsafe void FindMate(Animal self) {
-            if (self.vitality.healthPercent < self.genetics.Get(self.settings.Physicality.MateThreshold) ||
+            if (self.vitality.StopMating() || 
               !self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(self.settings.Recognition.SightDistance),
               out Entity mate)
             ) {
@@ -433,7 +378,7 @@ public class AquaticBoidHerbivore : Authoring {
             float swimIntensity = self.genetics.Get(self.settings.aquatic.DrownTime)
                 * self.genetics.Get(self.settings.aquatic.SurfaceThreshold) / math.min(-self.vitality.breath, -0.001f);
 
-            float3 swimDir = Normalize(self.RandomDirection() + math.up() * math.max(0, swimIntensity));
+            float3 swimDir = Movement.Normalize(Movement.RandomDirection(ref self.random) + math.up() * math.max(0, swimIntensity));
             int PathDist = self.settings.movement.pathDistance;
             byte* path = PathFinder.FindMatchAlongRay(self.GCoord, in swimDir, PathDist + 1, self.settings.profile,
             self.settings.aquatic.SurfaceProfile, EntityJob.cxt, out int pLen, out bool _);
@@ -577,13 +522,6 @@ public class AquaticBoidHerbivore : Authoring {
 
         public override void Disable() {
             controller.Dispose();
-        }
-
-        unsafe struct BoidDMtrx {
-            public float3 SeperationDir;
-            public float3 AlignmentDir;
-            public float3 CohesionDir;
-            public uint count;
         }
 
         public override void OnDrawGizmos() {

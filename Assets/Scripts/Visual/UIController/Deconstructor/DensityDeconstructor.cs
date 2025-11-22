@@ -8,6 +8,7 @@ using System.Linq;
 using WorldConfig.Generation.Structure;
 using WorldConfig.Generation.Biome;
 using WorldConfig;
+using MapStorage;
 
 [ExecuteInEditMode]
 public class DensityDeconstructor : MonoBehaviour
@@ -57,6 +58,7 @@ public class DensityDeconstructor : MonoBehaviour
         if(!initialized) return;
         initialized = false;
 
+        SerializeMaterials();
         gridManager.Release();
         modelManager.Release();
         Selected.Clear();
@@ -96,6 +98,50 @@ public class DensityDeconstructor : MonoBehaviour
     public void LoadData(){
         InitializeGrid();
         //Immediately Render Model
+        this.UpdateMapData();
+        this.modelManager.GenerateModel();
+    }
+
+    public void ResizeStructure() {
+        int3 nGridSize = (int3)math.floor(math.max(GridSize + SDFoffset, float3.zero));
+        StructureData.PointInfo[] NewStructure = new StructureData.PointInfo[nGridSize.x * nGridSize.y * nGridSize.z];
+        int3 minGrid = (int3)math.min(GridSize, nGridSize);
+        int3 point; 
+        for(point.x = 0; point.x < minGrid.x; point.x++){
+            for(point.y = 0; point.y < minGrid.y; point.y++){
+                for(point.z = 0; point.z < minGrid.z; point.z++) {
+                    int rIndex = CustomUtility.irregularIndexFromCoord(point, new int2(GridSize.yz));
+                    int wIndex = CustomUtility.irregularIndexFromCoord(point, new int2(nGridSize.yz));
+                    NewStructure[wIndex] = Structure.map.value[rIndex];
+                }
+            }
+        } 
+        Structure.map.value = NewStructure.ToList();
+        Structure.settings.value.GridSize = (uint3)nGridSize;
+        InitializeGrid();
+        this.UpdateMapData();
+        this.modelManager.GenerateModel();
+    }
+
+    public void ShiftStructure() {
+        int3 point; int3 offset = (int3)math.floor(SDFoffset);
+        StructureData.PointInfo[] NewStructure = new StructureData.PointInfo[GridSize.x * GridSize.y * GridSize.z];
+        for(point.x = 0; point.x < GridSize.x; point.x++){
+            for(point.y = 0; point.y < GridSize.y; point.y++){
+                for(point.z = 0; point.z < GridSize.z; point.z++) {
+                    int3 rCoord = point - offset;
+                    int wIndex = CustomUtility.irregularIndexFromCoord(point, new int2(GridSize.yz));
+                    if (math.any(rCoord < 0) || math.any(rCoord >= (int3)GridSize))
+                        NewStructure[wIndex] = new StructureData.PointInfo{data = 0};
+                    else {
+                        int rIndex = CustomUtility.irregularIndexFromCoord(rCoord, new int2(GridSize.yz));
+                        NewStructure[wIndex] = Structure.map.value[rIndex];   
+                    }
+                }
+            }
+        } 
+        Structure.map.value = NewStructure.ToList();
+        InitializeGrid();
         this.UpdateMapData();
         this.modelManager.GenerateModel();
     }
@@ -314,6 +360,8 @@ public class DensityDeconstructor : MonoBehaviour
     }
 
     private void SerializeMaterials(){
+        if(Structure.Names.value != null && Structure.Names.value.Count > 0)
+            return; //Already serialized
         Dictionary<int, int> MaterialDict = new Dictionary<int, int>();
         for(int i = 0; i < Structure.map.value.Count; i++){
             StructureData.PointInfo p = Structure.map.value[i];
@@ -330,13 +378,15 @@ public class DensityDeconstructor : MonoBehaviour
     }
 
     private void DeserializeMaterials(){
-        List<int> MaterialLUT = new List<int>();
-        var reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         if (Structure.Names.value == null || Structure.Names.value.Count == 0)
             return;
+        List<int> MaterialLUT = new List<int>();
+        var reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         for(int i = 0; i < Structure.Names.value.Count; i++){
             MaterialLUT.Add(reg.RetrieveIndex(Structure.Names.value[i]));
-        } 
+        }  
+        //Mark it as already deserialized so we don't double deserialize
+        Structure.Names.value = null;
         for(int i = 0; i < Structure.map.value.Count; i++){
             StructureData.PointInfo p = Structure.map.value[i];
             p.material = MaterialLUT[math.clamp(p.material, 0, MaterialLUT.Count()-1)];

@@ -73,23 +73,26 @@ uint bSTART_map;
 uint bSTART_biome;
 
 
-float GetNoiseCentered(float val, float center, float bottom, float top){
-    float clamped = clamp(val, bottom, top);//
-                
-    return (clamped > center) ? 1-smoothstep(center, top, clamped)
-    : smoothstep(bottom, center, clamped);
-}
+float GetNoiseCentered(float val, float center)
+{
+    val = saturate(val);
 
-float GetNoiseCentered(float val, float center){
-    return GetNoiseCentered(val, center, 0, 1);
+    float base;
+    if (val > center) base = 1 - smoothstep(center, 1, val);
+    else base = smoothstep(0, center, val);
+
+    //Counterscale the middle
+    float ratio = abs(center * 2 - 1);
+    float exponent = lerp(4.0, 1.0, ratio);
+    return pow(base, exponent);
 }
 
 float GetMaterialWeight(BMaterial material, float coarse, float fine, float height){
     float coarsePref = material.genNoiseSize;
     float noiseCenter = material.genNoiseShape;
 
-    float coarseCentered = GetNoiseCentered(coarse, noiseCenter, 0, 1);
-    float fineCentered = GetNoiseCentered(fine, noiseCenter, 0, 1);
+    float coarseCentered = GetNoiseCentered(coarse, noiseCenter);
+    float fineCentered = GetNoiseCentered(fine, noiseCenter);
 
     float baseWeight = coarsePref * coarseCentered + (1.0f-coarsePref) * fineCentered;
     //freq^((1-v)/freq) * v gives more saturated results with higher frequencies

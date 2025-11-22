@@ -12,13 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f67e18118f5594c60a3185bba687bef3, type: 3}
   m_Name: SurfaceSettings
   m_EditorClassIdentifier: 
-  terrainOffset: -300
-  MaxTerrainHeight: 1000
+  terrainOffset: -500
+  MaxTerrainHeight: 1500
   MaxSquashHeight: 100
   MaxInfluenceHeight: 100
   ContinentalNoise: Continental
   ErosionNoise: Erosion
-  PVNoise: PeakValley
+  MajorWarpNoise: MajorWarpNoise
+  MinorWarpNoise: MinorWarpNoise
   SquashNoise: Squash
   InfHeightNoise: InfluenceHeight
   InfOffsetNoise: InfluenceOffset

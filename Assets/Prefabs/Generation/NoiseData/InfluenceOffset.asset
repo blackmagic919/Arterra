@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: InfluenceOffset
   m_EditorClassIdentifier: 
   Name: InfluenceOffset
+  Tags:
+    Reg:
+      value: []
   noiseScale: 5000
   octaves: 4
   persistance: 0.25
@@ -23,14 +26,14 @@ MonoBehaviour:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
-        time: 0.0041656494
-        value: 0.2004717
-        inSlope: 0
-        outSlope: 0
+        time: 0.000029903546
+        value: -0.00003219361
+        inSlope: 1.4625187
+        outSlope: 1.4625187
         tangentMode: 0
         weightedMode: 0
         inWeight: 0
-        outWeight: 0
+        outWeight: 0.10746268
       - serializedVersion: 3
         time: 1
         value: 1
@@ -43,3 +46,6 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+  references:
+    version: 2
+    RefIds: []

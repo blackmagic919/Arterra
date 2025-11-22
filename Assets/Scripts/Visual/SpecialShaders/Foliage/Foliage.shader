@@ -21,11 +21,6 @@ Shader "Unlit/Foliage"
 
             HLSLPROGRAM
 
-            // Signal this shader requires geometry function support
-            #pragma prefer_hlslcc gles
-            #pragma exclude_renderers d3d11_9x
-            #pragma target 5.0
-
             // Register our functions
             #pragma vertex Vertex
             #pragma fragment Fragment

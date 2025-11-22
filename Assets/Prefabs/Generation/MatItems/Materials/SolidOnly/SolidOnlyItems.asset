@@ -13,7 +13,13 @@ MonoBehaviour:
   m_Name: SolidOnlyItems
   m_EditorClassIdentifier: 
   Name: C:Solid
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 78b23a19a58e04af68e64efb39c5d3c5, type: 2}
     - value: {fileID: 11400000, guid: d1af63148885d476ea52e4804fd517bf, type: 2}
+  references:
+    version: 2
+    RefIds: []

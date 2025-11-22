@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: CatalogueNoise
   m_EditorClassIdentifier: 
   Name: Root
+  Tags:
+    Reg:
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 1b8dfa9e7f67f40ceae6a82733b8c9fd, type: 2}
@@ -29,3 +32,7 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: e10045ff684ac425880a51d968bf317e, type: 2}
     - value: {fileID: 11400000, guid: e675bf8565f3546efbf877710f603aa2, type: 2}
     - value: {fileID: 11400000, guid: 3f622d307ed264ecb964727d0b44f77d, type: 2}
+    - value: {fileID: 11400000, guid: 44b6b758ba43a4ba69554e1563d73d17, type: 2}
+  references:
+    version: 2
+    RefIds: []

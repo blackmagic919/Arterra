@@ -84,14 +84,14 @@ MonoBehaviour:
             ChancePerCoord: 0.0001
   BiomeConditions:
     value:
-      TerrainStart: 0.4
+      TerrainStart: 0.375
       ErosionStart: 0
       SquashStart: 0
       InfluenceStart: 0
       InfluenceOffStart: 0
       AtmosphereStart: 0.5
       TerrainEnd: 1
-      ErosionEnd: 0.55
+      ErosionEnd: 0.5
       SquashEnd: 1
       InfluenceEnd: 1
       InfluenceOffEnd: 1

@@ -17,7 +17,8 @@ public static class StartupPlacer {
         WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
         WorldConfig.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
         SurfaceFinder.SetInt("continentalSampler", surface.ContinentalIndex);
-        SurfaceFinder.SetInt("PVSampler", surface.PVIndex);
+        SurfaceFinder.SetInt("majorWarpSampler", surface.MajorWarpIndex);
+        SurfaceFinder.SetInt("minorWarpSampler", surface.MinorWarpIndex);
         SurfaceFinder.SetInt("erosionSampler", surface.ErosionIndex);
         SurfaceFinder.SetInt("squashSampler", surface.SquashIndex);
         SurfaceFinder.SetFloat("maxTerrainHeight", surface.MaxTerrainHeight);

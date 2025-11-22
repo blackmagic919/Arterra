@@ -5,7 +5,8 @@
 //Biome 
 uint continentalSampler;
 uint erosionSampler;
-uint PVSampler;
+uint majorWarpSampler;
+uint minorWarpSampler;
 uint squashSampler;
 uint InfHeightSampler;
 uint InfOffsetSampler;

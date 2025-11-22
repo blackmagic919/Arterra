@@ -6,7 +6,8 @@ uint bSTART;
 
 uint continentalSampler;
 uint erosionSampler;
-uint PVSampler;
+uint majorWarpSampler;
+uint minorWarpSampler;
 uint squashSampler;
 
 float squashHeight;
@@ -17,9 +18,10 @@ float2 startPosXZ;
 
 float SampleSurfaceHeight (float2 position)
 {
-    //Get SurfaceData
+    //Get SurfaceData 
+    float2 warpOffset = GetDomainWarpOffset2D(position, majorWarpSampler, minorWarpSampler);
     float erosion = GetNoise2D(position, erosionSampler);
-    float terrainHeight = GetErodedNoise2D(position, erosion, PVSampler, continentalSampler);
+    float terrainHeight = GetErodedNoise2D(position, erosion, warpOffset, continentalSampler);
     return terrainHeight * maxTerrainHeight + heightOffset;
 }
 

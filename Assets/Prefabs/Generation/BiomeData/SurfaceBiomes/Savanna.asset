@@ -1,0 +1,113 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04a6111a713ec455cbfedb4173f40da6, type: 3}
+  m_Name: Savanna
+  m_EditorClassIdentifier: 
+  Name: Savanna
+  Tags:
+    Reg:
+      value: []
+  info:
+    value:
+      Names:
+        value:
+        - Air
+        - Water
+        - Dirt
+        - Sand
+        - Coyote
+        - DriedGrass
+        - AcaciaTree1
+        - AcaciaTree2
+        - Zebra
+        - AcaciaTree3
+        - Lion
+        - Lioness
+      GroundMaterials:
+        value:
+        - value:
+            Material: 2
+            genSize: 0.8
+            genShape: 0.62
+            frequency: 1
+            height: 1
+        - value:
+            Material: 5
+            genSize: 0.2
+            genShape: 0.408
+            frequency: 0.9
+            height: 0.2
+        - value:
+            Material: 3
+            genSize: 0
+            genShape: 0.782
+            frequency: 0.35
+            height: 0.2
+      SurfaceMaterials:
+        value:
+        - value:
+            Material: 0
+            genSize: 0.2
+            genShape: 0
+            frequency: 1
+            height: 0
+      LiquidMaterials:
+        value:
+        - value:
+            Material: 1
+            genSize: 0
+            genShape: 0
+            frequency: 1
+            height: 0
+      Structures:
+        value:
+        - value:
+            ChancePerStructurePoint: 0.0015
+            Structure: 6
+        - value:
+            ChancePerStructurePoint: 0.002
+            Structure: 7
+        - value:
+            ChancePerStructurePoint: 0.0025
+            Structure: 9
+      Entities:
+        value:
+        - value:
+            Entity: 4
+            ChancePerCoord: 0.0002
+        - value:
+            Entity: 8
+            ChancePerCoord: 0.0004
+        - value:
+            Entity: 10
+            ChancePerCoord: 0.00015
+        - value:
+            Entity: 11
+            ChancePerCoord: 0.00015
+  BiomeConditions:
+    value:
+      TerrainStart: 0.375
+      ErosionStart: 0.5
+      SquashStart: 0
+      InfluenceStart: 0
+      InfluenceOffStart: 0
+      AtmosphereStart: 0.75
+      TerrainEnd: 1
+      ErosionEnd: 1
+      SquashEnd: 1
+      InfluenceEnd: 1
+      InfluenceOffEnd: 1
+      AtmosphereEnd: 1
+      biome: 0
+  references:
+    version: 2
+    RefIds: []

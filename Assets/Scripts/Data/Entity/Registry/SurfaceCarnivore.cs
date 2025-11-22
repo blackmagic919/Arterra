@@ -231,7 +231,7 @@ public class SurfaceCarnivore : Authoring {
         private static unsafe void FindPrey(Animal self) {
             //Use mate threshold not hunt because the entity may lose the target while eating
             if (self.vitality.StopHunting() || !self.settings.Recognition
-                    .FindPreferredPrey(self, self.genetics.Get(self.settings.Recognition.SightDistance), out Entity prey)
+                .FindPreferredPrey(self, self.genetics.Get(self.settings.Recognition.SightDistance), out Entity prey)
             ) {
                 self.TaskIndex = 1;
                 return;

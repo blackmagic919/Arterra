@@ -179,7 +179,9 @@ MonoBehaviour:
       recognition:
         value:
           Predators:
-            value: []
+            value:
+            - EntityType: Lion
+            - EntityType: Lioness
           Mates:
             value:
             - MateType: Horse

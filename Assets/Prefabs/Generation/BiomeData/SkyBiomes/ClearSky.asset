@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: ClearSky
   m_EditorClassIdentifier: 
   Name: Clear Sky
+  Tags:
+    Reg:
+      value: []
   info:
     value:
       Names:
@@ -40,13 +43,13 @@ MonoBehaviour:
         value:
         - value:
             Material: 0
-            genSize: 0.305
+            genSize: 0.521
             genShape: 0.63
             frequency: 1
             height: 0
         - value:
             Material: 1
-            genSize: 0.5
+            genSize: 0.319
             genShape: 0.8
             frequency: 0.1
             height: 0
@@ -65,3 +68,6 @@ MonoBehaviour:
       CaveShapeEnd: 1
       HeightEnd: 0.35
       biome: 0
+  references:
+    version: 2
+    RefIds: []

@@ -97,7 +97,9 @@ MonoBehaviour:
       recognition:
         value:
           Predators:
-            value: []
+            value:
+            - EntityType: Lion
+            - EntityType: Lioness
           Mates:
             value:
             - MateType: ArcticFox
@@ -123,6 +125,7 @@ MonoBehaviour:
           Prey:
             value:
             - EntityType: Camel
+            - EntityType: Zebra
       physicality:
         value:
           weight: 0.4

@@ -154,7 +154,7 @@ void Main (uint3 id : SV_DispatchThreadID)
 
     float3 center = GetTriangleCenter(inputs[0].positionOS, inputs[1].positionOS, inputs[2].positionOS);
     //Use hard normal rather than smooth normals
-    float3 normal = normalize(cross(inputs[1].positionOS - inputs[0].positionOS,
+    float3 normal = safeNormalize(cross(inputs[1].positionOS - inputs[0].positionOS,
                                 inputs[2].positionOS - inputs[0].positionOS));
     CreateQuadIntersects(center, normal, material, baseSC);
   

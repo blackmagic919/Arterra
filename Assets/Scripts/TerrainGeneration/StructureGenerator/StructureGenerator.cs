@@ -214,7 +214,8 @@ public static class Generator
 
         StructureIdentifier.SetInt("continentalSampler", surface.ContinentalIndex);
         StructureIdentifier.SetInt("erosionSampler", surface.ErosionIndex);
-        StructureIdentifier.SetInt("PVSampler", surface.PVIndex);
+        StructureIdentifier.SetInt("majorWarpSampler", surface.MajorWarpIndex);
+        StructureIdentifier.SetInt("minorWarpSampler", surface.MinorWarpIndex);
         StructureIdentifier.SetInt("squashSampler", surface.SquashIndex);
         StructureIdentifier.SetInt("InfHeightSampler", surface.InfHeightIndex);
         StructureIdentifier.SetInt("InfOffsetSampler", surface.InfOffsetIndex);
