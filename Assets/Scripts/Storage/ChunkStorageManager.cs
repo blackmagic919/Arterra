@@ -42,6 +42,14 @@ public static class Chunk
     public static void Initialize(){
         maxChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         chunkFinder = new ChunkFinder();
+        chunkFinder.TrackRegions();
+    }
+
+    /// <summary> Initializes the Chunk Storage Manager for minimal chunk I/O operations without complex
+    /// lookup structures. </summary>
+    public static void MinimalInitialze() {
+        maxChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        chunkFinder = new ChunkFinder();
     }
 
     /// <summary>Saves a list of entities associated with a chunk to the file system at the appropriate location.
@@ -190,19 +198,25 @@ public static class Chunk
     }
     
     /// <summary>
-    /// Reads the map information associated with a chunk file at the specified address at a certain
+    /// Reads just the map information associated with a chunk file at the specified chunk coordinate at a certain
     /// resolution. Automatically loads and deserializes the map information by recoupling it to the
     /// current game instance. The size of the read map information is dependant on the 
     /// sampled resolution controlled by <paramref name="depth"/>. 
     /// </summary>
-    /// <param name="fileAdd">The path of the chunk file in the file system to be read. Caller should ensure this file exists 
-    /// and is a properly formatted chunk-map file. </param>
+    /// <param name="CCoord">The coordinate in chunk space of the real chunk to be read. </param>
     /// <param name="depth">The resolution within of the map to be sampled from the file. Chunk files contain multiple
     /// resolutions of their maps compressed seperately, see <see cref="ChunkHeader"/> for more information. </param>
-    /// <param name="header">The deserialized <see cref="ChunkHeader">header</see> stored in the beginning of the file. All
-    /// requests to read a chunk's MapData must deserialize this header. </param>
     /// <returns>The linearly encoded map data associated with the requested resolution of the chunk</returns>
-    public static MapData[] ReadChunkBin(string fileAdd, int depth, out ChunkHeader header)
+    public static ReadbackInfo ReadChunkMap(int3 CCoord, int depth) {
+        ReadbackInfo info = new ReadbackInfo(false);
+        if (chunkFinder.TryGetMapChunk(CCoord, out string chunkAdd)) {
+            info.map = ReadChunkBin(chunkAdd, depth, out ChunkHeader header);
+            info.mapMeta = header.MapEntryMetaData;
+            chunkFinder.TryAddMap(CCoord);
+        }
+        return info;
+    }
+    private static MapData[] ReadChunkBin(string fileAdd, int depth, out ChunkHeader header)
     {
         try{
             MapData[] map = null;
@@ -246,6 +260,46 @@ public static class Chunk
             Debug.Log($"Failed on Reading Entity Data for Chunk: {fileAdd} with exception {e}");
             return null;
         }
+    }
+
+    /// <summary> If the world has a saved map chunk, finds any saved map chunk and returns
+    /// the coordinate of the chunk. Otherwise returns false. </summary>
+    /// <param name="CCoord">The coordinate of a saved map chunk</param>
+    /// <returns>Whether or not a map chunk is saved for this world. </returns>
+    public static bool TryFindSavedMapChunk(out int3 CCoord) {
+        CCoord = 0;
+        if (!Directory.Exists(ChunkFinder.chunkPath)) return false;
+        string[] regions = Directory.GetDirectories(ChunkFinder.chunkPath);
+        Dictionary<int3, bool> foundChunks = new ();
+
+        foreach(string region in regions) {
+            ChunkFinder.PopulateChunkDict(ref foundChunks, region);
+            if (foundChunks.Count > 0) {
+                CCoord = foundChunks.First().Key;
+                return true;
+            };
+        }
+        return false; 
+    }
+
+    /// <summary> If the world has a saved entity chunk, finds any saved entity chunk and returns
+    /// the coordinate of the chunk. Otherwise returns false. </summary>
+    /// <param name="CCoord">The coordinate of a saved entity chunk</param>
+    /// <returns>Whether or not a entity chunk is saved for this world. </returns>
+    public static bool TryFindSavedEntityChunk(out int3 CCoord) {
+        CCoord = 0;
+        if (!Directory.Exists(ChunkFinder.chunkPath)) return false;
+        string[] regions = Directory.GetDirectories(ChunkFinder.entityPath);
+        Dictionary<int3, bool> foundChunks = new ();
+
+        foreach(string region in regions) {
+            ChunkFinder.PopulateChunkDict(ref foundChunks, region);
+            if (foundChunks.Count > 0) {
+                CCoord = foundChunks.First().Key;
+                return true;
+            };
+        }
+        return false; 
     }
 
     static List<Registerable<Entity>> SerializeEntities(List<Entity> entities){
@@ -456,11 +510,12 @@ public static class Chunk
     This is also why the file region architechture exists
     */
     private class ChunkFinder{
-        private readonly ChunkRegion[] regions;
+        private ChunkRegion[] regions;
         private readonly int numChunksAxis;
         private readonly int regionChunkSize;
         public static string chunkPath;
         public static string entityPath;
+        private bool IsTrackRegions;
         private const string fileExtension = ".bin";
         public ChunkFinder(){
             chunkPath = World.WORLD_SELECTION.First.Value.Path + "/MapData/";
@@ -470,10 +525,15 @@ public static class Chunk
             numChunksAxis = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(rSettings.MaxDepth, rSettings.Balance, (uint)rSettings.MinChunkRadius);
             numChunksAxis = math.max((numChunksAxis << rSettings.MaxDepth) >> rSettings.FileRegionDepth, 1);
             regionChunkSize = 1 << rSettings.FileRegionDepth;
+            IsTrackRegions = false;
+        }
 
+        public void TrackRegions() {
             int numChunks = numChunksAxis * numChunksAxis * numChunksAxis;
             regions = new ChunkRegion[numChunks];
+            IsTrackRegions = true;       
         }
+
 
         private int HashCoord(int3 RCoord){
             int3 hashCoord = ((RCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
@@ -492,6 +552,11 @@ public static class Chunk
             int3 RCoord = CSToRS(CCoord);
             int hash = HashCoord(RCoord);
 
+            if (!IsTrackRegions) {
+                address = GetMapPath(CCoord);
+                return File.Exists(address);
+            }
+
             lock (this) {
                 if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
                     ReconstructRegion(RCoord);
@@ -509,6 +574,11 @@ public static class Chunk
             address = null;
             int3 RCoord = CSToRS(CCoord);
             int hash = HashCoord(RCoord);
+
+            if (!IsTrackRegions) {
+                address = GetMapPath(CCoord);
+                return File.Exists(address);
+            }
             
             lock (this) {
                 if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
@@ -524,6 +594,7 @@ public static class Chunk
         }
 
         public void TryAddMap(int3 CCoord){
+            if (!IsTrackRegions) return;
             int3 RCoord = CSToRS(CCoord);
             int hash = HashCoord(RCoord);
             
@@ -535,7 +606,9 @@ public static class Chunk
         }
         
         public void TryAddEntity(int3 CCoord) {
-            int3 RCoord = CSToRS(CCoord); int hash = HashCoord(RCoord);
+            if (!IsTrackRegions) return;
+            int3 RCoord = CSToRS(CCoord);
+            int hash = HashCoord(RCoord);
 
             lock (this) {
                 if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
@@ -590,18 +663,18 @@ public static class Chunk
             PopulateChunkDict(ref region.MapChunks, RegionAddress);
             PopulateChunkDict(ref region.EntityChunks, EntityAddress);
             regions[HashCoord(RCoord)] = region;
+        }
 
-            static void PopulateChunkDict(ref Dictionary<int3, bool> dict, string regionAddress){
-                if(!Directory.Exists(regionAddress)) return;
-                string[] chunkFiles = Directory.GetFiles(regionAddress, "Chunk*"+fileExtension);
-                foreach(string chunkFile in chunkFiles){
-                    try{
+        public static void PopulateChunkDict(ref Dictionary<int3, bool> dict, string regionAddress){
+            if(!Directory.Exists(regionAddress)) return;
+            string[] chunkFiles = Directory.GetFiles(regionAddress, "Chunk*"+fileExtension);
+            foreach(string chunkFile in chunkFiles){
+                try{
                     string[] split = Path.GetRelativePath(regionAddress, chunkFile).Split('_', '.');
                     int3 CCoord = new(int.Parse(split[1]), int.Parse(split[2]), int.Parse(split[3]));
                     dict.Add(CCoord, false);
-                    } catch (Exception) { } 
-                    //We ignore the file if it's not in the correct format
-                }
+                } catch (Exception) { } 
+                //We ignore the file if it's not in the correct format
             }
         }
     }

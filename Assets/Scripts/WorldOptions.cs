@@ -4,6 +4,7 @@ using UnityEngine;
 using Newtonsoft.Json;
 using System;
 using System.Runtime.Serialization;
+using Unity.Mathematics;
 
 namespace WorldConfig {
     /// <summary>
@@ -174,6 +175,8 @@ namespace WorldConfig {
             public Option<Intrinsic.Armor> Armor;
             /// <summary> Controls how the terrain is updated. See <see cref="Intrinsic.TerrainUpdation"/> for more information. </summary>
             public Option<Intrinsic.TerrainUpdation> TerrainUpdation;
+            /// <summary> Controls how the world looks in the main menu. See <see cref="Intrinsic.WorldApperance"/> for mor information. </summary>
+            public Option<Intrinsic.WorldApperance> WorldApperance;
 
             /// <summary> The settings for the readback system. See <see cref="Intrinsic.Readback"/> for more information. </summary>
             [UISetting(Ignore = true)]
@@ -186,7 +189,7 @@ namespace WorldConfig {
             [NonSerialized]
             [HideInInspector]
             [JsonIgnore]
-            [UISetting(Ignore = true)]
+            [UISetting(Ignore = true, Defaulting = true)]
             public Registry<ChildUpdate> GameplayModifyHooks;
         }
 

@@ -27,6 +27,9 @@ public static class World
     /// the world itself is not deleted. </summary>
     public static LinkedList<WorldMeta> WORLD_SELECTION;
 
+    /// <summary> The tail path name of the display chunk image for each world </summary>
+    public const string DisplayChunkPath = "/display_chunk";
+
     /// <summary> The primary startup function for loading the user's game information. Loads the <see cref="Config.TEMPLATE"> template </see>
     /// world configuration(the default world configuration) as well as finding the user's world selection meta data from the file system
     /// to load the user's last selected world's configuration. </summary>
@@ -50,6 +53,7 @@ public static class World
         }
         string data = await File.ReadAllTextAsync(META_LOCATION);
         WORLD_SELECTION = Newtonsoft.Json.JsonConvert.DeserializeObject<LinkedList<WorldMeta>>(data); //Does not call constructor
+        WORLD_SELECTION.First.Value.LastAccessTime = DateTime.Now;
     }
 
     /// <summary> Asynchronously saves the world selection meta data object to the corresponding file located
@@ -157,6 +161,7 @@ public static class World
     public static void SelectWorld(WorldMeta meta){
         WORLD_SELECTION.Remove(meta);
         WORLD_SELECTION.AddFirst(meta);
+        meta.LastAccessTime = DateTime.Now;
         _ = LoadOptions(); //Don't use Task.Run because we want it to be on main thread until await
         _ = SaveMeta();
     }
@@ -194,7 +199,7 @@ public static class World
     /// information necessary to identify the world and display it in the world selection
     /// screen is stored here; this is to avoid loading large world configuration files 
     /// when viewing the user's created worlds. </summary>
-    public struct WorldMeta{
+    public class WorldMeta{
         /// <summary> The unique identifier of the world in the file system. Unlike the world's <see cref="Name"/>,
         /// this is an absolute unique identifier for the world that should not be changed. </summary>
         [HideInInspector]
@@ -211,6 +216,11 @@ public static class World
         [HideInInspector]
         public string Name;
 
+        /// <summary> The last time this world was selected. </summary>
+        public DateTime LastAccessTime;
+        /// <summary> The timestamp of when the world was created. </summary>
+        public DateTime CreationTime;
+
         /// <summary> Creates a new world meta data object with the specified id.
         /// This action creates a new unique location for the world's information
         /// and provides a default name for the world. </summary>
@@ -219,6 +229,8 @@ public static class World
             this.Id = id;
             this.Path = BASE_LOCATION + "WorldData_" + id;
             this.Name = "New World";
+            this.CreationTime = DateTime.Now;
+            this.LastAccessTime = DateTime.Now;
         }
     }
 }}

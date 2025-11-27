@@ -25,6 +25,7 @@ MonoBehaviour:
     - WheatSeeds
     - LettuceSeeds
     - DriedGrass
+    - DriedGrass:Solid
   terrainData:
     Texture: 6
     textureScale: 2
@@ -58,7 +59,7 @@ MonoBehaviour:
         DropChance: 0.05
         DropMultiplier: 2
     DefaultSolidLoot:
-      DropItem: 0
+      DropItem: 7
       DropMultiplier: 1
     LiquidLootTable:
       value: []

@@ -63,7 +63,7 @@ public class PlayerCollider {
 
         //Because the density increases towards ground, we need to invert the normal
         float3 normal = -new float3(xC, yC, zC);
-        if (math.all(normal == 0)) return normal;
+        if (math.all(normal == 0)) return 0;
         normal = math.normalize(normal);
         return normal * TrilinearGradientLength(density, posGS, normal);
     }
@@ -90,7 +90,7 @@ public class PlayerCollider {
         float yC = (c01 - c00) * (1 - xd) + (c11 - c10) * xd;
 
         float2 normal = -new float2(xC, yC);
-        if (math.all(normal == 0)) return normal;
+        if (math.all(normal == 0)) return 0;
         normal = math.normalize(normal);
         return normal * BilinearGradientLength(density, posGS, normal, SampleTerrain);
     }
@@ -107,6 +107,7 @@ public class PlayerCollider {
         float density = c0 * (1 - td) + c1 * td;
         if (density < IsoValue) return 0;
         float normal = math.sign(-(c1 - c0));
+        if (normal == 0) return 0;
         return normal * LinearGradientLength(density, t, normal, SampleTerrain); //Normal
     }
 

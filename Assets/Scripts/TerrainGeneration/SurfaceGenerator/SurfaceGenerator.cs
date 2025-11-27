@@ -29,13 +29,14 @@ public class Creator
     /// <param name="SkipInc">The distance between consecutive samples in the chunk; the side length of a surface pixel</param>
     public void SampleSurfaceMaps(float2 offset, int ChunkSize, int SkipInc){
         Generator.SampleSurfaceData(offset, ChunkSize, SkipInc);
-
         int numPointsAxes = ChunkSize;
         int numOfPoints = numPointsAxes * numPointsAxes;
         
         uint mapAddressIndex = GenerationPreset.memoryHandle.AllocateMemoryDirect(numOfPoints, (int)SURFDATA_STRIDE_4BYTE);
         Generator.TranscribeSurfaceMap(GenerationPreset.memoryHandle.GetBlockBuffer(mapAddressIndex),
             GenerationPreset.memoryHandle.Address, (int)mapAddressIndex, numOfPoints);
+        
+        ReleaseMap();
         SurfaceMapAddress = mapAddressIndex;
     }
 

@@ -9,6 +9,7 @@ using WorldConfig.Generation.Structure;
 using WorldConfig.Generation.Biome;
 using WorldConfig;
 using MapStorage;
+using TerrainGeneration;
 
 [ExecuteInEditMode]
 public class DensityDeconstructor : MonoBehaviour
@@ -23,7 +24,7 @@ public class DensityDeconstructor : MonoBehaviour
     public string savePath;
     public float3 SDFoffset;
 
-    SelectionArray SelectedArray;
+    GridManager.SelectionArray SelectedArray;
     Queue<uint> Selected;
     GridManager gridManager;
     ModelManager modelManager;
@@ -70,17 +71,17 @@ public class DensityDeconstructor : MonoBehaviour
         if(initialized) Release(); 
         if(Config.CURRENT == null) MapStorage.World.Activate();
         IRegister.Setup(Config.CURRENT); //Initialize Register LUTS
-        if(!TerrainGeneration.GenerationPreset.active) TerrainGeneration.GenerationPreset.Initialize(); // Initialize Material Information
-        if(!UtilityBuffers.active) UtilityBuffers.Initialize(); //Initialize Utility Buffers Which Stores Geometry
+        SystemProtocol.MinimalStartup(); // Initialize Material Information
         Structure.Initialize();
         DeserializeMaterials();
 
         int numPoints = (int)(GridSize.x * GridSize.y * GridSize.z);
-        SelectedArray = new SelectionArray(numPoints);
+        SelectedArray = new GridManager.SelectionArray(numPoints);
         Selected = new Queue<uint>();
 
-        gridManager = new GridManager(GridSize, this.gameObject.transform, UtilityBuffers.GenerationBuffer, ref SelectedArray, 0);
+        gridManager = new GridManager(GridSize, this.gameObject.transform, UtilityBuffers.GenerationBuffer, numPoints, 0);
         modelManager = new ModelManager(GridSize, this.gameObject.transform, IsoLevel, UtilityBuffers.TransferBuffer, UtilityBuffers.GenerationBuffer, gridManager.offsets.bufferEnd);
+        gridManager.GenerateModel();
 
         initialized = true;
         showGrid = true;
@@ -103,19 +104,14 @@ public class DensityDeconstructor : MonoBehaviour
     }
 
     public void ResizeStructure() {
-        int3 nGridSize = (int3)math.floor(math.max(GridSize + SDFoffset, float3.zero));
-        StructureData.PointInfo[] NewStructure = new StructureData.PointInfo[nGridSize.x * nGridSize.y * nGridSize.z];
-        int3 minGrid = (int3)math.min(GridSize, nGridSize);
-        int3 point; 
-        for(point.x = 0; point.x < minGrid.x; point.x++){
-            for(point.y = 0; point.y < minGrid.y; point.y++){
-                for(point.z = 0; point.z < minGrid.z; point.z++) {
-                    int rIndex = CustomUtility.irregularIndexFromCoord(point, new int2(GridSize.yz));
-                    int wIndex = CustomUtility.irregularIndexFromCoord(point, new int2(nGridSize.yz));
-                    NewStructure[wIndex] = Structure.map.value[rIndex];
-                }
-            }
-        } 
+        int3 offset = (int3)math.floor(SDFoffset);
+        int3 nGridSize = math.max((int3)GridSize + offset, int3.zero);
+        StructureData.PointInfo[] NewStructure = CustomUtility.RescaleLinearMap(
+            Structure.map.value.ToArray(),
+            (int3)GridSize,
+            offset, 0
+        );
+        
         Structure.map.value = NewStructure.ToList();
         Structure.settings.value.GridSize = (uint3)nGridSize;
         InitializeGrid();
@@ -124,22 +120,13 @@ public class DensityDeconstructor : MonoBehaviour
     }
 
     public void ShiftStructure() {
-        int3 point; int3 offset = (int3)math.floor(SDFoffset);
-        StructureData.PointInfo[] NewStructure = new StructureData.PointInfo[GridSize.x * GridSize.y * GridSize.z];
-        for(point.x = 0; point.x < GridSize.x; point.x++){
-            for(point.y = 0; point.y < GridSize.y; point.y++){
-                for(point.z = 0; point.z < GridSize.z; point.z++) {
-                    int3 rCoord = point - offset;
-                    int wIndex = CustomUtility.irregularIndexFromCoord(point, new int2(GridSize.yz));
-                    if (math.any(rCoord < 0) || math.any(rCoord >= (int3)GridSize))
-                        NewStructure[wIndex] = new StructureData.PointInfo{data = 0};
-                    else {
-                        int rIndex = CustomUtility.irregularIndexFromCoord(rCoord, new int2(GridSize.yz));
-                        NewStructure[wIndex] = Structure.map.value[rIndex];   
-                    }
-                }
-            }
-        } 
+        int3 offset = (int3)math.floor(SDFoffset);
+        StructureData.PointInfo[] NewStructure = CustomUtility.RescaleLinearMap(
+            Structure.map.value.ToArray(),
+            (int3)GridSize,
+            0, offset
+        );
+
         Structure.map.value = NewStructure.ToList();
         InitializeGrid();
         this.UpdateMapData();
@@ -394,27 +381,6 @@ public class DensityDeconstructor : MonoBehaviour
         }
     }
 
-    public struct SelectionArray{
-        public uint[] SelectionData;
-        public SelectionArray(int size)
-        {
-            // Initialize the array with the required size
-            SelectionData = new uint[(size + 31) / 32];
-        }
-
-        public bool this[int index]{
-            get{
-                if(index >= SelectionData.Length * 32) throw new ArgumentOutOfRangeException(nameof(index));
-                return (SelectionData[index / 32] & (1 << (index % 32))) != 0;
-            }
-            set{
-                if(index >= SelectionData.Length * 32) throw new ArgumentOutOfRangeException(nameof(index));
-                if(value) SelectionData[index / 32] |= (uint)(1 << (index % 32));
-                else SelectionData[index / 32] &= ~(uint)(1 << (index % 32));
-            }
-        }
-    }
-
     void GetDataFromMesh(Mesh mesh){
         ComputeShader SDFConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/MeshDeconstructor");
         ComputeBuffer vertexBuffer = new ComputeBuffer(mesh.vertexCount, sizeof(float)*3);
@@ -456,264 +422,292 @@ public class DensityDeconstructor : MonoBehaviour
         Structure.map.value = newMap.ToList();
     }
 
-    private class ModelManager{
-        private ComputeBuffer MapBuffer;
-        private ComputeBuffer GeoBuffer;
-        private ComputeShader ModelConstructor;
-        private ComputeShader IndexLinker;
-        private ComputeShader DrawArgsConstructor;
-        public TerrainGeneration.Map.Generator.GeoGenOffsets offsets;
-        private uint3 GridSize;
-        private float IsoLevel;
+#endif
+}
 
-        private Transform transform;
-        private Material[] ModelMaterial =
-        new Material[2];
-        private TerrainGeneration.Readback.GeometryHandle[] GeoHandles = 
-        new TerrainGeneration.Readback.GeometryHandle[2];
+public class ModelManager{
+    private ComputeBuffer MapBuffer;
+    private ComputeBuffer GeoBuffer;
+    private ComputeShader ModelConstructor;
+    private ComputeShader IndexLinker;
+    private ComputeShader DrawArgsConstructor;
+    public TerrainGeneration.Map.Generator.GeoGenOffsets offsets;
+    private uint3 GridSize;
+    private float IsoLevel;
 
-        public const int VERTEX_STRIDE_WORD = 3 + 2;
-        public const int TRI_STRIDE_WORD = 3;
+    private Transform transform;
+    private Material[] ModelMaterial =
+    new Material[2];
+    private TerrainGeneration.Readback.GeometryHandle[] GeoHandles = 
+    new TerrainGeneration.Readback.GeometryHandle[2];
 
-        public ModelManager(uint3 GridSize, Transform transform, float IsoLevel, ComputeBuffer MapBuffer, ComputeBuffer GeoBuffer, int bufferStart){
-            this.ModelConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/ModelConstructor");
-            this.IndexLinker = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/ModelIndexLinker");
-            this.DrawArgsConstructor = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
-            this.GeoBuffer = GeoBuffer;
-            this.MapBuffer = MapBuffer;
-            this.GridSize = GridSize;
-            this.IsoLevel = IsoLevel;
-            this.transform = transform;
+    public const int VERTEX_STRIDE_WORD = 3 + 2;
+    public const int TRI_STRIDE_WORD = 3;
 
-            this.offsets = new TerrainGeneration.Map.Generator.GeoGenOffsets(new int3(GridSize), 0, bufferStart, VERTEX_STRIDE_WORD);
-            PresetData();
-        }
+    public ModelManager(uint3 GridSize, Transform transform, float IsoLevel, ComputeBuffer MapBuffer, ComputeBuffer GeoBuffer, int bufferStart){
+        this.ModelConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/ModelConstructor");
+        this.IndexLinker = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/ModelIndexLinker");
+        this.DrawArgsConstructor = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
+        this.GeoBuffer = GeoBuffer;
+        this.MapBuffer = MapBuffer;
+        this.GridSize = GridSize;
+        this.IsoLevel = IsoLevel;
+        this.transform = transform;
 
-        ~ModelManager(){ Release(); }
-
-        public void Release(){
-            for(int i = 0; i < 2; i++){ GameObject.DestroyImmediate(ModelMaterial[i]); }
-            ReleaseHandles();
-        }
-
-        void ReleaseHandles(){ for(int i = 0; i < 2; i++){ GeoHandles[i]?.Release(); } }
-
-        public void Render(){ for(int i = 0; i < 2; i++) {GeoHandles[i]?.Update();} }
-
-
-        public void GenerateModel(){
-            ConstructModel();
-            SetupRenderParams();
-            Render(); //Render to apply immediately
-        }
-
-        void SetupRenderParams(){ 
-            /*For some Ridiculous reason, unity's Update Loop can run on different thread than OnSceneGUI, 
-              so releasing at the same time will cause errors in the way it's handled as it is trying to render
-              between updates
-            */
-        
-            GeoHandles[0]?.Release();
-            GeoHandles[0] = SetupGeoHandle(offsets.vertStart, offsets.baseTriStart, offsets.baseTriCounter, 0);
-            GeoHandles[1]?.Release();
-            GeoHandles[1] = SetupGeoHandle(offsets.vertStart, offsets.waterTriStart, offsets.waterTriCounter, 1);
-        }
-
-        void ConstructModel(){
-            //Construct Vertices
-            UtilityBuffers.ClearRange(this.GeoBuffer, 3, offsets.bufferStart);
-            int kernel = ModelConstructor.FindKernel("March");
-
-            uint3 threadsPerAxis;
-            ModelConstructor.GetKernelThreadGroupSizes(kernel, out threadsPerAxis.x, out threadsPerAxis.y, out threadsPerAxis.z);
-            threadsPerAxis = new uint3(
-                (uint)Mathf.CeilToInt((float)GridSize.x / threadsPerAxis.x),
-                (uint)Mathf.CeilToInt((float)GridSize.y / threadsPerAxis.y), 
-                (uint)Mathf.CeilToInt((float)GridSize.z / threadsPerAxis.z)
-            );
-
-            ModelConstructor.Dispatch(kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
-            //int[] counters = new int[4]; this.GeoBuffer.GetData(counters, 0, offsets.bufferStart, 4);
-            //Debug.Log(counters[0]);
-
-            //Link both triangle arrays
-            LinkTriangles(offsets.baseTriStart, offsets.baseTriCounter);
-            LinkTriangles(offsets.waterTriStart, offsets.waterTriCounter);
-        }
-
-        void LinkTriangles(int start, int counter){
-            int kernel = IndexLinker.FindKernel("CSMain");
-            ComputeBuffer args = UtilityBuffers.CountToArgs(IndexLinker, this.GeoBuffer, counter);
-            IndexLinker.SetInt("bCOUNTER_Tri", counter);
-            IndexLinker.SetInt("bSTART_Tri", start);
-            IndexLinker.DispatchIndirect(kernel, args);
-        }
-
-        TerrainGeneration.Readback.GeometryHandle SetupGeoHandle(int vertStart, int indexStart, int indexCounter, int matInd){
-            uint drawArgs = UtilityBuffers.DrawArgs.Allocate();
-
-            int kernel = DrawArgsConstructor.FindKernel("CSMain");
-            DrawArgsConstructor.SetBuffer(kernel, "counter", this.GeoBuffer);
-            DrawArgsConstructor.SetInt("bCOUNTER", indexCounter);
-            DrawArgsConstructor.SetInt("argOffset", (int)drawArgs);
-            DrawArgsConstructor.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.DrawArgs.Get());
-            DrawArgsConstructor.Dispatch(kernel, 1, 1, 1);
-
-            Vector3 size = new Vector3(GridSize.x, GridSize.y, GridSize.z);
-            Bounds BoundsWS = CustomUtility.TransformBounds(transform, new Bounds(size / 2f, size));
-
-            RenderParams rp = new RenderParams(this.ModelMaterial[matInd]){
-                worldBounds = BoundsWS,
-                shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off,
-                receiveShadows = false,
-                matProps = new MaterialPropertyBlock(),
-            };
-
-            rp.matProps.SetBuffer("Vertices", this.GeoBuffer);
-            rp.matProps.SetBuffer("Triangles", this.GeoBuffer);
-            rp.matProps.SetInt("triAddress", indexStart);
-            rp.matProps.SetInt("vertAddress", vertStart);
-            rp.matProps.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
-
-            return new TerrainGeneration.Readback.GeometryHandle(rp, default, 0, drawArgs, matInd);
-        }
-
-        void PresetData(){
-            this.ModelMaterial[0] = new Material(Shader.Find("Unlit/ModelTerrain")); 
-            this.ModelMaterial[1] = new Material(Shader.Find("Unlit/ModelLiquid")); 
-
-            int kernel = ModelConstructor.FindKernel("March");
-            ModelConstructor.SetBuffer(kernel, "MapInfo", this.MapBuffer);
-            ModelConstructor.SetBuffer(kernel, "vertexes", this.GeoBuffer);
-            ModelConstructor.SetBuffer(kernel, "triangles", this.GeoBuffer);
-            ModelConstructor.SetBuffer(kernel, "triangleDict", this.GeoBuffer);
-            ModelConstructor.SetBuffer(kernel, "counter", this.GeoBuffer);
-
-            ModelConstructor.SetInts("counterInd", new int[]{offsets.vertexCounter, offsets.baseTriCounter, offsets.waterTriCounter});
-            ModelConstructor.SetInts("GridSize", new int[]{(int)GridSize.x, (int)GridSize.y, (int)GridSize.z});
-
-            ModelConstructor.SetInt("bSTART_dict", offsets.dictStart);
-            ModelConstructor.SetInt("bSTART_verts", offsets.vertStart);    
-            ModelConstructor.SetInt("bSTART_baseT", offsets.baseTriStart);
-            ModelConstructor.SetInt("bSTART_waterT", offsets.waterTriStart);
-            ModelConstructor.SetFloat("IsoLevel", IsoLevel);
-
-            kernel = IndexLinker.FindKernel("CSMain");
-            IndexLinker.SetBuffer(kernel, "triDict", this.GeoBuffer);
-            IndexLinker.SetBuffer(kernel, "counter", this.GeoBuffer);
-            IndexLinker.SetBuffer(kernel, "BaseTriangles", this.GeoBuffer);
-            IndexLinker.SetInt("bSTART_Dict", offsets.dictStart);
-        }
+        this.offsets = new TerrainGeneration.Map.Generator.GeoGenOffsets(new int3(GridSize), 0, bufferStart, VERTEX_STRIDE_WORD);
+        PresetData();
     }
 
-    private class GridManager{
-        public GridOffsets offsets;
-        private Material GridMaterial;
-        private ComputeBuffer GeoBuffer;
-        private ComputeBuffer SelectionBuffer;
-        private ComputeShader GridConstructor;
-        private Bounds boundsOS;
-        private RenderParams renderParams;
-        private uint3 GridSize;
-        private uint GridPlaneCount{ get{ 
-            return (uint)(GridSize.x * (GridSize.y-1) * (GridSize.z-1) +
-                        (GridSize.x-1) * GridSize.y * (GridSize.z-1) +
-                        (GridSize.x-1) * (GridSize.y-1) * GridSize.z);
-        } }
+    ~ModelManager(){ Release(); }
 
-        public GridManager(uint3 GridSize, Transform transform, ComputeBuffer GeoBuffer, ref SelectionArray SelectionArray, int bufferStart) {
-            this.GridMaterial = new Material(Shader.Find("Unlit/GridShader"));
-            this.GridConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/GridConstructor");
-            this.offsets = new GridOffsets(new int3(GridSize), bufferStart, 4, 3);
-            this.SelectionBuffer = new ComputeBuffer(SelectionArray.SelectionData.Length, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
-            this.GeoBuffer = GeoBuffer;
-            this.GridSize = GridSize;
+    public void Release(){
+        for(int i = 0; i < 2; i++){ GameObject.DestroyImmediate(ModelMaterial[i]); }
+        ReleaseHandles();
+    }
 
-            Vector3 size = new Vector3(GridSize.x, GridSize.y, GridSize.z);
-            boundsOS = new Bounds(size / 2f, size);
-        
-            ConstructGridGeometry();
-            SetupRenderParams(out renderParams, transform);
+    void ReleaseHandles(){ for(int i = 0; i < 2; i++){ GeoHandles[i]?.Release(); } }
+
+    public void Render(){ for(int i = 0; i < 2; i++) {GeoHandles[i]?.Update();} }
+
+
+    public void GenerateModel(Camera camera = null){
+        ConstructModel();
+        SetupRenderParams(camera);
+        Render(); //Render to apply immediately
+    }
+
+    void SetupRenderParams(Camera camera){ 
+        /*For some Ridiculous reason, unity's Update Loop can run on different thread than OnSceneGUI, 
+            so releasing at the same time will cause errors in the way it's handled as it is trying to render
+            between updates
+        */
+    
+        GeoHandles[0]?.Release();
+        GeoHandles[0] = SetupGeoHandle(camera, offsets.vertStart, offsets.baseTriStart, offsets.baseTriCounter, 0);
+        GeoHandles[1]?.Release();
+        GeoHandles[1] = SetupGeoHandle(camera, offsets.vertStart, offsets.waterTriStart, offsets.waterTriCounter, 1);
+    }
+
+    void ConstructModel(){
+        //Construct Vertices
+        UtilityBuffers.ClearRange(this.GeoBuffer, 3, offsets.bufferStart);
+        int kernel = ModelConstructor.FindKernel("March");
+
+        uint3 threadsPerAxis;
+        ModelConstructor.GetKernelThreadGroupSizes(kernel, out threadsPerAxis.x, out threadsPerAxis.y, out threadsPerAxis.z);
+        threadsPerAxis = new uint3(
+            (uint)Mathf.CeilToInt((float)GridSize.x / threadsPerAxis.x),
+            (uint)Mathf.CeilToInt((float)GridSize.y / threadsPerAxis.y), 
+            (uint)Mathf.CeilToInt((float)GridSize.z / threadsPerAxis.z)
+        );
+
+        ModelConstructor.Dispatch(kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
+        //int[] counters = new int[4]; this.GeoBuffer.GetData(counters, 0, offsets.bufferStart, 4);
+        //Debug.Log(counters[0]);
+
+        //Link both triangle arrays
+        LinkTriangles(offsets.baseTriStart, offsets.baseTriCounter);
+        LinkTriangles(offsets.waterTriStart, offsets.waterTriCounter);
+    }
+
+    void LinkTriangles(int start, int counter){
+        int kernel = IndexLinker.FindKernel("CSMain");
+        ComputeBuffer args = UtilityBuffers.CountToArgs(IndexLinker, this.GeoBuffer, counter);
+        IndexLinker.SetInt("bCOUNTER_Tri", counter);
+        IndexLinker.SetInt("bSTART_Tri", start);
+        IndexLinker.DispatchIndirect(kernel, args);
+    }
+
+    TerrainGeneration.Readback.GeometryHandle SetupGeoHandle(Camera camera, int vertStart, int indexStart, int indexCounter, int matInd){
+        uint drawArgs = UtilityBuffers.DrawArgs.Allocate();
+
+        int kernel = DrawArgsConstructor.FindKernel("CSMain");
+        DrawArgsConstructor.SetBuffer(kernel, "counter", this.GeoBuffer);
+        DrawArgsConstructor.SetInt("bCOUNTER", indexCounter);
+        DrawArgsConstructor.SetInt("argOffset", (int)drawArgs);
+        DrawArgsConstructor.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.DrawArgs.Get());
+        DrawArgsConstructor.Dispatch(kernel, 1, 1, 1);
+
+        Vector3 size = new Vector3(GridSize.x, GridSize.y, GridSize.z);
+        Bounds BoundsWS = CustomUtility.TransformBounds(transform, new Bounds(size / 2f, size));
+
+        RenderParams rp = new RenderParams(this.ModelMaterial[matInd]){
+            worldBounds = BoundsWS,
+            shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off,
+            receiveShadows = false,
+            matProps = new MaterialPropertyBlock(),
+            camera = camera
+        };
+
+        rp.matProps.SetBuffer("Vertices", this.GeoBuffer);
+        rp.matProps.SetBuffer("Triangles", this.GeoBuffer);
+        rp.matProps.SetInt("triAddress", indexStart);
+        rp.matProps.SetInt("vertAddress", vertStart);
+        rp.matProps.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
+
+        return new TerrainGeneration.Readback.GeometryHandle(rp, default, 0, drawArgs, matInd);
+    }
+
+    void PresetData(){
+        this.ModelMaterial[0] = new Material(Shader.Find("Unlit/ModelTerrain")); 
+        this.ModelMaterial[1] = new Material(Shader.Find("Unlit/ModelLiquid")); 
+
+        int kernel = ModelConstructor.FindKernel("March");
+        ModelConstructor.SetBuffer(kernel, "MapInfo", this.MapBuffer);
+        ModelConstructor.SetBuffer(kernel, "vertexes", this.GeoBuffer);
+        ModelConstructor.SetBuffer(kernel, "triangles", this.GeoBuffer);
+        ModelConstructor.SetBuffer(kernel, "triangleDict", this.GeoBuffer);
+        ModelConstructor.SetBuffer(kernel, "counter", this.GeoBuffer);
+
+        ModelConstructor.SetInts("counterInd", new int[]{offsets.vertexCounter, offsets.baseTriCounter, offsets.waterTriCounter});
+        ModelConstructor.SetInts("GridSize", new int[]{(int)GridSize.x, (int)GridSize.y, (int)GridSize.z});
+
+        ModelConstructor.SetInt("bSTART_dict", offsets.dictStart);
+        ModelConstructor.SetInt("bSTART_verts", offsets.vertStart);    
+        ModelConstructor.SetInt("bSTART_baseT", offsets.baseTriStart);
+        ModelConstructor.SetInt("bSTART_waterT", offsets.waterTriStart);
+        ModelConstructor.SetFloat("IsoLevel", IsoLevel);
+
+        kernel = IndexLinker.FindKernel("CSMain");
+        IndexLinker.SetBuffer(kernel, "triDict", this.GeoBuffer);
+        IndexLinker.SetBuffer(kernel, "counter", this.GeoBuffer);
+        IndexLinker.SetBuffer(kernel, "BaseTriangles", this.GeoBuffer);
+        IndexLinker.SetInt("bSTART_Dict", offsets.dictStart);
+    }
+}
+
+public class GridManager{
+    public Material GridMaterial;
+    public GridOffsets offsets;
+    private Transform transform;
+    private ComputeBuffer GeoBuffer;
+    private ComputeBuffer SelectionBuffer;
+    private ComputeShader GridConstructor;
+    private Bounds boundsOS;
+    private RenderParams renderParams;
+    private uint3 GridSize;
+    private uint GridPlaneCount{ get{ 
+        return (uint)(GridSize.x * (GridSize.y-1) * (GridSize.z-1) +
+                    (GridSize.x-1) * GridSize.y * (GridSize.z-1) +
+                    (GridSize.x-1) * (GridSize.y-1) * GridSize.z);
+    } }
+
+    public GridManager(uint3 GridSize, Transform transform, ComputeBuffer GeoBuffer, int selLen, int bufferStart) {
+        this.GridMaterial = new Material(Shader.Find("Unlit/GridShader"));
+        this.GridConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/GridConstructor");
+        this.offsets = new GridOffsets(new int3(GridSize), bufferStart, 4, 3);
+        this.SelectionBuffer = new ComputeBuffer(math.max(selLen, 1), sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
+        this.GeoBuffer = GeoBuffer;
+        this.GridSize = GridSize;
+        this.transform = transform;
+
+        Vector3 size = new Vector3(GridSize.x, GridSize.y, GridSize.z);
+        boundsOS = new Bounds(size / 2f, size);
+    }
+
+    public void GenerateModel(Camera camera = null){
+        ConstructGridGeometry();
+        SetupRenderParams(camera, out renderParams, transform);
+        Render(); //Render to apply immediately
+    }
+
+    ~GridManager(){ Release();}
+    public void Release(){ 
+        GameObject.DestroyImmediate(GridMaterial); 
+        this.SelectionBuffer.Release();
+    }
+
+    public void SetSelectionData(ref SelectionArray SelectionArray){ this.SelectionBuffer.SetData(SelectionArray.SelectionData);}
+
+    public void Render(){ Graphics.RenderPrimitives(renderParams, MeshTopology.Quads, (int)GridPlaneCount * 4, 1); }
+
+    void SetupRenderParams(Camera camera, out RenderParams rp, Transform transform){
+        Bounds BoundsWS = CustomUtility.TransformBounds(transform, boundsOS);
+
+        rp = new RenderParams(GridMaterial){
+            worldBounds = BoundsWS,
+            shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off,
+            receiveShadows = false,
+            matProps = new MaterialPropertyBlock(),
+            camera = camera
+        };
+
+        rp.matProps.SetBuffer("VertexBuffer", GeoBuffer);
+        rp.matProps.SetBuffer("IndexBuffer", GeoBuffer);
+        rp.matProps.SetInt("bSTART_index", offsets.indexStart);
+        rp.matProps.SetInt("bSTART_vertex", offsets.vertexStart);
+        rp.matProps.SetBuffer("SelectionBuffer", SelectionBuffer);
+        rp.matProps.SetInt("MapSizeX", (int)GridSize.x); rp.matProps.SetInt("MapSizeY", (int)GridSize.y); rp.matProps.SetInt("MapSizeZ", (int)GridSize.z);
+        rp.matProps.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
+    }
+
+    void ConstructGridGeometry(){
+        UtilityBuffers.ClearRange(GeoBuffer, 1, offsets.bufferStart);
+        int kernel = GridConstructor.FindKernel("CSMain");
+
+        GridConstructor.SetBuffer(kernel, "counter", GeoBuffer);
+        GridConstructor.SetBuffer(kernel, "VertexBuffer", GeoBuffer);
+        GridConstructor.SetBuffer(kernel, "IndexBuffer", GeoBuffer);
+        GridConstructor.SetInt("bCOUNTER_index", offsets.indexCounter);
+        GridConstructor.SetInt("bSTART_index", offsets.indexStart);
+        GridConstructor.SetInt("bSTART_vertex", offsets.vertexStart);
+
+        GridConstructor.SetInts("GridSize", new int[]{(int)GridSize.x, (int)GridSize.y, (int)GridSize.z});
+
+        uint3 threadsPerAxis;
+        GridConstructor.GetKernelThreadGroupSizes(kernel, out threadsPerAxis.x, out threadsPerAxis.y, out threadsPerAxis.z);
+        threadsPerAxis = new uint3(
+            (uint)Mathf.CeilToInt((float)GridSize.x / threadsPerAxis.x),
+            (uint)Mathf.CeilToInt((float)GridSize.y / threadsPerAxis.y), 
+            (uint)Mathf.CeilToInt((float)GridSize.z / threadsPerAxis.z)
+        );
+
+        GridConstructor.Dispatch(kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
+    }
+
+    public struct SelectionArray{
+        public uint[] SelectionData;
+        public SelectionArray(int size)
+        {
+            // Initialize the array with the required size
+            SelectionData = new uint[(size + 31) / 32];
         }
 
-        ~GridManager(){ Release();}
-        public void Release(){ 
-            GameObject.DestroyImmediate(GridMaterial); 
-            this.SelectionBuffer.Release();
-        }
-
-        public void SetSelectionData(ref SelectionArray SelectionArray){ this.SelectionBuffer.SetData(SelectionArray.SelectionData);}
-
-        public void Render(){ Graphics.RenderPrimitives(renderParams, MeshTopology.Quads, (int)GridPlaneCount * 4, 1); }
-
-        void SetupRenderParams(out RenderParams rp, Transform transform){
-            Bounds BoundsWS = CustomUtility.TransformBounds(transform, boundsOS);
-
-            rp = new RenderParams(GridMaterial){
-                worldBounds = BoundsWS,
-                shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off,
-                receiveShadows = false,
-                matProps = new MaterialPropertyBlock(),
-            };
-
-            rp.matProps.SetBuffer("VertexBuffer", GeoBuffer);
-            rp.matProps.SetBuffer("IndexBuffer", GeoBuffer);
-            rp.matProps.SetInt("bSTART_index", offsets.indexStart);
-            rp.matProps.SetInt("bSTART_vertex", offsets.vertexStart);
-            rp.matProps.SetBuffer("SelectionBuffer", SelectionBuffer);
-            rp.matProps.SetInt("MapSizeX", (int)GridSize.x); rp.matProps.SetInt("MapSizeY", (int)GridSize.y); rp.matProps.SetInt("MapSizeZ", (int)GridSize.z);
-            rp.matProps.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
-        }
-
-        void ConstructGridGeometry(){
-            UtilityBuffers.ClearRange(GeoBuffer, 1, offsets.bufferStart);
-            int kernel = GridConstructor.FindKernel("CSMain");
-
-            GridConstructor.SetBuffer(kernel, "counter", GeoBuffer);
-            GridConstructor.SetBuffer(kernel, "VertexBuffer", GeoBuffer);
-            GridConstructor.SetBuffer(kernel, "IndexBuffer", GeoBuffer);
-            GridConstructor.SetInt("bCOUNTER_index", offsets.indexCounter);
-            GridConstructor.SetInt("bSTART_index", offsets.indexStart);
-            GridConstructor.SetInt("bSTART_vertex", offsets.vertexStart);
-
-            GridConstructor.SetInts("GridSize", new int[]{(int)GridSize.x, (int)GridSize.y, (int)GridSize.z});
-
-            uint3 threadsPerAxis;
-            GridConstructor.GetKernelThreadGroupSizes(kernel, out threadsPerAxis.x, out threadsPerAxis.y, out threadsPerAxis.z);
-            threadsPerAxis = new uint3(
-                (uint)Mathf.CeilToInt((float)GridSize.x / threadsPerAxis.x),
-                (uint)Mathf.CeilToInt((float)GridSize.y / threadsPerAxis.y), 
-                (uint)Mathf.CeilToInt((float)GridSize.z / threadsPerAxis.z)
-            );
-
-            GridConstructor.Dispatch(kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
-        }
-
-        public struct GridOffsets : BufferOffsets{
-            public int indexCounter;
-            public int indexStart;
-            public int vertexStart;
-            private int offsetStart; private int offsetEnd;
-            public int bufferStart{get{return offsetStart;}} public int bufferEnd{get{return offsetEnd;}}
-            public GridOffsets(int3 GridSize, int bufferStart, int indexStride, int vertexStride){
-                int numPoints = GridSize.x * GridSize.y * GridSize.z;
-                int GridPlaneCount = (GridSize.x * (GridSize.y-1) * (GridSize.z-1) +
-                        (GridSize.x-1) * GridSize.y * (GridSize.z-1) +
-                        (GridSize.x-1) * (GridSize.y-1) * GridSize.z);
-
-                this.offsetStart = bufferStart;
-                this.indexCounter = bufferStart;
-
-                this.indexStart = Mathf.CeilToInt((float)(indexCounter+1) / indexStride);
-                int indexEnd = indexStart * indexStride + GridPlaneCount * indexStride;
-
-                this.vertexStart = Mathf.CeilToInt((float)indexEnd / vertexStride);
-                int vertexEnd = vertexStart * vertexStride + numPoints * vertexStride;
-
-                this.offsetEnd = vertexEnd;
+        public bool this[int index]{
+            get{
+                if(index >= SelectionData.Length * 32) throw new ArgumentOutOfRangeException(nameof(index));
+                return (SelectionData[index / 32] & (1 << (index % 32))) != 0;
+            }
+            set{
+                if(index >= SelectionData.Length * 32) throw new ArgumentOutOfRangeException(nameof(index));
+                if(value) SelectionData[index / 32] |= (uint)(1 << (index % 32));
+                else SelectionData[index / 32] &= ~(uint)(1 << (index % 32));
             }
         }
     }
 
-#endif
+    public struct GridOffsets : BufferOffsets{
+        public int indexCounter;
+        public int indexStart;
+        public int vertexStart;
+        private int offsetStart; private int offsetEnd;
+        public int bufferStart{get{return offsetStart;}} public int bufferEnd{get{return offsetEnd;}}
+        public GridOffsets(int3 GridSize, int bufferStart, int indexStride, int vertexStride){
+            int numPoints = GridSize.x * GridSize.y * GridSize.z;
+            int GridPlaneCount = (GridSize.x * (GridSize.y-1) * (GridSize.z-1) +
+                    (GridSize.x-1) * GridSize.y * (GridSize.z-1) +
+                    (GridSize.x-1) * (GridSize.y-1) * GridSize.z);
+
+            this.offsetStart = bufferStart;
+            this.indexCounter = bufferStart;
+
+            this.indexStart = Mathf.CeilToInt((float)(indexCounter+1) / indexStride);
+            int indexEnd = indexStart * indexStride + GridPlaneCount * indexStride;
+
+            this.vertexStart = Mathf.CeilToInt((float)indexEnd / vertexStride);
+            int vertexEnd = vertexStart * vertexStride + numPoints * vertexStride;
+
+            this.offsetEnd = vertexEnd;
+        }
+    }
 }

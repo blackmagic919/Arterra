@@ -33,13 +33,13 @@ public static class UtilityBuffers
         indirectArgs = new ComputeBuffer(3, sizeof(int), ComputeBufferType.IndirectArguments);
         appendCount = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
         int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-        int maxPoints = (mapChunkSize+1) * (mapChunkSize+1) * (mapChunkSize+1);
+        int maxPoints = (mapChunkSize+2) * (mapChunkSize+2) * (mapChunkSize+2);
 
         DrawArgs = new LogicalBlockBuffer(GraphicsBuffer.Target.IndirectArguments, _MaxArgsCount+1, sizeof(uint) * ARGS_STRIDE_4BYTES);
         //This buffer will contain all temporary data during generation
         GenerationBuffer = new ComputeBuffer(GEN_BYTE_SIZE/4, 4, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
         //This buffer will be slower but will be written to a lot by CPU
-        TransferBuffer = new ComputeBuffer(maxPoints, 4, ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
+        TransferBuffer = new ComputeBuffer(maxPoints * 2, 4, ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
 
         indirectCopy = Resources.Load<ComputeShader>("Compute/Utility/Copy");
         indirectCountToArgs = Resources.Load<ComputeShader>("Compute/Utility/CountToArgs");

@@ -35,8 +35,10 @@ uint ReadMapData(int3 coord){
 //c must be 0 < c < 1
 float triLerp(float x, float c) {return min(saturate(x / c), saturate((1.0 - x) / (1.0 - c))); }
 Corner SampleStateInfo(uint mapData){
-    float density = (mapData & 0xFF) / 255.0f;
-    float viscosity = ((mapData >> 8) & 0xFF) / 255.0f;
+    //.9 because we want 128 to map as close to the edge as possible
+    //but we want the vertex coord to not be on the boundary so lighting can identify the box easily.
+    float density = (mapData & 0xFF) / 255.9f;
+    float viscosity = ((mapData >> 8) & 0xFF) / 255.9f;
     Corner o;
 
     o.material = ((mapData >> 16) & 0x7FFF);

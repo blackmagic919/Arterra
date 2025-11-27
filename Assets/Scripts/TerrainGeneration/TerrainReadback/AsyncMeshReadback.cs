@@ -134,7 +134,7 @@ public class AsyncMeshReadback
         //Thus to indicate that they aren't being handled, initialize persistant buffers here
         RenderParams rp = GetRenderParams((int)geoHeapMemoryAddress, (int)this.vertexHandle.addressIndex, matIndex);
         triHandles[matIndex] = new GeometryHandle(rp, GenerationPreset.memoryHandle, geoHeapMemoryAddress, drawArgsAddress, matIndex);
-        MainLateUpdateTasks.Enqueue(triHandles[matIndex]);
+        MainLateUpdateTasks?.Enqueue(triHandles[matIndex]);
     }
     
     /// <summary> Offloads(copies) triangles(index buffer) to long term GPU storage. Unlike
@@ -181,7 +181,7 @@ public class AsyncMeshReadback
         
         triHandles[matIndex].argsAddress = drawArgsAddress;
         triHandles[matIndex].rp = rp;
-        MainLateUpdateTasks.Enqueue(triHandles[matIndex]);
+        MainLateUpdateTasks?.Enqueue(triHandles[matIndex]);
     }
 
     /// <summary> Creates a request to readback all geometry referenced by <see cref="GeometryHandle"/>s of the chunk's instance
@@ -410,7 +410,15 @@ public class GeometryHandle : IUpdateSubscriber
 
             //Offset in bytes = address * 4 args per address * 4 bytes per arg
             Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.DrawArgs.Get(), 1, (int)argsAddress);
-    }
+        }
+
+        public void Render(CommandBuffer cmd) {
+            if (!active)
+                return;
+
+            //Offset in bytes = address * 4 args per address * 4 bytes per arg
+            Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.DrawArgs.Get(), 1, (int)argsAddress);
+        }
 }
 
 /// <summary> Interface for formats of vertices that are read back from the GPU. If a vertex format, the 

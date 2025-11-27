@@ -16,10 +16,15 @@ namespace TerrainGeneration{
 /// context switches within the game. Any new systems should
 /// be added to this protocol with awareness of its dependencies. </summary>
 public static class SystemProtocol{
+    private static SystemState state = SystemState.Inactive;
     /// <summary> Performs the proper startup protocol when the <b>world</b> is initialized
     /// (this excludes when the main menu is displayed). This is a static factory protocol and only 
     /// changes when modifying the system's functionality through its source code. </summary>
     public static void Startup(){
+        if (state == SystemState.Active) return;
+        if (state != SystemState.Inactive) Shutdown();
+        state = SystemState.Active;
+
         IRegister.Setup(Config.CURRENT);
         UtilityBuffers.Initialize();
         GenerationPreset.Initialize();
@@ -47,13 +52,43 @@ public static class SystemProtocol{
         SubChunkShaderGraph.PresetData();
         RegionReconstructor.PresetData();
         SpriteExtruder.PresetData();
+
         Readback.AsyncMeshReadback.PresetData();
     }
 
-    /// <summary> Performs the proper shutdown protocol when the <b>world</b> is closed
-    /// (this excludes when the main menu is displayed). This is a static factory protocol and 
+    /// <summary>  Sets up the minimal amount of information to operate and use
+    /// limited systems without initializing the full capabilities of the game </summary>
+    public static void MinimalStartup() {
+        if (state == SystemState.Limited) return;
+        if (state != SystemState.Inactive) Shutdown();
+        state = SystemState.Limited;
+
+        IRegister.Setup(Config.CURRENT);
+        UtilityBuffers.Initialize();
+        GenerationPreset.MinimalInitialize();
+        MapStorage.Chunk.MinimalInitialze();
+    }
+
+    /// <summary> Performs the proper shutdown protocol depending on what system state the game is in
+    /// returning the system to a clean uninitialized state. This is a static factory protocol and 
     /// only changes when modifying the system's functionality through its source code. </summary>
-    public static void Shutdown(){
+    public static void Shutdown() {
+        switch(state) {
+            case SystemState.Active:
+                ShutdownAll();
+                break;      
+            case SystemState.Limited:
+                ShutdownMinimal();
+                break;
+            default:
+                Debug.Log("System not active");
+                break;
+        }
+
+        state = SystemState.Inactive;
+    }
+
+    private static void ShutdownAll(){
         UtilityBuffers.Release();
         MapStorage.GPUMapManager.Release();
         MapStorage.CPUMapManager.Release();
@@ -64,6 +99,17 @@ public static class SystemProtocol{
         AtmospherePass.Release();
         Readback.AsyncMeshReadback.Release();
         PlayerHandler.Release();
+    }
+
+    private static void ShutdownMinimal() {
+        GenerationPreset.MinimalRelease();
+        UtilityBuffers.Release();
+    }
+
+    private enum SystemState {
+        Inactive,
+        Active,
+        Limited,
     }
 }
 
@@ -85,15 +131,12 @@ public static class GenerationPreset
     public static EntityHandle entityHandle;
     /// <summary> Holds a reference to a long-term storage GPU buffer used in the terrain generation process. <seealso cref="MemoryHandle"/> </summary>
     public static WorldConfig.Quality.MemoryOccupancyBalancer memoryHandle;
-    /// <summary> Whether or not the GenerationPreset has been <see cref="Initialize"/>d. If not, generation will be unable to occur </summary>
-    public static bool active;
 
     /// <summary>
     /// Initializes the GenerationPreset. Must be called before any generation is done.
     /// This process loads all necessary information from the settings and copies it to the GPU.
     /// </summary>
     public static void Initialize(){
-        active = true;
         materialHandle.Initialize();
         noiseHandle.Initialize();
         biomeHandle.Initialize();
@@ -103,13 +146,25 @@ public static class GenerationPreset
     }
 
     /// <summary>
+    /// Initializes the minimum amount of resources to 
+    /// display materials and process compute geometry in the same way 
+    /// </summary>
+    public static void MinimalInitialize() {
+        materialHandle.Initialize();
+    }
+
+    /// <summary> Releases the minimum amount of resources to display
+    /// materials and process compute geometry in the same way </summary>
+    public static void MinimalRelease() {
+        materialHandle.Release();
+        memoryHandle?.Release();
+    }
+
+    /// <summary>
     /// Releases all generation information that has been allocated on the GPU and 
     /// elsewhere. Call this method before the program exits to prevent memory leaks.
     /// </summary>
     public static void Release(){
-        if(!active) return;
-        active = false;
-
         materialHandle.Release();
         noiseHandle.Release();
         biomeHandle.Release();

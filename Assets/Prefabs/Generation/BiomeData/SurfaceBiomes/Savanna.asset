@@ -86,7 +86,7 @@ MonoBehaviour:
             ChancePerCoord: 0.0002
         - value:
             Entity: 8
-            ChancePerCoord: 0.0004
+            ChancePerCoord: 0.0006
         - value:
             Entity: 10
             ChancePerCoord: 0.00015

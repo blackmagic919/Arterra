@@ -151,6 +151,25 @@ namespace Utils {
         static int[] zThetaRot = new int[] { 2, 0, 2, 0 };
         static int[] zThetaDir = new int[] { 1, 1, -1, -1 };
 
+        public static T[] RescaleLinearMap<T>(T[] map, int3 cSize, int3 deltaScale, int3 deltShift) {
+            int3 nSize = math.max(cSize + deltaScale, 0);
+            T[] nChunk = new T[nSize.x * nSize.y * nSize.z];
+            int3 backShift = -math.min(deltShift, 0); int3 forwardShift = math.max(deltShift, 0);
+            int3 minGrid = math.max(math.min(nSize - backShift, cSize - forwardShift), 0);
+
+            int3 point; 
+            for(point.x = 0; point.x < minGrid.x; point.x++){
+                for(point.y = 0; point.y < minGrid.y; point.y++){
+                    for(point.z = 0; point.z < minGrid.z; point.z++) {
+                        int rIndex = CustomUtility.irregularIndexFromCoord(point + backShift, new int2(cSize.yz));
+                        int wIndex = CustomUtility.irregularIndexFromCoord(point + forwardShift, new int2(nSize.yz));
+                        nChunk[wIndex] = map[rIndex];
+                    }
+                }
+            }
+            return nChunk;
+        }
+
         public static int irregularIndexFromCoord(int x, int y, int z, int sizeY, int sizeZ) {
             return x * sizeY * sizeZ + y * sizeZ + z;
         }

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0e494cbf4ba0e4a8391e9407a840c4e4, type: 3}
   m_Name: BalancedMemory
   m_EditorClassIdentifier: 
-  StorageSize: 187500000
+  StorageSize: 375000000
   HeapSize: 50000
   AddressSize: 50000
   InitBlockCount: 5

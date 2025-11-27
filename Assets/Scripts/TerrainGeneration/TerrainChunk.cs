@@ -313,7 +313,7 @@ namespace TerrainGeneration{
 #if UNITY_EDITOR
                 UnityEngine.Object.DestroyImmediate(meshFilter.sharedMesh);
 #else
-            UnityEngine.Object.Destroy(meshFilter.sharedMesh);
+                UnityEngine.Object.Destroy(meshFilter.sharedMesh);
 #endif
             }
             meshFilter.sharedMesh = null;

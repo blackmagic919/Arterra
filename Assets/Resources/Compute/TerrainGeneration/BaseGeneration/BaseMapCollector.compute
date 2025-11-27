@@ -72,9 +72,10 @@ bool ReadRealMap(int3 sCoord, out uint info){
     else if(any(sCoord == 0)){ 
         sCCoord += clamp(sCoord-1, -1, 0);
         CInfo adjHandle = _AddressDict[HashCoord(sCCoord)];
-        if(!Contains( adjHandle, sCCoord)) return false;
+        if(!Contains(adjHandle, sCCoord)) return false;
     } 
 
+    if (skipInc > chunkSkip) return false;
     sCoord /= skipInc;
     sCoord.x += (cHandle.offset >> 24) & 0xFF;
     sCoord.y += (cHandle.offset >> 16) & 0xFF;

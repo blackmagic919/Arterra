@@ -110,7 +110,7 @@ public class Creator
         ComputeBuffer blockSource = GenerationPreset.memoryHandle.GetBlockBuffer(StructureDataIndex);
         ComputeBuffer structCount = Generator.GetStructCount(blockSource, GenerationPreset.memoryHandle.Address, (int)StructureDataIndex, STRUCTURE_STRIDE_WORD);
         Generator.ApplyStructures(blockSource, GenerationPreset.memoryHandle.Address, structCount, 
-                        (int)StructureDataIndex, mapStart, chunkSize, skipInc, wOffset, wChunkSize, IsoLevel);
+                (int)StructureDataIndex, mapStart, chunkSize, skipInc, wOffset, wChunkSize, IsoLevel);
 
         return;
     }

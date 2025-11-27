@@ -12,7 +12,7 @@ Shader "Unlit/ModelTerrain"
         Pass
         {
             Name "TerrainLit"
-            Tags{"LightMode" = "UniversalForward"}
+            Tags{"LightMode" = "UniversalForward" }
 
             Cull Back
 
@@ -105,7 +105,7 @@ Shader "Unlit/ModelTerrain"
             }
 
 
-            float3 frag (v2f IN) : SV_Target
+            float4 frag (v2f IN) : SV_Target
             {
                 float3 blendAxes = abs(IN.normalWS);
                 blendAxes /= blendAxes.x + blendAxes.y + blendAxes.z;
@@ -122,7 +122,7 @@ Shader "Unlit/ModelTerrain"
                 SurfaceData surfaceInput = (SurfaceData)0;
                 surfaceInput.albedo = triplanar(IN.positionWS, data.baseTextureScale, blendAxes, data.textureIndex);
 
-                return UniversalFragmentPBR(lightingInput, surfaceInput).rgb;
+                return float4(UniversalFragmentPBR(lightingInput, surfaceInput).rgb, 1);
             }
             ENDHLSL
         }

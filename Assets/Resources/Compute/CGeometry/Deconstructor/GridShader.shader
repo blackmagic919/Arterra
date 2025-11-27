@@ -2,7 +2,7 @@ Shader "Unlit/GridShader"
 {
     Properties
     {
-        _WireframeWidth("Wireframe width threshold", float) = 0.005
+        _WireframeWidth("WireframeWidth", float) = 0.01
         _WireframeColor("Wireframe front colour", Color) = (0.5, 0.5, 0.5, 1.0)
         _VertexColor("Vertex color", Color) = (1.0, 1.0, 1.0, 1.0)
         _SelectedColor("Selected color", Color) = (1.0, 0.5, 0.3, 1.0)

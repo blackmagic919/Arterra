@@ -140,7 +140,7 @@ namespace MapStorage {
         ) {
             int chunkHash = HashCoord(CCoord);
             ChunkMapInfo prevChunk = AddressDict[chunkHash];
-            ChunkMapInfo newChunk = new ChunkMapInfo(CCoord);
+            ChunkMapInfo newChunk = new (CCoord);
 
             //Release Previous Chunk
             if (prevChunk.valid) SaveChunk(chunkHash);
@@ -708,10 +708,10 @@ namespace MapStorage {
         /// <param name="onReadback"> A callback that will be triggered when the map is fully readback </param>
         public static void BeginMapReadback(int3 CCoord, Action onReadback = null) { //Need a wrapper class to maintain reference to the native array
             int GPUChunkHash = GPUMapManager.HashCoord(CCoord);
+            int CPUChunkHash = HashCoord(CCoord);
 
             void OnReadbackComplete() {
                 if (!initialized) return;
-                int CPUChunkHash = HashCoord(CCoord);
                 if (math.any(CCoord != AddressDict[CPUChunkHash].CCoord))
                     return;
                 ActivateChunk(CPUChunkHash);
@@ -720,7 +720,6 @@ namespace MapStorage {
 
             unsafe void onChunkAddressRecieved(AsyncGPUReadbackRequest request) {
                 if (!initialized) return;
-                int CPUChunkHash = HashCoord(CCoord);
                 uint2 memHandle = request.GetData<uint2>()[0];
                 ChunkMapInfo destChunk = AddressDict[CPUChunkHash];
                 if (math.any(CCoord != destChunk.CCoord))

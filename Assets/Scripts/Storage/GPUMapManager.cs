@@ -62,8 +62,9 @@ namespace MapStorage{
             //This isn't an mathematical upper limit because we're not accounting for light map size and temporary 
             //duplication but in practice, GetDepthOfDistance and GetMaxNodes always overestimate.
             int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
+            int mapSize = numPoints + LightBaker.GetLightMapLength();
             int depth = OctreeTerrain.BalancedOctree.GetDepthOfDistance(numChunksRadius, rSettings.Balance, (uint)rSettings.MinChunkRadius);
-            int memSize = (numPoints + LightBaker.GetLightMapLength()) * OctreeTerrain.BalancedOctree.GetMaxNodes(depth, rSettings.Balance, rSettings.MinChunkRadius);
+            int memSize = (int)math.min(mapSize * OctreeTerrain.BalancedOctree.GetMaxNodes(depth, rSettings.Balance, rSettings.MinChunkRadius) * 1.5f, SystemInfo.maxGraphicsBufferSize);
             Memory settings = ScriptableObject.CreateInstance<Memory>();
             settings.StorageSize = memSize;
             memorySpace = new MemoryBufferHandler(settings);
@@ -160,7 +161,7 @@ namespace MapStorage{
         //Origin Chunk Coord, Viewer Chunk Coord(where the map is centered), depth
         private static void RegisterChunk(int3 oCCoord, int depth, uint handleAddress) {
             int3 eCCoord = oCCoord + (1 << depth); int3 cOff = oCCoord;
-            int3 vCCoord = TerrainGeneration.OctreeTerrain.ViewPosCS;
+            int3 vCCoord = OctreeTerrain.ViewPosCS;
             oCCoord = math.clamp(oCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
             eCCoord = math.clamp(eCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
             cOff = oCCoord - cOff;
@@ -315,7 +316,6 @@ namespace MapStorage{
             int offset = ((offC.x * chunkInc & 0xFF) << 24) | ((offC.y * chunkInc & 0xFF) << 16) | ((offC.z * chunkInc & 0xFF) << 8) | (skipInc & 0xFF);
             dictReplaceKey.SetInt("chunkInc", chunkInc);
             dictReplaceKey.SetInt("bOffset", offset);
-
             SetCCoordHash(dictReplaceKey);
 
             dictReplaceKey.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);

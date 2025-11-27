@@ -38,6 +38,7 @@ public class Readback: ScriptableObject
         }
     }
 
+
     /// <summary> Releases all variant materials created in <see cref="indirectTerrainMats"/> </summary>
     public void Release(){
         for(int i = 0; i < indirectTerrainMats.Length; i++){

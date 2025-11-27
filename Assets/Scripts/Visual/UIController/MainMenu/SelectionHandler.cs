@@ -3,19 +3,24 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using static MapStorage.World;
+using Unity.Mathematics;
+
 
 public class SelectionHandler : MonoBehaviour
 {
     private static Animator sAnimator;
     private static RectTransform infoContent;
+    private static Sprite DefaultChunkIcon;
     private static bool active = false;
 
     private void OnEnable() { 
         sAnimator = this.gameObject.GetComponent<Animator>(); 
         infoContent = this.gameObject.transform.GetChild(0).GetChild(0).GetComponent<ScrollRect>().content.GetComponent<RectTransform>();
+        DefaultChunkIcon = Resources.Load<Sprite>("Prefabs/DefaultChunk");
         MapStorage.World.Activate();
         active = false;
     }
+
 
     private static void InitializeDisplay(){
         ReleaseSelectionInfo();
@@ -75,16 +80,29 @@ public class SelectionHandler : MonoBehaviour
         RectTransform transform = newSelection.GetComponent<RectTransform>();
 
         Button info = newSelection.GetComponent<Button>();
-        info.GetComponentInChildren<TextMeshProUGUI>().text = meta.Name;
+        transform.Find("Name").GetComponent<TextMeshProUGUI>().text = meta.Name;
+
+        string timeElapsed = Utils.TimeUtility.ToTimeAgo(meta.LastAccessTime);
+        transform.Find("AccessTime").GetComponent<TextMeshProUGUI>().text = timeElapsed;
+
+        string creationTime = meta.CreationTime.ToString("dd/MM/yyyy HH:mm");
+        transform.Find("CreationTime").GetComponent<TextMeshProUGUI>().text = creationTime;
+
+        string iconPath = meta.Path + DisplayChunkPath;
+        Sprite chunkIcon = Utils.SaveTextureToFileUtility.LoadImageToSprite(iconPath);
+        if (chunkIcon == null) chunkIcon = DefaultChunkIcon;
+        transform.Find("ChunkDIsplay").GetComponent<Image>().sprite = chunkIcon;
 
         newSelection.GetComponent<Button>().onClick.AddListener(() => { 
             if(!active) return;
             SelectWorld(meta);
-            Deactivate(() => {OptionsHandler.Activate(); MenuHandler.Activate();});
+            Deactivate(() => {
+                OptionsHandler.Activate();
+                MenuHandler.Activate();
+            });
         });
         
         return newSelection;
     }
-
 
 }

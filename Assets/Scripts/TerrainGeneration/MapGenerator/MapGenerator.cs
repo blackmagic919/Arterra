@@ -232,6 +232,13 @@ public static class Generator
         meshInfoCollector.SetInt("bSTART_map", bufferOffsets.mapStart);
     }
 
+    public static void MinimalInitialize() {
+        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+        //Set Marching Cubes Data
+        int numPointsAxes = rSettings.mapChunkSize;
+        bufferOffsets = new GeoGenOffsets(new int3(numPointsAxes, numPointsAxes, numPointsAxes), rSettings.Balance, 0);
+    }
+
     /// <summary> See <see cref="Creator.GenerateBaseChunk(float3, uint, int, int, float)"/> for info. </summary>
     public static void GenerateBaseData( Vector3 offset, uint surfaceData, int numPointsPerAxis, int mapSkip, float IsoLevel)
     {

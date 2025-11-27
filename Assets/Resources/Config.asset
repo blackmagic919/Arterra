@@ -100,9 +100,9 @@ MonoBehaviour:
         - {fileID: 11400000, guid: d6b9381607c524d0e8e9440fc45d6e5b, type: 2}
         - {fileID: 11400000, guid: 066474d0a2bfa4600b725f5c258b274f, type: 2}
         - {fileID: 11400000, guid: 6184bc7460e7546b5bb18fb637f90ae3, type: 2}
-        - {fileID: 11400000, guid: e68ac1fe7c1ed457aaa6d8366ba45d02, type: 2}
+        - {fileID: 0}
         - {fileID: 11400000, guid: e510129eb310547729dc9e65baaed7f6, type: 2}
-        - {fileID: 11400000, guid: 64be78c6fca3c4ffca64a3e4f02f2064, type: 2}
+        - {fileID: 0}
         - {fileID: 11400000, guid: 2ff1b4dd3fb8342c29a3500c0a9944e6, type: 2}
         - {fileID: 11400000, guid: 34e92fbde564348c48f9702ca5afa1aa, type: 2}
         - {fileID: 11400000, guid: f941424c55e9c4cfca7d3e14bb831647, type: 2}
@@ -203,8 +203,8 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 3d71fe07011174c1785826fa9f3d714f, type: 2}
         - {fileID: 11400000, guid: b80c108dde46b41949cd486b7edeb317, type: 2}
         - {fileID: 11400000, guid: 69d58d1a3c5f14ab692640dfb82abd01, type: 2}
-        - {fileID: 11400000, guid: cd4bfd619d41f4ceca829b932764a6a6, type: 2}
-        - {fileID: 11400000, guid: 783976ba8203b4188a54e9209c09172d, type: 2}
+        - {fileID: 0}
+        - {fileID: 0}
         - {fileID: 11400000, guid: 73001539c33014947a293c5edd16ed39, type: 2}
         - {fileID: 11400000, guid: 91530edb18f76454c8a7880040b63ec9, type: 2}
         - {fileID: 11400000, guid: 8fcf55872e42b4ea1a946c5baf41d6e6, type: 2}
@@ -517,5 +517,17 @@ MonoBehaviour:
           RandomUpdatesPerChunk: 250
           MaximumTickUpdates: 5000
           UpdateTickDelay: 4
+      WorldApperance:
+        value:
+          DisplayedChunk:
+            x: 0
+            y: 0
+            z: 0
+          RotateSpeed:
+            x: 0
+            y: 10
+            z: 0
+          GridScale: 0.1
+          GridThickness: 2.5
       ReadBack:
         value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}

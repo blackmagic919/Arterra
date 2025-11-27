@@ -45,7 +45,9 @@ public class RegionReconstructor{
         
     }
 
-    public RegionReconstructor() { regionObj = new GameObject("EditRegion"); }
+    public RegionReconstructor() { 
+        regionObj = new GameObject("EditRegion"); 
+    }
 
     public void Release() {
         meshHandler?.ReleaseAllGeometry();
@@ -58,12 +60,13 @@ public class RegionReconstructor{
         uint[] flags = ApplyModificationToMap(change, map, GCoord, rot, cMax, cMin);
         UtilityBuffers.TransferBuffer.SetData(map, 0, bufferOffsets.regionMapStart, map.Length);
         UtilityBuffers.TransferBuffer.SetData(flags, 0, bufferOffsets.mapFlagStart, flags.Length);
-
+        
         WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
-        GenerateRegionMesh(cAxis, rSettings.IsoLevel);
-        meshHandler?.ReleaseAllGeometry();
         regionObj.transform.localScale = Vector3.one * rSettings.lerpScale;
         regionObj.transform.position = CPUMapManager.GSToWS(cMin);
+        
+        GenerateRegionMesh(cAxis, rSettings.IsoLevel);
+        meshHandler?.ReleaseAllGeometry();
         Bounds boundsOS = new((float3)cAxis / 2.0f, (float3)cAxis);
         meshHandler = new AsyncMeshReadback(regionObj.transform, boundsOS);
         var wOffsets = TerrainGeneration.Map.Generator.bufferOffsets;
@@ -73,6 +76,32 @@ public class RegionReconstructor{
         meshHandler.CreateRenderParamsForMaterial(wOffsets.baseTriCounter, (int)ReadbackMaterial.terrain, EditTerrainMat);
         meshHandler.CreateRenderParamsForMaterial(wOffsets.waterTriCounter, (int)ReadbackMaterial.water, EditLiquidMat);
     }
+
+    public void ReflectChunk(MapData[] map, int3 cSize, int3 GCoord) {
+        map = CustomUtility.RescaleLinearMap(map, cSize, 2, 1); //Rescale so edges are gas
+        cSize += 2;
+        
+        UtilityBuffers.TransferBuffer.SetData(map, 0, bufferOffsets.regionMapStart, map.Length);
+        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+        GenerateRegionMesh(cSize, rSettings.IsoLevel);
+        meshHandler?.ReleaseAllGeometry();
+
+        regionObj.transform.localScale = Vector3.one * rSettings.lerpScale;
+        regionObj.transform.position = CPUMapManager.GSToWS(GCoord);
+        
+        Bounds boundsOS = new((float3)cSize / 2.0f, (float3)cSize);
+        meshHandler = new AsyncMeshReadback(regionObj.transform, boundsOS);
+        var wOffsets = TerrainGeneration.Map.Generator.bufferOffsets;
+        meshHandler.OffloadVerticesToGPU(wOffsets.vertexCounter);
+        meshHandler.OffloadTrisToGPU(wOffsets.baseTriCounter, wOffsets.baseTriStart, (int)ReadbackMaterial.terrain);
+        meshHandler.OffloadTrisToGPU(wOffsets.waterTriCounter, wOffsets.waterTriStart, (int)ReadbackMaterial.water);
+    }
+
+    public void BeginMeshReadback(Action<ReadbackTask<TVert>.SharedMeshInfo> cb) {
+        if (meshHandler == null) return;
+        meshHandler.BeginMeshReadback(cb);
+    }
+
     private static (int3, int3) FindModificationMinMax(List<ConditionedGrowthMat.MapSamplePoint> change, int3 GCoord, int3 rot) {
         int3 min = int3.zero; int3 max = int3.zero;
         foreach (ConditionedGrowthMat.MapSamplePoint pt in change) {
