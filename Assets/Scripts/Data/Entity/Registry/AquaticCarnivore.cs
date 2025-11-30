@@ -191,19 +191,19 @@ public class AquaticCarnivore : Authoring
         }
 
         //Always detect unless already running from predator
-        private unsafe void DetectPredator() {
+        private void DetectPredator() {
             if (!settings.Recognition.FindClosestPredator(this,
                 genetics.Get(settings.Recognition.SightDistance), out Entity predator
             )) { return; }
 
             int PathDist = settings.Recognition.FleeDistance;
             float3 rayDir = position - predator.position;
-            byte* path = PathFinder.FindPathAlongRay(GCoord, ref rayDir, PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
+            byte[] path = PathFinder.FindPathAlongRay(GCoord, ref rayDir, PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
             TaskIndex = 14;
         }
 
-        private unsafe bool IsSurfacing() {
+        private bool IsSurfacing() {
             if (vitality.breath > 0) return false; //In air
             if (genetics.Get(settings.aquatic.SurfaceThreshold) == 0) return false; //Doesn't drown
             if (-vitality.breath > genetics.Get(settings.aquatic.SurfaceThreshold)
@@ -224,11 +224,11 @@ public class AquaticCarnivore : Authoring
         }
 
         // Task 1
-        private static unsafe void RandomPath(Animal self) {
+        private static void RandomPath(Animal self) {
             int PathDist = self.settings.movement.pathDistance;
             int3 dP = new(self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist));
             if (PathFinder.VerifyProfile(self.GCoord + dP, self.settings.profile, EntityJob.cxt)) {
-                byte* path = PathFinder.FindPath(self.GCoord, dP, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                byte[] path = PathFinder.FindPath(self.GCoord, dP, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
                 self.TaskIndex = 2;
             }
@@ -236,7 +236,7 @@ public class AquaticCarnivore : Authoring
 
 
         //Task 2
-        private static unsafe void FollowPath(Animal self) {
+        private static void FollowPath(Animal self) {
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration, true);
@@ -246,7 +246,7 @@ public class AquaticCarnivore : Authoring
         }
 
         //Task 3
-        private static unsafe void FindPrey(Animal self) {
+        private static void FindPrey(Animal self) {
             //Use mate threshold not hunt because the entity may lose the target while eating
             if (self.vitality.StopHunting() ||
                 !self.settings.Recognition.FindPreferredPrey(self, self.genetics.Get(
@@ -258,7 +258,7 @@ public class AquaticCarnivore : Authoring
 
             int PathDist = self.settings.movement.pathDistance;
             int3 destination = (int3)math.round(prey.origin) - self.GCoord;
-            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+            byte[] path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 4;
 
@@ -271,7 +271,7 @@ public class AquaticCarnivore : Authoring
         }
 
         //Task 4
-        private static unsafe void ChasePrey(Animal self) {
+        private static void ChasePrey(Animal self) {
             if (!self.settings.Recognition.FindPreferredPrey(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity prey)
             ) {
@@ -321,7 +321,7 @@ public class AquaticCarnivore : Authoring
             } else self.vitality.Attack(prey, self);
         }
         //Task 6
-        private static unsafe void FindMate(Animal self) {
+        private static void FindMate(Animal self) {
             if (self.vitality.StopMating()
                 || !self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
@@ -331,13 +331,13 @@ public class AquaticCarnivore : Authoring
             }
             int PathDist = self.settings.movement.pathDistance;
             int3 destination = (int3)math.round(mate.origin) - self.GCoord;
-            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+            byte[] path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 7;
         }
 
         //Task 7 
-        private static unsafe void ChaseMate(Animal self) {//I feel you man
+        private static void ChaseMate(Animal self) {//I feel you man
             if (!self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
             ) {
@@ -381,12 +381,12 @@ public class AquaticCarnivore : Authoring
         }
 
         //Task 9 swim up
-        private static unsafe void SwimUp(Animal self) {
+        private static void SwimUp(Animal self) {
             float swimIntensity = self.genetics.Get(self.settings.aquatic.DrownTime)
                 * self.genetics.Get(self.settings.aquatic.SurfaceThreshold) / math.min(-self.vitality.breath, -0.001f);
 
             float3 swimDir = Normalize(self.RandomDirection() + math.up() * math.max(0, swimIntensity));
-            byte* path = PathFinder.FindMatchAlongRay(self.GCoord, in swimDir,
+            byte[] path = PathFinder.FindMatchAlongRay(self.GCoord, in swimDir,
                 self.settings.movement.pathDistance + 1, self.settings.profile,
                 self.settings.aquatic.SurfaceProfile, EntityJob.cxt, out int pLen, out bool _);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
@@ -394,7 +394,7 @@ public class AquaticCarnivore : Authoring
         }
 
         //Task 10 follow swim up path
-        private static unsafe void Surface(Animal self) {
+        private static void Surface(Animal self) {
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration, true);
@@ -408,7 +408,7 @@ public class AquaticCarnivore : Authoring
         }
 
         //Task 11
-        private static unsafe void RunFromTarget(Animal self) {
+        private static void RunFromTarget(Animal self) {
             if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
                 self.TaskTarget = Guid.Empty;
             else if (Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
@@ -421,7 +421,7 @@ public class AquaticCarnivore : Authoring
             if (!self.pathFinder.hasPath) {
                 int PathDist = self.settings.Recognition.FleeDistance;
                 float3 rayDir = self.position - target.position;
-                byte* path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                byte[] path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             }
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
@@ -430,7 +430,7 @@ public class AquaticCarnivore : Authoring
         }
 
         //Task 12
-        private static unsafe void ChaseTarget(Animal self) {
+        private static void ChaseTarget(Animal self) {
             if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
                 self.TaskTarget = Guid.Empty;
             else if (Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
@@ -443,7 +443,7 @@ public class AquaticCarnivore : Authoring
             if (!self.pathFinder.hasPath) {
                 int PathDist = self.settings.movement.pathDistance;
                 int3 destination = (int3)math.round(target.origin) - self.GCoord;
-                byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                byte[] path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             }
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, target.origin,
@@ -483,7 +483,7 @@ public class AquaticCarnivore : Authoring
 
 
         //Task 14
-        private static unsafe void RunFromPredator(Animal self) {
+        private static void RunFromPredator(Animal self) {
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration, true);

@@ -31,7 +31,7 @@ public static class EntityManager
         HandlerEvents.Enqueue(action);
     }
 
-    public unsafe static bool TryGetEntity(Guid entityId, out Entity entity){
+    public static bool TryGetEntity(Guid entityId, out Entity entity){
         entity = null;
         if(!EntityIndex.ContainsKey(entityId)) {
             return false;
@@ -41,7 +41,7 @@ public static class EntityManager
         return true;
     }
 
-    public unsafe static Entity GetEntity(int entityIndex){
+    public static Entity GetEntity(int entityIndex){
         return EntityHandler[entityIndex];
     }
     
@@ -72,7 +72,7 @@ public static class EntityManager
         cb?.Invoke();
     });
 
-    public static unsafe void ReleaseChunkEntities(int3 CCoord, bool await = false) {
+    public static void ReleaseChunkEntities(int3 CCoord, bool await = false) {
         int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         CPUMapManager.ChunkMapInfo mapInfo = CPUMapManager.AddressDict[CPUMapManager.HashCoord(CCoord)];
         if (!mapInfo.valid) return;
@@ -90,7 +90,7 @@ public static class EntityManager
         Task awaitableTask = Task.Run(() => Chunk.SaveEntitiesToJsonAsync(Entities, mapInfo.CCoord));
         if (await) awaitableTask.Wait();
     }
-    public unsafe static void ReleaseE(Guid entityId){
+    public static void ReleaseE(Guid entityId){
         if(!EntityIndex.ContainsKey(entityId)) {
             return;
         }
@@ -109,7 +109,7 @@ public static class EntityManager
         }
         EntityHandler.RemoveAt(EntityHandler.Count - 1);
     }
-    public unsafe static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
+    public static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
         nEntity.info.entityId = Guid.NewGuid();
         nEntity.info.entityType = entityIndex;
@@ -121,7 +121,7 @@ public static class EntityManager
         ESTree.Insert(nEntity);
     }
 
-    public unsafe static void DeserializeE(Entity sEntity){
+    public static void DeserializeE(Entity sEntity){
         var reg = Config.CURRENT.Generation.Entities;
         Authoring authoring = reg.Retrieve((int)sEntity.info.entityType);
         sEntity.active = true;
@@ -195,7 +195,7 @@ public static class EntityManager
         }
     }
 
-    public unsafe static void Release() {
+    public static void Release() {
         //Debug.Log(EntityHandler.Length);
         Executor.Complete();
         foreach (Entity entity in EntityHandler) {
@@ -289,7 +289,7 @@ public static class EntityManager
     }
 
     //More like a BVH, or a dynamic R-Tree
-    public unsafe struct STree{
+    public struct STree{
         public Dictionary<Guid, uint> SpatialIndex;
         public TreeNode[] tree;
         //mark as volatile so we get the latest value

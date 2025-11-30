@@ -11,7 +11,7 @@ using MapStorage;
 public unsafe struct PathFinder{
 
     [BurstCompile]
-    public unsafe static bool VerifyProfile(in int3 GCoord, in EntitySetting.ProfileInfo info, in EntityJob.Context context, bool UseExFlag = true){
+    public unsafe static bool VerifyProfile(in int3 GCoord, in ProfileInfo info, in EntityJob.Context context, bool UseExFlag = true){
         bool allC = true; bool anyC = false; bool any0 = false;
         uint3 dC = new (0);
         for(dC.x = 0; dC.x < info.bounds.x; dC.x++){
@@ -38,7 +38,7 @@ public unsafe struct PathFinder{
         public int currentInd;
         public byte[] path;
         public bool hasPath; //Resource isn't bound
-        public unsafe PathInfo(int3 currentPos, byte* path, int pathLength){
+        public unsafe PathInfo(int3 currentPos, byte[] path, int pathLength){
             this.currentPos = currentPos;
             this.currentInd = 0;
             this.stepDuration = 0;
@@ -50,15 +50,15 @@ public unsafe struct PathFinder{
                 this.path[i] = path[i];
                 destination += new int3((path[i] / 9) - 1, 
                 (path[i] / 3 % 3) - 1, (path[i] % 3) - 1);
-            } UnsafeUtility.Free(path, Allocator.Persistent);
+            } 
         }
     }
     
     public int PathMapSize;
     public int PathDistance;
     public int HeapEnd;
-    public byte* SetPtr;
-    public int4* MapPtr;
+    public byte[] SetPtr;
+    public int4[] MapPtr;
     //x = heap score, y = heap->dict ptr, z = dict->heap ptr, w = path dict
 
     private static readonly int4[] dP = new int4[24]{
@@ -89,29 +89,23 @@ public unsafe struct PathFinder{
     };
     
     public PathFinder(int PathDistance){
-        this.PathDistance = PathDistance;
+        this.PathDistance = math.max(PathDistance, 0);
         this.PathMapSize = PathDistance * 2 + 1;
         int mapLength = PathMapSize * PathMapSize * PathMapSize;
 
         //The part we actually clear
-        //We divide by 4 because Map has to be 4 byte aligned
-        int SetSize = Mathf.CeilToInt(mapLength / (8 * 16f)); 
-        int MapSize = mapLength;
-        int TotalSize = (SetSize + MapSize) * 16;
+        int SetSize = Mathf.CeilToInt(mapLength / 8.0f); 
         HeapEnd = 1;
 
-        //We make it one block so less fragment & more cache hits
-        void* ptr = UnsafeUtility.Malloc(TotalSize, 16, Allocator.TempJob);;
-        SetPtr = (byte*)ptr;
-        MapPtr = (int4*)(SetPtr + (SetSize * 16));
-        UnsafeUtility.MemClear((void*)SetPtr, SetSize * 16);
+        SetPtr = new byte[SetSize];
+        MapPtr = new int4[mapLength+1];
     }
 
-    [BurstCompile]
-    public readonly void Release(){ UnsafeUtility.Free((void*)SetPtr, Allocator.TempJob); }
+    public readonly void Release(){ 
+        //Do nothing 
+    }
     
-    [BurstCompile]
-    public unsafe void AddNode(int3 ECoord, int score, int prev){
+    public void AddNode(int3 ECoord, int score, int prev){
         int index = ECoord.x * PathMapSize * PathMapSize + ECoord.y * PathMapSize + ECoord.z;
         int heapPos = HeapEnd;
 
@@ -134,11 +128,11 @@ public unsafe struct PathFinder{
             heapPos >>= 1;
         }
 
+        if (heapPos >= MapPtr.Length) Debug.Log(PathDistance);
         MapPtr[heapPos].xy = new int2(score, index);
         MapPtr[index].zw = new int2(heapPos, prev);
     }
 
-    [BurstCompile]
     public int2 RemoveNode(){
         int2 result = MapPtr[1].xy;
         int2 last = MapPtr[HeapEnd - 1].xy;
@@ -154,6 +148,7 @@ public unsafe struct PathFinder{
             MapPtr[MapPtr[heapPos].y].z = heapPos;
             heapPos = child;
         }
+
         MapPtr[heapPos].xy = last;
         MapPtr[last.y].z = heapPos;
         MapPtr[result.y].z = 0; //Mark as visited
@@ -176,7 +171,6 @@ public unsafe struct PathFinder{
         //This norm guarantees the vector will be on the edge of a cube
     }
 
-    [BurstCompile]
     //Simplified A* algorithm for maximum performance
     //End Coord is relative to the start coord. Start Coord is always PathDistance
     /*
@@ -191,7 +185,7 @@ public unsafe struct PathFinder{
     |    |____|____|____| 
     +--------------------> x
     */
-    public static unsafe byte* FindPath(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int PathLength){
+    public static byte[] FindPath(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int PathLength){
         PathFinder finder = new (PathDistance);
         int3 End = math.clamp(iEnd + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
         int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
@@ -229,13 +223,13 @@ public unsafe struct PathFinder{
             }
         }
 
-        byte* path = RetracePath(ref finder, bestEnd.x, startInd, out PathLength);
+        byte[] path = RetracePath(ref finder, bestEnd.x, startInd, out PathLength);
         finder.Release();
         return path;
     }
-    [BurstCompile]
+
     //Find point that matches raw-profile along the path to destination
-    public static unsafe byte* FindMatchAlongRay(in int3 Origin, in float3 rayDir, int PathDistance, in ProfileInfo info, in ProfileInfo dest, in EntityJob.Context context, out int PathLength, out bool ReachedEnd){
+    public static byte[] FindMatchAlongRay(in int3 Origin, in float3 rayDir, int PathDistance, in ProfileInfo info, in ProfileInfo dest, in EntityJob.Context context, out int PathLength, out bool ReachedEnd){
         PathFinder finder = new (PathDistance);
         int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance), 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
         int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
@@ -277,13 +271,13 @@ public unsafe struct PathFinder{
             }
         }
 
-        byte* path = RetracePath(ref finder, bestEnd.x, startInd, out PathLength);
+        byte[] path = RetracePath(ref finder, bestEnd.x, startInd, out PathLength);
         finder.Release();
         return path;
     }
-    [BurstCompile]
+
     //Find point that matches raw-profile along the path to destination with the closest distance to the desired path distance
-    public static unsafe byte* FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, in EntitySetting.ProfileInfo info, in EntityJob.Context context, out int PathLength){
+    public static byte[] FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int PathLength){
         PathFinder finder = new (PathDistance);
         int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
 
@@ -321,15 +315,14 @@ public unsafe struct PathFinder{
             }
         }
 
-        byte* path = RetracePath(ref finder, bestEnd, startInd, out PathLength);
+        byte[] path = RetracePath(ref finder, bestEnd, startInd, out PathLength);
         finder.Release();
         return path;
     }
 
 
 
-    [BurstCompile]
-    public static unsafe byte* RetracePath(ref PathFinder finder, int dest, int start, out int PathLength){
+    public static byte[] RetracePath(ref PathFinder finder, int dest, int start, out int PathLength){
         PathLength = 0; 
         int currentInd = dest;
         while(currentInd != start){ 
@@ -339,7 +332,7 @@ public unsafe struct PathFinder{
                             ((dir / 3 % 3) - 1) * finder.PathMapSize + ((dir % 3) - 1);
         }
 
-        byte* path = (byte*)UnsafeUtility.Malloc(PathLength, 4, Allocator.Persistent);
+        byte[] path = new byte[PathLength];
         currentInd = dest; int index = PathLength - 1;
         while(currentInd != start){
             byte dir = (byte)finder.MapPtr[currentInd].w;
@@ -368,8 +361,7 @@ public unsafe struct PathFinder{
     /// <param name="info"></param>
     /// <param name="context"></param>
     /// <param name="PathLength"></param>
-    [BurstCompile]
-    public static unsafe byte* FindPathOrApproachTarget(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int PathLength){
+    public static byte[] FindPathOrApproachTarget(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int PathLength){
         int3 dGC = Origin + iEnd;
         if(VerifyProfile(dGC, info, context)){
             return FindPath(Origin, iEnd, PathDistance, info, context, out PathLength);

@@ -190,19 +190,19 @@ public class SurfaceHerdHerbivore : Authoring
         }
 
         //Always detect unless already running from predator
-        private unsafe void DetectPredator() {
+        private void DetectPredator() {
             if (!settings.Recognition.FindClosestPredator(this, genetics.Get(
                 settings.Recognition.SightDistance), out Entity predator))
                 return;
 
             int PathDist = settings.Recognition.FleeDistance;
             float3 rayDir = position - predator.position;
-            byte* path = PathFinder.FindPathAlongRay(GCoord, ref rayDir, PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
+            byte[] path = PathFinder.FindPathAlongRay(GCoord, ref rayDir, PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
             TaskIndex = 11;
         }
 
-        public unsafe void BoidMove() {
+        public void BoidMove() {
             if (vitality.BeginMating() ||
                 vitality.BeginHunting()) {
                 WalkDirection = 0;
@@ -212,7 +212,7 @@ public class SurfaceHerdHerbivore : Authoring
             
             TaskIndex = 1;
             Movement.CalculateBoidDirection(this, genetics, settings.herd);
-            byte* path = PathFinder.FindPathAlongRay(GCoord, ref WalkDirection, settings.herd.PathDist + 1, settings.herd.profile, EntityJob.cxt, out int pLen);
+            byte[] path = PathFinder.FindPathAlongRay(GCoord, ref WalkDirection, settings.herd.PathDist + 1, settings.herd.profile, EntityJob.cxt, out int pLen);
             WalkDirection.y = 0; WalkDirection = Movement.Normalize(WalkDirection);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
         }
@@ -232,7 +232,7 @@ public class SurfaceHerdHerbivore : Authoring
         }
 
         //Task 1
-        private static unsafe void FollowPath(Animal self) {
+        private static void FollowPath(Animal self) {
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
@@ -242,7 +242,7 @@ public class SurfaceHerdHerbivore : Authoring
         }
 
         //Task 2
-        private static unsafe void FindPrey(Animal self) {
+        private static void FindPrey(Animal self) {
             if (self.vitality.StopHunting() ||
                 !self.settings.Recognition.FindPreferredPrey(
                 (int3)math.round(self.position), self.genetics.GetInt(
@@ -251,7 +251,7 @@ public class SurfaceHerdHerbivore : Authoring
                 self.TaskIndex = 0;
                 return;
             }
-            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, preyPos - self.GCoord, self.genetics.GetInt(
+            byte[] path = PathFinder.FindPathOrApproachTarget(self.GCoord, preyPos - self.GCoord, self.genetics.GetInt(
                 self.settings.Recognition.PlantFindDist) + 1, self.settings.profile,
                 EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
@@ -287,7 +287,7 @@ public class SurfaceHerdHerbivore : Authoring
         }
 
         //Task 4
-        private static unsafe void EatFood(Animal self) {
+        private static void EatFood(Animal self) {
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if (self.TaskDuration <= 0) {
                 if (self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position), self.genetics.GetInt(
@@ -301,7 +301,7 @@ public class SurfaceHerdHerbivore : Authoring
         }
 
         //Task 5
-        private static unsafe void FindMate(Animal self) {
+        private static void FindMate(Animal self) {
             if (self.vitality.StopMating()|| !self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
             ) {
@@ -310,13 +310,13 @@ public class SurfaceHerdHerbivore : Authoring
             }
             int PathDist = self.settings.movement.pathDistance;
             int3 destination = (int3)math.round(mate.origin) - self.GCoord;
-            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+            byte[] path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 6;
         }
 
         //Task 6
-        private static unsafe void ChaseMate(Animal self) {//I feel you man
+        private static void ChaseMate(Animal self) {//I feel you man
             if (!self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
             ) {
@@ -348,7 +348,7 @@ public class SurfaceHerdHerbivore : Authoring
         }
 
         //Task 8
-        private static unsafe void RunFromTarget(Animal self) {
+        private static void RunFromTarget(Animal self) {
             if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
                 self.TaskTarget = Guid.Empty;
             else if (Recognition.GetColliderDist(self, target)
@@ -362,7 +362,7 @@ public class SurfaceHerdHerbivore : Authoring
             if (!self.pathFinder.hasPath) {
                 int PathDist = self.settings.Recognition.FleeDistance;
                 float3 rayDir = self.position - target.position;
-                byte* path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                byte[] path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             }
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
@@ -371,7 +371,7 @@ public class SurfaceHerdHerbivore : Authoring
         }
 
         //Task 9
-        private static unsafe void ChaseTarget(Animal self) {
+        private static void ChaseTarget(Animal self) {
             if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
                 self.TaskTarget = Guid.Empty;
             else if (Recognition.GetColliderDist(self, target)
@@ -385,7 +385,7 @@ public class SurfaceHerdHerbivore : Authoring
             if (!self.pathFinder.hasPath) {
                 int PathDist = self.settings.movement.pathDistance;
                 int3 destination = (int3)math.round(target.origin) - self.GCoord;
-                byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                byte[] path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             }
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, target.origin,
@@ -423,7 +423,7 @@ public class SurfaceHerdHerbivore : Authoring
         }
 
         //Task 11
-        private static unsafe void RunFromPredator(Animal self) {
+        private static void RunFromPredator(Animal self) {
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);

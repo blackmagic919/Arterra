@@ -588,6 +588,19 @@ public class GridManager{
                     (GridSize.x-1) * (GridSize.y-1) * GridSize.z);
     } }
 
+    public GridManager(uint3 GridSize, Transform transform, ComputeBuffer GeoBuffer, int bufferStart) {
+        this.GridMaterial = new Material(Shader.Find("Unlit/GridShader"));
+        this.GridConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/GridConstructor");
+        this.offsets = new GridOffsets(new int3(GridSize), bufferStart, 4, 3);
+        this.SelectionBuffer = null;
+        this.GeoBuffer = GeoBuffer;
+        this.GridSize = GridSize;
+        this.transform = transform;
+
+        Vector3 size = new Vector3(GridSize.x, GridSize.y, GridSize.z);
+        boundsOS = new Bounds(size / 2f, size);
+    }
+
     public GridManager(uint3 GridSize, Transform transform, ComputeBuffer GeoBuffer, int selLen, int bufferStart) {
         this.GridMaterial = new Material(Shader.Find("Unlit/GridShader"));
         this.GridConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/GridConstructor");
@@ -610,10 +623,13 @@ public class GridManager{
     ~GridManager(){ Release();}
     public void Release(){ 
         GameObject.DestroyImmediate(GridMaterial); 
-        this.SelectionBuffer.Release();
+        this.SelectionBuffer?.Release();
     }
 
-    public void SetSelectionData(ref SelectionArray SelectionArray){ this.SelectionBuffer.SetData(SelectionArray.SelectionData);}
+    public void SetSelectionData(ref SelectionArray SelectionArray){ 
+        if (this.SelectionBuffer == null) return;
+        this.SelectionBuffer.SetData(SelectionArray.SelectionData);
+    }
 
     public void Render(){ Graphics.RenderPrimitives(renderParams, MeshTopology.Triangles, (int)GridPlaneCount * 4, 1); }
 
@@ -632,7 +648,9 @@ public class GridManager{
         rp.matProps.SetBuffer("IndexBuffer", GeoBuffer);
         rp.matProps.SetInt("bSTART_index", offsets.indexStart);
         rp.matProps.SetInt("bSTART_vertex", offsets.vertexStart);
-        rp.matProps.SetBuffer("SelectionBuffer", SelectionBuffer);
+        if (SelectionBuffer != null)
+            rp.matProps.SetBuffer("SelectionBuffer", SelectionBuffer);
+        else rp.material.EnableKeyword("NO_SELECTION");
         rp.matProps.SetInt("MapSizeX", (int)GridSize.x); rp.matProps.SetInt("MapSizeY", (int)GridSize.y); rp.matProps.SetInt("MapSizeZ", (int)GridSize.z);
         rp.matProps.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
     }

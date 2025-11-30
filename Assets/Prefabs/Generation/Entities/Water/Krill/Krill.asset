@@ -119,7 +119,7 @@ MonoBehaviour:
           value:
           - ItemName: BugMush
             DropAmount:
-              mean: 0.5
+              mean: 0.25
               var: 1
               geneWeight: 0.05
         DecompositionTime:

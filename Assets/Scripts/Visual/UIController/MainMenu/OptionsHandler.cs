@@ -191,7 +191,7 @@ public class OptionsHandler : MonoBehaviour
             grid.position -= (Vector3)(float3)chunkSize/2.0f;
             grid.localScale = chunkSize / (float3)(gridSize-1);
 
-            ChunkGrid = new GridManager(gridSize, grid.transform, UtilityBuffers.GenerationBuffer, (int)(chunkSize*chunkSize*chunkSize),  0);
+            ChunkGrid = new GridManager(gridSize, grid.transform, UtilityBuffers.GenerationBuffer,  0);
             ChunkGrid.GridMaterial.SetFloat("_WireframeWidth", ChunkGrid.GridMaterial.GetFloat("_WireframeWidth") * wSettings.GridThickness);
             ChunkGrid.GridMaterial.SetFloat("_VertexSize", ChunkGrid.GridMaterial.GetFloat("_VertexSize") *  wSettings.GridThickness);
             ChunkGrid.GenerateModel();

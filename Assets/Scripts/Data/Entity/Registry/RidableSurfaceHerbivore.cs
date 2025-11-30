@@ -241,14 +241,14 @@ public class RidableSurfaceHerbivore : Authoring
 
 
         //Always detect unless already running from predator
-        private unsafe void DetectPredator() {
+        private void DetectPredator() {
             if (!settings.Recognition.FindClosestPredator(this, genetics.Get(
                 settings.Recognition.SightDistance), out Entity predator))
                 return;
 
             int PathDist = settings.Recognition.FleeDistance;
             float3 rayDir = position - predator.position;
-            byte* path = PathFinder.FindPathAlongRay(GCoord, ref rayDir, PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
+            byte[] path = PathFinder.FindPathAlongRay(GCoord, ref rayDir, PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
             TaskIndex = 12;
         }
@@ -268,11 +268,11 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         // Task 1
-        private static unsafe void RandomPath(Animal self) {
+        private static void RandomPath(Animal self) {
             int PathDist = self.settings.movement.pathDistance;
             int3 dP = new(self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist));
             if (PathFinder.VerifyProfile(self.GCoord + dP, self.settings.profile, EntityJob.cxt)) {
-                byte* path = PathFinder.FindPath(self.GCoord, dP, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                byte[] path = PathFinder.FindPath(self.GCoord, dP, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
                 self.TaskIndex = 2;
             }
@@ -280,7 +280,7 @@ public class RidableSurfaceHerbivore : Authoring
 
 
         //Task 2
-        private static unsafe void FollowPath(Animal self) {
+        private static void FollowPath(Animal self) {
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
@@ -290,7 +290,7 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         //Task 3
-        private static unsafe void FindMate(Animal self) {
+        private static void FindMate(Animal self) {
             if (self.vitality.StopMating()
                 || !self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
@@ -300,7 +300,7 @@ public class RidableSurfaceHerbivore : Authoring
             }
             int PathDist = self.settings.movement.pathDistance;
             int3 destination = (int3)math.round(mate.origin) - self.GCoord;
-            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+            byte[] path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 4;
         }
@@ -354,7 +354,7 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         //Task 7
-        private static unsafe void FindPrey(Animal self) {
+        private static void FindPrey(Animal self) {
             if (self.vitality.StopHunting() ||
                 !self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
                 self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 preyPos)
@@ -362,7 +362,7 @@ public class RidableSurfaceHerbivore : Authoring
                 self.TaskIndex = 1;
                 return;
             }
-            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, preyPos - self.GCoord,
+            byte[] path = PathFinder.FindPathOrApproachTarget(self.GCoord, preyPos - self.GCoord,
                 self.genetics.GetInt(self.settings.Recognition.PlantFindDist) + 1, self.settings.profile,
                 EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
@@ -411,7 +411,7 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         //Task 10
-        private static unsafe void RunFromTarget(Animal self) {
+        private static void RunFromTarget(Animal self) {
             if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
                 self.TaskTarget = Guid.Empty;
             else if (Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
@@ -424,7 +424,7 @@ public class RidableSurfaceHerbivore : Authoring
             if (!self.pathFinder.hasPath) {
                 int PathDist = self.settings.Recognition.FleeDistance;
                 float3 rayDir = self.position - target.position;
-                byte* path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                byte[] path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             }
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
@@ -433,7 +433,7 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         //Task 11
-        private static unsafe void ChaseTarget(Animal self) {
+        private static void ChaseTarget(Animal self) {
             if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
                 self.TaskTarget = Guid.Empty;
             else if (Recognition.GetColliderDist(self, target) > self.genetics.Get(self.settings.Recognition.SightDistance))
@@ -446,7 +446,7 @@ public class RidableSurfaceHerbivore : Authoring
             if (!self.pathFinder.hasPath) {
                 int PathDist = self.settings.movement.pathDistance;
                 int3 destination = (int3)math.round(target.origin) - self.GCoord;
-                byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                byte[] path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             }
             Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.tCollider, target.origin,

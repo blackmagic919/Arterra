@@ -181,7 +181,7 @@ public class SkyHerbivore : Authoring
             OnInGas: vitality.ProcessInGas);
         }
 
-        private unsafe void DetectPredator() {
+        private void DetectPredator() {
             if (!settings.Recognition.FindClosestPredator(this,
                 genetics.Get(settings.Recognition.SightDistance),
                 out Entity predator))
@@ -189,7 +189,7 @@ public class SkyHerbivore : Authoring
 
             int PathDist = settings.Recognition.FleeDistance;
             float3 flightDirection = position - predator.position;
-            byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, PathDist + 1, settings.flight.profile, EntityJob.cxt, out int pLen);
+            byte[] path = PathFinder.FindPathAlongRay(GCoord, ref flightDirection, PathDist + 1, settings.flight.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
             TaskIndex = 12;
         }
@@ -198,7 +198,7 @@ public class SkyHerbivore : Authoring
             TaskDuration = genetics.Get(settings.flight.AverageFlightTime) * random.NextFloat(0f, 2f);
             RandomFly();
         }
-        private unsafe void RandomFly() {
+        private void RandomFly() {
             if (vitality.BeginMating() ||
                 vitality.BeginHunting()) {
                 TaskDuration = math.min(0, TaskDuration); //try to land to mate
@@ -211,22 +211,22 @@ public class SkyHerbivore : Authoring
 
             float3 flightDir = Normalize(RandomDirection() + math.up() * random.NextFloat(0, genetics.Get(settings.flight.FlyBiasWeight)));
             flightDir.y *= settings.flight.VerticalFreedom;
-            byte* path = PathFinder.FindPathAlongRay(GCoord, ref flightDir, settings.movement.pathDistance + 1,
+            byte[] path = PathFinder.FindPathAlongRay(GCoord, ref flightDir, settings.movement.pathDistance + 1,
                 settings.flight.profile, EntityJob.cxt, out int pLen);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
         }
 
-        public unsafe void FindGround() {
+        public void FindGround() {
             float3 flightDir = Normalize(RandomDirection() + math.down()
                 * math.max(0, -TaskDuration / genetics.Get(settings.flight.AverageFlightTime)));
             int3 dP = (int3)(flightDir * settings.movement.pathDistance);
 
-            byte* path = PathFinder.FindMatchAlongRay(GCoord, dP, settings.movement.pathDistance + 1, settings.flight.profile, settings.profile, EntityJob.cxt, out int pLen, out bool fGround);
+            byte[] path = PathFinder.FindMatchAlongRay(GCoord, dP, settings.movement.pathDistance + 1, settings.flight.profile, settings.profile, EntityJob.cxt, out int pLen, out bool fGround);
             pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
             if (fGround) TaskIndex = 2;
         }
 
-        private unsafe void RandomWalk() {
+        private void RandomWalk() {
             if (pathFinder.hasPath) {
                 Movement.FollowStaticPath(settings.profile, ref pathFinder, ref tCollider,
                     genetics.Get(settings.movement.walkSpeed), settings.movement.rotSpeed,
@@ -237,7 +237,7 @@ public class SkyHerbivore : Authoring
             int PathDist = settings.movement.pathDistance;
             int3 dP = new(random.NextInt(-PathDist, PathDist), random.NextInt(-PathDist, PathDist), random.NextInt(-PathDist, PathDist));
             if (PathFinder.VerifyProfile(GCoord + dP, settings.profile, EntityJob.cxt)) {
-                byte* path = PathFinder.FindPath(GCoord, dP, PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
+                byte[] path = PathFinder.FindPath(GCoord, dP, PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
                 pathFinder = new PathFinder.PathInfo(GCoord, path, pLen);
             }
         }
@@ -278,7 +278,7 @@ public class SkyHerbivore : Authoring
         }
 
         //Task 1 -> Fly 
-        private static unsafe void FollowFlight(Animal self) {
+        private static void FollowFlight(Animal self) {
             self.tCollider.useGravity = false;
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider,
@@ -291,7 +291,7 @@ public class SkyHerbivore : Authoring
         }
 
         //Task 2 -> Landing 
-        private static unsafe void FollowLanding(Animal self) {
+        private static void FollowLanding(Animal self) {
             self.tCollider.useGravity = false;
             Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
@@ -305,7 +305,7 @@ public class SkyHerbivore : Authoring
 
 
         //Task 3
-        private static unsafe void FindPrey(Animal self) {
+        private static void FindPrey(Animal self) {
             self.tCollider.useGravity = true;
             if (self.vitality.StopHunting()) {
                 self.TaskIndex = 0;
@@ -316,7 +316,7 @@ public class SkyHerbivore : Authoring
                 self.RandomWalk();
                 return;
             }
-            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, preyPos - self.GCoord,
+            byte[] path = PathFinder.FindPathOrApproachTarget(self.GCoord, preyPos - self.GCoord,
                 self.genetics.GetInt(self.settings.Recognition.PlantFindDist) + 1, self.settings.profile,
                 EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
@@ -335,7 +335,7 @@ public class SkyHerbivore : Authoring
         }
 
         //Task 4
-        private static unsafe void ChasePrey(Animal self) {
+        private static void ChasePrey(Animal self) {
             self.tCollider.useGravity = true;
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
@@ -352,7 +352,7 @@ public class SkyHerbivore : Authoring
         }
 
         //Task 5
-        private static unsafe void EatFood(Animal self) {
+        private static void EatFood(Animal self) {
             self.tCollider.useGravity = true;
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if (self.TaskDuration <= 0) {
@@ -367,7 +367,7 @@ public class SkyHerbivore : Authoring
         }
 
         //Task 6
-        private static unsafe void FindMate(Animal self) {
+        private static void FindMate(Animal self) {
             self.tCollider.useGravity = true;
             if (self.vitality.StopMating()) {
                 self.TaskIndex = 0;
@@ -379,13 +379,13 @@ public class SkyHerbivore : Authoring
             }
             int PathDist = self.settings.movement.pathDistance;
             int3 destination = (int3)mate.origin - self.GCoord;
-            byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+            byte[] path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
             self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             self.TaskIndex = 7;
         }
 
         //Task 7
-        private static unsafe void ChaseMate(Animal self) {//I feel you man
+        private static void ChaseMate(Animal self) {//I feel you man
             self.tCollider.useGravity = true;
             if (!self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
@@ -418,7 +418,7 @@ public class SkyHerbivore : Authoring
         }
 
         //Task 9
-        private static unsafe void RunFromTarget(Animal self) {
+        private static void RunFromTarget(Animal self) {
             self.tCollider.useGravity = false;
             if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
                 self.TaskTarget = Guid.Empty;
@@ -432,7 +432,7 @@ public class SkyHerbivore : Authoring
             if (!self.pathFinder.hasPath) {
                 int PathDist = self.settings.Recognition.FleeDistance;
                 float3 rayDir = self.position - target.position;
-                byte* path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen);
+                byte[] path = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             }
             Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider,
@@ -441,7 +441,7 @@ public class SkyHerbivore : Authoring
         }
 
         //Task 10
-        private static unsafe void ChaseTarget(Animal self) {
+        private static void ChaseTarget(Animal self) {
             self.tCollider.useGravity = false;
             if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity target))
                 self.TaskTarget = Guid.Empty;
@@ -455,7 +455,7 @@ public class SkyHerbivore : Authoring
             if (!self.pathFinder.hasPath) {
                 int PathDist = self.settings.movement.pathDistance;
                 int3 destination = (int3)math.round(target.origin) - self.GCoord;
-                byte* path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen);
+                byte[] path = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.flight.profile, EntityJob.cxt, out int pLen);
                 self.pathFinder = new PathFinder.PathInfo(self.GCoord, path, pLen);
             }
             Movement.FollowDynamicPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider, target.origin,
@@ -495,7 +495,7 @@ public class SkyHerbivore : Authoring
 
 
         //Task 12
-        private static unsafe void RunFromPredator(Animal self) {
+        private static void RunFromPredator(Animal self) {
             self.tCollider.useGravity = false;
             Movement.FollowStaticPath(self.settings.flight.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
@@ -523,7 +523,7 @@ public class SkyHerbivore : Authoring
             controller.Dispose();
         }
 
-        unsafe struct BoidDMtrx {
+     struct BoidDMtrx {
             public float3 SeperationDir;
             public float3 AlignmentDir;
             public float3 CohesionDir;

@@ -78,12 +78,12 @@ MonoBehaviour:
           value:
           - ItemName: FishMeat
             DropAmount:
-              mean: 7.5
+              mean: 0.0375
               var: 1
               geneWeight: 0.05
           - ItemName: FishScales:Solid
             DropAmount:
-              mean: 10
+              mean: 0.05
               var: 1
               geneWeight: 0.05
         DecompositionTime:

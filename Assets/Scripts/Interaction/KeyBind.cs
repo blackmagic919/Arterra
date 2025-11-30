@@ -117,6 +117,7 @@ namespace WorldConfig.Gameplay{
                 if (!bind.IsAlias) Pressed = false;
             }
             return ConsumedBind != Truthy.False;
+            Input.GetKeyDown(KeyCode.Mouse0);
         }
         
         /// <summary> Consumes all pressed keys by adding them to the exclusion set. </summary>
