@@ -40,6 +40,10 @@ StructuredBuffer<uint2> _AddressDict;
 uint triAddress;
 uint vertAddress;
 
+float3 safeNormalize(float3 n) {
+    return (dot(n, n) > 1e-12) ? normalize(n) : float3(0,1,0);
+}
+
 v2f vert (uint vertexID: SV_VertexID){
     v2f o = (v2f)0;
 
@@ -47,7 +51,7 @@ v2f vert (uint vertexID: SV_VertexID){
     DrawVertex input = Vertices[vertInd + _AddressDict[vertAddress].y];
 
     o.positionWS = mul(_LocalToWorld, float4(input.positionOS, 1)).xyz;
-    o.normalWS = normalize(mul(_LocalToWorld, float4(input.normalOS, 0)).xyz);
+    o.normalWS = safeNormalize(mul(_LocalToWorld, float4(input.normalOS, 0)).xyz);
     o.positionCS = TransformWorldToHClip(o.positionWS);
     o.material = input.material.x;
     return o;

@@ -87,7 +87,7 @@ public class PlayerVitality
     {
         if (AttackCooldown > 0) return;
         AttackCooldown = settings.AttackFrequency;
-        float3 hitPt = PlayerHandler.data.position + PlayerHandler.data.Forward * interact.ReachDistance;
+        float3 hitPt = PlayerHandler.data.head + PlayerHandler.data.Forward * interact.ReachDistance;
         if (PlayerInteraction.RayTestSolid(PlayerHandler.data, out float3 terrHit)) hitPt = terrHit;
         if (!EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out WorldConfig.Generation.Entity.Entity entity))
             return;
@@ -96,7 +96,7 @@ public class PlayerVitality
             if (!target.active) return;
             if (target is not IAttackable) return;
             IAttackable atkEntity = target as IAttackable;
-            float3 knockback = math.normalize(target.position - PlayerHandler.data.position) * settings.KnockBackStrength;
+            float3 knockback = math.normalize(target.position - PlayerHandler.data.head) * settings.KnockBackStrength;
             atkEntity.TakeDamage(settings.AttackDamage, knockback, PlayerHandler.data);
             PlayerHandler.data.Play("Punch");
         }

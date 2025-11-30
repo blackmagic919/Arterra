@@ -24,6 +24,9 @@ public struct Settings{
     public Option<Interaction> Interaction;
     /// <summary>Settings controlling the player's physical statistics. See <see cref="Physicality"/> for more info.</summary>
     public Option<Physicality> Physicality;
+    /// <summary> Whether or not the player's cursor is shown. </summary>
+    [UIModifiable(CallbackName = "ToggleUICrosshair")]
+    public bool ShowCrosshair;
 }
 }
 

@@ -139,6 +139,7 @@ namespace WorldConfig.Gameplay.Player {
                 camera.cullingMask &= ~(1 << LayerMask.NameToLayer("Self"));
                 SmoothCharacterRot = camera.characterRot;
                 SmoothCameraRot = camera.camTsf.rotation;
+                PlayerCrosshair.EnableCrosshair();
             }
             public void Update() {
                 if (!camera.moved) return;
@@ -180,6 +181,7 @@ namespace WorldConfig.Gameplay.Player {
                 camera.cullingMask |= 1 << LayerMask.NameToLayer("Self");
                 SmoothCharacterRot = camera.characterRot;
                 SmoothCameraRot = camera.camTsf.rotation;
+                PlayerCrosshair.DisableCrosshair();
             }
             public void Update() {
                 if (!camera.moved) return;
@@ -207,8 +209,8 @@ namespace WorldConfig.Gameplay.Player {
             private void SetCameraOffset(PlayerCamera cm) {
                 float backDist = distance;
                 float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
-                if (CPUMapManager.RayCastTerrain(cm.context.position, cm.Facing * Vector3.back, distGS, RayTestSolid, out float3 hitPt))
-                    backDist = math.distance(hitPt, cm.context.position);
+                if (CPUMapManager.RayCastTerrain(cm.context.head, cm.Facing * Vector3.back, distGS, RayTestSolid, out float3 hitPt))
+                    backDist = math.distance(hitPt, cm.context.head);
 
                 float3 backOffset = math.mul(math.normalize(cm.camTsf.rotation), new float3(0, 0, -backDist));
                 //Camera local rotation will have Y-axis rotation applied to it
@@ -242,6 +244,7 @@ namespace WorldConfig.Gameplay.Player {
                 SmoothCharacterRot = camera.characterRot;
                 SmoothCameraRot = Quaternion.AngleAxis(yaw, Vector3.up);
                 camera.camTsf.rotation = SmoothCameraRot;
+                PlayerCrosshair.DisableCrosshair();
                 SetCameraOffset(camera);
             }
 
@@ -279,8 +282,8 @@ namespace WorldConfig.Gameplay.Player {
                 float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
                 float3 dir = math.mul(math.normalize(cm.camTsf.rotation), new float3(0, 0, -1));
                 dir = math.mul(math.normalize(cm.characterRot), dir);
-                if (CPUMapManager.RayCastTerrain(cm.context.position, dir, distGS, RayTestSolid, out float3 hitPt))
-                    backDist = math.distance(hitPt, cm.context.position);
+                if (CPUMapManager.RayCastTerrain(cm.context.head, dir, distGS, RayTestSolid, out float3 hitPt))
+                    backDist = math.distance(hitPt, cm.context.head);
 
                 float3 backOffset = math.mul(math.normalize(cm.camTsf.rotation), new float3(0, 0, -backDist));
                 cm.camTsf.position = (float3)Vector3.up * height + backOffset;

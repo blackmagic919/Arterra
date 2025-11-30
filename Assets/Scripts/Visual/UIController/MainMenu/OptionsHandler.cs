@@ -39,16 +39,13 @@ public class OptionsHandler : MonoBehaviour
     private static SingleChunkDisplay spinChunk;
     private static bool active = false;
     private void OnEnable() { 
+        SystemProtocol.Reset();
         sAnimator = this.gameObject.GetComponent<Animator>();
         infoContent = transform.GetChild(0).Find("Settings").GetComponent<ScrollRect>().content.gameObject;
         WorldName = transform.GetChild(0).Find("WorldName").GetComponent<TMP_InputField>();
         spinChunk = new SingleChunkDisplay();
         active = false;
     }    
-
-    private void OnDisable() {
-        SystemProtocol.Shutdown(); 
-    }
 
     public static void Activate(Action callback = null){ 
         if(active) return;

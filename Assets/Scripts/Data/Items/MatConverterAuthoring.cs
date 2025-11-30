@@ -106,7 +106,7 @@ namespace WorldConfig.Generation.Item
         private void PlayerModifyTerrain(ItemContext cxt) {
             if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
             if (!RayTestSolid(player, out float3 hitPt)) return;
-            if (EntityManager.ESTree.FindClosestAlongRay(player.position, hitPt, player.info.entityId, out var _))
+            if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out var _))
                 return;
             if (settings.MaterialName == null) {
                 Debug.LogError("MaterialName is not set for MatConverterItem at index " + Index);

@@ -10,6 +10,7 @@ public static class GameUIManager {
     public static GameObject UIHandle;
     public static void Initialize() {
         UIHandle = GameObject.Find("MainUI");
+        PlayerCrosshair.Initialize();
         LoadingHandler.Initialize();
         PanelNavbarManager.Initialize();
         InventoryController.Initialize();
@@ -38,6 +39,8 @@ public class RegistrySearchDisplay<T> where T : ISlot {
     private Transform SearchMenu;
     public TMP_InputField SearchInput;
     public GridUIManager GridContainer;
+    private Button previousButton;
+    private Button nextButton;
     public T[] SlotEntries;
     private int NumSlots;
     private string SearchQuery = "";
@@ -60,11 +63,13 @@ public class RegistrySearchDisplay<T> where T : ISlot {
     }
 
     public void AddPaginateButtons(Button prev, Button next) {
+        previousButton = prev;
+        nextButton = next;
         prev.onClick.RemoveAllListeners();
         next.onClick.RemoveAllListeners();
         prev.onClick.AddListener(PreviousPage);
         next.onClick.AddListener(NextPage);
-        if (PageIndex == 0) prev.interactable = false;
+        ResetPaginateButtons();
         void NextPage() {
             ProcessSearchRequest(SearchQuery, PageIndex + 1);
             next.interactable = PageIndex < registry.Count() / NumSlots;
@@ -76,10 +81,16 @@ public class RegistrySearchDisplay<T> where T : ISlot {
         }
     }
 
+    private void ResetPaginateButtons() {
+        previousButton.interactable = PageIndex > 0;
+        nextButton.interactable = PageIndex < registry.Count() / NumSlots;
+    }
+
 
     public void Activate() {
         SearchInput.ActivateInputField();
         ProcessSearchRequest("");
+        ResetPaginateButtons();
         SearchMenu.gameObject.SetActive(true);
     }
 

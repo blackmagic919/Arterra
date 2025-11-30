@@ -502,10 +502,6 @@ public class ModelManager{
         );
 
         ModelConstructor.Dispatch(kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
-        //int[] counters = new int[4]; this.GeoBuffer.GetData(counters, 0, offsets.bufferStart, 4);
-        //Debug.Log(counters[0]);
-
-        //Link both triangle arrays
         LinkTriangles(offsets.baseTriStart, offsets.baseTriCounter);
         LinkTriangles(offsets.waterTriStart, offsets.waterTriCounter);
     }
@@ -619,7 +615,7 @@ public class GridManager{
 
     public void SetSelectionData(ref SelectionArray SelectionArray){ this.SelectionBuffer.SetData(SelectionArray.SelectionData);}
 
-    public void Render(){ Graphics.RenderPrimitives(renderParams, MeshTopology.Quads, (int)GridPlaneCount * 4, 1); }
+    public void Render(){ Graphics.RenderPrimitives(renderParams, MeshTopology.Triangles, (int)GridPlaneCount * 4, 1); }
 
     void SetupRenderParams(Camera camera, out RenderParams rp, Transform transform){
         Bounds BoundsWS = CustomUtility.TransformBounds(transform, boundsOS);

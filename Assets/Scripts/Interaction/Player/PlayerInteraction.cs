@@ -64,7 +64,7 @@ public static class PlayerInteraction {
             MapData pointInfo = CPUMapManager.SampleMap(coord);
             return (uint)pointInfo.viscosity;
         }
-        return CPUMapManager.RayCastTerrain(entity.position, entity.Forward, settings.ReachDistance, RayTestSolid, out hitPt);
+        return CPUMapManager.RayCastTerrain(entity.head, entity.Forward, settings.ReachDistance, RayTestSolid, out hitPt);
     }
 
     public static bool CylinderTestSolid<T>(T entity, out float3 hitPt) where T : WorldConfig.Generation.Entity.Entity, IAttackable {
@@ -73,9 +73,9 @@ public static class PlayerInteraction {
             return (uint)pointInfo.viscosity;
         }
         const float radius = 1;
-        if (RayTestSolid(entity, out hitPt) && math.lengthsq(hitPt - entity.position) < radius * radius * 4)
+        if (RayTestSolid(entity, out hitPt) && math.lengthsq(hitPt - entity.head) < radius * radius * 4)
             return true;
-        return CPUMapManager.CylinderCastTerrain(entity.position + 2 * radius * entity.Forward,
+        return CPUMapManager.CylinderCastTerrain(entity.head + 2 * radius * entity.Forward,
             entity.Forward, radius, settings.ReachDistance, CylinderTestSolid, out hitPt);
     }
 
@@ -84,19 +84,19 @@ public static class PlayerInteraction {
             MapData pointInfo = CPUMapManager.SampleMap(coord);
             return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
         }
-        return CPUMapManager.RayCastTerrain(entity.position, entity.Forward, settings.ReachDistance, RayTestLiquid, out hitPt);
+        return CPUMapManager.RayCastTerrain(entity.head, entity.Forward, settings.ReachDistance, RayTestLiquid, out hitPt);
     }
 
     private static void PlaceTerrain(float _) {
         if (!PlayerHandler.active) return;
         bool rayHit = false;
-        float3 hitPt = data.position + PlayerHandler.data.Forward * settings.ReachDistance;
+        float3 hitPt = data.head + PlayerHandler.data.Forward * settings.ReachDistance;
         if (RayTestSolid(data, out float3 terrHit)) {
             hitPt = terrHit;
             rayHit = true;
         };
 
-        if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var entity)) {
+        if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out var entity)) {
             EntityInteract(entity);
             return;
         }
@@ -119,7 +119,7 @@ public static class PlayerInteraction {
     private static void RemoveTerrain(float _) {
         if (!PlayerHandler.active) return;
         if (!CylinderTestSolid(data, out float3 hitPt)) return;
-        if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.position, hitPt, PlayerHandler.data.info.entityId, out var entity)) {
+        if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out var entity)) {
             return;
         }
 

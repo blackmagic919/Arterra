@@ -24,7 +24,7 @@ namespace TerrainGeneration{
         /// The load for each task as ordered in <see cref="Utils.priorities.planning"/>.
         /// Each task's load is cumilated until the frame's load is exceeded at which point generation stops.
         /// </summary>
-        public static readonly int[] taskLoadTable = { 4, 3, 10, 1, 2, 0, 3 };
+        public static readonly int[] taskLoadTable = { 4, 3, 3, 1, 4, 0, 3 };
         /// <summary>
         /// A queue containing subscribed tasks that are executed
         /// once every update loop. The update loop occurs

@@ -54,6 +54,11 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         [JsonIgnore]
         public override Quaternion Facing => camera.Facing;
         [JsonIgnore]
+        public override float3 head {
+            get => position + CPUMapManager.WSToGSScale(Vector3.up * 0.75f);
+            set => position = value - CPUMapManager.WSToGSScale(Vector3.up * 0.75f);
+        }
+        [JsonIgnore]
         public float3 positionWS
         {
             get => CPUMapManager.GSToWS(position);

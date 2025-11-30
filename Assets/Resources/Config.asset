@@ -342,6 +342,7 @@ MonoBehaviour:
               NaturalRegen: 0.01
               DecompositionTime: 300
               weight: 0.75
+          ShowCrosshair: 1
       Gamemodes:
         value:
           Flight: 0

@@ -89,7 +89,6 @@ Shader "Unlit/ModelTerrain"
                 o.positionCS = TransformWorldToHClip(o.positionWS);
                 o.material = input.material.x;
 
-                float3 normalOS = o.normalWS = CalculateNormalOS(triAddress + (vertexID/3));
                 o.normalWS = normalize(mul(_LocalToWorld, float4(CalculateNormalOS(triAddress + (vertexID/3)), 0)).xyz);
                 return o;
             }
@@ -122,7 +121,7 @@ Shader "Unlit/ModelTerrain"
                 SurfaceData surfaceInput = (SurfaceData)0;
                 surfaceInput.albedo = triplanar(IN.positionWS, data.baseTextureScale, blendAxes, data.textureIndex);
 
-                return float4(UniversalFragmentPBR(lightingInput, surfaceInput).rgb, 1);
+                return float4(UniversalFragmentPBR(lightingInput, surfaceInput).rgb, 1);//
             }
             ENDHLSL
         }

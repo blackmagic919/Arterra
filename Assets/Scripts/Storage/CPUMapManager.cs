@@ -772,6 +772,10 @@ namespace MapStorage {
         /// <param name="GSPos">The position in grid space</param>
         /// <returns>The associated exact position in world space</returns>
         public static float3 GSToWS(float3 GSPos) { return (GSPos - mapChunkSize / 2) * lerpScale; }
+        /// <summary> Converts a world space distance to grid space distance. Does not apply shifting like <see cref="WSToGS"/> </summary>
+        /// <param name="WSPos">The distance in world space</param>
+        /// <returns>The associated distance in grid space</returns>
+        public static float3 WSToGSScale(float3 WSPos) { return WSPos / lerpScale; }
 
         /// <summary> Assigns the mapData of a given GCoord if it is currently being managed by 
         /// <see cref="CPUMapManager"/>. Also notifies the corresponding chunk to reflect the 

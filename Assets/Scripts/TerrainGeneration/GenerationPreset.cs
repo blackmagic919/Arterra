@@ -17,6 +17,14 @@ namespace TerrainGeneration{
 /// be added to this protocol with awareness of its dependencies. </summary>
 public static class SystemProtocol{
     private static SystemState state = SystemState.Inactive;
+
+    static SystemProtocol() {
+        Reset();
+    }
+
+    /// <summary> Resets the system state </summary>
+    public static void Reset() => state = SystemState.Inactive;
+    
     /// <summary> Performs the proper startup protocol when the <b>world</b> is initialized
     /// (this excludes when the main menu is displayed). This is a static factory protocol and only 
     /// changes when modifying the system's functionality through its source code. </summary>

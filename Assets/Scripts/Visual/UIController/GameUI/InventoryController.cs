@@ -43,6 +43,7 @@ public static class InventoryController {
     public static Inventory Secondary; //Inventory
     public static CursorManager Cursor;
     private static GameObject Menu;
+    private static ItemDescription itemInfo;
 
     private static Catalogue<Authoring> ItemSettings;
     public static IItem Selected => Primary.Info[SelectedIndex];
@@ -51,17 +52,19 @@ public static class InventoryController {
 
     private static ItemContext GetSecondaryCxt(ItemContext cxt) => cxt.SetupScenario(PlayerHandler.data, ItemContext.Scenario.ActivePlayerSecondary);
     private static ItemContext GetPrimaryCxt(ItemContext cxt) {
-        if (cxt.InvId == SelectedIndex)
+        if (cxt.InvId == SelectedIndex) {
+            itemInfo.SwitchItem(Selected);
             return HeldCxt;
-        return cxt.SetupScenario(PlayerHandler.data, ItemContext.Scenario.ActivePlayerPrimary);
+        } return cxt.SetupScenario(PlayerHandler.data, ItemContext.Scenario.ActivePlayerPrimary);
     }
-    private static ItemContext HeldCxt => new ItemContext(Primary, PlayerHandler.data, ItemContext.Scenario.ActivePlayerSelected, SelectedIndex);
+    private static ItemContext HeldCxt => new (Primary, PlayerHandler.data, ItemContext.Scenario.ActivePlayerSelected, SelectedIndex);
 
     public static void Initialize() {
         Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Panel"), GameUIManager.UIHandle.transform);
         ItemSettings = Config.CURRENT.Generation.Items;
 
         Cursor = new CursorManager();
+        itemInfo = new ItemDescription(Menu.transform.GetChild(0));
         RebindInventories(null, PlayerHandler.data);
         Secondary.Display.parent.SetActive(false);
 
@@ -92,8 +95,8 @@ public static class InventoryController {
 
         Primary = cxt.cur.PrimaryI;
         Secondary = cxt.cur.SecondaryI;
-        Primary.InitializeDisplay(Menu.transform.GetChild(0).GetChild(0).gameObject);
-        Secondary.InitializeDisplay(Menu.transform.GetChild(0).GetChild(1).gameObject);
+        Primary.InitializeDisplay(Menu.transform.GetChild(0).Find("Primary").gameObject);
+        Secondary.InitializeDisplay(Menu.transform.GetChild(0).Find("Secondary").gameObject);
 
         //Primary.ReapplyHandles will automatically call OnEnter and OnLeave
         Secondary.AddCallbacks(GetSecondaryCxt, GetSecondaryCxt);
@@ -131,7 +134,6 @@ public static class InventoryController {
         });
         Cursor.ClearCursor(AddEntry);
         Secondary.Display.parent.SetActive(true);
-        Primary.Display.Transform.anchoredPosition = new Vector2(0, 0);
     }
 
     public static void Deactivate() {
@@ -152,6 +154,7 @@ public static class InventoryController {
             SelectedIndex = index % settings.PrimarySlotCount;
             Selected?.OnEnter(HeldCxt);
             Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.SelectedColor;
+            itemInfo.SwitchItem(Selected);
         }
         InputPoller.AddBinding(new ActionBind("Hotbar1", _ => ChangeSelected(0)), "PlayerInventory:HB1", "2.0::Subscene");
         InputPoller.AddBinding(new ActionBind("Hotbar2", _ => ChangeSelected(1)), "PlayerInventory:HB2", "2.0::Subscene");
@@ -858,6 +861,28 @@ public static class InventoryController {
             None,
             Split,
             Unit,
+        }
+    }
+
+    private class ItemDescription {
+        public RectTransform Display;
+        private TextMeshProUGUI Description;
+        private TextMeshProUGUI Name;
+        private Animator animator;
+
+        public ItemDescription(Transform parent) {
+            this.Display = parent.Find("ItemInfo").GetComponent<RectTransform>();
+            this.Name = Display.Find("Title").GetComponent<TextMeshProUGUI>(); 
+            this.Description = Display.Find("Description").GetComponent<TextMeshProUGUI>();  
+            this.animator = Display.GetComponent<Animator>();
+        }
+
+        public void SwitchItem(IItem item) {
+            if (item == null) return;
+            Authoring settings = Config.CURRENT.Generation.Items.Retrieve(item.Index);
+            Name.text = settings.Name;
+            Description.text = settings.Description;
+            animator.SetTrigger("Fade");
         }
     }
 }

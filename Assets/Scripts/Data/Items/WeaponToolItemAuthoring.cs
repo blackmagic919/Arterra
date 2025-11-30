@@ -86,7 +86,7 @@ namespace WorldConfig.Generation.Item
             if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
             if (player.vitality.AttackCooldown > 0) return;
             player.vitality.AttackCooldown = settings.AttackCooldown;
-            float3 hitPt = player.position
+            float3 hitPt = player.head
                 + player.Forward
                 * Config.CURRENT.GamePlay.Player.value.Interaction.value.ReachDistance;
 
@@ -94,13 +94,13 @@ namespace WorldConfig.Generation.Item
                 effectable.Play(settings.OnUseAnim.Value);
                     
             if (RayTestSolid(player, out float3 terrHit)) hitPt = terrHit;
-            if (!EntityManager.ESTree.FindClosestAlongRay(player.position, hitPt, player.info.entityId, out Entity.Entity entity))
+            if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out Entity.Entity entity))
                 return;
-            void PlayerDamageEntity(WorldConfig.Generation.Entity.Entity target) {
+            void PlayerDamageEntity(Entity.Entity target) {
                 if (!target.active) return;
                 if (target is not IAttackable) return;
                 IAttackable atkEntity = target as IAttackable;
-                float3 knockback = math.normalize(target.position - player.position)
+                float3 knockback = math.normalize(target.position - player.head)
                     * settings.KnockBackStrength;
 
                 float atkDmg = settings.AttackDamage;

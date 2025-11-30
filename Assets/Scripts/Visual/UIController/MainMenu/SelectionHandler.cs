@@ -16,7 +16,7 @@ public class SelectionHandler : MonoBehaviour
     private void OnEnable() { 
         sAnimator = this.gameObject.GetComponent<Animator>(); 
         infoContent = this.gameObject.transform.GetChild(0).GetChild(0).GetComponent<ScrollRect>().content.GetComponent<RectTransform>();
-        DefaultChunkIcon = Resources.Load<Sprite>("Prefabs/DefaultChunk");
+        DefaultChunkIcon = Resources.Load<Sprite>("Prefabs/SelectScreen/DefaultChunk");
         MapStorage.World.Activate();
         active = false;
     }
@@ -76,7 +76,7 @@ public class SelectionHandler : MonoBehaviour
     }
 
     private static GameObject CreateWorldSelection(WorldMeta meta, RectTransform content){
-        GameObject newSelection = Instantiate(Resources.Load<GameObject>("Prefabs/WorldSelect"), content);
+        GameObject newSelection = Instantiate(Resources.Load<GameObject>("Prefabs/SelectScreen/WorldSelect"), content);
         RectTransform transform = newSelection.GetComponent<RectTransform>();
 
         Button info = newSelection.GetComponent<Button>();

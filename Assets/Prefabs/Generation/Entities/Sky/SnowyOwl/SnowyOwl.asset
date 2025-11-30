@@ -101,9 +101,9 @@ MonoBehaviour:
           z: 2
       collider:
         size:
-          x: 0.5
-          y: 0.5
-          z: 0.5
+          x: 1
+          y: 1.5
+          z: 1
         friction: 0.25
       movement:
         walkSpeed:

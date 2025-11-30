@@ -137,7 +137,7 @@ namespace WorldConfig.Generation.Item {
                     IsLocked = true;
                 }
 
-                display.ReflectMesh(DeserializeStruct(), Location, GetRotation(player.position - Location));
+                display.ReflectMesh(DeserializeStruct(), Location, GetRotation(player.head - Location));
             }
 
             private void PlaceStructure(float _) {
@@ -150,7 +150,7 @@ namespace WorldConfig.Generation.Item {
 
                 MaterialData placeMat = MatInfo.Retrieve(item.settings.MaterialName);
                 if (placeMat is not PlaceableStructureMat stctMat) return;
-                int3 rot = GetRotation(player.position - Location);
+                int3 rot = GetRotation(player.head - Location);
                 List<ConditionedGrowthMat.MapSamplePoint> edit = DeserializeStruct();
                 if (RemoveConflictMats(player, edit, Location, rot)) return;
                 PlaceNewMats(player, edit, Location, rot);

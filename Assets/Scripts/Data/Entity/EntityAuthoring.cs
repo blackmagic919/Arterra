@@ -72,9 +72,15 @@ public abstract class Entity: IRegistered{
     /// require knowledge of other entity's positions; however entities that aren't spatially bound may not fulfill 
     /// this contract if it no system requires its location.  </summary>
     [JsonIgnore] 
-    public float3 position {
+    public virtual float3 position {
         get => transform.position + transform.size / 2;
         set => transform.position = value - transform.size / 2;
+    }
+    /// <summary> The position of the entity's head--dictating where it attacks and ray traces from.
+    /// By default this is the same as <see cref="position"/>  </summary>
+    public virtual float3 head {
+        get => position;
+        set => position = value;
     }
     /// <summary>A single line property for retrieving and setting the entity's origin in grid space.
     /// Unlike <see cref="position"/>, the origin is the lowest point within the object's collider while

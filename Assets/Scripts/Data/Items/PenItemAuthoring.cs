@@ -138,7 +138,7 @@ namespace WorldConfig.Generation.Item
             if (!cxt.TryGetHolder(out PlayerStreamer.Player player))
                 return;
             if (Selector != null) {
-                Ray cRay = new Ray(player.position, player.Forward);
+                Ray cRay = new Ray(player.head, player.Forward);
                 float crnDist = GetDistClosestCorner(SelectBounds, cRay, out SelectedCorner);
                 if (crnDist > item.settings.SelectionRefreshDist) {
                     Selector.SetActive(false);
@@ -161,7 +161,7 @@ namespace WorldConfig.Generation.Item
             if (Selector == null) return;
             if (!cxt.TryGetHolder(out PlayerStreamer.Player player))
                 return;
-            Ray cRay = new Ray(player.position, player.Forward);
+            Ray cRay = new Ray(player.head, player.Forward);
             float3 projection = GetProjOntoRay(cRay, GetCorner(SelectBounds, SelectedCorner));
             Bounds nBounds = SetCorner(SelectBounds, ref SelectedCorner, math.round(projection));
             if (GetVolume(nBounds.size + new Vector3(1, 1, 1)) < item.settings.MaximumSelectionVolume)
@@ -232,7 +232,7 @@ namespace WorldConfig.Generation.Item
             if (!cxt.TryGetHolder(out PlayerStreamer.Player player))
                 return false;
             if (!PlayerInteraction.RayTestSolid(player, out float3 hitPt)) return false;
-            Ray ray = new Ray(player.position, player.Forward);
+            Ray ray = new Ray(player.head, player.Forward);
             int3 hitOrig = (int3)math.floor(hitPt);
 
             hitCoord = hitOrig;

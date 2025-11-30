@@ -20,6 +20,7 @@ public static class PanelNavbarManager {
         NavBar = Menu.transform.Find("Bar").Find("Viewport").Find("Content").gameObject;
         Content = Menu.transform.Find("Content").gameObject;
         SelectedPanel = null;
+        
 
         Add(new CraftingMenuController(Config.CURRENT.System.Crafting), "Crafting");
         Add(new ArmorController(Config.CURRENT.System.Armor), "Armor");

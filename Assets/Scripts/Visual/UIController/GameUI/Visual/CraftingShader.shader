@@ -2,6 +2,8 @@ Shader "Unlit/CraftingShader"
 {
     Properties
     {
+        //Unity UI components expect us to define this
+        _MainTex("Sprite Texture", 2D) = "white" {}
         _TexScale("Texture scale", float) = 0.25
         _GridSize("Grid size", float) = 0.025
         _GridColor("Grid color", Color) = (0.5, 0.5, 0.5, 1.0)
