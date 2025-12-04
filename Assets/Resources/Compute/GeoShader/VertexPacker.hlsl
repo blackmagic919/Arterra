@@ -28,6 +28,18 @@ float3 safeNormalize(float3 n) {
     return (dot(n, n) > 1e-12) ? normalize(n) : float3(0,1,0);
 }
 
+float2 Encode(float3 norm) {
+    norm = safeNormalize(norm);
+    return norm.xy;
+}
+
+float3 Decode(float2 proj) {
+    float invP = proj.x * proj.x + proj.y * proj.y;
+    if (invP > 1) return float3(0, 1, 0);
+    else return float3(proj, sqrt(1 - invP));
+}
+
+
 VertexInfo UnpackVertex(uint3 data){
     VertexInfo v = (VertexInfo)0;
 
@@ -37,24 +49,26 @@ VertexInfo UnpackVertex(uint3 data){
     v.positionOS = v.positionOS * (65.0 / 65535.0) - 0.5f;
     v.variant = (data.y >> 16) & 0xFFFF;
 
-    v.normalOS.x = data.z & 0xFF;
-    v.normalOS.y = (data.z >> 8) & 0xFF;
-    v.normalOS.z = (data.z >> 16) & 0xFF;
-    v.normalOS = v.normalOS / 128.0f - 1.0f;
+    uint ex = data.z & 0xFFF;
+    uint ey = (data.z >> 12) & 0xFFF;
+    float2 e = float2(ex, ey) / 4095.0f * 2.0f - 1.0f;
+    v.normalOS = Decode(e);
     return v;
 }
 
 uint3 PackVertices(float3 positionOS, float3 normalOS, uint variant){
     uint3 data;
 
+    float2 e = Encode(normalOS);
+    e = e * 0.5f + 0.5f;
+    uint ex = (uint)round(e.x * 4095.0);
+    uint ey = (uint)round(e.y * 4095.0);
+
     uint3 gridCoord = clamp(positionOS + 0.5f, 0, 65) * (65535.0 / 65.0);
-    uint3 normal = clamp(round(normalOS * 128) + 128, 0, 255);
     data.x = (gridCoord.x & 0xFFFF) | 
             (gridCoord.y & 0xFFFF) << 16;
     data.y = ((variant & 0xFFFF) << 16) | (gridCoord.z & 0xFFFF); 
-    data.z = (normal.x & 0xFF) | 
-            (normal.y & 0xFF) << 8 |
-            (normal.z & 0xFF) << 16;
+    data.z = (ey << 12) | ex; 
     return data;
 }
 
