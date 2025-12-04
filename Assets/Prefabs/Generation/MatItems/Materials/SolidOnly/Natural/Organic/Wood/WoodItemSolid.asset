@@ -15,11 +15,20 @@ MonoBehaviour:
   Name: Wood:Solid
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 1003
+        value:
+          value:
+            rid: 6648269870489141319
   TextureName: Wood
   Description: Versatile Material Harvested from Trees
   MaterialName: Wood
   MaterialState: 0
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 6648269870489141319
+      type: {class: CombustibleTag, ns: , asm: Assembly-CSharp}
+      data:
+        Temperature: 500
+        BurningRate: 0.1

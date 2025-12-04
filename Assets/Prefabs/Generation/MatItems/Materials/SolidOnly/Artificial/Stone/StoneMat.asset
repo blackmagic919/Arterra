@@ -27,7 +27,7 @@ MonoBehaviour:
   Children:
     value:
     - value: {fileID: 11400000, guid: 6f97e17459d8d46dbae4d5ec0ecbc71d, type: 2}
-    - value: {fileID: 11400000, guid: 62ad4c8886a1f4e5fae53bcb44471c01, type: 2}
+    - value: {fileID: 11400000, guid: d4080e59a6bbadd4d8332fe7da5c94fc, type: 2}
     - value: {fileID: 11400000, guid: e4cacdf2648e84cc5b2c91bdea6be97b, type: 2}
   references:
     version: 2

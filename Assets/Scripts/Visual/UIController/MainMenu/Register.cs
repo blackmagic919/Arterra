@@ -319,6 +319,7 @@ public interface IRegister {
         settings.Generation.Materials.value.MaterialDictionary.Construct();
         settings.Generation.Items.Construct();
         settings.System.Crafting.value.Recipes.Construct();
+        settings.System.FurnaceFormulas.Construct();
         settings.Quality.GeoShaders.value.Categories.Construct();
         settings.System.Armor.value.Variants.Construct();
         

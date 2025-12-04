@@ -28,8 +28,8 @@ uint Random(float3 seed) { return RandomState(asuint(seed.x)) ^ RandomState(asui
 
 
 float RandomFloat(float seed){ return RandomFloat(asuint(seed)); }
-float RandomFloat(float2 seed){ return RandomFloat(RandomState(asuint(seed.x)) ^ RandomState(asuint(seed.y))); }
-float RandomFloat(float3 seed){return RandomFloat(RandomState(asuint(seed.x)) ^ RandomState(asuint(seed.y)) ^ RandomState(asuint(seed.z)));}
+float RandomFloat(float2 seed){ return RandomFloat(RandomState(asuint(seed.x)) ^ RandomState(asuint(seed.y) ^ magicNum1)); }
+float RandomFloat(float3 seed){return RandomFloat(RandomState(asuint(seed.x)) ^ RandomState(asuint(seed.y) ^ magicNum1) ^ RandomState(asuint(seed.z) ^ magicNum2));}
 
 float3 Random3(uint seed){
     float3 ret = (float3)0;
