@@ -134,7 +134,7 @@ namespace WorldConfig.Generation.Material
         }
 
 
-        private bool GetMouseSelected(out InventoryController.Inventory inv, out int index) {
+        private bool GetMouseSelected(out IInventory inv, out int index) {
             inv = OpenedInventory.inv;
             return OpenedInventory.inv.Display.GetMouseSelected(out index);
         }

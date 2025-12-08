@@ -10,23 +10,29 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9b122e2cdae1890418994d56b469205c, type: 3}
-  m_Name: Dummy
+  m_Name: Steel
   m_EditorClassIdentifier: Assembly-CSharp:WorldConfig.Generation.Material:FurnaceMaterial/FurnaceFormula
-  Name: 
+  Name: Steel
   Tags:
     Reg:
       value: []
   Names:
     value:
-    - Rock:Solid
-    - Stone:Solid
-  Temperature: 400
+    - Iron:Solid
+    - Coal:Solid
+    - Steel:Solid
+  StartTemperature: 300
+  EndTemperature: 500
   Inputs:
-  - Index: 0
-    Rate: 0.1
+    value:
+    - Index: 0
+      Rate: 0.1
+    - Index: 1
+      Rate: 0.05
   Outputs:
-  - Index: 1
-    Rate: 0.1
+    value:
+    - Index: 2
+      Rate: 0.1
   references:
     version: 2
     RefIds: []

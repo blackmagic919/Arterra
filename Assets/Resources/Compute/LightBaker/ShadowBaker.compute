@@ -56,5 +56,6 @@ void BakeLights (uint3 id : SV_DispatchThreadID)
     //Add Neighboring Subchunk
     int3 nCoord = ((int3)SubChunkOrigin) - int3(0, 1, 0);
     if(nCoord.y >= 0) AddDirtySubchunk(cHandle, nCoord, 0x80);
-    else AddDirtyNeighboringChunkSubChunks(cHandle.CCoord, nCoord, skipInc, 0x8000 | (1));
+    //dp[3] = (0, 0, -1)
+    else AddDirtyNeighboringChunkSubChunks(cHandle.CCoord, SubChunkOrigin, skipInc, 0x8000 | (3));
 }

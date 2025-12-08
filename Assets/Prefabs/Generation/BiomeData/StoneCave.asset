@@ -31,6 +31,7 @@ MonoBehaviour:
         - Bat
         - Spider
         - Beetle
+        - CopperOre
       GroundMaterials:
         value:
         - value:
@@ -49,13 +50,13 @@ MonoBehaviour:
             Material: 2
             genSize: 0.2
             genShape: 0.6
-            frequency: 0.4
+            frequency: 0.3
             height: 0
         - value:
             Material: 3
             genSize: 0.3
             genShape: 0.25
-            frequency: 0.4
+            frequency: 0.3
             height: 0
         - value:
             Material: 4
@@ -68,6 +69,12 @@ MonoBehaviour:
             genSize: 0.29
             genShape: 0.7
             frequency: 0.5
+            height: 0
+        - value:
+            Material: 11
+            genSize: 0.65
+            genShape: 0.297
+            frequency: 0.4
             height: 0
       SurfaceMaterials:
         value:

@@ -159,6 +159,9 @@ public class GridUIManager {
     public RectTransform Transform;
     public GridLayoutGroup Grid;
     public GameObject[] Slots;
+    private Func<GameObject> GetSlot;
+    private Action<GameObject> ReleaseSlot;
+    private Func<GameObject, GameObject> GetSlotDisplay;
     private bool2 reverseAxis;
     private int2 DisplaySlotSize {
         get {
@@ -172,6 +175,7 @@ public class GridUIManager {
     public GridUIManager(
         GameObject GridUIComponent,
         Func<GameObject> GetSlot,
+        Action<GameObject> ReleaseSlot,
         int slotCount,
         GameObject root = null, 
         Func<GameObject, GameObject> GetSlotDisplay = null
@@ -181,6 +185,9 @@ public class GridUIManager {
         this.Grid = Object.GetComponent<GridLayoutGroup>();
         this.reverseAxis = false;
         this.root = root;
+        this.GetSlot = GetSlot;
+        this.ReleaseSlot = ReleaseSlot;
+        this.GetSlotDisplay = GetSlotDisplay;
 
         Slots = new GameObject[slotCount];
         for (int i = 0; i < slotCount; i++) {
@@ -188,6 +195,27 @@ public class GridUIManager {
             Slot.transform.SetParent(Object.transform, false);
             Slots[i] = GetSlotDisplay?.Invoke(Slot) ?? Slot;
         }
+    }
+
+    public void Release() {
+        foreach(GameObject Slot in Slots) {
+            if (Slot == null) continue;
+            ReleaseSlot(Slot);
+        } GameObject.Destroy(this.root);
+    }
+
+    public void Resize(int SlotCount) {
+        for (int i = SlotCount; i < Slots.Length; i++) {
+            ReleaseSlot(Slots[i]);
+        }
+
+        GameObject[] NewSlots = new GameObject[SlotCount];
+        Slots.ToList().CopyTo(0, NewSlots, 0, math.min(SlotCount, Slots.Length));
+        for (int i = Slots.Length; i < SlotCount; i++) {
+            GameObject Slot = GetSlot.Invoke();
+            Slot.transform.SetParent(Object.transform, false);
+            NewSlots[i] = GetSlotDisplay?.Invoke(Slot) ?? Slot;
+        } Slots = NewSlots;
     }
 
     public bool GetMouseSelected(out int index) {

@@ -9,6 +9,7 @@ using static CraftingMenuController;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using WorldConfig.Generation.Item;
+using System.Linq;
 
 public class CraftingRecipeSearch {
     private Transform Menu;
@@ -21,9 +22,9 @@ public class CraftingRecipeSearch {
     private Transform RecipeDisplay;
     private CraftingGrid RecipeGrid;
     private IndirectUpdate HighlightTask;
-    private IngredientTable IngredeintList;
+    private IngredientTable IngredientList;
     private CraftingRecipe ActiveRecipe;
-     private AnimatorAwaitTask ClosingTask;
+    private AnimatorAwaitTask ClosingTask;
     private int PrevHighlightedItemSlot;
 
     public CraftingRecipeSearch(Transform craftingMenu, ref int GridIndex) {
@@ -41,7 +42,11 @@ public class CraftingRecipeSearch {
 
         Registry<CraftingAuthoring> registry = Registry<CraftingAuthoring>.FromCatalogue(Config.CURRENT.System.Crafting.value.Recipes);
         GridUIManager RecipeContainer = new GridUIManager(SearchContainer.gameObject,
-            Indicators.RecipeSelections.Get, settings.MaxRecipeSearchDisplay);
+            Indicators.RecipeSelections.Get,
+            Indicators.RecipeSelections.Release,
+            settings.MaxRecipeSearchDisplay
+        );
+        
         RecipeSearch = new RegistrySearchDisplay<CraftingAuthoring>(
             registry, Menu, SearchInput, RecipeContainer
         );
@@ -85,7 +90,7 @@ public class CraftingRecipeSearch {
         InputPoller.AddKeyBindChange(() => {
             InputPoller.AddBinding(new ActionBind("Select",
                 CraftingMenuSelect, ActionBind.Exclusion.None),
-                "PlayerCraft:SEL", "3.5::Window");
+                "PlayerCraftSearch:SEL", "3.5::Window");
         });
     }
 
@@ -94,6 +99,8 @@ public class CraftingRecipeSearch {
         animator.SetBool("IsOpen", false);
         ClosingTask?.Disable();
         ClosingTask = new AnimatorAwaitTask(animator, "ClosedAnim", () => {
+            //Does nothing if not bound :)
+            InputPoller.AddKeyBindChange(() => InputPoller.RemoveBinding("PlayerCraftSearch:SEL", "3.5::Window"));
             DeactivateRecipeDisplay();
             RecipeSearch.Deactivate();
             Menu.gameObject.SetActive(false);
@@ -105,7 +112,9 @@ public class CraftingRecipeSearch {
             HighlightTask.Active = false;
 
         ActiveRecipe = template.SerializeCopy();
-        this.IngredeintList = new IngredientTable(RecipeDisplay, ActiveRecipe);
+        List<(int, float)> ing = ActiveRecipe.items.value.Concat(ActiveRecipe.materials.value).Select(i => (i.Index, i.Amount)).ToList();
+        this.IngredientList = new IngredientTable(RecipeDisplay.Find("IngredientTable"), ing);
+
         HighlightTask = new IndirectUpdate(HighlightGrid);
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(HighlightTask);
         RecipeGrid.RefreshGridWithRecipe(ActiveRecipe, instance.GridWidth);
@@ -126,7 +135,7 @@ public class CraftingRecipeSearch {
 
         ActiveRecipe = null;
         PrevHighlightedItemSlot = -1;
-        this.IngredeintList?.ReleaseIngredientList();
+        this.IngredientList?.ReleaseIngredientList();
         SearchContainer.gameObject.SetActive(true);
         RecipeDisplay.gameObject.SetActive(false);
     }
@@ -142,7 +151,7 @@ public class CraftingRecipeSearch {
         if (HighlightMouseMaterial())
             UnHighlightPrevItem();
         else if (!HighlightMouseItem()) {
-            IngredeintList.UnselectIngredient();
+            IngredientList.UnselectIngredient();
             UnHighlightPrevItem();  
         };
     }
@@ -158,7 +167,7 @@ public class CraftingRecipeSearch {
 
         if (PrevHighlightedItemSlot == index) return true;
         UnHighlightPrevItem();
-        IngredeintList.SelectIngredient(index, false);
+        IngredientList.SelectIngredient(ActiveRecipe.items.value[index].Index);
         PrevHighlightedItemSlot = index;
         return true;
     } 
@@ -203,85 +212,77 @@ public class CraftingRecipeSearch {
             RecipeGrid.GridData[i].flags = IsTarget ? 1u : 0;
         }
         if (!changed) return material != -1;
-        if (material != -1) IngredeintList.SelectIngredient(slotIndex, true);
+        if (material != -1) IngredientList.SelectIngredient(ActiveRecipe.materials.value[slotIndex].Index);
         instance.Rendering.IsDirty = true;
         return material != -1;
     }
+}
 
-    private class IngredientTable {
-        private Dictionary<int, GameObject> ItemToIngredient;
-        private CraftingRecipe ActiveRecipe;
-        private Transform Table;
-        private bool Highlighted;
-        public IngredientTable(Transform Display, CraftingRecipe SerializedRecipe) {
-            this.ActiveRecipe = SerializedRecipe;
-            this.Table = Display.Find("IngredientTable");
-            CreatIngredientList();
-            Highlighted = false;
+public class IngredientTable {
+    private Dictionary<int, GameObject> ItemToIngredient;
+    private Transform Table;
+    private bool Highlighted;
+    public IngredientTable(Transform Table, List<(int ind, float amt)> ingList) {
+        this.Table = Table;
+        CreatIngredientList(ingList);
+        Highlighted = false;
+    }
+    private void CreatIngredientList(List<(int ind, float amt)> ingList) {
+        ItemToIngredient = new Dictionary<int, GameObject>();
+        GameObject IngredientSlot = Resources.Load<GameObject>("Prefabs/GameUI/Crafting/Ingredient");
+        foreach ((int ind, float amt) ing in ingList) {
+            if (ing.amt <= 0) continue;
+            if (ItemToIngredient.ContainsKey(ing.ind)) continue;
+            GameObject NewSlot = GameObject.Instantiate(IngredientSlot, Table, false);
+            InstantiateIngredient(ing, NewSlot);
+            ItemToIngredient.Add(ing.ind, NewSlot);
         }
-        private void CreatIngredientList() {
-            ItemToIngredient = new Dictionary<int, GameObject>();
-            GameObject IngredientSlot = Resources.Load<GameObject>("Prefabs/GameUI/Crafting/Ingredient");
-            CreateList(ActiveRecipe.items.value);
-            CreateList(ActiveRecipe.materials.value);
-            SegmentedUIEditor.ForceLayoutRefresh(Table);
-            void CreateList(List<CraftingRecipe.Ingredient> ingList) {
-                foreach (CraftingRecipe.Ingredient ing in ingList) {
-                    if (ing.Amount <= 0) continue;
-                    if (ItemToIngredient.ContainsKey(ing.Index)) continue;
-                    GameObject NewSlot = GameObject.Instantiate(IngredientSlot, Table, false);
-                    InstantiateIngredient(ing, NewSlot);
-                    ItemToIngredient.Add(ing.Index, NewSlot);
-                }
-            }
-        }
+        SegmentedUIEditor.ForceLayoutRefresh(Table);
+    }
 
-        static void SetTextStyle(Transform slot, FontStyles fontStyle) {
-            TextMeshProUGUI Text = slot.Find("Name").GetComponent<TextMeshProUGUI>();
-            Text.fontStyle = fontStyle;
-            Text = slot.Find("Description").GetComponent<TextMeshProUGUI>();
-            Text.fontStyle = fontStyle;
-        }
+    static void SetTextStyle(Transform slot, FontStyles fontStyle) {
+        TextMeshProUGUI Text = slot.Find("Name").GetComponent<TextMeshProUGUI>();
+        Text.fontStyle = fontStyle;
+        Text = slot.Find("Description").GetComponent<TextMeshProUGUI>();
+        Text.fontStyle = fontStyle;
+    }
 
-        public void SelectIngredient(int index, bool IsMaterial) {
-            UnselectIngredient();
-            if (IsMaterial) index = ActiveRecipe.materials.value[index].Index;
-            else index = ActiveRecipe.items.value[index].Index;
+    public void SelectIngredient(int index) {
+        UnselectIngredient();
 
-            if (!ItemToIngredient.TryGetValue(index, out GameObject slot)) return;
-            slot.transform.SetSiblingIndex(0);
-            SetTextStyle(slot.transform, FontStyles.Bold);
-            SegmentedUIEditor.ForceLayoutRefresh(slot.transform);
-            Highlighted = true;
-        } 
-        
-        public void UnselectIngredient() {
-            if (!Highlighted) return;
-            Highlighted = false;
-            Transform prevSel = Table.GetChild(0);
-            if (prevSel != null) SetTextStyle(prevSel, FontStyles.Normal);
-        }
+        if (!ItemToIngredient.TryGetValue(index, out GameObject slot)) return;
+        slot.transform.SetSiblingIndex(0);
+        SetTextStyle(slot.transform, FontStyles.Bold);
+        SegmentedUIEditor.ForceLayoutRefresh(slot.transform);
+        Highlighted = true;
+    } 
+    
+    public void UnselectIngredient() {
+        if (!Highlighted) return;
+        Highlighted = false;
+        Transform prevSel = Table.GetChild(0);
+        if (prevSel != null) SetTextStyle(prevSel, FontStyles.Normal);
+    }
 
-        public void ReleaseIngredientList() {
-            if (ItemToIngredient == null) return;
-            foreach (GameObject slot in ItemToIngredient.Values)
-                GameObject.Destroy(slot);
-            ItemToIngredient = null;
-        }
+    public void ReleaseIngredientList() {
+        if (ItemToIngredient == null) return;
+        foreach (GameObject slot in ItemToIngredient.Values)
+            GameObject.Destroy(slot);
+        ItemToIngredient = null;
+    }
 
-        private void InstantiateIngredient(CraftingRecipe.Ingredient ing, GameObject Slot) {
-            var itemInfo = Config.CURRENT.Generation.Items;
-            var texInfo = Config.CURRENT.Generation.Textures;
-            Transform Icon = Slot.transform.Find("Icon");
-            Authoring template = itemInfo.Retrieve(ing.Index);
-            IItem item = template.Item;
-            item.Create(ing.Index, Mathf.CeilToInt(ing.Amount * item.UnitSize));
-            Sprite tex = texInfo.Retrieve(item.TexIndex).self;
-            Icon.GetComponent<Image>().sprite = tex;
-            TextMeshProUGUI Text = Slot.transform.Find("Name").GetComponent<TextMeshProUGUI>();
-            Text.text = template.Name;
-            Text = Slot.transform.Find("Description").GetComponent<TextMeshProUGUI>();
-            Text.text = template.Description;
-        }
+    private void InstantiateIngredient((int ind, float amt) ing, GameObject Slot) {
+        var itemInfo = Config.CURRENT.Generation.Items;
+        var texInfo = Config.CURRENT.Generation.Textures;
+        Transform Icon = Slot.transform.Find("Icon");
+        Authoring template = itemInfo.Retrieve(ing.ind);
+        IItem item = template.Item;
+        item.Create(ing.ind, Mathf.CeilToInt(ing.amt * item.UnitSize));
+        Sprite tex = texInfo.Retrieve(item.TexIndex).self;
+        Icon.GetComponent<Image>().sprite = tex;
+        TextMeshProUGUI Text = Slot.transform.Find("Name").GetComponent<TextMeshProUGUI>();
+        Text.text = template.Name;
+        Text = Slot.transform.Find("Description").GetComponent<TextMeshProUGUI>();
+        Text.text = template.Description;
     }
 }

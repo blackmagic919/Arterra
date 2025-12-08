@@ -9,7 +9,7 @@ using WorldConfig.Generation.Entity;
 public class CamelController : EntityController
 {
     private Animator animator;
-    private unsafe Camel.CamelEntity entity;
+    private Camel.CamelEntity entity;
     private Camel.CamelSetting settings => Camel.CamelEntity.settings;
     private bool active = false;
 
@@ -24,14 +24,14 @@ public class CamelController : EntityController
         base.Initialize(Entity);
     }
 
-    public unsafe void FixedUpdate(){
+    public void FixedUpdate(){
         if(!entity.active) return;
         EntityManager.AssertEntityLocation(entity, entity.GCoord);    
         TerrainCollider.Transform rTransform = entity.tCollider.transform;
         rTransform.position = CPUDensityManager.GSToWS(rTransform.position - settings.collider.offset);
         this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
     }
-    public override unsafe void Update()
+    public override void Update()
     {
         if(!entity.active) {
             Disable();
@@ -50,7 +50,7 @@ public class CamelController : EntityController
         
     }
 
-    public unsafe override void Disable(){ 
+    public override void Disable(){ 
         if(!active) return;
         active = false;
 
@@ -58,7 +58,7 @@ public class CamelController : EntityController
         base.Disable();
      }
 
-    public unsafe void OnDrawGizmos(){
+    public void OnDrawGizmos(){
         if(!active) return;
         Gizmos.color = Color.red; 
         Gizmos.DrawWireCube(transform.position, settings.collider.size * 2);

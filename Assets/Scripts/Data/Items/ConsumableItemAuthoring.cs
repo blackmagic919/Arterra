@@ -92,7 +92,7 @@ public class ConsumbaleItem : IItem{
 
         player.Play("Consume");
         delta = AmountRaw - math.max(AmountRaw - delta, 0);
-        player.vitality.Heal(delta * settings.NutritionValue);
+        player.vitality.Heal(delta * settings.NutritionValue * UnitSize);
         AmountRaw -= delta;
         if(AmountRaw == 0) cxt.TryRemove();//
     }

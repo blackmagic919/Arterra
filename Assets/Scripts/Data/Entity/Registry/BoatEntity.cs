@@ -100,7 +100,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             }
         }
 
-        public unsafe Boat() { }
+        public Boat() { }
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (BoatSetting)setting;
             controller = new BoatController(Controller, this);

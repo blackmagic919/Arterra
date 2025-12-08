@@ -135,7 +135,11 @@ void AddDirtySubchunk(CInfo cHandle, int3 SCoord, uint HashInd){
 void AddDirtyNeighboringChunkSubChunks(int3 CCoord, int3 SCoord, int skipInc, uint cxt){
     //In case the adjacent subchunk is outside the chunk
     //scales subchunks to absolute subchunk coordinates
-    SCoord = SCoord * skipInc + CCoord * subChunksAxis; 
+    int dir = cxt & 0xFF;
+    SCoord = SCoord * skipInc + CCoord * subChunksAxis;
+    //If going upwards, add skipInc, else subtract just 1 
+    SCoord += dp[dir] * ((dir % 2) == 0 ? skipInc : 1);
+
     CCoord = ((SCoord % subChunksAxis) + subChunksAxis) % subChunksAxis;
     CCoord = (SCoord - CCoord) / subChunksAxis;
     CInfo nHandle = _AddressDict[HashCoord(CCoord)];
@@ -150,7 +154,7 @@ void AddDirtyNeighboringChunkSubChunks(int3 CCoord, int3 SCoord, int skipInc, ui
     nSkip = max(skipInc / nSkip, 1);
     for(uint k = 0; k < nSkip * nSkip; k++){
         int2 dSC = int2(k / nSkip, k % nSkip);
-        int3 nSC = clamp(SCoord + mul(dNA[cxt & 0xFF], dSC), 0, subChunksAxis-1);
+        int3 nSC = clamp(SCoord + mul(dNA[dir/2], dSC), 0, subChunksAxis-1);
         AddDirtySubchunk(nHandle, nSC, (cxt >> 8) & 0xFF);
     }
 }

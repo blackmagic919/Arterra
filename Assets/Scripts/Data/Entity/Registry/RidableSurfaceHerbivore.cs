@@ -306,7 +306,7 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         //Task 4
-        private static unsafe void ChaseMate(Animal self) {//I feel you man
+        private static void ChaseMate(Animal self) {//I feel you man
             if (!self.settings.Recognition.FindPreferredMate(self, self.genetics.Get(
                 self.settings.Recognition.SightDistance), out Entity mate)
             ) {
@@ -341,7 +341,7 @@ public class RidableSurfaceHerbivore : Authoring
 
 
         //Task 6
-        private static unsafe void FollowRider(Animal self) {
+        private static void FollowRider(Animal self) {
             if (self.RiderTarget == Guid.Empty) {
                 self.TaskIndex = 0;
                 return;
@@ -381,7 +381,7 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         //Task 8
-        private static unsafe void ChasePrey(Animal self) {
+        private static void ChasePrey(Animal self) {
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
@@ -397,7 +397,7 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         //Task 9
-        private static unsafe void EatFood(Animal self) {
+        private static void EatFood(Animal self) {
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if (self.TaskDuration <= 0) {
                 if (self.settings.Recognition.FindPreferredPrey((int3)math.round(self.position),
@@ -484,7 +484,7 @@ public class RidableSurfaceHerbivore : Authoring
         }
 
         //Task 13
-        private static unsafe void RunFromPredator(Animal self) {
+        private static void RunFromPredator(Animal self) {
             Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);

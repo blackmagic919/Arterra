@@ -342,6 +342,7 @@ public interface IRegister {
         Association.Add("Structures", settings.Generation.Structures.value.StructureDictionary);
         Association.Add("Materials", settings.Generation.Materials.value.MaterialDictionary);
         Association.Add("Items", settings.Generation.Items);
+        Association.Add("FurnaceRecipies", settings.System.FurnaceFormulas);
         Association.Add("CraftingRecipes", settings.System.Crafting.value.Recipes);
         Association.Add("GeoShaders", settings.Quality.GeoShaders.value.Categories);
         Association.Add("ArmorVariants", settings.System.Armor.value.Variants);

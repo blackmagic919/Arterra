@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: C:Organic
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 1003
+        value:
+          value:
+            rid: 7772773331337740360
   Children:
     value:
     - value: {fileID: 11400000, guid: f50536952595e40f8afb774b0175f5fe, type: 2}
@@ -30,4 +34,9 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: 6c7fe7a16e86549a09c338f314021fe5, type: 2}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7772773331337740360
+      type: {class: CombustibleTag, ns: , asm: Assembly-CSharp}
+      data:
+        Temperature: 150
+        BurningRate: 0.25

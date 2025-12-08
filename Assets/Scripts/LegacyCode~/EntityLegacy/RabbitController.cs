@@ -2,14 +2,13 @@ using Unity.Mathematics;
 using System.Runtime.InteropServices;
 using System;
 using UnityEngine;
-using Unity.Collections.LowLevel.Unsafe;
 using WorldConfig;
 using WorldConfig.Generation.Entity;
 
 public class RabbitController : EntityController
 {
     private Animator animator;
-    private unsafe Rabbit.RabbitEntity entity;
+    private Rabbit.RabbitEntity entity;
     private Rabbit.RabbitSetting settings => Rabbit.RabbitEntity.settings;
     private bool active = false;
 
@@ -24,14 +23,14 @@ public class RabbitController : EntityController
         base.Initialize(Entity);
     }
 
-    public unsafe void FixedUpdate(){
+    public void FixedUpdate(){
         if(!entity.active) return;
         EntityManager.AssertEntityLocation(entity, entity.GCoord);    
         TerrainCollider.Transform rTransform = entity.tCollider.transform;
         rTransform.position = CPUDensityManager.GSToWS(rTransform.position - settings.collider.offset);
         this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
     }
-    public override unsafe void Update()
+    public override void Update()
     {
         if(!entity.active) {
             Disable();

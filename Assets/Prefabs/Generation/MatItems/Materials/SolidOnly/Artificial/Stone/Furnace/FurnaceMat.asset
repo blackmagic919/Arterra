@@ -110,14 +110,23 @@ MonoBehaviour:
         flags: 1
       _material: 3
       _offset: 537395712
+    - check:
+        bounds:
+          data: 1677754112
+        flags: 1
+      _material: 3
+      _offset: 537395713
   SelfIndex: 0
   randYRot: 1
   randXRot: 0
   randZRot: 0
   DisplayIcon: 1
-  MaxSlotCount: 5
   FuelTag: 1003
-  InputTag: 2003
+  LitFurnaceMaterial: FurnaceLit
+  UnlitFurnaceMaterial: Furnace
+  MaxInputSlotCount: 6
+  MaxOutputSlotCount: 3
+  MaxFuelSlotCount: 3
   MaterialDrops:
     SolidItem: 0
     LiquidItem: 2

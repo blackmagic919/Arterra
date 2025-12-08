@@ -101,7 +101,7 @@ public struct Movement {
                 count = 0
             };
 
-            unsafe void OnEntityFound(Entity nEntity) {
+            void OnEntityFound(Entity nEntity) {
                 if (nEntity == null) return;
                 if (nEntity.info.entityType != self.info.entityType) return;
                 IBoid nBoid = (IBoid)nEntity;

@@ -19,7 +19,7 @@ MonoBehaviour:
   TextureName: Meat
   Description: Edible Flesh of a Creature
   ConsumptionRate: 2.5
-  NutritionValue: 0.02
+  NutritionValue: 2.55
   references:
     version: 2
     RefIds: []

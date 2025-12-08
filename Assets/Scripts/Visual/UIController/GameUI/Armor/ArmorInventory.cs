@@ -20,6 +20,9 @@ public class ArmorInventory: IInventory {
         Info = new IArmorItem[system.Count()];
     }
 
+    public IItem PeekItem(int index) => Info[index];
+    public int Capacity => (int)Info.Length;
+
     public bool OnDamaged(ref (float dmg, float3 kb, Entity entity) cxt) {
         foreach (IArmorItem itm in Info) {
             itm?.OnDamaged(ref cxt.dmg, ref cxt.kb, ref cxt.entity);
@@ -63,9 +66,31 @@ public class ArmorInventory: IInventory {
             Display[i]?.Release();
         } Display = null;
     }
-    public bool AddEntry(IArmorItem item, int slot) {
+
+
+    public int RemoveStackableKey(int KeyIndex, int delta, Action<IItem> OnRemove = null) {
+         if (delta == 0) return 0;
+         int start = delta; int remainder = start;
+         
+        for (int SlotIndex = 0; SlotIndex < Info.Length; SlotIndex++) {
+            IItem mat = Info[SlotIndex];
+            if (mat.Index != KeyIndex) continue;
+
+            delta = mat.AmountRaw - math.max(mat.AmountRaw - remainder, 0);
+            mat.AmountRaw -= delta; remainder -= delta;
+            if (OnRemove != null) {
+                IItem removed = mat.Clone() as IItem;
+                removed.AmountRaw = delta;
+                OnRemove(removed);
+            } if (mat.AmountRaw == 0) RemoveEntry(SlotIndex);
+        }
+        return start - remainder;
+    }
+
+    public bool AddEntry(IItem item, int slot) {
+        if (item is not IArmorItem aItem) return false;
         item = item.Clone() as IArmorItem;
-        List<EquipInfo.Slot> slots = item.GetEquipInfo().Regions;
+        List<EquipInfo.Slot> slots = aItem.GetEquipInfo().Regions;
         string slotName = system.RetrieveName(slot);
         if (!slots.Exists((s) => s.PlaceableSlot == slotName))
             return false;
@@ -77,7 +102,36 @@ public class ArmorInventory: IInventory {
                 return false;
         }
         foreach (int pSlot in placeSlots) {
-            Info[pSlot] = item;
+            Info[pSlot] = aItem;
+            ItemContext cxt = new ItemContext(this, pSlot);
+            Info[pSlot].OnEnter(OnAddElement(cxt));
+            AttachDisplay(pSlot);
+        } return true;
+    }
+
+    public bool AddEntry(IItem item, out int head) {
+        head = -1;
+        if (item is not IArmorItem aItem) return false;
+        item = item.Clone() as IArmorItem;
+        List<EquipInfo.Slot> slots = aItem.GetEquipInfo().Regions;
+
+        Dictionary<int, bool>  groups = slots.Select(s => s.GroupReference).ToDictionary(i => i, i => true);
+        foreach (EquipInfo.Slot slot in slots) {
+            int slotIndex = system.RetrieveIndex(slot.PlaceableSlot);
+            if (Info[slotIndex] == null) continue;
+            groups[slot.GroupReference] = false;
+        }
+
+        List<KeyValuePair<int, bool> > kvGs = groups.ToList();
+        if (!kvGs.Exists(s => s.Value)) return false;
+        int groupIndex = kvGs.Find(s => s.Value).Key;
+
+        int[] placeSlots = slots.FindAll(s => s.GroupReference == groupIndex)
+            .Select(s => system.RetrieveIndex(s.PlaceableSlot)).ToArray();
+        head = placeSlots.First();
+        
+        foreach (int pSlot in placeSlots) {
+            Info[pSlot] = aItem;
             ItemContext cxt = new ItemContext(this, pSlot);
             Info[pSlot].OnEnter(OnAddElement(cxt));
             AttachDisplay(pSlot);

@@ -9,7 +9,7 @@ using WorldConfig.Generation.Entity;
 
 public class ItemController : EntityController
 {
-    private unsafe EItem.EItemEntity entity;
+    private EItem.EItemEntity entity;
     private EItem.EItemSetting settings => EItem.EItemEntity.settings;
     private bool active = false;
 
@@ -41,14 +41,14 @@ public class ItemController : EntityController
         } meshInfo.Release();
     }
 
-    public unsafe void FixedUpdate(){
+    public void FixedUpdate(){
         if(!entity.active) return;
         EntityManager.AssertEntityLocation(entity, entity.GCoord);    
         TerrainCollider.Transform rTransform = entity.tCollider.transform;
         rTransform.position = CPUDensityManager.GSToWS(rTransform.position - settings.collider.offset);
         this.transform.SetPositionAndRotation(rTransform.position, rTransform.rotation);
     }
-    public override unsafe void Update()
+    public override void Update()
     {
         if(!entity.active) {
             Disable();
@@ -63,7 +63,7 @@ public class ItemController : EntityController
         Destroy(gameObject);
         base.Disable();
      }
-    public unsafe void OnDrawGizmos(){
+    public void OnDrawGizmos(){
         if(!active) return;
         Gizmos.color = Color.red;
         Gizmos.DrawWireCube(entity.tCollider.transform.position, settings.collider.size * 2);

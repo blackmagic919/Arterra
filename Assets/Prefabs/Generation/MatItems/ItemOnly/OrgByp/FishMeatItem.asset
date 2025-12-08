@@ -19,7 +19,7 @@ MonoBehaviour:
   TextureName: FishMeat
   Description: Edible Flesh From an Aquatic Creature.
   ConsumptionRate: 3
-  NutritionValue: 2
+  NutritionValue: 1.275
   references:
     version: 2
     RefIds: []

@@ -63,7 +63,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             InputPoller.AddBinding(new ActionBind("Deselect",
                 DeselectDrag, ActionBind.Exclusion.None), "PlayerCraft:DS", "3.5::Window");
             InputPoller.AddBinding(new ActionBind("Select",
-                Select, ActionBind.Exclusion.None), "PlayerCraft:SL", "3.5::Window");
+                Select, ActionBind.Exclusion.None), "PlayerCraft:SEL", "3.5::Window");
             InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial),  "PlayerCraft:SELP", "3.5::Window");
             InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "PlayerCraft:SELA", "3.0::AllWindow");
         });
@@ -87,7 +87,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         RecipeSearch.Deactivate();
     }
 
-    private bool GetMouseSelected(out InventoryController.Inventory inv, out int index) {
+    private bool GetMouseSelected(out IInventory inv, out int index) {
         if (InventoryController.Cursor.IsHolding) {
             //Check if item is material
             IItem cursor = InventoryController.Cursor.Item;
@@ -98,11 +98,11 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             return GetMouseMatSelect(out inv, out index);
         } else {
             if (GetMouseItemSelect(out inv, out index)) {
-                if (inv.Info[index] != null) return true;
+                if (inv.PeekItem(index) != null) return true;
             } return GetMouseMatSelect(out inv, out index);
         }
 
-        bool GetMouseMatSelect(out InventoryController.Inventory inv, out int index) {
+        bool GetMouseMatSelect(out IInventory inv, out int index) {
             inv = Rendering.MainGridMatItems; index = -1;
             Vector3[] corners = new Vector3[4];
             Rendering.crafting.display.Transform.GetWorldCorners(corners);
@@ -115,7 +115,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             return true;
         }
         
-        bool GetMouseItemSelect(out InventoryController.Inventory inv, out int index) {
+        bool GetMouseItemSelect(out IInventory inv, out int index) {
             inv = Rendering.crafting.NonMatInventory;
             return Rendering.crafting.NonMatInventory.Display.GetMouseSelected(out index);
         }
@@ -349,8 +349,8 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         Rendering.MainGridMatItems.CopyTo(tempInv, 0, 0);
         Rendering.crafting.NonMatInventory.CopyTo(tempInv, 0, itemOffset);
         Rendering.MainGridMatItems.Clear(); Rendering.crafting.NonMatInventory.Clear();
-        AccumulateRequiredIngredients(Rendering.MainGridMatItems, recipe.materials.value, 0);
-        AccumulateRequiredIngredients(Rendering.crafting.NonMatInventory, recipe.items.value, itemOffset);
+        AccumulateRequiredIngredients(recipe.materials.value, 0);
+        AccumulateRequiredIngredients(recipe.items.value, itemOffset);
 
         //Aquire items from inventory
         foreach (int item in Deficit.Keys) {
@@ -378,7 +378,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             tempInv.RemoveEntry(i);
         }
 
-        void AccumulateRequiredIngredients(InventoryController.Inventory inv, List<CraftingRecipe.Ingredient> ingList, int offset) {
+        void AccumulateRequiredIngredients(List<CraftingRecipe.Ingredient> ingList, int offset) {
             for (int i = 0; i < ingList.Count; i++) {
                 CraftingRecipe.Ingredient ing = ingList[i];
                 IItem item = tempInv.Info[offset + i];
@@ -595,12 +595,19 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             GameObject Root = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Inventory"), display.Object.transform);
             GameObject GridContent = Root.transform.GetChild(0).GetChild(0).gameObject;
             GridUIManager Display = new GridUIManager(GridContent,
-                Indicators.TransparentSlots.Get, (int)NonMatInventory.capacity, Root,
+                Indicators.TransparentSlots.Get,
+                frame => {
+                    ResizeSlotRect(frame, Vector2.one);
+                    Indicators.TransparentSlots.Release(frame.transform.parent.gameObject);
+                },
+                (int)NonMatInventory.capacity,
+                Root,
                 Obj => {
-                GameObject frame = Obj.transform.GetChild(0).gameObject;
-                ResizeSlotRect(frame, Vector2.one * 0.75f);
-                return frame;
-            });
+                    GameObject frame = Obj.transform.GetChild(0).gameObject;
+                    ResizeSlotRect(frame, Vector2.one * 0.75f);
+                    return frame;
+                }
+            );
             
             NonMatInventory.InitializeDisplay(Display);
             NonMatInventory.Display.Grid.cellSize = display.Transform.sizeDelta / GridWidth;
@@ -608,12 +615,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             NonMatInventory.Display.ChangeAlginment(GridLayoutGroup.Corner.LowerLeft);
         }
 
-        public void ReleaseDisplay() {
-            NonMatInventory?.ReleaseDisplay(frame => {
-                ResizeSlotRect(frame, Vector2.one);
-                Indicators.TransparentSlots.Release(frame.transform.parent.gameObject);
-            });
-        }
+        public void ReleaseDisplay() => NonMatInventory?.ReleaseDisplay();
 
         public static void ResizeSlotRect(GameObject slot, Vector2 size) {
             RectTransform tnsf = slot.GetComponent<RectTransform>();

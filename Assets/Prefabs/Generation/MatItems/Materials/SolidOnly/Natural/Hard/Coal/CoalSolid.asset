@@ -15,11 +15,20 @@ MonoBehaviour:
   Name: Coal:Solid
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 1003
+        value:
+          value:
+            rid: 7772773331337740359
   TextureName: CoalItem
   Description: Dark Combustible Mineral found Underground
   MaterialName: Coal
   MaterialState: 0
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7772773331337740359
+      type: {class: CombustibleTag, ns: , asm: Assembly-CSharp}
+      data:
+        Temperature: 700
+        BurningRate: 0.025

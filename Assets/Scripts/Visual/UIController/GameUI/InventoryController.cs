@@ -168,7 +168,7 @@ public static class InventoryController {
         Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.SelectedColor; //Set the inital selected color
     }
 
-    private static bool GetMouseTarget(out Inventory Inv, out int index) {
+    private static bool GetMouseTarget(out IInventory Inv, out int index) {
         Inv = null;
         if (Primary.Display.GetMouseSelected(out index)) {
             Inv = Primary;
@@ -190,12 +190,12 @@ public static class InventoryController {
         EntityManager.CreateEntity(math.round(location), eIndex, Entity);
     }
 
-    public delegate bool MouseInvSelect(out Inventory Inv, out int index);
+    public delegate bool MouseInvSelect(out IInventory Inv, out int index);
     public static bool Select(MouseInvSelect GetSelectedInvInfo) => Select(GetSelectedInvInfo, false);
     public static bool SelectPartial(MouseInvSelect GetSelectedInvInfo) => SelectPartial(GetSelectedInvInfo, false);
     public static bool DeselectDrag(MouseInvSelect GetSelectedInvInfo) => DeselectDrag(GetSelectedInvInfo, false);
     private static bool Select(MouseInvSelect GetSelectedInvInfo, bool isRoot) {
-        if (!GetSelectedInvInfo(out Inventory Inv, out int index)) {
+        if (!GetSelectedInvInfo(out IInventory Inv, out int index)) {
             if (isRoot) Cursor.ClearCursor(DropItem);
             return false;
         }
@@ -214,7 +214,7 @@ public static class InventoryController {
 
         Cursor.ClearCursor(AddEntry);
         //Swap the cursor with the selected slot
-        IItem clickedItem = Inv.Info[index];
+        IItem clickedItem = Inv.PeekItem(index);
         if (clickedItem == null) return true;
         clickedItem = clickedItem.Clone() as IItem;
         Inv.RemoveEntry(index);
@@ -223,7 +223,7 @@ public static class InventoryController {
     }
 
     private static bool SelectPartial(MouseInvSelect GetSelectedInvInfo, bool isRoot) {
-        if (!GetSelectedInvInfo(out Inventory Inv, out int index)) {
+        if (!GetSelectedInvInfo(out IInventory Inv, out int index)) {
             if (isRoot) Cursor.ClearCursor(DropItem);
             return false;
         } else if (!Cursor.IsHolding || Cursor.State == CursorManager.PlaceState.Split) {
@@ -237,7 +237,7 @@ public static class InventoryController {
         }
 
         //Swap the cursor with the selected slot
-        IItem clickedItem = Inv.Info[index];
+        IItem clickedItem = Inv.PeekItem(index);
         if (clickedItem == null) return true;
         clickedItem = clickedItem.Clone() as IItem;
         //Removes half of the item
@@ -252,7 +252,7 @@ public static class InventoryController {
     private static bool DeselectDrag(MouseInvSelect GetSelectedInvInfo, bool isRoot) {
         if (!Cursor.IsHolding) return false;
         if (!Cursor.IsPlacing) return false;
-        if (!GetSelectedInvInfo(out Inventory Inv, out int index)) {
+        if (!GetSelectedInvInfo(out IInventory Inv, out int index)) {
             if(isRoot) Cursor.ClearCursor(AddEntry);
             return false;
         }
@@ -268,12 +268,12 @@ public static class InventoryController {
         return true;
     }
 
-    private static IItem SplitCursorItem(Inventory Inv, int index) {
+    private static IItem SplitCursorItem(IInventory Inv, int index) {
         IItem remainder = null;
-        if (Cursor.CanSplitToItem(Inv.Info[index])) {
+        if (Cursor.CanSplitToItem(Inv.PeekItem(index))) {
             if (Cursor.SplitNewItem(out remainder)) {
                 Inv.AddStackable(remainder, index);
-                Cursor.AddNewSplitItem(Inv.Info[index]);
+                Cursor.AddNewSplitItem(Inv.PeekItem(index));
             }
         } else if (!Cursor.IsSplitUp) {
             remainder = Cursor.Item;
@@ -282,16 +282,16 @@ public static class InventoryController {
         return remainder;
     }
     
-    private static IItem PlaceUnitCursorItem(Inventory Inv, int index) {
-        IItem mOverSlot = Inv.Info[index];
+    private static IItem PlaceUnitCursorItem(IInventory Inv, int index) {
+        IItem mOverSlot = Inv.PeekItem(index);
         if (Cursor.Item.AmountRaw <= 0) return null;
         IItem remainder = null;
-        if (Cursor.CanSplitToItem(Inv.Info[index])) {
+        if (Cursor.CanSplitToItem(Inv.PeekItem(index))) {
             remainder = Cursor.Item.Clone() as IItem;
             int amount = math.min(remainder.UnitSize, remainder.AmountRaw);
             remainder.AmountRaw = amount;
             Inv.AddStackable(remainder, index);
-            Cursor.AddNewSplitItem(Inv.Info[index], false);
+            Cursor.AddNewSplitItem(Inv.PeekItem(index), false);
             Cursor.Item.AmountRaw -= amount - remainder.AmountRaw;
             if (Cursor.Item.AmountRaw == 0) Cursor.ClearCursor();
         }
@@ -358,7 +358,7 @@ public static class InventoryController {
         public GridUIManager Display;
         public uint capacity;
         public uint length;
-        public uint tail;
+        public int tail;
         private ItemContext.FinishSetup OnAddElement;
         private ItemContext.FinishSetup OnRemoveElement;
 
@@ -376,8 +376,15 @@ public static class InventoryController {
             }
         }
 
+        [JsonIgnore]
+        public virtual int Capacity => (int)capacity;
+        public virtual IItem PeekItem(int index) => Info[index];
+        public bool TryGetKey(int key, out int value) => EntryDict.TryGetValue(key, out value);
+
         public void ResizeInventory(int SlotCount, Action<IItem> OnRelease = null) {
             SlotCount = math.max(SlotCount, 0);
+            ResizeDisplay(SlotCount);
+
             IItem[] nInfo = new IItem[SlotCount];
             LLNode[] nEntryLL = new LLNode[SlotCount];
             for (int i = SlotCount; i < capacity; i++) {
@@ -392,7 +399,7 @@ public static class InventoryController {
             }
 
             //Reconstruct free LL
-            int tail = -1;
+            tail = -1;
             Info = nInfo;
             EntryLL = nEntryLL;
             for (uint i = 0; i < SlotCount; i++) {
@@ -409,7 +416,9 @@ public static class InventoryController {
             GameObject Root = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Inventory"), Parent.transform);
             GameObject GridContent = Root.transform.GetChild(0).GetChild(0).gameObject;
             Display = new GridUIManager(GridContent,
-                Indicators.ItemSlots.Get, (int)capacity,
+                Indicators.ItemSlots.Get, 
+                Indicators.ItemSlots.Release,
+                (int)capacity,
                 Root);
             for (int i = 0; i < capacity; i++) {
                 AttachDisplay(i);
@@ -423,24 +432,22 @@ public static class InventoryController {
             }
         }
 
-        public void ReleaseDisplay(Action<GameObject> Release) {
+        public void ReleaseDisplay() {
             if (Display == null) return;
-            for (int i = 0; i < capacity; i++) {
+            for (int i = 0; i < Display.Slots.Length; i++)
                 ClearDisplay(i);
-                Release(Display.Slots[i]);
-            } 
-            GameObject.Destroy(Display.root);
+            Display.Release();
             Display = null;
         }
 
-        public void ReleaseDisplay() {
+        private void ResizeDisplay(int SlotCount) {
             if (Display == null) return;
-            for (int i = 0; i < Display.Slots.Length; i++) {
+            int prevSlotCount = Display.Slots.Length;
+            for (int i = SlotCount; i < prevSlotCount; i++)
                 ClearDisplay(i);
-                Indicators.ItemSlots.Release(Display.Slots[i]);
-            }
-            GameObject.Destroy(Display.root);
-            Display = null;
+            Display.Resize(SlotCount);
+            for (int i = prevSlotCount; i < SlotCount; i++)
+                AttachDisplay(i);
         }
 
         private void AttachDisplay(int index) {
@@ -474,7 +481,8 @@ public static class InventoryController {
         }
 
         public void Clear() {
-            for (int i = 0; i < Info.Length; i++) {
+            //Go backwards in case RemoveEntry shrinks Info
+            for (int i = Info.Length - 1; i >= 0; i--) {
                 if (Info[i] == null) continue;
                 RemoveEntry(i);
             }
@@ -563,7 +571,7 @@ public static class InventoryController {
             IItem mat = Info[SlotIndex];
             delta = mat.AmountRaw - math.max(mat.AmountRaw - delta, 0);
             Info[SlotIndex].AmountRaw -= delta;
-
+            
             if (mat.AmountRaw != 0) DictUpdate(SlotIndex);
             else RemoveEntry(SlotIndex);
 
@@ -592,7 +600,7 @@ public static class InventoryController {
             return start - remainder;
         }
 
-        public void RemoveEntry(int SlotIndex) {
+        public virtual void RemoveEntry(int SlotIndex) {
             if (Info[SlotIndex] == null) return;
             int Index = Info[SlotIndex].Index;
             if (EntryDict.ContainsKey(Index) && SlotIndex == EntryDict[Index]) {
@@ -600,9 +608,9 @@ public static class InventoryController {
                 if (SlotIndex == EntryDict[Index]) EntryDict.Remove(Index);
             }
 
-            if (capacity == length) tail = (uint)SlotIndex;
+            if (capacity == length) tail = SlotIndex;
             LLRemove((uint)SlotIndex);
-            LLAdd((uint)SlotIndex, tail);
+            LLAdd((uint)SlotIndex, (uint)tail);
 
             ItemContext cxt = new(this, SlotIndex);
             cxt = OnRemoveElement?.Invoke(cxt) ?? cxt;
@@ -611,15 +619,15 @@ public static class InventoryController {
             ClearDisplay(SlotIndex);
             Info[SlotIndex].AmountRaw = 0;
             Info[SlotIndex] = null;
-            tail = math.min(tail, (uint)SlotIndex);
+            tail = math.min(tail, SlotIndex);
             length--;
         }
 
-        public bool AddEntry(IItem entry, out int head) {
-            head = (int)tail;
+        public virtual bool AddEntry(IItem entry, out int head) {
+            head = tail;
             if (length >= capacity)
                 return false;
-            tail = EntryLL[head].n;
+            tail = (int)EntryLL[head].n;
             length++;
 
             LLRemove((uint)head);
@@ -634,10 +642,10 @@ public static class InventoryController {
             return true;
         }
 
-        public bool AddEntry(IItem entry, int index) {
+        public virtual bool AddEntry(IItem entry, int index) {
             if (length >= capacity) return false;
             if (Info[index] != null) return false; //Slot has to be null
-            if (index == tail) tail = EntryLL[tail].n;
+            if (index == tail) tail = (int)EntryLL[tail].n;
             length++;
 
             LLRemove((uint)index);

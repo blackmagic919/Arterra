@@ -72,7 +72,7 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             velocity += knockback;
         }
 
-        public unsafe EItemEntity() { }
+        public EItemEntity() { }
         public EItemEntity(IItem item, Quaternion rot = default) {
             this.item = new Registerable<IItem>(item);
             tCollider.transform.rotation = rot;

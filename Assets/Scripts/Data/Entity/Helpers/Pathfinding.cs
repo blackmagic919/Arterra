@@ -1,6 +1,4 @@
 using Unity.Burst;
-using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
 using WorldConfig.Generation.Entity;
@@ -8,7 +6,7 @@ using static WorldConfig.Generation.Entity.EntitySetting;
 using MapStorage;
 
 [BurstCompile]
-public unsafe struct PathFinder{
+public struct PathFinder{
 
     [BurstCompile]
     public unsafe static bool VerifyProfile(in int3 GCoord, in ProfileInfo info, in EntityJob.Context context, bool UseExFlag = true){
@@ -38,7 +36,7 @@ public unsafe struct PathFinder{
         public int currentInd;
         public byte[] path;
         public bool hasPath; //Resource isn't bound
-        public unsafe PathInfo(int3 currentPos, byte[] path, int pathLength){
+        public PathInfo(int3 currentPos, byte[] path, int pathLength){
             this.currentPos = currentPos;
             this.currentInd = 0;
             this.stepDuration = 0;
