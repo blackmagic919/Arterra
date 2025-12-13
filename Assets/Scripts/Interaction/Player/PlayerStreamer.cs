@@ -36,7 +36,6 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         public PlayerSettings settings;
         [JsonIgnore]
         public GameObject player;
-        public DateTime currentTime;
         public PlayerCamera camera;
         public InventoryController.Inventory PrimaryI;
         public InventoryController.Inventory SecondaryI;
@@ -107,7 +106,6 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             p.PrimaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.PrimarySlotCount);
             p.SecondaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.SecondarySlotCount);
             p.ArmorI = new ArmorInventory();
-            p.currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.Time.value.startHour);
             p.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             p.info.entityId = Guid.NewGuid();
 

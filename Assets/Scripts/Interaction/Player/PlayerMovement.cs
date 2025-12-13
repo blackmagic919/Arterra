@@ -172,7 +172,7 @@ public static class SwimMovement{
         if (PlayerMovement.IsSprinting && math.length(velocity) < MoveSpeed) velocity += deltaV;
         else if (!PlayerMovement.IsSprinting && math.length(velocity.xz) < MoveSpeed) velocity.xz += deltaV.xz;
         
-        PlayerHandler.data.Play("PlayMove", PlayerMovement.GetSpeed3D(velocity));
+        PlayerHandler.data.Play("PlayMove", PlayerMovement.GetSpeed2D(velocity));
         PlayerMovement.IsSprinting = false;
         PlayerMovement.InputDir = float2.zero;
     }

@@ -9,8 +9,8 @@ struct pInfo{
     uint axis[3];
 };
 
-StructuredBuffer<SourceVertex> vertices;
-StructuredBuffer<pInfo> triangles;
+StructuredBuffer<SourceVertex> Vertices;
+StructuredBuffer<pInfo> Triangles;
 StructuredBuffer<uint2> _AddressDict;
 uint vertAddress;
 uint triAddress;
@@ -34,9 +34,9 @@ void CountShaderSizes (uint3 id : SV_DispatchThreadID)
     uint offset = counter[bCOUNT_offset];
     //Each triangle will have 3 materials, take the minimum shader index
     uint shaderIndex = asuint(-1); 
-    pInfo vIndex = triangles[_AddressDict[triAddress].y + offset + id.x];
+    pInfo vIndex = Triangles[_AddressDict[triAddress].y + offset + id.x];
     [unroll] for(uint i = 0; i < 3; i++) {
-        int material = vertices[_AddressDict[vertAddress].y + vIndex.axis[i]].material.x; // Only consider solid material
+        int material = Vertices[_AddressDict[vertAddress].y + vIndex.axis[i]].material.x; // Only consider solid material
         uint sInd = _MatTerrainData[material].geoShaderInd;
         if((sInd & 0x80000000) == 0) continue;
         shaderIndex = min(shaderIndex, (sInd >> 16) & 0x7FFF);
@@ -54,11 +54,11 @@ void CountSubChunkSizes (uint3 id : SV_DispatchThreadID){
     if(id.x >= counter[bCOUNT_base])
         return;
     
-    pInfo sourceTri = triangles[_AddressDict[triAddress].y + id.x];
+    pInfo sourceTri = Triangles[_AddressDict[triAddress].y + id.x];
     SourceVertex inputs[3];
-    inputs[0] = vertices[_AddressDict[vertAddress].y + sourceTri.axis[0]];
-    inputs[1] = vertices[_AddressDict[vertAddress].y + sourceTri.axis[1]];
-    inputs[2] = vertices[_AddressDict[vertAddress].y + sourceTri.axis[2]];
+    inputs[0] = Vertices[_AddressDict[vertAddress].y + sourceTri.axis[0]];
+    inputs[1] = Vertices[_AddressDict[vertAddress].y + sourceTri.axis[1]];
+    inputs[2] = Vertices[_AddressDict[vertAddress].y + sourceTri.axis[2]];
     int baseSC = GetBaseSubChunk(inputs);
     InterlockedAdd(SubChunkPrefix[bSTART_sChunkP + baseSC], 1, triangleIndexOffset[bSTART_tri + id.x]);
 }

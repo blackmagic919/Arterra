@@ -17,10 +17,12 @@ public static class GameUIManager {
 
         PauseHandler.Initialize();
         GameOverHandler.Initialize();
-        DayNightContoller.Initialize();
         PlayerStatDisplay.Initialize();
     }
 
+    public static void Release() {
+        LoadingHandler.Release();
+    }
 }
 
 

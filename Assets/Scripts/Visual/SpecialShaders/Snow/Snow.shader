@@ -105,11 +105,11 @@ Shader "Unlit/Snow"
                 snowHeight *= _OffsetHeight;
                 
                 float3 positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
-                float3 normalWS = normalize(mul(_LocalToWorld, float4(v.normalOS, 0)).xyz);
+                float3 normalWS = safeNormalize(mul(_LocalToWorld, float4(v.normalOS, 0)).xyz);
                 
                 float2 snowUV = TRANSFORM_TEX(mapCoordinates(positionWS), _OffsetTexture);
-                float snowNoise = SAMPLE_TEXTURE2D_LOD(_OffsetTexture, sampler_OffsetTexture, snowUV, 0).r * 2 - 1;
-                snowHeight += snowNoise * snowHeight;
+                float snowNoise = SAMPLE_TEXTURE2D_LOD(_OffsetTexture, sampler_OffsetTexture, snowUV, 0).r;
+                snowHeight *= snowNoise;
                 
                 output.positionWS = positionWS + normalWS * snowHeight;
                 output.normalWS = normalWS;

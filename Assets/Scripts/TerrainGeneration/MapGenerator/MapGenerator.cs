@@ -291,9 +291,9 @@ public static class Generator
     /// The amount of points in the map retrieved by this function is (<paramref name="chunkSize"/>+3)^3</param>
     public static void CollectRealMap(int3 CCoord, int chunkSize){
         int fChunkSize = chunkSize + 3;
-        meshInfoCollector.SetInts("CCoord", new int[]{CCoord.x, CCoord.y, CCoord.z});
-        meshInfoCollector.SetInt("numPointsPerAxis", fChunkSize);
-        meshInfoCollector.SetInt("mapChunkSize", chunkSize);
+        meshInfoCollector.SetInts(ShaderIDProps.CCoord, new int[]{CCoord.x, CCoord.y, CCoord.z});
+        meshInfoCollector.SetInt(ShaderIDProps.NumPointsPerAxis, fChunkSize);
+        meshInfoCollector.SetInt(ShaderIDProps.MapChunkSize, chunkSize);
         GPUMapManager.SetCCoordHash(meshInfoCollector);
 
         int kernel = meshInfoCollector.FindKernel("CollectReal");
@@ -318,11 +318,11 @@ public static class Generator
     /// the distance between samples in a map of the resolution defined by <i>depth</i>.</param>
     public static void CollectVisualMap(int3 CCoord, int defaultAddress, int chunkSize, int depth){
         int fChunkSize = chunkSize + 3; int skipInc = 1 << depth;
-        meshInfoCollector.SetInts("CCoord", new int[]{CCoord.x, CCoord.y, CCoord.z});
-        meshInfoCollector.SetInt("numPointsPerAxis", fChunkSize);
-        meshInfoCollector.SetInt("mapChunkSize", chunkSize);
-        meshInfoCollector.SetInt("defAddress", defaultAddress);
-        meshInfoCollector.SetInt("chunkSkip", skipInc);
+        meshInfoCollector.SetInts(ShaderIDProps.CCoord, new int[]{CCoord.x, CCoord.y, CCoord.z});
+        meshInfoCollector.SetInt(ShaderIDProps.NumPointsPerAxis, fChunkSize);
+        meshInfoCollector.SetInt(ShaderIDProps.MapChunkSize, chunkSize);
+        meshInfoCollector.SetInt(ShaderIDProps.DefaultAddress, defaultAddress);
+        meshInfoCollector.SetInt(ShaderIDProps.SkipInc, skipInc);
         GPUMapManager.SetCCoordHash(meshInfoCollector);
 
         int kernel = meshInfoCollector.FindKernel("CollectVisual");
@@ -343,9 +343,9 @@ public static class Generator
         int numPointsAxes = numCubesAxes + 1;
         UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 3, 0);
 
-        dMeshGenerator.SetFloat("IsoLevel", IsoLevel);
-        dMeshGenerator.SetInt("numCubesPerAxis", numCubesAxes);
-        dMeshGenerator.SetInt("numPointsPerAxis", numPointsAxes);
+        dMeshGenerator.SetFloat(ShaderIDProps.IsoLevel, IsoLevel);
+        dMeshGenerator.SetInt(ShaderIDProps.NumCubesPerAxis, numCubesAxes);
+        dMeshGenerator.SetInt(ShaderIDProps.NumPointsPerAxis, numPointsAxes);
 
         dMeshGenerator.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);
@@ -373,10 +373,10 @@ public static class Generator
         UtilityBuffers.TransferBuffer.SetData(transFaces, 0, 0, numTransFaces);
 
         int kernel = transVoxelGenerator.FindKernel("MarchTransition");
-        transVoxelGenerator.SetFloat("IsoLevel", IsoLevel);
-        transVoxelGenerator.SetInt("numCubesPerAxis", numCubesAxis);
-        transVoxelGenerator.SetInt("numPointsPerAxis", numPointsAxis);
-        transVoxelGenerator.SetInt("numTransFaces", numTransFaces);
+        transVoxelGenerator.SetFloat(ShaderIDProps.IsoLevel, IsoLevel);
+        transVoxelGenerator.SetInt(ShaderIDProps.NumCubesPerAxis, numCubesAxis);
+        transVoxelGenerator.SetInt(ShaderIDProps.NumPointsPerAxis, numPointsAxis);
+        transVoxelGenerator.SetInt(ShaderIDProps.NumTransFaces, numTransFaces);
         transVoxelGenerator.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
         //Only half the threads are used because each grid covers 2^2 faces
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxis / ((float)threadGroupSize * 2));

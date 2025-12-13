@@ -14,6 +14,7 @@ public static class LoadingHandler
     public static TextMeshProUGUI taskText;
     private static IUpdateSubscriber eventTask;
     private static float finishedLoad;
+    private static float progress;
     public static string[] taskDescriptions = {
         "Generating Surface Data",
         "Planning Structures",
@@ -34,6 +35,8 @@ public static class LoadingHandler
         Activate();
     }
 
+    public static void Release() => AudioManager.Instance.UpdateAmbience(0);
+
     public static void Activate(){
         if(eventTask != null && eventTask.Active) 
             eventTask.Active = false;
@@ -41,6 +44,7 @@ public static class LoadingHandler
         MainLoopUpdateTasks.Enqueue(eventTask);
         LoadingScreen.SetActive(true);
         finishedLoad = 0;
+        progress = 0;
     }
 
     public static void Update(MonoBehaviour mono)
@@ -57,7 +61,10 @@ public static class LoadingHandler
 
         RequestQueue.TryPeek(out GenTask fTask);
         taskText.text = taskDescriptions[fTask.id];
-        slider.value = finishedLoad / (totalRemainingLoad + finishedLoad);
+        progress = finishedLoad / (totalRemainingLoad + finishedLoad);
+        AudioManager.Instance.UpdateAmbience(progress);
+
+        slider.value = progress;
         finishedLoad += Config.CURRENT.Quality.Terrain.value.maxFrameLoad;
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Animations;
@@ -37,13 +38,22 @@ namespace WorldConfig.Gameplay{
         public Option<AnimationCurve> moonIntensityCurve;
     }
 }
-public static class DayNightContoller
-{
-    private static WorldConfig.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.Time;
-    public static DateTime currentTime{
-        get => PlayerHandler.data.currentTime;
-        set => PlayerHandler.data.currentTime = value;
+
+public class WorldData {
+    public DateTime currentTime;
+    public static WorldData Build() {
+        WorldData d = new WorldData();
+        d.currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.Time.value.startHour);
+        return d;
     }
+}
+/// <summary> Controls static information about the world
+/// that is not tied to the player. Currently just
+/// handles day night information. </summary>
+public static class WorldDataHandler
+{ 
+    public static WorldData WorldData;
+    private static WorldConfig.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.Time;
     private static LensFlareComponentSRP sunFlare;
     private static Light Sun;
     private static Light Moon;
@@ -54,6 +64,8 @@ public static class DayNightContoller
     {
         Sun = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Sun")).GetComponent<Light>();
         Moon = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Moon")).GetComponent<Light>();
+        LoadWorldData();
+
         var constraintSource = new ConstraintSource { sourceTransform = TerrainGeneration.OctreeTerrain.viewer, weight = 1 };
         Sun.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
         Moon.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
@@ -62,11 +74,33 @@ public static class DayNightContoller
         TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
     }
 
+    public static void Release() => SaveWorldData();
+
+    static void LoadWorldData(){
+        string path = MapStorage.World.WORLD_SELECTION.First.Value.Path + "/WorldData.json";
+        if(!File.Exists(path)) { 
+            WorldData = WorldData.Build(); 
+        } else {
+            string data = File.ReadAllText(path);
+            WorldData = Newtonsoft.Json.JsonConvert.DeserializeObject<WorldData>(data);   
+        }
+    }
+
+    static void SaveWorldData(){
+        string path = MapStorage.World.WORLD_SELECTION.First.Value.Path + "/WorldData.json";
+        using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)){
+            using StreamWriter writer = new StreamWriter(fs);
+            string data = Newtonsoft.Json.JsonConvert.SerializeObject(WorldData);
+            writer.Write(data);
+            writer.Flush();
+        };
+    }
+
     // Update is called once per frame
     public static void Update(MonoBehaviour mono)
     {
-        currentTime = currentTime.AddSeconds(Time.deltaTime * settings.timeMultiplier);
-        float progress = GetDayProgress(currentTime.TimeOfDay);
+        WorldData.currentTime = WorldData.currentTime.AddSeconds(Time.deltaTime * settings.timeMultiplier);
+        float progress = GetDayProgress(WorldData.currentTime.TimeOfDay);
         UpdateSunFlareShimmer();
 
         float rotation = Mathf.Lerp(0, 360, progress);

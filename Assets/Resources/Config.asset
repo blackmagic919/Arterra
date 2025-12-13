@@ -533,7 +533,7 @@ MonoBehaviour:
       TerrainUpdation:
         value:
           RandomUpdatesPerChunk: 250
-          MaximumTickUpdates: 5000
+          MaximumTickUpdates: 10000
           UpdateTickDelay: 4
       WorldApperance:
         value:

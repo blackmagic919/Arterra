@@ -52,7 +52,7 @@ public class ShaderGenerator
         offsets = new GeoShaderOffsets(maxChunkSize, rSettings.Categories.Count(), 0);
 
         geoInfoLoader.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
-        geoInfoLoader.SetInt("bCOUNTER_tri", offsets.baseGeoCounter);
+        geoInfoLoader.SetInt("bCOUNT_tri", offsets.baseGeoCounter);
 
         matSizeCounter.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
         matSizeCounter.SetBuffer(0, "triangleIndexOffset", UtilityBuffers.GenerationBuffer);

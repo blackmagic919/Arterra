@@ -65,12 +65,12 @@ public class ProceduralInsetQuads : GeoShader
 
         ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(quadCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
-        quadCompute.SetBuffer(idFoliageKernel, "SourceVertices", vertSource);
-        quadCompute.SetBuffer(idFoliageKernel, "SourceTriangles", triSource);
-        quadCompute.SetBuffer(idFoliageKernel, "_AddressDict", addresses);
-        quadCompute.SetInt("vertAddress", vertAddress);
-        quadCompute.SetInt("triAddress", triAddress);
-        quadCompute.SetFloat("ScaleInverse", invScale);
+        quadCompute.SetBuffer(idFoliageKernel, ShaderIDProps.SourceVertices, vertSource);
+        quadCompute.SetBuffer(idFoliageKernel, ShaderIDProps.SourceTriangles, triSource);
+        quadCompute.SetBuffer(idFoliageKernel, ShaderIDProps.AddressDict, addresses);
+        quadCompute.SetInt(ShaderIDProps.VertAddress, vertAddress);
+        quadCompute.SetInt(ShaderIDProps.TriAddress, triAddress);
+        quadCompute.SetFloat(ShaderIDProps.ScaleInverse, invScale);
         quadCompute.DispatchIndirect(idFoliageKernel, args);
     }
 

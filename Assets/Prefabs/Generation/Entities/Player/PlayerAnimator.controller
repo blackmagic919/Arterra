@@ -571,6 +571,9 @@ AnimatorStateTransition:
   - m_ConditionMode: 1
     m_ConditionEvent: IsSitting
     m_EventTreshold: 0
+  - m_ConditionMode: 2
+    m_ConditionEvent: IsDead
+    m_EventTreshold: 0
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: -2932390980776131074}
   m_Solo: 0
@@ -787,6 +790,12 @@ MonoBehaviour:
     type: 0
     comparison: 0
     boolValue: 1
+    intValue: 0
+    floatValue: 0
+  - parameterName: IsDead
+    type: 0
+    comparison: 0
+    boolValue: 0
     intValue: 0
     floatValue: 0
   smoothFade: 1
@@ -1548,6 +1557,9 @@ AnimatorStateTransition:
   m_Conditions:
   - m_ConditionMode: 1
     m_ConditionEvent: IsSwimming
+    m_EventTreshold: 0
+  - m_ConditionMode: 2
+    m_ConditionEvent: IsDead
     m_EventTreshold: 0
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: -558439025767672452}
@@ -2439,6 +2451,12 @@ AnimatorController:
     m_Controller: {fileID: 9100000}
   - m_Name: KnockZ
     m_Type: 1
+    m_DefaultFloat: 0
+    m_DefaultInt: 0
+    m_DefaultBool: 0
+    m_Controller: {fileID: 9100000}
+  - m_Name: PlaySit
+    m_Type: 9
     m_DefaultFloat: 0
     m_DefaultInt: 0
     m_DefaultBool: 0
@@ -3629,6 +3647,9 @@ AnimatorStateTransition:
   m_Conditions:
   - m_ConditionMode: 1
     m_ConditionEvent: Slash
+    m_EventTreshold: 0
+  - m_ConditionMode: 2
+    m_ConditionEvent: IsDead
     m_EventTreshold: 0
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: 6837819954773573325}

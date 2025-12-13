@@ -7,6 +7,7 @@ using Unity.Jobs;
 using WorldConfig.Intrinsic;
 using MapStorage;
 using System.Threading;
+using System;
 
 namespace WorldConfig.Intrinsic{
     /// <summary>
@@ -18,7 +19,7 @@ namespace WorldConfig.Intrinsic{
     /// <see cref="MaterialData.RandomMaterialUpdate(int3, Unity.Mathematics.Random)"/> for more information.
     /// </summary>
     [System.Serializable]
-    public class TerrainUpdation{
+    public class TerrainUpdation : ICloneable{
         /// <summary> How many random points are chosen to be updated at random 
         /// per update cycle per chunk. Random Updates allow certain materials to 
         /// base behavior off stochastic sampling. Random Updates will only
@@ -36,6 +37,14 @@ namespace WorldConfig.Intrinsic{
         /// An in-game tick is one update to Unity's FixedUpdate loop.
         /// </summary>
         public int UpdateTickDelay = 4;
+
+        public object Clone() {
+            return new TerrainUpdation {
+                RandomUpdatesPerChunk = RandomUpdatesPerChunk,
+                MaximumTickUpdates = MaximumTickUpdates,
+                UpdateTickDelay = UpdateTickDelay
+            };
+        }
     }
 }
 

@@ -169,15 +169,14 @@ public class AsyncMeshReadback
             matProps = new MaterialPropertyBlock()
         };
         
-        rp.matProps.SetBuffer("Vertices", GenerationPreset.memoryHandle.GetBlockBuffer(vertexHandle.addressIndex));
-        rp.matProps.SetBuffer("Triangles", GenerationPreset.memoryHandle.GetBlockBuffer(triHandles[matIndex].addressIndex));
-        rp.matProps.SetBuffer("_AddressDict", GenerationPreset.memoryHandle.Address);
+        rp.matProps.SetBuffer(ShaderIDProps.Vertices, GenerationPreset.memoryHandle.GetBlockBuffer(vertexHandle.addressIndex));
+        rp.matProps.SetBuffer(ShaderIDProps.Triangles, GenerationPreset.memoryHandle.GetBlockBuffer(triHandles[matIndex].addressIndex));
+        rp.matProps.SetBuffer(ShaderIDProps.AddressDict, GenerationPreset.memoryHandle.Address);
 
-        rp.matProps.SetInt("triAddress", (int)triHandles[matIndex].addressIndex);
-        rp.matProps.SetInt("vertAddress", (int)vertexHandle.addressIndex);
+        rp.matProps.SetInt(ShaderIDProps.TriAddress, (int)triHandles[matIndex].addressIndex);
+        rp.matProps.SetInt(ShaderIDProps.VertAddress, (int)vertexHandle.addressIndex);
         
-        rp.matProps.SetInt("_Vertex4ByteStride", MESH_VERTEX_STRIDE_WORD);
-        rp.matProps.SetMatrix("_LocalToWorld", this.transform.localToWorldMatrix);
+        rp.matProps.SetMatrix(ShaderIDProps.LocalToWorld, this.transform.localToWorldMatrix);
         
         triHandles[matIndex].argsAddress = drawArgsAddress;
         triHandles[matIndex].rp = rp;
@@ -269,8 +268,8 @@ public class AsyncMeshReadback
 
     private void CreateDispArg(int triCounter, int address)
     {
-        meshDrawArgsCreator.SetInt("bCOUNTER", triCounter);
-        meshDrawArgsCreator.SetInt("argOffset", address);
+        meshDrawArgsCreator.SetInt(ShaderIDProps.BufferCounter, triCounter);
+        meshDrawArgsCreator.SetInt(ShaderIDProps.ArgOffset, address);
         meshDrawArgsCreator.Dispatch(0, 1, 1, 1);
     }
 
@@ -282,15 +281,14 @@ public class AsyncMeshReadback
             shadowCastingMode = ShadowCastingMode.On,
             matProps = new MaterialPropertyBlock()
         };
-        rp.matProps.SetBuffer("Vertices", GenerationPreset.memoryHandle.GetBlockBuffer(vertAddress));
-        rp.matProps.SetBuffer("Triangles", GenerationPreset.memoryHandle.GetBlockBuffer(triAddress));
-        rp.matProps.SetBuffer("_AddressDict", GenerationPreset.memoryHandle.Address);
+        rp.matProps.SetBuffer(ShaderIDProps.Vertices, GenerationPreset.memoryHandle.GetBlockBuffer(vertAddress));
+        rp.matProps.SetBuffer(ShaderIDProps.Triangles, GenerationPreset.memoryHandle.GetBlockBuffer(triAddress));
+        rp.matProps.SetBuffer(ShaderIDProps.AddressDict, GenerationPreset.memoryHandle.Address);
 
-        rp.matProps.SetInt("triAddress", triAddress);
-        rp.matProps.SetInt("vertAddress", vertAddress);
+        rp.matProps.SetInt(ShaderIDProps.TriAddress, triAddress);
+        rp.matProps.SetInt(ShaderIDProps.VertAddress, vertAddress);
         
-        rp.matProps.SetInt("_Vertex4ByteStride", MESH_VERTEX_STRIDE_WORD);
-        rp.matProps.SetMatrix("_LocalToWorld", this.transform.localToWorldMatrix);
+        rp.matProps.SetMatrix(ShaderIDProps.LocalToWorld, this.transform.localToWorldMatrix);
 
         return rp;
     }
@@ -300,8 +298,8 @@ public class AsyncMeshReadback
         ComputeBuffer source = GenerationPreset.memoryHandle.GetBlockBuffer(addressIndex);
 
         int kernel = vertexTranscriber.FindKernel("Transcribe");
-        vertexTranscriber.SetBuffer(kernel, "_MemoryBuffer", source);
-        vertexTranscriber.SetInt("addressIndex", addressIndex);
+        vertexTranscriber.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, source);
+        vertexTranscriber.SetInt(ShaderIDProps.AddressIndex, addressIndex);
 
         vertexTranscriber.DispatchIndirect(kernel, args);
     }
@@ -312,10 +310,10 @@ public class AsyncMeshReadback
         ComputeBuffer source = GenerationPreset.memoryHandle.GetBlockBuffer(addressIndex);
 
         int kernel = triangleTranscriber.FindKernel("Transcribe");
-        triangleTranscriber.SetBuffer(kernel, "_MemoryBuffer", source);
-        triangleTranscriber.SetInt("bCOUNTER_Tri", triCounter);
-        triangleTranscriber.SetInt("bSTART_Tri", triStart);
-        triangleTranscriber.SetInt("triAddress", addressIndex);
+        triangleTranscriber.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, source);
+        triangleTranscriber.SetInt(ShaderIDProps.CountTri, triCounter);
+        triangleTranscriber.SetInt(ShaderIDProps.StartTri, triStart);
+        triangleTranscriber.SetInt(ShaderIDProps.TriAddress, addressIndex);
 
         triangleTranscriber.DispatchIndirect(kernel, args);
     }

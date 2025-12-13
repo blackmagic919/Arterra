@@ -4,7 +4,7 @@ const static uint numThreads = 128;
 
 StructuredBuffer<uint> triDict; //Remapped from uint3
 StructuredBuffer<uint> counter;
-uint bCOUNTER_Tri;
+uint bCOUNT_Tri;
 uint bSTART_Tri;
 uint bSTART_Dict;
 
@@ -13,7 +13,7 @@ RWStructuredBuffer<uint3> BaseTriangles; //Input & Output
 [numthreads(numThreads,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    if(id.x >= counter[bCOUNTER_Tri])
+    if(id.x >= counter[bCOUNT_Tri])
         return;
     
     uint3 baseTri = BaseTriangles[bSTART_Tri + id.x];

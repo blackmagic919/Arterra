@@ -9,6 +9,7 @@
 /[Bb]uilds/
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
+Assets/Resources/Prefabs/RealStarsSkybox/**
 
 # MemoryCaptures can get excessive in size.
 # They also could contain extremely sensitive data
@@ -85,3 +86,29 @@ docs/api/*.yml
 docs/api/.manifest
 docs/_site/*
 Packages/*
+
+# Never ignore DLLs in the FMOD subfolder.
+!/[Aa]ssets/Plugins/FMOD/**/lib/*
+
+# Don't ignore images and gizmos used by FMOD in the Unity Editor.
+!/[Aa]ssets/Gizmos/FMOD/*
+!/[Aa]ssets/Editor Default Resources/FMOD/*
+
+# Ignore the Cache folder since it is updated locally.
+/[Aa]ssets/Plugins/FMOD/Cache/*
+
+# Ignore bank files in the StreamingAssets folder.
+/[Aa]ssets/StreamingAssets/**/*.bank
+/[Aa]ssets/StreamingAssets/**/*.bank.meta
+
+# FMOD Studio generated files
+ArterraAudioFMOD/Banks/
+ArterraAudioFMOD/.cache/
+ArterraAudioFMOD/.fsbcache/
+ArterraAudioFMOD/.temp/
+ArterraAudioFMOD/.user/
+ArterraAudioFMOD/*.user
+ArterraAudioFMOD/*.lock
+ArterraAudioFMOD/Autosave/
+ArterraAudioFMOD/Backup/
+fmod_editor.log

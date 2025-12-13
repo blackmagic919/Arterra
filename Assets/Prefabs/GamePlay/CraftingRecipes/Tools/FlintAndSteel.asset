@@ -21,7 +21,7 @@ MonoBehaviour:
     - 
     - FlintAndSteel
     - Coal:Solid
-    - Iron:Solid
+    - Steel:Solid
   Recipe:
     value:
       materials:

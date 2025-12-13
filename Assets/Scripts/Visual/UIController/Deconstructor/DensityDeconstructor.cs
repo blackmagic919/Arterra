@@ -509,7 +509,7 @@ public class ModelManager{
     void LinkTriangles(int start, int counter){
         int kernel = IndexLinker.FindKernel("CSMain");
         ComputeBuffer args = UtilityBuffers.CountToArgs(IndexLinker, this.GeoBuffer, counter);
-        IndexLinker.SetInt("bCOUNTER_Tri", counter);
+        IndexLinker.SetInt("bCOUNT_Tri", counter);
         IndexLinker.SetInt("bSTART_Tri", start);
         IndexLinker.DispatchIndirect(kernel, args);
     }

@@ -57,16 +57,16 @@ public static class UtilityBuffers
     }
 
     public static void ClearRange(ComputeBuffer buffer, int length, int start) {
-        clearRange.SetBuffer(0, "counters", buffer);
-        clearRange.SetInt("length", length);
-        clearRange.SetInt("start", start);
+        clearRange.SetBuffer(0, ShaderIDProps.Counters, buffer);
+        clearRange.SetInt(ShaderIDProps.Length, length);
+        clearRange.SetInt(ShaderIDProps.Start, start);
         clearRange.Dispatch(0, 1, 1, 1);
     }
     
     public static void ClearRange(GraphicsBuffer buffer, int length, int start){
-        clearRange.SetBuffer(0, "counters", buffer);
-        clearRange.SetInt("length", length);
-        clearRange.SetInt("start", start);
+        clearRange.SetBuffer(0, ShaderIDProps.Counters, buffer);
+        clearRange.SetInt(ShaderIDProps.Length, length);
+        clearRange.SetInt(ShaderIDProps.Start, start);
         clearRange.Dispatch(0, 1, 1, 1);
     }
 
@@ -78,10 +78,10 @@ public static class UtilityBuffers
         }else count = appendCount;
         
         int kernel = indirectCopy.FindKernel("CopyCount");
-        indirectCopy.SetBuffer(kernel, "source", source);
-        indirectCopy.SetInt("readOffset", readOffset);
-        indirectCopy.SetBuffer(kernel, "destination", count);
-        indirectCopy.SetInt("writeOffset", writeOffset);
+        indirectCopy.SetBuffer(kernel, ShaderIDProps.Source, source);
+        indirectCopy.SetInt(ShaderIDProps.ReadOffset, readOffset);
+        indirectCopy.SetBuffer(kernel, ShaderIDProps.Destination, count);
+        indirectCopy.SetInt(ShaderIDProps.WriteOffset, writeOffset);
 
         indirectCopy.Dispatch(kernel, 1, 1, 1);
 
@@ -95,11 +95,11 @@ public static class UtilityBuffers
         if (dest.count < writeOffset + count) return false;
 
         int kernel = indirectCopy.FindKernel("CopyBuffer");
-        indirectCopy.SetBuffer(kernel, "source", source);
-        indirectCopy.SetInt("readOffset", readOffset);
-        indirectCopy.SetBuffer(kernel, "destination", dest);
-        indirectCopy.SetInt("writeOffset", writeOffset);
-        indirectCopy.SetInt("count", count);
+        indirectCopy.SetBuffer(kernel, ShaderIDProps.Source, source);
+        indirectCopy.SetInt(ShaderIDProps.ReadOffset, readOffset);
+        indirectCopy.SetBuffer(kernel, ShaderIDProps.Destination, dest);
+        indirectCopy.SetInt(ShaderIDProps.WriteOffset, writeOffset);
+        indirectCopy.SetInt(ShaderIDProps.Count, count);
 
         indirectCopy.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
         int threadGroups = Mathf.CeilToInt(count / (float)threadGroupSize);
@@ -115,10 +115,10 @@ public static class UtilityBuffers
     public static ComputeBuffer CountToArgs(int threadGroupSize, ComputeBuffer count, int countOffset = 0) {
         ComputeBuffer args = indirectArgs;
         
-        indirectCountToArgs.SetBuffer(0, "count", count);
-        indirectCountToArgs.SetBuffer(0, "args", args);
-        indirectCountToArgs.SetInt("numThreads", (int)threadGroupSize);
-        indirectCountToArgs.SetInt("countOffset", countOffset);
+        indirectCountToArgs.SetBuffer(0, ShaderIDProps.Count, count);
+        indirectCountToArgs.SetBuffer(0, ShaderIDProps.Args, args);
+        indirectCountToArgs.SetInt(ShaderIDProps.NumThreads, (int)threadGroupSize);
+        indirectCountToArgs.SetInt(ShaderIDProps.CountOffset, countOffset);
 
         indirectCountToArgs.Dispatch(0, 1, 1, 1);
 
@@ -136,10 +136,10 @@ public static class UtilityBuffers
             bufferQueue.Enqueue(args);
         }
         
-        prefixCountToArgs.SetBuffer(0, "count", count);
-        prefixCountToArgs.SetBuffer(0, "args", args);
-        prefixCountToArgs.SetInt("numThreads", (int)threadGroupSize);
-        prefixCountToArgs.SetInt("countOffset", countOffset);
+        prefixCountToArgs.SetBuffer(0, ShaderIDProps.Count, count);
+        prefixCountToArgs.SetBuffer(0, ShaderIDProps.Args, args);
+        prefixCountToArgs.SetInt(ShaderIDProps.NumThreads, (int)threadGroupSize);
+        prefixCountToArgs.SetInt(ShaderIDProps.CountOffset, countOffset);
 
         prefixCountToArgs.Dispatch(0, 1, 1, 1);
 
@@ -148,8 +148,8 @@ public static class UtilityBuffers
 
 
     public static void SetSampleData(ComputeShader noiseGen, Vector3 offset, int meshSkipInc){
-        noiseGen.SetFloats("sOffset", new float[]{offset.x, offset.y, offset.z});
-        noiseGen.SetInt("skipInc", meshSkipInc);
+        noiseGen.SetFloats(ShaderIDProps.SampleOffset, new float[]{offset.x, offset.y, offset.z});
+        noiseGen.SetInt(ShaderIDProps.SkipInc, meshSkipInc);
     }
 }
 

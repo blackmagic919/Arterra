@@ -6,7 +6,7 @@ const static uint numThreads = 128;
 StructuredBuffer<uint> triDict; //Remapped from uint3
 StructuredBuffer<uint3> BaseTriangles; 
 StructuredBuffer<uint> counter;
-uint bCOUNTER_Tri;
+uint bCOUNT_Tri;
 uint bSTART_Tri;
 uint bSTART_Dict;
 
@@ -19,7 +19,7 @@ void Transcribe (uint3 id : SV_DispatchThreadID)
 {
     if(_AddressDict[triAddress].x == 0) //Out of space
         return;
-    if(id.x >= counter[bCOUNTER_Tri])
+    if(id.x >= counter[bCOUNT_Tri])
         return;
 
     uint writeAddress = _AddressDict[triAddress].y + id.x;

@@ -293,6 +293,20 @@ namespace Utils {
             return Vector2.Distance(new Vector2(xClosest, yClosest), position);
         }
 
+        public static double Sample(Unity.Mathematics.Random rng, double mean, double variance) {
+            double u1 = 1.0 - rng.NextDouble(); // (0,1]
+            double u2 = 1.0 - rng.NextDouble();
+
+            // Standard normal (mean=0, variance=1)
+            double standardNormal =
+                Math.Sqrt(-2.0 * Math.Log(u1)) *
+                Math.Cos(2.0 * Math.PI * u2);
+
+            double stdDev = Math.Sqrt(variance);
+
+            return mean + stdDev * standardNormal;
+        }
+
         public static int BinarySearch<T>(T target, ref T[] array, Func<T, T, int> compare) {
             int left = 0;
             int right = array.Length - 1;

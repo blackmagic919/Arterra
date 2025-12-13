@@ -66,12 +66,12 @@ public class ProceduralShellTexturer : GeoShader
 
         ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(shellCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
 
-        shellCompute.SetBuffer(kernel, "SourceVertices", vertSource);
-        shellCompute.SetBuffer(kernel, "SourceTriangles", triSource);
-        shellCompute.SetBuffer(kernel, "_AddressDict", addresses);
-        shellCompute.SetInt("vertAddress", vertAddress);
-        shellCompute.SetInt("triAddress", triAddress);
-        shellCompute.SetFloat("ScaleInverse", invScale);
+        shellCompute.SetBuffer(kernel, ShaderIDProps.SourceVertices, vertSource);
+        shellCompute.SetBuffer(kernel, ShaderIDProps.SourceTriangles, triSource);
+        shellCompute.SetBuffer(kernel, ShaderIDProps.AddressDict, addresses);
+        shellCompute.SetInt(ShaderIDProps.VertAddress, vertAddress);
+        shellCompute.SetInt(ShaderIDProps.TriAddress, triAddress);
+        shellCompute.SetFloat(ShaderIDProps.ScaleInverse, invScale);
 
         shellCompute.DispatchIndirect(kernel, args);
     }

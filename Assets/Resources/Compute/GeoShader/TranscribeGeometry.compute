@@ -16,7 +16,7 @@ struct DrawTriangle{
 StructuredBuffer<DrawTriangle> DrawTriangles;
 StructuredBuffer<uint> ShaderPrefixes;
 uint bSTART_oGeo;
-uint bCOUNTER_oGeo;
+uint bCOUNT_oGeo;
 
 RWStructuredBuffer<RawTriangle> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
@@ -28,8 +28,8 @@ void Transcribe (uint3 id : SV_DispatchThreadID)
     if(_AddressDict[addressIndex].x == 0) //Out of space
         return;
 
-    uint start = ShaderPrefixes[bCOUNTER_oGeo];
-    uint length = ShaderPrefixes[bCOUNTER_oGeo+1] - start;
+    uint start = ShaderPrefixes[bCOUNT_oGeo];
+    uint length = ShaderPrefixes[bCOUNT_oGeo+1] - start;
     if(id.x >= length)
         return;
 
@@ -43,8 +43,8 @@ uint bSTART_sChunkI;
 [numthreads(numThreads,1,1)]
 void BatchTranscribe (uint3 id : SV_DispatchThreadID)
 {
-    uint start = ShaderPrefixes[bCOUNTER_oGeo];
-    uint length = ShaderPrefixes[bCOUNTER_oGeo+1] - start;
+    uint start = ShaderPrefixes[bCOUNT_oGeo];
+    uint length = ShaderPrefixes[bCOUNT_oGeo+1] - start;
     if(id.x >= length)
         return;
     

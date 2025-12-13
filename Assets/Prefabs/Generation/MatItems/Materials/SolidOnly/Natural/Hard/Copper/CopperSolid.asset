@@ -16,9 +16,9 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
-  TextureName: IronIngot
+  TextureName: CopperIngot
   Description: Common Lustrous Orange Metal Commonly Smelted
-  MaterialName: Iron
+  MaterialName: Copper
   MaterialState: 0
   references:
     version: 2

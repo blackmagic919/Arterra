@@ -1,8 +1,10 @@
 
 using System.Collections.Generic;
+using System.Linq;
 using TerrainGeneration;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 using Utils;
 using WorldConfig;
@@ -19,8 +21,10 @@ public class ShaderSubchunk : IOctreeChunk {
     public int detailLevel;
     private TerrainChunk.Status.State RefreshState;
     private ShaderUpdateTask[] activeRenders;
+    private RenderParams[] rps;
     private List<GeoShaderSettings.DetailLevel> Details => Config.CURRENT.Quality.GeoShaders.value.levels;
-    public ShaderSubchunk(SubChunkShaderGraph parent, int3 origin, int size, uint octreeIndex) {
+    private static GeoShaderSettings rSettings => Config.CURRENT.Quality.GeoShaders.value;
+    public ShaderSubchunk(SubChunkShaderGraph parent, List<GeoShader> shaders, int3 origin, int size, uint octreeIndex) {
         this.index = octreeIndex;
         this.graph = parent;
         this.origin = origin;
@@ -28,6 +32,18 @@ public class ShaderSubchunk : IOctreeChunk {
         this.active = true;
         this.detailLevel = CalculateDetailLevel();
         this.RefreshState = TerrainChunk.Status.State.Pending;
+        Transform pTransf = graph.parent.MeshTransform;
+        Bounds boundsOS = graph.parent.GetRelativeBoundsOS(origin, size);
+        Bounds boundsWS = CustomUtility.TransformBounds(pTransf, boundsOS);
+        rps = new RenderParams[shaders.Count];
+        for (int i = 0; i < rps.Length; i++) {
+            rps[i] = new RenderParams(shaders[i].GetMaterial()) {
+                worldBounds = boundsWS,
+                shadowCastingMode = ShadowCastingMode.Off,
+                matProps = new MaterialPropertyBlock()
+            };
+            rps[i].matProps.SetMatrix(ShaderIDProps.LocalToWorld, pTransf.localToWorldMatrix);
+        }
     }
     public void VerifyChunk() {
         if (!active) return;
@@ -120,49 +136,32 @@ public class ShaderSubchunk : IOctreeChunk {
         return SCInfo;
     }
 
-    public void ApplyAllocToChunk(List<GeoShader> geoShaders, uint2[] shadInfo) {
+    public void ApplyAllocToChunk(uint2[] shadInfo) {
         graph.tree.ReapChunk(index); ReleaseGeometry();
         RefreshState = TerrainChunk.Status.State.Finished;
         activeRenders = new ShaderUpdateTask[shadInfo.Length];
         for (int i = 0; i < shadInfo.Length; i++) {
             uint2 info = shadInfo[i];
-            RenderParams rp = SetupShaderMaterials(geoShaders[i], GenerationPreset.memoryHandle, info.x);
-            activeRenders[i] = new ShaderUpdateTask(info.x, info.y, rp);
-            OctreeTerrain.MainLateUpdateTasks.Enqueue(activeRenders[i]);
-            ReleaseEmptyShaders(activeRenders[i]);
-        }
-    }
-    
-    private void ReleaseEmptyShaders(ShaderUpdateTask shader){
-        void OnAddressRecieved(AsyncGPUReadbackRequest request){
-            if (!shader.Active) return;
+            RenderParams rp = SetupShaderMaterials(i, GenerationPreset.memoryHandle, info.x);
+            ShaderUpdateTask shader = new ShaderUpdateTask(info.x, info.y, rp);
+            OctreeTerrain.MainLateUpdateTasks.Enqueue(shader);
+            activeRenders[i] = shader;
 
-            uint2 memAddress = request.GetData<uint2>().ToArray()[0];
-            if (memAddress.x != 0) return; //No geometry to readback
-            shader.Release(ref GenerationPreset.memoryHandle);
-            return;
+            GenerationPreset.memoryHandle.TestAllocIsEmpty((int)shader.address, address => {
+                //Captured shader is in this scope so ok
+                shader.Release(ref GenerationPreset.memoryHandle);
+            });
         }
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)shader.address, OnAddressRecieved);
     }
 
     public RenderParams SetupShaderMaterials(
-        GeoShader shader, MemoryBufferHandler memoryHandle, uint addressIndex
+        int shadInd, MemoryBufferHandler memoryHandle, uint addressIndex
     ) {
-        Transform pTransf = graph.parent.MeshTransform;
+        RenderParams rp = rps[shadInd]; 
         ComputeBuffer sourceBuffer = memoryHandle.GetBlockBuffer(addressIndex);
-        Bounds boundsOS = graph.parent.GetRelativeBoundsOS(origin, size);
-        Bounds boundsWS = CustomUtility.TransformBounds(pTransf, boundsOS);
-
-        RenderParams rp = new RenderParams(shader.GetMaterial()) {
-            worldBounds = boundsWS,
-            shadowCastingMode = ShadowCastingMode.Off,
-            matProps = new MaterialPropertyBlock()
-        };
-
-        rp.matProps.SetMatrix("_LocalToWorld", pTransf.localToWorldMatrix);
-        rp.matProps.SetBuffer("_StorageMemory", sourceBuffer);
-        rp.matProps.SetBuffer("_AddressDict", memoryHandle.Address);
-        rp.matProps.SetInt("addressIndex", (int)addressIndex);
+        rp.matProps.SetBuffer(ShaderIDProps.StorageMemory, sourceBuffer);
+        rp.matProps.SetBuffer(ShaderIDProps.AddressDict, memoryHandle.Address);
+        rp.matProps.SetInt(ShaderIDProps.AddressIndex, (int)addressIndex);
         return rp;
     }
 

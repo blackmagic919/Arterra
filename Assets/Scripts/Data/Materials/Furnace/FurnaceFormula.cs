@@ -302,7 +302,6 @@ namespace WorldConfig.Intrinsic.Furnace {
             InventoryController.Inventory tempInv = new InventoryController.Inventory(2 * (int)tempCapacity);
             FurnaceInvs[0].CopyTo(tempInv, 0, 0); offset += FurnaceInvs[0].capacity;
             FurnaceInvs[1].CopyTo(tempInv, 0, (int)offset); offset += FurnaceInvs[0].capacity;
-            FurnaceInvs[2].CopyTo(tempInv, 0, (int)offset);
             
             AccumulateRequiredIngredients(FurnaceInvs[(int)InvIndex.Input], recipe.Inputs.value);
             AccumulateInvSurplus(FurnaceInvs[(int)InvIndex.Output]);
@@ -381,7 +380,7 @@ namespace WorldConfig.Intrinsic.Furnace {
                     float req = ing.Rate * normalization * item.UnitSize;
                     int amount = Mathf.CeilToInt(Surplus[index] * req / Deficit[index]);
                     tempInv.RemoveStackableKey(index, amount, item => {
-                        if (dest.Info[i] == null) dest.AddEntry(item, i);
+                        if (dest.PeekItem(i) == null) dest.AddEntry(item, i);
                         else dest.Info[i].AmountRaw += item.AmountRaw;
                     });
                 }   

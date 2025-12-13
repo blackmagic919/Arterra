@@ -50,6 +50,7 @@ public static class SystemProtocol{
         InputPoller.Initialize();
         PlayerHandler.Initialize();
         GameUIManager.Initialize();
+        WorldDataHandler.Initialize();
 
         AtmospherePass.Initialize();
         MapStorage.Chunk.Initialize();
@@ -98,6 +99,7 @@ public static class SystemProtocol{
 
     private static void ShutdownAll(){
         UtilityBuffers.Release();
+        GameUIManager.Release();
         MapStorage.GPUMapManager.Release();
         MapStorage.CPUMapManager.Release();
         EntityManager.Release();
@@ -106,6 +108,7 @@ public static class SystemProtocol{
         GenerationPreset.Release();
         AtmospherePass.Release();
         Readback.AsyncMeshReadback.Release();
+        WorldDataHandler.Release();
         PlayerHandler.Release();
     }
 

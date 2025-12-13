@@ -22,18 +22,18 @@ uint ReadMapData(int3 sCoord){
     int3 sCCoord = dCC + CCoord;
 
     CInfo cHandle = _AddressDict[HashCoord(sCCoord)];
-    int skipInc = (cHandle.offset & 0xFF);
+    int nSkipInc = (cHandle.offset & 0xFF);
 
     //this shouldn't happen as long as mapExtend >= 1
     if(!Contains(cHandle, sCCoord)) return 0;  
     //If the chunk is too not detail, just extend the current map
-    else if(any(coord % skipInc != 0)){ 
+    else if(any(coord % nSkipInc != 0)){ 
         coord = clamp(sCoord, 0, mapChunkSize - 1);
         cHandle = _AddressDict[HashCoord(CCoord)];
-        skipInc = (cHandle.offset & 0xFF);
+        nSkipInc = (cHandle.offset & 0xFF);
     }
     
-    coord /= skipInc;
+    coord /= nSkipInc;
     coord.x += (cHandle.offset >> 24) & 0xFF;
     coord.y += (cHandle.offset >> 16) & 0xFF;
     coord.z += (cHandle.offset >> 8) & 0xFF;
@@ -52,20 +52,20 @@ void CollectReal (uint3 id : SV_DispatchThreadID)
 
 StructuredBuffer<uint2> _DirectAddress;
 uint defAddress;
-int chunkSkip;
+int skipInc;
 
 //This function can fail, returns 0->fail, 1->success
 bool ReadRealMap(int3 sCoord, out uint info){
-    sCoord--; sCoord *= chunkSkip; info = 0;
+    sCoord--; sCoord *= skipInc; info = 0;
     int3 remainder = ((sCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
     int3 dCC = (sCoord - remainder) / mapChunkSize;
     int3 sCCoord = CCoord + dCC;
     sCoord -= dCC * mapChunkSize;
 
     CInfo cHandle = _AddressDict[HashCoord(sCCoord)];
-    int skipInc = (cHandle.offset & 0xFF);
+    int nSkipInc = (cHandle.offset & 0xFF);
     if(!Contains(cHandle, sCCoord)) return false; 
-    else if(any(sCoord % skipInc) != 0) return false;
+    else if(any(sCoord % nSkipInc) != 0) return false;
     //bottom edge needs to check if adjacent chunk exists
     //otherwise it'll have different data than the fake adjacent
     //chunk that is created, even though it owns the data
@@ -75,8 +75,8 @@ bool ReadRealMap(int3 sCoord, out uint info){
         if(!Contains(adjHandle, sCCoord)) return false;
     } 
 
-    if (skipInc > chunkSkip) return false;
-    sCoord /= skipInc;
+    if (nSkipInc > skipInc) return false;
+    sCoord /= nSkipInc;
     sCoord.x += (cHandle.offset >> 24) & 0xFF;
     sCoord.y += (cHandle.offset >> 16) & 0xFF;
     sCoord.z += (cHandle.offset >> 8) & 0xFF;

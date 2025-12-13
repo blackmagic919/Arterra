@@ -1,6 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Profiling;
+using UnityEngine.Rendering;
 
 namespace WorldConfig.Quality {
     /// <summary>
@@ -16,6 +20,8 @@ namespace WorldConfig.Quality {
         protected ComputeShader DeallocateShader;
         protected ComputeShader d_AllocateShader;
         protected ComputeShader d_DeallocateShader;
+        //Remember to set to null, this can cause a circular reference
+        private BatchReleaseEmpty BatchRelease;
 
         protected ComputeBuffer _GPUMemorySource;
         protected ComputeBuffer _EmptyBlockHeap;
@@ -34,6 +40,7 @@ namespace WorldConfig.Quality {
             //2 channels, 1 for size, 2 for memory address
             _EmptyBlockHeap = new ComputeBuffer(settings.HeapSize, sizeof(uint) * 2, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             _AddressBuffer = new LogicalBlockBuffer(GraphicsBuffer.Target.Structured, settings.AddressSize + 1, sizeof(uint) * 2);
+            BatchRelease = new BatchReleaseEmpty(this);
             Preset();
 
             initialized = true;
@@ -48,6 +55,8 @@ namespace WorldConfig.Quality {
             _GPUMemorySource?.Release();
             _EmptyBlockHeap?.Release();
             _AddressBuffer?.Destroy();
+            BatchRelease?.Release();
+            BatchRelease = null;
             initialized = false;
         }
 
@@ -118,9 +127,9 @@ namespace WorldConfig.Quality {
 
             uint addressIndex = _AddressBuffer.Allocate();
             //Allocate Memory
-            d_AllocateShader.SetInt("addressIndex", (int)addressIndex);
-            d_AllocateShader.SetInt("allocCount", count);
-            d_AllocateShader.SetInt("allocStride", stride);
+            d_AllocateShader.SetInt(ShaderIDProps.AddressIndex, (int)addressIndex);
+            d_AllocateShader.SetInt(ShaderIDProps.AllocCount, count);
+            d_AllocateShader.SetInt(ShaderIDProps.AllocStride, stride);
 
             d_AllocateShader.Dispatch(0, 1, 1, 1);
             return addressIndex;
@@ -141,11 +150,11 @@ namespace WorldConfig.Quality {
             uint addressIndex = _AddressBuffer.Allocate();
 
             //Allocate Memory
-            AllocateShader.SetInt("addressIndex", (int)addressIndex);
-            AllocateShader.SetInt("countOffset", countOffset);
+            AllocateShader.SetInt(ShaderIDProps.AddressIndex, (int)addressIndex);
+            AllocateShader.SetInt(ShaderIDProps.CountOffset, countOffset);
 
-            AllocateShader.SetBuffer(0, "allocCount", count);
-            AllocateShader.SetInt("allocStride", stride);
+            AllocateShader.SetBuffer(0, ShaderIDProps.AllocCount, count);
+            AllocateShader.SetInt(ShaderIDProps.AllocStride, stride);
 
             AllocateShader.Dispatch(0, 1, 1, 1);
             return addressIndex;
@@ -163,7 +172,7 @@ namespace WorldConfig.Quality {
         public virtual void ReleaseMemory(uint addressIndex) {
             if (!initialized || addressIndex == 0) return;
             //Release Memory
-            DeallocateShader.SetInt("addressIndex", (int)addressIndex);
+            DeallocateShader.SetInt(ShaderIDProps.AddressIndex, (int)addressIndex);
             DeallocateShader.Dispatch(0, 1, 1, 1);
             _AddressBuffer.Release(addressIndex);
 
@@ -181,8 +190,8 @@ namespace WorldConfig.Quality {
         public virtual void ReleaseMemoryDirect(ComputeBuffer address, int countOffset = 0) {
             if (!initialized) return;
             //Allocate Memory
-            d_DeallocateShader.SetBuffer(0, "_Address", address);
-            d_DeallocateShader.SetInt("countOffset", countOffset);
+            d_DeallocateShader.SetBuffer(0, ShaderIDProps.AddressDict, address);
+            d_DeallocateShader.SetInt(ShaderIDProps.CountOffset, countOffset);
 
             d_DeallocateShader.Dispatch(0, 1, 1, 1);
         }
@@ -195,5 +204,102 @@ namespace WorldConfig.Quality {
 
         public virtual ComputeBuffer GetBlockBuffer(uint index) { return _GPUMemorySource; }
         public virtual ComputeBuffer GetBlockBuffer(int index) { return _GPUMemorySource; }
+        public virtual bool GetBlockBufferSafe(int index, out ComputeBuffer buffer) { 
+            buffer = null;
+            if (!initialized) return false;
+            buffer = _GPUMemorySource;
+            return true;
+        }
+
+        /// <summary> Will test if the given allocation is empty(e.g. failed or allocated
+        /// size zero) and callback a handler if it is. </summary>
+        /// <param name="alloc">The allocation that is tested to be empty</param>
+        /// <param name="OnIsEmpty">The callback that is answered if it is empty</param>
+        public void TestAllocIsEmpty(int alloc, Action<int> OnIsEmpty) {
+            this.BatchRelease.TryReleaseIfEmpty(new BatchReleaseEmpty.ReleaseHandle {
+                OnReleasing = OnIsEmpty,
+                Alloc = alloc
+            });
+        }
+
+        private class BatchReleaseEmpty {
+            private MemoryBufferHandler mem;
+            private ComputeShader GatherAllocSizes;
+            private Queue<ReleaseHandle> AllocsToCheck;
+            private int BatchedCheckSize;
+            private int StatusGroupAlloc;
+            private bool initialized;
+            public BatchReleaseEmpty(MemoryBufferHandler mem) {
+                this.mem = mem;
+                BatchedCheckSize = 0;
+                StatusGroupAlloc = 0;
+                initialized = true;
+
+                AllocsToCheck = new Queue<ReleaseHandle>();
+                GatherAllocSizes = Resources.Load<ComputeShader>("Compute/MemoryStructures/GatherAllocGroup");
+                GatherAllocSizes.SetBuffer(0, "CheckAddresses", UtilityBuffers.TransferBuffer);
+            }
+
+            public void Release() {
+                initialized = false;
+            }
+
+            public void TryReleaseIfEmpty(ReleaseHandle handle) {
+                AllocsToCheck.Enqueue(handle);
+                ReadbackAndClearEmpty();
+            }
+
+            private void ReadbackAndClearEmpty() {
+                if (!initialized) return;
+                //Means we are currently trying to readback
+                if (StatusGroupAlloc > 0) return; 
+                BatchedCheckSize = AllocsToCheck.Count;
+                int[] allocs = AllocsToCheck.Select(h => h.Alloc).ToArray();
+                UtilityBuffers.TransferBuffer.SetData(allocs, 0, 0, BatchedCheckSize);
+
+                StatusGroupAlloc = (int)mem.AllocateMemoryDirect(BatchedCheckSize, 1);
+                ComputeBuffer storage = mem.GetBlockBuffer(StatusGroupAlloc);
+                GatherAllocSizes.SetBuffer(0, ShaderIDProps.MemoryBuffer, storage);
+                GatherAllocSizes.SetBuffer(0, ShaderIDProps.AddressDict, mem.Address);
+                GatherAllocSizes.SetInt(ShaderIDProps.AddressIndex, StatusGroupAlloc);
+                GatherAllocSizes.SetInt(ShaderIDProps.NumAddress, BatchedCheckSize);
+
+                GatherAllocSizes.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+                int numThreadsAxis = Mathf.CeilToInt(BatchedCheckSize / (float)threadGroupSize);
+                GatherAllocSizes.Dispatch(0, numThreadsAxis, 1, 1);;
+
+                void OnAllocsRecieved(AsyncGPUReadbackRequest request) {
+                    if (!initialized) return;
+                    Unity.Collections.NativeArray<uint> success = request.GetData<uint>();
+                    for (int i = 0; i < BatchedCheckSize; i++) {
+                        ReleaseHandle handle = AllocsToCheck.Dequeue();
+                        if (success[i] != 0) continue;
+                        handle.OnReleasing(handle.Alloc);
+                    } 
+                    mem.ReleaseMemory((uint)StatusGroupAlloc);
+                    BatchedCheckSize = 0;
+                    StatusGroupAlloc = 0;
+
+                    if (AllocsToCheck.Count == 0) return;
+                    ReadbackAndClearEmpty(); //recursion cycle
+                }
+
+                void OnAddressRecieved(AsyncGPUReadbackRequest request) {
+                    if (!initialized) return;
+                    if (!mem.GetBlockBufferSafe(StatusGroupAlloc, out ComputeBuffer block))
+                        return;
+                    uint2 memHandle = request.GetData<uint2>()[0];
+                    if(memHandle.x == 0) return;
+                    AsyncGPUReadback.Request(block, size: 4 * BatchedCheckSize, offset: 4 * (int)memHandle.y, OnAllocsRecieved);
+                }
+
+                AsyncGPUReadback.Request(mem.Address, size: 8, offset: 8 * StatusGroupAlloc, OnAddressRecieved);
+            }
+
+            public struct ReleaseHandle {
+                public int Alloc;
+                public Action<int> OnReleasing;
+            }
+        }
     }
 }

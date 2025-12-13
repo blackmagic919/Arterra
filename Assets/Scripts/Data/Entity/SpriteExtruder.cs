@@ -39,7 +39,7 @@ public static class SpriteExtruder{
         triangleTranscriber.SetBuffer(kernel, "triDict", UtilityBuffers.GenerationBuffer);
         triangleTranscriber.SetBuffer(kernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
         triangleTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-        triangleTranscriber.SetInt("bCOUNTER_Tri", offsets.triangleCounter);
+        triangleTranscriber.SetInt("bCOUNT_Tri", offsets.triangleCounter);
         triangleTranscriber.SetInt("bSTART_Tri", offsets.triangleStart);
         triangleTranscriber.SetInt("bSTART_Dict", offsets.dictStart);
         triangleTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
