@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using Arterra.Core.Events;
 using Newtonsoft.Json;
 using TMPro;
 using Unity.Mathematics;
@@ -104,9 +105,11 @@ public static class InventoryController {
         Secondary.ReapplyHandles();
         Primary.ReapplyHandles();
 
-        cxt.cur.Events.AddEvent<(PlayerStreamer.Player, PlayerStreamer.Player)>(
-            EntityEvents.EventType.OnRespawn,
-            RebindInventories
+        cxt.cur.AddEventHandler<(PlayerStreamer.Player, PlayerStreamer.Player)>(
+            EntityEventType.OnRespawn,
+            delegate (object sender, ref (PlayerStreamer.Player, PlayerStreamer.Player) args) {
+                RebindInventories(ref args);
+            }
         );
         return false;
     }

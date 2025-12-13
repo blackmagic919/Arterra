@@ -6,6 +6,7 @@ using WorldConfig;
 using System;
 using UnityEngine.PlayerLoop;
 using WorldConfig.Gameplay.Player;
+using Arterra.Core.Events;
 
 
 namespace WorldConfig.Gameplay.Player{
@@ -78,9 +79,11 @@ public static class PlayerHandler
 
     static bool RebindPlayer(ref (PlayerStreamer.Player old, PlayerStreamer.Player cur) cxt) {
         Viewer.SetParent(cxt.cur.player.transform, worldPositionStays: false);
-        cxt.cur.Events.AddEvent<(PlayerStreamer.Player, PlayerStreamer.Player)>(
-            EntityEvents.EventType.OnRespawn,
-            RebindPlayer
+        cxt.cur.AddEventHandler<(PlayerStreamer.Player, PlayerStreamer.Player)>(
+            EntityEventType.OnRespawn,
+            delegate (object sender, ref (PlayerStreamer.Player, PlayerStreamer.Player) args) {
+                RebindPlayer(ref args);
+            }
         );
         return false;
     }
@@ -139,7 +142,8 @@ public static class PlayerHandler
         EntityManager.DeserializeEntity(nPlayer, () => {
             //Answer hooks
             var prms = (data, nPlayer);
-            data.Events.Invoke(EntityEvents.EventType.OnRespawn, ref prms);
+            data.RaiseEvent(EntityEventType.OnRespawn, ref prms);
+            //data.Events.Invoke(EntityEvents.EventType.OnRespawn, ref prms);
             
             OctreeTerrain.viewer = nPlayer.player.transform;
             data = nPlayer;
