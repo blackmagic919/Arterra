@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Arterra.Core.Events;
 using TerrainGeneration;
 using Unity.Burst.Intrinsics;
 using Unity.Mathematics;
@@ -62,14 +63,18 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         playerArmor.InitializeDisplay(ArmorPanel);
         playerArmor.ReapplyHandles();
 
-        cxt.cur.Events.AddEvent<(float, float3, Entity)>(
-            EntityEvents.EventType.OnDamaged,
-            playerArmor.OnDamaged
+        cxt.cur.AddEventHandler<(float, float3, Entity)>(
+            EntityEventType.OnDamaged,
+            delegate (object sender, ref (float, float3, Entity) args) {
+                playerArmor.OnDamaged(ref args);
+            }
         );
 
-        cxt.cur.Events.AddEvent<(PlayerStreamer.Player, PlayerStreamer.Player)>(
-            EntityEvents.EventType.OnRespawn,
-            RebindPlayer
+        cxt.cur.AddEventHandler<(PlayerStreamer.Player, PlayerStreamer.Player)>(
+            EntityEventType.OnRespawn,
+            delegate (object sender, ref (PlayerStreamer.Player, PlayerStreamer.Player) args) {
+                RebindPlayer(ref args);
+            }
         );
         return false;
     }

@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using UnityEditor;
 using System.Collections.Generic;
 using WorldConfig.Generation.Structure;
+using Arterra.Core.Events;
 namespace WorldConfig.Generation.Entity{
 /// <summary>
 /// A generic contract that ensures that all entities contain a certain
@@ -30,7 +31,7 @@ public abstract class Authoring : Category<Authoring>{
 /// as well as some metadata used by the system to manage the entity. All entities in the game
 /// must inherit from this class and implement the virtual functions to be used by the system.
 /// </summary>
-public abstract class Entity: IRegistered{
+public abstract class Entity: EventControl, IRegistered{
     /// <summary> Information about the entity instance that is required of every instance for the system to function. See <see cref="Info"/> for more information. </summary>
     public Info info; 
     /// <summary> Whether or not the entity is active. This is the flag set to indicate to the system that

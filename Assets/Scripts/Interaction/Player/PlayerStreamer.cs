@@ -8,6 +8,7 @@ using WorldConfig.Generation.Item;
 using TerrainGeneration;
 using MapStorage;
 using WorldConfig.Gameplay.Player;
+using Arterra.Core.Events;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Player")]
 public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
@@ -44,8 +45,6 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
         public PlayerCollider collider;
         public StreamingStatus status;
 
-        [JsonIgnore]
-        public EntityEvents Events = new();
         [JsonIgnore]
         public PlayerActionEffects Effects = new();
 
@@ -88,7 +87,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
             if (vitality.Invincibility > 0) return;
             
             var cxt = (damage, knockback, attacker);
-            Events.Invoke(EntityEvents.EventType.OnDamaged, ref cxt);
+            RaiseEvent(EntityEventType.OnDamaged, ref cxt);
             (damage, knockback, attacker) = cxt;
 
             if (!vitality.Damage(damage)) return;
@@ -207,7 +206,7 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 
         public void ProcessFallDamage(float zVelDelta)
         {
-            Events.Invoke(EntityEvents.EventType.OnHitGround, ref zVelDelta);
+            RaiseEvent(EntityEventType.OnHitGround, ref zVelDelta);
             if (zVelDelta <= Vitality.FallDmgThresh) return;
             float dmgIntensity = zVelDelta - Vitality.FallDmgThresh;
             dmgIntensity = math.pow(dmgIntensity, Config.CURRENT.GamePlay.Player.value.Physicality.value.weight);
