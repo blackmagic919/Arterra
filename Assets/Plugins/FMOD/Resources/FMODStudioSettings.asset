@@ -526,8 +526,8 @@ MonoBehaviour:
   switchSettingsMigration: 1
   HasSourceProject: 1
   HasPlatforms: 1
-  sourceProjectPath: ArterraAudioFMOD/Wind FMod Finished Version.fspro
-  sourceBankPath: ArterraAudioFMOD/Build
+  sourceProjectPath: ArterraAudio/ArterraAudio.fspro
+  sourceBankPath: ArterraAudio/Build
   sourceBankPathUnformatted: 
   BankRefreshCooldown: 5
   ShowBankRefreshWindow: 1
@@ -551,8 +551,7 @@ MonoBehaviour:
   Plugins: []
   MasterBanks:
   - Master
-  Banks:
-  - Music
+  Banks: []
   BanksToLoad: []
   LiveUpdatePort: 9264
   EnableMemoryTracking: 0

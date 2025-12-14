@@ -4,6 +4,8 @@ using UnityEngine;
 using WorldConfig.Generation.Entity;
 using static WorldConfig.Generation.Entity.EntitySetting;
 using MapStorage;
+using Unity.Collections.LowLevel.Unsafe;
+using Unity.Collections;
 
 [BurstCompile]
 public struct PathFinder{
@@ -55,8 +57,8 @@ public struct PathFinder{
     public int PathMapSize;
     public int PathDistance;
     public int HeapEnd;
-    public byte[] SetPtr;
-    public int4[] MapPtr;
+    public unsafe byte* SetPtr;
+    public unsafe int4* MapPtr;
     //x = heap score, y = heap->dict ptr, z = dict->heap ptr, w = path dict
 
     private static readonly int4[] dP = new int4[24]{
@@ -86,24 +88,31 @@ public struct PathFinder{
         new (1, 1, -1, 17),
     };
     
-    public PathFinder(int PathDistance){
-        this.PathDistance = math.max(PathDistance, 0);
+    public unsafe PathFinder(int PathDistance){
+        this.PathDistance = PathDistance;
         this.PathMapSize = PathDistance * 2 + 1;
         int mapLength = PathMapSize * PathMapSize * PathMapSize;
 
         //The part we actually clear
-        int SetSize = Mathf.CeilToInt(mapLength / 8.0f); 
+        //We divide by 4 because Map has to be 4 byte aligned
+        int SetSize = Mathf.CeilToInt(mapLength / (8 * 16f)); 
+        //+1 to avoid seg fault when path distance = 0
+        int MapSize = mapLength + 1;
+        int TotalSize = (SetSize + MapSize) * 16;
         HeapEnd = 1;
 
-        SetPtr = new byte[SetSize];
-        MapPtr = new int4[mapLength+1];
+        //We make it one block so less fragment & more cache hits
+        void* ptr = UnsafeUtility.Malloc(TotalSize, 16, Allocator.TempJob);;
+        SetPtr = (byte*)ptr;
+        MapPtr = (int4*)(SetPtr + (SetSize * 16));
+        UnsafeUtility.MemClear((void*)SetPtr, SetSize * 16);
     }
 
-    public readonly void Release(){ 
-        //Do nothing 
-    }
+    [BurstCompile]
+    public readonly unsafe void Release(){ UnsafeUtility.Free((void*)SetPtr, Allocator.TempJob); }
     
-    public void AddNode(int3 ECoord, int score, int prev){
+    [BurstCompile]
+    public unsafe void AddNode(int3 ECoord, int score, int prev){
         int index = ECoord.x * PathMapSize * PathMapSize + ECoord.y * PathMapSize + ECoord.z;
         int heapPos = HeapEnd;
 
@@ -126,12 +135,12 @@ public struct PathFinder{
             heapPos >>= 1;
         }
 
-        if (heapPos >= MapPtr.Length) Debug.Log(PathDistance);
         MapPtr[heapPos].xy = new int2(score, index);
         MapPtr[index].zw = new int2(heapPos, prev);
     }
 
-    public int2 RemoveNode(){
+    [BurstCompile]
+    public unsafe int2 RemoveNode(){
         int2 result = MapPtr[1].xy;
         int2 last = MapPtr[HeapEnd - 1].xy;
         HeapEnd--;
@@ -146,7 +155,6 @@ public struct PathFinder{
             MapPtr[MapPtr[heapPos].y].z = heapPos;
             heapPos = child;
         }
-
         MapPtr[heapPos].xy = last;
         MapPtr[last.y].z = heapPos;
         MapPtr[result.y].z = 0; //Mark as visited
@@ -320,7 +328,7 @@ public struct PathFinder{
 
 
 
-    public static byte[] RetracePath(ref PathFinder finder, int dest, int start, out int PathLength){
+    public static unsafe byte[] RetracePath(ref PathFinder finder, int dest, int start, out int PathLength){
         PathLength = 0; 
         int currentInd = dest;
         while(currentInd != start){ 
