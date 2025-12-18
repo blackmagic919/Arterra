@@ -1,0 +1,349 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1706e0d06cfcf4288909469e2f6f1a46, type: 3}
+  m_Name: Monolith
+  m_EditorClassIdentifier: Assembly-CSharp::Monolith
+  Name: Monolith
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 2418125290398583344, guid: eb5a61fdd28b0479f90066785e3e1807, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 3
+          y: 5
+          z: 3
+      collider:
+        size:
+          x: 2.5
+          y: 4.5
+          z: 2.5
+        friction: 0.25
+      EnemyCheckDist:
+        mean: 8
+        var: 0.4
+        geneWeight: 0.3
+      EnemyCheckDelay:
+        mean: 2.5
+        var: 0.5
+        geneWeight: 0.1
+      movement:
+        walkSpeed:
+          mean: 2
+          var: 0.45
+          geneWeight: 0.25
+        runSpeed:
+          mean: 3
+          var: 0.5
+          geneWeight: 0.75
+        pathDistance: 31
+        acceleration: 200
+        rotSpeed: 180
+        AverageIdleTime: 20
+      recognition:
+        value:
+          Predators:
+            value: []
+          SightDistance:
+            mean: 40
+            var: 0.25
+            geneWeight: 0.5
+          PlantFindDist:
+            mean: 0
+            var: 0
+            geneWeight: 0
+          PreyEntity:
+            value:
+            - EntityType: Player
+          PreyPlant:
+            value: []
+          FleeDistance: 5
+          FightAggressor: 1
+      physicality:
+        value:
+          weight: 0.9
+          MaxHealth:
+            mean: 50
+            var: 0.5
+            geneWeight: 1
+          NaturalRegen:
+            mean: 0.01
+            var: 0.75
+            geneWeight: 0.5
+          InvincTime:
+            mean: 0.25
+            var: 1
+            geneWeight: 0.5
+          HoldBreathTime:
+            mean: 20
+            var: 1
+            geneWeight: 0.05
+          AttackDistance:
+            mean: 8
+            var: 0.25
+            geneWeight: 0.5
+          AttackDamage:
+            mean: 8
+            var: 0.75
+            geneWeight: 0.75
+          AttackCooldown:
+            mean: 1.5
+            var: 0.75
+            geneWeight: 0.5
+          KBStrength:
+            mean: 15
+            var: 0.5
+            geneWeight: 0.25
+      decomposition:
+        LootTable:
+          value: []
+        DecompositionTime:
+          mean: 300
+          var: 0.25
+          geneWeight: 0.1
+      attack:
+        Projectile:
+          ShotDelay: 0.25
+          CheckSightline: 1
+          ChargeTime:
+            mean: 5
+            var: 0.5
+            geneWeight: 0.6
+          Projectile:
+            ProjectileEntity: StoneHorn
+            LaunchSpeedMultiplier: 5
+        BlindDist:
+          mean: 3
+          var: 0.25
+          geneWeight: 0.5
+      ConsumptionRate: 0.5
+      Torso:
+        Offset:
+          x: 0
+          y: 4.5
+          z: 0
+        Collider:
+          size:
+            x: 2
+            y: 2
+            z: 2
+          friction: 0.25
+      Legs:
+        value:
+        - collider:
+            size:
+              x: 0.75
+              y: 3.5
+              z: 0.75
+            friction: 0.25
+          RestOffset:
+            x: -2.5
+            y: 0
+            z: 2.5
+          IKObjectPath: Rig/Leg.Front.control.R/target
+          StepDistThreshold: 3
+          LegRaiseHeight: 2
+          MoveAccel: 200
+        - collider:
+            size:
+              x: 0.75
+              y: 3.5
+              z: 0.75
+            friction: 0.25
+          RestOffset:
+            x: 2.5
+            y: 0
+            z: 2.5
+          IKObjectPath: Rig/Leg.Front.control.L/target
+          StepDistThreshold: 3
+          LegRaiseHeight: 2
+          MoveAccel: 200
+        - collider:
+            size:
+              x: 0.75
+              y: 3.5
+              z: 0.75
+            friction: 0.25
+          RestOffset:
+            x: -2.5
+            y: 0
+            z: -2.5
+          IKObjectPath: Rig/Leg.Back.control.R/target
+          StepDistThreshold: 3
+          LegRaiseHeight: 2
+          MoveAccel: 200
+        - collider:
+            size:
+              x: 0.75
+              y: 3.5
+              z: 0.75
+            friction: 0.25
+          RestOffset:
+            x: 2.5
+            y: 0
+            z: -2.5
+          IKObjectPath: Rig/Leg.Back.control.L/target
+          StepDistThreshold: 3
+          LegRaiseHeight: 2
+          MoveAccel: 200
+      AnimControl:
+      - AnimName: Armature_active_idle
+        LegControlBitmap: 15
+      - AnimName: Armature_attack_left
+        LegControlBitmap: 14
+      - AnimName: Armature_attack_right
+        LegControlBitmap: 13
+      - AnimName: Armature_ShootHorn
+        LegControlBitmap: 15
+  references:
+    version: 2
+    RefIds: []

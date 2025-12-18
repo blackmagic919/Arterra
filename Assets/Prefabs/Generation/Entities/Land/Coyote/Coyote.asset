@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
+  m_Script: {fileID: 11500000, guid: 9eab86889c170483ea8af671b02e484a, type: 3}
   m_Name: Coyote
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::SurfaceBoidAnimal
   Name: Coyote
   Tags:
     Reg:
@@ -20,6 +20,42 @@ MonoBehaviour:
     value: {fileID: 6344444734217580524, guid: 0d22b432cfe3a45ea997cf4da8e776a3, type: 3}
   Profile:
     value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
     - bounds:
         data: 4286643968
       flags: 2
@@ -75,13 +111,38 @@ MonoBehaviour:
           var: 0.45
           geneWeight: 0.25
         runSpeed:
-          mean: 10
+          mean: 7
           var: 0.5
           geneWeight: 0.75
         pathDistance: 31
         acceleration: 100
         rotSpeed: 180
         AverageIdleTime: 2.5
+      herd:
+        profile:
+          bounds:
+            x: 2
+            y: 3
+            z: 2
+        AverageFlightTime:
+          mean: 25
+          var: 0.5
+          geneWeight: 0.15
+        SeperationWeight:
+          mean: 0.75
+          var: 0.5
+          geneWeight: 0.05
+        AlignmentWeight:
+          mean: 0.4
+          var: 0.5
+          geneWeight: 0.05
+        CohesionWeight:
+          mean: 0.3
+          var: 0.75
+          geneWeight: 0.05
+        InfluenceDist: 12
+        PathDist: 8
+        MaxSwarmSize: 5
       decomposition:
         LootTable:
           value:
@@ -100,10 +161,26 @@ MonoBehaviour:
             value:
             - EntityType: Lion
             - EntityType: Lioness
+          SightDistance:
+            mean: 26
+            var: 0.25
+            geneWeight: 0.75
+          PlantFindDist:
+            mean: 0
+            var: 0
+            geneWeight: 0
+          PreyEntity:
+            value:
+            - EntityType: Camel
+            - EntityType: Zebra
+          PreyPlant:
+            value: []
+          FleeDistance: 5
+          FightAggressor: 1
           Mates:
             value:
-            - MateType: ArcticFox
-              ChildType: ArcticFox
+            - MateType: Coyote
+              ChildType: Coyote
               AmountPerParent:
                 mean: 0.5
                 var: 0.75
@@ -116,16 +193,6 @@ MonoBehaviour:
                 mean: 12.8
                 var: 0.5
                 geneWeight: 0.1
-          SightDistance:
-            mean: 31
-            var: 0.25
-            geneWeight: 0.75
-          FleeDistance: 5
-          FightAggressor: 1
-          Prey:
-            value:
-            - EntityType: Camel
-            - EntityType: Zebra
       physicality:
         value:
           weight: 0.4

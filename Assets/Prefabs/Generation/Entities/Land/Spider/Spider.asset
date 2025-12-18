@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
+  m_Script: {fileID: 11500000, guid: 6fbcd5f0b5992466685233b55199a842, type: 3}
   m_Name: Spider
   m_EditorClassIdentifier: 
   Name: Spider
@@ -114,7 +114,7 @@ MonoBehaviour:
             geneWeight: 0.75
           FleeDistance: 5
           FightAggressor: 1
-          Prey:
+          PreyEntity:
             value:
             - EntityType: Beetle
       physicality:

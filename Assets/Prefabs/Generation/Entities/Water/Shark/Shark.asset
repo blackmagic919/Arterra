@@ -238,7 +238,7 @@ MonoBehaviour:
             geneWeight: 0.75
           FleeDistance: 5
           FightAggressor: 1
-          Prey:
+          PreyEntity:
             value:
             - EntityType: Cod
             - EntityType: Player

@@ -61,7 +61,8 @@ public struct Movement {
     public static void FollowDynamicPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, ref TerrainCollider tCollider, float3 target,
                             float moveSpeed, float rotSpeed, float acceleration, bool AllowVerticalRotation = false) {
         finder.stepDuration++;
-        if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > profile.bounds)) finder.hasPath = false;
+        if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > profile.bounds))
+            finder.hasPath = false;
         if (finder.currentInd >= finder.path.Length) finder.hasPath = false;
         if (finder.stepDuration > pathPersistence) finder.hasPath = false;
 
@@ -101,12 +102,17 @@ public struct Movement {
                 count = 0
             };
 
+            Guid PackTarget = default;
+            bool HasTarget = false;
             void OnEntityFound(Entity nEntity) {
                 if (nEntity == null) return;
                 if (nEntity.info.entityType != self.info.entityType) return;
                 IBoid nBoid = (IBoid)nEntity;
                 float3 nBoidPos = nEntity.transform.position;
                 float3 boidPos = self.transform.position;
+
+                if (HasTarget || (HasTarget = nBoid.HasPackTarget(out PackTarget)))
+                    return;
 
                 if (math.all(nBoid.MoveDirection == 0)) return;
                 if (math.distance(boidPos, nBoidPos) < settings.PathDist)
@@ -121,9 +127,10 @@ public struct Movement {
             OnEntityFound);
 
             if (boidDMtrx.count == 0) return;
-            float3 influenceDir;
+            float3 influenceDir = float3.zero;
             IBoid boidSelf = self as IBoid;
-            if (boidDMtrx.count > settings.MaxSwarmSize) //the sign of seperation is flipped for this case
+            if (HasTarget) boidSelf.SetPackTarget(PackTarget);
+            else if (boidDMtrx.count > settings.MaxSwarmSize) //the sign of seperation is flipped for this case
                 influenceDir = genes.Get(settings.SeperationWeight) * boidDMtrx.SeperationDir / boidDMtrx.count -
                 genes.Get(settings.CohesionWeight) * (boidDMtrx.CohesionDir / boidDMtrx.count - self.position);
             else influenceDir = genes.Get(settings.SeperationWeight) * boidDMtrx.SeperationDir / boidDMtrx.count +
@@ -202,6 +209,11 @@ public struct Movement {
 
     public interface IBoid {
         public float3 MoveDirection{get; set;}
+        public bool HasPackTarget(out Guid target) {
+            target = default;
+            return false;
+        }
+        public void SetPackTarget(Guid Target) {} 
     }
 
 }

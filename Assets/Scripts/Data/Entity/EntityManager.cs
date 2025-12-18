@@ -13,16 +13,18 @@ using System.Collections.Concurrent;
 using UnityEngine.Profiling;
 using MapStorage;
 using System.Threading.Tasks;
+using System.Linq;
 
 public static class EntityManager
 {
     private static EntityGenOffsets bufferOffsets;
     private static ComputeShader entityGenShader;
     private static ComputeShader entityTranscriber;
-    public static List<Entity> EntityHandler; //List of all entities placed adjacently
-    public static Dictionary<Guid, int> EntityIndex; //tracks location in handler of entityGUID
+    public static HashSet<Entity> EntityReg;
+    public static Dictionary<Guid, Entity> EntityIndex; //tracks location in handler of entityGUID
     public static STree ESTree; //BVH of entities updated synchronously
     public static ConcurrentQueue<Action> HandlerEvents; //Buffered updates to modify entities(since it can't happen while job is executing)
+    public static Entity[] CurUpdateEntities;
     private static volatile EntityJob Executor; //Job that updates all entities
     const int ENTITY_STRIDE_WORD = 3 + 1;
     const int MAX_ENTITY_COUNT = 10000; //10k ~ 5mb
@@ -31,20 +33,22 @@ public static class EntityManager
         HandlerEvents.Enqueue(action);
     }
 
-    public static bool TryGetEntity(Guid entityId, out Entity entity){
-        entity = null;
-        if(!EntityIndex.ContainsKey(entityId)) {
-            return false;
-        }
-        int entityInd = EntityIndex[entityId];
-        entity = EntityHandler[entityInd];
-        return true;
+    public static bool TryGetEntity(Guid identifier, out Entity entity){
+        return EntityIndex.TryGetValue(identifier, out entity);
     }
 
-    public static Entity GetEntity(int entityIndex){
-        return EntityHandler[entityIndex];
+    public static void FlushUpdateCycle() {
+        while(HandlerEvents.TryDequeue(out Action action)){
+            action.Invoke();
+        } HandlerEvents.Clear();
+        
+        if (EntityIndex.Count == 0) return;
+        CurUpdateEntities = EntityReg.ToArray();
+        foreach (Entity entity in CurUpdateEntities) {
+            ESTree.AssertEntityLocation(entity);
+        }
     }
-    
+
     private static void InitializeChunkEntity(GenPoint genInfo, int3 CCoord){
         int mapSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
@@ -52,6 +56,7 @@ public static class EntityManager
         Entity newEntity = authoring.Entity;
         AddHandlerEvent(() => InitializeE(newEntity, GCoord, genInfo.entityIndex));
     }
+
     public static void CreateEntity(float3 GCoord, uint entityIndex, Entity sEntity = null, Action cb = null) {
         if (sEntity == null) {
             Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
@@ -79,7 +84,7 @@ public static class EntityManager
         //mapinfo.CCoord is coord of previous chunk
         Bounds bounds = new(((float3)mapInfo.CCoord + 0.5f) * mapChunkSize, (float3)mapChunkSize);
 
-        List<Entity> Entities = new List<Entity>();
+        HashSet<Entity> Entities = new HashSet<Entity>();
         ESTree.QueryExclusive(bounds, (Entity entity) => {
             if (entity == null) return;
             //This is the only entity that is not serialized and saved
@@ -87,37 +92,31 @@ public static class EntityManager
             ReleaseEntity(entity.info.entityId);
             Entities.Add(entity);
         });
-        Task awaitableTask = Task.Run(() => Chunk.SaveEntitiesToJsonAsync(Entities, mapInfo.CCoord));
+        Task awaitableTask = Task.Run(() => Chunk.SaveEntitiesToJsonAsync(Entities.ToList(), mapInfo.CCoord));
         if (await) awaitableTask.Wait();
     }
     public static void ReleaseE(Guid entityId){
         if(!EntityIndex.ContainsKey(entityId)) {
             return;
         }
-        int entityInd = EntityIndex[entityId];
-        Entity entity = EntityHandler[entityInd];
+        Entity entity = EntityIndex[entityId];
+
+        EntityReg.Remove(entity);
         EntityIndex.Remove(entityId);
         ESTree.Delete(entityId);
         entity.Disable();
         entity.active = false;
-
-        //Fill in hole
-        if(entityInd != EntityHandler.Count-1){
-            entity = EntityHandler[^1];
-            EntityHandler[entityInd] = entity;
-            EntityIndex[entity.info.entityId] = entityInd;
-        }
-        EntityHandler.RemoveAt(EntityHandler.Count - 1);
     }
+    
     public static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
         nEntity.info.entityId = Guid.NewGuid();
         nEntity.info.entityType = entityIndex;
         nEntity.active = true;
 
-        EntityIndex[nEntity.info.entityId] = EntityHandler.Count;
+        EntityReg.Add(nEntity);
+        EntityIndex[nEntity.info.entityId] = nEntity;
         nEntity.Initialize(authoring.Setting, authoring.Controller, GCoord);
-        EntityHandler.Add(nEntity);
         ESTree.Insert(nEntity);
     }
 
@@ -126,9 +125,9 @@ public static class EntityManager
         Authoring authoring = reg.Retrieve((int)sEntity.info.entityType);
         sEntity.active = true;
 
-        EntityIndex[sEntity.info.entityId] = EntityHandler.Count;
+        EntityReg.Add(sEntity);
+        EntityIndex[sEntity.info.entityId] = sEntity;
         sEntity.Deserialize(authoring.Setting, authoring.Controller, out int3 GCoord);
-        EntityHandler.Add(sEntity);
         ESTree.Insert(sEntity);
     }
 
@@ -148,9 +147,9 @@ public static class EntityManager
 
 
     public static void Initialize() {
-        EntityHandler = new List<Entity>();
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
-        EntityIndex = new Dictionary<Guid, int>();
+        EntityReg = new HashSet<Entity>();
+        EntityIndex = new Dictionary<Guid, Entity>();
         HandlerEvents = new ConcurrentQueue<Action>();
         Executor = new EntityJob();
         OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
@@ -198,9 +197,10 @@ public static class EntityManager
     public static void Release() {
         //Debug.Log(EntityHandler.Length);
         Executor.Complete();
-        foreach (Entity entity in EntityHandler) {
+        foreach (Entity entity in EntityReg) {
             entity.Disable();
         }
+        
         List<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities.Reg;
         foreach (Authoring entity in EntityDictionary) entity.Setting.Unset();
     }
@@ -290,7 +290,7 @@ public static class EntityManager
 
     //More like a BVH, or a dynamic R-Tree
     public struct STree{
-        public Dictionary<Guid, uint> SpatialIndex;
+        private Dictionary<Guid, uint> SpatialIndex;
         public TreeNode[] tree;
         //mark as volatile so we get the latest value
         public uint length; 
@@ -326,25 +326,31 @@ public static class EntityManager
         }
 
         public void AssertEntityLocation(Entity entity){
-            Guid entityId = entity.info.entityId;
-            float3 colliderSize = Config.CURRENT.Generation.Entities.Retrieve((int)entity.info.entityType).Setting.collider.size;
-            Bounds nBounds = new Bounds(entity.position, colliderSize);
-
+            Bounds nBounds = new Bounds(entity.position, entity.transform.size);
+            AssertEntityLocation(entity.info.entityId, nBounds);
+        }
+        
+        //We allow this option to support objects with multiple bounds
+        //by allowing bounds to be registered under an alias id of the entity
+        //Every unique bound must have a unique ID, but they can be associated to the same 
+        //Entity under EntityIndex
+        public void AssertEntityLocation(Guid entityId, Bounds bounds){
             if(!this.Contains(entityId)) return;
-            if(Contains(this[this[entityId].Parent].bounds, nBounds)){
-                this[entityId].bounds = nBounds;
+            if(Contains(this[this[entityId].Parent].bounds, bounds)){
+                this[entityId].bounds = bounds;
                 return;
             } 
             this.Delete(entityId);
-            this.Insert(nBounds, entityId);
+            this.Insert(bounds, entityId);
         }
 
         public void Insert(Entity entity){
-            float3 colliderSize = Config.CURRENT.Generation.Entities.Retrieve((int)entity.info.entityType).Setting.collider.size;
+            float3 colliderSize = entity.transform.size;
             Bounds eEBounds = new (entity.position, colliderSize);
             Insert(eEBounds, entity.info.entityId);
         }
-        private void Insert(Bounds bounds, Guid eId){
+
+        public void Insert(Bounds bounds, Guid eId){
             if(length+1 >= tree.Length) Resize();
             SpatialIndex[eId] = length;
             length++;
@@ -451,8 +457,10 @@ public static class EntityManager
             if(current == 0) return; //Root is zero when it is empty
             TreeNode node = tree[current];
             if (node.IsLeaf) {
-                if (ContainsExclusive(bounds, node.bounds.center))
-                    action.Invoke(node.GetLeaf);
+                Entity entity = node.GetLeaf; 
+                //We use entity.position because some entities could have multiple bounds
+                if (ContainsExclusive(bounds, entity.position))
+                    action.Invoke(entity);
                 return;
             }
             
@@ -486,8 +494,7 @@ public static class EntityManager
             Entity cEntity = null;
             void OnFoundEntity(Entity entity){
                 if(entity.info.entityId == callerId) return; //Ignore the caller
-                float3 colliderSize = Config.CURRENT.Generation.Entities.Retrieve((int)entity.info.entityType).Setting.collider.size;
-                Bounds bounds = new Bounds(entity.position, colliderSize);
+                Bounds bounds = new Bounds(entity.position, entity.transform.size);
                 bounds.IntersectRay(viewRay, out float dist);
                 if(dist <= cDist){
                     cEntity = entity;
@@ -564,6 +571,43 @@ public static class EntityManager
             return src.Contains(qry.min) && src.Contains(qry.max);
         }
     }
+
+    public class AliasManager<TIdentifier> {
+        private Dictionary<TIdentifier, LinkedList<TIdentifier>> IdToAliases;
+        private Dictionary<TIdentifier, TIdentifier> AliasToId;
+
+        public AliasManager() {
+            IdToAliases = new Dictionary<TIdentifier, LinkedList<TIdentifier>>();
+            AliasToId = new Dictionary<TIdentifier, TIdentifier>();
+        }
+
+        public void RegisterAlias(TIdentifier Base, TIdentifier Alias, Bounds bounds) {
+            if(!AliasToId.TryAdd(Alias, Base)) return;
+            if (IdToAliases.TryGetValue(Base, out LinkedList<TIdentifier> aliases)) {
+                aliases.AddLast(Alias);
+            } else {
+                aliases = new LinkedList<TIdentifier>();
+                aliases.AddLast(Alias);
+                IdToAliases.Add(Base, aliases);
+            }
+        }
+
+        public void ReleaseAlias(TIdentifier Alias) {
+            if(!AliasToId.TryGetValue(Alias, out TIdentifier entityId)) return;
+            AliasToId.Remove(Alias);
+            if(!IdToAliases.TryGetValue(entityId, out LinkedList<TIdentifier> aliases))
+                return;
+            aliases.Remove(Alias);
+        }
+
+        public void ReleaseBase(TIdentifier Base) {
+            if(!IdToAliases.TryGetValue(Base, out LinkedList<TIdentifier> aliases)) return;
+            foreach(TIdentifier alias in aliases) AliasToId.Remove(alias);
+            IdToAliases.Remove(Base);
+        }
+
+        public bool TryFindBase(TIdentifier Alias, out TIdentifier Base) => AliasToId.TryGetValue(Alias, out Base);
+    }
 }
 
 public class EntityJob : IUpdateSubscriber{
@@ -576,6 +620,7 @@ public class EntityJob : IUpdateSubscriber{
     private JobHandle handle;
     public static Context cxt;
     private float accumulatedTime;
+    
 
     public unsafe EntityJob(){
         dispatched = false;
@@ -595,6 +640,7 @@ public class EntityJob : IUpdateSubscriber{
         };
     }
 
+
     public bool Complete(){
         if(!dispatched) return true;
         if(!handle.IsCompleted) return false; 
@@ -609,30 +655,22 @@ public class EntityJob : IUpdateSubscriber{
         cxt.totDeltaTime = accumulatedTime;
         cxt.deltaTime = Time.fixedDeltaTime;
         accumulatedTime = 0;
-        
-        while(EntityManager.HandlerEvents.TryDequeue(out Action action)){
-            action.Invoke();
-        } EntityManager.HandlerEvents.Clear();
-        
-        if (EntityManager.EntityHandler.Count == 0) return;
-        foreach (Entity entity in EntityManager.EntityHandler) {
-            EntityManager.ESTree.AssertEntityLocation(entity);
-        }
 
-        handle = cxt.Schedule(EntityManager.EntityHandler.Count, 16);
+        EntityManager.FlushUpdateCycle();
+        handle = cxt.Schedule(EntityManager.CurUpdateEntities.Length, 16);
         dispatched = true;
     }
 
     public struct Context: IJobParallelFor{
         [NativeDisableUnsafePtrRestriction]
         [ReadOnly] public unsafe ProfileE* Profile;
-        [ReadOnly] public unsafe CPUMapManager.MapContext mapContext;
+        [ReadOnly] public CPUMapManager.MapContext mapContext;
         [ReadOnly] public float3 gravity;
         [ReadOnly] public float deltaTime;
         [ReadOnly] public float totDeltaTime;
         public unsafe void Execute(int index){
-            Profiler.BeginSample(EntityManager.GetEntity(index).GetType().ToString());
-            EntityManager.GetEntity(index).Update();
+            Profiler.BeginSample(EntityManager.CurUpdateEntities[index].GetType().ToString());
+            EntityManager.CurUpdateEntities[index].Update();
             Profiler.EndSample();
         }
     }

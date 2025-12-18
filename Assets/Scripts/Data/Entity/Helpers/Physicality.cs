@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MapStorage;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
@@ -42,6 +43,7 @@ public class MinimalVitality {
 
     [JsonIgnore]
     protected Stats stats;
+    [JsonIgnore]
     protected Genetics genetics;
     public float health;
     public float invincibility;
@@ -50,10 +52,12 @@ public class MinimalVitality {
     public float breathPercent => breath / genetics.Get(stats.HoldBreathTime);
     public bool IsDead => health <= 0;
     public const float FallDmgThresh = 10;
-    public MinimalVitality(Stats stats, Genetics genetics = null) {
-        this.genetics = genetics ?? new Genetics();
-        this.stats = stats;
+    //Do not name gs genetics or Newtonsoft will try to use this path
+    public MinimalVitality(Stats stats, Genetics gs = null) {
+        this.genetics = gs ?? new Genetics();
         invincibility = 0;
+        if (stats == null) return;
+        this.stats = stats;
         health = this.genetics.Get(stats.MaxHealth);
         breath = this.genetics.Get(stats.HoldBreathTime);
     }
@@ -135,13 +139,63 @@ public class MinimalVitality {
     }
 }
 
-public class Vitality : MinimalVitality {
+public class MediumVitality : MinimalVitality {
     [Serializable]
     public new class Stats : MinimalVitality.Stats {
         public Genetics.GeneFeature AttackDistance;
         public Genetics.GeneFeature AttackDamage;
         public Genetics.GeneFeature AttackCooldown;
         public Genetics.GeneFeature KBStrength;
+
+        public override void InitGenome(uint entityType) {
+            base.InitGenome(entityType);
+
+            Genetics.AddGene(entityType, ref AttackDistance);
+            Genetics.AddGene(entityType, ref AttackDamage);
+            Genetics.AddGene(entityType, ref AttackCooldown);
+            Genetics.AddGene(entityType, ref KBStrength);
+        }
+    }
+
+    public float attackCooldown;
+    //So an entity cannot attack immediately
+    public bool IsAttacking;
+    [JsonIgnore]
+    private Stats AStats => stats as Stats;
+
+    public MediumVitality(Stats stats, Genetics gs = null) : base(stats, gs) {
+        IsAttacking = false;
+        if (stats == null) return;
+        attackCooldown = gs.Get(AStats.AttackCooldown);
+    }
+
+    public override void Deserialize(MinimalVitality.Stats stats, Genetics gs = null) {
+        base.Deserialize(stats, gs);
+    }
+
+    public bool Attack(Entity target, Entity self) {
+        IsAttacking = true;
+        if (attackCooldown > 0) return false;
+        IsAttacking = false;
+        if (target is not IAttackable) return false;
+
+        attackCooldown = genetics.Get(AStats.AttackCooldown);
+        float damage = genetics.Get(AStats.AttackDamage);
+        float3 knockback = math.normalize(target.position - self.position) * genetics.Get(AStats.KBStrength);
+        EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback, self));
+        return true;
+    }
+
+    public override void Update() {
+        base.Update();
+        if (!IsAttacking) return;
+        attackCooldown = math.max(attackCooldown - EntityJob.cxt.deltaTime, 0);
+    }
+}
+
+public class Vitality : MediumVitality {
+    [Serializable]
+    public new class Stats : MediumVitality.Stats {
         public Genetics.GeneFeature HuntThreshold;
         public Genetics.GeneFeature MateThreshold;
         public Genetics.GeneFeature MateCost; //Everything );
@@ -151,10 +205,6 @@ public class Vitality : MinimalVitality {
         public override void InitGenome(uint entityType) {
             base.InitGenome(entityType);
 
-            Genetics.AddGene(entityType, ref AttackDistance);
-            Genetics.AddGene(entityType, ref AttackDamage);
-            Genetics.AddGene(entityType, ref AttackCooldown);
-            Genetics.AddGene(entityType, ref KBStrength);
             Genetics.AddGene(entityType, ref HuntThreshold);
             Genetics.AddGene(entityType, ref MateThreshold);
             Genetics.AddGene(entityType, ref MateCost);
@@ -163,46 +213,24 @@ public class Vitality : MinimalVitality {
     [JsonIgnore]
     private Stats CStats => stats as Stats;
     [JsonProperty]
-    private float attackCooldown;
-    [JsonProperty]
     private bool IsHunting;
-    public Vitality(Stats stats, Genetics genetics = null) : base(stats, genetics) {
-        this.stats = stats;
-        invincibility = 0;
-        attackCooldown = 0;
-        breath = genetics.Get(stats.HoldBreathTime);
+    public Vitality(Stats stats, Genetics gs = null) : base(stats, gs) {
         IsHunting = false;
         //Higher mate cost => higher starting health for children
+        if (stats == null) return;
         health = genetics.Get(stats.MaxHealth) * Mathf.Lerp(
             math.min(genetics.Get(stats.HuntThreshold), genetics.Get(stats.MateThreshold)),
             genetics.Get(stats.MateThreshold),
             (genetics.GetRawGene(stats.MateCost) + 1) / 2
         );
     }
+    
 
-    public Vitality() { }
 
-    public override void Deserialize(MinimalVitality.Stats stats, Genetics genetics = null) {
-        this.genetics = genetics ?? new Genetics();
-        this.stats = stats;
-        invincibility = 0;
-        attackCooldown = 0;
+    public override void Deserialize(MinimalVitality.Stats stats, Genetics gs = null) {
+        base.Deserialize(stats, gs);
     }
 
-    public override void Update() {
-        attackCooldown = math.max(attackCooldown - EntityJob.cxt.deltaTime, 0);
-        base.Update();
-    }
-
-    public bool Attack(Entity target, Entity self) {
-        if (attackCooldown > 0) return false;
-        if (target is not IAttackable) return false;
-        attackCooldown = genetics.Get(CStats.AttackCooldown);
-        float damage = genetics.Get(CStats.AttackDamage);
-        float3 knockback = math.normalize(target.position - self.position) * genetics.Get(CStats.KBStrength);
-        EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback, self));
-        return true;
-    }
 
     public bool BeginHunting() => IsHunting || (IsHunting = healthPercent < genetics.Get(CStats.HuntThreshold));
     public bool StopHunting() => !IsHunting || !(IsHunting = healthPercent < math.lerp(genetics.Get(CStats.MateThreshold), 1, 0.5f));
@@ -244,5 +272,74 @@ public class Vitality : MinimalVitality {
             //The unit amount given per second of decomposition
             public Genetics.GeneFeature DropAmount;
         }
+    }
+}
+
+
+public class ProjectileLauncher {
+    [Serializable]
+    public class Stats {
+        public float ShotDelay;
+        public bool CheckSightline;
+        public Genetics.GeneFeature ChargeTime;
+        public ProjectileTag Projectile;
+        public void InitGenome(uint entityType) {
+            Genetics.AddGene(entityType, ref ChargeTime);
+        }
+    }
+
+    [JsonIgnore]
+    private Stats stats;
+    [JsonIgnore]
+    private Genetics genetics;
+    private float3 fireDirection;
+    private float chargeCooldown;
+    private float shotProgress;
+    private bool IsShooting;
+    public bool ShotInProgress;
+    
+    public ProjectileLauncher(Stats stats, Genetics gs = null) {
+        this.genetics = gs ?? new Genetics();
+        if (stats == null) return;
+        this.stats = stats;
+        
+        chargeCooldown = gs.Get(stats.ChargeTime);
+        shotProgress = 0;
+        ShotInProgress = false;
+        IsShooting = false;
+    }
+
+
+    public void Deserialize(Stats stats, Genetics gs = null) {
+        this.genetics = gs ?? new Genetics();
+        this.stats = stats;
+    }
+
+    //This is some whirly logic where if you call fire on a loop, it will
+    public bool Fire(float3 target, Entity self) {
+        if (ShotInProgress) return false;
+        IsShooting = true;
+        if (chargeCooldown > 0) return false;
+        IsShooting = false;
+
+        fireDirection = target - self.position;
+        if (stats.CheckSightline) {
+            if (CPUMapManager.RayCastTerrain(self.head, math.normalizesafe(fireDirection), 
+                math.length(fireDirection), CPUMapManager.RayTestSolid, out float3 hit))
+                return false;
+        } 
+        ShotInProgress = true;
+        shotProgress = stats.ShotDelay;
+        return true;
+    }
+
+    public void Update(Entity parent) {
+        if (IsShooting) chargeCooldown = math.max(chargeCooldown - EntityJob.cxt.deltaTime, 0);
+        if (!ShotInProgress) return;
+        shotProgress = math.max(shotProgress - EntityJob.cxt.deltaTime, 0);
+        if (shotProgress > 0) return;
+        stats.Projectile.LaunchProjectile(parent, fireDirection);
+        chargeCooldown = genetics.Get(stats.ChargeTime);
+        ShotInProgress = false;
     }
 }

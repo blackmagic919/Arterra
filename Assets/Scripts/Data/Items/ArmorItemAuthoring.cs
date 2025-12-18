@@ -3,8 +3,6 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using WorldConfig.Generation.Material;
-using static PlayerInteraction;
-using MapStorage;
 
 namespace WorldConfig.Generation.Item
 {

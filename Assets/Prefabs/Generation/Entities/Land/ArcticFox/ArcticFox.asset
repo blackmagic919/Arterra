@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 06b2fb35403ed474d8f64ad80e872b01, type: 3}
+  m_Script: {fileID: 11500000, guid: 6fbcd5f0b5992466685233b55199a842, type: 3}
   m_Name: ArcticFox
   m_EditorClassIdentifier: 
   Name: ArcticFox
@@ -98,15 +98,24 @@ MonoBehaviour:
         value:
           Predators:
             value: []
+          SightDistance:
+            mean: 31
+            var: 0.25
+            geneWeight: 0.75
+          PlantFindDist:
+            mean: 0
+            var: 0
+            geneWeight: 0
+          PreyEntity:
+            value:
+            - EntityType: ArcticHare
+            - EntityType: Rabbit
+          PreyPlant:
+            value: []
+          FleeDistance: 5
+          FightAggressor: 0
           Mates:
             value:
-            - MateType: Fox
-              ChildType: Fox
-              AmountPerParent:
-                mean: 0.5
-                var: 0.75
-                geneWeight: 0.25
-              GeneMutationRate: 0.15
             - MateType: ArcticFox
               ChildType: ArcticFox
               AmountPerParent:
@@ -114,6 +123,13 @@ MonoBehaviour:
                 var: 0.75
                 geneWeight: 0.25
               GeneMutationRate: 0.05
+            - MateType: Fox
+              ChildType: Fox
+              AmountPerParent:
+                mean: 0.5
+                var: 0.75
+                geneWeight: 0.25
+              GeneMutationRate: 0.15
           Edibles:
             value:
             - EdibleType: Meat
@@ -121,16 +137,6 @@ MonoBehaviour:
                 mean: 12.8
                 var: 0.5
                 geneWeight: 0.1
-          SightDistance:
-            mean: 31
-            var: 0.25
-            geneWeight: 0.75
-          FleeDistance: 5
-          FightAggressor: 0
-          Prey:
-            value:
-            - EntityType: Rabbit
-            - EntityType: ArcticHare
       physicality:
         value:
           weight: 0.4

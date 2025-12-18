@@ -232,7 +232,7 @@ MonoBehaviour:
             mean: 4
             var: 0.5
             geneWeight: 0.1
-          Prey:
+          PreyPlant:
             value:
             - Material: Hydrangea
               Replacement: Dirt

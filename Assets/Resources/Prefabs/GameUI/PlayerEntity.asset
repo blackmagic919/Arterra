@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d489b2cf2c6d049aa9b4030d3ef7776a, type: 3}
   m_Name: PlayerEntity
   m_EditorClassIdentifier: 
-  Name: PlayerEntity
+  Name: Player
   Tags:
     Reg:
       value: []

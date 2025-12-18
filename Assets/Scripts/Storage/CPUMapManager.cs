@@ -169,6 +169,15 @@ namespace MapStorage {
             return nativeSlice;
         }
 
+        /// <summary> Basic Function given to RayCastTerrain to test if it intersect solid ground </summary>
+        /// <param name="coord"></param>
+        /// <returns></returns>
+        public static uint RayTestSolid(int3 coord) {
+            MapData pointInfo = CPUMapManager.SampleMap(coord);
+            return (uint)pointInfo.viscosity;
+        }
+
+
         /// <summary> Performs a precise raycast on the IsoSurface represented through the underlying <i>density</i> information given by
         /// the callback with the specific <see cref="IsoValue"/> specified. A raycast determines whether a ray intersects with the IsoSurface
         /// and if-so at what point. This function does not use any generated lookup structures and operates on the raw <see cref="MapData"/>

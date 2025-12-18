@@ -87,7 +87,7 @@ public class ConverterToolTag : ConvertibleToolTag {
         };
     }
 }
-
+[Serializable]
 public class ProjectileTag : ICloneable {
     [RegistryReference("Entities")]
     public string ProjectileEntity;
@@ -126,7 +126,7 @@ public class ProjectileTag : ICloneable {
             entity.transform.velocity = velocity * LaunchSpeedMultiplier;
             entity.transform.rotation = Quaternion.LookRotation(math.normalize(velocity));
             entity.position = position;
-            if (parent != null && parent is Projectile.ProjectileEntity pEntity)
+            if (parent != null && entity is Projectile.ProjectileEntity pEntity)
                 pEntity.ParentId = parent.info.entityId;
         });
     }

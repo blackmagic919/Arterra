@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eef870968b735497384f821adc938e6b, type: 3}
+  m_Script: {fileID: 11500000, guid: 82711ae57dd2b4862b085290b34f1582, type: 3}
   m_Name: Bat
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::SkyHerbivore
   Name: Bat
   Tags:
     Reg:
@@ -171,7 +171,7 @@ MonoBehaviour:
             geneWeight: 0.75
           FleeDistance: 5
           FightAggressor: 0
-          Prey:
+          PreyEntity:
             value:
             - EntityType: Spider
             - EntityType: Beetle

@@ -123,9 +123,9 @@ public static class Indicators
             Gizmos.DrawWireCube(center, size);
         }*/
         int[] entities = new int[Config.CURRENT.Generation.Entities.Reg.Count];
-        foreach(Entity entity in EntityHandler){
+        foreach(Entity entity in EntityIndex.Values){
             entities[entity.info.entityType]++;
-            entity.OnDrawGizmos();
+            entity.OnDrawGizmos();//
         } for(int i = 0; i < entities.Length; i++){
             if(entities[i] == 0) continue;
             //Debug.Log($"Entity Type {i}: {entities[i]}");

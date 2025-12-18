@@ -201,7 +201,7 @@ MonoBehaviour:
             mean: 10
             var: 0.75
             geneWeight: 0.5
-          Prey:
+          PreyPlant:
             value:
             - Material: Cactus
               Replacement: PlantMatter

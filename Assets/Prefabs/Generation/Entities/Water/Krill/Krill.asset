@@ -216,7 +216,7 @@ MonoBehaviour:
             mean: 6
             var: 0.66
             geneWeight: 0.4
-          Prey:
+          PreyPlant:
             value:
             - Material: Kelp
               Replacement: PlantMatter

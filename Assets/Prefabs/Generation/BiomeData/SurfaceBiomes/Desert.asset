@@ -30,6 +30,7 @@ MonoBehaviour:
         - Camel
         - Coyote
         - Vulture
+        - Monolith
       GroundMaterials:
         value:
         - value:
@@ -82,6 +83,9 @@ MonoBehaviour:
         - value:
             Entity: 9
             ChancePerCoord: 0.0001
+        - value:
+            Entity: 10
+            ChancePerCoord: 0.00001
   BiomeConditions:
     value:
       TerrainStart: 0.375

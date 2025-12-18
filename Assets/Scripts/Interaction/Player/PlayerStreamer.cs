@@ -169,7 +169,10 @@ public class PlayerStreamer : WorldConfig.Generation.Entity.Authoring
 
             //Apply gravity and take over physics updating
             collider.JobUpdate(EntityJob.cxt);
-            EntityManager.AddHandlerEvent(() => player.transform.SetPositionAndRotation(this.positionWS, collider.transform.rotation));
+            EntityManager.AddHandlerEvent(() => {
+                if (player == null) return;
+                player.transform.SetPositionAndRotation(this.positionWS, collider.transform.rotation);
+            });
         }
 
         public override void Disable()

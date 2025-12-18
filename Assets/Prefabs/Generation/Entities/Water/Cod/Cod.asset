@@ -187,7 +187,7 @@ MonoBehaviour:
             geneWeight: 0.75
           FleeDistance: 5
           FightAggressor: 0
-          Prey:
+          PreyEntity:
             value:
             - EntityType: Minnow
             - EntityType: Krill

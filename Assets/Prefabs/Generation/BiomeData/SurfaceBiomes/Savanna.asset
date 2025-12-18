@@ -32,6 +32,7 @@ MonoBehaviour:
         - AcaciaTree3
         - Lion
         - Lioness
+        - Monolith
       GroundMaterials:
         value:
         - value:
@@ -89,10 +90,13 @@ MonoBehaviour:
             ChancePerCoord: 0.0006
         - value:
             Entity: 10
-            ChancePerCoord: 0.00015
+            ChancePerCoord: 0.000075
         - value:
             Entity: 11
-            ChancePerCoord: 0.00015
+            ChancePerCoord: 0.000075
+        - value:
+            Entity: 12
+            ChancePerCoord: 0.00001
   BiomeConditions:
     value:
       TerrainStart: 0.375

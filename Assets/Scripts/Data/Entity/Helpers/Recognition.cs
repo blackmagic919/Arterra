@@ -8,6 +8,7 @@ using WorldConfig.Generation.Entity;
 using WorldConfig.Generation.Structure;
 using WorldConfig.Generation.Material;
 using MapStorage;
+using System.Linq;
 
 
 public interface IMateable {
@@ -15,53 +16,197 @@ public interface IMateable {
     public bool CanMateWith(Entity entity);
     public Genetics Genetics{ get; set; }
 }
-
 [Serializable]
-public class Recognition {
+//Recognition for the basic minimal capability to run away. Some
+//Creatures cannot eat and mate and thus do not need other fields in Recognition
+public class MinimalRecognition {
     //There is no explicit order with predators, an entity will run
-    //from the closest predator to it.
     public Option<List<EntityWrapper>> Predators;
-    //Mates are entities that can breed with the entity, and the offspring they create
-    public Option<List<Mate>> Mates;
-    //Edible items produced by entities
-    public Option<List<Consumable>> Edibles;
     public Genetics.GeneFeature SightDistance;
+    public Genetics.GeneFeature PlantFindDist;
+    //The order of the list describes the order of preference for the entity
+    //An entity won't chase a prey if a more preferred prey is in range
+    public Option<List<EntityWrapper>> PreyEntity;
+    //The order of the list describes the order of preference for the entity
+    //An entity won't chase a prey if a more preferred prey is in range
+    public Option<List<Plant>> PreyPlant;
     public int FleeDistance;
     public bool FightAggressor;
-
     [UISetting(Ignore = true)]
     [JsonIgnore]
     [HideInInspector]
     internal Dictionary<int, Recognizable> AwarenessTable;
+    protected int materialStart => Config.CURRENT.Generation.Entities.Reg.Count;
+    public bool HasEntityPrey => PreyEntity.value != null && PreyEntity.value.Count > 0;
+    public bool HasPlantPrey => PreyPlant.value != null && PreyPlant.value.Count > 0;
 
-    public virtual void Construct() {
-        //constructs awarness table
+    public virtual void Construct(){
+        AwarenessTable = new Dictionary<int, Recognizable>();
+        Catalogue<Authoring> eReg = Config.CURRENT.Generation.Entities;
+        IRegister mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+
+
+        if(Predators.value != null){
+        for(int i = 0; i < Predators.value.Count; i++){
+            int entityIndex = eReg.RetrieveIndex(Predators.value[i].EntityType);
+            AwarenessTable.TryAdd(entityIndex, new Recognizable(i, 1));
+        }} if(PreyEntity.value != null) {
+        for(int i = 0; i < PreyEntity.value.Count; i++){
+            int edibleIndex = eReg.RetrieveIndex(PreyEntity.value[i].EntityType);
+            AwarenessTable.TryAdd(-edibleIndex, new Recognizable(i, 2)); 
+        }} if(PreyPlant.value != null) {
+        for(int i = 0; i < PreyPlant.value.Count; i++){
+            int materialIndex = mReg.RetrieveIndex(PreyPlant.value[i].Material);
+            AwarenessTable.TryAdd(materialIndex + materialStart,  new Recognizable(i, 2));
+        }} 
     }
-    [Serializable]
-    public struct Mate {
-        [RegistryReference("Entities")]
-        public string MateType;
-        [RegistryReference("Entities")]
-        public string ChildType;
-        public Genetics.GeneFeature AmountPerParent;
-        public float GeneMutationRate;
+    public virtual void InitGenome(uint entityType) {
+        Genetics.AddGene(entityType, ref SightDistance);
+        Genetics.AddGene(entityType, ref PlantFindDist);
+    }
+
+    public bool FindClosestPredator(Entity self, float sightDist, out Entity entity) {
+        entity = null; if (AwarenessTable == null) return false;
+        if (Predators.value == null || Predators.value.Count == 0) return false;
+
+        Entity cEntity = null; float closestDist = sightDist + 1;
+        Dictionary<int, Recognizable> Awareness = AwarenessTable;
+        Bounds bounds = new(self.position, 2 * new float3(sightDist));
+        EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
+            if (nEntity == null) return;
+            if (nEntity.info.entityId == self.info.entityId) return;
+            if (!Awareness.ContainsKey((int)nEntity.info.entityType)) return;
+
+            Recognizable entityInfo = Awareness[(int)nEntity.info.entityType];
+            if (!entityInfo.IsPredator) return;
+            float dist = GetColliderDist(self, nEntity);
+            if (dist >= closestDist) return;
+            cEntity = nEntity;
+            closestDist = dist;
+        });
+        entity = cEntity;
+        return entity != null;
+    }
+
+    public Recognizable Recognize(Entity entity) {
+        if (AwarenessTable == null) return new Recognizable { IsUnknown = true };
+        if (!AwarenessTable.TryGetValue((int)entity.info.entityType, out Recognizable ret))
+            return new Recognizable { IsUnknown = true };
+        return ret;
+    }
+
+    //Finds most preferred it can see, then the closest one it prefers
+    public bool FindPreferredPreyEntity(Entity self, float sightDist, out Entity entity, Func<Entity, bool> CanHunt = null){
+        entity = null; if(AwarenessTable == null) return false;
+        if(PreyEntity.value == null || PreyEntity.value.Count == 0) return false;
+
+        Entity cEntity = null; int pPref = -1;
+        float closestDist = sightDist + 1;
+
+        Dictionary<int, Recognizable> Awareness = AwarenessTable;
+        Bounds bounds = new (self.position, 2 * new float3(sightDist));
+        EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
+            if(nEntity == null) return;
+            if(nEntity.info.entityId == self.info.entityId) return;
+            //if (self.info.entityType == 27) Debug.Log(Awareness.Keys.First());
+            if(!Awareness.ContainsKey((int)nEntity.info.entityType)) return;
+
+            Recognizable eInfo = Awareness[(int)nEntity.info.entityType];
+            if(!eInfo.IsPrey) return;
+            if(CanHunt != null && !CanHunt(nEntity)) 
+                return;
+            
+            if(cEntity != null){
+            if(eInfo.Preference > pPref) return;
+            if(eInfo.Preference == pPref && GetColliderDist(nEntity, self) >= closestDist) return;
+            }
+            
+            cEntity = nEntity;
+            pPref = eInfo.Preference;
+            closestDist = GetColliderDist(nEntity, self);
+        });
+        entity = cEntity;
+        return entity != null;
+    }
+
+    //Finds the closest prey near it
+    public bool FindPreferredPreyPlant(int3 center, int pFindDist, out int3 entry){
+        int3 dx = new int3(0); entry = new int3(0);
+        if(PreyPlant.value == null || PreyPlant.value.Count == 0) return false;
+        Dictionary<int, Recognizable> Awareness = AwarenessTable;
+        float minDist = -1;
+        for(dx.x = -pFindDist; dx.x < pFindDist; dx.x++){
+        for(dx.y = -pFindDist; dx.y < pFindDist; dx.y++){
+        for(dx.z = -pFindDist; dx.z < pFindDist; dx.z++){
+            int3 GCoord = center + dx;
+            MapData mapInfo = CPUMapManager.SampleMap(GCoord);
+            int mIndex = mapInfo.material + materialStart;
+            if(!Awareness.TryGetValue(mIndex, out Recognizable rInfo)) continue;
+            if(!PreyPlant.value[rInfo.Preference].Bounds.Contains(mapInfo)) continue;
+            if(!rInfo.IsPrey) continue;
+            float dist = math.csum(math.abs(dx)); //manhattan distance
+            if(minDist == -1 || dist < minDist) {
+                minDist = dist;
+                entry = GCoord;
+            } 
+        }}}
+        return minDist != -1;
+    }
+
+    //Eat Food
+    public WorldConfig.Generation.Item.IItem ConsumePlant(Entity self, int3 preyCoord){
+        MapData mapData = CPUMapManager.SampleMap(preyCoord);
+        if (mapData.IsNull) return null;
+        int mIndex = mapData.material + materialStart;
+        
+        Dictionary<int, Recognizable> Awareness = AwarenessTable;
+        if(!Awareness.TryGetValue(mIndex, out Recognizable rInfo)) return null;
+        Plant plant = PreyPlant.value[rInfo.Preference];
+        if(!plant.Bounds.Contains(mapData)) return null;
+        if(!rInfo.IsPrey) return null;
+        Catalogue<MaterialData> matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+
+        string key = plant.Replacement;
+        if (!String.IsNullOrEmpty(key) && matInfo.Contains(key)) {
+            int newMaterial = matInfo.RetrieveIndex(key);
+            if (!MaterialData.SwapMaterial(preyCoord, newMaterial,
+                out WorldConfig.Generation.Item.IItem nMat, self))
+                return null;
+            return nMat;
+        } else {
+            if (matInfo.Retrieve(mapData.material).OnRemoving(preyCoord, self))
+                return null;
+            WorldConfig.Generation.Item.IItem nMat =
+                matInfo.Retrieve(mapData.material).OnRemoved(preyCoord, mapData);
+            mapData.viscosity = 0;
+            mapData.density = 0;
+            CPUMapManager.SetMap(mapData, preyCoord);
+            return nMat;
+        }
+    }
+
+    public static float GetColliderDist(Entity a, Entity b) {
+        if (a == null || b == null) return float.PositiveInfinity;
+        var reg = Config.CURRENT.Generation.Entities;
+        Bounds aBounds = new Bounds(a.position, a.transform.size);
+        Bounds bBounds = new Bounds(b.position, b.transform.size);
+        if (aBounds.Intersects(bBounds)) return 0;
+        Vector3 aMin = aBounds.min, aMax = aBounds.max;
+        Vector3 bMin = bBounds.min, bMax = bBounds.max;
+        float dx = Mathf.Max(0, Mathf.Max(aMin.x - bMax.x, bMin.x - aMax.x));
+        float dy = Mathf.Max(0, Mathf.Max(aMin.y - bMax.y, bMin.y - aMax.y));
+        float dz = Mathf.Max(0, Mathf.Max(aMin.z - bMax.z, bMin.z - aMax.z));
+        return Mathf.Sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    public static float GetColliderDist(Entity entity, float3 point) {
+        var reg = Config.CURRENT.Generation.Entities;
+        Bounds aBounds = new Bounds(entity.position, entity.transform.size);
+        float3 nPoint = aBounds.ClosestPoint(point);
+        return math.distance(nPoint, point);
     }
 
     [Serializable]
-    public struct EntityWrapper {
-        [RegistryReference("Entities")]
-        public string EntityType;
-    }
-
-    [Serializable]
-    public struct Consumable {
-        [RegistryReference("Items")]
-        public string EdibleType;
-        public Genetics.GeneFeature Nutrition;
-    }
-
-    [Serializable]
-
     public struct Recognizable {
         public uint data;
         public int Preference {
@@ -90,8 +235,75 @@ public class Recognition {
         }
     }
 
-    public void InitGenome(uint entityType) {
-        Genetics.AddGene(entityType, ref SightDistance);
+    [Serializable]
+    public struct Plant{
+        [RegistryReference("Materials")]
+        public string Material;
+        [RegistryReference("Materials")]
+        //If null, gradually removes it
+        public string Replacement;
+        public StructureData.CheckInfo Bounds;
+
+        readonly static int3[] dp = new int3[6]{
+            new (0, 0, 1),
+            new (0, 0, -1),
+            new (1, 0, 0),
+            new (-1, 0, 0),
+            new (0, 1, 0),
+            new (0, -1, 0),
+        };
+    }
+
+    [Serializable]
+    public struct EntityWrapper {
+        [RegistryReference("Entities")]
+        public string EntityType;
+    }
+}
+
+[Serializable]
+public class Recognition : MinimalRecognition{
+    //Mates are entities that can breed with the entity, and the offspring they create
+    public Option<List<Mate>> Mates;
+    //Edible items produced by entities
+    public Option<List<Consumable>> Edibles;
+
+    public override void Construct() {
+        base.Construct();
+        AwarenessTable ??= new Dictionary<int, Recognizable>();
+        Catalogue<Authoring> eReg = Config.CURRENT.Generation.Entities;
+        Catalogue<WorldConfig.Generation.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
+
+        if(Mates.value != null) { 
+        for(int i = 0; i < Mates.value.Count; i++){
+            int entityIndex = eReg.RetrieveIndex(Mates.value[i].MateType);
+            AwarenessTable.TryAdd(entityIndex, new Recognizable(i, 3));
+        }} if(Edibles.value != null) {
+        for(int i = 0; i < Edibles.value.Count; i++){
+            int edibleIndex = iReg.RetrieveIndex(Edibles.value[i].EdibleType);
+            //negative so it doesn't conflict with entity indexes
+            AwarenessTable.TryAdd(-edibleIndex, new Recognizable(i, 0)); 
+        }}
+    }
+    [Serializable]
+    public struct Mate {
+        [RegistryReference("Entities")]
+        public string MateType;
+        [RegistryReference("Entities")]
+        public string ChildType;
+        public Genetics.GeneFeature AmountPerParent;
+        public float GeneMutationRate;
+    }
+
+    [Serializable]
+    public struct Consumable {
+        [RegistryReference("Items")]
+        public string EdibleType;
+        public Genetics.GeneFeature Nutrition;
+    }
+
+    public override void InitGenome(uint entityType) {
+        base.InitGenome(entityType);
         for (int i = 0; i < Mates.value.Count; i++) {
             Mate mate = Mates.value[i];
             Genetics.AddGene(entityType, ref mate.AmountPerParent);
@@ -103,12 +315,13 @@ public class Recognition {
             Edibles.value[i] = consumable;
         } 
     }
+
     public bool FindClosestPredator(Entity self, float sightDist, out Entity entity) {
         entity = null; if (AwarenessTable == null) return false;
         if (Predators.value == null || Predators.value.Count == 0) return false;
 
         Entity cEntity = null; float closestDist = sightDist + 1;
-        Dictionary<int, Recognition.Recognizable> Awareness = AwarenessTable;
+        Dictionary<int, Recognizable> Awareness = AwarenessTable;
         Bounds bounds = new(self.position, 2 * new float3(sightDist));
         EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
             if (nEntity == null) return;
@@ -204,213 +417,5 @@ public class Recognition {
         if (AwarenessTable == null) return false;
         int index = (int)entity.info.entityType;
         return AwarenessTable.ContainsKey(index);
-    }
-
-    public Recognizable Recognize(Entity entity) {
-        if (AwarenessTable == null) return new Recognizable { IsUnknown = true };
-        if (!AwarenessTable.TryGetValue((int)entity.info.entityType, out Recognizable ret))
-            return new Recognizable { IsUnknown = true };
-        return ret;
-    }
-
-    public static float GetColliderDist(Entity a, Entity b) {
-        if (a == null || b == null) return float.PositiveInfinity;
-        var reg = Config.CURRENT.Generation.Entities;
-        EntitySetting aSet = reg.Retrieve((int)a.info.entityType).Setting;
-        EntitySetting bSet = reg.Retrieve((int)b.info.entityType).Setting;
-        Bounds aBounds = new Bounds(a.position, aSet.collider.size);
-        Bounds bBounds = new Bounds(b.position, bSet.collider.size);
-        if (aBounds.Intersects(bBounds)) return 0;
-        Vector3 aMin = aBounds.min, aMax = aBounds.max;
-        Vector3 bMin = bBounds.min, bMax = bBounds.max;
-        float dx = Mathf.Max(0, Mathf.Max(aMin.x - bMax.x, bMin.x - aMax.x));
-        float dy = Mathf.Max(0, Mathf.Max(aMin.y - bMax.y, bMin.y - aMax.y));
-        float dz = Mathf.Max(0, Mathf.Max(aMin.z - bMax.z, bMin.z - aMax.z));
-        return Mathf.Sqrt(dx * dx + dy * dy + dz * dz);
-    }
-
-    public static float GetColliderDist(Entity entity, float3 point) {
-        var reg = Config.CURRENT.Generation.Entities;
-        EntitySetting aSet = reg.Retrieve((int)entity.info.entityType).Setting;
-        Bounds aBounds = new Bounds(entity.position, aSet.collider.size);
-        float3 nPoint = aBounds.ClosestPoint(point);
-        return math.distance(nPoint, point);
-    }
-}
-[Serializable]
-public class RCarnivore : Recognition{
-    //The order of the list describes the order of preference for the entity
-    //An entity won't chase a prey if a more preferred prey is in range
-    public Option<List<EntityWrapper>> Prey;
-
-    public override void Construct(){
-        AwarenessTable = new Dictionary<int, Recognizable>();
-        Catalogue<Authoring> eReg = Config.CURRENT.Generation.Entities;
-        Catalogue<WorldConfig.Generation.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
-
-        if(Predators.value != null){
-        for(int i = 0; i < Predators.value.Count; i++){
-            int entityIndex = eReg.RetrieveIndex(Predators.value[i].EntityType);
-            AwarenessTable.TryAdd(entityIndex, new Recognizable(i, 1));
-        }} if(Prey.value != null) {
-        for(int i = 0; i < Prey.value.Count; i++){
-            int entityIndex = eReg.RetrieveIndex(Prey.value[i].EntityType);
-            AwarenessTable.TryAdd(entityIndex,  new Recognizable(i, 2));
-        }} if(Mates.value != null) { 
-        for(int i = 0; i < Mates.value.Count; i++){
-            int entityIndex = eReg.RetrieveIndex(Mates.value[i].MateType);
-            AwarenessTable.TryAdd(entityIndex, new Recognizable(i, 3));
-        }} if(Edibles.value != null) {
-        for(int i = 0; i < Edibles.value.Count; i++){
-            int itemIndex = iReg.RetrieveIndex(Edibles.value[i].EdibleType);
-            //negative so it doesn't conflict with entity indexes
-            AwarenessTable.TryAdd(-itemIndex, new Recognizable(i, 0)); 
-        }}
-    }
-
-    //Finds most preferred it can see, then the closest one it prefers
-    public bool FindPreferredPrey(Entity self, float sightDist, out Entity entity, Func<Entity, bool> CanHunt = null){
-        entity = null; if(AwarenessTable == null) return false;
-        if(Prey.value == null || Prey.value.Count == 0) return false;
-
-        Entity cEntity = null; int pPref = -1;
-        float closestDist = sightDist + 1;
-
-        Dictionary<int, Recognizable> Awareness = AwarenessTable;
-        Bounds bounds = new (self.position, 2 * new float3(sightDist));
-        EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
-            if(nEntity == null) return;
-            if(nEntity.info.entityId == self.info.entityId) return;
-            if(!Awareness.ContainsKey((int)nEntity.info.entityType)) return;
-
-            Recognizable eInfo = Awareness[(int)nEntity.info.entityType];
-            if(!eInfo.IsPrey) return;
-            if(CanHunt != null && !CanHunt(nEntity)) 
-                return;
-                
-            if(cEntity != null){
-            if(eInfo.Preference > pPref) return;
-            if(eInfo.Preference == pPref && GetColliderDist(nEntity, self) >= closestDist) return;
-            }
-            
-            cEntity = nEntity;
-            pPref = eInfo.Preference;
-            closestDist = GetColliderDist(nEntity, self);
-        });
-        entity = cEntity;
-        return entity != null;
-    }
-    
-}
-
-
-[Serializable]
-public class RHerbivore : Recognition{
-    public Genetics.GeneFeature PlantFindDist;
-    //The order of the list describes the order of preference for the entity
-    //An entity won't chase a prey if a more preferred prey is in range
-    public Option<List<Plant>> Prey;
-    private int materialStart => Config.CURRENT.Generation.Entities.Reg.Count;
-
-    public override void Construct(){
-        AwarenessTable = new Dictionary<int, Recognizable>();
-        Catalogue<Authoring> eReg = Config.CURRENT.Generation.Entities;
-        IRegister mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        Catalogue<WorldConfig.Generation.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
-
-
-        if(Predators.value != null){
-        for(int i = 0; i < Predators.value.Count; i++){
-            int entityIndex = eReg.RetrieveIndex(Predators.value[i].EntityType);
-            AwarenessTable.TryAdd(entityIndex, new Recognizable(i, 1));
-        }}  if(Mates.value != null) { 
-        for(int i = 0; i < Mates.value.Count; i++){
-            int entityIndex = eReg.RetrieveIndex(Mates.value[i].MateType);
-            AwarenessTable.TryAdd(entityIndex, new Recognizable(i, 3));
-        }} if(Prey.value != null) {
-        for(int i = 0; i < Prey.value.Count; i++){
-            int materialIndex = mReg.RetrieveIndex(Prey.value[i].Material);
-            AwarenessTable.TryAdd(materialIndex + materialStart,  new Recognizable(i, 2));
-        }} if(Edibles.value != null) {
-        for(int i = 0; i < Edibles.value.Count; i++){
-            int edibleIndex = iReg.RetrieveIndex(Edibles.value[i].EdibleType);
-            //negative so it doesn't conflict with entity indexes
-            AwarenessTable.TryAdd(-edibleIndex, new Recognizable(i, 0)); 
-        }}
-    }
-
-    //Finds the closest prey near it
-    public bool FindPreferredPrey(int3 center, int pFindDist, out int3 entry){
-        int3 dx = new int3(0); entry = new int3(0);
-        Dictionary<int, Recognizable> Awareness = AwarenessTable;
-        float minDist = -1;
-        for(dx.x = -pFindDist; dx.x < pFindDist; dx.x++){
-        for(dx.y = -pFindDist; dx.y < pFindDist; dx.y++){
-        for(dx.z = -pFindDist; dx.z < pFindDist; dx.z++){
-            int3 GCoord = center + dx;
-            MapData mapInfo = CPUMapManager.SampleMap(GCoord);
-            int mIndex = mapInfo.material + materialStart;
-            if(!Awareness.TryGetValue(mIndex, out Recognizable rInfo)) continue;
-            if(!Prey.value[rInfo.Preference].Bounds.Contains(mapInfo)) continue;
-            if(!rInfo.IsPrey) continue;
-            float dist = math.csum(math.abs(dx)); //manhattan distance
-            if(minDist == -1 || dist < minDist) {
-                minDist = dist;
-                entry = GCoord;
-            } 
-        }}}
-        return minDist != -1;
-    }
-
-    //Eat Food
-    public WorldConfig.Generation.Item.IItem ConsumeFood(Entity self, int3 preyCoord){
-        MapData mapData = CPUMapManager.SampleMap(preyCoord);
-        if (mapData.IsNull) return null;
-        int mIndex = mapData.material + materialStart;
-        
-        Dictionary<int, Recognizable> Awareness = AwarenessTable;
-        if(!Awareness.TryGetValue(mIndex, out Recognizable rInfo)) return null;
-        Plant plant = Prey.value[rInfo.Preference];
-        if(!plant.Bounds.Contains(mapData)) return null;
-        if(!rInfo.IsPrey) return null;
-        Catalogue<MaterialData> matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-
-        string key = plant.Replacement;
-        if (!String.IsNullOrEmpty(key) && matInfo.Contains(key)) {
-            int newMaterial = matInfo.RetrieveIndex(key);
-            if (!MaterialData.SwapMaterial(preyCoord, newMaterial,
-                out WorldConfig.Generation.Item.IItem nMat, self))
-                return null;
-            return nMat;
-        } else {
-            if (matInfo.Retrieve(mapData.material).OnRemoving(preyCoord, self))
-                return null;
-            WorldConfig.Generation.Item.IItem nMat =
-                matInfo.Retrieve(mapData.material).OnRemoved(preyCoord, mapData);
-            mapData.viscosity = 0;
-            mapData.density = 0;
-            CPUMapManager.SetMap(mapData, preyCoord);
-            return nMat;
-        }
-    }
-
-
-    [Serializable]
-    public struct Plant{
-        [RegistryReference("Materials")]
-        public string Material;
-        [RegistryReference("Materials")]
-        //If null, gradually removes it
-        public string Replacement;
-        public StructureData.CheckInfo Bounds;
-
-        readonly static int3[] dp = new int3[6]{
-            new (0, 0, 1),
-            new (0, 0, -1),
-            new (1, 0, 0),
-            new (-1, 0, 0),
-            new (0, 1, 0),
-            new (0, -1, 0),
-        };
     }
 }

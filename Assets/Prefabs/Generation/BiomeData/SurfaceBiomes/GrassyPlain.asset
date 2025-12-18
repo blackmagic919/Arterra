@@ -35,6 +35,7 @@ MonoBehaviour:
         - Snake
         - MonarchButterfly
         - MorphoButterfly
+        - Monolith
       GroundMaterials:
         value:
         - value:
@@ -114,6 +115,9 @@ MonoBehaviour:
         - value:
             Entity: 14
             ChancePerCoord: 0.00025
+        - value:
+            Entity: 15
+            ChancePerCoord: 0.00001
   BiomeConditions:
     value:
       TerrainStart: 0.375
