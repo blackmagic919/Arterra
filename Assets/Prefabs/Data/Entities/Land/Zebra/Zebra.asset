@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: Zebra
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 9001
+        value:
+          value:
+            rid: 4440372751852371968
   Controller:
     value: {fileID: 3629186617950086684, guid: 6bb9ca1d891f844d2bc2e946cd18e814, type: 3}
   Profile:
@@ -417,4 +421,23 @@ MonoBehaviour:
           ConsumptionRate: 0.25
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 4440372751852371968
+      type: {class: ToolTipTag, ns: , asm: Assembly-CSharp}
+      data:
+        ToolTips:
+          value:
+          - AcknowledgeTime: 1
+            AcknowledgeEvent: 1
+            Priority: 0
+            TriggerEvent: 3
+            TriggerTime: 2
+            PrefabPath: Fox_prefab
+            BlockingToolTips: 0
+          - AcknowledgeTime: 1
+            AcknowledgeEvent: 1
+            Priority: 0
+            TriggerEvent: 8
+            TriggerTime: 2
+            PrefabPath: Fox_prefab
+            BlockingToolTips: 0

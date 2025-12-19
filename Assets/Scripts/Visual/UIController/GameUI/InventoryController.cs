@@ -104,9 +104,9 @@ public static class InventoryController {
         Secondary.ReapplyHandles();
         Primary.ReapplyHandles();
 
-        cxt.cur.AddEventHandler<(PlayerStreamer.Player, PlayerStreamer.Player)>(
-            EntityEventType.OnRespawn,
-            delegate (object sender, ref (PlayerStreamer.Player, PlayerStreamer.Player) args) {
+        cxt.cur.eventCtrl.AddEventHandler<(PlayerStreamer.Player, PlayerStreamer.Player)>(
+            GameEvent.Entity_Respawn,
+            delegate (object actor, object target, ref (PlayerStreamer.Player, PlayerStreamer.Player) args) {
                 RebindInventories(ref args);
             }
         );

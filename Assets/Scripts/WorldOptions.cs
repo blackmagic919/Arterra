@@ -4,6 +4,8 @@ using Newtonsoft.Json;
 using System;
 using System.Runtime.Serialization;
 using Arterra.Core.Storage;
+using Arterra.Core.Events;
+using System.Collections.Generic;
 
 namespace Arterra.Config {
     /// <summary>
@@ -91,6 +93,33 @@ namespace Arterra.Config {
             public Option<Quality.GeoShaderSettings> GeoShaders;
             /// <summary> See here for more information: <see cref="Quality.Memory"/>  </summary>
             public Option<Quality.BalancedMemory> Memory;
+        }
+
+        /// <summary>
+        /// The settings controlling the tooltip system used in the game.
+        /// </summary>
+        [Serializable]
+        public struct TooltipSettings {
+            /// <summary>
+            /// Whether tooltips are enabled.
+            /// </summary>
+            public bool EnableTooltips;
+
+            /// <summary>
+            /// Maximum number of tooltips to display simultaneously.
+            /// </summary>
+            public int MaxPopups;
+
+            /// <summary>
+            /// Minimum display time for each tooltip in seconds.
+            /// </summary>
+            public float MinDisplayTimeInSeconds;
+
+            /// <summary>
+            /// The events that can trigger tooltips.
+            /// </summary>
+            [UISetting(Ignore = true)]
+            public Option<List<GameEvent>> TooltipEvents;            
         }
 
         /// <summary>
@@ -182,6 +211,8 @@ namespace Arterra.Config {
             /// <summary> The settings for the readback system. See <see cref="Intrinsic.Readback"/> for more information. </summary>
             [UISetting(Ignore = true)]
             public Option<Intrinsic.Readback> ReadBack;
+
+            public TooltipSettings Tooltips;
             /// <summary>
             /// Registry for hooks that are called when a certain setting is modified. This registry is generated
             /// during runtime and is not customizable by the user. If a certain member has a UIModifiable attribute

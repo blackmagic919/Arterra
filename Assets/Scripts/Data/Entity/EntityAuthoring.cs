@@ -31,7 +31,7 @@ public abstract class Authoring : Category<Authoring>{
 /// as well as some metadata used by the system to manage the entity. All entities in the game
 /// must inherit from this class and implement the virtual functions to be used by the system.
 /// </summary>
-public abstract class Entity: EventControl, IRegistered{
+public abstract class Entity: IRegistered{
     /// <summary> Information about the entity instance that is required of every instance for the system to function. See <see cref="Info"/> for more information. </summary>
     public Info info; 
     /// <summary> Whether or not the entity is active. This is the flag set to indicate to the system that
@@ -104,6 +104,11 @@ public abstract class Entity: EventControl, IRegistered{
     /// right direction by the entity's <see cref="Facing">rotation</see></summary>
     [JsonIgnore]
     public float3 Right => Facing * Vector3.right;
+
+    /// <summary> The event controller responsible for managing all events related to this entity </summary>
+    [JsonIgnore]
+    public EventControl eventCtrl = new();
+
     /// <summary>
     /// A callback to draw any gizmos that the entity may need to draw. This is only for 
     /// debugging purposes in UnityEditor to draw any annotations related to entities. This will
