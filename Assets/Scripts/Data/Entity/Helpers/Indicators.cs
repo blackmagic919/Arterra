@@ -1,12 +1,12 @@
 using UnityEngine;
 using UnityEngine.Pool;
 using static EntityManager;
-using WorldConfig.Generation.Entity;
-using WorldConfig;
+using Arterra.Config.Generation.Entity;
+using Arterra.Config;
 using Unity.Mathematics;
 using UnityEngine.UI;
 
-namespace WorldConfig.Gameplay{
+namespace Arterra.Config.Gameplay{
     /// <summary> A collection of settings describing optional statistics that can be displayed in the game.
     /// These statistics are optional and can be toggled on or off; viewing certain statistics may
     /// break immersion or provide an unfair advantage. </summary>
@@ -21,7 +21,7 @@ namespace WorldConfig.Gameplay{
 }
 public static class Indicators
 {
-    public static WorldConfig.Gameplay.Statistics Stats => Config.CURRENT.GamePlay.Statistics;
+    public static Arterra.Config.Gameplay.Statistics Stats => Config.CURRENT.GamePlay.Statistics;
     public static ObjectPool<GameObject> ItemSlots;
     public static ObjectPool<GameObject> TransparentSlots;
     public static ObjectPool<GameObject> StackableItems;
@@ -89,7 +89,7 @@ public static class Indicators
         if(!stats.activeSelf) return;
 
         if(vitality != null) {
-            Vitality vitals = (Vitality)vitality;
+            MinimalVitality vitals = (MinimalVitality)vitality;
             Image healthSlider = stats?.transform.Find("HealthBar").GetComponent<Image>();
             if(healthSlider != null) healthSlider.fillAmount = vitals.healthPercent;
             Image breathSlider = stats?.transform.Find("BreathBar").GetComponent<Image>();
@@ -109,7 +109,7 @@ public static class Indicators
         Quaternion rot;
         if(math.all(eulerDir == default)) rot = UnityEngine.Random.rotation;
         else rot = Quaternion.LookRotation(eulerDir);
-        indicator.transform.SetPositionAndRotation(MapStorage.CPUMapManager.GSToWS(posGS), rot);
+        indicator.transform.SetPositionAndRotation(Arterra.Core.Storage.CPUMapManager.GSToWS(posGS), rot);
         return indicator;
     }
 

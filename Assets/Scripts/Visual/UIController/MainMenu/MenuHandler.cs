@@ -42,7 +42,7 @@ public class MenuHandler : MonoBehaviour
     }
     public void Play() { 
         if(!active) return;
-        _ = MapStorage.World.SaveOptions(); 
+        _ = Arterra.Core.Storage.World.SaveOptions(); 
         SceneManager.LoadScene("GameScene");
     }
     public void Select(){ 

@@ -2,11 +2,12 @@ using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using WorldConfig.Generation.Material;
-using static PlayerInteraction;
-using MapStorage;
+using Arterra.Config.Generation.Material;
+using Arterra.Core.Storage;
+using static Arterra.Core.Player.PlayerInteraction;
+using Arterra.Core.Player;
 
-namespace WorldConfig.Generation.Item
+namespace Arterra.Config.Generation.Item
 {
     [CreateAssetMenu(menuName = "Generation/Items/Tool")]
     public class ToolItemAuthoring : AuthoringTemplate<ToolItem> {
@@ -102,12 +103,13 @@ namespace WorldConfig.Generation.Item
         protected void PlayerRemoveTerrain(ItemContext cxt) {
             if (settings.ToolTag == TagRegistry.Tags.None) return;
             if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-            if (!RayTestSolid(player, out float3 hitPt)) return;
+            if (!RayTestSolid(out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out var _))
                 return;
             bool RemoveSolid(int3 GCoord, float speed) {
                 MapData mapData = CPUMapManager.SampleMap(GCoord);
-                int material = mapData.material; ToolTag tag = PlayerInteraction.settings.DefaultTerraform;
+                int material = mapData.material;
+                ToolTag tag = Config.CURRENT.GamePlay.Player.value.Interaction.value.DefaultTerraform;
                 if (MatInfo.GetMostSpecificTag(settings.ToolTag, material, out object prop))
                     tag = prop as ToolTag;
 

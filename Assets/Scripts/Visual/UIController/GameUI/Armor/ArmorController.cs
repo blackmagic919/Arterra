@@ -1,15 +1,13 @@
-using System.Collections.Generic;
-using Arterra.Core.Events;
-using TerrainGeneration;
-using Unity.Burst.Intrinsics;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using WorldConfig;
-using WorldConfig.Gameplay;
-using WorldConfig.Generation.Entity;
-using WorldConfig.Generation.Item;
-using WorldConfig.Intrinsic;
+using Arterra.Config;
+using Arterra.Config.Generation.Entity;
+using Arterra.Config.Generation.Item;
+using Arterra.Config.Intrinsic;
+using Arterra.Core.Terrain;
+using Arterra.Core.Events;
+using Arterra.Core.Player;
 
 [RequireComponent(typeof(Camera))]
 public class ArmorController : PanelNavbarManager.INavPanel {
@@ -283,7 +281,7 @@ public class ArmorController : PanelNavbarManager.INavPanel {
     }
 
     private class FreeCamera {
-        private WorldConfig.Gameplay.Player.Camera S => Config.CURRENT.GamePlay.Player.value.Camera;
+        private Arterra.Config.Gameplay.Player.Camera S => Config.CURRENT.GamePlay.Player.value.Camera;
         private Transform CamTsf;
         const float height = 0f;
         const float distance = 7.5f;

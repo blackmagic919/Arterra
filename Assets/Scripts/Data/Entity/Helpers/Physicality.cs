@@ -1,17 +1,17 @@
 using System;
 using System.Collections.Generic;
-using MapStorage;
+using Arterra.Core.Storage;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using WorldConfig;
-using WorldConfig.Generation.Entity;
+using Arterra.Config;
+using Arterra.Config.Generation.Entity;
 
 /// <summary> An interface for all object that can be attacked and take damage. It is up to the 
 /// implementer to decide how the request to take damage is handled. </summary>
 public interface IAttackable {
     public void Interact(Entity caller);
-    public WorldConfig.Generation.Item.IItem Collect(float collectRate);
+    public Arterra.Config.Generation.Item.IItem Collect(float collectRate);
     public void TakeDamage(float damage, float3 knockback, Entity attacker = null);
     public bool IsDead { get; }
 }
@@ -70,7 +70,7 @@ public class MinimalVitality {
         invincibility = 0;
     }
 
-    public virtual void Update() {
+    public virtual void Update(Entity self) {
         invincibility = math.max(invincibility - EntityJob.cxt.deltaTime, 0);
         if (IsDead) return;
         float delta = math.min(health + genetics.Get(stats.NaturalRegen)
@@ -146,6 +146,7 @@ public class MediumVitality : MinimalVitality {
         public Genetics.GeneFeature AttackDamage;
         public Genetics.GeneFeature AttackCooldown;
         public Genetics.GeneFeature KBStrength;
+        public float AttackDuration;
 
         public override void InitGenome(uint entityType) {
             base.InitGenome(entityType);
@@ -157,39 +158,51 @@ public class MediumVitality : MinimalVitality {
         }
     }
 
+    private float attackProgress;
     public float attackCooldown;
     //So an entity cannot attack immediately
-    public bool IsAttacking;
+    public bool AttackInProgress;
     [JsonIgnore]
     private Stats AStats => stats as Stats;
+    private Guid AttackTarget;
 
     public MediumVitality(Stats stats, Genetics gs = null) : base(stats, gs) {
-        IsAttacking = false;
         if (stats == null) return;
-        attackCooldown = gs.Get(AStats.AttackCooldown);
+        attackCooldown = 0;
+        attackProgress = AStats.AttackDuration;
     }
 
     public override void Deserialize(MinimalVitality.Stats stats, Genetics gs = null) {
         base.Deserialize(stats, gs);
     }
 
-    public bool Attack(Entity target, Entity self) {
-        IsAttacking = true;
+    public bool Attack(Entity target) {
+        if (AttackInProgress) return false;
         if (attackCooldown > 0) return false;
-        IsAttacking = false;
         if (target is not IAttackable) return false;
-
-        attackCooldown = genetics.Get(AStats.AttackCooldown);
-        float damage = genetics.Get(AStats.AttackDamage);
-        float3 knockback = math.normalize(target.position - self.position) * genetics.Get(AStats.KBStrength);
-        EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback, self));
+        attackProgress = AStats.AttackDuration;
+        AttackTarget = target.info.entityId;
+        AttackInProgress = true;
         return true;
     }
 
-    public override void Update() {
-        base.Update();
-        if (!IsAttacking) return;
+    public override void Update(Entity self) {
+        base.Update(self);
         attackCooldown = math.max(attackCooldown - EntityJob.cxt.deltaTime, 0);
+        if (!AttackInProgress) return;
+        attackProgress = math.max(attackProgress - EntityJob.cxt.deltaTime, 0);
+        if (attackProgress > 0) return;
+        
+        AttackInProgress = false;
+        attackCooldown = genetics.Get(AStats.AttackCooldown);
+        if (!EntityManager.TryGetEntity(AttackTarget, out Entity target))
+            return;
+        if (target is not IAttackable) return;
+        if (Recognition.GetColliderDist(target, self) > genetics.Get(AStats.AttackDistance))
+            return;
+        float damage = genetics.Get(AStats.AttackDamage);
+        float3 knockback = math.normalize(target.position - self.position) * genetics.Get(AStats.KBStrength);
+        EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback, self));
     }
 }
 
@@ -249,14 +262,14 @@ public class Vitality : MediumVitality {
                 table[i] = loot;
             }
         }
-        public WorldConfig.Generation.Item.IItem LootItem(Genetics genetics, float collectRate, ref Unity.Mathematics.Random random) {
+        public Arterra.Config.Generation.Item.IItem LootItem(Genetics genetics, float collectRate, ref Unity.Mathematics.Random random) {
             if (LootTable.value == null || LootTable.value.Count == 0) return null;
             int index = random.NextInt(LootTable.value.Count);
 
             float amount = genetics.Get(LootTable.value[index].DropAmount) * collectRate;
-            Catalogue<WorldConfig.Generation.Item.Authoring> registry = Config.CURRENT.Generation.Items;
+            Catalogue<Arterra.Config.Generation.Item.Authoring> registry = Config.CURRENT.Generation.Items;
             int itemindex = registry.RetrieveIndex(LootTable.value[index].ItemName);
-            WorldConfig.Generation.Item.IItem item = registry.Retrieve(itemindex).Item;
+            Arterra.Config.Generation.Item.IItem item = registry.Retrieve(itemindex).Item;
 
             amount *= item.UnitSize;
             int delta = Mathf.FloorToInt(amount) + (random.NextFloat() < math.frac(amount) ? 1 : 0);
@@ -295,7 +308,6 @@ public class ProjectileLauncher {
     private float3 fireDirection;
     private float chargeCooldown;
     private float shotProgress;
-    private bool IsShooting;
     public bool ShotInProgress;
     
     public ProjectileLauncher(Stats stats, Genetics gs = null) {
@@ -306,7 +318,6 @@ public class ProjectileLauncher {
         chargeCooldown = gs.Get(stats.ChargeTime);
         shotProgress = 0;
         ShotInProgress = false;
-        IsShooting = false;
     }
 
 
@@ -318,10 +329,7 @@ public class ProjectileLauncher {
     //This is some whirly logic where if you call fire on a loop, it will
     public bool Fire(float3 target, Entity self) {
         if (ShotInProgress) return false;
-        IsShooting = true;
         if (chargeCooldown > 0) return false;
-        IsShooting = false;
-
         fireDirection = target - self.position;
         if (stats.CheckSightline) {
             if (CPUMapManager.RayCastTerrain(self.head, math.normalizesafe(fireDirection), 
@@ -334,7 +342,7 @@ public class ProjectileLauncher {
     }
 
     public void Update(Entity parent) {
-        if (IsShooting) chargeCooldown = math.max(chargeCooldown - EntityJob.cxt.deltaTime, 0);
+        chargeCooldown = math.max(chargeCooldown - EntityJob.cxt.deltaTime, 0);
         if (!ShotInProgress) return;
         shotProgress = math.max(shotProgress - EntityJob.cxt.deltaTime, 0);
         if (shotProgress > 0) return;

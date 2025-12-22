@@ -1,7 +1,6 @@
 using System.Collections.Generic;
-using Unity.Mathematics;
 using UnityEngine;
-using WorldConfig;
+using Arterra.Config;
 
 public static class UtilityBuffers 
 {

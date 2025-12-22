@@ -8,13 +8,12 @@ using Newtonsoft.Json;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Pool;
 using UnityEngine.UI;
-using UnityEngine.Video;
-using WorldConfig;
-using WorldConfig.Generation.Item;
+using Arterra.Config;
+using Arterra.Config.Generation.Item;
+using Arterra.Core.Player;
 
-namespace WorldConfig.Gameplay{
+namespace Arterra.Config.Gameplay{
     /// <summary> Settings controlling the size and apperance of the inventory,
     /// a system allowing the player to hold and use 
     /// <see cref="Generation.Item"> items </see>. </summary>
@@ -39,7 +38,7 @@ namespace WorldConfig.Gameplay{
     }
 }
 public static class InventoryController {
-    public static WorldConfig.Gameplay.Inventory settings => Config.CURRENT.GamePlay.Inventory.value;
+    public static Arterra.Config.Gameplay.Inventory settings => Config.CURRENT.GamePlay.Inventory.value;
     public static Inventory Primary; //Hotbar
     public static Inventory Secondary; //Inventory
     public static CursorManager Cursor;
@@ -187,7 +186,7 @@ public static class InventoryController {
 
     public static void DropItem(IItem item, float3 location, Quaternion rotation = default) {
         if (item == null) return;
-        WorldConfig.Generation.Entity.Entity Entity = new EItem.EItemEntity(item, rotation);
+        Arterra.Config.Generation.Entity.Entity Entity = new EItem.EItemEntity(item, rotation);
         uint eIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("EntityItem");
         Entity.info.entityId = Guid.NewGuid();
         EntityManager.CreateEntity(math.round(location), eIndex, Entity);
@@ -801,7 +800,7 @@ public static class InventoryController {
             Display.Object.transform.SetParent(Menu.transform);
             Display.Object.SetActive(false);
             EventTask = new IndirectUpdate(Update);
-            TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(EventTask);
+            Arterra.Core.Terrain.OctreeTerrain.MainLoopUpdateTasks.Enqueue(EventTask);
         }
 
         public bool SplitNewItem(out IItem nItem) {

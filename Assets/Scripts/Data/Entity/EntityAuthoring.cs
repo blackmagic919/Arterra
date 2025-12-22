@@ -4,9 +4,9 @@ using Unity.Mathematics;
 using Newtonsoft.Json;
 using UnityEditor;
 using System.Collections.Generic;
-using WorldConfig.Generation.Structure;
+using Arterra.Config.Generation.Structure;
 using Arterra.Core.Events;
-namespace WorldConfig.Generation.Entity{
+namespace Arterra.Config.Generation.Entity{
 /// <summary>
 /// A generic contract that ensures that all entities contain a certain
 /// set of properties and methods necessary for the system to function.
@@ -122,18 +122,18 @@ public abstract class Entity: EventControl, IRegistered{
         /// <summary> The unique identifier of the entity that remains the same throughout the entity's life cycle, regardless of if it's serialized
         /// or saved to disk. </summary>
         public Guid entityId;
-        /// <summary> The index of the entity's name within the <see cref="WorldConfig.Config.GenerationSettings.Entities"/> registry. This is guaranteed to be different
+        /// <summary> The index of the entity's name within the <see cref="Config.GenerationSettings.Entities"/> registry. This is guaranteed to be different
         /// for two different types of entities and can be used to test such. If the entity is serialized, this should be decoupled and recoupled upon deserialization. </summary>
         public uint entityType;
     }
 
     /// <summary>
-    /// Gets the <see cref="WorldConfig.Generation.Entity">registry</see> containing all entities when the game is loaded. Used to serialize
+    /// Gets the <see cref="Generation.Entity">registry</see> containing all entities when the game is loaded. Used to serialize
     /// and deserialize entities to json. See <see cref="IRegistered.GetRegistry"/> for more info.
     /// </summary>
     /// <returns>The Registry containing all entities within the game</returns>
     public IRegister GetRegistry() => Config.CURRENT.Generation.Entities;
-    /// <summary> Gets the index within the <see cref="WorldConfig.Generation.Entity">entity registry</see> of the current
+    /// <summary> Gets the index within the <see cref="Generation.Entity">entity registry</see> of the current
     /// entity's name. Equivalent to <see cref="Info.entityType"/>. See <see cref="IRegistered.Index"/> for more info. </summary>
     public int Index{
         get => (int)info.entityType;
@@ -153,7 +153,7 @@ public abstract class EntitySetting{
     public TerrainCollider.Settings collider;
     /// <summary> Presets any information shared by all instances of the entity. This is only called once per entity type within
     /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information. </summary>
-    /// <param name="entityType">The index of the entity type within the <see cref="WorldConfig.Config.GenerationSettings.Entities"/> registry.</param>
+    /// <param name="entityType">The index of the entity type within the <see cref="Arterra.Config.Config.GenerationSettings.Entities"/> registry.</param>
     /// <remarks> For example, if the entity uses a state machine it can allocate function pointers to each state within the machine such that
     /// they may be referenced through an edge list. </remarks>
     public virtual void Preset(uint entityType){
@@ -183,7 +183,7 @@ public abstract class EntitySetting{
         /// </summary>
         public uint3 bounds;
         /// <summary>
-        /// The start of the entity's profile within a global shared location, <see cref="TerrainGeneration.GenerationPreset.EntityHandle.entityProfileArray"/> 
+        /// The start of the entity's profile within a global shared location, <see cref="Core.Terrain.GenerationPreset.EntityHandle.entityProfileArray"/> 
         /// that contains the profiles for all entities. This should not be modified and will be assigned in runtime by the configuration of the entity registry.
         /// The size of the information read at this location is determined by <see cref="bounds"/>.
         /// </summary>

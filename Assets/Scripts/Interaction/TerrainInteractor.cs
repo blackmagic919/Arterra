@@ -1,13 +1,18 @@
 using System;
-using MapStorage;
+using Arterra.Core.Storage;
 using Unity.Mathematics;
-using WorldConfig;
-using WorldConfig.Generation.Entity;
-using WorldConfig.Generation.Material;
-using static MapStorage.CPUMapManager;
+using Arterra.Config;
+using Arterra.Config.Generation.Entity;
+using Arterra.Config.Generation.Material;
+using static Arterra.Core.Storage.CPUMapManager;
 
 public static class TerrainInteractor {
 
+    private const byte Solid = 0x1;
+    private const byte Liquid = 0x2;
+    public static bool IsTouching(byte data) => data != 0;
+    public static bool TouchSolid(byte data) => (data & Solid) != 0;
+    public static bool TouchLiquid(byte data) => (data & Liquid) != 0;
     private static Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
     private static bool TrilinearBlend(ref Span<int> c, float3 d, out int corner) {
         float c00 = c[0] * (1 - d.x) + c[4] * d.x;
@@ -32,13 +37,14 @@ public static class TerrainInteractor {
         return true;
     }
 
-    private static bool TrilinearContact(float3 posGS, Entity caller) {
+    private static byte TrilinearContact(float3 posGS, Entity caller, ref float friction) {
         //Calculate Density
         int3 l; int3 u;
         l.x = (int)Math.Floor(posGS.x); u.x = l.x + 1;
         l.y = (int)Math.Floor(posGS.y); u.y = l.y + 1;
         l.z = (int)Math.Floor(posGS.z); u.z = l.z + 1;
         float3 d = posGS - l;
+        byte contact = 0;
 
         Span<MapData> m = stackalloc MapData[8] {
             SampleMap(l),                       SampleMap(new int3(l.x, l.y, u.z)), SampleMap(new int3(l.x, u.y, l.z)),
@@ -52,9 +58,12 @@ public static class TerrainInteractor {
             m[6].LiquidDensity, m[7].LiquidDensity
         };
 
-        if (TrilinearBlend(ref c, d, out int corner) && !m[corner].IsNull)
-            matInfo.Retrieve(m[corner].material)
-                .OnEntityTouchLiquid(caller);
+        if (TrilinearBlend(ref c, d, out int corner) && !m[corner].IsNull) {
+            MaterialData mat = matInfo.Retrieve(m[corner].material);
+            friction = math.max(mat.Roughness, friction);
+            mat.OnEntityTouchLiquid(caller);
+            contact |= Liquid;
+        }
 
 
         c[0] = m[0].SolidDensity; c[1] = m[1].SolidDensity; c[2] = m[2].SolidDensity;
@@ -62,11 +71,12 @@ public static class TerrainInteractor {
         c[6] = m[6].SolidDensity; c[7] = m[7].SolidDensity;
 
         if (TrilinearBlend(ref c, d, out corner)) {
-            if (m[corner].IsNull) return true;
-            matInfo.Retrieve(m[corner].material)
-                .OnEntityTouchSolid(caller);   
-        } else return false;
-        return true;
+            if (m[corner].IsNull) return contact;
+            MaterialData mat = matInfo.Retrieve(m[corner].material);
+            friction = math.max(mat.Roughness, friction);
+            mat.OnEntityTouchSolid(caller);
+            contact |= Solid;
+        } return contact;
     }
 
     private static bool BilinearBlend(ref Span<int> c, float2 d, out int corner) {
@@ -88,11 +98,12 @@ public static class TerrainInteractor {
         return true;
     }
 
-    private static bool BilinearContact(float2 posGS, Func<int2, MapData> SampleMap, Entity caller) {
+    private static byte BilinearContact(float2 posGS, Func<int2, MapData> SampleMap, Entity caller, ref float friction) {
         int2 l; int2 u;
         l.x = (int)Math.Floor(posGS.x); u.x = l.x + 1;
         l.y = (int)Math.Floor(posGS.y); u.y = l.y + 1;
         float2 d = posGS - l;
+        byte contact = 0;
 
         Span<MapData> m = stackalloc MapData[4] {
             SampleMap(l), SampleMap(new int2(l.x, u.y)),
@@ -104,20 +115,23 @@ public static class TerrainInteractor {
             m[2].LiquidDensity, m[3].LiquidDensity
         };
 
-        if (BilinearBlend(ref c, d, out int corner) && !m[corner].IsNull)
-            matInfo.Retrieve(m[corner].material)
-                .OnEntityTouchLiquid(caller);
+        if (BilinearBlend(ref c, d, out int corner) && !m[corner].IsNull) {
+            MaterialData mat = matInfo.Retrieve(m[corner].material);
+            friction = math.max(mat.Roughness, friction);
+            mat.OnEntityTouchLiquid(caller);
+            contact|= Liquid;
+        }
 
         c[0] = m[0].SolidDensity; c[1] = m[1].SolidDensity;
         c[2] = m[2].SolidDensity; c[3] = m[3].SolidDensity;
 
         if (BilinearBlend(ref c, d, out corner)) {
-            if (m[corner].IsNull) return true;
-            matInfo.Retrieve(m[corner].material)
-                .OnEntityTouchSolid(caller);
-        }
-        else return false;
-        return true;
+            if (m[corner].IsNull) return contact;
+            MaterialData mat = matInfo.Retrieve(m[corner].material);
+            friction = math.max(mat.Roughness, friction);
+            mat.OnEntityTouchSolid(caller);
+            contact |= Solid;
+        } return contact;
     }
 
     private static bool LinearBlend(int c0, int c1, float t, out int corner) {
@@ -129,49 +143,61 @@ public static class TerrainInteractor {
         else corner = 1;
         return true;
     }
-    private static bool LinearContact(float posGS, Func<int, MapData> SampleMap, Entity caller) {
+    private static byte LinearContact(float posGS, Func<int, MapData> SampleMap, Entity caller, ref float friction) {
         int t0 = (int)Math.Floor(posGS);
         int t1 = t0 + 1;
 
         MapData m0 = SampleMap(t0);
         MapData m1 = SampleMap(t1);
         float td = posGS - t0;
+        byte contact = 0;
 
         if (LinearBlend(m0.LiquidDensity, m1.LiquidDensity, td, out int corner)) {
-            MapData mat = corner != 0 ? m1 : m0;
-            if (!mat.IsNull) matInfo.Retrieve(mat.material).OnEntityTouchLiquid(caller);
+            MapData pt = corner != 0 ? m1 : m0;
+            if (pt.IsNull) return contact;
+            MaterialData mat = matInfo.Retrieve(pt.material);
+            friction = math.max(mat.Roughness, friction);
+            mat.OnEntityTouchLiquid(caller);
+            contact |= Liquid;
         } else if (LinearBlend(m0.SolidDensity, m1.SolidDensity, td, out corner)) {
-            MapData mat = corner != 0 ? m1 : m0;
-            if (!mat.IsNull) matInfo.Retrieve(mat.material).OnEntityTouchSolid(caller);
-            return true;
+            MapData pt = corner != 0 ? m1 : m0;
+            if (pt.IsNull) return contact;
+            MaterialData mat = matInfo.Retrieve(pt.material);
+            friction = math.max(mat.Roughness, friction);
+            mat.OnEntityTouchSolid(caller);
+            contact |= Solid;
         }
-        return false;
+        return contact;
     }
 
-    private static bool UnitContact(int3 posGS, Entity caller) {
+    private static byte UnitContact(int3 posGS, Entity caller, ref float friction) {
         MapData m = SampleMap(posGS);
-        if (m.IsNull) return true;
+        if (m.IsNull) return 0;
         if (m.LiquidDensity >= IsoValue) {
-            matInfo.Retrieve(m.material).OnEntityTouchLiquid(caller);
+            MaterialData mat = matInfo.Retrieve(m.material);
+            friction = math.max(mat.Roughness, friction);
+            mat.OnEntityTouchLiquid(caller);
+            return Liquid;
         } else if (m.SolidDensity >= IsoValue) {
-            matInfo.Retrieve(m.material).OnEntityTouchSolid(caller);
-            return true;
-        }
-        return false;
+            MaterialData mat = matInfo.Retrieve(m.material);
+            friction = math.max(mat.Roughness, friction);
+            mat.OnEntityTouchSolid(caller);
+            return Solid;
+        } return 0;
     }
 
-    private static bool SampleUnitContact(float3 originGS, float3 boundsGS, Entity caller) {
+    private static byte SampleUnitContact(float3 originGS, float3 boundsGS, Entity caller, ref float friction) {
         float3 min = math.min(originGS, originGS + boundsGS);
         float3 max = math.max(originGS, originGS + boundsGS);
         int3 minC = (int3)math.ceil(min);
         int3 maxC = (int3)math.floor(max);
-        bool contacted = false;
+        byte contacted = 0;
 
         int3 coord = int3.zero;
         for (coord.x = minC.x; coord.x <= maxC.x; coord.x++) {
             for (coord.y = minC.y; coord.y <= maxC.y; coord.y++) {
                 for (coord.z = minC.z; coord.z <= maxC.z; coord.z++) {
-                    contacted |= UnitContact(coord, caller);
+                    contacted |= UnitContact(coord, caller, ref friction);
                 }
             }
         }
@@ -179,50 +205,50 @@ public static class TerrainInteractor {
     }
 
 
-    private static bool SampleFaceContact(float3 originGS, float3 boundsGS, Entity caller) {
+    private static byte SampleFaceContact(float3 originGS, float3 boundsGS, Entity caller, ref float friction) {
         float3 min = math.min(originGS, originGS + boundsGS);
         float3 max = math.max(originGS, originGS + boundsGS);
         int3 minC = (int3)math.ceil(min);
         int3 maxC = (int3)math.floor(max);
-        bool contacted = false;
+        byte contacted = 0;
 
         //3*2 = 6 faces
         for (int x = minC.x; x <= maxC.x; x++) {
             for (int y = minC.y; y <= maxC.y; y++) {
-                contacted |= LinearContact(min.z, (int z) => SampleMap(new int3(x, y, z)), caller);
-                contacted |= LinearContact(max.z, (int z) => SampleMap(new int3(x, y, z)), caller);
+                contacted |= LinearContact(min.z, (int z) => SampleMap(new int3(x, y, z)), caller, ref friction);
+                contacted |= LinearContact(max.z, (int z) => SampleMap(new int3(x, y, z)), caller, ref friction);
             }
         }
 
         for (int x = minC.x; x <= maxC.x; x++) {
             for (int z = minC.z; z <= maxC.z; z++) {
-                contacted |= LinearContact(min.y, (int y) => SampleMap(new int3(x, y, z)), caller);
-                contacted |= LinearContact(max.y, (int y) => SampleMap(new int3(x, y, z)), caller);
+                contacted |= LinearContact(min.y, (int y) => SampleMap(new int3(x, y, z)), caller, ref friction);
+                contacted |= LinearContact(max.y, (int y) => SampleMap(new int3(x, y, z)), caller, ref friction);
             }
         }
 
         for (int y = minC.y; y <= maxC.y; y++) {
             for (int z = minC.z; z <= maxC.z; z++) {
-                contacted |= LinearContact(min.x, (int x) => SampleMap(new int3(x, y, z)), caller);
-                contacted |= LinearContact(max.x, (int x) => SampleMap(new int3(x, y, z)), caller);
+                contacted |= LinearContact(min.x, (int x) => SampleMap(new int3(x, y, z)), caller, ref friction);
+                contacted |= LinearContact(max.x, (int x) => SampleMap(new int3(x, y, z)), caller, ref friction);
             }
         }
         return contacted;
     }
 
-    private static bool SampleEdgeContact(float3 originGS, float3 boundsGS, Entity caller) {
+    private static byte SampleEdgeContact(float3 originGS, float3 boundsGS, Entity caller, ref float friction) {
         float3 min = math.min(originGS, originGS + boundsGS);
         float3 max = math.max(originGS, originGS + boundsGS);
         int3 minC = (int3)math.ceil(min);
         int3 maxC = (int3)math.floor(max);
-        bool contacted = false;
+        byte contacted = 0;
 
         //3*4 = 12 edges
         for (int x = minC.x; x <= maxC.x; x++) {
             for (int i = 0; i < 4; i++) {
                 int2 index = new(i % 2, i / 2 % 2);
                 float2 corner = min.yz * index + max.yz * (1 - index);
-                contacted |= BilinearContact(corner, c => SampleMap(new int3(x, c.x, c.y)), caller);
+                contacted |= BilinearContact(corner, c => SampleMap(new int3(x, c.x, c.y)), caller, ref friction);
             }
         }
 
@@ -230,7 +256,7 @@ public static class TerrainInteractor {
             for (int i = 0; i < 4; i++) {
                 int2 index = new(i % 2, i / 2 % 2);
                 float2 corner = min.xz * index + max.xz * (1 - index);
-                contacted |= BilinearContact(corner, c => SampleMap(new int3(c.x, y, c.y)), caller);
+                contacted |= BilinearContact(corner, c => SampleMap(new int3(c.x, y, c.y)), caller, ref friction);
             }
         }
 
@@ -238,32 +264,32 @@ public static class TerrainInteractor {
             for (int i = 0; i < 4; i++) {
                 int2 index = new(i % 2, i / 2 % 2);
                 float2 corner = min.xy * index + max.xy * (1 - index);
-                contacted |= BilinearContact(corner, c => SampleMap(new int3(c.x, c.y, z)), caller);
+                contacted |= BilinearContact(corner, c => SampleMap(new int3(c.x, c.y, z)), caller, ref friction);
             }
         }
         return contacted;
     }
 
-    private static bool SampleCornerContact(float3 originGS, float3 boundsGS, Entity caller) {
+    private static byte SampleCornerContact(float3 originGS, float3 boundsGS, Entity caller, ref float friction) {
         float3 min = math.min(originGS, originGS + boundsGS);
         float3 max = math.max(originGS, originGS + boundsGS);
-        bool contacted = false;
+        byte contacted = 0;
 
         //8 corners
         for (int i = 0; i < 8; i++) {
             int3 index = new(i % 2, i / 2 % 2, i / 4);
             float3 corner = min * index + max * (1 - index);
-            contacted |= TrilinearContact(corner, caller);
+            contacted |= TrilinearContact(corner, caller, ref friction);
         }
         return contacted;
     }
 
-    public static bool SampleContact(float3 originGS, float3 boundsGS, Entity caller = null) {
-        bool contacted = false;
-        contacted |= SampleCornerContact(originGS, boundsGS, caller);
-        contacted |= SampleEdgeContact(originGS, boundsGS, caller);
-        contacted |= SampleFaceContact(originGS, boundsGS, caller);
-        contacted |= SampleUnitContact(originGS, boundsGS, caller);
+    public static byte SampleContact(float3 originGS, float3 boundsGS, out float friction, Entity caller = null) {
+        byte contacted = 0; friction = 0;
+        contacted |= SampleCornerContact(originGS, boundsGS, caller, ref friction);
+        contacted |= SampleEdgeContact(originGS, boundsGS, caller, ref friction);
+        contacted |= SampleFaceContact(originGS, boundsGS, caller, ref friction);
+        contacted |= SampleUnitContact(originGS, boundsGS, caller, ref friction);
         return contacted;
     }
     

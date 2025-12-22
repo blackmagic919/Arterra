@@ -1,7 +1,8 @@
-using TerrainGeneration;
 using Unity.Mathematics;
 using UnityEngine;
-using WorldConfig;
+using Arterra.Config;
+using Arterra.Core.Terrain;
+using Arterra.Core.Player;
 
 public static class PlayerCrosshair {
     private static GameObject Crosshair;
@@ -62,7 +63,7 @@ public static class PlayerCrosshair {
                 + player.Forward
                 * Config.CURRENT.GamePlay.Player.value.Interaction.value.ReachDistance;
 
-        if (PlayerInteraction.RayTestSolid(player, out float3 terrHit)) hitPt = terrHit;
+        if (PlayerInteraction.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
         if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out _))
             Animator.SetBool("Focus", false);
         else Animator.SetBool("Focus", true);

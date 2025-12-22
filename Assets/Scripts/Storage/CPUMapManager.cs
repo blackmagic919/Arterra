@@ -6,13 +6,12 @@ using UnityEngine.Rendering;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Burst;
 using UnityEditor;
-using TerrainGeneration;
-using WorldConfig;
 using System.Collections.Generic;
 using System.Linq;
 using System.Collections.Concurrent;
+using Arterra.Core.Terrain;
 
-namespace MapStorage {
+namespace Arterra.Core.Storage {
     /// <summary>A static centralized location for managing and storing all CPU-side map information,
     /// all operations accessing map information, and requesting the information from the GPU. </summary>
     /// <remark>Because the total amount of concurrent Real Chunks is known on game launch, the exact amount of memory
@@ -42,13 +41,13 @@ namespace MapStorage {
         /// sub-chunk index(MIndex) of the entry they're accessing. </summary>
         public static ConcurrentDictionary<uint, object>[] MapMetaData;
         /// <summary> The maximum number of real chunks along each axis that can be saved simultaneously with the game's 
-        /// current settings. See <see cref="OctreeTerrain.Octree.GetAxisChunksDepth"/> to see how this is calculated. </summary>
+        /// current settings. See <see cref="OctreeTerrain.BalancedOctree.GetAxisChunksDepth"/> to see how this is calculated. </summary>
         public static int numChunksAxis;
         /// <summary>The total number of real chunks that can be saved simultaneously 
         /// with the game's current settings. Equivalent to <see cref="numChunksAxis"/>^3. / </summary>
         public static int numChunks => numChunksAxis * numChunksAxis * numChunksAxis;
         /// <summary> The Real Integer IsoValue used in all map operations. Equivalent to the 
-        /// <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> * 0xFF (maximum density value). </summary>
+        /// <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> * 0xFF (maximum density value). </summary>
         public static uint IsoValue;
         private static int numPoints;
         private static int mapChunkSize;
@@ -60,7 +59,7 @@ namespace MapStorage {
         /// it will first release all previously allocated resources before reinitializing. </summary>
         public static void Initialize() {
             Release();
-            WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
+            Config.Quality.Terrain rSettings = Config.Config.CURRENT.Quality.Terrain.value;
             mapChunkSize = rSettings.mapChunkSize;
             lerpScale = rSettings.lerpScale;
             IsoValue = (uint)Math.Round(rSettings.IsoLevel * 255.0f);
@@ -980,7 +979,7 @@ namespace MapStorage {
             /// a <see cref="HashCoord">chunk index</see> to <see cref="ChunkMapInfo"/> for that chunk. </summary>
             [NativeDisableUnsafePtrRestriction]
             public ChunkMapInfo* AddressDict;
-            /// <summary> See <see cref="WorldConfig.Quality.Terrain.mapChunkSize"/> </summary>
+            /// <summary> See <see cref="Arterra.Config.Quality.Terrain.mapChunkSize"/> </summary>
             public int mapChunkSize;
             /// <summary> See <see cref="CPUMapManager.numChunksAxis"/> </summary>
             public int numChunksAxis;
@@ -1041,7 +1040,7 @@ namespace MapStorage {
                 RegistryReferenceDrawer.SetupRegistries();
                 RegistryReferenceDrawer materialDrawer = new RegistryReferenceDrawer { BitMask = 0x7FFF, BitShift = 16 };
                 materialDrawer.DrawRegistryDropdown(rect, dataProp, new GUIContent("Material"),
-                    Config.TEMPLATE.Generation.Materials.value.MaterialDictionary);
+                    Config.Config.TEMPLATE.Generation.Materials.value.MaterialDictionary);
                 rect.y += EditorGUIUtility.singleLineHeight;
                 EditorGUI.MultiIntField(rect, new GUIContent[] { new("Viscosity"), new("Density") }, values);
                 rect.y += EditorGUIUtility.singleLineHeight;
@@ -1109,8 +1108,8 @@ namespace MapStorage {
             }
         }
 
-        /// <summary> The identity of this <see cref="MapData"/>. The index within the <see cref="Config.GenerationSettings.Materials"/>
-        /// registry of the <see cref="WorldConfig.Generation.Material"/> responsible for controling the apperance 
+        /// <summary> The identity of this <see cref="MapData"/>. The index within the <see cref="Config.Config.GenerationSettings.Materials"/>
+        /// registry of the <see cref="Config.Generation.Material"/> responsible for controling the apperance 
         /// and behavior of this <see cref="MapData"/>  </summary>
         public int material {
             readonly get => (int)((data >> 16) & 0x7FFF);

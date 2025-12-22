@@ -6,7 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using static PaginatedUIEditor;
-using WorldConfig;
+using Arterra.Config;
 using System.Linq;
 
 

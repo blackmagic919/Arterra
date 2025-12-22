@@ -21,7 +21,7 @@ MonoBehaviour:
     - 
     - StoneHoe
     - Wood:Solid
-    - Rock:Solid
+    - Stone:Solid
   Recipe:
     value:
       materials:

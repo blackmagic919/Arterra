@@ -2,16 +2,14 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
-using WorldConfig;
-using WorldConfig.Generation.Item;
-using WorldConfig.Generation.Entity;
-using MapStorage;
+using Arterra.Config;
+using Arterra.Config.Generation.Item;
+using Arterra.Config.Generation.Entity;
+using Arterra.Core.Storage;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Projectile")]
-public class Projectile : WorldConfig.Generation.Entity.Authoring
+public class Projectile : Arterra.Config.Generation.Entity.Authoring
 {
-    [UISetting(Ignore = true)][JsonIgnore]
-    public Option<ProjectileEntity> _Entity;
     public Option<ProjectileSetting> _Setting;
     
     [JsonIgnore]
@@ -102,7 +100,6 @@ public class Projectile : WorldConfig.Generation.Entity.Authoring
             TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
             OnInLiquid: (dens) => {
                 velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-                velocity.y *= 1 - settings.collider.friction;
                 tCollider.useGravity = false;
             }, OnInGas: null);
 
@@ -123,7 +120,7 @@ public class Projectile : WorldConfig.Generation.Entity.Authoring
                     case ProjectileSetting.GroundIntrc.Bounce:
                         float3 dir = math.normalize(gDir);
                         float3 reflect = math.dot(velocity, dir) * dir;
-                        velocity = velocity - 2 * (1 - settings.collider.friction) * reflect;
+                        velocity = velocity - 2 * (1 - TerrainCollider.BaseFriction) * reflect;
                         break;
                     case ProjectileSetting.GroundIntrc.Slide:
                         break;
@@ -149,7 +146,7 @@ public class Projectile : WorldConfig.Generation.Entity.Authoring
                 case ProjectileSetting.EntityIntrc.Ricochet:
                     float3 dir = startGS - hitEntity.position;
                     float3 reflect = math.dot(velocity, dir) * dir;
-                    velocity = velocity - 2 * (1 - settings.collider.friction) * reflect;
+                    velocity = velocity - 2 * (1 - TerrainCollider.BaseFriction) * reflect;
                     break;
                 case ProjectileSetting.EntityIntrc.Destroy:
                     EntityManager.ReleaseEntity(info.entityId);

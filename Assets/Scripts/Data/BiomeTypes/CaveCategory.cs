@@ -2,11 +2,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using WorldConfig;
-using WorldConfig.Generation.Material;
 
 
-namespace WorldConfig.Generation.Biome{
+namespace Arterra.Config.Generation.Biome{
     [Serializable]
     [CreateAssetMenu(menuName = "Generation/Biomes/CaveCategory")]
     public class CaveCategory : Category<CInfo<CaveBiome>>

@@ -4,7 +4,6 @@ using Newtonsoft.Json.Linq;
 using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
-using WorldConfig;
 
 namespace Utils.NSerializable{
 

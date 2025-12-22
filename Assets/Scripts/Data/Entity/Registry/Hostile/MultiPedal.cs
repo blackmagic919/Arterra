@@ -1,19 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using MapStorage;
+using Arterra.Core.Storage;
 using Newtonsoft.Json;
 using Unity.Mathematics;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
-using WorldConfig;
-using WorldConfig.Generation.Entity;
+using Arterra.Config;
+using Arterra.Config.Generation.Entity;
 
 [CreateAssetMenu(menuName = "Generation/Entity/MultiPedal")]
 public class MultiPedal : Authoring {
-    [UISetting(Ignore = true)][JsonIgnore]
-    public Option<Animal> _Entity;
     public Option<MultiPedalSettings> _Setting;
     
     [JsonIgnore]
@@ -156,7 +153,7 @@ public class MultiPedal : Authoring {
         public bool IsDead => vitality.IsDead;
         
         public void Interact(Entity target) { }
-        public WorldConfig.Generation.Item.IItem Collect(float amount) { return null; }
+        public Arterra.Config.Generation.Item.IItem Collect(float amount) { return null; }
         public void TakeDamage(float damage, float3 knockback, Entity attacker) {
             if (!vitality.Damage(damage)) return;
             Indicators.DisplayDamageParticle(position, knockback);
@@ -242,7 +239,7 @@ public class MultiPedal : Authoring {
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref Torso, dens),
             OnInGas: vitality.ProcessInGas);
 
-            vitality.Update();
+            vitality.Update(this);
             launcher.Update(this);
             TaskRegistry[(int)TaskIndex].Invoke(this);
             //Shared high priority states
@@ -262,7 +259,7 @@ public class MultiPedal : Authoring {
                 if (dist > l.tCollider.transform.size.y) { 
                     dist -= l.tCollider.transform.size.y;
                     float3 dir = math.normalizesafe(l.desiredBody - BodyPosition);
-                    float strength = math.pow(dist, 2.0f);
+                    float strength = math.pow(dist, 1.0f);
                     Body.transform.velocity += strength * EntityJob.cxt.deltaTime * dir;
                 }
                 
@@ -446,7 +443,7 @@ public class MultiPedal : Authoring {
             float3 atkDir = math.normalize(prey.position - self.position); atkDir.y = 0;
             if (math.any(atkDir != 0)) self.Body.transform.rotation = Quaternion.RotateTowards(self.Body.transform.rotation,
             Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
-            self.vitality.Attack(prey, self);
+            self.vitality.Attack(prey);
             self.TaskIndex = AnimalTasks.Attack;
         }
 
@@ -560,7 +557,7 @@ public class MultiPedal : Authoring {
 
             IAttackable target = tEntity as IAttackable;
             if (target.IsDead) self.TaskIndex = AnimalTasks.Idle;
-            else self.vitality.Attack(tEntity, self);
+            else self.vitality.Attack(tEntity);
         }
 
         
@@ -803,9 +800,9 @@ public class MultiPedal : Authoring {
             private void PlayAttacks() {
                 animator.SetBool("IsShooting", entity.launcher.ShotInProgress);
 
-                if (entity.vitality.attackCooldown >= 0.5f) PlayingAttack = false;
+                if (!entity.vitality.AttackInProgress) PlayingAttack = false;
                 if (AnimatorTask != (int)AnimalTasks.AttackTarget && AnimatorTask != (int)AnimalTasks.Attack) return;
-                if (!PlayingAttack && entity.vitality.attackCooldown < 0.5f) {
+                if (!PlayingAttack && entity.vitality.AttackInProgress) {
                     if (UnityEngine.Random.Range(0, 2) == 0) animator.SetTrigger("AttackL");
                     else animator.SetTrigger("AttackR");   
                     PlayingAttack = true;

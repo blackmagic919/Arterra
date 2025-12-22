@@ -3,11 +3,11 @@ using Unity.Mathematics;
 using System;
 using System.Collections.Generic;
 using UnityEditor;
-using MapStorage;
-using WorldConfig.Quality;
+using Arterra.Core.Storage;
+using Arterra.Config.Quality;
 
 
-namespace WorldConfig.Generation.Material
+namespace Arterra.Config.Generation.Material
 {
     /// <summary> All settings related to the apperance and interaction of 
     /// materials in the game world. Different materials are allowed
@@ -29,10 +29,12 @@ namespace WorldConfig.Generation.Material
         public AtmosphericData AtmosphereScatter;
         /// <summary> Settings controlling the appearance of the terrain when the material is liquid. See <see cref="LiquidData"/> for more info. </summary>
         public LiquidData liquidData;
+        /// <summary> The amount of friction entities touching this material will experience </summary>
+        public float Roughness = TerrainCollider.BaseFriction;
         /// <summary>
         /// Called whenever a map entry of this material has been modified. This method can be
         /// overrided to provide specific behavior when a certain material has been modified. See
-        /// <see cref="TerrainGeneration.TerrainUpdate"/> for more information.
+        /// <see cref="Core.Terrain.TerrainUpdate"/> for more information.
         /// </summary>
         /// <param name="GCoord">The coordinate in grid space of the entry that has been updated. It is guaranteed
         /// that the map entry at GCoord will be of the same material as the instance that recieves the update. </param>
@@ -40,7 +42,7 @@ namespace WorldConfig.Generation.Material
         public abstract void PropogateMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default);
         /// <summary> Called whenever a map entry of this material has been randomly updated. Random updates are used to
         /// simulate the natural changes of the material over time. They cannot be added externally and
-        /// are sampled at random from an internal system. See <see cref="TerrainGeneration.TerrainUpdate"/> 
+        /// are sampled at random from an internal system. See <see cref="Core.Terrain.TerrainUpdate"/> 
         /// for more information </summary>
         /// <param name="GCoord">The coordinate in grid space of the entry that has been updated. It is guaranteed
         /// that the map entry at GCoord will be of the same material as the instance that recieves the update.</param>

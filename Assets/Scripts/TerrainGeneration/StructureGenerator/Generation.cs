@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace WorldConfig.Generation.Structure{
+namespace Arterra.Config.Generation.Structure{
 /// <summary>
 /// A collection of settings that describe how structures are generated. 
 /// Any terrain not generated through noise-based generation should be created 
@@ -17,13 +17,13 @@ public class Generation : ScriptableObject
     /// </summary>
     public Catalogue<StructureData> StructureDictionary;
     /// <summary>
-    /// The amount of structures that attempt to be placed per <see cref="TerrainGeneration.TerrainChunk.RealChunk"> Real Chunk </see>
+    /// The amount of structures that attempt to be placed per <see cref="Terrain.TerrainChunk.RealChunk"> Real Chunk </see>
     /// sampled. The higher this value, the more structures that will attempt to be placed per the same region of space resulting in 
     /// a higher density of structures.
     /// </summary> 
     /// <remarks>The amount of checks is solely space dependent meaning a chunk spanning a larger region in space will perform
     /// proportionately more checks. The amount of checks performed grows at a rate of <c> 8^depth * StructureChecksPerChunk</c>
-    /// where <see cref="TerrainGeneration.TerrainChunk.depth">depth</see> is the size of a chunk of that layer within the octree.</remarks>
+    /// where <see cref="Terrain.TerrainChunk.depth">depth</see> is the size of a chunk of that layer within the octree.</remarks>
     [UISetting(Message = "Describes How Dense & Large Structures Generate At the Cost of Performance")]
     public int StructureChecksPerChunk;
     /// <summary>

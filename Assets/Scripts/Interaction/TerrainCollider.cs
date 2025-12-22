@@ -4,9 +4,8 @@ using System;
 using Unity.Burst;
 using static EntityJob;
 using Newtonsoft.Json;
-using static MapStorage.CPUMapManager;
-using MapStorage;
-using WorldConfig.Generation.Entity;
+using static Arterra.Core.Storage.CPUMapManager;
+using Arterra.Config.Generation.Entity;
 
 /*
 Future Note: Make this done on a job system
@@ -17,10 +16,10 @@ Sample from a simplex rather than a grid(should be faster)
 [BurstCompile]
 [System.Serializable]
 public struct TerrainCollider {
+    public const float BaseFriction = 0.2f;
     [JsonIgnore]
     public Action<float> OnHitGround;
     public Transform transform;
-    public float friction;
     public bool useGravity;
 
     [BurstCompile]
@@ -306,6 +305,8 @@ public struct TerrainCollider {
         displacement = maxDis + minDis;
         return math.any(displacement != float3.zero);
     }
+
+    public bool SampleCollision(float3 originGS, float3 boundsGS, out float3 displacement) => SampleCollision(originGS, boundsGS, cxt.mapContext, out displacement);
     [BurstCompile]
     public bool SampleCollision(in float3 originGS, in float3 boundsGS, in MapContext context, out float3 displacement) {
         float3 origin = originGS;
@@ -327,24 +328,28 @@ public struct TerrainCollider {
     }
 
     public void Update(Entity self = null) {
-        transform.position += transform.velocity * cxt.totDeltaTime;
+        byte contact = TerrainInteractor.SampleContact(transform.position, transform.size, out float friction, self);
+        if (TerrainInteractor.IsTouching(contact)) {
+            transform.velocity.xz *= 1 - friction;
+            if (!useGravity) transform.velocity.y *= 1 - friction;
+        } else if(!useGravity) transform.velocity *= 1 - BaseFriction;
 
-        if (TerrainInteractor.SampleContact(transform.position, transform.size, self) &&
-            SampleCollision(transform.position, transform.size, cxt.mapContext, out float3 displacement)) {
+        transform.position += transform.velocity * cxt.totDeltaTime;
+        if (useGravity) transform.velocity += cxt.gravity * cxt.totDeltaTime;
+
+        if (TerrainInteractor.TouchSolid(contact)
+            && SampleCollision(transform.position, transform.size, cxt.mapContext, out float3 displacement)
+        ) {
             transform.position += displacement;
             float3 nVelocity = CancelVel(transform.velocity, displacement);
             if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
             transform.velocity = nVelocity;
-            transform.velocity.xz *= 1 - friction;
-        } else if (!useGravity) transform.velocity.xz *= 1 - friction;
-        if (useGravity) transform.velocity += cxt.gravity * cxt.totDeltaTime;
-        else transform.velocity.y *= 1 - friction;
+        } 
     }
 
     public TerrainCollider(in Settings settings, float3 position, Action<float> OnHitGround = null) {
         this.transform = new Transform(position, 0, settings.size, Quaternion.identity);
         this.OnHitGround = OnHitGround;
-        this.friction = settings.friction;
         this.useGravity = true;
     }
 
@@ -365,6 +370,5 @@ public struct TerrainCollider {
     [Serializable]
     public struct Settings {
         public float3 size;
-        public float friction; //~0.1
     }
 }

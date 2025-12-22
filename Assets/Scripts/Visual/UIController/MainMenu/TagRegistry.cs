@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Unity.Mathematics;
-using UnityEditor;
 using UnityEngine;
-using WorldConfig;
-using WorldConfig.Generation.Entity;
+using Arterra.Config;
+using Arterra.Core.Storage;
+using Arterra.Config.Generation.Entity;
 
 
 [Serializable]
@@ -32,13 +32,13 @@ public class ToolTag : ICloneable {
 
 [Serializable]
 public class ConvertibleTag : IMaterialConverting {
-    public WorldConfig.Generation.Structure.StructureData.CheckInfo _convertBounds;
-    /// <summary> The <see cref="MapStorage.MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
-    public WorldConfig.Generation.Structure.StructureData.CheckInfo _neighborBounds;
+    public Arterra.Config.Generation.Structure.StructureData.CheckInfo _convertBounds;
+    /// <summary> The <see cref="MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
+    public Arterra.Config.Generation.Structure.StructureData.CheckInfo _neighborBounds;
     [JsonIgnore]
-    public WorldConfig.Generation.Structure.StructureData.CheckInfo ConvertBounds => _convertBounds;
+    public Arterra.Config.Generation.Structure.StructureData.CheckInfo ConvertBounds => _convertBounds;
     [JsonIgnore]
-    public WorldConfig.Generation.Structure.StructureData.CheckInfo NeighborBounds => _neighborBounds;
+    public Arterra.Config.Generation.Structure.StructureData.CheckInfo NeighborBounds => _neighborBounds;
 
     public bool GivesItem;
 
@@ -53,13 +53,13 @@ public class ConvertibleTag : IMaterialConverting {
 
 [Serializable]
 public class ConvertibleToolTag : ToolTag, IMaterialConverting {
-    public WorldConfig.Generation.Structure.StructureData.CheckInfo _convertBounds;
-    /// <summary> The <see cref="MapStorage.MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
-    public WorldConfig.Generation.Structure.StructureData.CheckInfo _neighborBounds;
+    public Arterra.Config.Generation.Structure.StructureData.CheckInfo _convertBounds;
+    /// <summary> The <see cref="MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
+    public Arterra.Config.Generation.Structure.StructureData.CheckInfo _neighborBounds;
     [JsonIgnore]
-    public WorldConfig.Generation.Structure.StructureData.CheckInfo ConvertBounds => _convertBounds;
+    public Arterra.Config.Generation.Structure.StructureData.CheckInfo ConvertBounds => _convertBounds;
     [JsonIgnore]
-    public WorldConfig.Generation.Structure.StructureData.CheckInfo NeighborBounds => _neighborBounds;
+    public Arterra.Config.Generation.Structure.StructureData.CheckInfo NeighborBounds => _neighborBounds;
 
     public override object Clone() {
         return new ConvertibleToolTag {
@@ -147,8 +147,8 @@ public class CombustibleTag : ICloneable {
 }
 
 public interface IMaterialConverting : ICloneable {
-    public WorldConfig.Generation.Structure.StructureData.CheckInfo ConvertBounds { get; }
-    public WorldConfig.Generation.Structure.StructureData.CheckInfo NeighborBounds { get; }
+    public Arterra.Config.Generation.Structure.StructureData.CheckInfo ConvertBounds { get; }
+    public Arterra.Config.Generation.Structure.StructureData.CheckInfo NeighborBounds { get; }
 
     static readonly Unity.Mathematics.int3[] dP = new Unity.Mathematics.int3[6]{
         new (0,1,0),
@@ -158,7 +158,7 @@ public interface IMaterialConverting : ICloneable {
         new (-1,0,0),
         new (0,0,1),
     };
-    public static bool CanConvert<T>(MapStorage.MapData neighbor, Unity.Mathematics.int3 GCoord, TagRegistry.Tags tag, out T TagInfo)
+    public static bool CanConvert<T>(MapData neighbor, Unity.Mathematics.int3 GCoord, TagRegistry.Tags tag, out T TagInfo)
         where T : class, IMaterialConverting {
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         TagInfo = null;
@@ -170,7 +170,7 @@ public interface IMaterialConverting : ICloneable {
         //No neighbor bounds, so always valid
         if (TagInfo.NeighborBounds.IsNull) return true;
         for (int i = 0; i < 6; i++) {
-            MapStorage.MapData nNeighbor = MapStorage.CPUMapManager.SampleMap(GCoord + dP[i]);
+            MapData nNeighbor = CPUMapManager.SampleMap(GCoord + dP[i]);
             if (TagInfo.NeighborBounds.Contains(nNeighbor)) return true;
         }
         return false;

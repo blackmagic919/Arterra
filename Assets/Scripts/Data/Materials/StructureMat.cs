@@ -1,10 +1,10 @@
 using System.Collections.Generic;
-using MapStorage;
+using Arterra.Core.Storage;
 using Unity.Mathematics;
 using UnityEngine;
 using Utils;
 
-namespace WorldConfig.Generation.Material {
+namespace Arterra.Config.Generation.Material {
     public abstract class PlaceableStructureMat : MaterialData {
         public Option<List<ConditionedGrowthMat.MapSamplePoint>> Structure;
         public int SelfIndex;

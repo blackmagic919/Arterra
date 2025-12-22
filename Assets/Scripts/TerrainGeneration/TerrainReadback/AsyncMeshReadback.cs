@@ -5,10 +5,9 @@ using UnityEngine.Rendering;
 using System.Linq;
 using Unity.Collections;
 using Utils;
-using WorldConfig;
-using WorldConfig.Quality;
+using Arterra.Config.Quality;
 
-namespace TerrainGeneration.Readback{
+namespace Arterra.Core.Terrain.Readback{
 using static OctreeTerrain;
 /// <summary>
 /// The readback system is responsible for reading back meshes from the GPU and 
@@ -29,9 +28,9 @@ public class AsyncMeshReadback
 
     private static uint numMeshes;
 
-    private static WorldConfig.Intrinsic.Readback settings;
+    private static Arterra.Config.Intrinsic.Readback settings;
     /// <summary> The <see cref="GeometryHandle">geometry handles</see> for all the unqiue materials that are used to render the chunk. Each
-    /// chunk will have a unique handle for each material in <see cref="WorldConfig.Intrinsic.Readback.indirectTerrainMats"/>
+    /// chunk will have a unique handle for each material in <see cref="Arterra.Config.Intrinsic.Readback.indirectTerrainMats"/>
     /// regardless of whether any geometry in the chunk uses that material. </summary>
     public GeometryHandle[] triHandles = default;
     /// <summary> The <see cref="GeometryHandle">geometry handles</see> for the shared vertices of the chunk. This
@@ -52,7 +51,7 @@ public class AsyncMeshReadback
     /// <summary> Presets static data shared by the readback system. This should be called before any 
     /// instances of the readback system are used. Referenced in <see cref="SystemProtocol.Startup"/>.  </summary>
     public static void PresetData(){
-        settings = Config.CURRENT.System.ReadBack.value;
+        settings = Config.Config.CURRENT.System.ReadBack.value;
         numMeshes = (uint)settings.indirectTerrainMats.Length;
         meshDrawArgsCreator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
         triangleTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/TranscribeTriangles");
@@ -116,7 +115,7 @@ public class AsyncMeshReadback
     /// storing the amount of triangles to be copied. </param>
     /// <param name="triStart">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see> 
     /// of the start of the triangles(index buffer).</param>
-    /// <param name="matIndex">The index within <see cref="WorldConfig.Intrinsic.Readback.indirectTerrainMats"/> of the material to use
+    /// <param name="matIndex">The index within <see cref="Arterra.Config.Intrinsic.Readback.indirectTerrainMats"/> of the material to use
     /// for geometry referenced by these triangles if it is to be indirectly rendered. </param>
     public void OffloadTrisToGPU(int triCounter, int triStart, int matIndex)
     {
@@ -143,7 +142,7 @@ public class AsyncMeshReadback
     /// storing the amount of triangles to be copied. </param>
     /// <param name="triStart">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see> 
     /// of the start of the triangles(index buffer).</param>
-    /// <param name="matIndex">The index within <see cref="WorldConfig.Intrinsic.Readback.indirectTerrainMats"/> of the material to use
+    /// <param name="matIndex">The index within <see cref="Arterra.Config.Intrinsic.Readback.indirectTerrainMats"/> of the material to use
     /// for geometry referenced by these triangles if it is to be indirectly rendered. </param>
     public void OffloadTrisToGPUNoRender(int triCounter, int triStart, int matIndex)
     {
@@ -321,7 +320,7 @@ public class AsyncMeshReadback
 }
 
 /// <summary> The types of materials that can be read back from the GPU. Associates
-/// a name to the materials defined in <see cref="WorldConfig.Intrinsic.Readback.indirectTerrainMats"/>. </summary>
+/// a name to the materials defined in <see cref="Arterra.Config.Intrinsic.Readback.indirectTerrainMats"/>. </summary>
 public enum ReadbackMaterial{
     /// <summary> The index of the material used for terrain geometry. </summary>
     terrain = 0,
@@ -345,7 +344,7 @@ public class GeometryHandle : IUpdateSubscriber
     /// <see cref="GenerationPreset.MemoryHandle._GPUMemorySource"/> of this memory handle. </summary>
     public MemoryBufferHandler memory = default;
     /// <summary> The index of the material used for rendering the geometry indirectly. This index is used to reference the material in
-    /// <see cref="WorldConfig.Intrinsic.Readback.indirectTerrainMats"/>. </summary>
+    /// <see cref="Arterra.Config.Intrinsic.Readback.indirectTerrainMats"/>. </summary>
     public int matIndex = -1;
     /// <summary> The address of the geometry within the <see cref="GenerationPreset.MemoryHandle.Address"> address buffer </see> of the <see cref="memory"> memory handle </see>
     /// of the location that stores the real address of the geometry in <see cref="GenerationPreset.MemoryHandle._GPUMemorySource"/>. See <see cref="GenerationPreset.MemoryHandle.Address"/> for more information.

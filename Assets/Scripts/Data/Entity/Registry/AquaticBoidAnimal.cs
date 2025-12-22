@@ -2,17 +2,13 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
-using WorldConfig;
-using WorldConfig.Generation.Entity;
-using MapStorage;
+using Arterra.Config;
+using Arterra.Config.Generation.Entity;
+using Arterra.Core.Storage;
 
 [CreateAssetMenu(menuName = "Generation/Entity/AquaticBoidAnimal")]
 public class AquaticBoidAnimal : Authoring {
-    [UISetting(Ignore = true)]
-    [JsonIgnore]
-    public Option<Animal> _Entity;
     public Option<AnimalSetting> _Setting;
-
     [JsonIgnore]
     public override Entity Entity { get => new Animal(); }
     [JsonIgnore]
@@ -120,7 +116,7 @@ public class AquaticBoidAnimal : Authoring {
         }
 
         public void Interact(Entity caller) { }
-        public WorldConfig.Generation.Item.IItem Collect(float amount) {
+        public Arterra.Config.Generation.Item.IItem Collect(float amount) {
             if (!IsDead) return null; //You can't collect resources until the entity is dead
             var item = settings.decomposition.LootItem(genetics, amount, ref random);
             TaskDuration -= amount;
@@ -204,7 +200,7 @@ public class AquaticBoidAnimal : Authoring {
                     if (TaskIndex < AnimalTasks.FlopOnGround) TaskIndex = AnimalTasks.FlopOnGround; //Flop on ground
                 });
 
-            vitality.Update();
+            vitality.Update(this);
             TaskRegistry[(int)TaskIndex].Invoke(this);
             if (TaskIndex != AnimalTasks.Death && vitality.IsDead) {
                 TaskDuration = genetics.Get(settings.decomposition.DecompositionTime);
@@ -391,7 +387,7 @@ public class AquaticBoidAnimal : Authoring {
             IAttackable target = (IAttackable)prey;
             if (target.IsDead) {
                 EntityManager.AddHandlerEvent(() => {
-                    WorldConfig.Generation.Item.IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
+                    Arterra.Config.Generation.Item.IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
                     if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition)) {
                         self.vitality.Heal(nutrition);
                     }
@@ -400,7 +396,7 @@ public class AquaticBoidAnimal : Authoring {
                         self.TaskIndex = AnimalTasks.Idle;
                     }
                 });
-            } else self.vitality.Attack(prey, self);
+            } else self.vitality.Attack(prey);
         }
 
         //Task 4
@@ -409,7 +405,7 @@ public class AquaticBoidAnimal : Authoring {
             if (self.TaskDuration <= 0) {
                 if (self.settings.Recognition.FindPreferredPreyPlant((int3)math.round(self.position),
                 self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 foodPos)) {
-                    WorldConfig.Generation.Item.IItem item = self.settings.Recognition.ConsumePlant(self, foodPos);
+                    Arterra.Config.Generation.Item.IItem item = self.settings.Recognition.ConsumePlant(self, foodPos);
                     if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition))
                         self.vitality.Heal(nutrition);
                 } self.TaskIndex = AnimalTasks.FindPrey;
@@ -569,7 +565,7 @@ public class AquaticBoidAnimal : Authoring {
             if (target.IsDead) {
                 self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
                 self.TaskIndex = AnimalTasks.Idle;
-            } else self.vitality.Attack(tEntity, self);
+            } else self.vitality.Attack(tEntity);
         }
 
 

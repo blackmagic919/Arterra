@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Unity.Mathematics;
 using UnityEngine;
-using WorldConfig;
+using Arterra.Config;
 
 [CreateAssetMenu(menuName = "ShaderData/ShellTexture/Setting")]
 public class ShellSetting : Category<ShellSetting> {

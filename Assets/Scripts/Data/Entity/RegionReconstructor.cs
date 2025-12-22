@@ -1,16 +1,14 @@
 using System;
-using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using TerrainGeneration;
-using TerrainGeneration.Readback;
-using static TerrainGeneration.Readback.IVertFormat;
-using WorldConfig;
+using Arterra.Core.Terrain.Readback;
+using static Arterra.Core.Terrain.Readback.IVertFormat;
+using Arterra.Config;
 using System.Collections.Generic;
-using WorldConfig.Generation.Material;
+using Arterra.Config.Generation.Material;
 using Utils;
-using MapStorage;
+using Arterra.Core.Storage;
 
 public class RegionReconstructor{
     private static ComputeShader MarchRegion;
@@ -23,7 +21,7 @@ public class RegionReconstructor{
     public static void PresetData() {
         MarchRegion = Resources.Load<ComputeShader>("Compute/CGeometry/RegionMarch/MarchingCubes");
         bufferOffsets = new RegionOffsets(Config.CURRENT.Quality.Terrain.value.mapChunkSize/2, 0);
-        TerrainGeneration.Map.Generator.GeoGenOffsets wOffsets = TerrainGeneration.Map.Generator.bufferOffsets;
+        Arterra.Core.Terrain.Map.Generator.GeoGenOffsets wOffsets = Arterra.Core.Terrain.Map.Generator.bufferOffsets;
         MarchRegion.SetBuffer(0, "MapData", UtilityBuffers.TransferBuffer);
         MarchRegion.SetBuffer(0, "MapFlags", UtilityBuffers.TransferBuffer);
         MarchRegion.SetBuffer(0, "vertexes", UtilityBuffers.GenerationBuffer);
@@ -61,7 +59,7 @@ public class RegionReconstructor{
         UtilityBuffers.TransferBuffer.SetData(map, 0, bufferOffsets.regionMapStart, map.Length);
         UtilityBuffers.TransferBuffer.SetData(flags, 0, bufferOffsets.mapFlagStart, flags.Length);
         
-        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+        Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
         regionObj.transform.localScale = Vector3.one * rSettings.lerpScale;
         regionObj.transform.position = CPUMapManager.GSToWS(cMin);
         
@@ -69,7 +67,7 @@ public class RegionReconstructor{
         meshHandler?.ReleaseAllGeometry();
         Bounds boundsOS = new((float3)cAxis / 2.0f, (float3)cAxis);
         meshHandler = new AsyncMeshReadback(regionObj.transform, boundsOS);
-        var wOffsets = TerrainGeneration.Map.Generator.bufferOffsets;
+        var wOffsets = Arterra.Core.Terrain.Map.Generator.bufferOffsets;
         meshHandler.OffloadVerticesToGPU(wOffsets.vertexCounter);
         meshHandler.OffloadTrisToGPUNoRender(wOffsets.baseTriCounter, wOffsets.baseTriStart, (int)ReadbackMaterial.terrain);
         meshHandler.OffloadTrisToGPUNoRender(wOffsets.waterTriCounter, wOffsets.waterTriStart, (int)ReadbackMaterial.water);
@@ -82,7 +80,7 @@ public class RegionReconstructor{
         cSize += 2;
         
         UtilityBuffers.TransferBuffer.SetData(map, 0, bufferOffsets.regionMapStart, map.Length);
-        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+        Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
         GenerateRegionMesh(cSize, rSettings.IsoLevel);
         meshHandler?.ReleaseAllGeometry();
 
@@ -91,7 +89,7 @@ public class RegionReconstructor{
         
         Bounds boundsOS = new((float3)cSize / 2.0f, (float3)cSize);
         meshHandler = new AsyncMeshReadback(regionObj.transform, boundsOS);
-        var wOffsets = TerrainGeneration.Map.Generator.bufferOffsets;
+        var wOffsets = Arterra.Core.Terrain.Map.Generator.bufferOffsets;
         meshHandler.OffloadVerticesToGPU(wOffsets.vertexCounter);
         meshHandler.OffloadTrisToGPU(wOffsets.baseTriCounter, wOffsets.baseTriStart, (int)ReadbackMaterial.terrain);
         meshHandler.OffloadTrisToGPU(wOffsets.waterTriCounter, wOffsets.waterTriStart, (int)ReadbackMaterial.water);

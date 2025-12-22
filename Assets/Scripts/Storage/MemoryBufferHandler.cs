@@ -6,26 +6,34 @@ using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 
-namespace WorldConfig.Quality {
+namespace Arterra.Config.Quality {
     /// <summary>
     /// Responsible for managing the allocation and deallocation of memory on the GPU for generation
     /// related tasks. Rather than allowing each system to maintain its own <see cref="ComputeBuffer"/>, 
     /// memory is allocated through a shader-based malloc which allows for more efficient memory management and 
-    /// fewer buffer locations to track. Settings on the size of this memory heap can be found in <see cref="WorldConfig.Quality.Memory"/>.
+    /// fewer buffer locations to track. Settings on the size of this memory heap can be found in <see cref="Arterra.Config.Quality.Memory"/>.
     /// <seealso href = "https://blackmagic919.github.io/AboutMe/2024/08/18/Memory-Heap/"/> 
     /// </summary>
     public class MemoryBufferHandler {
+        /// <exclude />
         protected ComputeShader HeapSetupShader;
+         /// <exclude />
         protected ComputeShader AllocateShader;
+         /// <exclude />
         protected ComputeShader DeallocateShader;
+         /// <exclude />
         protected ComputeShader d_AllocateShader;
+         /// <exclude />
         protected ComputeShader d_DeallocateShader;
         //Remember to set to null, this can cause a circular reference
         private BatchReleaseEmpty BatchRelease;
-
+         /// <exclude />
         protected ComputeBuffer _GPUMemorySource;
+         /// <exclude />
         protected ComputeBuffer _EmptyBlockHeap;
+         /// <exclude />
         protected LogicalBlockBuffer _AddressBuffer;
+         /// <exclude />
         protected bool initialized;
 
         /// <summary>
@@ -201,9 +209,16 @@ namespace WorldConfig.Quality {
         /// <summary> A buffer containing addresses to memory blocks within the <see cref="Storage"/> buffer. This buffer tracks the 
         /// raw 4-byte address as well as the address relative to the requested stride during allocation of each memory block. </summary>
         public virtual GraphicsBuffer Address => _AddressBuffer.Get();
-
+        /// <summary>Retrieves the Storage Buffer associated with this allocation. </summary>
+        /// <param name="index">The address returned by <see cref="AllocateMemory"/>.</param>
+        /// <returns>The Compute Buffer which contains the referenced allocation</returns>
         public virtual ComputeBuffer GetBlockBuffer(uint index) { return _GPUMemorySource; }
+        /// <summary>Same as <see cref="GetBlockBuffer(uint)"/> </summary>
         public virtual ComputeBuffer GetBlockBuffer(int index) { return _GPUMemorySource; }
+        /// <summary>Attempts to retrieve the Storage Buffer associated with this allocation if it is valid </summary>
+        /// <param name="index">The address returned by <see cref="AllocateMemory"/>.</param>
+        /// <param name="buffer">If successful, the compute buffer holding this allocation </param> 
+        /// <returns>Whether or not the buffer containing thsi allocation can be successfully obtained</returns>
         public virtual bool GetBlockBufferSafe(int index, out ComputeBuffer buffer) { 
             buffer = null;
             if (!initialized) return false;

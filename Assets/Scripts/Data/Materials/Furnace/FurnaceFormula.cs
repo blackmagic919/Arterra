@@ -7,9 +7,9 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using WorldConfig.Generation.Item;
-using WorldConfig.Generation.Material;
-namespace WorldConfig.Intrinsic.Furnace {
+using Arterra.Config.Generation.Item;
+using Arterra.Config.Generation.Material;
+namespace Arterra.Config.Intrinsic.Furnace {
     /// <summary>
     /// A structure defining how a material is converted in a furnace.
     /// 
@@ -121,7 +121,7 @@ namespace WorldConfig.Intrinsic.Furnace {
                 image.sprite = texInfo.Retrieve(resultItem.TexIndex).self;
                 image.color = new Color(1, 1, 1, 1);
                 if (formula.Outputs.value.Count <= 1) return;
-                TerrainGeneration.OctreeTerrain.MainCoroutines.Enqueue(UpdateRoutine());
+                Arterra.Core.Terrain.OctreeTerrain.MainCoroutines.Enqueue(UpdateRoutine());
             }
 
             public void Release() {

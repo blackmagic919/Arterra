@@ -1,11 +1,6 @@
 using System;
-using System.Runtime.Serialization;
-using Newtonsoft.Json;
-using UnityEngine;
-using WorldConfig;
-using WorldConfig.Generation.Material;
 
-namespace WorldConfig.Generation.Item {
+namespace Arterra.Config.Generation.Item {
     /// <summary> A template for creating an item. To create an inspector serializable object, the 
     /// concrete type must be known. This allows us to quickly fulfill the contract with
     /// the <see cref="IItem"/>  interface. </summary>
@@ -18,17 +13,17 @@ namespace WorldConfig.Generation.Item {
     /// <summary>
     /// Information shared by all instances of an item containing static properties
     /// that describe the apperance of the item as well as its connection to the 
-    /// <see cref="WorldConfig.Config.GenerationSettings.Materials"> material registry </see>. 
+    /// <see cref="Arterra.Config.Config.GenerationSettings.Materials"> material registry </see>. 
     /// </summary>
     public class Authoring : Category<Authoring> {
-        /// <summary> The name of the entry within the <see cref="WorldConfig.Config.GenerationSettings.Textures"> texture registry </see>
+        /// <summary> The name of the entry within the <see cref="Arterra.Config.Config.GenerationSettings.Textures"> texture registry </see>
         /// of the texture that is displayed when the item is in a UI panel. It is also used to create an <see cref="EItem"> entity item</see> mesh
         /// if the item is dropped in the world. This must always be a valid entry. </summary>
         [RegistryReference("Textures")]
         public string TextureName;
         /// <summary>
         /// The item instance that stores information specific to a specific instance of the item. The instance
-        /// should store the index within <see cref="WorldConfig.Config.GenerationSettings.Items"/> of the entry it 
+        /// should store the index within <see cref="Arterra.Config.Config.GenerationSettings.Items"/> of the entry it 
         /// is created from to retrieve the item's shared information contained within its <see cref="Authoring"/> object.
         /// </summary>
         public virtual IItem Item { get; }
@@ -60,7 +55,7 @@ namespace WorldConfig.Generation.Item {
         public int AmountRaw { get; set; }
         /// <summary>The maximum amount of item that all systems can stably support.</summary>
         /// <summary> The index within the <see cref="Config.GenerationSettings.Textures"> texture registry </see> of the item's texture.
-        /// This is obtained by using the <see cref="IRegistered.Index"/> within the <see cref="WorldConfig.Config.GenerationSettings.Items"> item registry </see>
+        /// This is obtained by using the <see cref="IRegistered.Index"/> within the <see cref="Arterra.Config.Config.GenerationSettings.Items"> item registry </see>
         /// to obtain the <see cref="Authoring.TextureName"/> of the texture which can be used to find the texture in the external
         /// <see cref="Config.GenerationSettings.Textures"> texture registry </see>. See <seealso cref="Authoring.TextureName"/> for
         /// more information. </summary>
@@ -90,7 +85,7 @@ namespace WorldConfig.Generation.Item {
     /// representation and thus are placeable in the world. </summary>
     public class PlaceableItem : Authoring {
         /// <summary>
-        /// The name of the entry within the <see cref="WorldConfig.Config.GenerationSettings.Materials"> material registry </see>
+        /// The name of the entry within the <see cref="Arterra.Config.Config.GenerationSettings.Materials"> material registry </see>
         /// of the material that is placed when the item is selected when placing terrain.
         /// If the material name is not a valid entry, the item will not be able to be placed as a material (e.g. a tool).
         /// </summary>

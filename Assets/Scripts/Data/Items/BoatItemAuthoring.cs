@@ -1,10 +1,9 @@
-using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using MapStorage;
+using Arterra.Core.Player;
 
-namespace WorldConfig.Generation.Item{
+namespace Arterra.Config.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Boat")] 
 public class BoatItemAuthoring : AuthoringTemplate<BoatItem> {}
 
@@ -75,7 +74,7 @@ public class BoatItem : IItem{
 
     private void PlaceBoat(ItemContext cxt){
         if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-        if (!PlayerInteraction.RayTestLiquid(player, out float3 hitPt)) return;
+        if (!PlayerInteraction.RayTestLiquid(out float3 hitPt)) return;
         uint eIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Boat");
         EntityManager.CreateEntity(hitPt, eIndex);
         cxt.TryRemove();

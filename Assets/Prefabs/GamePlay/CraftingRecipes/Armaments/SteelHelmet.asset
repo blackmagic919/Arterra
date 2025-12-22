@@ -21,6 +21,7 @@ MonoBehaviour:
     - 
     - SteelHelmet
     - Steel:Solid
+    - Iron:Solid
   Recipe:
     value:
       materials:
@@ -49,13 +50,13 @@ MonoBehaviour:
           Amount: 0
         - Index: 2
           Amount: 1
-        - Index: 2
+        - Index: 3
           Amount: 1
         - Index: 2
           Amount: 1
         - Index: 2
           Amount: 1
-        - Index: 2
+        - Index: 3
           Amount: 1
       items:
         value:

@@ -6,14 +6,15 @@ using UnityEngine.Rendering;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using System.Collections.Generic;
-using TerrainGeneration;
-using WorldConfig;
-using WorldConfig.Generation.Entity;
 using System.Collections.Concurrent;
 using UnityEngine.Profiling;
-using MapStorage;
+using Arterra.Core.Storage;
 using System.Threading.Tasks;
 using System.Linq;
+using Arterra.Config;
+using Arterra.Config.Generation.Entity;
+using Arterra.Core.Terrain;
+using Arterra.Core.Player;
 
 public static class EntityManager
 {
@@ -200,7 +201,6 @@ public static class EntityManager
         foreach (Entity entity in EntityReg) {
             entity.Disable();
         }
-        
         List<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities.Reg;
         foreach (Authoring entity in EntityDictionary) entity.Setting.Unset();
     }

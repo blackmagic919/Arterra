@@ -2,10 +2,10 @@ using System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
-using WorldConfig;
-using MapStorage;
+using Arterra.Config;
+using Arterra.Core.Storage;
 
-namespace WorldConfig.Quality{
+namespace Arterra.Config.Quality{
     /// <summary>
     /// Settings controlling the quality of the atmosphere. 
     /// The atmosphere is a purely visual effect and does not affect gameplay.
@@ -42,7 +42,7 @@ public class AtmosphereBake
 
     private ComputeShader RaySetupCompute;
     private ComputeShader OpticalDataCompute;
-    private WorldConfig.Quality.Atmosphere settings;
+    private Arterra.Config.Quality.Atmosphere settings;
     public int NumInScatterPoints => 1 << settings.InScatterDetail;
 
     private float atmosphereRadius;
@@ -115,7 +115,7 @@ public class AtmosphereBake
         RaySetupCompute.SetBuffer(0, "rayInfo", rayInfo);
     }
     void SetupOpticalMarch(){
-        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
+        Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         OpticalDataCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
 
         OpticalDataCompute.SetInt("_NumInScatterPoints", NumInScatterPoints);

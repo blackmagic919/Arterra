@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace WorldConfig.Quality
+namespace Arterra.Config.Quality
 {
 /// <summary>
 /// Settings controlling the detail of generated terrain and the frequency of its updates. 
@@ -12,7 +12,7 @@ public class Terrain : ScriptableObject
 {
     /// <summary>
     /// The maximum amount of resource load that can be used by a single frame.
-    /// The load for a task is specified by <see cref="TerrainGeneration.OctreeTerrain.taskLoadTable"/>
+    /// The load for a task is specified by <see cref="Arterra.Core.Terrain.OctreeTerrain.taskLoadTable"/>
     /// </summary>
     public int maxFrameLoad = 50; //GPU load
     /// <summary>
@@ -29,7 +29,7 @@ public class Terrain : ScriptableObject
     public int MaxDepth;
     
     /// <summary>
-    /// The <see cref="TerrainGeneration.OctreeTerrain.Octree.Node.GetMaxDist(Unity.Mathematics.int3)"> component distance </see>, 
+    /// The <see cref="Core.Terrain.OctreeTerrain.Octree.Node.GetMaxDist(Unity.Mathematics.int3)"> component distance </see>, 
     /// in terms of the chunk space away from  the viewer of the farthest chunk that will become a real chunk. 
     /// As real chunks define the interactive game environment, this effectively defines the size of the game 
     /// environment relative to the size of the environment chunk (chunk space).
@@ -46,7 +46,7 @@ public class Terrain : ScriptableObject
     public int Balance;
 
     /// <summary>
-    /// The minimum <see cref="TerrainGeneration.OctreeTerrain.Octree.Node.GetMaxDist(Unity.Mathematics.int3)"> component distance </see> in 
+    /// The minimum <see cref="Core.Terrain.OctreeTerrain.Octree.Node.GetMaxDist(Unity.Mathematics.int3)"> component distance </see> in 
     /// chunk space on top of <see cref="MinChunkRadius"/> away from the viewer of the farthest chunk that will be cached in <see cref="GPUDensityManager"/>. 
     /// Chunks not cached in <see cref="GPUDensityManager"/> are incapable of reflecting terrain changes and displaying atmospheric effects. Increasing this value
     /// thus increases the size of the atmosphere at the cost of more GPU memory usage. 
@@ -72,7 +72,7 @@ public class Terrain : ScriptableObject
     public float IsoLevel;
 
     /// <summary>
-    /// The size in grid space of the smallest node, a <see cref="TerrainGeneration.TerrainChunk.RealChunk">Real Chunk</see>, in the terrain octree. 
+    /// The size in grid space of the smallest node, a <see cref="Core.Terrain.TerrainChunk.RealChunk">Real Chunk</see>, in the terrain octree. 
     /// This is synonymous to the axis-amount of map entries sampled by any chunk regardless of depth.
     /// </summary>
     [UISetting(Ignore = true)]

@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using WorldConfig;
-using WorldConfig.Generation.Entity;
-using WorldConfig.Generation.Structure;
-using WorldConfig.Generation.Material;
-using MapStorage;
-using System.Linq;
+using Arterra.Config;
+using Arterra.Config.Generation.Entity;
+using Arterra.Config.Generation.Structure;
+using Arterra.Config.Generation.Material;
+using Arterra.Core.Storage;
 
 
 public interface IMateable {
@@ -154,7 +153,7 @@ public class MinimalRecognition {
     }
 
     //Eat Food
-    public WorldConfig.Generation.Item.IItem ConsumePlant(Entity self, int3 preyCoord){
+    public Arterra.Config.Generation.Item.IItem ConsumePlant(Entity self, int3 preyCoord){
         MapData mapData = CPUMapManager.SampleMap(preyCoord);
         if (mapData.IsNull) return null;
         int mIndex = mapData.material + materialStart;
@@ -170,13 +169,13 @@ public class MinimalRecognition {
         if (!String.IsNullOrEmpty(key) && matInfo.Contains(key)) {
             int newMaterial = matInfo.RetrieveIndex(key);
             if (!MaterialData.SwapMaterial(preyCoord, newMaterial,
-                out WorldConfig.Generation.Item.IItem nMat, self))
+                out Arterra.Config.Generation.Item.IItem nMat, self))
                 return null;
             return nMat;
         } else {
             if (matInfo.Retrieve(mapData.material).OnRemoving(preyCoord, self))
                 return null;
-            WorldConfig.Generation.Item.IItem nMat =
+            Arterra.Config.Generation.Item.IItem nMat =
                 matInfo.Retrieve(mapData.material).OnRemoved(preyCoord, mapData);
             mapData.viscosity = 0;
             mapData.density = 0;
@@ -204,6 +203,33 @@ public class MinimalRecognition {
         Bounds aBounds = new Bounds(entity.position, entity.transform.size);
         float3 nPoint = aBounds.ClosestPoint(point);
         return math.distance(nPoint, point);
+    }
+
+    public static bool RayTestSolid<T>(T entity, float reach, out float3 hitPt) where T : Entity, IAttackable {
+        static uint RayTestSolid(int3 coord) {
+            MapData pointInfo = CPUMapManager.SampleMap(coord);
+            return (uint)pointInfo.viscosity;
+        }
+        return CPUMapManager.RayCastTerrain(entity.head, entity.Forward, reach, RayTestSolid, out hitPt);
+    }
+
+    public static bool RayTestLiquid<T>(T entity, float reach, out float3 hitPt) where T : Entity, IAttackable {
+        static uint RayTestLiquid(int3 coord) {
+            MapData pointInfo = CPUMapManager.SampleMap(coord);
+            return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
+        }
+        return CPUMapManager.RayCastTerrain(entity.head, entity.Forward, reach, RayTestLiquid, out hitPt);
+    }
+
+    public static bool CylinderTestSolid<T>(T entity, float reach, float radius, out float3 hitPt) where T : Entity, IAttackable {
+        static uint CylinderTestSolid(int3 coord) {
+            MapData pointInfo = CPUMapManager.SampleMap(coord);
+            return (uint)pointInfo.viscosity;
+        }
+        if (RayTestSolid(entity, reach, out hitPt) && math.lengthsq(hitPt - entity.head) < radius * radius * 4)
+            return true;
+        return CPUMapManager.CylinderCastTerrain(entity.head + 2 * radius * entity.Forward,
+            entity.Forward, radius, reach, CylinderTestSolid, out hitPt);
     }
 
     [Serializable]
@@ -272,7 +298,7 @@ public class Recognition : MinimalRecognition{
         base.Construct();
         AwarenessTable ??= new Dictionary<int, Recognizable>();
         Catalogue<Authoring> eReg = Config.CURRENT.Generation.Entities;
-        Catalogue<WorldConfig.Generation.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
+        Catalogue<Arterra.Config.Generation.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
 
         if(Mates.value != null) { 
         for(int i = 0; i < Mates.value.Count; i++){
@@ -402,7 +428,7 @@ public class Recognition : MinimalRecognition{
         return true;
     }
 
-    public bool CanConsume(Genetics genetics, WorldConfig.Generation.Item.IItem item, out float nutrition) {
+    public bool CanConsume(Genetics genetics, Arterra.Config.Generation.Item.IItem item, out float nutrition) {
         nutrition = 0;
         if (Edibles.value == null) return false;
         if (AwarenessTable == null) return false;

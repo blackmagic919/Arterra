@@ -202,6 +202,17 @@ namespace Utils {
             return width * length;
         }
 
+        public static int GetStaggeredDelta(float deltaDensity) {
+            int remInvFreq = Mathf.CeilToInt(1 / math.frac(deltaDensity));
+            int staggeredDelta = Mathf.FloorToInt(deltaDensity);
+            return staggeredDelta + ((Time.frameCount % remInvFreq) == 0 ? 1 : 0);
+        }
+
+        public static int GetStaggeredDelta(int baseDensity, float deltaDensity, int maxDensity = 255) {
+            int staggeredDelta = (deltaDensity > 0 ? 1 : -1) * GetStaggeredDelta(math.abs(deltaDensity));
+            return Mathf.Abs(Mathf.Clamp(baseDensity + staggeredDelta, 0, maxDensity) - baseDensity);
+        }
+
         public static uint EncodeMorton2(uint2 v) {
             uint Part1By1(uint x) {
                 x &= 0x0000ffff;                // x = ---- ---- ---- ---- fedc ba98 7654 3210

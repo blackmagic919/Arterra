@@ -1,17 +1,17 @@
 using UnityEngine;
 using System;
 using System.Threading.Tasks;
-using static MapStorage.World;
 using UnityEngine.UI;
 using TMPro;
 using static SegmentedUIEditor;
-using WorldConfig;
+using Arterra.Config;
 using Unity.Mathematics;
-using TerrainGeneration;
-using MapStorage;
+using Arterra.Core.Terrain;
+using Arterra.Core.Storage;
 using System.Collections;
+using static Arterra.Core.Storage.World;
 
-namespace WorldConfig.Intrinsic {
+namespace Arterra.Config.Intrinsic {
     /// <summary> Settings controlling how the world appears in 
     /// the menu when selecting and viewing the world 
     /// before entering </summary>
@@ -182,8 +182,8 @@ public class OptionsHandler : MonoBehaviour
             SystemProtocol.MinimalStartup(); 
             active = true;
 
-            WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
-            WorldConfig.Intrinsic.WorldApperance wSettings = Config.CURRENT.System.WorldApperance;
+            Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+            Arterra.Config.Intrinsic.WorldApperance wSettings = Config.CURRENT.System.WorldApperance;
             uint chunkSize = (uint)rSettings.mapChunkSize + 2;
 
             uint3 gridSize = (uint3)Mathf.CeilToInt(chunkSize * wSettings.GridScale);

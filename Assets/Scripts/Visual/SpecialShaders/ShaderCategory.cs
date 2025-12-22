@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace WorldConfig.Quality
+namespace Arterra.Config.Quality
 {
     [CreateAssetMenu(menuName = "ShaderData/Category")]
     public class ShaderCategory : Category<GeoShader>

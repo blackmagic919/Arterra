@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace TerrainGeneration {
+namespace Arterra.Core.Terrain {
     /// <summary>A generic interface all chunks managed by the <see cref="Octree{T}"/>
     /// system must fulfill. </summary>
     public interface IOctreeChunk {
@@ -37,7 +37,7 @@ namespace TerrainGeneration {
         /// Creates an octree with the specified settings--depth, balance factor, and chunk radius.
         /// </summary>
         /// <param name="depth">The maximum depth of the octree</param>
-        /// <param name="minChunkSize"> The size in grid space of the smallest chunk(depth = 0) handled by the octree, see <see cref="WorldConfig.Quality.Terrain.mapChunkSize"/> for more info. </param>
+        /// <param name="minChunkSize"> The size in grid space of the smallest chunk(depth = 0) handled by the octree, see <see cref="Arterra.Config.Quality.Terrain.mapChunkSize"/> for more info. </param>
         /// <param name="numChunks"> The maximum amount of leaf chunks that can be held by the octree. </param>
         public Octree(int depth, int minChunkSize, int numChunks) {
             chunks = new ConstrainedLL<TChunk>((uint)numChunks * 2 + 1);
@@ -50,7 +50,7 @@ namespace TerrainGeneration {
         /// <summary>
         /// Determines whether an octree node is balanced based on its current size
         /// and distance from the viewer. A node is balanced if it obeys the balance factor
-        /// of the tree; if it is  1:(<see cref="WorldConfig.Quality.Terrain.Balance">Balance</see> + 1) balanced.
+        /// of the tree; if it is  1:(<see cref="Arterra.Config.Quality.Terrain.Balance">Balance</see> + 1) balanced.
         /// </summary>
         /// <param name="node">The octree node whose current state is tested to be balanced</param>
         /// <returns>Whether or not the node is balanced</returns>
@@ -85,6 +85,9 @@ namespace TerrainGeneration {
             AddOctreeChildren(ref root, 0, child => BuildTree(child), numRtNodes);
         }
         
+
+        /// <summary> Calls release on all chunks managed by the octree
+        /// and clears the tree structure. </summary>
         public virtual void Release(){
             ForEachChunk(chunk => chunk.Destroy());
             Array.Clear(nodes, 0, nodes.Length);
@@ -94,7 +97,7 @@ namespace TerrainGeneration {
 
         /// <summary> Executes a function for every real 
         /// leaf chunk in the octree. </summary>
-        /// <param name="action">The function to perform.</param>
+        /// <param name="action">The action to perform.</param>
         public void ForEachChunk(Action<TChunk> action) {
             uint curChunk = chunks.Head();
             do {
@@ -103,6 +106,9 @@ namespace TerrainGeneration {
             } while (curChunk != chunks.Head());
         }
 
+        /// <summary> Executes a function for all <see cref="TerrainChunk.Active"/> 
+        /// real leaf chunk in the octree. </summary>
+        /// <param name="action">The action to perform.</param>
         public void ForEachActiveChunk(Action<TChunk> action) {
             uint curChunk = chunks.Head();
             do {
@@ -329,7 +335,7 @@ namespace TerrainGeneration {
         /// </summary>
         /// <remarks>
         /// One can obtain the chunk coordinate for a specific depth by setting <paramref name="chunkSize"/> to
-        /// <see cref="WorldConfig.Quality.Terrain.mapChunkSize"/> * (2^<see cref="TerrainChunk.depth"/>)>:
+        /// <see cref="Arterra.Config.Quality.Terrain.mapChunkSize"/> * (2^<see cref="TerrainChunk.depth"/>)>:
         /// </remarks>
         /// <param name="GCoord">The position whose relative chunk coordinate is sampled</param>
         /// <param name="chunkSize">The size of chunk the outputted chunk coordinate is scaled to.</param>
@@ -399,7 +405,7 @@ namespace TerrainGeneration {
             public int3 origin;
             /// <summary>
             /// The size of the chunk in grid space. This is equivalent to 
-            /// <see cref="WorldConfig.Quality.Terrain.mapChunkSize"/> * 
+            /// <see cref="Arterra.Config.Quality.Terrain.mapChunkSize"/> * 
             /// (2^<see cref="TerrainChunk.depth"/>).
             /// </summary>
             public uint size;

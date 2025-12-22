@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using WorldConfig;
+using Arterra.Config;
 
 [CreateAssetMenu(menuName = "ShaderData/Tesselation/Category")]
 public class TesselCategory : Category<TesselSettings>

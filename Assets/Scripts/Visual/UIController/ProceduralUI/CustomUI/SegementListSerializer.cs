@@ -6,7 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using static SegmentedUIEditor;
-using WorldConfig;
+using Arterra.Config;
 using System.Linq;
 
 public class SegmentListSerializer : IConverter{

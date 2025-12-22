@@ -21,7 +21,7 @@ MonoBehaviour:
     - 
     - StonePickaxe
     - Wood:Solid
-    - Rock:Solid
+    - Stone:Solid
   Recipe:
     value:
       materials:

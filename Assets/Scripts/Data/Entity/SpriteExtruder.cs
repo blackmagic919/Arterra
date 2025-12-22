@@ -3,10 +3,10 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using TerrainGeneration;
-using TerrainGeneration.Readback;
-using static TerrainGeneration.Readback.IVertFormat;
-using WorldConfig;
+using Arterra.Core.Terrain;
+using Arterra.Core.Terrain.Readback;
+using static Arterra.Core.Terrain.Readback.IVertFormat;
+using Arterra.Config;
 
 public static class SpriteExtruder{
     public static ComputeShader ImageExtruder;

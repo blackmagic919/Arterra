@@ -5,10 +5,9 @@ using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using static InputPoller;
 using static PaginatedUIEditor;
-using WorldConfig;
-using WorldConfig.Gameplay;
+using Arterra.Config;
+using Arterra.Config.Gameplay;
 
 
 //List must be held by an Option which only holds it

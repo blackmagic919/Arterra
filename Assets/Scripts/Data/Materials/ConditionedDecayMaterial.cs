@@ -1,12 +1,10 @@
-using UnityEditor;
 using UnityEngine;
 using Unity.Mathematics;
 using Unity.Burst;
 using System;
-using WorldConfig.Generation.Structure;
-using MapStorage;
+using Arterra.Config.Generation.Structure;
+using Arterra.Core.Storage;
 using System.Collections.Generic;
-using WorldConfig.Generation.Material;
 /*
 y
 ^      0  5        z
@@ -19,7 +17,7 @@ y
 +----------->x
 */
 
-namespace WorldConfig.Generation.Material{
+namespace Arterra.Config.Generation.Material{
 
     /// <summary> A concrete material that will attempt to spread itself to neighboring entries 
     /// when and only when  randomly updated. </summary>

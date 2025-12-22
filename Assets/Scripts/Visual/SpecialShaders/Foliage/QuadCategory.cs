@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using WorldConfig;
+using Arterra.Config;
 
 [CreateAssetMenu(menuName = "ShaderData/QuadShader/Category")]
 public class QuadCategory : Category<QuadSetting>

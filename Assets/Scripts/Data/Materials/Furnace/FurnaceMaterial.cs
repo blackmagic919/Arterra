@@ -1,15 +1,17 @@
 using System.Collections;
-using MapStorage;
+using Arterra.Core.Storage;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using TerrainGeneration;
-using WorldConfig.Generation.Item;
 using UnityEngine.UI;
 using TMPro;
-using WorldConfig.Intrinsic.Furnace;
+using Arterra.Config.Intrinsic.Furnace;
+using Arterra.Config.Generation.Item;
+using Arterra.Core.Terrain;
+using Arterra.Core.Player;
+using Utils;
 
-namespace WorldConfig.Generation.Material
+namespace Arterra.Config.Generation.Material
 {
     /// <summary> A furnace material which can hold fuel items, input items and output items in its meta-data
     /// and is accessible to users who click on the item. 
@@ -67,7 +69,8 @@ namespace WorldConfig.Generation.Material
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
             if (caller == null || caller.info.entityType != Config.CURRENT.Generation.Entities.RetrieveIndex("Player"))
                 return false;
-            if (PlayerMovement.IsSprinting) return false;
+            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                return false;
             MapData info = CPUMapManager.SampleMap(GCoord);
             if (info.IsNull || !info.IsSolid) return false;
 
@@ -333,14 +336,14 @@ namespace WorldConfig.Generation.Material
                         if (!itemInfo.GetMostSpecificTag(settings.FuelTag, item.Index, out object prop))
                             continue;
                         var combustible = prop as CombustibleTag;
-                        delta = PlayerInteraction.GetStaggeredDelta(item.UnitSize * combustible.BurningRate * consumeRate);
+                        delta = CustomUtility.GetStaggeredDelta(item.UnitSize * combustible.BurningRate * consumeRate);
                         FuelInventory.RemoveStackableKey(item.Index, delta);
                     }
                     
 
                     foreach (var input in formula.Inputs.value) {
                         IItem item = Config.CURRENT.Generation.Items.Retrieve(formula.Index(input)).Item;
-                        delta = PlayerInteraction.GetStaggeredDelta(item.UnitSize * input.Rate);
+                        delta = CustomUtility.GetStaggeredDelta(item.UnitSize * input.Rate);
                         delta = InputInventory.RemoveStackableKey(formula.Index(input), delta);
                     }
 

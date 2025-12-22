@@ -1,13 +1,12 @@
 using Unity.Mathematics;
 using UnityEngine;
 using static UtilityBuffers;
-using WorldConfig;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using Unity.Collections;
-using MapStorage;
+using Arterra.Core.Storage;
 
-namespace TerrainGeneration.Map{
+namespace Arterra.Core.Terrain.Map{
 /// <summary> A manager unique for every terrain chunk responsible for creating 
 /// and grouping and abstracting various types of instructions used to
 /// create the final 3D terrain map and the visual mesh. </summary>
@@ -19,7 +18,7 @@ public struct Creator
     /// process does not retain this information. </summary>
     /// <param name="offset">The offset in grid space of the origin of the chunk.</param>
     /// <param name="surfaceData">A handle indicating the surface information for the chunk. This
-    /// handle will be used to find the surface data within a <see cref="GenerationPreset.MemoryHandle.Storage">
+    /// handle will be used to find the surface data within a <see cref="Config.Quality.MemoryBufferHandler.Storage">
     /// storage buffer</see>. See <see cref="Surface.Creator.SurfaceMapAddress"/> for more info. </param>
     /// <param name="chunkSize">The size of a <see cref="TerrainChunk.RealChunk"/> in grid space</param>
     /// <param name="mapSkip">The distance in grid space between two adjacent samples in the biome map. 
@@ -30,12 +29,12 @@ public struct Creator
     /// as well as assigning materials to the generated map. </summary>
     /// <param name="offset"> The offset in grid space of the origin of the chunk.</param>
     /// <param name="surfaceData">handle indicating the surface information for the chunk. This
-    /// handle will be used to find the surface data within a <see cref="GenerationPreset.MemoryHandle.Storage">
+    /// handle will be used to find the surface data within a <see cref="Config.Quality.MemoryBufferHandler.Storage">
     /// storage buffer</see>. See <see cref="Surface.Creator.SurfaceMapAddress"/> for more info. </param>
     /// <param name="chunkSize">The size of a <see cref="TerrainChunk.RealChunk"/> in grid space</param>
     /// <param name="mapSkip">The distance in grid space between two adjacent samples in the biome map. 
     /// Equivalently the size relative to a <see cref="TerrainChunk.RealChunk"/>.</param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> for more info.</param>
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> for more info.</param>
     public void GenerateBaseChunk(float3 offset, uint surfaceData, int chunkSize, int mapSkip, float IsoLevel) => Generator.GenerateBaseData(offset, surfaceData, chunkSize, mapSkip, IsoLevel);
     /// <summary> Compresses the map data of the chunk into its compacted form which is actually stored and recognized by
     /// most systems. During generation, the map data is stored in 12-bytes(4-bytes for each field) as certain atomic 
@@ -69,10 +68,10 @@ public struct Creator
     /// and generating the mesh using the marching cubes algorithm. If an invalid chunk is passed, or one that does not
     /// have a saved map, the behavior for this function is not defined. </summary>
     /// <param name="CCoord">The coordinate in chunk space, of the <see cref="TerrainChunk.RealChunk"/> whose mesh is generated.</param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> for more info.</param>
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> for more info.</param>
     /// <param name="chunkSize">The resolution of the mesh generated for the chunk. Equivalent to the amount of entries per axis within the map saved for this chunk</param>
     /// <param name="neighborDepths">A bitmap describing the potential difference in depth between this chunk and its neighbors,
-    /// used in generating transition information. See <see cref="OctreeTerrain.GetNeighborDepths(uint)"/> and <see cref="Generator.GenerateTransition(uint, int, float)"/>
+    /// used in generating transition information. See <see cref="OctreeTerrain.BalancedOctree.GetNeighborDepths(uint)"/> and <see cref="Generator.GenerateTransition(uint, int, float)"/>
     /// for more info. </param>
     public void GenerateRealMesh(int3 CCoord, float IsoLevel, int chunkSize, uint neighborDepths){
         Generator.CollectRealMap(CCoord, chunkSize);
@@ -88,12 +87,12 @@ public struct Creator
     /// <param name="defAddress">The address within an <see cref="GPUMapManager.DirectAddress">indirect address buffer</see> 
     /// of the address of the base map information for the visual chunk. This includes dirty information belonging to the chunk
     /// as well as the default map for entries outside its own bounds but needed for mesh generation. </param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> for more info.</param>
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> for more info.</param>
     /// <param name="chunkSize">The resolution of the mesh generated for the chunk. Equivalent to the amount of entries per axis within the map saved for this chunk</param>
-    /// <param name="depth">The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.Octree">chunk octree</see>. Identifies
+    /// <param name="depth">The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.BalancedOctree">chunk octree</see>. Identifies
     /// the size of the chunk relative to a <see cref="TerrainChunk.RealChunk"> real chunk </see>. See <see cref="TerrainChunk.depth"/> for more info.</param>
     /// <param name="neighborDepths">A bitmap describing the potential difference in depth between this chunk and its neighbors,
-    /// used in generating transition information. See <see cref="OctreeTerrain.GetNeighborDepths(uint)"/> and <see cref="Generator.GenerateTransition(uint, int, float)"/>
+    /// used in generating transition information. See <see cref="OctreeTerrain.BalancedOctree.GetNeighborDepths(uint)"/> and <see cref="Generator.GenerateTransition(uint, int, float)"/>
     /// for more info. </param>
     public void GenerateVisualMesh(int3 CCoord, int defAddress, float IsoLevel, int chunkSize, int depth, uint neighborDepths){
         Generator.CollectVisualMap(CCoord, defAddress, chunkSize, depth);
@@ -104,10 +103,10 @@ public struct Creator
     /// <summary>  Generates the mesh for a <see cref="TerrainChunk.VisualChunk"><b>fake</b> visual chunk</see>. Because the map data is 
     /// not stored with only the default map being recreated on demand, a <i>fake mesh</i> is created in the sense that it is
     /// not only non-interactable, but also cannot be changed within the context of the game. </summary>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> for more info.</param>
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> for more info.</param>
     /// <param name="chunkSize">The resolution of the mesh generated for the chunk. Equivalent to the amount of entries per axis within the map saved for this chunk</param>
     /// <param name="neighborDepths">A bitmap describing the potential difference in depth between this chunk and its neighbors,
-    /// used in generating transition information. See <see cref="OctreeTerrain.GetNeighborDepths(uint)"/> and <see cref="Generator.GenerateTransition(uint, int, float)"/>
+    /// used in generating transition information. See <see cref="OctreeTerrain.BalancedOctree.GetNeighborDepths(uint)"/> and <see cref="Generator.GenerateTransition(uint, int, float)"/>
     /// for more info.</param>
     public void GenerateFakeMesh(float IsoLevel, int chunkSize, uint neighborDepths) {
         Generator.GenerateMesh(chunkSize, IsoLevel);
@@ -150,10 +149,10 @@ public static class Generator
     /// <summary>  Presets all compute-shaders used through map and base mesh generation by acquiring 
     /// them and binding any constant values(information derived from the world's settings that 
     /// won't change until the world is unloaded) to them. Referenced by
-    /// <see cref="TerrainGeneration.SystemProtocol.Startup"/> </summary>
+    /// <see cref="SystemProtocol.Startup"/> </summary>
     public static void PresetData(){
-        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
-        WorldConfig.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
+        Config.Quality.Terrain rSettings = Config.Config.CURRENT.Quality.Terrain;
+        Config.Generation.Map mesh = Config.Config.CURRENT.Generation.Terrain.value;
 
         //Set Marching Cubes Data
         int numPointsAxes = rSettings.mapChunkSize;
@@ -232,8 +231,9 @@ public static class Generator
         meshInfoCollector.SetInt("bSTART_map", bufferOffsets.mapStart);
     }
 
+    /// <summary>Initializes just the basic buffer offsets within <see cref="bufferOffsets"/> to support map based mesh generation. </summary>
     public static void MinimalInitialize() {
-        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+        Config.Quality.Terrain rSettings = Config.Config.CURRENT.Quality.Terrain;
         //Set Marching Cubes Data
         int numPointsAxes = rSettings.mapChunkSize;
         bufferOffsets = new GeoGenOffsets(new int3(numPointsAxes, numPointsAxes, numPointsAxes), rSettings.Balance, 0);
@@ -314,7 +314,7 @@ public static class Generator
     /// as well as the default map for entries outside its own bounds. </param>
     /// <param name="chunkSize">The resolution of the mesh generated for the chunk. Equivalent to the amount of entries per axis within the map saved for this chunk.
     /// The amount of points in the map retrieved by this function is (<paramref name="chunkSize"/>+3)^3</param>
-    /// <param name="depth">The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.Octree">chunk octree</see>. Identifies
+    /// <param name="depth">The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.BalancedOctree">chunk octree</see>. Identifies
     /// the distance between samples in a map of the resolution defined by <i>depth</i>.</param>
     public static void CollectVisualMap(int3 CCoord, int defaultAddress, int chunkSize, int depth){
         int fChunkSize = chunkSize + 3; int skipInc = 1 << depth;
@@ -336,7 +336,7 @@ public static class Generator
     /// duplicated vertex information. Two seperate meshes are created for every chunk, one for the base terrain and one for liquids. </summary>
     /// <remarks>See <see href="https://paulbourke.net/geometry/polygonise/">here</see> to learn about marching cubes. </remarks>
     /// <param name="chunkSize">The resolution of the mesh generated for the chunk; the amount of cubes marched per axis of the chunk.</param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> for more info.</param>
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> for more info.</param>
     public static void GenerateMesh(int chunkSize, float IsoLevel)
     {
         int numCubesAxes = chunkSize;
@@ -356,15 +356,15 @@ public static class Generator
     /// <summary> Generates the transition mesh for a chunk based off the map data stored in the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see>
     /// and the resolution of the neighboring chunks that the current chunk is to blend with. The transition mesh is generated using the <see href="https://transvoxel.org/">
     /// transvoxel algorithm </see> which allows for smooth transitions between chunks of exactly twice the resolution. This function layers multiple transition
-    /// meshes to allow for transitions between chunks of any power of 2 difference in resolution, thus supporting any octree <see cref="WorldConfig.Quality.Terrain.Balance">
+    /// meshes to allow for transitions between chunks of any power of 2 difference in resolution, thus supporting any octree <see cref="Arterra.Config.Quality.Terrain.Balance">
     /// balance factor</see>. </summary>
     /// <remarks> The time complexity of this function is O(m*n^2) where n is the resolution of the chunk and 
     /// m the number of transition faces necessary to blend between a chunk and all of its neighbors. </remarks>
     /// <param name="neighborDepths">A bitmap describing the potential difference in depth between this chunk and its neighbors,
-    /// used in generating transition information. See <see cref="OctreeTerrain.GetNeighborDepths(uint)"/> and <see cref="Generator.GenerateTransition(uint, int, float)"/>
+    /// used in generating transition information. See <see cref="OctreeTerrain.BalancedOctree.GetNeighborDepths(uint)"/> and <see cref="Generator.GenerateTransition(uint, int, float)"/>
     /// for more info.</param>
     /// <param name="chunkSize">The resolution of the mesh generated for the transition face; the amount of cubes marched per axis of the face.</param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> for more info.</param>
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> for more info.</param>
     public static void GenerateTransition(uint neighborDepths, int chunkSize, float IsoLevel){
         int numCubesAxis = chunkSize;
         int numPointsAxis = numCubesAxis + 1;
@@ -387,7 +387,7 @@ public static class Generator
         int dictSizeBase = numPointsAxes * numPointsAxes * numPointsAxes * 3;
         int dictSizeFace = numPointsAxes * numPointsAxes * 2;
 
-        float transWidth = Config.CURRENT.Quality.Terrain.value.transitionWidth;
+        float transWidth = Config.Config.CURRENT.Quality.Terrain.value.transitionWidth;
         List<TransFaceInfo> transFaces = new List<TransFaceInfo>();
         for(int n = 0; n < 3; n++){
             uint nDepth = (neighborDepths >> (8 * n)) & 0x7F;
@@ -478,7 +478,7 @@ public static class Generator
         /// cubes marched along each dimension when generating a mesh. For a cubic chunk, all components of the vector 
         /// should be equivalent.</param>
         /// <param name="chunkBalance">The balance factor of the octree; indicates the maximum amount of transition 
-        /// faces a chunk can request. See <see cref="WorldConfig.Quality.Terrain.Balance"/> for more info. </param>
+        /// faces a chunk can request. See <see cref="Arterra.Config.Quality.Terrain.Balance"/> for more info. </param>
         /// <param name="bufferStart">The start of the region within working memory the structure generator may utilize. See 
         /// <see cref="BufferOffsets.bufferStart"/> for more info. </param>
         /// <param name="VertexStride">The size of the vertex data for one vertex, in units of 4-bytes.</param>

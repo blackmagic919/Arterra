@@ -2,8 +2,8 @@ using UnityEngine;
 using Unity.Mathematics;
 using Unity.Burst;
 using System;
-using WorldConfig.Generation.Structure;
-using MapStorage;
+using Arterra.Config.Generation.Structure;
+using Arterra.Core.Storage;
 using System.Collections.Generic;
 using Utils;
 /*
@@ -18,7 +18,7 @@ y
 +----------->x
 */
 
-namespace WorldConfig.Generation.Material{
+namespace Arterra.Config.Generation.Material{
 
     /// <summary> A concrete material that will attempt to decay to one other state
     /// after a certain amount of time. </summary>

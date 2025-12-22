@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb5ab28ebaf0240359baf1d92ea3df1e, type: 3}
+  m_Name: AlloyMats
+  m_EditorClassIdentifier: 
+  Name: C:Alloys
+  Tags:
+    Reg:
+      value:
+      - Tag: 4
+        value:
+          value:
+            rid: 5818089348897964117
+      - Tag: 14
+        value:
+          value:
+            rid: 6083762182251610193
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 1c73f5c9a64414656af204b5baa09d77, type: 2}
+    - value: {fileID: 11400000, guid: 906b638addf9b45588a96c077dda4e39, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 5818089348897964117
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 50
+        ToolDamage: 1
+        GivesItem: 1
+    - rid: 6083762182251610193
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 75
+        ToolDamage: 1
+        GivesItem: 1

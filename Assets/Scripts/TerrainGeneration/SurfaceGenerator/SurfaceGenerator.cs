@@ -1,11 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 using static UtilityBuffers;
-using WorldConfig;
-using WorldConfig.Generation;
 using Unity.Mathematics;
 
-namespace TerrainGeneration.Surface{
+namespace Arterra.Core.Terrain.Surface{
 
 /// <summary>
 /// A manager unique for every terrain chunk responsible for creating and holding onto
@@ -71,9 +69,9 @@ public static class Generator
     /// Presets all compute-shaders used in the surface generator by acquiring them and
     /// binding any constant values(information derived from the world's settings that 
     /// won't change until the world is unloaded) to them. Referenced by
-    /// <see cref="TerrainGeneration.SystemProtocol.Startup"/> </summary>
+    /// <see cref="Terrain.SystemProtocol.Startup"/> </summary>
     public static void PresetData(){
-        WorldConfig.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
+        Arterra.Config.Generation.Surface surface = Config.Config.CURRENT.Generation.Surface.value;
         surfaceDataSampler.SetBuffer(0, "surfMap", UtilityBuffers.GenerationBuffer);
 
         surfaceDataSampler.SetInt("continentalSampler", surface.ContinentalIndex);
@@ -96,10 +94,10 @@ public static class Generator
     /// The resultant sampled map is stored in a <see cref="UtilityBuffers.GenerationBuffer"> working
     /// memory buffer </see> and will be lost unless transcribed to long term storage through <see cref="TranscribeSurfaceMap"/>. </summary>
     /// <remarks> 
-    /// The surface map is a 2D map describing 6 values for every pixel. The <see cref="WorldConfig.Generation.Biome.SurfaceBiome.biome"> surface biome index </see>,
-    /// the <see cref="WorldConfig.Generation.Surface.MaxTerrainHeight">height of the surface</see>, the <see cref="WorldConfig.Generation.Surface.SquashNoise"> squash height </see>, the 
-    /// <see cref="WorldConfig.Generation.Surface.AtmosphereNoise"> falloff intensity of the atmosphere</see>, and the <see cref="WorldConfig.Generation.Biome.SurfaceBiome.InfluenceStart"> start </see> and 
-    /// <see cref="WorldConfig.Generation.Biome.SurfaceBiome.InfluenceEnd"> end </see> of its vertical influence, 
+    /// The surface map is a 2D map describing 6 values for every pixel. The <see cref="Arterra.Config.Generation.Biome.SurfaceBiome.biome"> surface biome index </see>,
+    /// the <see cref="Arterra.Config.Generation.Surface.MaxTerrainHeight">height of the surface</see>, the <see cref="Arterra.Config.Generation.Surface.SquashNoise"> squash height </see>, the 
+    /// <see cref="Arterra.Config.Generation.Surface.AtmosphereNoise"> falloff intensity of the atmosphere</see>, and the <see cref="Arterra.Config.Generation.Biome.SurfaceBiome.InfluenceStart"> start </see> and 
+    /// <see cref="Arterra.Config.Generation.Biome.SurfaceBiome.InfluenceEnd"> end </see> of its vertical influence, 
     /// </remarks>
     /// <param name="offset">The offset in grid space of the origin to begin sampling. </param>
     /// <param name="chunkSize">The resolution to sample with; how many samples are conducted per axis. </param>

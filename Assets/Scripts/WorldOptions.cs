@@ -1,13 +1,11 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Newtonsoft.Json;
 using System;
 using System.Runtime.Serialization;
-using Unity.Mathematics;
-using MapStorage;
+using Arterra.Core.Storage;
 
-namespace WorldConfig {
+namespace Arterra.Config {
     /// <summary>
     /// Config is the root class anchoring a settings tree which contains
     /// all settings for the game. Any trivial constants not inherent to the functionality

@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using WorldConfig;
+using Arterra.Config;
 
 public class PauseHandler
 {
@@ -29,7 +29,7 @@ public class PauseHandler
             cb.Invoke(ref obj); 
             settings.value = (Config.GamePlaySettings)obj;
             Config.CURRENT._GamePlay = settings;
-            MapStorage.World.SaveOptionsSync();
+            Arterra.Core.Storage.World.SaveOptionsSync();
         }, () => {Exit();});
 
         GameObject ExitButton = PauseContent.transform.GetChild(0).Find("TopPanel").Find("Return").GetChild(0).gameObject;

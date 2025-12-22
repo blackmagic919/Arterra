@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace WorldConfig.Generation.Biome{
+namespace Arterra.Config.Generation.Biome{
 /// <summary>
 /// The settings describing the generation of one cave biome. Cave biomes control generation for all space apart from 
 /// the surface of the world. Contrary to what its name implies, cave biomes define generation for both 

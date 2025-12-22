@@ -1,13 +1,14 @@
+using Utils;
 using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using WorldConfig.Generation.Material;
-using static PlayerInteraction;
-using MapStorage;
+using Arterra.Config.Generation.Material;
+using Arterra.Core.Storage;
+using Arterra.Core.Player;
+using static Arterra.Core.Player.PlayerInteraction;
 
-
-namespace WorldConfig.Generation.Item
+namespace Arterra.Config.Generation.Item
 {
     //This type inherits ToolItemAuthoring which inherits AuthoringTemplate<ToolItem>  which
     //inherits Authoring which inherits Category<Authoring>
@@ -105,7 +106,7 @@ namespace WorldConfig.Generation.Item
 
         private void PlayerModifyTerrain(ItemContext cxt) {
             if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-            if (!RayTestSolid(player, out float3 hitPt)) return;
+            if (!RayTestSolid(out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out var _))
                 return;
             if (settings.MaterialName == null) {
@@ -126,7 +127,7 @@ namespace WorldConfig.Generation.Item
                     return false;
                 if (tag.GivesItem) InventoryController.DropItem(origItem, GCoord);
 
-                AmountRaw -= GetStaggeredDelta(AmountRaw, -tag.ToolDamage * mapData.density, StackLimit);
+                AmountRaw -= CustomUtility.GetStaggeredDelta(AmountRaw, -tag.ToolDamage * mapData.density, StackLimit);
                 return true;
             }
 

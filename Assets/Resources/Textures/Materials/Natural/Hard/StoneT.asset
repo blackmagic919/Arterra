@@ -13,4 +13,10 @@ MonoBehaviour:
   m_Name: StoneT
   m_EditorClassIdentifier: 
   Name: Stone
-  self: {fileID: 21300000, guid: d6daddfb095a14f1e814f6fcd10fab89, type: 3}
+  Tags:
+    Reg:
+      value: []
+  self: {fileID: 21300000, guid: 050bc18b1b88d48b29f0b52238cca9a4, type: 3}
+  references:
+    version: 2
+    RefIds: []

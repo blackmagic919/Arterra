@@ -340,9 +340,9 @@ MonoBehaviour:
         value:
           movement:
             value:
-              walkSpeed: 2.5
+              walkSpeed: 3
               runSpeed: 5
-              jumpForce: 5
+              jumpForce: 6
               acceleration: 100
               groundStickDist: 0.05
               flightSpeedMultiplier: 3
@@ -363,6 +363,7 @@ MonoBehaviour:
                   ToolDamage: 0
                   GivesItem: 1
               ReachDistance: 8
+              CylinderRadius: 1
               PickupRate: 1.5
           Physicality:
             value:

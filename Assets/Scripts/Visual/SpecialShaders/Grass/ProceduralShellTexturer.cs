@@ -1,12 +1,9 @@
 using Newtonsoft.Json;
 using UnityEngine;
-using TerrainGeneration;
-using WorldConfig;
-using WorldConfig.Quality;
+using Arterra.Config;
+using Arterra.Config.Quality;
 using System.Linq;
-using Unity.Mathematics;
 using System.Collections.Generic;
-using System;
 
 [CreateAssetMenu(menuName = "ShaderData/ShellTexture/Generator")]
 public class ProceduralShellTexturer : GeoShader

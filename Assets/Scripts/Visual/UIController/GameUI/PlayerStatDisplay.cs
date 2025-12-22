@@ -1,9 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using WorldConfig;
+using Arterra.Config;
+using Arterra.Core.Player;
 
 public static class PlayerStatDisplay
 {

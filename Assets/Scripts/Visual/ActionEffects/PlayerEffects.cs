@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
-using TerrainGeneration;
 using Unity.Mathematics;
 using UnityEngine;
+using Arterra.Core.Terrain;
+using Arterra.Core.Player;
 
 //This is the visual layer, in the future this information would need to be
 //sent over to the server so other clients can see your animations

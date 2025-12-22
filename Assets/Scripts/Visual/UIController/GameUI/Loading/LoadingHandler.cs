@@ -1,10 +1,8 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using static TerrainGeneration.OctreeTerrain;
-using WorldConfig;
-using System.Threading.Tasks;
-using Utils;
+using static Arterra.Core.Terrain.OctreeTerrain;
+using Arterra.Config;
 
 public static class LoadingHandler
 {

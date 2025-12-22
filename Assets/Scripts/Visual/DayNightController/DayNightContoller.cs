@@ -1,12 +1,14 @@
 using System;
 using System.IO;
-using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Rendering;
-using WorldConfig;
+using Arterra.Config;
+using Arterra.Core.Storage;
+using Arterra.Core.Terrain;
+using Arterra.Core.Player;
 
-namespace WorldConfig.Gameplay{
+namespace Arterra.Config.Gameplay{
     /// <summary> Settings controlling environment constants of the world. Or aspects of 
     /// the world that cannot be directly influenced within the game's narrative.
     /// We try to reduce the amount of non-narrative environment settings to keep the 
@@ -53,7 +55,7 @@ public class WorldData {
 public static class WorldDataHandler
 { 
     public static WorldData WorldData;
-    private static WorldConfig.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.Time;
+    private static Arterra.Config.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.Time;
     private static LensFlareComponentSRP sunFlare;
     private static Light Sun;
     private static Light Moon;
@@ -66,18 +68,18 @@ public static class WorldDataHandler
         Moon = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Moon")).GetComponent<Light>();
         LoadWorldData();
 
-        var constraintSource = new ConstraintSource { sourceTransform = TerrainGeneration.OctreeTerrain.viewer, weight = 1 };
+        var constraintSource = new ConstraintSource { sourceTransform = OctreeTerrain.viewer, weight = 1 };
         Sun.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
         Moon.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
         sunFlare = Sun.GetComponent<LensFlareComponentSRP>();
         eventTask = new IndirectUpdate(Update);
-        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
+        OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
     }
 
     public static void Release() => SaveWorldData();
 
     static void LoadWorldData(){
-        string path = MapStorage.World.WORLD_SELECTION.First.Value.Path + "/WorldData.json";
+        string path = World.WORLD_SELECTION.First.Value.Path + "/WorldData.json";
         if(!File.Exists(path)) { 
             WorldData = WorldData.Build(); 
         } else {
@@ -87,7 +89,7 @@ public static class WorldDataHandler
     }
 
     static void SaveWorldData(){
-        string path = MapStorage.World.WORLD_SELECTION.First.Value.Path + "/WorldData.json";
+        string path = World.WORLD_SELECTION.First.Value.Path + "/WorldData.json";
         using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)){
             using StreamWriter writer = new StreamWriter(fs);
             string data = Newtonsoft.Json.JsonConvert.SerializeObject(WorldData);

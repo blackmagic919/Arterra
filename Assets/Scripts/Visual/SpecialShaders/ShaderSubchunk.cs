@@ -1,14 +1,12 @@
 
 using System.Collections.Generic;
-using System.Linq;
-using TerrainGeneration;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 using Utils;
-using WorldConfig;
-using WorldConfig.Quality;
+using Arterra.Config;
+using Arterra.Config.Quality;
+using Arterra.Core.Terrain;
 
 public class ShaderSubchunk : IOctreeChunk {
     /// <exclude />

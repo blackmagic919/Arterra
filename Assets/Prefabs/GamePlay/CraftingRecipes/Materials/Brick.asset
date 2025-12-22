@@ -20,7 +20,7 @@ MonoBehaviour:
     value:
     - 
     - Brick:Solid
-    - Rock:Solid
+    - Stone:Solid
     - Clay:Solid
   Recipe:
     value:

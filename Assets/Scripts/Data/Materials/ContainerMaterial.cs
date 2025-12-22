@@ -1,14 +1,10 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using MapStorage;
+using Arterra.Core.Storage;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using WorldConfig.Gameplay;
-using WorldConfig.Generation.Item;
+using Arterra.Config.Generation.Item;
 
-namespace WorldConfig.Generation.Material
+namespace Arterra.Config.Generation.Material
 {
     /// <summary> A container material which can hold items in its meta-data
     /// and is accessible to users who click on the item. </summary>

@@ -1,0 +1,108 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef77fbab4752a4878ad291f54a5303d8, type: 3}
+  m_Name: ChestMat
+  m_EditorClassIdentifier: 
+  Name: Chest
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - Chest:Solid
+    - Void
+    - Chest
+    - ChestIcon
+    - Plank
+    - 
+  terrainData:
+    Texture: 2
+    textureScale: 1
+    FlipStateRendering: 0
+    GeoShaderIndex:
+      data: 0
+  AtmosphereScatter:
+    InScatterCoeffs: {x: 0, y: 0, z: 0}
+    OutScatterCoeffs: {x: 0, y: 0, z: 0}
+    GroundExtinction: {x: 0, y: 0, z: 0}
+    LightIntensity: 0
+  liquidData:
+    shallowCol: {r: 0, g: 0, b: 0, a: 0}
+    deepCol: {r: 0, g: 0, b: 0, a: 0}
+    colFalloff: 0
+    waveBlend: 0
+    waveStrength: 0
+    waveScale: {x: 0, y: 0}
+    waveSpeed: {x: 0, y: 0}
+  Roughness: 0.2
+  Structure:
+    value:
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 1
+      _material: 2147483650
+      _offset: 538445313
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 1
+      _material: 2147483652
+      _offset: 537396736
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 1
+      _material: 2147483652
+      _offset: 538445312
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 1
+      _material: 2147483652
+      _offset: 537396737
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 1
+      _material: 2147483652
+      _offset: 537395712
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 1
+      _material: 2147483652
+      _offset: 538444288
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 1
+      _material: 2147483652
+      _offset: 537395713
+    - check:
+        bounds:
+          data: 4286611200
+        flags: 1
+      _material: 2147483652
+      _offset: 538444289
+  SelfIndex: 0
+  randYRot: 1
+  randXRot: 0
+  randZRot: 0
+  DisplayIcon: 3
+  MaxSlotCount: 20
+  MaterialDrops:
+    SolidItem: 0
+    LiquidItem: 1
+  references:
+    version: 2
+    RefIds: []

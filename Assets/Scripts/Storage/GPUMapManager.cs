@@ -1,11 +1,10 @@
 using System.Linq;
 using UnityEngine;
 using Unity.Mathematics;
-using TerrainGeneration;
-using WorldConfig;
-using WorldConfig.Quality;
+using Arterra.Config.Quality;
+using Arterra.Core.Terrain;
 
-namespace MapStorage{
+namespace Arterra.Core.Storage{
     /// <summary> A static centralized gateway for all CPU-side operations to access or attach resources capable of accessing
     /// map-related information stored on the GPU. Responsible for organizing managers which maintain the organization
     /// and integrity of structures facilitating map lookup on the GPU. </summary>
@@ -32,7 +31,7 @@ namespace MapStorage{
         /// GPU-side map information based off the settings of the current world. </summary>
         public static void Initialize() {
             Release();
-            WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
+            Config.Quality.Terrain rSettings = Config.Config.CURRENT.Quality.Terrain.value;
             dictReplaceKey = Resources.Load<ComputeShader>("Compute/MapData/ReplaceDictChunk");
             transcribeMapInfo = Resources.Load<ComputeShader>("Compute/MapData/TranscribeMapInfo");
             multiMapTranscribe = Resources.Load<ComputeShader>("Compute/MapData/MultiMapTranscriber");
@@ -196,7 +195,7 @@ namespace MapStorage{
         /// <returns></returns>
         public static bool IsChunkRegisterable(int3 oCCoord, int depth) {
             int3 eCCoord = oCCoord + (1 << depth);
-            int3 vCCoord = TerrainGeneration.OctreeTerrain.ViewPosCS;
+            int3 vCCoord = Terrain.OctreeTerrain.ViewPosCS;
             oCCoord = math.clamp(oCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
             eCCoord = math.clamp(eCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
             int3 dim = eCCoord - oCCoord;
@@ -276,7 +275,7 @@ namespace MapStorage{
 
         /// <summary> Performs a selective replacing of a stored chunk's map information with sparse chunk information 
         /// sourced from a working buffer. A stored chunk's MapData will only be replaced if the information from the replacing
-        /// entry in the working buffer <see cref="MapStorage.MapData.isDirty">is dirty </see>, otherwise it is ignored. 
+        /// entry in the working buffer <see cref="Arterra.Core.Storage.MapData.isDirty">is dirty </see>, otherwise it is ignored. 
         /// The caller should ensure that <see cref="RegisterChunkVisual"/> or <see cref="RegisterChunkReal"/> has been called 
         /// on the provide chunk coordinate(<i>CCoord</i>) beforehand such that there exists a stored chunk map. </summary>
         /// <param name="mapData">The working buffer currently containing the new replacing sparse map information.</param>

@@ -1,14 +1,12 @@
 using System;
-using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using WorldConfig.Generation.Material;
-using static PlayerInteraction;
-using MapStorage;
-using TerrainGeneration;
+using Arterra.Core.Terrain;
+using Arterra.Core.Player;
+using static Arterra.Core.Player.PlayerInteraction;
 
 
-namespace WorldConfig.Generation.Item
+namespace Arterra.Config.Generation.Item
 {
     //This type inherits ToolItemAuthoring which inherits AuthoringTemplate<ToolItem>  which
     //inherits Authoring which inherits Category<Authoring>
@@ -93,7 +91,7 @@ namespace WorldConfig.Generation.Item
             if (settings.OnUseAnim.Enabled && player is IActionEffect effectable)
                 effectable.Play(settings.OnUseAnim.Value);
                     
-            if (RayTestSolid(player, out float3 terrHit)) hitPt = terrHit;
+            if (RayTestSolid(out float3 terrHit)) hitPt = terrHit;
             if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out Entity.Entity entity))
                 return;
             void PlayerDamageEntity(Entity.Entity target) {

@@ -1,15 +1,15 @@
 using Unity.Mathematics;
 using UnityEngine;
-using WorldConfig;
-using WorldConfig.Generation.Material;
+using Arterra.Config.Generation.Material;
 using System.Collections.Concurrent;
 using Unity.Jobs;
-using WorldConfig.Intrinsic;
-using MapStorage;
+using Arterra.Config.Intrinsic;
+using Arterra.Core.Storage;
+using Arterra.Core.Player;
 using System.Threading;
 using System;
 
-namespace WorldConfig.Intrinsic{
+namespace Arterra.Config.Intrinsic{
     /// <summary>
     /// Settings controlling how updates to the terrain are performed 
     /// and how much load it is allotted. Terrain updates are point-operations
@@ -38,6 +38,8 @@ namespace WorldConfig.Intrinsic{
         /// </summary>
         public int UpdateTickDelay = 4;
 
+        /// <summary> Clones the object </summary>
+        /// <returns></returns>
         public object Clone() {
             return new TerrainUpdation {
                 RandomUpdatesPerChunk = RandomUpdatesPerChunk,
@@ -48,7 +50,7 @@ namespace WorldConfig.Intrinsic{
     }
 }
 
-namespace TerrainGeneration{
+namespace Arterra.Core.Terrain{
 
     /// <summary>
     /// Terrain Update is a static system that handles updates to map entries within <see cref="CPUMapManager"/>. Whenever a
@@ -72,14 +74,14 @@ namespace TerrainGeneration{
         /// Allocates memory for the update system, which is fixed and cannot be resized.
         /// </summary>
         public static void Initialize() {
-            settings = Config.CURRENT.System.TerrainUpdation.value;
-            WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
+            settings = Config.Config.CURRENT.System.TerrainUpdation.value;
+            Config.Quality.Terrain rSettings = Config.Config.CURRENT.Quality.Terrain.value;
             int numPointsChunk = rSettings.mapChunkSize;
             int numChunksAxis = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
             numPointsAxis = numChunksAxis * numPointsChunk;
             int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 
-            MaterialDictionary = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            MaterialDictionary = Config.Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             UpdateCoordinates = new ConcurrentQueue<int3>();
             IncludedCoords = new FlagList(numPoints);
             Executor = new Manager();
@@ -127,7 +129,7 @@ namespace TerrainGeneration{
                 propogatedUpdates.seed = new Unity.Mathematics.Random((uint)GetHashCode());
                 randomUpdates.seed = new Unity.Mathematics.Random((uint)GetHashCode() ^ 0x12345678u);
                 randomUpdates.numUpdatesPerChunk = settings.RandomUpdatesPerChunk;
-                int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+                int mapChunkSize = Config.Config.CURRENT.Quality.Terrain.value.mapChunkSize;
                 randomUpdates.mapChunkSize = mapChunkSize;
                 randomUpdates.numPointsChunk = mapChunkSize * mapChunkSize * mapChunkSize;
                 dispatched = false;

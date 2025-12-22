@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using WorldConfig;
+using Arterra.Config;
 
 [AttributeUsage(AttributeTargets.Field)]
 public sealed class UISetting : Attribute {

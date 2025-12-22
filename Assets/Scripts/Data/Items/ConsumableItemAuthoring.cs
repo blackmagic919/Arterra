@@ -1,9 +1,10 @@
+using Utils;
 using UnityEngine;
 using Newtonsoft.Json;
-using static PlayerInteraction;
 using Unity.Mathematics;
+using Arterra.Core.Player;
 
-namespace WorldConfig.Generation.Item{
+namespace Arterra.Config.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Consumable")] 
 public class ConsumableItemAuthoring : AuthoringTemplate<ConsumbaleItem> {
     public float ConsumptionRate;
@@ -85,7 +86,7 @@ public class ConsumbaleItem : IItem{
     private void ConsumeFood(ItemContext cxt)
     {
         if (AmountRaw == 0) return;
-        int delta = GetStaggeredDelta(settings.ConsumptionRate);
+        int delta = CustomUtility.GetStaggeredDelta(settings.ConsumptionRate);
         if (delta == 0) return;
         if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
         if (player.vitality.healthPercent >= 1) return;

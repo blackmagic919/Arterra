@@ -2,15 +2,13 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
-using WorldConfig;
-using WorldConfig.Generation.Entity;
-using MapStorage;
+using Arterra.Config;
+using Arterra.Config.Generation.Entity;
+using Arterra.Core.Storage;
 
 [CreateAssetMenu(menuName = "Generation/Entity/SurfaceAnimal")]
 public class SurfaceAnimal : Authoring
 {
-    [UISetting(Ignore = true)][JsonIgnore]
-    public Option<Animal> _Entity;
     public Option<AnimalSetting> _Setting;
 
     [JsonIgnore]
@@ -117,7 +115,7 @@ public class SurfaceAnimal : Authoring
             EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
         public void Interact(Entity caller) { }
-        public WorldConfig.Generation.Item.IItem Collect(float amount) {
+        public Arterra.Config.Generation.Item.IItem Collect(float amount) {
             if (!IsDead) return null; //You can't collect resources until the entity is dead
             var item = settings.decomposition.LootItem(genetics, amount, ref random);
             TaskDuration -= amount;
@@ -176,7 +174,7 @@ public class SurfaceAnimal : Authoring
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
             OnInGas: vitality.ProcessInGas);
 
-            vitality.Update();
+            vitality.Update(this);
             TaskRegistry[(int)TaskIndex].Invoke(this);
             //Shared high priority states
             if (TaskIndex != AnimalTasks.Death && vitality.IsDead) {
@@ -333,7 +331,7 @@ public class SurfaceAnimal : Authoring
             IAttackable target = (IAttackable)prey;
             if (target.IsDead) {
                 EntityManager.AddHandlerEvent(() => {
-                    WorldConfig.Generation.Item.IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
+                    Arterra.Config.Generation.Item.IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
                     if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition)) {
                         self.vitality.Heal(nutrition);
                     }
@@ -342,7 +340,7 @@ public class SurfaceAnimal : Authoring
                         self.TaskIndex = AnimalTasks.Idle;
                     }
                 });
-            } else self.vitality.Attack(prey, self);
+            } else self.vitality.Attack(prey);
         }
 
         //Task 5
@@ -352,7 +350,7 @@ public class SurfaceAnimal : Authoring
                 if (self.settings.Recognition.FindPreferredPreyPlant((int3)math.round(self.position), self.genetics.GetInt(
                     self.settings.Recognition.PlantFindDist), out int3 foodPos)
                 ) {
-                    WorldConfig.Generation.Item.IItem item = self.settings.Recognition.ConsumePlant(self, foodPos);
+                    Arterra.Config.Generation.Item.IItem item = self.settings.Recognition.ConsumePlant(self, foodPos);
                     if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition))
                         self.vitality.Heal(nutrition);
                 } self.TaskIndex = AnimalTasks.FindPrey;
@@ -478,7 +476,7 @@ public class SurfaceAnimal : Authoring
 
             IAttackable target = tEntity as IAttackable;
             if (target.IsDead) self.TaskIndex = 0;
-            else self.vitality.Attack(tEntity, self);
+            else self.vitality.Attack(tEntity);
         }
 
         //Task 12

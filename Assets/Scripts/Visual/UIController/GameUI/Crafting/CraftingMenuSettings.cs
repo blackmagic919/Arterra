@@ -1,14 +1,6 @@
-using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using Unity.Mathematics;
-using UnityEditor;
 using UnityEngine;
-using WorldConfig;
-using WorldConfig.Generation.Material;
-using WorldConfig.Generation.Item;
 
-namespace WorldConfig.Intrinsic{
+namespace Arterra.Config.Intrinsic{
 
 /// <summary>
 /// Settings controlling the apperance and behavior of the crafting system. The crafting 

@@ -22,7 +22,7 @@ MonoBehaviour:
     - StoneArrow
     - Feather
     - Wood:Solid
-    - Rock:Solid
+    - Stone:Solid
   Recipe:
     value:
       materials:

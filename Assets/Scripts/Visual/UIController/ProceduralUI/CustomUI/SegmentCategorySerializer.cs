@@ -1,12 +1,8 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using static SegmentedUIEditor;
-using WorldConfig;
+using Arterra.Config;
 using System.Linq;
 public class SegmentCategorySerializer : IConverter
 {

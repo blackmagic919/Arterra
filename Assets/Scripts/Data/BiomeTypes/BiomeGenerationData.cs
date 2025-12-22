@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using Unity.Mathematics;
-using Utils;
 
-namespace WorldConfig.Generation.Biome{
+namespace Arterra.Config.Generation.Biome{
 /// <summary>
 /// A settings container identifying all biomes and biome related settings 
 /// that are used during generation. Biomes are placed depending on conditions 

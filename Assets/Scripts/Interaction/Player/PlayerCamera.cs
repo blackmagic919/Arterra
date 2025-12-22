@@ -1,11 +1,11 @@
 using System;
-using MapStorage;
+using Arterra.Core.Storage;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 
 
-namespace WorldConfig.Gameplay.Player {
+namespace Arterra.Config.Gameplay.Player {
     /// <summary> Controls how the camera rotates and responds to player input. Notably
     /// settings controlling the camera's responsiveness, sensitivity, and limits to 
     /// its rotation are contained here.  </summary>
@@ -26,12 +26,17 @@ namespace WorldConfig.Gameplay.Player {
         /// <summary>If <see cref="smooth"/>, the time, in seconds to rotate to a new orientation.</summary>
         public float smoothTime; //5f
     }
+}
 
+namespace Arterra.Core.Player{
+    /// <summary> Responsible for managing the player's camera
+    /// and its movement and angles within the game.  </summary>
     public class PlayerCamera {
-        private static Camera S => Config.CURRENT.GamePlay.Player.value.Camera;
+        private static Config.Gameplay.Player.Camera S => Config.Config.CURRENT.GamePlay.Player.value.Camera;
         private WeakReference<PlayerStreamer.Player> _context;
         private PlayerStreamer.Player context => _context.TryGetTarget(out PlayerStreamer.Player tg) ? tg : null;
         private ref Quaternion characterRot => ref context.collider.transform.rotation;
+        /// <summary> The quarternion representing the direction the player's camera is facing </summary>
         [JsonIgnore]
         public Quaternion Facing => perspectives[activePersp].rotation;
         [JsonProperty]
@@ -44,8 +49,12 @@ namespace WorldConfig.Gameplay.Player {
         private ICameraPerspective[] perspectives;
         private int activePersp = 0;
 
+        /// <summary> Default Constructor </summary>
         public PlayerCamera() { camTsf.rotation = Quaternion.identity; }
 
+        /// <summary> Deserializes the player's camera, called after it's been deserialized.
+        /// Reattaches to the player instance and reverts the camera state to the default camera </summary>
+        /// <param name="context">The instance of the currently streaming player</param>
         public void Deserailize(PlayerStreamer.Player context) {
             this._context = new WeakReference<PlayerStreamer.Player>(context);
             cullingMask = PlayerHandler.Camera.GetChild(0).GetComponent<UnityEngine.Camera>().cullingMask;
@@ -59,6 +68,8 @@ namespace WorldConfig.Gameplay.Player {
             }; perspectives[0].Activate();
         }
 
+        /// <summary> Initializes this object as the current active player camera instance by 
+        /// tying the keybinds relevant to handling the camera. </summary>
         public static void Initialize() {
             InputPoller.AddBinding(new ActionBind("Look Horizontal", LookX), "PlayerCamera:LH", "4.5::Movement");
             InputPoller.AddBinding(new ActionBind("Look Vertical", LookY), "PlayerCamera:LV", "4.5::Movement");
@@ -110,6 +121,8 @@ namespace WorldConfig.Gameplay.Player {
             return (uint)pointInfo.viscosity;
         }
 
+        /// <summary>Updates the player's camera movement and properties.</summary>
+        /// <param name="CamTsf">The transform of the physical Unity Camera object</param>
         public void Update(Transform CamTsf) {
             perspectives[activePersp].Update();
             CamTsf.SetLocalPositionAndRotation(camTsf.position, camTsf.rotation);
@@ -208,7 +221,7 @@ namespace WorldConfig.Gameplay.Player {
 
             private void SetCameraOffset(PlayerCamera cm) {
                 float backDist = distance;
-                float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
+                float distGS = distance / Config.Config.CURRENT.Quality.Terrain.value.lerpScale;
                 if (CPUMapManager.RayCastTerrain(cm.context.head, cm.Facing * Vector3.back, distGS, RayTestSolid, out float3 hitPt))
                     backDist = math.distance(hitPt, cm.context.head);
 
@@ -279,7 +292,7 @@ namespace WorldConfig.Gameplay.Player {
             
             private static void SetCameraOffset(PlayerCamera cm) {
                 float backDist = distance;
-                float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
+                float distGS = distance / Config.Config.CURRENT.Quality.Terrain.value.lerpScale;
                 float3 dir = math.mul(math.normalize(cm.camTsf.rotation), new float3(0, 0, -1));
                 dir = math.mul(math.normalize(cm.characterRot), dir);
                 if (CPUMapManager.RayCastTerrain(cm.context.head, dir, distGS, RayTestSolid, out float3 hitPt))

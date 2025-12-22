@@ -3,15 +3,13 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using System.Collections.Generic;
 using Utils;
-using MapStorage;
-using static PlayerInteraction;
-using System;
-using UnityEngine.Rendering;
-using TerrainGeneration.Readback;
-using WorldConfig.Generation.Material;
 using System.Linq;
+using Arterra.Core.Storage;
+using Arterra.Config.Generation.Material;
+using Arterra.Core.Player;
+using static Arterra.Core.Player.PlayerInteraction;
 
-namespace WorldConfig.Generation.Item {
+namespace Arterra.Config.Generation.Item {
     [CreateAssetMenu(menuName = "Generation/Items/StructureItem")]
     public class PlaceableStructureItemAuthoring : PlaceableTemplate<PlaceableStructureItem> {}
     public class PlaceableStructureItem : IItem {
@@ -21,6 +19,8 @@ namespace WorldConfig.Generation.Item {
         private static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
         private PlaceableStructureItemAuthoring settings => ItemInfo.Retrieve(Index) as PlaceableStructureItemAuthoring;
         private InteractionHandler handler;
+
+        private static Gameplay.Player.Interaction interaction => Config.CURRENT.GamePlay.Player.value.Interaction;
 
         [JsonIgnore]
         public int StackLimit => 0xFFFF;
@@ -107,7 +107,7 @@ namespace WorldConfig.Generation.Item {
                 h.item = item;
                 h.cxt = cxt;
                 h.active = true;
-                TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(h);
+                Core.Terrain.OctreeTerrain.MainLoopUpdateTasks.Enqueue(h);
                 InputPoller.AddKeyBindChange(() => {
                     InputPoller.AddBinding(new ActionBind("Place", h.PlaceStructure, ActionBind.Exclusion.ExcludeLayer),
                     "ITEM::PlaceableStct:PL", "5.0::GamePlay");
@@ -128,9 +128,9 @@ namespace WorldConfig.Generation.Item {
 
             public void Update(MonoBehaviour _) {
                 if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-                if (!RayTestSolid(player, out float3 hitPt)) return;
+                if (!RayTestSolid(out float3 hitPt)) return;
                 
-                if (math.cmax(math.abs(Location - hitPt)) > 2 * PlayerInteraction.settings.TerraformRadius)
+                if (math.cmax(math.abs(Location - hitPt)) > 2 * interaction.TerraformRadius)
                     IsLocked = false;
                 if (!IsLocked) {
                     Location = (int3)math.round(hitPt);
@@ -143,7 +143,7 @@ namespace WorldConfig.Generation.Item {
             private void PlaceStructure(float _) {
                 if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
                 if (!IsLocked) {
-                    if (!RayTestSolid(player, out float3 hitPt)) return;
+                    if (!RayTestSolid(out float3 hitPt)) return;
                     Location = (int3)math.round(hitPt);
                     IsLocked = true;
                 }
@@ -190,7 +190,7 @@ namespace WorldConfig.Generation.Item {
                 if (totalRemAmount <= 0) return false;
                 IterateStructRemove(edit, GCoord, rot, (c, s, d, gc) => {
                     if (d.density <= 0) return false;
-                    ToolTag tag = PlayerInteraction.settings.DefaultTerraform;
+                    ToolTag tag = interaction.DefaultTerraform;
                     if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, d.material, out object prop))
                         tag = prop as ToolTag;
                     if (d.viscosity > 0) {
@@ -231,7 +231,7 @@ namespace WorldConfig.Generation.Item {
                 if (PlaceSelf) totPlaceAmt += selfPlaceAmt;
                 if (totPlaceAmt <= 0) return false;
 
-                float placeSpeed = PlayerInteraction.settings.DefaultTerraform.value.TerraformSpeed;
+                float placeSpeed = interaction.DefaultTerraform.value.TerraformSpeed;
                 IterateStructPlace(edit, GCoord, rot, (c, s, d, gc) => {
                     if (d.density <= 0) return false;
 

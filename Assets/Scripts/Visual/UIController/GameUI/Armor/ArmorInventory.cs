@@ -5,11 +5,11 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using WorldConfig;
-using WorldConfig.Generation.Entity;
-using WorldConfig.Generation.Item;
+using Arterra.Config;
+using Arterra.Config.Generation.Entity;
+using Arterra.Config.Generation.Item;
 
-public class ArmorInventory: IInventory {
+public class ArmorInventory : IInventory {
     private Catalogue<EquipableArmor> system => Config.CURRENT.System.Armor.value.Variants;
     [JsonIgnore]
     public ArmorSlot[] Display;
@@ -50,7 +50,7 @@ public class ArmorInventory: IInventory {
             Info[i].OnLeave(OnRemoveElement(new ItemContext(this, i)));
         }
     }
-    
+
     public void InitializeDisplay(GameObject Parent) {
         Display = new ArmorSlot[system.Count()];
         ArmorSlot.template = Resources.Load<GameObject>("Prefabs/GameUI/Armor/ArmorSlot");
@@ -61,17 +61,18 @@ public class ArmorInventory: IInventory {
     }
     public void ReleaseDisplay() {
         if (Display == null) return;
-        for(int i = 0; i < Display.Count(); i++) {
+        for (int i = 0; i < Display.Count(); i++) {
             ClearDisplay(i);
             Display[i]?.Release();
-        } Display = null;
+        }
+        Display = null;
     }
 
 
     public int RemoveStackableKey(int KeyIndex, int delta, Action<IItem> OnRemove = null) {
-         if (delta == 0) return 0;
-         int start = delta; int remainder = start;
-         
+        if (delta == 0) return 0;
+        int start = delta; int remainder = start;
+
         for (int SlotIndex = 0; SlotIndex < Info.Length; SlotIndex++) {
             IItem mat = Info[SlotIndex];
             if (mat.Index != KeyIndex) continue;
@@ -82,7 +83,8 @@ public class ArmorInventory: IInventory {
                 IItem removed = mat.Clone() as IItem;
                 removed.AmountRaw = delta;
                 OnRemove(removed);
-            } if (mat.AmountRaw == 0) RemoveEntry(SlotIndex);
+            }
+            if (mat.AmountRaw == 0) RemoveEntry(SlotIndex);
         }
         return start - remainder;
     }
@@ -106,7 +108,8 @@ public class ArmorInventory: IInventory {
             ItemContext cxt = new ItemContext(this, pSlot);
             Info[pSlot].OnEnter(OnAddElement(cxt));
             AttachDisplay(pSlot);
-        } return true;
+        }
+        return true;
     }
 
     public bool AddEntry(IItem item, out int head) {
@@ -115,27 +118,28 @@ public class ArmorInventory: IInventory {
         item = item.Clone() as IArmorItem;
         List<EquipInfo.Slot> slots = aItem.GetEquipInfo().Regions;
 
-        Dictionary<int, bool>  groups = slots.Select(s => s.GroupReference).ToDictionary(i => i, i => true);
+        Dictionary<int, bool> groups = slots.Select(s => s.GroupReference).ToDictionary(i => i, i => true);
         foreach (EquipInfo.Slot slot in slots) {
             int slotIndex = system.RetrieveIndex(slot.PlaceableSlot);
             if (Info[slotIndex] == null) continue;
             groups[slot.GroupReference] = false;
         }
 
-        List<KeyValuePair<int, bool> > kvGs = groups.ToList();
+        List<KeyValuePair<int, bool>> kvGs = groups.ToList();
         if (!kvGs.Exists(s => s.Value)) return false;
         int groupIndex = kvGs.Find(s => s.Value).Key;
 
         int[] placeSlots = slots.FindAll(s => s.GroupReference == groupIndex)
             .Select(s => system.RetrieveIndex(s.PlaceableSlot)).ToArray();
         head = placeSlots.First();
-        
+
         foreach (int pSlot in placeSlots) {
             Info[pSlot] = aItem;
             ItemContext cxt = new ItemContext(this, pSlot);
             Info[pSlot].OnEnter(OnAddElement(cxt));
             AttachDisplay(pSlot);
-        } return true;
+        }
+        return true;
     }
 
     public void RemoveEntry(int slot) {
@@ -164,7 +168,7 @@ public class ArmorInventory: IInventory {
         if (Display == null || index >= Display.Length) return;
         Info[index]?.AttachDisplay(Display[index].ItemFrame);
     }
-    
+
     private void ClearDisplay(int index) {
         if (Info == null || index >= Info.Length) return;
         if (Display == null || index >= Display.Length) return;

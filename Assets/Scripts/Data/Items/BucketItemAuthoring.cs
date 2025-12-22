@@ -1,10 +1,11 @@
-using System;
+using Utils;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using MapStorage;
+using Arterra.Core.Storage;
+using Arterra.Core.Player;
 
-namespace WorldConfig.Generation.Item{
+namespace Arterra.Config.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Bucket")] 
 public class BucketItemAuthoring : AuthoringTemplate<BucketItem> {
     /// <summary> The radius, in grid space, of the spherical region around the user's
@@ -88,7 +89,7 @@ public class BucketItem : IItem{
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         
         if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-        if (content == null || !PlayerInteraction.RayTestLiquid(player, out float3 hitPt)) return;
+        if (content == null || !PlayerInteraction.RayTestLiquid(out float3 hitPt)) return;
         Authoring authoring = ItemInfo.Retrieve(content.Index);
         if (authoring is not PlaceableItem mat) return;
         if (mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
@@ -114,7 +115,7 @@ public class BucketItem : IItem{
 
         MapData delta = pointInfo;
         delta.viscosity = 0;
-        delta.density = PlayerInteraction.GetStaggeredDelta(pointInfo.density, brushStrength);
+        delta.density = CustomUtility.GetStaggeredDelta(pointInfo.density, brushStrength);
         delta.density = content.AmountRaw - math.max(content.AmountRaw - delta.density, 0);
         content.AmountRaw -= delta.density;
 
@@ -129,7 +130,7 @@ public class BucketItem : IItem{
 
     private void RemoveLiquid(ItemContext cxt){
         if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-        if (!PlayerInteraction.RayTestLiquid(player, out float3 hitPt)) return;
+        if (!PlayerInteraction.RayTestLiquid(out float3 hitPt)) return;
         CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveToBucket, PlayerInteraction.CallOnMapRemoving);
     }
 
@@ -141,7 +142,7 @@ public class BucketItem : IItem{
         MapData delta = pointInfo;
         delta.viscosity = 0;
         int liquidDensity = pointInfo.LiquidDensity;
-        delta.density = math.min(PlayerInteraction.GetStaggeredDelta(liquidDensity, -brushStrength), MapData.MaxDensity);
+        delta.density = math.min(CustomUtility.GetStaggeredDelta(liquidDensity, -brushStrength), MapData.MaxDensity);
         Material.MaterialData material = MatInfo.Retrieve(pointInfo.material);
         IItem newItem = material.OnRemoved(GCoord, delta);
         if (liquidDensity >= CPUMapManager.IsoValue){

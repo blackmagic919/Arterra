@@ -1,0 +1,299 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66ff41b42a059454fb8d77bbe838e3e7, type: 3}
+  m_Name: LettuceSeededSoilMat
+  m_EditorClassIdentifier: 
+  Name: LettuceSeededSoil
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - Dirt:Solid
+    - Void
+    - LettuceSeededSoil
+    - LettuceSeeds
+    - Lettuce
+  terrainData:
+    Texture: 2
+    textureScale: 1
+    FlipStateRendering: 0
+    GeoShaderIndex:
+      data: 0
+  AtmosphereScatter:
+    InScatterCoeffs: {x: 0, y: 0, z: 0}
+    OutScatterCoeffs: {x: 0, y: 0, z: 0}
+    GroundExtinction: {x: 0, y: 0, z: 0}
+    LightIntensity: 0
+  liquidData:
+    shallowCol: {r: 0, g: 0, b: 0, a: 0}
+    deepCol: {r: 0, g: 0, b: 0, a: 0}
+    colFalloff: 0
+    waveBlend: 0
+    waveStrength: 0
+    waveScale: {x: 0, y: 0}
+    waveSpeed: {x: 0, y: 0}
+  Roughness: 0.2
+  ConversionData:
+    value:
+    - check:
+        bounds:
+          data: 2524971008
+        flags: 0
+      _material: 2147483652
+      _offset: 537396736
+    - check:
+        bounds:
+          data: 755630080
+        flags: 0
+      _material: 0
+      _offset: 538445312
+    - check:
+        bounds:
+          data: 755630080
+        flags: 0
+      _material: 0
+      _offset: 536348160
+    - check:
+        bounds:
+          data: 755630080
+        flags: 0
+      _material: 0
+      _offset: 537396737
+    - check:
+        bounds:
+          data: 755630080
+        flags: 0
+      _material: 0
+      _offset: 537396735
+    - check:
+        bounds:
+          data: 336199680
+        flags: 0
+      _material: 0
+      _offset: 537397760
+    - check:
+        bounds:
+          data: 3365273600
+        flags: 0
+      _material: 2147483652
+      _offset: 537396736
+    - check:
+        bounds:
+          data: 1261568000
+        flags: 0
+      _material: 0
+      _offset: 538445312
+    - check:
+        bounds:
+          data: 1261568000
+        flags: 0
+      _material: 0
+      _offset: 536348160
+    - check:
+        bounds:
+          data: 1261568000
+        flags: 0
+      _material: 0
+      _offset: 537396737
+    - check:
+        bounds:
+          data: 1261568000
+        flags: 0
+      _material: 0
+      _offset: 537396735
+    - check:
+        bounds:
+          data: 839057408
+        flags: 0
+      _material: 0
+      _offset: 537397760
+    - check:
+        bounds:
+          data: 4291297280
+        flags: 0
+      _material: 2147483652
+      _offset: 537396736
+    - check:
+        bounds:
+          data: 2135949312
+        flags: 0
+      _material: 0
+      _offset: 538445312
+    - check:
+        bounds:
+          data: 2135949312
+        flags: 0
+      _material: 0
+      _offset: 536348160
+    - check:
+        bounds:
+          data: 2135949312
+        flags: 0
+      _material: 0
+      _offset: 537396737
+    - check:
+        bounds:
+          data: 2135949312
+        flags: 0
+      _material: 0
+      _offset: 537396735
+    - check:
+        bounds:
+          data: 1261568000
+        flags: 0
+      _material: 0
+      _offset: 537397760
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537396736
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 538445312
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 536348160
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537396737
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537396735
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537397760
+    - check:
+        bounds:
+          data: 2525003520
+        flags: 1
+      _material: 2147483652
+      _offset: 537396736
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 538445312
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 536348160
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537396737
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537396735
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537397760
+    - check:
+        bounds:
+          data: 3365306112
+        flags: 1
+      _material: 2147483652
+      _offset: 537396736
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 538445312
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 536348160
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537396737
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537396735
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537397760
+  ConvertRegions:
+    value:
+    - checkStart: 18
+      checkEnd: 23
+      convertStart: 0
+      convertEnd: 5
+      convertChance: 0.333
+    - checkStart: 24
+      checkEnd: 29
+      convertStart: 6
+      convertEnd: 11
+      convertChance: 0.333
+    - checkStart: 30
+      checkEnd: 35
+      convertStart: 12
+      convertEnd: 17
+      convertChance: 0.333
+  SelfCondition:
+    data: 4286643968
+  MaterialDrops:
+    SolidLootTable:
+      value:
+      - DropItem: 3
+        DropChance: 0.5
+        DropMultiplier: 2
+    DefaultSolidLoot:
+      DropItem: 0
+      DropMultiplier: 1
+    LiquidLootTable:
+      value: []
+    DefaultLiquidLoot:
+      DropItem: 1
+      DropMultiplier: 1
+  references:
+    version: 2
+    RefIds: []

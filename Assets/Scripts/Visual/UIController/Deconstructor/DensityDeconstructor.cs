@@ -5,11 +5,10 @@ using UnityEngine;
 using UnityEditor;
 using Utils;
 using System.Linq;
-using WorldConfig.Generation.Structure;
-using WorldConfig.Generation.Biome;
-using WorldConfig;
-using MapStorage;
-using TerrainGeneration;
+using Arterra.Config.Generation.Structure;
+using Arterra.Config;
+using Arterra.Core.Storage;
+using Arterra.Core.Terrain;
 
 [ExecuteInEditMode]
 public class DensityDeconstructor : MonoBehaviour
@@ -69,7 +68,7 @@ public class DensityDeconstructor : MonoBehaviour
         if(GridSize.x == 0 || GridSize.y == 0 || GridSize.z == 0)
             throw new Exception("Grid size cannot be zero");
         if(initialized) Release(); 
-        if(Config.CURRENT == null) MapStorage.World.Activate();
+        if(Config.CURRENT == null) World.Activate();
         IRegister.Setup(Config.CURRENT); //Initialize Register LUTS
         SystemProtocol.MinimalStartup(); // Initialize Material Information
         Structure.Initialize();
@@ -431,15 +430,15 @@ public class ModelManager{
     private ComputeShader ModelConstructor;
     private ComputeShader IndexLinker;
     private ComputeShader DrawArgsConstructor;
-    public TerrainGeneration.Map.Generator.GeoGenOffsets offsets;
+    public Arterra.Core.Terrain.Map.Generator.GeoGenOffsets offsets;
     private uint3 GridSize;
     private float IsoLevel;
 
     private Transform transform;
     private Material[] ModelMaterial =
     new Material[2];
-    private TerrainGeneration.Readback.GeometryHandle[] GeoHandles = 
-    new TerrainGeneration.Readback.GeometryHandle[2];
+    private Arterra.Core.Terrain.Readback.GeometryHandle[] GeoHandles = 
+    new Arterra.Core.Terrain.Readback.GeometryHandle[2];
 
     public const int VERTEX_STRIDE_WORD = 3 + 2;
     public const int TRI_STRIDE_WORD = 3;
@@ -454,7 +453,7 @@ public class ModelManager{
         this.IsoLevel = IsoLevel;
         this.transform = transform;
 
-        this.offsets = new TerrainGeneration.Map.Generator.GeoGenOffsets(new int3(GridSize), 0, bufferStart, VERTEX_STRIDE_WORD);
+        this.offsets = new Arterra.Core.Terrain.Map.Generator.GeoGenOffsets(new int3(GridSize), 0, bufferStart, VERTEX_STRIDE_WORD);
         PresetData();
     }
 
@@ -514,7 +513,7 @@ public class ModelManager{
         IndexLinker.DispatchIndirect(kernel, args);
     }
 
-    TerrainGeneration.Readback.GeometryHandle SetupGeoHandle(Camera camera, int vertStart, int indexStart, int indexCounter, int matInd){
+    Arterra.Core.Terrain.Readback.GeometryHandle SetupGeoHandle(Camera camera, int vertStart, int indexStart, int indexCounter, int matInd){
         uint drawArgs = UtilityBuffers.DrawArgs.Allocate();
 
         int kernel = DrawArgsConstructor.FindKernel("CSMain");
@@ -541,7 +540,7 @@ public class ModelManager{
         rp.matProps.SetInt("vertAddress", vertStart);
         rp.matProps.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
 
-        return new TerrainGeneration.Readback.GeometryHandle(rp, default, 0, drawArgs, matInd);
+        return new Arterra.Core.Terrain.Readback.GeometryHandle(rp, default, 0, drawArgs, matInd);
     }
 
     void PresetData(){

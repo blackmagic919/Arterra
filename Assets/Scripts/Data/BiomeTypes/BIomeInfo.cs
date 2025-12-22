@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using UnityEngine;
-using WorldConfig;
 
-namespace WorldConfig.Generation.Biome{
+namespace Arterra.Config.Generation.Biome{
 /// <summary>
 /// A template class which defines placement conditions for a biome. Because 
 /// each biome has a different set of conditions, but also must always defines those
@@ -52,12 +51,12 @@ public class Info
     /// <summary>
     /// A list containing the generation pattern of liquid materials within the biome. This list is considered
     /// when the density of the map entry is less than <see cref="Quality.Terrain.IsoLevel"/>(i.e. above ground)
-    /// and the point lies above the terrain surface and below the global water level, see <see cref="WorldConfig.Generation.Map.waterHeight"/>
+    /// and the point lies above the terrain surface and below the global water level, see <see cref="Arterra.Config.Generation.Map.waterHeight"/>
     /// for more information.</summary>
     public Option<List<Option<BMaterial> > > LiquidMaterials = new ();
 
     /// <summary> A list containing all structures that will attempt to generate within the biome. Anything terrain feature
-    /// not a result of noise based generation should naturally be created through a structure. <see cref="WorldConfig.Generation.Structure"/> 
+    /// not a result of noise based generation should naturally be created through a structure. <see cref="Arterra.Config.Generation.Structure"/> 
     /// for more information.
     /// </summary>
     [Header("Structures")]
@@ -72,7 +71,7 @@ public class Info
     public Option<List<Option<EntityGen> > > Entities = new ();
 
     /// <summary> A getter property that deserializes all structures by recoupling them with the current world's configuration. This involves
-    /// retrieving the real indices of the structures within the external <see cref="WorldConfig.Config.GenerationSettings.Structures"/> registry. </summary>
+    /// retrieving the real indices of the structures within the external <see cref="Arterra.Config.Config.GenerationSettings.Structures"/> registry. </summary>
     [JsonIgnore]
     public IEnumerable<TerrainStructure> StructureSerial{
         get{
@@ -82,7 +81,7 @@ public class Info
     }
 
     /// <summary> A getter property that deserializes all entities by recoupling them with the current world's configuration. This involves
-    /// retrieving the real indices of the entities within the external <see cref="WorldConfig.Config.GenerationSettings.Entities"/> registry. </summary>
+    /// retrieving the real indices of the entities within the external <see cref="Arterra.Config.Config.GenerationSettings.Entities"/> registry. </summary>
     [JsonIgnore]
     public IEnumerable<EntityGen> EntitySerial{
         get{
@@ -94,11 +93,11 @@ public class Info
     /// <summary>
     /// Retrieves the deserialized version of a list of materials that are coupled through a reference to the <see cref="Names"/> 
     /// by recoupling them with the current world's configuration. This involves retrieving the real indices 
-    /// of the materials within the external external <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry.
+    /// of the materials within the external external <see cref="Arterra.Config.Config.GenerationSettings.Materials"/> registry.
     /// </summary>
     /// <param name="Materials">The list of materials that are coupled with <see cref="Names"/> that is to be decoupled. This is either 
     /// <see cref="GroundMaterials"/> or <see cref="SurfaceMaterials"/>. </param>
-    /// <returns>An ordered collection of the recoupled with the external <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry</returns>
+    /// <returns>An ordered collection of the recoupled with the external <see cref="Arterra.Config.Config.GenerationSettings.Materials"/> registry</returns>
     public IEnumerable<BMaterial> MaterialSerial(List<Option<BMaterial> > Materials){
         if(Materials == null) return null;
         Catalogue<Material.MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
@@ -131,7 +130,7 @@ public class Info
         
         /// <summary> The index of the name of the material within the <see cref="Names"/>.
         /// Once recoupled, this will point to the real index within the external 
-        /// <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry. </summary>
+        /// <see cref="Config.GenerationSettings.Materials"/> registry. </summary>
         [RegistryReference("Materials", "/info/value/Names")]
         public int Material;
         /// <summary>
@@ -173,7 +172,7 @@ public class Info
     public struct TerrainStructure
     {
         /// <summary> The chance that a randomly sampled point chooses to generate the current structure. The total number
-        /// of points sampled per chunk is determined by the <see cref="WorldConfig.Generation.Structure.Generation.StructureChecksPerChunk"/>.
+        /// of points sampled per chunk is determined by the <see cref="Generation.Structure.Generation.StructureChecksPerChunk"/>.
         /// </summary> 
         /// <remarks>This chance is <b>dependent</b> on the chance of previous entries before it within <see cref="Info.Structures"/>.
         /// If the first structure's <see cref="ChancePerStructurePoint"/> is 1 (100%), then no other structures will be able to 
@@ -181,7 +180,7 @@ public class Info
         [Range(0, 1)]
         public float ChancePerStructurePoint;
         /// <summary> The index of the name within the <see cref="Names"/>, of the structure within 
-        /// the external registry <see cref="WorldConfig.Config.GenerationSettings.Structures"/> </summary>
+        /// the external registry <see cref="Config.GenerationSettings.Structures"/> </summary>
         [RegistryReference("Structures", "/info/value/Names")]
         public int Structure;
     }
@@ -189,7 +188,7 @@ public class Info
     [Serializable]
     public struct EntityGen{
         /// <summary> The index of the name within the <see cref="Names"/>, of the entity within 
-        /// the external registry <see cref="WorldConfig.Config.GenerationSettings.Entities"/> </summary>
+        /// the external registry <see cref="Config.GenerationSettings.Entities"/> </summary>
         [RegistryReference("Entities", "/info/value/Names")]
         public int Entity;
         /// <summary> The chance that the entity will be spawned at a given coordinate <b>for every coordinate</b> it

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace WorldConfig.Generation.Biome{
+namespace Arterra.Config.Generation.Biome{
 
 /// <summary>
 /// The settings describing the generation of one surface biome. A surface biome 

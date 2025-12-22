@@ -1,9 +1,9 @@
 using Unity.Burst;
 using Unity.Mathematics;
 using UnityEngine;
-using WorldConfig.Generation.Entity;
-using static WorldConfig.Generation.Entity.EntitySetting;
-using MapStorage;
+using Arterra.Config.Generation.Entity;
+using static Arterra.Config.Generation.Entity.EntitySetting;
+using Arterra.Core.Storage;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;
 
@@ -102,14 +102,14 @@ public struct PathFinder{
         HeapEnd = 1;
 
         //We make it one block so less fragment & more cache hits
-        void* ptr = UnsafeUtility.Malloc(TotalSize, 16, Allocator.TempJob);;
+        void* ptr = UnsafeUtility.Malloc(TotalSize, 16, Allocator.Persistent);;
         SetPtr = (byte*)ptr;
         MapPtr = (int4*)(SetPtr + (SetSize * 16));
         UnsafeUtility.MemClear((void*)SetPtr, SetSize * 16);
     }
 
     [BurstCompile]
-    public readonly unsafe void Release(){ UnsafeUtility.Free((void*)SetPtr, Allocator.TempJob); }
+    public readonly unsafe void Release(){ UnsafeUtility.Free((void*)SetPtr, Allocator.Persistent); }
     
     [BurstCompile]
     public unsafe void AddNode(int3 ECoord, int score, int prev){

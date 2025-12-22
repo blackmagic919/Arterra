@@ -4,10 +4,10 @@ using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using WorldConfig;
-using WorldConfig.Generation.Item;
-using WorldConfig.Intrinsic;
-using TerrainGeneration;
+using Arterra.Config;
+using Arterra.Config.Generation.Item;
+using Arterra.Config.Intrinsic;
+using Arterra.Core.Terrain;
 
 
 public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
@@ -524,7 +524,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         public Grid display;
         public CraftingRecipe.Ingredient[] GridData;
         public InventoryController.Inventory NonMatInventory;
-        internal static ItemContext GetCraftingCxt(ItemContext cxt) => cxt.SetupScenario(PlayerHandler.data, ItemContext.Scenario.ActivePlayerCraftingGrid);
+        internal static ItemContext GetCraftingCxt(ItemContext cxt) => cxt.SetupScenario(Arterra.Core.Player.PlayerHandler.data, ItemContext.Scenario.ActivePlayerCraftingGrid);
         public CraftingGrid(GameObject parent, int GridWidth, int index) {
             int AxisWidth = GridWidth + 1;
             NonMatInventory = new InventoryController.Inventory(GridWidth * GridWidth);

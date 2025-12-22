@@ -1,14 +1,15 @@
-using TerrainGeneration;
+
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using WorldConfig;
-using WorldConfig.Intrinsic;
 using static CraftingMenuController;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
-using WorldConfig.Generation.Item;
+using Arterra.Config;
+using Arterra.Config.Intrinsic;
+using Arterra.Config.Generation.Item;
+using Arterra.Core.Terrain;
 using System.Linq;
 
 public class CraftingRecipeSearch {

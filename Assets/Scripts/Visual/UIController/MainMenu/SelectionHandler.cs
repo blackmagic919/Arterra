@@ -2,8 +2,8 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using static MapStorage.World;
-using Unity.Mathematics;
+using Arterra.Core.Storage;
+using static Arterra.Core.Storage.World;
 
 
 public class SelectionHandler : MonoBehaviour
@@ -17,7 +17,7 @@ public class SelectionHandler : MonoBehaviour
         sAnimator = this.gameObject.GetComponent<Animator>(); 
         infoContent = this.gameObject.transform.GetChild(0).GetChild(0).GetComponent<ScrollRect>().content.GetComponent<RectTransform>();
         DefaultChunkIcon = Resources.Load<Sprite>("Prefabs/SelectScreen/DefaultChunk");
-        MapStorage.World.Activate();
+        World.Activate();
         active = false;
     }
 

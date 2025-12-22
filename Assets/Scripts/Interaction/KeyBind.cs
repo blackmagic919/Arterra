@@ -1,11 +1,10 @@
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
 using Utils;
-using WorldConfig;
-using WorldConfig.Gameplay;
+using Arterra.Config;
+using Arterra.Config.Gameplay;
 
 /*
 1.0::Menu
@@ -21,7 +20,7 @@ was added(i.e. if an inventory pop-up is bound to tab on “Window” layer,
 inputs related to that should be added to the pop-up “Window” layer as well). 
 Otherwise things can get very confusing and messy.
 */
-namespace WorldConfig.Gameplay{
+namespace Arterra.Config.Gameplay{
     /// <summary> A list of conditions that is assigned a name. During gameplay, a system
     /// may bind an action to this list through its name which will be triggered
     /// when the conditions are met. </summary>
@@ -213,7 +212,7 @@ public static class InputPoller {
         KeyBindChanges = new Queue<Action>();
         AddStackPoll(new ActionBind("BASE", (float _) => SetCursorLock(true)), "CursorLock");
         eventTask = new IndirectUpdate(Update);
-        TerrainGeneration.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
+        Arterra.Core.Terrain.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
         GlobalKeyExclusion = new HashSet<KeyCode>();
         LayerKeyExclusion = new HashSet<KeyCode>();
         GlobalBindExclusion = new HashSet<string>();

@@ -1,9 +1,7 @@
 using System;
-using System.Runtime.Serialization;
 using Unity.Mathematics;
-using WorldConfig.Gameplay;
 
-namespace WorldConfig.Generation.Item {
+namespace Arterra.Config.Generation.Item {
 
     public class ItemContext {
         private WeakReference<IInventory> Inv;

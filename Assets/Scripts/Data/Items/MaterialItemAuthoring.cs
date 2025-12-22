@@ -1,7 +1,7 @@
 using UnityEngine;
 using Newtonsoft.Json;
 
-namespace WorldConfig.Generation.Item{
+namespace Arterra.Config.Generation.Item{
     [CreateAssetMenu(menuName = "Generation/Items/Material")]
     public class MaterialItemAuthoring : PlaceableTemplate<MaterialItem> {}
 

@@ -1,11 +1,7 @@
-using System;
-using System.Threading.Tasks;
-using TerrainGeneration;
-using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using WorldConfig;
+using Arterra.Core.Player;
 
 public class GameOverHandler
 {

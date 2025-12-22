@@ -6,8 +6,8 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using WorldConfig;
-using MapStorage;
+using Arterra.Config;
+using Arterra.Core.Storage;
 
 public class AtmospherePass : ScriptableRenderPass
 {
@@ -35,7 +35,7 @@ public class AtmospherePass : ScriptableRenderPass
     {
         if (material == null) material = CoreUtils.CreateEngineMaterial("Hidden/Fog");
 
-        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
+        Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         float atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * GPUMapManager.numChunksRadius;
         AtmosphereSettings = new AtmosphereBake(atmosphereRadius);
 

@@ -2,18 +2,16 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
-using WorldConfig;
-using WorldConfig.Generation.Item;
-using WorldConfig.Generation.Entity;
-using static TerrainGeneration.Readback.IVertFormat;
-using TerrainGeneration.Readback;
-using MapStorage;
+using Arterra.Config;
+using Arterra.Config.Generation.Item;
+using Arterra.Config.Generation.Entity;
+using static Arterra.Core.Terrain.Readback.IVertFormat;
+using Arterra.Core.Terrain.Readback;
+using Arterra.Core.Storage;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Item")]
-public class EItem : WorldConfig.Generation.Entity.Authoring
+public class EItem : Arterra.Config.Generation.Entity.Authoring
 {
-    [UISetting(Ignore = true)][JsonIgnore]
-    public Option<EItemEntity> _Entity;
     public Option<EItemSetting> _Setting;
     
     [JsonIgnore]
@@ -102,7 +100,6 @@ public class EItem : WorldConfig.Generation.Entity.Authoring
             TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
             OnInLiquid: (dens) => {
                 velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-                velocity.y *= 1 - settings.collider.friction;
                 tCollider.useGravity = false;
             }, OnInGas: null);
 

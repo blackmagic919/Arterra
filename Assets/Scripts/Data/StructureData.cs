@@ -5,9 +5,9 @@ using UnityEditor;
 using System.Linq;
 using Newtonsoft.Json;
 using Unity.Burst;
-using MapStorage;
+using Arterra.Core.Storage;
 
-namespace WorldConfig.Generation.Structure{
+namespace Arterra.Config.Generation.Structure{
 /// <summary>
 /// A collection of settings that describe the contents of a structure
 /// as well as shared metadata on its variants, and specifications on
@@ -43,7 +43,7 @@ public class StructureData : Category<StructureData>
     public Option<List<CheckPoint>> checks;
 
     /// <summary> A getter property that deserializes the structure's map data by recoupling them with the current world's configuration. This involves
-    /// retrieving the real indices of the materials within the external <see cref="WorldConfig.Config.GenerationSettings.Materials"/> registry. </summary>
+    /// retrieving the real indices of the materials within the external <see cref="Arterra.Config.Config.GenerationSettings.Materials"/> registry. </summary>
     [JsonIgnore]
     public IEnumerable<PointInfo> SerializePoints{
         get{

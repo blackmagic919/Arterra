@@ -2,19 +2,17 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
-using WorldConfig;
-using WorldConfig.Generation.Item;
-using WorldConfig.Generation.Entity;
-using MapStorage;
+using Arterra.Config;
+using Arterra.Config.Generation.Item;
+using Arterra.Config.Generation.Entity;
+using Arterra.Core.Storage;
+using Arterra.Core.Player;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Boat")]
-public class BoatEntity : WorldConfig.Generation.Entity.Authoring
-{
-    [UISetting(Ignore = true)][JsonIgnore]
-    public Option<Boat> _Entity;
+public class BoatEntity : Arterra.Config.Generation.Entity.Authoring {
     public Option<BoatSetting> _Setting;
-    public static Catalogue<WorldConfig.Generation.Item.Authoring> ItemRegistry => Config.CURRENT.Generation.Items;
-    
+    public static Catalogue<Arterra.Config.Generation.Item.Authoring> ItemRegistry => Config.CURRENT.Generation.Items;
+
     [JsonIgnore]
     public override Entity Entity { get => new Boat(); }
     [JsonIgnore]
@@ -118,7 +116,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
             GCoord = this.GCoord;
 
             if (RiderTarget == Guid.Empty) return;
-            if (EntityManager.TryGetEntity(RiderTarget, out Entity entity) 
+            if (EntityManager.TryGetEntity(RiderTarget, out Entity entity)
                 && entity is IRider rider)
                 EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
         }
@@ -129,11 +127,10 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
 
             tCollider.useGravity = true;
 
-            vitality.Update();
+            vitality.Update(this);
             TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
             OnInLiquid: (dens) => {
                 velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-                velocity.y *= 1 - settings.collider.friction;
                 tCollider.useGravity = false;
             }, OnInGas: null);
 
@@ -164,9 +161,8 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
         public override void Disable() {
             controller.Dispose();
         }
-        
-        private class BoatController
-        {
+
+        private class BoatController {
             private Boat entity;
             private Animator animator;
             private GameObject gameObject;
@@ -213,7 +209,7 @@ public class BoatEntity : WorldConfig.Generation.Entity.Authoring
 
                 Destroy(gameObject);
             }
-            ~BoatController(){
+            ~BoatController() {
                 Dispose();
             }
         }

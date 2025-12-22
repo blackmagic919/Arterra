@@ -2,11 +2,11 @@ using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using WorldConfig.Generation.Material;
-using MapStorage;
-using WorldConfig.Gameplay;
+using Arterra.Config.Generation.Material;
+using Arterra.Core.Storage;
+using Arterra.Core.Player;
 
-namespace WorldConfig.Generation.Item
+namespace Arterra.Config.Generation.Item
 {
     [CreateAssetMenu(menuName = "Generation/Items/Pen")]
     public class PenItemAuthoring : AuthoringTemplate<PenItem>
@@ -100,8 +100,8 @@ namespace WorldConfig.Generation.Item
         private uint SelectedCorner;
         private PenItem item;
 
-        public static Catalogue<Authoring> ItemInfo => WorldConfig.Config.CURRENT.Generation.Items;
-        public static Catalogue<MaterialData> MatInfo => WorldConfig.Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        public static Catalogue<Authoring> ItemInfo => Arterra.Config.Config.CURRENT.Generation.Items;
+        public static Catalogue<MaterialData> MatInfo => Arterra.Config.Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         public static InteractionHandler Create(PenItem item, ItemContext cxt)
         {
             InteractionHandler h = new InteractionHandler();
@@ -231,7 +231,7 @@ namespace WorldConfig.Generation.Item
             hitCoord = int3.zero;
             if (!cxt.TryGetHolder(out PlayerStreamer.Player player))
                 return false;
-            if (!PlayerInteraction.RayTestSolid(player, out float3 hitPt)) return false;
+            if (!PlayerInteraction.RayTestSolid(out float3 hitPt)) return false;
             Ray ray = new Ray(player.head, player.Forward);
             int3 hitOrig = (int3)math.floor(hitPt);
 
@@ -292,7 +292,7 @@ namespace WorldConfig.Generation.Item
         {
             if (item == null) return;
             MapData orig = CPUMapManager.SampleMap(hitCoord);
-            ToolTag prop = PlayerInteraction.settings.DefaultTerraform.value;
+            ToolTag prop = Config.CURRENT.GamePlay.Player.value.Interaction.value.DefaultTerraform.value;
             if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out object tag))
                 prop = tag as ToolTag;
             if (!PlayerInteraction.HandleAddSolid(AddItem, hitCoord, prop.TerraformSpeed, out MapData change))
@@ -308,7 +308,7 @@ namespace WorldConfig.Generation.Item
         {
             if (item == null) return;
             MapData orig = CPUMapManager.SampleMap(hitCoord);
-            ToolTag prop = PlayerInteraction.settings.DefaultTerraform.value;
+            ToolTag prop = Config.CURRENT.GamePlay.Player.value.Interaction.value.DefaultTerraform.value;
             if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out object tag))
                 prop = tag as ToolTag;
 

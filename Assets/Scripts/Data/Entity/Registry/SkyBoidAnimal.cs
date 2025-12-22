@@ -2,15 +2,13 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
-using WorldConfig;
-using WorldConfig.Generation.Entity;
-using MapStorage;
+using Arterra.Config;
+using Arterra.Config.Generation.Entity;
+using Arterra.Core.Storage;
 
 [CreateAssetMenu(menuName = "Generation/Entity/SkyBoidAnimal")]
 public class SkyBoidAnimal : Authoring
 {
-    [UISetting(Ignore = true)][JsonIgnore]
-    public Option<Animal> _Entity;
     public Option<AnimalSetting> _Setting;
     
     [JsonIgnore]
@@ -123,7 +121,7 @@ public class SkyBoidAnimal : Authoring
             EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
         public void Interact(Entity caller) { }
-        public WorldConfig.Generation.Item.IItem Collect(float amount) {
+        public Arterra.Config.Generation.Item.IItem Collect(float amount) {
             if (!IsDead) return null; //You can't collect resources until the entity is dead
             var item = settings.decomposition.LootItem(genetics, amount, ref random);
             TaskDuration -= amount;
@@ -189,10 +187,9 @@ public class SkyBoidAnimal : Authoring
             if (!active) return;
             //use gravity if not flying
             tCollider.Update(this);
-            if (!tCollider.useGravity) velocity.y *= 1 - settings.collider.friction;
             EntityManager.AddHandlerEvent(controller.Update);
 
-            vitality.Update();
+            vitality.Update(this);
             TaskRegistry[(int)TaskIndex].Invoke(this);
             if (TaskIndex != AnimalTasks.Death && vitality.IsDead) {
                 TaskDuration = genetics.Get(settings.decomposition.DecompositionTime);
@@ -272,11 +269,11 @@ public class SkyBoidAnimal : Authoring
         private static void Idle(Animal self) {
             self.tCollider.useGravity = true;
             if (self.vitality.BeginMating()) {
-                self.TaskIndex = AnimalTasks.FindPreyPlant;
+                self.TaskIndex = AnimalTasks.FindMate;
                 return;
             }
             if (self.vitality.BeginHunting()) {
-                self.TaskIndex = AnimalTasks.FindMate;
+                self.TaskIndex = AnimalTasks.FindPreyPlant;
                 return;
             }
 
@@ -394,14 +391,14 @@ public class SkyBoidAnimal : Authoring
             IAttackable target = (IAttackable)prey;
             if (target.IsDead) {
                 EntityManager.AddHandlerEvent(() => {
-                    WorldConfig.Generation.Item.IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
+                    Arterra.Config.Generation.Item.IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
                     if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition)) {
                         self.vitality.Heal(nutrition);
                     } if (self.vitality.healthPercent >= 1) {
                         self.BoidFly();
                     }
                 });
-            } else self.vitality.Attack(prey, self);
+            } else self.vitality.Attack(prey);
         }
 
 
@@ -465,7 +462,7 @@ public class SkyBoidAnimal : Authoring
                 if (self.settings.Recognition.FindPreferredPreyPlant((int3)math.round(self.position),
                     self.genetics.GetInt(self.settings.Recognition.PlantFindDist), out int3 foodPos)
                 ) {
-                    WorldConfig.Generation.Item.IItem item = self.settings.Recognition.ConsumePlant(self, foodPos);
+                    Arterra.Config.Generation.Item.IItem item = self.settings.Recognition.ConsumePlant(self, foodPos);
                     if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition))
                         self.vitality.Heal(nutrition);
                 } self.TaskIndex = AnimalTasks.FindPreyPlant;
@@ -596,7 +593,7 @@ public class SkyBoidAnimal : Authoring
 
             IAttackable target = tEntity as IAttackable;
             if (target.IsDead) self.BoidFly();
-            else self.vitality.Attack(tEntity, self);
+            else self.vitality.Attack(tEntity);
         }
 
 

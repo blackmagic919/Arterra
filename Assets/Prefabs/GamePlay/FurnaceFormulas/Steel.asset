@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9b122e2cdae1890418994d56b469205c, type: 3}
   m_Name: Steel
-  m_EditorClassIdentifier: Assembly-CSharp:WorldConfig.Generation.Material:FurnaceMaterial/FurnaceFormula
+  m_EditorClassIdentifier: Assembly-CSharp:Arterra.Config.Generation.Material:FurnaceMaterial/FurnaceFormula
   Name: Steel
   Tags:
     Reg:

@@ -1,10 +1,8 @@
 using UnityEngine;
 using static UtilityBuffers;
 using Unity.Mathematics;
-using WorldConfig;
-using TerrainGeneration;
 
-namespace TerrainGeneration.Structure{
+namespace Arterra.Core.Terrain.Structure{
 /// <summary>
 /// A manager unique for every terrain chunk responsible for creating and holding onto
 /// intermediate structure information required by the chunk during the terrain
@@ -71,17 +69,17 @@ public class Creator
     /// equvalent to (<paramref name="chunkCoord"/> * <paramref name="chunkSize"/>)</param>
     /// <param name="chunkSize">The size of the chunk a <see cref="TerrainChunk.RealChunk">real chunk</see> in grid space. The atomic
     /// unit for guaranteed determinstic sampling of chunk structures. </param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> for more info. </param>
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> for more info. </param>
     /// <param name="depth"> The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.Octree">chunk octree</see>. Identifies
     /// the size of the chunk relative to a <see cref="TerrainChunk.RealChunk"> real chunk </see>. See <see cref="TerrainChunk.depth"/> for more info. </param>
     public void PlanStructuresGPU(int3 chunkCoord, float3 offset, int chunkSize, float IsoLevel, int depth=0)
     {
         ReleaseStructure();
-        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 4, 0);
-        Generator.SampleStructureLoD(Config.CURRENT.Generation.Structures.value.maxLoD, chunkSize, depth, chunkCoord);
+        ClearRange(GenerationBuffer, 4, 0);
+        Generator.SampleStructureLoD(Config.Config.CURRENT.Generation.Structures.value.maxLoD, chunkSize, depth, chunkCoord);
         Generator.IdentifyStructures(offset, IsoLevel);
 
-        uint addressIndex = TerrainGeneration.GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer,
+        uint addressIndex =GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer,
             STRUCTURE_STRIDE_WORD, Generator.offsets.prunedCounter);
         this.StructureDataIndex = Generator.TranscribeStructures(GenerationPreset.memoryHandle.GetBlockBuffer(addressIndex),
             GenerationPreset.memoryHandle.Address, addressIndex);
@@ -89,7 +87,7 @@ public class Creator
         return;
     }
 
-    /// <summary> Generates the planned structures for the current chunk. This involves actually transcribing the <see cref="WorldConfig.Generation.Structure.StructureData.map">
+    /// <summary> Generates the planned structures for the current chunk. This involves actually transcribing the <see cref="Arterra.Config.Generation.Structure.StructureData.map">
     /// map information </see> of each structure onto the chunk's map in <see cref="GenerationBuffer">working memory</see> that will be used to create the visual and
     /// interactable features of the chunk. This must be called after the chunk's base map has been populated through
     /// <see cref="Map.Generator.GenerateBaseData(Vector3, uint, int, int, float)"/>. </summary>
@@ -99,7 +97,7 @@ public class Creator
     /// a structure's coordinate from grid space to map space(the location within the chunk's terrain map). </param>
     /// <param name="mapStart">The start of the chunk's terrain map within the <see cref="UtilityBuffers.GenerationBuffer"/>. See <see cref="Map.Generator.GeoGenOffsets.rawMapStart"/>
     /// for more info. </param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> for more info.</param>
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> for more info.</param>
     /// <param name="wChunkSize">The axis size of the chunk's terrain map as it currently is in <see cref="GenerationBuffer"> working memory </see>.</param>
     /// <param name="wOffset">The offset within the chunk's map generated structures will be transcribed to. If the chunk's map
     /// extends beyond what it exclusively contains, this should be used to indicate the axis offest relative to the chunk map's first
@@ -191,10 +189,10 @@ public static class Generator
     /// <see cref="TerrainGeneration.SystemProtocol.Startup"/> </summary>
     public static void PresetData()
     {
-        WorldConfig.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
-        WorldConfig.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
-        WorldConfig.Generation.Structure.Generation structures = Config.CURRENT.Generation.Structures.value;
-        WorldConfig.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
+        Config.Generation.Map mesh = Config.Config.CURRENT.Generation.Terrain.value;
+        Config.Generation.Surface surface = Config.Config.CURRENT.Generation.Surface.value;
+        Config.Generation.Structure.Generation structures = Config.Config.CURRENT.Generation.Structures.value;
+        Config.Quality.Terrain rSettings = Config.Config.CURRENT.Quality.Terrain.value;
         int maxStructurePoints = calculateMaxStructurePoints(structures.maxLoD, rSettings.MaxStructureDepth, structures.StructureChecksPerChunk, structures.LoDFalloff);
         offsets = new StructureOffsets(maxStructurePoints, 0);
 
@@ -258,7 +256,7 @@ public static class Generator
     /// first step </see> of structure generation and is necessary to ensure that the chunk is aware of all structures that overlap
     /// with its boundaries. </summary>
     /// <param name="maxLoD">The maximum LoD of structures generated. The LoD dictates the maximum side length of a structure
-    /// that is guaranteed to be generated properly. See <see cref="WorldConfig.Generation.Structure.Generation.maxLoD"/> for more info.</param>
+    /// that is guaranteed to be generated properly. See <see cref="Arterra.Config.Generation.Structure.Generation.maxLoD"/> for more info.</param>
     /// <param name="chunkSize">The size of a <see cref="TerrainChunk.RealChunk"/> in grid space. </param>
     /// <param name="depth">The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.Octree">chunk octree</see>. Identifies
     /// the size of the chunk relative to a <see cref="TerrainChunk.RealChunk"> real chunk </see>. See <see cref="TerrainChunk.depth"/> for more info. </param>
@@ -285,7 +283,7 @@ public static class Generator
     /// the biome and removes any invalid or trivial structures. This is the <see href="https://blackmagic919.github.io/AboutMe/2024/06/16/Structure-Pruning/">
     /// second step </see> of structure generation and allows for varied and localized structure generation. </summary>
     /// <param name="offset">The offset in grid space of the origin of the chunk</param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> for more info.</param>
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> for more info.</param>
     public static void IdentifyStructures(Vector3 offset, float IsoLevel)
     {
         ComputeBuffer args = UtilityBuffers.CountToArgs(StructureIdentifier, UtilityBuffers.GenerationBuffer, offsets.sampleCounter);
@@ -350,7 +348,7 @@ public static class Generator
     }
     
     /// <summary> Applies the generation information of structures to the chunk's terrain map. This is the <see href="https://blackmagic919.github.io/AboutMe/2024/07/03/Structure-Placement/">
-    /// final step</see> of structure generation and involves transcribing the <see cref="WorldConfig.Generation.Structure.StructureData.map"/> information of each structure 
+    /// final step</see> of structure generation and involves transcribing the <see cref="Arterra.Config.Generation.Structure.StructureData.map"/> information of each structure 
     /// over the chunk's terrain map. </summary>
     /// <remarks> The time complexity of this operation is O(n) with respect to the size of the largest structure within the chunk. </remarks>
     /// <param name="memory">The buffer containing the generation information for all structures generated by the chunk.</param>
@@ -367,7 +365,7 @@ public static class Generator
     /// extends beyond what it exclusively contains, this should be used to indicate the axis offest relative to the chunk map's first
     /// entry of the first entry exclusively contained by the chunk.</param>
     /// <param name="wChunkSize">The axis size of the chunk's terrain map as it currently is in <see cref="GenerationBuffer"> working memory </see>.</param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="WorldConfig.Quality.Terrain.IsoLevel"/> for more info.</param>
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> for more info.</param>
     public static void ApplyStructures(ComputeBuffer memory, GraphicsBuffer addresses, ComputeBuffer count, int addressIndex, int mapStart, int chunkSize, int meshSkipInc, int wOffset, int wChunkSize, float IsoLevel)
     {
         ComputeBuffer args = UtilityBuffers.CountToArgs(structureChunkGenerator, count);
@@ -402,7 +400,7 @@ public static class Generator
         /// <summary> The location storing the amount of concrete structures after pruning non-intersecting structures, provided by <see cref="IdentifyStructures(Vector3, float)"/>. </summary>
         public int structureCounter;
         /// <summary> The location storing the total amount of checks of all structures within the chunk, used in <see cref="IdentifyStructures(Vector3, float)"/>.
-        /// See <see cref="WorldConfig.Generation.Structure.StructureData.CheckPoint"/> for more info. </summary>
+        /// See <see cref="Arterra.Config.Generation.Structure.StructureData.CheckPoint"/> for more info. </summary>
         public int checkCounter;
         /// <summary> The location storing the amount of structures after pruning all invalid checks, provided by <see cref="IdentifyStructures(Vector3, float)"/>. </summary>
         public int prunedCounter;
@@ -428,7 +426,7 @@ public static class Generator
         /// exceed the capacity of the buffer. </summary>
         /// <param name="maxStructurePoints">The maximum amount of structures that a single chunk may reference at the same time.
         /// This is the maximum possible structures that can be provided by <see cref="SampleStructureLoD(int, int, int, int3)"/> for
-        /// the <see cref="WorldConfig.Quality.Terrain.MaxStructureDepth">largest possible chunk requiring structures</see> under the given 
+        /// the <see cref="Arterra.Config.Quality.Terrain.MaxStructureDepth">largest possible chunk requiring structures</see> under the given 
         /// world's configuration. A larger chunk will require more structure points as it encompasses a larger region. </param>
         /// <param name="bufferStart">The start of the region within working memory the structure generator may utilize. See 
         /// <see cref="BufferOffsets.bufferStart"/> for more info. </param>

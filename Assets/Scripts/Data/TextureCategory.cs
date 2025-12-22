@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using WorldConfig;
+using Arterra.Config;
 
 [CreateAssetMenu(menuName = "Texture/Category")]
 public class TextureCategory : Category<TextureContainer>

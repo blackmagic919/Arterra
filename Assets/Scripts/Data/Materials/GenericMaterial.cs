@@ -1,12 +1,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using MapStorage;
+using Arterra.Core.Storage;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace WorldConfig.Generation.Material
+namespace Arterra.Config.Generation.Material
 {
     /// <summary> A concrete material type with no explicit interaction behavior. That is,
     /// it does not need to do anything when updated. By default most materials

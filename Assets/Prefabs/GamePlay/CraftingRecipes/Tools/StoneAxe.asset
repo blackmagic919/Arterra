@@ -21,7 +21,7 @@ MonoBehaviour:
     - 
     - StoneAxe
     - Wood:Solid
-    - Rock:Solid
+    - Stone:Solid
   Recipe:
     value:
       materials:

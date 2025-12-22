@@ -1,11 +1,9 @@
-using System.Collections;
 using System.Collections.Generic;
-using TerrainGeneration.Readback;
 using UnityEngine;
 
-namespace WorldConfig.Intrinsic{
+namespace Arterra.Config.Intrinsic{
 /// <summary> Settings for the readback system. 
-/// <see cref="TerrainGeneration.Readback.AsyncMeshReadback"/> 
+/// <see cref="Core.Terrain.Readback.AsyncMeshReadback"/> 
 /// for more information. </summary>
 [CreateAssetMenu(menuName = "Settings/Readback")]
 public class Readback: ScriptableObject

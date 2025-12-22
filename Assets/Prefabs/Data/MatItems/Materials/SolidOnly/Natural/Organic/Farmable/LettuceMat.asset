@@ -1,0 +1,115 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffa76965563f7462d9baf34f7b49b3c9, type: 3}
+  m_Name: LettuceMat
+  m_EditorClassIdentifier: 
+  Name: Lettuce
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - Lettuce
+    - LettuceSeeds
+    - Void
+    - LettuceLeaves
+  terrainData:
+    Texture: 3
+    textureScale: 0.75
+    FlipStateRendering: 0
+    GeoShaderIndex:
+      data: 262149
+  AtmosphereScatter:
+    InScatterCoeffs: {x: 0, y: 0, z: 0}
+    OutScatterCoeffs: {x: 0, y: 0, z: 0}
+    GroundExtinction: {x: 0, y: 0, z: 0}
+    LightIntensity: 0
+  liquidData:
+    shallowCol: {r: 0, g: 0, b: 0, a: 0}
+    deepCol: {r: 0, g: 0, b: 0, a: 0}
+    colFalloff: 0
+    waveBlend: 0
+    waveStrength: 0
+    waveScale: {x: 0, y: 0}
+    waveSpeed: {x: 0, y: 0}
+  Roughness: 0.2
+  SelfCondition:
+    data: 4286643968
+  ConversionData:
+    value:
+    - check:
+        bounds:
+          data: 1679385625
+        flags: 0
+      _material: 0
+      _offset: 537395712
+    - check:
+        bounds:
+          data: 4286643968
+        flags: 1
+      _material: 0
+      _offset: 537394688
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 538444288
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 536347136
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537395713
+    - check:
+        bounds:
+          data: 2130738944
+        flags: 1
+      _material: 0
+      _offset: 537395711
+  ConvertRegions:
+    value:
+    - checkStart: 1
+      checkEnd: 5
+      convertStart: 0
+      convertEnd: 0
+  DefaultDecay:
+    check:
+      bounds:
+        data: 0
+      flags: 0
+    _material: 0
+    _offset: 0
+  DefaultDecayChance: 0
+  MaterialDrops:
+    SolidLootTable:
+      value:
+      - DropItem: 1
+        DropChance: 0.25
+        DropMultiplier: 2
+    DefaultSolidLoot:
+      DropItem: 0
+      DropMultiplier: 1
+    LiquidLootTable:
+      value: []
+    DefaultLiquidLoot:
+      DropItem: 2
+      DropMultiplier: 1
+  references:
+    version: 2
+    RefIds: []
