@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="ParameterPreset" id="{c6d5a45c-7b63-4702-8f91-d758fe95cdb9}">
+		<property name="name">
+			<value>Big Splash</value>
+		</property>
+		<relationship name="folder">
+			<destination>{41d9ed4b-d737-4e4d-99bb-b5d72c0b4a90}</destination>
+		</relationship>
+		<relationship name="parameter">
+			<destination>{b786e86c-3e7c-4d8f-a729-7e14ecceed44}</destination>
+		</relationship>
+	</object>
+	<object class="GameParameter" id="{b786e86c-3e7c-4d8f-a729-7e14ecceed44}">
+		<property name="parameterType">
+			<value>1</value>
+		</property>
+		<property name="maximum">
+			<value>11</value>
+		</property>
+		<property name="initialValue">
+			<value>0</value>
+		</property>
+	</object>
+</objects>

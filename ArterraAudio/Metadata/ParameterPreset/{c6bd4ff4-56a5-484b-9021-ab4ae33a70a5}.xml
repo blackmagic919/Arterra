@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="ParameterPreset" id="{c6bd4ff4-56a5-484b-9021-ab4ae33a70a5}">
+		<property name="name">
+			<value>Arrow Shot</value>
+		</property>
+		<relationship name="folder">
+			<destination>{41d9ed4b-d737-4e4d-99bb-b5d72c0b4a90}</destination>
+		</relationship>
+		<relationship name="parameter">
+			<destination>{898ca264-cf65-4c1d-bbe1-f75eb7fe0783}</destination>
+		</relationship>
+	</object>
+	<object class="GameParameter" id="{898ca264-cf65-4c1d-bbe1-f75eb7fe0783}">
+		<property name="parameterType">
+			<value>1</value>
+		</property>
+		<property name="maximum">
+			<value>11</value>
+		</property>
+		<property name="initialValue">
+			<value>0</value>
+		</property>
+	</object>
+</objects>
