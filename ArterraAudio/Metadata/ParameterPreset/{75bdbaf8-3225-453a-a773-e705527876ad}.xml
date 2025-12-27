@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="ParameterPreset" id="{75bdbaf8-3225-453a-a773-e705527876ad}">
+		<property name="name">
+			<value>Arrow Twang</value>
+		</property>
+		<relationship name="folder">
+			<destination>{41d9ed4b-d737-4e4d-99bb-b5d72c0b4a90}</destination>
+		</relationship>
+		<relationship name="parameter">
+			<destination>{986ca02a-466f-437f-9191-00987b90ee9c}</destination>
+		</relationship>
+	</object>
+	<object class="GameParameter" id="{986ca02a-466f-437f-9191-00987b90ee9c}">
+		<property name="parameterType">
+			<value>1</value>
+		</property>
+		<property name="maximum">
+			<value>11</value>
+		</property>
+		<property name="initialValue">
+			<value>0</value>
+		</property>
+	</object>
+</objects>

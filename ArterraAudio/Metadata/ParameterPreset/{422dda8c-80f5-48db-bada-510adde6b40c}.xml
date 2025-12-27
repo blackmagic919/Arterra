@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="ParameterPreset" id="{422dda8c-80f5-48db-bada-510adde6b40c}">
+		<property name="name">
+			<value>Splash Panning 2</value>
+		</property>
+		<relationship name="folder">
+			<destination>{41d9ed4b-d737-4e4d-99bb-b5d72c0b4a90}</destination>
+		</relationship>
+		<relationship name="parameter">
+			<destination>{fda607b4-fac5-4453-9e15-b37f5b659f8a}</destination>
+		</relationship>
+	</object>
+	<object class="GameParameter" id="{fda607b4-fac5-4453-9e15-b37f5b659f8a}">
+		<property name="parameterType">
+			<value>1</value>
+		</property>
+		<property name="maximum">
+			<value>11</value>
+		</property>
+		<property name="initialValue">
+			<value>0</value>
+		</property>
+	</object>
+</objects>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="ParameterPreset" id="{696eefca-cc92-4043-8b8e-1bca61b387c0}">
+		<property name="name">
+			<value>Arrow Swish</value>
+		</property>
+		<relationship name="folder">
+			<destination>{41d9ed4b-d737-4e4d-99bb-b5d72c0b4a90}</destination>
+		</relationship>
+		<relationship name="parameter">
+			<destination>{f24a1aa8-6c03-4a6e-a92b-0b3cfaa66df3}</destination>
+		</relationship>
+	</object>
+	<object class="GameParameter" id="{f24a1aa8-6c03-4a6e-a92b-0b3cfaa66df3}">
+		<property name="parameterType">
+			<value>1</value>
+		</property>
+		<property name="maximum">
+			<value>11</value>
+		</property>
+		<property name="initialValue">
+			<value>0</value>
+		</property>
+	</object>
+</objects>

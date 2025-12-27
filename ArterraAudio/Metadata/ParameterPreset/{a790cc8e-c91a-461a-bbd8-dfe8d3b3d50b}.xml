@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="ParameterPreset" id="{a790cc8e-c91a-461a-bbd8-dfe8d3b3d50b}">
+		<property name="name">
+			<value>Small Splash </value>
+		</property>
+		<relationship name="folder">
+			<destination>{41d9ed4b-d737-4e4d-99bb-b5d72c0b4a90}</destination>
+		</relationship>
+		<relationship name="parameter">
+			<destination>{35262c11-8db8-43ce-bca4-d441c8ca7485}</destination>
+		</relationship>
+	</object>
+	<object class="GameParameter" id="{35262c11-8db8-43ce-bca4-d441c8ca7485}">
+		<property name="parameterType">
+			<value>1</value>
+		</property>
+		<property name="maximum">
+			<value>11</value>
+		</property>
+		<property name="initialValue">
+			<value>0</value>
+		</property>
+	</object>
+</objects>

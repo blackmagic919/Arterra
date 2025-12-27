@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{7105eb09-dbe8-498e-a3bc-1b4989c00f33}">
+		<property name="assetPath">
+			<value>Small Splash 6.mp3</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>44.0999985</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>5.8775510204081636</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{ebd3a6d2-c20e-4b93-8949-f0d9802991d6}</destination>
+		</relationship>
+	</object>
+</objects>
