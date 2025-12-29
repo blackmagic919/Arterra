@@ -125,9 +125,9 @@ namespace Arterra.Core.Player {
                 if (Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability) return;
                 if (vitality.Invincibility > 0) return;
                 
-                var cxt = (damage, knockback);
-                eventCtrl.RaiseEvent(GameEvent.Entity_Damaged, this, attacker, ref cxt);
-                (damage, knockback) = cxt;
+                RefTuple<(float, float3)> cxt = (damage, knockback);
+                eventCtrl.RaiseEvent(GameEvent.Entity_Damaged, this, attacker, cxt);
+                (damage, knockback) = cxt.Value;
 
                 if (!vitality.Damage(damage)) return;
                 EntityManager.AddHandlerEvent(() => Indicators.DisplayDamageParticle(position, knockback));
@@ -265,7 +265,7 @@ namespace Arterra.Core.Player {
 
             private void ProcessFallDamage(float zVelDelta)
             {
-                eventCtrl.RaiseEvent(GameEvent.Entity_HitGround, this, null, ref zVelDelta);
+                eventCtrl.RaiseEvent(GameEvent.Entity_HitGround, this, null, new EventContext<float>(ref zVelDelta));
                 if (zVelDelta <= Vitality.FallDmgThresh) return;
                 float dmgIntensity = zVelDelta - Vitality.FallDmgThresh;
                 dmgIntensity = math.pow(dmgIntensity, Config.CURRENT.GamePlay.Player.value.Physicality.value.weight);

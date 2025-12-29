@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Configuration;
+using Arterra.Core.Events;
 
 
 namespace Arterra.Configuration.Gameplay.Player {
@@ -175,8 +176,8 @@ namespace Arterra.Core.Player{
                     camera.camTsf.rotation = SmoothCameraRot;
                 }
 
-                var cxt = (GetAngleX(camera.camTsf.rotation), camera.Rot.y);
-                PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_LookGradual, PlayerHandler.data, null, ref cxt);
+                RefTuple<(float, float)> cxt = (GetAngleX(camera.camTsf.rotation), camera.Rot.y);
+                PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_LookGradual, PlayerHandler.data, null, cxt);
             }
         }
 
@@ -219,8 +220,8 @@ namespace Arterra.Core.Player{
                     camera.camTsf.rotation = SmoothCameraRot;
                 }
                 SetCameraOffset(camera);
-                var cxt = (GetAngleX(camera.camTsf.rotation), camera.Rot.y);
-                PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_LookGradual, PlayerHandler.data, null, ref cxt);
+                RefTuple<(float, float)> cxt = (GetAngleX(camera.camTsf.rotation), camera.Rot.y);
+                PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_LookGradual, PlayerHandler.data, null, cxt);
             }
 
             private void SetCameraOffset(PlayerCamera cm) {
@@ -291,8 +292,8 @@ namespace Arterra.Core.Player{
                     camera.camTsf.rotation = SmoothCameraRot;
                 }
                 SetCameraOffset(camera);
-                var cxt = (GetAngleX(camera.camTsf.rotation), rotation);
-                PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_LookGradual, PlayerHandler.data, null, ref cxt);
+                RefTuple<(float, float)> cxt = (GetAngleX(camera.camTsf.rotation), rotation);
+                PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_LookGradual, PlayerHandler.data, null, cxt);
             }
             
             private static void SetCameraOffset(PlayerCamera cm) {

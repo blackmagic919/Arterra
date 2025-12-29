@@ -126,7 +126,7 @@ namespace Arterra.Core.Player {
                 TerrainCollider.Settings collider = PlayerHandler.data.settings.collider;
                 if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
                     float3 jumpVelocity = Setting.jumpForce * (float3)Vector3.up;
-                    PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_Jump,  PlayerHandler.data, null, ref jumpVelocity);
+                    PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_Jump,  PlayerHandler.data, null, jumpVelocity);
                     velocity += jumpVelocity;
                 }
             }), "PMSurfaceMovement:JMP", "4.0::Movement");
@@ -153,14 +153,14 @@ namespace Arterra.Core.Player {
 
         /// <summary> Initializes the swimming system. </summary>
         public static void Initialize() {
-            PlayerHandler.data.eventCtrl.AddEventHandler<float>(Events.GameEvent.Entity_InLiquid, StartSwim);
-            PlayerHandler.data.eventCtrl.AddEventHandler<float>(Events.GameEvent.Entity_InGas, StopSwim);
+            PlayerHandler.data.eventCtrl.AddEventHandler(Events.GameEvent.Entity_InLiquid, StartSwim);
+            PlayerHandler.data.eventCtrl.AddEventHandler(Events.GameEvent.Entity_InGas, StopSwim);
             isSwimming = false;
         }
 
         /// <summary>=Enables underwater movement as the player's current movement pattern</summary>
         /// <param name="_"></param>
-        public static void StartSwim(object source, object target, ref float density) {
+        public static void StartSwim(object source, object target, object density) { //ctx: float
             if (isSwimming) return;
             if (!OveridableStates.Contains(InputPoller.PeekTop("Movement::Update")))
                 return;
@@ -170,7 +170,7 @@ namespace Arterra.Core.Player {
         }
 
         ///<summary>=Disables underwater movement and returns player to original movement pattern</summary>
-        public static void StopSwim(object source, object target, ref float density){
+        public static void StopSwim(object source, object target, object density){ //ctx: float
             if(!isSwimming) return;
             isSwimming = false;
             RemoveHandles();

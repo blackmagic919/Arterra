@@ -130,12 +130,12 @@ public class BoatEntity : Arterra.Configuration.Generation.Entity.Authoring {
 
             vitality.Update(this);
             TerrainInteractor.DetectMapInteraction(position,
-                OnInSolid: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, this, null, ref dens),
+                OnInSolid: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, this, null, dens),
                 OnInLiquid: (dens) => {
-                    eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, this, null, ref dens);
+                    eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, this, null, dens);
                     velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
                     tCollider.useGravity = false;
-                }, OnInGas: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, this, null, ref dens));
+                }, OnInGas: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, this, null, dens));
 
             if (RiderTarget != Guid.Empty) {
                 float3 aim = math.normalize(new float3(velocity.x, 0, velocity.z));

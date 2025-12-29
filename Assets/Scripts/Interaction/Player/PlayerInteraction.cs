@@ -113,7 +113,7 @@ namespace Arterra.Core.Player{
             if (selMat is not PlaceableItem setting) return;
             if (!setting.IsSolid || !matInfo.Contains(setting.MaterialName)) return;
 
-            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_PlaceTerrain, PlayerHandler.data, null, ref hitPt);
+            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_PlaceTerrain, PlayerHandler.data, null, hitPt);
             CPUMapManager.Terraform(hitPt, settings.TerraformRadius, (GCoord, speed) => HandleAddSolid(
                 InventoryController.Selected,
                 GCoord,
@@ -129,7 +129,7 @@ namespace Arterra.Core.Player{
                 return;
             }
 
-            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_RemoveTerrain, PlayerHandler.data, null, ref hitPt);
+            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_RemoveTerrain, PlayerHandler.data, null, hitPt);
             CPUMapManager.Terraform(hitPt, settings.TerraformRadius,
                 RemoveSolidBareHand, CallOnMapRemoving);
         }

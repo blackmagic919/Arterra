@@ -7,6 +7,7 @@ using UnityEngine;
 using Arterra.Configuration;
 using Arterra.Configuration.Generation.Entity;
 using Arterra.Configuration.Generation.Item;
+using Arterra.Core.Events;
 
 /// <summary> An interface for all object that can be attacked and take damage. It is up to the 
 /// implementer to decide how the request to take damage is handled. </summary>
@@ -96,7 +97,7 @@ public class MinimalVitality {
     }
 
     public void ProcessInSolid(Entity self, float density) {
-        self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, self, null, ref density);
+        self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, self, null, density);
         ProcessSuffocation(self, density);
     }
 
@@ -109,12 +110,12 @@ public class MinimalVitality {
     }
 
     public void ProcessInGas(Entity self, float density) {
-        self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, self, null, ref density);
+        self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, self, null, density);
         breath = genetics.Get(stats.HoldBreathTime);
     }
 
     public void ProcessInLiquid(Entity self, ref TerrainCollider tCollider, float density) {
-        self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, self, null, ref density);
+        self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, self, null, density);
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
         tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
         tCollider.useGravity = false;
@@ -220,11 +221,11 @@ public class MediumVitality : MinimalVitality {
     }
 
     public static void RealAttack(Entity self, Entity target, float damage, float3 knockback) {
-        var cxt = (damage, knockback);
+        RefTuple<(float, float3)> cxt = (damage, knockback);
         self.eventCtrl.RaiseEvent(
-            Arterra.Core.Events.GameEvent.Entity_Attack,
-            self, target, ref cxt
-        ); (damage, knockback) = cxt;
+            GameEvent.Entity_Attack,
+            self, target, cxt
+        ); (damage, knockback) = cxt.Value;
         EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback, self));
     }
 }

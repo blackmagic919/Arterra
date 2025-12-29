@@ -60,7 +60,7 @@ namespace Arterra.UI.ToolTips {
                         
                     }
                     else {
-                        ADebug.LogDebug("TooltipSys: Non-entity target event received.");
+                        ADebug.LogDebug($"TooltipSys: Non-entity target event received for event {gameEvent}.");
                     }
                 });
             }

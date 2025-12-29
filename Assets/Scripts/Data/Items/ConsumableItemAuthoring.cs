@@ -92,7 +92,7 @@ public class ConsumbaleItem : IItem{
         if (player.vitality.healthPercent >= 1) return;
 
         delta = AmountRaw - math.max(AmountRaw - delta, 0);
-        player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player, this, ref delta);
+        player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player, this, delta);
 
         player.vitality.Heal(delta * settings.NutritionValue * UnitSize);
         AmountRaw -= delta;

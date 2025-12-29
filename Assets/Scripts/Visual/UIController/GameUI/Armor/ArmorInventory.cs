@@ -8,6 +8,7 @@ using UnityEngine.UI;
 using Arterra.Configuration;
 using Arterra.Configuration.Generation.Entity;
 using Arterra.Configuration.Generation.Item;
+using Arterra.Core.Events;
 
 public class ArmorInventory : IInventory {
     private Catalogue<EquipableArmor> system => Config.CURRENT.System.Armor.value.Variants;
@@ -23,9 +24,9 @@ public class ArmorInventory : IInventory {
     public IItem PeekItem(int index) => Info[index];
     public int Capacity => (int)Info.Length;
 
-    public bool OnDamaged(Entity entity, ref (float dmg, float3 kb) cxt) {
+    public bool OnDamaged(Entity entity, RefTuple<(float dmg, float3 kb)> cxt) {
         foreach (IArmorItem itm in Info) {
-            itm?.OnDamaged(ref cxt.dmg, ref cxt.kb, ref entity);
+            itm?.OnDamaged(ref cxt.Value.dmg, ref cxt.Value.kb, ref entity);
         }
         return false;
     }

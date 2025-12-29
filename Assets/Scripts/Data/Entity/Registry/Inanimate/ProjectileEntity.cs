@@ -100,12 +100,12 @@ public class Projectile : Arterra.Configuration.Generation.Entity.Authoring
             tCollider.useGravity = true;
 
             TerrainInteractor.DetectMapInteraction(position,
-                OnInSolid: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, this, null, ref dens),
+                OnInSolid: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, this, null, dens),
                 OnInLiquid: (dens) => {
-                    eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, this, null, ref dens);
+                    eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, this, null, dens);
                     velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
                     tCollider.useGravity = false;
-                }, OnInGas: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, this, null, ref dens));
+                }, OnInGas: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, this, null, dens));
 
             decomposition -= EntityJob.cxt.deltaTime;
             if (decomposition <= 0) {
@@ -190,7 +190,7 @@ public class Projectile : Arterra.Configuration.Generation.Entity.Authoring
 
                 this.indicators = new Indicators(gameObject, entity);
                 this.transform.position = CPUMapManager.GSToWS(entity.position);
-                entity.eventCtrl.AddEventHandler<object>(Arterra.Core.Events.GameEvent.Entity_ProjectileHit, PlayHitEffects);
+                entity.eventCtrl.AddEventHandler(Arterra.Core.Events.GameEvent.Entity_ProjectileHit, PlayHitEffects);
                 instance = AudioManager.CreateEventAttached(entity.settings.FlybySound, gameObject);
             }
 
@@ -216,7 +216,7 @@ public class Projectile : Arterra.Configuration.Generation.Entity.Authoring
                 Destroy(gameObject);
             }
 
-            private void PlayHitEffects(object source, object target, ref object _) => 
+            private void PlayHitEffects(object source, object target, object _) => 
                 EntityManager.AddHandlerEvent(() => AudioManager.CreateEvent(entity.settings.HitSound, (source as Entity).position));
 
             ~ProjectileController(){

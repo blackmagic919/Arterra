@@ -61,16 +61,17 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         playerArmor.InitializeDisplay(ArmorPanel);
         playerArmor.ReapplyHandles();
 
-        cxt.cur.eventCtrl.AddEventHandler<(float, float3)>(
+        cxt.cur.eventCtrl.AddEventHandler(
             GameEvent.Entity_Damaged,
-            delegate (object actor, object target, ref (float, float3) args) {
-                playerArmor.OnDamaged(target as Entity, ref args);
+            delegate (object actor, object target, object args) {
+                playerArmor.OnDamaged(target as Entity, (RefTuple<(float, float3)>)args);
             }
         );
 
         cxt.cur.eventCtrl.AddEventHandler(
             GameEvent.Entity_Respawn,
-            delegate (object actor, object target, ref (PlayerStreamer.Player, PlayerStreamer.Player) args) {
+            delegate (object actor, object target, object ctx) {
+                var args = (ctx as EventContext<(PlayerStreamer.Player, PlayerStreamer.Player)>).Data;
                 RebindPlayer(ref args);
             }
         );
@@ -129,8 +130,8 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         float2 lookDir = delta / maxDist;
         lookDir = math.clamp(lookDir, -1f, 1f);
         
-        var cxt = (lookDir.y, -lookDir.x);
-        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_LookDirect, PlayerHandler.data, null, ref cxt);
+        RefTuple<(float, float)> cxt = (lookDir.y, -lookDir.x);
+        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_LookDirect, PlayerHandler.data, null, cxt);
 
         ArmorInventory.ArmorSlot[] ArmorSlots = playerArmor.Display;
         int selected = -1;

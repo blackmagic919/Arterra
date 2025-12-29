@@ -111,8 +111,8 @@ public class Indicators
        this.controller = controller;
        this.InWater = false;
        GameObject.Instantiate(BarIndicator, controller.transform);
-       entity.eventCtrl.AddEventHandler<float>(Arterra.Core.Events.GameEvent.Entity_InLiquid, OnEnterWater);
-       entity.eventCtrl.AddEventHandler<float>(Arterra.Core.Events.GameEvent.Entity_InGas, OnEnterGas);
+       entity.eventCtrl.AddEventHandler(Arterra.Core.Events.GameEvent.Entity_InLiquid, OnEnterWater);
+       entity.eventCtrl.AddEventHandler(Arterra.Core.Events.GameEvent.Entity_InGas, OnEnterGas);
     }
 
     public void Update(){
@@ -133,7 +133,7 @@ public class Indicators
         }
     }
 
-    private void OnEnterWater(object source, object target, ref float density) {
+    private void OnEnterWater(object source, object target, object density) {
         if (InWater) return;
         InWater = true;
         float weight = vitality != null ? vitality.weight : 1;
@@ -141,7 +141,7 @@ public class Indicators
     }
 
 
-    private void OnEnterGas(object source, object target, ref float density) {
+    private void OnEnterGas(object source, object target, object density) {
         if (!InWater) return;
         InWater = false;
         float weight = vitality != null ? vitality.weight : 1;

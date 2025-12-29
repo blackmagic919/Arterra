@@ -136,12 +136,12 @@ namespace Arterra.Core.Player {
                 float3 knockback = math.normalize(target.position - PlayerHandler.data.head) * settings.KnockBackStrength;
                 float damage = settings.AttackDamage;
                 
-                var cxt = (damage, knockback);
+                RefTuple<(float, float3)> cxt = (damage, knockback);
                 PlayerHandler.data.eventCtrl.RaiseEvent(
                     GameEvent.Entity_Attack,
                     PlayerHandler.data,
-                    target, ref cxt
-                ); (damage, knockback) = cxt;
+                    target, cxt
+                ); (damage, knockback) = cxt.Value;
                 
                 atkEntity.TakeDamage(settings.AttackDamage, knockback, PlayerHandler.data);
             }
@@ -154,7 +154,7 @@ namespace Arterra.Core.Player {
         /// <param name="density">The density of the terrain around the player's head.
         /// The amount of damage to apply to the player</param>
         public void ProcessEntityInSolid(Entity self, float density) {
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_InSolid, self, null, ref density);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_InSolid, self, null, density);
             ProcessSuffocation(self, density);
         }
 
@@ -170,7 +170,7 @@ namespace Arterra.Core.Player {
         /// head is neither underwater or underground. </summary>
         /// <param name="density">The density of the gas surrounding the player's head</param>
         public void ProcessInGas(Entity self, float density){
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_InGas, self, null, ref density);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_InGas, self, null, density);
             breath = settings.HoldBreathTime;
         }
 
@@ -179,7 +179,7 @@ namespace Arterra.Core.Player {
         /// <param name="self">The player entity</param>
         /// <param name="density">The density of the liquid surrounding the player's head</param>
         public void ProcessInLiquid(Entity self, float density){
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_InLiquid, self, null, ref density);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_InLiquid, self, null, density);
             breath = math.max(breath - Time.fixedDeltaTime, 0);
             if(breath > 0) return;
             ProcessSuffocation(self, density);

@@ -74,15 +74,41 @@ namespace Arterra.Core.Events {
     //This is the visual layer, in the future this information would need to be
     //sent over to the server so other clients can see your animations
     public interface IEventControlled {
-        public void AddEventHandler<T>(GameEvent type, RefEventHandler<T> handler) => Events.AddEventHandler(type, handler);
-        public void RemoveEventHandler<T>(GameEvent type, RefEventHandler<T> handler) => Events.RemoveEventHandler(type, handler);
+        public void AddEventHandler<T>(GameEvent type, RefEventHandler handler) => Events.AddEventHandler(type, handler);
+        public void RemoveEventHandler<T>(GameEvent type, RefEventHandler handler) => Events.RemoveEventHandler(type, handler);
         public void AddContextlessEventHandler<T>(GameEvent type, Action<object, object> handler) => Events.AddContextlessEventHandler(type, handler);
-        public void RaiseEvent<T>(GameEvent type, object actor, object target, ref T ctx) => Events.RaiseEvent(type, actor, target, ref ctx);
+        public void RaiseEvent<T>(GameEvent type, object actor, object target, ref T ctx) => Events.RaiseEvent(type, actor, target, ctx);
         public void RaiseEvent(GameEvent type, object actor, object target) => Events.RaiseEvent(type, actor, target);
         public EventControl Events {get;}
     }
 
-    public delegate void RefEventHandler<T>(object actor, object target, ref T cxt);
+    /// <summary> A generic event context wrapper </summary>
+    /// <typeparam name="T"> The type of data contained in the context. 
+    /// If there're multiple data in the context, first wrap them in a tuple or a custom struct. </typeparam>
+    public class EventContext<T> {
+        public T Data;
+
+        public EventContext(ref T data) {
+            Data = data;
+        }
+    }
+
+    public sealed class RefTuple<TTuple> where TTuple : struct {
+        public TTuple Value;
+
+        public RefTuple(TTuple value) {
+            Value = value;
+        }
+
+        public static implicit operator RefTuple<TTuple>(TTuple value)
+            => new RefTuple<TTuple>(value);
+
+        public static implicit operator TTuple(RefTuple<TTuple> wrapper)
+            => wrapper.Value;
+        
+    }
+
+    public delegate void RefEventHandler(object actor, object target, object cxt);
 
     // Event control class implement a common control using EventHandlerList
     public class EventControl {
@@ -90,7 +116,7 @@ namespace Arterra.Core.Events {
 
 
         // Methods to add, remove, and raise events
-        public void AddEventHandler<T>(GameEvent type, RefEventHandler<T> handler) {
+        public void AddEventHandler(GameEvent type, RefEventHandler handler) {
             if (events.ContainsKey((int)type)) {
                 events[(int)type] = Delegate.Combine(events[(int)type], handler);
             } else {
@@ -98,7 +124,7 @@ namespace Arterra.Core.Events {
             }
         }
         
-        public void RemoveEventHandler<T>(GameEvent type, RefEventHandler<T> handler) {
+        public void RemoveEventHandler(GameEvent type, RefEventHandler handler) {
             if (events.ContainsKey((int)type)) {
                 events[(int)type] = Delegate.Remove(events[(int)type], handler);
             }
@@ -111,54 +137,17 @@ namespace Arterra.Core.Events {
         /// <param name="handler"></param>
         public void AddContextlessEventHandler(GameEvent evt, Action<object, object> handler)
         {
-            // Get the EventControl instance (replace with your actual instance)
-            var eventCtrl = this;
-
-            Type ctxType = GameEventTypeMap.EventArgTypes.GetValueOrDefault(evt, null);
-
-            if (ctxType == null)
-            {
-                // If no context type is defined, use a dummy type
-                Debug.LogWarning($"EventControl: No context type defined for event {evt}. Using dummy context.");
-                ctxType = typeof(object);
-            }
-            // Get the generic delegate type: RefEventHandler<T>
-            var handlerType = typeof(RefEventHandler<>).MakeGenericType(ctxType);
-
-            var method = typeof(EventControl)
-                .GetMethod(nameof(AddContextlessEventHandlerGeneric), 
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-                .MakeGenericMethod(ctxType);
-
-            method.Invoke(null, new object[] { eventCtrl, evt, handler });    
-        }
-
-        // Helper method to create a strongly-typed wrapper
-        private static void AddContextlessEventHandlerGeneric<T>(EventControl eventCtrl, GameEvent evt, Action<object, object> handler)
-        {
-            RefEventHandler<T> wrapper = (object actor, object target, ref T ctx) =>
-            {
+            AddEventHandler(evt, (object actor, object target, object ctx) => {
                 handler(actor, target);
-            };
-            eventCtrl.AddEventHandler(evt, wrapper);
-        }             
+            });
+        }            
 
-        public void RaiseEvent<T>(GameEvent type, object actor, object target, ref T ctx) {
+        public void RaiseEvent(GameEvent type, object actor, object target, object ctx = null) {
             // this  could be entity / player/ item.... 
             // Eventqueu.
             if (events.ContainsKey((int)type)) {
-                var handler = (RefEventHandler<T>)events[(int)type];
-                handler?.Invoke(actor, target, ref ctx);
-            }
-        }
-
-        public void RaiseEvent(GameEvent type, object actor, object target) {
-            // this  could be entity / player/ item.... 
-            // Eventqueu.
-            object ctx = null;
-            if (events.ContainsKey((int)type)) {
-                var handler = (RefEventHandler<object>)events[(int)type];
-                handler?.Invoke(actor, target, ref ctx);
+                var handler = (RefEventHandler)events[(int)type];
+                handler?.Invoke(actor, target, ctx);
             }
         }
     }
