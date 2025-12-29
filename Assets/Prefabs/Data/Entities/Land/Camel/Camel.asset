@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: Camel
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 9001
+        value:
+          value:
+            rid: 4440372734035755008
   Controller:
     value: {fileID: 4670410139979133744, guid: 75bc8e972a96b45dba996f770581e50b, type: 3}
   Profile:
@@ -258,4 +262,23 @@ MonoBehaviour:
           ConsumptionRate: 0.25
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 4440372734035755008
+      type: {class: ToolTipTag, ns: , asm: Assembly-CSharp}
+      data:
+        ToolTips:
+          value:
+          - AcknowledgeTime: 0
+            AcknowledgeEvent: 0
+            Priority: 0
+            TriggerEvent: 3
+            TriggerTime: 0
+            PrefabPath: Camel_prefab
+            BlockingToolTips: 0
+          - AcknowledgeTime: 0
+            AcknowledgeEvent: 0
+            Priority: 0
+            TriggerEvent: 0
+            TriggerTime: 0
+            PrefabPath: 
+            BlockingToolTips: 0

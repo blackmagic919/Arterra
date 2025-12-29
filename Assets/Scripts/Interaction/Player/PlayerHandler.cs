@@ -3,6 +3,7 @@ using System.IO;
 using System;
 using Arterra.Core.Events;
 using Arterra.Core.Terrain;
+using Arterra.UI.ToolTips;
 
 
 namespace Arterra.Config.Gameplay.Player{
@@ -78,24 +79,27 @@ namespace Arterra.Core.Player{
             var prms = (data, data);
             RebindPlayer(ref prms);
 
-            OctreeTerrain.viewer = data.player.transform; //set octree's viewer to current player
-            PlayerCamera.Initialize();
-            PlayerMovement.Initialize();
-            PlayerInteraction.Initialize();
-            OctreeTerrain.MainLoopUpdateTasks.Enqueue(new IndirectUpdate(Update));
-            OctreeTerrain.MainFixedUpdateTasks.Enqueue(new IndirectUpdate(FixedUpdate));
-        }
+        OctreeTerrain.viewer = data.player.transform; //set octree's viewer to current player
+        PlayerCamera.Initialize();
+        PlayerMovement.Initialize();
+        PlayerInteraction.Initialize();
+        OctreeTerrain.MainLoopUpdateTasks.Enqueue(new IndirectUpdate(Update));
+        OctreeTerrain.MainFixedUpdateTasks.Enqueue(new IndirectUpdate(FixedUpdate));
 
-        static bool RebindPlayer(ref (PlayerStreamer.Player old, PlayerStreamer.Player cur) cxt) {
-            Viewer.SetParent(cxt.cur.player.transform, worldPositionStays: false);
-            cxt.cur.AddEventHandler<(PlayerStreamer.Player, PlayerStreamer.Player)>(
-                EntityEventType.OnRespawn,
-                delegate (object sender, ref (PlayerStreamer.Player, PlayerStreamer.Player) args) {
-                    RebindPlayer(ref args);
-                }
-            );
-            return false;
-        }
+        // TODO: Test tooltip system initialization
+        // TooltipSystem.Initialize();
+    }
+
+    static bool RebindPlayer(ref (PlayerStreamer.Player old, PlayerStreamer.Player cur) cxt) {
+        Viewer.SetParent(cxt.cur.player.transform, worldPositionStays: false);
+        cxt.cur.eventCtrl.AddEventHandler<(PlayerStreamer.Player, PlayerStreamer.Player)>(
+            GameEvent.Entity_Respawn,
+            delegate (object actor, object target, ref (PlayerStreamer.Player, PlayerStreamer.Player) args) {
+                RebindPlayer(ref args);
+            }
+        );
+        return false;
+    }
 
 
         private static void Update(MonoBehaviour mono) {
@@ -156,7 +160,7 @@ namespace Arterra.Core.Player{
             EntityManager.DeserializeEntity(nPlayer, () => {
                 //Answer hooks
                 var prms = (data, nPlayer);
-                data.RaiseEvent(EntityEventType.OnRespawn, ref prms);
+                data.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, data, null, ref prms);
                 //data.Events.Invoke(EntityEvents.EventType.OnRespawn, ref prms);
                 
                 OctreeTerrain.viewer = nPlayer.player.transform;

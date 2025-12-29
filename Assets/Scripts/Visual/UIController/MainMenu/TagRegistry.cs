@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Config;
 using Arterra.Core.Storage;
 using Arterra.Config.Generation.Entity;
+using Arterra.UI.ToolTips;
 
 
 [Serializable]
@@ -137,7 +139,7 @@ public class CombustibleTag : ICloneable {
     public float Temperature; // The temperature the item can provide
 
     public float BurningRate; // How fate the item burns in terms of amount per second
-    
+
     public object Clone() {
         return new CombustibleTag {
             Temperature = Temperature,
@@ -145,6 +147,71 @@ public class CombustibleTag : ICloneable {
         };
     }
 }
+
+
+/// <summary>
+/// Tooltip Tag defining the configurations for tooltips associated with an entity/item or other game elements.
+/// </summary>
+[Serializable]
+public class ToolTipTag : ICloneable {
+
+    // List of tooltip configurations associated with this tag.
+    public Option<List<ToolTipConfig>> ToolTips;
+
+    public object Clone() {;
+        Option<List<ToolTipConfig>> cloneToolTips = ToolTips;
+        cloneToolTips.Clone();
+        return new ToolTipTag {
+            ToolTips = cloneToolTips
+        };
+    }
+
+}
+
+[Serializable]
+public struct ToolTipConfig : ICloneable {
+
+    // The time since this popup is enqueued (potentially displayed)  before we auto-acknowledge this popup. 
+    // If the popup is only auto-acknowledged by another event, set this to TimeSpan.Infinity.
+
+    public float AcknowledgeTime; // in seconds
+
+    // Once the event is enqueued(potentially displayed), the event that when triggered will auto-acknowledge
+    // this popup (i.e. dequeuing it). If the popup is only auto-acknowledged after a certain time, 
+    // set this to EventType.None
+    public Arterra.Core.Events.GameEvent AcknowledgeEvent;
+
+    public TooltipPriority Priority;
+
+    // Used to distinguish, for example, between OnInteractEntity and OnAttackEntity since they both read this tag.
+    // If the tag is EventType.None then trigger on any of these.
+    public Arterra.Core.Events.GameEvent TriggerEvent;
+
+    //The time since the trigger event occurred before the popup can be enqueued(potentially displayed). 
+    // Set this to TimeSpan.Zero to consider it immediately.
+    public float TriggerTime; // in seconds
+
+    public string PrefabPath; //TODO: for testing only.
+
+    // Whether, once this tooltip is auto-acknowledged, its name is put into a blacklist hash preventing it 
+    // from ever triggering again. This should almost always be true (maybe except for some ondeath/startup msg 
+    // or something)
+
+    public bool BlockingToolTips;
+
+    public object Clone() {
+        return new ToolTipConfig {
+            AcknowledgeTime = AcknowledgeTime,
+            AcknowledgeEvent = AcknowledgeEvent,
+            Priority = Priority,
+            TriggerEvent = TriggerEvent,
+            TriggerTime = TriggerTime,
+            BlockingToolTips = BlockingToolTips,
+            PrefabPath = PrefabPath
+        };
+    }
+}
+
 
 public interface IMaterialConverting : ICloneable {
     public Arterra.Config.Generation.Structure.StructureData.CheckInfo ConvertBounds { get; }
@@ -203,6 +270,7 @@ public struct TagRegistry
         { Tags.Combustible, new CombustibleTag() },
         //Interaction Type
         { Tags.FocusedPlace, null },
+        { Tags.ToolTip, new ToolTipTag() },
         // Projectiles
         { Tags.ArrowTag, new ProjectileTag() }
     };
@@ -216,7 +284,7 @@ public struct TagRegistry
         //Convertables
         Grassy = 2000, Vegetative = 2001, AquaMicrobial = 2002,
         //Interactions
-        FocusedPlace = 9000,
+        FocusedPlace = 9000, ToolTip = 9001,
         // Projectiles 
         ArrowTag = 10000
     }

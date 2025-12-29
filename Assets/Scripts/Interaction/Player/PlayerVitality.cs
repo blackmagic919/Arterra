@@ -6,6 +6,7 @@ using UnityEngine;
 using Newtonsoft.Json;
 using Arterra.Config.Generation.Entity;
 using Arterra.Core.Player;
+using Arterra.Core.Events;
 
 namespace Arterra.Config.Gameplay.Player {
     /// <summary> Settings describing the player's vitaltiy, or the 
@@ -137,6 +138,15 @@ namespace Arterra.Core.Player {
                 PlayerHandler.data.Play("Punch");
             }
             EntityManager.AddHandlerEvent(() => PlayerDamageEntity(entity));
+    
+            // TODO: Test tooltip display on attack
+            int damage = 1;
+            PlayerHandler.data.eventCtrl.RaiseEvent<int>(
+                GameEvent.Entity_Attack,
+                PlayerHandler.data,
+                entity,
+                ref damage
+            );
         }
         
         /// <summary>Processes damaging the player

@@ -61,16 +61,16 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         playerArmor.InitializeDisplay(ArmorPanel);
         playerArmor.ReapplyHandles();
 
-        cxt.cur.AddEventHandler<(float, float3, Entity)>(
-            EntityEventType.OnDamaged,
-            delegate (object sender, ref (float, float3, Entity) args) {
+        cxt.cur.eventCtrl.AddEventHandler<(float, float3, Entity)>(
+            GameEvent.Entity_Damaged,
+            delegate (object actor, object target, ref (float, float3, Entity) args) {
                 playerArmor.OnDamaged(ref args);
             }
         );
 
-        cxt.cur.AddEventHandler<(PlayerStreamer.Player, PlayerStreamer.Player)>(
-            EntityEventType.OnRespawn,
-            delegate (object sender, ref (PlayerStreamer.Player, PlayerStreamer.Player) args) {
+        cxt.cur.eventCtrl.AddEventHandler<(PlayerStreamer.Player, PlayerStreamer.Player)>(
+            GameEvent.Entity_Respawn,
+            delegate (object actor, object target, ref (PlayerStreamer.Player, PlayerStreamer.Player) args) {
                 RebindPlayer(ref args);
             }
         );

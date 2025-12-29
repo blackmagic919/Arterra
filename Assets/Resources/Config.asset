@@ -573,3 +573,9 @@ MonoBehaviour:
           GridThickness: 2.5
       ReadBack:
         value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
+      Tooltips:
+        EnableTooltips: 1
+        MaxPopups: 5
+        MinDisplayTimeInSeconds: 10
+        TooltipEvents:
+          value: 030000000800000007000000

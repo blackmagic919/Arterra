@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: Horse
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 9001
+        value:
+          value:
+            rid: 4440372752268132423
   Controller:
     value: {fileID: 4395981907996118257, guid: 00ca1f9e7df7b47e8b8ae693b40de4f0, type: 3}
   Profile:
@@ -276,4 +280,16 @@ MonoBehaviour:
           ConsumptionRate: 0.25
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 4440372752268132423
+      type: {class: ToolTipTag, ns: , asm: Assembly-CSharp}
+      data:
+        ToolTips:
+          value:
+          - AcknowledgeTime: 0
+            AcknowledgeEvent: 0
+            Priority: 0
+            TriggerEvent: 3
+            TriggerTime: 0
+            PrefabPath: Horse_prafab
+            BlockingToolTips: 0
