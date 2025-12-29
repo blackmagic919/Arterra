@@ -102,6 +102,8 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 31ef36273a4f04dc8aaa1fa1560abe7e, type: 2}
         - {fileID: 11400000, guid: f5c419fb676354694a569e0104f33d91, type: 2}
         - {fileID: 11400000, guid: 867ce4c1c48464fc69cd0cd653c7aea8, type: 2}
+        - {fileID: 11400000, guid: 393f54cc6841a4a9690389545512e6ff, type: 2}
+        - {fileID: 11400000, guid: 70b193dbc8ad947d1b435c37d4a12944, type: 2}
         - {fileID: 11400000, guid: a4c2c1088d7014561a762498ec205ec9, type: 2}
         - {fileID: 11400000, guid: 799801124b62142afb39063d7fdef2d0, type: 2}
         - {fileID: 11400000, guid: d6b9381607c524d0e8e9440fc45d6e5b, type: 2}
@@ -113,7 +115,9 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 2ff1b4dd3fb8342c29a3500c0a9944e6, type: 2}
         - {fileID: 11400000, guid: 34e92fbde564348c48f9702ca5afa1aa, type: 2}
         - {fileID: 11400000, guid: f941424c55e9c4cfca7d3e14bb831647, type: 2}
+        - {fileID: 11400000, guid: e8e2cc43e4b5b4fa4bf33feddf0da577, type: 2}
         - {fileID: 11400000, guid: 4c8e386beb113431a9e07a373b4f355c, type: 2}
+        - {fileID: 11400000, guid: 631192b1ba2364d9e940415906d2b725, type: 2}
         - {fileID: 11400000, guid: 828e0cfa708264ced8f04cfbe8b1d351, type: 2}
         - {fileID: 11400000, guid: 02d09fe1d2b6b429991220bd65558e30, type: 2}
         - {fileID: 11400000, guid: d6bd7cac775fd4cfe9fb66068eb65c15, type: 2}
@@ -233,7 +237,10 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 4c9c8f8da2942411abb930cee9122bad, type: 2}
         - {fileID: 11400000, guid: 0deec40e6b20d4787bc1b6542430e708, type: 2}
         - {fileID: 11400000, guid: 8063711f7fccd4ed3b98b9d8a0ae10eb, type: 2}
+        - {fileID: 11400000, guid: a43fe10ca35fb405ca9bf565e1091989, type: 2}
+        - {fileID: 11400000, guid: bc94264fbc06c436d97067fdd94983e6, type: 2}
         - {fileID: 11400000, guid: 717b9bf3d82c74f7db056808bcdff118, type: 2}
+        - {fileID: 11400000, guid: b108e2bc0a9984ffab2cb8c8e599e8e4, type: 2}
         - {fileID: 11400000, guid: a908d54cac7a543889802488b49c0a1b, type: 2}
         - {fileID: 11400000, guid: 00010ae8d40ca47298ac0d9454129160, type: 2}
         - {fileID: 11400000, guid: bbac2c5e1b7964535a7707d1dd481b3b, type: 2}
@@ -249,6 +256,12 @@ MonoBehaviour:
         - {fileID: 11400000, guid: cc896ec5c56ad4cb89aaa02439d51051, type: 2}
         - {fileID: 11400000, guid: 5d315ca76a42144ea905ffb560039244, type: 2}
         - {fileID: 11400000, guid: a95292747be69464cb74c59591fda418, type: 2}
+        - {fileID: 11400000, guid: 887409e33edbe4b37b7b42d2eb46761b, type: 2}
+        - {fileID: 11400000, guid: 9922f14a351fb461e90e2e67eea1413c, type: 2}
+        - {fileID: 11400000, guid: aca4a59d49a624225a445b924e6a0d9d, type: 2}
+        - {fileID: 11400000, guid: e48fd65a325a146bd86e139719ae333f, type: 2}
+        - {fileID: 11400000, guid: e502db65d56e04e269703e11a932b795, type: 2}
+        - {fileID: 11400000, guid: 8771549a9c8f54e9b96519f7c9ab1701, type: 2}
         - {fileID: 11400000, guid: a062f1b450bdf4ab4a7d24f6446e6e05, type: 2}
         - {fileID: 11400000, guid: a4511ccb3a3e74fd6ac654b26c69ff06, type: 2}
         - {fileID: 11400000, guid: 6c0b87489a5b04d93a03b0bcea81171a, type: 2}
@@ -274,6 +287,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 87973ea6918e84df992dd49c49e12d62, type: 2}
         - {fileID: 11400000, guid: 932b8128755b641b08b42e8aad78a3c6, type: 2}
         - {fileID: 11400000, guid: 610fb1697c3fb4047a17cfd6713e6954, type: 2}
+        - {fileID: 11400000, guid: 7ae7b5d92f5534a2f97435205bfba8de, type: 2}
         - {fileID: 11400000, guid: d06b2b0ad3d794abba77b8b97103f80f, type: 2}
         - {fileID: 11400000, guid: 315f78ddccde946d1850e0765035b8c2, type: 2}
         - {fileID: 11400000, guid: 0bb667c8999684e82837aa87ee1decb3, type: 2}
@@ -341,8 +355,8 @@ MonoBehaviour:
           movement:
             value:
               walkSpeed: 3
-              runSpeed: 5
-              jumpForce: 6
+              runSpeed: 6
+              jumpForce: 5
               acceleration: 100
               groundStickDist: 0.05
               flightSpeedMultiplier: 3
@@ -552,6 +566,8 @@ MonoBehaviour:
         - {fileID: 11400000, guid: f6b9c7569546fb0449716faf519460ed, type: 2}
         - {fileID: 11400000, guid: 372859b076a254d9ab5d56cfadea08da, type: 2}
         - {fileID: 11400000, guid: d6f55fb74f79940a7aaeca151f3357bf, type: 2}
+        - {fileID: 11400000, guid: ec9f6dc46d42f4243ae3b5bb363616d0, type: 2}
+        - {fileID: 11400000, guid: abcd48e2f64904d58a06071362f31519, type: 2}
       Armor:
         value: {fileID: 11400000, guid: 360677af915224c978e39e88db696d39, type: 2}
       TerrainUpdation:

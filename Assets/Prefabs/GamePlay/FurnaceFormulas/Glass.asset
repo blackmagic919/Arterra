@@ -20,8 +20,8 @@ MonoBehaviour:
     value:
     - Glass:Solid
     - Sand:Solid
-  StartTemperature: 300
-  EndTemperature: 500
+  StartTemperature: 500
+  EndTemperature: 800
   Inputs:
     value:
     - Index: 1

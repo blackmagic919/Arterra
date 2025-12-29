@@ -51,8 +51,8 @@ public class MinimalRecognition {
             AwarenessTable.TryAdd(entityIndex, new Recognizable(i, 1));
         }} if(PreyEntity.value != null) {
         for(int i = 0; i < PreyEntity.value.Count; i++){
-            int edibleIndex = eReg.RetrieveIndex(PreyEntity.value[i].EntityType);
-            AwarenessTable.TryAdd(-edibleIndex, new Recognizable(i, 2)); 
+            int entityIndex = eReg.RetrieveIndex(PreyEntity.value[i].EntityType);
+            AwarenessTable.TryAdd(entityIndex, new Recognizable(i, 2)); 
         }} if(PreyPlant.value != null) {
         for(int i = 0; i < PreyPlant.value.Count; i++){
             int materialIndex = mReg.RetrieveIndex(PreyPlant.value[i].Material);

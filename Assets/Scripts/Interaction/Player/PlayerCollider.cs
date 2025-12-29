@@ -338,13 +338,9 @@ namespace Arterra.Config.Gameplay.Player{
             float friction = 0;
             bool IsTangible = !Config.CURRENT.GamePlay.Gamemodes.value.Intangiblity; 
             byte contact = IsTangible ? TerrainInteractor.SampleContact(transform.position, transform.size, out friction, PlayerHandler.data) : (byte)0;
-            if (TerrainInteractor.IsTouching(contact)) {
-                transform.velocity.xz *= 1 - friction;
-                if (!useGravity) transform.velocity.y *= 1 - friction;
-            } else {
-                if (useGravity) transform.velocity.xz *= 1 - TerrainCollider.BaseFriction;
-                else transform.velocity *= 1 - TerrainCollider.BaseFriction;
-            }
+            if (!TerrainInteractor.IsTouching(contact)) friction = TerrainCollider.BaseFriction;
+            if (useGravity) transform.velocity.xz *= 1 - friction;
+            else transform.velocity *= 1 - friction;
 
             transform.position += transform.velocity * Time.fixedDeltaTime;
             if (useGravity) transform.velocity += (float3)Physics.gravity * Time.fixedDeltaTime;

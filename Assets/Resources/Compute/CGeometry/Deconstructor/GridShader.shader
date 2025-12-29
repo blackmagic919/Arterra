@@ -25,7 +25,6 @@ Shader "Unlit/GridShader"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
-            #define NO_SELECTION
 
 
             struct DrawVertex{
@@ -56,6 +55,7 @@ Shader "Unlit/GridShader"
             float _VertexSize;
             half4 _VertexColor;
             half4 _SelectedColor;
+            uint _NoSelection;
 
             const static int3 cubeCorners[8] = {
                 int3(0, 0, 0), int3(1, 0, 0), int3(0, 1, 0), int3(0, 0, 1),
@@ -85,11 +85,8 @@ Shader "Unlit/GridShader"
                     float dist = distance(offset, cubeCorners[i]);
                     if(dist < _VertexSize){
                         uint index = indexFromCoordIrregular(floor(IN.positionOS) + cubeCorners[i], uint2(MapSizeY, MapSizeZ));
-#ifdef NO_SELECTION
-                        return _VertexColor;
-#else
-                        return ((SelectionBuffer[index/32] >> (index % 32)) & 0x1) ? _SelectedColor : _VertexColor;
-#endif
+                        if (_NoSelection) return _VertexColor;
+                        else return ((SelectionBuffer[index/32] >> (index % 32)) & 0x1) ? _SelectedColor : _VertexColor;
                     }
                 }
 

@@ -19,10 +19,6 @@ public static class GameUIManager {
         GameOverHandler.Initialize();
         PlayerStatDisplay.Initialize();
     }
-
-    public static void Release() {
-        LoadingHandler.Release();
-    }
 }
 
 

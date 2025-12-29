@@ -260,6 +260,17 @@ public static class EntityManager
 
     }
 
+    public static void OnDrawGizmos(){
+        if(ESTree.Length == 0) return;
+        Gizmos.color = Color.white;
+        for(int i = 1; i < ESTree.Length; i++){
+            STree.TreeNode region = ESTree[(uint)i];
+            Vector3 center = CPUMapManager.GSToWS((region.bounds.min + region.bounds.max) / 2);
+            Vector3 size = (float3)(region.bounds.max - region.bounds.min) * 2;
+            Gizmos.DrawWireCube(center, size);
+        }
+    }
+
     public struct EntityGenOffsets: BufferOffsets{
         public int entityCounter;
         public int prunedCounter;

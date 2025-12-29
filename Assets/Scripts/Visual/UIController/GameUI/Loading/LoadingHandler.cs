@@ -33,8 +33,6 @@ public static class LoadingHandler
         Activate();
     }
 
-    public static void Release() => AudioManager.Instance.UpdateAmbience(0);
-
     public static void Activate(){
         if(eventTask != null && eventTask.Active) 
             eventTask.Active = false;

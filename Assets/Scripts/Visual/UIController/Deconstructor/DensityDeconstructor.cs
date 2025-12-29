@@ -20,7 +20,7 @@ public class DensityDeconstructor : MonoBehaviour
     public StructureData Structure;
 
     [Header("Create")]
-    public string savePath;
+    public string loadPath;
     public float3 SDFoffset;
 
     GridManager.SelectionArray SelectedArray;
@@ -132,13 +132,26 @@ public class DensityDeconstructor : MonoBehaviour
         this.modelManager.GenerateModel();
     }
 
-    public void ConvertMesh()
-    {
-        Mesh mesh = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + savePath + ".fbx").GetComponent<MeshFilter>().sharedMesh;
+    public void ConvertMesh() {
+        Mesh mesh = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + loadPath + ".fbx").GetComponent<MeshFilter>().sharedMesh;
         if (mesh == null) throw new Exception("Mesh not found");
         InitializeGrid();
 
         GetDataFromMesh(mesh);
+        this.UpdateMapData();
+        this.modelManager.GenerateModel();
+    }
+
+    public void LoadChunk() {
+        InitializeGrid();
+        MapData[] map = Chunk.ReadChunkBin(loadPath, 0, out _);
+        if (map == null) return;
+
+        Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+        Structure.map = Utils.CustomUtility.RescaleLinearMap(map, rSettings.mapChunkSize, 2, 1)
+            .Select(s => new StructureData.PointInfo{data = s.data, preserve = false}).ToList();
+        Structure.settings.value.GridSize = new uint3((uint)rSettings.mapChunkSize,
+            (uint)rSettings.mapChunkSize, (uint)rSettings.mapChunkSize) + 2;
         this.UpdateMapData();
         this.modelManager.GenerateModel();
     }
@@ -217,6 +230,7 @@ public class DensityDeconstructor : MonoBehaviour
             if(Event.current.keyCode == KeyCode.N) SwapSelection();
             if(Event.current.keyCode == KeyCode.D) SelectDensity();
             if(Event.current.keyCode == KeyCode.M) SelectMaterial();
+            if(Event.current.keyCode == KeyCode.W) SelectWalkable();
         } else if(Event.current.type == EventType.MouseDown && Event.current.button == 0) SelectPoint();
         else return;
 
@@ -303,6 +317,40 @@ public class DensityDeconstructor : MonoBehaviour
             SelectedArray[ind] = true;
             return true;
         });
+    }
+
+    private void SelectWalkable(){
+        bool VerifyProfile(Arterra.Config.Generation.Entity.Authoring info, int3 BaseCoord) {
+            bool allC = true; bool anyC = false; bool any0 = false;
+            uint3 dC = new (0);
+            Arterra.Config.Generation.Entity.EntitySetting.ProfileInfo p = info.Setting.profile;
+            int3 gridSize = (int3)Structure.settings.value.GridSize;
+            for(dC.x = 0; dC.x < p.bounds.x; dC.x++){
+                for(dC.y = 0; dC.y < p.bounds.y; dC.y++){
+                    for(dC.z = 0; dC.z < p.bounds.z; dC.z++){
+                        uint index = dC.x * p.bounds.y * p.bounds.z + dC.y * p.bounds.z + dC.z;
+                        Arterra.Config.Generation.Entity.ProfileE profile = info.Profile.value[(int)index];
+                        if (math.any(BaseCoord + (int3)dC >= gridSize)) return false;
+                        int3 rCoord = BaseCoord + (int3)dC;
+                        int rIndex = rCoord.x * gridSize.y * gridSize.z + rCoord.y * gridSize.z + rCoord.z;
+                        bool valid = profile.bounds.Contains(new MapData{data = Structure.map.value[rIndex].data});
+                        allC = allC && (valid || !profile.AndFlag);
+                        anyC = anyC || (valid && profile.OrFlag);
+                        any0 = any0 || profile.OrFlag;
+                    }
+                }
+            } 
+            if(allC && (!any0 || anyC)) return true;
+            else return false;
+        }
+        var info = Config.CURRENT.Generation.Entities.Retrieve("Player");
+        if (info == null) return;
+        int3 gridSize = (int3)Structure.settings.value.GridSize;
+        for(int ind = 0; ind < gridSize.x * gridSize.y * gridSize.z; ind++){
+            int3 coord = new int3(ind / (gridSize.y * gridSize.z), (ind / gridSize.z) % gridSize.y, ind % gridSize.z);
+            if (!VerifyProfile(info, coord)) continue;
+            SelectedArray[ind] = true;
+        }
     }
 
     void UpdateSelected(Func<StructureData.PointInfo, StructureData.PointInfo> action){
@@ -634,7 +682,6 @@ public class GridManager{
 
     void SetupRenderParams(Camera camera, out RenderParams rp, Transform transform){
         Bounds BoundsWS = CustomUtility.TransformBounds(transform, boundsOS);
-
         rp = new RenderParams(GridMaterial){
             worldBounds = BoundsWS,
             shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off,
@@ -647,9 +694,10 @@ public class GridManager{
         rp.matProps.SetBuffer("IndexBuffer", GeoBuffer);
         rp.matProps.SetInt("bSTART_index", offsets.indexStart);
         rp.matProps.SetInt("bSTART_vertex", offsets.vertexStart);
-        if (SelectionBuffer != null)
+        if (SelectionBuffer != null) {
             rp.matProps.SetBuffer("SelectionBuffer", SelectionBuffer);
-        else rp.material.EnableKeyword("NO_SELECTION");
+            rp.matProps.SetInt("_NoSelection", 0);
+        } else rp.matProps.SetInt("_NoSelection", 1);
         rp.matProps.SetInt("MapSizeX", (int)GridSize.x); rp.matProps.SetInt("MapSizeY", (int)GridSize.y); rp.matProps.SetInt("MapSizeZ", (int)GridSize.z);
         rp.matProps.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
     }

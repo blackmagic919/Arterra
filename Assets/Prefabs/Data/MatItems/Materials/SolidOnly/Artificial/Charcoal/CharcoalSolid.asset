@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf48acaac850943528925f56e21af8f7, type: 3}
+  m_Name: CharcoalSolid
+  m_EditorClassIdentifier: 
+  Name: Charcoal:Solid
+  Tags:
+    Reg:
+      value:
+      - Tag: 1003
+        value:
+          value:
+            rid: 7772773657648300032
+  TextureName: Charcoal
+  Description: Basic Light Source Made of Smoldering Embers
+  MaterialName: Charcoal
+  MaterialState: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7772773657648300032
+      type: {class: CombustibleTag, ns: , asm: Assembly-CSharp}
+      data:
+        Temperature: 600
+        BurningRate: 0.025

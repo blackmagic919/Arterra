@@ -21,8 +21,8 @@ MonoBehaviour:
     - Copper:Solid
     - Bedrock:Solid
     - Bronze:Solid
-  StartTemperature: 300
-  EndTemperature: 500
+  StartTemperature: 400
+  EndTemperature: 1000
   Inputs:
     value:
     - Index: 0

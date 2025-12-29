@@ -18,9 +18,7 @@ namespace Arterra.Core.Terrain{
 public static class SystemProtocol{
     private static SystemState state = SystemState.Inactive;
 
-    static SystemProtocol() {
-        Reset();
-    }
+    static SystemProtocol() {　Reset();　}
 
     /// <summary> Resets the system state </summary>
     public static void Reset() => state = SystemState.Inactive;
@@ -98,8 +96,7 @@ public static class SystemProtocol{
     }
 
     private static void ShutdownAll(){
-        UtilityBuffers.Release();
-        GameUIManager.Release();
+        AudioManager.Instance?.UpdateAmbience(0);
         EntityManager.Release();
         PlayerHandler.Release();
         LightBaker.Release();
@@ -110,6 +107,7 @@ public static class SystemProtocol{
         CPUMapManager.Release();
         GenerationPreset.Release();
         WorldDataHandler.Release();
+        UtilityBuffers.Release();
     }
 
     private static void ShutdownMinimal() {

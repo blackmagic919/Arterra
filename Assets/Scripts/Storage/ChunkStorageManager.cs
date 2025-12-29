@@ -214,7 +214,13 @@ public static class Chunk
         }
         return info;
     }
-    private static MapData[] ReadChunkBin(string fileAdd, int depth, out ChunkHeader header)
+
+    /// <summary>Reads the map data of a chunk at the given address with a certain depth. </summary>
+    /// <param name="fileAdd">The address of the chunk</param>
+    /// <param name="depth">The detail level of the chunk to read</param>
+    /// <param name="header">The Chunk Header of the read chunk</param>
+    /// <returns>An array of the map data at the given level within the chunk, or null if not found.</returns>
+    public static MapData[] ReadChunkBin(string fileAdd, int depth, out ChunkHeader header)
     {
         try{
             MapData[] map = null;

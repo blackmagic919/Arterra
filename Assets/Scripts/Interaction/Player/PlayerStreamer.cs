@@ -62,6 +62,7 @@ namespace Arterra.Core.Player {
             public PlayerCollider collider;
             /// <summary> This player instance's relation to the actual 
             /// user's input and what they see. See <see cref="StreamingStatus"/> </summary>
+            [JsonProperty] 
             private StreamingStatus status;
 
             /// <summary> The Controller responsible for abstracting the player's

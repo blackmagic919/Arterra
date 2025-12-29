@@ -47,5 +47,9 @@ public class DensityDeconstructorEditor : Editor
         {
             deconstructor.ShiftStructure();
         }
+        if(GUILayout.Button("LoadChunk"))
+        {
+            deconstructor.LoadChunk();
+        }
     }
 }

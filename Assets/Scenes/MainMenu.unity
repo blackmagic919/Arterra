@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: 2d056ac30ecc9e542b26e06133f23602, type: 2}
+  m_SkyboxMaterial: {fileID: 0}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -3337,7 +3337,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1467958669}
   m_HandleRect: {fileID: 1844626531}
   m_Direction: 2
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -3496,6 +3496,13 @@ MonoBehaviour:
       Data3: 2041504186
       Data4: -270400608
     Path: event:/Wind
+  WaterSplashEvent:
+    Guid:
+      Data1: -1713019187
+      Data2: 1171861477
+      Data3: 712152742
+      Data4: -1818572359
+    Path: event:/Sound effects/Water Effects
 --- !u!4 &1543784206
 Transform:
   m_ObjectHideFlags: 0
