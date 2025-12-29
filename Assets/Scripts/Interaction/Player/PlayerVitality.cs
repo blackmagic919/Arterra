@@ -141,11 +141,11 @@ namespace Arterra.Core.Player {
     
             // TODO: Test tooltip display on attack
             int damage = 1;
-            PlayerHandler.data.eventCtrl.RaiseEvent<int>(
+            PlayerHandler.data.eventCtrl.RaiseEvent(
                 GameEvent.Entity_Attack,
                 PlayerHandler.data,
                 entity,
-                ref damage
+                new EventContext<int>(ref damage)
             );
         }
         

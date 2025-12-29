@@ -86,15 +86,15 @@ namespace Arterra.Core.Player{
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(new IndirectUpdate(Update));
         OctreeTerrain.MainFixedUpdateTasks.Enqueue(new IndirectUpdate(FixedUpdate));
 
-        // TODO: Test tooltip system initialization
-        // TooltipSystem.Initialize();
+        TooltipSystem.Initialize();
     }
 
     static bool RebindPlayer(ref (PlayerStreamer.Player old, PlayerStreamer.Player cur) cxt) {
         Viewer.SetParent(cxt.cur.player.transform, worldPositionStays: false);
-        cxt.cur.eventCtrl.AddEventHandler<(PlayerStreamer.Player, PlayerStreamer.Player)>(
+        cxt.cur.eventCtrl.AddEventHandler(
             GameEvent.Entity_Respawn,
-            delegate (object actor, object target, ref (PlayerStreamer.Player, PlayerStreamer.Player) args) {
+            delegate (object actor, object target, object ctx) {
+                var args = (ctx as EventContext<(PlayerStreamer.Player, PlayerStreamer.Player)>).Data;
                 RebindPlayer(ref args);
             }
         );
@@ -160,7 +160,8 @@ namespace Arterra.Core.Player{
             EntityManager.DeserializeEntity(nPlayer, () => {
                 //Answer hooks
                 var prms = (data, nPlayer);
-                data.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, data, null, ref prms);
+                data.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, data, null, 
+                    new EventContext<(PlayerStreamer.Player, PlayerStreamer.Player)>(ref prms));
                 //data.Events.Invoke(EntityEvents.EventType.OnRespawn, ref prms);
                 
                 OctreeTerrain.viewer = nPlayer.player.transform;
