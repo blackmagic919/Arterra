@@ -19,19 +19,22 @@ namespace Arterra.UI.ToolTips {
 
 
     public class TooltipData {
-        public ToolTipConfig Config; // Tooltip config data
+        public TooltipConfig Config; // Tooltip config data
         public int VirtualRunTime; // Simulated virtual runtime value for scheduling.
 
         public DateTime EnqueuedTime; // Time when the tooltip was enqueued.
 
-        public float AcknowledgeTime; // Time span in seconds for the tooltip to be auto acknowledged.
-
         public bool IsAcknowledged {
             get {
-                return (DateTime.Now - EnqueuedTime).Seconds > Config.AcknowledgeTime;
+                return (DateTime.Now - EnqueuedTime).TotalSeconds >= Config.AcknowledgeTime;
             }
         }
-        public TooltipData(ToolTipConfig config) {
+
+        public void Acknowlege() {
+            EnqueuedTime = DateTime.Now.AddSeconds(-Config.AcknowledgeTime - 1); // Manipulate enqueued time to mark as acknowledged.
+        }
+
+        public TooltipData(TooltipConfig config) {
             Config = config;
             EnqueuedTime = DateTime.Now;
             VirtualRunTime = 0;
@@ -61,17 +64,19 @@ namespace Arterra.UI.ToolTips {
 
             // Check if minimum display time has passed
             var elapsed = (DateTime.Now - DisplayStartTime).TotalSeconds;
-            return elapsed >= MinDisplayTimeInSeconds && ActiveTooltip.IsAcknowledged;
+            return elapsed >= MinDisplayTimeInSeconds;
         }
 
         public void Clear() {
+            if (ActiveTooltip == null) return;
             // TODO: clear UI elements
             ActiveTooltip = null;
             ADebug.LogInfo($"TooltipPipeline: Cleared tooltip in slot {Index}");
         }
 
 
-        public void ShowTooltip(TooltipData tooltip) {
+        public void ShowTooltip(TooltipData? tooltip) {
+            if (tooltip == null) return;
             ActiveTooltip = tooltip;
             DisplayStartTime = DateTime.Now;
             ADebug.LogInfo($"TooltipPipeline: Showing tooltip {tooltip.Config.PrefabPath} in slot {Index}");
@@ -99,6 +104,8 @@ namespace Arterra.UI.ToolTips {
         private float MinDisplayTimeInSeconds = 2.0f;
 
         private List<TooltipSlot>? slots;
+
+        private HashSet<string> blacklist = new HashSet<string>();
 
         private PriorityQueue<TooltipData, int> tooltipQueue = new PriorityQueue<TooltipData, int>();
 
@@ -135,9 +142,36 @@ namespace Arterra.UI.ToolTips {
             // TODO: if there's already the same tooltip in the queue or active, ignore.
             if (tooltip == null) return false;
 
+            if (blacklist.Contains(tooltip.Config.PrefabPath)) {
+                ADebug.LogInfo($"TooltipPipeline: Tooltip {tooltip.Config.PrefabPath} is blacklisted, not enqueuing.");
+                return false;
+            }
+
             int weight = priorityWeights[tooltip.Config.Priority];
             tooltipQueue.Enqueue(tooltip, weight);
             return true;
+        }
+
+        public TooltipData? DequeueTooltip() {
+            while (tooltipQueue.Count > 0) {
+                TooltipData nextTooltip = tooltipQueue.Dequeue();
+                if (nextTooltip.IsAcknowledged) {
+                    ADebug.LogDebug($"TooltipPipeline: Tooltip {nextTooltip.Config.PrefabPath} is acknowledged upon dequeue.");
+                    if (nextTooltip.Config.BlockingTooltips) {
+                        blacklist.Add(nextTooltip.Config.PrefabPath);
+                        ADebug.LogDebug($"TooltipPipeline: Tooltip {nextTooltip.Config.PrefabPath} added to blacklist.");
+                    }
+                    continue; // Skip acknowledged tooltips
+                    
+                } 
+                if (blacklist.Contains(nextTooltip.Config.PrefabPath)) {
+                    ADebug.LogDebug($"TooltipPipeline: Tooltip {nextTooltip.Config.PrefabPath} is blacklisted upon dequeue.");
+                    continue; // Skip acknowledged or blacklisted tooltips
+                } else {
+                    return nextTooltip;
+                }
+            }
+            return null;
         }
 
         private void UpdateVirtualRuntime(TooltipData? tooltip) {
@@ -159,7 +193,7 @@ namespace Arterra.UI.ToolTips {
                 TooltipData? currentTooltip = slot.ActiveTooltip;
                 UpdateVirtualRuntime(currentTooltip);
                 // TODO: Check aknowlege time
-                if (currentTooltip != null && !currentTooltip.IsAcknowledged) {
+                if (currentTooltip != null) {
                     tooltipQueue.Enqueue(currentTooltip, currentTooltip.VirtualRunTime);
                 } else {
                     slot.Clear();
@@ -171,7 +205,7 @@ namespace Arterra.UI.ToolTips {
             }
         }
 
-        private void ClearAndShowTooltip(TooltipData tooltip, TooltipSlot slot) {
+        private void ClearAndShowTooltip(TooltipData? tooltip, TooltipSlot slot) {
             slot.Clear();
             slot.ShowTooltip(tooltip);
         }
@@ -185,12 +219,12 @@ namespace Arterra.UI.ToolTips {
                         // If the slot can be cleared
                         if (slot.CanClear()) {
                             TooltipData? oldTooltip = PrepareClearTooltip(slot);
-                            if (tooltipQueue.Count > 0) {
-                                // Dequeue next tooltip to the slot
-                                TooltipData nextTooltip = tooltipQueue.Dequeue();
-                                if (oldTooltip != nextTooltip)
-                                    ClearAndShowTooltip(nextTooltip, slot);
-                            }
+                            
+                            // Dequeue next tooltip to the slot
+                            TooltipData? nextTooltip = DequeueTooltip();
+
+                            if (oldTooltip != nextTooltip)
+                                ClearAndShowTooltip(nextTooltip, slot);
                         }
                     }
                 }

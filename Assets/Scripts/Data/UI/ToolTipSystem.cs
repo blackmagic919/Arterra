@@ -41,12 +41,12 @@ namespace Arterra.UI.ToolTips {
             foreach (var gameEvent in ttSettings.TooltipEvents.value) {
                 PlayerHandler.data.eventCtrl.AddContextlessEventHandler(gameEvent, (object actor, object target) => {
                     if (target is Entity) {
-                        if (!CheckEntityToolTipTag(gameEvent, (Entity)target, out ToolTipTag tag)) {
+                        if (!CheckEntityTooltipTag(gameEvent, (Entity)target, out TooltipTag tag)) {
                             ADebug.LogWarning("TooltipSys: No tooltip tag found for entity.");
                             return;
                         }
 
-                        foreach(var ttConfig in tag.ToolTips.value) {
+                        foreach(var ttConfig in tag.Tooltips.value) {
                             if (ttConfig.TriggerEvent == gameEvent) {
                                 string tooltipName = $"{gameEvent} - {((Entity)target).info.entityId} - {ttConfig.PrefabPath}";
                                 TooltipData tooltipData = new TooltipData(ttConfig);
@@ -67,14 +67,14 @@ namespace Arterra.UI.ToolTips {
 
         }
 
-        private static bool CheckEntityToolTipTag(GameEvent evt, Entity entity, out ToolTipTag tag) {
+        private static bool CheckEntityTooltipTag(GameEvent evt, Entity entity, out TooltipTag tag) {
             tag = null;
             var entityInfo = Config.CURRENT.Generation.Entities;
-            if (entityInfo.GetMostSpecificTag(TagRegistry.Tags.ToolTip, entity.Index, out object tagValueObj)) {
-                var tagValue = (ToolTipTag)tagValueObj;
+            if (entityInfo.GetMostSpecificTag(TagRegistry.Tags.Tooltip, entity.Index, out object tagValueObj)) {
+                var tagValue = (TooltipTag)tagValueObj;
                 // Check if the tag has tooltip for this event.
-                if (tagValue.ToolTips.value != null) {
-                    foreach (var tooltip in tagValue.ToolTips.value) {
+                if (tagValue.Tooltips.value != null) {
+                    foreach (var tooltip in tagValue.Tooltips.value) {
                         if (tooltip.TriggerEvent == evt) {
                             tag = tagValue;
                             ADebug.LogInfo($"TooltipSys: Found matching tooltip for event - {tooltip.TriggerEvent}.");
@@ -91,10 +91,10 @@ namespace Arterra.UI.ToolTips {
         }
 
         // Helper functions
-        private static ToolTipTag GetTooltipTag(Entity entity) {
+        private static TooltipTag GetTooltipTag(Entity entity) {
             var entityInfo = Config.CURRENT.Generation.Entities;
-            if (entityInfo.GetMostSpecificTag(TagRegistry.Tags.ToolTip, entity.Index, out object tagValueObj)) {
-                return(ToolTipTag)tagValueObj;
+            if (entityInfo.GetMostSpecificTag(TagRegistry.Tags.Tooltip, entity.Index, out object tagValueObj)) {
+                return (TooltipTag)tagValueObj;
             }
             else {
                 return null;

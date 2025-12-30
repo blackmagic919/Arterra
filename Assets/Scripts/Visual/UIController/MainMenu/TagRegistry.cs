@@ -155,23 +155,23 @@ public class CombustibleTag : ICloneable {
 /// Tooltip Tag defining the configurations for tooltips associated with an entity/item or other game elements.
 /// </summary>
 [Serializable]
-public class ToolTipTag : ICloneable {
+public class TooltipTag : ICloneable {
 
     // List of tooltip configurations associated with this tag.
-    public Option<List<ToolTipConfig>> ToolTips;
+    public Option<List<TooltipConfig>> Tooltips;
 
     public object Clone() {;
-        Option<List<ToolTipConfig>> cloneToolTips = ToolTips;
-        cloneToolTips.Clone();
-        return new ToolTipTag {
-            ToolTips = cloneToolTips
+        Option<List<TooltipConfig>> cloneTooltips = Tooltips;
+        cloneTooltips.Clone();
+        return new TooltipTag {
+            Tooltips = cloneTooltips
         };
     }
 
 }
 
 [Serializable]
-public struct ToolTipConfig : ICloneable {
+public struct TooltipConfig : ICloneable {
 
     // The time since this popup is enqueued (potentially displayed)  before we auto-acknowledge this popup. 
     // If the popup is only auto-acknowledged by another event, set this to TimeSpan.Infinity.
@@ -199,16 +199,16 @@ public struct ToolTipConfig : ICloneable {
     // from ever triggering again. This should almost always be true (maybe except for some ondeath/startup msg 
     // or something)
 
-    public bool BlockingToolTips;
+    public bool BlockingTooltips;
 
     public object Clone() {
-        return new ToolTipConfig {
+        return new TooltipConfig {
             AcknowledgeTime = AcknowledgeTime,
             AcknowledgeEvent = AcknowledgeEvent,
             Priority = Priority,
             TriggerEvent = TriggerEvent,
             TriggerTime = TriggerTime,
-            BlockingToolTips = BlockingToolTips,
+            BlockingTooltips = BlockingTooltips,
             PrefabPath = PrefabPath
         };
     }
@@ -272,7 +272,7 @@ public struct TagRegistry
         { Tags.Combustible, new CombustibleTag() },
         //Interaction Type
         { Tags.FocusedPlace, null },
-        { Tags.ToolTip, new ToolTipTag() },
+        { Tags.Tooltip, new TooltipTag() },
         // Projectiles
         { Tags.ArrowTag, new ProjectileTag() }
     };
@@ -286,7 +286,7 @@ public struct TagRegistry
         //Convertables
         Grassy = 2000, Vegetative = 2001, AquaMicrobial = 2002,
         //Interactions
-        FocusedPlace = 9000, ToolTip = 9001,
+        FocusedPlace = 9000, Tooltip = 9001,
         // Projectiles 
         ArrowTag = 10000
     }
