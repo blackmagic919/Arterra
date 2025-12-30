@@ -19,7 +19,7 @@ MonoBehaviour:
       - Tag: 9001
         value:
           value:
-            rid: 4440372734035755008
+            rid: 4440372870634012745
   Controller:
     value: {fileID: 4670410139979133744, guid: 75bc8e972a96b45dba996f770581e50b, type: 3}
   Profile:
@@ -144,7 +144,6 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-        friction: 0.25
       movement:
         walkSpeed:
           mean: 3
@@ -179,6 +178,24 @@ MonoBehaviour:
         value:
           Predators:
             value: []
+          SightDistance:
+            mean: 31
+            var: 0.25
+            geneWeight: 0.75
+          PlantFindDist:
+            mean: 10
+            var: 0.75
+            geneWeight: 0.5
+          PreyEntity:
+            value: []
+          PreyPlant:
+            value:
+            - Material: Cactus
+              Replacement: PlantMatter
+              Bounds:
+                data: 4286643968
+          FleeDistance: 5
+          FightAggressor: 1
           Mates:
             value:
             - MateType: Camel
@@ -195,22 +212,6 @@ MonoBehaviour:
                 mean: 12.75
                 var: 0.5
                 geneWeight: 0.1
-          SightDistance:
-            mean: 31
-            var: 0.25
-            geneWeight: 0.75
-          FleeDistance: 5
-          FightAggressor: 1
-          PlantFindDist:
-            mean: 10
-            var: 0.75
-            geneWeight: 0.5
-          PreyPlant:
-            value:
-            - Material: Cactus
-              Replacement: PlantMatter
-              Bounds:
-                data: 4286643968
       physicality:
         value:
           weight: 0.65
@@ -246,6 +247,7 @@ MonoBehaviour:
             mean: 4
             var: 0.5
             geneWeight: 0.33
+          AttackDuration: 0
           HuntThreshold:
             mean: 0.5
             var: 0.2
@@ -263,22 +265,15 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 4440372734035755008
-      type: {class: ToolTipTag, ns: , asm: Assembly-CSharp}
+    - rid: 4440372870634012745
+      type: {class: TooltipTag, ns: , asm: Assembly-CSharp}
       data:
-        ToolTips:
+        Tooltips:
           value:
-          - AcknowledgeTime: 0
+          - AcknowledgeTime: 8
             AcknowledgeEvent: 0
-            Priority: 0
+            Priority: 1
             TriggerEvent: 3
             TriggerTime: 0
-            PrefabPath: Camel_prefab
-            BlockingToolTips: 0
-          - AcknowledgeTime: 0
-            AcknowledgeEvent: 0
-            Priority: 0
-            TriggerEvent: 0
-            TriggerTime: 0
-            PrefabPath: 
-            BlockingToolTips: 0
+            PrefabPath: CamelPrefab
+            BlockingTooltips: 0

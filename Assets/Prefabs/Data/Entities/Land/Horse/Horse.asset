@@ -19,7 +19,7 @@ MonoBehaviour:
       - Tag: 9001
         value:
           value:
-            rid: 4440372752268132423
+            rid: 4440372870634012744
   Controller:
     value: {fileID: 4395981907996118257, guid: 00ca1f9e7df7b47e8b8ae693b40de4f0, type: 3}
   Profile:
@@ -281,15 +281,15 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 4440372752268132423
-      type: {class: ToolTipTag, ns: , asm: Assembly-CSharp}
+    - rid: 4440372870634012744
+      type: {class: TooltipTag, ns: , asm: Assembly-CSharp}
       data:
-        ToolTips:
+        Tooltips:
           value:
-          - AcknowledgeTime: 0
+          - AcknowledgeTime: 10
             AcknowledgeEvent: 0
             Priority: 0
             TriggerEvent: 3
             TriggerTime: 0
-            PrefabPath: Horse_prafab
-            BlockingToolTips: 0
+            PrefabPath: HorsePrefeb
+            BlockingTooltips: 1

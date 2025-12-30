@@ -39,15 +39,26 @@ namespace Arterra.Core.Events {
     }
 
     public static class GameEventTypeMap {
-    public static readonly Dictionary<GameEvent, Type> EventArgTypes = new() {
-        { GameEvent.Entity_Damaged, typeof((float, float3, Entity)) },
-        { GameEvent.Entity_HitGround, typeof(float) },
-        { GameEvent.Entity_Attack, typeof(int) },
-        // Add other mappings here
-    };
-}
+        public static readonly Dictionary<GameEvent, Type> EventArgTypes = new() {
+            { GameEvent.Entity_Damaged, typeof((float, float3, Entity)) },
+            { GameEvent.Entity_HitGround, typeof(float) },
+            { GameEvent.Entity_Attack, typeof(int) },
+            // Add other mappings here
+        };
+    }
 
-    public delegate void RefEventHandler<T>(object actor, object target, ref T cxt);
+    /// <summary> A generic event context wrapper </summary>
+    /// <typeparam name="T"> The type of data contained in the context. 
+    /// If there're multiple data in the context, first wrap them in a tuple or a custom struct. </typeparam>
+    public class EventContext<T> {
+        public T Data;
+
+        public EventContext(ref T data) {
+            Data = data;
+        }
+    }
+
+    public delegate void RefEventHandler(object actor, object target, object cxt);
 
     // Event control class implement a common control using EventHandlerList
     public class EventControl {
@@ -55,7 +66,7 @@ namespace Arterra.Core.Events {
 
 
         // Methods to add, remove, and raise events
-        public void AddEventHandler<T>(GameEvent type, RefEventHandler<T> handler) {
+        public void AddEventHandler(GameEvent type, RefEventHandler handler) {
             if (events.ContainsKey(type)) {
                 events[type] = Delegate.Combine(events[type], handler);
             } else {
@@ -63,7 +74,7 @@ namespace Arterra.Core.Events {
             }
         }
         
-        public void RemoveEventHandler<T>(GameEvent type, RefEventHandler<T> handler) {
+        public void RemoveEventHandler(GameEvent type, RefEventHandler handler) {
             if (events.ContainsKey(type)) {
                 events[type] = Delegate.Remove(events[type], handler);
             }
@@ -76,44 +87,18 @@ namespace Arterra.Core.Events {
         /// <param name="handler"></param>
         public void AddContextlessEventHandler(GameEvent evt, Action<object, object> handler)
         {
-            // Get the EventControl instance (replace with your actual instance)
-            var eventCtrl = this;
-
-            Type ctxType = GameEventTypeMap.EventArgTypes.GetValueOrDefault(evt, null);
-
-            if (ctxType == null)
-            {
-                // If no context type is defined, use a dummy type
-                Debug.LogWarning($"EventControl: No context type defined for event {evt}. Using dummy context.");
-                ctxType = typeof(object);
-            }
-            // Get the generic delegate type: RefEventHandler<T>
-            var handlerType = typeof(RefEventHandler<>).MakeGenericType(ctxType);
-
-            var method = typeof(EventControl)
-                .GetMethod(nameof(AddContextlessEventHandlerGeneric), 
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-                .MakeGenericMethod(ctxType);
-
-            method.Invoke(null, new object[] { eventCtrl, evt, handler });    
-        }
-
-        // Helper method to create a strongly-typed wrapper
-        private static void AddContextlessEventHandlerGeneric<T>(EventControl eventCtrl, GameEvent evt, Action<object, object> handler)
-        {
-            RefEventHandler<T> wrapper = (object actor, object target, ref T ctx) =>
+            AddEventHandler(evt, (object actor, object target, object ctx) =>
             {
                 handler(actor, target);
-            };
-            eventCtrl.AddEventHandler(evt, wrapper);
-        }             
+            });
+        }            
 
-        public void RaiseEvent<T>(GameEvent type, object actor, object target, ref T ctx) {
+        public void RaiseEvent(GameEvent type, object actor, object target, object ctx) {
             // this  could be entity / player/ item.... 
             // Eventqueu.
             if (events.ContainsKey(type)) {
-                var handler = (RefEventHandler<T>)events[type];
-                handler?.Invoke(actor, target, ref ctx);
+                var handler = (RefEventHandler)events[type];
+                handler?.Invoke(actor, target, ctx);
             }
         }
     }

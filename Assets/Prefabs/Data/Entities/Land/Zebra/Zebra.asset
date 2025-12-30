@@ -19,7 +19,7 @@ MonoBehaviour:
       - Tag: 9001
         value:
           value:
-            rid: 4440372751852371968
+            rid: 4440372870634012746
   Controller:
     value: {fileID: 3629186617950086684, guid: 6bb9ca1d891f844d2bc2e946cd18e814, type: 3}
   Profile:
@@ -252,7 +252,6 @@ MonoBehaviour:
           x: 1.75
           y: 2.25
           z: 1.75
-        friction: 0.25
       movement:
         walkSpeed:
           mean: 4
@@ -320,6 +319,32 @@ MonoBehaviour:
             - EntityType: Coyote
             - EntityType: Lion
             - EntityType: Lioness
+          SightDistance:
+            mean: 16
+            var: 0.25
+            geneWeight: 0.75
+          PlantFindDist:
+            mean: 10
+            var: 0.5
+            geneWeight: 0.5
+          PreyEntity:
+            value: []
+          PreyPlant:
+            value:
+            - Material: TallGrass
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+            - Material: Grass
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+            - Material: DriedGrass
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+          FleeDistance: 5
+          FightAggressor: 0
           Mates:
             value:
             - MateType: Horse
@@ -346,30 +371,6 @@ MonoBehaviour:
                 mean: 2
                 var: 0.5
                 geneWeight: 0.1
-          SightDistance:
-            mean: 16
-            var: 0.25
-            geneWeight: 0.75
-          FleeDistance: 5
-          FightAggressor: 0
-          PlantFindDist:
-            mean: 10
-            var: 0.5
-            geneWeight: 0.5
-          PreyPlant:
-            value:
-            - Material: TallGrass
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
-            - Material: Grass
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
-            - Material: DriedGrass
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
       physicality:
         value:
           weight: 0.65
@@ -405,6 +406,7 @@ MonoBehaviour:
             mean: 5
             var: 0.5
             geneWeight: 0.33
+          AttackDuration: 0
           HuntThreshold:
             mean: 0.4
             var: 0.25
@@ -422,22 +424,15 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 4440372751852371968
-      type: {class: ToolTipTag, ns: , asm: Assembly-CSharp}
+    - rid: 4440372870634012746
+      type: {class: TooltipTag, ns: , asm: Assembly-CSharp}
       data:
-        ToolTips:
+        Tooltips:
           value:
-          - AcknowledgeTime: 1
-            AcknowledgeEvent: 1
+          - AcknowledgeTime: 8
+            AcknowledgeEvent: 0
             Priority: 0
             TriggerEvent: 3
-            TriggerTime: 2
-            PrefabPath: Fox_prefab
-            BlockingToolTips: 0
-          - AcknowledgeTime: 1
-            AcknowledgeEvent: 1
-            Priority: 0
-            TriggerEvent: 8
-            TriggerTime: 2
-            PrefabPath: Fox_prefab
-            BlockingToolTips: 0
+            TriggerTime: 5
+            PrefabPath: ZebraPrefab
+            BlockingTooltips: 1
