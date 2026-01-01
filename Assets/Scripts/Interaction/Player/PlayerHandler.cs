@@ -117,9 +117,9 @@ namespace Arterra.Core.Player{
             if(!active) return;
             if(!data.active) return;
             TerrainInteractor.DetectMapInteraction(data.position, 
-            OnInSolid: (dens) => data.vitality.ProcessSuffocation(data, dens), 
+            OnInSolid: (dens) => data.vitality.ProcessEntityInSolid(data, dens), 
             OnInLiquid: (dens) => data.vitality.ProcessInLiquid(data, dens), 
-            OnInGas: data.vitality.ProcessInGas);
+            OnInGas: (dens) => data.vitality.ProcessInGas(data, dens));
             data.collider.FixedUpdate();
         }
 

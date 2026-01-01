@@ -5,6 +5,7 @@ using Arterra.Config;
 using System.Collections.Generic;
 using Arterra.Config.Generation.Entity;
 using Arterra.Core.Player;
+using FMOD;
 
 namespace Arterra.Config.Gameplay.Player{
     /// <summary>
@@ -130,8 +131,9 @@ namespace Arterra.Core.Player {
             InputPoller.AddBinding(new ActionBind("Jump", (_null_) => {
                 TerrainCollider.Settings collider = PlayerHandler.data.settings.collider;
                 if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
-                    velocity += Setting.jumpForce * (float3)Vector3.up;
-                    PlayerHandler.data.Play("Jump");
+                    float3 jumpVelocity = Setting.jumpForce * (float3)Vector3.up;
+                    PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_Jump,  PlayerHandler.data, null, ref jumpVelocity);
+                    velocity += jumpVelocity;
                 }
             }), "PMSurfaceMovement:JMP", "4.0::Movement");
         }
@@ -141,12 +143,7 @@ namespace Arterra.Core.Player {
             float2 deltaV = Setting.acceleration * Time.deltaTime * desiredMove;
             PlayerMovement.AddVelocity2D(deltaV, moveSpeed);
 
-            TerrainCollider.Settings collider = PlayerHandler.data.settings.collider;
-            if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
-                PlayerHandler.data.Play("Land");
-            }
-
-            PlayerHandler.data.Play("PlayMove", PlayerMovement.GetSpeed2D(velocity));
+            PlayerHandler.data.Effects.PlayAnimatorMove(PlayerMovement.GetSpeed2D(velocity));
             PlayerMovement.IsSprinting = false;
             PlayerMovement.InputDir = float2.zero;
         }
@@ -162,14 +159,14 @@ namespace Arterra.Core.Player {
 
         /// <summary> Initializes the swimming system. </summary>
         public static void Initialize() {
+            PlayerHandler.data.eventCtrl.AddEventHandler<float>(Events.GameEvent.Entity_InLiquid, StartSwim);
+            PlayerHandler.data.eventCtrl.AddEventHandler<float>(Events.GameEvent.Entity_InGas, StopSwim);
             isSwimming = false;
         }
 
         /// <summary>=Enables underwater movement as the player's current movement pattern</summary>
         /// <param name="_"></param>
-        public static void StartSwim(float _) {
-            PlayerHandler.data.Play("StartSwim");
-
+        public static void StartSwim(object source, object target, ref float density) {
             if (isSwimming) return;
             if (!OveridableStates.Contains(InputPoller.PeekTop("Movement::Update")))
                 return;
@@ -179,7 +176,7 @@ namespace Arterra.Core.Player {
         }
 
         ///<summary>=Disables underwater movement and returns player to original movement pattern</summary>
-        public static void StopSwim(float _){
+        public static void StopSwim(object source, object target, ref float density){
             if(!isSwimming) return;
             isSwimming = false;
             RemoveHandles();
@@ -216,7 +213,7 @@ namespace Arterra.Core.Player {
             if (PlayerMovement.IsSprinting) PlayerMovement.AddVelocity3D(deltaV, MoveSpeed);
             else if (!PlayerMovement.IsSprinting) PlayerMovement.AddVelocity2D(deltaV.xz, MoveSpeed);
             
-            PlayerHandler.data.Play("PlayMove", PlayerMovement.GetSpeed2D(velocity));
+            PlayerHandler.data.Effects.PlayAnimatorMove(PlayerMovement.GetSpeed2D(velocity));
             PlayerMovement.IsSprinting = false;
             PlayerMovement.InputDir = float2.zero;
         }
@@ -260,7 +257,6 @@ namespace Arterra.Core.Player {
         }
         private static void AddHandles() {
             if (!OveridableStates.Contains(InputPoller.PeekTop("Movement::Update"))) return;
-            PlayerHandler.data.Play("Land");
             IsFlying = true;
 
             InputPoller.AddStackPoll(new ActionBind("FlightMove::1", _ => Update()), "Movement::Update");
@@ -290,7 +286,7 @@ namespace Arterra.Core.Player {
             float2 deltaV = Setting.acceleration * Time.deltaTime * desiredMove * Setting.flightSpeedMultiplier;
 
             PlayerMovement.AddVelocity2D(deltaV, MoveSpeed);
-            PlayerHandler.data.Play("PlayMove", PlayerMovement.GetSpeed3D(velocity));
+            PlayerHandler.data.Effects.PlayAnimatorMove(PlayerMovement.GetSpeed3D(velocity));
             PlayerMovement.IsSprinting = false;
             PlayerMovement.InputDir = float2.zero;
         }
@@ -320,7 +316,7 @@ namespace Arterra.Core.Player {
             PlayerHandler.data.collider.transform.velocity = float3.zero;
             InputPoller.AddStackPoll(new ActionBind("RideMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
             InputPoller.AddStackPoll(new ActionBind("RideMove::1", _ => Update()), "Movement::Update");
-            PlayerHandler.data.Play("SitDown");
+            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_MountRideable, PlayerHandler.data, mount);
 
             InputPoller.AddKeyBindChange(() => {
                 InputPoller.AddContextFence("PMRideMove", "4.0::Movement", ActionBind.Exclusion.ExcludeLayer);
@@ -335,7 +331,7 @@ namespace Arterra.Core.Player {
         public static void RemoveHandles() {
             InputPoller.RemoveStackPoll("RideMove::1", "Movement::Update");
             InputPoller.RemoveStackPoll("RideMove::2", "Movement::Gravity");
-            PlayerHandler.data.Play("StandUp");
+            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_DismountRideable, PlayerHandler.data, mount);
             SubTransform.transform.localRotation = Quaternion.identity;
 
 

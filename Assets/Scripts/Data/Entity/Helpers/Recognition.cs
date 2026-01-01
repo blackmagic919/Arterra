@@ -342,29 +342,6 @@ public class Recognition : MinimalRecognition{
         } 
     }
 
-    public bool FindClosestPredator(Entity self, float sightDist, out Entity entity) {
-        entity = null; if (AwarenessTable == null) return false;
-        if (Predators.value == null || Predators.value.Count == 0) return false;
-
-        Entity cEntity = null; float closestDist = sightDist + 1;
-        Dictionary<int, Recognizable> Awareness = AwarenessTable;
-        Bounds bounds = new(self.position, 2 * new float3(sightDist));
-        EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
-            if (nEntity == null) return;
-            if (nEntity.info.entityId == self.info.entityId) return;
-            if (!Awareness.ContainsKey((int)nEntity.info.entityType)) return;
-
-            Recognizable entityInfo = Awareness[(int)nEntity.info.entityType];
-            if (!entityInfo.IsPredator) return;
-            float dist = GetColliderDist(self, nEntity);
-            if (dist >= closestDist) return;
-            cEntity = nEntity;
-            closestDist = dist;
-        });
-        entity = cEntity;
-        return entity != null;
-    }
-
     //Finds the most preferred mate it can see, then the closest one it prefers
     public bool FindPreferredMate(Entity self, float sightDist, out Entity entity) {
         entity = null; if (AwarenessTable == null) return false;

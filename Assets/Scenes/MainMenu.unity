@@ -3337,7 +3337,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1467958669}
   m_HandleRect: {fileID: 1844626531}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -3496,13 +3496,39 @@ MonoBehaviour:
       Data3: 2041504186
       Data4: -270400608
     Path: event:/Wind
-  WaterSplashEvent:
-    Guid:
-      Data1: -1713019187
-      Data2: 1171861477
-      Data3: 712152742
-      Data4: -1818572359
-    Path: event:/Sound effects/Water Effects
+  AudioReferences:
+  - name: 4000
+    reference:
+      Guid:
+        Data1: -1713019187
+        Data2: 1171861477
+        Data3: 712152742
+        Data4: -1818572359
+      Path: event:/Sound effects/Water Effects
+  - name: 2001
+    reference:
+      Guid:
+        Data1: 378230552
+        Data2: 1225276032
+        Data3: 1525825666
+        Data4: 1168458264
+      Path: event:/Sound effects/ArrowFire
+  - name: 3000
+    reference:
+      Guid:
+        Data1: -1082967512
+        Data2: 1336426865
+        Data3: -283943242
+        Data4: -676881158
+      Path: event:/Sound effects/ArrowFlying
+  - name: 3001
+    reference:
+      Guid:
+        Data1: -2119162014
+        Data2: 1196900726
+        Data3: -88587134
+        Data4: -1460235600
+      Path: event:/Sound effects/ArrowTwang
 --- !u!4 &1543784206
 Transform:
   m_ObjectHideFlags: 0

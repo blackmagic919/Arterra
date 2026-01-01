@@ -167,7 +167,6 @@ MonoBehaviour:
           x: 2.5
           y: 4.5
           z: 2.5
-        friction: 0.25
       EnemyCheckDist:
         mean: 8
         var: 0.4
@@ -262,6 +261,7 @@ MonoBehaviour:
           Projectile:
             ProjectileEntity: StoneHorn
             LaunchSpeedMultiplier: 5
+            FireSound: 2001
         BlindDist:
           mean: 3
           var: 0.25
@@ -277,7 +277,6 @@ MonoBehaviour:
             x: 2
             y: 2
             z: 2
-          friction: 0.25
       Legs:
         value:
         - collider:
@@ -285,7 +284,6 @@ MonoBehaviour:
               x: 0.75
               y: 3.5
               z: 0.75
-            friction: 0.25
           RestOffset:
             x: -2.5
             y: 0
@@ -299,7 +297,6 @@ MonoBehaviour:
               x: 0.75
               y: 3.5
               z: 0.75
-            friction: 0.25
           RestOffset:
             x: 2.5
             y: 0
@@ -313,7 +310,6 @@ MonoBehaviour:
               x: 0.75
               y: 3.5
               z: 0.75
-            friction: 0.25
           RestOffset:
             x: -2.5
             y: 0
@@ -327,7 +323,6 @@ MonoBehaviour:
               x: 0.75
               y: 3.5
               z: 0.75
-            friction: 0.25
           RestOffset:
             x: 2.5
             y: 0

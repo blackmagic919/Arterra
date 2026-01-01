@@ -327,12 +327,11 @@ public struct TerrainCollider {
         return vel - math.dot(vel, dir) * dir;
     }
 
-    public void Update(Entity self = null) {
+    public void Update(Entity self = null, float baseFriction = BaseFriction) {
         byte contact = TerrainInteractor.SampleContact(transform.position, transform.size, out float friction, self);
-        if (TerrainInteractor.IsTouching(contact)) {
-            transform.velocity.xz *= 1 - friction;
-            if (!useGravity) transform.velocity.y *= 1 - friction;
-        } else if(!useGravity) transform.velocity *= 1 - BaseFriction;
+        if (!TerrainInteractor.IsTouching(contact)) friction = baseFriction;
+        if (useGravity) transform.velocity.xz *= 1 - friction;
+        else transform.velocity *= 1 - friction;
 
         transform.position += transform.velocity * cxt.totDeltaTime;
         if (useGravity) transform.velocity += cxt.gravity * cxt.totDeltaTime;

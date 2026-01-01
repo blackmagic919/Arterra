@@ -225,9 +225,9 @@ public class RidableSurfaceAnimal : Authoring
 
             tCollider.useGravity = true;
             TerrainInteractor.DetectMapInteraction(position,
-            OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
+            OnInSolid: (dens) => vitality.ProcessInSolid(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
-            OnInGas: vitality.ProcessInGas);
+            OnInGas: (dens) => vitality.ProcessInGas(this, dens));
 
             vitality.Update(this);
             TaskRegistry[(int)TaskIndex].Invoke(this);
@@ -235,6 +235,7 @@ public class RidableSurfaceAnimal : Authoring
             if (TaskIndex != AnimalTasks.Death && vitality.IsDead) {
                 TaskDuration = genetics.Get(settings.decomposition.DecompositionTime);
                 TaskIndex = AnimalTasks.Death;
+                eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_Death, this, null);
             } else if (TaskIndex <= AnimalTasks.RunFromPredator) DetectPredator();
         }
 
@@ -607,6 +608,7 @@ public class RidableSurfaceAnimal : Authoring
             private GameObject gameObject;
             internal Transform RideRoot;
             private Transform transform;
+            private Indicators indicators;
             private bool active = false;
             private int AnimatorTask;
             private enum AnimalTasks {
@@ -635,7 +637,7 @@ public class RidableSurfaceAnimal : Authoring
                 this.AnimatorTask = 0;
                 this.active = true;
 
-                Indicators.SetupIndicators(gameObject);
+                indicators = new Indicators(gameObject, entity);
                 transform.position = CPUMapManager.GSToWS(entity.position);
             }
 
@@ -649,7 +651,7 @@ public class RidableSurfaceAnimal : Authoring
                 if (UnityEditor.Selection.Contains(gameObject)) Debug.Log(entity.TaskIndex);
 #endif
 
-                Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
+                indicators.Update();
                 if (AnimatorTask == 6) UpdateRidingAnimations();
                 if (AnimatorTask == (int)entity.TaskIndex) return;
                 if (AnimatorTask == 6) DisableRidingAnimations();
@@ -689,6 +691,7 @@ public class RidableSurfaceAnimal : Authoring
                 active = false;
                 entity = null;
                 
+                indicators.Release();
                 GameObject.Destroy(gameObject);
             }
 

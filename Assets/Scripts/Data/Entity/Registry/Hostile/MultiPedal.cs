@@ -235,9 +235,9 @@ public class MultiPedal : Authoring {
             EntityManager.AddHandlerEvent(controller.Update);
 
             TerrainInteractor.DetectMapInteraction(position,
-            OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
+            OnInSolid: (dens) => vitality.ProcessInSolid(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref Torso, dens),
-            OnInGas: vitality.ProcessInGas);
+            OnInGas: (dens) => vitality.ProcessInGas(this, dens));
 
             vitality.Update(this);
             launcher.Update(this);
@@ -721,6 +721,7 @@ public class MultiPedal : Authoring {
             private GameObject gameObject;
             private GameObject root;
             private Transform transform;
+            private Indicators indicators;
             private bool active = false;
             private int AnimatorTask;
             private uint LastOverrideState;
@@ -753,7 +754,7 @@ public class MultiPedal : Authoring {
                 this.LastOverrideState = 0;
                 this.active = true;
 
-                Indicators.SetupIndicators(gameObject);
+                indicators = new Indicators(gameObject, entity);
                 transform.position = CPUMapManager.GSToWS(entity.position);
                 legs = new LegController[entity.Legs.Count()];
                 for(int i = 0; i < entity.Legs.Count(); i++) {
@@ -787,7 +788,7 @@ public class MultiPedal : Authoring {
                 }
 #endif
 
-                Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
+                indicators.Update();
                 //Handle trigger based actions
                 PlayAttacks();
 
@@ -815,6 +816,7 @@ public class MultiPedal : Authoring {
                 active = false;
                 entity = null;
 
+                indicators.Release();
                 Destroy(root);
             }
 

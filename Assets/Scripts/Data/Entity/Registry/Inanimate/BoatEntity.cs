@@ -128,11 +128,13 @@ public class BoatEntity : Arterra.Config.Generation.Entity.Authoring {
             tCollider.useGravity = true;
 
             vitality.Update(this);
-            TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
-            OnInLiquid: (dens) => {
-                velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-                tCollider.useGravity = false;
-            }, OnInGas: null);
+            TerrainInteractor.DetectMapInteraction(position,
+                OnInSolid: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, this, null, ref dens),
+                OnInLiquid: (dens) => {
+                    eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, this, null, ref dens);
+                    velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
+                    tCollider.useGravity = false;
+                }, OnInGas: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, this, null, ref dens));
 
             if (RiderTarget != Guid.Empty) {
                 float3 aim = math.normalize(new float3(velocity.x, 0, velocity.z));
@@ -168,6 +170,7 @@ public class BoatEntity : Arterra.Config.Generation.Entity.Authoring {
             private GameObject gameObject;
             internal Transform transform;
             internal Transform RideRoot;
+            private Indicators indicators;
 
             private bool active = false;
             private float angle;
@@ -180,6 +183,7 @@ public class BoatEntity : Arterra.Config.Generation.Entity.Authoring {
                 this.active = true;
                 this.angle = 0;
 
+                this.indicators = new Indicators(gameObject, entity);
                 this.transform.position = CPUMapManager.GSToWS(entity.position);
                 this.RideRoot = gameObject.transform.Find("Armature").Find("root").Find("base");
 
@@ -190,6 +194,7 @@ public class BoatEntity : Arterra.Config.Generation.Entity.Authoring {
                 if (gameObject == null) return;
                 TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
+                indicators.Update();
 
                 float minSpeed = math.min(entity.settings.MaxLandSpeed, entity.settings.MaxWaterSpeed) * 0.5f;
                 if (Vector2.SqrMagnitude(entity.velocity.xz) < minSpeed * minSpeed) {
@@ -207,6 +212,7 @@ public class BoatEntity : Arterra.Config.Generation.Entity.Authoring {
                 if (!active) return;
                 active = false;
 
+                indicators.Release();
                 Destroy(gameObject);
             }
             ~BoatController() {

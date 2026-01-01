@@ -98,6 +98,7 @@ public class OptionsHandler : MonoBehaviour
     public static void InitializeDisplay(){
         WorldMeta cWorld = WORLD_SELECTION.First.Value;
         WorldName.text = cWorld.Name;
+        WorldName.onEndEdit.RemoveAllListeners();
         WorldName.onEndEdit.AddListener((string value) => {
             cWorld.Name = value;
             WorldName.text = value;

@@ -45,6 +45,8 @@ public class MinimalVitality {
     protected Stats stats;
     [JsonIgnore]
     protected Genetics genetics;
+    [JsonIgnore]
+    public float weight => stats.weight;
     public float health;
     public float invincibility;
     public float healthPercent => health / genetics.Get(stats.MaxHealth);
@@ -92,7 +94,12 @@ public class MinimalVitality {
         health = math.min(health + delta, genetics.Get(stats.MaxHealth));
     }
 
-    public void ProcessSuffocation(Entity self, float density) {
+    public void ProcessInSolid(Entity self, float density) {
+        self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, self, null, ref density);
+        ProcessSuffocation(self, density);
+    }
+
+    private void ProcessSuffocation(Entity self, float density) {
         if (density <= 0) return;
         if (self is not IAttackable) return;
         IAttackable target = (IAttackable)self;
@@ -100,11 +107,13 @@ public class MinimalVitality {
         EntityManager.AddHandlerEvent(() => target.TakeDamage(density / 255.0f, 0, null));
     }
 
-    public void ProcessInGas(float density) {
+    public void ProcessInGas(Entity self, float density) {
+        self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, self, null, ref density);
         breath = genetics.Get(stats.HoldBreathTime);
     }
 
     public void ProcessInLiquid(Entity self, ref TerrainCollider tCollider, float density) {
+        self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, self, null, ref density);
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
         tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
         tCollider.useGravity = false;
@@ -168,8 +177,8 @@ public class MediumVitality : MinimalVitality {
 
     public MediumVitality(Stats stats, Genetics gs = null) : base(stats, gs) {
         if (stats == null) return;
-        attackCooldown = 0;
         attackProgress = AStats.AttackDuration;
+        attackCooldown = 0;
     }
 
     public override void Deserialize(MinimalVitality.Stats stats, Genetics gs = null) {
@@ -195,6 +204,10 @@ public class MediumVitality : MinimalVitality {
         
         AttackInProgress = false;
         attackCooldown = genetics.Get(AStats.AttackCooldown);
+        FlushAttack(self);
+    }
+
+    private void FlushAttack(Entity self) {
         if (!EntityManager.TryGetEntity(AttackTarget, out Entity target))
             return;
         if (target is not IAttackable) return;
@@ -202,6 +215,15 @@ public class MediumVitality : MinimalVitality {
             return;
         float damage = genetics.Get(AStats.AttackDamage);
         float3 knockback = math.normalize(target.position - self.position) * genetics.Get(AStats.KBStrength);
+        RealAttack(self, target, damage, knockback);
+    }
+
+    public static void RealAttack(Entity self, Entity target, float damage, float3 knockback) {
+        var cxt = (damage, knockback);
+        self.eventCtrl.RaiseEvent(
+            Arterra.Core.Events.GameEvent.Entity_Attack,
+            self, target, ref cxt
+        ); (damage, knockback) = cxt;
         EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback, self));
     }
 }

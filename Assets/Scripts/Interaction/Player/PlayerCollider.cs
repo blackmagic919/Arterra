@@ -358,10 +358,10 @@ namespace Arterra.Config.Gameplay.Player{
         /// <summary>Updates the collider on an Entity Job Update.</summary>
         public void JobUpdate(Entity self = null) {
             byte contact = TerrainInteractor.SampleContact(transform.position, transform.size, out float friction, PlayerHandler.data);
-            if (TerrainInteractor.IsTouching(contact)) {
-                if(useGravity) transform.velocity.xz *= 1 - friction;
-            } if(!useGravity) transform.velocity *= 1 - TerrainCollider.BaseFriction;
-
+            if (!TerrainInteractor.IsTouching(contact)) friction = TerrainCollider.BaseFriction;
+            if (useGravity) transform.velocity.xz *= 1 - friction;
+            else transform.velocity *= 1 - friction;
+            
             transform.position += transform.velocity * EntityJob.cxt.totDeltaTime;
             if (useGravity) transform.velocity += EntityJob.cxt.gravity * EntityJob.cxt.totDeltaTime;
 

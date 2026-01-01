@@ -6,6 +6,7 @@ using Arterra.Config.Generation.Material;
 using Arterra.Core.Storage;
 using static Arterra.Core.Player.PlayerInteraction;
 using Arterra.Core.Player;
+using Arterra.Core.Events;
 
 
 namespace Arterra.Config.Generation.Item
@@ -27,8 +28,8 @@ namespace Arterra.Config.Generation.Item
         public override object Clone() => new MatConverterToolItem { data = data, durability = durability };
         public override void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
-                effect.Play("HoldItem", settings.Model.Value);
+            if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
+                effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
                 InputPoller.AddBinding(new ActionBind("ConvertMaterial", _ => PlayerModifyTerrain(cxt)),
                     "ITEM::MCTool:CNV", "5.0::GamePlay");
@@ -39,8 +40,8 @@ namespace Arterra.Config.Generation.Item
 
         public override void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
-                effect.Play("UnHoldItem", settings.Model.Value);
+            if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect, this, ref settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
                 InputPoller.RemoveBinding("ITEM::MCTool:CNV", "5.0::GamePlay");
                 InputPoller.RemoveBinding("ITEM::MCTool:RM", "5.0::GamePlay");
@@ -49,9 +50,12 @@ namespace Arterra.Config.Generation.Item
 
         private void PlayerModifyTerrain(ItemContext cxt) {
             if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
+
+            InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
             if (!RayTestSolid(out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out var _))
                 return;
+            
             bool ModifySolid(int3 GCoord, float speed) {
                 MapData mapData = CPUMapManager.SampleMap(GCoord);
                 int material = mapData.material;
@@ -66,13 +70,12 @@ namespace Arterra.Config.Generation.Item
                 return true;
             }
 
-            if (settings.OnUseAnim.Enabled && player is IActionEffect effectable)
-                effectable.Play(settings.OnUseAnim.Value);
+            if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
+                effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);
 
             CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, CallOnMapRemoving);
             UpdateDisplay();
 
-            InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
             if (durability > 0) return;
             //Removes itself
             cxt.TryRemove();

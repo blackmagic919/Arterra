@@ -138,7 +138,6 @@
 		</relationship>
 	</object>
 	<object class="MultiSound" id="{c1b68f6f-57a3-47e1-9d15-4d4d9d1486b5}">
-		<property name="name" />
 		<relationship name="sounds">
 			<destination>{2d280174-f01d-4b73-8e3c-f3f9f66e6712}</destination>
 			<destination>{8d48570a-c35d-4cb6-8523-49a07e481e3c}</destination>
@@ -261,7 +260,7 @@
 	</object>
 	<object class="AutomationPoint" id="{bd20e16b-666d-4018-9004-7266561677d2}">
 		<property name="position">
-			<value>0.75539568345323738</value>
+			<value>0.075539568345323743</value>
 		</property>
 		<property name="value">
 			<value>0</value>

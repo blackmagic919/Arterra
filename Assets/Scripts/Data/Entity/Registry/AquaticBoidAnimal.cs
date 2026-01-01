@@ -192,7 +192,7 @@ public class AquaticBoidAnimal : Authoring {
             EntityManager.AddHandlerEvent(controller.Update);
 
             TerrainInteractor.DetectMapInteraction(position,
-                OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
+                OnInSolid: (dens) => vitality.ProcessInSolid(this, dens),
                 OnInLiquid: (dens) => vitality.ProcessInLiquidAquatic(this, ref tCollider, dens,
                     genetics.Get(settings.aquatic.DrownTime)),
                 OnInGas: (dens) => {
@@ -204,8 +204,8 @@ public class AquaticBoidAnimal : Authoring {
             TaskRegistry[(int)TaskIndex].Invoke(this);
             if (TaskIndex != AnimalTasks.Death && vitality.IsDead) {
                 TaskDuration = genetics.Get(settings.decomposition.DecompositionTime);
-                swimDirection = 0;
-                TaskIndex = AnimalTasks.Death;
+                TaskIndex = AnimalTasks.Death; swimDirection = 0;
+                eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_Death, this, null);
             } else if (TaskIndex < AnimalTasks.SwimUp && IsSurfacing()) TaskIndex = AnimalTasks.SwimUp;
             else if (TaskIndex < AnimalTasks.RunFromPredator) DetectPredator();
         }
@@ -624,6 +624,7 @@ public class AquaticBoidAnimal : Authoring {
             private Animator animator;
             private GameObject gameObject;
             private Transform transform;
+            private Indicators indicators;
             private bool active = false;
             private int AnimatorTask;
             private static readonly string[] AnimationNames = new string[]{
@@ -644,7 +645,7 @@ public class AquaticBoidAnimal : Authoring {
                 this.active = true;
                 this.AnimatorTask = 0;
 
-                Indicators.SetupIndicators(gameObject);
+                indicators = new Indicators(gameObject, entity);
                 transform.position = CPUMapManager.GSToWS(entity.position);
             }
 
@@ -660,7 +661,7 @@ public class AquaticBoidAnimal : Authoring {
                 }
 #endif
 
-                Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
+                indicators.Update();
                 if (AnimatorTask == (int)entity.TaskIndex) return;
                 if (AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], false);
                 AnimatorTask = (int)entity.TaskIndex;
@@ -672,6 +673,7 @@ public class AquaticBoidAnimal : Authoring {
                 active = false;
                 entity = null;
                 
+                indicators.Release();
                 Destroy(gameObject);
             }
 

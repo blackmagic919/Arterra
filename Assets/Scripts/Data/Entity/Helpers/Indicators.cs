@@ -19,7 +19,7 @@ namespace Arterra.Config.Gameplay{
         public bool DisplayEntityDamage; //true
     }
 }
-public static class Indicators
+public class Indicators
 {
     public static Arterra.Config.Gameplay.Statistics Stats => Config.CURRENT.GamePlay.Statistics;
     public static ObjectPool<GameObject> ItemSlots;
@@ -77,31 +77,6 @@ public static class Indicators
         }, OnActivate, OnDeactivate, OnDestroy, true, 5, 16);
     }
 
-    public static void SetupIndicators(GameObject entity){
-       GameObject.Instantiate(BarIndicator, entity.transform);
-    }
-
-    public static void UpdateIndicators(GameObject entity, object vitality = null, object path = null){
-        GameObject stats = entity.transform.Find("EntityStats(Clone)")?.gameObject;
-        if(stats == null) return;
-        if(Stats.DisplayEntityStats != stats.activeSelf) 
-            stats.SetActive(Stats.DisplayEntityStats);
-        if(!stats.activeSelf) return;
-
-        if(vitality != null) {
-            MinimalVitality vitals = (MinimalVitality)vitality;
-            Image healthSlider = stats?.transform.Find("HealthBar").GetComponent<Image>();
-            if(healthSlider != null) healthSlider.fillAmount = vitals.healthPercent;
-            Image breathSlider = stats?.transform.Find("BreathBar").GetComponent<Image>();
-            if(breathSlider != null) breathSlider.fillAmount = math.fmod(vitals.breathPercent, 1);;
-            if(vitals.invincibility > 0) return;
-            Image damageSlider = stats?.transform.Find("DamageBar").GetComponent<Image>();
-            damageSlider.fillAmount = math.max(vitals.healthPercent, damageSlider.fillAmount - 0.01f);
-        } if(path != null) {
-            //Maybe Implement path indicator(s) ?
-        }
-    }
-
     public static GameObject DisplayDamageParticle(float3 posGS, float3 eulerDir = default){
         if(!Stats.DisplayEntityDamage) return null;
         GameObject indicator = GameObject.Instantiate(DamageIndicator);
@@ -111,6 +86,73 @@ public static class Indicators
         else rot = Quaternion.LookRotation(eulerDir);
         indicator.transform.SetPositionAndRotation(Arterra.Core.Storage.CPUMapManager.GSToWS(posGS), rot);
         return indicator;
+    }
+
+    //Audio
+    public static void PlayWaterSplash(Entity entity, float weight = 1) {
+        const int small = 0; const int medium = 1;  const int large = 2; 
+        float strength = math.length(entity.velocity);
+        if (strength <= 4) return;
+        strength *= weight;
+
+        int type = strength < 7.5 ? small : strength < 20 ? medium : large;
+        FMOD.Studio.EventInstance evnt = AudioManager.CreateEvent(AudioEvents.Action_WaterSplash, entity.position);
+        evnt.setParameterByName("Splash Strength", (float)type);
+    }
+
+    private GameObject controller;
+    private Entity entity;
+    private MinimalVitality vitality;
+    private bool InWater;
+
+    public Indicators(GameObject controller, Entity entity, MinimalVitality vitality = null){
+       this.entity = entity;
+       this.vitality = vitality;
+       this.controller = controller;
+       this.InWater = false;
+       GameObject.Instantiate(BarIndicator, controller.transform);
+       entity.eventCtrl.AddEventHandler<float>(Arterra.Core.Events.GameEvent.Entity_InLiquid, OnEnterWater);
+       entity.eventCtrl.AddEventHandler<float>(Arterra.Core.Events.GameEvent.Entity_InGas, OnEnterGas);
+    }
+
+    public void Update(){
+        GameObject stats = controller.transform.Find("EntityStats(Clone)")?.gameObject;
+        if(stats == null) return;
+        if(Stats.DisplayEntityStats != stats.activeSelf) 
+            stats.SetActive(Stats.DisplayEntityStats);
+        if(!stats.activeSelf) return;
+
+        if(vitality != null) {
+            Image healthSlider = stats?.transform.Find("HealthBar").GetComponent<Image>();
+            if(healthSlider != null) healthSlider.fillAmount = vitality.healthPercent;
+            Image breathSlider = stats?.transform.Find("BreathBar").GetComponent<Image>();
+            if(breathSlider != null) breathSlider.fillAmount = math.fmod(vitality.breathPercent, 1);;
+            if(vitality.invincibility > 0) return;
+            Image damageSlider = stats?.transform.Find("DamageBar").GetComponent<Image>();
+            damageSlider.fillAmount = math.max(vitality.healthPercent, damageSlider.fillAmount - 0.01f);
+        }
+    }
+
+    private void OnEnterWater(object source, object target, ref float density) {
+        if (InWater) return;
+        InWater = true;
+        float weight = vitality != null ? vitality.weight : 1;
+        AddHandlerEvent(() => PlayWaterSplash(entity, weight));
+    }
+
+
+    private void OnEnterGas(object source, object target, ref float density) {
+        if (!InWater) return;
+        InWater = false;
+        float weight = vitality != null ? vitality.weight : 1;
+        AddHandlerEvent(() => PlayWaterSplash(entity, weight));
+    }
+
+    public void Release() {
+        //Release circular references
+        controller = null;
+        vitality = null;
+        entity = null;
     }
 
 

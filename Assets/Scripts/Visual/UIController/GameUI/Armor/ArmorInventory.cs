@@ -23,9 +23,9 @@ public class ArmorInventory : IInventory {
     public IItem PeekItem(int index) => Info[index];
     public int Capacity => (int)Info.Length;
 
-    public bool OnDamaged(ref (float dmg, float3 kb, Entity entity) cxt) {
+    public bool OnDamaged(Entity entity, ref (float dmg, float3 kb) cxt) {
         foreach (IArmorItem itm in Info) {
-            itm?.OnDamaged(ref cxt.dmg, ref cxt.kb, ref cxt.entity);
+            itm?.OnDamaged(ref cxt.dmg, ref cxt.kb, ref entity);
         }
         return false;
     }

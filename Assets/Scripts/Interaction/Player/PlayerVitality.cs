@@ -128,33 +128,38 @@ namespace Arterra.Core.Player {
             if (PlayerInteraction.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
             if (!EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out Entity entity))
                 return;
+            
             static void PlayerDamageEntity(Entity target)
             {
                 if (!target.active) return;
                 if (target is not IAttackable) return;
                 IAttackable atkEntity = target as IAttackable;
                 float3 knockback = math.normalize(target.position - PlayerHandler.data.head) * settings.KnockBackStrength;
+                float damage = settings.AttackDamage;
+                
+                var cxt = (damage, knockback);
+                PlayerHandler.data.eventCtrl.RaiseEvent(
+                    GameEvent.Entity_Attack,
+                    PlayerHandler.data,
+                    target, ref cxt
+                ); (damage, knockback) = cxt;
+                
                 atkEntity.TakeDamage(settings.AttackDamage, knockback, PlayerHandler.data);
-                PlayerHandler.data.Play("Punch");
             }
             EntityManager.AddHandlerEvent(() => PlayerDamageEntity(entity));
-    
-            // TODO: Test tooltip display on attack
-            int damage = 1;
-            PlayerHandler.data.eventCtrl.RaiseEvent<int>(
-                GameEvent.Entity_Attack,
-                PlayerHandler.data,
-                entity,
-                ref damage
-            );
         }
-        
+
         /// <summary>Processes damaging the player
         /// whose head being trapped in the terrain.</summary>
         /// <param name="self">The player entity</param>
         /// <param name="density">The density of the terrain around the player's head.
         /// The amount of damage to apply to the player</param>
-        public void ProcessSuffocation(Entity self, float density){
+        public void ProcessEntityInSolid(Entity self, float density) {
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_InSolid, self, null, ref density);
+            ProcessSuffocation(self, density);
+        }
+
+        private void ProcessSuffocation(Entity self, float density){
             if(density <= 0) return;
             if(self is not IAttackable) return;
             IAttackable target = (IAttackable)self;
@@ -165,9 +170,9 @@ namespace Arterra.Core.Player {
         /// <summary>Processes what happens when the player's
         /// head is neither underwater or underground. </summary>
         /// <param name="density">The density of the gas surrounding the player's head</param>
-        public void ProcessInGas(float density){
+        public void ProcessInGas(Entity self, float density){
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_InGas, self, null, ref density);
             breath = settings.HoldBreathTime;
-            SwimMovement.StopSwim(density);
         }
 
         /// <summary>Processes drowning the player whose head
@@ -175,7 +180,7 @@ namespace Arterra.Core.Player {
         /// <param name="self">The player entity</param>
         /// <param name="density">The density of the liquid surrounding the player's head</param>
         public void ProcessInLiquid(Entity self, float density){
-            SwimMovement.StartSwim(density);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_InLiquid, self, null, ref density);
             breath = math.max(breath - Time.fixedDeltaTime, 0);
             if(breath > 0) return;
             ProcessSuffocation(self, density);

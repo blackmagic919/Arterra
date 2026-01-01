@@ -94,6 +94,7 @@ public class ProjectileTag : ICloneable {
     [RegistryReference("Entities")]
     public string ProjectileEntity;
     public float LaunchSpeedMultiplier = 1.0f;
+    public AudioEvents FireSound;
     public virtual object Clone() {
         return new ProjectileTag {
             ProjectileEntity = ProjectileEntity,
@@ -123,6 +124,7 @@ public class ProjectileTag : ICloneable {
         var entityInfo = Config.CURRENT.Generation.Entities;
         int entityInd = entityInfo.RetrieveIndex(ProjectileEntity);
         var entity = Config.CURRENT.Generation.Entities.Retrieve(entityInd).Entity;
+        EntityManager.AddHandlerEvent(() =>  AudioManager.CreateEvent(FireSound, position));
         EntityManager.CreateEntity(position, (uint)entityInd, entity, () => {
             entity.transform.position = position;
             entity.transform.velocity = velocity * LaunchSpeedMultiplier;

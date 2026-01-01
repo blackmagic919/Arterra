@@ -32,13 +32,14 @@ MonoBehaviour:
           x: 0.5
           y: 0.5
           z: 0.5
-        friction: 0.2
       DecayTime: 100
       MinDamagingSpeed: 2.5
       DamageMultiplier: 0.05
       KnockbackMultiplier: 0.25
       terrainInteration: 0
       entityInteraction: 1
+      FlybySound: 3000
+      HitSound: 3001
       ItemDrop: Stone:Solid
   references:
     version: 2

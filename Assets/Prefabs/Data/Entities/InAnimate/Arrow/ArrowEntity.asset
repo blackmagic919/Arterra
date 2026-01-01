@@ -32,13 +32,14 @@ MonoBehaviour:
           x: 0.3
           y: 0.1
           z: 0.3
-        friction: 0.2
       DecayTime: 100
       MinDamagingSpeed: 2.5
       DamageMultiplier: 0.025
       KnockbackMultiplier: 0.1
       terrainInteration: 0
       entityInteraction: 0
+      FlybySound: 3000
+      HitSound: 3001
       ItemDrop: StoneArrow
   references:
     version: 2

@@ -171,12 +171,13 @@ public class SkyScavanger : Authoring
             if (TaskIndex != AnimalTasks.Death && vitality.IsDead) {
                 TaskDuration = genetics.Get(settings.decomposition.DecompositionTime);
                 TaskIndex = AnimalTasks.Death;
+                eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_Death, this, null);
             } else if (TaskIndex < AnimalTasks.RunFromPredator) DetectPredator();
 
             TerrainInteractor.DetectMapInteraction(position,
-            OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
+            OnInSolid: (dens) => vitality.ProcessInSolid(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
-            OnInGas: vitality.ProcessInGas);
+            OnInGas: (dens) => vitality.ProcessInGas(this, dens));
         }
 
         //Always detect unless already running from predator
@@ -588,6 +589,7 @@ public class SkyScavanger : Authoring
             private Animator animator;
             private GameObject gameObject;
             private Transform transform;
+            private Indicators indicators;
             private bool active = false;
             private int AnimatorTask;
             
@@ -607,7 +609,7 @@ public class SkyScavanger : Authoring
                 this.active = true;
                 this.AnimatorTask = 0;
 
-                Indicators.SetupIndicators(gameObject);
+                indicators = new Indicators(gameObject, entity);
                 transform.position = CPUMapManager.GSToWS(entity.position);
             }
 
@@ -623,7 +625,7 @@ public class SkyScavanger : Authoring
                 }
 #endif
 
-                Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
+                indicators.Update();
                 if (AnimationNames[AnimatorTask] == "IsFlying") {
                     if (entity.velocity.y >= -1E-4f) animator.SetBool("IsAscending", true);
                     else animator.SetBool("IsAscending", false);
@@ -640,6 +642,7 @@ public class SkyScavanger : Authoring
                 active = false;
                 entity = null;
                 
+                indicators.Release();
                 Destroy(gameObject);
             }
 

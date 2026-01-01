@@ -173,7 +173,9 @@ namespace Arterra.Core.Player{
                     camera.characterRot = SmoothCharacterRot;
                     camera.camTsf.rotation = SmoothCameraRot;
                 }
-                PlayerHandler.data.Play("LookGradual", GetAngleX(camera.camTsf.rotation), camera.Rot.y);
+
+                var cxt = (GetAngleX(camera.camTsf.rotation), camera.Rot.y);
+                PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_LookGradual, PlayerHandler.data, null, ref cxt);
             }
         }
 
@@ -216,7 +218,8 @@ namespace Arterra.Core.Player{
                     camera.camTsf.rotation = SmoothCameraRot;
                 }
                 SetCameraOffset(camera);
-                PlayerHandler.data.Play("LookGradual", GetAngleX(camera.camTsf.rotation), camera.Rot.y);
+                var cxt = (GetAngleX(camera.camTsf.rotation), camera.Rot.y);
+                PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_LookGradual, PlayerHandler.data, null, ref cxt);
             }
 
             private void SetCameraOffset(PlayerCamera cm) {
@@ -287,7 +290,8 @@ namespace Arterra.Core.Player{
                     camera.camTsf.rotation = SmoothCameraRot;
                 }
                 SetCameraOffset(camera);
-                PlayerHandler.data.Play("LookGradual", GetAngleX(camera.camTsf.rotation), rotation);
+                var cxt = (GetAngleX(camera.camTsf.rotation), rotation);
+                PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_LookGradual, PlayerHandler.data, null, ref cxt);
             }
             
             private static void SetCameraOffset(PlayerCamera cm) {

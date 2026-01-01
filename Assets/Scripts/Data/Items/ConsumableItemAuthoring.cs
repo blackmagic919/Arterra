@@ -91,8 +91,9 @@ public class ConsumbaleItem : IItem{
         if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
         if (player.vitality.healthPercent >= 1) return;
 
-        player.Play("Consume");
         delta = AmountRaw - math.max(AmountRaw - delta, 0);
+        player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player, this, ref delta);
+
         player.vitality.Heal(delta * settings.NutritionValue * UnitSize);
         AmountRaw -= delta;
         if(AmountRaw == 0) cxt.TryRemove();//

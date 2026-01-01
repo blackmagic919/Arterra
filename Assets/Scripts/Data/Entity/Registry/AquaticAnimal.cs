@@ -173,7 +173,7 @@ public class AquaticAnimal : Authoring
             EntityManager.AddHandlerEvent(controller.Update);
 
             TerrainInteractor.DetectMapInteraction(position,
-            OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
+            OnInSolid: (dens) => vitality.ProcessInSolid(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquidAquatic(this, ref tCollider, dens,
                 genetics.Get(settings.aquatic.DrownTime)),
             OnInGas: (dens) => {
@@ -187,6 +187,7 @@ public class AquaticAnimal : Authoring
             if (TaskIndex != AnimalTasks.Death && vitality.IsDead) {
                 TaskDuration = genetics.Get(settings.decomposition.DecompositionTime);
                 TaskIndex = AnimalTasks.Death;
+                eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_Death, this, null);
             } else if (TaskIndex <= AnimalTasks.SwimUp && IsSurfacing()) TaskIndex = AnimalTasks.SwimUp;
             else if (TaskIndex < AnimalTasks.RunFromPredator) DetectPredator();
         }
@@ -599,6 +600,7 @@ public class AquaticAnimal : Authoring
             private Animator animator;
             private GameObject gameObject;
             private Transform transform;
+            private Indicators indicators;
             private bool active = false;
             private int AnimatorTask;
             private static readonly string[] AnimationNames = new string[]{
@@ -619,7 +621,7 @@ public class AquaticAnimal : Authoring
                 this.AnimatorTask = 0;
                 this.active = true;
 
-                Indicators.SetupIndicators(gameObject);
+                indicators = new Indicators(gameObject, entity);
                 transform.position = CPUMapManager.GSToWS(entity.position);
             }
 
@@ -630,7 +632,7 @@ public class AquaticAnimal : Authoring
                 TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
 
-                Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
+                indicators.Update();
                 if(AnimatorTask == (int)entity.TaskIndex) return;
                 if(AnimationNames[AnimatorTask] != null) animator.SetBool(AnimationNames[AnimatorTask], false);
                 AnimatorTask = (int)entity.TaskIndex;
@@ -642,6 +644,7 @@ public class AquaticAnimal : Authoring
                 active = false;
                 entity = null;
                 
+                indicators.Release();
                 GameObject.Destroy(gameObject);
             }
 

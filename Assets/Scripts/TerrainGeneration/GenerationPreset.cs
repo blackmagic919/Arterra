@@ -42,6 +42,7 @@ public static class SystemProtocol{
         LightBaker.Initialize();
         StartupPlacer.Initialize();
 
+        AudioManager.Instance.Initialize();
         TerrainUpdate.Initialize();
         //We need to make sure keybinds are rebound in the same order
         //as the state they were saved at
@@ -96,7 +97,7 @@ public static class SystemProtocol{
     }
 
     private static void ShutdownAll(){
-        AudioManager.Instance?.UpdateAmbience(0);
+        AudioManager.Instance.Release();
         EntityManager.Release();
         PlayerHandler.Release();
         LightBaker.Release();

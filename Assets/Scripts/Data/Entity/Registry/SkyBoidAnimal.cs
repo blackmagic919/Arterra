@@ -193,14 +193,14 @@ public class SkyBoidAnimal : Authoring
             TaskRegistry[(int)TaskIndex].Invoke(this);
             if (TaskIndex != AnimalTasks.Death && vitality.IsDead) {
                 TaskDuration = genetics.Get(settings.decomposition.DecompositionTime);
-                flightDirection = 0;
-                TaskIndex = AnimalTasks.Death;
+                TaskIndex = AnimalTasks.Death; flightDirection = 0;
+                eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_Death, this, null);
             } else if (TaskIndex < AnimalTasks.RunFromPredator) DetectPredator();
 
             TerrainInteractor.DetectMapInteraction(position,
-            OnInSolid: (dens) => vitality.ProcessSuffocation(this, dens),
+            OnInSolid: (dens) => vitality.ProcessInSolid(this, dens),
             OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref tCollider, dens),
-            OnInGas: vitality.ProcessInGas);
+            OnInGas: (dens) => vitality.ProcessInGas(this, dens));
         }
 
         private void DetectPredator() {
@@ -638,6 +638,7 @@ public class SkyBoidAnimal : Authoring
             private Animator animator;
             private GameObject gameObject;
             private Transform transform;
+            private Indicators indicators;
             private bool active = false;
             private int AnimatorTask;
             private static readonly string[] AnimationNames = new string[]{
@@ -657,7 +658,7 @@ public class SkyBoidAnimal : Authoring
                 this.active = true;
                 this.AnimatorTask = 0;
 
-                Indicators.SetupIndicators(gameObject);
+                indicators = new Indicators(gameObject, entity);
                 float3 GCoord = new(entity.GCoord);
                 transform.position = CPUMapManager.GSToWS(entity.position);
             }
@@ -675,7 +676,7 @@ public class SkyBoidAnimal : Authoring
                 }
 #endif
 
-                Indicators.UpdateIndicators(gameObject, entity.vitality, entity.pathFinder);
+                indicators.Update();
                 if (AnimationNames[AnimatorTask] == "IsFlying") {
                     if (entity.velocity.y >= -1E-4f) animator.SetBool("IsAscending", true);
                     else animator.SetBool("IsAscending", false);
@@ -691,6 +692,7 @@ public class SkyBoidAnimal : Authoring
                 active = false;
                 entity = null;
                 
+                indicators.Release();
                 Destroy(gameObject);
             }
 

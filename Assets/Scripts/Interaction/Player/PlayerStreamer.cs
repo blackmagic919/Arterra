@@ -38,7 +38,7 @@ namespace Arterra.Core.Player {
         /// <summary>The entity representing a player instance. </summary>
         //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
         //**If you release here the controller might still be accessing it
-        public class Player : Entity, IAttackable, IRider, IActionEffect
+        public class Player : Entity, IAttackable, IRider
         {
             /// <summary> The <see cref="PlayerSettings">entity settings
             /// </see> of this player instance </summary>
@@ -93,10 +93,6 @@ namespace Arterra.Core.Player {
             /// <summary> Whether or not the player is dead. <see cref="IAttackable.IsDead"/> </summary>
             [JsonIgnore]
             public bool IsDead { get => vitality.IsDead; }
-            /// <summary> Shorthand for <see cref="PlayerActionEffects.Play"/> </summary>
-            /// <param name="name"></param>
-            /// <param name="args"></param>
-            public void Play(string name, params object[] args) => Effects.Play(name, args);
             /// <summary>Interacts with the Player Instance. See <see cref="IAttackable.Interact(Entity)"/></summary>            
             public void Interact(Entity target) { }
             /// <summary> Collects items from the dead player instance
@@ -129,16 +125,15 @@ namespace Arterra.Core.Player {
                 if (Config.Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability) return;
                 if (vitality.Invincibility > 0) return;
                 
-                var cxt = (damage, knockback, attacker);
-                eventCtrl.RaiseEvent(GameEvent.Entity_Damaged, attacker, this, ref cxt);
-                (damage, knockback, attacker) = cxt;
+                var cxt = (damage, knockback);
+                eventCtrl.RaiseEvent(GameEvent.Entity_Damaged, this, attacker, ref cxt);
+                (damage, knockback) = cxt;
 
                 if (!vitality.Damage(damage)) return;
                 EntityManager.AddHandlerEvent(() => Indicators.DisplayDamageParticle(position, knockback));
                 velocity += knockback;
 
                 if (status == StreamingStatus.Disconnected) return;
-                Effects.Play("RecieveDamage", damage, knockback);
             }
             /// <summary>Handler that's called when the player mounts an entity <see cref="IRider"/></summary>
             /// <param name="mount">The mount the player is riding</param>
@@ -178,7 +173,7 @@ namespace Arterra.Core.Player {
                 settings = (PlayerSettings)setting;
                 collider.OnHitGround = ProcessFallDamage;
                 player = GameObject.Instantiate(Controller);
-                Effects.Initialize(player);
+                Effects.Initialize(player, eventCtrl);
                 player.transform.SetPositionAndRotation(positionWS, collider.transform.rotation);
             }
 
@@ -194,13 +189,13 @@ namespace Arterra.Core.Player {
                 settings = (PlayerSettings)setting;
                 GCoord = (int3)this.origin;
                 player = GameObject.Instantiate(Controller);
-                Effects.Initialize(player);
+                Effects.Initialize(player, eventCtrl);
                 player.transform.SetPositionAndRotation(positionWS, collider.transform.rotation);
                 collider.OnHitGround = ProcessFallDamage;
                 camera.Deserailize(this);
                 if (!IsDead) return;
 
-                Effects.Play("Die");
+                eventCtrl.RaiseEvent(GameEvent.System_Deserialize, this, null);
                 SetLayerRecursively(player.transform, LayerMask.NameToLayer("Default"));
             }
 
@@ -251,7 +246,8 @@ namespace Arterra.Core.Player {
             private void DetatchStreamer() {
                 if (status == StreamingStatus.Disconnected) return;
                 status = StreamingStatus.Disconnected;
-                Effects.Play("Die");
+
+                eventCtrl.RaiseEvent(GameEvent.Entity_Death, this, null);
                 SetLayerRecursively(player.transform, LayerMask.NameToLayer("Default"));
 
                 GameOverHandler.Activate();

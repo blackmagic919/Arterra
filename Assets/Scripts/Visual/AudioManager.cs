@@ -2,14 +2,32 @@ using UnityEngine;
 using FMODUnity;
 using FMOD.Studio;
 using System.Collections.Generic;
+using System;
+using System.Linq;
+using Unity.Mathematics;
 using Arterra.Core.Storage;
 
+enum AudioEventsBase {
+    SFXItem = 2000,
+    SFXEntity = 3000,
+    SFXAction = 4000,
+}
+public enum AudioEvents {
+    None = 0,
+    Item_PlainArrowFire = AudioEventsBase.SFXItem + 1,
+
+    Entity_PlainArrowFlyby = AudioEventsBase.SFXEntity + 0,
+    Entity_PlainArrowHit = AudioEventsBase.SFXEntity + 1,
+
+    Action_WaterSplash = AudioEventsBase.SFXAction + 0,
+}
 public class AudioManager : MonoBehaviour {
     public static AudioManager Instance;
     [SerializeField]
     private EventReference AmbienceMusicEvent;
     [SerializeField]
-    private EventReference WaterSplashEvent;
+    private List<AudioEventReference> AudioReferences;
+    private Dictionary<AudioEvents, EventReference> Reference;
 
     private EventInstance ambience;
     private Bus sfxBus;
@@ -36,6 +54,7 @@ public class AudioManager : MonoBehaviour {
     }
 
     public void Initialize() {
+        Reference = AudioReferences.ToDictionary(s => s.name, s => s.reference);
         sfxBus = RuntimeManager.GetBus("bus:/SFX");
         UpdateAmbience(0);
     }
@@ -45,33 +64,49 @@ public class AudioManager : MonoBehaviour {
         UpdateAmbience(0);
     }
 
-    private static EventInstance CreateEvent(EventReference evt) {
-        EventInstance inst = RuntimeManager.CreateInstance(evt);
+    public static EventInstance CreateEvent(AudioEvents evt, Vector3 pos = default) {
+        if (!Instance.Reference.TryGetValue(evt, out EventReference reference))
+            return default;
+        EventInstance inst = RuntimeManager.CreateInstance(reference);
+        float3 positionWS = CPUMapManager.GSToWS(pos);
+        inst.set3DAttributes(RuntimeUtils.To3DAttributes(positionWS));
         inst.start();
         inst.release();
         return inst;
     }
 
-    private static EventInstance CreateEventAttached(EventReference evt, Vector3 pos) {
-        EventInstance inst = RuntimeManager.CreateInstance(evt);
-        inst.set3DAttributes(RuntimeUtils.To3DAttributes(pos));
+    public static EventInstance CreateEventAttached(AudioEvents evt, GameObject obj)
+    {
+        if (!Instance.Reference.TryGetValue(evt, out EventReference reference))
+            return default;
+
+        EventInstance inst = RuntimeManager.CreateInstance(reference);
+        RuntimeManager.AttachInstanceToGameObject(inst, obj);
+
         inst.start();
         inst.release();
         return inst;
+    }   
+
+    public static void StopEvent(EventInstance inst, bool allowFadeOut = true)
+    {
+        if (!inst.isValid())
+            return;
+
+        inst.stop(allowFadeOut
+            ? FMOD.Studio.STOP_MODE.ALLOWFADEOUT
+            : FMOD.Studio.STOP_MODE.IMMEDIATE);
+
+        inst.release();
     }
+
+
     public void UpdateAmbience(float gameState) => ambience.setParameterByName("Game State", gameState);
 
-    public static void PlayWaterSplash(Arterra.Config.Generation.Entity.Entity entity, byte contact, float weight = 1) {
-        const int small = 0; const int medium = 1;  const int large = 2; 
-        float strength = Unity.Mathematics.math.length(entity.velocity);
-        if (strength <= 4) return;
-        strength *= weight;
-
-        int type = strength < 7.5 ? small : strength < 15 ? medium : large;
-        EventInstance evnt = CreateEventAttached(Instance.WaterSplashEvent, CPUMapManager.GSToWS(entity.position));
-        evnt.setParameterByName("Splash Strength", (float)type);
+    [Serializable]
+    public struct AudioEventReference {
+        public AudioEvents name;
+        public EventReference reference;
     }
-
-
     
 }

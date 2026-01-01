@@ -1,4 +1,5 @@
- using Newtonsoft.Json;
+using Arterra.Core.Events;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace Arterra.Config.Generation.Item{
@@ -54,8 +55,8 @@ namespace Arterra.Config.Generation.Item{
         public void UpdateEItem() { }
         public void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
-                effect.Play("HoldItem", settings.Model.Value);
+            if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled)
+                effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
                 InputPoller.AddBinding(new ActionBind(
                     "BowDraw", _ => StartDrawingBow(cxt),
@@ -68,12 +69,13 @@ namespace Arterra.Config.Generation.Item{
         }
         public void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled) 
-                effect.Play("UnHoldItem", settings.Model);
+            if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect, this, ref settings.Model.Value);
             InputPoller.AddKeyBindChange(() => {
                 InputPoller.RemoveBinding("ITEM:Bow:DRW", "5.0::GamePlay");
                 InputPoller.RemoveBinding("ITEM:Bow:RLS", "5.0::GamePlay");
-                if (cxt.TryGetHolder(out IActionEffect effect)) effect.Play("ReleaseBow");
+                if (cxt.TryGetHolder(out IEventControlled effect))
+                    effect.RaiseEvent(GameEvent.Item_ReleaseBow, effect, this);
             });
         }
 
@@ -83,8 +85,8 @@ namespace Arterra.Config.Generation.Item{
                 drawTime = 0;
                 return;
             };
-            if (cxt.TryGetHolder(out IActionEffect effect))
-                effect.Play("DrawBow");
+            if (cxt.TryGetHolder(out IEventControlled effect))
+                effect.RaiseEvent(GameEvent.Item_DrawBow, effect, this);
             drawTime += Time.deltaTime;
         }
 
@@ -95,8 +97,10 @@ namespace Arterra.Config.Generation.Item{
             float drawPercent = Mathf.InverseLerp(settings.MinDrawTime, settings.FullDrawTime, timeDraw);
             float launchSpeed = Mathf.Lerp(settings.MinLaunchSpeed, settings.MaxLaunchSpeed, drawPercent);
             if (!ShootArrow(cxt, slot, launchSpeed)) return;
-            if (cxt.TryGetHolder(out IActionEffect effect))
-                effect.Play("ReleaseBow");
+            if (cxt.TryGetHolder(out Entity.Entity effect)) {
+                effect.eventCtrl.RaiseEvent(GameEvent.Item_ReleaseBow, effect, this);
+            }
+
             durability -= 1.0f;
             if (durability > 0) return;
             cxt.TryRemove();

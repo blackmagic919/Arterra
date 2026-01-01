@@ -4,6 +4,7 @@ using UnityEngine;
 using Arterra.Core.Terrain;
 using Arterra.Core.Player;
 using static Arterra.Core.Player.PlayerInteraction;
+using Arterra.Core.Events;
 
 
 namespace Arterra.Config.Generation.Item
@@ -32,8 +33,8 @@ namespace Arterra.Config.Generation.Item
         public override object Clone() => new WeaponToolItem { data = data, durability = durability };
         public override void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
-                effect.Play("HoldItem", settings.Model.Value);
+            if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
+                effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
             OctreeTerrain.MainLoopUpdateTasks.Enqueue(this);
             this.active = true; this.cxt = cxt;
             InputPoller.AddKeyBindChange(() => {
@@ -47,8 +48,8 @@ namespace Arterra.Config.Generation.Item
 
         public override void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-            if (cxt.TryGetHolder(out IActionEffect effect) && settings.Model.Enabled)
-                effect.Play("UnHoldItem", settings.Model.Value);
+            if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect, this, ref settings.Model.Value);
             this.active = false;
             this.cxt = null;
             InputPoller.AddKeyBindChange(() => {
@@ -88,8 +89,8 @@ namespace Arterra.Config.Generation.Item
                 + player.Forward
                 * Config.CURRENT.GamePlay.Player.value.Interaction.value.ReachDistance;
 
-            if (settings.OnUseAnim.Enabled && player is IActionEffect effectable)
-                effectable.Play(settings.OnUseAnim.Value);
+            if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
+                effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);
                     
             if (RayTestSolid(out float3 terrHit)) hitPt = terrHit;
             if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out Entity.Entity entity))

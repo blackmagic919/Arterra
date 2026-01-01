@@ -97,11 +97,13 @@ public class EItem : Arterra.Config.Generation.Entity.Authoring
             if (!active) return;
             tCollider.useGravity = true;
 
-            TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
-            OnInLiquid: (dens) => {
-                velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-                tCollider.useGravity = false;
-            }, OnInGas: null);
+            TerrainInteractor.DetectMapInteraction(position,
+                OnInSolid: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, this, null, ref dens),
+                OnInLiquid: (dens) => {
+                    eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, this, null, ref dens);
+                    velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
+                    tCollider.useGravity = false;
+                }, OnInGas: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, this, null, ref dens));
 
             decomposition -= EntityJob.cxt.deltaTime;
             if (decomposition <= 0)
@@ -168,6 +170,7 @@ public class EItem : Arterra.Config.Generation.Entity.Authoring
             private EItemEntity entity;
             private GameObject gameObject;
             private Transform transform;
+            private Indicators indicators;
 
             private bool active = false;
 
@@ -182,6 +185,7 @@ public class EItem : Arterra.Config.Generation.Entity.Authoring
 
                 float3 GCoord = new (entity.GCoord);
                 this.transform.position = CPUMapManager.GSToWS(entity.position);
+                indicators = new Indicators(gameObject, entity);
 
                 if(entity.item.Value == null) return; 
                 meshFilter = gameObject.GetComponent<MeshFilter>();
@@ -203,12 +207,14 @@ public class EItem : Arterra.Config.Generation.Entity.Authoring
                 if(gameObject == null) return;
                 TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
+                indicators.Update();
             }
 
             public void Dispose(){ 
                 if(!active) return;
                 active = false;
 
+                indicators.Release();
                 Destroy(gameObject);
             }
             ~EItemController(){

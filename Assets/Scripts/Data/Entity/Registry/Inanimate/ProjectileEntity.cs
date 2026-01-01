@@ -6,6 +6,7 @@ using Arterra.Config;
 using Arterra.Config.Generation.Item;
 using Arterra.Config.Generation.Entity;
 using Arterra.Core.Storage;
+using FMOD.Studio;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Projectile")]
 public class Projectile : Arterra.Config.Generation.Entity.Authoring
@@ -24,6 +25,8 @@ public class Projectile : Arterra.Config.Generation.Entity.Authoring
         public float KnockbackMultiplier;
         public GroundIntrc terrainInteration;
         public EntityIntrc entityInteraction;
+        public AudioEvents FlybySound;
+        public AudioEvents HitSound;
         [RegistryReference("Items")]
         public string ItemDrop;
         public enum GroundIntrc {
@@ -44,8 +47,6 @@ public class Projectile : Arterra.Config.Generation.Entity.Authoring
     public class ProjectileEntity : Entity, IAttackable {
         [JsonProperty]
         private TerrainCollider tCollider;
-        [JsonProperty]
-        private Unity.Mathematics.Random random;
         private ProjectileController controller;
         private ProjectileSetting settings;
         [JsonProperty]
@@ -56,6 +57,7 @@ public class Projectile : Arterra.Config.Generation.Entity.Authoring
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
         public bool IsDead => true;
+        private bool HasCollided;
 
         public Guid ParentId;
         public void Interact(Entity target) { }
@@ -78,10 +80,10 @@ public class Projectile : Arterra.Config.Generation.Entity.Authoring
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (ProjectileSetting)setting;
             controller = new ProjectileController(Controller, this);
-            random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(0, int.MaxValue));
             tCollider = new TerrainCollider(this.settings.collider, GCoord);
             decomposition = settings.DecayTime;
             ParentId = info.entityId;
+            HasCollided = false;
         }
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
@@ -97,51 +99,58 @@ public class Projectile : Arterra.Config.Generation.Entity.Authoring
             if (!active) return;
             tCollider.useGravity = true;
 
-            TerrainInteractor.DetectMapInteraction(position, OnInSolid: null,
-            OnInLiquid: (dens) => {
-                velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-                tCollider.useGravity = false;
-            }, OnInGas: null);
+            TerrainInteractor.DetectMapInteraction(position,
+                OnInSolid: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, this, null, ref dens),
+                OnInLiquid: (dens) => {
+                    eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, this, null, ref dens);
+                    velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
+                    tCollider.useGravity = false;
+                }, OnInGas: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, this, null, ref dens));
 
             decomposition -= EntityJob.cxt.deltaTime;
             if (decomposition <= 0) {
                 EntityManager.ReleaseEntity(info.entityId);
                 return;
             }
-            if (tCollider.SampleCollision(tCollider.transform.position, tCollider.transform.size * 1.05f, EntityJob.cxt.mapContext, out float3 gDir)) {
-                switch (settings.terrainInteration) {
-                    case ProjectileSetting.GroundIntrc.Stick:
-                        tCollider.transform.rotation = Quaternion.LookRotation(-gDir, math.up());
-                        velocity = 0;
-                        break;
-                    case ProjectileSetting.GroundIntrc.Destroy:
-                        EntityManager.ReleaseEntity(info.entityId);
-                        return;
-                    case ProjectileSetting.GroundIntrc.Bounce:
-                        float3 dir = math.normalize(gDir);
-                        float3 reflect = math.dot(velocity, dir) * dir;
-                        velocity = velocity - 2 * (1 - TerrainCollider.BaseFriction) * reflect;
-                        break;
-                    case ProjectileSetting.GroundIntrc.Slide:
-                        break;
-                }
-            } else CheckEntityRayCollision(position, velocity);
-            tCollider.Update(this);
+            if (CheckTerrainRayCollision() || CheckEntityRayCollision(position, velocity)) {
+                if (!HasCollided) this.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_ProjectileHit, this, null);
+                HasCollided = true;
+            } else if (math.length(velocity) > 1) HasCollided = false;
+            tCollider.Update(this, 0);
             EntityManager.AddHandlerEvent(controller.Update);
         }
 
-        private void CheckEntityRayCollision(float3 startGS, float3 pVel) {
-            float speed = math.length(pVel);
-            if (speed <= settings.MinDamagingSpeed) return;
+        private bool CheckTerrainRayCollision() {
+            if (!tCollider.SampleCollision(tCollider.transform.position, tCollider.transform.size * 1.05f, EntityJob.cxt.mapContext, out float3 gDir)) return false;
+            switch (settings.terrainInteration) {
+                case ProjectileSetting.GroundIntrc.Stick:
+                    tCollider.transform.rotation = Quaternion.LookRotation(-gDir, math.up());
+                    velocity = 0;
+                    break;
+                case ProjectileSetting.GroundIntrc.Destroy:
+                    EntityManager.ReleaseEntity(info.entityId);
+                    break;
+                case ProjectileSetting.GroundIntrc.Bounce:
+                    float3 dir = math.normalize(gDir);
+                    float3 reflect = math.dot(velocity, dir) * dir;
+                    velocity = velocity - 2 * (1 - TerrainCollider.BaseFriction) * reflect;
+                    break;
+                case ProjectileSetting.GroundIntrc.Slide:
+                    break;
+            } return true;
+        }
 
+        private bool CheckEntityRayCollision(float3 startGS, float3 pVel) {
             float3 endGS = startGS + pVel;
-            if (!EntityManager.ESTree.FindClosestAlongRay(startGS, endGS, info.entityId, out Entity hitEntity)) return;
-            if (hitEntity is not IAttackable atkEntity) return;
+            if (!EntityManager.ESTree.FindClosestAlongRay(startGS, endGS, info.entityId, out Entity hitEntity)) return false;
+            if (hitEntity is not IAttackable atkEntity) return false;
+
+            float speed = math.length(pVel);
             float damage = speed * settings.DamageMultiplier;
             float3 knockback = velocity * settings.KnockbackMultiplier;
             if (!EntityManager.TryGetEntity(ParentId, out Entity attacker))
                 EntityManager.TryGetEntity(info.entityId, out attacker);
-            EntityManager.AddHandlerEvent(() => atkEntity.TakeDamage(damage, knockback, attacker));
+            if (speed > settings.MinDamagingSpeed) MediumVitality.RealAttack(this, hitEntity, damage, knockback);
             switch (settings.entityInteraction) {
                 case ProjectileSetting.EntityIntrc.Ricochet:
                     float3 dir = startGS - hitEntity.position;
@@ -153,7 +162,7 @@ public class Projectile : Arterra.Config.Generation.Entity.Authoring
                     break;
                 case ProjectileSetting.EntityIntrc.Penetrate:
                     break;
-            }
+            } return true;
         }
 
 
@@ -166,6 +175,8 @@ public class Projectile : Arterra.Config.Generation.Entity.Authoring
             private ProjectileEntity entity;
             private GameObject gameObject;
             private Transform transform;
+            private EventInstance instance;
+            private Indicators indicators;
 
             private bool active = false;
 
@@ -177,7 +188,10 @@ public class Projectile : Arterra.Config.Generation.Entity.Authoring
                 this.entity = (ProjectileEntity)Entity;
                 this.active = true;
 
+                this.indicators = new Indicators(gameObject, entity);
                 this.transform.position = CPUMapManager.GSToWS(entity.position);
+                entity.eventCtrl.AddEventHandler<object>(Arterra.Core.Events.GameEvent.Entity_ProjectileHit, PlayHitEffects);
+                instance = AudioManager.CreateEventAttached(entity.settings.FlybySound, gameObject);
             }
 
             public void Update(){
@@ -185,14 +199,26 @@ public class Projectile : Arterra.Config.Generation.Entity.Authoring
                 if(gameObject == null) return;
                 TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
+
+                this.indicators.Update();
+                if (entity.HasCollided) return;
+                float speed = math.length(entity.velocity);
+                speed = 1.0f - math.exp(-0.1f * speed);
+                instance.setParameterByName("Speed", speed);
             }
 
             public void Dispose(){ 
                 if(!active) return;
                 active = false;
 
+                instance.stop(STOP_MODE.ALLOWFADEOUT);
+                indicators.Release();
                 Destroy(gameObject);
             }
+
+            private void PlayHitEffects(object source, object target, ref object _) => 
+                EntityManager.AddHandlerEvent(() => AudioManager.CreateEvent(entity.settings.HitSound, (source as Entity).position));
+
             ~ProjectileController(){
                 Dispose();
             }

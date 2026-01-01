@@ -30,3 +30,4 @@ MonoBehaviour:
       data:
         ProjectileEntity: Arrow
         LaunchSpeedMultiplier: 1
+        FireSound: 2001
