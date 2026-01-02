@@ -193,7 +193,7 @@ public struct TooltipConfig : ICloneable {
     // Set this to TimeSpan.Zero to consider it immediately.
     public float TriggerTime; // in seconds
 
-    public string PrefabPath; //TODO: for testing only.
+    public string PrefabPath;
 
     // Whether, once this tooltip is auto-acknowledged, its name is put into a blacklist hash preventing it 
     // from ever triggering again. This should almost always be true (maybe except for some ondeath/startup msg 
