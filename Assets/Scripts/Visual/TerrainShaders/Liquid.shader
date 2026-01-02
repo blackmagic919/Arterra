@@ -7,7 +7,7 @@ Shader "Unlit/LiquidShader"
 
     SubShader//
     {
-        Tags {"RenderPipeline" = "UniversalPipeline"  "Queue" = "Transparent" "RenderType"="Opaque" }
+        Tags {"RenderPipeline" = "UniversalPipeline"  "Queue" = "Transparent" "RenderType"="Transparent" }
         ZWrite On
 
         Pass
@@ -15,6 +15,8 @@ Shader "Unlit/LiquidShader"
             Name "ForwardLit"
             Tags {"LightMode" = "UniversalForward"}
             Cull Back
+            ZTest LEqual
+            Blend SrcAlpha OneMinusSrcAlpha
 
             HLSLPROGRAM
             #pragma vertex vert

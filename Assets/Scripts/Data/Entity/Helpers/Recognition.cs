@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Config;
-using Arterra.Config.Generation.Entity;
-using Arterra.Config.Generation.Structure;
-using Arterra.Config.Generation.Material;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Entity;
+using Arterra.Configuration.Generation.Structure;
+using Arterra.Configuration.Generation.Material;
+using Arterra.Configuration.Generation.Item;
 using Arterra.Core.Storage;
 
 
@@ -41,7 +42,7 @@ public class MinimalRecognition {
 
     public virtual void Construct(){
         AwarenessTable = new Dictionary<int, Recognizable>();
-        Catalogue<Authoring> eReg = Config.CURRENT.Generation.Entities;
+        Catalogue<Arterra.Configuration.Generation.Entity.Authoring> eReg = Config.CURRENT.Generation.Entities;
         IRegister mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
 
 
@@ -153,7 +154,7 @@ public class MinimalRecognition {
     }
 
     //Eat Food
-    public Arterra.Config.Generation.Item.IItem ConsumePlant(Entity self, int3 preyCoord){
+    public IItem ConsumePlant(Entity self, int3 preyCoord){
         MapData mapData = CPUMapManager.SampleMap(preyCoord);
         if (mapData.IsNull) return null;
         int mIndex = mapData.material + materialStart;
@@ -169,13 +170,13 @@ public class MinimalRecognition {
         if (!String.IsNullOrEmpty(key) && matInfo.Contains(key)) {
             int newMaterial = matInfo.RetrieveIndex(key);
             if (!MaterialData.SwapMaterial(preyCoord, newMaterial,
-                out Arterra.Config.Generation.Item.IItem nMat, self))
+                out IItem nMat, self))
                 return null;
             return nMat;
         } else {
             if (matInfo.Retrieve(mapData.material).OnRemoving(preyCoord, self))
                 return null;
-            Arterra.Config.Generation.Item.IItem nMat =
+            IItem nMat =
                 matInfo.Retrieve(mapData.material).OnRemoved(preyCoord, mapData);
             mapData.viscosity = 0;
             mapData.density = 0;
@@ -297,8 +298,8 @@ public class Recognition : MinimalRecognition{
     public override void Construct() {
         base.Construct();
         AwarenessTable ??= new Dictionary<int, Recognizable>();
-        Catalogue<Authoring> eReg = Config.CURRENT.Generation.Entities;
-        Catalogue<Arterra.Config.Generation.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
+        Catalogue<Arterra.Configuration.Generation.Entity.Authoring> eReg = Config.CURRENT.Generation.Entities;
+        Catalogue<Arterra.Configuration.Generation.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
 
         if(Mates.value != null) { 
         for(int i = 0; i < Mates.value.Count; i++){
@@ -405,7 +406,7 @@ public class Recognition : MinimalRecognition{
         return true;
     }
 
-    public bool CanConsume(Genetics genetics, Arterra.Config.Generation.Item.IItem item, out float nutrition) {
+    public bool CanConsume(Genetics genetics, IItem item, out float nutrition) {
         nutrition = 0;
         if (Edibles.value == null) return false;
         if (AwarenessTable == null) return false;

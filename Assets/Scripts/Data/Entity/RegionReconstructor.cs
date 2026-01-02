@@ -4,9 +4,9 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using Arterra.Core.Terrain.Readback;
 using static Arterra.Core.Terrain.Readback.IVertFormat;
-using Arterra.Config;
+using Arterra.Configuration;
 using System.Collections.Generic;
-using Arterra.Config.Generation.Material;
+using Arterra.Configuration.Generation.Material;
 using Utils;
 using Arterra.Core.Storage;
 
@@ -59,7 +59,7 @@ public class RegionReconstructor{
         UtilityBuffers.TransferBuffer.SetData(map, 0, bufferOffsets.regionMapStart, map.Length);
         UtilityBuffers.TransferBuffer.SetData(flags, 0, bufferOffsets.mapFlagStart, flags.Length);
         
-        Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+        Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
         regionObj.transform.localScale = Vector3.one * rSettings.lerpScale;
         regionObj.transform.position = CPUMapManager.GSToWS(cMin);
         
@@ -80,7 +80,7 @@ public class RegionReconstructor{
         cSize += 2;
         
         UtilityBuffers.TransferBuffer.SetData(map, 0, bufferOffsets.regionMapStart, map.Length);
-        Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+        Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
         GenerateRegionMesh(cSize, rSettings.IsoLevel);
         meshHandler?.ReleaseAllGeometry();
 

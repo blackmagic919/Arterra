@@ -2,7 +2,7 @@ using System;
 using System.Reflection;
 using TMPro;
 using UnityEngine;
-using Arterra.Config;
+using Arterra.Configuration;
 using System.Linq;
 using static PaginatedUIEditor;
 public class PaginatedCategorySerializer : IConverter

@@ -7,11 +7,12 @@ using Utils;
 using System.Linq;
 using Newtonsoft.Json;
 using System;
-using Arterra.Config.Generation.Entity;
 using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Buffers;
 using System.Threading.Tasks;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Entity;
 using Arterra.Core.Terrain;
 
 /*
@@ -38,7 +39,7 @@ public static class Chunk
     /// <summary> Initializes the Chunk Storage Manager. This should be called once at the start of the game.
     /// Sets up information relavent to file formatting, and the <see cref="ChunkFinder"/>. </summary>
     public static void Initialize(){
-        maxChunkSize = Config.Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        maxChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         chunkFinder = new ChunkFinder();
         chunkFinder.TrackRegions();
     }
@@ -46,7 +47,7 @@ public static class Chunk
     /// <summary> Initializes the Chunk Storage Manager for minimal chunk I/O operations without complex
     /// lookup structures. </summary>
     public static void MinimalInitialze() {
-        maxChunkSize = Config.Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        maxChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         chunkFinder = new ChunkFinder();
     }
 
@@ -332,7 +333,7 @@ public static class Chunk
         }
 
         string[] dict = new string[RegisterDict.Count];
-        var mReg = Config.Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         foreach(var pair in RegisterDict){
             dict[pair.Value] = mReg.RetrieveName(pair.Key);
         }
@@ -344,7 +345,7 @@ public static class Chunk
     }
 
     private static void DeserializeHeader(ref MapData[] map, ref ChunkHeader header){
-        var mReg = Config.Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         int[] materialIndexCache = new int[header.RegisterNames.Count];
         for (int i = 0; i < header.RegisterNames.Count; i++) { materialIndexCache[i] = mReg.RetrieveIndex(header.RegisterNames[i]); }
         for(int i = 0; i < map.Length; i++){ map[i].material = materialIndexCache[map[i].material]; }
@@ -525,7 +526,7 @@ public static class Chunk
             chunkPath = World.WORLD_SELECTION.First.Value.Path + "/MapData/";
             entityPath = World.WORLD_SELECTION.First.Value.Path + "/EntityData/";
 
-            Config.Quality.Terrain rSettings = Config.Config.CURRENT.Quality.Terrain.value;
+            Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
             numChunksAxis = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(rSettings.MaxDepth, rSettings.Balance, (uint)rSettings.MinChunkRadius);
             numChunksAxis = math.max((numChunksAxis << rSettings.MaxDepth) >> rSettings.FileRegionDepth, 1);
             regionChunkSize = 1 << rSettings.FileRegionDepth;

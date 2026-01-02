@@ -16,7 +16,7 @@ y
 +----------->x
 */
 
-namespace Arterra.Config.Generation.Material{
+namespace Arterra.Configuration.Generation.Material{
     /// <summary>
     /// A concrete material that will attempt to perform liquid physics when updated. Liquid physics
     /// simulate how liquids flow using a small set of specific rules.

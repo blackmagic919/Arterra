@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Arterra.Config.Quality
+namespace Arterra.Configuration.Quality
 {
     [CreateAssetMenu(menuName = "Settings/Armor/Category")]
     public class EquipableCategory : Category<EquipableArmor>

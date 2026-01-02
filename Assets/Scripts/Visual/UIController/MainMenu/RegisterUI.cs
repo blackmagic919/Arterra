@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
-using Arterra.Config;
+using Arterra.Configuration;
 using Unity.Mathematics;
 using System.Linq;
 

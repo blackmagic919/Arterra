@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Arterra.Config.Quality {
+namespace Arterra.Configuration.Quality {
     /// <summary>  Settings describing a multi-buffer GPU memory handler, 
     /// mainly used for saving blocks of CPU-side unknown sizes on the GPU  </summary>
     [CreateAssetMenu(menuName = "Containers/Balanced Heap")]

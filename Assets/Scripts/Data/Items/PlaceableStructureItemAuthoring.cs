@@ -5,11 +5,11 @@ using System.Collections.Generic;
 using Utils;
 using System.Linq;
 using Arterra.Core.Storage;
-using Arterra.Config.Generation.Material;
+using Arterra.Configuration.Generation.Material;
 using Arterra.Core.Player;
 using static Arterra.Core.Player.PlayerInteraction;
 
-namespace Arterra.Config.Generation.Item {
+namespace Arterra.Configuration.Generation.Item {
     [CreateAssetMenu(menuName = "Generation/Items/StructureItem")]
     public class PlaceableStructureItemAuthoring : PlaceableTemplate<PlaceableStructureItem> {}
     public class PlaceableStructureItem : IItem {

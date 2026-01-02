@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime;
-using Arterra.Config.Generation.Entity;
+using Arterra.Configuration.Generation.Entity;
 using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;

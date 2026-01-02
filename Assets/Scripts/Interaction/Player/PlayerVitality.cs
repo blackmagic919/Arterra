@@ -1,14 +1,13 @@
 using System;
 using Unity.Mathematics;
-using Arterra.Config.Gameplay.Player;
-using Arterra.Config;
 using UnityEngine;
 using Newtonsoft.Json;
-using Arterra.Config.Generation.Entity;
-using Arterra.Core.Player;
+using Arterra.Configuration;
+using Arterra.Configuration.Gameplay.Player;
+using Arterra.Configuration.Generation.Entity;
 using Arterra.Core.Events;
 
-namespace Arterra.Config.Gameplay.Player {
+namespace Arterra.Configuration.Gameplay.Player {
     /// <summary> Settings describing the player's vitaltiy, or the 
     /// combat ability and/or physical statistics of the player. </summary>
     [Serializable]
@@ -56,9 +55,9 @@ namespace Arterra.Core.Player {
     /// and base attack functionalities.  </summary>
     public class PlayerVitality
     {
-        private static Interaction interact => Config.Config.CURRENT.GamePlay.Player.value.Interaction;
+        private static Interaction interact => Config.CURRENT.GamePlay.Player.value.Interaction;
         /// <summary> The player's physicality settings. </summary>
-        public static Physicality settings => Config.Config.CURRENT.GamePlay.Player.value.Physicality;
+        public static Physicality settings => Config.CURRENT.GamePlay.Player.value.Physicality;
         /// <summary>The time in seconds before the player can initiate attacking.</summary>
         public float AttackCooldown;
         /// <summary>The time in seconds before the player can recieve damage again. </summary>

@@ -1,7 +1,7 @@
 using System;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Config.Generation.Entity;
+using Arterra.Configuration.Generation.Entity;
 
 [Serializable]
 public struct Movement {

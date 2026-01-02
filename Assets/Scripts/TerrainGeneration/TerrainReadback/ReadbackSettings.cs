@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Arterra.Config.Intrinsic{
+namespace Arterra.Configuration.Intrinsic{
 /// <summary> Settings for the readback system. 
 /// <see cref="Core.Terrain.Readback.AsyncMeshReadback"/> 
 /// for more information. </summary>

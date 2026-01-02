@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Arterra.Config.Generation.Structure{
+namespace Arterra.Configuration.Generation.Structure{
 
     [Serializable]
     [CreateAssetMenu(menuName = "Generation/Structure/Category")]

@@ -1,10 +1,10 @@
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using Arterra.Config;
-using Arterra.Config.Generation.Entity;
-using Arterra.Config.Generation.Item;
-using Arterra.Config.Intrinsic;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Entity;
+using Arterra.Configuration.Generation.Item;
+using Arterra.Configuration.Intrinsic;
 using Arterra.Core.Terrain;
 using Arterra.Core.Events;
 using Arterra.Core.Player;
@@ -283,7 +283,7 @@ public class ArmorController : PanelNavbarManager.INavPanel {
     }
 
     private class FreeCamera {
-        private Arterra.Config.Gameplay.Player.Camera S => Config.CURRENT.GamePlay.Player.value.Camera;
+        private Arterra.Configuration.Gameplay.Player.Camera S => Config.CURRENT.GamePlay.Player.value.Camera;
         private Transform CamTsf;
         const float height = 0f;
         const float distance = 7.5f;

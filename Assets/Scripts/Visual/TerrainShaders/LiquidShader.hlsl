@@ -1,4 +1,5 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
 #include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
 
@@ -29,10 +30,6 @@ TEXTURE2D(_LiquidFineWave);
 SAMPLER(sampler_LiquidFineWave);
 TEXTURE2D(_LiquidCoarseWave);
 SAMPLER(sampler_LiquidCoarseWave);
-TEXTURE2D(_CameraDepthTexture);
-SAMPLER(sampler_CameraDepthTexture);
-TEXTURE2D(_CameraOpaqueTexture);
-SAMPLER(sampler_CameraOpaqueTexture);
 
 
 #ifdef INDIRECT
@@ -142,10 +139,8 @@ half4 frag (v2f IN) : SV_Target
     waveNormal = normalize(blend_rnm(IN.normalWS, waveNormal));
 
     UV += waveNormal * matData.WaveStrength;
-    float3 groundColor = SAMPLE_TEXTURE2D(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, UV).rgb;
-
-    float screenDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, UV);
-    float linearDepth = LinearEyeDepth(screenDepth, _ZBufferParams) * length(viewVector);
+    float rawDepth = SampleSceneDepth(UV);
+    float linearDepth = LinearEyeDepth(rawDepth, _ZBufferParams);
     float dstToWater = IN.positionCS.w;
 
     float waterDepth = max(linearDepth - dstToWater, 0);
@@ -158,5 +153,5 @@ half4 frag (v2f IN) : SV_Target
     ObjectLight = mad((1 - ObjectLight), unity_AmbientGround, ObjectLight * 2.5f); //linear interpolation
     ObjectLight *= waterCol.rgb;
 
-	return float4(lerp(groundColor, max(DynamicLight, ObjectLight), waterCol.a), 1);
+	return float4((max(DynamicLight, ObjectLight)), waterCol.a);
 }

@@ -5,7 +5,7 @@ using Unity.Burst;
 using static EntityJob;
 using Newtonsoft.Json;
 using static Arterra.Core.Storage.CPUMapManager;
-using Arterra.Config.Generation.Entity;
+using Arterra.Configuration.Generation.Entity;
 
 /*
 Future Note: Make this done on a job system
@@ -342,6 +342,28 @@ public struct TerrainCollider {
             transform.position += displacement;
             float3 nVelocity = CancelVel(transform.velocity, displacement);
             if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
+            transform.velocity = nVelocity;
+        } 
+    }
+
+    /// <summary> Updates the collider on a Unity Fixed Update. </summary>
+    public void FixedUpdate(Entity player) {
+        float friction = 0;
+        bool IsTangible = !Arterra.Configuration.Config.CURRENT.GamePlay.Gamemodes.value.Intangiblity; 
+        byte contact = IsTangible ? TerrainInteractor.SampleContact(transform.position, transform.size, out friction, player) : (byte)0;
+        if (!TerrainInteractor.IsTouching(contact)) friction = BaseFriction;
+        if (useGravity) transform.velocity.xz *= 1 - friction;
+        else transform.velocity *= 1 - friction;
+
+        transform.position += transform.velocity * Time.fixedDeltaTime;
+        if (useGravity) transform.velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
+
+        if (TerrainInteractor.TouchSolid(contact)
+            && SampleCollision(transform.position, transform.size, out float3 displacement)
+        ) {
+            float3 nVelocity = CancelVel(transform.velocity, displacement);
+            if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
+            transform.position += displacement;
             transform.velocity = nVelocity;
         } 
     }

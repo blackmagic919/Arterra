@@ -13,7 +13,7 @@ y
 +----------->x
 */
 
-namespace Arterra.Config.Generation.Material{
+namespace Arterra.Configuration.Generation.Material{
     /// <summary>  A concrete material that will attempt to perform liquid physics when updated and
     /// will also attempt to spread grass to neighboring entries when randomly updated.
     /// See <see cref="GrassMaterial"/> and <see cref="LiquidMaterial"/> for more information 

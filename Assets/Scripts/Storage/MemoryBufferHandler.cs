@@ -6,12 +6,12 @@ using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 
-namespace Arterra.Config.Quality {
+namespace Arterra.Configuration.Quality {
     /// <summary>
     /// Responsible for managing the allocation and deallocation of memory on the GPU for generation
     /// related tasks. Rather than allowing each system to maintain its own <see cref="ComputeBuffer"/>, 
     /// memory is allocated through a shader-based malloc which allows for more efficient memory management and 
-    /// fewer buffer locations to track. Settings on the size of this memory heap can be found in <see cref="Arterra.Config.Quality.Memory"/>.
+    /// fewer buffer locations to track. Settings on the size of this memory heap can be found in <see cref="Quality.Memory"/>.
     /// <seealso href = "https://blackmagic919.github.io/AboutMe/2024/08/18/Memory-Heap/"/> 
     /// </summary>
     public class MemoryBufferHandler {

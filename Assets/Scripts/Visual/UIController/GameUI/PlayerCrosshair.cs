@@ -1,6 +1,6 @@
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Config;
+using Arterra.Configuration;
 using Arterra.Core.Terrain;
 using Arterra.Core.Player;
 

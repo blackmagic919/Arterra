@@ -1,15 +1,16 @@
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Config.Generation.Material;
+using Arterra.Configuration.Generation.Material;
 using System.Collections.Concurrent;
 using Unity.Jobs;
-using Arterra.Config.Intrinsic;
+using Arterra.Configuration;
+using Arterra.Configuration.Intrinsic;
 using Arterra.Core.Storage;
 using Arterra.Core.Player;
 using System.Threading;
 using System;
 
-namespace Arterra.Config.Intrinsic{
+namespace Arterra.Configuration.Intrinsic{
     /// <summary>
     /// Settings controlling how updates to the terrain are performed 
     /// and how much load it is allotted. Terrain updates are point-operations
@@ -74,14 +75,14 @@ namespace Arterra.Core.Terrain{
         /// Allocates memory for the update system, which is fixed and cannot be resized.
         /// </summary>
         public static void Initialize() {
-            settings = Config.Config.CURRENT.System.TerrainUpdation.value;
-            Config.Quality.Terrain rSettings = Config.Config.CURRENT.Quality.Terrain.value;
+            settings = Config.CURRENT.System.TerrainUpdation.value;
+            Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
             int numPointsChunk = rSettings.mapChunkSize;
             int numChunksAxis = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
             numPointsAxis = numChunksAxis * numPointsChunk;
             int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
 
-            MaterialDictionary = Config.Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            MaterialDictionary = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             UpdateCoordinates = new ConcurrentQueue<int3>();
             IncludedCoords = new FlagList(numPoints);
             Executor = new Manager();
@@ -129,7 +130,7 @@ namespace Arterra.Core.Terrain{
                 propogatedUpdates.seed = new Unity.Mathematics.Random((uint)GetHashCode());
                 randomUpdates.seed = new Unity.Mathematics.Random((uint)GetHashCode() ^ 0x12345678u);
                 randomUpdates.numUpdatesPerChunk = settings.RandomUpdatesPerChunk;
-                int mapChunkSize = Config.Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+                int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
                 randomUpdates.mapChunkSize = mapChunkSize;
                 randomUpdates.numPointsChunk = mapChunkSize * mapChunkSize * mapChunkSize;
                 dispatched = false;
@@ -221,8 +222,7 @@ namespace Arterra.Core.Terrain{
                         int MIndex = MCoord.x * mapChunkSize * mapChunkSize + MCoord.y * mapChunkSize + MCoord.z;
                         MapData mapData = CPUMapManager.SectionedMemory[CIndex * numPointsChunk + MIndex];
                         if (!MaterialDictionary.Contains(mapData.material)) {
-                            Debug.Log(CCoord);
-                            Debug.Log(mapData.material);
+                            Debug.LogError($"Encountered unknown material {mapData.material} at chunk {CCoord}");
                             return;
                         }
                         MaterialDictionary.Retrieve(mapData.material).RandomMaterialUpdate(CCoord * mapChunkSize + MCoord, prng);

@@ -4,9 +4,9 @@ using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Config;
+using Arterra.Configuration;
 using Arterra.Core.Storage;
-using Arterra.Config.Generation.Entity;
+using Arterra.Configuration.Generation.Entity;
 using Arterra.UI.ToolTips;
 
 
@@ -34,13 +34,13 @@ public class ToolTag : ICloneable {
 
 [Serializable]
 public class ConvertibleTag : IMaterialConverting {
-    public Arterra.Config.Generation.Structure.StructureData.CheckInfo _convertBounds;
+    public Arterra.Configuration.Generation.Structure.StructureData.CheckInfo _convertBounds;
     /// <summary> The <see cref="MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
-    public Arterra.Config.Generation.Structure.StructureData.CheckInfo _neighborBounds;
+    public Arterra.Configuration.Generation.Structure.StructureData.CheckInfo _neighborBounds;
     [JsonIgnore]
-    public Arterra.Config.Generation.Structure.StructureData.CheckInfo ConvertBounds => _convertBounds;
+    public Arterra.Configuration.Generation.Structure.StructureData.CheckInfo ConvertBounds => _convertBounds;
     [JsonIgnore]
-    public Arterra.Config.Generation.Structure.StructureData.CheckInfo NeighborBounds => _neighborBounds;
+    public Arterra.Configuration.Generation.Structure.StructureData.CheckInfo NeighborBounds => _neighborBounds;
 
     public bool GivesItem;
 
@@ -55,13 +55,13 @@ public class ConvertibleTag : IMaterialConverting {
 
 [Serializable]
 public class ConvertibleToolTag : ToolTag, IMaterialConverting {
-    public Arterra.Config.Generation.Structure.StructureData.CheckInfo _convertBounds;
+    public Arterra.Configuration.Generation.Structure.StructureData.CheckInfo _convertBounds;
     /// <summary> The <see cref="MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
-    public Arterra.Config.Generation.Structure.StructureData.CheckInfo _neighborBounds;
+    public Arterra.Configuration.Generation.Structure.StructureData.CheckInfo _neighborBounds;
     [JsonIgnore]
-    public Arterra.Config.Generation.Structure.StructureData.CheckInfo ConvertBounds => _convertBounds;
+    public Arterra.Configuration.Generation.Structure.StructureData.CheckInfo ConvertBounds => _convertBounds;
     [JsonIgnore]
-    public Arterra.Config.Generation.Structure.StructureData.CheckInfo NeighborBounds => _neighborBounds;
+    public Arterra.Configuration.Generation.Structure.StructureData.CheckInfo NeighborBounds => _neighborBounds;
 
     public override object Clone() {
         return new ConvertibleToolTag {
@@ -216,8 +216,8 @@ public struct ToolTipConfig : ICloneable {
 
 
 public interface IMaterialConverting : ICloneable {
-    public Arterra.Config.Generation.Structure.StructureData.CheckInfo ConvertBounds { get; }
-    public Arterra.Config.Generation.Structure.StructureData.CheckInfo NeighborBounds { get; }
+    public Arterra.Configuration.Generation.Structure.StructureData.CheckInfo ConvertBounds { get; }
+    public Arterra.Configuration.Generation.Structure.StructureData.CheckInfo NeighborBounds { get; }
 
     static readonly Unity.Mathematics.int3[] dP = new Unity.Mathematics.int3[6]{
         new (0,1,0),

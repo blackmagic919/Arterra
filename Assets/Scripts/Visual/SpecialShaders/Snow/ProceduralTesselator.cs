@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using UnityEngine;
-using Arterra.Config;
-using Arterra.Config.Quality;
+using Arterra.Configuration;
+using Arterra.Configuration.Quality;
 using System.Linq;
 using System.Collections.Generic;
 

@@ -5,13 +5,13 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Arterra.Config.Intrinsic.Furnace;
-using Arterra.Config.Generation.Item;
+using Arterra.Configuration.Intrinsic.Furnace;
+using Arterra.Configuration.Generation.Item;
 using Arterra.Core.Terrain;
 using Arterra.Core.Player;
 using Utils;
 
-namespace Arterra.Config.Generation.Material
+namespace Arterra.Configuration.Generation.Material
 {
     /// <summary> A furnace material which can hold fuel items, input items and output items in its meta-data
     /// and is accessible to users who click on the item. 

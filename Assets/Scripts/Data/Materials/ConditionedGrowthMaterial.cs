@@ -3,11 +3,11 @@ using UnityEngine;
 using Unity.Mathematics;
 using Unity.Burst;
 using System;
-using Arterra.Config.Generation.Structure;
+using Arterra.Configuration.Generation.Structure;
 using Arterra.Core.Storage;
 using System.Collections.Generic;
-using Arterra.Config.Generation.Material;
-using Arterra.Config;
+using Arterra.Configuration.Generation.Material;
+using Arterra.Configuration;
 /*
 y
 ^      0  5        z
@@ -20,7 +20,7 @@ y
 +----------->x
 */
 
-namespace Arterra.Config.Generation.Material{
+namespace Arterra.Configuration.Generation.Material{
 
     /// <summary> A concrete material that will attempt to spread itself to neighboring entries 
     /// when and only when  randomly updated. </summary>

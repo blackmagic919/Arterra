@@ -1,10 +1,10 @@
 using Arterra.Core.Events;
 using Unity.Mathematics;
 using Arterra.Core;
-using Arterra.Config.Generation.Entity;
+using Arterra.Configuration.Generation.Entity;
 using Utils;
 using UnityEditor;
-using Arterra.Config;
+using Arterra.Configuration;
 using Arterra.Core.Player;
 
 namespace Arterra.UI.ToolTips {
@@ -21,7 +21,7 @@ namespace Arterra.UI.ToolTips {
         /// </summary>
         public static void Initialize() {
             // Read settings from configuration.
-            _settings = Config.Config.CURRENT.System.Tooltips;
+            _settings = Config.CURRENT.System.Tooltips;
 
             // Initialize tooltip pipeline.
             TooltipPipeline.Instance.Initialize(_settings.MinDisplayTimeInSeconds, _settings.MaxPopups);
@@ -31,13 +31,13 @@ namespace Arterra.UI.ToolTips {
                 HookEvents();
         }
 
-        private static Arterra.Config.Config.TooltipSettings _settings;
+        private static Config.TooltipSettings _settings;
 
 
         // Hook events to snoop for tooltip triggers.
         private static void HookEvents() {
             // Read from registry which events to hook.
-            var ttSettings = Config.Config.CURRENT.System.Tooltips;
+            var ttSettings = Config.CURRENT.System.Tooltips;
             foreach (var gameEvent in ttSettings.TooltipEvents.value) {
                 PlayerHandler.data.eventCtrl.AddContextlessEventHandler(gameEvent, (object actor, object target) => {
                     if (target is Entity) {
@@ -69,7 +69,7 @@ namespace Arterra.UI.ToolTips {
 
         private static bool CheckEntityToolTipTag(GameEvent evt, Entity entity, out ToolTipTag tag) {
             tag = null;
-            var entityInfo = Config.Config.CURRENT.Generation.Entities;
+            var entityInfo = Config.CURRENT.Generation.Entities;
             if (entityInfo.GetMostSpecificTag(TagRegistry.Tags.ToolTip, entity.Index, out object tagValueObj)) {
                 var tagValue = (ToolTipTag)tagValueObj;
                 // Check if the tag has tooltip for this event.
@@ -92,7 +92,7 @@ namespace Arterra.UI.ToolTips {
 
         // Helper functions
         private static ToolTipTag GetTooltipTag(Entity entity) {
-            var entityInfo = Config.Config.CURRENT.Generation.Entities;
+            var entityInfo = Config.CURRENT.Generation.Entities;
             if (entityInfo.GetMostSpecificTag(TagRegistry.Tags.ToolTip, entity.Index, out object tagValueObj)) {
                 return(ToolTipTag)tagValueObj;
             }

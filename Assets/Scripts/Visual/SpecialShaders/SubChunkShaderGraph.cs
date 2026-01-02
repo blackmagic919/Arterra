@@ -4,8 +4,8 @@ using System.Linq;
 using Arterra.Core.Storage;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Config;
-using Arterra.Config.Quality;
+using Arterra.Configuration;
+using Arterra.Configuration.Quality;
 using Arterra.Core.Terrain;
 using Arterra.Core.Terrain.Readback;
 
@@ -50,7 +50,7 @@ public class SubChunkShaderGraph{
         SubChunksPerAxis = 1 << maxSubChunkDepth;
         SubChunkSizeOS = maxChunkSize / SubChunksPerAxis;
 
-        Arterra.Config.Quality.Terrain terrain = Config.CURRENT.Quality.Terrain;
+        Arterra.Configuration.Quality.Terrain terrain = Config.CURRENT.Quality.Terrain;
         int numChunksAxis = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(rSettings.MaxGeoShaderDepth, terrain.Balance, (uint)terrain.MinChunkRadius);
         int numChunks = numChunksAxis * numChunksAxis * numChunksAxis;
         SortedSubChunks = new LogicalBlockBuffer(GraphicsBuffer.Target.Structured, numChunks * 2, sizeof(uint) * (NumSubChunks + 1));

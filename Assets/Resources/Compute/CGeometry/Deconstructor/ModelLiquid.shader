@@ -23,6 +23,7 @@ Shader "Unlit/ModelLiquid"
             #pragma multi_compile _ INDIRECT 
             
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             struct v2f
@@ -54,8 +55,6 @@ Shader "Unlit/ModelLiquid"
             SAMPLER(sampler_LiquidFineWave);
             TEXTURE2D(_LiquidCoarseWave);
             SAMPLER(sampler_LiquidCoarseWave);
-            TEXTURE2D(_CameraDepthTexture);
-            SAMPLER(sampler_CameraDepthTexture);
 
             float4x4 _LocalToWorld;
 
@@ -130,8 +129,8 @@ Shader "Unlit/ModelLiquid"
     
                 liquidMat matData = _MatLiquidData[IN.material];
     
-                float screenDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, UV);
-                float linearDepth = LinearEyeDepth(screenDepth, _ZBufferParams) * length(viewVector);
+                float rawDepth = SampleSceneDepth(UV);
+                float linearDepth = LinearEyeDepth(rawDepth, _ZBufferParams);
                 float dstToWater = IN.positionCS.w;
     
                 float3 viewDir = normalize(viewVector);

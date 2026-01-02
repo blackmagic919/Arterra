@@ -4,9 +4,9 @@ using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Core.Terrain;
 using Arterra.Core.Player;
-using Arterra.Config;
+using Arterra.Configuration;
 using Arterra.Core.Events;
-using Arterra.Config.Generation.Entity;
+using Arterra.Configuration.Generation.Entity;
 using Arterra.Core.Storage;
 
 public class PlayerActionEffects{

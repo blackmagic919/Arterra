@@ -4,7 +4,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using Utils;
 
-namespace Arterra.Config.Generation.Material {
+namespace Arterra.Configuration.Generation.Material {
     public abstract class PlaceableStructureMat : MaterialData {
         public Option<List<ConditionedGrowthMat.MapSamplePoint>> Structure;
         public int SelfIndex;

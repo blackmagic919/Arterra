@@ -4,8 +4,8 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Utils;
-using Arterra.Config;
-using Arterra.Config.Quality;
+using Arterra.Configuration;
+using Arterra.Configuration.Quality;
 using Arterra.Core.Terrain;
 
 public class ShaderSubchunk : IOctreeChunk {

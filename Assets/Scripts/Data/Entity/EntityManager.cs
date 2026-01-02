@@ -11,8 +11,8 @@ using UnityEngine.Profiling;
 using Arterra.Core.Storage;
 using System.Threading.Tasks;
 using System.Linq;
-using Arterra.Config;
-using Arterra.Config.Generation.Entity;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Entity;
 using Arterra.Core.Terrain;
 using Arterra.Core.Player;
 
@@ -196,7 +196,6 @@ public static class EntityManager
     }
 
     public static void Release() {
-        //Debug.Log(EntityHandler.Length);
         Executor.Complete();
         foreach (Entity entity in EntityReg) {
             entity.Disable();
@@ -469,7 +468,7 @@ public static class EntityManager
             bool ContainsExclusive(Bounds b, float3 p) {
                 float3 Min = b.min, Max = b.max;
                 return Max.x > p.x && Max.y > p.y && Max.z > p.z &&
-                       Min.x <= p.x && Min.y <= p.y && Min.z <= p.z;
+                    Min.x <= p.x && Min.y <= p.y && Min.z <= p.z;
             }
         }
 

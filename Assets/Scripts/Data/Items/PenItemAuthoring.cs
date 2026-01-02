@@ -2,11 +2,11 @@ using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Config.Generation.Material;
+using Arterra.Configuration.Generation.Material;
 using Arterra.Core.Storage;
 using Arterra.Core.Player;
 
-namespace Arterra.Config.Generation.Item
+namespace Arterra.Configuration.Generation.Item
 {
     [CreateAssetMenu(menuName = "Generation/Items/Pen")]
     public class PenItemAuthoring : AuthoringTemplate<PenItem>
@@ -100,8 +100,8 @@ namespace Arterra.Config.Generation.Item
         private uint SelectedCorner;
         private PenItem item;
 
-        public static Catalogue<Authoring> ItemInfo => Arterra.Config.Config.CURRENT.Generation.Items;
-        public static Catalogue<MaterialData> MatInfo => Arterra.Config.Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        public static Catalogue<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
+        public static Catalogue<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         public static InteractionHandler Create(PenItem item, ItemContext cxt)
         {
             InteractionHandler h = new InteractionHandler();

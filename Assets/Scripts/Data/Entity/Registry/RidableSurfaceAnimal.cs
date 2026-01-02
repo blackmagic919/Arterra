@@ -2,8 +2,9 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
-using Arterra.Config;
-using Arterra.Config.Generation.Entity;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Entity;
+using Arterra.Configuration.Generation.Item;
 using Arterra.Core.Storage;
 // Defining the contract between a rider and their mount
 public interface IRider
@@ -19,7 +20,7 @@ public interface IRidable {
 }
 
 [CreateAssetMenu(menuName = "Generation/Entity/RidableSurfaceAnimal")]
-public class RidableSurfaceAnimal : Authoring
+public class RidableSurfaceAnimal : Arterra.Configuration.Generation.Entity.Authoring
 {
     public Option<AnimalSetting> _Setting;
     [JsonIgnore]
@@ -141,7 +142,7 @@ public class RidableSurfaceAnimal : Authoring
             EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
         }
 
-        public Arterra.Config.Generation.Item.IItem Collect(float amount) {
+        public IItem Collect(float amount) {
             if (!IsDead) return null; //You can't collect resources until the entity is dead
             var item = settings.decomposition.LootItem(genetics, amount, ref random);
             TaskDuration -= amount;
@@ -404,7 +405,7 @@ public class RidableSurfaceAnimal : Authoring
             IAttackable target = (IAttackable)prey;
             if (target.IsDead) {
                 EntityManager.AddHandlerEvent(() => {
-                    Arterra.Config.Generation.Item.IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
+                    IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
                     if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition)) {
                         self.vitality.Heal(nutrition);
                     }
@@ -423,7 +424,7 @@ public class RidableSurfaceAnimal : Authoring
                 if (self.settings.Recognition.FindPreferredPreyPlant((int3)math.round(self.position), self.genetics.GetInt(
                     self.settings.Recognition.PlantFindDist), out int3 foodPos)
                 ) {
-                    Arterra.Config.Generation.Item.IItem item = self.settings.Recognition.ConsumePlant(self, foodPos);
+                    IItem item = self.settings.Recognition.ConsumePlant(self, foodPos);
                     if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition))
                         self.vitality.Heal(nutrition);
                 } self.TaskIndex = AnimalTasks.FindPrey;

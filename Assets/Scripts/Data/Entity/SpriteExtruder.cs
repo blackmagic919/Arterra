@@ -6,7 +6,7 @@ using UnityEngine.Rendering;
 using Arterra.Core.Terrain;
 using Arterra.Core.Terrain.Readback;
 using static Arterra.Core.Terrain.Readback.IVertFormat;
-using Arterra.Config;
+using Arterra.Configuration;
 
 public static class SpriteExtruder{
     public static ComputeShader ImageExtruder;

@@ -6,9 +6,9 @@ using UnityEngine.UI;
 using static CraftingMenuController;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
-using Arterra.Config;
-using Arterra.Config.Intrinsic;
-using Arterra.Config.Generation.Item;
+using Arterra.Configuration;
+using Arterra.Configuration.Intrinsic;
+using Arterra.Configuration.Generation.Item;
 using Arterra.Core.Terrain;
 using System.Linq;
 

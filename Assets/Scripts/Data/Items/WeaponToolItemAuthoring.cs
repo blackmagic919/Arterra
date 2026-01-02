@@ -7,7 +7,7 @@ using static Arterra.Core.Player.PlayerInteraction;
 using Arterra.Core.Events;
 
 
-namespace Arterra.Config.Generation.Item
+namespace Arterra.Configuration.Generation.Item
 {
     //This type inherits ToolItemAuthoring which inherits AuthoringTemplate<ToolItem>  which
     //inherits Authoring which inherits Category<Authoring>

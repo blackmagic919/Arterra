@@ -3,7 +3,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Core.Player;
 
-namespace Arterra.Config.Generation.Item{
+namespace Arterra.Configuration.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Boat")] 
 public class BoatItemAuthoring : AuthoringTemplate<BoatItem> {}
 

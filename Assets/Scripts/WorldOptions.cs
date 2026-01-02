@@ -7,7 +7,7 @@ using Arterra.Core.Storage;
 using Arterra.Core.Events;
 using System.Collections.Generic;
 
-namespace Arterra.Config {
+namespace Arterra.Configuration {
     /// <summary>
     /// Config is the root class anchoring a settings tree which contains
     /// all settings for the game. Any trivial constants not inherent to the functionality

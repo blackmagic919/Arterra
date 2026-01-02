@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Config;
+using Arterra.Configuration;
 
 [CreateAssetMenu(menuName = "Settings/Armor/Equipable")]
 public class EquipableArmor : Category<EquipableArmor> {

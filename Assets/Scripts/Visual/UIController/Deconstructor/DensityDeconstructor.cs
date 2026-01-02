@@ -5,8 +5,8 @@ using UnityEngine;
 using UnityEditor;
 using Utils;
 using System.Linq;
-using Arterra.Config.Generation.Structure;
-using Arterra.Config;
+using Arterra.Configuration.Generation.Structure;
+using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Arterra.Core.Terrain;
 
@@ -147,7 +147,7 @@ public class DensityDeconstructor : MonoBehaviour
         MapData[] map = Chunk.ReadChunkBin(loadPath, 0, out _);
         if (map == null) return;
 
-        Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+        Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
         Structure.map = Utils.CustomUtility.RescaleLinearMap(map, rSettings.mapChunkSize, 2, 1)
             .Select(s => new StructureData.PointInfo{data = s.data, preserve = false}).ToList();
         Structure.settings.value.GridSize = new uint3((uint)rSettings.mapChunkSize,
@@ -320,16 +320,16 @@ public class DensityDeconstructor : MonoBehaviour
     }
 
     private void SelectWalkable(){
-        bool VerifyProfile(Arterra.Config.Generation.Entity.Authoring info, int3 BaseCoord) {
+        bool VerifyProfile(Arterra.Configuration.Generation.Entity.Authoring info, int3 BaseCoord) {
             bool allC = true; bool anyC = false; bool any0 = false;
             uint3 dC = new (0);
-            Arterra.Config.Generation.Entity.EntitySetting.ProfileInfo p = info.Setting.profile;
+            Arterra.Configuration.Generation.Entity.EntitySetting.ProfileInfo p = info.Setting.profile;
             int3 gridSize = (int3)Structure.settings.value.GridSize;
             for(dC.x = 0; dC.x < p.bounds.x; dC.x++){
                 for(dC.y = 0; dC.y < p.bounds.y; dC.y++){
                     for(dC.z = 0; dC.z < p.bounds.z; dC.z++){
                         uint index = dC.x * p.bounds.y * p.bounds.z + dC.y * p.bounds.z + dC.z;
-                        Arterra.Config.Generation.Entity.ProfileE profile = info.Profile.value[(int)index];
+                        Arterra.Configuration.Generation.Entity.ProfileE profile = info.Profile.value[(int)index];
                         if (math.any(BaseCoord + (int3)dC >= gridSize)) return false;
                         int3 rCoord = BaseCoord + (int3)dC;
                         int rIndex = rCoord.x * gridSize.y * gridSize.z + rCoord.y * gridSize.z + rCoord.z;

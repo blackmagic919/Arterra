@@ -1,13 +1,11 @@
 using UnityEngine;
 using Unity.Mathematics;
 using System;
-using Arterra.Config;
+using Arterra.Configuration;
 using System.Collections.Generic;
-using Arterra.Config.Generation.Entity;
-using Arterra.Core.Player;
-using FMOD;
+using Arterra.Configuration.Generation.Entity;
 
-namespace Arterra.Config.Gameplay.Player{
+namespace Arterra.Configuration.Gameplay.Player{
     /// <summary>
     /// A collection of settings that describe how the player moves.
     /// Movement settings may change during gameplay.
@@ -51,7 +49,7 @@ namespace Arterra.Core.Player {
     /// <summary>The Manager responsible for handling all types of player movement
     /// and switching between them depending on the situation.  </summary>
     public class PlayerMovement {
-        private static Config.Gameplay.Player.Movement Setting => Config.Config.CURRENT.GamePlay.Player.value.movement;
+        private static Configuration.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
         private static ref float3 velocity => ref PlayerHandler.data.collider.transform.velocity;
         private static ref PlayerStreamer.Player data => ref PlayerHandler.data;
         /// <summary>Whether or not the player is currently sprinting.</summary>
@@ -100,10 +98,8 @@ namespace Arterra.Core.Player {
         /// <param name="delta">The change to the player's xz velocity</param>
         /// <param name="maxSpeed">The maximum movement speed of the player</param>
         public static void AddVelocity2D(float2 delta, float maxSpeed) {
-            float pSpeed = math.length(velocity.xz);
+            if (math.length(velocity.xz) > maxSpeed) return;
             velocity.xz += delta;
-            if (math.length(velocity.xz) <= maxSpeed) return;
-            velocity.xz *= math.max(maxSpeed, pSpeed) / math.length(velocity.xz);
         }
 
         /// <summary>Adds the 3D delta velocity to the player's velocity whilst
@@ -111,16 +107,14 @@ namespace Arterra.Core.Player {
         /// <param name="delta">The change to the player's 3D velocity</param>
         /// <param name="maxSpeed">The maximum movement speed of the player</param>
         public static void AddVelocity3D(float3 delta, float maxSpeed) {
-            float pSpeed = math.length(velocity.xz);
+            if (math.length(velocity) > maxSpeed) return;
             velocity += delta;
-            if (math.length(velocity) <= maxSpeed) return;
-            velocity *= math.max(maxSpeed, pSpeed) / math.length(velocity.xz);
         }
     }
 
     /// <summary> Controls the player's normal movement on the terrain surface. </summary>
     public static class SurfaceMovement {
-        private static Config.Gameplay.Player.Movement Setting => Config.Config.CURRENT.GamePlay.Player.value.movement;
+        private static Configuration.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
         private static ref float3 velocity => ref PlayerHandler.data.collider.transform.velocity;
         private static float moveSpeed => PlayerMovement.IsSprinting ? Setting.runSpeed : Setting.walkSpeed;
 
@@ -152,7 +146,7 @@ namespace Arterra.Core.Player {
     /// <summary> Controls the player's underwater movement including swimming or wading </summary>
     public static class SwimMovement{
         private static HashSet<string> OveridableStates = new HashSet<string>{ "GroundMove::1" };
-        private static Config.Gameplay.Player.Movement Setting => Config.Config.CURRENT.GamePlay.Player.value.movement;
+        private static Configuration.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
         private static float MoveSpeed => PlayerMovement.IsSprinting ? Setting.runSpeed : Setting.walkSpeed;
         private static ref float3 velocity => ref PlayerHandler.data.collider.transform.velocity;
         private static bool isSwimming = false;
@@ -223,7 +217,7 @@ namespace Arterra.Core.Player {
     /// See <see cref="Config.Gameplay.Gamemodes.Flight"/>.  </summary>
     public static class FlightMovement {
         private static HashSet<string> OveridableStates = new HashSet<string>{ "GroundMove::1", "SwimMove::1" };
-        private static Config.Gameplay.Player.Movement Setting => Config.Config.CURRENT.GamePlay.Player.value.movement;
+        private static Configuration.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;
         private static ref float3 velocity => ref PlayerHandler.data.collider.transform.velocity;
         private static float MoveSpeed => Setting.flightSpeedMultiplier * (PlayerMovement.IsSprinting ? Setting.runSpeed : Setting.walkSpeed);
         private static bool HasEnabledFlight;
@@ -234,8 +228,8 @@ namespace Arterra.Core.Player {
         public static void Initialize() {
             IsFlying = false;
             HasEnabledFlight = false;
-            Config.Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Flight", OnFlightRuleChanged);
-            object EnableFlight = Config.Config.CURRENT.GamePlay.Gamemodes.value.Flight;
+            Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Flight", OnFlightRuleChanged);
+            object EnableFlight = Config.CURRENT.GamePlay.Gamemodes.value.Flight;
             OnFlightRuleChanged(ref EnableFlight);
         }
 

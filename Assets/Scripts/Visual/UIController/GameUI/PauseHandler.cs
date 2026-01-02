@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Arterra.Config;
+using Arterra.Configuration;
 
 public class PauseHandler
 {

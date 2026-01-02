@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Linq;
 using Newtonsoft.Json;
 
-namespace Arterra.Config.Generation {
+namespace Arterra.Configuration.Generation {
 
 /// <summary>
 /// Noise Data contains settings which defines a distinct noise sampler function, which,

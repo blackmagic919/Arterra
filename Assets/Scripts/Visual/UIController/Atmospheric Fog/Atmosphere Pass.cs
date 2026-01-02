@@ -6,7 +6,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using Arterra.Config;
+using Arterra.Configuration;
 using Arterra.Core.Storage;
 
 public class AtmospherePass : ScriptableRenderPass
@@ -35,7 +35,7 @@ public class AtmospherePass : ScriptableRenderPass
     {
         if (material == null) material = CoreUtils.CreateEngineMaterial("Hidden/Fog");
 
-        Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
+        Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         float atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * GPUMapManager.numChunksRadius;
         AtmosphereSettings = new AtmosphereBake(atmosphereRadius);
 
@@ -58,7 +58,6 @@ public class AtmospherePass : ScriptableRenderPass
         RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
         descriptor.depthBufferBits = 0;
 
-        ConfigureInput(ScriptableRenderPassInput.Color | ScriptableRenderPassInput.Depth);
         colorBuffer = renderingData.cameraData.renderer.cameraColorTargetHandle;
         //We need copy from depth buffer because transparent pass needs depth texture of opaque pass, and fog needs depth texture of transparent pass
         depthBuffer = renderingData.cameraData.renderer.cameraDepthTargetHandle;

@@ -7,9 +7,9 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using Arterra.Config.Generation.Item;
-using Arterra.Config.Generation.Material;
-namespace Arterra.Config.Intrinsic.Furnace {
+using Arterra.Configuration.Generation.Item;
+using Arterra.Configuration.Generation.Material;
+namespace Arterra.Configuration.Intrinsic.Furnace {
     /// <summary>
     /// A structure defining how a material is converted in a furnace.
     /// 

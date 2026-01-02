@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
-using Arterra.Config;
+using Arterra.Configuration;
 
 public static class PanelNavbarManager {
     private static GameObject Menu;

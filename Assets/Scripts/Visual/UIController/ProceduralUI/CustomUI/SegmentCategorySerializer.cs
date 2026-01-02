@@ -2,7 +2,7 @@ using System;
 using System.Reflection;
 using UnityEngine;
 using static SegmentedUIEditor;
-using Arterra.Config;
+using Arterra.Configuration;
 using System.Linq;
 public class SegmentCategorySerializer : IConverter
 {

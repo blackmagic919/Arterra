@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace Arterra.Config.Generation.Item {
+namespace Arterra.Configuration.Generation.Item {
     [CreateAssetMenu(menuName = "Generation/Items/ContinuousStackable")]
     public class ContinuoustemAuthoring : AuthoringTemplate<ContinuousItem> {}
     [System.Serializable]

@@ -5,9 +5,9 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using Arterra.Config;
-using Arterra.Config.Generation.Entity;
-using Arterra.Config.Generation.Item;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Entity;
+using Arterra.Configuration.Generation.Item;
 
 public class ArmorInventory : IInventory {
     private Catalogue<EquipableArmor> system => Config.CURRENT.System.Armor.value.Variants;

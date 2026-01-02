@@ -3,9 +3,10 @@ using Arterra.Core.Storage;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
+using Arterra.Configuration;
 
 
-namespace Arterra.Config.Gameplay.Player {
+namespace Arterra.Configuration.Gameplay.Player {
     /// <summary> Controls how the camera rotates and responds to player input. Notably
     /// settings controlling the camera's responsiveness, sensitivity, and limits to 
     /// its rotation are contained here.  </summary>
@@ -32,7 +33,7 @@ namespace Arterra.Core.Player{
     /// <summary> Responsible for managing the player's camera
     /// and its movement and angles within the game.  </summary>
     public class PlayerCamera {
-        private static Config.Gameplay.Player.Camera S => Config.Config.CURRENT.GamePlay.Player.value.Camera;
+        private static Configuration.Gameplay.Player.Camera S => Config.CURRENT.GamePlay.Player.value.Camera;
         private WeakReference<PlayerStreamer.Player> _context;
         private PlayerStreamer.Player context => _context.TryGetTarget(out PlayerStreamer.Player tg) ? tg : null;
         private ref Quaternion characterRot => ref context.collider.transform.rotation;
@@ -224,7 +225,7 @@ namespace Arterra.Core.Player{
 
             private void SetCameraOffset(PlayerCamera cm) {
                 float backDist = distance;
-                float distGS = distance / Config.Config.CURRENT.Quality.Terrain.value.lerpScale;
+                float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
                 if (CPUMapManager.RayCastTerrain(cm.context.head, cm.Facing * Vector3.back, distGS, RayTestSolid, out float3 hitPt))
                     backDist = math.distance(hitPt, cm.context.head);
 
@@ -296,7 +297,7 @@ namespace Arterra.Core.Player{
             
             private static void SetCameraOffset(PlayerCamera cm) {
                 float backDist = distance;
-                float distGS = distance / Config.Config.CURRENT.Quality.Terrain.value.lerpScale;
+                float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
                 float3 dir = math.mul(math.normalize(cm.camTsf.rotation), new float3(0, 0, -1));
                 dir = math.mul(math.normalize(cm.characterRot), dir);
                 if (CPUMapManager.RayCastTerrain(cm.context.head, dir, distGS, RayTestSolid, out float3 hitPt))

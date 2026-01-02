@@ -1,7 +1,7 @@
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Config;
-using Arterra.Config.Generation.Entity;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Entity;
 using Arterra.Core.Storage;
 
 
@@ -14,8 +14,8 @@ public static class StartupPlacer {
         WeightedPlacement = Resources.Load<ComputeShader>("Compute/StartupPlacement/WeightedPlacement");
     }
     public static void Initialize() {
-        Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
-        Arterra.Config.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
+        Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+        Arterra.Configuration.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
         SurfaceFinder.SetInt("continentalSampler", surface.ContinentalIndex);
         SurfaceFinder.SetInt("majorWarpSampler", surface.MajorWarpIndex);
         SurfaceFinder.SetInt("minorWarpSampler", surface.MinorWarpIndex);
@@ -58,7 +58,7 @@ public static class StartupPlacer {
 
     public static void MoveToClearing(Entity entity) {
         //Setup Lock Value
-        Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+        Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
         UtilityBuffers.TransferBuffer.SetData(new uint[] { uint.MaxValue }, 0, 3, 1);
 
         int3 center = (int3)math.round(entity.position);

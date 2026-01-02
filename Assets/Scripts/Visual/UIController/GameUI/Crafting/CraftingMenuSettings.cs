@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Arterra.Config.Intrinsic{
+namespace Arterra.Configuration.Intrinsic{
 
 /// <summary>
 /// Settings controlling the apperance and behavior of the crafting system. The crafting 

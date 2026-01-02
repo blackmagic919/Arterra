@@ -4,9 +4,9 @@ using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using Arterra.Config;
-using Arterra.Config.Generation.Item;
-using Arterra.Config.Intrinsic;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Item;
+using Arterra.Configuration.Intrinsic;
 using Arterra.Core.Terrain;
 
 

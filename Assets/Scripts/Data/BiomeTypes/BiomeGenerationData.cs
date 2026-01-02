@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
 
-namespace Arterra.Config.Generation.Biome{
+namespace Arterra.Configuration.Generation.Biome{
 /// <summary>
 /// A settings container identifying all biomes and biome related settings 
 /// that are used during generation. Biomes are placed depending on conditions 

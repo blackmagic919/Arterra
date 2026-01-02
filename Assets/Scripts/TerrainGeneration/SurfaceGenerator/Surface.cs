@@ -1,7 +1,7 @@
 using UnityEngine;
 using Newtonsoft.Json;
 
-namespace Arterra.Config.Generation{
+namespace Arterra.Configuration.Generation{
 /// <summary>
 /// Identifies information used in generating the surface of a chunk. 
 /// Locates the noise samplers responsible for creating different aspects of the surface. 
@@ -28,7 +28,7 @@ public class Surface : ScriptableObject{
     public float MaxTerrainHeight;
     /// <summary>
     /// The maximum height below the surface where the density falloff begins. At the surface, the density is multiplied
-    /// by <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> ensuring that it cannot be underground. As the height approaches
+    /// by <see cref="Config.Quality.Terrain.IsoLevel"/> ensuring that it cannot be underground. As the height approaches
     /// <see cref="MaxSquashHeight"/>, this multiplier approaches 1 restoring the original density. A lower height will result
     /// in a flatter surface with less overhangs while a higher height will result in a more shattered surface. The actual squash
     /// height is determined by the <see cref="SquashNoise"/> sampler whereby <see cref="MaxSquashHeight"/> scales this height.
@@ -83,32 +83,32 @@ public class Surface : ScriptableObject{
     /// <summary>
     /// The name of the noise sampler in the <see cref="Config.GenerationSettings.Noise">Noise</see> registry that generates the atmosphere noise map.
     /// The atmophere noise describes how fast the atmosphere falls off as the height above the surface increases. This is physically done
-    /// by reducing the density of the map as the height approaches infinity. <seealso cref="Arterra.Config.Generation.Map.heightFalloff"/>.
+    /// by reducing the density of the map as the height approaches infinity. <seealso cref="Generation.Map.heightFalloff"/>.
     /// </summary>
     public string AtmosphereNoise;
     
-    /// <summary> The index of the noise function described by <see cref="ContinentalNoise"/> in the <see cref="Arterra.Config.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    /// <summary> The index of the noise function described by <see cref="ContinentalNoise"/> in the <see cref="Config.GenerationSettings.Noise">noise</see> registry </summary>
     [JsonIgnore]
     public int ContinentalIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(ContinentalNoise);
-    /// <summary> The index of the noise function described by <see cref="ErosionNoise"/> in the <see cref="Arterra.Config.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    /// <summary> The index of the noise function described by <see cref="ErosionNoise"/> in the <see cref="Config.GenerationSettings.Noise">noise</see> registry </summary>
     [JsonIgnore]
     public int ErosionIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(ErosionNoise);
-    /// <summary> The index of the noise function described by <see cref="MajorWarpNoise"/> in the <see cref="Arterra.Config.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    /// <summary> The index of the noise function described by <see cref="MajorWarpNoise"/> in the <see cref="Config.GenerationSettings.Noise">noise</see> registry </summary>
     [JsonIgnore]
     public int MajorWarpIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(MajorWarpNoise);
-    /// <summary> The index of the noise function described by <see cref="MinorWarpNoise"/> in the <see cref="Arterra.Config.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    /// <summary> The index of the noise function described by <see cref="MinorWarpNoise"/> in the <see cref="Config.GenerationSettings.Noise">noise</see> registry </summary>
     [JsonIgnore]
     public int MinorWarpIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(MinorWarpNoise);
-    /// <summary> The index of the noise function described by <see cref="SquashNoise"/> in the <see cref="Arterra.Config.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    /// <summary> The index of the noise function described by <see cref="SquashNoise"/> in the <see cref="Config.GenerationSettings.Noise">noise</see> registry </summary>
     [JsonIgnore]
     public int SquashIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(SquashNoise);
-    /// <summary> The index of the noise function described by <see cref="InfHeightNoise"/> in the <see cref="Arterra.Config.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    /// <summary> The index of the noise function described by <see cref="InfHeightNoise"/> in the <see cref="Config.GenerationSettings.Noise">noise</see> registry </summary>
     [JsonIgnore]
     public int InfHeightIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(InfHeightNoise);
-    /// <summary> The index of the noise function described by <see cref="InfOffsetNoise"/> in the <see cref="Arterra.Config.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    /// <summary> The index of the noise function described by <see cref="InfOffsetNoise"/> in the <see cref="Config.GenerationSettings.Noise">noise</see> registry </summary>
     [JsonIgnore]
     public int InfOffsetIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(InfOffsetNoise);
-    /// <summary> The index of the noise function described by <see cref="AtmosphereNoise"/> in the <see cref="Arterra.Config.Config.GenerationSettings.Noise">noise</see> registry </summary>
+    /// <summary> The index of the noise function described by <see cref="AtmosphereNoise"/> in the <see cref="Config.GenerationSettings.Noise">noise</see> registry </summary>
     [JsonIgnore]
     public int AtmosphereIndex => Config.CURRENT.Generation.Noise.RetrieveIndex(AtmosphereNoise);
 }}

@@ -4,8 +4,9 @@ using Unity.Mathematics;
 using System;
 using System.Collections.Concurrent;
 using UnityEngine.Profiling;
-using Arterra.Core.Storage;
 using System.Linq;
+using Arterra.Configuration;
+using Arterra.Core.Storage;
 
 namespace Arterra.Core.Terrain{
     /// <summary>
@@ -64,7 +65,7 @@ namespace Arterra.Core.Terrain{
         /// </summary>
         public static ConcurrentQueue<Action> ActionReinjectionQueue;
 
-        private static Arterra.Config.Quality.Terrain s;
+        private static Configuration.Quality.Terrain s;
         private int3 prevViewerPos;
         private static Transform origin;
         /// <summary> The root octree structure responsible for dividing the world into
@@ -118,7 +119,7 @@ namespace Arterra.Core.Terrain{
         }
 
         private void OnEnable() {
-            s = Config.Config.CURRENT.Quality.Terrain.value;
+            s = Config.CURRENT.Quality.Terrain.value;
             origin = this.transform; //This means origin in Unity's scene heiharchy
             octree = new BalancedOctree(
                 s.MaxDepth, s.Balance,
@@ -246,9 +247,9 @@ namespace Arterra.Core.Terrain{
             private int RootDim => Balance == 1 ? 3 : 2;
             /// <summary> Creates an octree with the specified settings--depth, balance factor, and chunk radius. </summary>
             /// <param name="depth">The maximum depth of the octree</param>
-            /// <param name="balanceF">The balance factor of the octree. See <see cref="Arterra.Config.Quality.Terrain.Balance"/> for more info.</param>
-            /// <param name="chunksRadius">The minimum radius of the smallest chunks within the octree. See <see cref="Arterra.Config.Quality.Terrain.MinChunkRadius"/> for more info.</param>
-            /// <param name="minChunkSize"> The size in grid space of the smallest chunk(depth = 0) handled by the octree, see <see cref="Arterra.Config.Quality.Terrain.mapChunkSize"/> for more info. </param>
+            /// <param name="balanceF">The balance factor of the octree. See <see cref="Quality.Terrain.Balance"/> for more info.</param>
+            /// <param name="chunksRadius">The minimum radius of the smallest chunks within the octree. See <see cref="Quality.Terrain.MinChunkRadius"/> for more info.</param>
+            /// <param name="minChunkSize"> The size in grid space of the smallest chunk(depth = 0) handled by the octree, see <see cref="Quality.Terrain.mapChunkSize"/> for more info. </param>
             public BalancedOctree(int depth, int balanceF, int chunksRadius, int minChunkSize)
                 : base(depth, minChunkSize, GetMaxNodes(depth, balanceF, chunksRadius)) {
                 MinChunkRadius = chunksRadius;
@@ -303,7 +304,7 @@ namespace Arterra.Core.Terrain{
             /// <summary>
             /// Determines whether an octree node is balanced based on its current size
             /// and distance from the viewer. A node is balanced if it obeys the balance factor
-            /// of the tree; if it is  1:(<see cref="Arterra.Config.Quality.Terrain.Balance">Balance</see> + 1) balanced.
+            /// of the tree; if it is  1:(<see cref="Quality.Terrain.Balance">Balance</see> + 1) balanced.
             /// </summary>
             /// <param name="node">The octree node whose current state is tested to be balanced</param>
             /// <returns>Whether or not the node is balanced</returns>

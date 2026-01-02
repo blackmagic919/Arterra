@@ -4,7 +4,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace Arterra.Config.Generation.Biome{
+namespace Arterra.Configuration.Generation.Biome{
 /// <summary>
 /// A template class which defines placement conditions for a biome. Because 
 /// each biome has a different set of conditions, but also must always defines those
@@ -51,12 +51,12 @@ public class Info
     /// <summary>
     /// A list containing the generation pattern of liquid materials within the biome. This list is considered
     /// when the density of the map entry is less than <see cref="Quality.Terrain.IsoLevel"/>(i.e. above ground)
-    /// and the point lies above the terrain surface and below the global water level, see <see cref="Arterra.Config.Generation.Map.waterHeight"/>
+    /// and the point lies above the terrain surface and below the global water level, see <see cref="Generation.Map.waterHeight"/>
     /// for more information.</summary>
     public Option<List<Option<BMaterial> > > LiquidMaterials = new ();
 
     /// <summary> A list containing all structures that will attempt to generate within the biome. Anything terrain feature
-    /// not a result of noise based generation should naturally be created through a structure. <see cref="Arterra.Config.Generation.Structure"/> 
+    /// not a result of noise based generation should naturally be created through a structure. <see cref="Structure"/> 
     /// for more information.
     /// </summary>
     [Header("Structures")]
@@ -71,7 +71,7 @@ public class Info
     public Option<List<Option<EntityGen> > > Entities = new ();
 
     /// <summary> A getter property that deserializes all structures by recoupling them with the current world's configuration. This involves
-    /// retrieving the real indices of the structures within the external <see cref="Arterra.Config.Config.GenerationSettings.Structures"/> registry. </summary>
+    /// retrieving the real indices of the structures within the external <see cref="Config.GenerationSettings.Structures"/> registry. </summary>
     [JsonIgnore]
     public IEnumerable<TerrainStructure> StructureSerial{
         get{
@@ -81,7 +81,7 @@ public class Info
     }
 
     /// <summary> A getter property that deserializes all entities by recoupling them with the current world's configuration. This involves
-    /// retrieving the real indices of the entities within the external <see cref="Arterra.Config.Config.GenerationSettings.Entities"/> registry. </summary>
+    /// retrieving the real indices of the entities within the external <see cref="Config.GenerationSettings.Entities"/> registry. </summary>
     [JsonIgnore]
     public IEnumerable<EntityGen> EntitySerial{
         get{
@@ -93,11 +93,11 @@ public class Info
     /// <summary>
     /// Retrieves the deserialized version of a list of materials that are coupled through a reference to the <see cref="Names"/> 
     /// by recoupling them with the current world's configuration. This involves retrieving the real indices 
-    /// of the materials within the external external <see cref="Arterra.Config.Config.GenerationSettings.Materials"/> registry.
+    /// of the materials within the external external <see cref="Config.GenerationSettings.Materials"/> registry.
     /// </summary>
     /// <param name="Materials">The list of materials that are coupled with <see cref="Names"/> that is to be decoupled. This is either 
     /// <see cref="GroundMaterials"/> or <see cref="SurfaceMaterials"/>. </param>
-    /// <returns>An ordered collection of the recoupled with the external <see cref="Arterra.Config.Config.GenerationSettings.Materials"/> registry</returns>
+    /// <returns>An ordered collection of the recoupled with the external <see cref="Config.GenerationSettings.Materials"/> registry</returns>
     public IEnumerable<BMaterial> MaterialSerial(List<Option<BMaterial> > Materials){
         if(Materials == null) return null;
         Catalogue<Material.MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;

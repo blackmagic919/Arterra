@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Arterra.Config.Quality{
+namespace Arterra.Configuration.Quality{
     /// <summary>
     /// Settings describing the long-term GPU memory customly managed and used to 
     /// store/visualize the world throughout terrain generation. 

@@ -9,11 +9,11 @@ using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using Arterra.Config;
-using Arterra.Config.Generation.Item;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Item;
 using Arterra.Core.Player;
 
-namespace Arterra.Config.Gameplay{
+namespace Arterra.Configuration.Gameplay{
     /// <summary> Settings controlling the size and apperance of the inventory,
     /// a system allowing the player to hold and use 
     /// <see cref="Generation.Item"> items </see>. </summary>
@@ -38,7 +38,7 @@ namespace Arterra.Config.Gameplay{
     }
 }
 public static class InventoryController {
-    public static Arterra.Config.Gameplay.Inventory settings => Config.CURRENT.GamePlay.Inventory.value;
+    public static Arterra.Configuration.Gameplay.Inventory settings => Config.CURRENT.GamePlay.Inventory.value;
     public static Inventory Primary; //Hotbar
     public static Inventory Secondary; //Inventory
     public static CursorManager Cursor;
@@ -186,7 +186,7 @@ public static class InventoryController {
 
     public static void DropItem(IItem item, float3 location, Quaternion rotation = default) {
         if (item == null) return;
-        Arterra.Config.Generation.Entity.Entity Entity = new EItem.EItemEntity(item, rotation);
+        Arterra.Configuration.Generation.Entity.Entity Entity = new EItem.EItemEntity(item, rotation);
         uint eIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("EntityItem");
         Entity.info.entityId = Guid.NewGuid();
         EntityManager.CreateEntity(math.round(location), eIndex, Entity);

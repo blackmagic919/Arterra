@@ -1,7 +1,8 @@
 using System.Linq;
 using UnityEngine;
 using Unity.Mathematics;
-using Arterra.Config.Quality;
+using Arterra.Configuration;
+using Arterra.Configuration.Quality;
 using Arterra.Core.Terrain;
 
 namespace Arterra.Core.Storage{
@@ -31,7 +32,7 @@ namespace Arterra.Core.Storage{
         /// GPU-side map information based off the settings of the current world. </summary>
         public static void Initialize() {
             Release();
-            Config.Quality.Terrain rSettings = Config.Config.CURRENT.Quality.Terrain.value;
+            Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
             dictReplaceKey = Resources.Load<ComputeShader>("Compute/MapData/ReplaceDictChunk");
             transcribeMapInfo = Resources.Load<ComputeShader>("Compute/MapData/TranscribeMapInfo");
             multiMapTranscribe = Resources.Load<ComputeShader>("Compute/MapData/MultiMapTranscriber");

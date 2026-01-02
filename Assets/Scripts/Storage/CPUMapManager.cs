@@ -9,6 +9,7 @@ using UnityEditor;
 using System.Collections.Generic;
 using System.Linq;
 using System.Collections.Concurrent;
+using Arterra.Configuration;
 using Arterra.Core.Terrain;
 
 namespace Arterra.Core.Storage {
@@ -47,7 +48,7 @@ namespace Arterra.Core.Storage {
         /// with the game's current settings. Equivalent to <see cref="numChunksAxis"/>^3. / </summary>
         public static int numChunks => numChunksAxis * numChunksAxis * numChunksAxis;
         /// <summary> The Real Integer IsoValue used in all map operations. Equivalent to the 
-        /// <see cref="Arterra.Config.Quality.Terrain.IsoLevel"/> * 0xFF (maximum density value). </summary>
+        /// <see cref="Configuration.Quality.Terrain.IsoLevel"/> * 0xFF (maximum density value). </summary>
         public static uint IsoValue;
         private static int numPoints;
         private static int mapChunkSize;
@@ -59,7 +60,7 @@ namespace Arterra.Core.Storage {
         /// it will first release all previously allocated resources before reinitializing. </summary>
         public static void Initialize() {
             Release();
-            Config.Quality.Terrain rSettings = Config.Config.CURRENT.Quality.Terrain.value;
+            Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
             mapChunkSize = rSettings.mapChunkSize;
             lerpScale = rSettings.lerpScale;
             IsoValue = (uint)Math.Round(rSettings.IsoLevel * 255.0f);
@@ -979,7 +980,7 @@ namespace Arterra.Core.Storage {
             /// a <see cref="HashCoord">chunk index</see> to <see cref="ChunkMapInfo"/> for that chunk. </summary>
             [NativeDisableUnsafePtrRestriction]
             public ChunkMapInfo* AddressDict;
-            /// <summary> See <see cref="Arterra.Config.Quality.Terrain.mapChunkSize"/> </summary>
+            /// <summary> See <see cref="Configuration.Quality.Terrain.mapChunkSize"/> </summary>
             public int mapChunkSize;
             /// <summary> See <see cref="CPUMapManager.numChunksAxis"/> </summary>
             public int numChunksAxis;
@@ -1040,7 +1041,7 @@ namespace Arterra.Core.Storage {
                 RegistryReferenceDrawer.SetupRegistries();
                 RegistryReferenceDrawer materialDrawer = new RegistryReferenceDrawer { BitMask = 0x7FFF, BitShift = 16 };
                 materialDrawer.DrawRegistryDropdown(rect, dataProp, new GUIContent("Material"),
-                    Config.Config.TEMPLATE.Generation.Materials.value.MaterialDictionary);
+                    Config.TEMPLATE.Generation.Materials.value.MaterialDictionary);
                 rect.y += EditorGUIUtility.singleLineHeight;
                 EditorGUI.MultiIntField(rect, new GUIContent[] { new("Viscosity"), new("Density") }, values);
                 rect.y += EditorGUIUtility.singleLineHeight;
@@ -1108,8 +1109,8 @@ namespace Arterra.Core.Storage {
             }
         }
 
-        /// <summary> The identity of this <see cref="MapData"/>. The index within the <see cref="Config.Config.GenerationSettings.Materials"/>
-        /// registry of the <see cref="Config.Generation.Material"/> responsible for controling the apperance 
+        /// <summary> The identity of this <see cref="MapData"/>. The index within the <see cref="Config.GenerationSettings.Materials"/>
+        /// registry of the <see cref="Configuration.Generation.Material"/> responsible for controling the apperance 
         /// and behavior of this <see cref="MapData"/>  </summary>
         public int material {
             readonly get => (int)((data >> 16) & 0x7FFF);

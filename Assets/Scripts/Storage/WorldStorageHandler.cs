@@ -3,6 +3,7 @@ using UnityEngine;
 using System.IO;
 using System.Threading.Tasks;
 using System;
+using Arterra.Configuration;
 
 namespace Arterra.Core.Storage{
 /// <summary>
@@ -29,12 +30,12 @@ public static class World
     /// <summary> The tail path name of the display chunk image for each world </summary>
     public const string DisplayChunkPath = "/display_chunk";
 
-    /// <summary> The primary startup function for loading the user's game information. Loads the <see cref="Config.Config.TEMPLATE"> template </see>
+    /// <summary> The primary startup function for loading the user's game information. Loads the <see cref="Config.TEMPLATE"> template </see>
     /// world configuration(the default world configuration) as well as finding the user's world selection meta data from the file system
     /// to load the user's last selected world's configuration. </summary>
     public static void Activate(){
-        Config.Config.TEMPLATE = Resources.Load<Config.Config>("Config");
-        Config.Config.CURRENT = Config.Config.Create();
+        Config.TEMPLATE = Resources.Load<Config>("Config");
+        Config.CURRENT = Config.Create();
         SegmentedUIEditor.Initialize();
         PaginatedUIEditor.Initialize();
         LoadMetaSync(); LoadOptionsSync();
@@ -69,33 +70,33 @@ public static class World
     }
 
     /// <summary> Asynchronously loads the world configuration of the currently selected world from the file system and
-    /// copies it to the <see cref="Config.Config.CURRENT"> current world configuration </see>. This is the world that is the first 
+    /// copies it to the <see cref="Config.CURRENT"> current world configuration </see>. This is the world that is the first 
     /// element in the <see cref="WORLD_SELECTION"/> list. This function assumes that the <see cref="WORLD_SELECTION"/> has already 
     /// been loaded and is non-empty. If the world does not exist, a new world configuration is created and saved to the file system. </summary>
     /// <returns> A threaded task that is responsible for loading the world configuration. </returns>
     public static async Task LoadOptions(){
         string location = WORLD_SELECTION.First.Value.Path + "/Config.json";
         if(!Directory.Exists(WORLD_SELECTION.First.Value.Path) || !File.Exists(location)) {
-            Config.Config.CURRENT = Config.Config.Create();
+            Config.CURRENT = Config.Create();
             await SaveOptions();
             return;
         }
         string data = await File.ReadAllTextAsync(location);
-        Config.Config.CURRENT = Newtonsoft.Json.JsonConvert.DeserializeObject<Config.Config>(data); //Does not call constructor
+        Config.CURRENT = Newtonsoft.Json.JsonConvert.DeserializeObject<Config>(data); //Does not call constructor
         
     }
 
     /// <summary> Asynchronously saves the world configuration of the currently selected world to the file system.
-    /// This is the world configuration referenced by the <see cref="Config.Config.CURRENT"> current world configuration </see> 
+    /// This is the world configuration referenced by the <see cref="Config.CURRENT"> current world configuration </see> 
     /// and simultaneously should be the first element in the <see cref="WORLD_SELECTION"/> list. Hence, this function
-    /// copies the <see cref="Config.Config.CURRENT">object</see> to the location specified by the first element of <see cref="WORLD_SELECTION"/>. </summary>
+    /// copies the <see cref="Config.CURRENT">object</see> to the location specified by the first element of <see cref="WORLD_SELECTION"/>. </summary>
     /// <returns>A threaded task that is responsible for saving the world configuration.</returns>
     public static async Task SaveOptions(){
         string location = WORLD_SELECTION.First.Value.Path + "/Config.json";
         if(!Directory.Exists(WORLD_SELECTION.First.Value.Path)) Directory.CreateDirectory(WORLD_SELECTION.First.Value.Path);
         using (FileStream fs = new FileStream(location, FileMode.Create, FileAccess.Write, FileShare.None)){
             using(StreamWriter writer = new StreamWriter(fs)){
-                string data = Newtonsoft.Json.JsonConvert.SerializeObject(Config.Config.CURRENT);
+                string data = Newtonsoft.Json.JsonConvert.SerializeObject(Config.CURRENT);
                 await writer.WriteAsync(data);
                 await writer.FlushAsync();
             };
@@ -128,12 +129,12 @@ public static class World
     public static void LoadOptionsSync(){
         string location = WORLD_SELECTION.First.Value.Path + "/Config.json";
         if(!Directory.Exists(WORLD_SELECTION.First.Value.Path) || !File.Exists(location)) {
-            Config.Config.CURRENT = Config.Config.Create();
+            Config.CURRENT = Config.Create();
             SaveOptionsSync();
             return;
         }
         string data = File.ReadAllText(location);
-        Config.Config.CURRENT = Newtonsoft.Json.JsonConvert.DeserializeObject<Config.Config>(data); //Does not call constructor
+        Config.CURRENT = Newtonsoft.Json.JsonConvert.DeserializeObject<Config>(data); //Does not call constructor
     }
 
     /// <summary> Same as <see cref="SaveOptions"/> but synchronous. See <see cref="SaveOptions"/> for more information. </summary>
@@ -142,7 +143,7 @@ public static class World
         if(!Directory.Exists(WORLD_SELECTION.First.Value.Path)) Directory.CreateDirectory(WORLD_SELECTION.First.Value.Path);
         using (FileStream fs = new FileStream(location, FileMode.Create, FileAccess.Write, FileShare.None)){
             using(StreamWriter writer = new StreamWriter(fs)){
-                string data = Newtonsoft.Json.JsonConvert.SerializeObject(Config.Config.CURRENT);
+                string data = Newtonsoft.Json.JsonConvert.SerializeObject(Config.CURRENT);
                 writer.Write(data);
                 writer.Flush();
             };
@@ -153,7 +154,7 @@ public static class World
     /// Selects the world through the information specified in <paramref name="meta"/>. This involves
     /// moving the entry to the front of <see cref="WORLD_SELECTION"/>, since it now is the most recently
     /// selected world, and loading the world configuration from the file system to the 
-    /// <see cref="Config.Config.CURRENT"> current world configuration </see> static location. 
+    /// <see cref="Config.CURRENT"> current world configuration </see> static location. 
     /// </summary>
     /// <param name="meta">The meta data necessary to load the world. <paramref name="meta"/> should be
     /// an entry within <see cref="WORLD_SELECTION"/>, see <seealso cref="WorldMeta"/> for more info. </param>
@@ -167,11 +168,11 @@ public static class World
 
     /// <summary> Creates a new world and selects it. This involves creating adding a first entry within <see cref="WORLD_SELECTION"/>
     /// since it is now the most recently selected world, and creating a new world configuration off the template
-    /// configuration. The new world config is copied to the <see cref="Config.Config.CURRENT"> current world configuration </see>
+    /// configuration. The new world config is copied to the <see cref="Config.CURRENT"> current world configuration </see>
     /// static location. </summary>
     public static void CreateWorld(){
         WORLD_SELECTION.AddFirst(new WorldMeta(Guid.NewGuid().ToString()));
-        Config.Config.CURRENT = Config.Config.Create();
+        Config.CURRENT = Config.Create();
         _ = SaveOptions();
         _ = SaveMeta();
     }

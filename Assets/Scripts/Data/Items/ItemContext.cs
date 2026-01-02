@@ -1,7 +1,7 @@
 using System;
 using Unity.Mathematics;
 
-namespace Arterra.Config.Generation.Item {
+namespace Arterra.Configuration.Generation.Item {
 
     public class ItemContext {
         private WeakReference<IInventory> Inv;

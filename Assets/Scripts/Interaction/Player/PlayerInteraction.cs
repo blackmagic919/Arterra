@@ -2,12 +2,13 @@ using System;
 using UnityEngine;
 using Unity.Mathematics;
 using Arterra.Core.Storage;
-using Arterra.Config.Generation.Material;
-using Arterra.Config.Generation.Item;
-using Arterra.Config.Gameplay.Player;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Material;
+using Arterra.Configuration.Generation.Item;
+using Arterra.Configuration.Gameplay.Player;
 using Utils;
 
-namespace Arterra.Config.Gameplay.Player {
+namespace Arterra.Configuration.Gameplay.Player {
 /// <summary>
 /// Settings governing the user's ability to interact with the world.
 /// This includes Terraforming, the act of changing the terrain map's information,
@@ -52,9 +53,9 @@ public class Interaction : ICloneable{
 namespace Arterra.Core.Player{
     /// <summary>The manager responsible for controlling all player interactions with the world </summary>
     public static class PlayerInteraction {
-        private static Catalogue<MaterialData> matInfo => Config.Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-        private static Catalogue<Authoring> itemInfo => Config.Config.CURRENT.Generation.Items;
-        private static Interaction settings => Config.Config.CURRENT.GamePlay.Player.value.Interaction;
+        private static Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        private static Catalogue<Authoring> itemInfo => Config.CURRENT.Generation.Items;
+        private static Interaction settings => Config.CURRENT.GamePlay.Player.value.Interaction;
         private static PlayerStreamer.Player data => PlayerHandler.data;
 
         /// <summary> Initializes the player's interactions by tying
@@ -331,7 +332,7 @@ namespace Arterra.Core.Player{
             return true;
         }
 
-        private static void EntityInteract(Arterra.Config.Generation.Entity.Entity target) {
+        private static void EntityInteract(Configuration.Generation.Entity.Entity target) {
             if (!target.active) return;
             if (target is not IAttackable) return;
             IAttackable targEnt = target as IAttackable;

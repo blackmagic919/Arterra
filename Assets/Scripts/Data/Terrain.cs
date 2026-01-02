@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Arterra.Config.Quality
+namespace Arterra.Configuration.Quality
 {
 /// <summary>
 /// Settings controlling the detail of generated terrain and the frequency of its updates. 

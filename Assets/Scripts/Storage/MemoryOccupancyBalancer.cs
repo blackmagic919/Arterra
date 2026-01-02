@@ -5,7 +5,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace Arterra.Config.Quality{
+namespace Arterra.Configuration.Quality{
     //Strategy: 
     public class MemoryOccupancyBalancer : MemoryBufferHandler {
         private ComputeBuffer _OccupancyBuffer;

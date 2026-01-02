@@ -12,7 +12,6 @@ Shader "Unlit/Terrain"
         {
             Name "ForwardLit"
             Tags{"LightMode" = "UniversalForward"}
-
             Cull Back
 
             HLSLPROGRAM

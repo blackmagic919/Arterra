@@ -6,8 +6,8 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using static PaginatedUIEditor;
-using Arterra.Config;
-using Arterra.Config.Gameplay;
+using Arterra.Configuration;
+using Arterra.Configuration.Gameplay;
 
 
 //List must be held by an Option which only holds it

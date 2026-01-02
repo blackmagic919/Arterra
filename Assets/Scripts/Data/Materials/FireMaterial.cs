@@ -15,7 +15,7 @@ y
 +----------->x
 */
 
-namespace Arterra.Config.Generation.Material{
+namespace Arterra.Configuration.Generation.Material{
 
     /// <summary> A concrete material that will attempt to spread itself to neighboring entries 
     /// when and only when  randomly updated. </summary>

@@ -4,9 +4,9 @@ using Unity.Mathematics;
 using Newtonsoft.Json;
 using UnityEditor;
 using System.Collections.Generic;
-using Arterra.Config.Generation.Structure;
+using Arterra.Configuration.Generation.Structure;
 using Arterra.Core.Events;
-namespace Arterra.Config.Generation.Entity{
+namespace Arterra.Configuration.Generation.Entity{
 /// <summary>
 /// A generic contract that ensures that all entities contain a certain
 /// set of properties and methods necessary for the system to function.
@@ -160,7 +160,7 @@ public abstract class EntitySetting{
     public TerrainCollider.Settings collider;
     /// <summary> Presets any information shared by all instances of the entity. This is only called once per entity type within
     /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information. </summary>
-    /// <param name="entityType">The index of the entity type within the <see cref="Arterra.Config.Config.GenerationSettings.Entities"/> registry.</param>
+    /// <param name="entityType">The index of the entity type within the <see cref="Config.GenerationSettings.Entities"/> registry.</param>
     /// <remarks> For example, if the entity uses a state machine it can allocate function pointers to each state within the machine such that
     /// they may be referenced through an edge list. </remarks>
     public virtual void Preset(uint entityType){

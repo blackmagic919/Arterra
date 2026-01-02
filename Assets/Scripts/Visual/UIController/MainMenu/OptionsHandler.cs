@@ -4,14 +4,14 @@ using System.Threading.Tasks;
 using UnityEngine.UI;
 using TMPro;
 using static SegmentedUIEditor;
-using Arterra.Config;
+using Arterra.Configuration;
 using Unity.Mathematics;
 using Arterra.Core.Terrain;
 using Arterra.Core.Storage;
 using System.Collections;
 using static Arterra.Core.Storage.World;
 
-namespace Arterra.Config.Intrinsic {
+namespace Arterra.Configuration.Intrinsic {
     /// <summary> Settings controlling how the world appears in 
     /// the menu when selecting and viewing the world 
     /// before entering </summary>
@@ -183,8 +183,8 @@ public class OptionsHandler : MonoBehaviour
             SystemProtocol.MinimalStartup(); 
             active = true;
 
-            Arterra.Config.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
-            Arterra.Config.Intrinsic.WorldApperance wSettings = Config.CURRENT.System.WorldApperance;
+            Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+            Arterra.Configuration.Intrinsic.WorldApperance wSettings = Config.CURRENT.System.WorldApperance;
             uint chunkSize = (uint)rSettings.mapChunkSize + 2;
 
             uint3 gridSize = (uint3)Mathf.CeilToInt(chunkSize * wSettings.GridScale);

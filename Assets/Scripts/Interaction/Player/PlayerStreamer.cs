@@ -2,11 +2,11 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
-using Arterra.Config.Generation.Entity;
-using Arterra.Config;
-using Arterra.Config.Generation.Item;
+using Arterra.Configuration.Generation.Entity;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Item;
 using Arterra.Core.Storage;
-using Arterra.Config.Gameplay.Player;
+using Arterra.Configuration.Gameplay.Player;
 using Arterra.Core.Events;
 
 
@@ -17,7 +17,7 @@ namespace Arterra.Core.Player {
     /// <remarks>Using the analogy that <see cref="PlayerHandler"/> is the soul of the player, 
     /// <see cref="PlayerStreamer"/> would be a singular corpreal body of the player. </remarks> 
     [CreateAssetMenu(menuName = "Generation/Entity/Player")]
-    public class PlayerStreamer : Config.Generation.Entity.Authoring
+    public class PlayerStreamer : Configuration.Generation.Entity.Authoring
     {
         /// <summary>Reference to the player's entity settings. See <see cref="PlayerSettings"/></summary>
         public Option<PlayerSettings> _Setting;
@@ -59,7 +59,7 @@ namespace Arterra.Core.Player {
             /// <summary>This player's health and attack patterns. See <see cref="PlayerVitality"/> </summary>
             public PlayerVitality vitality;
             /// <summary>This player's terrain collider. </summary>
-            public PlayerCollider collider;
+            public TerrainCollider collider;
             /// <summary> This player instance's relation to the actual 
             /// user's input and what they see. See <see cref="StreamingStatus"/> </summary>
             [JsonProperty] 
@@ -122,7 +122,7 @@ namespace Arterra.Core.Player {
             /// Otherwise, this field can be omitted. </param>
             public void TakeDamage(float damage, float3 knockback, Entity attacker = null) {
                 //Invulnerability means we don't even process the request
-                if (Config.Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability) return;
+                if (Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability) return;
                 if (vitality.Invincibility > 0) return;
                 
                 var cxt = (damage, knockback);
@@ -144,19 +144,19 @@ namespace Arterra.Core.Player {
 
             /// <summary> Constructs a fresh clean player instance. With 
             /// the appropriate settings based off the
-            /// /// <see cref="Config.Config.CURRENT">current world</see> </summary>
+            /// /// <see cref="Config.CURRENT">current world</see> </summary>
             /// <returns>The newly instantiated player instance.</returns>
             public static Player Build() {
                 Player p = new();
                 p.camera = new PlayerCamera();
-                p.PrimaryI = new InventoryController.Inventory(Config.Config.CURRENT.GamePlay.Inventory.value.PrimarySlotCount);
-                p.SecondaryI = new InventoryController.Inventory(Config.Config.CURRENT.GamePlay.Inventory.value.SecondarySlotCount);
+                p.PrimaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.PrimarySlotCount);
+                p.SecondaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.SecondarySlotCount);
                 p.ArmorI = new ArmorInventory();
-                p.info.entityType = (uint)Config.Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
+                p.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
                 p.info.entityId = Guid.NewGuid();
 
-                p.settings = Config.Config.CURRENT.Generation.Entities.Retrieve((int)p.info.entityType).Setting as PlayerSettings;
-                p.collider = new PlayerCollider(p.settings.collider, 0);
+                p.settings = Config.CURRENT.Generation.Entities.Retrieve((int)p.info.entityType).Setting as PlayerSettings;
+                p.collider = new TerrainCollider(p.settings.collider, 0);
                 p.vitality = new PlayerVitality();
                 p.status = StreamingStatus.Live;
                 StartupPlacer.PlaceOnSurface(p);
@@ -185,7 +185,7 @@ namespace Arterra.Core.Player {
             /// <param name="GCoord">Retrievs the saved coordinate in grid space of the player</param>
             public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord)
             {
-                info.entityType = (uint)Config.Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
+                info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
                 settings = (PlayerSettings)setting;
                 GCoord = (int3)this.origin;
                 player = GameObject.Instantiate(Controller);
@@ -225,7 +225,7 @@ namespace Arterra.Core.Player {
                 }, OnInGas: null);
 
                 //Apply gravity and take over physics updating
-                collider.JobUpdate(this);
+                collider.Update(this);
                 EntityManager.AddHandlerEvent(() => {
                     if (player == null) return;
                     player.transform.SetPositionAndRotation(this.positionWS, collider.transform.rotation);
@@ -268,7 +268,7 @@ namespace Arterra.Core.Player {
                 eventCtrl.RaiseEvent(GameEvent.Entity_HitGround, this, null, ref zVelDelta);
                 if (zVelDelta <= Vitality.FallDmgThresh) return;
                 float dmgIntensity = zVelDelta - Vitality.FallDmgThresh;
-                dmgIntensity = math.pow(dmgIntensity, Config.Config.CURRENT.GamePlay.Player.value.Physicality.value.weight);
+                dmgIntensity = math.pow(dmgIntensity, Config.CURRENT.GamePlay.Player.value.Physicality.value.weight);
                 TakeDamage(dmgIntensity, 0, null);
             }
 

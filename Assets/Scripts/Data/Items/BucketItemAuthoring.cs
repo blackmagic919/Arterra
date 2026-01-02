@@ -5,7 +5,7 @@ using UnityEngine;
 using Arterra.Core.Storage;
 using Arterra.Core.Player;
 
-namespace Arterra.Config.Generation.Item{
+namespace Arterra.Configuration.Generation.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Bucket")] 
 public class BucketItemAuthoring : AuthoringTemplate<BucketItem> {
     /// <summary> The radius, in grid space, of the spherical region around the user's

@@ -3,12 +3,12 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Rendering;
-using Arterra.Config;
+using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Arterra.Core.Terrain;
 using Arterra.Core.Player;
 
-namespace Arterra.Config.Gameplay{
+namespace Arterra.Configuration.Gameplay{
     /// <summary> Settings controlling environment constants of the world. Or aspects of 
     /// the world that cannot be directly influenced within the game's narrative.
     /// We try to reduce the amount of non-narrative environment settings to keep the 
@@ -55,7 +55,7 @@ public class WorldData {
 public static class WorldDataHandler
 { 
     public static WorldData WorldData;
-    private static Arterra.Config.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.Time;
+    private static Arterra.Configuration.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.Time;
     private static LensFlareComponentSRP sunFlare;
     private static Light Sun;
     private static Light Moon;

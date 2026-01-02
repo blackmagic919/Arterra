@@ -3,10 +3,9 @@ using System.IO;
 using System;
 using Arterra.Core.Events;
 using Arterra.Core.Terrain;
-using Arterra.UI.ToolTips;
 
 
-namespace Arterra.Config.Gameplay.Player{
+namespace Arterra.Configuration.Gameplay.Player{
 /// <summary>
 /// Settings pertinent to the player object itself, and how the user experiences the world.
 /// All settings collected here are volatile during gameplay and the developer should be aware
@@ -28,7 +27,7 @@ public struct Settings{
 }
 }
 
-namespace Arterra.Config.Gameplay{
+namespace Arterra.Configuration.Gameplay{
     /// <summary>
     /// Settings describing different game settings the player can play with.
     /// These settings may drastically change the game's difficulty and
@@ -120,7 +119,7 @@ namespace Arterra.Core.Player{
             OnInSolid: (dens) => data.vitality.ProcessEntityInSolid(data, dens), 
             OnInLiquid: (dens) => data.vitality.ProcessInLiquid(data, dens), 
             OnInGas: (dens) => data.vitality.ProcessInGas(data, dens));
-            data.collider.FixedUpdate();
+            data.collider.FixedUpdate(data);
         }
 
         /// <summary>Releases the player handler and all resources tied to handling the player. </summary>

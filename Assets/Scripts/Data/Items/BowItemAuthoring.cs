@@ -2,7 +2,7 @@ using Arterra.Core.Events;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace Arterra.Config.Generation.Item{
+namespace Arterra.Configuration.Generation.Item{
     [CreateAssetMenu(menuName = "Generation/Items/Bow")] 
     public class BowItemAuthoring : AuthoringTemplate<BowItem> {
         /// <summary>  The maximum durability of the item, the durability it possesses when it is first
@@ -108,7 +108,7 @@ namespace Arterra.Config.Generation.Item{
 
         private bool HoldingArrowItems(ItemContext cxt, out int slot) {
             int start = cxt.InvId; slot = 0;
-            var settings = Arterra.Config.Config.CURRENT.GamePlay.Inventory.value;
+            var settings = Config.CURRENT.GamePlay.Inventory.value;
             if (!cxt.TryGetInventory(out InventoryController.Inventory inv))
                 return false;
             for (slot = (start + 1) % settings.PrimarySlotCount;

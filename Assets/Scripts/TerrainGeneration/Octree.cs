@@ -37,7 +37,7 @@ namespace Arterra.Core.Terrain {
         /// Creates an octree with the specified settings--depth, balance factor, and chunk radius.
         /// </summary>
         /// <param name="depth">The maximum depth of the octree</param>
-        /// <param name="minChunkSize"> The size in grid space of the smallest chunk(depth = 0) handled by the octree, see <see cref="Arterra.Config.Quality.Terrain.mapChunkSize"/> for more info. </param>
+        /// <param name="minChunkSize"> The size in grid space of the smallest chunk(depth = 0) handled by the octree, see <see cref="Quality.Terrain.mapChunkSize"/> for more info. </param>
         /// <param name="numChunks"> The maximum amount of leaf chunks that can be held by the octree. </param>
         public Octree(int depth, int minChunkSize, int numChunks) {
             chunks = new ConstrainedLL<TChunk>((uint)numChunks * 2 + 1);
@@ -50,7 +50,7 @@ namespace Arterra.Core.Terrain {
         /// <summary>
         /// Determines whether an octree node is balanced based on its current size
         /// and distance from the viewer. A node is balanced if it obeys the balance factor
-        /// of the tree; if it is  1:(<see cref="Arterra.Config.Quality.Terrain.Balance">Balance</see> + 1) balanced.
+        /// of the tree; if it is  1:(<see cref="Quality.Terrain.Balance">Balance</see> + 1) balanced.
         /// </summary>
         /// <param name="node">The octree node whose current state is tested to be balanced</param>
         /// <returns>Whether or not the node is balanced</returns>
@@ -335,7 +335,7 @@ namespace Arterra.Core.Terrain {
         /// </summary>
         /// <remarks>
         /// One can obtain the chunk coordinate for a specific depth by setting <paramref name="chunkSize"/> to
-        /// <see cref="Arterra.Config.Quality.Terrain.mapChunkSize"/> * (2^<see cref="TerrainChunk.depth"/>)>:
+        /// <see cref="Quality.Terrain.mapChunkSize"/> * (2^<see cref="TerrainChunk.depth"/>)>:
         /// </remarks>
         /// <param name="GCoord">The position whose relative chunk coordinate is sampled</param>
         /// <param name="chunkSize">The size of chunk the outputted chunk coordinate is scaled to.</param>
@@ -405,7 +405,7 @@ namespace Arterra.Core.Terrain {
             public int3 origin;
             /// <summary>
             /// The size of the chunk in grid space. This is equivalent to 
-            /// <see cref="Arterra.Config.Quality.Terrain.mapChunkSize"/> * 
+            /// <see cref="Quality.Terrain.mapChunkSize"/> * 
             /// (2^<see cref="TerrainChunk.depth"/>).
             /// </summary>
             public uint size;

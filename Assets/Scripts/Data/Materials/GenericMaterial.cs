@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Arterra.Config.Generation.Material
+namespace Arterra.Configuration.Generation.Material
 {
     /// <summary> A concrete material type with no explicit interaction behavior. That is,
     /// it does not need to do anything when updated. By default most materials

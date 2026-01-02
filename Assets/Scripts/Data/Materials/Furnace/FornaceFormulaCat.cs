@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Arterra.Config.Intrinsic.Furnace {
+namespace Arterra.Configuration.Intrinsic.Furnace {
     // Create a silimar category class for FurnaceFormula
     [Serializable]
     [CreateAssetMenu(menuName = "Settings/Furnace/FurnaceFormulaCategory")]

@@ -4,14 +4,15 @@ using Arterra.Core.Storage;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Config;
-using Arterra.Config.Generation.Entity;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Entity;
+using Arterra.Configuration.Generation.Item;
 
 /// <summary> An interface for all object that can be attacked and take damage. It is up to the 
 /// implementer to decide how the request to take damage is handled. </summary>
 public interface IAttackable {
     public void Interact(Entity caller);
-    public Arterra.Config.Generation.Item.IItem Collect(float collectRate);
+    public IItem Collect(float collectRate);
     public void TakeDamage(float damage, float3 knockback, Entity attacker = null);
     public bool IsDead { get; }
 }
@@ -201,13 +202,13 @@ public class MediumVitality : MinimalVitality {
         if (!AttackInProgress) return;
         attackProgress = math.max(attackProgress - EntityJob.cxt.deltaTime, 0);
         if (attackProgress > 0) return;
-        
-        AttackInProgress = false;
-        attackCooldown = genetics.Get(AStats.AttackCooldown);
         FlushAttack(self);
     }
 
     private void FlushAttack(Entity self) {
+        AttackInProgress = false;
+        attackCooldown = genetics.Get(AStats.AttackCooldown);
+        
         if (!EntityManager.TryGetEntity(AttackTarget, out Entity target))
             return;
         if (target is not IAttackable) return;
@@ -284,14 +285,14 @@ public class Vitality : MediumVitality {
                 table[i] = loot;
             }
         }
-        public Arterra.Config.Generation.Item.IItem LootItem(Genetics genetics, float collectRate, ref Unity.Mathematics.Random random) {
+        public IItem LootItem(Genetics genetics, float collectRate, ref Unity.Mathematics.Random random) {
             if (LootTable.value == null || LootTable.value.Count == 0) return null;
             int index = random.NextInt(LootTable.value.Count);
 
             float amount = genetics.Get(LootTable.value[index].DropAmount) * collectRate;
-            Catalogue<Arterra.Config.Generation.Item.Authoring> registry = Config.CURRENT.Generation.Items;
+            Catalogue<Arterra.Configuration.Generation.Item.Authoring> registry = Config.CURRENT.Generation.Items;
             int itemindex = registry.RetrieveIndex(LootTable.value[index].ItemName);
-            Arterra.Config.Generation.Item.IItem item = registry.Retrieve(itemindex).Item;
+            IItem item = registry.Retrieve(itemindex).Item;
 
             amount *= item.UnitSize;
             int delta = Mathf.FloorToInt(amount) + (random.NextFloat() < math.frac(amount) ? 1 : 0);

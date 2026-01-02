@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Arterra.Config.Generation{
+namespace Arterra.Configuration.Generation{
 
     [Serializable]
     [CreateAssetMenu(menuName = "Generation/NoiseCategory")]

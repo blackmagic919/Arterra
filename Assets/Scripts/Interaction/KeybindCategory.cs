@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Arterra.Config.Gameplay{
+namespace Arterra.Configuration.Gameplay{
     [CreateAssetMenu(menuName = "GamePlay/Input/Category")]
     public class KeybindCategory : Category<KeyBind>
     {

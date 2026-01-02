@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using UnityEngine;
-using Arterra.Config;
-using Arterra.Config.Quality;
+using Arterra.Configuration;
+using Arterra.Configuration.Quality;
 
 
 //Curiously recurring template pattern!!

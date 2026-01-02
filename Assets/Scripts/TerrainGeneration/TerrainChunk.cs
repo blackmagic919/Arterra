@@ -3,6 +3,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Utils;
+using Arterra.Configuration;
 using Arterra.Core.Terrain.Readback;
 using static Arterra.Core.Terrain.Readback.IVertFormat;
 using Arterra.Core.Storage;
@@ -30,7 +31,7 @@ namespace Arterra.Core.Terrain{
         /// such that each real chunk is assigned a unique integer coordinate. </summary>
         public int3 CCoord;
         /// <summary> The size of the chunk in grid space. The size is the length of one side of the chunk in grid units. </summary>
-        /// <remarks> This is equivalent to <see cref="Arterra.Config.Quality.Terrain.mapChunkSize"/> * (2^<see cref="TerrainChunk.depth"/></remarks>
+        /// <remarks> This is equivalent to <see cref="Quality.Terrain.mapChunkSize"/> * (2^<see cref="TerrainChunk.depth"/></remarks>
         public int size;
         ///<summary>The depth of the chunk in the <see cref="OctreeTerrain"/></summary>
         public int depth;
@@ -42,7 +43,7 @@ namespace Arterra.Core.Terrain{
         /// <exclude />
         protected GeneratorInfo Generator;
         /// <exclude />
-        protected Arterra.Config.Quality.Terrain rSettings;
+        protected Configuration.Quality.Terrain rSettings;
         /// <exclude />
         protected MeshRenderer meshRenderer;
         /// <exclude />
@@ -185,7 +186,7 @@ namespace Arterra.Core.Terrain{
         /// <param name="size"> The size of the terrain chunk in grid space</param>
         /// <param name="octreeIndex">The index of the chunk's octree node in the <see cref="OctreeTerrain.octree"/> </param>
         public TerrainChunk(Transform parent, int3 origin, int size, uint octreeIndex) {
-            rSettings = Config.Config.CURRENT.Quality.Terrain.value;
+            rSettings = Config.CURRENT.Quality.Terrain.value;
             this.IsoLevel = rSettings.IsoLevel;
             this.mapChunkSize = rSettings.mapChunkSize;
             this.origin = origin;
@@ -205,7 +206,7 @@ namespace Arterra.Core.Terrain{
 
             meshFilter = meshObject.AddComponent<MeshFilter>();
             meshRenderer = meshObject.AddComponent<MeshRenderer>();
-            meshRenderer.sharedMaterials = Config.Config.CURRENT.System.ReadBack.value.TerrainMats.ToArray();
+            meshRenderer.sharedMaterials = Config.CURRENT.System.ReadBack.value.TerrainMats.ToArray();
 
             status = new Status {
                 CreateMap = Status.State.Pending,
@@ -214,7 +215,7 @@ namespace Arterra.Core.Terrain{
                 UpdateMesh = Status.State.Pending,
                 CanUpdateMesh = Status.State.Finished,
             };
-            if (depth <= Config.Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
+            if (depth <= Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
                 GeoShaders = new SubChunkShaderGraph(this);
             Generator = new GeneratorInfo(this);
             SetupChunk();
@@ -347,7 +348,7 @@ namespace Arterra.Core.Terrain{
         /// </summary>
         protected virtual void GetSurface() { }
         /// <summary> The generation task which plans the structures for the chunk. This is the first step in generating the chunk's structure data. 
-        /// Chunks are only capable of planning structures if their depth is less than or equal to <see cref="Arterra.Config.Quality.Terrain.MaxStructureDepth"/> </summary>
+        /// Chunks are only capable of planning structures if their depth is less than or equal to <see cref="Quality.Terrain.MaxStructureDepth"/> </summary>
         /// <param name="callback">The callback function that's called once structure planning has been completed (or inserted into a GPU cmd buffer)</param>
         protected virtual void PlanStructures(Action callback = null) { }
         /// <summary> The generation task which creates the map information for the chunk. This is the middle step in generating the chunk's information. 
@@ -356,7 +357,7 @@ namespace Arterra.Core.Terrain{
         protected virtual void ReadMapData(Action callback = null) { }
         /// <summary> The generation task which creates the mesh information for the chunk. This is the final step in generating the chunk's information. 
         /// Optionally chunks will place structures and generate geoshaded geometry if they have cached structure information from <see cref="ReadMapData"/> 
-        /// and their depth is less than or equal to <see cref="Arterra.Config.Quality.GeoShaderSettings.MaxGeoShaderDepth"/> respectively.
+        /// and their depth is less than or equal to <see cref="Quality.GeoShaderSettings.MaxGeoShaderDepth"/> respectively.
         /// </summary> <param name="UpdateCallback">The callback function that's returned the mesh constructor once the mesh has been readback</param>
         protected virtual void CreateMesh(Action<ReadbackTask<TVert>.SharedMeshInfo> UpdateCallback = null) { }
         /// <exclude />
@@ -367,7 +368,7 @@ namespace Arterra.Core.Terrain{
         }
 
         /// <summary>
-        /// A real chunk is a chunk of the lowest <see cref="depth"/>, therefore the smallest size (equal to <see cref="Arterra.Config.Quality.Terrain.mapChunkSize"/>). 
+        /// A real chunk is a chunk of the lowest <see cref="depth"/>, therefore the smallest size (equal to <see cref="Quality.Terrain.mapChunkSize"/>). 
         /// They are the chunks closest to the viewer and the only chunk that is capable of lossless sampling so it is the only chunk that maintains a copy of its map information 
         /// on the CPU. By extension, it is the only chunk that is capable of terrain interaction, collision, and entity pathfinding. With respect to the interactable game
         /// environment, it is all that exists.
@@ -484,7 +485,7 @@ namespace Arterra.Core.Terrain{
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, (int)ReadbackMaterial.terrain);
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, (int)ReadbackMaterial.water);
 
-                if (depth <= Config.Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
+                if (depth <= Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
                     GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
                 status.CanUpdateMesh = Status.Complete(status.CanUpdateMesh);
             }
@@ -640,7 +641,7 @@ namespace Arterra.Core.Terrain{
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, (int)ReadbackMaterial.terrain);
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, (int)ReadbackMaterial.water);
 
-                if (depth <= Config.Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
+                if (depth <= Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
                     GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
                 status.CanUpdateMesh = Status.Complete(status.CanUpdateMesh);
             }

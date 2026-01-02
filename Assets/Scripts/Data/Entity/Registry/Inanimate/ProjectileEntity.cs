@@ -2,14 +2,14 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
-using Arterra.Config;
-using Arterra.Config.Generation.Item;
-using Arterra.Config.Generation.Entity;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Item;
+using Arterra.Configuration.Generation.Entity;
 using Arterra.Core.Storage;
 using FMOD.Studio;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Projectile")]
-public class Projectile : Arterra.Config.Generation.Entity.Authoring
+public class Projectile : Arterra.Configuration.Generation.Entity.Authoring
 {
     public Option<ProjectileSetting> _Setting;
     

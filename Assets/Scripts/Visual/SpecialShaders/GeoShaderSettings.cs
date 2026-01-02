@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Arterra.Config.Quality {
+namespace Arterra.Configuration.Quality {
     /// <summary>  Settings controlling how geoshaders are managed in the world. Note: Geoshaders do not 
     /// refer to the traditional geoshader pass in the render pipeline but a seperate compute
     /// shader based system for generating non-ephemeral geometry. See <see cref="GeoShader"/> for more info. </summary>

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Arterra.Config.Generation.Material{
+namespace Arterra.Configuration.Generation.Material{
 /// <summary> The container for all materials that can be generated. Materials determine how the terrain appears
 /// when it is solid, liquid, or atmospheric as well as <see cref="Arterra.Core.Terrain.TerrainUpdate"> possible 
 /// interactions </see>. Materials only exist as part of the terrain and once picked up are handled by the 

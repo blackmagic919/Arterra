@@ -1,12 +1,12 @@
 using UnityEngine;
 using UnityEngine.Pool;
 using static EntityManager;
-using Arterra.Config.Generation.Entity;
-using Arterra.Config;
+using Arterra.Configuration.Generation.Entity;
+using Arterra.Configuration;
 using Unity.Mathematics;
 using UnityEngine.UI;
 
-namespace Arterra.Config.Gameplay{
+namespace Arterra.Configuration.Gameplay{
     /// <summary> A collection of settings describing optional statistics that can be displayed in the game.
     /// These statistics are optional and can be toggled on or off; viewing certain statistics may
     /// break immersion or provide an unfair advantage. </summary>
@@ -21,7 +21,7 @@ namespace Arterra.Config.Gameplay{
 }
 public class Indicators
 {
-    public static Arterra.Config.Gameplay.Statistics Stats => Config.CURRENT.GamePlay.Statistics;
+    public static Arterra.Configuration.Gameplay.Statistics Stats => Config.CURRENT.GamePlay.Statistics;
     public static ObjectPool<GameObject> ItemSlots;
     public static ObjectPool<GameObject> TransparentSlots;
     public static ObjectPool<GameObject> StackableItems;

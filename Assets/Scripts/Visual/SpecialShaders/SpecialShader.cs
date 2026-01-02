@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Arterra.Config.Quality{
+namespace Arterra.Configuration.Quality{
     /// <summary>
     /// A template for a custom GeoShader, a logical mesh generation unit 
     /// that generates more geometry given a base batch of geometry. Not to be 

@@ -39,7 +39,7 @@ MonoBehaviour:
   liquidData:
     shallowCol: {r: 0.3726415, g: 0.77981764, b: 1, a: 0.09803922}
     deepCol: {r: 0.122641504, g: 0.20858653, b: 0.49056602, a: 1}
-    colFalloff: 0.02
+    colFalloff: 0.01
     waveBlend: 0.5
     waveStrength: 0.05
     waveScale: {x: 0.2, y: 0.045}

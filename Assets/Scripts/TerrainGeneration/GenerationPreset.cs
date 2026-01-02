@@ -2,11 +2,12 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Unity.Collections;
-using Arterra.Config.Generation;
-using Arterra.Config.Generation.Material;
-using Arterra.Config.Generation.Entity;
-using Arterra.Config.Generation.Biome;
-using Arterra.Config.Quality;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation;
+using Arterra.Configuration.Generation.Material;
+using Arterra.Configuration.Generation.Entity;
+using Arterra.Configuration.Generation.Biome;
+using Arterra.Configuration.Quality;
 using Arterra.Core.Storage;
 using Arterra.Core.Player;
 
@@ -31,7 +32,7 @@ public static class SystemProtocol{
         if (state != SystemState.Inactive) Shutdown();
         state = SystemState.Active;
 
-        IRegister.Setup(Config.Config.CURRENT);
+        IRegister.Setup(Config.CURRENT);
         UtilityBuffers.Initialize();
         GenerationPreset.Initialize();
 
@@ -71,7 +72,7 @@ public static class SystemProtocol{
         if (state != SystemState.Inactive) Shutdown();
         state = SystemState.Limited;
 
-        IRegister.Setup(Config.Config.CURRENT);
+        IRegister.Setup(Config.CURRENT);
         UtilityBuffers.Initialize();
         GenerationPreset.MinimalInitialize();
         Chunk.MinimalInitialze();
@@ -104,8 +105,8 @@ public static class SystemProtocol{
         AtmospherePass.Release();
         SubChunkShaderGraph.Unset();
         Readback.AsyncMeshReadback.Release();
-        GPUMapManager.Release();
         CPUMapManager.Release();
+        GPUMapManager.Release();
         GenerationPreset.Release();
         WorldDataHandler.Release();
         UtilityBuffers.Release();
@@ -152,7 +153,7 @@ public static class GenerationPreset
         biomeHandle.Initialize();
         structHandle.Initialize();
         entityHandle.Initialize();
-        memoryHandle = new MemoryOccupancyBalancer(Config.Config.CURRENT.Quality.Memory.value);
+        memoryHandle = new MemoryOccupancyBalancer(Config.CURRENT.Quality.Memory.value);
     }
 
     /// <summary>
@@ -185,7 +186,7 @@ public static class GenerationPreset
 
     /// <summary>Responsible for deserializing all material display information as well as copying all textures to the GPU.
     /// Material display information includes information on each material's visual representation as a solid, liquid, 
-    /// and gas <seealso cref="MaterialData"/>. Textures are copied from the <see cref="Config.Config.GenerationSettings.Textures"/>
+    /// and gas <seealso cref="MaterialData"/>. Textures are copied from the <see cref="Config.GenerationSettings.Textures"/>
     /// registry and should be referenced in the GPU by their index in that registry. </summary>
     public struct MaterialHandle{
         const int textureSize = 128;
@@ -203,7 +204,7 @@ public static class GenerationPreset
             public void Initialize() {
                 static void SerializeGeoShader(MaterialData mat, ref MaterialData.TerrainData terr) {
                     if (!terr.GeoShaderIndex.HasGeoShader) return;
-                    Catalogue<GeoShader> shaderInfo = Config.Config.CURRENT.Quality.GeoShaders.value.Categories;
+                    Catalogue<GeoShader> shaderInfo = Config.CURRENT.Quality.GeoShaders.value.Categories;
                     ref MaterialData.TerrainData.GeoShaderInfo info = ref terr.GeoShaderIndex;
                     string Key = mat.RetrieveKey((int)info.MajorIndex);
                     info.HasGeoShader = false; //If we fail any checks here on out, ignore this entry
@@ -217,8 +218,8 @@ public static class GenerationPreset
                     info.HasGeoShader = true;
                 }
                 Release();
-                Config.Generation.Material.Generation matInfo = Config.Config.CURRENT.Generation.Materials.value;
-                Catalogue<TextureContainer> textureInfo = Config.Config.CURRENT.Generation.Textures;
+                Configuration.Generation.Material.Generation matInfo = Config.CURRENT.Generation.Materials.value;
+                Catalogue<TextureContainer> textureInfo = Config.CURRENT.Generation.Textures;
                 List<MaterialData> MaterialDictionary = matInfo.MaterialDictionary.Reg;
                 MaterialData.TerrainData[] MaterialTerrain = new MaterialData.TerrainData[MaterialDictionary.Count];
 
@@ -273,7 +274,7 @@ public static class GenerationPreset
     }
     /// <summary>
     /// Responsible for deserializing all noise generation settings and copying it to the GPU 
-    /// for use in the terrain generation process. <seealso cref="Config.Config.GenerationSettings.Noise"/>. 
+    /// for use in the terrain generation process. <seealso cref="Config.GenerationSettings.Noise"/>. 
     /// </summary>
     public struct NoiseHandle{
         internal ComputeBuffer indexBuffer;
@@ -283,13 +284,13 @@ public static class GenerationPreset
 
         /// <summary>
         /// Initializes the <see cref="NoiseHandle"/> . Deserializes and copies all information
-        /// contained by <see cref="Config.Config.GenerationSettings.Noise"/> to the GPU. 
+        /// contained by <see cref="Config.GenerationSettings.Noise"/> to the GPU. 
         /// Information is stored in global GPU buffers <c>_NoiseIndexes</c>, <c>_NoiseSettings</c>, 
         /// <c>_NoiseOffsets</c> and <c>_NoiseSplinePoints</c>.
         /// </summary>
         public void Initialize(){
             Release();
-            List<Noise> samplerDict = Config.Config.CURRENT.Generation.Noise.Reg;
+            List<Noise> samplerDict = Config.CURRENT.Generation.Noise.Reg;
             uint[] indexPrefixSum = new uint[(samplerDict.Count + 1) * 2];
             NoiseSettings[] settings = new NoiseSettings[samplerDict.Count];
             List<Vector3> offsets = new List<Vector3>();
@@ -347,7 +348,7 @@ public static class GenerationPreset
 
     /// <summary>
     /// Responsible for deserializing all biome generation settings and copying it to the GPU for use
-    /// in the terrain generation process. <seealso cref="Config.Config.GenerationSettings.Biomes"/>.
+    /// in the terrain generation process. <seealso cref="Config.GenerationSettings.Biomes"/>.
     /// </summary>
     public struct BiomeHandle{
         ComputeBuffer SurfTreeBuffer;
@@ -359,7 +360,7 @@ public static class GenerationPreset
 
         /// <summary>
         /// Initializes the <see cref="BiomeHandle"/>. Deserializes and copies all information
-        /// contained by <see cref="Config.Config.GenerationSettings.Biomes"/> to the GPU. Deserializing
+        /// contained by <see cref="Config.GenerationSettings.Biomes"/> to the GPU. Deserializing
         /// the registry involves constructing an R-Tree LUT which is then copied to the GPU. Information 
         /// about this LUT is stored in global GPU buffers <c>_BiomeSurfTree</c>, <c>_BiomeCaveTree</c>,
         /// while information on what each biome contains is stored in <c>_BiomeMaterials</c>, <c>_BiomeStructureData</c>, 
@@ -368,9 +369,9 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            List<CInfo<SurfaceBiome>> surface = Config.Config.CURRENT.Generation.Biomes.value.SurfaceBiomes.Reg;
-            List<CInfo<CaveBiome>> cave = Config.Config.CURRENT.Generation.Biomes.value.CaveBiomes.Reg;
-            List<CInfo<CaveBiome>> sky = Config.Config.CURRENT.Generation.Biomes.value.SkyBiomes.Reg;
+            List<CInfo<SurfaceBiome>> surface = Config.CURRENT.Generation.Biomes.value.SurfaceBiomes.Reg;
+            List<CInfo<CaveBiome>> cave = Config.CURRENT.Generation.Biomes.value.CaveBiomes.Reg;
+            List<CInfo<CaveBiome>> sky = Config.CURRENT.Generation.Biomes.value.SkyBiomes.Reg;
             List<Info> biomes = new List<Info>(); 
             biomes.AddRange(surface.Select(e => e.info.value));
             biomes.AddRange(cave.Select(e => e.info.value));
@@ -448,7 +449,7 @@ public static class GenerationPreset
 
     /// <summary>
     /// Responsible for deserializing all structure generation settings and copying it to the GPU 
-    /// for use in the terrain generation process. <seealso cref="Config.Config.GenerationSettings.Structures"/>.
+    /// for use in the terrain generation process. <seealso cref="Config.GenerationSettings.Structures"/>.
     /// </summary>
     public struct StructHandle{
         ComputeBuffer indexBuffer; //Prefix sum
@@ -459,7 +460,7 @@ public static class GenerationPreset
 
         /// <summary>
         /// Initializes the <see cref="StructHandle"/>. Deserializes and copies all information contained by
-        /// <see cref="Config.Config.GenerationSettings.Structures"/> to the GPU. Information about a structure's in 
+        /// <see cref="Config.GenerationSettings.Structures"/> to the GPU. Information about a structure's in 
         /// generation is stored in global GPU buffers <c>_StructureIndexes</c>, <c>_StructureChecks</c>, and  <c>_StructureSettings</c>.
         ///  <c>_StructureSettings</c> also includes information on each structure's start and length of information in the other buffers, 
         ///  including the raw point data in <c>_StructureMap</c>.
@@ -467,15 +468,15 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            List<Config.Generation.Structure.StructureData> StructureDictionary = Config.Config.CURRENT.Generation.Structures.value.StructureDictionary.Reg;
-            Config.Generation.Structure.StructureData.Settings[] settings = new Config.Generation.Structure.StructureData.Settings[StructureDictionary.Count];
-            List<Config.Generation.Structure.StructureData.PointInfo> map = new ();
-            List<Config.Generation.Structure.StructureData.CheckPoint> checks = new ();
+            List<Configuration.Generation.Structure.StructureData> StructureDictionary = Config.CURRENT.Generation.Structures.value.StructureDictionary.Reg;
+            Configuration.Generation.Structure.StructureData.Settings[] settings = new Configuration.Generation.Structure.StructureData.Settings[StructureDictionary.Count];
+            List<Configuration.Generation.Structure.StructureData.PointInfo> map = new ();
+            List<Configuration.Generation.Structure.StructureData.CheckPoint> checks = new ();
             uint[] indexPrefixSum = new uint[(StructureDictionary.Count+1)*2];
 
             for(int i = 0; i < StructureDictionary.Count; i++)
             {
-                Config.Generation.Structure.StructureData data = StructureDictionary[i];
+                Configuration.Generation.Structure.StructureData data = StructureDictionary[i];
                 indexPrefixSum[2 * (i + 1)] = (uint)data.map.value.Count + indexPrefixSum[2*i]; //Density is same length as materials
                 indexPrefixSum[2 * (i + 1) + 1] = (uint)data.checks.value.Count + indexPrefixSum[2 * i + 1];
                 settings[i] = data.settings.value;
@@ -517,7 +518,7 @@ public static class GenerationPreset
     /// Responsible for deserializing all entity generation settings and copying it to the GPU 
     /// for use in the terrain generation process. Note that <b>only information
     /// relevant to each entity's placement is copied</b>. 
-    /// <seealso cref="Config.Config.GenerationSettings.Entities"/>.
+    /// <seealso cref="Config.GenerationSettings.Entities"/>.
     /// </summary>
     public struct EntityHandle{
         private ComputeBuffer entityInfoBuffer;
@@ -527,7 +528,7 @@ public static class GenerationPreset
 
         /// <summary>
         /// Initializes the <see cref="EntityHandle"/>. Deserializes and copies all information contained by
-        /// <see cref="Config.Config.GenerationSettings.Entities"/> relavent to an entity's placement to the GPU. 
+        /// <see cref="Config.GenerationSettings.Entities"/> relavent to an entity's placement to the GPU. 
         /// This includes information on each entity's size, and <see cref="ProfileE" />. 
         /// Information is stored in global GPU buffers <c>_EntityInfo</c> and <c>_EntityProfile</c>.
         /// </summary>
@@ -535,7 +536,7 @@ public static class GenerationPreset
         {
             Release();
 
-            List<Authoring> EntityDictionary = Config.Config.CURRENT.Generation.Entities.Reg;
+            List<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities.Reg;
             int numEntities = EntityDictionary.Count;
             EntitySetting.ProfileInfo[] entityInfo = new EntitySetting.ProfileInfo[numEntities];
             List<ProfileE> entityProfile = new List<ProfileE>();

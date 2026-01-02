@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using Arterra.Config;
+using Arterra.Configuration;
 
 public static class UtilityBuffers 
 {

@@ -2,12 +2,13 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
-using Arterra.Config;
-using Arterra.Config.Generation.Entity;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Entity;
+using Arterra.Configuration.Generation.Item;
 using Arterra.Core.Storage;
 
 [CreateAssetMenu(menuName = "Generation/Entity/SkyScavanger")]
-public class SkyScavanger : Authoring
+public class SkyScavanger : Arterra.Configuration.Generation.Entity.Authoring
 {
     public Option<AnimalSetting> _Setting;
 
@@ -114,7 +115,7 @@ public class SkyScavanger : Authoring
             EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
         public void Interact(Entity caller) { }
-        public Arterra.Config.Generation.Item.IItem Collect(float amount) {
+        public IItem Collect(float amount) {
             if (!IsDead) return null; //You can't collect resources until the entity is dead
             var item = settings.decomposition.LootItem(genetics, amount, ref random);
             TaskDuration -= amount;
@@ -381,7 +382,7 @@ public class SkyScavanger : Authoring
             IAttackable target = (IAttackable)prey;
             if (!target.IsDead) { self.TaskIndex = AnimalTasks.FindPrey; return; }
             EntityManager.AddHandlerEvent(() => {
-                Arterra.Config.Generation.Item.IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
+                IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
                 if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition)) {
                     self.vitality.Heal(nutrition);
                 }

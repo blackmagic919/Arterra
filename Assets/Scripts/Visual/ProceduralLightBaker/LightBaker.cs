@@ -1,11 +1,11 @@
 using System;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Config;
+using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Arterra.Core.Terrain;
 
-namespace Arterra.Config.Quality{
+namespace Arterra.Configuration.Quality{
     /// <summary>
     /// Settings for the light baker, responsible for dynamically baking
     /// lighting in the world as the world changes. Light-baking is based off
@@ -16,7 +16,7 @@ namespace Arterra.Config.Quality{
     public struct LightBaker{
         /// <summary>
         /// The size of lighting sub-chunks relative to the size of the chunk.
-        /// = <see cref="Arterra.Config.Quality.Terrain.mapChunkSize"/> / SubChunkSize
+        /// = <see cref="Arterra.Configuration.Quality.Terrain.mapChunkSize"/> / SubChunkSize
         /// </summary>
         public int SubChunkDivisions; 
         /// <summary> The maximum number of object light
@@ -43,7 +43,7 @@ public static class LightBaker
     private static ComputeBuffer SubChunkUpdateBuffer;
     private static BakeQueueOffsets DirtyQueueOffsets;
     private static UpdateQueueOffsets TickUpdateOffsets;
-    private static Arterra.Config.Quality.LightBaker Settings => Config.CURRENT.Quality.Lighting;
+    private static Arterra.Configuration.Quality.LightBaker Settings => Config.CURRENT.Quality.Lighting;
 
     static LightBaker(){ //That's a lot of Compute Shaders XD
         ChunkLightPrimer = Resources.Load<ComputeShader>("Compute/LightBaker/ChunkLightPrimer");
@@ -54,7 +54,7 @@ public static class LightBaker
 
     public static void Initialize()
     {
-        Arterra.Config.Quality.Terrain terrain = Config.CURRENT.Quality.Terrain;
+        Arterra.Configuration.Quality.Terrain terrain = Config.CURRENT.Quality.Terrain;
         int NumChunks = OctreeTerrain.BalancedOctree.GetMaxNodes(terrain.MaxDepth, terrain.Balance, terrain.MinChunkRadius);
         int SubChunkCount = Settings.SubChunkDivisions * Settings.SubChunkDivisions * Settings.SubChunkDivisions;
         int SubChunkSize = terrain.mapChunkSize / Settings.SubChunkDivisions;
