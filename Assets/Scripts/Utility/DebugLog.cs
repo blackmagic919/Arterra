@@ -6,10 +6,12 @@ namespace Utils
     {
         public enum LogLevel
         {
-            Error = 0,
-            Warning = 1,
-            Info = 2,
-            Debug = 3
+            Critical = 0,
+            Error = 1,
+            Warning = 2,
+            Info = 3,
+            Trace = 4,
+            Debug = 5
         }
 
         public static LogLevel CurrentLevel = LogLevel.Debug;
@@ -22,10 +24,16 @@ namespace Utils
                 switch (level)
                 {
                     case LogLevel.Error:
+                    case LogLevel.Critical:
                         Debug.LogError(message);
                         break;
                     case LogLevel.Warning:
                         Debug.LogWarning(message);
+                        break;
+                    case LogLevel.Info:
+                    case LogLevel.Trace:
+                    case LogLevel.Debug:
+                        Debug.Log(message);
                         break;
                     default:
                         Debug.Log(message);
