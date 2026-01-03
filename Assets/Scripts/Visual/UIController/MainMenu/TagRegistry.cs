@@ -8,6 +8,7 @@ using Arterra.Config;
 using Arterra.Core.Storage;
 using Arterra.Config.Generation.Entity;
 using Arterra.UI.ToolTips;
+using Arterra.Core.Events;
 
 
 [Serializable]
@@ -212,6 +213,36 @@ public struct TooltipConfig : ICloneable {
     }
 }
 
+// Tooltip dismissor tag data
+[Serializable]
+public class TooltipDismissorTag : ICloneable {
+    // List of tooltip dismissor configurations associated with this tag.
+    public Option<List<TooltipDismissorConfig>> Dismissors;
+
+    public object Clone() {
+        Option<List<TooltipDismissorConfig>> cloneDismissors = Dismissors;
+        cloneDismissors.Clone();
+        return new TooltipDismissorTag {
+            Dismissors = cloneDismissors
+        };
+    }
+}
+
+[Serializable]
+public struct TooltipDismissorConfig : ICloneable {
+    // The event that will dismiss the tooltip.
+    public GameEvent DismissEvent;
+
+    public string PrefabPath; // The prefab path of the tooltip to be dismissed.
+
+    public object Clone() {
+        return new TooltipDismissorConfig {
+            DismissEvent = DismissEvent,
+            PrefabPath = PrefabPath
+        };
+    }
+}
+
 
 public interface IMaterialConverting : ICloneable {
     public Arterra.Config.Generation.Structure.StructureData.CheckInfo ConvertBounds { get; }
@@ -271,6 +302,7 @@ public struct TagRegistry
         //Interaction Type
         { Tags.FocusedPlace, null },
         { Tags.Tooltip, new TooltipTag() },
+        { Tags.TooltipDismissor, new TooltipDismissorTag() },
         // Projectiles
         { Tags.ArrowTag, new ProjectileTag() }
     };
@@ -284,7 +316,7 @@ public struct TagRegistry
         //Convertables
         Grassy = 2000, Vegetative = 2001, AquaMicrobial = 2002,
         //Interactions
-        FocusedPlace = 9000, Tooltip = 9001,
+        FocusedPlace = 9000, Tooltip = 9001, TooltipDismissor = 9002,
         // Projectiles 
         ArrowTag = 10000
     }
