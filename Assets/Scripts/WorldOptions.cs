@@ -119,7 +119,13 @@ namespace Arterra.Configuration {
             /// The events that can trigger tooltips.
             /// </summary>
             [UISetting(Ignore = true)]
-            public Option<List<GameEvent>> TooltipEvents;            
+            public Option<List<GameEvent>> TooltipEvents;
+
+            /// <summary>
+            /// The events that can dismiss tooltips.
+            /// </summary>
+            [UISetting(Ignore = true)]
+            public Option<List<GameEvent>> TooltipDismissorEvents;         
         }
 
         /// <summary>

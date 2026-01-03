@@ -79,6 +79,7 @@ namespace Arterra.UI.ToolTips {
             if (tooltip == null) return;
             ActiveTooltip = tooltip;
             DisplayStartTime = DateTime.Now;
+            // TODO: render UI elements
             ADebug.LogInfo($"TooltipPipeline: Showing tooltip {tooltip.Config.PrefabPath} in slot {Index}");
         }
     }
@@ -172,6 +173,15 @@ namespace Arterra.UI.ToolTips {
                 }
             }
             return null;
+        }
+
+        public void DismissTooltip(string prefabPath) {
+            foreach (var tooltip in tooltipQueue.UnorderedItems) {
+                if (tooltip.Element.Config.PrefabPath == prefabPath) {
+                    tooltip.Element.Acknowlege();
+                    ADebug.LogInfo($"TooltipPipeline: Tooltip {prefabPath} acknowledged and will be dismissed.");
+                }
+            }
         }
 
         private void UpdateVirtualRuntime(TooltipData? tooltip) {

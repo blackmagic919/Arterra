@@ -137,10 +137,16 @@ namespace Arterra.Core.Player {
             }
             /// <summary>Handler that's called when the player mounts an entity <see cref="IRider"/></summary>
             /// <param name="mount">The mount the player is riding</param>
-            public void OnMounted(IRidable mount) => RideMovement.AddHandles(mount);
+            public void OnMounted(IRidable mount) {
+                 RideMovement.AddHandles(mount);
+                 this.eventCtrl.RaiseEvent(GameEvent.Entity_Mount, this, mount, null);
+            }
             /// <summary>Handler that's called when the player dismounts an entity <see cref="IRider"/></summary>
             /// <param name="mount">The mount the player is no longer riding</param>
-            public void OnDismounted(IRidable mount) => RideMovement.RemoveHandles();
+            public void OnDismounted(IRidable mount) {
+                RideMovement.RemoveHandles();
+                this.eventCtrl.RaiseEvent(GameEvent.Entity_Dismount, this, mount, null);
+            }
 
             /// <summary> Constructs a fresh clean player instance. With 
             /// the appropriate settings based off the

@@ -65,6 +65,29 @@ namespace Arterra.UI.ToolTips {
                 });
             }
 
+            foreach(var gameEvent in ttSettings.TooltipDismissorEvents.value) {
+                PlayerHandler.data.eventCtrl.AddContextlessEventHandler(gameEvent, (object actor, object target) => {
+                    if (target is Entity) {
+                        if (!CheckEntityTooltipDismissorTag(gameEvent, (Entity)target, out TooltipDismissorTag tag)) {
+                            ADebug.LogWarning("TooltipSys: No tooltip tag found for entity.");
+                            return;
+                        }
+
+                        foreach(var dismissor in tag.Dismissors.value) {
+                            if (dismissor.DismissEvent == gameEvent) {  
+                                TooltipPipeline.Instance.DismissTooltip(dismissor.PrefabPath);                            
+                                ADebug.LogInfo($"TooltipSys: Dismissing tooltip for prefab {dismissor.PrefabPath} on entity {((Entity)target).info.entityId} - {gameEvent} - Tooltip dismissor placeholder");
+                                    
+                            }
+                        }
+                        
+                    }
+                    else {
+                        ADebug.LogDebug("TooltipSys: Non-entity target dismissor event received.");
+                    }
+                });
+            }
+
         }
 
         private static bool CheckEntityTooltipTag(GameEvent evt, Entity entity, out TooltipTag tag) {
@@ -82,6 +105,29 @@ namespace Arterra.UI.ToolTips {
                         }
                         else {
                             ADebug.LogInfo($"TooltipSys: No matching tooltip for this event - {tooltip.TriggerEvent}.");
+                            continue;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        private static bool CheckEntityTooltipDismissorTag(GameEvent evt, Entity entity, out TooltipDismissorTag tag) {
+            tag = null;
+            var entityInfo = Config.Config.CURRENT.Generation.Entities;
+            if (entityInfo.GetMostSpecificTag(TagRegistry.Tags.TooltipDismissor, entity.Index, out object tagValueObj)) {
+                var tagValue = (TooltipDismissorTag)tagValueObj;
+                // Check if the tag has tooltip for this event.
+                if (tagValue.Dismissors.value != null) {
+                    foreach (var dismissor in tagValue.Dismissors.value) {
+                        if (dismissor.DismissEvent == evt) {
+                            tag = tagValue;
+                            ADebug.LogInfo($"TooltipSys: Found matching tooltip dismissor for event - {dismissor.DismissEvent}.");
+                            return true;
+                        }
+                        else {
+                            ADebug.LogInfo($"TooltipSys: No matching tooltip dismissor for this event - {dismissor.DismissEvent}.");
                             continue;
                         }
                     }
