@@ -115,7 +115,7 @@ namespace Arterra.UI.ToolTips {
 
         private static bool CheckEntityTooltipDismissorTag(GameEvent evt, Entity entity, out TooltipDismissorTag tag) {
             tag = null;
-            var entityInfo = Config.Config.CURRENT.Generation.Entities;
+            var entityInfo = Config.CURRENT.Generation.Entities;
             if (entityInfo.GetMostSpecificTag(TagRegistry.Tags.TooltipDismissor, entity.Index, out object tagValueObj)) {
                 var tagValue = (TooltipDismissorTag)tagValueObj;
                 // Check if the tag has tooltip for this event.

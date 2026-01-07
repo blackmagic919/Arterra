@@ -214,7 +214,7 @@ namespace Arterra.Core.Player {
     }
 
     /// <summary> The Manager responsible for controlling the player's movement when they fly.
-    /// See <see cref="Config.Gameplay.Gamemodes.Flight"/>.  </summary>
+    /// See <see cref="Configuration.Gameplay.Gamemodes.Flight"/>.  </summary>
     public static class FlightMovement {
         private static HashSet<string> OveridableStates = new HashSet<string>{ "GroundMove::1", "SwimMove::1" };
         private static Configuration.Gameplay.Player.Movement Setting => Config.CURRENT.GamePlay.Player.value.movement;

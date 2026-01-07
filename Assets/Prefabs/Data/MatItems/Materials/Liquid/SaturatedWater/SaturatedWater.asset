@@ -28,8 +28,8 @@ MonoBehaviour:
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
-    InScatterCoeffs: {x: 0.00025, y: 0.004, z: 0.0025}
-    OutScatterCoeffs: {x: 0.00025, y: 0.004, z: 0.0025}
+    InScatterCoeffs: {x: 0.0005, y: 0.001, z: 0.0005}
+    OutScatterCoeffs: {x: 0.001, y: 0.001, z: 0.001}
     GroundExtinction: {x: 0.03, y: 0.005, z: 0.003}
     LightIntensity: 0
   liquidData:

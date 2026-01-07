@@ -660,7 +660,6 @@ public class SkyBoidAnimal : Arterra.Configuration.Generation.Entity.Authoring
                 this.AnimatorTask = 0;
 
                 indicators = new Indicators(gameObject, entity);
-                float3 GCoord = new(entity.GCoord);
                 transform.position = CPUMapManager.GSToWS(entity.position);
             }
 

@@ -6,7 +6,6 @@ using static Arterra.Configuration.Generation.Entity.EntitySetting;
 using Arterra.Core.Storage;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;
-
 [BurstCompile]
 public struct PathFinder{
 

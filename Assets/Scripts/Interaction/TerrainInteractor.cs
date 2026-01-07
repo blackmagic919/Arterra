@@ -58,11 +58,13 @@ public static class TerrainInteractor {
             m[6].LiquidDensity, m[7].LiquidDensity
         };
 
-        if (TrilinearBlend(ref c, d, out int corner) && !m[corner].IsNull) {
-            MaterialData mat = matInfo.Retrieve(m[corner].material);
-            friction = math.max(mat.Roughness, friction);
-            mat.OnEntityTouchLiquid(caller);
-            contact |= Liquid;
+        if (TrilinearBlend(ref c, d, out int corner)) {
+            contact |= Liquid; //Collide with barrier(null)
+            if (!m[corner].IsNull) {
+                MaterialData mat = matInfo.Retrieve(m[corner].material);
+                friction = math.max(mat.Roughness, friction);
+                mat.OnEntityTouchLiquid(caller);   
+            }
         }
 
 
@@ -71,11 +73,12 @@ public static class TerrainInteractor {
         c[6] = m[6].SolidDensity; c[7] = m[7].SolidDensity;
 
         if (TrilinearBlend(ref c, d, out corner)) {
-            if (m[corner].IsNull) return contact;
-            MaterialData mat = matInfo.Retrieve(m[corner].material);
-            friction = math.max(mat.Roughness, friction);
-            mat.OnEntityTouchSolid(caller);
-            contact |= Solid;
+            contact |= Solid; //Collide with barrier(null)
+            if (!m[corner].IsNull) {
+                MaterialData mat = matInfo.Retrieve(m[corner].material);
+                friction = math.max(mat.Roughness, friction);
+                mat.OnEntityTouchSolid(caller);   
+            }
         } return contact;
     }
 
@@ -115,22 +118,25 @@ public static class TerrainInteractor {
             m[2].LiquidDensity, m[3].LiquidDensity
         };
 
-        if (BilinearBlend(ref c, d, out int corner) && !m[corner].IsNull) {
-            MaterialData mat = matInfo.Retrieve(m[corner].material);
-            friction = math.max(mat.Roughness, friction);
-            mat.OnEntityTouchLiquid(caller);
-            contact|= Liquid;
+        if (BilinearBlend(ref c, d, out int corner)) {
+            contact|= Liquid; //Collide with barrier(null)
+            if (!m[corner].IsNull) {
+                MaterialData mat = matInfo.Retrieve(m[corner].material);
+                friction = math.max(mat.Roughness, friction);
+                mat.OnEntityTouchLiquid(caller);
+            }
         }
 
         c[0] = m[0].SolidDensity; c[1] = m[1].SolidDensity;
         c[2] = m[2].SolidDensity; c[3] = m[3].SolidDensity;
 
         if (BilinearBlend(ref c, d, out corner)) {
-            if (m[corner].IsNull) return contact;
-            MaterialData mat = matInfo.Retrieve(m[corner].material);
-            friction = math.max(mat.Roughness, friction);
-            mat.OnEntityTouchSolid(caller);
-            contact |= Solid;
+            contact |= Solid; //Collide with barrier(null)
+            if (!m[corner].IsNull) {
+                MaterialData mat = matInfo.Retrieve(m[corner].material);
+                friction = math.max(mat.Roughness, friction);
+                mat.OnEntityTouchSolid(caller);
+            }
         } return contact;
     }
 
@@ -154,31 +160,34 @@ public static class TerrainInteractor {
 
         if (LinearBlend(m0.LiquidDensity, m1.LiquidDensity, td, out int corner)) {
             MapData pt = corner != 0 ? m1 : m0;
+            contact |= Liquid;
+            
             if (pt.IsNull) return contact;
             MaterialData mat = matInfo.Retrieve(pt.material);
             friction = math.max(mat.Roughness, friction);
             mat.OnEntityTouchLiquid(caller);
-            contact |= Liquid;
         } else if (LinearBlend(m0.SolidDensity, m1.SolidDensity, td, out corner)) {
             MapData pt = corner != 0 ? m1 : m0;
+            contact |= Solid;
+
             if (pt.IsNull) return contact;
             MaterialData mat = matInfo.Retrieve(pt.material);
             friction = math.max(mat.Roughness, friction);
             mat.OnEntityTouchSolid(caller);
-            contact |= Solid;
         }
         return contact;
     }
 
     private static byte UnitContact(int3 posGS, Entity caller, ref float friction) {
         MapData m = SampleMap(posGS);
-        if (m.IsNull) return 0;
         if (m.LiquidDensity >= IsoValue) {
+            if (m.IsNull) return Liquid;
             MaterialData mat = matInfo.Retrieve(m.material);
             friction = math.max(mat.Roughness, friction);
             mat.OnEntityTouchLiquid(caller);
             return Liquid;
         } else if (m.SolidDensity >= IsoValue) {
+            if (m.IsNull) return Solid;
             MaterialData mat = matInfo.Retrieve(m.material);
             friction = math.max(mat.Roughness, friction);
             mat.OnEntityTouchSolid(caller);

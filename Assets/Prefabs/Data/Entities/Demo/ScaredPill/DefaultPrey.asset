@@ -66,15 +66,15 @@ MonoBehaviour:
       collider:
         size:
           x: 0.75
-          y: 1
+          y: 2.5
           z: 0.75
       movement:
         walkSpeed:
-          mean: 4.5
+          mean: 3
           var: 0.45
           geneWeight: 0.25
         runSpeed:
-          mean: 10
+          mean: 6
           var: 0.5
           geneWeight: 0.75
         pathDistance: 31
@@ -99,26 +99,55 @@ MonoBehaviour:
             value:
             - EntityType: DefaultPredator
           SightDistance:
-            mean: 31
+            mean: 24
             var: 0.25
             geneWeight: 0.75
           PlantFindDist:
-            mean: 0
-            var: 0
-            geneWeight: 0
+            mean: 8
+            var: 0.25
+            geneWeight: 0.1
           PreyEntity:
             value: []
           PreyPlant:
-            value: []
+            value:
+            - Material: TallGrass
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+            - Material: Grass
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+            - Material: DriedGrass
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
           FleeDistance: 5
           FightAggressor: 0
           Mates:
-            value: []
+            value:
+            - MateType: DefaultPrey
+              ChildType: DefaultPrey
+              AmountPerParent:
+                mean: 0.5
+                var: 0.1
+                geneWeight: 0.4
+              GeneMutationRate: 0.05
           Edibles:
             value:
-            - EdibleType: Meat
+            - EdibleType: Grass:Solid
               Nutrition:
-                mean: 12.8
+                mean: 5
+                var: 0.5
+                geneWeight: 0.1
+            - EdibleType: DriedGrass:Solid
+              Nutrition:
+                mean: 5
+                var: 0.5
+                geneWeight: 0.1
+            - EdibleType: TallGrass:Solid
+              Nutrition:
+                mean: 5
                 var: 0.5
                 geneWeight: 0.1
       physicality:
@@ -158,11 +187,11 @@ MonoBehaviour:
             geneWeight: 0.25
           AttackDuration: 0
           HuntThreshold:
-            mean: 1
+            mean: 0.4
             var: 0
             geneWeight: 0.1
           MateThreshold:
-            mean: 1
+            mean: 0.8
             var: 0
             geneWeight: 0
           MateCost:

@@ -66,7 +66,7 @@ MonoBehaviour:
       collider:
         size:
           x: 0.75
-          y: 1
+          y: 2.5
           z: 0.75
       movement:
         walkSpeed:
@@ -113,7 +113,14 @@ MonoBehaviour:
           FleeDistance: 5
           FightAggressor: 0
           Mates:
-            value: []
+            value:
+            - MateType: DefaultPredator
+              ChildType: DefaultPredator
+              AmountPerParent:
+                mean: 0.5
+                var: 0.25
+                geneWeight: 0.4
+              GeneMutationRate: 0.05
           Edibles:
             value:
             - EdibleType: Meat
@@ -145,11 +152,11 @@ MonoBehaviour:
             var: 0.75
             geneWeight: 0.75
           AttackDamage:
-            mean: 0
+            mean: 3
             var: 0.75
             geneWeight: 0.75
           AttackCooldown:
-            mean: 1
+            mean: 0.25
             var: 0.75
             geneWeight: 0.5
           KBStrength:
@@ -158,11 +165,11 @@ MonoBehaviour:
             geneWeight: 0.25
           AttackDuration: 0
           HuntThreshold:
-            mean: 0.99
+            mean: 0.4
             var: 0
             geneWeight: 0.1
           MateThreshold:
-            mean: 1
+            mean: 0.8
             var: 0
             geneWeight: 0
           MateCost:

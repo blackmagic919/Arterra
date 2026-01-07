@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 3555234638215387970}
   - component: {fileID: 18016566061901159}
   - component: {fileID: 2899066658092525453}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: HealthBar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -86,7 +86,7 @@ GameObject:
   - component: {fileID: 4039604351249512135}
   - component: {fileID: 2331174121051701044}
   - component: {fileID: 6224891850200906093}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: DamageBar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -161,7 +161,7 @@ GameObject:
   - component: {fileID: 2850722494366908616}
   - component: {fileID: 3030896032213767572}
   - component: {fileID: 6809503899056803439}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: BreathBar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -237,7 +237,7 @@ GameObject:
   - component: {fileID: 3338687663346885653}
   - component: {fileID: 6775523816589858663}
   - component: {fileID: 5362785183248224353}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: EntityStats
   m_TagString: Untagged
   m_Icon: {fileID: 0}

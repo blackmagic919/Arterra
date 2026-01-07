@@ -104,7 +104,6 @@ MonoBehaviour:
           x: 0.75
           y: 0.75
           z: 0.75
-        friction: 0.25
       movement:
         walkSpeed:
           mean: 3
@@ -195,6 +194,7 @@ MonoBehaviour:
             mean: 0.75
             var: 0.5
             geneWeight: 0.33
+          AttackDuration: 0
           HuntThreshold:
             mean: 0.4
             var: 0.25
@@ -214,6 +214,28 @@ MonoBehaviour:
           Predators:
             value:
             - EntityType: Hawk
+          SightDistance:
+            mean: 20
+            var: 0.25
+            geneWeight: 0.75
+          PlantFindDist:
+            mean: 4
+            var: 0.5
+            geneWeight: 0.1
+          PreyEntity:
+            value: []
+          PreyPlant:
+            value:
+            - Material: Grass
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+            - Material: TallGrass
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+          FleeDistance: 5
+          FightAggressor: 0
           Mates:
             value:
             - MateType: Sparrow
@@ -235,26 +257,6 @@ MonoBehaviour:
                 mean: 5.1
                 var: 0.5
                 geneWeight: 0.1
-          SightDistance:
-            mean: 20
-            var: 0.25
-            geneWeight: 0.75
-          FleeDistance: 5
-          FightAggressor: 0
-          PlantFindDist:
-            mean: 4
-            var: 0.5
-            geneWeight: 0.1
-          PreyPlant:
-            value:
-            - Material: Grass
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
-            - Material: TallGrass
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
   references:
     version: 2
     RefIds: []

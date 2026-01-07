@@ -413,7 +413,7 @@ MonoBehaviour:
       Time:
         value:
           timeMultiplier: 72
-          startHour: 8
+          startHour: 12
           sunriseHour: 7
           sunsetHour: 20.5
           maxSunIntensity: 1.5
