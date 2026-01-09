@@ -602,3 +602,5 @@ MonoBehaviour:
         MinDisplayTimeInSeconds: 10
         TooltipEvents:
           value: 030000000800000007000000
+        TooltipDismissorEvents:
+          value: 

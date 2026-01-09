@@ -36,6 +36,7 @@ MonoBehaviour:
         - MonarchButterfly
         - MorphoButterfly
         - Monolith
+        - RockGolem
       GroundMaterials:
         value:
         - value:
@@ -117,7 +118,10 @@ MonoBehaviour:
             ChancePerCoord: 0.00025
         - value:
             Entity: 15
-            ChancePerCoord: 0.00001
+            ChancePerCoord: 0.000005
+        - value:
+            Entity: 16
+            ChancePerCoord: 0.000005
   BiomeConditions:
     value:
       TerrainStart: 0.375

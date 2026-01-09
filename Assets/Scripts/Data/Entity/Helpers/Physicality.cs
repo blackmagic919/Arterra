@@ -320,7 +320,9 @@ public class ProjectileLauncher {
         public bool CheckSightline;
         public Genetics.GeneFeature ChargeTime;
         public ProjectileTag Projectile;
+        public bool HasRangedAttack = true;
         public void InitGenome(uint entityType) {
+            if (!HasRangedAttack) return;
             Genetics.AddGene(entityType, ref ChargeTime);
         }
     }
@@ -352,6 +354,7 @@ public class ProjectileLauncher {
 
     //This is some whirly logic where if you call fire on a loop, it will
     public bool Fire(float3 target, Entity self) {
+        if (!stats.HasRangedAttack) return false;
         if (ShotInProgress) return false;
         if (chargeCooldown > 0) return false;
         fireDirection = target - self.position;

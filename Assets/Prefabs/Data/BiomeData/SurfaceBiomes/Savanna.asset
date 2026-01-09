@@ -33,6 +33,7 @@ MonoBehaviour:
         - Lion
         - Lioness
         - Monolith
+        - RockGolem
       GroundMaterials:
         value:
         - value:
@@ -96,7 +97,10 @@ MonoBehaviour:
             ChancePerCoord: 0.000075
         - value:
             Entity: 12
-            ChancePerCoord: 0.00001
+            ChancePerCoord: 0.000005
+        - value:
+            Entity: 13
+            ChancePerCoord: 0.000005
   BiomeConditions:
     value:
       TerrainStart: 0.375
