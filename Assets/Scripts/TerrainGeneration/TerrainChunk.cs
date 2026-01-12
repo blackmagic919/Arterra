@@ -153,11 +153,13 @@ namespace Arterra.Core.Terrain{
         /// different processes in terrain generation 
         /// </summary>
         protected readonly struct GeneratorInfo {
-            /// <summary> 
-            /// The manager in charge of performing GPU-forward mesh rendering while
-            /// reading back mesh data from the GPU to a Unity mesh object
-            /// </summary>
+            /// <summary> The manager in charge of performing GPU-forward mesh rendering while
+            /// reading back mesh data from the GPU to a Unity mesh object</summary>
             public readonly AsyncMeshReadback MeshReadback;
+            /// <summary> The manager in charge of performing GPU-readbacks of other intermediate generated
+            /// information that needs to be processed by the CPU. Mainly in charge of batching these requests
+            /// to reduce excessive readback requests.  </summary>
+            public readonly AsyncGenInfoReadback MetaReadback;
             /// <summary> The manager in charge of creating mesh data for the chunk </summary>
             public readonly Map.Creator MeshCreator;
             /// <summary> The manager in charge of planning, pruning, and placing structure data for the chunk </summary>
@@ -171,6 +173,7 @@ namespace Arterra.Core.Terrain{
                 this.MeshCreator = new Map.Creator();
                 this.StructCreator = new Structure.Creator();
                 this.SurfCreator = new Surface.Creator();
+                this.MetaReadback = new AsyncGenInfoReadback();
                 this.MeshReadback = new AsyncMeshReadback(terrainChunk.meshObject.transform,
                     terrainChunk.GetRelativeBoundsOS(terrainChunk.origin, terrainChunk.size));
             }
@@ -285,6 +288,7 @@ namespace Arterra.Core.Terrain{
         public virtual void ReleaseChunk() {
             ClearFilter(); //Releases Mesh Data
             GeoShaders?.Release(); //Release geoShader Geometry
+            Generator.MetaReadback?.Release();
             Generator.MeshReadback?.ReleaseAllGeometry(); //Release base geometry on GPU
             Generator.StructCreator.ReleaseStructure(); //Release structure data
             Generator.SurfCreator.ReleaseMap();
@@ -429,7 +433,7 @@ namespace Arterra.Core.Terrain{
             protected override void GetSurface() => Generator.SurfCreator.SampleSurfaceMaps(origin.xz, mapChunkSize, mapSkipInc);
             /// <exclude />
             protected override void PlanStructures(Action callback = null) {
-                Generator.StructCreator.PlanStructuresGPU(CCoord, origin, mapChunkSize, IsoLevel);
+                Generator.StructCreator.PlanStructuresGPU(Generator.MetaReadback, CCoord, origin, mapChunkSize, IsoLevel);
                 callback?.Invoke();
             }
             /// <summary>Beyond what is described in <see cref="TerrainChunk.ReadMapData"/>, real chunks also reads 
@@ -453,18 +457,20 @@ namespace Arterra.Core.Terrain{
 
                 //Copy real chunks to CPU
                 CPUMapManager.AllocateChunk(this, info.mapMeta, CCoord);
-                uint entityAddress = info.entities != null ? 0 :
+                if (info.entities == null) {
                     EntityManager.PlanEntities(
+                        Generator.MetaReadback,
                         Map.Generator.bufferOffsets.biomeMapStart,
                         CCoord,
                         mapChunkSize
                     );
+                }
                 
                 CPUMapManager.BeginMapReadback(CCoord, () => {
                     //If the chunk has saved entities
                     if (info.entities != null) EntityManager.DeserializeEntities(info.entities);
                     //Otherwise create new entities
-                    else EntityManager.BeginEntityReadback(entityAddress, CCoord);
+                    Generator.MetaReadback.BeginGenInfoReadback(CCoord);
                 });
                 status.UpdateMap = Status.Complete(status.UpdateMap);
                 callback?.Invoke();
@@ -577,7 +583,7 @@ namespace Arterra.Core.Terrain{
             /// <exclude />
             protected override void PlanStructures(Action callback = null) {
                 if (depth > rSettings.MaxStructureDepth) return;
-                Generator.StructCreator.PlanStructuresGPU(CCoord, origin, mapChunkSize, IsoLevel, depth);
+                Generator.StructCreator.PlanStructuresGPU(Generator.MetaReadback, CCoord, origin, mapChunkSize, IsoLevel, depth);
                 callback?.Invoke();
             }
 

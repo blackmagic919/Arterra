@@ -913,12 +913,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   IsoLevel: 0.5
-  Structure: {fileID: 11400000, guid: 0e299fb91ad6a4ce1810c0989155e997, type: 2}
-  loadPath: /Users/jonathanliu/Library/Application Support/DefaultCompany/Arterra/Worlds/WorldData_f136e035-1906-4f6e-989c-f193ccc472c6/MapData/Region_0_0_-1/Chunk_1_1_-1.bin
+  Structure: {fileID: 11400000, guid: bad444a97d2c843f9b05eaae915ec50d, type: 2}
+  loadPath: /ruins1
   SDFoffset:
-    x: 8
+    x: 0
     y: 0
-    z: 4.5
+    z: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

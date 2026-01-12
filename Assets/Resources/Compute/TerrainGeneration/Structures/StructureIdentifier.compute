@@ -13,9 +13,7 @@ const static int numThreads = 256;
 struct settings{ 
     uint3 size;
     int minimumLOD;
-    uint randYRot;
-    uint randXRot;
-    uint randZRot;
+    uint config;
 };
 
 struct biomeStructure{
@@ -52,7 +50,8 @@ struct PrefixCounters{
 };
 
 inline uint3 GetRot(uint meta) { return uint3((meta >> 2) & 0x3, meta & 0x3, (meta >> 4) & 0x3); }
-inline uint GetStructureIndex(uint meta) { return meta >> 6; }
+inline bool HasMetaData(uint meta) { return ((meta >> 6) & 0x1) != 0; }
+inline uint GetStructureIndex(uint meta) { return meta >> 7; }
 // Global references
 StructuredBuffer<PrefixCounters> _BiomePrefCount; //Gets range of details for biome
 StructuredBuffer<biomeStructure> _BiomeStructureData; //biome generation data for structure
@@ -71,10 +70,16 @@ uint bSTART_struct;
 uint bSTART_prune;
 
 RWStructuredBuffer<uint> counter;
-uint bCOUNTER_plan;
-uint bCOUNTER_check;
-uint bCOUNTER_struct;
-uint bCOUNTER_prune;
+uint bCOUNT_plan;
+uint bCOUNT_check;
+uint bCOUNT_struct;
+uint bCOUNT_prune;
+uint bCOUNT_ehStct;
+
+inline bool HadRandYRot(uint config) { return (config & 0x1) != 0; }
+inline bool HadRandXRot(uint config) { return (config & 0x2) != 0; }
+inline bool HadRandZRot(uint config) { return (config & 0x4) != 0; }
+inline bool IsEnhanced(uint config) { return (config & 0x8) != 0; }
 
 float GetNoiseCentered(float val, float center, float bottom, float top){
     float clamped = clamp(val, bottom, top);//
@@ -133,7 +138,7 @@ int determineStructure(uint LoD, int biome, float seed){
 void Identify (uint3 id : SV_DispatchThreadID)
 {
     //Note, operations are better if ordered from less expensive to more
-    if(id.x >= counter[bCOUNTER_plan])
+    if(id.x >= counter[bCOUNT_plan])
         return;
     
     structInfo structPlan = structurePlan[id.x + bSTART_plan];
@@ -158,9 +163,9 @@ void Identify (uint3 id : SV_DispatchThreadID)
     uint rotY = 0; uint rotX = 0; uint rotZ = 0;
     float seedRot = RandomFloat(Random(seedStruct)); 
 
-    if(structureSettings.randYRot != 0) { rotY = uint(seedRot * 4); seedRot = RandomFloat(seedRot); } //0 -> 3
-    if(structureSettings.randXRot != 0) { rotX = uint(seedRot * 4); seedRot = RandomFloat(seedRot); } //0 -> 3
-    if(structureSettings.randZRot != 0) rotZ = uint(seedRot * 4); //0 -> 3
+    if(HadRandYRot(structureSettings.config)) { rotY = uint(seedRot * 4); seedRot = RandomFloat(seedRot); } //0 -> 3
+    if(HadRandXRot(structureSettings.config)) { rotX = uint(seedRot * 4); seedRot = RandomFloat(seedRot); } //0 -> 3
+    if(HadRandZRot(structureSettings.config)) rotZ = uint(seedRot * 4); //0 -> 3
 
     float3x3 rotMatrix = RotationLookupTable[rotY][rotX][rotZ];
     float3 length = mul(rotMatrix, structureSettings.size);
@@ -172,10 +177,11 @@ void Identify (uint3 id : SV_DispatchThreadID)
 //ADD STRUCTURE
     structureData newStructure;
     newStructure.structurePos = structPlan.position;
-    newStructure.meta = (rotY & 0x3) | ((rotX & 0x3) << 2) | ((rotZ & 0x3) << 4) | (structureIndex << 6);
+    newStructure.meta = (rotY & 0x3) | ((rotX & 0x3) << 2) | ((rotZ & 0x3) << 4)
+        | ((IsEnhanced(structureSettings.config) ? 1u : 0u) << 6)| (structureIndex << 7);
 
     int appendInd = 0;
-    InterlockedAdd(counter[bCOUNTER_struct], 1, appendInd);
+    InterlockedAdd(counter[bCOUNT_struct], 1, appendInd);
     genStructures[appendInd + bSTART_struct] = newStructure;
 
 //ADD STRUCTURE CHECKS
@@ -187,7 +193,7 @@ void Identify (uint3 id : SV_DispatchThreadID)
 
     for(uint i = checkStart; i < checkEnd; i++){
         newCheck.checkIndex = i;
-        InterlockedAdd(counter[bCOUNTER_check], 1, appendInd);
+        InterlockedAdd(counter[bCOUNT_check], 1, appendInd);
         structureChecks[appendInd + bSTART_check] = newCheck;
     }
 }
@@ -202,7 +208,7 @@ bool InBounds(uint data, uint bounds) {
 [numthreads(numThreads,1,1)]
 void Check (uint3 id : SV_DispatchThreadID)
 {
-    if(id.x >= counter[bCOUNTER_check])
+    if(id.x >= counter[bCOUNT_check])
         return;
     
     checkInfo check = structureChecks[id.x + bSTART_check];
@@ -210,7 +216,7 @@ void Check (uint3 id : SV_DispatchThreadID)
     uint structureIndex = GetStructureIndex(structure.meta);
     uint3 rot = GetRot(structure.meta); 
 
-    if(structureIndex == asuint(-1)) return; //some other thread already invalidated this structure
+    if(structure.meta == asuint(-1)) return; //some other thread already invalidated this structure
     settings structureSettings = _StructureSettings[structureIndex];
 
     //Origin is always located at the least point, so there is one consistent direction of generation
@@ -230,13 +236,18 @@ void Check (uint3 id : SV_DispatchThreadID)
 [numthreads(numThreads,1,1)]
 void Prune(uint3 id : SV_DispatchThreadID)
 {
-    if(id.x >= counter[bCOUNTER_struct])
+    if(id.x >= counter[bCOUNT_struct])
         return;
 
     structureData structure = genStructures[id.x + bSTART_struct];
     if(structure.meta == asuint(-1)) return;
 
     uint appendInd = 0;
-    InterlockedAdd(counter[bCOUNTER_prune], 1, appendInd);
+    InterlockedAdd(counter[bCOUNT_prune], 1, appendInd);
     genStructures[appendInd + bSTART_prune] = structure;
+
+    if (!HasMetaData(structure.meta)) return;
+
+    appendInd = 0;
+    InterlockedAdd(counter[bCOUNT_ehStct], 1, appendInd);
 }

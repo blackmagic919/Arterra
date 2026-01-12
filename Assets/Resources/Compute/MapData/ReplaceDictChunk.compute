@@ -2,10 +2,10 @@
 #pragma kernel CSMain
 const static uint numThreads = 2;
 
-RWStructuredBuffer<CInfo> ChunkDict;
+RWStructuredBuffer<CInfo> _ChunkAddressDict;
 StructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
-int3 oCoord;
+int3 oCCoord;
 uint3 dimension;
 uint bOffset;
 //origin offset
@@ -28,8 +28,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     (((id.z * chunkInc) & 0xFF) << 8));
     //Note: info.CCoord refers to the origin of the chunk
     //not the specific CCoord of the subportion in uniform Chunk Space
-    info.CCoord = oCoord;
+    info.CCoord = oCCoord;
 
-    int3 CCoord = oCoord + int3(id.x, id.y, id.z);
-    ChunkDict[HashCoord(CCoord)] = info;
+    int3 CCoord = oCCoord + int3(id.x, id.y, id.z);
+    _ChunkAddressDict[HashCoord(CCoord)] = info;
 }

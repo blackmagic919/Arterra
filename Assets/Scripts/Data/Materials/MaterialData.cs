@@ -106,6 +106,15 @@ namespace Arterra.Configuration.Generation.Material
         /// <param name="entity">The entity that is touching the solid ground</param>
         public virtual void OnEntityTouchLiquid(Entity.Entity entity) { }
 
+        /// <summary>Called to generate material-specific meta data at the given location
+        /// based on the specifications given within <paramref name="constructor"/> </summary>
+        /// <param name="GCoord">The coordinate in grid space of the material which will be populated with meta data </param> 
+        /// <param name="constructor">The <see cref="MetaConstructor"/> containing settings dictating how meta data should be generated</param>
+        /// <returns>A constructed meta-data instance that the material may expect to reference in the future.</returns>
+        public virtual object ConstructMetaData(int3 GCoord, MetaConstructor constructor) {
+            return constructor;
+        }
+
         /// <summary> A static utility function to swap a mapData's material with another material
         /// handling all the necessary handler calls to <see cref="OnPlacing"/>, <see cref="OnRemoved"/>,
         /// etc., that this requires. </summary>
@@ -317,6 +326,22 @@ namespace Arterra.Configuration.Generation.Material
                     return item;
                 }
             }
+        
+        /// <summary>Information determining how meta-data of a single 
+        /// map data point is generated</summary>
+        [Serializable]
+        public class MetaConstructor {
+            /// <summary> The index within the <see cref="Config.GenerationSettings.Materials"/> registry
+            /// of the material with meta-data to place at the given offset from the structure's origin </summary>
+            [RegistryReference("Materials")]
+            public string Material;
+            /// <summary>The offset from the structure's origin to place the new material </summary>
+            public int3 offset;
+            /// <summary>The table consistenting of items to supply as map data.</summary>
+            public Option<List<MultiLooter.LootInfo>> LootTable;
+            /// <summary> Other config information that may be used depending on the type of meta data the <see cref="Material"/> expects. </summary>
+            public Option<List<string>> ConfigSettings;
+        }
 
         /// <summary> An optional handler for materials which are capable of dropping
         /// multiple types of items on a probabilistic basis. </summary>

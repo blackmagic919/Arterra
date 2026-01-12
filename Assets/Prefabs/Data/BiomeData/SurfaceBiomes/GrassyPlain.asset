@@ -37,6 +37,9 @@ MonoBehaviour:
         - MorphoButterfly
         - Monolith
         - RockGolem
+        - StoneRuins1
+        - StoneRuins2
+        - StoneRuins3
       GroundMaterials:
         value:
         - value:
@@ -99,6 +102,15 @@ MonoBehaviour:
         - value:
             ChancePerStructurePoint: 0.002
             Structure: 1
+        - value:
+            ChancePerStructurePoint: 0.0005
+            Structure: 17
+        - value:
+            ChancePerStructurePoint: 0.0005
+            Structure: 18
+        - value:
+            ChancePerStructurePoint: 0.0005
+            Structure: 19
       Entities:
         value:
         - value:
@@ -117,11 +129,8 @@ MonoBehaviour:
             Entity: 14
             ChancePerCoord: 0.00025
         - value:
-            Entity: 15
-            ChancePerCoord: 0.000005
-        - value:
             Entity: 16
-            ChancePerCoord: 0.000005
+            ChancePerCoord: 0.0000025
   BiomeConditions:
     value:
       TerrainStart: 0.375

@@ -15,6 +15,7 @@ using Arterra.Configuration;
 using Arterra.Configuration.Generation.Entity;
 using Arterra.Core.Terrain;
 using Arterra.Core.Player;
+using Arterra.Core.Terrain.Readback;
 
 public static class EntityManager
 {
@@ -27,7 +28,6 @@ public static class EntityManager
     public static ConcurrentQueue<Action> HandlerEvents; //Buffered updates to modify entities(since it can't happen while job is executing)
     public static Entity[] CurUpdateEntities;
     private static volatile EntityJob Executor; //Job that updates all entities
-    const int ENTITY_STRIDE_WORD = 3 + 1;
     const int MAX_ENTITY_COUNT = 10000; //10k ~ 5mb
 
     public static void AddHandlerEvent(Action action){
@@ -50,12 +50,12 @@ public static class EntityManager
         }
     }
 
-    private static void InitializeChunkEntity(GenPoint genInfo, int3 CCoord){
+    public static void InitializeChunkEntity(GenPoint genInfo, int3 CCoord){
         int mapSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
-        Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)genInfo.entityIndex];
+        Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)genInfo.index];
         Entity newEntity = authoring.Entity;
-        AddHandlerEvent(() => InitializeE(newEntity, GCoord, genInfo.entityIndex));
+        AddHandlerEvent(() => InitializeE(newEntity, GCoord, genInfo.index));
     }
 
     public static void CreateEntity(float3 GCoord, uint entityIndex, Entity sEntity = null, Action cb = null) {
@@ -131,14 +131,6 @@ public static class EntityManager
         sEntity.Deserialize(authoring.Setting, authoring.Controller, out int3 GCoord);
         ESTree.Insert(sEntity);
     }
-
-    private static void OnEntitiesRecieved(NativeArray<GenPoint> entities, uint address, int3 CCoord){
-        GenerationPreset.memoryHandle.ReleaseMemory(address);
-        foreach(GenPoint point in entities){
-            InitializeChunkEntity(point, CCoord);
-        }
-    }
-
     public static void DeserializeEntities(List<Entity> entities){
         if(entities == null) return;
         foreach(Entity sEntity in entities){
@@ -159,7 +151,7 @@ public static class EntityManager
         int numPointsPerAxis = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
 
-        bufferOffsets = new EntityGenOffsets(0, numPoints, ENTITY_STRIDE_WORD);
+        bufferOffsets = new EntityGenOffsets(0, numPoints, GenPoint.size);
         entityGenShader = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/EntityIdentifier");
         entityTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/EntityTranscriber");
 
@@ -167,6 +159,7 @@ public static class EntityManager
         entityGenShader.SetBuffer(kernel, "chunkEntities", UtilityBuffers.GenerationBuffer);
         entityGenShader.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
         entityGenShader.SetBuffer(kernel, "BiomeMap", UtilityBuffers.GenerationBuffer);
+        entityGenShader.SetInt("GPConfig", (int)GenPoint.GenType.Entity);
         kernel = entityGenShader.FindKernel("Prune");
         entityGenShader.SetBuffer(kernel, "chunkEntities", UtilityBuffers.GenerationBuffer);
         entityGenShader.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
@@ -204,14 +197,14 @@ public static class EntityManager
         foreach (Authoring entity in EntityDictionary) entity.Setting.Unset();
     }
 
-    public static uint PlanEntities(int biomeStart, int3 CCoord, int chunkSize){
+    public static void PlanEntities(AsyncGenInfoReadback readback, int biomeStart, int3 CCoord, int chunkSize){
         int numPointsAxes = chunkSize;
-        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 2, bufferOffsets.bufferStart);
+        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 3, bufferOffsets.bufferStart);
 
         int kernel = entityGenShader.FindKernel("Identify");
-        entityGenShader.SetInt("bSTART_biome", biomeStart);
-        entityGenShader.SetInt("numPointsPerAxis", numPointsAxes);
-        entityGenShader.SetInts("CCoord", new int[] { CCoord.x, CCoord.y, CCoord.z });
+        entityGenShader.SetInt(ShaderIDProps.StartBiome, biomeStart);
+        entityGenShader.SetInt(ShaderIDProps.NumPointsPerAxis, numPointsAxes);
+        entityGenShader.SetInts(ShaderIDProps.CCoord, new int[] { CCoord.x, CCoord.y, CCoord.z });
         GPUMapManager.SetCCoordHash(entityGenShader);
 
         entityGenShader.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
@@ -219,49 +212,26 @@ public static class EntityManager
         entityGenShader.Dispatch(kernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
         kernel = entityGenShader.FindKernel("Prune");
-        entityGenShader.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
-        entityGenShader.SetBuffer(kernel, "_AddressDict", GPUMapManager.Address);
+        entityGenShader.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, GPUMapManager.Storage);
+        entityGenShader.SetBuffer(kernel, ShaderIDProps.AddressDict, GPUMapManager.Address);
 
         ComputeBuffer args = UtilityBuffers.CountToArgs(entityGenShader, UtilityBuffers.GenerationBuffer, bufferOffsets.entityCounter, kernel: kernel);
         entityGenShader.DispatchIndirect(kernel, args);
 
         kernel = entityTranscriber.FindKernel("CSMain");
-        uint address = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, ENTITY_STRIDE_WORD, bufferOffsets.prunedCounter);
-        entityTranscriber.SetBuffer(kernel, "_MemoryBuffer", GenerationPreset.memoryHandle.GetBlockBuffer(address));
-        entityTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
-        entityTranscriber.SetInt("addressIndex", (int)address);
+        int address = readback.AddGenPoints(UtilityBuffers.GenerationBuffer, bufferOffsets.prunedCounter, bufferOffsets.tempCounter);
+        entityTranscriber.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, GenerationPreset.memoryHandle.GetBlockBuffer(address));
+        entityTranscriber.SetBuffer(kernel, ShaderIDProps.AddressDict, GenerationPreset.memoryHandle.Address);
+        entityTranscriber.SetInt(ShaderIDProps.AddressIndex, (int)address);
 
         args = UtilityBuffers.CountToArgs(entityTranscriber, UtilityBuffers.GenerationBuffer, bufferOffsets.prunedCounter, kernel: kernel);
         entityTranscriber.DispatchIndirect(kernel, args);
-
-        return address;
-    }
-
-    public static void BeginEntityReadback(uint address, int3 CCoord){
-        void OnEntitySizeRecieved(AsyncGPUReadbackRequest request, uint2 memHandle, Action<NativeArray<GenPoint>> callback){
-            if (!GenerationPreset.memoryHandle.GetBlockBufferSafe((int)address, out ComputeBuffer block))
-                return;
-            int memSize = (int)(request.GetData<uint>()[0] - ENTITY_STRIDE_WORD);
-            int entityStartWord = ENTITY_STRIDE_WORD * (int)memHandle.y;
-            AsyncGPUReadback.Request(block, size: memSize * 4, offset: 4 * entityStartWord, (req) => callback.Invoke(req.GetData<GenPoint>()));
-        }
-        void OnEntityAddressRecieved(AsyncGPUReadbackRequest request, Action<NativeArray<GenPoint>> callback){
-            if (!GenerationPreset.memoryHandle.GetBlockBufferSafe((int)address, out ComputeBuffer block))
-                return;
-            uint2 memHandle = request.GetData<uint2>()[0];
-            if(memHandle.x == 0) return; // No entities
-
-            AsyncGPUReadback.Request(block, size: 4, offset: 4 * ((int)memHandle.x - 1), (req) => OnEntitySizeRecieved(req, memHandle, callback));
-        }
-
-        Action<NativeArray<GenPoint>> callback = (entities) => OnEntitiesRecieved(entities, address, CCoord);
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: (int)(8 * address), (req) => OnEntityAddressRecieved(req, callback));
-
     }
 
     public struct EntityGenOffsets: BufferOffsets{
         public int entityCounter;
         public int prunedCounter;
+        public int tempCounter;
         public int entityStart;
         public int prunedStart;
         private int offsetStart; private int offsetEnd;
@@ -271,21 +241,14 @@ public static class EntityManager
             offsetStart = bufferStart;
             entityCounter = bufferStart;
             prunedCounter = bufferStart + 1;
-            entityStart = Mathf.CeilToInt((float)(bufferStart+2) / entityStride);
+            tempCounter = bufferStart + 2;
+            entityStart = Mathf.CeilToInt((float)(bufferStart+3) / entityStride);
             prunedStart = entityStart + numPoints;
             int prunedEnd_W = (prunedStart + numPoints) * entityStride;
             offsetEnd = prunedEnd_W;
         }
     }
 
-    public struct GenPoint{
-        public int3 position;
-        public uint entityIndex;
-        public GenPoint(int3 position, uint entityIndex){
-            this.position = position;
-            this.entityIndex = entityIndex;
-        }
-    }
 
     //More like a BVH, or a dynamic R-Tree
     public struct STree{

@@ -37,6 +37,14 @@ namespace Arterra.Configuration.Generation.Material
                 DropInventoryContent(GCoord);
         }
 
+        /// <summary>Returns a container inventory created using the meta constructor.</summary>
+        /// <param name="GCoord">The coordinate in grid space of the material</param>
+        /// <param name="constructor">The constructor used to populate the inventory</param>
+        /// <returns>The container instance</returns>
+        public override object ConstructMetaData(int3 GCoord, MetaConstructor constructor) {
+            return new ContainerInventory(constructor, GCoord, MaxSlotCount);
+        }
+
         /// <summary> The handler controlling how materials are dropped when
         /// <see cref="OnRemoved"/> is called. See 
         /// <see cref="MaterialData.ItemLooter"/> for more info.  </summary>
@@ -161,11 +169,18 @@ namespace Arterra.Configuration.Generation.Material
             public int3 position;
             [JsonIgnore]
             private ContainerMaterial settings;
+
+            [JsonConstructor]
             public ContainerInventory() {
                 //Do nothing: this is for newtonsoft deserializer
             }
             internal ContainerInventory(int3 GCoord, int SlotCount) {
                 inv = new InventoryController.Inventory(SlotCount);
+                position = GCoord;
+            }
+
+            internal ContainerInventory(MetaConstructor constructor, int3 GCoord, int SlotCount) {
+                inv = new InventoryController.Inventory(constructor, GCoord, SlotCount);
                 position = GCoord;
             }
 

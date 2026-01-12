@@ -8,14 +8,28 @@ struct structureInfo{
     uint meta;
 };
 
+struct genPoint {
+    int3 position;
+    uint config;
+    uint index;
+};
+
+uint GPConfig;
+RWStructuredBuffer<genPoint> _MetaMemoryBuffer;
 RWStructuredBuffer<structureInfo> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
 uint addressIndex;
+uint mAddressIndex;
 
 StructuredBuffer<structureInfo> structPoints;
 RWStructuredBuffer<uint> counter;
 uint bSTART_struct;
-uint bCOUNTER_struct;
+uint bCOUNT_struct;
+uint bCOUNT_mStct;
+
+inline uint3 GetRot(uint meta) { return uint3((meta >> 2) & 0x3, meta & 0x3, (meta >> 4) & 0x3); }
+inline bool HasMetaData(uint meta) { return ((meta >> 6) & 0x1) != 0; }
+inline uint GetStructureIndex(uint meta) { return meta >> 7; }
 
 
 [numthreads(numThreads,1,1)]
@@ -24,11 +38,23 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     if(_AddressDict[addressIndex].x == 0) //Invalid
         return;
 
-    if(id.x >= counter[bCOUNTER_struct])
+    if(id.x >= counter[bCOUNT_struct])
         return;
 
-    structureInfo structPoint = structPoints[bSTART_struct + id.x];
+    structureInfo structure = structPoints[bSTART_struct + id.x];
     uint pointAddress = _AddressDict[addressIndex].y + id.x;
-    _MemoryBuffer[pointAddress] = structPoint;
+    _MemoryBuffer[pointAddress] = structure;
+
+    if (!HasMetaData(structure.meta)) return;
+
+    int appendInd = 0;
+    InterlockedAdd(counter[bCOUNT_mStct], 1, appendInd);
+    pointAddress = _AddressDict[mAddressIndex].y + appendInd;
+
+    uint3 rot = GetRot(structure.meta); genPoint genMeta;
+    genMeta.position = int3(floor(structure.structurePos));
+    genMeta.index = GetStructureIndex(structure.meta);
+    genMeta.config = GPConfig | (rot.y << 8) | (rot.x << 16) | (rot.z << 24);
+    _MetaMemoryBuffer[pointAddress] = genMeta;
 }
 

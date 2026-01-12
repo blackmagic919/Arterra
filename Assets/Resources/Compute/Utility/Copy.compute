@@ -3,15 +3,15 @@
 #pragma kernel CopyBuffer
 
 StructuredBuffer<uint> source;
-uint readOffset;
+uint rOffset;
 
 RWStructuredBuffer<uint> destination;
-uint writeOffset;
+uint wOffset;
 
 [numthreads(1,1,1)]
 void CopyCount (uint3 id : SV_DispatchThreadID)
 {
-    destination[writeOffset] = source[readOffset];
+    destination[wOffset] = source[rOffset];
 }
 
 uint count;
@@ -21,5 +21,5 @@ void CopyBuffer (uint3 id : SV_DispatchThreadID)
 {
     if(id.x >= count)
         return;
-    destination[writeOffset + id.x] = source[readOffset + id.x];
+    destination[wOffset + id.x] = source[rOffset + id.x];
 }

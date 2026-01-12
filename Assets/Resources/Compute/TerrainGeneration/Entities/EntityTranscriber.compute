@@ -3,6 +3,7 @@ const static int numThreads = 256;
 
 struct entityInfo {
     int3 position;
+    uint config;
     uint entityIndex;
 };
 

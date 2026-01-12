@@ -12,6 +12,7 @@ using UnityEngine.UI;
 using Arterra.Configuration;
 using Arterra.Configuration.Generation.Item;
 using Arterra.Core.Player;
+using Arterra.Configuration.Generation.Material;
 
 namespace Arterra.Configuration.Gameplay{
     /// <summary> Settings controlling the size and apperance of the inventory,
@@ -365,6 +366,7 @@ public static class InventoryController {
         private ItemContext.FinishSetup OnAddElement;
         private ItemContext.FinishSetup OnRemoveElement;
 
+        [JsonConstructor]
         public Inventory(int SlotCount) {
             Info = new IItem[SlotCount];
             EntryDict = new Dictionary<int, int>();
@@ -376,6 +378,29 @@ public static class InventoryController {
                 int next = (i + 1) % SlotCount;
                 int prev = (((i - 1) % SlotCount) + SlotCount) % SlotCount;
                 EntryLL[i] = new LLNode((uint)prev, (uint)next);
+            }
+        }
+
+        
+        public Inventory(MaterialData.MetaConstructor constructor, int3 GCoord, int SlotCount) : this(SlotCount){
+            int seed = GCoord.x ^ GCoord.y ^ GCoord.z ^ this.GetHashCode();
+            Unity.Mathematics.Random rng = Utils.CustomUtility.SeedRng(seed);
+
+            var lootTable = constructor.LootTable.value;
+            for(int i = 0; i < capacity; i++) {
+                foreach(var loot in lootTable) {
+                    if (rng.NextFloat() > loot.DropChance)
+                        continue;
+                    
+                    IItem item = Config.CURRENT.Generation.Items.Retrieve(loot.DropItem).Item;
+                    int amount = (int)math.round(rng.NextFloat() * item.UnitSize * loot.DropMultiplier * 2);
+                    amount = math.min(amount, item.StackLimit);
+                    if (amount <= 0) continue;
+
+                    item.Create(item.Index, amount);
+                    AddEntry(item, i);
+                    break;
+                }
             }
         }
 

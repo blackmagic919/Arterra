@@ -18,7 +18,7 @@ then only the registered part can be replaced.
 RWStructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<CInfo> _AddressDict;
 //Contains a mix of dirty and default data
-StructuredBuffer<uint> MapData;
+StructuredBuffer<uint> chunkData;
 uint bSTART_map;
 int3 oCCoord;
 
@@ -32,7 +32,7 @@ int skipInc;
 void Transcribe (uint3 id : SV_DispatchThreadID)
 {
     if(any(id >= numPointsPerAxis)) return;
-    uint mapInfo = MapData[indexFromCoord(id) + bSTART_map];
+    uint mapInfo = chunkData[indexFromCoord(id) + bSTART_map];
     if(!IsDirty(mapInfo)) return; //it is not dirty and is the same as default
 
     int3 GCoord = int3(id.x, id.y, id.z) * skipInc;

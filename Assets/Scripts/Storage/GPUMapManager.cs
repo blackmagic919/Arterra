@@ -241,14 +241,14 @@ namespace Arterra.Core.Storage{
 
         static void TranscribeMap(ComputeBuffer mapData, uint address, int rStart, int readAxis, int writeAxis, int rdOff = 0) {
             int kernel = transcribeMapInfo.FindKernel("TranscribeMap");
-            transcribeMapInfo.SetBuffer(kernel, "_MemoryBuffer", memorySpace.Storage);
-            transcribeMapInfo.SetBuffer(kernel, "_AddressDict", memorySpace.Address);
-            transcribeMapInfo.SetBuffer(kernel, "chunkData", mapData);
-            transcribeMapInfo.SetInt("addressIndex", (int)address);
-            transcribeMapInfo.SetInt("bSTART_read", rStart);
-            transcribeMapInfo.SetInt("sizeRdAxis", readAxis);
-            transcribeMapInfo.SetInt("sizeWrAxis", writeAxis);
-            transcribeMapInfo.SetInt("offset", rdOff);
+            transcribeMapInfo.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, memorySpace.Storage);
+            transcribeMapInfo.SetBuffer(kernel, ShaderIDProps.AddressDict, memorySpace.Address);
+            transcribeMapInfo.SetBuffer(kernel, ShaderIDProps.ChunkData, mapData);
+            transcribeMapInfo.SetInt(ShaderIDProps.AddressIndex, (int)address);
+            transcribeMapInfo.SetInt(ShaderIDProps.StartRead, rStart);
+            transcribeMapInfo.SetInt(ShaderIDProps.SizeReadAxis, readAxis);
+            transcribeMapInfo.SetInt(ShaderIDProps.SizeWriteAxis, writeAxis);
+            transcribeMapInfo.SetInt(ShaderIDProps.Offset, rdOff);
 
             int numPointsAxis = writeAxis;
             transcribeMapInfo.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
@@ -258,15 +258,15 @@ namespace Arterra.Core.Storage{
 
         static void TranscribeEdgeFaces(ComputeBuffer mapData, uint address, int rStart, int readAxis, int writeAxis, int wrOff = 0) {
             int kernel = transcribeMapInfo.FindKernel("TranscribeFaces");
-            transcribeMapInfo.SetBuffer(kernel, "_MemoryBuffer", memorySpace.Storage);
-            transcribeMapInfo.SetBuffer(kernel, "_AddressDict", memorySpace.Address);
-            transcribeMapInfo.SetBuffer(kernel, "chunkData", mapData);
-            transcribeMapInfo.SetInt("addressIndex", (int)address);
-            transcribeMapInfo.SetInt("bSTART_read", rStart);
+            transcribeMapInfo.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, memorySpace.Storage);
+            transcribeMapInfo.SetBuffer(kernel, ShaderIDProps.AddressDict, memorySpace.Address);
+            transcribeMapInfo.SetBuffer(kernel, ShaderIDProps.ChunkData, mapData);
+            transcribeMapInfo.SetInt(ShaderIDProps.AddressIndex, (int)address);
+            transcribeMapInfo.SetInt(ShaderIDProps.StartRead, rStart);
 
-            transcribeMapInfo.SetInt("sizeRdAxis", readAxis);
-            transcribeMapInfo.SetInt("sizeWrAxis", writeAxis);
-            transcribeMapInfo.SetInt("offset", wrOff);
+            transcribeMapInfo.SetInt(ShaderIDProps.SizeReadAxis, readAxis);
+            transcribeMapInfo.SetInt(ShaderIDProps.SizeWriteAxis, writeAxis);
+            transcribeMapInfo.SetInt(ShaderIDProps.Offset, wrOff);
 
             int numPointsAxis = writeAxis;
             transcribeMapInfo.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
@@ -289,14 +289,14 @@ namespace Arterra.Core.Storage{
             int skipInc = 1 << depth;
             int numPointsPerAxis = mapChunkSize;
 
-            multiMapTranscribe.SetBuffer(0, "_MemoryBuffer", memorySpace.Storage);
-            multiMapTranscribe.SetBuffer(0, "_AddressDict", _ChunkAddressDict);
-            multiMapTranscribe.SetBuffer(0, "MapData", mapData);
-            multiMapTranscribe.SetInts("oCCoord", new int[3] { CCoord.x, CCoord.y, CCoord.z });
-            multiMapTranscribe.SetInt("numPointsPerAxis", numPointsPerAxis);
-            multiMapTranscribe.SetInt("bSTART_map", rStart);
-            multiMapTranscribe.SetInt("mapChunkSize", mapChunkSize);
-            multiMapTranscribe.SetInt("skipInc", skipInc);
+            multiMapTranscribe.SetBuffer(0, ShaderIDProps.MemoryBuffer, memorySpace.Storage);
+            multiMapTranscribe.SetBuffer(0, ShaderIDProps.AddressDict, _ChunkAddressDict);
+            multiMapTranscribe.SetBuffer(0, ShaderIDProps.ChunkData, mapData);
+            multiMapTranscribe.SetInts(ShaderIDProps.OriginCCoord, new int[3] { CCoord.x, CCoord.y, CCoord.z });
+            multiMapTranscribe.SetInt(ShaderIDProps.NumPointsPerAxis, numPointsPerAxis);
+            multiMapTranscribe.SetInt(ShaderIDProps.StartMap, rStart);
+            multiMapTranscribe.SetInt(ShaderIDProps.MapChunkSize, mapChunkSize);
+            multiMapTranscribe.SetInt(ShaderIDProps.SkipInc, skipInc);
             SetCCoordHash(multiMapTranscribe);
 
             multiMapTranscribe.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
@@ -305,17 +305,17 @@ namespace Arterra.Core.Storage{
         }
 
         static void ReplaceAddress(GraphicsBuffer addressDict, uint address, int3 oCoord, int3 dimension, int3 offC, int depth) {
-            dictReplaceKey.SetBuffer(0, "ChunkDict", _ChunkAddressDict);
-            dictReplaceKey.SetBuffer(0, "_AddressDict", addressDict);
-            dictReplaceKey.SetInt("addressIndex", (int)address);
-            dictReplaceKey.SetInts("oCoord", new int[3] { oCoord.x, oCoord.y, oCoord.z });
-            dictReplaceKey.SetInts("dimension", new int[3] { dimension.x, dimension.y, dimension.z });
+            dictReplaceKey.SetBuffer(0, ShaderIDProps.ChunkAddressDict, _ChunkAddressDict);
+            dictReplaceKey.SetBuffer(0, ShaderIDProps.AddressDict, addressDict);
+            dictReplaceKey.SetInt(ShaderIDProps.AddressIndex, (int)address);
+            dictReplaceKey.SetInts(ShaderIDProps.OriginCCoord, new int[3] { oCoord.x, oCoord.y, oCoord.z });
+            dictReplaceKey.SetInts(ShaderIDProps.Dimension, new int[3] { dimension.x, dimension.y, dimension.z });
 
             int skipInc = 1 << depth;
             int chunkInc = mapChunkSize / skipInc;
             int offset = ((offC.x * chunkInc & 0xFF) << 24) | ((offC.y * chunkInc & 0xFF) << 16) | ((offC.z * chunkInc & 0xFF) << 8) | (skipInc & 0xFF);
-            dictReplaceKey.SetInt("chunkInc", chunkInc);
-            dictReplaceKey.SetInt("bOffset", offset);
+            dictReplaceKey.SetInt(ShaderIDProps.ChunkIncrement, chunkInc);
+            dictReplaceKey.SetInt(ShaderIDProps.StartOffset, offset);
             SetCCoordHash(dictReplaceKey);
 
             dictReplaceKey.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
@@ -344,12 +344,12 @@ namespace Arterra.Core.Storage{
         static void SimplifyDataDirect(ComputeBuffer memory, GraphicsBuffer addressDict, uint address, int3 CCoord, int meshSkipInc) {
             int numPointsAxis = mapChunkSize / meshSkipInc;
 
-            simplifyMap.SetBuffer(0, "_MemoryBuffer", memory);
-            simplifyMap.SetBuffer(0, "chunkAddressDict", _ChunkAddressDict);
-            simplifyMap.SetBuffer(0, "_AddressDict", addressDict);
-            simplifyMap.SetInt("addressIndex", (int)address);
-            simplifyMap.SetInts("CCoord", new int[3] { CCoord.x, CCoord.y, CCoord.z });
-            simplifyMap.SetInt("numPointsPerAxis", numPointsAxis);
+            simplifyMap.SetBuffer(0, ShaderIDProps.MemoryBuffer, memory);
+            simplifyMap.SetBuffer(0, ShaderIDProps.ChunkAddressDict, _ChunkAddressDict);
+            simplifyMap.SetBuffer(0, ShaderIDProps.AddressDict, addressDict);
+            simplifyMap.SetInt(ShaderIDProps.AddressIndex, (int)address);
+            simplifyMap.SetInts(ShaderIDProps.CCoord, new int[3] { CCoord.x, CCoord.y, CCoord.z });
+            simplifyMap.SetInt(ShaderIDProps.NumPointsPerAxis, numPointsAxis);
 
             SetCCoordHash(simplifyMap);
 
@@ -370,8 +370,8 @@ namespace Arterra.Core.Storage{
             SetCCoordHash(shader);
             SetWSCCoordHelper(shader);
 
-            shader.SetBuffer(0, "_ChunkAddressDict", _ChunkAddressDict);
-            shader.SetBuffer(0, "_ChunkInfoBuffer", memorySpace.Storage);
+            shader.SetBuffer(0, ShaderIDProps.ChunkAddressDict, _ChunkAddressDict);
+            shader.SetBuffer(0, ShaderIDProps.ChunkInfoBuffer, memorySpace.Storage);
         }
 
         /// <summary> Attaches all resources necessary to sample map information through
@@ -386,27 +386,27 @@ namespace Arterra.Core.Storage{
             SetCCoordHash(material);
             SetWSCCoordHelper(material);
 
-            material.SetBuffer("_ChunkAddressDict", _ChunkAddressDict);
-            material.SetBuffer("_ChunkInfoBuffer", memorySpace.Storage);
+            material.SetBuffer(ShaderIDProps.ChunkAddressDict, _ChunkAddressDict);
+            material.SetBuffer(ShaderIDProps.ChunkInfoBuffer, memorySpace.Storage);
         }
 
         static void SetWSCCoordHelper(ComputeShader shader) {
-            shader.SetFloat("lerpScale", lerpScale);
-            shader.SetInt("mapChunkSize", mapChunkSize);
+            shader.SetFloat(ShaderIDProps.LerpScale, lerpScale);
+            shader.SetInt(ShaderIDProps.MapChunkSize, mapChunkSize);
         }
 
         static void SetWSCCoordHelper(Material material) {
-            material.SetFloat("lerpScale", lerpScale);
-            material.SetInt("mapChunkSize", mapChunkSize);
+            material.SetFloat(ShaderIDProps.LerpScale, lerpScale);
+            material.SetInt(ShaderIDProps.MapChunkSize, mapChunkSize);
         }
         /// <summary>Attaches metadata allowing a compute shader to utilize the <see cref="Address">lookup construct</see> to sample map information. </summary>
         /// <param name="shader">The compute shader requesting map information. Caller 
         /// should ensure this shader is able to recieve the bindings attached here.</param>
-        public static void SetCCoordHash(ComputeShader shader) { shader.SetInt("numChunksAxis", numChunksAxis); }
+        public static void SetCCoordHash(ComputeShader shader) { shader.SetInt(ShaderIDProps.NumChunksAxis, numChunksAxis); }
         /// <summary>Attaches metadata allowing a compute shader to utilize the <see cref="Address">lookup construct</see> to sample map information. </summary>
         /// <param name="material">The compute shader requesting map information. Caller 
         /// should ensure this shader is able to recieve the bindings attached here.</param>
-        public static void SetCCoordHash(Material material) { material.SetInt("numChunksAxis", numChunksAxis); }
+        public static void SetCCoordHash(Material material) { material.SetInt(ShaderIDProps.NumChunksAxis, numChunksAxis); }
 
     }
 }

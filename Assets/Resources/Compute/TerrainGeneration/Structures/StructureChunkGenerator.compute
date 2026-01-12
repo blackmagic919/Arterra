@@ -14,13 +14,12 @@ struct structureInfo{
 struct settings{
     uint3 size;
     int minimumLOD;
-    uint randYRot;
-    uint randXRot;
-    uint randZRot;
+    uint config;
 };
 
 inline uint3 GetRot(uint meta) { return uint3((meta >> 2) & 0x3, meta & 0x3, (meta >> 4) & 0x3); }
-inline uint GetStructureIndex(uint meta) { return meta >> 6; }
+inline bool HasMetaData(uint meta) { return ((meta >> 6) & 0x1) != 0; }
+inline uint GetStructureIndex(uint meta) { return meta >> 7; }
 uint density(uint data) { return data & 0x000000FF; }
 uint viscosity(uint data) { return (data & 0x0000FF00) >> 8; }
 uint material(uint data) { return (data & 0x7FFF0000) >> 16; }
@@ -44,11 +43,11 @@ uint bSTART_map;
 
 StructuredBuffer<uint> numPoints;
 
-uint meshSkipInc;
+uint skipInc;
 float IsoLevel;
 
 uint wOffset; //1 for visual chunks
-uint chunkSize; //same as numPointsPerAxis for real chunks
+uint mapChunkSize; //same as numPointsPerAxis for real chunks
 
 [numthreads(numThreads,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
@@ -89,11 +88,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint indexOffset = _StructureIndexes[structureIndex].x;
 
     //Evaluate chunk coord with LoD
-    uint3 chunkOriginLoD = uint3(min(chunkSize, round(chunkOrigin / (float)meshSkipInc)));
-    uint3 chunkEndLoD = uint3(min(chunkSize, round(chunkEnd / (float)meshSkipInc)));
+    uint3 chunkOriginLoD = uint3(min(mapChunkSize, round(chunkOrigin / (float)skipInc)));
+    uint3 chunkEndLoD = uint3(min(mapChunkSize, round(chunkEnd / (float)skipInc)));
     chunkOriginLoD = min(chunkOriginLoD, chunkEndLoD);
 
-    uint3 originDist = chunkOriginLoD*meshSkipInc - origin;
+    uint3 originDist = chunkOriginLoD*skipInc - origin;
     int3 structOrigin = int3(0, 0, 0);
 
     //if Flipped ? (Reverse Index: Get xSize, - distXOrigin, Use Regular Index) * xDirection
@@ -113,7 +112,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         uint y = (pos / structLength.z) % structLength.y;
         uint z = pos % structLength.z;
 
-        uint3 real = uint3(x, y, z) * meshSkipInc;
+        uint3 real = uint3(x, y, z) * skipInc;
         
         uint3 structCoord = structOrigin + xAxis * real.x + yAxis * real.y + zAxis * real.z;
         structCoord = clamp(structCoord, 0, sizes);

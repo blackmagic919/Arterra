@@ -23,9 +23,7 @@ MonoBehaviour:
         y: 20
         z: 2
       minimumLOD: 0
-      randYRot: 1
-      randXRot: 0
-      randZRot: 0
+      config: 1
   Names:
     value:
     - Air
@@ -132,6 +130,11 @@ MonoBehaviour:
         z: 0
       checkInfo:
         data: 2130771712
+  Enhancements:
+    Entities:
+      value: []
+    MapMetaData:
+      value: []
   references:
     version: 2
     RefIds: []

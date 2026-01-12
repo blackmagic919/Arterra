@@ -244,11 +244,11 @@ public static class Generator
     public static void GenerateBaseData( Vector3 offset, uint surfaceData, int numPointsPerAxis, int mapSkip, float IsoLevel)
     {
         ComputeBuffer source = GenerationPreset.memoryHandle.GetBlockBuffer(surfaceData);
-        baseGenCompute.SetBuffer(0, "_SurfMemoryBuffer", source);
+        baseGenCompute.SetBuffer(0, ShaderIDProps.SurfaceMemoryBuffer, source);
 
-        baseGenCompute.SetFloat("IsoLevel", IsoLevel);
-        baseGenCompute.SetInt("surfAddress", (int)surfaceData);
-        baseGenCompute.SetInt("numPointsPerAxis", numPointsPerAxis);
+        baseGenCompute.SetFloat(ShaderIDProps.IsoLevel, IsoLevel);
+        baseGenCompute.SetInt(ShaderIDProps.SurfaceAddress, (int)surfaceData);
+        baseGenCompute.SetInt(ShaderIDProps.NumPointsPerAxis, numPointsPerAxis);
         
         SetSampleData(baseGenCompute, offset, mapSkip);
 
@@ -260,9 +260,9 @@ public static class Generator
     /// <summary> See <see cref="Creator.PopulateBiomes(float3, uint, int, int)"/> for info. </summary>
     public static void GenerateBiomeData(Vector3 offset, uint surfaceData, int numPointsPerAxis, int mapSkip){
         ComputeBuffer source = GenerationPreset.memoryHandle.GetBlockBuffer(surfaceData);
-        biomeGenCompute.SetBuffer(0, "_SurfMemoryBuffer", source);
-        biomeGenCompute.SetInt("numPointsPerAxis", numPointsPerAxis);
-        biomeGenCompute.SetInt("surfAddress", (int)surfaceData);
+        biomeGenCompute.SetBuffer(0, ShaderIDProps.SurfaceMemoryBuffer, source);
+        biomeGenCompute.SetInt(ShaderIDProps.NumPointsPerAxis, numPointsPerAxis);
+        biomeGenCompute.SetInt(ShaderIDProps.SurfaceAddress, (int)surfaceData);
         SetSampleData(biomeGenCompute, offset, mapSkip);
 
         biomeGenCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
@@ -275,7 +275,7 @@ public static class Generator
         int numPointsAxes = chunkSize;
         int numPoints = numPointsAxes * numPointsAxes * numPointsAxes;
 
-        mapCompressor.SetInt("numPoints", numPoints);
+        mapCompressor.SetInt(ShaderIDProps.NumPoints, numPoints);
         mapCompressor.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
         int numThreadsAxis = Mathf.CeilToInt(numPoints / (float)threadGroupSize);
         mapCompressor.Dispatch(0, numThreadsAxis, 1, 1);

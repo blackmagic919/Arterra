@@ -60,6 +60,14 @@ namespace Arterra.Configuration.Generation.Material
 
         }
 
+        /// <summary>Returns a furnace inventory created using the meta constructor.</summary>
+        /// <param name="GCoord">The coordinate in grid space of the material</param>
+        /// <param name="constructor">The constructor used to populate the inventory</param>
+        /// <returns>The container instance</returns>
+        public override object ConstructMetaData(int3 GCoord, MetaConstructor constructor) {
+            return new FurnaceInventory(constructor, GCoord, MaxInputSlotCount, MaxOutputSlotCount, MaxFuelSlotCount);
+        }
+
         /// <summary> The handler controlling how materials are dropped when
         /// <see cref="OnRemoved"/> is called. See 
         /// <see cref="MaterialData.ItemLooter"/> for more info.  </summary>
@@ -264,19 +272,27 @@ namespace Arterra.Configuration.Generation.Material
                 //Do nothing: this is for newtonsoft deserializer
             }
 
-            public void StartMeltingProcess(TagRegistry.Tags fuelTag) {
-                if (FurnaceFormula.GetMatchingFormula(fuelTag, FuelInventory, InputInventory, OutputInventory) == null)
-                    return;
-                LightFurnace();
-                OctreeTerrain.MainCoroutines.Enqueue(UpdateRoutine());
-            }
-
             internal FurnaceInventory(int3 GCoord, int MaxInputSlotCount, int MaxOutputSlotCount, int MaxFuelSlotCount) {
                 var invFuel = new StackInventory(MaxFuelSlotCount);
                 var invInput = new StackInventory(MaxInputSlotCount);
                 var invOutput = new StackInventory(MaxOutputSlotCount, 0);
                 invs = new StackInventory[] { invInput, invOutput, invFuel };
                 position = GCoord;
+            }
+
+            public FurnaceInventory(MetaConstructor constructor, int3 GCoord,  int MaxInputSlotCount, int MaxOutputSlotCount, int MaxFuelSlotCount) {
+                var invFuel = new StackInventory(constructor, GCoord, MaxFuelSlotCount);
+                var invInput = new StackInventory(constructor, GCoord, MaxInputSlotCount);
+                var invOutput = new StackInventory(constructor, GCoord, MaxOutputSlotCount, 0);
+                invs = new StackInventory[] { invInput, invOutput, invFuel };
+                position = GCoord;
+            }
+            
+            public void StartMeltingProcess(TagRegistry.Tags fuelTag) {
+                if (FurnaceFormula.GetMatchingFormula(fuelTag, FuelInventory, InputInventory, OutputInventory) == null)
+                    return;
+                LightFurnace();
+                OctreeTerrain.MainCoroutines.Enqueue(UpdateRoutine());
             }
 
             internal void InitializeDisplay(FurnaceMaterial settings) {
@@ -415,11 +431,35 @@ namespace Arterra.Configuration.Generation.Material
         public int count;
         // Note: Do not name this parameter capacity or freeSlots, Newtonsoft then tries to supply it to the constructor
         // and will not overwrite it later even though it's a public field (this is stupid behavior)
+        [JsonConstructor]
         public StackInventory(int stackLimit, int fs = 1) : base(fs) {
             this.stackLimit = stackLimit;
             this.freeSlots = fs;
             this.count = 0;
         }
+
+        internal StackInventory(MaterialData.MetaConstructor constructor, int3 GCoord, int stackLimit, int fs = 1) : this(stackLimit, fs) {
+            int seed = GCoord.x ^ GCoord.y ^ GCoord.z ^ this.GetHashCode();
+            Unity.Mathematics.Random rng = Utils.CustomUtility.SeedRng(seed);
+
+            var lootTable = constructor.LootTable.value;
+            for(int i = 0; i < stackLimit; i++) {
+                foreach(var loot in lootTable) {
+                    if (rng.NextFloat() > loot.DropChance)
+                        continue;
+                    
+                    IItem item = Config.CURRENT.Generation.Items.Retrieve(loot.DropItem).Item;
+                    int amount = (int)math.round(rng.NextFloat() * item.UnitSize * loot.DropMultiplier * 2);
+                    amount = math.min(amount, item.StackLimit);
+                    if (amount <= 0) continue;
+
+                    item.Create(item.Index, amount);
+                    AddEntry(item, out int _);
+                    break;
+                }
+            }
+        }
+
         [JsonIgnore]
         public override int Capacity => stackLimit;
         public override IItem PeekItem(int index) {

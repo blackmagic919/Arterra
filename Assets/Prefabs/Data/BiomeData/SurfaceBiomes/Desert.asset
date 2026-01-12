@@ -32,6 +32,9 @@ MonoBehaviour:
         - Vulture
         - Monolith
         - RockGolem
+        - StoneRuins1
+        - StoneRuins2
+        - StoneRuins3
       GroundMaterials:
         value:
         - value:
@@ -73,6 +76,15 @@ MonoBehaviour:
         - value:
             ChancePerStructurePoint: 0.005
             Structure: 2
+        - value:
+            ChancePerStructurePoint: 0.0005
+            Structure: 12
+        - value:
+            ChancePerStructurePoint: 0.0005
+            Structure: 13
+        - value:
+            ChancePerStructurePoint: 0.0005
+            Structure: 14
       Entities:
         value:
         - value:
@@ -89,7 +101,7 @@ MonoBehaviour:
             ChancePerCoord: 0.000005
         - value:
             Entity: 11
-            ChancePerCoord: 0.000005
+            ChancePerCoord: 0.0000025
   BiomeConditions:
     value:
       TerrainStart: 0.375

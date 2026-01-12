@@ -23,8 +23,8 @@ uint bCOUNTER;
 
 int BaseDepthL;
 int maxLOD;
-int3 originChunkCoord;
-uint chunkSize;
+int3 oCCoord;
+uint mapChunkSize;
 
 
 //The average number of structures at minimum LoD(not collective LoD)
@@ -60,14 +60,14 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     //ie numChunkMax = 3*3*3 = 27, numChunks = 2*2*2 = 8, offset = 3, overlap = 27 / 8 + 1 = 4 <-- it will be mapped to 4 times
 
     //Obtain random seed
-    int3 chunkCoord = originChunkCoord - offsetCoord;
+    int3 chunkCoord = oCCoord - offsetCoord;
     uint seed = (Random(chunkCoord) ^ Random(LoD)) + overlapOffset;
     uint numPoints = uint((numPoints0 * pow(abs(LoDFalloff), -LoD)) / chunkOverlap + RandomFloat(seed)); //Random to process fractional points 
 
     uint appendInd = 0;
     InterlockedAdd(counter[bCOUNTER], numPoints, appendInd);
     for(uint i = 0; i < numPoints; i++){
-        float3 position = (Random3(seed) * chunkSize) - offsetCoord * (int)chunkSize;
+        float3 position = (Random3(seed) * mapChunkSize) - offsetCoord * (int)mapChunkSize;
 
         structurePoint newStructure;
         newStructure.position = position;

@@ -417,7 +417,9 @@ public class DensityDeconstructor : MonoBehaviour
         List<int> MaterialLUT = new List<int>();
         var reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         for(int i = 0; i < Structure.Names.value.Count; i++){
-            MaterialLUT.Add(reg.RetrieveIndex(Structure.Names.value[i]));
+            if (reg.Contains(Structure.Names.value[i]))
+                MaterialLUT.Add(reg.RetrieveIndex(Structure.Names.value[i]));
+            else MaterialLUT.Add(-1);
         }  
         //Mark it as already deserialized so we don't double deserialize
         Structure.Names.value = null;
@@ -433,6 +435,14 @@ public class DensityDeconstructor : MonoBehaviour
         ComputeBuffer vertexBuffer = new ComputeBuffer(mesh.vertexCount, sizeof(float)*3);
         ComputeBuffer indexBuffer = new ComputeBuffer(mesh.triangles.Length, sizeof(uint));
         vertexBuffer.SetData(mesh.vertices); indexBuffer.SetData(mesh.triangles);
+
+        float3 max = new float3(float.MinValue, float.MinValue, float.MinValue);
+        float3 min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
+        foreach(Vector3 vert in mesh.vertices) {
+            max = math.max(max, vert);
+            min = math.min(min, vert);
+        };
+        Debug.Log($"Bounding Box: {min} to {max}");
         
         int kernel = SDFConstructor.FindKernel("GetSDF");
         SDFConstructor.SetBuffer(kernel, "Vertices", vertexBuffer); //Assume one data stream

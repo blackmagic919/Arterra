@@ -34,6 +34,9 @@ MonoBehaviour:
         - Lioness
         - Monolith
         - RockGolem
+        - StoneRuins1
+        - StoneRuins2
+        - StoneRuins3
       GroundMaterials:
         value:
         - value:
@@ -81,6 +84,15 @@ MonoBehaviour:
         - value:
             ChancePerStructurePoint: 0.0025
             Structure: 9
+        - value:
+            ChancePerStructurePoint: 0.0005
+            Structure: 14
+        - value:
+            ChancePerStructurePoint: 0.0005
+            Structure: 15
+        - value:
+            ChancePerStructurePoint: 0.0005
+            Structure: 16
       Entities:
         value:
         - value:
@@ -96,11 +108,8 @@ MonoBehaviour:
             Entity: 11
             ChancePerCoord: 0.000075
         - value:
-            Entity: 12
-            ChancePerCoord: 0.000005
-        - value:
             Entity: 13
-            ChancePerCoord: 0.000005
+            ChancePerCoord: 0.0000025
   BiomeConditions:
     value:
       TerrainStart: 0.375

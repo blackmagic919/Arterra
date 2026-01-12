@@ -5,13 +5,12 @@
 const static uint numThreads = 64;
 
 struct settings{
-    int minimumLOD;
-
-    uint randThetaRot;
-    uint randPhiRot;
     int sizeX;
     int sizeY;
     int sizeZ;
+
+    int minimumLoD;
+    uint config;
 };
 
 struct checkData{

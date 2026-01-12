@@ -45,8 +45,8 @@ public static class ShaderIDProps
     //Copy Count
     public static readonly int Source = Shader.PropertyToID("source");
     public static readonly int Destination = Shader.PropertyToID("destination");
-    public static readonly int ReadOffset = Shader.PropertyToID("readOffset");
-    public static readonly int WriteOffset = Shader.PropertyToID("writeOffset");
+    public static readonly int ReadOffset = Shader.PropertyToID("rOffset");
+    public static readonly int WriteOffset = Shader.PropertyToID("wOffset");
     //Nosie sample data
     public static readonly int SampleOffset = Shader.PropertyToID("sOffset");
     public static readonly int SkipInc = Shader.PropertyToID("skipInc");
@@ -62,4 +62,36 @@ public static class ShaderIDProps
     public static readonly int CountTri = Shader.PropertyToID("bCOUNT_Tri");
     public static readonly int StartTri = Shader.PropertyToID("bSTART_Tri");
     public static readonly int BufferCounter = Shader.PropertyToID("bCOUNTER");
+    //GPU Map Manager
+    public static readonly int ChunkData = Shader.PropertyToID("chunkData");
+    public static readonly int StartRead = Shader.PropertyToID("bSTART_read");
+    public static readonly int SizeReadAxis = Shader.PropertyToID("sizeRdAxis");
+    public static readonly int SizeWriteAxis = Shader.PropertyToID("sizeWrAxis");
+    public static readonly int Offset = Shader.PropertyToID("offset");
+    public static readonly int OriginCCoord = Shader.PropertyToID("oCCoord");
+    public static readonly int StartMap = Shader.PropertyToID("bSTART_map");
+    public static readonly int ChunkAddressDict = Shader.PropertyToID("_ChunkAddressDict");
+    public static readonly int ChunkInfoBuffer = Shader.PropertyToID("_ChunkInfoBuffer");
+    public static readonly int Dimension = Shader.PropertyToID("dimension");
+    public static readonly int ChunkIncrement = Shader.PropertyToID("chunkInc");
+    public static readonly int StartOffset = Shader.PropertyToID("bOffset");
+    public static readonly int LerpScale = Shader.PropertyToID("lerpScale");
+    public static readonly int NumChunksAxis = Shader.PropertyToID("numChunksAxis");
+
+    //Surface Map Generator
+    public static readonly int SurfaceMemoryBuffer = Shader.PropertyToID("_SurfMemoryBuffer");
+    public static readonly int SurfaceAddress = Shader.PropertyToID("surfAddress");
+    public static readonly int NumPoints = Shader.PropertyToID("numPoints");
+    //Structures
+    public static readonly int BaseDepthLoD = Shader.PropertyToID("BaseDepthL");
+    public static readonly int StructureStride = Shader.PropertyToID("STRUCTURE_STRIDE_4BYTE");
+    public static readonly int StructureCount = Shader.PropertyToID("structCount");
+    public static readonly int MetaMemoryBuffer = Shader.PropertyToID("_MetaMemoryBuffer");
+    public static readonly int MetaAddressIndex = Shader.PropertyToID("mAddressIndex");
+    //Entities
+    public static readonly int StartBiome = Shader.PropertyToID("bSTART_biome");
+    //GenInfo Readback
+    public static readonly int DestMemory = Shader.PropertyToID("_DestMemory");
+    public static readonly int NewAddressIndex = Shader.PropertyToID("nAddressIndex");
+    public static readonly int TempCounter = Shader.PropertyToID("bCOUNT_temp");
 }

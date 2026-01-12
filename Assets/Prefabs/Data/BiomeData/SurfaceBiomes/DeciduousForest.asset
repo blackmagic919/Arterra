@@ -30,6 +30,7 @@ MonoBehaviour:
         - Grass
         - Air
         - Water
+        - StoneRuins1
       GroundMaterials:
         value:
         - value:

@@ -13,7 +13,7 @@ float GetNoiseCentered(float val, float center)
     //Counterscale the middle
     float ratio = abs(center * 2 - 1);
     float exponent = lerp(4.0, 1.0, ratio);
-    return pow(base, exponent);
+    return pow(abs(base), exponent);
 }
 
 uint SampleTerrain (float3 position)

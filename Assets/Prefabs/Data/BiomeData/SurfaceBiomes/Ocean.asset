@@ -94,7 +94,7 @@ MonoBehaviour:
             ChancePerCoord: 0.00004
         - value:
             Entity: 10
-            ChancePerCoord: 0.0008
+            ChancePerCoord: 0.00008
   BiomeConditions:
     value:
       TerrainStart: 0.25

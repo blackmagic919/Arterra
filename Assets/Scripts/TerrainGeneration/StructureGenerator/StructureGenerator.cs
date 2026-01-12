@@ -2,6 +2,11 @@ using UnityEngine;
 using static UtilityBuffers;
 using Unity.Mathematics;
 using Arterra.Configuration;
+using Arterra.Core.Terrain.Readback;
+using Arterra.Configuration.Generation.Structure;
+using Utils;
+using Arterra.Core.Storage;
+using Arterra.Configuration.Generation.Entity;
 
 namespace Arterra.Core.Terrain.Structure{
 /// <summary>
@@ -13,7 +18,8 @@ public class Creator
 {
     /// <summary>
     /// The address of the generated structure information for this chunk. The location within 
-    /// <see cref="GenerationPreset.MemoryHandle.Address"/> of the address within <see cref="GenerationPreset.MemoryHandle.Storage"/> 
+    /// <see cref="Configuration.Quality.MemoryOccupancyBalancer.addressBuffers"/> of the address within
+    /// /// <see cref="Configuration.Quality.MemoryOccupancyBalancer.Storage"/> 
     /// of the beginning of the structure information for this chunk.
     /// </summary>
     public uint StructureDataIndex;
@@ -63,6 +69,8 @@ public class Creator
     /// necessary to ensure structures across chunk boundaries are recognized and generated correctly. </summary>
     /// <remarks>Structures are sampled in a deterministic manner meaning that the same structures 
     /// will be generated in the same location in the same world regardless of any other factors. </remarks>
+    /// <param name="readback" >The <see cref="AsyncGenInfoReadback"/> task responsible for batching intermediate generation
+    /// information to be readback to the CPU.</param> 
     /// <param name="chunkCoord">The coordinate, in <see cref="TerrainChunk.CCoord"/>Chunk Space, of the chunk whose structures
     /// are planned. If the chunk spans multiple <paramref name="chunkCoord">ChunkCoords</paramref>, this is the coordinate of the origin of
     /// the region. </param>
@@ -70,25 +78,23 @@ public class Creator
     /// equvalent to (<paramref name="chunkCoord"/> * <paramref name="chunkSize"/>)</param>
     /// <param name="chunkSize">The size of the chunk a <see cref="TerrainChunk.RealChunk">real chunk</see> in grid space. The atomic
     /// unit for guaranteed determinstic sampling of chunk structures. </param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Quality.Terrain.IsoLevel"/> for more info. </param>
-    /// <param name="depth"> The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.Octree">chunk octree</see>. Identifies
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Configuration.Quality.Terrain.IsoLevel"/> for more info. </param>
+    /// <param name="depth"> The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.octree">chunk octree</see>. Identifies
     /// the size of the chunk relative to a <see cref="TerrainChunk.RealChunk"> real chunk </see>. See <see cref="TerrainChunk.depth"/> for more info. </param>
-    public void PlanStructuresGPU(int3 chunkCoord, float3 offset, int chunkSize, float IsoLevel, int depth=0)
+    public void PlanStructuresGPU(AsyncGenInfoReadback readback, int3 chunkCoord, float3 offset, int chunkSize, float IsoLevel, int depth=0)
     {
         ReleaseStructure();
-        ClearRange(GenerationBuffer, 4, 0);
+        ClearRange(GenerationBuffer, 7, 0);
         Generator.SampleStructureLoD(Config.CURRENT.Generation.Structures.value.maxLoD, chunkSize, depth, chunkCoord);
         Generator.IdentifyStructures(offset, IsoLevel);
 
-        uint addressIndex =GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer,
+        this.StructureDataIndex = GenerationPreset.memoryHandle.AllocateMemory(GenerationBuffer,
             STRUCTURE_STRIDE_WORD, Generator.offsets.prunedCounter);
-        this.StructureDataIndex = Generator.TranscribeStructures(GenerationPreset.memoryHandle.GetBlockBuffer(addressIndex),
-            GenerationPreset.memoryHandle.Address, addressIndex);
-
-        return;
+        int genPtAddress = readback.AddGenPoints(GenerationBuffer, Generator.offsets.ehStctCounter, Generator.offsets.tempCounter);
+        Generator.TranscribeStructures(GenerationPreset.memoryHandle.Address, StructureDataIndex, genPtAddress);
     }
 
-    /// <summary> Generates the planned structures for the current chunk. This involves actually transcribing the <see cref="Generation.Structure.StructureData.map">
+    /// <summary> Generates the planned structures for the current chunk. This involves actually transcribing the <see cref="Configuration.Generation.Structure.StructureData.map">
     /// map information </see> of each structure onto the chunk's map in <see cref="GenerationBuffer">working memory</see> that will be used to create the visual and
     /// interactable features of the chunk. This must be called after the chunk's base map has been populated through
     /// <see cref="Map.Generator.GenerateBaseData(Vector3, uint, int, int, float)"/>. </summary>
@@ -98,7 +104,7 @@ public class Creator
     /// a structure's coordinate from grid space to map space(the location within the chunk's terrain map). </param>
     /// <param name="mapStart">The start of the chunk's terrain map within the <see cref="UtilityBuffers.GenerationBuffer"/>. See <see cref="Map.Generator.GeoGenOffsets.rawMapStart"/>
     /// for more info. </param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Quality.Terrain.IsoLevel"/> for more info.</param>
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Configuration.Quality.Terrain.IsoLevel"/> for more info.</param>
     /// <param name="wChunkSize">The axis size of the chunk's terrain map as it currently is in <see cref="GenerationBuffer"> working memory </see>.</param>
     /// <param name="wOffset">The offset within the chunk's map generated structures will be transcribed to. If the chunk's map
     /// extends beyond what it exclusively contains, this should be used to indicate the axis offest relative to the chunk map's first
@@ -187,7 +193,7 @@ public static class Generator
     /// Presets all compute-shaders used in the structure generator by acquiring them and
     /// binding any constant values(information derived from the world's settings that 
     /// won't change until the world is unloaded) to them. Referenced by
-    /// <see cref="TerrainGeneration.SystemProtocol.Startup"/> </summary>
+    /// <see cref="SystemProtocol.Startup"/> </summary>
     public static void PresetData()
     {
         Configuration.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
@@ -242,24 +248,27 @@ public static class Generator
         StructureIdentifier.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
         StructureIdentifier.SetBuffer(1, "counter", UtilityBuffers.GenerationBuffer);
         StructureIdentifier.SetBuffer(2, "counter", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetInt("bCOUNTER_plan", offsets.sampleCounter);
-        StructureIdentifier.SetInt("bCOUNTER_check", offsets.checkCounter);
-        StructureIdentifier.SetInt("bCOUNTER_struct", offsets.structureCounter);
-        StructureIdentifier.SetInt("bCOUNTER_prune", offsets.prunedCounter);
+        StructureIdentifier.SetInt("bCOUNT_plan", offsets.sampleCounter);
+        StructureIdentifier.SetInt("bCOUNT_check", offsets.checkCounter);
+        StructureIdentifier.SetInt("bCOUNT_struct", offsets.structureCounter);
+        StructureIdentifier.SetInt("bCOUNT_prune", offsets.prunedCounter);
+        StructureIdentifier.SetInt("bCOUNT_ehStct", offsets.ehStctCounter);
 
         structureDataTranscriber.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
         structureDataTranscriber.SetBuffer(0, "structPoints", UtilityBuffers.GenerationBuffer);
         structureDataTranscriber.SetInt("bSTART_struct", offsets.prunedStart);
-        structureDataTranscriber.SetInt("bCOUNTER_struct", offsets.prunedCounter);
+        structureDataTranscriber.SetInt("bCOUNT_struct", offsets.prunedCounter);
+        structureDataTranscriber.SetInt("bCOUNT_mStct", offsets.mStructCounter);
+        structureDataTranscriber.SetInt("GPConfig", (int)GenPoint.GenType.StructureMeta);
     }
     
     /// <summary> Samples the origins of all structures that intersect with the current chunk's boundaries. This is the <see href="https://blackmagic919.github.io/AboutMe/2024/06/08/Structure%20Planning/">
     /// first step </see> of structure generation and is necessary to ensure that the chunk is aware of all structures that overlap
     /// with its boundaries. </summary>
     /// <param name="maxLoD">The maximum LoD of structures generated. The LoD dictates the maximum side length of a structure
-    /// that is guaranteed to be generated properly. See <see cref="Generation.Structure.Generation.maxLoD"/> for more info.</param>
+    /// that is guaranteed to be generated properly. See <see cref="Configuration.Generation.Structure.Generation.maxLoD"/> for more info.</param>
     /// <param name="chunkSize">The size of a <see cref="TerrainChunk.RealChunk"/> in grid space. </param>
-    /// <param name="depth">The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.Octree">chunk octree</see>. Identifies
+    /// <param name="depth">The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.octree">chunk octree</see>. Identifies
     /// the size of the chunk relative to a <see cref="TerrainChunk.RealChunk"> real chunk </see>. See <see cref="TerrainChunk.depth"/> for more info. </param>
     /// <param name="chunkCoord">The coordinate, in <see cref="TerrainChunk.CCoord">Chunk Space</see>, of the chunk whose structures
     /// are planned. If the chunk spans multiple <paramref name="chunkCoord">ChunkCoords</paramref>, this is the coordinate of the origin of
@@ -270,9 +279,9 @@ public static class Generator
         int numChunksPerAxis = maxLoD + (1<<depth) + 1;
         int numChunksMax = numChunksPerAxis * numChunksPerAxis * numChunksPerAxis;
 
-        StructureLoDSampler.SetInts("originChunkCoord", new int[] { chunkCoord.x, chunkCoord.y, chunkCoord.z });
-        StructureLoDSampler.SetInt("chunkSize", chunkSize);
-        StructureLoDSampler.SetInt("BaseDepthL", depth); 
+        StructureLoDSampler.SetInts(ShaderIDProps.OriginCCoord, new int[] { chunkCoord.x, chunkCoord.y, chunkCoord.z });
+        StructureLoDSampler.SetInt(ShaderIDProps.MapChunkSize, chunkSize);
+        StructureLoDSampler.SetInt(ShaderIDProps.BaseDepthLoD, depth); 
 
         StructureLoDSampler.GetKernelThreadGroupSizes(0, out uint threadChunkSize, out uint threadLoDSize, out _);
         int numThreadsChunk = Mathf.CeilToInt(numChunksMax / (float)threadChunkSize);
@@ -284,12 +293,12 @@ public static class Generator
     /// the biome and removes any invalid or trivial structures. This is the <see href="https://blackmagic919.github.io/AboutMe/2024/06/16/Structure-Pruning/">
     /// second step </see> of structure generation and allows for varied and localized structure generation. </summary>
     /// <param name="offset">The offset in grid space of the origin of the chunk</param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Quality.Terrain.IsoLevel"/> for more info.</param>
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Configuration.Quality.Terrain.IsoLevel"/> for more info.</param>
     public static void IdentifyStructures(Vector3 offset, float IsoLevel)
     {
         ComputeBuffer args = UtilityBuffers.CountToArgs(StructureIdentifier, UtilityBuffers.GenerationBuffer, offsets.sampleCounter);
 
-        StructureIdentifier.SetFloat("IsoLevel", IsoLevel);
+        StructureIdentifier.SetFloat(ShaderIDProps.IsoLevel, IsoLevel);
         SetSampleData(StructureIdentifier, offset, 1);
 
         int kernel = StructureIdentifier.FindKernel("Identify");
@@ -305,22 +314,26 @@ public static class Generator
     }
 
     /// <summary>  Transcribes the generation information of structures instersecting with the chunk from <see cref="GenerationBuffer"> working memory</see> to
-    /// <paramref name="memory">long term storage</paramref>. This is the instance information of structures that <b>will</b> be generated
+    /// long term storage. This is the instance information of structures that <b>will</b> be generated
     /// in the chunk innevitably, following all pruning steps. </summary>
-    /// <param name="memory">The destination buffer that the structure generation information will be copied to </param>
-    /// <param name="addresses">The buffer containing the direct address within <paramref name="memory"/> where the information will be stored. </param>
-    /// <returns>The index within <paramref name="addresses"/> of the location that contains the direct address to the 
-    /// region within <paramref name="memory"/> where the information will be stored. </returns>
-    public static uint TranscribeStructures(ComputeBuffer memory, GraphicsBuffer addresses, uint addressIndex)
+    /// <param name="addresses">The buffer containing the direct address within the associated long term buffer where the information will be stored. </param>
+    /// <param name="addressIndex"> >The index within <paramref name="addresses"/> of the location that contains the direct address to the 
+    /// region within the associated long term buffer where the information will be stored. </param>
+    /// <param name="metaAddress"> The index withing <paramref name="addresses"/> of the location that contains the direct address to the 
+    /// region within the associated long term buffer where enhanced structures will be stored. </param>
+    public static void TranscribeStructures(GraphicsBuffer addresses, uint addressIndex, int metaAddress)
     {
+        ComputeBuffer structMemory = GenerationPreset.memoryHandle.GetBlockBuffer(addressIndex);
+        ComputeBuffer metaMemory = GenerationPreset.memoryHandle.GetBlockBuffer(metaAddress);
         ComputeBuffer args = UtilityBuffers.CountToArgs(structureDataTranscriber, UtilityBuffers.GenerationBuffer, offsets.structureCounter);
 
-        structureDataTranscriber.SetBuffer(0, "_MemoryBuffer", memory);
-        structureDataTranscriber.SetBuffer(0, "_AddressDict", addresses);
-        structureDataTranscriber.SetInt("addressIndex", (int)addressIndex);
+        structureDataTranscriber.SetBuffer(0, ShaderIDProps.MemoryBuffer, structMemory);
+        structureDataTranscriber.SetBuffer(0, ShaderIDProps.MetaMemoryBuffer, metaMemory);
+        structureDataTranscriber.SetBuffer(0, ShaderIDProps.AddressDict, addresses);
+        structureDataTranscriber.SetInt(ShaderIDProps.AddressIndex, (int)addressIndex);
+        structureDataTranscriber.SetInt(ShaderIDProps.MetaAddressIndex, metaAddress);
 
         structureDataTranscriber.DispatchIndirect(0, args);
-        return addressIndex;
     }
 
     /// <summary> Gets the number of structures saved in the memory block pointed to by a chunk's <paramref name="addressIndex">address handle</paramref> for its structures.
@@ -337,19 +350,19 @@ public static class Generator
     {
         ComputeBuffer structCount = UtilityBuffers.appendCount;
 
-        structureSizeCounter.SetBuffer(0, "_MemoryBuffer", memory);
-        structureSizeCounter.SetBuffer(0, "_AddressDict", address);
-        structureSizeCounter.SetInt("addressIndex", addressIndex);
-        structureSizeCounter.SetInt("STRUCTURE_STRIDE_4BYTE", STRUCTURE_STRIDE_4BYTE);
+        structureSizeCounter.SetBuffer(0, ShaderIDProps.MemoryBuffer, memory);
+        structureSizeCounter.SetBuffer(0, ShaderIDProps.AddressDict, address);
+        structureSizeCounter.SetInt(ShaderIDProps.AddressIndex, addressIndex);
+        structureSizeCounter.SetInt(ShaderIDProps.StructureStride, STRUCTURE_STRIDE_4BYTE);
 
-        structureSizeCounter.SetBuffer(0, "structCount", structCount);
+        structureSizeCounter.SetBuffer(0, ShaderIDProps.StructureCount, structCount);
         structureSizeCounter.Dispatch(0, 1, 1, 1);
 
         return structCount;
     }
     
     /// <summary> Applies the generation information of structures to the chunk's terrain map. This is the <see href="https://blackmagic919.github.io/AboutMe/2024/07/03/Structure-Placement/">
-    /// final step</see> of structure generation and involves transcribing the <see cref="Generation.Structure.StructureData.map"/> information of each structure 
+    /// final step</see> of structure generation and involves transcribing the <see cref="Configuration.Generation.Structure.StructureData.map"/> information of each structure 
     /// over the chunk's terrain map. </summary>
     /// <remarks> The time complexity of this operation is O(n) with respect to the size of the largest structure within the chunk. </remarks>
     /// <param name="memory">The buffer containing the generation information for all structures generated by the chunk.</param>
@@ -360,31 +373,31 @@ public static class Generator
     /// <param name="mapStart">The location within <see cref="GenerationBuffer">working memory</see> of the start of the
     /// chunk's terrain map. See <see cref="Map.Generator.GeoGenOffsets.rawMapStart"/> for more info. </param>
     /// <param name="chunkSize">The size of a <see cref="TerrainChunk.RealChunk"/> in grid space. </param>
-    /// <param name="meshSkipInc">The distance in grid space between two adjacent samples in the chunk's terrain map. Used to convert
+    /// <param name="skipInc">The distance in grid space between two adjacent samples in the chunk's terrain map. Used to convert
     /// a structure's coordinate from grid space to map space(the location within the chunk's terrain map).</param>
     /// <param name="wOffset">The offset within the chunk's map generated structures will be transcribed to. If the chunk's map
     /// extends beyond what it exclusively contains, this should be used to indicate the axis offest relative to the chunk map's first
     /// entry of the first entry exclusively contained by the chunk.</param>
     /// <param name="wChunkSize">The axis size of the chunk's terrain map as it currently is in <see cref="GenerationBuffer"> working memory </see>.</param>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Quality.Terrain.IsoLevel"/> for more info.</param>
-    public static void ApplyStructures(ComputeBuffer memory, GraphicsBuffer addresses, ComputeBuffer count, int addressIndex, int mapStart, int chunkSize, int meshSkipInc, int wOffset, int wChunkSize, float IsoLevel)
+    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Configuration.Quality.Terrain.IsoLevel"/> for more info.</param>
+    public static void ApplyStructures(ComputeBuffer memory, GraphicsBuffer addresses, ComputeBuffer count, int addressIndex, int mapStart, int chunkSize, int skipInc, int wOffset, int wChunkSize, float IsoLevel)
     {
         ComputeBuffer args = UtilityBuffers.CountToArgs(structureChunkGenerator, count);
 
-        structureChunkGenerator.SetBuffer(0, "_MemoryBuffer", memory);
-        structureChunkGenerator.SetBuffer(0, "_AddressDict", addresses);
-        structureChunkGenerator.SetInt("addressIndex", addressIndex);
+        structureChunkGenerator.SetBuffer(0, ShaderIDProps.MemoryBuffer, memory);
+        structureChunkGenerator.SetBuffer(0, ShaderIDProps.AddressDict, addresses);
+        structureChunkGenerator.SetInt(ShaderIDProps.AddressIndex, addressIndex);
 
-        structureChunkGenerator.SetBuffer(0, "numPoints", count);
+        structureChunkGenerator.SetBuffer(0, ShaderIDProps.NumPoints, count);
 
-        structureChunkGenerator.SetBuffer(0, "chunkData", UtilityBuffers.GenerationBuffer);
-        structureChunkGenerator.SetInt("bSTART_map", mapStart);
-        structureChunkGenerator.SetInt("chunkSize", chunkSize);
-        structureChunkGenerator.SetInt("meshSkipInc", meshSkipInc);
-        structureChunkGenerator.SetFloat("IsoLevel", IsoLevel);
+        structureChunkGenerator.SetBuffer(0, ShaderIDProps.ChunkData, UtilityBuffers.GenerationBuffer);
+        structureChunkGenerator.SetInt(ShaderIDProps.StartMap, mapStart);
+        structureChunkGenerator.SetInt(ShaderIDProps.MapChunkSize, chunkSize);
+        structureChunkGenerator.SetInt(ShaderIDProps.SkipInc, skipInc);
+        structureChunkGenerator.SetFloat(ShaderIDProps.IsoLevel, IsoLevel);
 
-        structureChunkGenerator.SetInt("wOffset", wOffset);
-        structureChunkGenerator.SetInt("numPointsPerAxis", wChunkSize);
+        structureChunkGenerator.SetInt(ShaderIDProps.WriteOffset, wOffset);
+        structureChunkGenerator.SetInt(ShaderIDProps.NumPointsPerAxis, wChunkSize);
 
         structureChunkGenerator.DispatchIndirect(0, args);
     }
@@ -401,10 +414,16 @@ public static class Generator
         /// <summary> The location storing the amount of concrete structures after pruning non-intersecting structures, provided by <see cref="IdentifyStructures(Vector3, float)"/>. </summary>
         public int structureCounter;
         /// <summary> The location storing the total amount of checks of all structures within the chunk, used in <see cref="IdentifyStructures(Vector3, float)"/>.
-        /// See <see cref="Generation.Structure.StructureData.CheckPoint"/> for more info. </summary>
+        /// See <see cref="Configuration.Generation.Structure.StructureData.CheckPoint"/> for more info. </summary>
         public int checkCounter;
         /// <summary> The location storing the amount of structures after pruning all invalid checks, provided by <see cref="IdentifyStructures(Vector3, float)"/>. </summary>
         public int prunedCounter;
+        /// <summary> The location storing the amount of enhanced structures aftr pruning </summary>
+        public int ehStctCounter;
+        /// <summary> An auxiliary counter used when transcribing </summary>
+        public int mStructCounter;
+        /// <summary>The location of a temporary multipurpose counter.</summary>
+        public int tempCounter;
         /// <summary> The location of the pruned structures, the structures that will actually be generated, provided by <see cref="IdentifyStructures(Vector3, float)"/>.</summary>
         public int prunedStart;
         /// <summary> The location of the raw structure origins provided by <see cref="SampleStructureLoD(int, int, int, int3)"/>. </summary>
@@ -427,7 +446,7 @@ public static class Generator
         /// exceed the capacity of the buffer. </summary>
         /// <param name="maxStructurePoints">The maximum amount of structures that a single chunk may reference at the same time.
         /// This is the maximum possible structures that can be provided by <see cref="SampleStructureLoD(int, int, int, int3)"/> for
-        /// the <see cref="Quality.Terrain.MaxStructureDepth">largest possible chunk requiring structures</see> under the given 
+        /// the <see cref="Configuration.Quality.Terrain.MaxStructureDepth">largest possible chunk requiring structures</see> under the given 
         /// world's configuration. A larger chunk will require more structure points as it encompasses a larger region. </param>
         /// <param name="bufferStart">The start of the region within working memory the structure generator may utilize. See 
         /// <see cref="BufferOffsets.bufferStart"/> for more info. </param>
@@ -435,8 +454,10 @@ public static class Generator
             this.offsetStart = bufferStart;
             sampleCounter = bufferStart; structureCounter = bufferStart + 1;
             checkCounter = bufferStart + 2; prunedCounter = bufferStart + 3;
+            ehStctCounter = bufferStart + 4; mStructCounter = bufferStart + 5;
+            tempCounter = bufferStart + 6;
 
-            structureStart = Mathf.CeilToInt((float)(bufferStart + 4)/ STRUCTURE_STRIDE_WORD);
+            structureStart = Mathf.CeilToInt((float)(bufferStart + 7)/ STRUCTURE_STRIDE_WORD);
             int StructureEndInd_W = structureStart * STRUCTURE_STRIDE_WORD + maxStructurePoints * STRUCTURE_STRIDE_WORD;
 
             prunedStart = Mathf.CeilToInt((float)StructureEndInd_W / STRUCTURE_STRIDE_WORD);
@@ -449,6 +470,64 @@ public static class Generator
             checkStart = Mathf.CeilToInt((float)PrunedEndInd_W / CHECK_STRIDE_WORD);
             int CheckEndInd_W = checkStart * CHECK_STRIDE_WORD + maxStructurePoints * CHECK_STRIDE_WORD;
             this.offsetEnd = math.max(CheckEndInd_W, SampleEndInd_W);
+        }
+    }
+
+    /// <summary> Creates entities and structures tied to a certain structure as indicated by
+    /// the <see cref="StructureData.EnhancedFeatures"/> of a certain structure. </summary>
+    /// <param name="genInfo">The information describing a certain structure placement.</param>
+    /// <param name="CCoord">The coordinate in chunk space of the chunk <paramref name="genInfo"/> belongs to</param>
+    public static void InitializeStructureMeta(GenPoint genInfo, int3 CCoord) {
+        int mapSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        StructureData structure = Config.CURRENT.Generation.Structures.value.StructureDictionary.Retrieve((int)genInfo.index);
+        StructureData.EnhancedFeatures eh = structure.Enhancements;
+
+        int3 sCoord = CCoord * mapSize + genInfo.position;
+        int seed = sCoord.x ^ sCoord.y ^ sCoord.z ^ structure.GetHashCode();
+        Unity.Mathematics.Random rng = CustomUtility.SeedRng(seed);
+        const int retryCount = 5;
+        foreach(var spawn in eh.Entities.value) {
+            int count = Mathf.FloorToInt(spawn.GenCount);
+            if (rng.NextFloat() < math.frac(spawn.GenCount))
+                count++;
+            if (count <= 0) continue;
+
+            uint index = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex(spawn.Entity);
+            EntitySetting.ProfileInfo info = Config.CURRENT.Generation.Entities.Retrieve((int)index).Setting.profile;
+            float3x3 rot =  CustomUtility.RotationLookupTable[genInfo.rotY,genInfo.rotX,genInfo.rotZ];
+            for(int i = 0; i < count; i++) {
+                for (int attempts = 0; attempts < retryCount; attempts++) {
+                    int3 offset = (int3)math.round(rng.NextFloat3() * (spawn.offsetMax - spawn.offsetMin) + spawn.offsetMin);
+                    offset = genInfo.position + (int3)math.mul(rot, offset);
+                    int3 GCoord = offset + CCoord * mapSize;
+
+                    if (!PathFinder.VerifyProfile(GCoord, info, EntityJob.cxt))
+                        continue;
+                    if (math.any(offset < 0) || math.any(offset >= mapSize))
+                        break; //Will be generated by adjacent chunk
+                    EntityManager.CreateEntity(GCoord, index);
+                    break;
+                }
+            }
+        }
+
+        foreach(var spawn in eh.MapMetaData.value) {
+            int index = Config.CURRENT.Generation.Entities.RetrieveIndex(spawn.Material);
+            float3x3 rot =  CustomUtility.RotationLookupTable[genInfo.rotY,genInfo.rotX,genInfo.rotZ];
+            int3 GCoord = genInfo.position + (int3)math.mul(rot, spawn.offset);
+
+            if (math.any(GCoord < 0) || math.any(GCoord >= mapSize))
+                break; //Will be generated by adjacent chunk
+            GCoord += CCoord * mapSize;
+
+            MapData data = CPUMapManager.SampleMap(GCoord);
+            if (data.material == index) {
+                data.material = index;
+                CPUMapManager.SetMap(data, GCoord);
+            }
+
+            var auth = Config.CURRENT.Generation.Materials.value.MaterialDictionary.Retrieve(index);
+            CPUMapManager.SetExistingMapMeta(GCoord, auth.ConstructMetaData(GCoord, spawn));
         }
     }
 }}

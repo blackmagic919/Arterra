@@ -25,6 +25,7 @@ struct entityCheck{
 
 struct entityInfo {
     int3 position;
+    uint config;
     uint entityIndex;
 };
 
@@ -40,6 +41,7 @@ StructuredBuffer<entityBound> _EntityInfo;
 StructuredBuffer<entityCheck> _EntityProfile;
 StructuredBuffer<PrefixCounters> _BiomePrefCount;
 StructuredBuffer<enititySetting> _BiomeEntities;
+uint GPConfig;
 
 StructuredBuffer<uint> _MemoryBuffer;
 StructuredBuffer<CInfo> _AddressDict;
@@ -74,6 +76,7 @@ void Identify (uint3 id : SV_DispatchThreadID)
         if(RandomFloat(seedEntity) < setting.freq){
             entityInfo newOrigin;
             newOrigin.position = id;
+            newOrigin.config = GPConfig;
             newOrigin.entityIndex = setting.entityIndex; 
 
             uint appendInd = 0;

@@ -6,6 +6,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Unity.Burst;
 using Arterra.Core.Storage;
+using Arterra.Configuration.Generation.Material;
 
 namespace Arterra.Configuration.Generation.Structure{
 /// <summary>
@@ -42,6 +43,11 @@ public class StructureData : Category<StructureData>
     [SerializeField]
     public Option<List<CheckPoint>> checks;
 
+    /// <summary> Enhanced features allowing structures to dictate more aspects of its generation than the 
+    /// raw map data. This feature will only be used if enabled via <see cref="Settings.IsEnhanced"/>.
+    /// See <see cref="EnhancedFeatures"/> </summary>
+    public EnhancedFeatures Enhancements;
+
     /// <summary> A getter property that deserializes the structure's map data by recoupling them with the current world's configuration. This involves
     /// retrieving the real indices of the materials within the external <see cref="Config.GenerationSettings.Materials"/> registry. </summary>
     [JsonIgnore]
@@ -76,7 +82,7 @@ public class StructureData : Category<StructureData>
         /// <summary>
         /// The offset in grid space from the structure's origin (the bottom left corner of the structure),
         /// of the map entry that the check will sample. This offset is subject to possible rotations 
-        /// detailed by <see cref="Settings.randThetaRot"/> and <see cref="Settings.randPhiRot"/> whereby
+        /// detailed by <see cref="Settings.randYRot"/>, <see cref="Settings.randXRot"/> and <see cref="Settings.randZRot"/> whereby
         /// the location of the check will be rotated in the same manner as the structure's contents.
         /// </summary>
         public float3 position;
@@ -112,25 +118,27 @@ public class StructureData : Category<StructureData>
         /// </summary>
         public int minimumLOD;
 
+        /// <summary> The raw configuration bitmap </summary>
+        public uint config;
         /// <summary> Whether or not placement of the structure may include random rotations around the vertical(y)-axis. Rotations are
         /// possible by changing the axis and order the structure's contents are read when being placed in the world.
-        /// </summary>
-        [Range(0, 1)]
-        public uint randYRot;
+        /// </summary> 
+        public bool randYRot => (config & 0x1) != 0;
         /// <summary>
         /// Whether or not placement of the structure may include random rotations around the major horizontal(x)-axis. The horizontal
         /// axis that it is rotated upon may shift depending on the <see cref="randYRot"/>. Rotations are possible by changing 
         /// the axis and order the structure's contents are read when being placed in the world.
         /// </summary>
-        [Range(0, 1)]
-        public uint randXRot;
+        public bool randXRot => (config & 0x2) != 0;
         /// <summary>
         /// Whether or not placement of the structure may include random rotations around the mino horizontal(z)-axis. The horizontal
         /// axis that it is rotated upon may shift depending on the <see cref="randYRot"/> and <see cref="randXRot"/>. Rotations 
         /// are possible by changing the axis and order the structure's contents are read when being placed in the world.
         /// </summary>
-        [Range(0, 1)]
-        public uint randZRot;
+        public bool randZRot => (config & 0x4) != 0;
+
+        /// <summary> Whether or not the structure has enhanced features. See <see cref="Enhancements"/> for more info. </summary>
+        public bool IsEnhanced => (config & 0x8) != 0;
         
     }
     /// <summary>
@@ -148,7 +156,7 @@ public class StructureData : Category<StructureData>
         public uint data;
         /// <summary>
         /// The lower bound of the liquid density that the map entry must be above to be considered valid.
-        /// The liquid density is defined by <see cref="CPUDensityManager.MapData.LiquidDensity"/>. 
+        /// The liquid density is defined by <see cref="MapData.LiquidDensity"/>. 
         /// </summary>
         public uint MinLiquid{
             readonly get => data & 0xFF;
@@ -157,7 +165,7 @@ public class StructureData : Category<StructureData>
         
         /// <summary>
         /// The upper bound of the liquid density that the map entry must be below to be considered valid.
-        /// The liquid density is defined by <see cref="CPUDensityManager.MapData.LiquidDensity"/>.
+        /// The liquid density is defined by <see cref="MapData.LiquidDensity"/>.
         /// </summary>
         public uint MaxLiquid{
             readonly get => (data >> 8) & 0xFF;
@@ -166,7 +174,7 @@ public class StructureData : Category<StructureData>
 
         /// <summary>
         /// The lower bound of the solid density that the map entry must be above to be considered valid.
-        /// The solid density is defined by <see cref="CPUDensityManager.MapData.SolidDensity"/>.
+        /// The solid density is defined by <see cref="MapData.SolidDensity"/>.
         /// </summary>
         public uint MinSolid{
             readonly get => (data >> 16) & 0xFF;
@@ -175,7 +183,7 @@ public class StructureData : Category<StructureData>
 
         /// <summary>
         /// The upper bound of the solid density that the map entry must be below to be considered valid.
-        /// The solid density is defined by <see cref="CPUDensityManager.MapData.SolidDensity"/>.
+        /// The solid density is defined by <see cref="MapData.SolidDensity"/>.
         /// </summary>
         public uint MaxSolid{
             readonly get => (data >> 24) & 0xFF;
@@ -200,7 +208,7 @@ public class StructureData : Category<StructureData>
         public bool IsNull => data == 0xFF00FF00;
     }
 
-    /// <summary> A single map entry contained by the structure. Contains <see cref="CPUDensityManager.MapData">
+    /// <summary> A single map entry contained by the structure. Contains <see cref="MapData">
     /// standard map information</see> as well as metadata on how it should be interpreted when the 
     /// structured is placed. </summary>
     [System.Serializable]
@@ -239,13 +247,41 @@ public class StructureData : Category<StructureData>
             set => data = (data & 0xFFFF00FF) | (((uint)value & 0xFF) << 8);
         }
 
-        /// <summary> The index of the name of the material within <see cref="Materials"/>. When used during terrain generation,
+        /// <summary> The index of the name of the material within <see cref="Config.GenerationSettings.Materials"/>. When used during terrain generation,
         /// this value is recoupled with the external <see cref="Config.GenerationSettings.Materials"/> registry by 
         /// retrieving the index of the material name within the registry.  </summary>
         public int material
         {
             readonly get => (int)((data >> 16) & 0x7FFF);
             set => data = (data & 0x8000FFFF) | (uint)((value & 0x7FFF) << 16);
+        }
+    }
+
+    /// <summary>Optional features structures can specify if they have it enabled
+    /// via <see cref="Settings.IsEnhanced"/> </summary>
+    [System.Serializable]
+    public class EnhancedFeatures {
+        /// <summary> List of entities that this structure can spawn. </summary>
+        public Option<List<StructureEntity>> Entities;
+        /// <summary> List of map meta data that this structure can spawn.</summary>
+        public Option<List<MaterialData.MetaConstructor>> MapMetaData;
+
+        /// <summary>Spawning information for a
+        /// single entity by the structure. </summary>
+        [System.Serializable]
+        public struct StructureEntity {
+            /// <summary> The index within the <see cref="Config.GenerationSettings.Entities"/> registry
+            /// of the entity to spawn if its profile matches. </summary>
+            [RegistryReference("Entities")]
+            public string Entity;
+            /// <summary> The minimum offset from the structure origin
+            /// the entity can attempt to spawn at </summary>
+            public float3 offsetMin;
+            /// <summary> The maximum offset from the structure origin
+            /// the entity can attempt to spawn at </summary>
+            public float3 offsetMax;
+            /// <summary>The average amount of entities to spawn in the given region.</summary>
+            public float GenCount;
         }
     }
 }
@@ -351,5 +387,93 @@ public class StructCheckDrawer : PropertyDrawer{
         return isExpanded ? EditorGUIUtility.singleLineHeight * 3 : EditorGUIUtility.singleLineHeight;
     }
 }
+
+[CustomPropertyDrawer(typeof(StructureData.Settings))]
+public class SettingsDrawer : PropertyDrawer
+{
+    const uint RandYRotBit   = 1 << 0; // 0x1
+    const uint RandXRotBit   = 1 << 1; // 0x2
+    const uint RandZRotBit   = 1 << 2; // 0x4
+    const uint EnhancedBit  = 1 << 3; // 0x8
+
+    const float Spacing = 2f;
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        float h = EditorGUIUtility.singleLineHeight;
+
+        h += EditorGUI.GetPropertyHeight(property.FindPropertyRelative("GridSize")) + Spacing;
+        h += EditorGUI.GetPropertyHeight(property.FindPropertyRelative("minimumLOD")) + Spacing;
+
+        // Config header + 4 toggles
+        h += (EditorGUIUtility.singleLineHeight + Spacing) * 5;
+
+        return h;
+    }
+
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        EditorGUI.BeginProperty(position, label, property);
+
+        Rect line = position;
+        line.height = EditorGUIUtility.singleLineHeight;
+
+        // Foldout
+        property.isExpanded = EditorGUI.Foldout(line, property.isExpanded, label, true);
+        if (!property.isExpanded)
+        {
+            EditorGUI.EndProperty();
+            return;
+        }
+
+        EditorGUI.indentLevel++;
+        line.y += line.height + Spacing;
+
+        // GridSize
+        var gridSize = property.FindPropertyRelative("GridSize");
+        line.height = EditorGUI.GetPropertyHeight(gridSize);
+        EditorGUI.PropertyField(line, gridSize);
+        line.y += line.height + Spacing;
+
+        // minimumLOD
+        var minLod = property.FindPropertyRelative("minimumLOD");
+        line.height = EditorGUI.GetPropertyHeight(minLod);
+        EditorGUI.PropertyField(line, minLod);
+        line.y += line.height + Spacing;
+
+        // Config bitmap
+        var config = property.FindPropertyRelative("config");
+        uint value = (uint)config.longValue;
+
+        line.height = EditorGUIUtility.singleLineHeight;
+        EditorGUI.LabelField(line, "Placement Variations", EditorStyles.boldLabel);
+        line.y += line.height + Spacing;
+
+        DrawToggle(ref line, "Random Y Rotation", RandYRotBit, ref value);
+        DrawToggle(ref line, "Random X Rotation", RandXRotBit, ref value);
+        DrawToggle(ref line, "Random Z Rotation", RandZRotBit, ref value);
+        DrawToggle(ref line, "Enhanced Features", EnhancedBit, ref value);
+
+        config.longValue = value;
+
+        EditorGUI.indentLevel--;
+        EditorGUI.EndProperty();
+    }
+
+    static void DrawToggle(ref Rect rect, string label, uint bit, ref uint value)
+    {
+        bool enabled = (value & bit) != 0;
+        bool newEnabled = EditorGUI.ToggleLeft(rect, label, enabled);
+
+        if (newEnabled != enabled)
+        {
+            if (newEnabled) value |= bit;
+            else value &= ~bit;
+        }
+
+        rect.y += rect.height + Spacing;
+    }
+}
+
 #endif
 }

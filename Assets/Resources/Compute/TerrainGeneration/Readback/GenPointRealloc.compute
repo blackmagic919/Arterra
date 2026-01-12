@@ -1,0 +1,44 @@
+#pragma kernel CombineCount
+#pragma kernel CopyToNewAlloc
+const static int numThreads = 128;
+const static uint GENPT_STRIDE_4BYTE = 3 + 2;
+
+struct GenPoint {
+    int3 position;
+    uint config;
+    uint index;
+};
+
+RWStructuredBuffer<uint> counters;
+uint bCOUNT_temp;
+uint bCOUNTER;
+
+StructuredBuffer<uint> _MemoryBuffer;
+StructuredBuffer<uint2> _AddressDict;
+uint addressIndex;
+
+[numthreads(1,1,1)]
+void CombineCount (uint3 id : SV_DispatchThreadID)//
+{
+    uint existingCount = _AddressDict[addressIndex].x == 0 ? 0 : (_MemoryBuffer[_AddressDict[addressIndex].x - 1] / GENPT_STRIDE_4BYTE) - 1;
+    counters[bCOUNT_temp] = existingCount + counters[bCOUNTER];
+}
+
+
+StructuredBuffer<GenPoint> _SourceMemory;
+RWStructuredBuffer<GenPoint> _DestMemory;
+uint nAddressIndex;
+
+[numthreads(numThreads,1,1)]
+void CopyToNewAlloc (uint3 id : SV_DispatchThreadID)
+{
+    uint newPoints = counters[bCOUNTER];
+    uint existingCount = counters[bCOUNT_temp] - newPoints;
+    if (id.x >= existingCount) return;
+    
+    uint count = newPoints + existingCount;
+    //Copy to back so to the consumer, it seems their allocation starts from the beginning;
+    uint wAddress = _AddressDict[nAddressIndex].y + count - (int)(id.x + 1);
+    uint rAddress = _AddressDict[addressIndex].y + id.x;
+    _DestMemory[wAddress] = _SourceMemory[rAddress];
+}
