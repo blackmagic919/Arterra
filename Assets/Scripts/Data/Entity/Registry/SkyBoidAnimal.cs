@@ -6,6 +6,7 @@ using Arterra.Configuration;
 using Arterra.Configuration.Generation.Entity;
 using Arterra.Configuration.Generation.Item;
 using Arterra.Core.Storage;
+using Arterra.Core.Events;
 
 [CreateAssetMenu(menuName = "Generation/Entity/SkyBoidAnimal")]
 public class SkyBoidAnimal : Arterra.Configuration.Generation.Entity.Authoring
@@ -122,10 +123,11 @@ public class SkyBoidAnimal : Arterra.Configuration.Generation.Entity.Authoring
             EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
         public void Interact(Entity caller) { }
-        public IItem Collect(float amount) {
-            if (!IsDead) return null; //You can't collect resources until the entity is dead
-            var item = settings.decomposition.LootItem(genetics, amount, ref random);
-            TaskDuration -= amount;
+        public IItem Collect(Entity caller, float amount) {
+            IItem item = null;
+            if (IsDead) item = settings.decomposition.LootItem(genetics, amount, ref random);
+            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, caller, (item, amount));
+            if (IsDead) TaskDuration -= amount;
             return item;
         }
 
@@ -392,7 +394,7 @@ public class SkyBoidAnimal : Arterra.Configuration.Generation.Entity.Authoring
             IAttackable target = (IAttackable)prey;
             if (target.IsDead) {
                 EntityManager.AddHandlerEvent(() => {
-                    IItem item = target.Collect(self.settings.Physicality.ConsumptionRate);
+                    IItem item = target.Collect(self, self.settings.Physicality.ConsumptionRate);
                     if (item != null && self.settings.Recognition.CanConsume(self.genetics, item, out float nutrition)) {
                         self.vitality.Heal(nutrition);
                     } if (self.vitality.healthPercent >= 1) {

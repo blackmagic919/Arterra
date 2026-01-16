@@ -7,6 +7,7 @@ using Arterra.Configuration.Generation.Item;
 using Arterra.Configuration.Generation.Entity;
 using Arterra.Core.Storage;
 using FMOD.Studio;
+using Arterra.Core.Events;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Projectile")]
 public class Projectile : Arterra.Configuration.Generation.Entity.Authoring
@@ -23,6 +24,7 @@ public class Projectile : Arterra.Configuration.Generation.Entity.Authoring
         public float MinDamagingSpeed;
         public float DamageMultiplier;
         public float KnockbackMultiplier;
+        public float weight = 0.1f;
         public GroundIntrc terrainInteration;
         public EntityIntrc entityInteraction;
         public AudioEvents FlybySound;
@@ -53,6 +55,7 @@ public class Projectile : Arterra.Configuration.Generation.Entity.Authoring
         private float decomposition;
         [JsonIgnore]
         public override ref TerrainCollider.Transform transform => ref tCollider.transform;
+        public override float weight => settings.weight;
         [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
@@ -61,20 +64,27 @@ public class Projectile : Arterra.Configuration.Generation.Entity.Authoring
 
         public Guid ParentId;
         public void Interact(Entity target) { }
-        public IItem Collect(float amount) {
+        public IItem Collect(Entity target, float amount) {
             var itemReg = Config.CURRENT.Generation.Items;
-            if (!itemReg.Contains(settings.ItemDrop)) return null;
-            int index = itemReg.RetrieveIndex(settings.ItemDrop);
-            IItem dropItem = itemReg.Retrieve(index).Item;
-            dropItem.Create(index, dropItem.UnitSize);
-            EntityManager.ReleaseEntity(info.entityId);
-            return dropItem;
+            IItem item  = null;
+            if (itemReg.Contains(settings.ItemDrop)) {
+                int index = itemReg.RetrieveIndex(settings.ItemDrop);
+                item = itemReg.Retrieve(index).Item;
+                item.Create(index, item.UnitSize);
+                EntityManager.ReleaseEntity(info.entityId);
+            }
+
+            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, target, (item, amount));
+            return item;
         }
 
         public void TakeDamage(float damage, float3 knockback, Entity attacker) {
             Indicators.DisplayDamageParticle(position, knockback);
             velocity += knockback;
         }
+
+        public void SetDecomposition(float time) => decomposition = time;
+        public void ResetDecomposition() => SetDecomposition(settings.DecayTime);
 
         //This function shouldn't be used
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
@@ -141,8 +151,9 @@ public class Projectile : Arterra.Configuration.Generation.Entity.Authoring
         }
 
         private bool CheckEntityRayCollision(float3 startGS, float3 pVel) {
-            float3 endGS = startGS + pVel;
-            if (!EntityManager.ESTree.FindClosestAlongRay(startGS, endGS, info.entityId, out Entity hitEntity)) return false;
+            float3 endGS = startGS + pVel * EntityJob.cxt.deltaTime;
+            if (!EntityManager.ESTree.FindClosestAlongRay(startGS, endGS, info.entityId, out Entity hitEntity, out _))
+                return false;
             if (hitEntity is not IAttackable atkEntity) return false;
 
             float speed = math.length(pVel);
@@ -150,7 +161,8 @@ public class Projectile : Arterra.Configuration.Generation.Entity.Authoring
             float3 knockback = velocity * settings.KnockbackMultiplier;
             if (!EntityManager.TryGetEntity(ParentId, out Entity attacker))
                 EntityManager.TryGetEntity(info.entityId, out attacker);
-            if (speed > settings.MinDamagingSpeed) MediumVitality.RealAttack(this, hitEntity, damage, knockback);
+            if (speed > settings.MinDamagingSpeed)
+                MediumVitality.RealAttack(this, hitEntity, damage, knockback);
             switch (settings.entityInteraction) {
                 case ProjectileSetting.EntityIntrc.Ricochet:
                     float3 dir = startGS - hitEntity.position;

@@ -72,6 +72,7 @@ public static class Generator
     /// won't change until the world is unloaded) to them. Referenced by
     /// <see cref="Terrain.SystemProtocol.Startup"/> </summary>
     public static void PresetData(){
+        Configuration.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
         Configuration.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
         surfaceDataSampler.SetBuffer(0, "surfMap", UtilityBuffers.GenerationBuffer);
 
@@ -88,6 +89,7 @@ public static class Generator
         surfaceDataSampler.SetFloat("maxTerrainHeight", surface.MaxTerrainHeight);
         surfaceDataSampler.SetFloat("squashHeight", surface.MaxSquashHeight);
         surfaceDataSampler.SetFloat("heightOffset", surface.terrainOffset);
+        surfaceDataSampler.SetFloat("waterHeight", mesh.waterHeight);
     }
 
     //The wonder shader that does everything (This way more parallelization is achieved)

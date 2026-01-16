@@ -104,6 +104,10 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 867ce4c1c48464fc69cd0cd653c7aea8, type: 2}
         - {fileID: 11400000, guid: 393f54cc6841a4a9690389545512e6ff, type: 2}
         - {fileID: 11400000, guid: 70b193dbc8ad947d1b435c37d4a12944, type: 2}
+        - {fileID: 11400000, guid: ead1c6f9a2b0544dba86498389c59454, type: 2}
+        - {fileID: 11400000, guid: e51ac7490179e4599b3bc5a3ff8efd35, type: 2}
+        - {fileID: 11400000, guid: 7b77e6f761e374be49802f748ce7d102, type: 2}
+        - {fileID: 11400000, guid: 841c55609a144450e81d6e715c9141ab, type: 2}
         - {fileID: 11400000, guid: a4c2c1088d7014561a762498ec205ec9, type: 2}
         - {fileID: 11400000, guid: 799801124b62142afb39063d7fdef2d0, type: 2}
         - {fileID: 11400000, guid: d6b9381607c524d0e8e9440fc45d6e5b, type: 2}
@@ -111,9 +115,11 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 6184bc7460e7546b5bb18fb637f90ae3, type: 2}
         - {fileID: 11400000, guid: e45f50a31f6684dd19b79f52e664d6b3, type: 2}
         - {fileID: 11400000, guid: e510129eb310547729dc9e65baaed7f6, type: 2}
+        - {fileID: 11400000, guid: 56de873584b734be1a4f74ae2a3db05c, type: 2}
         - {fileID: 11400000, guid: f725fc68cf5d0497da9b893adc0c6212, type: 2}
         - {fileID: 11400000, guid: 2ff1b4dd3fb8342c29a3500c0a9944e6, type: 2}
         - {fileID: 11400000, guid: 34e92fbde564348c48f9702ca5afa1aa, type: 2}
+        - {fileID: 11400000, guid: 02b126284d7314a7f8bb61a3fa72a88b, type: 2}
         - {fileID: 11400000, guid: f941424c55e9c4cfca7d3e14bb831647, type: 2}
         - {fileID: 11400000, guid: e8e2cc43e4b5b4fa4bf33feddf0da577, type: 2}
         - {fileID: 11400000, guid: 4c8e386beb113431a9e07a373b4f355c, type: 2}
@@ -179,6 +185,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: fbdc51524dc8245fca9c35578d34e059, type: 2}
         - {fileID: 11400000, guid: 1635b34bda69a4b12b9a87ca47dcf88c, type: 2}
         - {fileID: 11400000, guid: d771b63bce3af44df991f84975696a05, type: 2}
+        - {fileID: 11400000, guid: cd9d5143112d84a8f93ba28ee838d776, type: 2}
         - {fileID: 11400000, guid: 113b6e9010faf40ed9549c22ffbaba03, type: 2}
         - {fileID: 11400000, guid: fa068e762a66cb74baa6fec4c39e7823, type: 2}
         - {fileID: 11400000, guid: 5c920ae50cce6478bbab175bb0bee909, type: 2}
@@ -242,6 +249,8 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 8063711f7fccd4ed3b98b9d8a0ae10eb, type: 2}
         - {fileID: 11400000, guid: a43fe10ca35fb405ca9bf565e1091989, type: 2}
         - {fileID: 11400000, guid: bc94264fbc06c436d97067fdd94983e6, type: 2}
+        - {fileID: 11400000, guid: 3d48d69c889e240e887f9c398e857bae, type: 2}
+        - {fileID: 11400000, guid: ff13ac7cbba384f18bfbe796323075e8, type: 2}
         - {fileID: 11400000, guid: 717b9bf3d82c74f7db056808bcdff118, type: 2}
         - {fileID: 11400000, guid: b108e2bc0a9984ffab2cb8c8e599e8e4, type: 2}
         - {fileID: 11400000, guid: a908d54cac7a543889802488b49c0a1b, type: 2}
@@ -295,6 +304,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 932b8128755b641b08b42e8aad78a3c6, type: 2}
         - {fileID: 11400000, guid: 610fb1697c3fb4047a17cfd6713e6954, type: 2}
         - {fileID: 11400000, guid: 7ae7b5d92f5534a2f97435205bfba8de, type: 2}
+        - {fileID: 11400000, guid: 042c004949a4d41c7acbe89b2f00c1f8, type: 2}
         - {fileID: 11400000, guid: d06b2b0ad3d794abba77b8b97103f80f, type: 2}
         - {fileID: 11400000, guid: 315f78ddccde946d1850e0765035b8c2, type: 2}
         - {fileID: 11400000, guid: 0bb667c8999684e82837aa87ee1decb3, type: 2}
@@ -310,6 +320,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 88b32c56015ac41bdbcd816fa9ca8af8, type: 2}
         - {fileID: 11400000, guid: b4aa92ea3f0914c64824c56e7598bd50, type: 2}
         - {fileID: 11400000, guid: a6f17d9a63cc64624a910e05a1373d4e, type: 2}
+        - {fileID: 11400000, guid: d95a339e2ae3646938cb62b60af8ba1e, type: 2}
   _GamePlay:
     value:
       Input:
@@ -575,6 +586,10 @@ MonoBehaviour:
         - {fileID: 11400000, guid: d6f55fb74f79940a7aaeca151f3357bf, type: 2}
         - {fileID: 11400000, guid: ec9f6dc46d42f4243ae3b5bb363616d0, type: 2}
         - {fileID: 11400000, guid: abcd48e2f64904d58a06071362f31519, type: 2}
+      MortarFormulas:
+        Category:
+          value: {fileID: 11400000, guid: cceb542ca62ba457dafa95699a2c34ff, type: 2}
+        Reg: []
       Armor:
         value: {fileID: 11400000, guid: 360677af915224c978e39e88db696d39, type: 2}
       TerrainUpdation:

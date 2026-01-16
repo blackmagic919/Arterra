@@ -90,24 +90,23 @@ public class ConverterToolTag : ConvertibleToolTag {
         };
     }
 }
+
 [Serializable]
-public class ProjectileTag : ICloneable {
-    [RegistryReference("Entities")]
-    public string ProjectileEntity;
+public class MinimalProjectileTag : ICloneable {
     public float LaunchSpeedMultiplier = 1.0f;
     public AudioEvents FireSound;
     public virtual object Clone() {
         return new ProjectileTag {
-            ProjectileEntity = ProjectileEntity,
-            LaunchSpeedMultiplier = LaunchSpeedMultiplier
+            LaunchSpeedMultiplier = LaunchSpeedMultiplier,
+            FireSound = FireSound
         };
     }
 
-    public void LaunchProjectile(float3 position, float3 velocity) {
-        LaunchProjectile(position, velocity, null);
+    public virtual void LaunchProjectile(Entity entity, float3 position, float3 velocity) {
+        LaunchProjectile(entity, null, position, velocity, null);
     }
 
-    public void LaunchProjectile(Entity parent, float3 velocity) {
+    public virtual void LaunchProjectile(Entity entity, Entity parent, float3 velocity, Action<Entity> cb = null) {
         float3 dir = math.normalize(velocity);
         float3 rayOrigin = parent.position;
         float3 min = parent.origin;
@@ -118,22 +117,48 @@ public class ProjectileTag : ICloneable {
         float3 tmax = math.max(t1, t2);
         float tExit = math.cmin(tmax); // the nearest "exit" distance
         rayOrigin += + dir * (tExit + 0.05f);
-        LaunchProjectile(rayOrigin, velocity, parent);
+        LaunchProjectile(entity, parent, rayOrigin, velocity, cb);
     }
 
-    private void LaunchProjectile(float3 position, float3 velocity, Entity parent) {
+    protected void LaunchProjectile(Entity entity,  Entity parent, float3 position, float3 velocity, Action<Entity> cb) {
         var entityInfo = Config.CURRENT.Generation.Entities;
-        int entityInd = entityInfo.RetrieveIndex(ProjectileEntity);
-        var entity = Config.CURRENT.Generation.Entities.Retrieve(entityInd).Entity;
         EntityManager.AddHandlerEvent(() =>  AudioManager.CreateEvent(FireSound, position));
-        EntityManager.CreateEntity(position, (uint)entityInd, entity, () => {
+        EntityManager.CreateEntity(position, (uint)entity.Index, entity, () => {
             entity.transform.position = position;
             entity.transform.velocity = velocity * LaunchSpeedMultiplier;
             entity.transform.rotation = Quaternion.LookRotation(math.normalize(velocity));
             entity.position = position;
             if (parent != null && entity is Projectile.ProjectileEntity pEntity)
                 pEntity.ParentId = parent.info.entityId;
+            cb?.Invoke(entity);
         });
+    }
+
+}
+[Serializable]
+public class ProjectileTag : MinimalProjectileTag {
+    [RegistryReference("Entities")]
+    public string ProjectileEntity;
+    public override object Clone() {
+        return new ProjectileTag {
+            ProjectileEntity = ProjectileEntity,
+            LaunchSpeedMultiplier = LaunchSpeedMultiplier,
+            FireSound = FireSound
+        };
+    }
+
+    public void LaunchProjectile(float3 position, float3 velocity) {
+        int entityType = Config.CURRENT.Generation.Entities.RetrieveIndex(ProjectileEntity);
+        var entity = Config.CURRENT.Generation.Entities.Retrieve(entityType).Entity;
+        entity.Index = entityType;
+        LaunchProjectile(entity, null, position, velocity, null);
+    }
+
+    public void LaunchProjectile(Entity parent, float3 velocity, Action<Entity> cb = null) {
+        int entityType = Config.CURRENT.Generation.Entities.RetrieveIndex(ProjectileEntity);
+        var entity = Config.CURRENT.Generation.Entities.Retrieve(entityType).Entity;
+        entity.Index = entityType;
+        LaunchProjectile(entity, parent, velocity, cb);
     }
 }
 [Serializable]
@@ -306,7 +331,8 @@ public struct TagRegistry
         { Tags.Tooltip, new TooltipTag() },
         { Tags.TooltipDismissor, new TooltipDismissorTag() },
         // Projectiles
-        { Tags.ArrowTag, new ProjectileTag() }
+        { Tags.ArrowTag, new ProjectileTag() },
+        { Tags.BaitTag, null }
     };
 
     public enum Tags {
@@ -320,7 +346,7 @@ public struct TagRegistry
         //Interactions
         FocusedPlace = 9000, Tooltip = 9001, TooltipDismissor = 9002,
         // Projectiles 
-        ArrowTag = 10000
+        ArrowTag = 10000, BaitTag = 10001,
     }
 
     public Option<List<Pair>> Reg;

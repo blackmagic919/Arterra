@@ -190,7 +190,6 @@ public static class InventoryController {
         if (item == null) return;
         Arterra.Configuration.Generation.Entity.Entity Entity = new EItem.EItemEntity(item, rotation);
         uint eIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("EntityItem");
-        Entity.info.entityId = Guid.NewGuid();
         EntityManager.CreateEntity(math.round(location), eIndex, Entity);
     }
 

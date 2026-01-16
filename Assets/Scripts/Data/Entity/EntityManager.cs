@@ -50,7 +50,8 @@ public static class EntityManager
         }
     }
 
-    public static void InitializeChunkEntity(GenPoint genInfo, int3 CCoord){
+    public static void InitializeChunkEntity(GenPoint genInfo, int3 CCoord, byte cxt){
+        if ((AsyncGenInfoReadback.CREATE_ENTITIES & cxt) == 0) return; //No Gen
         int mapSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)genInfo.index];
@@ -189,7 +190,7 @@ public static class EntityManager
     }
 
     public static void Release() {
-        Executor.Complete();
+        Executor?.Complete();
         foreach (Entity entity in EntityReg) {
             entity.Disable();
         }
@@ -450,7 +451,7 @@ public static class EntityManager
                 QueryRay(ray, maxDist, action, (int)node.Right);
         }
 
-        public readonly bool FindClosestAlongRay(float3 startGS, float3 endGS, Guid callerId, out Entity closestHit){
+        public readonly bool FindClosestAlongRay(float3 startGS, float3 endGS, Guid callerId, out Entity closestHit, out float dist){
             Ray viewRay = new (startGS, endGS - startGS);
             float cDist = math.distance(startGS, endGS);
             Entity cEntity = null;
@@ -466,6 +467,8 @@ public static class EntityManager
 
             QueryRay(viewRay, cDist, OnFoundEntity);
             closestHit = cEntity;
+            dist = cDist;
+            
             return cEntity != null;
         }
 

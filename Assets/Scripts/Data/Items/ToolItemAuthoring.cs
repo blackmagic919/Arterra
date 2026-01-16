@@ -107,7 +107,7 @@ namespace Arterra.Configuration.Generation.Item
 
             InputPoller.SuspendKeybindPropogation("Remove", ActionBind.Exclusion.ExcludeLayer);
             if (!RayTestSolid(out float3 hitPt)) return;
-            if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out var _))
+            if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out _, out _))
                 return;
             
             bool RemoveSolid(int3 GCoord, float speed) {

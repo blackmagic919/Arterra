@@ -97,19 +97,21 @@ namespace Arterra.Core.Player {
             public void Interact(Entity target) { }
             /// <summary> Collects items from the dead player instance
             /// if it contains items in its inventories, causing
-            /// it to slowly decay. <see cref="IAttackable.Collect(float)"/> </summary>
-            /// <param name="collectRate">The speed at which items are removed</param>
+            /// it to slowly decay. <see cref="IAttackable.Collect(Entity, float)"/> </summary>
+            /// <param name="target"> The entity collecting the item(or null) </param>
+            /// <param name="amount">The speed at which items are removed</param>
             /// <returns>The collected item, or null.</returns>
-            public IItem Collect(float collectRate)
+            public IItem Collect(Entity target, float amount)
             {
                 int itemCount = PrimaryI.EntryDict.Count + SecondaryI.EntryDict.Count;
 
                 IItem ret;
-                if (PrimaryI.EntryDict.Count > 0) ret = PrimaryI.LootInventory(collectRate);
-                else ret = SecondaryI.LootInventory(collectRate);
+                if (PrimaryI.EntryDict.Count > 0) ret = PrimaryI.LootInventory(amount);
+                else ret = SecondaryI.LootInventory(amount);
 
                 float itemDelta = itemCount - (PrimaryI.EntryDict.Count + SecondaryI.EntryDict.Count);
                 vitality.health -= (itemDelta / itemCount) * PlayerVitality.settings.DecompositionTime;
+                eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, target, (ret, amount));
                 return ret;
             }
 

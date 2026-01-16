@@ -82,7 +82,7 @@ public class SelectionHandler : MonoBehaviour
         Button info = newSelection.GetComponent<Button>();
         transform.Find("Name").GetComponent<TextMeshProUGUI>().text = meta.Name;
 
-        string timeElapsed = Utils.TimeUtility.ToTimeAgo(meta.LastAccessTime);
+        string timeElapsed = Utils.TimeTextUtilty.ToTimeAgo(meta.LastAccessTime);
         transform.Find("AccessTime").GetComponent<TextMeshProUGUI>().text = timeElapsed;
 
         string creationTime = meta.CreationTime.ToString("dd/MM/yyyy HH:mm");

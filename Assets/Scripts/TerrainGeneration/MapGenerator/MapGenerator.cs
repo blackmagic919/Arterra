@@ -184,6 +184,7 @@ public static class Generator
 
         biomeGenCompute.SetBuffer(0, "BiomeMap", UtilityBuffers.GenerationBuffer);
         biomeGenCompute.SetInt("bSTART_biome", bufferOffsets.biomeMapStart);
+        biomeGenCompute.SetFloat("waterHeight", mesh.waterHeight);
 
         mapCompressor.SetBuffer(0, "rawData", UtilityBuffers.GenerationBuffer);
         mapCompressor.SetBuffer(0, "chunkData", UtilityBuffers.GenerationBuffer);

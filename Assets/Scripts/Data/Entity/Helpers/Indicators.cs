@@ -91,6 +91,7 @@ public class Indicators
     //Audio
     public static void PlayWaterSplash(Entity entity, float weight = 1) {
         const int small = 0; const int medium = 1;  const int large = 2; 
+        if (entity == null || !entity.active) return;
         float strength = math.length(entity.velocity);
         if (strength <= 4) return;
         strength *= weight;

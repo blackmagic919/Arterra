@@ -34,8 +34,9 @@ MonoBehaviour:
           z: 0.3
       DecayTime: 100
       MinDamagingSpeed: 2.5
-      DamageMultiplier: 0.025
+      DamageMultiplier: 0.1
       KnockbackMultiplier: 0.1
+      weight: 0.1
       terrainInteration: 0
       entityInteraction: 0
       FlybySound: 3000

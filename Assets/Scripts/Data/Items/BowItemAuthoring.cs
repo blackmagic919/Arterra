@@ -108,15 +108,14 @@ namespace Arterra.Configuration.Generation.Item{
 
         private bool HoldingArrowItems(ItemContext cxt, out int slot) {
             int start = cxt.InvId; slot = 0;
-            var settings = Config.CURRENT.GamePlay.Inventory.value;
-            if (!cxt.TryGetInventory(out InventoryController.Inventory inv))
+            if (!cxt.TryGetInventory(out IInventory inv))
                 return false;
-            for (slot = (start + 1) % settings.PrimarySlotCount;
+            for (slot = (start + 1) % inv.Capacity;
                 slot != start;
-                slot = (slot + 1) % settings.PrimarySlotCount) {
-                slot %= settings.PrimarySlotCount;
-                if (inv.Info[slot] == null) continue;
-                if (!ItemInfo.GetMostSpecificTag(this.settings.ArrowItemTag, inv.Info[slot].Index, out _))
+                slot = (slot + 1) % inv.Capacity) {
+                slot %= inv.Capacity;
+                if (inv.PeekItem(slot) == null) continue;
+                if (!ItemInfo.GetMostSpecificTag(this.settings.ArrowItemTag, inv.PeekItem(slot).Index, out _))
                     continue;
                 return true;
             }
@@ -124,14 +123,14 @@ namespace Arterra.Configuration.Generation.Item{
         }
 
         private bool ShootArrow(ItemContext cxt, int slot, float launchSpeed) {
-            if (!cxt.TryGetInventory(out InventoryController.Inventory inv))
+            if (!cxt.TryGetInventory(out IInventory inv))
                 return false;
             if (!cxt.TryGetHolder(out Entity.Entity h)) return false;
-            if (!ItemInfo.GetMostSpecificTag(this.settings.ArrowItemTag, inv.Info[slot].Index, out object prop))
+            if (!ItemInfo.GetMostSpecificTag(this.settings.ArrowItemTag, inv.PeekItem(slot).Index, out object prop))
                 return false;
             ProjectileTag tag = (ProjectileTag)prop;
             tag.LaunchProjectile(h, h.Forward * launchSpeed);
-            inv.RemoveStackableSlot(slot, inv.Info[slot].UnitSize);
+            inv.RemoveStackableSlot(slot, inv.PeekItem(slot).UnitSize);
             return true;
         }
 

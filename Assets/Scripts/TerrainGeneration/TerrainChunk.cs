@@ -467,10 +467,12 @@ namespace Arterra.Core.Terrain{
                 }
                 
                 CPUMapManager.BeginMapReadback(CCoord, () => {
-                    //If the chunk has saved entities
+                    byte cxt = 0; //Tells us which parts to regenerate
+                    if (info.map == null) cxt |= AsyncGenInfoReadback.CREATE_META;
                     if (info.entities != null) EntityManager.DeserializeEntities(info.entities);
-                    //Otherwise create new entities
-                    Generator.MetaReadback.BeginGenInfoReadback(CCoord);
+                    else cxt |= AsyncGenInfoReadback.CREATE_ENTITIES;
+
+                    Generator.MetaReadback.BeginGenInfoReadback(CCoord, cxt);
                 });
                 status.UpdateMap = Status.Complete(status.UpdateMap);
                 callback?.Invoke();

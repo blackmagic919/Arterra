@@ -40,5 +40,5 @@ void Compute (uint3 id : SV_DispatchThreadID)
     float humidityRaw = GetRawNoise(position, humiditySampler);
 
     float mapData[6] = {continentalRaw, erosionRaw, peaksValleysRaw, squashRaw, atmosphereRaw, humidityRaw};
-    biomeMap[id.x] = GetBiome(mapData);
+    biomeMap[id.x] = GetBiome(mapData, 0);
 }

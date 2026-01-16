@@ -1,6 +1,7 @@
 #ifndef VERTEXPACKER
 #define VERTEXPACKER
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#include "Assets/Resources/Compute/Utility/Encodings.hlsl"
 
 struct VertexInfo{
     float3 positionOS;

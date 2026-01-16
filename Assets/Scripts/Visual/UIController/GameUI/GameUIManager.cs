@@ -5,6 +5,9 @@ using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
+using Arterra.Configuration;
+using Arterra.Configuration.Generation.Item;
+using System.Collections;
 
 public static class GameUIManager {
     public static GameObject UIHandle;
@@ -31,6 +34,49 @@ public interface ISlot {
     public void ClearDisplay(Transform pSlot);
 }
 
+public class ScrollingResultDisplay {
+    private Image image;
+    private List<int> outputs;
+    private int index;
+    private bool active = false;
+    private static Catalogue<TextureContainer> texInfo => Config.CURRENT.Generation.Textures;
+    private static Catalogue<Arterra.Configuration.Generation.Item.Authoring> itemInfo => Config.CURRENT.Generation.Items;
+    public ScrollingResultDisplay(Transform parent, List<int> outputs) {
+        this.outputs = outputs;
+        this.image = parent.transform.GetChild(0).GetComponentInChildren<Image>();
+        this.index = 0;
+
+        this.active = true;
+        int output = outputs[index];
+        IItem resultItem = itemInfo.Retrieve(output).Item;
+        resultItem.Create(output, 0);
+        image.sprite = texInfo.Retrieve(resultItem.TexIndex).self;
+        image.color = new Color(1, 1, 1, 1);
+        if (outputs.Count <= 1) return;
+        Arterra.Core.Terrain.OctreeTerrain.MainCoroutines.Enqueue(UpdateRoutine());
+    }
+
+    public void Release() {
+        if (image == null) return;
+        image.sprite = null;
+        image.color = new Color(0, 0, 0, 0);
+        active = false;
+    }
+
+    private IEnumerator UpdateRoutine() {
+        while (true) {
+            yield return new WaitForSeconds(1.0f); // Update every second
+            if (image == null) yield break;
+            if (!active) yield break;
+
+            index = (index + 1) % outputs.Count;
+            int output = outputs[index];
+            IItem resultItem = itemInfo.Retrieve(output).Item;
+            resultItem.Create(output, 0);
+            image.sprite = texInfo.Retrieve(resultItem.TexIndex).self;
+        }
+    }
+}
 
 public class RegistrySearchDisplay<T> where T : ISlot {
     private Registry<T> registry;

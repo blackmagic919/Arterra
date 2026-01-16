@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.Animations.Rigging;
 using Arterra.Configuration;
 using Arterra.Configuration.Generation.Entity;
+using Arterra.Core.Events;
 
 [CreateAssetMenu(menuName = "Generation/Entity/MultiPedal")]
 public class MultiPedal : Authoring {
@@ -153,7 +154,12 @@ public class MultiPedal : Authoring {
         public bool IsDead => vitality.IsDead;
         
         public void Interact(Entity target) { }
-        public Arterra.Configuration.Generation.Item.IItem Collect(float amount) { return null; }
+        //ToDo: Finish implemenation here
+        public Arterra.Configuration.Generation.Item.IItem Collect(Entity target, float amount) {
+            Arterra.Configuration.Generation.Item.IItem item = null; 
+            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, target, (item, amount));
+            return null;
+        }
         public void TakeDamage(float damage, float3 knockback, Entity attacker) {
             if (!vitality.Damage(damage)) return;
             Indicators.DisplayDamageParticle(position, knockback);

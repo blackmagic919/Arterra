@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ca2305897f3c45d3965ed528c9b6577, type: 3}
+  m_Name: BreadItem
+  m_EditorClassIdentifier: 
+  Name: Bread
+  Tags:
+    Reg:
+      value: []
+  TextureName: Bread
+  Description: A Fresh Baked Loaf of Bread
+  ConsumptionRate: 2
+  NutritionValue: 4
+  references:
+    version: 2
+    RefIds: []

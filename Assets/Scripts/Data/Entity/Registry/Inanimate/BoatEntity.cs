@@ -8,6 +8,7 @@ using Arterra.Configuration.Generation.Entity;
 
 using Arterra.Core.Storage;
 using Arterra.Core.Player;
+using Arterra.Core.Events;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Boat")]
 public class BoatEntity : Arterra.Configuration.Generation.Entity.Authoring {
@@ -66,8 +67,10 @@ public class BoatEntity : Arterra.Configuration.Generation.Entity.Authoring {
             EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
 
         }
-        public IItem Collect(float collectRate) {
-            return null; // Boats are not collectible
+        public IItem Collect(Entity caller, float amount) {
+            IItem item = null;
+            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, caller, (item, amount));
+            return item; // Boats are not collectible
         }
 
         public void TakeDamage(float damage, float3 knockback, Entity attacker = null) {

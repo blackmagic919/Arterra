@@ -17,7 +17,10 @@ float maxInfluenceHeight;
 float maxTerrainHeight;
 float squashHeight;
 float heightOffset;
+float waterHeight;
 
+int _BSeafloorStart;
+int _BSurfaceStart;
 
 struct surfData{
     int biome;
@@ -57,7 +60,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     rawMaps[4] = GetRawNoise2D(id.xy, InfOffsetSampler);
     rawMaps[5] = GetRawNoise2D(id.xy, atmosphereSampler);
     
-    data.biome = GetBiome(rawMaps);
+    float surfaceBase = data.terrain - data.squash;
+    int offset = surfaceBase > waterHeight ? _BSurfaceStart : _BSeafloorStart;
+    data.biome = GetBiome(rawMaps, offset);
+
     float infHeight = interpolateValue(rawMaps[3], InfHeightSampler);
     float infOffset = interpolateValue(rawMaps[4], InfOffsetSampler);
 

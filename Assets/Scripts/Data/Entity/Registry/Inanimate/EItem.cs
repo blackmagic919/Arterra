@@ -8,6 +8,7 @@ using Arterra.Configuration.Generation.Entity;
 using static Arterra.Core.Terrain.Readback.IVertFormat;
 using Arterra.Core.Terrain.Readback;
 using Arterra.Core.Storage;
+using Arterra.Core.Events;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Item")]
 public class EItem : Arterra.Configuration.Generation.Entity.Authoring
@@ -31,7 +32,7 @@ public class EItem : Arterra.Configuration.Generation.Entity.Authoring
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class EItemEntity : Entity, IAttackable {
+    public class EItemEntity : Entity, IAttackable, IEntitySearchItem {
         [JsonProperty]
         private TerrainCollider tCollider;
         [JsonProperty]
@@ -48,19 +49,22 @@ public class EItem : Arterra.Configuration.Generation.Entity.Authoring
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
         public bool IsDead => true;
+        public void Interact(Entity target) { }
+        public IItem[] GetItems() => new []{item.Value};
 
-        public void Interact(Entity targert) { }
-        public IItem Collect(float amount) {
-            if (item.Value == null) return null;
-            IItem ret;
-            ret = (IItem)item.Value.Clone();
-            amount *= ret.UnitSize;
-            int delta = Mathf.FloorToInt(amount) 
-                + (random.NextFloat() < math.frac(amount) ? 1 : 0);
-            ret.AmountRaw = math.min(delta, ret.AmountRaw);
-            item.Value.AmountRaw -= ret.AmountRaw;
-            if (item.Value.AmountRaw == 0) item.Value = null;
+        public IItem Collect(Entity target, float amount) {
+            IItem ret = null;
+            if (item.Value != null) {
+                ret = (IItem)item.Value.Clone();
+                amount *= ret.UnitSize;
+                int delta = Mathf.FloorToInt(amount) 
+                    + (random.NextFloat() < math.frac(amount) ? 1 : 0);
+                ret.AmountRaw = math.min(delta, ret.AmountRaw);
+                item.Value.AmountRaw -= ret.AmountRaw;
+                if (item.Value.AmountRaw == 0) item.Value = null;
+            }
 
+            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, target, (item, amount));
             return ret;
         }
 
@@ -70,7 +74,7 @@ public class EItem : Arterra.Configuration.Generation.Entity.Authoring
         }
 
         public EItemEntity() { }
-        public EItemEntity(IItem item, Quaternion rot = default) {
+        public EItemEntity(IItem item, Quaternion rot = default, bool floats = false) {
             this.item = new Registerable<IItem>(item);
             tCollider.transform.rotation = rot;
         }

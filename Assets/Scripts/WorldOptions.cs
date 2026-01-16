@@ -207,6 +207,8 @@ namespace Arterra.Configuration {
             public Option<Intrinsic.Crafting> Crafting;
             /// <summary> The registry containing all furnace formulas.
             public Catalogue<Intrinsic.Furnace.FurnaceFormula> FurnaceFormulas;
+            /// <summary> The registry containing all mortar formulas.
+            public Catalogue<Intrinsic.Mortar.MortarFormula> MortarFormulas;
             /// <summary> Controls how the player's armor is displayed. See <see cref="Gameplay.Armor"/> for more information. </summary>
             public Option<Intrinsic.Armor> Armor;
             /// <summary> Controls how the terrain is updated. See <see cref="Intrinsic.TerrainUpdation"/> for more information. </summary>

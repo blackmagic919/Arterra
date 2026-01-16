@@ -20,6 +20,12 @@ public class Generation : ScriptableObject
     /// other surface biomes within <see cref="SurfaceBiomes"/>. <seealso cref="SBiomeInfo"/> </summary> 
     [SerializeField]
     public Catalogue<CInfo<SurfaceBiome>> SurfaceBiomes;
+    /// <summary> The registry containing all seafloor biomes that can be generated.
+    /// Seafloor biomes are biomes that generate on the seafloor and can pick where to generate
+    /// based on the features of the seafloor. Importantly, seafloor biomes may not span all query space,
+    /// and if no seafloor biome is selected, the biome is instead decided by the <see cref="SeaBiomes"/>. </summary> 
+    [SerializeField]
+    public Catalogue<CInfo<SurfaceBiome>> SeafloorBiomes;
     /// <summary>
     /// The registry containing all cave biomes that can be generated.
     /// Cave biomes generate underneath the surface of the world and have their unique
@@ -37,6 +43,12 @@ public class Generation : ScriptableObject
     /// sky independently of what the surface biome is. </remarks>
     [SerializeField]
     public Catalogue<CInfo<CaveBiome>> SkyBiomes;
+    /// <summary> The registry containing all sky biomes that can be generated.
+    /// Sea biomes generate only between an underwater seafloor and the ocean's
+    /// water surface. Seabiomes may be overwritten by <see cref="SeafloorBiomes"/> 
+    /// and only need to not overlap with other sea biomes </summary>
+    [SerializeField]
+    public Catalogue<CInfo<CaveBiome>> SeaBiomes;
 }
 
 /// <summary>

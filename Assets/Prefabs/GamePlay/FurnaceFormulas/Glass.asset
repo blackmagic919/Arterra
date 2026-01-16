@@ -20,11 +20,14 @@ MonoBehaviour:
     value:
     - Glass:Solid
     - Sand:Solid
+    - Limestone:Solid
   StartTemperature: 500
   EndTemperature: 800
   Inputs:
     value:
     - Index: 1
+      Rate: 0.1
+    - Index: 2
       Rate: 0.1
   Outputs:
     value:

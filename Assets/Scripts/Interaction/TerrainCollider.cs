@@ -13,7 +13,6 @@ Future Note: Make this done on a job system
 Sample from a simplex rather than a grid(should be faster)
 */
 
-[BurstCompile]
 [System.Serializable]
 public struct TerrainCollider {
     public const float BaseFriction = 0.2f;
@@ -22,8 +21,7 @@ public struct TerrainCollider {
     public Transform transform;
     public bool useGravity;
 
-    [BurstCompile]
-    public readonly float3 TrilinearDisplacement(in float3 posGS, in MapContext cxt) {
+    public static float3 TrilinearDisplacement(in float3 posGS, in MapContext cxt) {
         //Calculate Density
         int x0 = (int)Math.Floor(posGS.x); int x1 = x0 + 1;
         int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
@@ -71,8 +69,7 @@ public struct TerrainCollider {
         return normal * TrilinearGradientLength(density, posGS, normal, cxt);
     }
 
-    [BurstCompile]
-    public readonly float2 BilinearDisplacement(in float2 posGS, in int3x3 transform, int axis, in MapContext cxt) {
+    public static float2 BilinearDisplacement(in float2 posGS, in int3x3 transform, int axis, in MapContext cxt) {
         int x0 = (int)Math.Floor(posGS.x); int x1 = x0 + 1;
         int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
 
@@ -99,8 +96,7 @@ public struct TerrainCollider {
         return normal * BilinearGradientLength(density, posGS, normal, transform, axis, cxt);
     }
 
-    [BurstCompile]
-    public readonly float LinearDisplacement(float t, in int3x3 transform, in int2 plane, in MapContext cxt) {
+    public static float LinearDisplacement(float t, in int3x3 transform, in int2 plane, in MapContext cxt) {
         int t0 = (int)Math.Floor(t);
         int t1 = t0 + 1;
 
@@ -113,15 +109,13 @@ public struct TerrainCollider {
         float normal = math.sign(-(c1 - c0));
         return normal * LinearGradientLength(density, t, normal, transform, plane, cxt); //Normal
     }
-    [BurstCompile]
-    public readonly float LinearGradientLength(float density, float pos, float normal, in int3x3 transform, in int2 plane, in MapContext cxt) {
+    public static float LinearGradientLength(float density, float pos, float normal, in int3x3 transform, in int2 plane, in MapContext cxt) {
         int corner = (int)(math.floor(pos) + math.max(normal, 0));
         float cDen = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, corner)), cxt);
         if (cDen >= density) return 0;
         return math.clamp((cxt.IsoValue - density) / (cDen - density), 0, 1) * math.abs(corner - pos);
     }
-    [BurstCompile]
-    public readonly float BilinearGradientLength(float density, float2 pos, float2 normal, in int3x3 transform, int axis, in MapContext cxt) {
+    public static float BilinearGradientLength(float density, float2 pos, float2 normal, in int3x3 transform, int axis, in MapContext cxt) {
         float2 tMax = 1.0f / math.abs(normal); float eDen;
         tMax.x *= normal.x >= 0 ? 1 - math.frac(pos.x) : math.frac(pos.x);
         tMax.y *= normal.y >= 0 ? 1 - math.frac(pos.y) : math.frac(pos.y);
@@ -137,8 +131,7 @@ public struct TerrainCollider {
         return math.clamp((cxt.IsoValue - density) / (eDen - density), 0, 1) * t;
     }
 
-    [BurstCompile]
-    public readonly float TrilinearGradientLength(float density, float3 pos, float3 normal, in MapContext cxt) {
+    public static float TrilinearGradientLength(float density, float3 pos, float3 normal, in MapContext cxt) {
         float3 tMax = 1.0f / math.abs(normal); float fDen;
         tMax.x *= normal.x >= 0 ? 1 - math.frac(pos.x) : math.frac(pos.x);
         tMax.y *= normal.y >= 0 ? 1 - math.frac(pos.y) : math.frac(pos.y);
@@ -154,8 +147,7 @@ public struct TerrainCollider {
 
         return math.clamp((cxt.IsoValue - density) / (fDen - density), 0, 1) * t;
     }
-    [BurstCompile]
-    private readonly float LinearDensity(float t, in int3x3 transform, in int2 plane, in MapContext cxt) {
+    private static float LinearDensity(float t, in int3x3 transform, in int2 plane, in MapContext cxt) {
         int t0 = (int)Math.Floor(t);
         int t1 = t0 + 1;
 
@@ -165,8 +157,7 @@ public struct TerrainCollider {
 
         return c0 * (1 - td) + c1 * td;
     }
-    [BurstCompile]
-    private readonly float BilinearDensity(float x, float y, in int3x3 transform, in int axis, in MapContext cxt) {
+    private static float BilinearDensity(float x, float y, in int3x3 transform, in int axis, in MapContext cxt) {
         int x0 = (int)Math.Floor(x); int x1 = x0 + 1;
         int y0 = (int)Math.Floor(y); int y1 = y0 + 1;
 
@@ -205,11 +196,10 @@ public struct TerrainCollider {
     * |  1________2/  /
     * +---------> x  /
     */
-    private readonly int3x3 YXZTrans => new(0, 1, 0, 1, 0, 0, 0, 0, 1); //yxz, flips xz component
-    private readonly int3x3 XZPlane => new(1, 0, 0, 0, 0, 1, 0, 1, 0);//xzy
-    private readonly int3x3 XYPlane => new(1, 0, 0, 0, 1, 0, 0, 0, 1);//xyz
-    private readonly int3x3 YZPlane => new(0, 0, 1, 1, 0, 0, 0, 1, 0); //zxy
-    [BurstCompile]
+    private static int3x3 YXZTrans => new(0, 1, 0, 1, 0, 0, 0, 0, 1); //yxz, flips xz component
+    private static int3x3 XZPlane => new(1, 0, 0, 0, 0, 1, 0, 1, 0);//xzy
+    private static int3x3 XYPlane => new(1, 0, 0, 0, 1, 0, 0, 0, 1);//xyz
+    private static int3x3 YZPlane => new(0, 0, 1, 1, 0, 0, 0, 1, 0); //zxy
     private bool SampleFaceCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
         float3 min = math.min(originGS, originGS + boundsGS);
         float3 max = math.max(originGS, originGS + boundsGS);
@@ -248,8 +238,7 @@ public struct TerrainCollider {
         displacement = maxDis + minDis;
         return math.any(displacement != float3.zero);
     }
-    [BurstCompile]
-    private bool SampleEdgeCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
+    private static bool SampleEdgeCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
         float3 min = math.min(originGS, originGS + boundsGS);
         float3 max = math.max(originGS, originGS + boundsGS);
         int3 minC = (int3)math.ceil(min); float3 minDis = float3.zero;
@@ -287,7 +276,6 @@ public struct TerrainCollider {
         displacement = maxDis + minDis;
         return math.any(displacement != float3.zero);
     }
-    [BurstCompile]
     private bool SampleCornerCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
         float3 min = math.min(originGS, originGS + boundsGS);
         float3 max = math.max(originGS, originGS + boundsGS);
@@ -307,7 +295,6 @@ public struct TerrainCollider {
     }
 
     public bool SampleCollision(float3 originGS, float3 boundsGS, out float3 displacement) => SampleCollision(originGS, boundsGS, cxt.mapContext, out displacement);
-    [BurstCompile]
     public bool SampleCollision(in float3 originGS, in float3 boundsGS, in MapContext context, out float3 displacement) {
         float3 origin = originGS;
         SampleCornerCollision(origin, boundsGS, context, out displacement);
@@ -321,7 +308,6 @@ public struct TerrainCollider {
     }
 
 
-    [BurstCompile]
     float3 CancelVel(in float3 vel, in float3 norm) {
         float3 dir = math.normalize(norm);
         return vel - math.dot(vel, dir) * dir;
@@ -374,7 +360,6 @@ public struct TerrainCollider {
         this.useGravity = true;
     }
 
-    [BurstCompile]
     public struct Transform {
         public float3 position;
         public Quaternion rotation;

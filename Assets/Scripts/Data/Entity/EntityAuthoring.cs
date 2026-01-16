@@ -104,6 +104,9 @@ public abstract class Entity: IRegistered, IEventControlled{
     /// right direction by the entity's <see cref="Facing">rotation</see></summary>
     [JsonIgnore]
     public float3 Right => Facing * Vector3.right;
+    /// <summary> The weight of the entity </summary>
+    [JsonIgnore]
+    public virtual float weight => 0.5f;
 
     /// <summary> The event controller responsible for managing all events related to this entity </summary>
     [JsonIgnore]

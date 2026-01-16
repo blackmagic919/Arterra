@@ -241,6 +241,11 @@ namespace Arterra.Configuration.Generation.Material
             OpenedInventory.RecalculateTemperature();
         }
 
+        public enum InvIndex {
+            Input = 0,
+            Output = 1,
+            Fuel = 2,
+        }
 
         // This object will be serialized into the map meta data to store the inventory of the furnace
         public class FurnaceInventory : PanelNavbarManager.INavPanel {
@@ -301,7 +306,7 @@ namespace Arterra.Configuration.Generation.Material
                 GameObject left = root.transform.GetChild(0).GetChild(0).Find("Fuel").gameObject;
                 GameObject center = root.transform.GetChild(0).GetChild(0).Find("Input").gameObject;
                 GameObject right = root.transform.GetChild(0).GetChild(0).Find("Output").gameObject;
-                RecipeSearch = new FurnaceRecipeSearch(root.transform, invs, settings.MaxRecipeSlotCount);
+                RecipeSearch = new FurnaceRecipeSearch(settings, root.transform, invs, settings.MaxRecipeSlotCount);
                 invs[(int)InvIndex.Fuel].InitializeHorizontalDisplay(left, false);
                 invs[(int)InvIndex.Input].InitializeHorizontalDisplay(center, false);
                 invs[(int)InvIndex.Output].InitializeVerticalDisplay(right, true);

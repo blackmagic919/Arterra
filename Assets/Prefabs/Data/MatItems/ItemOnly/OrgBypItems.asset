@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: OrganicByproduct
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 10001
+        value:
+          value:
+            rid: -2
   Children:
     value:
     - value: {fileID: 11400000, guid: 9bc29b316125e45bdb17c4212581610d, type: 2}
@@ -29,6 +33,10 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: 42853399eb5784d1e8b46bd19c8a60ec, type: 2}
     - value: {fileID: 11400000, guid: a0e7f2c5d14aa4ab586ae0d7cc3e8d3f, type: 2}
     - value: {fileID: 11400000, guid: 0fd89f673d45f418e8e58756f4bbdfd3, type: 2}
+    - value: {fileID: 11400000, guid: 59e6d6f1bf79440108b884269673ac2d, type: 2}
+    - value: {fileID: 11400000, guid: 246117cf0599947139e169ac8c499195, type: 2}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }

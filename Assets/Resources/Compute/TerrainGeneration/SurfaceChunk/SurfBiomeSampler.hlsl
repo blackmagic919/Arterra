@@ -16,32 +16,32 @@ bool contains(RNode6 node, float mapData[6]){
 }
 
 //No recursion
-int GetBiome(float mapData[6]){
+int GetBiome(float mapData[6], int offset){
 
     uint curInd = 1;
     uint checkedChild = 0; //0<-unvisited, 1<-visited first child, 2 <- fully visited
 
     //    if not found     if biome is found
-    while(curInd > 0 && _BiomeSurfTree[curInd-1].biome < 0){
+    while(curInd > 0 && _BiomeSurfTree[curInd - 1 + offset].biome < 0){
         if(checkedChild == 2){
             checkedChild = curInd % 2 + 1;
             curInd = floor(curInd / 2);
         }
         else if(checkedChild == 0){
-            if(contains(_BiomeSurfTree[curInd * 2 - 1], mapData)){
+            if(contains(_BiomeSurfTree[curInd * 2 - 1 + offset], mapData)){
                 curInd = curInd * 2;
                 checkedChild = 0;
             }
             else checkedChild = 1;
         }
         else{
-            if(contains(_BiomeSurfTree[curInd * 2], mapData)){
+            if(contains(_BiomeSurfTree[curInd * 2 + offset], mapData)){
                 curInd = curInd * 2 + 1;
                 checkedChild = 0;
             }
             else checkedChild = 2;
         }
     }
-    return abs(_BiomeSurfTree[max((int)curInd - 1, 0)].biome) - 1;
+    return abs(_BiomeSurfTree[max((int)curInd - 1, 0) + offset].biome) - 1;
 }
 

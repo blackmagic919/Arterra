@@ -29,7 +29,10 @@ float waterHeight;
 
 StructuredBuffer<PrefixCounters> _BiomePrefCount;
 StructuredBuffer<BMaterial> _BiomeMaterials;
+int _BCaveStart;
 int _BSkyStart;
+int _BSeaStart;
+int _BIgnoreBiome;
 
 uint caveFreqSampler;
 uint caveSizeSampler;
@@ -84,7 +87,7 @@ float GetNoiseCentered(float val, float center)
     //Counterscale the middle
     float ratio = abs(center * 2 - 1);
     float exponent = lerp(4.0, 1.0, ratio);
-    return pow(base, exponent);
+    return pow(abs(base), exponent);
 }
 
 float GetMaterialWeight(BMaterial material, float coarse, float fine, float height){
@@ -131,6 +134,7 @@ void Generate (uint3 id : SV_DispatchThreadID)
     surfData data = ReadSurfData(id.xz);
     float actualHeight = id.y * skipInc + sOffset.y;
     float groundHeight = actualHeight - data.terrain;
+    float surfaceBase = data.terrain - data.squash;
 
     float rawMaps[4];
     rawMaps[0] = GetRawNoise(id, caveFreqSampler);
@@ -138,14 +142,17 @@ void Generate (uint3 id : SV_DispatchThreadID)
     rawMaps[2] = GetRawNoise(id, caveShapeSampler);
     rawMaps[3] = 1.0f - exp(-abs(groundHeight)/heightSFalloff);
 
-    int biome;
-    if(data.InfMin <= groundHeight && groundHeight <= data.InfMax)
+    int biome; //Calculate biome
+    if(data.biome != _BIgnoreBiome
+       && data.InfMin <= groundHeight
+       && groundHeight <= data.InfMax)
         biome = data.biome; //use surface biome
     else {
-        int treeOff = groundHeight > 0 ? _BSkyStart : 0;
+        int treeOff = _BCaveStart;
+        if(groundHeight > 0) treeOff = _BSkyStart;
+        if(actualHeight > surfaceBase && actualHeight < waterHeight) treeOff = _BSeaStart;
         biome = GetBiome(rawMaps, treeOff); 
-    }
-    BiomeMap[index + bSTART_biome] = biome;
+    } BiomeMap[index + bSTART_biome] = biome;
 
     float caveFreq = interpolateValue(rawMaps[0], caveFreqSampler);
     float caveSize = interpolateValue(rawMaps[1], caveSizeSampler);
@@ -178,7 +185,7 @@ void Generate (uint3 id : SV_DispatchThreadID)
         BaseMap[index].viscosity = BaseMap[index].density;
         bounds.x = _BiomePrefCount[biome].WaterEnd;
         bounds.y = _BiomePrefCount[biome+1].GroundEnd;
-    } else if(actualHeight > (data.terrain - data.squash) && actualHeight < waterHeight){
+    } else if(actualHeight > surfaceBase && actualHeight < waterHeight){
         BaseMap[index].density = 255;
         BaseMap[index].viscosity = (uint)round(density * 255.0f);
         bounds.x = _BiomePrefCount[biome+1].SurfaceEnd;

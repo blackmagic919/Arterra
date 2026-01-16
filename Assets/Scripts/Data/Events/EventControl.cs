@@ -42,6 +42,7 @@ namespace Arterra.Core.Events {
         Entity_InSolid = GameEventBases.Entity_Base + 15,
         Entity_InGas = GameEventBases.Entity_Base + 16,
         Entity_ProjectileHit = GameEventBases.Entity_Base + 17,
+        Entity_Collect = GameEventBases.Entity_Base + 18,
         
         
         Item_ConsumeFood = GameEventBases.Item_Base + 0,
@@ -50,6 +51,8 @@ namespace Arterra.Core.Events {
         Item_UseTool = GameEventBases.Item_Base + 3,
         Item_DrawBow = GameEventBases.Item_Base + 4,
         Item_ReleaseBow = GameEventBases.Item_Base + 5,
+        Item_DrawRod = GameEventBases.Item_Base + 6,
+        Item_ReleaseRod = GameEventBases.Item_Base + 7,
 
         Action_Jump = GameEventBases.Action_Base + 0,
         Action_RemoveTerrain = GameEventBases.Action_Base + 1,
@@ -60,15 +63,6 @@ namespace Arterra.Core.Events {
         Action_DismountRideable = GameEventBases.Action_Base + 6,
 
         System_Deserialize = GameEventBases.System_Base + 0,
-    }
-
-    public static class GameEventTypeMap {
-        public static readonly Dictionary<GameEvent, Type> EventArgTypes = new() {
-            { GameEvent.Entity_Damaged, typeof((float, float3)) },
-            { GameEvent.Entity_HitGround, typeof(float) },
-            { GameEvent.Entity_Attack, typeof(int) },
-            // Add other mappings here
-        };
     }
 
     //This is the visual layer, in the future this information would need to be

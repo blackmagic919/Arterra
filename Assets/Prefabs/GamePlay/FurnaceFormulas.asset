@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e76be5772a53ae4b9b235569a229911, type: 3}
+  m_Name: FurnaceFormulas
+  m_EditorClassIdentifier: 
+  Name: Root
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: f6b9c7569546fb0449716faf519460ed, type: 2}
+    - value: {fileID: 11400000, guid: 372859b076a254d9ab5d56cfadea08da, type: 2}
+    - value: {fileID: 11400000, guid: d6f55fb74f79940a7aaeca151f3357bf, type: 2}
+    - value: {fileID: 11400000, guid: ec9f6dc46d42f4243ae3b5bb363616d0, type: 2}
+    - value: {fileID: 11400000, guid: abcd48e2f64904d58a06071362f31519, type: 2}
+    - value: {fileID: 11400000, guid: 53b113369da7f4adaa4f2555b0163c66, type: 2}
+  references:
+    version: 2
+    RefIds: []

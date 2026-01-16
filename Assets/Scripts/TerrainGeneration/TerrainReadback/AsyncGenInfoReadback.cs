@@ -63,13 +63,13 @@ namespace Arterra.Core.Terrain.Readback {
             return Allocation;
         }
 
-        public void BeginGenInfoReadback(int3 CCoord){
+        public void BeginGenInfoReadback(int3 CCoord, byte cxt){
             void OnRegionSizeRecieved(AsyncGPUReadbackRequest request, uint2 memHandle){
                 if (!GenerationPreset.memoryHandle.GetBlockBufferSafe(Allocation, out ComputeBuffer block))
                     return;
                 int memSize = (int)(request.GetData<uint>()[0] - GenPoint.size);
                 int entityStartWord = GenPoint.size * (int)memHandle.y;
-                AsyncGPUReadback.Request(block, size: memSize * 4, offset: 4 * entityStartWord, (req) => ProcessGenPoints(req.GetData<GenPoint>(), CCoord));
+                AsyncGPUReadback.Request(block, size: memSize * 4, offset: 4 * entityStartWord, (req) => ProcessGenPoints(req.GetData<GenPoint>(), CCoord, cxt));
             }
             void OnRegionAddressRecieved(AsyncGPUReadbackRequest request){
                 if (!GenerationPreset.memoryHandle.GetBlockBufferSafe(Allocation, out ComputeBuffer block))
@@ -86,15 +86,20 @@ namespace Arterra.Core.Terrain.Readback {
             AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: (int)(8 * Allocation), (req) => OnRegionAddressRecieved(req));
         }
 
-        private void ProcessGenPoints(NativeArray<GenPoint> points, int3 CCoord) {
+        /// <summary> Flag to create entities from structure meta </summary>
+        public const int CREATE_ENTITIES = 0x1;
+        /// <summary> Flag to create entities from structure meta </summary>
+        public const int CREATE_META = 0x2;
+
+        private void ProcessGenPoints(NativeArray<GenPoint> points, int3 CCoord, byte cxt) {
             Release();
             foreach(GenPoint point in points) {
                 switch (point.type) {
                     case GenPoint.GenType.Entity:
-                        EntityManager.InitializeChunkEntity(point, CCoord);
+                        EntityManager.InitializeChunkEntity(point, CCoord, cxt);
                         break;
                     case GenPoint.GenType.StructureMeta:
-                        Structure.Generator.InitializeStructureMeta(point, CCoord);
+                        Structure.Generator.InitializeStructureMeta(point, CCoord, cxt);
                         break;
                 }
             }

@@ -92,7 +92,7 @@ namespace Arterra.Configuration.Intrinsic.Furnace {
         /// <param name="parent">The parent object containing the new slot</param>
         public void AttachDisplay(Transform parent) {
             Display?.Release();
-            Display = new ScrollingResultDisplay(parent, this);
+            Display = new ScrollingResultDisplay(parent, Outputs.value.Select(s => Index(s)).ToList());
         }
 
         /// <summary> Releases UI slot objects associated with this recipe. See <see cref="ISlot"/> for more information </summary>
@@ -101,52 +101,7 @@ namespace Arterra.Configuration.Intrinsic.Furnace {
             Display?.Release();
             Display = null;
         }
-
-        private class ScrollingResultDisplay {
-            private Image image;
-            private FurnaceFormula formula;
-            private int index;
-            private bool active = false;
-            private static Catalogue<TextureContainer> texInfo => Config.CURRENT.Generation.Textures;
-            private static Catalogue<Authoring> itemInfo => Config.CURRENT.Generation.Items;
-            public ScrollingResultDisplay(Transform parent, FurnaceFormula formula) {
-                this.formula = formula;
-                this.image = parent.transform.GetChild(0).GetComponentInChildren<Image>();
-                this.index = 0;
-
-                this.active = true;
-                FurnaceMaConversion output = formula.Outputs.value[index];
-                IItem resultItem = itemInfo.Retrieve(formula.Index(output)).Item;
-                resultItem.Create(formula.Index(output), 0);
-                image.sprite = texInfo.Retrieve(resultItem.TexIndex).self;
-                image.color = new Color(1, 1, 1, 1);
-                if (formula.Outputs.value.Count <= 1) return;
-                Arterra.Core.Terrain.OctreeTerrain.MainCoroutines.Enqueue(UpdateRoutine());
-            }
-
-            public void Release() {
-                if (image == null) return;
-                image.sprite = null;
-                image.color = new Color(0, 0, 0, 0);
-                active = false;
-            }
-
-            private IEnumerator UpdateRoutine() {
-                while (true) {
-                    yield return new WaitForSeconds(1.0f); // Update every second
-                    if (image == null) yield break;
-                    if (!active) yield break;
-
-                    index = (index + 1) % formula.Outputs.value.Count;
-                    FurnaceMaConversion output = formula.Outputs.value[index];
-                    IItem resultItem = itemInfo.Retrieve(formula.Index(output)).Item;
-                    resultItem.Create(formula.Index(output), 0);
-                    image.sprite = texInfo.Retrieve(resultItem.TexIndex).self;
-                }
-            }
-        }
     }
-
     public class FurnaceRecipeSearch {
         private Transform Menu;
         private Animator animator;
@@ -161,7 +116,7 @@ namespace Arterra.Configuration.Intrinsic.Furnace {
         private StackInventory[] InvDisplays;
         private TextMeshProUGUI FuelTemp;
         private IngredientTable IngredientList;
-        public FurnaceRecipeSearch(Transform furnaceMenu, StackInventory[] FurnaceInvs, int numFormulas) {
+        public FurnaceRecipeSearch(FurnaceMaterial settings, Transform furnaceMenu, StackInventory[] FurnaceInvs, int numFormulas) {
             this.FurnaceInvs = FurnaceInvs;
             Menu = furnaceMenu.transform.Find("SearchArea");
             SearchInput = Menu.Find("SearchBar").GetComponentInChildren<TMP_InputField>();
@@ -193,15 +148,15 @@ namespace Arterra.Configuration.Intrinsic.Furnace {
             ReturnButton.onClick.AddListener(() => DeactivateRecipeDisplay());
             SearchInput.onValueChanged.AddListener(DeactivateRecipeDisplay);
 
-            var invInput = new StackInventory(6);
-            var invOutput = new StackInventory(3, 0);
+            var invInput = new StackInventory(settings.MaxInputSlotCount);
+            var invOutput = new StackInventory(settings.MaxOutputSlotCount, 0);
             InvDisplays = new StackInventory[] { invInput, invOutput };
             Transform displayFurnace = RecipeDisplay.transform.Find("Furnace");
             FuelTemp = displayFurnace.Find("Fuel").GetComponent<TextMeshProUGUI>();
             GameObject center = displayFurnace.Find("Input").gameObject;
             GameObject right = displayFurnace.Find("Output").gameObject;
-            InvDisplays[(int)InvIndex.Input].InitializeHorizontalDisplay(center, false);
-            InvDisplays[(int)InvIndex.Output].InitializeVerticalDisplay(right, true);
+            InvDisplays[(int)FurnaceMaterial.InvIndex.Input].InitializeHorizontalDisplay(center, false);
+            InvDisplays[(int)FurnaceMaterial.InvIndex.Output].InitializeVerticalDisplay(right, true);
             Button MatchButton = displayFurnace.GetComponent<Button>();
             MatchButton.onClick.AddListener(() => {
                 MatchRecipe(ActiveRecipe);
@@ -249,13 +204,14 @@ namespace Arterra.Configuration.Intrinsic.Furnace {
         }
 
         public void ActivateRecipeDisplay(FurnaceFormula template) {
+            if (template == null) return;
             SearchContainer.gameObject.SetActive(false);
             RecipeDisplay.gameObject.SetActive(true);
             ActiveRecipe = template;
 
             float norm = DisplayNormalizationFactor(ActiveRecipe);
-            RefreshInventory(InvDisplays[(int)InvIndex.Input], ActiveRecipe.Inputs, ActiveRecipe, norm);
-            RefreshInventory(InvDisplays[(int)InvIndex.Output], ActiveRecipe.Outputs, ActiveRecipe, norm);
+            RefreshInventory(InvDisplays[(int)FurnaceMaterial.InvIndex.Input], ActiveRecipe.Inputs, ActiveRecipe, norm);
+            RefreshInventory(InvDisplays[(int)FurnaceMaterial.InvIndex.Output], ActiveRecipe.Outputs, ActiveRecipe, norm);
             FuelTemp.text = $"{ActiveRecipe.StartTemperature}° - {ActiveRecipe.EndTemperature}°";
             List<(int, float)> ing = ActiveRecipe.Inputs.value.Concat(
                 ActiveRecipe.Outputs.value).Select(i => (ActiveRecipe.Index(i), i.Rate * norm))
@@ -303,9 +259,9 @@ namespace Arterra.Configuration.Intrinsic.Furnace {
             FurnaceInvs[0].CopyTo(tempInv, 0, 0); offset += FurnaceInvs[0].capacity;
             FurnaceInvs[1].CopyTo(tempInv, 0, (int)offset); offset += FurnaceInvs[0].capacity;
             
-            AccumulateRequiredIngredients(FurnaceInvs[(int)InvIndex.Input], recipe.Inputs.value);
-            AccumulateInvSurplus(FurnaceInvs[(int)InvIndex.Output]);
-            AccumulateInvSurplus(FurnaceInvs[(int)InvIndex.Fuel]);
+            AccumulateRequiredIngredients(FurnaceInvs[(int)FurnaceMaterial.InvIndex.Input], recipe.Inputs.value);
+            AccumulateInvSurplus(FurnaceInvs[(int)FurnaceMaterial.InvIndex.Output]);
+            AccumulateInvSurplus(FurnaceInvs[(int)FurnaceMaterial.InvIndex.Fuel]);
             FurnaceInvs[0].Clear(); FurnaceInvs[1].Clear();
 
             //Aquire items from inventory
@@ -321,7 +277,7 @@ namespace Arterra.Configuration.Intrinsic.Furnace {
                 Surplus[item] = surplus;
             }
 
-            PlaceRequiredIngredients(FurnaceInvs[(int)InvIndex.Input], recipe.Inputs.value);
+            PlaceRequiredIngredients(FurnaceInvs[(int)FurnaceMaterial.InvIndex.Input], recipe.Inputs.value);
 
             //Dispose of temporaryInventory
             for(int i = 0; i < tempInv.capacity; i++) {
@@ -387,11 +343,4 @@ namespace Arterra.Configuration.Intrinsic.Furnace {
             }
         }
     }
-
-    public enum InvIndex {
-        Input = 0,
-        Output = 1,
-        Fuel = 2,
-    }
-
 }

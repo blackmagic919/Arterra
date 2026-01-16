@@ -16,14 +16,30 @@ MonoBehaviour:
     Category:
       value: {fileID: 11400000, guid: dea1e6ddc41fb401c94281b532fb3351, type: 2}
     Reg:
-    - {fileID: 0}
+    - {fileID: 11400000, guid: 051fa97817dc7468c8f3590652705fa7, type: 2}
+    - {fileID: 11400000, guid: 18db5d2080ba7454e9d9e0fbff761d5a, type: 2}
+    - {fileID: 11400000, guid: c6cf230d8776042d6941a79eea587f30, type: 2}
+    - {fileID: 11400000, guid: 8a408ddfd451d411ba7b1a63b52a456f, type: 2}
+    - {fileID: 11400000, guid: a63107e4d5f53467e9446965fa8bde8a, type: 2}
+    - {fileID: 11400000, guid: 95336cff9441e4a4d97db180d8e93a8d, type: 2}
+    - {fileID: 11400000, guid: 59b0b886c3ac5458bb3fb22ba198b268, type: 2}
+  SeafloorBiomes:
+    Category:
+      value: {fileID: 11400000, guid: bdb19e48df06743aa9af6d90d96c4a1c, type: 2}
+    Reg: []
   CaveBiomes:
     Category:
       value: {fileID: 11400000, guid: 85557e8811d834583aae3e1d0873d23a, type: 2}
     Reg:
-    - {fileID: 0}
+    - {fileID: 11400000, guid: 32e03cc485a9c49d5aeee678c51604f3, type: 2}
   SkyBiomes:
     Category:
       value: {fileID: 11400000, guid: 08bb4396e93b0459fbc811b384134b72, type: 2}
     Reg:
-    - {fileID: 0}
+    - {fileID: 11400000, guid: bd234ee071a1142cb9518121f54f22e3, type: 2}
+    - {fileID: 11400000, guid: 5dfcab867f7cf4b8e84082b6471e1709, type: 2}
+    - {fileID: 11400000, guid: 5774ff7b0116340979a377e6d8e8f9c0, type: 2}
+  SeaBiomes:
+    Category:
+      value: {fileID: 11400000, guid: a4d6fdc892fe6486eba4cb6f4f064017, type: 2}
+    Reg: []

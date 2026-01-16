@@ -371,12 +371,16 @@ public static class GenerationPreset
         {
             Release();
             List<CInfo<SurfaceBiome>> surface = Config.CURRENT.Generation.Biomes.value.SurfaceBiomes.Reg;
+            List<CInfo<SurfaceBiome>> seafloor = Config.CURRENT.Generation.Biomes.value.SeafloorBiomes.Reg;
             List<CInfo<CaveBiome>> cave = Config.CURRENT.Generation.Biomes.value.CaveBiomes.Reg;
             List<CInfo<CaveBiome>> sky = Config.CURRENT.Generation.Biomes.value.SkyBiomes.Reg;
+            List<CInfo<CaveBiome>> sea = Config.CURRENT.Generation.Biomes.value.SeaBiomes.Reg;
             List<Info> biomes = new List<Info>(); 
             biomes.AddRange(surface.Select(e => e.info.value));
+            biomes.AddRange(seafloor.Select(e => e.info.value));
             biomes.AddRange(cave.Select(e => e.info.value));
             biomes.AddRange(sky.Select(e => e.info.value));
+            biomes.AddRange(sea.Select(e => e.info.value));
 
             int numBiomes = biomes.Count;
             uint[,] biomePrefSum = new uint[numBiomes + 1, 5]; //Prefix sum
@@ -416,21 +420,36 @@ public static class GenerationPreset
             if(biomeEntityBuffer != null) Shader.SetGlobalBuffer("_BiomeEntities", biomeEntityBuffer);
             Shader.SetGlobalBuffer("_BiomePrefCount", biomePrefCountBuffer);
 
-            SurfaceBiome[] SurfTree = BDict.Create(surface, 1).FlattenTree<SurfaceBiome>();
-            CaveBiome[] CaveTree = BDict.Create(cave, surface.Count + 1).FlattenTree<CaveBiome>();
-            CaveBiome[] SkyTree = BDict.Create(sky, surface.Count + cave.Count + 1).FlattenTree<CaveBiome>();
-            SurfTreeBuffer = new ComputeBuffer(SurfTree.Length, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
-            CaveTreeBuffer = new ComputeBuffer(CaveTree.Length + SkyTree.Length, sizeof(float) * 4 * 2 + sizeof(int), ComputeBufferType.Structured);
-            SurfTree[0].biome = -1; //set defaults
-            CaveTree[0].biome = -1 * (surface.Count + 1); 
-            SkyTree[0].biome = -1 * (cave.Count + surface.Count + 1);
+            int offset = 1;
+            SurfaceBiome[] SurfTree = BDict.Create(surface, offset).FlattenTree<SurfaceBiome>(); offset += surface.Count();
+            SurfaceBiome[] SeafloorTree = BDict.Create(seafloor, offset).FlattenTree<SurfaceBiome>(); offset += seafloor.Count();
+            CaveBiome[] CaveTree = BDict.Create(cave, offset).FlattenTree<CaveBiome>(); offset += cave.Count();
+            CaveBiome[] SkyTree = BDict.Create(sky, offset).FlattenTree<CaveBiome>(); offset += sky.Count();
+            CaveBiome[] SeaTree = BDict.Create(sea, offset).FlattenTree<CaveBiome>(); 
 
-            SurfTreeBuffer.SetData(SurfTree);
-            CaveTreeBuffer.SetData(CaveTree.Concat(SkyTree).ToArray());
+            SurfTreeBuffer = new ComputeBuffer(SurfTree.Length + SeafloorTree.Length, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
+            CaveTreeBuffer = new ComputeBuffer(CaveTree.Length + SkyTree.Length + SeaTree.Length, sizeof(float) * 4 * 2 + sizeof(int), ComputeBufferType.Structured);
+
+            offset = 1;
+            SurfTree[0].biome     = -offset; offset += surface.Count();
+            SeafloorTree[0].biome = -offset; offset += seafloor.Count();
+            CaveTree[0].biome     = -offset; offset += cave.Count();
+            SkyTree[0].biome      = -offset; offset += sky.Count();
+            SeaTree[0].biome      = -offset; offset += sea.Count();
+            SeafloorTree[0].biome = -offset; //mark as special
+
+            SurfTreeBuffer.SetData(SurfTree.Concat(SeafloorTree).ToArray());
+            CaveTreeBuffer.SetData(CaveTree.Concat(SkyTree).Concat(SeaTree).ToArray());
 
             Shader.SetGlobalBuffer("_BiomeSurfTree", SurfTreeBuffer);
             Shader.SetGlobalBuffer("_BiomeCaveTree", CaveTreeBuffer);
+            Shader.SetGlobalInteger("_BSurfaceStart", 0);
+            Shader.SetGlobalInteger("_BSeafloorStart", SurfTree.Length);
+            Shader.SetGlobalInteger("_BCaveStart", 0);
             Shader.SetGlobalInteger("_BSkyStart", CaveTree.Length);
+            Shader.SetGlobalInteger("_BSeaStart", CaveTree.Length + SkyTree.Length);
+             //indicate ignored biome (sub 1 because we subtract 1 in sample)
+            Shader.SetGlobalInteger("_BIgnoreBiome", offset - 1);
         }
 
         /// <summary>

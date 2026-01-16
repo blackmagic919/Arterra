@@ -125,7 +125,7 @@ namespace Arterra.Core.Player {
             AttackCooldown = settings.AttackFrequency;
             float3 hitPt = PlayerHandler.data.head + PlayerHandler.data.Forward * interact.ReachDistance;
             if (PlayerInteraction.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
-            if (!EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out Entity entity))
+            if (!EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out Entity entity, out _))
                 return;
             
             static void PlayerDamageEntity(Entity target)

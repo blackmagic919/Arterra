@@ -102,7 +102,7 @@ namespace Arterra.Core.Player{
                 rayHit = true;
             };
 
-            if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out var entity)) {
+            if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out var entity, out _)) {
                 EntityInteract(entity);
                 return;
             }
@@ -125,7 +125,7 @@ namespace Arterra.Core.Player{
         private static void RemoveTerrain(float _) {
             if (!PlayerHandler.active) return;
             if (!CylinderTestSolid(out float3 hitPt)) return;
-            if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out var entity)) {
+            if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out var entity, out _)) {
                 return;
             }
 
@@ -338,7 +338,7 @@ namespace Arterra.Core.Player{
             IAttackable targEnt = target as IAttackable;
             if (!targEnt.IsDead) targEnt.Interact(data);
             else {
-                IItem slot = targEnt.Collect(settings.PickupRate);
+                IItem slot = targEnt.Collect(PlayerHandler.data, settings.PickupRate);
                 InventoryController.AddEntry(slot);
             }
         }

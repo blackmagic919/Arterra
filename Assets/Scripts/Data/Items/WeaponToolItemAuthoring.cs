@@ -93,7 +93,7 @@ namespace Arterra.Configuration.Generation.Item
                 effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);
                     
             if (RayTestSolid(out float3 terrHit)) hitPt = terrHit;
-            if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out Entity.Entity entity))
+            if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out Entity.Entity entity, out _))
                 return;
             void PlayerDamageEntity(Entity.Entity target) {
                 if (!target.active) return;

@@ -64,7 +64,7 @@ public static class PlayerCrosshair {
                 * Config.CURRENT.GamePlay.Player.value.Interaction.value.ReachDistance;
 
         if (PlayerInteraction.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
-        if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out _))
+        if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out _, out _))
             Animator.SetBool("Focus", false);
         else Animator.SetBool("Focus", true);
     }

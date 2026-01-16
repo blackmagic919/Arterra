@@ -111,6 +111,7 @@ public class CraftingRecipeSearch {
     public void ActivateRecipeDisplay(CraftingAuthoring template) {
         if (HighlightTask != null)
             HighlightTask.Active = false;
+        if (template == null) return;
 
         ActiveRecipe = template.SerializeCopy();
         List<(int, float)> ing = ActiveRecipe.items.value.Concat(ActiveRecipe.materials.value).Select(i => (i.Index, i.Amount)).ToList();

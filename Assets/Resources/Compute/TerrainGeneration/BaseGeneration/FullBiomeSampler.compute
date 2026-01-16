@@ -18,7 +18,12 @@ uint caveSizeSampler;
 uint caveShapeSampler;
 uint caveFreqSampler;
 float heightSFalloff;
+float waterHeight;
+
+int _BCaveStart;
 int _BSkyStart;
+int _BSeaStart;
+int _BIgnoreBiome;
 
 StructuredBuffer<surfData> _SurfMemoryBuffer;
 StructuredBuffer<uint2> _SurfAddressDict;
@@ -41,6 +46,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     surfData data = ReadSurfData(id.xz);
     float actualHeight = id.y * skipInc + sOffset.y;
     float groundHeight = actualHeight - data.terrain;
+    float surfaceBase = data.terrain - data.squash;
     
     float rawMaps[4];
     rawMaps[0] = GetRawNoise(id, caveFreqSampler);
@@ -49,10 +55,14 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     rawMaps[3] = 1 - exp(-abs(groundHeight)/heightSFalloff);
 
     uint biome;
-    if(data.InfMin <= groundHeight && groundHeight <= data.InfMax)
+    if(data.biome != _BIgnoreBiome
+       && data.InfMin <= groundHeight
+       && groundHeight <= data.InfMax)
         biome = data.biome; //use sky biome
     else {
-        int treeOff = groundHeight > 0 ? _BSkyStart : 0;
+        int treeOff = _BCaveStart;
+        if(groundHeight > 0) treeOff = _BSkyStart;
+        if(actualHeight > surfaceBase && actualHeight < waterHeight) treeOff = _BSeaStart;
         biome = GetBiome(rawMaps, treeOff); 
         //use cave biome, hopefully compiler removes this branch
     }

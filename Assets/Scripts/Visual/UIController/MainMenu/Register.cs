@@ -313,13 +313,16 @@ public interface IRegister {
         settings.Generation.Entities.Construct();
         settings.Generation.Textures.Construct();
         settings.Generation.Biomes.value.SurfaceBiomes.Construct();
+        settings.Generation.Biomes.value.SeafloorBiomes.Construct();
         settings.Generation.Biomes.value.CaveBiomes.Construct();
         settings.Generation.Biomes.value.SkyBiomes.Construct();
+        settings.Generation.Biomes.value.SeaBiomes.Construct();
         settings.Generation.Structures.value.StructureDictionary.Construct();
         settings.Generation.Materials.value.MaterialDictionary.Construct();
         settings.Generation.Items.Construct();
         settings.System.Crafting.value.Recipes.Construct();
         settings.System.FurnaceFormulas.Construct();
+        settings.System.MortarFormulas.Construct();
         settings.Quality.GeoShaders.value.Categories.Construct();
         settings.System.Armor.value.Variants.Construct();
         
@@ -337,12 +340,15 @@ public interface IRegister {
         Association.Add("Entities", settings.Generation.Entities);
         Association.Add("Textures", settings.Generation.Textures);
         Association.Add("SurfaceBiomes", settings.Generation.Biomes.value.SurfaceBiomes);
+        Association.Add("SeafloorBiomes", settings.Generation.Biomes.value.SeafloorBiomes);
         Association.Add("CaveBiomes", settings.Generation.Biomes.value.CaveBiomes);
         Association.Add("SkyBiomes", settings.Generation.Biomes.value.SkyBiomes);
+        Association.Add("SeaBiomes", settings.Generation.Biomes.value.SeaBiomes);
         Association.Add("Structures", settings.Generation.Structures.value.StructureDictionary);
         Association.Add("Materials", settings.Generation.Materials.value.MaterialDictionary);
         Association.Add("Items", settings.Generation.Items);
         Association.Add("FurnaceRecipies", settings.System.FurnaceFormulas);
+        Association.Add("MortarRecipies", settings.System.MortarFormulas);
         Association.Add("CraftingRecipes", settings.System.Crafting.value.Recipes);
         Association.Add("GeoShaders", settings.Quality.GeoShaders.value.Categories);
         Association.Add("ArmorVariants", settings.System.Armor.value.Variants);

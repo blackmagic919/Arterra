@@ -9,6 +9,7 @@ using Arterra.Configuration.Generation.Structure;
 using Arterra.Configuration.Generation.Material;
 using Arterra.Configuration.Generation.Item;
 using Arterra.Core.Storage;
+using System.Linq;
 
 
 public interface IMateable {
@@ -16,6 +17,11 @@ public interface IMateable {
     public bool CanMateWith(Entity entity);
     public Genetics Genetics{ get; set; }
 }
+
+public interface IEntitySearchItem {
+    public IItem[] GetItems();
+}
+
 [Serializable]
 //Recognition for the basic minimal capability to run away. Some
 //Creatures cannot eat and mate and thus do not need other fields in Recognition
@@ -39,7 +45,7 @@ public class MinimalRecognition {
     protected int materialStart => Config.CURRENT.Generation.Entities.Reg.Count;
     public bool HasEntityPrey => PreyEntity.value != null && PreyEntity.value.Count > 0;
     public bool HasPlantPrey => PreyPlant.value != null && PreyPlant.value.Count > 0;
-
+    
     public virtual void Construct(){
         AwarenessTable = new Dictionary<int, Recognizable>();
         Catalogue<Arterra.Configuration.Generation.Entity.Authoring> eReg = Config.CURRENT.Generation.Entities;
@@ -105,14 +111,15 @@ public class MinimalRecognition {
 
         Dictionary<int, Recognizable> Awareness = AwarenessTable;
         Bounds bounds = new (self.position, 2 * new float3(sightDist));
-        EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
+        EntityManager.ESTree.Query(bounds, (nEntity) => {
             if(nEntity == null) return;
             if(nEntity.info.entityId == self.info.entityId) return;
-            //if (self.info.entityType == 27) Debug.Log(Awareness.Keys.First());
-            if(!Awareness.ContainsKey((int)nEntity.info.entityType)) return;
 
-            Recognizable eInfo = Awareness[(int)nEntity.info.entityType];
-            if(!eInfo.IsPrey) return;
+            if (!Awareness.TryGetValue((int)nEntity.info.entityType, out Recognizable eInfo)
+                && !TrySearchEntityItems(nEntity, Awareness, out eInfo))
+                return;
+
+            if (!eInfo.IsPrey) return;
             if(CanHunt != null && !CanHunt(nEntity)) 
                 return;
             
@@ -127,6 +134,19 @@ public class MinimalRecognition {
         });
         entity = cEntity;
         return entity != null;
+
+        static bool TrySearchEntityItems(Entity entity, Dictionary<int, Recognizable> awareness, out Recognizable recognizable) {
+            recognizable = default;
+            if (entity is not IEntitySearchItem itemHolder) return false;
+
+            IItem[] items = itemHolder.GetItems();
+            if (items == null) return false;
+            foreach(IItem item in items) {
+                if (item == null) continue;
+                if(awareness.TryGetValue(-item.Index, out recognizable))
+                    return true;
+            } return false;
+        }
     }
 
     //Finds the closest prey near it
@@ -309,7 +329,7 @@ public class Recognition : MinimalRecognition{
         for(int i = 0; i < Edibles.value.Count; i++){
             int edibleIndex = iReg.RetrieveIndex(Edibles.value[i].EdibleType);
             //negative so it doesn't conflict with entity indexes
-            AwarenessTable.TryAdd(-edibleIndex, new Recognizable(i, 0)); 
+            AwarenessTable.TryAdd(-edibleIndex, new Recognizable(i, 2)); 
         }}
     }
     [Serializable]

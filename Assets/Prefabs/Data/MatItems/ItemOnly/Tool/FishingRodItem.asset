@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d28377add04d5441d96af602dd5196b2, type: 3}
+  m_Name: FishingRodItem
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.Generation.Item.FishingRodAuthoring
+  Name: FishingRod
+  Tags:
+    Reg:
+      value: []
+  TextureName: FishingRod
+  Description: Fishing Rod Used To Lure and Catch Animals
+  MaxDurability: 100
+  MinDrawTime: 0.5
+  LineLength: 48
+  LineDetail: 2
+  LineDamping: 0.05
+  FullDrawTime: 2
+  MaxLaunchSpeed: 50
+  MinLaunchSpeed: 5
+  ReelSpeed: 0.5
+  HookEntity: Hook
+  HookEntityEvent: 18
+  HookProjectile:
+    LaunchSpeedMultiplier: 1
+    FireSound: 2001
+  BaitTag: 10001
+  Model:
+    Enabled: 0
+    Value: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

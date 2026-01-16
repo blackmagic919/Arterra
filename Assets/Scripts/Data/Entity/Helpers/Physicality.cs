@@ -13,15 +13,9 @@ using Arterra.Core.Events;
 /// implementer to decide how the request to take damage is handled. </summary>
 public interface IAttackable {
     public void Interact(Entity caller);
-    public IItem Collect(float collectRate);
+    public IItem Collect(Entity caller, float collectRate);
     public void TakeDamage(float damage, float3 knockback, Entity attacker = null);
     public bool IsDead { get; }
-}
-
-public interface ICollidable {
-    public float Weight { get; }
-    public float3 Velocity { get; }
-    public Bounds Bounds { get; }
 }
 
 public class MinimalVitality {
