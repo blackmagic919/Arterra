@@ -24,6 +24,14 @@ MonoBehaviour:
         value:
           value:
             rid: 6083762182251610194
+      - Tag: 22
+        value:
+          value:
+            rid: 5273703469288783957
+      - Tag: 32
+        value:
+          value:
+            rid: 5273703469288783974
   Children:
     value:
     - value: {fileID: 11400000, guid: d431ce8734eb24150bd1b9ad93c14bb2, type: 2}
@@ -33,6 +41,18 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 5273703469288783957
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 250
+        ToolDamage: 1
+        GivesItem: 1
+    - rid: 5273703469288783974
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 200
+        ToolDamage: 1
+        GivesItem: 1
     - rid: 5818089348897964116
       type: {class: ToolTag, ns: , asm: Assembly-CSharp}
       data:

@@ -48,6 +48,38 @@ MonoBehaviour:
         value:
           value:
             rid: 6083762182251610187
+      - Tag: 22
+        value:
+          value:
+            rid: 5273703469288783951
+      - Tag: 23
+        value:
+          value:
+            rid: 5273703469288783952
+      - Tag: 24
+        value:
+          value:
+            rid: 5273703469288783953
+      - Tag: 25
+        value:
+          value:
+            rid: 5273703469288783954
+      - Tag: 32
+        value:
+          value:
+            rid: 5273703469288783968
+      - Tag: 33
+        value:
+          value:
+            rid: 5273703469288783969
+      - Tag: 34
+        value:
+          value:
+            rid: 5273703469288783970
+      - Tag: 35
+        value:
+          value:
+            rid: 5273703469288783971
   Children:
     value:
     - value: {fileID: 11400000, guid: f4f4cf755e1394f77b3e90ac1fb6cdd8, type: 2}
@@ -56,6 +88,54 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 5273703469288783951
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 10
+        ToolDamage: 0.5
+        GivesItem: 0
+    - rid: 5273703469288783952
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 60
+        ToolDamage: 0.5
+        GivesItem: 1
+    - rid: 5273703469288783953
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 10
+        ToolDamage: 0.5
+        GivesItem: 0
+    - rid: 5273703469288783954
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0
+        ToolDamage: 0
+        GivesItem: 0
+    - rid: 5273703469288783968
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 9
+        ToolDamage: 0.5
+        GivesItem: 0
+    - rid: 5273703469288783969
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 55
+        ToolDamage: 0.5
+        GivesItem: 1
+    - rid: 5273703469288783970
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 9
+        ToolDamage: 0.5
+        GivesItem: 0
+    - rid: 5273703469288783971
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0
+        ToolDamage: 0
+        GivesItem: 0
     - rid: 5818089297814487219
       type: {class: ToolTag, ns: , asm: Assembly-CSharp}
       data:

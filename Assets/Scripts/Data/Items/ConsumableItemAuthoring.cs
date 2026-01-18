@@ -94,9 +94,9 @@ public class ConsumbaleItem : IItem{
         delta = AmountRaw - math.max(AmountRaw - delta, 0);
         player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player, this, delta);
 
-        player.vitality.Heal(delta * settings.NutritionValue * UnitSize);
+        player.vitality.Heal(delta / (float)UnitSize * settings.NutritionValue);
         AmountRaw -= delta;
-        if(AmountRaw == 0) cxt.TryRemove();//
+        if(AmountRaw == 0) cxt.TryRemove();
     }
     
     private void UpdateDisplay(){

@@ -41,7 +41,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         craftingBuffer = new ComputeBuffer(TotalGrids * GridCount, sizeof(uint)*2 + sizeof(float), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
         Rendering.InitializeSelectionPts(GridWidth, GridSize);
 
-        Recipe.ConstructTree(settings.Recipes.Reg.Select(r => r.SerializeCopy()).ToArray(), dim: GridCount);
+        Recipe.ConstructTree(settings.Recipes.Reg.Select(r => r.SerializeCopy()).ToArray(), matDim: GridCount, itemDim: GridWidth*GridWidth);
         craftingMenu.SetActive(false);
 
         Material mat = Rendering.crafting.display.Display.materialForRendering;
@@ -649,28 +649,34 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
             public byte Axis;
         }
 
-        public void ConstructTree(CraftingRecipe[] recipes, int dim = 16) {
+        public void ConstructTree(CraftingRecipe[] recipes, int matDim = 16, int itemDim = 9) {
             Table = recipes;
             tree = new List<Node>();
             (int, CraftingRecipe)[] layer = new (int, CraftingRecipe)[recipes.Length];
             for (int i = 0; i < recipes.Length; i++) {
                 //Ensure recipes are valid for given config; Recipe is Value Type so this is not a reference
-                while (recipes[i].materials.value.Count < dim) {
+                while (recipes[i].materials.value.Count < matDim) {
                     recipes[i].materials.value.Add(new CraftingRecipe.Ingredient { Index = -1, Amount = 0 });
+                } while (recipes[i].items.value.Count < itemDim) {
+                    recipes[i].items.value.Add(new CraftingRecipe.Ingredient { Index = -1, Amount = 0 });
                 }
-                if (recipes[i].materials.value.Count > dim) {
-                    recipes[i].materials.value = recipes[i].materials.value.Take(dim).ToList();
+                
+                if (recipes[i].materials.value.Count > matDim) {
+                    recipes[i].materials.value = recipes[i].materials.value.Take(matDim).ToList();
+                } if (recipes[i].items.value.Count > itemDim) {
+                    recipes[i].items.value = recipes[i].items.value.Take(itemDim).ToList();
                 }
                 layer[i] = (i, recipes[i]);
             }
-            head = BuildSubTree(layer, (uint)dim);
+            head = BuildSubTree(layer, (uint)(matDim + itemDim));
         }
 
         static double GetL1Dist(CraftingRecipe a, CraftingRecipe b) {
             double sum = 0;
-            for (int i = 0; i < a.materials.value.Count; i++) {
+            int dim = a.materials.value.Count + a.items.value.Count;
+            for (int i = 0; i < dim; i++) {
                 sum += math.abs(a.NormalInd(i) - b.NormalInd(i));
-            }
+            } 
             return sum;
         }
 

@@ -15,11 +15,7 @@ MonoBehaviour:
   Name: C:Artificial
   Tags:
     Reg:
-      value:
-      - Tag: 3
-        value:
-          value:
-            rid: 5818089297814487233
+      value: []
   Children:
     value:
     - value: {fileID: 11400000, guid: 066474d0a2bfa4600b725f5c258b274f, type: 2}
@@ -30,10 +26,4 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: d46eb1020d1584a9d965c9ffb48be490, type: 2}
   references:
     version: 2
-    RefIds:
-    - rid: 5818089297814487233
-      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
-      data:
-        TerraformSpeed: 5
-        ToolDamage: 0
-        GivesItem: 0
+    RefIds: []

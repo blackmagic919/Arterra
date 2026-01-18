@@ -25,14 +25,6 @@ MonoBehaviour:
     value:
       materials:
         value:
-        - Index: 0
-          Amount: 0
-        - Index: 0
-          Amount: 0
-        - Index: 0
-          Amount: 0
-        - Index: 0
-          Amount: 0
         - Index: 2
           Amount: 2
         - Index: 0
@@ -56,7 +48,15 @@ MonoBehaviour:
         - Index: 2
           Amount: 2
         - Index: 2
-          Amount: 1
+          Amount: 0.5
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
+        - Index: 0
+          Amount: 0
       items:
         value:
         - Index: 0

@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f8b4c3ecbaa4f9fb7202579d8d4666, type: 3}
+  m_Name: BronzeHoeItem
+  m_EditorClassIdentifier: 
+  Name: BronzeHoe
+  Tags:
+    Reg:
+      value: []
+  TextureName: BronzeHoe
+  Description: Bronze Tool For Tilling and Cutting Plant Matter
+  TerraformRadius: 1
+  MaxDurability: 350
+  ToolTag: 35
+  OnUseAnim:
+    Enabled: 1
+    Value: Thrust
+  Model:
+    Enabled: 1
+    Value: {fileID: 1105437270904235472, guid: ca1ed41db3db34303a47bf7e0cf7ae5e, type: 3}
+  ConverterTag: 1001
+  references:
+    version: 2
+    RefIds: []

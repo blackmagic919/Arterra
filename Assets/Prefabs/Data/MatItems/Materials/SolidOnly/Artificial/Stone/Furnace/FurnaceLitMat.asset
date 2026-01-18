@@ -22,9 +22,10 @@ MonoBehaviour:
     - FurnaceIcon
     - Void
     - Furnace
-    - Rock
+    - Stone
     - Shell
     - Flames
+    - FurnaceLit
   terrainData:
     Texture: 0
     textureScale: 1
@@ -51,7 +52,7 @@ MonoBehaviour:
         bounds:
           data: 4286611200
         flags: 1
-      _material: 2147483651
+      _material: 2147483655
       _offset: 537394688
     - check:
         bounds:
@@ -127,10 +128,10 @@ MonoBehaviour:
   FuelTag: 1003
   LitFurnaceMaterial: FurnaceLit
   UnlitFurnaceMaterial: Furnace
-  MaxInputSlotCount: 0
-  MaxOutputSlotCount: 0
-  MaxFuelSlotCount: 0
-  MaxRecipeSlotCount: 0
+  MaxInputSlotCount: 6
+  MaxOutputSlotCount: 3
+  MaxFuelSlotCount: 3
+  MaxRecipeSlotCount: 12
   MaterialDrops:
     SolidItem: 0
     LiquidItem: 2

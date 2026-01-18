@@ -348,6 +348,8 @@ namespace Arterra.Configuration.Generation.Item
                 // Hard endpoints
                 SetEndpoint(points.Count - 1, Holder.position);
                 SetEndpoint(0, HookingEntity.position + hookedOffset);
+                float t =  dt / math.max(math.length(hookedOffset), 1);
+                hookedOffset = math.lerp(hookedOffset, 0, t);
                 void SetEndpoint(int index, float3 position) {
                     LinePoint p = points[index];
                     p.pos = position;
@@ -375,7 +377,7 @@ namespace Arterra.Configuration.Generation.Item
                         float3 dir = delta / dist;
 
                         // Break line if overstretched
-                        if (stretch > LineSegLength * 2f && iter >= SolveIters - 1) {
+                        if (stretch > LineSegLength * 3f && iter >= SolveIters - 1) {
                             BreakLine();
                             return;
                         }

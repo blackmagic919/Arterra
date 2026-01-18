@@ -24,18 +24,34 @@ MonoBehaviour:
         value:
           value:
             rid: 5818089297814487234
-      - Tag: 4
-        value:
-          value:
-            rid: 5818089297814487226
       - Tag: 13
         value:
           value:
             rid: 6083762182251610189
+      - Tag: 23
+        value:
+          value:
+            rid: 5273703469288783958
+      - Tag: 33
+        value:
+          value:
+            rid: 5273703469288783975
+      - Tag: 4
+        value:
+          value:
+            rid: 5818089297814487226
       - Tag: 14
         value:
           value:
             rid: 6083762182251610190
+      - Tag: 24
+        value:
+          value:
+            rid: 5273703469288783959
+      - Tag: 34
+        value:
+          value:
+            rid: 5273703469288783976
   Children:
     value:
     - value: {fileID: 11400000, guid: 77dcf9a30be1942cdbd95c72546bb3a2, type: 2}
@@ -50,6 +66,30 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 5273703469288783958
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 4
+        ToolDamage: 2
+        GivesItem: 0
+    - rid: 5273703469288783959
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 250
+        ToolDamage: 1
+        GivesItem: 1
+    - rid: 5273703469288783975
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 3
+        ToolDamage: 2
+        GivesItem: 0
+    - rid: 5273703469288783976
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 200
+        ToolDamage: 1
+        GivesItem: 1
     - rid: 5818089297814487225
       type: {class: ToolTag, ns: , asm: Assembly-CSharp}
       data:

@@ -475,7 +475,7 @@ namespace Arterra.Configuration.Generation.Material
         public override void RemoveEntry(int slot) {
             if (Info[slot] == null) return;
             count--;
-            if (count == 0 && HideOnEmpty)
+            if (count == 0 && HideOnEmpty && parent != null)
                 parent.SetActive(false);
 
             base.RemoveEntry(slot);
@@ -495,7 +495,8 @@ namespace Arterra.Configuration.Generation.Material
             if (capacity < stackLimit) ResizeStack((int)capacity + 1);
             if(base.AddEntry(entry, index)) {
                 if (entry == null) return true;
-                if (HideOnEmpty) parent.SetActive(true);
+                if (HideOnEmpty && parent != null)
+                    parent.SetActive(true);
                 count++;
                 return true;
             } else return false;
@@ -505,7 +506,8 @@ namespace Arterra.Configuration.Generation.Material
             if (capacity < stackLimit) ResizeStack((int)capacity + 1);
             if(base.AddEntry(entry, out head)) {
                 if (entry == null) return true;
-                if (HideOnEmpty) parent.SetActive(true);
+                if (HideOnEmpty && parent != null)
+                    parent.SetActive(true);
                 count++;
                 return true;
             } else return false;
@@ -532,7 +534,7 @@ namespace Arterra.Configuration.Generation.Material
             parent.SetActive(!HideOnEmpty || (count != 0));
         }
         
-        private GameObject parent => Display.root.transform.parent.gameObject;
+        private GameObject parent => Display?.root.transform.parent.gameObject;
 
         public void InitializeVerticalDisplay(GameObject parent, bool HideOnEmpty) {
             ExpandIcon = Resources.Load<GameObject>("Prefabs/GameUI/Furnace/DownArrow");

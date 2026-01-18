@@ -317,6 +317,14 @@ public struct TagRegistry
         { Tags.StoneShovel, new ToolTag() },
         { Tags.StonePickaxe, new ToolTag() },
         { Tags.StoneHoe, new ToolTag() },
+        { Tags.SteelAxe, new ToolTag() },
+        { Tags.SteelShovel, new ToolTag() },
+        { Tags.SteelPickaxe, new ToolTag() },
+        { Tags.SteelHoe, new ToolTag() },
+        { Tags.BronzeHoe, new ToolTag() },
+        { Tags.BronzeAxe, new ToolTag() },
+        { Tags.BronzeShovel, new ToolTag() },
+        { Tags.BronzePickaxe, new ToolTag() },
         //Converter Tags
         { Tags.Flammable, new ConverterToolTag() },
         { Tags.Tillable, new ConverterToolTag() },
@@ -339,6 +347,8 @@ public struct TagRegistry
         //Tools
         None = 0, BareHand = 1, WoodAxe = 2, WoodShovel = 3, WoodPickaxe = 4, WoodHoe = 5,
         StoneAxe = 12, StoneShovel = 13, StonePickaxe = 14, StoneHoe = 15,
+        SteelAxe = 22, SteelShovel = 23, SteelPickaxe = 24, SteelHoe = 25,
+        BronzeAxe = 32, BronzeShovel = 33, BronzePickaxe = 34, BronzeHoe = 35,
         //Converters
         Flammable = 1000, Tillable = 1001, Seedable = 1002, Combustible = 1003,
         //Convertables

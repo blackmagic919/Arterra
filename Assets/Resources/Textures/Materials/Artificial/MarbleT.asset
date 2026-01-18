@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d60a39b1e4df74ed3aaaa1cb0087049e, type: 3}
   m_Name: MarbleT
   m_EditorClassIdentifier: 
-  Name: MarbleT
+  Name: Marble
   Tags:
     Reg:
       value: []

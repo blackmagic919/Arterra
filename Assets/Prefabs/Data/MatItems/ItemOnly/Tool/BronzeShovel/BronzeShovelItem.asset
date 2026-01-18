@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e07c8e5285f204211a80a32d13cff84b, type: 3}
+  m_Name: BronzeShovelItem
+  m_EditorClassIdentifier: 
+  Name: BronzeShovel
+  Tags:
+    Reg:
+      value: []
+  TextureName: BronzeShovel
+  Description: Bronze Tool For Removing Loose and Soft Materials
+  TerraformRadius: 1
+  MaxDurability: 200
+  ToolTag: 33
+  OnUseAnim:
+    Enabled: 1
+    Value: Thrust
+  Model:
+    Enabled: 1
+    Value: {fileID: 9067304218396884808, guid: 3761192ed152d4c64a13e1e17e79947d, type: 3}
+  references:
+    version: 2
+    RefIds: []

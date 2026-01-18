@@ -368,8 +368,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   IsoLevel: 0.5
-  Structure: {fileID: 11400000, guid: 2660fc901bfa94c5488c13ed2839fca3, type: 2}
-  loadPath: /Users/jonathanliu/Library/Application Support/DefaultCompany/Arterra/Worlds/WorldData_0de5d9a7-4b41-4c6d-a962-4b536b5151c4/MapData/Region_-1_0_-1/Chunk_-1_5_-2.bin
+  Structure: {fileID: 11400000, guid: 16e2922ef16234410b165a444a573992, type: 2}
+  loadPath: /Users/jonathanliu/Library/Application Support/DefaultCompany/Arterra/Worlds/WorldData_04b07756-2c4c-4dd3-bc0d-663263f75503/MapData/Region_-1_0_-1/Chunk_-1_1_-1.bin
   SDFoffset:
     x: 0
     y: 0
