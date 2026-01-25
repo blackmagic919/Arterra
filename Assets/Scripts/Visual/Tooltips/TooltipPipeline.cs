@@ -108,6 +108,9 @@ namespace Arterra.UI.ToolTips {
 
         private PriorityQueue<TooltipData, int> tooltipQueue = new PriorityQueue<TooltipData, int>();
 
+        // To support delayed tooltips. The tooltip will be delayed to be enqueued until the TriggerTime is reached.
+        private List<TooltipData> delayedTooltips = new List<TooltipData>();
+
         // Makde singleton instance
         private static TooltipPipeline? _instance;
         public static TooltipPipeline? Instance {
@@ -146,12 +149,31 @@ namespace Arterra.UI.ToolTips {
                 return false;
             }
 
+            // If TriggerTime is set, put into delayed tooltips.
+            if (tooltip.Config.TriggerTime > 0) {
+                delayedTooltips.Add(tooltip);
+                ADebug.LogInfo($"TooltipPipeline: Tooltip {tooltip.Config.PrefabPath} will be enqueued after delay of {tooltip.Config.TriggerTime} seconds.");
+                return true;
+            }
+
             int weight = priorityWeights[tooltip.Config.Priority];
             tooltipQueue.Enqueue(tooltip, weight);
             return true;
         }
 
         public TooltipData? DequeueTooltip() {
+            // Check delayed tooltips first, if any reached trigger time, enqueue them.
+            foreach (var delayedTooltip in delayedTooltips.ToArray()) {
+                var elapsed = (DateTime.Now - delayedTooltip.EnqueuedTime).TotalSeconds;
+                if (elapsed >= delayedTooltip.Config.TriggerTime) {
+                    int weight = priorityWeights[delayedTooltip.Config.Priority];
+                    delayedTooltip.EnqueuedTime = DateTime.Now; // Reset enqueued time
+                    tooltipQueue.Enqueue(delayedTooltip, weight);
+                    delayedTooltips.Remove(delayedTooltip);
+                    ADebug.LogInfo($"TooltipPipeline: Delayed tooltip {delayedTooltip.Config.PrefabPath} enqueued after delay.");
+                }
+            }
+
             while (tooltipQueue.Count > 0) {
                 TooltipData nextTooltip = tooltipQueue.Dequeue();
                 if (nextTooltip.IsAcknowledged) {
