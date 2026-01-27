@@ -26,6 +26,7 @@ public class BaseEnemy : Authoring {
         public Vitality.Decomposition decomposition;
         public RangedAttack rangedAttack;
         public float ConsumptionRate;
+        public bool IndependentWalk = false;
         public MinimalRecognition Recognition => recognition;
         public MediumVitality.Stats Physicality => physicality;
 
@@ -149,10 +150,10 @@ public class BaseEnemy : Authoring {
 
             this.tCollider = new TerrainCollider(settings.collider, GCoord, ProcessFallDamage);
             random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(0, int.MaxValue));
-            controller = new AnimalController(Controller, this);
             this.genetics ??= new Genetics(this.info.entityType, ref random);
             this.vitality = new MediumVitality(settings.Physicality, this.genetics);
             this.launcher = new ProjectileLauncher(settings.rangedAttack.Projectile, this.genetics);
+            controller = new AnimalController(Controller, this);
             this.TaskDuration = genetics.Get(settings.EnemyCheckDelay);
             this.TaskIndex = AnimalTasks.Idle;
         }
@@ -200,17 +201,27 @@ public class BaseEnemy : Authoring {
             TaskIndex = AnimalTasks.RunFromPredator;
         }
 
+        private bool DetectPrey() {
+            if (settings.Recognition.FindPreferredPreyEntity(this,
+                genetics.Get(settings.EnemyCheckDist),
+                out Entity entity, TestNotDead)) {
+                TaskIndex = AnimalTasks.FindPrey;
+                return true;
+            } return false;
+        }
+
+
         public static void Idle(Animal self) {
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if (self.TaskDuration > 0) return;
+            if (self.DetectPrey()) return;
 
-            if (self.settings.Recognition.FindPreferredPreyEntity(self,
-                self.genetics.Get(self.settings.EnemyCheckDist),
-                out Entity entity, TestNotDead)) {
-                self.TaskIndex = AnimalTasks.FindPrey;
+            if (self.settings.IndependentWalk) {
+                self.TaskDuration = self.settings.movement.AverageIdleTime;
+                self.TaskIndex = AnimalTasks.RandomPath;
                 return;
-            } 
-
+            }
+            
             self.TaskDuration = self.genetics.Get(self.settings.EnemyCheckDelay);
             self.TaskIndex = AnimalTasks.Idle;
         }
@@ -222,10 +233,14 @@ public class BaseEnemy : Authoring {
                 return;
             }
 
-            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
+            self.DetectPrey();
+            if (self.pathFinder.hasPath) {
+                Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.tCollider,
                 self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
-            if (self.pathFinder.hasPath) return;
+                return;
+            };
+            
             int PathDist = self.settings.movement.pathDistance;
             int3 dP = new(self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist));
             if (PathFinder.VerifyProfile(self.GCoord + dP, self.settings.profile, EntityJob.cxt)) {

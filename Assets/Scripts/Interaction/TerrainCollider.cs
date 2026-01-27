@@ -14,7 +14,7 @@ Sample from a simplex rather than a grid(should be faster)
 */
 
 [System.Serializable]
-public struct TerrainCollider {
+public class TerrainCollider {
     public const float BaseFriction = 0.2f;
     [JsonIgnore]
     public Action<float> OnHitGround;

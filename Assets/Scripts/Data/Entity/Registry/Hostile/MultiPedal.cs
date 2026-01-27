@@ -30,21 +30,10 @@ public class MultiPedal : Authoring {
         public float ConsumptionRate;
         public MinimalRecognition Recognition => recognition;
         public MediumVitality.Stats Physicality => physicality;
-        public TorsoInfo Torso;
-        public Option<List<LegSettings>> Legs;
-
-        [UISetting(Ignore = true)]
-        public List<AnimOverride> AnimControl;
-        [UISetting(Ignore = true)][JsonIgnore]
-        public Dictionary<int, uint> AnimToggle;
+        public ProceduralLegsSettings Animation;
+        public bool IndependentWalk = false;
         [Serializable]
-        public struct AnimOverride {
-            public string AnimName;
-            public uint LegControlBitmap;
-        }
-
-        [Serializable]
-        public struct TorsoInfo {
+        public struct HeadInfo {
             public float3 Offset;
             public TerrainCollider.Settings Collider;
         }
@@ -58,18 +47,19 @@ public class MultiPedal : Authoring {
                 Genetics.AddGene(entityType, ref BlindDist);
             }
         }
+        [Serializable]
+        public class ProceduralLegsSettings : ProceduralAnimated.PASettings {
+            public override List<ProceduralAnimated.AppendageSettings> Appendages => Legs.value.Select(l => (ProceduralAnimated.AppendageSettings)l).ToList();
+            public Option<List<LegSettings>> Legs;
+        }
 
         [Serializable]
-        public struct LegSettings {
-            public TerrainCollider.Settings collider;
-            //The offset relative to the center of the body collider
-            // of the center of the leg collider
-            public float3 RestOffset;
-            [UISetting(Ignore = true)]
-            public string IKObjectPath;
+        public class LegSettings : ProceduralAnimated.AppendageSettings {
             public float StepDistThreshold;
             public float LegRaiseHeight;
             public float MoveAccel;
+            public float Friction = 0.25f;
+            public float RubberbandStrength = 3.0f;
         }
 
         public override void Preset(uint entityType)
@@ -83,12 +73,7 @@ public class MultiPedal : Authoring {
             attack.InitGenome(entityType);
             Genetics.AddGene(entityType, ref EnemyCheckDelay);
             Genetics.AddGene(entityType, ref EnemyCheckDist);
-
-            AnimToggle = new Dictionary<int, uint>();
-            foreach(AnimOverride anim in AnimControl) {
-                int hash = Animator.StringToHash(anim.AnimName);
-                AnimToggle.TryAdd(hash, anim.LegControlBitmap);
-            }
+            Animation.Preset();
 
             base.Preset(entityType);
         }
@@ -104,9 +89,9 @@ public class MultiPedal : Authoring {
         [JsonProperty]
         private PathFinder.PathInfo pathFinder;
         [JsonProperty]
-        private TerrainCollider Torso;
-        [JsonProperty]
         private Unity.Mathematics.Random random;
+        [JsonProperty]
+        internal ProceduralAnimated Animate;
         [JsonProperty]
         private Guid TaskTarget;
         [JsonProperty]
@@ -128,26 +113,11 @@ public class MultiPedal : Authoring {
             RunFromTarget, RunFromPredator, Death
         };
 
-        [JsonProperty]
-        private TerrainCollider Body;
-        [JsonIgnore]
-        private float3 BodyPosition {
-            get => Body.transform.position + Body.transform.size / 2;
-            set => Body.transform.position = value - Body.transform.size / 2;
-        }
-        [JsonIgnore]
-        private float3 BodyOrigin {
-            get => Body.transform.position;
-            set => Body.transform.position = value;
-        }
-        [JsonIgnore]
-        public int3 BodyGCoord => (int3)math.floor(BodyOrigin);
-        [JsonProperty]
-        private Leg[] Legs; 
+        
         private AnimalController controller;
         private MultiPedalSettings settings;
         [JsonIgnore]
-        public override ref TerrainCollider.Transform transform => ref Torso.transform;
+        public override ref TerrainCollider.Transform transform => ref Animate.Head.transform;
         [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
@@ -194,55 +164,44 @@ public class MultiPedal : Authoring {
         }
 
         public override void Disable(){
-            foreach(Leg l in Legs) l.Release();
+            Animate.Disable();
             controller.Dispose();
         }
         
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (MultiPedalSettings)setting;
-
-            this.Body = new TerrainCollider(this.settings.collider, GCoord);
-            this.Torso = new TerrainCollider(settings.Torso.Collider, GCoord + settings.Torso.Offset, ProcessFallDamage);
-            Legs = new Leg[settings.Legs.value.Count];
-            for(int i = 0; i < settings.Legs.value.Count; i++) {
-                Legs[i] = new Leg(this, settings.Legs.value[i]);
-                Legs[i].Initialize(this, settings.Legs.value[i]);
-            }
+            
+            Animate = new ProceduralAnimated();
+            Animate.Initialize<Leg>(this, settings.Animation, GCoord, settings.collider, ProcessFallDamage);
 
             random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(0, int.MaxValue));
-            controller = new AnimalController(Controller, this);
             this.genetics ??= new Genetics(this.info.entityType, ref random);
             this.vitality = new MediumVitality(settings.Physicality, this.genetics);
             this.launcher = new ProjectileLauncher(settings.attack.Projectile, this.genetics);
+            controller = new AnimalController(Controller, this);
             this.TaskDuration = genetics.Get(settings.EnemyCheckDelay);
             this.TaskIndex = AnimalTasks.Idle;
         }
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
             settings = (MultiPedalSettings)setting;
-
-            Legs ??= new Leg[settings.Legs.value.Count];
-            for(int i = 0; i < settings.Legs.value.Count; i++){
-                Legs[i] ??= new Leg(this, settings.Legs.value[i]);
-                Legs[i].Initialize(this, settings.Legs.value[i]);
-            }
+            Animate.Deserialize<Leg>(this, settings.Animation, ProcessFallDamage);
             
             controller = new AnimalController(Controller, this);
             vitality.Deserialize(settings.Physicality, genetics);
             launcher.Deserialize(settings.attack.Projectile, genetics);
-            Torso.OnHitGround = ProcessFallDamage;
             random.state ^= (uint)GetHashCode();
             GCoord = this.GCoord;
         }
 
         public override void Update() {
             if (!active) return;
-            UpdateColliders();
+            Animate.Update();
             EntityManager.AddHandlerEvent(controller.Update);
 
             TerrainInteractor.DetectMapInteraction(position,
             OnInSolid: (dens) => vitality.ProcessInSolid(this, dens),
-            OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref Torso, dens),
+            OnInLiquid: (dens) => vitality.ProcessInLiquid(this, ref Animate.Body, dens),
             OnInGas: (dens) => vitality.ProcessInGas(this, dens));
 
             vitality.Update(this);
@@ -255,30 +214,6 @@ public class MultiPedal : Authoring {
             } else if (TaskIndex < AnimalTasks.RunFromPredator) DetectPredator();
         }
 
-        private void UpdateColliders() {
-            foreach(Leg l in Legs) {
-                if (IsDead) l.Update();
-                else l.UpdateMovement();
-
-                float dist = math.distance(l.desiredBody, BodyPosition);
-                //Apply weaker rubber banding to invisible body
-                if (dist > l.tCollider.transform.size.y) { 
-                    dist -= l.tCollider.transform.size.y;
-                    float3 dir = math.normalizesafe(l.desiredBody - BodyPosition);
-                    float strength = math.pow(dist, 1.0f);
-                    Body.transform.velocity += strength * EntityJob.cxt.deltaTime * dir;
-                }
-                
-                float3 desiredTorso = l.desiredBody + settings.Torso.Offset;
-                Torso.transform.velocity += EntityJob.cxt.deltaTime * 10 * (desiredTorso - position);
-            };
-
-            Torso.transform.rotation = Body.transform.rotation;
-            Torso.useGravity = false;
-            Body.useGravity = true;
-            Torso.Update(this);
-            Body.Update();
-        }
 
         private void DetectPredator() {
             if (!settings.Recognition.FindClosestPredator(this, genetics.Get(
@@ -286,22 +221,31 @@ public class MultiPedal : Authoring {
                 return;
 
             int PathDist = settings.Recognition.FleeDistance;
-            float3 rayDir = BodyPosition - predator.position;
-            byte[] path = PathFinder.FindPathAlongRay(BodyGCoord, ref rayDir, PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
-            pathFinder = new PathFinder.PathInfo(BodyGCoord, path, pLen);
+            float3 rayDir = Animate.BodyPosition - predator.position;
+            byte[] path = PathFinder.FindPathAlongRay(Animate.BodyGCoord, ref rayDir, PathDist + 1, settings.profile, EntityJob.cxt, out int pLen);
+            pathFinder = new PathFinder.PathInfo(Animate.BodyGCoord, path, pLen);
             TaskIndex = AnimalTasks.RunFromPredator;
+        }
+
+        private bool DetectPrey() {
+            if (settings.Recognition.FindPreferredPreyEntity(this,
+                genetics.Get(settings.EnemyCheckDist),
+                out Entity entity, TestNotDead)) {
+                TaskIndex = AnimalTasks.FindPrey;
+                return true;
+            } return false;
         }
 
         public static void Idle(Animal self) {
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if (self.TaskDuration > 0) return;
+            if (self.DetectPrey()) return;
 
-            if (self.settings.Recognition.FindPreferredPreyEntity(self,
-                self.genetics.Get(self.settings.EnemyCheckDist),
-                out Entity entity, TestNotDead)) {
-                self.TaskIndex = AnimalTasks.FindPrey;
+            if (self.settings.IndependentWalk) {
+                self.TaskDuration = self.settings.movement.AverageIdleTime;
+                self.TaskIndex = AnimalTasks.RandomPath;
                 return;
-            } 
+            }
 
             self.TaskDuration = self.genetics.Get(self.settings.EnemyCheckDelay);
             self.TaskIndex = AnimalTasks.Idle;
@@ -314,15 +258,19 @@ public class MultiPedal : Authoring {
                 return;
             }
 
-            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.Body,
+            self.DetectPrey();
+            if (self.pathFinder.hasPath) {
+                Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.Animate.Body,
                 self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
-            if (self.pathFinder.hasPath) return;
+                return;
+            };
+            
             int PathDist = self.settings.movement.pathDistance;
             int3 dP = new(self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist));
-            if (PathFinder.VerifyProfile(self.BodyGCoord + dP, self.settings.profile, EntityJob.cxt)) {
-                byte[] path = PathFinder.FindPath(self.BodyGCoord, dP, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
-                self.pathFinder = new PathFinder.PathInfo(self.BodyGCoord, path, pLen);
+            if (PathFinder.VerifyProfile(self.Animate.BodyGCoord + dP, self.settings.profile, EntityJob.cxt)) {
+                byte[] path = PathFinder.FindPath(self.Animate.BodyGCoord, dP, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                self.pathFinder = new PathFinder.PathInfo(self.Animate.BodyGCoord, path, pLen);
             }
         }
 
@@ -334,19 +282,19 @@ public class MultiPedal : Authoring {
                 self.settings.Recognition.SightDistance), out Entity prey, TestNotDead)
             ) {
                 int PathDist = self.settings.movement.pathDistance;
-                int3 destination = (int3)math.round(prey.origin) - self.BodyGCoord;
+                int3 destination = (int3)math.round(prey.origin) - self.Animate.BodyGCoord;
                 dist = Recognition.GetColliderDist(self, prey);
-                byte[] path = PathFinder.FindPathOrApproachTarget(self.BodyGCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
-                self.pathFinder = new PathFinder.PathInfo(self.BodyGCoord, path, pLen);
+                byte[] path = PathFinder.FindPathOrApproachTarget(self.Animate.BodyGCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                self.pathFinder = new PathFinder.PathInfo(self.Animate.BodyGCoord, path, pLen);
                 self.TaskIndex = AnimalTasks.ChasePreyEntity;
                 preyAction = AnimalTasks.Attack;
             } else if(self.settings.Recognition.FindPreferredPreyPlant(
-                self.BodyGCoord, self.genetics.GetInt(
+                self.Animate.BodyGCoord, self.genetics.GetInt(
                 self.settings.Recognition.PlantFindDist), out int3 preyPos)) {
-                byte[] path = PathFinder.FindPathOrApproachTarget(self.BodyGCoord, preyPos - self.BodyGCoord, self.genetics.GetInt(
+                byte[] path = PathFinder.FindPathOrApproachTarget(self.Animate.BodyGCoord, preyPos - self.Animate.BodyGCoord, self.genetics.GetInt(
                     self.settings.Recognition.PlantFindDist) + 1, self.settings.profile,
                     EntityJob.cxt, out int pLen);
-                self.pathFinder = new PathFinder.PathInfo(self.BodyGCoord, path, pLen);
+                self.pathFinder = new PathFinder.PathInfo(self.Animate.BodyGCoord, path, pLen);
                 dist = Recognition.GetColliderDist(self, prey);
                 self.TaskIndex = AnimalTasks.ChasePreyPlant;
                 preyAction = AnimalTasks.EatPlant;
@@ -357,7 +305,7 @@ public class MultiPedal : Authoring {
             }
 
             //If it can't get to the prey and is currently at the closest position it can be
-            if (math.all(self.pathFinder.destination == self.BodyGCoord)) {
+            if (math.all(self.pathFinder.destination == self.Animate.BodyGCoord)) {
                 if (dist <= self.genetics.Get(self.settings.Physicality.AttackDistance)) {
                     self.TaskDuration = 1 / math.max(self.settings.ConsumptionRate, 0.0001f);
                     self.TaskIndex = preyAction;
@@ -376,7 +324,7 @@ public class MultiPedal : Authoring {
                 self.TaskIndex = AnimalTasks.FindPrey;
                 return;
             }
-            Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.Body, prey.origin,
+            Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.Animate.Body, prey.origin,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
             
@@ -400,12 +348,12 @@ public class MultiPedal : Authoring {
 
         //Task 4
         private static void ChasePreyPlant(Animal self) {
-            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.Body,
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.Animate.Body,
                 self.genetics.Get(self.settings.movement.walkSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
             if (self.pathFinder.hasPath) return;
 
-            if (self.settings.Recognition.FindPreferredPreyPlant(self.BodyGCoord, self.genetics.GetInt(
+            if (self.settings.Recognition.FindPreferredPreyPlant(self.Animate.BodyGCoord, self.genetics.GetInt(
                 self.settings.Recognition.PlantFindDist), out int3 preyPos)
                 && Recognition.GetColliderDist(self, preyPos)
                 <= self.genetics.Get(self.settings.Physicality.AttackDistance)
@@ -419,7 +367,7 @@ public class MultiPedal : Authoring {
         private static void EatPlant(Animal self) {
             self.TaskDuration -= EntityJob.cxt.deltaTime;
             if (self.TaskDuration <= 0) {
-                if (self.settings.Recognition.FindPreferredPreyPlant(self.BodyGCoord, self.genetics.GetInt(
+                if (self.settings.Recognition.FindPreferredPreyPlant(self.Animate.BodyGCoord, self.genetics.GetInt(
                     self.settings.Recognition.PlantFindDist), out int3 foodPos)
                 ) {
                     self.settings.Recognition.ConsumePlant(self, foodPos);
@@ -447,7 +395,7 @@ public class MultiPedal : Authoring {
             }
 
             float3 atkDir = math.normalize(prey.position - self.position); atkDir.y = 0;
-            if (math.any(atkDir != 0)) self.Body.transform.rotation = Quaternion.RotateTowards(self.Body.transform.rotation,
+            if (math.any(atkDir != 0)) self.Animate.Body.transform.rotation = Quaternion.RotateTowards(self.Animate.Body.transform.rotation,
             Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
             self.vitality.Attack(prey);
             self.TaskIndex = AnimalTasks.Attack;
@@ -467,11 +415,11 @@ public class MultiPedal : Authoring {
 
             if (!self.pathFinder.hasPath) {
                 int PathDist = self.settings.Recognition.FleeDistance;
-                float3 rayDir = self.BodyGCoord - target.position;
-                byte[] path = PathFinder.FindPathAlongRay(self.BodyGCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
-                self.pathFinder = new PathFinder.PathInfo(self.BodyGCoord, path, pLen);
+                float3 rayDir = self.Animate.BodyGCoord - target.position;
+                byte[] path = PathFinder.FindPathAlongRay(self.Animate.BodyGCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                self.pathFinder = new PathFinder.PathInfo(self.Animate.BodyGCoord, path, pLen);
             }
-            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.Body,
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.Animate.Body,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
         }
@@ -491,12 +439,12 @@ public class MultiPedal : Authoring {
 
             if (!self.pathFinder.hasPath) {
                 int PathDist = self.settings.movement.pathDistance;
-                int3 destination = (int3)math.round(target.origin) - self.BodyGCoord;
-                byte[] path = PathFinder.FindPathOrApproachTarget(self.BodyGCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
-                self.pathFinder = new PathFinder.PathInfo(self.BodyGCoord, path, pLen);
+                int3 destination = (int3)math.round(target.origin) - self.Animate.BodyGCoord;
+                byte[] path = PathFinder.FindPathOrApproachTarget(self.Animate.BodyGCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                self.pathFinder = new PathFinder.PathInfo(self.Animate.BodyGCoord, path, pLen);
             }
 
-            Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.Body, target.origin,
+            Movement.FollowDynamicPath(self.settings.profile, ref self.pathFinder, ref self.Animate.Body, target.origin,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
             float targetDist = Recognition.GetColliderDist(self, target);
@@ -531,11 +479,11 @@ public class MultiPedal : Authoring {
                 }
                 
                 int PathDist = self.settings.Recognition.FleeDistance;
-                float3 rayDir = self.BodyGCoord - target.position;
-                byte[] path = PathFinder.FindPathAlongRay(self.BodyGCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
-                self.pathFinder = new PathFinder.PathInfo(self.BodyGCoord, path, pLen);
+                float3 rayDir = self.Animate.BodyGCoord - target.position;
+                byte[] path = PathFinder.FindPathAlongRay(self.Animate.BodyGCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                self.pathFinder = new PathFinder.PathInfo(self.Animate.BodyGCoord, path, pLen);
             }
-            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.Body,
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.Animate.Body,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
                 
@@ -558,7 +506,7 @@ public class MultiPedal : Authoring {
             }
 
             float3 atkDir = math.normalize(tEntity.position - self.position); atkDir.y = 0;
-            if (math.any(atkDir != 0)) self.Body.transform.rotation = Quaternion.RotateTowards(self.Body.transform.rotation,
+            if (math.any(atkDir != 0)) self.Animate.Body.transform.rotation = Quaternion.RotateTowards(self.Animate.Body.transform.rotation,
             Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
 
             IAttackable target = tEntity as IAttackable;
@@ -569,7 +517,7 @@ public class MultiPedal : Authoring {
         
 
         private static void RunFromPredator(Animal self) {
-            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.Body,
+            Movement.FollowStaticPath(self.settings.profile, ref self.pathFinder, ref self.Animate.Body,
                 self.genetics.Get(self.settings.movement.runSpeed), self.settings.movement.rotSpeed,
                 self.settings.movement.acceleration);
             if (!self.pathFinder.hasPath) {
@@ -593,8 +541,8 @@ public class MultiPedal : Authoring {
         public override void OnDrawGizmos() {
             if (!active) return;
             Gizmos.color = Color.green;
-            Gizmos.DrawWireCube(CPUMapManager.GSToWS(position), settings.Torso.Collider.size * 2);
-            foreach(Leg l in Legs) {
+            Gizmos.DrawWireCube(CPUMapManager.GSToWS(position), settings.Animation.Head.value.Collider.size * 2);
+            foreach(Leg l in Animate.appendages) {
                 if (l.State == Leg.StepState.Stand) Gizmos.color = Color.green;
                 else if (l.State == Leg.StepState.Raise) Gizmos.color = Color.red;
                 else Gizmos.color = Color.blue;
@@ -605,7 +553,7 @@ public class MultiPedal : Authoring {
             }
         }
 
-        private class Leg {
+        private class Leg : ProceduralAnimated.Appendage {
             [JsonIgnore]
             private Animal Animal;
             [JsonIgnore]
@@ -618,72 +566,72 @@ public class MultiPedal : Authoring {
             public TerrainCollider tCollider;
             public StepState State;
             private bool active;
+
+            //Properties
+            [JsonIgnore]
+            public override float3 desiredBody => restPos - math.mul(Animal.transform.rotation, settings.RestOffset);
+            [JsonIgnore]
+            public override TerrainCollider collider => tCollider;
             private float3 restPos => tCollider.transform.position + new float3(tCollider.transform.size.x, 0, tCollider.transform.size.z) / 2;
-            public float3 desiredBody => restPos - settings.RestOffset;
+            private ProceduralAnimated Animate => Animal.Animate;
             public enum StepState {
                 Stand,
                 Raise,
                 Lower
             }
+            [JsonConstructor]
             public Leg() {} //Newtonsoft path
-            public Leg(Animal animal, MultiPedalSettings.LegSettings settings) {
-                this.settings = settings;
-                this.Animal = animal;
-                this.tCollider = new TerrainCollider(settings.collider, Animal.BodyPosition + settings.RestOffset);
+            public override void Initialize(Entity animal, ProceduralAnimated.AppendageSettings settings) {
+                this.settings = settings as MultiPedalSettings.LegSettings;
+                this.Animal = animal as Animal;
+                this.tCollider = new TerrainCollider(settings.collider, Animate.BodyPosition + settings.RestOffset);
                 this.tCollider.useGravity = true;
                 this.LegId = Guid.NewGuid();
                 active = false;
                 State = StepState.Stand;
+                Deserialize(animal, settings);
             }
 
-            public void Initialize(Animal animal, MultiPedalSettings.LegSettings settings) {
-                this.settings = settings; 
-                this.Animal = animal;
+            public override void Deserialize(Entity animal, ProceduralAnimated.AppendageSettings settings) {
+                this.settings = settings as MultiPedalSettings.LegSettings; 
+                this.Animal = animal as Animal;
                 if (!EntityManager.EntityIndex.TryAdd(LegId, animal))
                     throw new Exception("Failed to register leg for entity");
                 active = true;
                 
-                Bounds bounds = new Bounds(Animal.BodyPosition + settings.RestOffset, settings.collider.size);
+                Bounds bounds = new Bounds(Animate.BodyPosition + settings.RestOffset, settings.collider.size);
                 EntityManager.ESTree.Insert(bounds, LegId);
             }
 
-            public void Update() {
+            public override void Update() {
                 EntityManager.AddHandlerEvent(() => {
-                    Bounds bounds = new Bounds(Animal.BodyPosition + settings.RestOffset, settings.collider.size);
+                    Bounds bounds = new Bounds(Animate.BodyPosition + settings.RestOffset, settings.collider.size);
                     EntityManager.ESTree.AssertEntityLocation(LegId, bounds);  
                 });
-                float3 origin = Animal.BodyPosition  + math.mul(Animal.transform.rotation, settings.RestOffset);
+                float3 origin = Animate.BodyPosition  + math.mul(Animal.transform.rotation, settings.RestOffset);
                 float dist = math.distance(origin, restPos);
                 if (dist > tCollider.transform.size.y) { //Rubber banding
                     dist -= tCollider.transform.size.y;
                     float3 dir = math.normalizesafe(origin - restPos);
-                    float strength = math.pow(math.distance(origin, restPos), 3.0f);
+                    float strength = math.pow(math.distance(origin, restPos), settings.RubberbandStrength);
                     tCollider.transform.velocity += strength * EntityJob.cxt.deltaTime * dir; 
+                    State = StepState.Stand;
                 }
 
                 this.tCollider.Update(Animal);
             }
 
-            public void UpdateMovement() {
+            public override void UpdateMovement() {
                 //Update leg in spatial tree--this is not done automatically because Leg is not an entity
                 EntityManager.AddHandlerEvent(() => {
-                    Bounds bounds = new Bounds(Animal.BodyPosition + settings.RestOffset, settings.collider.size);
+                    Bounds bounds = new Bounds(Animate.BodyPosition + settings.RestOffset, settings.collider.size);
                     EntityManager.ESTree.AssertEntityLocation(LegId, bounds);  
                 });
 
+                float3 origin = Animate.BodyPosition + math.mul(Animal.transform.rotation, settings.RestOffset);
                 this.tCollider.useGravity = State != StepState.Raise;
-                this.tCollider.Update(Animal);
-                this.tCollider.transform.velocity *= 0.75f;
-
-                float3 origin = Animal.BodyPosition  + math.mul(Animal.transform.rotation, settings.RestOffset);
-                float dist = math.distance(origin, restPos);
-                if (dist > tCollider.transform.size.y) {
-                    dist -= tCollider.transform.size.y;
-                    float3 dir = math.normalizesafe(origin - restPos);
-                    float strength = math.pow(math.distance(origin, restPos), 3.0f);
-                    tCollider.transform.velocity += strength * EntityJob.cxt.deltaTime * dir;
-                    State = StepState.Stand;
-                }
+                Update();
+                this.tCollider.transform.velocity *= 1 - settings.Friction;
                 
                 if (State == StepState.Stand){
                     if (CPUMapManager.RayCastTerrain(origin, Vector3.down, 2*settings.collider.size.y, 
@@ -712,7 +660,7 @@ public class MultiPedal : Authoring {
                 tCollider.transform.velocity += settings.MoveAccel * EntityJob.cxt.deltaTime * aim;
             }
 
-            public void Release() {
+            public override void Disable() {
                 if (!active) return;
                 active = false;
 
@@ -721,18 +669,12 @@ public class MultiPedal : Authoring {
             }
         }
 
-        public class AnimalController {
+        public class AnimalController : ProceduralAnimated.AnimalController<TwoBoneIKConstraint>{
             private Animal entity;
-            private Animator animator;
-            private GameObject gameObject;
-            private GameObject root;
-            private Transform transform;
             private Indicators indicators;
             private bool active = false;
             private int AnimatorTask;
-            private uint LastOverrideState;
             private bool PlayingAttack = false;
-            private LegController[] legs;
 
             private static readonly string[] AnimationNames = new string[]{
                 "IsIdling",  null, 
@@ -750,50 +692,30 @@ public class MultiPedal : Authoring {
             RunFromTarget, RunFromPredator, Death
         };
 
-            public AnimalController(GameObject controller, Animal entity) {
-                this.entity = entity;
-                this.root = GameObject.Instantiate(controller);
-                this.transform = root.transform;
-                this.gameObject = transform.GetChild(0).gameObject;
-                this.animator = gameObject.transform.GetComponent<Animator>();
+            public AnimalController(GameObject controller, Animal entity) : base(
+                controller,
+                entity.Animate.appendages,
+                entity.settings.Animation
+            ) {
                 this.AnimatorTask = 0;
-                this.LastOverrideState = 0;
                 this.active = true;
+                this.entity = entity;
 
                 indicators = new Indicators(gameObject, entity);
-                transform.position = CPUMapManager.GSToWS(entity.position);
-                legs = new LegController[entity.Legs.Count()];
-                for(int i = 0; i < entity.Legs.Count(); i++) {
-                    legs[i] = new LegController(entity.Legs[i],
-                        gameObject.transform,
-                        entity.settings.Legs.value[i].IKObjectPath
-                    );
-                }
             }
 
-            public void Update() {
+            public override void Update() {
                 if (!active) return;
                 if (!entity.active) return;
-                if (!entity.active) return;
                 if (gameObject == null) return;
-                this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), entity.Torso.transform.rotation);
-
-                foreach(LegController c in legs) c.Update();
-                int hash = animator.GetCurrentAnimatorStateInfo(0).shortNameHash; uint bitmap = 0;
-                entity.settings.AnimToggle.TryGetValue(hash, out bitmap);
-                if (bitmap != LastOverrideState) {
-                    LastOverrideState = bitmap;
-                    for(int i = 0; i < legs.Count(); i++) {
-                        legs[i].SetActive(((bitmap >> i) & 0x1) != 0);
-                    }
-                }
-
+                this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), entity.Animate.Head.transform.rotation);
+                base.Update();
+                
 #if UNITY_EDITOR
                 if (UnityEditor.Selection.Contains(root)) {
                     Debug.Log(entity.TaskIndex);
                 }
 #endif
-
                 indicators.Update();
                 //Handle trigger based actions
                 PlayAttacks();
@@ -828,32 +750,6 @@ public class MultiPedal : Authoring {
 
             ~AnimalController() {
                 Dispose();
-            }
-
-            private struct LegController {
-                public Leg Leg;
-                private Transform Controller;
-                private TwoBoneIKConstraint contraint;
-                private bool active;
-                public LegController(Leg Leg, Transform root, string path) {
-                    this.Leg = Leg;
-                    this.active = false;
-                    this.Controller = root.Find(path);
-                    this.contraint = Controller.transform.parent.GetComponent<TwoBoneIKConstraint>();
-                }
-                public void Update() {
-                    if (!active) return;
-                    float3 bottom = Leg.tCollider.transform.position;
-                    bottom.xz += Leg.tCollider.transform.size.xz / 2;
-                    Controller.position = CPUMapManager.GSToWS(bottom);
-                }
-
-                public void SetActive(bool enabled) {
-                    if (active != enabled) {
-                        active = enabled;
-                        contraint.weight = active ? 1 : 0;
-                    } if (!active) return;
-                }
             }
         }
     }

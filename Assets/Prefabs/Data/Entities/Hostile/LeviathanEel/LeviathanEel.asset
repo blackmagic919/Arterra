@@ -1,0 +1,637 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f02090c245ed941d89ad005bb82537b5, type: 3}
+  m_Name: LeviathanEel
+  m_EditorClassIdentifier: Assembly-CSharp::EelEnemy
+  Name: LeviathanEel
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 6191056119190147178, guid: c7d9a5adb8ffc4b7ebcaa8003742308b, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+    - bounds:
+        data: 4278255488
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 5
+          y: 4
+          z: 5
+      collider:
+        size:
+          x: 3
+          y: 3
+          z: 3
+      EnemyCheckDist:
+        mean: 8
+        var: 0.4
+        geneWeight: 0.3
+      EnemyCheckDelay:
+        mean: 2.5
+        var: 0.5
+        geneWeight: 1
+      movement:
+        walkSpeed:
+          mean: 4
+          var: 0.45
+          geneWeight: 0.25
+        runSpeed:
+          mean: 8
+          var: 0.5
+          geneWeight: 0.75
+        pathDistance: 38
+        acceleration: 200
+        rotSpeed: 180
+        AverageIdleTime: 20
+      aquatic:
+        DrownTime:
+          mean: Infinity
+          var: 0
+          geneWeight: 0
+        SurfaceThreshold:
+          mean: 0
+          var: 0
+          geneWeight: 0
+        JumpStickDistance: 0.05
+        JumpStrength: 0.5
+        SurfaceProfile:
+          bounds:
+            x: 1
+            y: 1
+            z: 1
+      recognition:
+        value:
+          Predators:
+            value: []
+          SightDistance:
+            mean: 38
+            var: 0.25
+            geneWeight: 0.5
+          PlantFindDist:
+            mean: 0
+            var: 0
+            geneWeight: 0
+          PreyEntity:
+            value:
+            - EntityType: Player
+          PreyPlant:
+            value: []
+          FleeDistance: 5
+          FightAggressor: 1
+      physicality:
+        value:
+          weight: 0.9
+          MaxHealth:
+            mean: 100
+            var: 0.5
+            geneWeight: 1
+          NaturalRegen:
+            mean: 0.01
+            var: 0.75
+            geneWeight: 0.5
+          InvincTime:
+            mean: 0.25
+            var: 0.5
+            geneWeight: 0.5
+          HoldBreathTime:
+            mean: 30
+            var: 1
+            geneWeight: 0.5
+          AttackDistance:
+            mean: 6
+            var: 0.3
+            geneWeight: 0.5
+          AttackDamage:
+            mean: 10
+            var: 0.75
+            geneWeight: 0.75
+          AttackCooldown:
+            mean: 0.75
+            var: 0.25
+            geneWeight: 0.25
+          KBStrength:
+            mean: 20
+            var: 0.5
+            geneWeight: 0.2
+          AttackDuration: 0.75
+      decomposition:
+        LootTable:
+          value: []
+        DecompositionTime:
+          mean: 300
+          var: 0.25
+          geneWeight: 0.1
+      attack:
+        Projectile:
+          ShotDelay: 0.25
+          CheckSightline: 1
+          ChargeTime:
+            mean: 5
+            var: 0.5
+            geneWeight: 0.6
+          Projectile:
+            LaunchSpeedMultiplier: 1
+            FireSound: 0
+            ProjectileEntity: 
+          HasRangedAttack: 0
+        BlindDist:
+          mean: 0
+          var: 0
+          geneWeight: 0
+      ConsumptionRate: 0.5
+      Animation:
+        Head:
+          value:
+            Offset:
+              x: 0
+              y: 0
+              z: 0
+            Collider:
+              size:
+                x: 3
+                y: 3
+                z: 3
+            RubberbandStrength: 5
+        RubberbandStrength: 1
+        AnimControl: []
+        OverrideAnimByDefault: 1
+        BodyUseGravity: 0
+        Segments:
+          value:
+          - collider:
+              size:
+                x: 2.5
+                y: 2
+                z: 2.5
+            RestOffset:
+              x: 0
+              y: 0
+              z: 1
+            BoneOffset:
+              x: 1.25
+              y: 1
+              z: 1.25
+            BonePath: Rig/BodySegment.001/target
+            MoveAccel: 75
+            Phase: 0.167
+            RBStrength: 32
+          - collider:
+              size:
+                x: 2.5
+                y: 2
+                z: 2.5
+            RestOffset:
+              x: 0
+              y: 0
+              z: -5
+            BoneOffset:
+              x: 1.25
+              y: 1
+              z: 1.25
+            BonePath: Rig/BodySegment.002/target
+            MoveAccel: 75
+            Phase: 0.334
+            RBStrength: 8
+          - collider:
+              size:
+                x: 2.5
+                y: 2
+                z: 2.5
+            RestOffset:
+              x: 0
+              y: 0
+              z: -5
+            BoneOffset:
+              x: 1.25
+              y: 1
+              z: 1.25
+            BonePath: Rig/BodySegment.003/target
+            MoveAccel: 75
+            Phase: 0.5
+            RBStrength: 6
+          - collider:
+              size:
+                x: 2.5
+                y: 2
+                z: 2.5
+            RestOffset:
+              x: 0
+              y: 0
+              z: -5
+            BoneOffset:
+              x: 1.25
+              y: 1
+              z: 1.25
+            BonePath: Rig/BodySegment.004/target
+            MoveAccel: 75
+            Phase: 0.667
+            RBStrength: 6
+          - collider:
+              size:
+                x: 2.5
+                y: 2
+                z: 2.5
+            RestOffset:
+              x: 0
+              y: 0
+              z: -5
+            BoneOffset:
+              x: 1.25
+              y: 1
+              z: 1.25
+            BonePath: Rig/BodySegment.005/target
+            MoveAccel: 75
+            Phase: 0.833
+            RBStrength: 4
+          - collider:
+              size:
+                x: 2.5
+                y: 2
+                z: 2.5
+            RestOffset:
+              x: 0
+              y: 0
+              z: -5
+            BoneOffset:
+              x: 1.25
+              y: 1
+              z: 1.25
+            BonePath: Rig/BodySegment.006/target
+            MoveAccel: 75
+            Phase: 1
+            RBStrength: 4
+        SlitherX:
+          value:
+            serializedVersion: 2
+            m_Curve:
+            - serializedVersion: 3
+              time: 0.046812475
+              value: -3.9684148
+              inSlope: 16.115122
+              outSlope: 16.115122
+              tangentMode: 34
+              weightedMode: 0
+              inWeight: 0
+              outWeight: 0.33333334
+            - serializedVersion: 3
+              time: 0.54233485
+              value: 4.0169888
+              inSlope: 0.14798164
+              outSlope: 0.14798164
+              tangentMode: 34
+              weightedMode: 0
+              inWeight: 0.33333334
+              outWeight: 0.33333334
+            - serializedVersion: 3
+              time: 1.0468125
+              value: -3.9634235
+              inSlope: -15.819159
+              outSlope: -15.819159
+              tangentMode: 34
+              weightedMode: 0
+              inWeight: 0.33333334
+              outWeight: 0
+            m_PreInfinity: 2
+            m_PostInfinity: 2
+            m_RotationOrder: 4
+        SlitherY:
+          value:
+            serializedVersion: 2
+            m_Curve:
+            - serializedVersion: 3
+              time: 0
+              value: -0.0063664913
+              inSlope: 0
+              outSlope: 0
+              tangentMode: 34
+              weightedMode: 0
+              inWeight: 0
+              outWeight: 0.33333334
+            - serializedVersion: 3
+              time: 1
+              value: -0.0063664913
+              inSlope: 0
+              outSlope: 0
+              tangentMode: 34
+              weightedMode: 0
+              inWeight: 0.33333334
+              outWeight: 0
+            m_PreInfinity: 2
+            m_PostInfinity: 2
+            m_RotationOrder: 4
+        SlitherSpeed: 1
+        MoveAccel: 200
+      IndependentWalk: 1
+  references:
+    version: 2
+    RefIds: []

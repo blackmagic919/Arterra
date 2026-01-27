@@ -92,7 +92,7 @@ public class ArmorInventory : IInventory {
 
     public bool AddEntry(IItem item, int slot) {
         if (item is not IArmorItem aItem) return false;
-        item = item.Clone() as IArmorItem;
+        aItem = item.Clone() as IArmorItem;
         List<EquipInfo.Slot> slots = aItem.GetEquipInfo().Regions;
         string slotName = system.RetrieveName(slot);
         if (!slots.Exists((s) => s.PlaceableSlot == slotName))
@@ -116,7 +116,7 @@ public class ArmorInventory : IInventory {
     public bool AddEntry(IItem item, out int head) {
         head = -1;
         if (item is not IArmorItem aItem) return false;
-        item = item.Clone() as IArmorItem;
+        aItem = item.Clone() as IArmorItem;
         List<EquipInfo.Slot> slots = aItem.GetEquipInfo().Regions;
 
         Dictionary<int, bool> groups = slots.Select(s => s.GroupReference).ToDictionary(i => i, i => true);

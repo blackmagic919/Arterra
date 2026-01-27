@@ -82,9 +82,9 @@ public class EItem : Arterra.Configuration.Generation.Entity.Authoring
         //This function shouldn't be used
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (EItemSetting)setting;
-            controller = new EItemController(Controller, this);
             random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(0, int.MaxValue));
             tCollider = new TerrainCollider(this.settings.collider, GCoord);
+            controller = new EItemController(Controller, this);
             decomposition = settings.DecayTime;
         }
 

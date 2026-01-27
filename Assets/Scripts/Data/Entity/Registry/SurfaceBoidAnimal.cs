@@ -161,13 +161,13 @@ public class SurfaceBoidAnimal : Arterra.Configuration.Generation.Entity.Authori
 
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (AnimalSetting)setting;
-            controller = new AnimalController(Controller, this);
             //The seed is the entity's memory address
             this.random = new Unity.Mathematics.Random((uint)GetHashCode());
             this.genetics ??= new Genetics(this.info.entityType, ref random);
             this.vitality = new Vitality(settings.Physicality, this.genetics);
             this.tCollider = new TerrainCollider(settings.collider, GCoord, ProcessFallDamage);
             this.WalkDirection = Movement.RandomDirection2D(ref random);
+            controller = new AnimalController(Controller, this);
             pathFinder.hasPath = false;
 
             //Start by Idling

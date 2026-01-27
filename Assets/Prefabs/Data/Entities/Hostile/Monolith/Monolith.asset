@@ -236,8 +236,8 @@ MonoBehaviour:
             geneWeight: 0.75
           AttackCooldown:
             mean: 0.75
-            var: 0.75
-            geneWeight: 0.5
+            var: 0.25
+            geneWeight: 0.25
           KBStrength:
             mean: 15
             var: 0.5
@@ -259,87 +259,118 @@ MonoBehaviour:
             var: 0.5
             geneWeight: 0.6
           Projectile:
-            ProjectileEntity: StoneHorn
             LaunchSpeedMultiplier: 5
             FireSound: 2001
+            ProjectileEntity: StoneHorn
+          HasRangedAttack: 1
         BlindDist:
           mean: 3
           var: 0.25
           geneWeight: 0.5
       ConsumptionRate: 0.5
-      Torso:
-        Offset:
-          x: 0
-          y: 4.5
-          z: 0
-        Collider:
-          size:
-            x: 2
-            y: 2
-            z: 2
-      Legs:
-        value:
-        - collider:
-            size:
-              x: 0.75
-              y: 3.5
-              z: 0.75
-          RestOffset:
-            x: -2.5
-            y: 0
-            z: 2.5
-          IKObjectPath: Rig/Leg.Front.control.R/target
-          StepDistThreshold: 3
-          LegRaiseHeight: 2
-          MoveAccel: 400
-        - collider:
-            size:
-              x: 0.75
-              y: 3.5
-              z: 0.75
-          RestOffset:
-            x: 2.5
-            y: 0
-            z: 2.5
-          IKObjectPath: Rig/Leg.Front.control.L/target
-          StepDistThreshold: 3
-          LegRaiseHeight: 2
-          MoveAccel: 400
-        - collider:
-            size:
-              x: 0.75
-              y: 3.5
-              z: 0.75
-          RestOffset:
-            x: -2.5
-            y: 0
-            z: -2.5
-          IKObjectPath: Rig/Leg.Back.control.R/target
-          StepDistThreshold: 3
-          LegRaiseHeight: 2
-          MoveAccel: 400
-        - collider:
-            size:
-              x: 0.75
-              y: 3.5
-              z: 0.75
-          RestOffset:
-            x: 2.5
-            y: 0
-            z: -2.5
-          IKObjectPath: Rig/Leg.Back.control.L/target
-          StepDistThreshold: 3
-          LegRaiseHeight: 2
-          MoveAccel: 400
-      AnimControl:
-      - AnimName: Armature_active_idle
-        LegControlBitmap: 15
-      - AnimName: Armature_attack_left
-        LegControlBitmap: 14
-      - AnimName: Armature_attack_right
-        LegControlBitmap: 13
-      - AnimName: Armature_ShootHorn
-        LegControlBitmap: 15
+      Animation:
+        Head:
+          value:
+            Offset:
+              x: 0
+              y: 4.5
+              z: 0
+            Collider:
+              size:
+                x: 2
+                y: 2
+                z: 2
+            RubberbandStrength: 10
+        RubberbandStrength: 1
+        AnimControl:
+        - AnimName: Armature_active_idle
+          LegControlBitmap: 15
+        - AnimName: Armature_attack_left
+          LegControlBitmap: 14
+        - AnimName: Armature_attack_right
+          LegControlBitmap: 13
+        - AnimName: Armature_ShootHorn
+          LegControlBitmap: 13
+        BodyUseGravity: 1
+        Legs:
+          value:
+          - collider:
+              size:
+                x: 0.75
+                y: 3.5
+                z: 0.75
+            RestOffset:
+              x: -2.5
+              y: 0
+              z: 2.5
+            BoneOffset:
+              x: 0.375
+              y: 0
+              z: 0.375
+            BonePath: Rig/Leg.Front.control.R/target
+            StepDistThreshold: 3
+            LegRaiseHeight: 2
+            MoveAccel: 300
+            Friction: 0.25
+            RubberbandStrength: 3
+          - collider:
+              size:
+                x: 0.75
+                y: 3.5
+                z: 0.75
+            RestOffset:
+              x: 2.5
+              y: 0
+              z: 2.5
+            BoneOffset:
+              x: 0.375
+              y: 0
+              z: 0.375
+            BonePath: Rig/Leg.Front.control.L/target
+            StepDistThreshold: 3
+            LegRaiseHeight: 2
+            MoveAccel: 300
+            Friction: 0.25
+            RubberbandStrength: 3
+          - collider:
+              size:
+                x: 0.75
+                y: 3.5
+                z: 0.75
+            RestOffset:
+              x: -2.5
+              y: 0
+              z: -2.5
+            BoneOffset:
+              x: 0.375
+              y: 0
+              z: 0.375
+            BonePath: Rig/Leg.Back.control.R/target
+            StepDistThreshold: 3
+            LegRaiseHeight: 2
+            MoveAccel: 300
+            Friction: 0.25
+            RubberbandStrength: 3
+          - collider:
+              size:
+                x: 0.75
+                y: 3.5
+                z: 0.75
+            RestOffset:
+              x: 2.5
+              y: 0
+              z: -2.5
+            BoneOffset:
+              x: 0.375
+              y: 0
+              z: 0.375
+            BonePath: Rig/Leg.Back.control.L/target
+            StepDistThreshold: 3
+            LegRaiseHeight: 2
+            MoveAccel: 300
+            Friction: 0.25
+            RubberbandStrength: 3
+      IndependentWalk: 0
   references:
     version: 2
     RefIds: []

@@ -608,6 +608,9 @@ MonoBehaviour:
     - bounds:
         data: 2130771840
       flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
   _Setting:
     value:
       profile:
@@ -620,7 +623,6 @@ MonoBehaviour:
           x: 6
           y: 3
           z: 6
-        friction: 0.25
       movement:
         walkSpeed:
           mean: 3
@@ -702,6 +704,7 @@ MonoBehaviour:
             mean: 15
             var: 0.5
             geneWeight: 0.25
+          AttackDuration: 0
           HuntThreshold:
             mean: 0.4
             var: 0.25
@@ -720,6 +723,22 @@ MonoBehaviour:
         value:
           Predators:
             value: []
+          SightDistance:
+            mean: 32
+            var: 0.25
+            geneWeight: 0.66
+          PlantFindDist:
+            mean: 0
+            var: 0
+            geneWeight: 0
+          PreyEntity:
+            value:
+            - EntityType: Minnow
+            - EntityType: Krill
+          PreyPlant:
+            value: []
+          FleeDistance: 5
+          FightAggressor: 1
           Mates:
             value:
             - MateType: Whale
@@ -741,16 +760,6 @@ MonoBehaviour:
                 mean: 40
                 var: 0.5
                 geneWeight: 0.1
-          SightDistance:
-            mean: 32
-            var: 0.25
-            geneWeight: 0.66
-          FleeDistance: 5
-          FightAggressor: 1
-          PreyEntity:
-            value:
-            - EntityType: Minnow
-            - EntityType: Krill
   references:
     version: 2
     RefIds: []

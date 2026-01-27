@@ -17,7 +17,8 @@ struct v2f
     float4 positionCS : SV_POSITION;
     float3 positionWS : TEXCOORD0;
     float3 normalWS : TEXCOORD1;
-    nointerpolation int material: TEXCOORD2; //Materials are definate and can't be interpolated
+    //Materials are definate and can't be interpolated
+    nointerpolation int material: TEXCOORD2;
 };
 
 #ifdef INDIRECT

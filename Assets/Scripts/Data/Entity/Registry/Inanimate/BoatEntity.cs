@@ -105,9 +105,9 @@ public class BoatEntity : Arterra.Configuration.Generation.Entity.Authoring {
         public Boat() { }
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (BoatSetting)setting;
-            controller = new BoatController(Controller, this);
             vitality = new MinimalVitality(settings.durability);
             tCollider = new TerrainCollider(this.settings.collider, GCoord);
+            controller = new BoatController(Controller, this);
         }
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {

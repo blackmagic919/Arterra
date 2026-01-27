@@ -4,7 +4,6 @@ using Unity.Mathematics;
 using System;
 using System.Collections.Concurrent;
 using UnityEngine.Profiling;
-using System.Linq;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
 
@@ -173,12 +172,6 @@ namespace Arterra.Core.Terrain{
 
             ProcessUpdateTasks(MainLoopUpdateTasks);
             ProcessCoroutines(MainCoroutines);
-
-            if(Input.GetKey(KeyCode.Backslash)) {
-                int3 CCoord = CPUMapManager.GSToCS((int3)CPUMapManager.WSToGS(viewer.position));
-                TerrainChunk c = octree.GetAllChunks().Where(c => math.all(c.CCoord == CCoord)).ToArray()[0];
-                c.GeoShaders.Update(this);
-            }
         }
         private void LateUpdate() { ProcessUpdateTasks(MainLateUpdateTasks); }
         private void FixedUpdate() { ProcessUpdateTasks(MainFixedUpdateTasks); }

@@ -24,6 +24,7 @@ public static class EntityManager
     private static ComputeShader entityTranscriber;
     public static HashSet<Entity> EntityReg;
     public static Dictionary<Guid, Entity> EntityIndex; //tracks location in handler of entityGUID
+    private static ConcurrentDictionary<Guid, Entity> EntityCatalogue; //tracks location in handler of entityGUID
     public static STree ESTree; //BVH of entities updated synchronously
     public static ConcurrentQueue<Action> HandlerEvents; //Buffered updates to modify entities(since it can't happen while job is executing)
     public static Entity[] CurUpdateEntities;
@@ -35,7 +36,16 @@ public static class EntityManager
     }
 
     public static bool TryGetEntity(Guid identifier, out Entity entity){
-        return EntityIndex.TryGetValue(identifier, out entity);
+        if (EntityIndex.TryGetValue(identifier, out entity)) {
+            EntityCatalogue[identifier] = entity;
+            return true;
+        } 
+        if (EntityCatalogue.ContainsKey(identifier)) {
+            Debug.Log($"Entity with Id {identifier} was registered to type {EntityCatalogue[identifier].info.entityType} with Id {EntityCatalogue[identifier].info.entityId}");
+        } else {
+            Debug.Log($"Entity with Id {identifier} was never registered");
+        }
+        return false;
     }
 
     public static void FlushUpdateCycle() {
@@ -144,6 +154,7 @@ public static class EntityManager
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
         EntityReg = new HashSet<Entity>();
         EntityIndex = new Dictionary<Guid, Entity>();
+        EntityCatalogue = new ConcurrentDictionary<Guid, Entity>();
         HandlerEvents = new ConcurrentQueue<Action>();
         Executor = new EntityJob();
         OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);

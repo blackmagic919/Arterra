@@ -89,8 +89,8 @@ public class Projectile : Arterra.Configuration.Generation.Entity.Authoring
         //This function shouldn't be used
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (ProjectileSetting)setting;
-            controller = new ProjectileController(Controller, this);
             tCollider = new TerrainCollider(this.settings.collider, GCoord);
+            controller = new ProjectileController(Controller, this);
             decomposition = settings.DecayTime;
             ParentId = info.entityId;
             HasCollided = false;
