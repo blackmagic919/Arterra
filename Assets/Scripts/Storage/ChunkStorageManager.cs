@@ -80,13 +80,10 @@ public static class Chunk
     /// to the correct location for the chunk within the world's file system(<see cref="ChunkFinder.chunkPath"/>).  
     /// See <see cref="ChunkHeader"/> for information on this format. The function saves the chunk data
     /// with background task to avoid blocking the main thread. </summary>
-    /// <param name="chunk">A <see cref="CPUMapManager.ChunkPtr"/> referencing the chunk's map in memory</param>
+    /// <param name="chunk">A <see cref="CPUMapManager.ChunkPtr"/> referencing a COPY of the chunk's map in memory</param>
     /// <param name="CCoord">The coordinate in chunk space of the Chunk associated with the map 
     /// information. Used to identify the location to store the resulting file(s). </param>
     public static async void SaveChunkToBinAsync(CPUMapManager.ChunkPtr chunk, int3 CCoord){
-        int numPointsAxis = maxChunkSize;
-        int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
-        CPUMapManager.ChunkPtr chunkCopy = chunk.Copy(numPoints);
         try {
             string mapPath = chunkFinder.GetMapRegionPath(CCoord);
 
@@ -97,13 +94,13 @@ public static class Chunk
             while (!chunkFinder.TryGetMapChunk(CCoord, out fileAdd, AcquireLock: true))
                 await Task.Yield();
 
-            SaveChunkToBin(fileAdd, chunkCopy);
+            SaveChunkToBin(fileAdd, chunk);
             chunkFinder.TryAddMap(CCoord);
-            chunkCopy.Dispose();
+            chunk.Dispose();
         } catch (Exception e) {
             Debug.Log($"Failed on Saving Chunk Data for Chunk: {CCoord} with exception {e}");
             chunkFinder.TryRemoveMap(CCoord);
-            chunkCopy.Dispose();
+            chunk.Dispose();
         }
     }
 

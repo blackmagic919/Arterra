@@ -583,7 +583,6 @@ public class BaseEnemy : Authoring {
             public void Update() {
                 if (!active) return;
                 if (!entity.active) return;
-                if (!entity.active) return;
                 if (gameObject == null) return;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), entity.transform.rotation);
 

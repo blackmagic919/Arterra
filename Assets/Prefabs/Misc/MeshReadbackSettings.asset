@@ -19,6 +19,7 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 07dbbc9f04818457a8ed51ec5730951e, type: 2}
   - {fileID: 2100000, guid: eae5cc3a9fe3b448c939aaf17fc62ff7, type: 2}
   - {fileID: 2100000, guid: 59ff34186f8e944e4ba0e80a32486568, type: 2}
+  - {fileID: 2100000, guid: 170b712d04af14edf9213fbb011d9691, type: 2}
   indirectTerrainMats:
   - {fileID: 0}
   - {fileID: 0}

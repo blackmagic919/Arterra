@@ -16,6 +16,7 @@ using Arterra.Configuration.Generation.Entity;
 using Arterra.Core.Terrain;
 using Arterra.Core.Player;
 using Arterra.Core.Terrain.Readback;
+using Utils;
 
 public static class EntityManager
 {
@@ -24,7 +25,6 @@ public static class EntityManager
     private static ComputeShader entityTranscriber;
     public static HashSet<Entity> EntityReg;
     public static Dictionary<Guid, Entity> EntityIndex; //tracks location in handler of entityGUID
-    private static ConcurrentDictionary<Guid, Entity> EntityCatalogue; //tracks location in handler of entityGUID
     public static STree ESTree; //BVH of entities updated synchronously
     public static ConcurrentQueue<Action> HandlerEvents; //Buffered updates to modify entities(since it can't happen while job is executing)
     public static Entity[] CurUpdateEntities;
@@ -37,14 +37,8 @@ public static class EntityManager
 
     public static bool TryGetEntity(Guid identifier, out Entity entity){
         if (EntityIndex.TryGetValue(identifier, out entity)) {
-            EntityCatalogue[identifier] = entity;
             return true;
         } 
-        if (EntityCatalogue.ContainsKey(identifier)) {
-            Debug.Log($"Entity with Id {identifier} was registered to type {EntityCatalogue[identifier].info.entityType} with Id {EntityCatalogue[identifier].info.entityId}");
-        } else {
-            Debug.Log($"Entity with Id {identifier} was never registered");
-        }
         return false;
     }
 
@@ -84,10 +78,18 @@ public static class EntityManager
         DeserializeE(sEntity);
         cb?.Invoke();
     });
-    public static void ReleaseEntity(Guid entityId, Action cb = null) => AddHandlerEvent(() => {
-        ReleaseE(entityId);
-        cb?.Invoke();
-    });
+    public static void ReleaseEntity(Guid entityId, Action cb = null) {
+        if(!TryGetEntity(entityId, out Entity entity))
+            return;
+        //Mark as inactive IMMEDIATELY so it doesn't float around as a zombie for a while
+        entity.active = false;
+
+        AddHandlerEvent(() => {
+
+            ReleaseE(entityId);
+            cb?.Invoke();
+        });
+    }
 
     public static void ReleaseChunkEntities(int3 CCoord, bool await = false) {
         int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
@@ -97,27 +99,28 @@ public static class EntityManager
         Bounds bounds = new(((float3)mapInfo.CCoord + 0.5f) * mapChunkSize, (float3)mapChunkSize);
 
         HashSet<Entity> Entities = new HashSet<Entity>();
-        ESTree.QueryExclusive(bounds, (Entity entity) => {
+        ESTree.QueryExclusive(bounds, (entity) => {
             if (entity == null) return;
+            //If it's inactive it most likely has been recently released by another chunk and
+            // moved in the way of this chunk before it can be properly released from memory
+            if (!entity.active) return;
             //This is the only entity that is not serialized and saved
             if (entity.info.entityId == PlayerHandler.data.info.entityId) return;
-            ReleaseEntity(entity.info.entityId);
-            Entities.Add(entity);
+            //This will immediately mark the entity as inactive
+            if(Entities.Add(entity)) ReleaseEntity(entity.info.entityId);
         });
         Task awaitableTask = Task.Run(() => Chunk.SaveEntitiesToJsonAsync(Entities.ToList(), mapInfo.CCoord));
         if (await) awaitableTask.Wait();
     }
     public static void ReleaseE(Guid entityId){
-        if(!EntityIndex.ContainsKey(entityId)) {
+        if(!EntityIndex.TryGetValue(entityId, out Entity entity))
             return;
-        }
-        Entity entity = EntityIndex[entityId];
-
+        
+        entity.active = false;
         EntityReg.Remove(entity);
         EntityIndex.Remove(entityId);
         ESTree.Delete(entityId);
         entity.Disable();
-        entity.active = false;
     }
     
     public static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
@@ -127,6 +130,7 @@ public static class EntityManager
         nEntity.active = true;
 
         EntityReg.Add(nEntity);
+        if (EntityIndex.ContainsKey(nEntity.info.entityId)) Debug.Log($"Found entity with duplicate Ids {nEntity.info.entityId}");
         EntityIndex[nEntity.info.entityId] = nEntity;
         nEntity.Initialize(authoring.Setting, authoring.Controller, GCoord);
         ESTree.Insert(nEntity);
@@ -138,8 +142,9 @@ public static class EntityManager
         sEntity.active = true;
 
         EntityReg.Add(sEntity);
+        if (EntityIndex.ContainsKey(sEntity.info.entityId)) Debug.Log($"Found entity with duplicate Ids {sEntity.info.entityId}");
         EntityIndex[sEntity.info.entityId] = sEntity;
-        sEntity.Deserialize(authoring.Setting, authoring.Controller, out int3 GCoord);
+        sEntity.Deserialize(authoring.Setting, authoring.Controller, out _);
         ESTree.Insert(sEntity);
     }
     public static void DeserializeEntities(List<Entity> entities){
@@ -154,7 +159,6 @@ public static class EntityManager
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
         EntityReg = new HashSet<Entity>();
         EntityIndex = new Dictionary<Guid, Entity>();
-        EntityCatalogue = new ConcurrentDictionary<Guid, Entity>();
         HandlerEvents = new ConcurrentQueue<Action>();
         Executor = new EntityJob();
         OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);

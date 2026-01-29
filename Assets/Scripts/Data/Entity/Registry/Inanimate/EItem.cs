@@ -76,7 +76,6 @@ public class EItem : Arterra.Configuration.Generation.Entity.Authoring
         public EItemEntity() { }
         public EItemEntity(IItem item, Quaternion rot = default, bool floats = false) {
             this.item = new Registerable<IItem>(item);
-            tCollider.transform.rotation = rot;
         }
 
         //This function shouldn't be used

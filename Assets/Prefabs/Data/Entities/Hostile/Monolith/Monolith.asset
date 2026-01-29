@@ -291,6 +291,7 @@ MonoBehaviour:
           LegControlBitmap: 13
         - AnimName: Armature_ShootHorn
           LegControlBitmap: 13
+        OverrideAnimByDefault: 0
         BodyUseGravity: 1
         Legs:
           value:
@@ -313,6 +314,7 @@ MonoBehaviour:
             MoveAccel: 300
             Friction: 0.25
             RubberbandStrength: 3
+            OppositeLeg: 1
           - collider:
               size:
                 x: 0.75
@@ -332,6 +334,7 @@ MonoBehaviour:
             MoveAccel: 300
             Friction: 0.25
             RubberbandStrength: 3
+            OppositeLeg: 0
           - collider:
               size:
                 x: 0.75
@@ -351,6 +354,7 @@ MonoBehaviour:
             MoveAccel: 300
             Friction: 0.25
             RubberbandStrength: 3
+            OppositeLeg: 3
           - collider:
               size:
                 x: 0.75
@@ -370,6 +374,7 @@ MonoBehaviour:
             MoveAccel: 300
             Friction: 0.25
             RubberbandStrength: 3
+            OppositeLeg: 2
       IndependentWalk: 0
   references:
     version: 2

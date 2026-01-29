@@ -4,6 +4,7 @@ using Unity.Mathematics;
 using Arterra.Configuration;
 using Arterra.Configuration.Quality;
 using Arterra.Core.Terrain;
+using Arterra.Core.Terrain.Readback;
 
 namespace Arterra.Core.Storage{
     /// <summary> A static centralized gateway for all CPU-side operations to access or attach resources capable of accessing
@@ -129,6 +130,10 @@ namespace Arterra.Core.Storage{
             TranscribeMap(mapData, address, rdOff, mapChunkSize, mapChunkSize);
             uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new int2((int)address, 0);
             LightBaker.RegisterChunk(oCCoord, mapChunkSize, address, 1 << depth);
+            
+            //uint2[] addBuff = new uint2[1];
+            //memorySpace.Address.GetData(addBuff, 0, (int)address, 1);
+            //if(addBuff[0].x == 0 || addBuff[0].y == 0) Debug.Log(addBuff[0]);
 
             RegisterChunk(oCCoord, depth, handleAddress);
             return (int)handleAddress;

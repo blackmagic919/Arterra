@@ -32,6 +32,7 @@ MonoBehaviour:
         - Spider
         - Beetle
         - CopperOre
+        - SpiderMutant
       GroundMaterials:
         value:
         - value:
@@ -105,6 +106,9 @@ MonoBehaviour:
         - value:
             Entity: 10
             ChancePerCoord: 0.0003
+        - value:
+            Entity: 12
+            ChancePerCoord: 0.000025
   BiomeConditions:
     value:
       CaveFreqStart: 0

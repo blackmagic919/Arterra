@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: acf83e0356e9941999c34c16cdba0ab8, type: 3}
+  m_Name: SpiderWeb
+  m_EditorClassIdentifier: 
+  Name: SpiderWeb
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 1957860278909418881, guid: 6036887e2f84b4b278f21f0b5fe94b92, type: 3}
+  Profile:
+    value: []
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 0
+          y: 0
+          z: 0
+      collider:
+        size:
+          x: 0.5
+          y: 0.5
+          z: 0.5
+      DecayTime: 100
+      MinDamagingSpeed: 2.5
+      DamageMultiplier: 0.05
+      KnockbackMultiplier: 0.25
+      weight: 0.1
+      terrainInteration: 0
+      entityInteraction: 1
+      FlybySound: 3000
+      HitSound: 3001
+      ItemDrop: String
+  references:
+    version: 2
+    RefIds: []

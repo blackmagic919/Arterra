@@ -118,6 +118,9 @@ namespace Arterra.Core.Storage {
                 return;
             ChunkPtr chunk = new ChunkPtr(MapMetaData[chunkHash],
                 SectionedMemory, chunkHash * numPoints);
+            //If we write without copying, because it's async a new
+            //chunk can come in claim this region of memory.
+            chunk = chunk.Copy(numPoints); 
             System.Threading.Tasks.Task awaitableTask = System.Threading.Tasks.Task.Run(() =>
                 Chunk.SaveChunkToBinAsync(chunk, CCoord));
             if (await) awaitableTask.Wait();
@@ -733,6 +736,10 @@ namespace Arterra.Core.Storage {
                 ChunkMapInfo destChunk = AddressDict[CPUChunkHash];
                 if (math.any(CCoord != destChunk.CCoord))
                     return;
+                int[] coord = request.GetData<int>().ToArray();
+                int3 FoundCCoord = new int3(coord[2], coord[3], coord[4]);
+                if (math.any(CCoord != FoundCCoord))
+                    Debug.Log($"Encountered unexpected CCoord {FoundCCoord}, expected {CCoord}");
 
                 int memAddress = (int)memHandle.x;
                 int meshSkipInc = (int)memHandle.y;
@@ -741,7 +748,7 @@ namespace Arterra.Core.Storage {
                 AsyncGPUReadback.RequestIntoNativeArray(ref dest, GPUMapManager.Storage, size: 4 * numPoints, offset: 4 * memAddress, _ => OnReadbackComplete());
             }
 
-            AsyncGPUReadback.Request(GPUMapManager.Address, size: 8, offset: 20 * GPUChunkHash, ret => onChunkAddressRecieved(ret));
+            AsyncGPUReadback.Request(GPUMapManager.Address, size: 20, offset: 20 * GPUChunkHash, ret => onChunkAddressRecieved(ret));
         }
 
         /// <summary> Converts from grid space to chunk space hash and map space hash.

@@ -40,20 +40,20 @@ namespace Arterra.UI.ToolTips {
             var ttSettings = Config.CURRENT.System.Tooltips;
             foreach (var gameEvent in ttSettings.TooltipEvents.value) {
                 PlayerHandler.data.eventCtrl.AddContextlessEventHandler(gameEvent, (object actor, object target) => {
-                    if (target is Entity) {
-                        if (!CheckEntityTooltipTag(gameEvent, (Entity)target, out TooltipTag tag)) {
+                    if (target is Entity entity) {
+                        if (!CheckEntityTooltipTag(gameEvent, entity, out TooltipTag tag)) {
                             ADebug.LogWarning("TooltipSys: No tooltip tag found for entity.");
                             return;
                         }
 
                         foreach(var ttConfig in tag.Tooltips.value) {
                             if (ttConfig.TriggerEvent == gameEvent) {
-                                string tooltipName = $"{gameEvent} - {((Entity)target).info.entityId} - {ttConfig.PrefabPath}";
+                                string tooltipName = $"{gameEvent} - {entity.info.entityId} - {ttConfig.PrefabPath}";
                                 TooltipData tooltipData = new TooltipData(ttConfig);
 
                                 TooltipPipeline.Instance.EnqueueTooltip(tooltipData);
                                 
-                                ADebug.LogInfo($"TooltipSys: Showing tooltip for entity {((Entity)target).info.entityId} - {gameEvent} - Tooltip message placeholder");
+                                ADebug.LogInfo($"TooltipSys: Showing tooltip for entity {entity.info.entityId} - {gameEvent} - Tooltip message placeholder");
                                     
                             }
                         }
@@ -67,8 +67,8 @@ namespace Arterra.UI.ToolTips {
 
             foreach(var gameEvent in ttSettings.TooltipDismissorEvents.value) {
                 PlayerHandler.data.eventCtrl.AddContextlessEventHandler(gameEvent, (object actor, object target) => {
-                    if (target is Entity) {
-                        if (!CheckEntityTooltipDismissorTag(gameEvent, (Entity)target, out TooltipDismissorTag tag)) {
+                    if (target is Entity entity) {
+                        if (!CheckEntityTooltipDismissorTag(gameEvent, entity, out TooltipDismissorTag tag)) {
                             ADebug.LogWarning("TooltipSys: No tooltip tag found for entity.");
                             return;
                         }
@@ -76,7 +76,7 @@ namespace Arterra.UI.ToolTips {
                         foreach(var dismissor in tag.Dismissors.value) {
                             if (dismissor.DismissEvent == gameEvent) {  
                                 TooltipPipeline.Instance.DismissTooltip(dismissor.PrefabPath);                            
-                                ADebug.LogInfo($"TooltipSys: Dismissing tooltip for prefab {dismissor.PrefabPath} on entity {((Entity)target).info.entityId} - {gameEvent} - Tooltip dismissor placeholder");
+                                ADebug.LogInfo($"TooltipSys: Dismissing tooltip for prefab {dismissor.PrefabPath} on entity {entity.info.entityId} - {gameEvent} - Tooltip dismissor placeholder");
                                     
                             }
                         }

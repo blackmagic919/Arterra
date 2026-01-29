@@ -1,0 +1,566 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1706e0d06cfcf4288909469e2f6f1a46, type: 3}
+  m_Name: SpiderMutant
+  m_EditorClassIdentifier: Assembly-CSharp::Monolith
+  Name: SpiderMutant
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 2888932847785352030, guid: 762912c73ba224af2a13d1caa3755bc3, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4286611200
+      flags: 2
+    - bounds:
+        data: 4286611200
+      flags: 2
+    - bounds:
+        data: 4286611200
+      flags: 2
+    - bounds:
+        data: 4286611200
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286611200
+      flags: 2
+    - bounds:
+        data: 4286611200
+      flags: 2
+    - bounds:
+        data: 4286611200
+      flags: 2
+    - bounds:
+        data: 4286611200
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286611200
+      flags: 2
+    - bounds:
+        data: 4286611200
+      flags: 2
+    - bounds:
+        data: 4286611200
+      flags: 2
+    - bounds:
+        data: 4286611200
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 4
+          y: 5
+          z: 4
+      collider:
+        size:
+          x: 3.5
+          y: 4.5
+          z: 3.5
+      EnemyCheckDist:
+        mean: 8
+        var: 0.4
+        geneWeight: 0.3
+      EnemyCheckDelay:
+        mean: 2.5
+        var: 0.5
+        geneWeight: 0.1
+      movement:
+        walkSpeed:
+          mean: 3
+          var: 0.45
+          geneWeight: 0.25
+        runSpeed:
+          mean: 5
+          var: 0.5
+          geneWeight: 0.75
+        pathDistance: 31
+        acceleration: 200
+        rotSpeed: 180
+        AverageIdleTime: 20
+      recognition:
+        value:
+          Predators:
+            value: []
+          SightDistance:
+            mean: 40
+            var: 0.25
+            geneWeight: 0.5
+          PlantFindDist:
+            mean: 0
+            var: 0
+            geneWeight: 0
+          PreyEntity:
+            value:
+            - EntityType: Player
+          PreyPlant:
+            value: []
+          FleeDistance: 5
+          FightAggressor: 1
+      physicality:
+        value:
+          weight: 0.9
+          MaxHealth:
+            mean: 60
+            var: 0.5
+            geneWeight: 1
+          NaturalRegen:
+            mean: 0.01
+            var: 0.75
+            geneWeight: 0.5
+          InvincTime:
+            mean: 0.25
+            var: 1
+            geneWeight: 0.5
+          HoldBreathTime:
+            mean: 20
+            var: 1
+            geneWeight: 0.05
+          AttackDistance:
+            mean: 8
+            var: 0.25
+            geneWeight: 0.5
+          AttackDamage:
+            mean: 8
+            var: 0.75
+            geneWeight: 0.75
+          AttackCooldown:
+            mean: 0.75
+            var: 0.25
+            geneWeight: 0.25
+          KBStrength:
+            mean: 15
+            var: 0.5
+            geneWeight: 0.25
+          AttackDuration: 0.75
+      decomposition:
+        LootTable:
+          value: []
+        DecompositionTime:
+          mean: 300
+          var: 0.25
+          geneWeight: 0.1
+      attack:
+        Projectile:
+          ShotDelay: 0.25
+          CheckSightline: 1
+          ChargeTime:
+            mean: 5
+            var: 0.5
+            geneWeight: 0.6
+          Projectile:
+            LaunchSpeedMultiplier: 5
+            FireSound: 2001
+            ProjectileEntity: SpiderWeb
+          HasRangedAttack: 1
+        BlindDist:
+          mean: 3
+          var: 0.25
+          geneWeight: 0.5
+      ConsumptionRate: 0.5
+      Animation:
+        Head:
+          value:
+            Offset:
+              x: 0
+              y: 5
+              z: 0
+            Collider:
+              size:
+                x: 2.5
+                y: 2
+                z: 2.5
+            RubberbandStrength: 5
+        RubberbandStrength: 1
+        AnimControl:
+        - AnimName: Idle
+          LegControlBitmap: 255
+        - AnimName: attack_left
+          LegControlBitmap: 254
+        - AnimName: attack_right
+          LegControlBitmap: 239
+        - AnimName: shoot_web
+          LegControlBitmap: 255
+        OverrideAnimByDefault: 0
+        BodyUseGravity: 1
+        Legs:
+          value:
+          - collider:
+              size:
+                x: 0.75
+                y: 3.5
+                z: 0.75
+            RestOffset:
+              x: -5
+              y: 0
+              z: 4.5
+            BoneOffset:
+              x: 0.375
+              y: 0
+              z: 0.375
+            BonePath: Rig/Leg2.L/target
+            StepDistThreshold: 3
+            LegRaiseHeight: 4
+            MoveAccel: 500
+            Friction: 0.25
+            RubberbandStrength: 3
+            OppositeLeg: 4
+          - collider:
+              size:
+                x: 0.75
+                y: 3.5
+                z: 0.75
+            RestOffset:
+              x: -5
+              y: 0
+              z: 1.5
+            BoneOffset:
+              x: 0.375
+              y: 0
+              z: 0.375
+            BonePath: Rig/Leg3.L/target
+            StepDistThreshold: 3
+            LegRaiseHeight: 4
+            MoveAccel: 500
+            Friction: 0.25
+            RubberbandStrength: 3
+            OppositeLeg: 5
+          - collider:
+              size:
+                x: 0.75
+                y: 3.5
+                z: 0.75
+            RestOffset:
+              x: -5
+              y: 0
+              z: -1.5
+            BoneOffset:
+              x: 0.375
+              y: 0
+              z: 0.375
+            BonePath: Rig/Leg4.L/target
+            StepDistThreshold: 3
+            LegRaiseHeight: 4
+            MoveAccel: 500
+            Friction: 0.25
+            RubberbandStrength: 3
+            OppositeLeg: 6
+          - collider:
+              size:
+                x: 0.75
+                y: 3.5
+                z: 0.75
+            RestOffset:
+              x: -5
+              y: 0
+              z: -4.5
+            BoneOffset:
+              x: 0.375
+              y: 0
+              z: 0.375
+            BonePath: Rig/Leg5.L/target
+            StepDistThreshold: 3
+            LegRaiseHeight: 4
+            MoveAccel: 500
+            Friction: 0.25
+            RubberbandStrength: 3
+            OppositeLeg: 7
+          - collider:
+              size:
+                x: 0.75
+                y: 3.5
+                z: 0.75
+            RestOffset:
+              x: 5
+              y: 0
+              z: 4.5
+            BoneOffset:
+              x: 0.375
+              y: 0
+              z: 0.375
+            BonePath: Rig/Leg2.R/target
+            StepDistThreshold: 3
+            LegRaiseHeight: 4
+            MoveAccel: 500
+            Friction: 0.25
+            RubberbandStrength: 3
+            OppositeLeg: 0
+          - collider:
+              size:
+                x: 0.75
+                y: 3.5
+                z: 0.75
+            RestOffset:
+              x: 5
+              y: 0
+              z: 1.5
+            BoneOffset:
+              x: 0.375
+              y: 0
+              z: 0.375
+            BonePath: Rig/Leg3.R/target
+            StepDistThreshold: 3
+            LegRaiseHeight: 4
+            MoveAccel: 500
+            Friction: 0.25
+            RubberbandStrength: 3
+            OppositeLeg: 1
+          - collider:
+              size:
+                x: 0.75
+                y: 3.5
+                z: 0.75
+            RestOffset:
+              x: 5
+              y: 0
+              z: -1.5
+            BoneOffset:
+              x: 0.375
+              y: 0
+              z: 0.375
+            BonePath: Rig/Leg4.R/target
+            StepDistThreshold: 3
+            LegRaiseHeight: 4
+            MoveAccel: 500
+            Friction: 0.25
+            RubberbandStrength: 3
+            OppositeLeg: 2
+          - collider:
+              size:
+                x: 0.75
+                y: 3.5
+                z: 0.75
+            RestOffset:
+              x: 5
+              y: 0
+              z: -4.5
+            BoneOffset:
+              x: 0.375
+              y: 0
+              z: 0.375
+            BonePath: Rig/Leg5.R/target
+            StepDistThreshold: 3
+            LegRaiseHeight: 4
+            MoveAccel: 500
+            Friction: 0.25
+            RubberbandStrength: 3
+            OppositeLeg: 3
+      IndependentWalk: 1
+  references:
+    version: 2
+    RefIds: []

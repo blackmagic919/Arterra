@@ -226,6 +226,7 @@ public class ProceduralAnimated {
                 this.settings = settings;
                 this.active = false;
                 this.Controller = root.Find(settings.BonePath);
+                if (Controller == null) Debug.Log(settings.BonePath);
                 this.contraint = Controller.transform.parent.GetComponent<TConstraint>();
             }
             public void Update() {

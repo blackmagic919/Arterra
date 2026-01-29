@@ -25,6 +25,7 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: b7110e616e5c44cf39646c42f4752c0a, type: 2}
     - value: {fileID: 11400000, guid: 9550c6dd391db47ea81c2679193d1d5c, type: 2}
     - value: {fileID: 11400000, guid: 3cbe206fab08b4b8282e38b8b0bb1e5b, type: 2}
+    - value: {fileID: 11400000, guid: 30a52affd554b4f039e68811b9d69c38, type: 2}
   references:
     version: 2
     RefIds: []

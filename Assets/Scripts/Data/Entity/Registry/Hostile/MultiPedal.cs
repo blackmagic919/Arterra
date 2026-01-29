@@ -60,6 +60,7 @@ public class MultiPedal : Authoring {
             public float MoveAccel;
             public float Friction = 0.25f;
             public float RubberbandStrength = 3.0f;
+            public int OppositeLeg;
         }
 
         public override void Preset(uint entityType)
@@ -265,7 +266,7 @@ public class MultiPedal : Authoring {
                 self.settings.movement.acceleration);
                 return;
             };
-            
+
             int PathDist = self.settings.movement.pathDistance;
             int3 dP = new(self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist), self.random.NextInt(-PathDist, PathDist));
             if (PathFinder.VerifyProfile(self.Animate.BodyGCoord + dP, self.settings.profile, EntityJob.cxt)) {
@@ -541,7 +542,7 @@ public class MultiPedal : Authoring {
         public override void OnDrawGizmos() {
             if (!active) return;
             Gizmos.color = Color.green;
-            Gizmos.DrawWireCube(CPUMapManager.GSToWS(position), settings.Animation.Head.value.Collider.size * 2);
+            Gizmos.DrawWireCube(CPUMapManager.GSToWS(Animate.BodyPosition), settings.Animation.Head.value.Collider.size * 2);
             foreach(Leg l in Animate.appendages) {
                 if (l.State == Leg.StepState.Stand) Gizmos.color = Color.green;
                 else if (l.State == Leg.StepState.Raise) Gizmos.color = Color.red;
@@ -628,6 +629,8 @@ public class MultiPedal : Authoring {
                     EntityManager.ESTree.AssertEntityLocation(LegId, bounds);  
                 });
 
+                //Only try to raise leg if the opposite leg is planted in the ground
+                bool CanStartStep = (Animal.Animate.appendages[settings.OppositeLeg] as Leg).State == StepState.Stand;
                 float3 origin = Animate.BodyPosition + math.mul(Animal.transform.rotation, settings.RestOffset);
                 this.tCollider.useGravity = State != StepState.Raise;
                 Update();
@@ -638,7 +641,7 @@ public class MultiPedal : Authoring {
                         CPUMapManager.RayTestSolid, out float3 hit)) {
                         TargetPosition = hit;
                     } else TargetPosition = origin + (float3)(Vector3.down * settings.collider.size.y * 2);
-                    if(math.distance(TargetPosition, restPos) > settings.StepDistThreshold) State = StepState.Raise;
+                    if(CanStartStep && math.distance(TargetPosition, restPos) > settings.StepDistThreshold) State = StepState.Raise;
                 } 
                 if ( State == StepState.Lower) {
                     if (tCollider.SampleCollision(tCollider.transform.position + (float3)(0.05f * Vector3.down),
