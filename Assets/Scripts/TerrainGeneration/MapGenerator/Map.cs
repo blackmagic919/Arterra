@@ -1,8 +1,9 @@
 using UnityEngine;
 using Newtonsoft.Json;
+using Arterra.Configuration;
 
 
-namespace Arterra.Configuration.Generation {
+namespace Arterra.Data.Generation {
     /// <summary>
     /// Identifies information used in generating the map info for a chunk.
     /// Locates the noise samplers responsible for creating different aspects

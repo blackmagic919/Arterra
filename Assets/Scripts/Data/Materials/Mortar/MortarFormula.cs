@@ -7,9 +7,14 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using Arterra.Configuration.Generation.Item;
-using Arterra.Configuration.Generation.Material;
-namespace Arterra.Configuration.Intrinsic.Mortar {
+using Arterra.Data.Item;
+using Arterra.Data.Material;
+using Arterra.Configuration;
+using Arterra.GamePlay.Interaction;
+using Arterra.GamePlay.UI;
+using Arterra.Editor;
+
+namespace Arterra.Data.Intrinsic.Mortar {
     /// <summary>
     /// A structure defining how a material is converted in a mortar.
     /// This conversion can be used for input materials being smelted or output materials being produced.
@@ -96,7 +101,7 @@ namespace Arterra.Configuration.Intrinsic.Mortar {
                 image.sprite = texInfo.Retrieve(resultItem.TexIndex).self;
                 image.color = new Color(1, 1, 1, 1);
                 if (outputs.Count <= 1) return;
-                Arterra.Core.Terrain.OctreeTerrain.MainCoroutines.Enqueue(UpdateRoutine());
+                Arterra.Engine.Terrain.OctreeTerrain.MainCoroutines.Enqueue(UpdateRoutine());
             }
 
             public void Release() {

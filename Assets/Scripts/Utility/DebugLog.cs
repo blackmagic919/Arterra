@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Utils
+namespace Arterra.Utils
 {
     public static class ADebug
     {

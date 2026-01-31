@@ -3,8 +3,9 @@ using UnityEngine;
 using Unity.Mathematics;
 using Arterra.Configuration;
 using Arterra.Configuration.Quality;
-using Arterra.Core.Terrain;
-using Arterra.Core.Terrain.Readback;
+using Arterra.Engine.Terrain;
+using Arterra.Utils;
+using Arterra.Engine.Rendering;
 
 namespace Arterra.Core.Storage{
     /// <summary> A static centralized gateway for all CPU-side operations to access or attach resources capable of accessing
@@ -63,7 +64,7 @@ namespace Arterra.Core.Storage{
             //This isn't an mathematical upper limit because we're not accounting for light map size and temporary 
             //duplication but in practice, GetDepthOfDistance and GetMaxNodes always overestimate.
             int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
-            int mapSize = numPoints + LightBaker.GetLightMapLength();
+            int mapSize = numPoints + Arterra.Engine.Rendering.LightBaker.GetLightMapLength();
             int depth = OctreeTerrain.BalancedOctree.GetDepthOfDistance(numChunksRadius, rSettings.Balance, (uint)rSettings.MinChunkRadius);
             int memSize = (int)math.min(mapSize * OctreeTerrain.BalancedOctree.GetMaxNodes(depth, rSettings.Balance, rSettings.MinChunkRadius) * 1.5f, SystemInfo.maxGraphicsBufferSize/4.0f);
             Memory settings = ScriptableObject.CreateInstance<Memory>();
@@ -98,12 +99,12 @@ namespace Arterra.Core.Storage{
             if (!IsChunkRegisterable(oCCoord, depth)) return -1;
             int numPoints = mapChunkSize * mapChunkSize * mapChunkSize;
             int numPointsFaces = (mapChunkSize + 3) * (mapChunkSize + 3) * 9;
-            int mapSize = numPoints + numPointsFaces + LightBaker.GetLightMapLength();
+            int mapSize = numPoints + numPointsFaces + Arterra.Engine.Rendering.LightBaker.GetLightMapLength();
             uint address = memorySpace.AllocateMemoryDirect(mapSize, 1);
             TranscribeMap(mapData, address, rdOff, mapChunkSize + 3, mapChunkSize, 1);
             TranscribeEdgeFaces(mapData, address, rdOff, mapChunkSize + 3, mapChunkSize + 3, numPoints);
             uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new int2((int)address, 0);
-            LightBaker.RegisterChunk(oCCoord, mapChunkSize, address, 1 << depth);
+            Arterra.Engine.Rendering.LightBaker.RegisterChunk(oCCoord, mapChunkSize, address, 1 << depth);
 
             RegisterChunk(oCCoord, depth, handleAddress);
             return (int)handleAddress;
@@ -125,11 +126,11 @@ namespace Arterra.Core.Storage{
             //This is unnecessary here, but we need to ensure it so that other systems(e.g. Lighting)
             //Have a consistent chunk size to buffer with
             int numPointsFaces = (mapChunkSize + 3) * (mapChunkSize + 3) * 9;
-            int mapSize = numPoints + numPointsFaces + LightBaker.GetLightMapLength();
+            int mapSize = numPoints + numPointsFaces + Arterra.Engine.Rendering.LightBaker.GetLightMapLength();
             uint address = memorySpace.AllocateMemoryDirect(mapSize, 1);
             TranscribeMap(mapData, address, rdOff, mapChunkSize, mapChunkSize);
             uint handleAddress = AllocateHandle(); HandleDict[handleAddress] = new int2((int)address, 0);
-            LightBaker.RegisterChunk(oCCoord, mapChunkSize, address, 1 << depth);
+            Arterra.Engine.Rendering.LightBaker.RegisterChunk(oCCoord, mapChunkSize, address, 1 << depth);
             
             //uint2[] addBuff = new uint2[1];
             //memorySpace.Address.GetData(addBuff, 0, (int)address, 1);
@@ -201,7 +202,7 @@ namespace Arterra.Core.Storage{
         /// <returns></returns>
         public static bool IsChunkRegisterable(int3 oCCoord, int depth) {
             int3 eCCoord = oCCoord + (1 << depth);
-            int3 vCCoord = Terrain.OctreeTerrain.ViewPosCS;
+            int3 vCCoord = OctreeTerrain.ViewPosCS;
             oCCoord = math.clamp(oCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
             eCCoord = math.clamp(eCCoord, vCCoord - numChunksRadius, vCCoord + numChunksRadius + 1);
             int3 dim = eCCoord - oCCoord;

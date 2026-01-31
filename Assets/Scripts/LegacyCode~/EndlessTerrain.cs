@@ -3,7 +3,7 @@ using System;
 using UnityEngine;
 using Unity.Mathematics;
 using System.Collections.Concurrent;
-using Utils;
+using Arterra.Utils;
 
 public class EndlessTerrain : MonoBehaviour
 {

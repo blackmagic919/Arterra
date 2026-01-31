@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d28377add04d5441d96af602dd5196b2, type: 3}
   m_Name: GrapplingHookItem
-  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.Generation.Item.FishingRodAuthoring
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Item.FishingRodAuthoring
   Name: GrapplingHook
   Tags:
     Reg:

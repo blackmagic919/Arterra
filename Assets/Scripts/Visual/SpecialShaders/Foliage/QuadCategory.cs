@@ -2,10 +2,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using Arterra.Configuration;
 
-[CreateAssetMenu(menuName = "ShaderData/QuadShader/Category")]
-public class QuadCategory : Category<QuadSetting>
+namespace Arterra.Configuration
 {
-    public Option<List<Option<Category<QuadSetting>>>> Children;
-    protected override Option<List<Option<Category<QuadSetting>>>>? GetChildren() => Children;
-    protected override void SetChildren(Option<List<Option<Category<QuadSetting>>>> value) => Children = value;
+    [CreateAssetMenu(menuName = "ShaderData/QuadShader/Category")]
+    public class QuadCategory : Category<QuadSetting>
+    {
+        public Option<List<Option<Category<QuadSetting>>>> Children;
+        protected override Option<List<Option<Category<QuadSetting>>>>? GetChildren() => Children;
+        protected override void SetChildren(Option<List<Option<Category<QuadSetting>>>> value) => Children = value;
+    }
 }

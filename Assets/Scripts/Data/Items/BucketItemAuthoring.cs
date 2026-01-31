@@ -1,11 +1,13 @@
-using Utils;
+using Arterra.Utils;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Core.Storage;
-using Arterra.Core.Player;
+using Arterra.GamePlay;
+using Arterra.Configuration;
+using Arterra.GamePlay.Interaction;
 
-namespace Arterra.Configuration.Generation.Item{
+namespace Arterra.Data.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Bucket")] 
 public class BucketItemAuthoring : AuthoringTemplate<BucketItem> {
     /// <summary> The radius, in grid space, of the spherical region around the user's

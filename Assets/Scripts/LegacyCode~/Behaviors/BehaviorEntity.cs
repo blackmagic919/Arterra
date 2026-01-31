@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Arterra.Configuration;
-using Arterra.Configuration.Generation.Entity;
+using Arterra.Data.Entity;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;

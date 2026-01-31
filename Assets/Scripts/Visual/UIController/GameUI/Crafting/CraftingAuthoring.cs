@@ -3,10 +3,14 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using Arterra.Configuration.Generation.Item;
+using Arterra.Data.Item;
 using Unity.Mathematics;
 using System.Runtime.InteropServices;
-namespace Arterra.Configuration.Intrinsic{
+using Arterra.Configuration;
+using Arterra.Editor;
+using Arterra.GamePlay.UI;
+
+namespace Arterra.Data.Intrinsic{
 
     /// <summary> An authoring object for a crafting recipe allowing for it 
     /// to be created via Unity's Inspector. </summary>
@@ -183,11 +187,13 @@ namespace Arterra.Configuration.Intrinsic{
             return newRecipe;
         }
     }
+}
 
+namespace Arterra.Editor {
 #if UNITY_EDITOR
     /// <summary> A utility class to override serialization of <see cref="Recipe.Result"/> into a Unity Inspector format.
     /// It exposes the internal components of the bitmap so it can be more easily understood by the developer. </summary>
-    [CustomPropertyDrawer(typeof(CraftingRecipe.Result))]
+    [CustomPropertyDrawer(typeof(Arterra.Data.Intrinsic.CraftingRecipe.Result))]
 public class RecipeResultDrawer : PropertyDrawer{
     /// <summary>  Callback for when the GUI needs to be rendered for the property. </summary>
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)

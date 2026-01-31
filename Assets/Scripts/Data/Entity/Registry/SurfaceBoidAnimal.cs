@@ -3,13 +3,16 @@ using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
 using Arterra.Configuration;
-using Arterra.Configuration.Generation.Entity;
-using Arterra.Configuration.Generation.Item;
+using Arterra.Data.Entity;
+using Arterra.Data.Item;
 using Arterra.Core.Storage;
 using Arterra.Core.Events;
+using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
+using Arterra.GamePlay.Interaction;
+
 
 [CreateAssetMenu(menuName = "Generation/Entity/SurfaceBoidAnimal")]
-public class SurfaceBoidAnimal : Arterra.Configuration.Generation.Entity.Authoring
+public class SurfaceBoidAnimal : Arterra.Data.Entity.Authoring
 {
     public Option<AnimalSetting> _Setting;
 

@@ -3,17 +3,21 @@ using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
 using Arterra.Configuration;
-using Arterra.Configuration.Generation.Item;
-using Arterra.Configuration.Generation.Entity;
+using Arterra.Data.Item;
+using Arterra.Data.Entity;
 
 using Arterra.Core.Storage;
-using Arterra.Core.Player;
+using Arterra.GamePlay;
 using Arterra.Core.Events;
+using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
+using Arterra.GamePlay.Interaction;
+using Arterra.Editor;
+using Arterra.GamePlay.UI;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Boat")]
-public class BoatEntity : Arterra.Configuration.Generation.Entity.Authoring {
+public class BoatEntity : Arterra.Data.Entity.Authoring {
     public Option<BoatSetting> _Setting;
-    public static Catalogue<Arterra.Configuration.Generation.Item.Authoring> ItemRegistry => Config.CURRENT.Generation.Items;
+    public static Catalogue<Arterra.Data.Item.Authoring> ItemRegistry => Config.CURRENT.Generation.Items;
 
     [JsonIgnore]
     public override Entity Entity { get => new Boat(); }

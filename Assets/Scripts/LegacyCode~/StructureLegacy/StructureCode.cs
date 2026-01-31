@@ -5,7 +5,7 @@ using System.Linq;
 using UnityEngine;
 using static BiomeInfo;
 using static MeshCreator;
-using Utils;
+using Arterra.Utils;
 
 public class StructureCode
 {

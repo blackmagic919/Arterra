@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 246a0b7b66f7e473c9001916e63cf7a4, type: 3}
   m_Name: MortarFormulas
-  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.Intrinsic.Mortar.FornaceFormulaCat
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Intrinsic.Mortar.FornaceFormulaCat
   Name: Root
   Tags:
     Reg:

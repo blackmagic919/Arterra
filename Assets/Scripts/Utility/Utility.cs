@@ -4,7 +4,7 @@ using UnityEngine;
 using Unity.Mathematics;
 using Arterra.Configuration;
 
-namespace Utils {
+namespace Arterra.Utils {
     public static class CustomUtility {
         public readonly static int3[] dP = new int3[6]{
             new (0,1,0),

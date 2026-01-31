@@ -4,7 +4,7 @@ using Unity.Collections;
 using static EndlessTerrain;
 using Unity.Mathematics;
 using System.Threading;
-using Utils;
+using Arterra.Utils;
 using System.Collections.Generic;
 
 public struct LODMesh

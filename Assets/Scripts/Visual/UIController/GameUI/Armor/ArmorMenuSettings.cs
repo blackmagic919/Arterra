@@ -1,6 +1,8 @@
 using UnityEngine;
+using Arterra.Configuration;
+using Arterra.Editor;
 
-namespace Arterra.Configuration.Intrinsic {
+namespace Arterra.Data.Intrinsic {
     /// <summary>
     /// Settings controlling the apperance of the armor display menu. The armor 
     /// system allows the player to equip armor items onto their character.

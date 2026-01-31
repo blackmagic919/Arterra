@@ -1,9 +1,11 @@
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Core.Player;
+using Arterra.GamePlay;
+using Arterra.Configuration;
+using Arterra.GamePlay.Interaction;
 
-namespace Arterra.Configuration.Generation.Item{
+namespace Arterra.Data.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Boat")] 
 public class BoatItemAuthoring : AuthoringTemplate<BoatItem> {}
 

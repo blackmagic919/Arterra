@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9804b5e4712984896832bd9ad1917c3e, type: 3}
   m_Name: PestleItem
-  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.Generation.Item.PlaceableStructureItemAuthoring
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Item.PlaceableStructureItemAuthoring
   Name: Pestle
   Tags:
     Reg:

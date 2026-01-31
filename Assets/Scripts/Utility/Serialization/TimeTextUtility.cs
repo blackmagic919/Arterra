@@ -1,6 +1,6 @@
 using System;
 
-namespace Utils {
+namespace Arterra.Utils {
     public static class TimeTextUtilty {
         public static string ToTimeAgo(this DateTime dateTime)
         {

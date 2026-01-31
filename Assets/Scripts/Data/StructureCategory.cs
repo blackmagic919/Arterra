@@ -2,8 +2,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Arterra.Configuration;
 
-namespace Arterra.Configuration.Generation.Structure{
+namespace Arterra.Data.Structure{
 
     [Serializable]
     [CreateAssetMenu(menuName = "Generation/Structure/Category")]

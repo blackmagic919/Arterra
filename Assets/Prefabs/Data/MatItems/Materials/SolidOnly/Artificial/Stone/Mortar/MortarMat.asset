@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e5df74709edb6408e828c39b51ca7e68, type: 3}
   m_Name: MortarMat
-  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.Generation.Material.MortarMaterial
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Material.MortarMaterial
   Name: Mortar
   Tags:
     Reg:

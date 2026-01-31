@@ -10,7 +10,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Collections.Concurrent;
 using Arterra.Configuration;
-using Arterra.Core.Terrain;
+using Arterra.Engine.Terrain;
+using Arterra.Editor;
 
 namespace Arterra.Core.Storage {
     /// <summary>A static centralized location for managing and storing all CPU-side map information,

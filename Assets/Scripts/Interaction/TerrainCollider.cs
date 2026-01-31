@@ -5,376 +5,375 @@ using Unity.Burst;
 using static EntityJob;
 using Newtonsoft.Json;
 using static Arterra.Core.Storage.CPUMapManager;
-using Arterra.Configuration.Generation.Entity;
+using Arterra.Data.Entity;
 
 /*
 Future Note: Make this done on a job system
 (Someone good at math do this) ->
 Sample from a simplex rather than a grid(should be faster)
 */
+namespace Arterra.GamePlay.Interaction {
+    [System.Serializable]
+    public class TerrainCollider {
+        public const float BaseFriction = 0.2f;
+        [JsonIgnore]
+        public Action<float> OnHitGround;
+        public Transform transform;
+        public bool useGravity;
 
-[System.Serializable]
-public class TerrainCollider {
-    public const float BaseFriction = 0.2f;
-    [JsonIgnore]
-    public Action<float> OnHitGround;
-    public Transform transform;
-    public bool useGravity;
+        public static float3 TrilinearDisplacement(in float3 posGS, in MapContext cxt) {
+            //Calculate Density
+            int x0 = (int)Math.Floor(posGS.x); int x1 = x0 + 1;
+            int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
+            int z0 = (int)Math.Floor(posGS.z); int z1 = z0 + 1;
 
-    public static float3 TrilinearDisplacement(in float3 posGS, in MapContext cxt) {
-        //Calculate Density
-        int x0 = (int)Math.Floor(posGS.x); int x1 = x0 + 1;
-        int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
-        int z0 = (int)Math.Floor(posGS.z); int z1 = z0 + 1;
+            int c000 = SampleTerrain(new int3(x0, y0, z0), cxt);
+            int c100 = SampleTerrain(new int3(x1, y0, z0), cxt);
+            int c010 = SampleTerrain(new int3(x0, y1, z0), cxt);
+            int c110 = SampleTerrain(new int3(x1, y1, z0), cxt);
+            int c001 = SampleTerrain(new int3(x0, y0, z1), cxt);
+            int c101 = SampleTerrain(new int3(x1, y0, z1), cxt);
+            int c011 = SampleTerrain(new int3(x0, y1, z1), cxt);
+            int c111 = SampleTerrain(new int3(x1, y1, z1), cxt);
 
-        int c000 = SampleTerrain(new int3(x0, y0, z0), cxt);
-        int c100 = SampleTerrain(new int3(x1, y0, z0), cxt);
-        int c010 = SampleTerrain(new int3(x0, y1, z0), cxt);
-        int c110 = SampleTerrain(new int3(x1, y1, z0), cxt);
-        int c001 = SampleTerrain(new int3(x0, y0, z1), cxt);
-        int c101 = SampleTerrain(new int3(x1, y0, z1), cxt);
-        int c011 = SampleTerrain(new int3(x0, y1, z1), cxt);
-        int c111 = SampleTerrain(new int3(x1, y1, z1), cxt);
+            float xd = posGS.x - x0;
+            float yd = posGS.y - y0;
+            float zd = posGS.z - z0;
 
-        float xd = posGS.x - x0;
-        float yd = posGS.y - y0;
-        float zd = posGS.z - z0;
+            float c00 = c000 * (1 - xd) + c100 * xd;
+            float c01 = c001 * (1 - xd) + c101 * xd;
+            float c10 = c010 * (1 - xd) + c110 * xd;
+            float c11 = c011 * (1 - xd) + c111 * xd;
 
-        float c00 = c000 * (1 - xd) + c100 * xd;
-        float c01 = c001 * (1 - xd) + c101 * xd;
-        float c10 = c010 * (1 - xd) + c110 * xd;
-        float c11 = c011 * (1 - xd) + c111 * xd;
+            float c0 = c00 * (1 - yd) + c10 * yd;
+            float c1 = c01 * (1 - yd) + c11 * yd;
+            float density = c0 * (1 - zd) + c1 * zd;
+            if (density < cxt.IsoValue) return float3.zero;
 
-        float c0 = c00 * (1 - yd) + c10 * yd;
-        float c1 = c01 * (1 - yd) + c11 * yd;
-        float density = c0 * (1 - zd) + c1 * zd;
-        if (density < cxt.IsoValue) return float3.zero;
+            //Calculate the normal
+            float xL = (c100 - c000) * (1 - yd) + (c110 - c010) * yd;
+            float xU = (c101 - c001) * (1 - yd) + (c111 - c011) * yd;
+            float yL = (c010 - c000) * (1 - zd) + (c011 - c001) * zd;
+            float yU = (c110 - c100) * (1 - zd) + (c111 - c101) * zd;
+            float zL = (c001 - c000) * (1 - xd) + (c101 - c100) * xd;
+            float zU = (c011 - c010) * (1 - xd) + (c111 - c110) * xd;
 
-        //Calculate the normal
-        float xL = (c100 - c000) * (1 - yd) + (c110 - c010) * yd;
-        float xU = (c101 - c001) * (1 - yd) + (c111 - c011) * yd;
-        float yL = (c010 - c000) * (1 - zd) + (c011 - c001) * zd;
-        float yU = (c110 - c100) * (1 - zd) + (c111 - c101) * zd;
-        float zL = (c001 - c000) * (1 - xd) + (c101 - c100) * xd;
-        float zU = (c011 - c010) * (1 - xd) + (c111 - c110) * xd;
+            float xC = xL * (1 - zd) + xU * zd;
+            float yC = yL * (1 - xd) + yU * xd;
+            float zC = zL * (1 - yd) + zU * yd;
 
-        float xC = xL * (1 - zd) + xU * zd;
-        float yC = yL * (1 - xd) + yU * xd;
-        float zC = zL * (1 - yd) + zU * yd;
+            //Because the density increases towards ground, we need to invert the normal
+            float3 normal = -new float3(xC, yC, zC);
+            if (math.all(normal == 0)) return normal;
+            normal = math.normalize(normal);
+            return normal * TrilinearGradientLength(density, posGS, normal, cxt);
+        }
 
-        //Because the density increases towards ground, we need to invert the normal
-        float3 normal = -new float3(xC, yC, zC);
-        if (math.all(normal == 0)) return normal;
-        normal = math.normalize(normal);
-        return normal * TrilinearGradientLength(density, posGS, normal, cxt);
-    }
+        public static float2 BilinearDisplacement(in float2 posGS, in int3x3 transform, int axis, in MapContext cxt) {
+            int x0 = (int)Math.Floor(posGS.x); int x1 = x0 + 1;
+            int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
 
-    public static float2 BilinearDisplacement(in float2 posGS, in int3x3 transform, int axis, in MapContext cxt) {
-        int x0 = (int)Math.Floor(posGS.x); int x1 = x0 + 1;
-        int y0 = (int)Math.Floor(posGS.y); int y1 = y0 + 1;
+            int c00 = SampleTerrain(math.mul(transform, new int3(x0, y0, axis)), cxt);
+            int c10 = SampleTerrain(math.mul(transform, new int3(x1, y0, axis)), cxt);
+            int c01 = SampleTerrain(math.mul(transform, new int3(x0, y1, axis)), cxt);
+            int c11 = SampleTerrain(math.mul(transform, new int3(x1, y1, axis)), cxt);
 
-        int c00 = SampleTerrain(math.mul(transform, new int3(x0, y0, axis)), cxt);
-        int c10 = SampleTerrain(math.mul(transform, new int3(x1, y0, axis)), cxt);
-        int c01 = SampleTerrain(math.mul(transform, new int3(x0, y1, axis)), cxt);
-        int c11 = SampleTerrain(math.mul(transform, new int3(x1, y1, axis)), cxt);
+            float xd = posGS.x - x0;
+            float yd = posGS.y - y0;
 
-        float xd = posGS.x - x0;
-        float yd = posGS.y - y0;
+            float c0 = c00 * (1 - xd) + c10 * xd;
+            float c1 = c01 * (1 - xd) + c11 * xd;
+            float density = c0 * (1 - yd) + c1 * yd;
+            if (density < cxt.IsoValue) return float2.zero;
 
-        float c0 = c00 * (1 - xd) + c10 * xd;
-        float c1 = c01 * (1 - xd) + c11 * xd;
-        float density = c0 * (1 - yd) + c1 * yd;
-        if (density < cxt.IsoValue) return float2.zero;
+            //Bilinear Normal
+            float xC = (c10 - c00) * (1 - yd) + (c11 - c01) * yd;
+            float yC = (c01 - c00) * (1 - xd) + (c11 - c10) * xd;
 
-        //Bilinear Normal
-        float xC = (c10 - c00) * (1 - yd) + (c11 - c01) * yd;
-        float yC = (c01 - c00) * (1 - xd) + (c11 - c10) * xd;
+            float2 normal = -new float2(xC, yC);
+            if (math.all(normal == 0)) return normal;
+            normal = math.normalize(normal);
+            return normal * BilinearGradientLength(density, posGS, normal, transform, axis, cxt);
+        }
 
-        float2 normal = -new float2(xC, yC);
-        if (math.all(normal == 0)) return normal;
-        normal = math.normalize(normal);
-        return normal * BilinearGradientLength(density, posGS, normal, transform, axis, cxt);
-    }
+        public static float LinearDisplacement(float t, in int3x3 transform, in int2 plane, in MapContext cxt) {
+            int t0 = (int)Math.Floor(t);
+            int t1 = t0 + 1;
 
-    public static float LinearDisplacement(float t, in int3x3 transform, in int2 plane, in MapContext cxt) {
-        int t0 = (int)Math.Floor(t);
-        int t1 = t0 + 1;
+            int c0 = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, t0)), cxt);
+            int c1 = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, t1)), cxt);
+            float td = t - t0;
 
-        int c0 = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, t0)), cxt);
-        int c1 = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, t1)), cxt);
-        float td = t - t0;
+            float density = c0 * (1 - td) + c1 * td;
+            if (density < cxt.IsoValue) return 0;
+            float normal = math.sign(-(c1 - c0));
+            return normal * LinearGradientLength(density, t, normal, transform, plane, cxt); //Normal
+        }
+        public static float LinearGradientLength(float density, float pos, float normal, in int3x3 transform, in int2 plane, in MapContext cxt) {
+            int corner = (int)(math.floor(pos) + math.max(normal, 0));
+            float cDen = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, corner)), cxt);
+            if (cDen >= density) return 0;
+            return math.clamp((cxt.IsoValue - density) / (cDen - density), 0, 1) * math.abs(corner - pos);
+        }
+        public static float BilinearGradientLength(float density, float2 pos, float2 normal, in int3x3 transform, int axis, in MapContext cxt) {
+            float2 tMax = 1.0f / math.abs(normal); float eDen;
+            tMax.x *= normal.x >= 0 ? 1 - math.frac(pos.x) : math.frac(pos.x);
+            tMax.y *= normal.y >= 0 ? 1 - math.frac(pos.y) : math.frac(pos.y);
 
-        float density = c0 * (1 - td) + c1 * td;
-        if (density < cxt.IsoValue) return 0;
-        float normal = math.sign(-(c1 - c0));
-        return normal * LinearGradientLength(density, t, normal, transform, plane, cxt); //Normal
-    }
-    public static float LinearGradientLength(float density, float pos, float normal, in int3x3 transform, in int2 plane, in MapContext cxt) {
-        int corner = (int)(math.floor(pos) + math.max(normal, 0));
-        float cDen = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, corner)), cxt);
-        if (cDen >= density) return 0;
-        return math.clamp((cxt.IsoValue - density) / (cDen - density), 0, 1) * math.abs(corner - pos);
-    }
-    public static float BilinearGradientLength(float density, float2 pos, float2 normal, in int3x3 transform, int axis, in MapContext cxt) {
-        float2 tMax = 1.0f / math.abs(normal); float eDen;
-        tMax.x *= normal.x >= 0 ? 1 - math.frac(pos.x) : math.frac(pos.x);
-        tMax.y *= normal.y >= 0 ? 1 - math.frac(pos.y) : math.frac(pos.y);
+            float t = math.cmin(tMax);
+            pos += normal * t;
 
-        float t = math.cmin(tMax);
-        pos += normal * t;
+            //xz-plane flips yz, flip xy component
+            if (tMax.y >= tMax.x) eDen = LinearDensity(pos.y, math.mul(transform, YXZTrans), new int2((int)pos.x, axis), cxt);
+            else eDen = LinearDensity(pos.x, transform, new int2((int)pos.y, axis), cxt);
+            if (eDen >= density) return 0;
 
-        //xz-plane flips yz, flip xy component
-        if (tMax.y >= tMax.x) eDen = LinearDensity(pos.y, math.mul(transform, YXZTrans), new int2((int)pos.x, axis), cxt);
-        else eDen = LinearDensity(pos.x, transform, new int2((int)pos.y, axis), cxt);
-        if (eDen >= density) return 0;
+            return math.clamp((cxt.IsoValue - density) / (eDen - density), 0, 1) * t;
+        }
 
-        return math.clamp((cxt.IsoValue - density) / (eDen - density), 0, 1) * t;
-    }
+        public static float TrilinearGradientLength(float density, float3 pos, float3 normal, in MapContext cxt) {
+            float3 tMax = 1.0f / math.abs(normal); float fDen;
+            tMax.x *= normal.x >= 0 ? 1 - math.frac(pos.x) : math.frac(pos.x);
+            tMax.y *= normal.y >= 0 ? 1 - math.frac(pos.y) : math.frac(pos.y);
+            tMax.z *= normal.z >= 0 ? 1 - math.frac(pos.z) : math.frac(pos.z);
 
-    public static float TrilinearGradientLength(float density, float3 pos, float3 normal, in MapContext cxt) {
-        float3 tMax = 1.0f / math.abs(normal); float fDen;
-        tMax.x *= normal.x >= 0 ? 1 - math.frac(pos.x) : math.frac(pos.x);
-        tMax.y *= normal.y >= 0 ? 1 - math.frac(pos.y) : math.frac(pos.y);
-        tMax.z *= normal.z >= 0 ? 1 - math.frac(pos.z) : math.frac(pos.z);
+            float t = math.cmin(tMax);
+            pos += normal * t;
 
-        float t = math.cmin(tMax);
-        pos += normal * t;
+            if (t == tMax.x) { fDen = BilinearDensity(pos.y, pos.z, YZPlane, (int)pos.x, cxt); } else if (t == tMax.y) { fDen = BilinearDensity(pos.x, pos.z, XZPlane, (int)pos.y, cxt); } else { fDen = BilinearDensity(pos.x, pos.y, XYPlane, (int)pos.z, cxt); }
+            if (fDen >= density) return 0;
 
-        if (t == tMax.x) { fDen = BilinearDensity(pos.y, pos.z, YZPlane, (int)pos.x, cxt); }
-        else if (t == tMax.y) { fDen = BilinearDensity(pos.x, pos.z, XZPlane, (int)pos.y, cxt); } 
-        else { fDen = BilinearDensity(pos.x, pos.y, XYPlane, (int)pos.z, cxt); }
-        if (fDen >= density) return 0;
+            return math.clamp((cxt.IsoValue - density) / (fDen - density), 0, 1) * t;
+        }
+        private static float LinearDensity(float t, in int3x3 transform, in int2 plane, in MapContext cxt) {
+            int t0 = (int)Math.Floor(t);
+            int t1 = t0 + 1;
 
-        return math.clamp((cxt.IsoValue - density) / (fDen - density), 0, 1) * t;
-    }
-    private static float LinearDensity(float t, in int3x3 transform, in int2 plane, in MapContext cxt) {
-        int t0 = (int)Math.Floor(t);
-        int t1 = t0 + 1;
+            int c0 = SampleTerrain(math.mul(transform, new int3(t0, plane.x, plane.y)), cxt);
+            int c1 = SampleTerrain(math.mul(transform, new int3(t1, plane.x, plane.y)), cxt);
+            float td = t - t0;
 
-        int c0 = SampleTerrain(math.mul(transform, new int3(t0, plane.x, plane.y)), cxt);
-        int c1 = SampleTerrain(math.mul(transform, new int3(t1, plane.x, plane.y)), cxt);
-        float td = t - t0;
+            return c0 * (1 - td) + c1 * td;
+        }
+        private static float BilinearDensity(float x, float y, in int3x3 transform, in int axis, in MapContext cxt) {
+            int x0 = (int)Math.Floor(x); int x1 = x0 + 1;
+            int y0 = (int)Math.Floor(y); int y1 = y0 + 1;
 
-        return c0 * (1 - td) + c1 * td;
-    }
-    private static float BilinearDensity(float x, float y, in int3x3 transform, in int axis, in MapContext cxt) {
-        int x0 = (int)Math.Floor(x); int x1 = x0 + 1;
-        int y0 = (int)Math.Floor(y); int y1 = y0 + 1;
+            int c00 = SampleTerrain(math.mul(transform, new int3(x0, y0, axis)), cxt);
+            int c10 = SampleTerrain(math.mul(transform, new int3(x1, y0, axis)), cxt);
+            int c01 = SampleTerrain(math.mul(transform, new int3(x0, y1, axis)), cxt);
+            int c11 = SampleTerrain(math.mul(transform, new int3(x1, y1, axis)), cxt);
 
-        int c00 = SampleTerrain(math.mul(transform, new int3(x0, y0, axis)), cxt);
-        int c10 = SampleTerrain(math.mul(transform, new int3(x1, y0, axis)), cxt);
-        int c01 = SampleTerrain(math.mul(transform, new int3(x0, y1, axis)), cxt);
-        int c11 = SampleTerrain(math.mul(transform, new int3(x1, y1, axis)), cxt);
+            float xd = x - x0;
+            float yd = y - y0;
 
-        float xd = x - x0;
-        float yd = y - y0;
-
-        float c0 = c00 * (1 - xd) + c10 * xd;
-        float c1 = c01 * (1 - xd) + c11 * xd;
-        return c0 * (1 - yd) + c1 * yd;
-    }
+            float c0 = c00 * (1 - xd) + c10 * xd;
+            float c1 = c01 * (1 - xd) + c11 * xd;
+            return c0 * (1 - yd) + c1 * yd;
+        }
 
 
-    /*z
-    * ^     .---3----.
-    * |    /|       /|
-    * |   4 |      3 |    y
-    * |  .--4-4---.  3   /\
-    * |  |  |     |  |   /
-    * |  1  .---2-2--.  /
-    * |  | 1      | 2  /
-    * | xyz___1___./  /
-    * +---------> x  /
-    * z
-    * ^     8--------7
-    * |    /|  2    /|
-    * |   / |  4   / |    y
-    * |  5--+-----6  |   /\
-    * |  |5 |     | 6|   /
-    * |  |  4-3---+--3  /
-    * |  | /   1  | /  /
-    * |  1________2/  /
-    * +---------> x  /
-    */
-    private static int3x3 YXZTrans => new(0, 1, 0, 1, 0, 0, 0, 0, 1); //yxz, flips xz component
-    private static int3x3 XZPlane => new(1, 0, 0, 0, 0, 1, 0, 1, 0);//xzy
-    private static int3x3 XYPlane => new(1, 0, 0, 0, 1, 0, 0, 0, 1);//xyz
-    private static int3x3 YZPlane => new(0, 0, 1, 1, 0, 0, 0, 1, 0); //zxy
-    private bool SampleFaceCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
-        float3 min = math.min(originGS, originGS + boundsGS);
-        float3 max = math.max(originGS, originGS + boundsGS);
-        int3 minC = (int3)math.ceil(min); float3 minDis = float3.zero;
-        int3 maxC = (int3)math.floor(max); float3 maxDis = float3.zero;
-        float dis;
+        /*z
+        * ^     .---3----.
+        * |    /|       /|
+        * |   4 |      3 |    y
+        * |  .--4-4---.  3   /\
+        * |  |  |     |  |   /
+        * |  1  .---2-2--.  /
+        * |  | 1      | 2  /
+        * | xyz___1___./  /
+        * +---------> x  /
+        * z
+        * ^     8--------7
+        * |    /|  2    /|
+        * |   / |  4   / |    y
+        * |  5--+-----6  |   /\
+        * |  |5 |     | 6|   /
+        * |  |  4-3---+--3  /
+        * |  | /   1  | /  /
+        * |  1________2/  /
+        * +---------> x  /
+        */
+        private static int3x3 YXZTrans => new(0, 1, 0, 1, 0, 0, 0, 0, 1); //yxz, flips xz component
+        private static int3x3 XZPlane => new(1, 0, 0, 0, 0, 1, 0, 1, 0);//xzy
+        private static int3x3 XYPlane => new(1, 0, 0, 0, 1, 0, 0, 0, 1);//xyz
+        private static int3x3 YZPlane => new(0, 0, 1, 1, 0, 0, 0, 1, 0); //zxy
+        private bool SampleFaceCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
+            float3 min = math.min(originGS, originGS + boundsGS);
+            float3 max = math.max(originGS, originGS + boundsGS);
+            int3 minC = (int3)math.ceil(min); float3 minDis = float3.zero;
+            int3 maxC = (int3)math.floor(max); float3 maxDis = float3.zero;
+            float dis;
 
-        //3*2 = 6 faces
-        for (int x = minC.x; x <= maxC.x; x++) {
+            //3*2 = 6 faces
+            for (int x = minC.x; x <= maxC.x; x++) {
+                for (int y = minC.y; y <= maxC.y; y++) {
+                    dis = LinearDisplacement(min.z, XYPlane, new int2(x, y), context);
+                    maxDis.z = math.max(maxDis.z, dis); minDis.z = math.min(minDis.z, dis);
+                    dis = LinearDisplacement(max.z, XYPlane, new int2(x, y), context);
+                    maxDis.z = math.max(maxDis.z, dis); minDis.z = math.min(minDis.z, dis);
+                }
+            }
+
+            for (int x = minC.x; x <= maxC.x; x++) {
+                for (int z = minC.z; z <= maxC.z; z++) {
+                    dis = LinearDisplacement(min.y, XZPlane, new int2(x, z), context);
+                    maxDis.y = math.max(maxDis.y, dis); minDis.y = math.min(minDis.y, dis);
+                    dis = LinearDisplacement(max.y, XZPlane, new int2(x, z), context);
+                    maxDis.y = math.max(maxDis.y, dis); minDis.y = math.min(minDis.y, dis);
+                }
+            }
+
             for (int y = minC.y; y <= maxC.y; y++) {
-                dis = LinearDisplacement(min.z, XYPlane, new int2(x, y), context);
-                maxDis.z = math.max(maxDis.z, dis); minDis.z = math.min(minDis.z, dis);
-                dis = LinearDisplacement(max.z, XYPlane, new int2(x, y), context);
-                maxDis.z = math.max(maxDis.z, dis); minDis.z = math.min(minDis.z, dis);
+                for (int z = minC.z; z <= maxC.z; z++) {
+                    dis = LinearDisplacement(min.x, YZPlane, new int2(y, z), context);
+                    maxDis.x = math.max(maxDis.x, dis); minDis.x = math.min(minDis.x, dis);
+                    dis = LinearDisplacement(max.x, YZPlane, new int2(y, z), context);
+                    maxDis.x = math.max(maxDis.x, dis); minDis.x = math.min(minDis.x, dis);
+                }
             }
-        }
 
-        for (int x = minC.x; x <= maxC.x; x++) {
+            displacement = maxDis + minDis;
+            return math.any(displacement != float3.zero);
+        }
+        private static bool SampleEdgeCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
+            float3 min = math.min(originGS, originGS + boundsGS);
+            float3 max = math.max(originGS, originGS + boundsGS);
+            int3 minC = (int3)math.ceil(min); float3 minDis = float3.zero;
+            int3 maxC = (int3)math.floor(max); float3 maxDis = float3.zero;
+            float2 dis;
+
+            //3*4 = 12 edges
+            for (int x = minC.x; x <= maxC.x; x++) {
+                for (int i = 0; i < 4; i++) {
+                    int2 index = new(i % 2, i / 2 % 2);
+                    float2 corner = min.yz * index + max.yz * (1 - index);
+                    dis = BilinearDisplacement(corner, YZPlane, x, context);
+                    maxDis.yz = math.max(maxDis.yz, dis); minDis.yz = math.min(minDis.yz, dis);
+                }
+            }
+
+            for (int y = minC.y; y <= maxC.y; y++) {
+                for (int i = 0; i < 4; i++) {
+                    int2 index = new(i % 2, i / 2 % 2);
+                    float2 corner = min.xz * index + max.xz * (1 - index);
+                    dis = BilinearDisplacement(corner, XZPlane, y, context);
+                    maxDis.xz = math.max(maxDis.xz, dis); minDis.xz = math.min(minDis.xz, dis);
+                }
+            }
+
             for (int z = minC.z; z <= maxC.z; z++) {
-                dis = LinearDisplacement(min.y, XZPlane, new int2(x, z), context);
-                maxDis.y = math.max(maxDis.y, dis); minDis.y = math.min(minDis.y, dis);
-                dis = LinearDisplacement(max.y, XZPlane, new int2(x, z), context);
-                maxDis.y = math.max(maxDis.y, dis); minDis.y = math.min(minDis.y, dis);
+                for (int i = 0; i < 4; i++) {
+                    int2 index = new(i % 2, i / 2 % 2);
+                    float2 corner = min.xy * index + max.xy * (1 - index);
+                    dis = BilinearDisplacement(corner, XYPlane, z, context);
+                    maxDis.xy = math.max(maxDis.xy, dis); minDis.xy = math.min(minDis.xy, dis);
+                }
+            }
+
+            displacement = maxDis + minDis;
+            return math.any(displacement != float3.zero);
+        }
+        private bool SampleCornerCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
+            float3 min = math.min(originGS, originGS + boundsGS);
+            float3 max = math.max(originGS, originGS + boundsGS);
+            float3 maxDis = float3.zero; float3 minDis = float3.zero;
+            float3 dis;
+
+            //8 corners
+            for (int i = 0; i < 8; i++) {
+                int3 index = new(i % 2, i / 2 % 2, i / 4);
+                float3 corner = min * index + max * (1 - index);
+                dis = TrilinearDisplacement(corner, context);
+                maxDis = math.max(maxDis, dis); minDis = math.min(minDis, dis);
+            }
+
+            displacement = maxDis + minDis;
+            return math.any(displacement != float3.zero);
+        }
+
+        public bool SampleCollision(float3 originGS, float3 boundsGS, out float3 displacement) => SampleCollision(originGS, boundsGS, cxt.mapContext, out displacement);
+        public bool SampleCollision(in float3 originGS, in float3 boundsGS, in MapContext context, out float3 displacement) {
+            float3 origin = originGS;
+            SampleCornerCollision(origin, boundsGS, context, out displacement);
+            origin += displacement;
+            SampleEdgeCollision(origin, boundsGS, context, out displacement);
+            origin += displacement;
+            SampleFaceCollision(origin, boundsGS, context, out displacement);
+            displacement += origin - originGS;
+
+            return math.any(displacement != float3.zero);
+        }
+
+
+        float3 CancelVel(in float3 vel, in float3 norm) {
+            float3 dir = math.normalize(norm);
+            return vel - math.dot(vel, dir) * dir;
+        }
+
+        public void Update(Entity self = null, float baseFriction = BaseFriction) {
+            byte contact = TerrainInteractor.SampleContact(transform.position, transform.size, out float friction, self);
+            if (!TerrainInteractor.IsTouching(contact)) friction = baseFriction;
+            if (useGravity) transform.velocity.xz *= 1 - friction;
+            else transform.velocity *= 1 - friction;
+
+            transform.position += transform.velocity * cxt.totDeltaTime;
+            if (useGravity) transform.velocity += cxt.gravity * cxt.totDeltaTime;
+
+            if (TerrainInteractor.TouchSolid(contact)
+                && SampleCollision(transform.position, transform.size, cxt.mapContext, out float3 displacement)
+            ) {
+                transform.position += displacement;
+                float3 nVelocity = CancelVel(transform.velocity, displacement);
+                if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
+                transform.velocity = nVelocity;
             }
         }
 
-        for (int y = minC.y; y <= maxC.y; y++) {
-            for (int z = minC.z; z <= maxC.z; z++) {
-                dis = LinearDisplacement(min.x, YZPlane, new int2(y, z), context);
-                maxDis.x = math.max(maxDis.x, dis); minDis.x = math.min(minDis.x, dis);
-                dis = LinearDisplacement(max.x, YZPlane, new int2(y, z), context);
-                maxDis.x = math.max(maxDis.x, dis); minDis.x = math.min(minDis.x, dis);
+        /// <summary> Updates the collider on a Unity Fixed Update. </summary>
+        public void FixedUpdate(Entity player) {
+            float friction = 0;
+            bool IsTangible = !Arterra.Configuration.Config.CURRENT.GamePlay.Gamemodes.value.Intangiblity;
+            byte contact = IsTangible ? TerrainInteractor.SampleContact(transform.position, transform.size, out friction, player) : (byte)0;
+            if (!TerrainInteractor.IsTouching(contact)) friction = BaseFriction;
+            if (useGravity) transform.velocity.xz *= 1 - friction;
+            else transform.velocity *= 1 - friction;
+
+            transform.position += transform.velocity * Time.fixedDeltaTime;
+            if (useGravity) transform.velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
+
+            if (TerrainInteractor.TouchSolid(contact)
+                && SampleCollision(transform.position, transform.size, out float3 displacement)
+            ) {
+                float3 nVelocity = CancelVel(transform.velocity, displacement);
+                if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
+                transform.position += displacement;
+                transform.velocity = nVelocity;
             }
         }
 
-        displacement = maxDis + minDis;
-        return math.any(displacement != float3.zero);
-    }
-    private static bool SampleEdgeCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
-        float3 min = math.min(originGS, originGS + boundsGS);
-        float3 max = math.max(originGS, originGS + boundsGS);
-        int3 minC = (int3)math.ceil(min); float3 minDis = float3.zero;
-        int3 maxC = (int3)math.floor(max); float3 maxDis = float3.zero;
-        float2 dis;
+        public TerrainCollider(in Settings settings, float3 position, Action<float> OnHitGround = null) {
+            this.transform = new Transform(position, 0, settings.size, Quaternion.identity);
+            this.OnHitGround = OnHitGround;
+            this.useGravity = true;
+        }
 
-        //3*4 = 12 edges
-        for (int x = minC.x; x <= maxC.x; x++) {
-            for (int i = 0; i < 4; i++) {
-                int2 index = new(i % 2, i / 2 % 2);
-                float2 corner = min.yz * index + max.yz * (1 - index);
-                dis = BilinearDisplacement(corner, YZPlane, x, context);
-                maxDis.yz = math.max(maxDis.yz, dis); minDis.yz = math.min(minDis.yz, dis);
+        public struct Transform {
+            public float3 position;
+            public Quaternion rotation;
+            public float3 size;
+            public float3 velocity;
+            public Transform(float3 position, float3 velocity, float3 size, Quaternion rotation) {
+                this.position = position;
+                this.rotation = rotation;
+                this.size = size;
+                this.velocity = velocity;
             }
         }
 
-        for (int y = minC.y; y <= maxC.y; y++) {
-            for (int i = 0; i < 4; i++) {
-                int2 index = new(i % 2, i / 2 % 2);
-                float2 corner = min.xz * index + max.xz * (1 - index);
-                dis = BilinearDisplacement(corner, XZPlane, y, context);
-                maxDis.xz = math.max(maxDis.xz, dis); minDis.xz = math.min(minDis.xz, dis);
-            }
+        [Serializable]
+        public struct Settings {
+            public float3 size;
         }
-
-        for (int z = minC.z; z <= maxC.z; z++) {
-            for (int i = 0; i < 4; i++) {
-                int2 index = new(i % 2, i / 2 % 2);
-                float2 corner = min.xy * index + max.xy * (1 - index);
-                dis = BilinearDisplacement(corner, XYPlane, z, context);
-                maxDis.xy = math.max(maxDis.xy, dis); minDis.xy = math.min(minDis.xy, dis);
-            }
-        }
-
-        displacement = maxDis + minDis;
-        return math.any(displacement != float3.zero);
-    }
-    private bool SampleCornerCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
-        float3 min = math.min(originGS, originGS + boundsGS);
-        float3 max = math.max(originGS, originGS + boundsGS);
-        float3 maxDis = float3.zero; float3 minDis = float3.zero;
-        float3 dis;
-
-        //8 corners
-        for (int i = 0; i < 8; i++) {
-            int3 index = new(i % 2, i / 2 % 2, i / 4);
-            float3 corner = min * index + max * (1 - index);
-            dis = TrilinearDisplacement(corner, context);
-            maxDis = math.max(maxDis, dis); minDis = math.min(minDis, dis);
-        }
-
-        displacement = maxDis + minDis;
-        return math.any(displacement != float3.zero);
-    }
-
-    public bool SampleCollision(float3 originGS, float3 boundsGS, out float3 displacement) => SampleCollision(originGS, boundsGS, cxt.mapContext, out displacement);
-    public bool SampleCollision(in float3 originGS, in float3 boundsGS, in MapContext context, out float3 displacement) {
-        float3 origin = originGS;
-        SampleCornerCollision(origin, boundsGS, context, out displacement);
-        origin += displacement;
-        SampleEdgeCollision(origin, boundsGS, context, out displacement);
-        origin += displacement;
-        SampleFaceCollision(origin, boundsGS, context, out displacement);
-        displacement += origin - originGS;
-
-        return math.any(displacement != float3.zero);
-    }
-
-
-    float3 CancelVel(in float3 vel, in float3 norm) {
-        float3 dir = math.normalize(norm);
-        return vel - math.dot(vel, dir) * dir;
-    }
-
-    public void Update(Entity self = null, float baseFriction = BaseFriction) {
-        byte contact = TerrainInteractor.SampleContact(transform.position, transform.size, out float friction, self);
-        if (!TerrainInteractor.IsTouching(contact)) friction = baseFriction;
-        if (useGravity) transform.velocity.xz *= 1 - friction;
-        else transform.velocity *= 1 - friction;
-
-        transform.position += transform.velocity * cxt.totDeltaTime;
-        if (useGravity) transform.velocity += cxt.gravity * cxt.totDeltaTime;
-
-        if (TerrainInteractor.TouchSolid(contact)
-            && SampleCollision(transform.position, transform.size, cxt.mapContext, out float3 displacement)
-        ) {
-            transform.position += displacement;
-            float3 nVelocity = CancelVel(transform.velocity, displacement);
-            if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
-            transform.velocity = nVelocity;
-        } 
-    }
-
-    /// <summary> Updates the collider on a Unity Fixed Update. </summary>
-    public void FixedUpdate(Entity player) {
-        float friction = 0;
-        bool IsTangible = !Arterra.Configuration.Config.CURRENT.GamePlay.Gamemodes.value.Intangiblity; 
-        byte contact = IsTangible ? TerrainInteractor.SampleContact(transform.position, transform.size, out friction, player) : (byte)0;
-        if (!TerrainInteractor.IsTouching(contact)) friction = BaseFriction;
-        if (useGravity) transform.velocity.xz *= 1 - friction;
-        else transform.velocity *= 1 - friction;
-
-        transform.position += transform.velocity * Time.fixedDeltaTime;
-        if (useGravity) transform.velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
-
-        if (TerrainInteractor.TouchSolid(contact)
-            && SampleCollision(transform.position, transform.size, out float3 displacement)
-        ) {
-            float3 nVelocity = CancelVel(transform.velocity, displacement);
-            if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
-            transform.position += displacement;
-            transform.velocity = nVelocity;
-        } 
-    }
-
-    public TerrainCollider(in Settings settings, float3 position, Action<float> OnHitGround = null) {
-        this.transform = new Transform(position, 0, settings.size, Quaternion.identity);
-        this.OnHitGround = OnHitGround;
-        this.useGravity = true;
-    }
-
-    public struct Transform {
-        public float3 position;
-        public Quaternion rotation;
-        public float3 size;
-        public float3 velocity;
-        public Transform(float3 position, float3 velocity, float3 size, Quaternion rotation) {
-            this.position = position;
-            this.rotation = rotation;
-            this.size = size;
-            this.velocity = velocity;
-        }
-    }
-
-    [Serializable]
-    public struct Settings {
-        public float3 size;
     }
 }

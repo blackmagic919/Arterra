@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Arterra.Core.Terrain {
+namespace Arterra.Engine.Terrain {
     /// <summary>A generic interface all chunks managed by the <see cref="Octree{T}"/>
     /// system must fulfill. </summary>
     public interface IOctreeChunk {

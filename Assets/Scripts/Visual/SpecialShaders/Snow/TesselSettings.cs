@@ -1,20 +1,25 @@
 using System;
 using UnityEngine;
+using Arterra.Configuration;
 
-[CreateAssetMenu(menuName = "ShaderData/Tesselation/Setting")]
-public class TesselSettings : Category<TesselSettings>
+namespace Arterra.Configuration
 {
-    public static int DataSize => sizeof(int);
-    public Data info;
-    [Serializable]
-    public struct Data
+    [CreateAssetMenu(menuName = "ShaderData/Tesselation/Setting")]
+    public class TesselSettings : Category<TesselSettings>
     {
-        public uint tesselationFactor;//3
+        public static int DataSize => sizeof(int);
+        public Data info;
+        [Serializable]
+        public struct Data
+        {
+            public uint tesselationFactor;//3
+        }
     }
-}
 
-[Serializable]
-public struct TesselLevel {
-    public int tesselReduction;
-    public static int DataSize => sizeof(int);
+    [Serializable]
+    public struct TesselLevel
+    {
+        public int tesselReduction;
+        public static int DataSize => sizeof(int);
+    }
 }

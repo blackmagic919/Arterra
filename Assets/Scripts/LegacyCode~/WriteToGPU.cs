@@ -5,7 +5,7 @@ using Unity.Burst;
 using Unity.Collections;
 using UnityEngine;
 using Unity.Mathematics;
-using Utils;
+using Arterra.Utils;
 
 [BurstCompile]
 public struct WriteToGPU : IJobParallelFor

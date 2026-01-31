@@ -4,8 +4,9 @@ using UnityEngine;
 using Newtonsoft.Json;
 using Arterra.Configuration;
 using Arterra.Configuration.Gameplay.Player;
-using Arterra.Configuration.Generation.Entity;
+using Arterra.Data.Entity;
 using Arterra.Core.Events;
+using Arterra.GamePlay.Interaction;
 
 namespace Arterra.Configuration.Gameplay.Player {
     /// <summary> Settings describing the player's vitaltiy, or the 
@@ -50,12 +51,12 @@ namespace Arterra.Configuration.Gameplay.Player {
     }
 }
 
-namespace Arterra.Core.Player {
+namespace Arterra.GamePlay {
     /// <summary> Manager controlling the player's health, regenertion
     /// and base attack functionalities.  </summary>
     public class PlayerVitality
     {
-        private static Interaction interact => Config.CURRENT.GamePlay.Player.value.Interaction;
+        private static Arterra.Configuration.Gameplay.Player.Interaction interact => Config.CURRENT.GamePlay.Player.value.Interaction;
         /// <summary> The player's physicality settings. </summary>
         public static Physicality settings => Config.CURRENT.GamePlay.Player.value.Physicality;
         /// <summary>The time in seconds before the player can initiate attacking.</summary>

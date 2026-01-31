@@ -4,6 +4,7 @@ using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Arterra.Utils;
 
 namespace Arterra.Configuration.Quality{
     //Strategy: 

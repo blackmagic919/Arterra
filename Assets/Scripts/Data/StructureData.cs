@@ -6,9 +6,11 @@ using System.Linq;
 using Newtonsoft.Json;
 using Unity.Burst;
 using Arterra.Core.Storage;
-using Arterra.Configuration.Generation.Material;
+using Arterra.Data.Material;
+using Arterra.Configuration;
+using Arterra.Editor;
 
-namespace Arterra.Configuration.Generation.Structure{
+namespace Arterra.Data.Structure{
 /// <summary>
 /// A collection of settings that describe the contents of a structure
 /// as well as shared metadata on its variants, and specifications on

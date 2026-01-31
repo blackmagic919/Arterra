@@ -12,7 +12,7 @@ public class Terrain : ScriptableObject
 {
     /// <summary>
     /// The maximum amount of resource load that can be used by a single frame.
-    /// The load for a task is specified by <see cref="Arterra.Core.Terrain.OctreeTerrain.taskLoadTable"/>
+    /// The load for a task is specified by <see cref="Arterra.Engine.Terrain.OctreeTerrain.taskLoadTable"/>
     /// </summary>
     public int maxFrameLoad = 50; //GPU load
     /// <summary>

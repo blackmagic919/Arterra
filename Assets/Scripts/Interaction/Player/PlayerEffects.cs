@@ -2,13 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Core.Terrain;
-using Arterra.Core.Player;
+using Arterra.Engine.Terrain;
+using Arterra.GamePlay;
 using Arterra.Configuration;
 using Arterra.Core.Events;
-using Arterra.Configuration.Generation.Entity;
+using Arterra.Data.Entity;
 using Arterra.Core.Storage;
 
+namespace Arterra.GamePlay {}
 public class PlayerActionEffects{
     private bool IsShaking = false;
     private bool IsSwimming = false;
@@ -179,3 +180,4 @@ public class PlayerActionEffects{
         IsShaking = false;
     }
 }
+

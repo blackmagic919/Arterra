@@ -2,16 +2,18 @@ using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Configuration.Generation.Material;
+using Arterra.Data.Material;
 using Arterra.Core.Storage;
-using static Arterra.Core.Player.PlayerInteraction;
-using Arterra.Core.Player;
 using Arterra.Core.Events;
 using System.Collections.Generic;
 using System.Linq;
-using Arterra.Core.Terrain;
+using Arterra.Engine.Terrain;
+using Arterra.Configuration;
+using Arterra.GamePlay.Interaction;
+using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
+using Arterra.Editor;
 
-namespace Arterra.Configuration.Generation.Item
+namespace Arterra.Data.Item
 {
     [CreateAssetMenu(menuName = "Generation/Items/FishingRod")]
     public class FishingRodAuthoring : AuthoringTemplate<FishingRod> {

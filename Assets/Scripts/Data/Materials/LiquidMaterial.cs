@@ -3,7 +3,9 @@ using Unity.Mathematics;
 using Unity.Burst;
 using Arterra.Core.Storage;
 using static Arterra.Core.Storage.CPUMapManager;
-using Utils;
+using Arterra.Utils;
+using Arterra.Engine.Terrain;
+
 /*
 y
 ^      0  5        z
@@ -16,7 +18,7 @@ y
 +----------->x
 */
 
-namespace Arterra.Configuration.Generation.Material{
+namespace Arterra.Data.Material{
     /// <summary>
     /// A concrete material that will attempt to perform liquid physics when updated. Liquid physics
     /// simulate how liquids flow using a small set of specific rules.
@@ -109,7 +111,7 @@ namespace Arterra.Configuration.Generation.Material{
                 SetMap(map[i], GCoord + CustomUtility.dP[i], false);
                 //If state changed, add it to be updated
                 if ((((ChangeState >> i) & 0x1) ^ (map[i].IsLiquid ? 1 : 0)) != 0 || map[i].IsSolid)
-                    Core.Terrain.TerrainUpdate.AddUpdate(GCoord + CustomUtility.dP[i]);
+                    TerrainUpdate.AddUpdate(GCoord + CustomUtility.dP[i]);
             }
             return true;
         }

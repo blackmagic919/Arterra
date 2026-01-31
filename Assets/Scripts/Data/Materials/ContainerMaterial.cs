@@ -2,10 +2,14 @@ using Arterra.Core.Storage;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Configuration.Generation.Item;
-using Arterra.Core.Player;
+using Arterra.Data.Item;
+using Arterra.Configuration;
+using Arterra.GamePlay.Interaction;
+using Arterra.Editor;
+using Arterra.GamePlay.UI;
+using Arterra.GamePlay;
 
-namespace Arterra.Configuration.Generation.Material
+namespace Arterra.Data.Material
 {
     /// <summary> A container material which can hold items in its meta-data
     /// and is accessible to users who click on the item. </summary>

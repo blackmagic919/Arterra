@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
-using Utils;
+using Arterra.Utils;
 using TerrainGeneration;
 using TerrainGeneration.Readback;
 using WorldConfig;

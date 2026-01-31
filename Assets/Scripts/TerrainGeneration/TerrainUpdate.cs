@@ -1,16 +1,16 @@
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Configuration.Generation.Material;
+using Arterra.Data.Material;
 using System.Collections.Concurrent;
 using Unity.Jobs;
 using Arterra.Configuration;
-using Arterra.Configuration.Intrinsic;
+using Arterra.Data.Intrinsic;
 using Arterra.Core.Storage;
-using Arterra.Core.Player;
+using Arterra.GamePlay;
 using System.Threading;
 using System;
 
-namespace Arterra.Configuration.Intrinsic{
+namespace Arterra.Data.Intrinsic{
     /// <summary>
     /// Settings controlling how updates to the terrain are performed 
     /// and how much load it is allotted. Terrain updates are point-operations
@@ -51,7 +51,7 @@ namespace Arterra.Configuration.Intrinsic{
     }
 }
 
-namespace Arterra.Core.Terrain{
+namespace Arterra.Engine.Terrain{
 
     /// <summary>
     /// Terrain Update is a static system that handles updates to map entries within <see cref="CPUMapManager"/>. Whenever a

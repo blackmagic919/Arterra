@@ -2,8 +2,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Arterra.Configuration;
 
-namespace Arterra.Configuration.Intrinsic{
+namespace Arterra.Data.Intrinsic{
 
     [Serializable]
     [CreateAssetMenu(menuName = "Settings/Crafting/Category")]

@@ -3,15 +3,22 @@ using System.Linq;
 using UnityEngine;
 using Unity.Collections;
 using Arterra.Configuration;
-using Arterra.Configuration.Generation;
-using Arterra.Configuration.Generation.Material;
-using Arterra.Configuration.Generation.Entity;
-using Arterra.Configuration.Generation.Biome;
+using Arterra.Data.Generation;
+using Arterra.Data.Material;
+using Arterra.Data.Entity;
+using Arterra.Data.Biome;
 using Arterra.Configuration.Quality;
 using Arterra.Core.Storage;
-using Arterra.Core.Player;
+using Arterra.GamePlay;
+using Material = Arterra.Data.Material;
+using Arterra.Data.Structure;
+using Arterra.Utils;
+using Arterra.GamePlay.Interaction;
+using Arterra.Engine.Audio;
+using Arterra.GamePlay.UI;
+using Arterra.Engine.Rendering;
 
-namespace Arterra.Core.Terrain{
+namespace Arterra.Engine.Terrain{
 /// <summary>  The factory protocol for the collective game system. This
 /// protocol tracks the proper process to facilitate large 
 /// context switches within the game. Any new systems should
@@ -41,7 +48,7 @@ public static class SystemProtocol{
         WorldDataHandler.Initialize();
 
         EntityManager.Initialize();
-        LightBaker.Initialize();
+        Arterra.Engine.Rendering.LightBaker.Initialize();
         StartupPlacer.Initialize();
 
         AudioManager.Instance.Initialize();
@@ -102,7 +109,7 @@ public static class SystemProtocol{
         AudioManager.Instance.Release();
         EntityManager.Release();
         PlayerHandler.Release();
-        LightBaker.Release();
+        Arterra.Engine.Rendering.LightBaker.Release();
         AtmospherePass.Release();
         SubChunkShaderGraph.Unset();
         Readback.AsyncMeshReadback.Release();
@@ -219,7 +226,7 @@ public static class GenerationPreset
                     info.HasGeoShader = true;
                 }
                 Release();
-                Configuration.Generation.Material.Generation matInfo = Config.CURRENT.Generation.Materials.value;
+                Material.Generation matInfo = Config.CURRENT.Generation.Materials.value;
                 Catalogue<TextureContainer> textureInfo = Config.CURRENT.Generation.Textures;
                 List<MaterialData> MaterialDictionary = matInfo.MaterialDictionary.Reg;
                 MaterialData.TerrainData[] MaterialTerrain = new MaterialData.TerrainData[MaterialDictionary.Count];
@@ -488,15 +495,15 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
-            List<Configuration.Generation.Structure.StructureData> StructureDictionary = Config.CURRENT.Generation.Structures.value.StructureDictionary.Reg;
-            Configuration.Generation.Structure.StructureData.Settings[] settings = new Configuration.Generation.Structure.StructureData.Settings[StructureDictionary.Count];
-            List<Configuration.Generation.Structure.StructureData.PointInfo> map = new ();
-            List<Configuration.Generation.Structure.StructureData.CheckPoint> checks = new ();
+            List<StructureData> StructureDictionary = Config.CURRENT.Generation.Structures.value.StructureDictionary.Reg;
+            StructureData.Settings[] settings = new StructureData.Settings[StructureDictionary.Count];
+            List<StructureData.PointInfo> map = new ();
+            List<StructureData.CheckPoint> checks = new ();
             uint[] indexPrefixSum = new uint[(StructureDictionary.Count+1)*2];
 
             for(int i = 0; i < StructureDictionary.Count; i++)
             {
-                Configuration.Generation.Structure.StructureData data = StructureDictionary[i];
+                StructureData data = StructureDictionary[i];
                 indexPrefixSum[2 * (i + 1)] = (uint)data.map.value.Count + indexPrefixSum[2*i]; //Density is same length as materials
                 indexPrefixSum[2 * (i + 1) + 1] = (uint)data.checks.value.Count + indexPrefixSum[2 * i + 1];
                 settings[i] = data.settings.value;

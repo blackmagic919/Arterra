@@ -2,19 +2,19 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Arterra.Engine.Terrain;
+using UnityEngine;
+using Arterra.Utils;
 using Arterra.Configuration;
-using Arterra.Core.Terrain;
 using Mono.Cecil;
 using Unity.Mathematics;
 using UnityEditor;
-using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using Utils;
 
 #nullable enable
 
-namespace Arterra.UI.ToolTips {
+namespace Arterra.GamePlay.UI.ToolTips {
     public class ToolTipSystemState {
         public HashSet<string> blacklist;
         public Dictionary<string, TooltipData> activeToolTips;

@@ -3,7 +3,10 @@ using Unity.Mathematics;
 using System;
 using Arterra.Configuration;
 using System.Collections.Generic;
-using Arterra.Configuration.Generation.Entity;
+using Arterra.Data.Entity;
+using Arterra.Core.Events;
+using Arterra.GamePlay.Interaction;
+using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 
 namespace Arterra.Configuration.Gameplay.Player{
     /// <summary>
@@ -44,7 +47,7 @@ namespace Arterra.Configuration.Gameplay.Player{
     }
 }
 
-namespace Arterra.Core.Player {
+namespace Arterra.GamePlay {
 
     /// <summary>The Manager responsible for handling all types of player movement
     /// and switching between them depending on the situation.  </summary>
@@ -126,7 +129,7 @@ namespace Arterra.Core.Player {
                 TerrainCollider.Settings collider = PlayerHandler.data.settings.collider;
                 if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
                     float3 jumpVelocity = Setting.jumpForce * (float3)Vector3.up;
-                    PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_Jump,  PlayerHandler.data, null, jumpVelocity);
+                    PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_Jump,  PlayerHandler.data, null, jumpVelocity);
                     velocity += jumpVelocity;
                 }
             }), "PMSurfaceMovement:JMP", "4.0::Movement");
@@ -153,8 +156,8 @@ namespace Arterra.Core.Player {
 
         /// <summary> Initializes the swimming system. </summary>
         public static void Initialize() {
-            PlayerHandler.data.eventCtrl.AddEventHandler(Events.GameEvent.Entity_InLiquid, StartSwim);
-            PlayerHandler.data.eventCtrl.AddEventHandler(Events.GameEvent.Entity_InGas, StopSwim);
+            PlayerHandler.data.eventCtrl.AddEventHandler(GameEvent.Entity_InLiquid, StartSwim);
+            PlayerHandler.data.eventCtrl.AddEventHandler(GameEvent.Entity_InGas, StopSwim);
             isSwimming = false;
         }
 
@@ -310,7 +313,7 @@ namespace Arterra.Core.Player {
             PlayerHandler.data.collider.transform.velocity = float3.zero;
             InputPoller.AddStackPoll(new ActionBind("RideMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
             InputPoller.AddStackPoll(new ActionBind("RideMove::1", _ => Update()), "Movement::Update");
-            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_MountRideable, PlayerHandler.data, mount);
+            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_MountRideable, PlayerHandler.data, mount);
 
             InputPoller.AddKeyBindChange(() => {
                 InputPoller.AddContextFence("PMRideMove", "4.0::Movement", ActionBind.Exclusion.ExcludeLayer);
@@ -325,7 +328,7 @@ namespace Arterra.Core.Player {
         public static void RemoveHandles() {
             InputPoller.RemoveStackPoll("RideMove::1", "Movement::Update");
             InputPoller.RemoveStackPoll("RideMove::2", "Movement::Gravity");
-            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_DismountRideable, PlayerHandler.data, mount);
+            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_DismountRideable, PlayerHandler.data, mount);
             SubTransform.transform.localRotation = Quaternion.identity;
 
 

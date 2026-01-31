@@ -4,12 +4,12 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Configuration;
-using Arterra.Configuration.Generation.Entity;
-using Arterra.Configuration.Generation.Structure;
-using Arterra.Configuration.Generation.Material;
-using Arterra.Configuration.Generation.Item;
+using Arterra.Data.Entity;
+using Arterra.Data.Structure;
+using Arterra.Data.Material;
+using Arterra.Data.Item;
 using Arterra.Core.Storage;
-using System.Linq;
+using Arterra.Editor;
 
 
 public interface IMateable {
@@ -48,7 +48,7 @@ public class MinimalRecognition {
     
     public virtual void Construct(){
         AwarenessTable = new Dictionary<int, Recognizable>();
-        Catalogue<Arterra.Configuration.Generation.Entity.Authoring> eReg = Config.CURRENT.Generation.Entities;
+        Catalogue<Arterra.Data.Entity.Authoring> eReg = Config.CURRENT.Generation.Entities;
         IRegister mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
 
 
@@ -320,8 +320,8 @@ public class Recognition : MinimalRecognition{
     public override void Construct() {
         base.Construct();
         AwarenessTable ??= new Dictionary<int, Recognizable>();
-        Catalogue<Arterra.Configuration.Generation.Entity.Authoring> eReg = Config.CURRENT.Generation.Entities;
-        Catalogue<Arterra.Configuration.Generation.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
+        Catalogue<Arterra.Data.Entity.Authoring> eReg = Config.CURRENT.Generation.Entities;
+        Catalogue<Arterra.Data.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
 
         if(Mates.value != null) { 
         for(int i = 0; i < Mates.value.Count; i++){

@@ -5,8 +5,8 @@ using UnityEngine.Animations;
 using UnityEngine.Rendering;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
-using Arterra.Core.Terrain;
-using Arterra.Core.Player;
+using Arterra.Engine.Terrain;
+using Arterra.GamePlay;
 
 namespace Arterra.Configuration.Gameplay{
     /// <summary> Settings controlling environment constants of the world. Or aspects of 
@@ -43,11 +43,11 @@ namespace Arterra.Configuration.Gameplay{
 
 public class WorldData {
     public DateTime currentTime;
-    public Arterra.UI.ToolTips.ToolTipSystemState ToolTips;
+    public Arterra.GamePlay.UI.ToolTips.ToolTipSystemState ToolTips;
     public static WorldData Build() {
         WorldData d = new WorldData();
         d.currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.Time.value.startHour);
-        d.ToolTips = Arterra.UI.ToolTips.ToolTipSystemState.Build();
+        d.ToolTips = Arterra.GamePlay.UI.ToolTips.ToolTipSystemState.Build();
         return d;
     }
 }

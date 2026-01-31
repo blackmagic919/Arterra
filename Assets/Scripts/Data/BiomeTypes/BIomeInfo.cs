@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using UnityEngine;
+using Arterra.Configuration;
+using Arterra.Editor;
 
-namespace Arterra.Configuration.Generation.Biome{
+namespace Arterra.Data.Biome{
 /// <summary>
 /// A template class which defines placement conditions for a biome. Because 
 /// each biome has a different set of conditions, but also must always defines those

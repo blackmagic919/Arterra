@@ -1,8 +1,8 @@
 using Unity.Burst;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Configuration.Generation.Entity;
-using static Arterra.Configuration.Generation.Entity.EntitySetting;
+using Arterra.Data.Entity;
+using static Arterra.Data.Entity.EntitySetting;
 using Arterra.Core.Storage;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;

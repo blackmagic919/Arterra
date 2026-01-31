@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4fcdf08747ff9425a8b2ba2d50560962, type: 3}
   m_Name: WoodPulpFormula
-  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.Intrinsic.Mortar.MortarFormula
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Intrinsic.Mortar.MortarFormula
   Name: WoodPulp
   Tags:
     Reg:

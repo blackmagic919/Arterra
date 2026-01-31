@@ -2,12 +2,12 @@ using System;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Arterra.Core.Terrain.Readback;
-using static Arterra.Core.Terrain.Readback.IVertFormat;
+using Arterra.Engine.Terrain.Readback;
+using static Arterra.Engine.Terrain.Readback.IVertFormat;
 using Arterra.Configuration;
 using System.Collections.Generic;
-using Arterra.Configuration.Generation.Material;
-using Utils;
+using Arterra.Data.Material;
+using Arterra.Utils;
 using Arterra.Core.Storage;
 
 public class RegionReconstructor{
@@ -21,7 +21,7 @@ public class RegionReconstructor{
     public static void PresetData() {
         MarchRegion = Resources.Load<ComputeShader>("Compute/CGeometry/RegionMarch/MarchingCubes");
         bufferOffsets = new RegionOffsets(Config.CURRENT.Quality.Terrain.value.mapChunkSize/2, 0);
-        Arterra.Core.Terrain.Map.Generator.GeoGenOffsets wOffsets = Arterra.Core.Terrain.Map.Generator.bufferOffsets;
+        Arterra.Engine.Terrain.Map.Generator.GeoGenOffsets wOffsets = Arterra.Engine.Terrain.Map.Generator.bufferOffsets;
         MarchRegion.SetBuffer(0, "MapData", UtilityBuffers.TransferBuffer);
         MarchRegion.SetBuffer(0, "MapFlags", UtilityBuffers.TransferBuffer);
         MarchRegion.SetBuffer(0, "vertexes", UtilityBuffers.GenerationBuffer);
@@ -67,7 +67,7 @@ public class RegionReconstructor{
         meshHandler?.ReleaseAllGeometry();
         Bounds boundsOS = new((float3)cAxis / 2.0f, (float3)cAxis);
         meshHandler = new AsyncMeshReadback(regionObj.transform, boundsOS);
-        var wOffsets = Arterra.Core.Terrain.Map.Generator.bufferOffsets;
+        var wOffsets = Arterra.Engine.Terrain.Map.Generator.bufferOffsets;
         meshHandler.OffloadVerticesToGPU(wOffsets.vertexCounter);
         meshHandler.OffloadTrisToGPUNoRender(wOffsets.baseTriCounter, wOffsets.baseTriStart, (int)ReadbackMaterial.terrain);
         meshHandler.OffloadTrisToGPUNoRender(wOffsets.waterTriCounter, wOffsets.waterTriStart, (int)ReadbackMaterial.water);
@@ -89,7 +89,7 @@ public class RegionReconstructor{
         
         Bounds boundsOS = new((float3)cSize / 2.0f, (float3)cSize);
         meshHandler = new AsyncMeshReadback(regionObj.transform, boundsOS);
-        var wOffsets = Arterra.Core.Terrain.Map.Generator.bufferOffsets;
+        var wOffsets = Arterra.Engine.Terrain.Map.Generator.bufferOffsets;
         meshHandler.OffloadVerticesToGPU(wOffsets.vertexCounter);
         meshHandler.OffloadTrisToGPU(wOffsets.baseTriCounter, wOffsets.baseTriStart, (int)ReadbackMaterial.terrain);
         meshHandler.OffloadTrisToGPU(wOffsets.waterTriCounter, wOffsets.waterTriStart, (int)ReadbackMaterial.water);

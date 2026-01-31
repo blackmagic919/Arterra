@@ -4,11 +4,11 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using System.Linq;
 using Unity.Collections;
-using Utils;
+using Arterra.Utils;
 using Arterra.Configuration.Quality;
-using static Arterra.Core.Terrain.OctreeTerrain;
+using static Arterra.Engine.Terrain.OctreeTerrain;
 
-namespace Arterra.Core.Terrain.Readback{
+namespace Arterra.Engine.Terrain.Readback{
 /// <summary>
 /// The readback system is responsible for reading back meshes from the GPU and 
 /// intermediately rendering the meshes directly from the GPU while this is happening.
@@ -28,7 +28,7 @@ public class AsyncMeshReadback
 
     private static uint numMeshes;
 
-    private static Configuration.Intrinsic.Readback settings;
+    private static Arterra.Data.Intrinsic.Readback settings;
     /// <summary> The <see cref="GeometryHandle">geometry handles</see> for all the unqiue materials that are used to render the chunk. Each
     /// chunk will have a unique handle for each material in <see cref="Intrinsic.Readback.indirectTerrainMats"/>
     /// regardless of whether any geometry in the chunk uses that material. </summary>

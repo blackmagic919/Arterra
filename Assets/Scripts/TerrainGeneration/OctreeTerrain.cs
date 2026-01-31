@@ -7,7 +7,7 @@ using UnityEngine.Profiling;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
 
-namespace Arterra.Core.Terrain{
+namespace Arterra.Engine.Terrain{
     /// <summary>
     /// Octree Terrain is a singleton class that drives all generation and generation
     /// based events in the game. It is responsible for scheduling when generation 

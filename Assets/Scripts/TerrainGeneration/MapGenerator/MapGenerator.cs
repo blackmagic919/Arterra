@@ -1,13 +1,14 @@
 using Unity.Mathematics;
 using UnityEngine;
-using static UtilityBuffers;
+using static Arterra.Utils.UtilityBuffers;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using Unity.Collections;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
+using Arterra.Utils;
 
-namespace Arterra.Core.Terrain.Map{
+namespace Arterra.Engine.Terrain.Map{
 /// <summary> A manager unique for every terrain chunk responsible for creating 
 /// and grouping and abstracting various types of instructions used to
 /// create the final 3D terrain map and the visual mesh. </summary>
@@ -153,7 +154,7 @@ public static class Generator
     /// <see cref="SystemProtocol.Startup"/> </summary>
     public static void PresetData(){
         Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
-        Configuration.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
+        Data.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
 
         //Set Marching Cubes Data
         int numPointsAxes = rSettings.mapChunkSize;

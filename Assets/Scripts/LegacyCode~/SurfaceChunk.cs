@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using static EndlessTerrain;
-using Utils;
+using Arterra.Utils;
 using Unity.Mathematics;
 
 public class SurfaceChunk

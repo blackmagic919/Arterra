@@ -2,7 +2,7 @@ using UnityEngine;
 using Unity.Mathematics;
 using Unity.Burst;
 using System;
-using Arterra.Configuration.Generation.Structure;
+using Arterra.Data.Structure;
 using Arterra.Core.Storage;
 /*
 y
@@ -16,7 +16,7 @@ y
 +----------->x
 */
 
-namespace Arterra.Configuration.Generation.Material{
+namespace Arterra.Data.Material{
 
     /// <summary> A concrete material that will attempt to decay to one other state
     /// after a certain amount of time. </summary>

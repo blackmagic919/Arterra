@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using Arterra.Configuration;
-using Arterra.Configuration.Generation.Entity;
+using Arterra.Data.Entity;
 using Arterra.Configuration.Quality;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
+using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 
 public class ProceduralAnimated {
     public abstract class AppendageSettings {

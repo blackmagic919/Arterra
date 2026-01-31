@@ -1,6 +1,6 @@
 using UnityEditor;
 using UnityEngine;
-using Utils;
+using Arterra.Utils;
 
 public class DensityAdjuster : MonoBehaviour
 {

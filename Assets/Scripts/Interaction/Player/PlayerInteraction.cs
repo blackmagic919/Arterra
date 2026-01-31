@@ -3,10 +3,12 @@ using UnityEngine;
 using Unity.Mathematics;
 using Arterra.Core.Storage;
 using Arterra.Configuration;
-using Arterra.Configuration.Generation.Material;
-using Arterra.Configuration.Generation.Item;
-using Arterra.Configuration.Gameplay.Player;
-using Utils;
+using Arterra.Data.Material;
+using Arterra.Data.Item;
+using Arterra.GamePlay.UI;
+using Arterra.Core.Events;
+using Arterra.Utils;
+using Arterra.GamePlay.Interaction;
 
 namespace Arterra.Configuration.Gameplay.Player {
 /// <summary>
@@ -50,12 +52,12 @@ public class Interaction : ICloneable{
 }
 
 
-namespace Arterra.Core.Player{
+namespace Arterra.GamePlay{
     /// <summary>The manager responsible for controlling all player interactions with the world </summary>
     public static class PlayerInteraction {
         private static Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         private static Catalogue<Authoring> itemInfo => Config.CURRENT.Generation.Items;
-        private static Interaction settings => Config.CURRENT.GamePlay.Player.value.Interaction;
+        private static Arterra.Configuration.Gameplay.Player.Interaction settings => Config.CURRENT.GamePlay.Player.value.Interaction;
         private static PlayerStreamer.Player data => PlayerHandler.data;
 
         /// <summary> Initializes the player's interactions by tying
@@ -113,7 +115,7 @@ namespace Arterra.Core.Player{
             if (selMat is not PlaceableItem setting) return;
             if (!setting.IsSolid || !matInfo.Contains(setting.MaterialName)) return;
 
-            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_PlaceTerrain, PlayerHandler.data, null, hitPt);
+            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_PlaceTerrain, PlayerHandler.data, null, hitPt);
             CPUMapManager.Terraform(hitPt, settings.TerraformRadius, (GCoord, speed) => HandleAddSolid(
                 InventoryController.Selected,
                 GCoord,
@@ -129,7 +131,7 @@ namespace Arterra.Core.Player{
                 return;
             }
 
-            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Action_RemoveTerrain, PlayerHandler.data, null, hitPt);
+            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_RemoveTerrain, PlayerHandler.data, null, hitPt);
             CPUMapManager.Terraform(hitPt, settings.TerraformRadius,
                 RemoveSolidBareHand, CallOnMapRemoving);
         }
@@ -233,7 +235,7 @@ namespace Arterra.Core.Player{
 
             delta.viscosity = solidDelta;
             delta.density = solidDelta;
-            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Entity_PlaceMaterial, PlayerHandler.data, authoring, delta);
+            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Entity_PlaceMaterial, PlayerHandler.data, authoring, delta);
 
             //Note: Add density before viscosity
             //since viscosity can push density causing overflow
@@ -271,7 +273,7 @@ namespace Arterra.Core.Player{
             delta.density = InventoryController.RemoveStackable(delta.density, matItem.Index);
 
             MaterialInstance authoring = new (GCoord, pointInfo.material);
-            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Entity_PlaceMaterial, PlayerHandler.data, authoring, delta);
+            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Entity_PlaceMaterial, PlayerHandler.data, authoring, delta);
 
             pointInfo.density += delta.density;
             liquidDensity += delta.density;
@@ -297,7 +299,7 @@ namespace Arterra.Core.Player{
             delta.density = CustomUtility.GetStaggeredDelta(solidDensity, -brushStrength);
             delta.viscosity = delta.density;
             MaterialInstance authoring = new (GCoord, pointInfo.material);
-            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Entity_RemoveMaterial, PlayerHandler.data, authoring, delta);
+            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Entity_RemoveMaterial, PlayerHandler.data, authoring, delta);
 
             pointInfo.viscosity -= delta.viscosity;
             pointInfo.density -= delta.density;
@@ -328,7 +330,7 @@ namespace Arterra.Core.Player{
             delta.viscosity = 0;
 
             MaterialInstance authoring = new (GCoord, pointInfo.material);
-            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Entity_RemoveMaterial, PlayerHandler.data, authoring, delta);
+            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Entity_RemoveMaterial, PlayerHandler.data, authoring, delta);
 
             pointInfo.density -= delta.density;
             IItem matItem = authoring.Authoring.OnRemoved(GCoord, delta);
@@ -341,7 +343,7 @@ namespace Arterra.Core.Player{
             return true;
         }
 
-        private static void EntityInteract(Configuration.Generation.Entity.Entity target) {
+        private static void EntityInteract(Arterra.Data.Entity.Entity target) {
             if (!target.active) return;
             if (target is not IAttackable) return;
             IAttackable targEnt = target as IAttackable;

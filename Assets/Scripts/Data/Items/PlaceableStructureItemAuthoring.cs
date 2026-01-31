@@ -2,14 +2,18 @@ using UnityEngine;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using System.Collections.Generic;
-using Utils;
+using Arterra.Utils;
 using System.Linq;
+using Arterra.Engine.Terrain;
 using Arterra.Core.Storage;
-using Arterra.Configuration.Generation.Material;
-using Arterra.Core.Player;
-using static Arterra.Core.Player.PlayerInteraction;
+using Arterra.Data.Material;
+using Arterra.GamePlay;
+using static Arterra.GamePlay.PlayerInteraction;
+using Arterra.GamePlay.Interaction;
+using Arterra.Configuration;
+using Arterra.GamePlay.UI;
 
-namespace Arterra.Configuration.Generation.Item {
+namespace Arterra.Data.Item {
     [CreateAssetMenu(menuName = "Generation/Items/StructureItem")]
     public class PlaceableStructureItemAuthoring : PlaceableTemplate<PlaceableStructureItem> {}
     public class PlaceableStructureItem : IItem {
@@ -20,7 +24,7 @@ namespace Arterra.Configuration.Generation.Item {
         private PlaceableStructureItemAuthoring settings => ItemInfo.Retrieve(Index) as PlaceableStructureItemAuthoring;
         private InteractionHandler handler;
 
-        private static Gameplay.Player.Interaction interaction => Config.CURRENT.GamePlay.Player.value.Interaction;
+        private static Arterra.Configuration.Gameplay.Player.Interaction interaction => Config.CURRENT.GamePlay.Player.value.Interaction;
 
         [JsonIgnore]
         public int StackLimit => 0xFFFF;
@@ -107,7 +111,7 @@ namespace Arterra.Configuration.Generation.Item {
                 h.item = item;
                 h.cxt = cxt;
                 h.active = true;
-                Core.Terrain.OctreeTerrain.MainLoopUpdateTasks.Enqueue(h);
+                OctreeTerrain.MainLoopUpdateTasks.Enqueue(h);
                 InputPoller.AddKeyBindChange(() => {
                     InputPoller.AddBinding(new ActionBind("Place", h.PlaceStructure, ActionBind.Exclusion.ExcludeLayer),
                     "ITEM::PlaceableStct:PL", "5.0::GamePlay");

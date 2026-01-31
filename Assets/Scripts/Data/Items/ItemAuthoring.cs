@@ -1,6 +1,9 @@
 using System;
+using Arterra.Editor;
+using Arterra.Configuration;
+using Arterra.GamePlay.UI;
 
-namespace Arterra.Configuration.Generation.Item {
+namespace Arterra.Data.Item {
     /// <summary> A template for creating an item. To create an inspector serializable object, the 
     /// concrete type must be known. This allows us to quickly fulfill the contract with
     /// the <see cref="IItem"/>  interface. </summary>

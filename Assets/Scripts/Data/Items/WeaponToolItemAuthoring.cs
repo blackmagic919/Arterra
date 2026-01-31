@@ -1,13 +1,15 @@
 using System;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Core.Terrain;
-using Arterra.Core.Player;
-using static Arterra.Core.Player.PlayerInteraction;
+using Arterra.Engine.Terrain;
+using Arterra.GamePlay;
+using static Arterra.GamePlay.PlayerInteraction;
 using Arterra.Core.Events;
+using Arterra.Configuration;
+using Arterra.GamePlay.Interaction;
 
 
-namespace Arterra.Configuration.Generation.Item
+namespace Arterra.Data.Item
 {
     //This type inherits ToolItemAuthoring which inherits AuthoringTemplate<ToolItem>  which
     //inherits Authoring which inherits Category<Authoring>

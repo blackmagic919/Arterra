@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
+using Arterra.Configuration;
 
-namespace Arterra.Configuration.Generation.Biome{
+namespace Arterra.Data.Biome{
 /// <summary>
 /// A settings container identifying all biomes and biome related settings 
 /// that are used during generation. Biomes are placed depending on conditions 

@@ -1,14 +1,17 @@
-using Utils;
+using Arterra.Utils;
 using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Configuration.Generation.Material;
+using Arterra.Data.Material;
 using Arterra.Core.Storage;
-using Arterra.Core.Player;
-using static Arterra.Core.Player.PlayerInteraction;
+using Arterra.GamePlay;
+using static Arterra.GamePlay.PlayerInteraction;
+using Arterra.Configuration;
+using Arterra.GamePlay.Interaction;
+using Arterra.GamePlay.UI;
 
-namespace Arterra.Configuration.Generation.Item
+namespace Arterra.Data.Item
 {
     //This type inherits ToolItemAuthoring which inherits AuthoringTemplate<ToolItem>  which
     //inherits Authoring which inherits Category<Authoring>

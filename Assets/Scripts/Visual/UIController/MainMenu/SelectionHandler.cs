@@ -4,6 +4,8 @@ using UnityEngine.UI;
 using TMPro;
 using Arterra.Core.Storage;
 using static Arterra.Core.Storage.World;
+using Arterra.Utils;
+using Arterra.GamePlay.UI;
 
 
 public class SelectionHandler : MonoBehaviour
@@ -82,14 +84,14 @@ public class SelectionHandler : MonoBehaviour
         Button info = newSelection.GetComponent<Button>();
         transform.Find("Name").GetComponent<TextMeshProUGUI>().text = meta.Name;
 
-        string timeElapsed = Utils.TimeTextUtilty.ToTimeAgo(meta.LastAccessTime);
+        string timeElapsed = TimeTextUtilty.ToTimeAgo(meta.LastAccessTime);
         transform.Find("AccessTime").GetComponent<TextMeshProUGUI>().text = timeElapsed;
 
         string creationTime = meta.CreationTime.ToString("dd/MM/yyyy HH:mm");
         transform.Find("CreationTime").GetComponent<TextMeshProUGUI>().text = creationTime;
 
         string iconPath = meta.Path + DisplayChunkPath;
-        Sprite chunkIcon = Utils.SaveTextureToFileUtility.LoadImageToSprite(iconPath);
+        Sprite chunkIcon = SaveTextureToFileUtility.LoadImageToSprite(iconPath);
         if (chunkIcon == null) chunkIcon = DefaultChunkIcon;
         transform.Find("ChunkDIsplay").GetComponent<Image>().sprite = chunkIcon;
 

@@ -5,6 +5,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.Rendering;
+using Arterra.Utils;
 
 namespace Arterra.Configuration.Quality {
     /// <summary>

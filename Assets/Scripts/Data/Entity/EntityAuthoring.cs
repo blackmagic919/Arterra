@@ -4,9 +4,12 @@ using Unity.Mathematics;
 using Newtonsoft.Json;
 using UnityEditor;
 using System.Collections.Generic;
-using Arterra.Configuration.Generation.Structure;
+using Arterra.Data.Structure;
 using Arterra.Core.Events;
-namespace Arterra.Configuration.Generation.Entity{
+using Arterra.Configuration;
+using Arterra.GamePlay.Interaction;
+
+namespace Arterra.Data.Entity{
 /// <summary>
 /// A generic contract that ensures that all entities contain a certain
 /// set of properties and methods necessary for the system to function.
@@ -68,7 +71,7 @@ public abstract class Entity: IRegistered, IEventControlled{
     public abstract void Deserialize(EntitySetting setting, GameObject controller, out int3 GCoord);
     /// <summary> The transform of the entity used for positioning and collision detection. </summary>
     [JsonIgnore]
-    public abstract ref TerrainCollider.Transform transform { get; }
+    public abstract ref GamePlay.Interaction.TerrainCollider.Transform transform { get; }
     /// <summary>A single line property for retrieving and setting the entity's position in grid space. Most entities 
     /// require knowledge of other entity's positions; however entities that aren't spatially bound may not fulfill 
     /// this contract if it no system requires its location.  </summary>
@@ -160,7 +163,7 @@ public abstract class EntitySetting{
     [JsonIgnore]
     public ProfileInfo profile;
     /// <summary> The actual dimensions of the entity used for collisions and hit-box detection </summary>
-    public TerrainCollider.Settings collider;
+    public Arterra.GamePlay.Interaction.TerrainCollider.Settings collider;
     /// <summary> Presets any information shared by all instances of the entity. This is only called once per entity type within
     /// the <see cref="Config.GenerationSettings.Entities"> entity register </see> and is used to set up any shared readonly information. </summary>
     /// <param name="entityType">The index of the entity type within the <see cref="Config.GenerationSettings.Entities"/> registry.</param>

@@ -2,8 +2,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Arterra.Configuration;
 
-namespace Arterra.Configuration.Intrinsic.Mortar {
+namespace Arterra.Data.Intrinsic.Mortar {
     [Serializable]
     [CreateAssetMenu(menuName = "Settings/Mortar/MortarCategory")]
     public class FornaceFormulaCat : Category<MortarFormula> {

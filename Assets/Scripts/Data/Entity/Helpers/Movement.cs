@@ -1,7 +1,8 @@
 using System;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Configuration.Generation.Entity;
+using Arterra.Data.Entity;
+using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 
 [Serializable]
 public struct Movement {

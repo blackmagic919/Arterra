@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
-using static UtilityBuffers;
+using static Arterra.Utils.UtilityBuffers;
 using Unity.Mathematics;
 using Arterra.Configuration;
+using Arterra.Utils;
 
-namespace Arterra.Core.Terrain.Surface{
+namespace Arterra.Engine.Terrain.Surface{
 
 /// <summary>
 /// A manager unique for every terrain chunk responsible for creating and holding onto
@@ -72,8 +73,8 @@ public static class Generator
     /// won't change until the world is unloaded) to them. Referenced by
     /// <see cref="Terrain.SystemProtocol.Startup"/> </summary>
     public static void PresetData(){
-        Configuration.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
-        Configuration.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
+        Data.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
+        Data.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
         surfaceDataSampler.SetBuffer(0, "surfMap", UtilityBuffers.GenerationBuffer);
 
         surfaceDataSampler.SetInt("continentalSampler", surface.ContinentalIndex);

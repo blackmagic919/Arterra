@@ -1,7 +1,7 @@
 #nullable enable
 
 // namespace System.Collections.Generic {
-namespace Utils {
+namespace Arterra.Utils {
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.

@@ -3,9 +3,15 @@ using UnityEngine;
 using Newtonsoft.Json;
 using System;
 using System.Runtime.Serialization;
-using Arterra.Core.Storage;
 using Arterra.Core.Events;
 using System.Collections.Generic;
+using Item = Arterra.Data.Item;
+using Entity = Arterra.Data.Entity;
+using Biome = Arterra.Data.Biome;
+using Material = Arterra.Data.Material;
+using Structure = Arterra.Data.Structure;
+using Intrinsic = Arterra.Data.Intrinsic;
+using Generation = Arterra.Data.Generation;
 
 namespace Arterra.Configuration {
     /// <summary>
@@ -160,21 +166,21 @@ namespace Arterra.Configuration {
             /// <summary> See here for more information: <see cref="Generation.Surface"/>  </summary>
             public Option<Generation.Surface> Surface;
             /// <summary> See here for more information: <see cref="Generation.Biome.Generation"/> </summary>
-            public Option<Generation.Biome.Generation> Biomes;
+            public Option<Biome.Generation> Biomes;
             /// <summary> See here for more information: <see cref="Generation.Structure.Generation"/> </summary>
-            public Option<Generation.Structure.Generation> Structures;
+            public Option<Structure.Generation> Structures;
             /// <summary> The registry containing settings for all materials used in the world's generation. 
             /// Any material not in this registry will not be recognized by the game and usage/deserialization of it may 
             /// result in undefined behavior. See here for more information: <see cref="Generation.Material.Generation"/> </summary>
-            public Option<Generation.Material.Generation> Materials;
+            public Option<Material.Generation> Materials;
             /// <summary> The registry containing all items referencable in any way throughout the game. Any item
             /// not in this registry will not be recognized by the game and usage/deserialization of it may 
             /// result in undefined behavior. See here for more information: <see cref="Generation.Item.Authoring"/> </summary>
-            public Catalogue<Generation.Item.Authoring> Items;
+            public Catalogue<Item.Authoring> Items;
             /// <summary>The registry containing all entities referencable in any way throughout the game. Any entity
             /// not in this registry will not be recognized by the game and usage/deserialization of it may 
             /// result in undefined behavior. See here for more information: <see cref="Generation.Entity.Authoring"/> </summary>
-            public Catalogue<Generation.Entity.Authoring> Entities;
+            public Catalogue<Entity.Authoring> Entities;
             /// <summary> A registry containing all textures used within the game. Similar to a texture 
             /// atlas, this registry is copied to the GPU and to be referenced by shaders. </summary>
             public Catalogue<TextureContainer> Textures;

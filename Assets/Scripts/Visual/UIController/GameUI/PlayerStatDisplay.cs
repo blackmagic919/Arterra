@@ -2,41 +2,41 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
 using Arterra.Configuration;
-using Arterra.Core.Player;
+using Arterra.GamePlay;
 
-public static class PlayerStatDisplay
-{
-    private static GameObject HealthBar;
-    private static Image breathStat;
-    private static Image healthStat;
-    private static Image damageStat;
-    public static void Initialize()
-    {
-        HealthBar = GameObject.Instantiate(Indicators.BarIndicator, GameUIManager.UIHandle.transform);
-        RectTransform rect = HealthBar.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(-0.025f, 0); rect.anchorMax = new Vector2(0.4f, 0.075f);
-        rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero;
-        rect.localScale = Vector3.one; 
-        healthStat = HealthBar.transform.Find("HealthBar").GetComponent<Image>();
-        damageStat = HealthBar.transform.Find("DamageBar").GetComponent<Image>();
-        breathStat = HealthBar.transform.Find("BreathBar").GetComponent<Image>();
+namespace Arterra.GamePlay.UI {
+    public static class PlayerStatDisplay {
+        private static GameObject HealthBar;
+        private static Image breathStat;
+        private static Image healthStat;
+        private static Image damageStat;
+        public static void Initialize() {
+            HealthBar = GameObject.Instantiate(Indicators.BarIndicator, GameUIManager.UIHandle.transform);
+            RectTransform rect = HealthBar.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(-0.025f, 0); rect.anchorMax = new Vector2(0.4f, 0.075f);
+            rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero;
+            rect.localScale = Vector3.one;
+            healthStat = HealthBar.transform.Find("HealthBar").GetComponent<Image>();
+            damageStat = HealthBar.transform.Find("DamageBar").GetComponent<Image>();
+            breathStat = HealthBar.transform.Find("BreathBar").GetComponent<Image>();
 
-        Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Invulnerability", ToggleInvulnerability);
-        object vulnerability = Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability;
-        ToggleInvulnerability(ref vulnerability);
-    }
+            Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Invulnerability", ToggleInvulnerability);
+            object vulnerability = Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability;
+            ToggleInvulnerability(ref vulnerability);
+        }
 
-    public static void ToggleInvulnerability(ref object vulnerability){
-        bool isVulnerable = (bool)vulnerability;
-        if((!isVulnerable) == HealthBar.activeSelf)
-            return;
-        HealthBar.SetActive(!isVulnerable);
-    }
+        public static void ToggleInvulnerability(ref object vulnerability) {
+            bool isVulnerable = (bool)vulnerability;
+            if ((!isVulnerable) == HealthBar.activeSelf)
+                return;
+            HealthBar.SetActive(!isVulnerable);
+        }
 
-    public static void UpdateIndicator(PlayerVitality vitality){
-        if(!HealthBar.activeSelf) return;
-        healthStat.fillAmount = vitality.healthPercent;
-        breathStat.fillAmount = math.fmod(vitality.breathPercent, 1);
-        if(vitality.Invincibility <= 0) damageStat.fillAmount = math.max(vitality.healthPercent, damageStat.fillAmount - 0.01f);
+        public static void UpdateIndicator(PlayerVitality vitality) {
+            if (!HealthBar.activeSelf) return;
+            healthStat.fillAmount = vitality.healthPercent;
+            breathStat.fillAmount = math.fmod(vitality.breathPercent, 1);
+            if (vitality.Invincibility <= 0) damageStat.fillAmount = math.max(vitality.healthPercent, damageStat.fillAmount - 0.01f);
+        }
     }
 }

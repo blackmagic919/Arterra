@@ -1,7 +1,8 @@
 using Newtonsoft.Json;
 using UnityEngine;
+using Arterra.Configuration;
 
-namespace Arterra.Configuration.Generation.Item {
+namespace Arterra.Data.Item {
     [CreateAssetMenu(menuName = "Generation/Items/StackableItem")]
     public class StackableItemAuthoring : AuthoringTemplate<StackableItem> {}
     [System.Serializable]

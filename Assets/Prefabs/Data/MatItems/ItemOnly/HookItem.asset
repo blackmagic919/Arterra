@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 35470172e9848473cbcd6653047a9ba7, type: 3}
   m_Name: HookItem
-  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.Generation.Item.StackableItemAuthoring
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Item.StackableItemAuthoring
   Name: Hook
   Tags:
     Reg:

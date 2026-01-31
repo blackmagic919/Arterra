@@ -1,5 +1,5 @@
 using UnityEngine;
-namespace Utils {
+namespace Arterra.Utils {
     public class SaveTextureToFileUtility
     {
         public enum SaveTextureFileFormat

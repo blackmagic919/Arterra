@@ -1,17 +1,17 @@
 using UnityEngine;
-using static UtilityBuffers;
+using static Arterra.Utils.UtilityBuffers;
 using Unity.Mathematics;
 using Arterra.Configuration;
-using Arterra.Core.Terrain.Readback;
-using Arterra.Configuration.Generation.Structure;
-using Utils;
+using Arterra.Engine.Terrain.Readback;
+using Arterra.Data.Structure;
+using Arterra.Utils;
 using Arterra.Core.Storage;
-using Arterra.Configuration.Generation.Entity;
+using Arterra.Data.Entity;
 
-namespace Arterra.Core.Terrain.Structure{
+namespace Arterra.Engine.Terrain.Structure{
 /// <summary>
 /// A manager unique for every terrain chunk responsible for creating and holding onto
-/// intermediate structure information required by the chunk during the terrain
+/// intermediate structure information required by the chunk during the terrain generation process.
 /// generation process.
 /// </summary>
 public class Creator
@@ -196,9 +196,9 @@ public static class Generator
     /// <see cref="SystemProtocol.Startup"/> </summary>
     public static void PresetData()
     {
-        Configuration.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
-        Configuration.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
-        Configuration.Generation.Structure.Generation structures = Config.CURRENT.Generation.Structures.value;
+        Data.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
+        Data.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
+        Arterra.Data.Structure.Generation structures = Config.CURRENT.Generation.Structures.value;
         Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         int maxStructurePoints = calculateMaxStructurePoints(structures.maxLoD, rSettings.MaxStructureDepth, structures.StructureChecksPerChunk, structures.LoDFalloff);
         offsets = new StructureOffsets(maxStructurePoints, 0);

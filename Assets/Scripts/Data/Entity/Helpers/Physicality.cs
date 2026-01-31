@@ -5,9 +5,11 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Configuration;
-using Arterra.Configuration.Generation.Entity;
-using Arterra.Configuration.Generation.Item;
+using Arterra.Data.Entity;
+using Arterra.Data.Item;
 using Arterra.Core.Events;
+using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
+using Arterra.Editor;
 
 /// <summary> An interface for all object that can be attacked and take damage. It is up to the 
 /// implementer to decide how the request to take damage is handled. </summary>
@@ -285,7 +287,7 @@ public class Vitality : MediumVitality {
             int index = random.NextInt(LootTable.value.Count);
 
             float amount = genetics.Get(LootTable.value[index].DropAmount) * collectRate;
-            Catalogue<Arterra.Configuration.Generation.Item.Authoring> registry = Config.CURRENT.Generation.Items;
+            Catalogue<Arterra.Data.Item.Authoring> registry = Config.CURRENT.Generation.Items;
             int itemindex = registry.RetrieveIndex(LootTable.value[index].ItemName);
             IItem item = registry.Retrieve(itemindex).Item;
 

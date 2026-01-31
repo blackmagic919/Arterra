@@ -2,7 +2,10 @@ using UnityEngine;
 using System.IO;
 using System;
 using Arterra.Core.Events;
-using Arterra.Core.Terrain;
+using Arterra.Engine.Terrain;
+using Arterra.GamePlay.Interaction;
+using Arterra.Configuration;
+using Arterra.GamePlay.UI;
 
 
 namespace Arterra.Configuration.Gameplay.Player{
@@ -48,7 +51,7 @@ namespace Arterra.Configuration.Gameplay{
     }
 }
 
-namespace Arterra.Core.Player{
+namespace Arterra.GamePlay{
     /// <summary> The root handler of the currently active player.  </summary>
     /// <remarks> If <see cref="PlayerStreamer"/> were analogous to the 
     /// player's current body, this class would be the player's soul </remarks>///  
@@ -106,7 +109,7 @@ namespace Arterra.Core.Player{
             if (!active) return;
             data.camera.Update(Camera);
             PlayerMovement.Update();
-            PlayerStatDisplay.UpdateIndicator(data.vitality);
+            Arterra.GamePlay.UI.PlayerStatDisplay.UpdateIndicator(data.vitality);
 
         }
 

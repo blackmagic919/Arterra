@@ -1,16 +1,15 @@
 using Arterra.Core.Events;
 using Unity.Mathematics;
 using Arterra.Core;
-using Arterra.Configuration.Generation.Entity;
-using Utils;
+using Arterra.Data.Entity;
+using Arterra.Utils;
 using UnityEditor;
 using Arterra.Configuration;
-using Arterra.Core.Player;
+using Arterra.GamePlay;
 using System.Collections.Generic;
 using System.Linq;
 
-
-namespace Arterra.UI.ToolTips {
+namespace Arterra.GamePlay.UI.ToolTips {
     /// <summary>
     /// Tooltip System managing all tooltips used in the game.
     /// </summary>

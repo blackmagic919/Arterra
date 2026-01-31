@@ -4,9 +4,9 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Utils;
+using Arterra.Utils;
 
-namespace Arterra.Core.Terrain.Readback {
+namespace Arterra.Engine.Terrain.Readback {
     public class AsyncGenInfoReadback {
         private int Allocation = -1;
         private static ComputeShader GenPointRealloc;

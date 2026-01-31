@@ -2,9 +2,10 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Arterra.Configuration;
 
 
-namespace Arterra.Configuration.Generation.Biome{
+namespace Arterra.Data.Biome{
     [Serializable]
     [CreateAssetMenu(menuName = "Generation/Biomes/SurfaceCategory")]
     public class SurfaceCategory : Category<CInfo<SurfaceBiome>>

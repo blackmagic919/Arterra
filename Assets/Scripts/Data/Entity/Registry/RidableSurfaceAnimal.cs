@@ -3,10 +3,13 @@ using Unity.Mathematics;
 using System;
 using Newtonsoft.Json;
 using Arterra.Configuration;
-using Arterra.Configuration.Generation.Entity;
-using Arterra.Configuration.Generation.Item;
+using Arterra.Data.Entity;
+using Arterra.Data.Item;
 using Arterra.Core.Storage;
 using Arterra.Core.Events;
+using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
+using Arterra.GamePlay.Interaction;
+
 // Defining the contract between a rider and their mount
 public interface IRider
 {
@@ -21,7 +24,7 @@ public interface IRidable {
 }
 
 [CreateAssetMenu(menuName = "Generation/Entity/RidableSurfaceAnimal")]
-public class RidableSurfaceAnimal : Arterra.Configuration.Generation.Entity.Authoring
+public class RidableSurfaceAnimal : Arterra.Data.Entity.Authoring
 {
     public Option<AnimalSetting> _Setting;
     [JsonIgnore]
@@ -95,7 +98,7 @@ public class RidableSurfaceAnimal : Arterra.Configuration.Generation.Entity.Auth
         }
 
         [JsonIgnore]
-        public override ref TerrainCollider.Transform transform => ref tCollider.transform;
+        public override ref Arterra.GamePlay.Interaction.TerrainCollider.Transform transform => ref tCollider.transform;
         [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]

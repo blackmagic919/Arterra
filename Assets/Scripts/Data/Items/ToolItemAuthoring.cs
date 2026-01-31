@@ -2,13 +2,15 @@ using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
-using Arterra.Configuration.Generation.Material;
+using Arterra.Data.Material;
 using Arterra.Core.Storage;
-using static Arterra.Core.Player.PlayerInteraction;
-using Arterra.Core.Player;
+using static Arterra.GamePlay.PlayerInteraction;
+using Arterra.GamePlay;
 using Arterra.Core.Events;
+using Arterra.Configuration;
+using Arterra.GamePlay.Interaction;
 
-namespace Arterra.Configuration.Generation.Item
+namespace Arterra.Data.Item
 {
     [CreateAssetMenu(menuName = "Generation/Items/Tool")]
     public class ToolItemAuthoring : AuthoringTemplate<ToolItem> {
