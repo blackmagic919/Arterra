@@ -38,6 +38,7 @@ public static class SystemProtocol{
 
         GPUMapManager.Initialize();
         CPUMapManager.Initialize();
+        WorldDataHandler.Initialize();
 
         EntityManager.Initialize();
         LightBaker.Initialize();
@@ -50,7 +51,6 @@ public static class SystemProtocol{
         InputPoller.Initialize();
         PlayerHandler.Initialize();
         GameUIManager.Initialize();
-        WorldDataHandler.Initialize();
 
         AtmospherePass.Initialize();
         Chunk.Initialize();

@@ -217,6 +217,20 @@
             <summary> The tag used to determine what a material is converted to and how 
             to convert it. </summary>
         </member>
+        <member name="F:Arterra.Configuration.Generation.Item.FishingRodAuthoring.MaxDurability">
+            <summary>  The maximum durability of the item, the durability it possesses when it is first
+            created. Removing material with tools will decrease durability by the amount indicated
+            in the tag <see cref="T:ToolTag"/> for more info. </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Item.FishingRodAuthoring.MinDrawTime">
+            <summary> The tag used to determine how each material's removal should be handled.
+            A material's most specific tag that fits this enum will be used to determine
+            how this tool effects it. </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Item.FishingRodAuthoring.BaitTag">
+            <summary> If none, it will always cast Hook Entity, which can be useful
+            if we don't want the rod to take an item from the holder's inventory and cast it </summary>
+        </member>
         <member name="F:Arterra.Configuration.Generation.Item.MatConverterToolAuthoring.ConverterTag">
             <summary> The tag used to determine what a material is converted to and how 
             to convert it. </summary>
@@ -470,6 +484,10 @@
         <member name="F:Arterra.Configuration.Generation.Material.MaterialData.Roughness">
             <summary> The amount of friction entities touching this material will experience </summary>
         </member>
+        <member name="M:Arterra.Configuration.Generation.Material.MaterialData.GetRegistry">
+            <summary>Gets the material registry, Implementation of <see cref="M:IRegistered.GetRegistry"/>. </summary>
+            <returns></returns>
+        </member>
         <member name="M:Arterra.Configuration.Generation.Material.MaterialData.PropogateMaterialUpdate(Unity.Mathematics.int3,Unity.Mathematics.Random)">
             <summary>
             Called whenever a map entry of this material has been modified. This method can be
@@ -540,6 +558,13 @@
             Specifically, when an entity's collider overlaps a point that <see cref="P:Arterra.Core.Storage.MapData.IsLiquid"/>
             and this material is the main contributor to that point's density </summary>
             <param name="entity">The entity that is touching the solid ground</param>
+        </member>
+        <member name="M:Arterra.Configuration.Generation.Material.MaterialData.ConstructMetaData(Unity.Mathematics.int3,Arterra.Configuration.Generation.Material.MaterialData.MetaConstructor)">
+            <summary>Called to generate material-specific meta data at the given location
+            based on the specifications given within <paramref name="constructor"/> </summary>
+            <param name="GCoord">The coordinate in grid space of the material which will be populated with meta data </param> 
+            <param name="constructor">The <see cref="T:Arterra.Configuration.Generation.Material.MaterialData.MetaConstructor"/> containing settings dictating how meta data should be generated</param>
+            <returns>A constructed meta-data instance that the material may expect to reference in the future.</returns>
         </member>
         <member name="M:Arterra.Configuration.Generation.Material.MaterialData.SwapMaterial(Unity.Mathematics.int3,System.Int32,Arterra.Configuration.Generation.Item.IItem@,Arterra.Configuration.Generation.Entity.Entity)">
             <summary> A static utility function to swap a mapData's material with another material
@@ -706,6 +731,23 @@
             holding this object. </param>
             <returns>The item that was created from this operation, or null.</returns>
         </member>
+        <member name="T:Arterra.Configuration.Generation.Material.MaterialData.MetaConstructor">
+            <summary>Information determining how meta-data of a single 
+            map data point is generated</summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Material.MaterialData.MetaConstructor.Material">
+            <summary> The index within the <see cref="F:Arterra.Configuration.Config.GenerationSettings.Materials"/> registry
+            of the material with meta-data to place at the given offset from the structure's origin </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Material.MaterialData.MetaConstructor.offset">
+            <summary>The offset from the structure's origin to place the new material </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Material.MaterialData.MetaConstructor.LootTable">
+            <summary>The table consistenting of items to supply as map data.</summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Material.MaterialData.MetaConstructor.ConfigSettings">
+            <summary> Other config information that may be used depending on the type of meta data the <see cref="F:Arterra.Configuration.Generation.Material.MaterialData.MetaConstructor.Material"/> expects. </summary>
+        </member>
         <member name="T:Arterra.Configuration.Generation.Material.MaterialData.MultiLooter">
             <summary> An optional handler for materials which are capable of dropping
             multiple types of items on a probabilistic basis. </summary>
@@ -774,6 +816,38 @@
             <summary> Returns the registry entry's name of a registry reference coupled with the <see cref="F:Arterra.Configuration.Generation.Material.MaterialData.Names">name register</see> </summary>
             <param name="index">The index within the <see cref="F:Arterra.Configuration.Generation.Material.MaterialData.Names">name register</see> of the name of the reference</param>
             <returns>The name of the reference in an external registry or null if a name for <paramref name="index"/> cannot be found. </returns>
+        </member>
+        <member name="T:Arterra.Configuration.Generation.Material.MaterialInstance">
+            <summary>
+            A generic instance of a material at a given position. These are created
+            to represent a material at one specific position and are not always persisted.
+            </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Material.MaterialInstance.Authoring">
+            <summary>The material authoring controlling generic logic of the material.
+            This is logic that does not require metadata and is applied to all materials </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Material.MaterialInstance.position">
+            <summary>The coordinate in grid space of this instance. </summary>
+        </member>
+        <member name="M:Arterra.Configuration.Generation.Material.MaterialInstance.GetRegistry">
+            <summary> Obtains the material registry </summary>
+            <returns>The material registry</returns>
+        </member>
+        <member name="P:Arterra.Configuration.Generation.Material.MaterialInstance.Index">
+            <summary>The index within the material registry of this material.</summary>
+        </member>
+        <member name="M:Arterra.Configuration.Generation.Material.MaterialInstance.#ctor">
+            <summary>Default Json Constructor</summary>
+        </member>
+        <member name="M:Arterra.Configuration.Generation.Material.MaterialInstance.#ctor(Unity.Mathematics.int3)">
+            <summary>Sets up the material instance.</summary>
+            <param name="GCoord">The position of the material</param>
+        </member>
+        <member name="M:Arterra.Configuration.Generation.Material.MaterialInstance.#ctor(Unity.Mathematics.int3,System.Int32)">
+            <summary>Sets up the material instance.</summary>
+            <param name="GCoord">The position of the material</param>
+            <param name="index">The index of the material type</param>
         </member>
         <member name="T:Arterra.Configuration.Generation.Material.GeoShaderIndexDrawer">
             <summary> A utility class to override serialization of <see cref="T:Arterra.Configuration.Generation.Structure.StructureData.PointInfo"/> into a Unity Inspector format.
@@ -845,6 +919,51 @@
             <param name="GCoord">The coordinate in grid space of a map entry that is this material (a liquid material)</param>
             <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
         </member>
+        <member name="T:Arterra.Configuration.Generation.Material.MortarMaterial">
+            <summary> A mortar material which can crush items put into it to produced
+            crushed variants. </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Material.MortarMaterial.DisplayIcon">
+            <summary> The index within the <see cref="F:Arterra.Configuration.Generation.Material.MaterialData.Names"> name registry </see> of the 
+            texture within the texture registry of the icon displayed on the <see cref="T:PanelNavbarManager">Navbar</see>
+            referring to the Container.  </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Material.MortarMaterial.MaxSlotCount">
+            <summary> The maximum amount of  slots this mortar will have for smashing items. Includes both inputs and outputs </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Material.MortarMaterial.MaxRecipeSlotCount">
+            <summary> The maximum amount of formulas to display in the help menu </summary>
+        </member>
+        <member name="M:Arterra.Configuration.Generation.Material.MortarMaterial.PropogateMaterialUpdate(Unity.Mathematics.int3,Unity.Mathematics.Random)">
+            <summary> Even though it does nothing, it needs to fufill the contract so
+            that it can be used in the same way as other materials. </summary>
+            <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
+            <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
+        </member>
+        <member name="M:Arterra.Configuration.Generation.Material.MortarMaterial.RandomMaterialUpdate(Unity.Mathematics.int3,Unity.Mathematics.Random)">
+            <summary> Even though it does nothing, it needs to fufill the contract so
+            that it can be used in the same way as other materials. </summary>
+            <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
+            <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
+        </member>
+        <member name="M:Arterra.Configuration.Generation.Material.MortarMaterial.ConstructMetaData(Unity.Mathematics.int3,Arterra.Configuration.Generation.Material.MaterialData.MetaConstructor)">
+            <summary>Returns a mortar inventory created using the meta constructor.</summary>
+            <param name="GCoord">The coordinate in grid space of the material</param>
+            <param name="constructor">The constructor used to populate the inventory</param>
+            <returns>The container instance</returns>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Material.MortarMaterial.MaterialDrops">
+            <summary> The handler controlling how materials are dropped when
+            <see cref="M:Arterra.Configuration.Generation.Material.MortarMaterial.OnRemoved(Unity.Mathematics.int3,Arterra.Core.Storage.MapData@)"/> is called. See 
+            <see cref="T:Arterra.Configuration.Generation.Material.MaterialData.ItemLooter"/> for more info.  </summary>
+        </member>
+        <member name="M:Arterra.Configuration.Generation.Material.MortarMaterial.OnRemoved(Unity.Mathematics.int3,Arterra.Core.Storage.MapData@)">
+            <summary> See <see cref="M:Arterra.Configuration.Generation.Material.MaterialData.OnRemoved(Unity.Mathematics.int3,Arterra.Core.Storage.MapData@)"/> for more information. </summary>
+            <param name="amount">The map data indicating the amount of material removed
+            and the state it was removed as</param>
+            <param name="GCoord">The location of the map information being</param>
+            <returns>The item to give.</returns>
+        </member>
         <member name="F:Arterra.Configuration.Generation.Material.PlaceableStructureMat.randYRot">
             <summary> Whether or not placement of the structure may include random rotations around the vertical-axis. </summary>
         </member>
@@ -901,6 +1020,12 @@
             that it can be used in the same way as other materials. </summary>
             <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
             <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
+        </member>
+        <member name="M:Arterra.Configuration.Generation.Material.FurnaceMaterial.ConstructMetaData(Unity.Mathematics.int3,Arterra.Configuration.Generation.Material.MaterialData.MetaConstructor)">
+            <summary>Returns a furnace inventory created using the meta constructor.</summary>
+            <param name="GCoord">The coordinate in grid space of the material</param>
+            <param name="constructor">The constructor used to populate the inventory</param>
+            <returns>The container instance</returns>
         </member>
         <member name="F:Arterra.Configuration.Generation.Material.FurnaceMaterial.MaterialDrops">
             <summary> The handler controlling how materials are dropped when
@@ -1035,6 +1160,12 @@
             <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
             <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
         </member>
+        <member name="M:Arterra.Configuration.Generation.Material.ContainerMaterial.ConstructMetaData(Unity.Mathematics.int3,Arterra.Configuration.Generation.Material.MaterialData.MetaConstructor)">
+            <summary>Returns a container inventory created using the meta constructor.</summary>
+            <param name="GCoord">The coordinate in grid space of the material</param>
+            <param name="constructor">The constructor used to populate the inventory</param>
+            <returns>The container instance</returns>
+        </member>
         <member name="F:Arterra.Configuration.Generation.Material.ContainerMaterial.MaterialDrops">
             <summary> The handler controlling how materials are dropped when
             <see cref="M:Arterra.Configuration.Generation.Material.ContainerMaterial.OnRemoved(Unity.Mathematics.int3,Arterra.Core.Storage.MapData@)"/> is called. See 
@@ -1062,6 +1193,12 @@
             Surface biomes have their unique selection space and only need to not overlap
             other surface biomes within <see cref="F:Arterra.Configuration.Generation.Biome.Generation.SurfaceBiomes"/>. <seealso cref="T:Arterra.Configuration.Generation.Biome.SBiomeInfo"/> </summary> 
         </member>
+        <member name="F:Arterra.Configuration.Generation.Biome.Generation.SeafloorBiomes">
+            <summary> The registry containing all seafloor biomes that can be generated.
+            Seafloor biomes are biomes that generate on the seafloor and can pick where to generate
+            based on the features of the seafloor. Importantly, seafloor biomes may not span all query space,
+            and if no seafloor biome is selected, the biome is instead decided by the <see cref="F:Arterra.Configuration.Generation.Biome.Generation.SeaBiomes"/>. </summary> 
+        </member>
         <member name="F:Arterra.Configuration.Generation.Biome.Generation.CaveBiomes">
             <summary>
             The registry containing all cave biomes that can be generated.
@@ -1078,6 +1215,12 @@
             space. Sky biomes only need to not overlap other sky biomes within <see cref="F:Arterra.Configuration.Generation.Biome.Generation.SkyBiomes"/>.
             </summary>  <remarks> Sky biomes can be used to create different cloud patterns, weather or effects in the 
             sky independently of what the surface biome is. </remarks>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Biome.Generation.SeaBiomes">
+            <summary> The registry containing all sky biomes that can be generated.
+            Sea biomes generate only between an underwater seafloor and the ocean's
+            water surface. Seabiomes may be overwritten by <see cref="F:Arterra.Configuration.Generation.Biome.Generation.SeafloorBiomes"/> 
+            and only need to not overlap with other sea biomes </summary>
         </member>
         <member name="T:Arterra.Configuration.Generation.Biome.BDict">
             <summary>
@@ -1641,6 +1784,9 @@
             <summary>The tangent to the direction the entity is facing, found by multiplying the 
             right direction by the entity's <see cref="P:Arterra.Configuration.Generation.Entity.Entity.Facing">rotation</see></summary>
         </member>
+        <member name="P:Arterra.Configuration.Generation.Entity.Entity.weight">
+            <summary> The weight of the entity </summary>
+        </member>
         <member name="F:Arterra.Configuration.Generation.Entity.Entity.eventCtrl">
             <summary> The event controller responsible for managing all events related to this entity </summary>
         </member>
@@ -1910,6 +2056,11 @@
             structure grows linearly with the number of checks. See <see cref="T:Arterra.Configuration.Generation.Structure.StructureData.CheckPoint"/> for more information.
             </summary>
         </member>
+        <member name="F:Arterra.Configuration.Generation.Structure.StructureData.Enhancements">
+            <summary> Enhanced features allowing structures to dictate more aspects of its generation than the 
+            raw map data. This feature will only be used if enabled via <see cref="P:Arterra.Configuration.Generation.Structure.StructureData.Settings.IsEnhanced"/>.
+            See <see cref="T:Arterra.Configuration.Generation.Structure.StructureData.EnhancedFeatures"/> </summary>
+        </member>
         <member name="P:Arterra.Configuration.Generation.Structure.StructureData.SerializePoints">
             <summary> A getter property that deserializes the structure's map data by recoupling them with the current world's configuration. This involves
             retrieving the real indices of the materials within the external <see cref="F:Arterra.Configuration.Config.GenerationSettings.Materials"/> registry. </summary>
@@ -1930,7 +2081,7 @@
             <summary>
             The offset in grid space from the structure's origin (the bottom left corner of the structure),
             of the map entry that the check will sample. This offset is subject to possible rotations 
-            detailed by <see cref="!:Settings.randThetaRot"/> and <see cref="!:Settings.randPhiRot"/> whereby
+            detailed by <see cref="P:Arterra.Configuration.Generation.Structure.StructureData.Settings.randYRot"/>, <see cref="P:Arterra.Configuration.Generation.Structure.StructureData.Settings.randXRot"/> and <see cref="P:Arterra.Configuration.Generation.Structure.StructureData.Settings.randZRot"/> whereby
             the location of the check will be rotated in the same manner as the structure's contents.
             </summary>
         </member>
@@ -1962,24 +2113,30 @@
             may inadvertently result in a lower density of structures. Incorrectly setting this value can result in corrupted generation. 
             </summary>
         </member>
-        <member name="F:Arterra.Configuration.Generation.Structure.StructureData.Settings.randYRot">
+        <member name="F:Arterra.Configuration.Generation.Structure.StructureData.Settings.config">
+            <summary> The raw configuration bitmap </summary>
+        </member>
+        <member name="P:Arterra.Configuration.Generation.Structure.StructureData.Settings.randYRot">
             <summary> Whether or not placement of the structure may include random rotations around the vertical(y)-axis. Rotations are
             possible by changing the axis and order the structure's contents are read when being placed in the world.
-            </summary>
+            </summary> 
         </member>
-        <member name="F:Arterra.Configuration.Generation.Structure.StructureData.Settings.randXRot">
+        <member name="P:Arterra.Configuration.Generation.Structure.StructureData.Settings.randXRot">
             <summary>
             Whether or not placement of the structure may include random rotations around the major horizontal(x)-axis. The horizontal
-            axis that it is rotated upon may shift depending on the <see cref="F:Arterra.Configuration.Generation.Structure.StructureData.Settings.randYRot"/>. Rotations are possible by changing 
+            axis that it is rotated upon may shift depending on the <see cref="P:Arterra.Configuration.Generation.Structure.StructureData.Settings.randYRot"/>. Rotations are possible by changing 
             the axis and order the structure's contents are read when being placed in the world.
             </summary>
         </member>
-        <member name="F:Arterra.Configuration.Generation.Structure.StructureData.Settings.randZRot">
+        <member name="P:Arterra.Configuration.Generation.Structure.StructureData.Settings.randZRot">
             <summary>
             Whether or not placement of the structure may include random rotations around the mino horizontal(z)-axis. The horizontal
-            axis that it is rotated upon may shift depending on the <see cref="F:Arterra.Configuration.Generation.Structure.StructureData.Settings.randYRot"/> and <see cref="F:Arterra.Configuration.Generation.Structure.StructureData.Settings.randXRot"/>. Rotations 
+            axis that it is rotated upon may shift depending on the <see cref="P:Arterra.Configuration.Generation.Structure.StructureData.Settings.randYRot"/> and <see cref="P:Arterra.Configuration.Generation.Structure.StructureData.Settings.randXRot"/>. Rotations 
             are possible by changing the axis and order the structure's contents are read when being placed in the world.
             </summary>
+        </member>
+        <member name="P:Arterra.Configuration.Generation.Structure.StructureData.Settings.IsEnhanced">
+            <summary> Whether or not the structure has enhanced features. See <see cref="F:Arterra.Configuration.Generation.Structure.StructureData.Enhancements"/> for more info. </summary>
         </member>
         <member name="T:Arterra.Configuration.Generation.Structure.StructureData.CheckInfo">
             <summary>
@@ -1998,25 +2155,25 @@
         <member name="P:Arterra.Configuration.Generation.Structure.StructureData.CheckInfo.MinLiquid">
             <summary>
             The lower bound of the liquid density that the map entry must be above to be considered valid.
-            The liquid density is defined by <see cref="!:CPUDensityManager.MapData.LiquidDensity"/>. 
+            The liquid density is defined by <see cref="P:Arterra.Core.Storage.MapData.LiquidDensity"/>. 
             </summary>
         </member>
         <member name="P:Arterra.Configuration.Generation.Structure.StructureData.CheckInfo.MaxLiquid">
             <summary>
             The upper bound of the liquid density that the map entry must be below to be considered valid.
-            The liquid density is defined by <see cref="!:CPUDensityManager.MapData.LiquidDensity"/>.
+            The liquid density is defined by <see cref="P:Arterra.Core.Storage.MapData.LiquidDensity"/>.
             </summary>
         </member>
         <member name="P:Arterra.Configuration.Generation.Structure.StructureData.CheckInfo.MinSolid">
             <summary>
             The lower bound of the solid density that the map entry must be above to be considered valid.
-            The solid density is defined by <see cref="!:CPUDensityManager.MapData.SolidDensity"/>.
+            The solid density is defined by <see cref="P:Arterra.Core.Storage.MapData.SolidDensity"/>.
             </summary>
         </member>
         <member name="P:Arterra.Configuration.Generation.Structure.StructureData.CheckInfo.MaxSolid">
             <summary>
             The upper bound of the solid density that the map entry must be below to be considered valid.
-            The solid density is defined by <see cref="!:CPUDensityManager.MapData.SolidDensity"/>.
+            The solid density is defined by <see cref="P:Arterra.Core.Storage.MapData.SolidDensity"/>.
             </summary>
         </member>
         <member name="M:Arterra.Configuration.Generation.Structure.StructureData.CheckInfo.Contains(Arterra.Core.Storage.MapData@)">
@@ -2034,7 +2191,7 @@
             set to their maximum range. </summary>
         </member>
         <member name="T:Arterra.Configuration.Generation.Structure.StructureData.PointInfo">
-            <summary> A single map entry contained by the structure. Contains <see cref="!:CPUDensityManager.MapData">
+            <summary> A single map entry contained by the structure. Contains <see cref="T:Arterra.Core.Storage.MapData">
             standard map information</see> as well as metadata on how it should be interpreted when the 
             structured is placed. </summary>
         </member>
@@ -2060,9 +2217,38 @@
             Occupies the second lowest byte of <see cref="F:Arterra.Configuration.Generation.Structure.StructureData.PointInfo.data"/>. </summary>
         </member>
         <member name="P:Arterra.Configuration.Generation.Structure.StructureData.PointInfo.material">
-            <summary> The index of the name of the material within <see cref="!:Materials"/>. When used during terrain generation,
+            <summary> The index of the name of the material within <see cref="F:Arterra.Configuration.Config.GenerationSettings.Materials"/>. When used during terrain generation,
             this value is recoupled with the external <see cref="F:Arterra.Configuration.Config.GenerationSettings.Materials"/> registry by 
             retrieving the index of the material name within the registry.  </summary>
+        </member>
+        <member name="T:Arterra.Configuration.Generation.Structure.StructureData.EnhancedFeatures">
+            <summary>Optional features structures can specify if they have it enabled
+            via <see cref="P:Arterra.Configuration.Generation.Structure.StructureData.Settings.IsEnhanced"/> </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Structure.StructureData.EnhancedFeatures.Entities">
+            <summary> List of entities that this structure can spawn. </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Structure.StructureData.EnhancedFeatures.MapMetaData">
+            <summary> List of map meta data that this structure can spawn.</summary>
+        </member>
+        <member name="T:Arterra.Configuration.Generation.Structure.StructureData.EnhancedFeatures.StructureEntity">
+            <summary>Spawning information for a
+            single entity by the structure. </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Structure.StructureData.EnhancedFeatures.StructureEntity.Entity">
+            <summary> The index within the <see cref="F:Arterra.Configuration.Config.GenerationSettings.Entities"/> registry
+            of the entity to spawn if its profile matches. </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Structure.StructureData.EnhancedFeatures.StructureEntity.offsetMin">
+            <summary> The minimum offset from the structure origin
+            the entity can attempt to spawn at </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Structure.StructureData.EnhancedFeatures.StructureEntity.offsetMax">
+            <summary> The maximum offset from the structure origin
+            the entity can attempt to spawn at </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Generation.Structure.StructureData.EnhancedFeatures.StructureEntity.GenCount">
+            <summary>The average amount of entities to spawn in the given region.</summary>
         </member>
         <member name="T:Arterra.Configuration.Generation.Structure.StructPointDrawer">
             <summary> A utility class to override serialization of <see cref="T:Arterra.Configuration.Generation.Structure.StructureData.PointInfo"/> into a Unity Inspector format.
@@ -2278,6 +2464,28 @@
             <param name="parent">The parent object containing the new slot</param>
         </member>
         <member name="M:Arterra.Configuration.Intrinsic.Furnace.FurnaceFormula.ClearDisplay(UnityEngine.Transform)">
+            <summary> Releases UI slot objects associated with this recipe. See <see cref="T:ISlot"/> for more information </summary>
+            /// <param name="parent">The parent object containing the slot to be removed</param>
+        </member>
+        <member name="T:Arterra.Configuration.Intrinsic.Mortar.MortarMaConversion">
+            <summary>
+            A structure defining how a material is converted in a mortar.
+            This conversion can be used for input materials being smelted or output materials being produced.
+            </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Intrinsic.Mortar.MortarMaConversion.Index">
+            <summary>
+            The name of the material.
+            </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Intrinsic.Mortar.MortarMaConversion.Rate">
+            <summary>The rate of amount per second at which the material is converted or being converted to. </summary>
+        </member>
+        <member name="M:Arterra.Configuration.Intrinsic.Mortar.MortarFormula.AttachDisplay(UnityEngine.Transform)">
+            <summary> Controls how recipes are created as UI slots. See <see cref="T:ISlot"/> for more information </summary>
+            <param name="parent">The parent object containing the new slot</param>
+        </member>
+        <member name="M:Arterra.Configuration.Intrinsic.Mortar.MortarFormula.ClearDisplay(UnityEngine.Transform)">
             <summary> Releases UI slot objects associated with this recipe. See <see cref="T:ISlot"/> for more information </summary>
             /// <param name="parent">The parent object containing the slot to be removed</param>
         </member>
@@ -3184,6 +3392,11 @@
             The events that can trigger tooltips.
             </summary>
         </member>
+        <member name="F:Arterra.Configuration.Config.TooltipSettings.TooltipDismissorEvents">
+            <summary>
+            The events that can dismiss tooltips.
+            </summary>
+        </member>
         <member name="T:Arterra.Configuration.Config.GenerationSettings">
             <summary>
             The settings describing factors controlling the generation of the world. This is exposed
@@ -3271,6 +3484,7 @@
             <summary> Controls how the player can create items. See <see cref="!:Gameplay.Crafting"/> for more information. </summary>
         </member>
         <!-- Badly formed XML comment ignored for member "F:Arterra.Configuration.Config.SystemSettings.FurnaceFormulas" -->
+        <!-- Badly formed XML comment ignored for member "F:Arterra.Configuration.Config.SystemSettings.MortarFormulas" -->
         <member name="F:Arterra.Configuration.Config.SystemSettings.Armor">
             <summary> Controls how the player's armor is displayed. See <see cref="!:Gameplay.Armor"/> for more information. </summary>
         </member>
@@ -3416,6 +3630,24 @@
             ILists are cloned by default by creating a new instance of the list and copying the elements.
             </summary>
         </member>
+        <member name="T:Arterra.UI.ToolTips.TooltipSystem">
+            <summary>
+            Tooltip System managing all tooltips used in the game.
+            </summary>
+        </member>
+        <member name="M:Arterra.UI.ToolTips.TooltipSystem.Initialize">
+            <summary>
+            Initializes the tooltip system. 
+            
+            Hooks into necessary events to snoop for tooltip.
+            Read configuration data for tooltip display settings. 
+            </summary>
+        </member>
+        <member name="T:Arterra.UI.ToolTips.TooltipPipeline">
+            <summary>
+            Tooltip Pipeline handling the flow of tooltip data and rendering.
+            </summary>
+        </member>
         <member name="T:Arterra.Core.Player.PlayerStreamer">
             <summary> The entity instance of the player holding all data specific
             to a single instance of the player. Note, multiple PlayerStreamers can 
@@ -3490,11 +3722,12 @@
         <member name="M:Arterra.Core.Player.PlayerStreamer.Player.Interact(Arterra.Configuration.Generation.Entity.Entity)">
             <summary>Interacts with the Player Instance. See <see cref="M:IAttackable.Interact(Arterra.Configuration.Generation.Entity.Entity)"/></summary>            
         </member>
-        <member name="M:Arterra.Core.Player.PlayerStreamer.Player.Collect(System.Single)">
+        <member name="M:Arterra.Core.Player.PlayerStreamer.Player.Collect(Arterra.Configuration.Generation.Entity.Entity,System.Single)">
             <summary> Collects items from the dead player instance
             if it contains items in its inventories, causing
-            it to slowly decay. <see cref="M:IAttackable.Collect(System.Single)"/> </summary>
-            <param name="collectRate">The speed at which items are removed</param>
+            it to slowly decay. <see cref="M:IAttackable.Collect(Arterra.Configuration.Generation.Entity.Entity,System.Single)"/> </summary>
+            <param name="target"> The entity collecting the item(or null) </param>
+            <param name="amount">The speed at which items are removed</param>
             <returns>The collected item, or null.</returns>
         </member>
         <member name="M:Arterra.Core.Player.PlayerStreamer.Player.TakeDamage(System.Single,Unity.Mathematics.float3,Arterra.Configuration.Generation.Entity.Entity)">
@@ -3629,16 +3862,16 @@
         <member name="M:Arterra.Core.Player.SwimMovement.Initialize">
             <summary> Initializes the swimming system. </summary>
         </member>
-        <member name="M:Arterra.Core.Player.SwimMovement.StartSwim(System.Object,System.Object,System.Single@)">
+        <member name="M:Arterra.Core.Player.SwimMovement.StartSwim(System.Object,System.Object,System.Object)">
             <summary>=Enables underwater movement as the player's current movement pattern</summary>
             <param name="_"></param>
         </member>
-        <member name="M:Arterra.Core.Player.SwimMovement.StopSwim(System.Object,System.Object,System.Single@)">
+        <member name="M:Arterra.Core.Player.SwimMovement.StopSwim(System.Object,System.Object,System.Object)">
             <summary>=Disables underwater movement and returns player to original movement pattern</summary>
         </member>
         <member name="T:Arterra.Core.Player.FlightMovement">
             <summary> The Manager responsible for controlling the player's movement when they fly.
-            See <see cref="!:Config.Gameplay.Gamemodes.Flight"/>.  </summary>
+            See <see cref="F:Arterra.Configuration.Gameplay.Gamemodes.Flight"/>.  </summary>
         </member>
         <member name="M:Arterra.Core.Player.FlightMovement.Initialize">
             <summary> Initializes the player's flight movement and 
@@ -4054,6 +4287,12 @@
             <param name="meshIndexFormat"> The <see cref="T:UnityEngine.Rendering.IndexFormat">index format</see> used in 
             the mesh's index buffer, either 16-bit or 32-bit indices. </param>
             <returns></returns>
+        </member>
+        <member name="F:Arterra.Core.Terrain.Readback.AsyncGenInfoReadback.CREATE_ENTITIES">
+            <summary> Flag to create entities from structure meta </summary>
+        </member>
+        <member name="F:Arterra.Core.Terrain.Readback.AsyncGenInfoReadback.CREATE_META">
+            <summary> Flag to create entities from structure meta </summary>
         </member>
         <member name="T:Arterra.Core.Terrain.SystemProtocol">
             <summary>  The factory protocol for the collective game system. This
@@ -4547,7 +4786,8 @@
         <member name="F:Arterra.Core.Terrain.Structure.Creator.StructureDataIndex">
             <summary>
             The address of the generated structure information for this chunk. The location within 
-            <see cref="!:GenerationPreset.MemoryHandle.Address"/> of the address within <see cref="!:GenerationPreset.MemoryHandle.Storage"/> 
+            <see cref="F:Arterra.Configuration.Quality.MemoryOccupancyBalancer.addressBuffers"/> of the address within
+            /// <see cref="P:Arterra.Configuration.Quality.MemoryOccupancyBalancer.Storage"/> 
             of the beginning of the structure information for this chunk.
             </summary>
         </member>
@@ -4555,7 +4795,7 @@
             <summary>  Releases any intermediate structure information sheld by this instance. Call this to ensure
             that no memory is being held by a chunk being disposed. See <seealso cref="F:Arterra.Core.Terrain.Structure.Creator.StructureDataIndex"/>. </summary>
         </member>
-        <member name="M:Arterra.Core.Terrain.Structure.Creator.PlanStructuresGPU(Unity.Mathematics.int3,Unity.Mathematics.float3,System.Int32,System.Single,System.Int32)">
+        <member name="M:Arterra.Core.Terrain.Structure.Creator.PlanStructuresGPU(Arterra.Core.Terrain.Readback.AsyncGenInfoReadback,Unity.Mathematics.int3,Unity.Mathematics.float3,System.Int32,System.Single,System.Int32)">
             <summary> Finds all structures that intersect with the current chunk's boundaries. Planned structures are represented
             through their <i>origin</i>, <i>structure index</i>, and <i>rotation</i> relative to the chunk's origin. 
             Planning structures encompasses the first two steps of structure generation, <see href="https://blackmagic919.github.io/AboutMe/2024/06/08/Structure%20Planning/">
@@ -4563,6 +4803,8 @@
             necessary to ensure structures across chunk boundaries are recognized and generated correctly. </summary>
             <remarks>Structures are sampled in a deterministic manner meaning that the same structures 
             will be generated in the same location in the same world regardless of any other factors. </remarks>
+            <param name="readback" >The <see cref="T:Arterra.Core.Terrain.Readback.AsyncGenInfoReadback"/> task responsible for batching intermediate generation
+            information to be readback to the CPU.</param> 
             <param name="chunkCoord">The coordinate, in <see cref="F:Arterra.Core.Terrain.TerrainChunk.CCoord"/>Chunk Space, of the chunk whose structures
             are planned. If the chunk spans multiple <paramref name="chunkCoord">ChunkCoords</paramref>, this is the coordinate of the origin of
             the region. </param>
@@ -4570,12 +4812,12 @@
             equvalent to (<paramref name="chunkCoord"/> * <paramref name="chunkSize"/>)</param>
             <param name="chunkSize">The size of the chunk a <see cref="T:Arterra.Core.Terrain.TerrainChunk.RealChunk">real chunk</see> in grid space. The atomic
             unit for guaranteed determinstic sampling of chunk structures. </param>
-            <param name="IsoLevel">The density of the surface of the terrain. See <see cref="!:Quality.Terrain.IsoLevel"/> for more info. </param>
-            <param name="depth"> The distance of the chunk from a leaf node within the <see cref="!:OctreeTerrain.Octree">chunk octree</see>. Identifies
+            <param name="IsoLevel">The density of the surface of the terrain. See <see cref="F:Arterra.Configuration.Quality.Terrain.IsoLevel"/> for more info. </param>
+            <param name="depth"> The distance of the chunk from a leaf node within the <see cref="F:Arterra.Core.Terrain.OctreeTerrain.octree">chunk octree</see>. Identifies
             the size of the chunk relative to a <see cref="T:Arterra.Core.Terrain.TerrainChunk.RealChunk"> real chunk </see>. See <see cref="F:Arterra.Core.Terrain.TerrainChunk.depth"/> for more info. </param>
         </member>
         <member name="M:Arterra.Core.Terrain.Structure.Creator.GenerateStrucutresGPU(System.Int32,System.Int32,System.Int32,System.Single,System.Int32,System.Int32)">
-            <summary> Generates the planned structures for the current chunk. This involves actually transcribing the <see cref="!:Generation.Structure.StructureData.map">
+            <summary> Generates the planned structures for the current chunk. This involves actually transcribing the <see cref="F:Arterra.Configuration.Generation.Structure.StructureData.map">
             map information </see> of each structure onto the chunk's map in <see cref="F:UtilityBuffers.GenerationBuffer">working memory</see> that will be used to create the visual and
             interactable features of the chunk. This must be called after the chunk's base map has been populated through
             <see cref="M:Arterra.Core.Terrain.Map.Generator.GenerateBaseData(UnityEngine.Vector3,System.UInt32,System.Int32,System.Int32,System.Single)"/>. </summary>
@@ -4585,7 +4827,7 @@
             a structure's coordinate from grid space to map space(the location within the chunk's terrain map). </param>
             <param name="mapStart">The start of the chunk's terrain map within the <see cref="F:UtilityBuffers.GenerationBuffer"/>. See <see cref="F:Arterra.Core.Terrain.Map.Generator.GeoGenOffsets.rawMapStart"/>
             for more info. </param>
-            <param name="IsoLevel">The density of the surface of the terrain. See <see cref="!:Quality.Terrain.IsoLevel"/> for more info.</param>
+            <param name="IsoLevel">The density of the surface of the terrain. See <see cref="F:Arterra.Configuration.Quality.Terrain.IsoLevel"/> for more info.</param>
             <param name="wChunkSize">The axis size of the chunk's terrain map as it currently is in <see cref="F:UtilityBuffers.GenerationBuffer"> working memory </see>.</param>
             <param name="wOffset">The offset within the chunk's map generated structures will be transcribed to. If the chunk's map
             extends beyond what it exclusively contains, this should be used to indicate the axis offest relative to the chunk map's first
@@ -4607,16 +4849,16 @@
             Presets all compute-shaders used in the structure generator by acquiring them and
             binding any constant values(information derived from the world's settings that 
             won't change until the world is unloaded) to them. Referenced by
-            <see cref="!:TerrainGeneration.SystemProtocol.Startup"/> </summary>
+            <see cref="M:Arterra.Core.Terrain.SystemProtocol.Startup"/> </summary>
         </member>
         <member name="M:Arterra.Core.Terrain.Structure.Generator.SampleStructureLoD(System.Int32,System.Int32,System.Int32,Unity.Mathematics.int3)">
             <summary> Samples the origins of all structures that intersect with the current chunk's boundaries. This is the <see href="https://blackmagic919.github.io/AboutMe/2024/06/08/Structure%20Planning/">
             first step </see> of structure generation and is necessary to ensure that the chunk is aware of all structures that overlap
             with its boundaries. </summary>
             <param name="maxLoD">The maximum LoD of structures generated. The LoD dictates the maximum side length of a structure
-            that is guaranteed to be generated properly. See <see cref="!:Generation.Structure.Generation.maxLoD"/> for more info.</param>
+            that is guaranteed to be generated properly. See <see cref="F:Arterra.Configuration.Generation.Structure.Generation.maxLoD"/> for more info.</param>
             <param name="chunkSize">The size of a <see cref="T:Arterra.Core.Terrain.TerrainChunk.RealChunk"/> in grid space. </param>
-            <param name="depth">The distance of the chunk from a leaf node within the <see cref="!:OctreeTerrain.Octree">chunk octree</see>. Identifies
+            <param name="depth">The distance of the chunk from a leaf node within the <see cref="F:Arterra.Core.Terrain.OctreeTerrain.octree">chunk octree</see>. Identifies
             the size of the chunk relative to a <see cref="T:Arterra.Core.Terrain.TerrainChunk.RealChunk"> real chunk </see>. See <see cref="F:Arterra.Core.Terrain.TerrainChunk.depth"/> for more info. </param>
             <param name="chunkCoord">The coordinate, in <see cref="F:Arterra.Core.Terrain.TerrainChunk.CCoord">Chunk Space</see>, of the chunk whose structures
             are planned. If the chunk spans multiple <paramref name="chunkCoord">ChunkCoords</paramref>, this is the coordinate of the origin of
@@ -4627,16 +4869,17 @@
             the biome and removes any invalid or trivial structures. This is the <see href="https://blackmagic919.github.io/AboutMe/2024/06/16/Structure-Pruning/">
             second step </see> of structure generation and allows for varied and localized structure generation. </summary>
             <param name="offset">The offset in grid space of the origin of the chunk</param>
-            <param name="IsoLevel">The density of the surface of the terrain. See <see cref="!:Quality.Terrain.IsoLevel"/> for more info.</param>
+            <param name="IsoLevel">The density of the surface of the terrain. See <see cref="F:Arterra.Configuration.Quality.Terrain.IsoLevel"/> for more info.</param>
         </member>
-        <member name="M:Arterra.Core.Terrain.Structure.Generator.TranscribeStructures(UnityEngine.ComputeBuffer,UnityEngine.GraphicsBuffer,System.UInt32)">
+        <member name="M:Arterra.Core.Terrain.Structure.Generator.TranscribeStructures(UnityEngine.GraphicsBuffer,System.UInt32,System.Int32)">
             <summary>  Transcribes the generation information of structures instersecting with the chunk from <see cref="F:UtilityBuffers.GenerationBuffer"> working memory</see> to
-            <paramref name="memory">long term storage</paramref>. This is the instance information of structures that <b>will</b> be generated
+            long term storage. This is the instance information of structures that <b>will</b> be generated
             in the chunk innevitably, following all pruning steps. </summary>
-            <param name="memory">The destination buffer that the structure generation information will be copied to </param>
-            <param name="addresses">The buffer containing the direct address within <paramref name="memory"/> where the information will be stored. </param>
-            <returns>The index within <paramref name="addresses"/> of the location that contains the direct address to the 
-            region within <paramref name="memory"/> where the information will be stored. </returns>
+            <param name="addresses">The buffer containing the direct address within the associated long term buffer where the information will be stored. </param>
+            <param name="addressIndex"> >The index within <paramref name="addresses"/> of the location that contains the direct address to the 
+            region within the associated long term buffer where the information will be stored. </param>
+            <param name="metaAddress"> The index withing <paramref name="addresses"/> of the location that contains the direct address to the 
+            region within the associated long term buffer where enhanced structures will be stored. </param>
         </member>
         <member name="M:Arterra.Core.Terrain.Structure.Generator.GetStructCount(UnityEngine.ComputeBuffer,UnityEngine.GraphicsBuffer,System.Int32,System.Int32)">
             <summary> Gets the number of structures saved in the memory block pointed to by a chunk's <paramref name="addressIndex">address handle</paramref> for its structures.
@@ -4652,7 +4895,7 @@
         </member>
         <member name="M:Arterra.Core.Terrain.Structure.Generator.ApplyStructures(UnityEngine.ComputeBuffer,UnityEngine.GraphicsBuffer,UnityEngine.ComputeBuffer,System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.Single)">
             <summary> Applies the generation information of structures to the chunk's terrain map. This is the <see href="https://blackmagic919.github.io/AboutMe/2024/07/03/Structure-Placement/">
-            final step</see> of structure generation and involves transcribing the <see cref="!:Generation.Structure.StructureData.map"/> information of each structure 
+            final step</see> of structure generation and involves transcribing the <see cref="F:Arterra.Configuration.Generation.Structure.StructureData.map"/> information of each structure 
             over the chunk's terrain map. </summary>
             <remarks> The time complexity of this operation is O(n) with respect to the size of the largest structure within the chunk. </remarks>
             <param name="memory">The buffer containing the generation information for all structures generated by the chunk.</param>
@@ -4663,13 +4906,13 @@
             <param name="mapStart">The location within <see cref="F:UtilityBuffers.GenerationBuffer">working memory</see> of the start of the
             chunk's terrain map. See <see cref="F:Arterra.Core.Terrain.Map.Generator.GeoGenOffsets.rawMapStart"/> for more info. </param>
             <param name="chunkSize">The size of a <see cref="T:Arterra.Core.Terrain.TerrainChunk.RealChunk"/> in grid space. </param>
-            <param name="meshSkipInc">The distance in grid space between two adjacent samples in the chunk's terrain map. Used to convert
+            <param name="skipInc">The distance in grid space between two adjacent samples in the chunk's terrain map. Used to convert
             a structure's coordinate from grid space to map space(the location within the chunk's terrain map).</param>
             <param name="wOffset">The offset within the chunk's map generated structures will be transcribed to. If the chunk's map
             extends beyond what it exclusively contains, this should be used to indicate the axis offest relative to the chunk map's first
             entry of the first entry exclusively contained by the chunk.</param>
             <param name="wChunkSize">The axis size of the chunk's terrain map as it currently is in <see cref="F:UtilityBuffers.GenerationBuffer"> working memory </see>.</param>
-            <param name="IsoLevel">The density of the surface of the terrain. See <see cref="!:Quality.Terrain.IsoLevel"/> for more info.</param>
+            <param name="IsoLevel">The density of the surface of the terrain. See <see cref="F:Arterra.Configuration.Quality.Terrain.IsoLevel"/> for more info.</param>
         </member>
         <member name="T:Arterra.Core.Terrain.Structure.Generator.StructureOffsets">
             <summary> Responsible for segmenting a fixed sized <see cref="F:UtilityBuffers.GenerationBuffer"> working memory </see> buffer
@@ -4687,10 +4930,19 @@
         </member>
         <member name="F:Arterra.Core.Terrain.Structure.Generator.StructureOffsets.checkCounter">
             <summary> The location storing the total amount of checks of all structures within the chunk, used in <see cref="M:Arterra.Core.Terrain.Structure.Generator.IdentifyStructures(UnityEngine.Vector3,System.Single)"/>.
-            See <see cref="!:Generation.Structure.StructureData.CheckPoint"/> for more info. </summary>
+            See <see cref="T:Arterra.Configuration.Generation.Structure.StructureData.CheckPoint"/> for more info. </summary>
         </member>
         <member name="F:Arterra.Core.Terrain.Structure.Generator.StructureOffsets.prunedCounter">
             <summary> The location storing the amount of structures after pruning all invalid checks, provided by <see cref="M:Arterra.Core.Terrain.Structure.Generator.IdentifyStructures(UnityEngine.Vector3,System.Single)"/>. </summary>
+        </member>
+        <member name="F:Arterra.Core.Terrain.Structure.Generator.StructureOffsets.ehStctCounter">
+            <summary> The location storing the amount of enhanced structures aftr pruning </summary>
+        </member>
+        <member name="F:Arterra.Core.Terrain.Structure.Generator.StructureOffsets.mStructCounter">
+            <summary> An auxiliary counter used when transcribing </summary>
+        </member>
+        <member name="F:Arterra.Core.Terrain.Structure.Generator.StructureOffsets.tempCounter">
+            <summary>The location of a temporary multipurpose counter.</summary>
         </member>
         <member name="F:Arterra.Core.Terrain.Structure.Generator.StructureOffsets.prunedStart">
             <summary> The location of the pruned structures, the structures that will actually be generated, provided by <see cref="M:Arterra.Core.Terrain.Structure.Generator.IdentifyStructures(UnityEngine.Vector3,System.Single)"/>.</summary>
@@ -4719,10 +4971,17 @@
             exceed the capacity of the buffer. </summary>
             <param name="maxStructurePoints">The maximum amount of structures that a single chunk may reference at the same time.
             This is the maximum possible structures that can be provided by <see cref="M:Arterra.Core.Terrain.Structure.Generator.SampleStructureLoD(System.Int32,System.Int32,System.Int32,Unity.Mathematics.int3)"/> for
-            the <see cref="!:Quality.Terrain.MaxStructureDepth">largest possible chunk requiring structures</see> under the given 
+            the <see cref="F:Arterra.Configuration.Quality.Terrain.MaxStructureDepth">largest possible chunk requiring structures</see> under the given 
             world's configuration. A larger chunk will require more structure points as it encompasses a larger region. </param>
             <param name="bufferStart">The start of the region within working memory the structure generator may utilize. See 
             <see cref="P:BufferOffsets.bufferStart"/> for more info. </param>
+        </member>
+        <member name="M:Arterra.Core.Terrain.Structure.Generator.InitializeStructureMeta(Arterra.Core.Terrain.Readback.GenPoint,Unity.Mathematics.int3,System.Byte)">
+            <summary> Creates entities and structures tied to a certain structure as indicated by
+            the <see cref="T:Arterra.Configuration.Generation.Structure.StructureData.EnhancedFeatures"/> of a certain structure. </summary>
+            <param name="genInfo">The information describing a certain structure placement.</param>
+            <param name="CCoord">The coordinate in chunk space of the chunk <paramref name="genInfo"/> belongs to</param>
+            <param name="cxt"> Context on which structure meta to process and which to skip </param>
         </member>
         <member name="T:Arterra.Core.Terrain.TerrainChunk">
             <summary>
@@ -4866,10 +5125,13 @@
             </summary>
         </member>
         <member name="F:Arterra.Core.Terrain.TerrainChunk.GeneratorInfo.MeshReadback">
-            <summary> 
-            The manager in charge of performing GPU-forward mesh rendering while
-            reading back mesh data from the GPU to a Unity mesh object
-            </summary>
+            <summary> The manager in charge of performing GPU-forward mesh rendering while
+            reading back mesh data from the GPU to a Unity mesh object</summary>
+        </member>
+        <member name="F:Arterra.Core.Terrain.TerrainChunk.GeneratorInfo.MetaReadback">
+            <summary> The manager in charge of performing GPU-readbacks of other intermediate generated
+            information that needs to be processed by the CPU. Mainly in charge of batching these requests
+            to reduce excessive readback requests.  </summary>
         </member>
         <member name="F:Arterra.Core.Terrain.TerrainChunk.GeneratorInfo.MeshCreator">
             <summary> The manager in charge of creating mesh data for the chunk </summary>
@@ -5851,7 +6113,7 @@
             to the correct location for the chunk within the world's file system(<see cref="F:Arterra.Core.Storage.Chunk.ChunkFinder.chunkPath"/>).  
             See <see cref="T:Arterra.Core.Storage.Chunk.ChunkHeader"/> for information on this format. The function saves the chunk data
             with background task to avoid blocking the main thread. </summary>
-            <param name="chunk">A <see cref="T:Arterra.Core.Storage.CPUMapManager.ChunkPtr"/> referencing the chunk's map in memory</param>
+            <param name="chunk">A <see cref="T:Arterra.Core.Storage.CPUMapManager.ChunkPtr"/> referencing a COPY of the chunk's map in memory</param>
             <param name="CCoord">The coordinate in chunk space of the Chunk associated with the map 
             information. Used to identify the location to store the resulting file(s). </param>
         </member>
@@ -6514,30 +6776,17 @@
         <member name="P:Arterra.Core.Storage.MapData.MaxViscosity">
             <summary> The maximum value for <see cref="P:Arterra.Core.Storage.MapData.viscosity"/> supported by the game </summary>
         </member>
+        <member name="T:Arterra.Core.Events.EventContext`1">
+            <summary> A generic event context wrapper </summary>
+            <typeparam name="T"> The type of data contained in the context. 
+            If there're multiple data in the context, first wrap them in a tuple or a custom struct. </typeparam>
+        </member>
         <member name="M:Arterra.Core.Events.EventControl.AddContextlessEventHandler(Arterra.Core.Events.GameEvent,System.Action{System.Object,System.Object})">
             <summary>
             Adds an event handler for the specified GameEvent without context parameter.
             </summary>
             <param name="evt"></param>
             <param name="handler"></param>
-        </member>
-        <member name="T:Arterra.UI.ToolTips.TooltipSystem">
-            <summary>
-            Tooltip System managing all tooltips used in the game.
-            </summary>
-        </member>
-        <member name="M:Arterra.UI.ToolTips.TooltipSystem.Initialize">
-            <summary>
-            Initializes the tooltip system. 
-            
-            Hooks into necessary events to snoop for tooltip.
-            Read configuration data for tooltip display settings. 
-            </summary>
-        </member>
-        <member name="T:Arterra.UI.ToolTips.TooltipPipeline">
-            <summary>
-            Tooltip Pipeline handling the flow of tooltip data and rendering.
-            </summary>
         </member>
         <member name="F:SubChunkShaderGraph.FixedOctree.ViewerPosGS">
             <summary> The last tracked position of the viewer in 
@@ -6599,7 +6848,7 @@
         <member name="F:ConvertibleToolTag._neighborBounds">
             <summary> The <see cref="T:Arterra.Core.Storage.MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
         </member>
-        <member name="T:ToolTipTag">
+        <member name="T:TooltipTag">
             <summary>
             Tooltip Tag defining the configurations for tooltips associated with an entity/item or other game elements.
             </summary>

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using Arterra.Core.Storage;
 using Arterra.Configuration.Quality;
+using Newtonsoft.Json;
 
 
 namespace Arterra.Configuration.Generation.Material
@@ -31,6 +32,9 @@ namespace Arterra.Configuration.Generation.Material
         public LiquidData liquidData;
         /// <summary> The amount of friction entities touching this material will experience </summary>
         public float Roughness = TerrainCollider.BaseFriction;
+        /// <summary>Gets the material registry, Implementation of <see cref="IRegistered.GetRegistry"/>. </summary>
+        /// <returns></returns>
+        public IRegister GetRegistry() => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         /// <summary>
         /// Called whenever a map entry of this material has been modified. This method can be
         /// overrided to provide specific behavior when a certain material has been modified. See
@@ -129,16 +133,21 @@ namespace Arterra.Configuration.Generation.Material
             ReplacedItem = null;
 
             if (mapData.IsNull) return false;
-            var MatInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-            if (MatInfo.Retrieve(mapData.material).OnRemoving(GCoord, caller))
+            MaterialInstance authoring = new (GCoord, mapData.material);
+            if (authoring.Authoring.OnRemoving(GCoord, caller))
                 return false;
-            ReplacedItem = MatInfo.Retrieve(mapData.material).OnRemoved(GCoord, mapData);
-            if (MatInfo.Retrieve(mapData.material).OnPlacing(GCoord, caller)) {
+            caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_RemoveMaterial, caller, authoring, mapData);
+            ReplacedItem = authoring.Authoring.OnRemoved(GCoord, mapData);
+
+            authoring = new (GCoord, newMaterial);
+            if (authoring.Authoring.OnPlacing(GCoord, caller)) {
+                //Return empty material (density & )
                 CPUMapManager.SetMap(new MapData { material = mapData.material }, GCoord);
                 return false;
             }
             mapData.material = newMaterial;
-            MatInfo.Retrieve(mapData.material).OnPlaced(GCoord, mapData);
+            caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_PlaceMaterial, caller, authoring, mapData);
+            authoring.Authoring.OnPlaced(GCoord, mapData);
             CPUMapManager.SetMap(mapData, GCoord);
             return true;
         }
@@ -456,6 +465,44 @@ namespace Arterra.Configuration.Generation.Material
         public string RetrieveKey(int index) {
             if (index < 0 || index >= Names.value.Count) return null;
             return Names.value[index];
+        }
+    }
+
+    /// <summary>
+    /// A generic instance of a material at a given position. These are created
+    /// to represent a material at one specific position and are not always persisted.
+    /// </summary>
+    public class MaterialInstance : IRegistered {
+        /// <summary>The material authoring controlling generic logic of the material.
+        /// This is logic that does not require metadata and is applied to all materials </summary>
+        public MaterialData Authoring;
+        /// <summary>The coordinate in grid space of this instance. </summary>
+        public int3 position;
+        private int index;
+        /// <summary> Obtains the material registry </summary>
+        /// <returns>The material registry</returns>
+        public IRegister GetRegistry() => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        /// <summary>The index within the material registry of this material.</summary>
+        public int Index { get => index; set => index = Index; }
+
+        /// <summary>Default Json Constructor</summary>
+        [JsonConstructor]
+        public MaterialInstance(){}
+         /// <summary>Sets up the material instance.</summary>
+        /// <param name="GCoord">The position of the material</param>
+        public MaterialInstance(int3 GCoord) {
+            this.index = CPUMapManager.SampleMap(GCoord).material;
+            this.position = GCoord;
+
+            this.Authoring = Config.CURRENT.Generation.Materials.value.MaterialDictionary.Retrieve(index);
+        }
+        /// <summary>Sets up the material instance.</summary>
+        /// <param name="GCoord">The position of the material</param>
+        /// <param name="index">The index of the material type</param>
+        public MaterialInstance(int3 GCoord, int index) {
+            this.Authoring = Config.CURRENT.Generation.Materials.value.MaterialDictionary.Retrieve(index);
+            this.position = GCoord;
+            this.index = index;
         }
     }
 

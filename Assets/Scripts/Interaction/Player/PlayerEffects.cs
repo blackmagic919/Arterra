@@ -25,7 +25,6 @@ public class PlayerActionEffects{
         evntCntrl.AddEventHandler(GameEvent.Action_LookGradual, PlayLookGradual);
         evntCntrl.AddEventHandler(GameEvent.Action_LookDirect, PlayLookDirect);
         evntCntrl.AddEventHandler(GameEvent.System_Deserialize, DeserializeAnimator);
-        evntCntrl.AddEventHandler(GameEvent.System_Deserialize, DeserializeAnimator);
         evntCntrl.AddEventHandler(GameEvent.Entity_Death, PlayDead);
         evntCntrl.AddEventHandler(GameEvent.Entity_Damaged, PlayDamaged);
         evntCntrl.AddEventHandler(GameEvent.Entity_HitGround, PlayTouchdown);

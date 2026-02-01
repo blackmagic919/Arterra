@@ -6,6 +6,7 @@ using UnityEngine;
 using Arterra.Configuration.Generation.Item;
 using Utils;
 using Arterra.Configuration.Intrinsic.Mortar;
+using Arterra.Core.Player;
 
 namespace Arterra.Configuration.Generation.Material
 {
@@ -22,6 +23,8 @@ namespace Arterra.Configuration.Generation.Material
         public int MaxSlotCount;
         /// <summary> The maximum amount of formulas to display in the help menu </summary>
         public int MaxRecipeSlotCount;
+        /// <summary>The event that is triggered when this mortar is opened.</summary>
+        public Core.Events.GameEvent OpenEvent = Core.Events.GameEvent.Action_OpenMortar;
 
 
 
@@ -212,11 +215,10 @@ namespace Arterra.Configuration.Generation.Material
 
 
         // This object will be serialized into the map meta data to store the inventory of the Mortar
-        public class MortarInventory : PanelNavbarManager.INavPanel {
+        public class MortarInventory : MaterialInstance, PanelNavbarManager.INavPanel {
             private static WaitForSeconds _waitForSeconds1_0 = new WaitForSeconds(1.0f);
 
             //public InventoryController.Inventory inv;
-            public int3 position;
             public StackInventory Inventory;
 
             [JsonIgnore]
@@ -233,13 +235,13 @@ namespace Arterra.Configuration.Generation.Material
                 //Do nothing: this is for newtonsoft deserializer
             }
 
-            internal MortarInventory(int3 GCoord, int MaxSlotCount) {
+            internal MortarInventory(int3 GCoord, int MaxSlotCount) : base(GCoord){
                 Inventory = new StackInventory(MaxSlotCount);
                 position = GCoord;
             }
 
-            public MortarInventory(MetaConstructor constructor, int3 GCoord,  int MaxSlotCount) {
-                Inventory = new StackInventory(MaxSlotCount);
+            public MortarInventory(MetaConstructor constructor, int3 GCoord,  int MaxSlotCount) : base(GCoord){
+                Inventory = new StackInventory(constructor, GCoord, MaxSlotCount);
                 position = GCoord;
             }
 
@@ -318,7 +320,10 @@ namespace Arterra.Configuration.Generation.Material
             public Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(
                 settings.Names.value[settings.DisplayIcon]).self;
             public GameObject GetDispContent() => root;
-            public void Activate() => root.SetActive(true);
+            public void Activate() {
+                root.SetActive(true);
+                PlayerHandler.data.eventCtrl.RaiseEvent(settings.OpenEvent, PlayerHandler.data, null);
+            }
             public void Deactivate() => root.SetActive(false);
         }
     }

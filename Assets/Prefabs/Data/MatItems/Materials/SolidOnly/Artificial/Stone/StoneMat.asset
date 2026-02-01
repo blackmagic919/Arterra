@@ -32,6 +32,10 @@ MonoBehaviour:
         value:
           value:
             rid: 5273703469288783973
+      - Tag: 9001
+        value:
+          value:
+            rid: 3097083492271390836
   Children:
     value:
     - value: {fileID: 11400000, guid: 6f97e17459d8d46dbae4d5ec0ecbc71d, type: 2}
@@ -43,6 +47,18 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 3097083492271390836
+      type: {class: TooltipTag, ns: , asm: Assembly-CSharp}
+      data:
+        Tooltips:
+          value:
+          - AcknowledgeTime: 300
+            AcknowledgeEvent: -1
+            Priority: 0
+            TriggerEvent: 19
+            TriggerTime: 2.5
+            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip2/Display
+            BlockingTooltips: 0
     - rid: 5273703469288783956
       type: {class: ToolTag, ns: , asm: Assembly-CSharp}
       data:

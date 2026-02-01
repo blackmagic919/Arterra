@@ -51,7 +51,7 @@ public class Category<T> : ScriptableObject where T : Category<T>
 }
 
 [Serializable]
-public struct Catalogue<T> : IRegister, ICloneable where T : Category<T>
+public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
 {
     public Option<Category<T>> Category;
     [HideInInspector]
@@ -362,6 +362,11 @@ public interface IRegister {
 public interface IRegistered{
     public abstract IRegister GetRegistry();
     public int Index{get;set;}
+}
+
+public interface ICatalgoue : IRegister {
+    public bool GetMostSpecificTag(TagRegistry.Tags tag, string index, out object prop);
+    public bool GetMostSpecificTag(TagRegistry.Tags tag, int index, out object prop);
 }
 
 public struct Registerable<T> where T : IRegistered {

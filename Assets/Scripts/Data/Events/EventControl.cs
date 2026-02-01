@@ -43,6 +43,8 @@ namespace Arterra.Core.Events {
         Entity_InGas = GameEventBases.Entity_Base + 16,
         Entity_ProjectileHit = GameEventBases.Entity_Base + 17,
         Entity_Collect = GameEventBases.Entity_Base + 18,
+        Entity_RemoveMaterial = GameEventBases.Entity_Base + 19,
+        Entity_PlaceMaterial = GameEventBases.Entity_Base + 20,
         
         
         Item_ConsumeFood = GameEventBases.Item_Base + 0,
@@ -54,6 +56,7 @@ namespace Arterra.Core.Events {
         Item_DrawRod = GameEventBases.Item_Base + 6,
         Item_ReleaseRod = GameEventBases.Item_Base + 7,
 
+
         Action_Jump = GameEventBases.Action_Base + 0,
         Action_RemoveTerrain = GameEventBases.Action_Base + 1,
         Action_PlaceTerrain = GameEventBases.Action_Base + 2,
@@ -61,6 +64,13 @@ namespace Arterra.Core.Events {
         Action_LookDirect = GameEventBases.Action_Base + 4,
         Action_MountRideable = GameEventBases.Action_Base + 5,
         Action_DismountRideable = GameEventBases.Action_Base + 6,
+        Action_CraftItem = GameEventBases.Action_Base + 7,
+        Action_OpenInventory = GameEventBases.Action_Base + 8,
+        Action_OpenCrafting = GameEventBases.Action_Base + 9,
+        Action_OpenArmor = GameEventBases.Action_Base + 10,
+        Action_OpenChest = GameEventBases.Action_Base + 11,
+        Action_OpenFurnace = GameEventBases.Action_Base + 12,
+        Action_OpenMortar = GameEventBases.Action_Base + 13,
 
         System_Deserialize = GameEventBases.System_Base + 0,
     }
@@ -129,11 +139,14 @@ namespace Arterra.Core.Events {
         /// </summary>
         /// <param name="evt"></param>
         /// <param name="handler"></param>
-        public void AddContextlessEventHandler(GameEvent evt, Action<object, object> handler)
+        /// <returns> The lambda wrapper created so handler may use to remove </returns>/// 
+        public RefEventHandler AddContextlessEventHandler(GameEvent evt, Action<object, object> handler)
         {
-            AddEventHandler(evt, (object actor, object target, object ctx) => {
+            RefEventHandler lambda = (object actor, object target, object ctx) => {
                 handler(actor, target);
-            });
+            };
+            AddEventHandler(evt, lambda);
+            return lambda;
         }            
 
         public void RaiseEvent(GameEvent type, object actor, object target, object ctx = null) {

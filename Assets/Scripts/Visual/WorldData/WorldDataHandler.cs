@@ -43,9 +43,11 @@ namespace Arterra.Configuration.Gameplay{
 
 public class WorldData {
     public DateTime currentTime;
+    public Arterra.UI.ToolTips.ToolTipSystemState ToolTips;
     public static WorldData Build() {
         WorldData d = new WorldData();
         d.currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.Time.value.startHour);
+        d.ToolTips = Arterra.UI.ToolTips.ToolTipSystemState.Build();
         return d;
     }
 }

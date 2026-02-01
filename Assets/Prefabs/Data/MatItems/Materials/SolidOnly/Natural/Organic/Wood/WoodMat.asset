@@ -24,6 +24,18 @@ MonoBehaviour:
         value:
           value:
             rid: 6083762182251610192
+      - Tag: 22
+        value:
+          value:
+            rid: 3097083492271390837
+      - Tag: 32
+        value:
+          value:
+            rid: 3097083492271390838
+      - Tag: 9001
+        value:
+          value:
+            rid: 3097083492271390839
   Names:
     value:
     - Wood:Solid
@@ -55,6 +67,30 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 3097083492271390837
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 250
+        ToolDamage: 1
+        GivesItem: 1
+    - rid: 3097083492271390838
+      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 200
+        ToolDamage: 1
+        GivesItem: 1
+    - rid: 3097083492271390839
+      type: {class: TooltipTag, ns: , asm: Assembly-CSharp}
+      data:
+        Tooltips:
+          value:
+          - AcknowledgeTime: 300
+            AcknowledgeEvent: -1
+            Priority: 0
+            TriggerEvent: 19
+            TriggerTime: 2.5
+            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip3/Display
+            BlockingTooltips: 0
     - rid: 5818089297814487231
       type: {class: ToolTag, ns: , asm: Assembly-CSharp}
       data:

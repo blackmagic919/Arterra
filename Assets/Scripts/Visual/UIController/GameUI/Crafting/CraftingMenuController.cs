@@ -8,6 +8,8 @@ using Arterra.Configuration;
 using Arterra.Configuration.Generation.Item;
 using Arterra.Configuration.Intrinsic;
 using Arterra.Core.Terrain;
+using Arterra.Core.Player;
+using Arterra.Core.Events;
 
 
 public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
@@ -57,6 +59,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
     public void Activate() {
         eventTask = new IndirectUpdate(Update);
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
+        
         InputPoller.AddKeyBindChange(() => {
             InputPoller.AddContextFence("PlayerCraft", "3.5::Window", ActionBind.Exclusion.None);
             InputPoller.AddBinding(new ActionBind("Craft", CraftEntry), "PlayerCraft:CFT", "3.5::Window");
@@ -72,6 +75,7 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         Refresh();
         UpdateDisplay();
         craftingMenu.SetActive(true);
+        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenCrafting, PlayerHandler.data, null);
         Rendering.InitializeDisplay(GridWidth);
     }
 
@@ -294,8 +298,9 @@ public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
         for (int i = 0; i < itemCount; i++) {
             IItem item = (IItem)result.Clone();
             item.Create((int)recipe.result.Index, amount);
-            InventoryController.AddEntry(item);
+            PlayerHandler.data.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Action_CraftItem, PlayerHandler.data, item);
 
+            InventoryController.AddEntry(item);
             totalAmount -= amount;
             amount = math.min(totalAmount, result.StackLimit);
         }

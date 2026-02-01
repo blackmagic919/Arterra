@@ -126,6 +126,15 @@ namespace Arterra.Configuration {
             /// </summary>
             [UISetting(Ignore = true)]
             public Option<List<GameEvent>> TooltipDismissorEvents;         
+
+            /// <summary>Tool tip events that are not tied to a target but any instance of the event itself.</summary>
+            /// <remarks>If <see cref="TooltipConfig.TriggerEvent"/> is None, it will auto enqueue on game start </remarks>
+            public Option<List<TooltipConfig>> GenericToolTipEvents;
+            /// <summary> Tool tip dismissor events that are not tied to a target but any instance of the event itself. </summary>
+            /// <remarks>If <see cref="TooltipConfig.TriggerEvent"/> is None, it will auto enqueue on game start </remarks>
+            [UISetting(Ignore = true)]
+            public Option<List<TooltipDismissorConfig>> GenericTooltipDismissorEvents;         
+
         }
 
         /// <summary>

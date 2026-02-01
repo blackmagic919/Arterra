@@ -194,10 +194,12 @@ public class MinimalRecognition {
                 return null;
             return nMat;
         } else {
-            if (matInfo.Retrieve(mapData.material).OnRemoving(preyCoord, self))
+            MaterialInstance authoring = new (preyCoord, mapData.material);
+            if (authoring.Authoring.OnRemoving(preyCoord, self))
                 return null;
             IItem nMat =
-                matInfo.Retrieve(mapData.material).OnRemoved(preyCoord, mapData);
+                authoring.Authoring.OnRemoved(preyCoord, mapData);
+            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_RemoveMaterial, self, authoring, mapData);
             mapData.viscosity = 0;
             mapData.density = 0;
             CPUMapManager.SetMap(mapData, preyCoord);

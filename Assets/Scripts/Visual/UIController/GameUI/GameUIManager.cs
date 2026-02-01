@@ -15,6 +15,7 @@ public static class GameUIManager {
         UIHandle = GameObject.Find("MainUI");
         PlayerCrosshair.Initialize();
         LoadingHandler.Initialize();
+        Arterra.UI.ToolTips.TooltipSystem.Initialize();
         PanelNavbarManager.Initialize();
         InventoryController.Initialize();
 

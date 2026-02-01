@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Configuration.Generation.Item;
+using Arterra.Core.Player;
 
 namespace Arterra.Configuration.Generation.Material
 {
@@ -19,6 +20,8 @@ namespace Arterra.Configuration.Generation.Material
         /// if it is at maximum density. The actual amount of slots will scale between
         /// one and this depending on how dense the material is.  </summary>
         public int MaxSlotCount;
+        /// <summary>The event that is triggered when this chest is opened.</summary>
+        public Core.Events.GameEvent OpenEvent = Core.Events.GameEvent.Action_OpenChest;
 
 
         /// <summary> Even though it does nothing, it needs to fufill the contract so
@@ -164,24 +167,19 @@ namespace Arterra.Configuration.Generation.Material
                 InventoryController.DropItem(item, GCoord);
             CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
         }
-        public class ContainerInventory : PanelNavbarManager.INavPanel {
+        public class ContainerInventory : MaterialInstance, PanelNavbarManager.INavPanel {
             public InventoryController.Inventory inv;
-            public int3 position;
             [JsonIgnore]
             private ContainerMaterial settings;
 
             [JsonConstructor]
-            public ContainerInventory() {
-                //Do nothing: this is for newtonsoft deserializer
-            }
-            internal ContainerInventory(int3 GCoord, int SlotCount) {
+            public ContainerInventory() {/*Do nothing: this is for newtonsoft deserializer*/}
+            internal ContainerInventory(int3 GCoord, int SlotCount) : base(GCoord) {
                 inv = new InventoryController.Inventory(SlotCount);
-                position = GCoord;
             }
 
-            internal ContainerInventory(MetaConstructor constructor, int3 GCoord, int SlotCount) {
+            internal ContainerInventory(MetaConstructor constructor, int3 GCoord, int SlotCount) : base(GCoord)  {
                 inv = new InventoryController.Inventory(constructor, GCoord, SlotCount);
-                position = GCoord;
             }
 
             //Ideally we should provide a callback in OnAddElement and OnRemoveElement
@@ -195,7 +193,10 @@ namespace Arterra.Configuration.Generation.Material
                 settings.Names.value[settings.DisplayIcon]).self;
             public GameObject GetDispContent() => inv.Display.root;
             public void Release() => inv.ReleaseDisplay();
-            public void Activate() => inv.Display.root.SetActive(true);
+            public void Activate(){
+                inv.Display.root.SetActive(true);
+                PlayerHandler.data.eventCtrl.RaiseEvent(settings.OpenEvent, PlayerHandler.data, null);
+            }
             public void Deactivate() => inv.Display.root.SetActive(false);
         }
     }

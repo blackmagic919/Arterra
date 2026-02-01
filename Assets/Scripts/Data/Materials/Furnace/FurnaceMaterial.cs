@@ -42,6 +42,8 @@ namespace Arterra.Configuration.Generation.Material
         public int MaxFuelSlotCount;
         /// <summary> The maximum amount of formulas to display in the help menu </summary>
         public int MaxRecipeSlotCount;
+        /// <summary>The event that is triggered when this furnace is opened.</summary>
+        public Core.Events.GameEvent OpenEvent = Core.Events.GameEvent.Action_OpenFurnace;
 
 
 
@@ -248,10 +250,8 @@ namespace Arterra.Configuration.Generation.Material
         }
 
         // This object will be serialized into the map meta data to store the inventory of the furnace
-        public class FurnaceInventory : PanelNavbarManager.INavPanel {
+        public class FurnaceInventory : MaterialInstance, PanelNavbarManager.INavPanel {
             public StackInventory[] invs;
-            //public InventoryController.Inventory inv;
-            public int3 position;
 
             [JsonIgnore]
             public GameObject root;
@@ -277,20 +277,18 @@ namespace Arterra.Configuration.Generation.Material
                 //Do nothing: this is for newtonsoft deserializer
             }
 
-            internal FurnaceInventory(int3 GCoord, int MaxInputSlotCount, int MaxOutputSlotCount, int MaxFuelSlotCount) {
+            internal FurnaceInventory(int3 GCoord, int MaxInputSlotCount, int MaxOutputSlotCount, int MaxFuelSlotCount) : base(GCoord) {
                 var invFuel = new StackInventory(MaxFuelSlotCount);
                 var invInput = new StackInventory(MaxInputSlotCount);
                 var invOutput = new StackInventory(MaxOutputSlotCount, 0);
                 invs = new StackInventory[] { invInput, invOutput, invFuel };
-                position = GCoord;
             }
 
-            public FurnaceInventory(MetaConstructor constructor, int3 GCoord,  int MaxInputSlotCount, int MaxOutputSlotCount, int MaxFuelSlotCount) {
+            public FurnaceInventory(MetaConstructor constructor, int3 GCoord,  int MaxInputSlotCount, int MaxOutputSlotCount, int MaxFuelSlotCount) : base(GCoord){
                 var invFuel = new StackInventory(constructor, GCoord, MaxFuelSlotCount);
                 var invInput = new StackInventory(constructor, GCoord, MaxInputSlotCount);
                 var invOutput = new StackInventory(constructor, GCoord, MaxOutputSlotCount, 0);
                 invs = new StackInventory[] { invInput, invOutput, invFuel };
-                position = GCoord;
             }
             
             public void StartMeltingProcess(TagRegistry.Tags fuelTag) {
@@ -423,7 +421,10 @@ namespace Arterra.Configuration.Generation.Material
             public Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(
                 settings.Names.value[settings.DisplayIcon]).self;
             public GameObject GetDispContent() => root;
-            public void Activate() => root.SetActive(true);
+            public void Activate(){
+                root.SetActive(true);
+                PlayerHandler.data.eventCtrl.RaiseEvent(settings.OpenEvent, PlayerHandler.data, null);
+            }
             public void Deactivate() => root.SetActive(false);
         }
     }

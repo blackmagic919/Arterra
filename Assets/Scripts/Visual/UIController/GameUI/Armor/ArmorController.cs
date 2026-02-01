@@ -85,6 +85,7 @@ public class ArmorController : PanelNavbarManager.INavPanel {
         PlayerCamera.SetActive(true);
         ArmorPanel.SetActive(true);
         eventTask = new IndirectUpdate(Update);
+        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenArmor, PlayerHandler.data, null);
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
 
         InputPoller.AddKeyBindChange(() => {

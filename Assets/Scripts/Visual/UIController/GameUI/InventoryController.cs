@@ -125,6 +125,7 @@ public static class InventoryController {
         Deactivate();
     }
     public static void Activate() {
+        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenInventory, PlayerHandler.data, null);
         InputPoller.AddStackPoll(new ActionBind("Frame:Inventory", _ => InputPoller.SetCursorLock(false)), "CursorLock");
         InputPoller.AddKeyBindChange(() => {
             InputPoller.AddContextFence("PlayerInventory:AllFrame", "3.0::AllWindow", ActionBind.Exclusion.None);

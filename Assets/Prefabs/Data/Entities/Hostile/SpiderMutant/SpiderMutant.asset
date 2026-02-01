@@ -291,7 +291,7 @@ MonoBehaviour:
           geneWeight: 0.75
         pathDistance: 31
         acceleration: 200
-        rotSpeed: 180
+        rotSpeed: 60
         AverageIdleTime: 20
       recognition:
         value:

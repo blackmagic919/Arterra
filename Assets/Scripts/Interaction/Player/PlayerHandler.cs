@@ -84,7 +84,6 @@ namespace Arterra.Core.Player{
         PlayerInteraction.Initialize();
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(new IndirectUpdate(Update));
         OctreeTerrain.MainFixedUpdateTasks.Enqueue(new IndirectUpdate(FixedUpdate));
-        UI.ToolTips.TooltipSystem.Initialize();
     }
 
     static bool RebindPlayer(ref (PlayerStreamer.Player old, PlayerStreamer.Player cur) cxt) {

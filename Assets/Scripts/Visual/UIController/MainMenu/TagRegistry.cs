@@ -261,12 +261,18 @@ public struct TooltipDismissorConfig : ICloneable {
     public GameEvent DismissEvent;
 
     public string PrefabPath; // The prefab path of the tooltip to be dismissed.
-
+    // Whether, once this tooltip is dismissor is triggered, to block the prefab path of this tooltip
+    public DismissTypes DismissType;
     public object Clone() {
         return new TooltipDismissorConfig {
             DismissEvent = DismissEvent,
             PrefabPath = PrefabPath
         };
+    }
+
+    public enum DismissTypes {
+        Dismiss,
+        Ignore
     }
 }
 

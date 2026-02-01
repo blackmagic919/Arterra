@@ -221,19 +221,20 @@ namespace Arterra.Core.Player{
             delta.density = solidDelta + pointInfo.density
                 - math.min(pointInfo.density + solidDelta, 255);
 
-            MaterialData authoring;
+            MaterialInstance authoring = new (GCoord, pointInfo.material);
             if (delta.LiquidDensity != 0) {
-                authoring = matInfo.Retrieve(pointInfo.material);
-                if (authoring.OnRemoving(GCoord, PlayerHandler.data))
+                if (authoring.Authoring.OnRemoving(GCoord, PlayerHandler.data))
                     return false;
                 //Don't collect liquid this way--discard it
-                authoring.OnRemoved(GCoord, delta);
+                authoring.Authoring.OnRemoved(GCoord, delta);
                 //Remove the liquid density to place the new solid density
                 pointInfo.density -= delta.density;
             }
 
             delta.viscosity = solidDelta;
             delta.density = solidDelta;
+            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Entity_PlaceMaterial, PlayerHandler.data, authoring, delta);
+
             //Note: Add density before viscosity
             //since viscosity can push density causing overflow
             pointInfo.density += delta.density;
@@ -241,7 +242,7 @@ namespace Arterra.Core.Player{
 
             if (pointInfo.viscosity >= CPUMapManager.IsoValue)
                 pointInfo.material = selected;
-            matInfo.Retrieve(pointInfo.material).OnPlaced(GCoord, delta);
+            authoring.Authoring.OnPlaced(GCoord, delta);
             CPUMapManager.SetMap(pointInfo, GCoord);
             return true;
         }
@@ -269,10 +270,13 @@ namespace Arterra.Core.Player{
             delta.density = CustomUtility.GetStaggeredDelta(pointInfo.density, brushStrength);
             delta.density = InventoryController.RemoveStackable(delta.density, matItem.Index);
 
+            MaterialInstance authoring = new (GCoord, pointInfo.material);
+            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Entity_PlaceMaterial, PlayerHandler.data, authoring, delta);
+
             pointInfo.density += delta.density;
             liquidDensity += delta.density;
             if (liquidDensity >= CPUMapManager.IsoValue) pointInfo.material = selected;
-            matInfo.Retrieve(pointInfo.material).OnPlaced(GCoord, delta);
+            authoring.Authoring.OnPlaced(GCoord, delta);
             CPUMapManager.SetMap(pointInfo, GCoord);
             return true;
         }
@@ -292,10 +296,12 @@ namespace Arterra.Core.Player{
             int solidDensity = pointInfo.SolidDensity;
             delta.density = CustomUtility.GetStaggeredDelta(solidDensity, -brushStrength);
             delta.viscosity = delta.density;
+            MaterialInstance authoring = new (GCoord, pointInfo.material);
+            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Entity_RemoveMaterial, PlayerHandler.data, authoring, delta);
 
             pointInfo.viscosity -= delta.viscosity;
             pointInfo.density -= delta.density;
-            IItem matItem = matInfo.Retrieve(pointInfo.material).OnRemoved(GCoord, delta);
+            IItem matItem = authoring.Authoring.OnRemoved(GCoord, delta);
             if (solidDensity >= CPUMapManager.IsoValue && ObtainMat) {
                 if (matItem == null) return false;
                 InventoryController.AddEntry(matItem);
@@ -321,8 +327,11 @@ namespace Arterra.Core.Player{
             delta.density = CustomUtility.GetStaggeredDelta(liquidDensity, -brushStrength);
             delta.viscosity = 0;
 
+            MaterialInstance authoring = new (GCoord, pointInfo.material);
+            PlayerHandler.data.eventCtrl.RaiseEvent(Events.GameEvent.Entity_RemoveMaterial, PlayerHandler.data, authoring, delta);
+
             pointInfo.density -= delta.density;
-            IItem matItem = matInfo.Retrieve(pointInfo.material).OnRemoved(GCoord, delta);
+            IItem matItem = authoring.Authoring.OnRemoved(GCoord, delta);
             if (liquidDensity >= CPUMapManager.IsoValue && ObtainMat) {
                 if (matItem == null) return false;
                 InventoryController.AddEntry(matItem);
