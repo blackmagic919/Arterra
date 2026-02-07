@@ -40,7 +40,7 @@ namespace Arterra.GamePlay.UI.ToolTips {
         private static void HookEvents() {
             // Read from registry which events to hook.
             var ttSettings = Config.CURRENT.System.Tooltips;
-            foreach (var gameEvent in ttSettings.TooltipEvents.value) {
+            foreach (var gameEvent in ttSettings.value.TooltipEvents.value) {
                 PlayerHandler.data.eventCtrl.AddContextlessEventHandler(gameEvent, (object actor, object target) => {
                     if (target is IRegistered entry) {
                         if (!CheckForTooltipTag(gameEvent, entry, out TooltipTag tag)) {
@@ -67,7 +67,7 @@ namespace Arterra.GamePlay.UI.ToolTips {
                 });
             }
 
-            foreach(var gameEvent in ttSettings.TooltipDismissorEvents.value) {
+            foreach(var gameEvent in ttSettings.value.TooltipDismissorEvents.value) {
                 PlayerHandler.data.eventCtrl.AddContextlessEventHandler(gameEvent, (object actor, object target) => {
                     if (target is IRegistered entry) {
                         if (!CheckForTooltipDismissorTag(gameEvent, entry, out TooltipDismissorTag tag)) {
