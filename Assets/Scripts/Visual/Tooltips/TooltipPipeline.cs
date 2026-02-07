@@ -29,11 +29,11 @@ namespace Arterra.GamePlay.UI.ToolTips {
             d.pendingToolTips = new Dictionary<string, TooltipConfig>();
             d.dismissEvents = new HashSet<TooltipDismissorConfig>();
 
-            foreach(var toolTip in Config.CURRENT.System.Tooltips.GenericToolTipEvents.value) {
+            foreach(var toolTip in Config.CURRENT.System.Tooltips.value.GenericToolTipEvents.value) {
                 d.pendingToolTips.Add(toolTip.PrefabPath, toolTip);
             }
 
-            foreach(var dismissor in Config.CURRENT.System.Tooltips.GenericTooltipDismissorEvents.value) {
+            foreach(var dismissor in Config.CURRENT.System.Tooltips.value.GenericTooltipDismissorEvents.value) {
                 d.dismissEvents.Add(dismissor);
             }
             

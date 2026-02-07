@@ -58,28 +58,39 @@ namespace Arterra.Configuration {
         [UISetting(Alias = "Quality")]
         public Option<QualitySettings> _Quality;
         /// <exclude />
-        [UISetting(Alias = "Generation")]
-        public Option<GenerationSettings> _Generation;
-        /// <exclude />
         [UISetting(Alias = "Gameplay")]
         public Option<GamePlaySettings> _GamePlay;
         /// <exclude />
-        [UISetting(Alias = "System")]
-        public Option<SystemSettings> _System;
+        [UISetting(Alias = "Advanced")]
+        public Option<Advanced> _Advanced;
+
 
         ///<summary> <see cref="QualitySettings"/>  </summary>
         [JsonIgnore]
         public ref QualitySettings Quality => ref _Quality.value;
         ///<summary> <see cref="GenerationSettings"/>  </summary>
         [JsonIgnore]
-        public ref GenerationSettings Generation => ref _Generation.value;
+        public ref GenerationSettings Generation => ref _Advanced.value.Generation.value;
         ///<summary> <see cref="GamePlaySettings"/>  </summary>
         [JsonIgnore]
         public ref GamePlaySettings GamePlay => ref _GamePlay.value;
         ///<summary> <see cref="SystemSettings"/>  </summary>
         [JsonIgnore]
-        public ref SystemSettings System => ref _System.value;
+        public ref SystemSettings System => ref _Advanced.value.System.value;
 
+
+        /// <summary>
+        /// Advanced settings controlling the game's systems. These settings are not intended to be modified by the normal user as they may cause unintended consequences 
+        /// if modified without understanding their function. However, they are exposed for developers and advanced users to modify.
+        /// </summary>
+        [Serializable]
+        public struct Advanced
+        {
+            public Option<SystemSettings> System;
+
+            public Option<GenerationSettings> Generation;
+            
+        }
         /// <summary>
         /// The settings describing factors controlling the quality of the world. Increasing quality
         /// will commonly decrease performance. Certain settings may also require expensive resources
@@ -235,7 +246,7 @@ namespace Arterra.Configuration {
             [UISetting(Ignore = true)]
             public Option<Intrinsic.Readback> ReadBack;
 
-            public TooltipSettings Tooltips;
+            public Option<TooltipSettings> Tooltips;
             /// <summary>
             /// Registry for hooks that are called when a certain setting is modified. This registry is generated
             /// during runtime and is not customizable by the user. If a certain member has a UIModifiable attribute
