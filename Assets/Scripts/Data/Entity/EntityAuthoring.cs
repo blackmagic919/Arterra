@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using Arterra.Data.Structure;
 using Arterra.Core.Events;
 using Arterra.Configuration;
-using Arterra.GamePlay.Interaction;
 
 namespace Arterra.Data.Entity{
 /// <summary>
@@ -123,6 +122,37 @@ public abstract class Entity: IRegistered, IEventControlled{
     /// not be called in a build.
     /// </summary>
     public virtual void OnDrawGizmos(){}
+
+    /// <summary> A wrapper for the default pattern wrapping performed by 
+    /// C#. Used to allow Entities to override it and support
+    /// dynamic/adaptive typing. </summary>
+    /// <typeparam name="T">The type that this is being tested as</typeparam>
+    /// <param name="instance">This as the queried type</param>
+    /// <returns>Whether or not this is the type</returns>
+    public virtual bool Is<T>(out T instance) {
+        if (this is T t) {
+            instance = t;
+            return true;
+        }
+
+        instance = default!;
+        return false;
+    }
+
+    /// <summary> Wrapper for Is that does not return instance.</summary>
+    /// <typeparam name="T">The type to check against</typeparam>
+    /// <returns>Whether or not it is the requested type</returns>
+    public bool Is<T>() => Is<T>(out _);
+
+    /// <summary> Wrapper for As that returns instance </summary>
+    /// <typeparam name="T">The type to match this as</typeparam>
+    /// <returns>This as the requested type</returns>
+    /// <exception cref="Exception">This is of an unexpected pattern</exception>
+    public T As<T>() {
+        if(!Is<T>(out T ret))
+            throw new Exception("DynamicTyped(As): Entity is not expected pattern");
+        return ret;
+    }
     
     /// <summary>
     /// Settings for a structure that is required for the systems governing how entities are identified

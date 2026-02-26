@@ -133,7 +133,7 @@ public class EelEnemy : Authoring {
         [JsonIgnore]
         public bool IsDead => vitality.IsDead;
         
-        public void Interact(Entity target) { }
+        public void Interact(Entity target, Arterra.Data.Item.IItem item) { }
         //ToDo: Finish implemenation here
         public Arterra.Data.Item.IItem Collect(Entity target, float amount) {
             Arterra.Data.Item.IItem item = null; 
@@ -156,7 +156,7 @@ public class EelEnemy : Authoring {
             //if unknown, depends
             else TaskIndex = settings.Recognition.FightAggressor ? AnimalTasks.ChaseTarget : AnimalTasks.RunFromTarget; 
             //Don't try to attack a non-attackable entity
-            if (TaskIndex == AnimalTasks.ChaseTarget && attacker is not IAttackable) TaskIndex = AnimalTasks.RunFromTarget;  
+            if (TaskIndex == AnimalTasks.ChaseTarget && !attacker.Is<IAttackable>()) TaskIndex = AnimalTasks.RunFromTarget;  
             pathFinder.hasPath = false;
         }
 
@@ -168,7 +168,7 @@ public class EelEnemy : Authoring {
         }
 
         private static bool TestNotDead(Entity e) {
-            if (e is not IAttackable attackable)
+            if (!e.Is(out IAttackable attackable))
                 return false;
             return !attackable.IsDead;
         }
@@ -412,7 +412,7 @@ public class EelEnemy : Authoring {
                 return;
             }
 
-            if (prey is not IAttackable target || target.IsDead) {
+            if (!prey.Is(out IAttackable target) || target.IsDead) {
                 self.TaskIndex = AnimalTasks.Idle;
                 return;
             }
@@ -551,14 +551,15 @@ public class EelEnemy : Authoring {
         }
 
         private static void AttackTarget(Animal self) {
-            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity tEntity))
+            if (self.TaskTarget == Guid.Empty
+                || !EntityManager.TryGetEntity(self.TaskTarget, out Entity tEntity)
+                || !tEntity.Is(out IAttackable target)) {
                 self.TaskTarget = Guid.Empty;
-            else if (tEntity is not IAttackable)
-                self.TaskTarget = Guid.Empty;
-            if (self.TaskTarget == Guid.Empty) {
+                self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
                 self.TaskIndex = AnimalTasks.Idle;
                 return;
             }
+
             float targetDist = Recognition.GetColliderDist(tEntity, self);
             if (targetDist > self.genetics.Get(self.settings.Physicality.AttackDistance) || 
                 targetDist < self.genetics.Get(self.settings.attack.BlindDist)) {
@@ -570,7 +571,6 @@ public class EelEnemy : Authoring {
             if (math.any(atkDir != 0)) self.Animate.Body.transform.rotation = Quaternion.RotateTowards(self.Animate.Body.transform.rotation,
             Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
 
-            IAttackable target = tEntity as IAttackable;
             if (target.IsDead) self.TaskIndex = AnimalTasks.Idle;
             else self.vitality.Attack(tEntity);
         }
@@ -683,6 +683,8 @@ public class EelEnemy : Authoring {
                 Head.useGravity = false; //Head doesn't use gravity
                 Head.Update(self);
                 Body.Update();
+                Head.EntityCollisionUpdate(self);
+                Body.EntityCollisionUpdate(self);
             }
 
             private static void ApplyRubberBand(TerrainCollider collider, float3 origin, float strength) {
@@ -766,6 +768,7 @@ public class EelEnemy : Authoring {
                 ApplyRubberBand(origin, settings.RBStrength);
 
                 this.tCollider.Update(Animal);
+                this.tCollider.EntityCollisionUpdate(Animal);
             }
 
             private void ApplyRubberBand(float3 origin, float strength) {

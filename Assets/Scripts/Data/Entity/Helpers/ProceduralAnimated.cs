@@ -113,7 +113,7 @@ public class ProceduralAnimated {
         Action<float> ProcessFallDamage
     ) where T : Appendage, new() {
         self = entity;
-        selfAtk = entity as IAttackable;
+        selfAtk = entity.As<IAttackable>();
         this.settings = settings;
         List<AppendageSettings> AppendageSettings = settings.Appendages;
         appendages ??= new T[AppendageSettings.Count];
@@ -133,7 +133,7 @@ public class ProceduralAnimated {
         Action<float> ProcessFallDamage
     ) where T : Appendage, new() {
         self = entity;
-        selfAtk = entity as IAttackable;
+        selfAtk = entity.As<IAttackable>();
         this.settings = settings;
         Body.OnHitGround = ProcessFallDamage;
 
@@ -168,6 +168,8 @@ public class ProceduralAnimated {
         Head.useGravity = false; //Head doesn't use gravity
         Head.Update(self);
         Body.Update();
+        Head.EntityCollisionUpdate(self);
+        Body.EntityCollisionUpdate(self);
     }
 
     public virtual void Disable() {

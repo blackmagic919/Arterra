@@ -68,19 +68,19 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 3097083492271390837
-      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 250
         ToolDamage: 1
         GivesItem: 1
     - rid: 3097083492271390838
-      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 200
         ToolDamage: 1
         GivesItem: 1
     - rid: 3097083492271390839
-      type: {class: TooltipTag, ns: , asm: Assembly-CSharp}
+      type: {class: TooltipTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         Tooltips:
           value:
@@ -92,13 +92,13 @@ MonoBehaviour:
             PrefabPath: Prefabs/GameUI/ToolTips/ToolTip3/Display
             BlockingTooltips: 0
     - rid: 5818089297814487231
-      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 100
         ToolDamage: 1
         GivesItem: 1
     - rid: 6083762182251610192
-      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 150
         ToolDamage: 1

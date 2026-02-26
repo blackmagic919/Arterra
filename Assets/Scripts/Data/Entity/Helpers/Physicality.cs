@@ -10,11 +10,12 @@ using Arterra.Data.Item;
 using Arterra.Core.Events;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Editor;
+using Arterra.Data.Entity.Behavior;
 
 /// <summary> An interface for all object that can be attacked and take damage. It is up to the 
 /// implementer to decide how the request to take damage is handled. </summary>
 public interface IAttackable {
-    public void Interact(Entity caller);
+    public void Interact(Entity caller, IItem item = null);
     public IItem Collect(Entity caller, float collectRate);
     public void TakeDamage(float damage, float3 knockback, Entity attacker = null);
     public bool IsDead { get; }
@@ -78,6 +79,7 @@ public class MinimalVitality {
                     - health;
         health += delta;
     }
+
     public bool Damage(float delta) {
         if (invincibility > 0) return false;
         invincibility = genetics.Get(stats.InvincTime);
@@ -99,7 +101,7 @@ public class MinimalVitality {
 
     private void ProcessSuffocation(Entity self, float density) {
         if (density <= 0) return;
-        if (self is not IAttackable) return;
+        if (!self.Is<IAttackable>()) return;
         IAttackable target = (IAttackable)self;
         if (target.IsDead) return;
         EntityManager.AddHandlerEvent(() => target.TakeDamage(density / 255.0f, 0, null));
@@ -117,7 +119,7 @@ public class MinimalVitality {
         tCollider.useGravity = false;
         if (breath > 0) return;
         //If dead don't process suffocation
-        if (self is IAttackable target && target.IsDead) return;
+        if (self.Is(out IAttackable target) && target.IsDead) return;
         ProcessSuffocation(self, density);
     }
 
@@ -128,7 +130,7 @@ public class MinimalVitality {
         breath = math.min(breath + EntityJob.cxt.deltaTime, -Epsilon);
         tCollider.useGravity = false;
 
-        if (self is IAttackable target && target.IsDead) { //If dead float to the surface
+        if (self.Is(out IAttackable target) && target.IsDead) { //If dead float to the surface
             tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
             return; //don't process suffocation
         }
@@ -141,7 +143,7 @@ public class MinimalVitality {
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
         tCollider.useGravity = true;
 
-        if (self is IAttackable target && target.IsDead) return; //If dead don't process suffocation
+        if (self.Is(out IAttackable target) && target.IsDead) return; //If dead don't process suffocation
         if (breath <= 0) ProcessSuffocation(self, density);
     }
 }
@@ -186,7 +188,7 @@ public class MediumVitality : MinimalVitality {
     public bool Attack(Entity target) {
         if (AttackInProgress) return false;
         if (attackCooldown > 0) return false;
-        if (target is not IAttackable) return false;
+        if (!target.Is<IAttackable>()) return false;
         attackProgress = AStats.AttackDuration;
         AttackTarget = target.info.entityId;
         AttackInProgress = true;
@@ -208,7 +210,7 @@ public class MediumVitality : MinimalVitality {
         
         if (!EntityManager.TryGetEntity(AttackTarget, out Entity target))
             return;
-        if (target is not IAttackable) return;
+        if (!target.Is<IAttackable>()) return;
         if (Recognition.GetColliderDist(target, self) > genetics.Get(AStats.AttackDistance))
             return;
         float damage = genetics.Get(AStats.AttackDamage);
@@ -222,7 +224,7 @@ public class MediumVitality : MinimalVitality {
             GameEvent.Entity_Attack,
             self, target, cxt
         ); (damage, knockback) = cxt.Value;
-        EntityManager.AddHandlerEvent(() => (target as IAttackable).TakeDamage(damage, knockback, self));
+        EntityManager.AddHandlerEvent(() => target.As<IAttackable>().TakeDamage(damage, knockback, self));
     }
 }
 
@@ -270,7 +272,7 @@ public class Vitality : MediumVitality {
     public bool BeginMating() => healthPercent > genetics.Get(CStats.MateThreshold);
     public bool StopMating() => healthPercent < genetics.Get(CStats.MateThreshold);
     [Serializable]
-    public struct Decomposition {
+    public class Decomposition : IBehaviorSetting {
         public Option<List<LootInfo>> LootTable;
         public Genetics.GeneFeature DecompositionTime; //~300 seconds
         public void InitGenome(uint entityType) {
@@ -281,6 +283,17 @@ public class Vitality : MediumVitality {
                 Genetics.AddGene(entityType, ref loot.DropAmount);
                 table[i] = loot;
             }
+        }
+
+        public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
+            InitGenome(entityType);
+        }
+
+        public object Clone() {
+            return new Decomposition {
+                LootTable = LootTable,
+                DecompositionTime = DecompositionTime
+            };
         }
         public IItem LootItem(Genetics genetics, float collectRate, ref Unity.Mathematics.Random random) {
             if (LootTable.value == null || LootTable.value.Count == 0) return null;

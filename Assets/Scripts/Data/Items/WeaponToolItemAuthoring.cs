@@ -99,8 +99,7 @@ namespace Arterra.Data.Item
                 return;
             void PlayerDamageEntity(Entity.Entity target) {
                 if (!target.active) return;
-                if (target is not IAttackable) return;
-                IAttackable atkEntity = target as IAttackable;
+                if (!target.Is(out IAttackable atkEntity)) return;
                 float3 knockback = math.normalize(target.position - player.head)
                     * settings.KnockBackStrength;
 

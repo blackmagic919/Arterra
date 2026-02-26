@@ -145,10 +145,10 @@ MonoBehaviour:
     Click            to close
     the tool tip
 
-    Click            to stop from ever showing
+    Click            to never see again
 
-    Click           
-    to see past tool tips
+    Click            to
+    see past tool tips
 
 '
   m_isRightToLeft: 0

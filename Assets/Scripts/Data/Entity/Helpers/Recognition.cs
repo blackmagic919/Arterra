@@ -228,7 +228,7 @@ public class MinimalRecognition {
         return math.distance(nPoint, point);
     }
 
-    public static bool RayTestSolid<T>(T entity, float reach, out float3 hitPt) where T : Entity, IAttackable {
+    public static bool RayTestSolid<T>(T entity, float reach, out float3 hitPt) where T : Entity {
         static uint RayTestSolid(int3 coord) {
             MapData pointInfo = CPUMapManager.SampleMap(coord);
             return (uint)pointInfo.viscosity;
@@ -236,7 +236,7 @@ public class MinimalRecognition {
         return CPUMapManager.RayCastTerrain(entity.head, entity.Forward, reach, RayTestSolid, out hitPt);
     }
 
-    public static bool RayTestLiquid<T>(T entity, float reach, out float3 hitPt) where T : Entity, IAttackable {
+    public static bool RayTestLiquid<T>(T entity, float reach, out float3 hitPt) where T : Entity {
         static uint RayTestLiquid(int3 coord) {
             MapData pointInfo = CPUMapManager.SampleMap(coord);
             return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
@@ -244,7 +244,7 @@ public class MinimalRecognition {
         return CPUMapManager.RayCastTerrain(entity.head, entity.Forward, reach, RayTestLiquid, out hitPt);
     }
 
-    public static bool CylinderTestSolid<T>(T entity, float reach, float radius, out float3 hitPt) where T : Entity, IAttackable {
+    public static bool CylinderTestSolid<T>(T entity, float reach, float radius, out float3 hitPt) where T : Entity {
         static uint CylinderTestSolid(int3 coord) {
             MapData pointInfo = CPUMapManager.SampleMap(coord);
             return (uint)pointInfo.viscosity;
@@ -292,15 +292,6 @@ public class MinimalRecognition {
         //If null, gradually removes it
         public string Replacement;
         public StructureData.CheckInfo Bounds;
-
-        readonly static int3[] dp = new int3[6]{
-            new (0, 0, 1),
-            new (0, 0, -1),
-            new (1, 0, 0),
-            new (-1, 0, 0),
-            new (0, 1, 0),
-            new (0, -1, 0),
-        };
     }
 
     [Serializable]
@@ -382,8 +373,8 @@ public class Recognition : MinimalRecognition{
 
             Recognizable entityInfo = Awareness[(int)nEntity.info.entityType];
             if (!entityInfo.IsMate) return;
-            if (nEntity is not IMateable) return;
-            if (!(nEntity as IMateable).CanMateWith(self)) return;
+            if (!nEntity.Is(out IMateable mateable)) return;
+            if (!mateable.CanMateWith(self)) return;
             if (cEntity != null) {
                 if (entityInfo.Preference > pPref) return;
                 if (pPref == entityInfo.Preference &&
@@ -405,7 +396,7 @@ public class Recognition : MinimalRecognition{
         if (AwarenessTable == null) return false;
         int index = (int)entity.info.entityType;
         if (!AwarenessTable.ContainsKey(index)) return false;
-        if (entity is not IMateable mate) return false;
+        if (!entity.Is(out IMateable mate)) return false;
 
         Mate ofsp = Mates.value[AwarenessTable[index].Preference];
         float delta = genetics.Get(ofsp.AmountPerParent);
@@ -415,7 +406,7 @@ public class Recognition : MinimalRecognition{
         for (int i = 0; i < amount; i++) {
             Entity child = Config.CURRENT.Generation.Entities.Retrieve((int)childIndex).Entity;
             EntityManager.CreateEntity((int3)entity.position, childIndex, child);
-            if (child is not IMateable childM) continue;
+            if (!child.Is(out IMateable childM)) continue;
 
             childM.Genetics = genetics.CrossGenes(
                 mate.Genetics,

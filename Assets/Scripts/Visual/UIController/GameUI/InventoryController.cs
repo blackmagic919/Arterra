@@ -329,6 +329,7 @@ namespace Arterra.GamePlay.UI {
             if (e.AmountRaw == 0) return;
             DropItem(e);
         }
+        
         public static int RemoveStackable(int delta, int itemIndex = -1, int SelIndex = -1, Action<IItem> OnRemoved = null) {
             bool TryFromIndex(int SelIndex, out int amount) {
                 amount = 0;
@@ -353,6 +354,13 @@ namespace Arterra.GamePlay.UI {
                 return Secondary.RemoveStackableKey(itemIndex, delta, OnRemoved);
             }
             return 0;
+        }
+
+        public static bool TryClearSelected() {
+            if (Selected == null) return false;
+            if (Selected.AmountRaw != 0) return false;
+            Primary.RemoveEntry(SelectedIndex);
+            return true;
         }
 
 

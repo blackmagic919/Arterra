@@ -56,7 +56,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 6432722988684804189
-      type: {class: ConverterToolTag, ns: , asm: Assembly-CSharp}
+      type: {class: ConverterToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 0.5
         ToolDamage: 2
@@ -67,7 +67,7 @@ MonoBehaviour:
           data: 2130738944
         ConvertTarget: TilledSoil
     - rid: 6432722988684804190
-      type: {class: ConvertibleTag, ns: , asm: Assembly-CSharp}
+      type: {class: ConvertibleTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         _convertBounds:
           data: 4286586880

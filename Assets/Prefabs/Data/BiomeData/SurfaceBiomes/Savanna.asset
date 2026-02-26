@@ -37,6 +37,7 @@ MonoBehaviour:
         - StoneRuins1
         - StoneRuins2
         - StoneRuins3
+        - Elephant
       GroundMaterials:
         value:
         - value:
@@ -100,7 +101,7 @@ MonoBehaviour:
             ChancePerCoord: 0.0002
         - value:
             Entity: 8
-            ChancePerCoord: 0.0006
+            ChancePerCoord: 0.0005
         - value:
             Entity: 10
             ChancePerCoord: 0.000075
@@ -110,6 +111,9 @@ MonoBehaviour:
         - value:
             Entity: 13
             ChancePerCoord: 0.0000025
+        - value:
+            Entity: 17
+            ChancePerCoord: 0.0001
   BiomeConditions:
     value:
       TerrainStart: 0.375

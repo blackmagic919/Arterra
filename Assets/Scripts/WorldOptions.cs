@@ -1,7 +1,7 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using Newtonsoft.Json;
-using System;
 using System.Runtime.Serialization;
 using Arterra.Core.Events;
 using System.Collections.Generic;
@@ -53,19 +53,20 @@ namespace Arterra.Configuration {
         /// noise from a function that considers this seed as a factor. The same world should be generated
         /// given the same seed. 
         /// </summary>
+        
         public int Seed;
         /// <exclude />
         [UISetting(Alias = "Quality")]
         public Option<QualitySettings> _Quality;
-        /// <exclude />
-        [UISetting(Alias = "Generation")]
-        public Option<GenerationSettings> _Generation;
         /// <exclude />
         [UISetting(Alias = "Gameplay")]
         public Option<GamePlaySettings> _GamePlay;
         /// <exclude />
         [UISetting(Alias = "System")]
         public Option<SystemSettings> _System;
+        /// <exclude />
+        [UISetting(Alias = "Generation")]
+        public Option<GenerationSettings> _Generation;
 
         ///<summary> <see cref="QualitySettings"/>  </summary>
         [JsonIgnore]
@@ -206,7 +207,7 @@ namespace Arterra.Configuration {
             /// <summary> Controls the players inventory. See <see cref="Gameplay.Inventory"/> for more information. </summary>
             public Option<Gameplay.Inventory> Inventory;
             /// <summary> Settings controlling environment constants of the world. See <see cref="Gameplay.Environment"/> for more information. </summary>
-            public Option<Gameplay.Environment> Time;
+            public Option<Gameplay.Environment> Environment;
             /// <summary> Settings controlling the optional visual statistics displayed to the player. See <see cref="Gameplay.Statistics"/> for more information. </summary>
             public Option<Gameplay.Statistics> Statistics;
         }

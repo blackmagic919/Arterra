@@ -28,7 +28,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 6648269870489141319
-      type: {class: CombustibleTag, ns: , asm: Assembly-CSharp}
+      type: {class: CombustibleTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         Temperature: 500
         BurningRate: 0.1

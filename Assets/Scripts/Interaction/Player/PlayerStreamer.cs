@@ -12,6 +12,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Utils;
 using Arterra.GamePlay.Interaction;
 using Arterra.GamePlay.UI;
+using System.Collections.Generic;
 
 
 namespace Arterra.GamePlay {
@@ -64,6 +65,9 @@ namespace Arterra.GamePlay {
             public PlayerVitality vitality;
             /// <summary>This player's terrain collider. </summary>
             public TerrainCollider collider;
+            /// <summary>Set of ids of attached (entities) that will be treated as attached 
+            /// to the player (and thus will not be forced apart by collision. </summary>
+            public HashSet<Guid> attached;
             /// <summary> This player instance's relation to the actual 
             /// user's input and what they see. See <see cref="StreamingStatus"/> </summary>
             [JsonProperty] 
@@ -97,8 +101,8 @@ namespace Arterra.GamePlay {
             /// <summary> Whether or not the player is dead. <see cref="IAttackable.IsDead"/> </summary>
             [JsonIgnore]
             public bool IsDead { get => vitality.IsDead; }
-            /// <summary>Interacts with the Player Instance. See <see cref="IAttackable.Interact(Entity)"/></summary>            
-            public void Interact(Entity target) { }
+            /// <summary>Interacts with the Player Instance. See <see cref="IAttackable.Interact(Entity, IItem)"/></summary>            
+            public void Interact(Entity targe, IItem item) { }
             /// <summary> Collects items from the dead player instance
             /// if it contains items in its inventories, causing
             /// it to slowly decay. <see cref="IAttackable.Collect(Entity, float)"/> </summary>
@@ -145,13 +149,13 @@ namespace Arterra.GamePlay {
             /// <param name="mount">The mount the player is riding</param>
             public void OnMounted(IRidable mount) {
                  RideMovement.AddHandles(mount);
-                 this.eventCtrl.RaiseEvent(GameEvent.Entity_Mount, this, mount, null);
+                 this.eventCtrl.RaiseEvent(GameEvent.Action_Mount, this, mount, null);
             }
             /// <summary>Handler that's called when the player dismounts an entity <see cref="IRider"/></summary>
             /// <param name="mount">The mount the player is no longer riding</param>
             public void OnDismounted(IRidable mount) {
                 RideMovement.RemoveHandles();
-                this.eventCtrl.RaiseEvent(GameEvent.Entity_Dismount, this, mount, null);
+                this.eventCtrl.RaiseEvent(GameEvent.Action_Dismount, this, mount, null);
             }
 
             /// <summary> Constructs a fresh clean player instance. With 
@@ -170,6 +174,7 @@ namespace Arterra.GamePlay {
                 p.settings = Config.CURRENT.Generation.Entities.Retrieve((int)p.info.entityType).Setting as PlayerSettings;
                 p.collider = new TerrainCollider(p.settings.collider, 0);
                 p.vitality = new PlayerVitality();
+                p.attached = new HashSet<Guid>();
                 p.status = StreamingStatus.Live;
                 StartupPlacer.PlaceOnSurface(p);
                 return p;
@@ -238,6 +243,7 @@ namespace Arterra.GamePlay {
 
                 //Apply gravity and take over physics updating
                 collider.Update(this);
+                collider.EntityCollisionUpdate(this, attached);
                 EntityManager.AddHandlerEvent(() => {
                     if (player == null) return;
                     player.transform.SetPositionAndRotation(this.positionWS, collider.transform.rotation);

@@ -32,11 +32,12 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: 9fb5b167f9dc94450b7f339704eae542, type: 2}
     - value: {fileID: 11400000, guid: 49c1b340b96b54a3d9db8609da15ea67, type: 2}
     - value: {fileID: 11400000, guid: 6c7fe7a16e86549a09c338f314021fe5, type: 2}
+    - value: {fileID: 11400000, guid: 9ddbb099c1b08467f91d69d8e1333720, type: 2}
   references:
     version: 2
     RefIds:
     - rid: 7772773331337740360
-      type: {class: CombustibleTag, ns: , asm: Assembly-CSharp}
+      type: {class: CombustibleTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         Temperature: 150
         BurningRate: 0.25

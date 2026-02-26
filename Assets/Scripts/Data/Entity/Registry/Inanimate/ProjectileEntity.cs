@@ -67,7 +67,7 @@ public class Projectile : Arterra.Data.Entity.Authoring
         private bool HasCollided;
 
         public Guid ParentId;
-        public void Interact(Entity target) { }
+        public void Interact(Entity target, Arterra.Data.Item.IItem item) { }
         public IItem Collect(Entity target, float amount) {
             var itemReg = Config.CURRENT.Generation.Items;
             IItem item  = null;
@@ -131,6 +131,7 @@ public class Projectile : Arterra.Data.Entity.Authoring
                 HasCollided = true;
             } else if (math.length(velocity) > 1) HasCollided = false;
             tCollider.Update(this, 0);
+            tCollider.EntityCollisionUpdate(this);
             EntityManager.AddHandlerEvent(controller.Update);
         }
 
@@ -158,7 +159,7 @@ public class Projectile : Arterra.Data.Entity.Authoring
             float3 endGS = startGS + pVel * EntityJob.cxt.deltaTime;
             if (!EntityManager.ESTree.FindClosestAlongRay(startGS, endGS, info.entityId, out Entity hitEntity, out _))
                 return false;
-            if (hitEntity is not IAttackable atkEntity) return false;
+            if (!hitEntity.Is(out IAttackable atkEntity)) return false;
 
             float speed = math.length(pVel);
             float damage = speed * settings.DamageMultiplier;

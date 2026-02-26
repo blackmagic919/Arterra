@@ -38,6 +38,9 @@ namespace Arterra.Configuration.Gameplay{
         /// being <see cref="sunriseHour"/> exactly a day apart. The y axis is the intensity of the moon's light as a percentage of <see cref="maxMoonIntensity"/>.</summary>
         [UISetting(Ignore = true)]
         public Option<AnimationCurve> moonIntensityCurve;
+        /// <summary> Whether or not entity collision is resolved using soft collision instead of hard collision. 
+        /// Soft collision is more akin to minecraft style entity collision. </summary>
+        public bool useSoftCollisions;
     }
 }
 
@@ -46,7 +49,7 @@ public class WorldData {
     public Arterra.GamePlay.UI.ToolTips.ToolTipSystemState ToolTips;
     public static WorldData Build() {
         WorldData d = new WorldData();
-        d.currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.Time.value.startHour);
+        d.currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.Environment.value.startHour);
         d.ToolTips = Arterra.GamePlay.UI.ToolTips.ToolTipSystemState.Build();
         return d;
     }
@@ -57,7 +60,7 @@ public class WorldData {
 public static class WorldDataHandler
 { 
     public static WorldData WorldData;
-    private static Arterra.Configuration.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.Time;
+    private static Arterra.Configuration.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.Environment;
     private static LensFlareComponentSRP sunFlare;
     private static Light Sun;
     private static Light Moon;

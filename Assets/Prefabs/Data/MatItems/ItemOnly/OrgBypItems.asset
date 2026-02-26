@@ -39,4 +39,4 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: -2
-      type: {class: , ns: , asm: }
+      type: {class: , ns: Arterra.Configuration, asm: }

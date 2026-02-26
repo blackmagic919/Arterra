@@ -28,7 +28,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 6432723101265428557
-      type: {class: ConverterToolTag, ns: , asm: Assembly-CSharp}
+      type: {class: ConverterToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 100
         ToolDamage: 2

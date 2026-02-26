@@ -483,7 +483,7 @@ MonoBehaviour:
               z: 1.25
             BonePath: Rig/BodySegment.001/target
             MoveAccel: 150
-            Phase: 0.167
+            Phase: 1
             RBStrength: 32
           - collider:
               size:
@@ -500,7 +500,7 @@ MonoBehaviour:
               z: 1.25
             BonePath: Rig/BodySegment.002/target
             MoveAccel: 150
-            Phase: 0.334
+            Phase: 0.8333333
             RBStrength: 8
           - collider:
               size:
@@ -517,7 +517,7 @@ MonoBehaviour:
               z: 1.25
             BonePath: Rig/BodySegment.003/target
             MoveAccel: 150
-            Phase: 0.5
+            Phase: 0.6666667
             RBStrength: 6
           - collider:
               size:
@@ -534,7 +534,7 @@ MonoBehaviour:
               z: 1.25
             BonePath: Rig/BodySegment.004/target
             MoveAccel: 150
-            Phase: 0.667
+            Phase: 0.5
             RBStrength: 6
           - collider:
               size:
@@ -551,7 +551,7 @@ MonoBehaviour:
               z: 1.25
             BonePath: Rig/BodySegment.005/target
             MoveAccel: 150
-            Phase: 0.833
+            Phase: 0.33333334
             RBStrength: 4
           - collider:
               size:
@@ -568,7 +568,7 @@ MonoBehaviour:
               z: 1.25
             BonePath: Rig/BodySegment.006/target
             MoveAccel: 150
-            Phase: 1
+            Phase: 0.16666667
             RBStrength: 4
         SlitherX:
           value:

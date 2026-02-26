@@ -127,7 +127,7 @@ namespace Arterra.GamePlay {
             InputPoller.AddStackPoll(new ActionBind("GroundMove::2", _ => PlayerHandler.data.collider.useGravity = true), "Movement::Gravity");
             InputPoller.AddBinding(new ActionBind("Jump", (_null_) => {
                 TerrainCollider.Settings collider = PlayerHandler.data.settings.collider;
-                if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z), out _)) {
+                if (PlayerHandler.data.collider.SampleCollision(PlayerHandler.data.origin, new float3(collider.size.x, -Setting.groundStickDist, collider.size.z))) {
                     float3 jumpVelocity = Setting.jumpForce * (float3)Vector3.up;
                     PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_Jump,  PlayerHandler.data, null, jumpVelocity);
                     velocity += jumpVelocity;
@@ -294,7 +294,7 @@ namespace Arterra.GamePlay {
     public static class RideMovement {
         private static HashSet<string> OveridableStates = new HashSet<string> { "GroundMove::1", "SwimMove::1", "FlightMove::1" };
         private static IRidable mount;
-        private static bool IsActive => mount != null && (mount as Entity).active;
+        private static bool IsActive => mount != null && mount.AsEntity.active;
         private static Transform SubTransform => PlayerHandler.data.player.transform.GetChild(0).transform;
 
         /// <summary>Initializes the rider movement system.</summary>
@@ -305,6 +305,7 @@ namespace Arterra.GamePlay {
         /// <param name="mount"></param>
         public static void AddHandles(IRidable mount) {
             if (mount == null) return;
+            if (mount.AsEntity != null) PlayerHandler.data.attached.Add(mount.AsEntity.info.entityId);
             if (!OveridableStates.Contains(InputPoller.PeekTop("Movement::Update"))) {
                 mount.Dismount();
                 return;
@@ -331,7 +332,7 @@ namespace Arterra.GamePlay {
             PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_DismountRideable, PlayerHandler.data, mount);
             SubTransform.transform.localRotation = Quaternion.identity;
 
-
+            if (mount is Entity entity) PlayerHandler.data.attached.Remove(entity.info.entityId);
             InputPoller.AddKeyBindChange(() => {
                 InputPoller.RemoveContextFence("PMRideMove", "4.0::Movement");
                 InputPoller.RemoveBinding("PMRideMove:DSM", "5.0::Gameplay");

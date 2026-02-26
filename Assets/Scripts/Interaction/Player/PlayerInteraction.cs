@@ -9,6 +9,7 @@ using Arterra.GamePlay.UI;
 using Arterra.Core.Events;
 using Arterra.Utils;
 using Arterra.GamePlay.Interaction;
+using Arterra.Configuration.Gameplay;
 
 namespace Arterra.Configuration.Gameplay.Player {
 /// <summary>
@@ -105,7 +106,8 @@ namespace Arterra.GamePlay{
             };
 
             if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out var entity, out _)) {
-                EntityInteract(entity);
+                EntityInteract(entity, InventoryController.Selected);
+                InventoryController.TryClearSelected();
                 return;
             }
 
@@ -343,11 +345,10 @@ namespace Arterra.GamePlay{
             return true;
         }
 
-        private static void EntityInteract(Arterra.Data.Entity.Entity target) {
+        private static void EntityInteract(Data.Entity.Entity target, IItem held) {
             if (!target.active) return;
-            if (target is not IAttackable) return;
-            IAttackable targEnt = target as IAttackable;
-            if (!targEnt.IsDead) targEnt.Interact(data);
+            if (!target.Is(out IAttackable targEnt)) return;
+            if (!targEnt.IsDead) targEnt.Interact(data, held);
             else {
                 IItem slot = targEnt.Collect(PlayerHandler.data, settings.PickupRate);
                 InventoryController.AddEntry(slot);

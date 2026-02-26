@@ -3,9 +3,10 @@ using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Data.Entity;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
+using Arterra.Data.Entity.Behavior;
 
 [Serializable]
-public struct Movement {
+public class Movement : IBehaviorSetting {
     public Genetics.GeneFeature walkSpeed;
     public Genetics.GeneFeature runSpeed;
     public int pathDistance;//~31
@@ -19,6 +20,21 @@ public struct Movement {
     public void InitGenome(uint entityType) {
         Genetics.AddGene(entityType, ref walkSpeed);
         Genetics.AddGene(entityType, ref runSpeed);
+    }
+
+    public void Preset(uint entityType, BehaviorEntity.AnimalSetting settings) {
+        InitGenome(entityType);
+    }
+
+    public object Clone() {
+        return new Movement {
+            walkSpeed = walkSpeed,
+            runSpeed = runSpeed,
+            pathDistance = pathDistance,
+            acceleration = acceleration,
+            rotSpeed = rotSpeed,
+            AverageIdleTime = AverageIdleTime
+        };
     }
 
     public static float3 Normalize(float3 var) {
@@ -105,6 +121,7 @@ public struct Movement {
 
             Guid PackTarget = default;
             bool HasTarget = false;
+            Bounds seperation = new (self.transform.position, self.transform.size * 2.0f);
             void OnEntityFound(Entity nEntity) {
                 if (nEntity == null) return;
                 if (nEntity.info.entityType != self.info.entityType) return;
@@ -116,8 +133,7 @@ public struct Movement {
                     return;
 
                 if (math.all(nBoid.MoveDirection == 0)) return;
-                if (math.distance(boidPos, nBoidPos) < settings.PathDist)
-                    boidDMtrx.SeperationDir += boidPos - nBoidPos;
+                if (seperation.Contains(nBoidPos)) boidDMtrx.SeperationDir += boidPos - nBoidPos;
                 boidDMtrx.AlignmentDir += nBoid.MoveDirection;
                 boidDMtrx.CohesionDir += nBoidPos;
                 boidDMtrx.count++;

@@ -9,10 +9,10 @@ using Arterra.Core.Storage;
 using Arterra.Core.Events;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.GamePlay.Interaction;
+using System.Collections.Generic;
 
 // Defining the contract between a rider and their mount
-public interface IRider
-{
+public interface IRider {
     public void OnMounted(IRidable entity);
     public void OnDismounted(IRidable entity);
 }
@@ -21,6 +21,7 @@ public interface IRidable {
     public Transform GetRiderRoot();
     public void WalkInDirection(float3 direction);
     public void Dismount();
+    public Entity AsEntity => this as Entity;
 }
 
 [CreateAssetMenu(menuName = "Generation/Entity/RidableSurfaceAnimal")]
@@ -76,6 +77,8 @@ public class RidableSurfaceAnimal : Arterra.Data.Entity.Authoring
         private float TaskDuration;
         [JsonProperty]
         private Guid RiderTarget;
+        [JsonProperty]
+        private HashSet<Guid> Riders;
 
         private AnimalController controller;
         private AnimalSetting settings;
@@ -123,7 +126,7 @@ public class RidableSurfaceAnimal : Arterra.Data.Entity.Authoring
             else if (recog.IsMate) TaskIndex = AnimalTasks.ChaseTarget; //if mate fight back
             else if (recog.IsPrey) TaskIndex = AnimalTasks.ChaseTarget; //if prey fight back
             else TaskIndex = settings.Recognition.FightAggressor ? AnimalTasks.ChaseTarget : AnimalTasks.RunFromTarget; //if unknown, depends
-            if (TaskIndex == AnimalTasks.ChaseTarget && attacker is not IAttackable) TaskIndex = AnimalTasks.RunFromTarget;  //Don't try to attack a non-attackable entity
+            if (TaskIndex == AnimalTasks.ChaseTarget && !attacker.Is<IAttackable>()) TaskIndex = AnimalTasks.RunFromTarget;  //Don't try to attack a non-attackable entity
             pathFinder.hasPath = false;
         }
         public void ProcessFallDamage(float zVelDelta) {
@@ -132,16 +135,16 @@ public class RidableSurfaceAnimal : Arterra.Data.Entity.Authoring
             damage = math.pow(damage, settings.Physicality.weight);
             EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
-        public void Interact(Entity caller) {
+        public void Interact(Entity caller, IItem item) {
             if (IsDead) return; //You can't ride a dead animal
             if (caller == null) return;
-            if (caller is not IRider) return;
+            if (!caller.Is(out IRider rider)) return;
             //Don't allow riding if the caller hit it
             if (caller.info.entityId == TaskTarget) return;
-            IRider rider = (IRider)caller;
             if (RiderTarget != Guid.Empty) return;
 
             RiderTarget = caller.info.entityId;
+            Riders = new HashSet<Guid>() {RiderTarget};
             if (TaskIndex < AnimalTasks.FollowRider) TaskIndex = AnimalTasks.FollowRider;
             EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
         }
@@ -172,11 +175,13 @@ public class RidableSurfaceAnimal : Arterra.Data.Entity.Authoring
         public void Dismount() {
             if (RiderTarget == Guid.Empty) return;
             if (!EntityManager.TryGetEntity(RiderTarget, out Entity target) ||
-                target is not IRider rider)
+                !target.Is(out IRider rider))
                 return;
 
             EntityManager.AddHandlerEvent(() => rider.OnDismounted(this));
             RiderTarget = Guid.Empty;
+            Riders = null;
+
             //Return to idling if following rider commands
             if (TaskIndex == AnimalTasks.FollowRider)
                 TaskIndex = AnimalTasks.Idle;
@@ -220,7 +225,7 @@ public class RidableSurfaceAnimal : Arterra.Data.Entity.Authoring
 
             if (RiderTarget == Guid.Empty) return;
             if (EntityManager.TryGetEntity(RiderTarget, out Entity entity) 
-                && entity is IRider rider)
+                && entity.Is(out IRider rider))
                 EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
         }
 
@@ -228,6 +233,7 @@ public class RidableSurfaceAnimal : Arterra.Data.Entity.Authoring
         public override void Update() {
             if (!active) return;
             tCollider.Update(this);
+            tCollider.EntityCollisionUpdate(this, Riders);
             EntityManager.AddHandlerEvent(controller.Update);
 
             tCollider.useGravity = true;
@@ -401,14 +407,13 @@ public class RidableSurfaceAnimal : Arterra.Data.Entity.Authoring
                 self.settings.Recognition.SightDistance), out Entity prey)) return;
             float preyDist = Recognition.GetColliderDist(self, prey);
             if (preyDist > self.genetics.Get(self.settings.Physicality.AttackDistance)) return;
-            if (prey is not IAttackable) return;
+            if (!prey.Is(out IAttackable target)) return;
             self.TaskIndex = AnimalTasks.Attack;
 
             float3 atkDir = math.normalize(prey.position - self.position); atkDir.y = 0;
             if (math.any(atkDir != 0)) self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation,
             Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
 
-            IAttackable target = (IAttackable)prey;
             if (target.IsDead) {
                 EntityManager.AddHandlerEvent(() => {
                     IItem item = target.Collect(self, self.settings.Physicality.ConsumptionRate);
@@ -469,7 +474,7 @@ public class RidableSurfaceAnimal : Arterra.Data.Entity.Authoring
 
             float mateDist = Recognition.GetColliderDist(self, mate);
             if (mateDist < self.genetics.Get(self.settings.Physicality.AttackDistance)) {
-                EntityManager.AddHandlerEvent(() => (mate as IMateable).MateWith(self));
+                EntityManager.AddHandlerEvent(() => mate.As<IMateable>().MateWith(self));
                 self.MateWith(mate);
                 return;
             }
@@ -537,14 +542,15 @@ public class RidableSurfaceAnimal : Arterra.Data.Entity.Authoring
 
         //Task 12
         private static void AttackTarget(Animal self) {
-            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity tEntity))
+            if (self.TaskTarget == Guid.Empty
+                || !EntityManager.TryGetEntity(self.TaskTarget, out Entity tEntity)
+                || !tEntity.Is(out IAttackable target)) {
                 self.TaskTarget = Guid.Empty;
-            else if (tEntity is not IAttackable)
-                self.TaskTarget = Guid.Empty;
-            if (self.TaskTarget == Guid.Empty) {
+                self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
                 self.TaskIndex = AnimalTasks.Idle;
                 return;
             }
+
             float targetDist = Recognition.GetColliderDist(tEntity, self);
             if (targetDist > self.genetics.Get(self.settings.Physicality.AttackDistance)) {
                 self.TaskIndex = AnimalTasks.ChaseTarget;
@@ -555,7 +561,6 @@ public class RidableSurfaceAnimal : Arterra.Data.Entity.Authoring
             if (math.any(atkDir != 0)) self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation,
             Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
 
-            IAttackable target = tEntity as IAttackable;
             if (target.IsDead) self.TaskIndex = AnimalTasks.Idle;
             else self.vitality.Attack(tEntity);
         }

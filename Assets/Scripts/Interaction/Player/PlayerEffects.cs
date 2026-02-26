@@ -72,7 +72,7 @@ public class PlayerActionEffects{
 
     }
     private void DeserializeAnimator(object source, object target, object _) {
-        if (!(source as IAttackable).IsDead) return;
+        if (!((Entity)source).As<IAttackable>().IsDead) return;
         PlayDead(source, target, _);
     }
 
@@ -103,7 +103,7 @@ public class PlayerActionEffects{
         animator.SetTrigger(anim);
     }
     private void PlayTouchdown(object source, object target, object zVelDelta) { //ctx: float
-        if((source as IAttackable).IsDead) return;
+        if(((Entity)source).As<IAttackable>().IsDead) return;
         AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
         if (!state.IsName("hRig_fall")) return;
         animator.SetBool("IsJumping", false);
@@ -127,7 +127,7 @@ public class PlayerActionEffects{
 
     private void PlayDamaged(object source, object target, object prms) { //ctx: (float damage, float3 knockback)
         (float damage, float3 knockback) = ((RefTuple<(float, float3)>)prms).Value;
-        if ((source as IAttackable).IsDead) return;
+        if (((Entity)source).As<IAttackable>().IsDead) return;
         OctreeTerrain.MainCoroutines.Enqueue(CameraShake(0.2f, 0.25f));
 
         quaternion WSToOS = math.inverse(PlayerHandler.data.transform.rotation);

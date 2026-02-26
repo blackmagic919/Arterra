@@ -612,11 +612,12 @@ public class EntityJob : IUpdateSubscriber{
                 AddressDict = (CPUMapManager.ChunkMapInfo*)CPUMapManager.AddressDict.GetUnsafePtr(),
                 mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize,
                 numChunksAxis = CPUMapManager.numChunksAxis,
-                IsoValue = (int)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0)
+                IsoValue = (int)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0),
             },
 
             gravity = Physics.gravity / Config.CURRENT.Quality.Terrain.value.lerpScale,
-            deltaTime = 0
+            deltaTime = 0,
+            UpdateCount = 0,
         };
     }
 
@@ -634,6 +635,7 @@ public class EntityJob : IUpdateSubscriber{
         if (!Complete()) return;
         cxt.totDeltaTime = accumulatedTime;
         cxt.deltaTime = Time.fixedDeltaTime;
+        cxt.UpdateCount++;
         accumulatedTime = 0;
 
         EntityManager.FlushUpdateCycle();
@@ -648,6 +650,7 @@ public class EntityJob : IUpdateSubscriber{
         [ReadOnly] public float3 gravity;
         [ReadOnly] public float deltaTime;
         [ReadOnly] public float totDeltaTime;
+        [ReadOnly] public int UpdateCount;
         public unsafe void Execute(int index){
             Profiler.BeginSample(EntityManager.CurUpdateEntities[index].GetType().ToString());
             EntityManager.CurUpdateEntities[index].Update();

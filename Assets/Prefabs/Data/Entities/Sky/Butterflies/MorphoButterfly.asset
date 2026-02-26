@@ -80,7 +80,6 @@ MonoBehaviour:
           x: 0.5
           y: 0.5
           z: 0.5
-        friction: 0.25
       movement:
         walkSpeed:
           mean: 2
@@ -152,8 +151,8 @@ MonoBehaviour:
             geneWeight: 0.05
           AttackDistance:
             mean: 2
-            var: 0.75
-            geneWeight: 0.33
+            var: 0.25
+            geneWeight: 0.2
           AttackDamage:
             mean: 0.2
             var: 0.5
@@ -166,6 +165,7 @@ MonoBehaviour:
             mean: 0.1
             var: 0.5
             geneWeight: 0.33
+          AttackDuration: 0
           HuntThreshold:
             mean: 0.4
             var: 0.25
@@ -184,6 +184,36 @@ MonoBehaviour:
         value:
           Predators:
             value: []
+          SightDistance:
+            mean: 20
+            var: 0.25
+            geneWeight: 0.75
+          PlantFindDist:
+            mean: 4
+            var: 0.5
+            geneWeight: 0.1
+          PreyEntity:
+            value: []
+          PreyPlant:
+            value:
+            - Material: Hydrangea
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+            - Material: Lupines
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+            - Material: Peonies
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+            - Material: Dandelions
+              Replacement: Dirt
+              Bounds:
+                data: 4286643968
+          FleeDistance: 5
+          FightAggressor: 0
           Mates:
             value:
             - MateType: MorphoButterfly
@@ -222,34 +252,6 @@ MonoBehaviour:
                 mean: 2.55
                 var: 0.5
                 geneWeight: 0.1
-          SightDistance:
-            mean: 20
-            var: 0.25
-            geneWeight: 0.75
-          FleeDistance: 5
-          FightAggressor: 0
-          PlantFindDist:
-            mean: 4
-            var: 0.5
-            geneWeight: 0.1
-          PreyPlant:
-            value:
-            - Material: Hydrangea
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
-            - Material: Lupines
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
-            - Material: Peonies
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
-            - Material: Dandelions
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
   references:
     version: 2
     RefIds: []

@@ -31,6 +31,235 @@ MonoBehaviour:
         value: {fileID: 11400000, guid: 86d1798c7c090406e9596962eda43895, type: 2}
       Memory:
         value: {fileID: 11400000, guid: 0db2044d581d94e4f9b4bea303ee7f68, type: 2}
+  _GamePlay:
+    value:
+      Input:
+        Category:
+          value: {fileID: 11400000, guid: 280bf6dd8603344b6a47cfc48ac8b144, type: 2}
+        Reg:
+        - {fileID: 11400000, guid: 6853348a8533f47efb6d5a7ce5501b5d, type: 2}
+        - {fileID: 11400000, guid: b90a4c9cb53fb4ac8b490825185b13d2, type: 2}
+        - {fileID: 11400000, guid: a12fc9754829b493ca27c7fc35222877, type: 2}
+        - {fileID: 11400000, guid: 8d5a5aa28518f4afeb1cdcb066d25a94, type: 2}
+        - {fileID: 11400000, guid: 3ef0b8b91203d4ae1b4e787f1add337e, type: 2}
+        - {fileID: 11400000, guid: b366d4646a23f4a6d9ece342e312a48c, type: 2}
+        - {fileID: 11400000, guid: 032c87b1430ae42a68b2aac5b4421523, type: 2}
+        - {fileID: 11400000, guid: d27af918d59ce4048a200cacabeac627, type: 2}
+        - {fileID: 11400000, guid: 263f27b39632d479aaffad68f215720f, type: 2}
+        - {fileID: 11400000, guid: c20fcb502b1ff4cfcbc60389b42600f1, type: 2}
+        - {fileID: 11400000, guid: 96e46afc73b8e4a5a89ea5768d97e17f, type: 2}
+        - {fileID: 11400000, guid: 32341f2bc31c54bd9aa91fc8b12f8a56, type: 2}
+        - {fileID: 11400000, guid: 9a417caa1252145e3956ef6c3689e816, type: 2}
+        - {fileID: 11400000, guid: ef4610a7cf9384233b6e52be76e3521b, type: 2}
+        - {fileID: 11400000, guid: 7a0af45912db0441aa2a22b4d003426a, type: 2}
+        - {fileID: 11400000, guid: 057e6e98e02c345209aa8736d0298b69, type: 2}
+        - {fileID: 11400000, guid: fed2c4837867645fd93d4aaf0ce9ac10, type: 2}
+        - {fileID: 11400000, guid: c54a8eeceeee54fa5b319273e37306f5, type: 2}
+        - {fileID: 11400000, guid: e4785cf28f7e44c6ba1021b4f7f747e4, type: 2}
+        - {fileID: 11400000, guid: c08f7fbb82b4a4b51b587ce3f56c0863, type: 2}
+        - {fileID: 11400000, guid: ef97c2bbcda194eeca399ad75aa3d76f, type: 2}
+        - {fileID: 11400000, guid: b2656699d49e94000bbc865b5086bf8b, type: 2}
+        - {fileID: 11400000, guid: 8d9afdc5467fe4b3c97d0e027dd1badc, type: 2}
+        - {fileID: 11400000, guid: 89ee29ef2b0474715969d24ec2cf6df5, type: 2}
+        - {fileID: 11400000, guid: 1bf3eaee608324c7290366bd92356746, type: 2}
+        - {fileID: 11400000, guid: 1937e4059fb3a4a8abb03e5e60a8b7f5, type: 2}
+        - {fileID: 11400000, guid: 98b851e50a0d1422c9fc17287273d134, type: 2}
+        - {fileID: 11400000, guid: 5342f196de3484effb55a6ae9b8b1e45, type: 2}
+        - {fileID: 11400000, guid: 2873a78604fdf4748a0cb9bc1f6781a5, type: 2}
+        - {fileID: 11400000, guid: 8bc7406989a2544cba07ea8d8fc5cffe, type: 2}
+        - {fileID: 11400000, guid: 5f4103b2a29174470bc7c8cc86141199, type: 2}
+        - {fileID: 11400000, guid: ed144cbe8a1ab4a1f88d89151551453e, type: 2}
+        - {fileID: 11400000, guid: 71c8b9c9303034aba8068b5859f26a38, type: 2}
+        - {fileID: 11400000, guid: 4493b0004c7c9443eb425366eb44a3f6, type: 2}
+        - {fileID: 11400000, guid: 726ddb25fdb904c3c8841d5bfcabb7cb, type: 2}
+        - {fileID: 11400000, guid: 07d68676762a74ef082978c2b8696ec7, type: 2}
+        - {fileID: 11400000, guid: 553b6751ae2ad46ae816a17b879e45d2, type: 2}
+        - {fileID: 11400000, guid: 52f246b24b21341a897750091c9a4bcb, type: 2}
+        - {fileID: 11400000, guid: d124f377bd2cb4aa5bd990d1f6f7abec, type: 2}
+        - {fileID: 11400000, guid: f43ba0e016f9048f19d53360ecd7d0c6, type: 2}
+        - {fileID: 11400000, guid: e4d7966289e5e4d3592416715aca0ce4, type: 2}
+        - {fileID: 11400000, guid: 2fcf83b298d6d4ad69fa82f5c6b1a940, type: 2}
+        - {fileID: 11400000, guid: ad2cddcd4fb8c42438e785480f92c259, type: 2}
+      Player:
+        value:
+          movement:
+            value:
+              walkSpeed: 3
+              runSpeed: 6
+              jumpForce: 5
+              acceleration: 100
+              groundStickDist: 0.05
+              flightSpeedMultiplier: 3
+          Camera:
+            value:
+              Sensitivity: 2
+              clampVerticalRotation: 1
+              MinimumX: -90
+              MaximumX: 90
+              smooth: 0
+              smoothTime: 0
+          Interaction:
+            value:
+              TerraformRadius: 1
+              DefaultTerraform:
+                value:
+                  TerraformSpeed: 50
+                  ToolDamage: 0
+                  GivesItem: 1
+              ReachDistance: 8
+              CylinderRadius: 1
+              PickupRate: 1.5
+          Physicality:
+            value:
+              AttackDamage: 2
+              AttackFrequency: 0.25
+              KnockBackStrength: 4
+              InvincTime: 0.25
+              HoldBreathTime: 15
+              MaxHealth: 20
+              NaturalRegen: 0.01
+              DecompositionTime: 300
+              weight: 0.75
+          ShowCrosshair: 1
+      Gamemodes:
+        value:
+          Flight: 0
+          Invulnerability: 0
+          Intangiblity: 0
+          KeepInventory: 0
+      Inventory:
+        value:
+          PrimarySlotCount: 5
+          SecondarySlotCount: 30
+          SelectedColor: {r: 0.3915094, g: 0.85984695, b: 1, a: 1}
+          BaseColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 0.39215687}
+      Environment:
+        value:
+          timeMultiplier: 0
+          startHour: 0
+          sunriseHour: 0
+          sunsetHour: 0
+          maxSunIntensity: 0
+          maxMoonIntensity: 0
+          sunIntensityCurve:
+            value:
+              serializedVersion: 2
+              m_Curve: []
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 4
+          moonIntensityCurve:
+            value:
+              serializedVersion: 2
+              m_Curve: []
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 4
+          useSoftCollisions: 0
+      Statistics:
+        value:
+          DisplayEntityStats: 0
+          DisplayEntityDamage: 1
+  _System:
+    value:
+      Crafting:
+        value: {fileID: 11400000, guid: b6eb14945e6ce4e35a36d2502ba1cf4f, type: 2}
+      FurnaceFormulas:
+        Category:
+          value: {fileID: 11400000, guid: 1d225253f4b5cb8478ffd59908214c61, type: 2}
+        Reg:
+        - {fileID: 11400000, guid: f6b9c7569546fb0449716faf519460ed, type: 2}
+        - {fileID: 11400000, guid: 372859b076a254d9ab5d56cfadea08da, type: 2}
+        - {fileID: 11400000, guid: d6f55fb74f79940a7aaeca151f3357bf, type: 2}
+        - {fileID: 11400000, guid: ec9f6dc46d42f4243ae3b5bb363616d0, type: 2}
+        - {fileID: 11400000, guid: abcd48e2f64904d58a06071362f31519, type: 2}
+        - {fileID: 11400000, guid: 53b113369da7f4adaa4f2555b0163c66, type: 2}
+        - {fileID: 11400000, guid: a9fa598ccbc7349c0a41c48731d80bee, type: 2}
+      MortarFormulas:
+        Category:
+          value: {fileID: 11400000, guid: cceb542ca62ba457dafa95699a2c34ff, type: 2}
+        Reg:
+        - {fileID: 11400000, guid: 98e15a0952018427aac939ee9ce70a94, type: 2}
+        - {fileID: 11400000, guid: 86c29e274332c41709eb1b222784df9b, type: 2}
+        - {fileID: 11400000, guid: 9de5c25f6d10c413ba55c8d8febfafa7, type: 2}
+      Armor:
+        value: {fileID: 11400000, guid: 360677af915224c978e39e88db696d39, type: 2}
+      TerrainUpdation:
+        value:
+          RandomUpdatesPerChunk: 250
+          MaximumTickUpdates: 10000
+          UpdateTickDelay: 4
+      WorldApperance:
+        value:
+          DisplayedChunk:
+            x: 0
+            y: 0
+            z: 0
+          RotateSpeed:
+            x: 0
+            y: 10
+            z: 0
+          GridScale: 0.1
+          GridThickness: 2.5
+      ReadBack:
+        value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
+      Tooltips:
+        EnableTooltips: 1
+        MaxPopups: 3
+        MinDisplayTimeInSeconds: 10
+        TooltipEvents:
+          value: 13000000
+        TooltipDismissorEvents:
+          value: 
+        GenericToolTipEvents:
+          value:
+          - AcknowledgeTime: 30
+            AcknowledgeEvent: -1
+            Priority: 0
+            TriggerEvent: -1
+            TriggerTime: 5
+            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip1/Display
+            BlockingTooltips: 1
+          - AcknowledgeTime: 30
+            AcknowledgeEvent: -1
+            Priority: 0
+            TriggerEvent: -1
+            TriggerTime: 40
+            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip5/Display
+            BlockingTooltips: 1
+          - AcknowledgeTime: 30
+            AcknowledgeEvent: -1
+            Priority: 0
+            TriggerEvent: -1
+            TriggerTime: 120
+            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip4/Display
+            BlockingTooltips: 1
+          - AcknowledgeTime: 30
+            AcknowledgeEvent: -1
+            Priority: 0
+            TriggerEvent: 3009
+            TriggerTime: 2.5
+            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip6/Display
+            BlockingTooltips: 1
+          - AcknowledgeTime: 30
+            AcknowledgeEvent: -1
+            Priority: 0
+            TriggerEvent: 3009
+            TriggerTime: 15
+            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip8/Display
+            BlockingTooltips: 1
+          - AcknowledgeTime: 30
+            AcknowledgeEvent: -1
+            Priority: 0
+            TriggerEvent: 3009
+            TriggerTime: 35
+            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip7/Display
+            BlockingTooltips: 1
+        GenericTooltipDismissorEvents:
+          value:
+          - DismissEvent: 3008
+            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip5/Display
+            DismissType: 1
   _Generation:
     value:
       Noise:
@@ -161,6 +390,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 49c1b340b96b54a3d9db8609da15ea67, type: 2}
         - {fileID: 11400000, guid: d0dc5bc754925403cbcff5f0f2a6917a, type: 2}
         - {fileID: 11400000, guid: 39631be9667ff48509a41321ee1c5ace, type: 2}
+        - {fileID: 11400000, guid: 9ddbb099c1b08467f91d69d8e1333720, type: 2}
         - {fileID: 11400000, guid: 8af60393695e748478c78bcb4c27aa54, type: 2}
         - {fileID: 11400000, guid: f04298b580570461997a737161f25f08, type: 2}
         - {fileID: 11400000, guid: 7e5207daba85540468932dd1ed606dc2, type: 2}
@@ -177,10 +407,10 @@ MonoBehaviour:
           value: {fileID: 11400000, guid: 351f5fc1dca604a80a7275a23a9046fb, type: 2}
         Reg:
         - {fileID: 11400000, guid: aea5983bb2790423db2800179c58cf00, type: 2}
-        - {fileID: 11400000, guid: d327c1733b1f84aa5995711a41f5d1f2, type: 2}
+        - {fileID: 11400000, guid: 79bbe002f165a4f738761b0d06bd1b92, type: 2}
         - {fileID: 11400000, guid: b8b3aed6c3ba8490a996e3fe5081055f, type: 2}
-        - {fileID: 11400000, guid: a37358ce30b2548afa7abe83b54c5a09, type: 2}
-        - {fileID: 11400000, guid: 23835e4e06a58491396049eee2913c2a, type: 2}
+        - {fileID: 11400000, guid: 526da19c607884ee484d608177d67659, type: 2}
+        - {fileID: 11400000, guid: 4083fd9eb9dc64a8d99e476482b05346, type: 2}
         - {fileID: 11400000, guid: f3b6a0cb284b440e7b270bd6b1dc031e, type: 2}
         - {fileID: 11400000, guid: fa2a57218af9e4884bde3381416b95f5, type: 2}
         - {fileID: 11400000, guid: b7ae0def2978c4588b4973fd6a872f1d, type: 2}
@@ -190,6 +420,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 3d03c3ca538134cb193829dbd67da023, type: 2}
         - {fileID: 11400000, guid: 66d1862629f514a2cbaef33ddb79bc76, type: 2}
         - {fileID: 11400000, guid: 09e53379dbf104e8c97a0e255235ef37, type: 2}
+        - {fileID: 11400000, guid: b22ad5fd8dec74f56bb0519f252ec1b7, type: 2}
         - {fileID: 11400000, guid: 404370d492cfd47ef830d41abb242266, type: 2}
         - {fileID: 11400000, guid: 668535b6793f6429689eb033f92f6067, type: 2}
         - {fileID: 11400000, guid: 669618714d40f4e43a24a7ebc4e01cb5, type: 2}
@@ -243,6 +474,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 571d39d0da01c4a27bb5d476bed98b6b, type: 2}
         - {fileID: 11400000, guid: 5c979e4e94a0b480ab87cdab89266c1d, type: 2}
         - {fileID: 11400000, guid: 5169efa6410be480ab4a3128b46dda3e, type: 2}
+        - {fileID: 11400000, guid: 321b88754b7ce4958a7feb440c313670, type: 2}
         - {fileID: 11400000, guid: d49a13364ad454ed991c2b7515482caa, type: 2}
         - {fileID: 11400000, guid: 45cf4233e977d45c5a594feceebc026f, type: 2}
         - {fileID: 11400000, guid: 6c3165c859d8841c8b426ba62276d93a, type: 2}
@@ -355,355 +587,9 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 42f8256a273ac49edab38dece6e4f6cd, type: 2}
         - {fileID: 11400000, guid: d3a8b9fe9f11e4edfbc4ef2aacefb168, type: 2}
         - {fileID: 11400000, guid: cd9269cb420a34d15a8c349b5fff465f, type: 2}
+        - {fileID: 11400000, guid: 733119097cea642c195ef3f34980eb8d, type: 2}
         - {fileID: 11400000, guid: f5ca4fb057fd741018fe9f1c77abd656, type: 2}
         - {fileID: 11400000, guid: 88b32c56015ac41bdbcd816fa9ca8af8, type: 2}
         - {fileID: 11400000, guid: b4aa92ea3f0914c64824c56e7598bd50, type: 2}
         - {fileID: 11400000, guid: a6f17d9a63cc64624a910e05a1373d4e, type: 2}
         - {fileID: 11400000, guid: d95a339e2ae3646938cb62b60af8ba1e, type: 2}
-  _GamePlay:
-    value:
-      Input:
-        Category:
-          value: {fileID: 11400000, guid: 280bf6dd8603344b6a47cfc48ac8b144, type: 2}
-        Reg:
-        - {fileID: 11400000, guid: 6853348a8533f47efb6d5a7ce5501b5d, type: 2}
-        - {fileID: 11400000, guid: b90a4c9cb53fb4ac8b490825185b13d2, type: 2}
-        - {fileID: 11400000, guid: a12fc9754829b493ca27c7fc35222877, type: 2}
-        - {fileID: 11400000, guid: 8d5a5aa28518f4afeb1cdcb066d25a94, type: 2}
-        - {fileID: 11400000, guid: 3ef0b8b91203d4ae1b4e787f1add337e, type: 2}
-        - {fileID: 11400000, guid: b366d4646a23f4a6d9ece342e312a48c, type: 2}
-        - {fileID: 11400000, guid: 032c87b1430ae42a68b2aac5b4421523, type: 2}
-        - {fileID: 11400000, guid: d27af918d59ce4048a200cacabeac627, type: 2}
-        - {fileID: 11400000, guid: 263f27b39632d479aaffad68f215720f, type: 2}
-        - {fileID: 11400000, guid: c20fcb502b1ff4cfcbc60389b42600f1, type: 2}
-        - {fileID: 11400000, guid: 96e46afc73b8e4a5a89ea5768d97e17f, type: 2}
-        - {fileID: 11400000, guid: 32341f2bc31c54bd9aa91fc8b12f8a56, type: 2}
-        - {fileID: 11400000, guid: 9a417caa1252145e3956ef6c3689e816, type: 2}
-        - {fileID: 11400000, guid: ef4610a7cf9384233b6e52be76e3521b, type: 2}
-        - {fileID: 11400000, guid: 7a0af45912db0441aa2a22b4d003426a, type: 2}
-        - {fileID: 11400000, guid: 057e6e98e02c345209aa8736d0298b69, type: 2}
-        - {fileID: 11400000, guid: fed2c4837867645fd93d4aaf0ce9ac10, type: 2}
-        - {fileID: 11400000, guid: c54a8eeceeee54fa5b319273e37306f5, type: 2}
-        - {fileID: 11400000, guid: e4785cf28f7e44c6ba1021b4f7f747e4, type: 2}
-        - {fileID: 11400000, guid: c08f7fbb82b4a4b51b587ce3f56c0863, type: 2}
-        - {fileID: 11400000, guid: ef97c2bbcda194eeca399ad75aa3d76f, type: 2}
-        - {fileID: 11400000, guid: b2656699d49e94000bbc865b5086bf8b, type: 2}
-        - {fileID: 11400000, guid: 8d9afdc5467fe4b3c97d0e027dd1badc, type: 2}
-        - {fileID: 11400000, guid: 89ee29ef2b0474715969d24ec2cf6df5, type: 2}
-        - {fileID: 11400000, guid: 1bf3eaee608324c7290366bd92356746, type: 2}
-        - {fileID: 11400000, guid: 1937e4059fb3a4a8abb03e5e60a8b7f5, type: 2}
-        - {fileID: 11400000, guid: 98b851e50a0d1422c9fc17287273d134, type: 2}
-        - {fileID: 11400000, guid: 5342f196de3484effb55a6ae9b8b1e45, type: 2}
-        - {fileID: 11400000, guid: 2873a78604fdf4748a0cb9bc1f6781a5, type: 2}
-        - {fileID: 11400000, guid: 8bc7406989a2544cba07ea8d8fc5cffe, type: 2}
-        - {fileID: 11400000, guid: 5f4103b2a29174470bc7c8cc86141199, type: 2}
-        - {fileID: 11400000, guid: ed144cbe8a1ab4a1f88d89151551453e, type: 2}
-        - {fileID: 11400000, guid: 71c8b9c9303034aba8068b5859f26a38, type: 2}
-        - {fileID: 11400000, guid: 4493b0004c7c9443eb425366eb44a3f6, type: 2}
-        - {fileID: 11400000, guid: 726ddb25fdb904c3c8841d5bfcabb7cb, type: 2}
-        - {fileID: 11400000, guid: 07d68676762a74ef082978c2b8696ec7, type: 2}
-        - {fileID: 11400000, guid: 553b6751ae2ad46ae816a17b879e45d2, type: 2}
-        - {fileID: 11400000, guid: 52f246b24b21341a897750091c9a4bcb, type: 2}
-        - {fileID: 11400000, guid: d124f377bd2cb4aa5bd990d1f6f7abec, type: 2}
-        - {fileID: 11400000, guid: f43ba0e016f9048f19d53360ecd7d0c6, type: 2}
-        - {fileID: 11400000, guid: e4d7966289e5e4d3592416715aca0ce4, type: 2}
-        - {fileID: 11400000, guid: 2fcf83b298d6d4ad69fa82f5c6b1a940, type: 2}
-        - {fileID: 11400000, guid: ad2cddcd4fb8c42438e785480f92c259, type: 2}
-      Player:
-        value:
-          movement:
-            value:
-              walkSpeed: 3
-              runSpeed: 6
-              jumpForce: 5
-              acceleration: 100
-              groundStickDist: 0.05
-              flightSpeedMultiplier: 3
-          Camera:
-            value:
-              Sensitivity: 2
-              clampVerticalRotation: 1
-              MinimumX: -90
-              MaximumX: 90
-              smooth: 0
-              smoothTime: 0
-          Interaction:
-            value:
-              TerraformRadius: 1
-              DefaultTerraform:
-                value:
-                  TerraformSpeed: 50
-                  ToolDamage: 0
-                  GivesItem: 1
-              ReachDistance: 8
-              CylinderRadius: 1
-              PickupRate: 1.5
-          Physicality:
-            value:
-              AttackDamage: 2
-              AttackFrequency: 0.25
-              KnockBackStrength: 10
-              InvincTime: 0.25
-              HoldBreathTime: 15
-              MaxHealth: 20
-              NaturalRegen: 0.01
-              DecompositionTime: 300
-              weight: 0.75
-          ShowCrosshair: 1
-      Gamemodes:
-        value:
-          Flight: 0
-          Invulnerability: 0
-          Intangiblity: 0
-          KeepInventory: 0
-      Inventory:
-        value:
-          PrimarySlotCount: 5
-          SecondarySlotCount: 30
-          SelectedColor: {r: 0.3915094, g: 0.85984695, b: 1, a: 1}
-          BaseColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 0.39215687}
-      Time:
-        value:
-          timeMultiplier: 72
-          startHour: 12
-          sunriseHour: 7
-          sunsetHour: 20.5
-          maxSunIntensity: 1.5
-          maxMoonIntensity: 0.8
-          sunIntensityCurve:
-            value:
-              serializedVersion: 2
-              m_Curve:
-              - serializedVersion: 3
-                time: 0
-                value: 0.29953003
-                inSlope: 7.0046997
-                outSlope: 7.0046997
-                tangentMode: 34
-                weightedMode: 0
-                inWeight: 0
-                outWeight: 0.33333334
-              - serializedVersion: 3
-                time: 0.1
-                value: 1
-                inSlope: -0.0013849546
-                outSlope: -0.0013849546
-                tangentMode: 0
-                weightedMode: 0
-                inWeight: 0.33333334
-                outWeight: 0.3060361
-              - serializedVersion: 3
-                time: 0.4
-                value: 1
-                inSlope: 0.0021330894
-                outSlope: 0.0021330894
-                tangentMode: 0
-                weightedMode: 0
-                inWeight: 0.522165
-                outWeight: 0.36489952
-              - serializedVersion: 3
-                time: 0.5
-                value: 0.29952946
-                inSlope: -3.8144307
-                outSlope: -3.8144307
-                tangentMode: 0
-                weightedMode: 0
-                inWeight: 0.33333334
-                outWeight: 0.44800943
-              - serializedVersion: 3
-                time: 0.6
-                value: 0
-                inSlope: 0.0022881324
-                outSlope: 0.0022881324
-                tangentMode: 0
-                weightedMode: 0
-                inWeight: 0.33333334
-                outWeight: 0.33333334
-              - serializedVersion: 3
-                time: 0.9
-                value: 0
-                inSlope: -0.009793245
-                outSlope: -0.009793245
-                tangentMode: 0
-                weightedMode: 0
-                inWeight: 0.33333334
-                outWeight: 1
-              - serializedVersion: 3
-                time: 1
-                value: 0.29953003
-                inSlope: 3.0817742
-                outSlope: 3.0817742
-                tangentMode: 0
-                weightedMode: 0
-                inWeight: 0.37500015
-                outWeight: 0
-              m_PreInfinity: 2
-              m_PostInfinity: 2
-              m_RotationOrder: 4
-          moonIntensityCurve:
-            value:
-              serializedVersion: 2
-              m_Curve:
-              - serializedVersion: 3
-                time: 0
-                value: 0.6014252
-                inSlope: -6.0142517
-                outSlope: -6.0142517
-                tangentMode: 34
-                weightedMode: 0
-                inWeight: 0
-                outWeight: 0.33333334
-              - serializedVersion: 3
-                time: 0.1
-                value: 0
-                inSlope: 0.0010167407
-                outSlope: 0.0010167407
-                tangentMode: 0
-                weightedMode: 0
-                inWeight: 0.33333334
-                outWeight: 0.22038485
-              - serializedVersion: 3
-                time: 0.4
-                value: 0
-                inSlope: 0.002328521
-                outSlope: 0.002328521
-                tangentMode: 0
-                weightedMode: 0
-                inWeight: 0.33333334
-                outWeight: 0.10987958
-              - serializedVersion: 3
-                time: 0.5
-                value: 0.6014252
-                inSlope: 5.1831646
-                outSlope: 5.1831646
-                tangentMode: 0
-                weightedMode: 0
-                inWeight: 0.33333334
-                outWeight: 0.034921933
-              - serializedVersion: 3
-                time: 0.6
-                value: 1
-                inSlope: -0.013943582
-                outSlope: -0.013943582
-                tangentMode: 0
-                weightedMode: 0
-                inWeight: 0.33333334
-                outWeight: 0.22289018
-              - serializedVersion: 3
-                time: 0.9
-                value: 1
-                inSlope: 0.0049888487
-                outSlope: 0.0049888487
-                tangentMode: 0
-                weightedMode: 0
-                inWeight: 0.33333334
-                outWeight: 0.33333334
-              - serializedVersion: 3
-                time: 1
-                value: 0.5967063
-                inSlope: -4.032936
-                outSlope: -4.032936
-                tangentMode: 34
-                weightedMode: 0
-                inWeight: 0.33333334
-                outWeight: 0
-              m_PreInfinity: 2
-              m_PostInfinity: 2
-              m_RotationOrder: 4
-      Statistics:
-        value:
-          DisplayEntityStats: 0
-          DisplayEntityDamage: 1
-  _System:
-    value:
-      Crafting:
-        value: {fileID: 11400000, guid: b6eb14945e6ce4e35a36d2502ba1cf4f, type: 2}
-      FurnaceFormulas:
-        Category:
-          value: {fileID: 11400000, guid: 1d225253f4b5cb8478ffd59908214c61, type: 2}
-        Reg:
-        - {fileID: 11400000, guid: f6b9c7569546fb0449716faf519460ed, type: 2}
-        - {fileID: 11400000, guid: 372859b076a254d9ab5d56cfadea08da, type: 2}
-        - {fileID: 11400000, guid: d6f55fb74f79940a7aaeca151f3357bf, type: 2}
-        - {fileID: 11400000, guid: ec9f6dc46d42f4243ae3b5bb363616d0, type: 2}
-        - {fileID: 11400000, guid: abcd48e2f64904d58a06071362f31519, type: 2}
-        - {fileID: 11400000, guid: 53b113369da7f4adaa4f2555b0163c66, type: 2}
-        - {fileID: 11400000, guid: a9fa598ccbc7349c0a41c48731d80bee, type: 2}
-      MortarFormulas:
-        Category:
-          value: {fileID: 11400000, guid: cceb542ca62ba457dafa95699a2c34ff, type: 2}
-        Reg:
-        - {fileID: 11400000, guid: 98e15a0952018427aac939ee9ce70a94, type: 2}
-        - {fileID: 11400000, guid: 86c29e274332c41709eb1b222784df9b, type: 2}
-        - {fileID: 11400000, guid: 9de5c25f6d10c413ba55c8d8febfafa7, type: 2}
-      Armor:
-        value: {fileID: 11400000, guid: 360677af915224c978e39e88db696d39, type: 2}
-      TerrainUpdation:
-        value:
-          RandomUpdatesPerChunk: 250
-          MaximumTickUpdates: 10000
-          UpdateTickDelay: 4
-      WorldApperance:
-        value:
-          DisplayedChunk:
-            x: 0
-            y: 0
-            z: 0
-          RotateSpeed:
-            x: 0
-            y: 10
-            z: 0
-          GridScale: 0.1
-          GridThickness: 2.5
-      ReadBack:
-        value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
-      Tooltips:
-        EnableTooltips: 1
-        MaxPopups: 3
-        MinDisplayTimeInSeconds: 10
-        TooltipEvents:
-          value: 13000000
-        TooltipDismissorEvents:
-          value: 
-        GenericToolTipEvents:
-          value:
-          - AcknowledgeTime: 30
-            AcknowledgeEvent: -1
-            Priority: 0
-            TriggerEvent: -1
-            TriggerTime: 5
-            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip1/Display
-            BlockingTooltips: 1
-          - AcknowledgeTime: 30
-            AcknowledgeEvent: -1
-            Priority: 0
-            TriggerEvent: -1
-            TriggerTime: 40
-            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip5/Display
-            BlockingTooltips: 1
-          - AcknowledgeTime: 30
-            AcknowledgeEvent: -1
-            Priority: 0
-            TriggerEvent: -1
-            TriggerTime: 120
-            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip4/Display
-            BlockingTooltips: 1
-          - AcknowledgeTime: 30
-            AcknowledgeEvent: -1
-            Priority: 0
-            TriggerEvent: 3009
-            TriggerTime: 15
-            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip6/Display
-            BlockingTooltips: 1
-          - AcknowledgeTime: 30
-            AcknowledgeEvent: -1
-            Priority: 0
-            TriggerEvent: 3009
-            TriggerTime: 2.5
-            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip7/Display
-            BlockingTooltips: 1
-        GenericTooltipDismissorEvents:
-          value:
-          - DismissEvent: 3008
-            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip5/Display
-            DismissType: 1

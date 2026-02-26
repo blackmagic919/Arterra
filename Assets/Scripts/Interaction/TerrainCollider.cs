@@ -6,6 +6,7 @@ using static EntityJob;
 using Newtonsoft.Json;
 using static Arterra.Core.Storage.CPUMapManager;
 using Arterra.Data.Entity;
+using System.Collections.Generic;
 
 /*
 Future Note: Make this done on a job system
@@ -16,6 +17,7 @@ namespace Arterra.GamePlay.Interaction {
     [System.Serializable]
     public class TerrainCollider {
         public const float BaseFriction = 0.2f;
+        public static readonly float3 VerticalCollisionBias = new(0, 0.05f, 0);
         [JsonIgnore]
         public Action<float> OnHitGround;
         public Transform transform;
@@ -292,7 +294,63 @@ namespace Arterra.GamePlay.Interaction {
             return math.any(displacement != float3.zero);
         }
 
-        public bool SampleCollision(float3 originGS, float3 boundsGS, out float3 displacement) => SampleCollision(originGS, boundsGS, cxt.mapContext, out displacement);
+        static bool SampleBlockCollision(float3 originGS, float3 boundsGS, in MapContext cxt, out float3 displacement) {
+            float3 aMin = math.min(originGS, originGS + boundsGS);
+            float3 aMax = math.max(originGS, originGS + boundsGS);
+
+            int3 vMin = (int3)math.floor(aMin);
+            int3 vMax = (int3)math.ceil(aMax); // inclusive cells
+
+            float3 pushPos = float3.zero; // positive direction pushes
+            float3 pushNeg = float3.zero; // negative direction pushes
+            displacement = float3.zero;
+
+            for (int z = vMin.z; z <= vMax.z; z++)
+            for (int y = vMin.y; y <= vMax.y; y++)
+            for (int x = vMin.x; x <= vMax.x; x++)
+            {
+                int den = SampleTerrain(new int3(x,y,z), cxt);
+                if (den < cxt.IsoValue) continue; // not solid
+
+                float3 bMin = new float3(x, y, z) - 0.5f;
+                float3 bMax = bMin + 0.5f;
+                aMin += displacement;
+                aMax += displacement;
+
+                // Overlap depths (positive means overlapping)
+                float ox = math.min(aMax.x, bMax.x) - math.max(aMin.x, bMin.x);
+                float oy = math.min(aMax.y, bMax.y) - math.max(aMin.y, bMin.y);
+                float oz = math.min(aMax.z, bMax.z) - math.max(aMin.z, bMin.z);
+                if (ox <= 0 || oy <= 0 || oz <= 0) continue;
+
+                // Pick smallest overlap axis for MTV
+                if (ox <= oy && ox <= oz)
+                {
+                    float s = (aMin.x + aMax.x) < (bMin.x + bMax.x) ? -ox : ox;
+                    if (s > 0) pushPos.x = math.max(pushPos.x, s);
+                    else       pushNeg.x = math.min(pushNeg.x, s);
+                }
+                else if (oy <= ox && oy <= oz)
+                {
+                    float s = (aMin.y + aMax.y) < (bMin.y + bMax.y) ? -oy : oy;
+                    if (s > 0) pushPos.y = math.max(pushPos.y, s);
+                    else       pushNeg.y = math.min(pushNeg.y, s);
+                }
+                else
+                {
+                    float s = (aMin.z + aMax.z) < (bMin.z + bMax.z) ? -oz : oz;
+                    if (s > 0) pushPos.z = math.max(pushPos.z, s);
+                    else       pushNeg.z = math.min(pushNeg.z, s);
+                }
+                
+                displacement = pushPos + pushNeg;
+            }
+
+            return math.any(displacement != 0);
+        }
+
+
+        public bool SampleCollision(float3 originGS, float3 boundsGS) => TerrainInteractor.TouchSolid(TerrainInteractor.SampleContact(originGS, boundsGS, out float friction, null));
         public bool SampleCollision(in float3 originGS, in float3 boundsGS, in MapContext context, out float3 displacement) {
             float3 origin = originGS;
             SampleCornerCollision(origin, boundsGS, context, out displacement);
@@ -307,8 +365,12 @@ namespace Arterra.GamePlay.Interaction {
 
 
         float3 CancelVel(in float3 vel, in float3 norm) {
-            float3 dir = math.normalize(norm);
-            return vel - math.dot(vel, dir) * dir;
+            float3 dir = math.normalize(-norm);
+            //So surface animals don't get stuck when only edge/face collision
+            if (dir.y == 0) dir -= VerticalCollisionBias;
+            float magnitude = math.dot(vel, dir);
+            if (magnitude < 0) return vel; //Already moving out
+            return vel - magnitude * dir;
         }
 
         public void Update(Entity self = null, float baseFriction = BaseFriction) {
@@ -320,9 +382,10 @@ namespace Arterra.GamePlay.Interaction {
             transform.position += transform.velocity * cxt.totDeltaTime;
             if (useGravity) transform.velocity += cxt.gravity * cxt.totDeltaTime;
 
-            if (TerrainInteractor.TouchSolid(contact)
-                && SampleCollision(transform.position, transform.size, cxt.mapContext, out float3 displacement)
-            ) {
+            if (TerrainInteractor.TouchSolid(contact)) {
+                if (!SampleCollision(transform.position, transform.size, cxt.mapContext, out float3 displacement))
+                    if(!SampleBlockCollision(transform.position, transform.size, cxt.mapContext, out displacement))
+                        return;
                 transform.position += displacement;
                 float3 nVelocity = CancelVel(transform.velocity, displacement);
                 if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
@@ -342,14 +405,61 @@ namespace Arterra.GamePlay.Interaction {
             transform.position += transform.velocity * Time.fixedDeltaTime;
             if (useGravity) transform.velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
 
-            if (TerrainInteractor.TouchSolid(contact)
-                && SampleCollision(transform.position, transform.size, out float3 displacement)
-            ) {
+            if (TerrainInteractor.TouchSolid(contact)) {
+                if (!SampleCollision(transform.position, transform.size, cxt.mapContext, out float3 displacement))
+                    if(!SampleBlockCollision(transform.position, transform.size, cxt.mapContext, out displacement))
+                        return;
                 float3 nVelocity = CancelVel(transform.velocity, displacement);
                 if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
                 transform.position += displacement;
                 transform.velocity = nVelocity;
             }
+        }
+
+        private bool TryGetMinimumTranslation(Bounds A, Bounds B, out float3 mtv) {
+            Vector3 delta = A.center - B.center; mtv = default;
+            float dx = (B.extents.x + A.extents.x) - Mathf.Abs(delta.x);
+            float dy = (B.extents.y + A.extents.y) - Mathf.Abs(delta.y);
+            float dz = (B.extents.z + A.extents.z) - Mathf.Abs(delta.z);
+
+            if (dx <= 0 || dy <= 0 || dz <= 0)
+                return false;
+
+
+            if (dx < dy && dx < dz)
+                mtv = new Vector3(dx * Mathf.Sign(delta.x), 0, 0);
+            else if (dy < dz)
+                mtv = new Vector3(0, dy * Mathf.Sign(delta.y), 0);
+            else
+                mtv = new Vector3(0, 0, dz * Mathf.Sign(delta.z));
+            return true;
+        }
+
+
+        public void EntityCollisionUpdate(Entity self, HashSet<Guid> ignores = null) {
+            bool soft = Configuration.Config.CURRENT.GamePlay.Environment.value.useSoftCollisions;
+            Bounds bounds = new (transform.position + transform.size/2, transform.size);
+            EntityManager.ESTree.Query(bounds, cEntity => {
+                Bounds cBounds = new (cEntity.position , cEntity.transform.size);
+                if (cEntity.info.entityId == self.info.entityId) return;
+                if (ignores != null && ignores.Contains(cEntity.info.entityId)) return;
+                if (!TryGetMinimumTranslation(bounds, cBounds, out float3 mtv)) return;
+                float totalWeight = self.weight + cEntity.weight;
+
+                float myFactor = cEntity.weight / totalWeight;
+                float otherFactor = self.weight / totalWeight;
+
+                if (soft) {
+                    transform.velocity += myFactor * mtv;
+                    cEntity.transform.velocity -= otherFactor * mtv;   
+                } else {
+                    transform.velocity = CancelVel(transform.velocity, mtv);
+                    cEntity.velocity = CancelVel(cEntity.velocity, -mtv);
+
+                    transform.position += myFactor * mtv;
+                    cEntity.transform.position -= otherFactor * mtv;
+                }
+            });
         }
 
         public TerrainCollider(in Settings settings, float3 position, Action<float> OnHitGround = null) {

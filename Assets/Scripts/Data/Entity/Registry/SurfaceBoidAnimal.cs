@@ -115,7 +115,7 @@ public class SurfaceBoidAnimal : Arterra.Data.Entity.Authoring
             else if (recog.IsMate) TaskIndex = AnimalTasks.ChaseTarget; //if mate fight back
             else if (recog.IsPrey) TaskIndex = AnimalTasks.ChaseTarget; //if prey fight back
             else TaskIndex = settings.Recognition.FightAggressor ? AnimalTasks.ChaseTarget : AnimalTasks.RunFromTarget; //if unknown, depends
-            if (TaskIndex == AnimalTasks.ChaseTarget && attacker is not IAttackable) TaskIndex = AnimalTasks.RunFromTarget;  //Don't try to attack a non-attackable entity
+            if (TaskIndex == AnimalTasks.ChaseTarget && !attacker.Is<IAttackable>()) TaskIndex = AnimalTasks.RunFromTarget;  //Don't try to attack a non-attackable entity
             pathFinder.hasPath = false;
         }
         public void ProcessFallDamage(float zVelDelta) {
@@ -124,7 +124,7 @@ public class SurfaceBoidAnimal : Arterra.Data.Entity.Authoring
             damage = math.pow(damage, settings.Physicality.weight);
             EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
-        public void Interact(Entity caller) { }
+        public void Interact(Entity caller, IItem item) { }
         public IItem Collect(Entity caller, float amount) {
             IItem item = null;
             if (IsDead) item = settings.decomposition.LootItem(genetics, amount, ref random);
@@ -192,6 +192,7 @@ public class SurfaceBoidAnimal : Arterra.Data.Entity.Authoring
         public override void Update() {
             if (!active) return;
             tCollider.Update(this);
+            tCollider.EntityCollisionUpdate(this);
             EntityManager.AddHandlerEvent(controller.Update);
 
             tCollider.useGravity = true;
@@ -361,14 +362,13 @@ public class SurfaceBoidAnimal : Arterra.Data.Entity.Authoring
             float preyDist = Recognition.GetColliderDist(self, prey);
             self.TaskTarget = prey.info.entityId;
             if (preyDist > self.genetics.Get(self.settings.Physicality.AttackDistance)) return;
-            if (prey is not IAttackable) return;
+            if (!prey.Is(out IAttackable target)) return;
             self.TaskIndex = AnimalTasks.AttackPrey;
 
             float3 atkDir = math.normalize(prey.position - self.position); atkDir.y = 0;
             if (math.any(atkDir != 0)) self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation,
             Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
 
-            IAttackable target = (IAttackable)prey;
             if (target.IsDead) {
                 EntityManager.AddHandlerEvent(() => {
                     IItem item = target.Collect(self, self.settings.Physicality.ConsumptionRate);
@@ -425,7 +425,7 @@ public class SurfaceBoidAnimal : Arterra.Data.Entity.Authoring
                 self.settings.movement.acceleration);
             float mateDist = Recognition.GetColliderDist(self, mate);
             if (mateDist < self.genetics.Get(self.settings.Physicality.AttackDistance)) {
-                EntityManager.AddHandlerEvent(() => (mate as IMateable).MateWith(self));
+                EntityManager.AddHandlerEvent(() => mate.As<IMateable>().MateWith(self));
                 self.MateWith(mate);
                 return;
             }
@@ -495,14 +495,15 @@ public class SurfaceBoidAnimal : Arterra.Data.Entity.Authoring
 
         //Task 10
         private static void AttackTarget(Animal self) {
-            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity tEntity))
+            if (self.TaskTarget == Guid.Empty
+                || !EntityManager.TryGetEntity(self.TaskTarget, out Entity tEntity)
+                || !tEntity.Is(out IAttackable target)) {
                 self.TaskTarget = Guid.Empty;
-            else if (tEntity is not IAttackable)
-                self.TaskTarget = Guid.Empty;
-            if (self.TaskTarget == Guid.Empty) {
+                self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
                 self.TaskIndex = AnimalTasks.Idle;
                 return;
             }
+
             float targetDist = Recognition.GetColliderDist(tEntity, self);
             if (targetDist > self.genetics.Get(self.settings.Physicality.AttackDistance)) {
                 self.TaskIndex = AnimalTasks.ChaseTarget;
@@ -513,7 +514,6 @@ public class SurfaceBoidAnimal : Arterra.Data.Entity.Authoring
             if (math.any(atkDir != 0)) self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation,
             Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
 
-            IAttackable target = tEntity as IAttackable;
             if (target.IsDead) self.TaskIndex = 0;
             else self.vitality.Attack(tEntity);
         }

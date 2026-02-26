@@ -49,29 +49,30 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: 72eb2a86f07ef473ca5c536aeec133ce, type: 2}
     - value: {fileID: 11400000, guid: 7b57b4e08c05c4ff386c642fd205567a, type: 2}
     - value: {fileID: 11400000, guid: 21d743594f35c4d6995ac67e51eee6e2, type: 2}
+    - value: {fileID: 11400000, guid: 4b674e93068014f6d920d486cc1836af, type: 2}
   references:
     version: 2
     RefIds:
     - rid: 5273703469288783960
-      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 250
         ToolDamage: 2
         GivesItem: 1
     - rid: 5273703469288783977
-      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 200
         ToolDamage: 2
         GivesItem: 1
     - rid: 6083762182251610188
-      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 150
         ToolDamage: 2
         GivesItem: 1
     - rid: 6432722648275615824
-      type: {class: ConverterToolTag, ns: , asm: Assembly-CSharp}
+      type: {class: ConverterToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 0.25
         ToolDamage: 2
@@ -82,7 +83,7 @@ MonoBehaviour:
           data: 2130738944
         ConvertTarget: FireAsh
     - rid: 6432723101265428554
-      type: {class: ToolTag, ns: , asm: Assembly-CSharp}
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 100
         ToolDamage: 2

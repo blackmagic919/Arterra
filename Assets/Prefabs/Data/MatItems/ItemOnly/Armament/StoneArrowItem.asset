@@ -26,7 +26,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 6083762249953443912
-      type: {class: ProjectileTag, ns: , asm: Assembly-CSharp}
+      type: {class: ProjectileTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         ProjectileEntity: Arrow
         LaunchSpeedMultiplier: 1

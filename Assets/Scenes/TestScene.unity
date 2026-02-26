@@ -347,13 +347,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1504257174}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
+  m_LocalRotation: {x: -0.08838369, y: -0.25773326, z: -0.023682334, w: 0.9618737}
   m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+  m_LocalEulerAnglesHint: {x: -10.5, y: -30, z: 0}
 --- !u!114 &1504257177
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -413,12 +413,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   IsoLevel: 0.5
-  Structure: {fileID: 11400000, guid: 16e2922ef16234410b165a444a573992, type: 2}
-  loadPath: /Users/jonathanliu/Library/Application Support/DefaultCompany/Arterra/Worlds/WorldData_f257aac7-c103-4d8b-9545-175ab6b7c3af/MapData/Region_-1_0_-1/Chunk_-4_1_-9.bin
+  Structure: {fileID: 11400000, guid: 6dddc7078a14f4a3a8b0b6f7331b0bb1, type: 2}
+  loadPath: /PalmTree2
   SDFoffset:
-    x: 2
-    y: 1
-    z: 2
+    x: 0
+    y: 0
+    z: -2
 --- !u!4 &1943111917
 Transform:
   m_ObjectHideFlags: 0

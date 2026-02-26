@@ -80,7 +80,7 @@ namespace Arterra.Data.Material{
 
         public override void OnEntityTouchSolid(Entity.Entity entity) {
             if (entity == null) return;
-            if (entity is not IAttackable target) return;
+            if (!entity.Is(out IAttackable target)) return;
             EntityManager.AddHandlerEvent(() => target.TakeDamage(ContactDamage, float3.zero, null));
         }
     }

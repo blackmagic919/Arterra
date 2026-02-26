@@ -121,6 +121,7 @@ namespace Arterra.GamePlay{
             OnInLiquid: (dens) => data.vitality.ProcessInLiquid(data, dens), 
             OnInGas: (dens) => data.vitality.ProcessInGas(data, dens));
             data.collider.FixedUpdate(data);
+            data.collider.EntityCollisionUpdate(data, data.attached);
         }
 
         /// <summary>Releases the player handler and all resources tied to handling the player. </summary>

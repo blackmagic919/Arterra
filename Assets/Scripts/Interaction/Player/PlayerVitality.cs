@@ -132,8 +132,7 @@ namespace Arterra.GamePlay {
             static void PlayerDamageEntity(Entity target)
             {
                 if (!target.active) return;
-                if (target is not IAttackable) return;
-                IAttackable atkEntity = target as IAttackable;
+                if (!target.Is(out IAttackable atkEntity)) return;
                 float3 knockback = math.normalize(target.position - PlayerHandler.data.head) * settings.KnockBackStrength;
                 float damage = settings.AttackDamage;
                 
@@ -161,8 +160,7 @@ namespace Arterra.GamePlay {
 
         private void ProcessSuffocation(Entity self, float density){
             if(density <= 0) return;
-            if(self is not IAttackable) return;
-            IAttackable target = (IAttackable)self;
+            if(!self.Is(out IAttackable target)) return;
             if(target.IsDead) return;
             target.TakeDamage(density/255.0f, 0, null);
         }

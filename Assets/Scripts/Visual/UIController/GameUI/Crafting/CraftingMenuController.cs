@@ -10,6 +10,7 @@ using Arterra.Data.Intrinsic;
 using Arterra.Engine.Terrain;
 using Arterra.GamePlay.Interaction;
 using Arterra.GamePlay.UI;
+using Arterra.Core.Events;
 
 namespace Arterra.GamePlay.UI {
     public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
@@ -56,26 +57,27 @@ namespace Arterra.GamePlay.UI {
         public Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(settings.DisplayIcon).self;
         public GameObject GetDispContent() => craftingMenu;
 
-    public void Activate() {
-        eventTask = new IndirectUpdate(Update);
-        OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
-        InputPoller.AddKeyBindChange(() => {
-            InputPoller.AddContextFence("PlayerCraft", "3.5::Window", ActionBind.Exclusion.None);
-            InputPoller.AddBinding(new ActionBind("Craft", CraftEntry), "PlayerCraft:CFT", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("Deselect",
-                DeselectDrag, ActionBind.Exclusion.None), "PlayerCraft:DS", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("Select",
-                Select, ActionBind.Exclusion.None), "PlayerCraft:SEL", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial),  "PlayerCraft:SELP", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "PlayerCraft:SELA", "3.0::AllWindow");
-        });
+        public void Activate() {
+            eventTask = new IndirectUpdate(Update);
+            OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
+            PlayerHandler.data.eventCtrl.RaiseEvent(Core.Events.GameEvent.Action_OpenCrafting, PlayerHandler.data, null);
+            InputPoller.AddKeyBindChange(() => {
+                InputPoller.AddContextFence("PlayerCraft", "3.5::Window", ActionBind.Exclusion.None);
+                InputPoller.AddBinding(new ActionBind("Craft", CraftEntry), "PlayerCraft:CFT", "3.5::Window");
+                InputPoller.AddBinding(new ActionBind("Deselect",
+                    DeselectDrag, ActionBind.Exclusion.None), "PlayerCraft:DS", "3.5::Window");
+                InputPoller.AddBinding(new ActionBind("Select",
+                    Select, ActionBind.Exclusion.None), "PlayerCraft:SEL", "3.5::Window");
+                InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial),  "PlayerCraft:SELP", "3.5::Window");
+                InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "PlayerCraft:SELA", "3.0::AllWindow");
+            });
 
-        Clear();
-        Refresh();
-        UpdateDisplay();
-        craftingMenu.SetActive(true);
-        Rendering.InitializeDisplay(GridWidth);
-    }
+            Clear();
+            Refresh();
+            UpdateDisplay();
+            craftingMenu.SetActive(true);
+            Rendering.InitializeDisplay(GridWidth);
+        }
 
         public void Deactivate() {
             eventTask.Active = false;
@@ -185,7 +187,7 @@ namespace Arterra.GamePlay.UI {
         }
 
         private void CraftEntry(float _) {
-            CraftRecipe();
+            CraftRecipe(PlayerHandler.data);
             Refresh();
         }
 
@@ -265,7 +267,7 @@ namespace Arterra.GamePlay.UI {
             }
         }
 
-        private bool CraftRecipe() {
+        private bool CraftRecipe(IEventControlled ec = null) {
             if (FitRecipe == -1) return false;
             CraftingRecipe recipe = Recipe.Table[FitRecipe];
             int2 offset = Rendering.GetNormalizationOffset();
@@ -298,6 +300,7 @@ namespace Arterra.GamePlay.UI {
         for (int i = 0; i < itemCount; i++) {
             IItem item = (IItem)result.Clone();
             item.Create((int)recipe.result.Index, amount);
+            ec?.RaiseEvent(GameEvent.Action_CraftItem, ec, item);
             InventoryController.AddEntry(item);
 
             totalAmount -= amount;
@@ -325,13 +328,13 @@ namespace Arterra.GamePlay.UI {
                 return true;
             }
 
-            static void ConsumeIngredientList(InventoryController.Inventory inv, List<CraftingRecipe.Ingredient> recipe, int2 offset, int side, float minIngred) {
+            static void ConsumeIngredientList(IInventory inv, List<CraftingRecipe.Ingredient> recipe, int2 offset, int side, float minIngred) {
                 for (int x = 0; x < side; x++) {
                     for (int y = 0; y < side; y++) {
                         int index = x + y * side;
                         CraftingRecipe.Ingredient ingred = recipe[index];
                         index = (x + offset.x) + (y + offset.y) * side;
-                        IItem placedItem = index >= inv.capacity ? null : inv.Info[index];
+                        IItem placedItem = index >= inv.Capacity ? null : inv.PeekItem(index);
                         if (ingred.Amount <= 0) continue;
                         if (placedItem == null || placedItem.AmountRaw == 0) continue;
                         int delta = Mathf.CeilToInt(placedItem.UnitSize * minIngred);

@@ -4,7 +4,6 @@ using System.Linq;
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.Animations;
-#endif
 
 namespace Arterra.GalmePlay.UI {
     public class ToggleLayerOnCondition : StateMachineBehaviour {
@@ -89,7 +88,7 @@ namespace Arterra.GalmePlay.UI {
             }
         }
     }
-#if UNITY_EDITOR
+    
     [CustomPropertyDrawer(typeof(ToggleLayerOnCondition.Condition))]
     public class ConditionDrawer : PropertyDrawer {
         private AnimatorController GetAnimatorController(SerializedProperty property) {

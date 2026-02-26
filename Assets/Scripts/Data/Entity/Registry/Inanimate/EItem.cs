@@ -51,7 +51,7 @@ public class EItem : Arterra.Data.Entity.Authoring
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
         public bool IsDead => true;
-        public void Interact(Entity target) { }
+        public void Interact(Entity target, Arterra.Data.Item.IItem item) { }
         public IItem[] GetItems() => new []{item.Value};
 
         public IItem Collect(Entity target, float amount) {
@@ -123,6 +123,7 @@ public class EItem : Arterra.Data.Entity.Authoring
                 velocity *= 1 - settings.StickFriction;
             }
             tCollider.Update(this);
+            tCollider.EntityCollisionUpdate(this);
             EntityManager.AddHandlerEvent(controller.Update);
         }
 

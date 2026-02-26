@@ -425,7 +425,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 4440372870634012746
-      type: {class: TooltipTag, ns: , asm: Assembly-CSharp}
+      type: {class: TooltipTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         Tooltips:
           value:

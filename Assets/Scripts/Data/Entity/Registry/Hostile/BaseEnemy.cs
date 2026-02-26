@@ -103,7 +103,7 @@ public class BaseEnemy : Authoring {
         [JsonIgnore]
         public bool IsDead => vitality.IsDead;
         
-        public void Interact(Entity target) { }
+        public void Interact(Entity target, Arterra.Data.Item.IItem item) { }
         //ToDo: Finish implemenation here
         public Arterra.Data.Item.IItem Collect(Entity target, float amount) {
             Arterra.Data.Item.IItem item = null; 
@@ -126,7 +126,7 @@ public class BaseEnemy : Authoring {
             //if unknown, depends
             else TaskIndex = settings.Recognition.FightAggressor ? AnimalTasks.ChaseTarget : AnimalTasks.RunFromTarget; 
             //Don't try to attack a non-attackable entity
-            if (TaskIndex == AnimalTasks.ChaseTarget && attacker is not IAttackable) TaskIndex = AnimalTasks.RunFromTarget;  
+            if (TaskIndex == AnimalTasks.ChaseTarget && !attacker.Is<IAttackable>()) TaskIndex = AnimalTasks.RunFromTarget;  
             pathFinder.hasPath = false;
         }
 
@@ -138,7 +138,7 @@ public class BaseEnemy : Authoring {
         }
 
         private static bool TestNotDead(Entity e) {
-            if (e is not IAttackable attackable)
+            if (!e.Is(out IAttackable attackable))
                 return false;
             return !attackable.IsDead;
         }
@@ -174,6 +174,7 @@ public class BaseEnemy : Authoring {
         public override void Update() {
             if (!active) return;
             tCollider.Update(this);
+            tCollider.EntityCollisionUpdate(this);
             EntityManager.AddHandlerEvent(controller.Update);
 
             TerrainInteractor.DetectMapInteraction(position,
@@ -366,7 +367,7 @@ public class BaseEnemy : Authoring {
                 return;
             }
 
-            if (prey is not IAttackable target || target.IsDead) {
+            if (!prey.Is(out IAttackable target) || target.IsDead) {
                 self.TaskIndex = AnimalTasks.Idle;
                 return;
             }
@@ -467,14 +468,15 @@ public class BaseEnemy : Authoring {
         }
 
         private static void AttackTarget(Animal self) {
-            if (!EntityManager.TryGetEntity(self.TaskTarget, out Entity tEntity))
+            if (self.TaskTarget == Guid.Empty
+                || !EntityManager.TryGetEntity(self.TaskTarget, out Entity tEntity)
+                || !tEntity.Is(out IAttackable target)) {
                 self.TaskTarget = Guid.Empty;
-            else if (tEntity is not IAttackable)
-                self.TaskTarget = Guid.Empty;
-            if (self.TaskTarget == Guid.Empty) {
+                self.TaskDuration = self.settings.movement.AverageIdleTime * self.random.NextFloat(0f, 2f);
                 self.TaskIndex = AnimalTasks.Idle;
                 return;
             }
+
             float targetDist = Recognition.GetColliderDist(tEntity, self);
             if (targetDist > self.genetics.Get(self.settings.Physicality.AttackDistance) || 
                 targetDist < self.genetics.Get(self.settings.rangedAttack.BlindDist)) {
@@ -486,7 +488,6 @@ public class BaseEnemy : Authoring {
             if (math.any(atkDir != 0)) self.tCollider.transform.rotation = Quaternion.RotateTowards(self.tCollider.transform.rotation,
             Quaternion.LookRotation(atkDir), self.settings.movement.rotSpeed * EntityJob.cxt.deltaTime);
 
-            IAttackable target = tEntity as IAttackable;
             if (target.IsDead) self.TaskIndex = AnimalTasks.Idle;
             else self.vitality.Attack(tEntity);
         }

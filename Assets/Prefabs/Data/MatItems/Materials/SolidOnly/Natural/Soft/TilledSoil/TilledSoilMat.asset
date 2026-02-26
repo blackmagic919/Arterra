@@ -75,7 +75,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 6432723091861012552
-      type: {class: ConvertibleTag, ns: , asm: Assembly-CSharp}
+      type: {class: ConvertibleTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         _convertBounds:
           data: 4286643968
@@ -83,7 +83,7 @@ MonoBehaviour:
           data: 2130738944
         GivesItem: 0
     - rid: 6432723091861012553
-      type: {class: ConvertibleToolTag, ns: , asm: Assembly-CSharp}
+      type: {class: ConvertibleToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 0.5
         ToolDamage: 0.5

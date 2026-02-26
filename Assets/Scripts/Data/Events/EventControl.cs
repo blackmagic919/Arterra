@@ -28,8 +28,8 @@ namespace Arterra.Core.Events {
         Entity_Attack = GameEventBases.Entity_Base + 3,
         Entity_Jump = GameEventBases.Entity_Base + 4,
         Entity_Mate = GameEventBases.Entity_Base + 5,
-        Entity_Mount = GameEventBases.Entity_Base + 6,
-        Entity_Dismount = GameEventBases.Entity_Base + 7,
+        Entity_Guided = GameEventBases.Entity_Base + 6,
+        Entity_Fed = GameEventBases.Entity_Base + 7,
         Entity_HitGround = GameEventBases.Entity_Base + 8,
 
         Entity_ItemEnterPrimaryInventory = GameEventBases.Entity_Base + 9,
@@ -45,6 +45,9 @@ namespace Arterra.Core.Events {
         Entity_Collect = GameEventBases.Entity_Base + 18,
         Entity_RemoveMaterial = GameEventBases.Entity_Base + 19,
         Entity_PlaceMaterial = GameEventBases.Entity_Base + 20,
+        Entity_Interact = GameEventBases.Entity_Base + 21,
+        Entity_CanMate = GameEventBases.Entity_Base + 22,
+
         
         
         Item_ConsumeFood = GameEventBases.Item_Base + 0,
@@ -71,6 +74,10 @@ namespace Arterra.Core.Events {
         Action_OpenChest = GameEventBases.Action_Base + 11,
         Action_OpenFurnace = GameEventBases.Action_Base + 12,
         Action_OpenMortar = GameEventBases.Action_Base + 13,
+        Action_Mount = GameEventBases.Action_Base + 14,
+        Action_Dismount = GameEventBases.Action_Base + 15,
+        Action_Mounted = GameEventBases.Action_Base + 15,
+        Action_Dismounted = GameEventBases.Action_Base + 16,
 
         System_Deserialize = GameEventBases.System_Base + 0,
     }
@@ -132,6 +139,10 @@ namespace Arterra.Core.Events {
             if (events.ContainsKey((int)type)) {
                 events[(int)type] = Delegate.Remove(events[(int)type], handler);
             }
+        }
+
+        public void RemoveEventHandler(GameEvent type) {
+            events.Remove((int)type);
         }
 
         /// <summary>

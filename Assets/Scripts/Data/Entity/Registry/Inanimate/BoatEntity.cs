@@ -56,16 +56,16 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
         public void Dismount() {
             if (RiderTarget == Guid.Empty) return;
             if (!EntityManager.TryGetEntity(RiderTarget, out Entity target) ||
-                target is not IRider rider)
+                !target.Is(out IRider rider))
                 return;
 
             EntityManager.AddHandlerEvent(() => rider.OnDismounted(this));
             RiderTarget = Guid.Empty;
         }
 
-        public void Interact(Entity caller) {
+        public void Interact(Entity caller, Arterra.Data.Item.IItem item) {
             if (caller == null) return;
-            if (caller is not IRider rider) return;
+            if (!caller.Is(out IRider rider)) return;
             if (RiderTarget != Guid.Empty) return; //Already has a rider
             RiderTarget = caller.info.entityId;
             EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
@@ -92,7 +92,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
 
             if (math.length(velocity) <= settings.MaxLandSpeed &&
                 PlayerHandler.data.collider.SampleCollision(origin, new float3(
-                settings.collider.size.x, -settings.groundStickDist, settings.collider.size.z), out _)
+                settings.collider.size.x, -settings.groundStickDist, settings.collider.size.z))
             ) {
                 velocity += settings.Acceleration * EntityJob.cxt.deltaTime * aim;
             } else {
@@ -125,7 +125,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
 
             if (RiderTarget == Guid.Empty) return;
             if (EntityManager.TryGetEntity(RiderTarget, out Entity entity)
-                && entity is IRider rider)
+                && entity.Is(out IRider rider))
                 EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
         }
 
@@ -153,6 +153,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             }
 
             tCollider.Update(this);
+            tCollider.EntityCollisionUpdate(this);
             EntityManager.AddHandlerEvent(controller.Update);
 
             if (!IsDead) return;
