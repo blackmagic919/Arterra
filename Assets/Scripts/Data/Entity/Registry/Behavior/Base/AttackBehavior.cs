@@ -101,7 +101,6 @@ namespace Arterra.Data.Entity.Behavior {
             attackProgress = settings.AttackDuration;
             attackCooldown = 0;
             this.self = self;
-            self.Register(this);
         }
 
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -111,7 +110,6 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: Attack Behavior Requires AnimalInstance to have GeneticsBehavior");
             
             this.self = self;
-            self.Register(this);
         }
 
         public void Disable() {

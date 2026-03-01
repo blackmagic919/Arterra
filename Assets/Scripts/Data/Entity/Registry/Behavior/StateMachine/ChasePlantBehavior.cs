@@ -34,6 +34,7 @@ namespace Arterra.Data.Entity.Behavior {
         private FindPlantBehaviorSettings findPlant;
         private HuntBehaviorSettings hunt;
         private Movement movement;
+        private MMove mmove; //optional
 
         private StateMachineManagerBehavior manager;
         private PathFinderBehavior path;
@@ -47,9 +48,10 @@ namespace Arterra.Data.Entity.Behavior {
         public void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
             
-            Movement.FollowStaticPath(self.settings.profile, ref path.pathFinder, ref self.collider,
-                genetics.Genes.Get(movement.walkSpeed), movement.rotSpeed,
-                movement.acceleration);
+            Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
+                ref path.pathFinder, ref self.collider,
+                MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.walkSpeed),
+                movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.TaskName));
             if (path.pathFinder.hasPath) return;
 
             if (findPlant.FindPreferredPreyPlant((int3)math.round(self.position), genetics.Genes.GetInt(
@@ -73,7 +75,8 @@ namespace Arterra.Data.Entity.Behavior {
                 out int3 preyPos
             )) return false;
 
-            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.GCoord, preyPos - self.GCoord, movement.pathDistance, self.settings.profile,
+            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.GCoord, preyPos - self.GCoord, movement.pathDistance,
+                MMove.Profile(mmove, settings.TaskName, self.settings),
                 EntityJob.cxt, out int pLen);
             path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
             float dist = Recognition.GetColliderDist(self, preyPos);
@@ -112,6 +115,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ChasePlant Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out findPlant))
                 throw new System.Exception("Entity: ChasePlant Behavior Requires AnimalSettings to have FindPlantBehaviorSettings");
+            if (!setting.Is(out mmove)) mmove = null;
             if (!self.Is(out genetics))
                 throw new System.Exception("Entity: ChasePlant Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
@@ -124,7 +128,6 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ChasePlant Behavior Requires AnimalSettings to have Hunt");
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
-            manager.RegisterAnimation(settings.TaskName, ChasePlantSettings.AnimationParam);
             IsHunting = false;
             this.self = self;
         }
@@ -136,6 +139,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ChasePlant Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out findPlant))
                 throw new System.Exception("Entity: ChasePlant Behavior Requires AnimalSettings to have FindPlantBehaviorSettings");
+            if (!setting.Is(out mmove)) mmove = null;
             if (!self.Is(out genetics))
                 throw new System.Exception("Entity: ChasePlant Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
@@ -148,7 +152,6 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ChasePlant Behavior Requires AnimalSettings to have Hunt");
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
-            manager.RegisterAnimation(settings.TaskName, ChasePlantSettings.AnimationParam);
             this.self = self;
         }
 

@@ -62,11 +62,11 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         //Finds the most preferred mate it can see, then the closest one it prefers
-        public bool FindPreferredMate(Entity self, float sightDist, out Entity entity) {
+        public bool FindPreferredMate(Entity self, float sightDist, out Entity entity, RelationsBehavior relations = null) {
             entity = null; if (AwarenessTable == null) return false;
             if (Mates.value == null || Mates.value.Count == 0) return false;
 
-            Entity cEntity = null; int pPref = -1;
+            Entity cEntity = null; float pPref = -1;
             float closestDist = sightDist + 1;
 
             Dictionary<int, int> Awareness = AwarenessTable;
@@ -79,6 +79,9 @@ namespace Arterra.Data.Entity.Behavior {
                 int preference = Awareness[(int)nEntity.info.entityType];
                 if (!nEntity.Is(out IMateable mateable)) return;
                 if (!mateable.CanMateWith(self)) return;
+                //If we have relations, prefer higher relations but always under categorical preference differences (in awareness table)
+                if (relations != null) pPref -= 1 - math.exp(relations.GetAffection(nEntity.info.entityId));
+
                 if (cEntity != null) {
                     if (preference > pPref) return;
                     if (pPref == preference && Recognition.GetColliderDist(nEntity, self) >= closestDist)
@@ -109,14 +112,14 @@ namespace Arterra.Data.Entity.Behavior {
             for (int i = 0; i < amount; i++) {
                 Entity child = Config.CURRENT.Generation.Entities.Retrieve((int)childIndex).Entity;
                 EntityManager.CreateEntity((int3)entity.position, childIndex, child);
-                if (!child.Is(out IMateable childM)) continue;
 
-                childM.Genetics = genetics.CrossGenes(
+
+                child.RegisterConstructor(genetics.CrossGenes(
                     mate.Genetics,
                     ofsp.GeneMutationRate,
                     childIndex,
                     ref random
-                );
+                ));
             }
 
             return true;
@@ -176,7 +179,6 @@ namespace Arterra.Data.Entity.Behavior {
 
             this.self = self;
             self.Register<IMateable>(this);
-            self.Register(this);
         }
 
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -189,7 +191,6 @@ namespace Arterra.Data.Entity.Behavior {
 
             this.self = self;
             self.Register<IMateable>(this);
-            self.Register(this);
         }
 
         public void Disable() {

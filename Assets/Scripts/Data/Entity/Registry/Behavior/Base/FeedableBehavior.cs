@@ -84,7 +84,6 @@ namespace Arterra.Data.Entity.Behavior {
             
             this.self = self;
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Interact, OnInteracted);
-            self.Register(this);
         }
         
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -101,7 +100,6 @@ namespace Arterra.Data.Entity.Behavior {
             
             this.self = self;
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Interact, OnInteracted);
-            self.Register(this);
         }
         
         public void Disable(BehaviorEntity.Animal self) {

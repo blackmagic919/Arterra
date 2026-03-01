@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 79911cd5cf6af49e29186706689cf084, type: 3}
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
   m_Name: Vulture
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
   Name: Vulture
   Tags:
     Reg:
@@ -101,134 +101,592 @@ MonoBehaviour:
           z: 2
       collider:
         size:
-          x: 0.5
-          y: 0.5
-          z: 0.5
-        friction: 0.25
-      movement:
-        walkSpeed:
-          mean: 3
-          var: 0.45
-          geneWeight: 0.25
-        runSpeed:
-          mean: 12
-          var: 0.5
-          geneWeight: 0.75
-        pathDistance: 31
-        acceleration: 100
-        rotSpeed: 180
-        AverageIdleTime: 2.5
-      flight:
-        profile:
-          bounds:
-            x: 2
-            y: 3
-            z: 2
-        AverageFlightTime:
-          mean: 20
-          var: 0.5
-          geneWeight: 0.175
-        FlyBiasWeight:
-          mean: 0.25
-          var: 1
+          x: 0.75
+          y: 0.75
+          z: 0.75
+      Behaviors:
+        value: 00000000f103000003000000ea030000ed03000001000000e8030000e9030000eb030000ec03000010270000242700002e27000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000202700001c270000
+      Settings:
+        value:
+        - value:
+            rid: 3097084119023353985
+        - value:
+            rid: 3097084119023354038
+        - value:
+            rid: 3097083922518114515
+        - value:
+            rid: 3097084037468258398
+        - value:
+            rid: 3097083922518114516
+        - value:
+            rid: 3097083922518114517
+        - value:
+            rid: 3097083922518114518
+        - value:
+            rid: 3097083922518114519
+        - value:
+            rid: 3097083922518114520
+        - value:
+            rid: 3097083922518114523
+        - value:
+            rid: 3097084119023353989
+        - value:
+            rid: 3097083922518114524
+        - value:
+            rid: 3097083922518114525
+        - value:
+            rid: 3097083922518114526
+        - value:
+            rid: 3097083922518114527
+        - value:
+            rid: 3097083922518114528
+        - value:
+            rid: 3097083922518114545
+        - value:
+            rid: 3097083922518114529
+        - value:
+            rid: 3097083922518114530
+        - value:
+            rid: 3097083922518114531
+        - value:
+            rid: 3097083922518114532
+        - value:
+            rid: 3097083922518114533
+        - value:
+            rid: 3097083922518114534
+        - value:
+            rid: 3097083922518114535
+        - value:
+            rid: 3097084037468258406
+        - value:
+            rid: 3097084037468258407
+        - value:
+            rid: 3097084037468258408
+        - value:
+            rid: 3097084052764622976
+        - value:
+            rid: 3097084119023354002
+        - value:
+            rid: 3097084119023354028
+        - value:
+            rid: 3097084119023353994
+  _prevBehaviorCount: 28
+  references:
+    version: 2
+    RefIds:
+    - rid: 3097083922518114515
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 2.4
+        StartHealthPercent: 0.7
+        StartHealthVariance: 0.05
+        MaxHealth:
+          mean: 18
+          var: 0.35
+          geneWeight: 0.4
+        NaturalRegen:
+          mean: -0.015
+          var: 0.25
           geneWeight: 0.2
-        VerticalFreedom: 0.5
-      decomposition:
+        InvincTime:
+          mean: 0.25
+          var: 0.1
+          geneWeight: 0.025
+        HoldBreathTime:
+          mean: 10
+          var: 0.5
+          geneWeight: 0.01
+    - rid: 3097083922518114516
+      type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseFallDamage: 1
+    - rid: 3097083922518114517
+      type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StartTask: 0
+        AverageStartDuration: 2
+        AverageStartDurationVariance: 1
+        ContactDistance: 2
+    - rid: 3097083922518114518
+      type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AttackDistance:
+          mean: 2.2
+          var: 0.25
+          geneWeight: 0.2
+        AttackDamage:
+          mean: 3.8
+          var: 0.5
+          geneWeight: 0.6
+        AttackCooldown:
+          mean: 0.33
+          var: 0.5
+          geneWeight: 0.3
+        KBStrength:
+          mean: 2.8
+          var: 0.5
+          geneWeight: 0.1
+        AttackDuration: 0.32
+    - rid: 3097083922518114519
+      type: {class: MateRecognition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Mates:
+          value:
+          - MateType: Vulture
+            ChildType: Vulture
+            AmountPerParent:
+              mean: 0.5
+              var: 0.25
+              geneWeight: 0.2
+            GeneMutationRate: 0.02
+        MateCost:
+          mean: 5.4
+          var: 0.4
+          geneWeight: 0.15
+    - rid: 3097083922518114520
+      type: {class: IdleStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageIdleTime:
+          mean: 2.5
+          var: 0.5
+          geneWeight: 0.025
+        AverageIdleVariance:
+          mean: 0.05
+          var: 0.75
+          geneWeight: 0.01
+        TaskName: 0
+        OnCompleteTransition: 100
+        CheckTransitions:
+          value: 844e0000f87500005c760000
+    - rid: 3097083922518114523
+      type: {class: ChaseMateStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Task1Name: 20100
+        Task2Name: 20200
+        OnNotFoundTransition: 100
+        OnFinishMateTransition: 0
+        MateThreshold:
+          mean: 0.8
+          var: 0.125
+          geneWeight: 0.1
+        PregnacyLength: 4
+        SearchDistance:
+          mean: 32
+          var: 0.25
+          geneWeight: 0.2
+        OnSwitchPath:
+          value: 
+    - rid: 3097083922518114524
+      type: {class: ChasePlantSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30200
+        OnNotFoundTransition: 0
+        OnReachPreyTransition: 30400
+        SearchDistance:
+          mean: 8
+          var: 0.25
+          geneWeight: 0.15
+    - rid: 3097083922518114525
+      type: {class: FindPlantBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Prey:
+          value: []
+    - rid: 3097083922518114526
+      type: {class: HuntBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        HuntThreshold:
+          mean: 0.4
+          var: 0.25
+          geneWeight: 0.1
+        StopHuntThreshold:
+          mean: 0.9
+          var: 0.05
+          geneWeight: 0.05
+    - rid: 3097083922518114527
+      type: {class: ChasePreySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30300
+        OnNotFoundTransition: 100
+        OnReachPreyTransition: 30600
+        DesiredPreyState: 2
+        SearchDistance:
+          mean: 32
+          var: 0.25
+          geneWeight: 0.2
+        Prey:
+          value:
+          - EntityType: Camel
+          - EntityType: Coyote
+          - EntityType: Lion
+          - EntityType: Lioness
+          - EntityType: Elephant
+    - rid: 3097083922518114528
+      type: {class: ConsumeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Edibles:
+          value:
+          - EdibleType: Meat
+            Nutrition:
+              mean: 10
+              var: 0.25
+              geneWeight: 0.3
+        ConsumptionRate: 0.4
+    - rid: 3097083922518114529
+      type: {class: ConsumeEntitySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30500
+        OnFinishedEating: 100
+        OnSeperateTarget: 50100
+        OnLostTarget: 100
+    - rid: 3097083922518114530
+      type: {class: AttackTargetSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30600
+        OnTargetPreyDeath: 30500
+        OnTargetDeath: 100
+        OnSeperateTarget: 50100
+        OnLostTarget: 100
+    - rid: 3097083922518114531
+      type: {class: ChaseAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50100
+        OnLostAttacker: 100
+        OnReachAttacker: 30600
+        ChaseDistance:
+          mean: 32
+          var: 0.25
+          geneWeight: 0.2
+    - rid: 3097083922518114532
+      type: {class: RunFromPredatorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 40000
+        OverridableStates: 30500
+        OnFinishRunning: 100
+        Predators:
+          value: []
+    - rid: 3097083922518114533
+      type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        fleeDist: 5
+        detectDist:
+          mean: 24
+          var: 0.25
+          geneWeight: 0.3
+        FightAggressor: 1
+    - rid: 3097083922518114534
+      type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50000
+        OverridableStates: 30600
+        OnLostAttacker: 100
+    - rid: 3097083922518114535
+      type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 60000
+        OnReviveTask: 0
+        DecompositionTime:
+          mean: 230
+          var: 0.35
+          geneWeight: 0.01
+    - rid: 3097083922518114545
+      type: {class: ConsumeMaterialSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30400
+        OnFinishedEating: 0
+        OnLostTarget: 50100
+    - rid: 3097084037468258398
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
         LootTable:
           value:
           - ItemName: Meat
             DropAmount:
-              mean: 0.03921569
-              var: 1
+              mean: 0.026086956
+              var: 0.75
               geneWeight: 0.05
           - ItemName: Feather
             DropAmount:
-              mean: 0.03137255
-              var: 1
+              mean: 0.034782607
+              var: 0.75
               geneWeight: 0.05
-        DecompositionTime:
-          mean: 200
+    - rid: 3097084037468258406
+      type: {class: FeedableBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        CanEat: 0
+    - rid: 3097084037468258407
+      type: {class: RelationsBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        OnFedAffection:
+          mean: 8
           var: 0.5
+          geneWeight: 0.025
+        OnProtectAffection:
+          mean: 8
+          var: 0.75
+          geneWeight: 0.025
+        OnSaveAffection:
+          mean: 15
+          var: 0.5
+          geneWeight: 0.025
+        OnMateAffection:
+          mean: 20
+          var: 0.5
+          geneWeight: 0.025
+        OnBetrayalAffection:
+          mean: -2.5
+          var: 0.5
+          geneWeight: 0.025
+        OnRivalMateAffection:
+          mean: -14
+          var: 0.5
+          geneWeight: 0.025
+        OnAttackAffection:
+          mean: -16
+          var: 0.5
+          geneWeight: 0.025
+        ForgetFalloff:
+          mean: 0.2
+          var: 0.5
+          geneWeight: 0.025
+        BaseForgetRate:
+          mean: 0.05
+          var: 0.7
+          geneWeight: 0.025
+        SuppressInstinctAffection: 10
+        GossipCooldown:
+          mean: 5
+          var: 0.25
+          geneWeight: 0.01
+        GossipRadius:
+          mean: 8
+          var: 0.5
+          geneWeight: 0.01
+        GossipCloseness:
+          mean: 0.1
+          var: 0.5
+          geneWeight: 0.01
+        GossipStrength:
+          mean: 0.2
+          var: 0.75
+          geneWeight: 0.01
+        GossipAmount:
+          mean: 2.5
+          var: 0.5
+          geneWeight: 0.01
+        EscapingTargetStates:
+          value: 409c000050c30000
+    - rid: 3097084037468258408
+      type: {class: ChaseFriendsSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 300
+        OnReachTransition: 100
+        SearchDistance:
+          mean: 30
+          var: 0.25
+          geneWeight: 0.01
+        ChaseProbability:
+          mean: 0.02
+          var: 0.75
           geneWeight: 0.05
-      recognition:
-        value:
-          Predators:
-            value: []
-          Mates:
-            value:
-            - MateType: Vulture
-              ChildType: Vulture
-              AmountPerParent:
-                mean: 0.5
-                var: 0.75
-                geneWeight: 0.25
-              GeneMutationRate: 0.05
-          Edibles:
-            value:
-            - EdibleType: Meat
-              Nutrition:
-                mean: 12.75
-                var: 0.5
-                geneWeight: 0.1
-          SightDistance:
-            mean: 30
+        FightEnemyAffection:
+          mean: -12.5
+          var: 0.25
+          geneWeight: 0.025
+        ChaseEnemyState: 50100
+    - rid: 3097084052764622976
+      type: {class: DefendFriendSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        CallFriendRadius:
+          mean: 18
+          var: 0.3
+          geneWeight: 0.1
+        HelpFriendAffection:
+          mean: 12
+          var: 0.5
+          geneWeight: 0.1
+        HelpFriendState: 50100
+        OverridableStates: 30200
+    - rid: 3097084119023353985
+      type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath: 
+        StateAnimations:
+          value:
+          - task: 0
+            Animation: IsIdling
+          - task: 100
+            Animation: IsFlying
+          - task: 200
+            Animation: IsFlying
+          - task: 300
+            Animation: IsFlying
+          - task: 20000
+            Animation: IsWalking
+          - task: 20100
+            Animation: IsWalking
+          - task: 400
+            Animation: IsFlying
+          - task: 20200
+            Animation: IsCuddling
+          - task: 20300
+            Animation: IsFlying
+          - task: 30200
+            Animation: IsWalking
+          - task: 30300
+            Animation: IsFlying
+          - task: 30400
+            Animation: IsEating
+          - task: 30500
+            Animation: IsEating
+          - task: 30600
+            Animation: IsAttacking
+          - task: 40000
+            Animation: IsFlying
+          - task: 50000
+            Animation: IsFlying
+          - task: 50100
+            Animation: IsFlying
+          - task: 50200
+            Animation: IsAttacking
+          - task: 60000
+            Animation: IsDead
+    - rid: 3097084119023353989
+      type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        walkSpeed:
+          mean: 1.75
+          var: 0.25
+          geneWeight: 0.2
+        runSpeed:
+          mean: 2.2
+          var: 0.35
+          geneWeight: 0.3
+        pathDistance: 32
+        acceleration: 200
+        rotSpeed: 180
+    - rid: 3097084119023353994
+      type: {class: MMove, ns: , asm: Assembly-CSharp}
+      data:
+        movements:
+          value:
+          - state: 100
+            ProfileIndex: 1
+            allow3DRot: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 30300
+            ProfileIndex: 1
+            allow3DRot: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 300
+            ProfileIndex: 1
+            allow3DRot: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 40000
+            ProfileIndex: 1
+            allow3DRot: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 50100
+            ProfileIndex: 1
+            allow3DRot: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 400
+            ProfileIndex: 1
+            allow3DRot: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 30600
+            ProfileIndex: 1
+            allow3DRot: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 50000
+            ProfileIndex: 1
+            allow3DRot: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 30500
+            ProfileIndex: 1
+            allow3DRot: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+        profiles:
+          value:
+          - bounds:
+              x: 2
+              y: 3
+              z: 2
+            offset: 0
+          - bounds:
+              x: 2
+              y: 3
+              z: 2
+            offset: 12
+        customSpeeds:
+          value:
+          - mean: 4.8
             var: 0.25
-            geneWeight: 0.75
-          FleeDistance: 5
-          FightAggressor: 0
-          PreyEntity:
-            value:
-            - EntityType: Camel
-            - EntityType: Coyote
-      physicality:
-        value:
-          weight: 0.25
-          MaxHealth:
-            mean: 8
-            var: 0.5
-            geneWeight: 1
-          NaturalRegen:
-            mean: -0.01
-            var: 0.75
-            geneWeight: 0.5
-          InvincTime:
-            mean: 0.25
-            var: 1
-            geneWeight: 0.5
-          HoldBreathTime:
-            mean: 10
-            var: 1
-            geneWeight: 0.05
-          AttackDistance:
-            mean: 3
-            var: 0.75
-            geneWeight: 0.33
-          AttackDamage:
-            mean: 2
-            var: 0.75
-            geneWeight: 0.33
-          AttackCooldown:
-            mean: 1
-            var: 0.75
-            geneWeight: 0.4
-          KBStrength:
-            mean: 2
-            var: 0.5
-            geneWeight: 0.25
-          HuntThreshold:
-            mean: 0.4
-            var: 0.25
-            geneWeight: 0.1
-          MateThreshold:
-            mean: 0.7
-            var: 0.15
-            geneWeight: 0.1
-          MateCost:
-            mean: 3
-            var: 0.5
-            geneWeight: 0.66
-          PregnacyLength: 5
-          ConsumptionRate: 0.5
-  references:
-    version: 2
-    RefIds: []
+            geneWeight: 0.3
+    - rid: 3097084119023354002
+      type: {class: LandOnGroundSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 400
+        OnReachGround: 0
+        ProxyTestName: 410
+        ProxyTestTransitions:
+          value: f8750000844e0000
+        ApproachAngleMax:
+          mean: 0.85
+          var: 0.1
+          geneWeight: 0.075
+        ApproachAngleFalloff:
+          mean: 0.5
+          var: 0.25
+          geneWeight: 0.075
+    - rid: 3097084119023354028
+      type: {class: RandomFlyStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageFlyTime:
+          mean: 37.5
+          var: 0.5
+          geneWeight: 0.1
+        AveragFlyVariance:
+          mean: 0.1
+          var: 0.5
+          geneWeight: 0.1
+        VerticalFreedom:
+          mean: 0.3
+          var: 0.5
+          geneWeight: 0.1
+        TaskName: 100
+        OnStopFlyTransition: 400
+        OnSwitchPath:
+          value: 2c0100005c7600009a010000
+    - rid: 3097084119023354038
+      type: {class: FlapWingsBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        FlyingAnimatorParam: IsFlying
+        FlapWingsAnimatorParam: IsAscending

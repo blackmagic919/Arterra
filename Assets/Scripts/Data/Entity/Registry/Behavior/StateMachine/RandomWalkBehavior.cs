@@ -7,12 +7,11 @@ using Unity.Mathematics;
 
 namespace Arterra.Data.Entity.Behavior {
     public class RandomWalkStateSettings : IBehaviorSetting {
-        public const string AnimationParam = "IsWalking";
-        public Genetics.GeneFeature AverageWalkTime;
-        public Genetics.GeneFeature AveragWalkVariance;
+        public Genetics.GeneFeature AverageWalkTime = new () {mean = 20, geneWeight = 0.05f, var = 0.5f};
+        public Genetics.GeneFeature AveragWalkVariance = new () {mean = 0.1f, geneWeight = 0.01f, var = 0.25f};
 
         public EntitySMTasks TaskName = EntitySMTasks.RandomPath;
-        public EntitySMTasks OnStopWalkTransition = EntitySMTasks.RandomPath;
+        public EntitySMTasks OnStopWalkTransition = EntitySMTasks.Idle;
         public Option<List<EntitySMTasks> > OnSwitchPath;
 
         public object Clone() {
@@ -35,6 +34,7 @@ namespace Arterra.Data.Entity.Behavior {
     public class RandomWalkBehavior : IBehavior {
         private RandomWalkStateSettings settings;
         private Movement movement;
+        private MMove mmove; //optional
 
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager; 
@@ -45,9 +45,10 @@ namespace Arterra.Data.Entity.Behavior {
         public void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
             if (path.pathFinder.hasPath) {
-                Movement.FollowStaticPath(self.settings.profile, ref path.pathFinder, ref self.collider,
-                    genetics.Genes.Get(movement.walkSpeed), movement.rotSpeed,
-                    movement.acceleration);
+                Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
+                    ref path.pathFinder, ref self.collider,
+                    MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.walkSpeed),
+                    movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.TaskName));
                 return;
             }
             
@@ -65,7 +66,9 @@ namespace Arterra.Data.Entity.Behavior {
             );
 
             if (PathFinder.VerifyProfile(self.GCoord + dP, self.settings.profile, EntityJob.cxt)) {
-                byte[] nPath = PathFinder.FindPath(self.GCoord, dP, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                byte[] nPath = PathFinder.FindPath(self.GCoord, dP, PathDist + 1,
+                    MMove.Profile(mmove, settings.TaskName, self.settings),
+                    EntityJob.cxt, out int pLen);
                 path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
             }
         }
@@ -96,6 +99,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: RandomWalk Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: RandomWalk Behavior Requires AnimalSettings to have Movement");
+            if (!setting.Is(out mmove)) mmove = null;
             if (!self.Is(out genetics))
                 throw new System.Exception("Entity: RandomWalk Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
@@ -105,7 +109,6 @@ namespace Arterra.Data.Entity.Behavior {
             
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
-            manager.RegisterAnimation(settings.TaskName, RandomWalkStateSettings.AnimationParam);
             this.self = self;
         }
 
@@ -114,6 +117,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: RandomWalk Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: RandomWalk Behavior Requires AnimalSettings to have Movement");
+            if (!setting.Is(out mmove)) mmove = null;
             if (!self.Is(out genetics))
                 throw new System.Exception("Entity: RandomWalk Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
@@ -122,7 +126,6 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: RandomWalk Behavior Requires AnimalInstance to have PathFinderBehavior");
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
-            manager.RegisterAnimation(settings.TaskName, RandomWalkStateSettings.AnimationParam);
             this.self = self;
         }
 

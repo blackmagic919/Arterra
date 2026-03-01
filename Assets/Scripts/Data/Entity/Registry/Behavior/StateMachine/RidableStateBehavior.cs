@@ -8,8 +8,6 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
 public class RideableStateSettings : IBehaviorSetting {
-    public const string Animation1Param = "IsWalking";
-    public const string Animation2Param = "IsWalking";
     public EntitySMTasks TaskName = EntitySMTasks.FollowRider;
     public EntitySMTasks OnDismount = EntitySMTasks.Idle;
     public Genetics.GeneFeature AffinityThreshold = new (){mean = 5f, var = 0.5f, geneWeight = 0.05f };
@@ -30,6 +28,7 @@ public class RideableStateSettings : IBehaviorSetting {
 public class RidableStateBehavior : IBehavior {
     private RideableStateSettings settings;
     private Movement movement;
+    private MMove mmove; //optional
 
     private BehaviorEntity.Animal self;
     private RidableBehavior ridable;
@@ -46,7 +45,7 @@ public class RidableStateBehavior : IBehavior {
         float3 aim = (cxt as RefTuple<float3>).Value;
         aim = new(aim.x, 0, aim.z);
         if (Vector3.Magnitude(aim) <= 1E-05f) return;
-        if (math.length(self.velocity) > genetics.Genes.Get(movement.runSpeed))
+        if (math.length(self.velocity) > MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed))
             return;
 
         self.velocity += movement.acceleration * EntityJob.cxt.deltaTime * aim;
@@ -61,7 +60,10 @@ public class RidableStateBehavior : IBehavior {
         }
 
         if (math.length(self.velocity.xz) < 1E-05f) return;
-        float3 aim = math.normalize(new float3(self.velocity.x, 0, self.velocity.z));
+        float3 aim;
+        if (MMove.Allow3DRot(mmove, settings.TaskName))aim = math.normalize(self.velocity);
+        else aim = math.normalize(new float3(self.velocity.x, 0, self.velocity.z));
+        
         self.collider.transform.rotation = Quaternion.RotateTowards(self.collider.transform.rotation,
         Quaternion.LookRotation(aim), movement.rotSpeed * EntityJob.cxt.deltaTime);
     }
@@ -72,7 +74,7 @@ public class RidableStateBehavior : IBehavior {
         if (relations != null
             && interactor != null
             && interactor is Entity rider
-            && relations.GetAffinity(rider.info.entityId)
+            && relations.GetAffection(rider.info.entityId)
             < genetics.Genes.Get(settings.AffinityThreshold)
         ) {
             valid.Value = false;
@@ -80,7 +82,7 @@ public class RidableStateBehavior : IBehavior {
         }
         
         if (manager.TaskIndex < settings.TaskName) 
-            manager.TaskIndex = settings.TaskName;
+            manager.Transition(settings.TaskName);
     }
 
 
@@ -100,6 +102,7 @@ public class RidableStateBehavior : IBehavior {
             throw new System.Exception("Entity: RideableState Behavior Requires AnimalSettings to have RideableStateSettings");
         if (!setting.Is(out movement))
             throw new System.Exception("Entity: RideableState Behavior Requires AnimalSettings to have Movement");
+        if (!setting.Is(out mmove)) mmove = null;
         if (!self.Is(out genetics))
             throw new System.Exception("Entity: RideableState Behavior Requires AnimalInstance to have GeneticsBehavior");
         if (!self.Is(out manager))
@@ -109,7 +112,6 @@ public class RidableStateBehavior : IBehavior {
         if (!self.Is(out relations)) relations = null;
         
         manager.RegisterTransition(settings.TaskName, TransitionTo);
-        manager.RegisterAnimation(settings.TaskName, RideableStateSettings.Animation1Param);
         self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Guided, WalkInDirection);
         self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Action_Mounted, Mounted);
         this.self = self;
@@ -120,6 +122,7 @@ public class RidableStateBehavior : IBehavior {
             throw new System.Exception("Entity: RideableState Behavior Requires AnimalSettings to have RideableStateSettings");
         if (!setting.Is(out movement))
             throw new System.Exception("Entity: RideableState Behavior Requires AnimalSettings to have Movement");
+        if (!setting.Is(out mmove)) mmove = null;
         if (!self.Is(out genetics))
             throw new System.Exception("Entity: RideableState Behavior Requires AnimalInstance to have GeneticsBehavior");
         if (!self.Is(out manager))
@@ -129,7 +132,6 @@ public class RidableStateBehavior : IBehavior {
         if (!self.Is(out relations)) relations = null;
         
         manager.RegisterTransition(settings.TaskName, TransitionTo);
-        manager.RegisterAnimation(settings.TaskName, RideableStateSettings.Animation1Param);
         self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Guided, WalkInDirection);
         self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Action_Mounted, Mounted);
         this.self = self;

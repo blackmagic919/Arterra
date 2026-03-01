@@ -9,14 +9,15 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class AttackTargetSettings : IBehaviorSetting {
-        public const string AnimationParam = "IsAttacking";
         public EntitySMTasks TaskName = EntitySMTasks.AttackTarget;
-        public EntitySMTasks OnTargetDeath = EntitySMTasks.EatEntity;
+        public EntitySMTasks OnTargetPreyDeath = EntitySMTasks.EatEntity;
+        public EntitySMTasks OnTargetDeath = EntitySMTasks.Idle;
         public EntitySMTasks OnSeperateTarget = EntitySMTasks.ChaseTarget;
         public EntitySMTasks OnLostTarget = EntitySMTasks.Idle;
 
         public object Clone() {
             return new AttackTargetSettings(){
+                OnTargetPreyDeath = OnTargetPreyDeath,
                 OnTargetDeath = OnTargetDeath,
                 OnSeperateTarget = OnSeperateTarget,
                 OnLostTarget = OnLostTarget,
@@ -28,6 +29,7 @@ namespace Arterra.Data.Entity.Behavior {
     public class AttackTargetBehavior : IBehavior {
         private AttackTargetSettings settings;
         private Movement movement;
+        private ChasePreyBehavior prey;
 
         private AttackBehavior attack;
         private StateMachineManagerBehavior manager;
@@ -55,8 +57,11 @@ namespace Arterra.Data.Entity.Behavior {
             if (math.any(atkDir != 0)) self.collider.transform.rotation = Quaternion.RotateTowards(self.collider.transform.rotation,
             Quaternion.LookRotation(atkDir), movement.rotSpeed * EntityJob.cxt.deltaTime);
 
-            if (atkTarget.IsDead) manager.Transition(settings.OnTargetDeath);
-            else attack.Attack(target);
+            if (atkTarget.IsDead) {
+                if (prey != null && prey.settings.Recognize((int)target.info.entityType))
+                    manager.Transition(settings.OnTargetPreyDeath);
+                else manager.Transition(settings.OnTargetDeath);
+            } else attack.Attack(target);
         } 
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
@@ -73,7 +78,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
-                throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalSettings to have RandomWalkState");
+                throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalSettings to have AttackTargetSettings");
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalSettings to have Movement");
             if (!self.Is(out genetics))
@@ -82,12 +87,12 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out attack))
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalInstance to have AttackBehavior");
-            manager.RegisterAnimation(settings.TaskName, AttackTargetSettings.AnimationParam);
+            if (!self.Is(out prey)) prey = null;
         }
 
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
-                throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalSettings to have RandomWalkState");
+                throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalSettings to have AttackTargetSettings");
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalSettings to have Movement");
             if (!self.Is(out genetics))
@@ -96,7 +101,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out attack))
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalInstance to have AttackBehavior");
-            manager.RegisterAnimation(settings.TaskName, AttackTargetSettings.AnimationParam);
+            if (!self.Is(out prey)) prey = null;
         }
     }
 }

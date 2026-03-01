@@ -18,14 +18,19 @@ namespace Arterra.Utils
     public sealed class TypeNameElementListAttribute : PropertyAttribute
     {
         public readonly string elementValuePath;
+        public readonly Type[] allowedTypes;
 
         /// <param name="elementValuePath">
         /// Relative path from the array element to the SerializeReference field used for naming.
         /// For ReferenceOption&lt;IBehaviorSetting&gt; this is "value".
         /// </param>
-        public TypeNameElementListAttribute(string elementValuePath = "value")
+        /// <param name="allowedTypes">
+        /// Array of types that can be added to the list. If provided, clicking + will show a popup to select from these types.
+        /// </param>
+        public TypeNameElementListAttribute(string elementValuePath = "value", params Type[] allowedTypes)
         {
             this.elementValuePath = elementValuePath;
+            this.allowedTypes = allowedTypes;
         }
     }
 
@@ -181,24 +186,25 @@ namespace Arterra.Utils
                 EditorGUI.PropertyField(rect, element, new GUIContent(typeName), includeChildren: true);
             };
 
+            #region Add Callback with Type Selection
             rl.onAddCallback = list =>
             {
                 var sp = list.serializedProperty;
                 if (sp == null || sp.serializedObject == null)
                     return;
 
-                int i = sp.arraySize;
-                sp.arraySize++;
-
-                var element = sp.GetArrayElementAtIndex(i);
-                var ifaceProp = element.FindPropertyRelative(attr.elementValuePath);
-
-                // If the nested field is a SerializeReference slot, null it so it shows "None"
-                if (ifaceProp != null && ifaceProp.propertyType == SerializedPropertyType.ManagedReference)
-                    ifaceProp.managedReferenceValue = null;
-
-                sp.serializedObject.ApplyModifiedProperties();
+                // If allowedTypes are specified, show a context menu
+                if (attr.allowedTypes != null && attr.allowedTypes.Length > 0)
+                {
+                    ShowTypeSelectionMenu(attr, sp);
+                }
+                else
+                {
+                    // Original behavior: just add with null value
+                    AddElementWithType(sp, attr, null);
+                }
             };
+            #endregion
 
             // Optional: nicer remove behavior (keeps selection sane)
             rl.onRemoveCallback = list =>
@@ -214,6 +220,56 @@ namespace Arterra.Utils
             s_lists[key] = rl;
             return rl;
         }
+
+        #region Type Selection Menu
+
+        static void ShowTypeSelectionMenu(TypeNameElementListAttribute attr, SerializedProperty listProp)
+        {
+            var menu = new GenericMenu();
+
+            foreach (var type in attr.allowedTypes)
+            {
+                string typeName = type.Name;
+                menu.AddItem(new GUIContent(typeName), false, () => AddElementWithType(listProp, attr, type));
+            }
+
+            menu.ShowAsContext();
+        }
+
+        static void AddElementWithType(SerializedProperty listProp, TypeNameElementListAttribute attr, Type typeToCreate)
+        {
+            int i = listProp.arraySize;
+            listProp.arraySize++;
+
+            var element = listProp.GetArrayElementAtIndex(i);
+            var ifaceProp = element.FindPropertyRelative(attr.elementValuePath);
+
+            if (ifaceProp != null && ifaceProp.propertyType == SerializedPropertyType.ManagedReference)
+            {
+                // Create instance of the selected type using Activator.CreateInstance
+                if (typeToCreate != null)
+                {
+                    try
+                    {
+                        object instance = Activator.CreateInstance(typeToCreate);
+                        ifaceProp.managedReferenceValue = instance;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"Failed to create instance of type {typeToCreate.Name}: {ex.Message}");
+                        ifaceProp.managedReferenceValue = null;
+                    }
+                }
+                else
+                {
+                    ifaceProp.managedReferenceValue = null;
+                }
+            }
+
+            listProp.serializedObject.ApplyModifiedProperties();
+        }
+
+        #endregion
 
         static string GetManagedRefTypeName(SerializedProperty prop)
         {

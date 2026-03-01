@@ -12,7 +12,6 @@ using Arterra.Utils;
 
 namespace Arterra.Data.Entity.Behavior {
     public class ChasePreySettings : IBehaviorSetting {
-        public const string AnimationParam = "IsRunning";
         public EntitySMTasks TaskName = EntitySMTasks.ChasePreyEntity;
         public EntitySMTasks OnNotFoundTransition = EntitySMTasks.Idle;
         public EntitySMTasks OnReachPreyTransition = EntitySMTasks.AttackTarget;
@@ -56,7 +55,7 @@ namespace Arterra.Data.Entity.Behavior {
             Genetics.AddGene(entityType, ref SearchDistance);
         }
 
-        public bool FindPreferredPreyEntity(Entity self, ConsumeBehaviorSettings cnsm, float sightDist, out Entity entity){
+        public bool FindPreferredPreyEntity(Entity self, ConsumeBehaviorSettings cnsm, float sightDist, out Entity entity, RelationsBehavior relations = null){
             entity = null; if(AwarenessTable == null) return false;
             if((Prey.value == null || Prey.value.Count == 0)
                 && (cnsm.Edibles.value == null || cnsm.Edibles.value.Count == 0))
@@ -70,6 +69,10 @@ namespace Arterra.Data.Entity.Behavior {
             EntityManager.ESTree.Query(bounds, (nEntity) => {
                 if(nEntity == null) return;
                 if(nEntity.info.entityId == self.info.entityId) return;
+                if (relations != null) {
+                    float suppressThreshold = relations.settings.SuppressInstinctAffection;
+                    if (relations.GetAffection(self.info.entityId) > suppressThreshold) return;
+                }
 
                 if (!Awareness.TryGetValue((int)nEntity.info.entityType, out int preference)
                     && !TrySearchEntityItems(nEntity, cnsm, Awareness, out preference))
@@ -119,16 +122,19 @@ namespace Arterra.Data.Entity.Behavior {
 
 
     public class ChasePreyBehavior : IBehavior {
-        private ChasePreySettings settings;
+        [JsonIgnore] public ChasePreySettings settings;
         private Movement movement;
         private HuntBehaviorSettings hunt;
-        private ConsumeBehaviorSettings consumables;
+        private ConsumeBehaviorSettings consumables; //optional
+        private MMove mmove; //optional
+
 
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager;
         private PathFinderBehavior path;
         private VitalityBehavior vitality;
         private GeneticsBehavior genetics;
+        private RelationsBehavior relations;
         private bool IsHunting;
 
         public bool BeginHunting() => IsHunting || (IsHunting = vitality.healthPercent < genetics.Genes.Get(hunt.HuntThreshold));
@@ -138,14 +144,15 @@ namespace Arterra.Data.Entity.Behavior {
         public void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
             if (!settings.FindPreferredPreyEntity(self, consumables,
-                genetics.Genes.Get(settings.SearchDistance), out Entity prey)
+                genetics.Genes.Get(settings.SearchDistance), out Entity prey, relations)
             ) {
-                manager.TaskIndex = settings.TaskName;
+                manager.Transition(settings.TaskName);
                 return;
             }
-            Movement.FollowDynamicPath(self.settings.profile, ref path.pathFinder, ref self.collider, prey.origin,
-                genetics.Genes.Get(movement.runSpeed), movement.rotSpeed,
-                movement.acceleration);
+            Movement.FollowDynamicPath(MMove.Profile(mmove, settings.TaskName, self.settings), 
+                ref path.pathFinder, ref self.collider, prey.origin,
+                MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
+                movement.rotSpeed,movement.acceleration, MMove.Allow3DRot(mmove, settings.TaskName));
             
             float preyDist = Recognition.GetColliderDist(self, prey);
             if (preyDist < manager.settings.ContactDistance && manager.Transition(settings.OnReachPreyTransition)) {
@@ -160,12 +167,13 @@ namespace Arterra.Data.Entity.Behavior {
             if (!settings.FindPreferredPreyEntity(
                 self, consumables,
                 genetics.Genes.Get(settings.SearchDistance),
-                out Entity prey)
+                out Entity prey, relations)
             ) return false;
             
             int PathDist = movement.pathDistance;
             int3 destination = (int3)math.round(prey.origin) - self.GCoord;
-            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1,
+                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
             path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
             float dist = Recognition.GetColliderDist(self, prey);
 
@@ -202,8 +210,8 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ChasePrey Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: ChasePrey Behavior Requires AnimalSettings to have Movement");
-            if (!setting.Is(out consumables))
-                consumables = null;
+            if (!setting.Is(out consumables)) consumables = null;
+            if (!setting.Is(out mmove)) mmove = null;
             if (!setting.Is(out hunt))
                 throw new System.Exception("Entity: ChasePrey Behavior Requires AnimalSettings to have Hunt");
             if (!self.Is(out genetics))
@@ -214,6 +222,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ChasePrey Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ChasePrey Behavior Requires AnimalInstance to have VitalityBehavior");
+            if (!self.Is(out relations)) relations = null;
             
             IsHunting = false;
             manager.RegisterTransition(settings.TaskName, TransitionTo);
@@ -225,8 +234,8 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ChasePrey Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: ChasePrey Behavior Requires AnimalSettings to have Movement");
-            if (!setting.Is(out consumables))
-                consumables = null;
+            if (!setting.Is(out consumables)) consumables = null;
+            if (!setting.Is(out mmove)) mmove = null;
             if (!setting.Is(out hunt))
                 throw new System.Exception("Entity: ChasePrey Behavior Requires AnimalSettings to have Hunt");
             if (!self.Is(out genetics))
@@ -237,6 +246,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ChasePrey Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ChasePrey Behavior Requires AnimalInstance to have VitalityBehavior");
+            if (!self.Is(out relations)) relations = null;
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             this.self = self;

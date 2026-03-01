@@ -12,12 +12,15 @@ namespace Arterra.Data.Entity.Behavior {
         public EntitySMTasks OnReachTransition = EntitySMTasks.RandomPath;
         public Genetics.GeneFeature SearchDistance = new () {mean = 30, var = 0.25f, geneWeight = 0.01f};
         //Scales with affinity; chance = 1 - e^(-affinity * chaseProbability)
-        public Genetics.GeneFeature ChaseProbability = new () {mean = 0.1f, var = 0.75f, geneWeight = 0.05f};
-        public object Clone() {
+        public Genetics.GeneFeature ChaseProbability = new () {mean = 0.04f, var = 0.75f, geneWeight = 0.05f};
+        public Genetics.GeneFeature FightEnemyAffection = new () {mean = -12.5f, var = 0.25f, geneWeight = 0.025f};
+        public EntitySMTasks ChaseEnemyState = EntitySMTasks.ChaseTarget;
+         public object Clone() {
             return new ChaseFriendsSetting {
                 TaskName = TaskName,
                 SearchDistance = SearchDistance,
-                ChaseProbability = ChaseProbability
+                ChaseProbability = ChaseProbability,
+                FightEnemyAffection = FightEnemyAffection
             };
         }
     }
@@ -25,23 +28,44 @@ namespace Arterra.Data.Entity.Behavior {
     public class ChaseFriendsBehavior : IBehavior {
         private ChaseFriendsSetting settings;
         private Movement movement;
+        private MMove mmove; //optional
 
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager;
         private PathFinderBehavior path;
         private GeneticsBehavior genetics;
         private RelationsBehavior relations;
+        private RunFromPredatorBehavior predator;
+        private bool IsFriend;
         
         public void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
-            if (path.pathFinder.hasPath) {
-                Movement.FollowStaticPath(self.settings.profile, ref path.pathFinder, ref self.collider,
-                    genetics.Genes.Get(movement.walkSpeed), movement.rotSpeed,
-                    movement.acceleration);
-                return;
+            if (!path.pathFinder.hasPath) {
+                float taskDur = manager.TaskDuration;
+                if (manager.Transition(settings.OnReachTransition)) {
+                    //count the follow friends time the same as the outer task
+                    if (manager.TaskIndex != EntitySMTasks.Idle)
+                        manager.TaskDuration = taskDur;
+                } return;
             }
 
-            manager.Transition(settings.OnReachTransition);
+            if (IsFriend) {
+                if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity friend))
+                    path.pathFinder.hasPath = false;
+
+                Movement.FollowDynamicPath(MMove.Profile(mmove, manager.TaskIndex, self.settings), 
+                    ref path.pathFinder, ref self.collider, friend.origin, 
+                    MMove.Speed(mmove, manager.TaskIndex, genetics.Genes, movement.walkSpeed),
+                    movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, manager.TaskIndex));
+                
+                if (Recognition.GetColliderDist(self, friend) < manager.settings.ContactDistance)
+                    path.pathFinder.hasPath = false;
+            } else {
+                Movement.FollowStaticPath(MMove.Profile(mmove, manager.TaskIndex, self.settings),
+                    ref path.pathFinder, ref self.collider,
+                    MMove.Speed(mmove, manager.TaskIndex, genetics.Genes, movement.walkSpeed),
+                    movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, manager.TaskIndex));
+            }
         }
 
         private bool TransitionTo() {
@@ -50,22 +74,51 @@ namespace Arterra.Data.Entity.Behavior {
             int PathDist = movement.pathDistance;
             (bool hasFriend, bool hasEnemy) = relations.TryFindBestRelations(self, searchRadius, out (Entity e, float p) friend, out (Entity e, float p) enemy);
 
-            if (hasFriend) { //Friends are more important than enemies :)
-                float chaseProb = 1 - math.exp(-friend.p * prob);
+            if (hasFriend && TryToFollowFriend(friend.e, friend.p)) { //Friends are more important than enemies :)
+                manager.TaskTarget = friend.e.info.entityId;
+                IsFriend = true;
+            } else if (hasEnemy && TryToAvoidFriend(enemy.e, enemy.p)) {
+                manager.TaskTarget = friend.e.info.entityId;
+                IsFriend = false;
+            } else return false;
+
+            bool TryToFollowFriend(Entity friend, float preference) {
+                float chaseProb = 1 - math.exp(-preference * prob);
                 if (self.random.NextFloat() > chaseProb) return false;
+                if (friend.Is(out VitalityBehavior vit) && vit.IsDead) return false; 
                 
-                int3 destination = (int3)math.round(friend.e.origin) - self.GCoord;
-                byte[] nPath = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                int3 destination = (int3)math.round(friend.origin) - self.GCoord;
+                byte[] nPath = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1,
+                    MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
                 path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
                 if (math.all(path.pathFinder.destination == self.GCoord)) return false;
-            } else if (hasEnemy) {
-                float avoidProb = 1 - math.exp(-enemy.p * prob);
+                return true;
+            }
+
+            bool TryToAvoidFriend(Entity enemy, float preference) {
+                if (enemy.Is(out VitalityBehavior vit) && vit.IsDead) return false;
+                if (TryAttackArchEnemy(enemy, preference)) return true;
+
+                float avoidProb = 1 - math.exp(-preference * prob);
                 if (self.random.NextFloat() > avoidProb) return false;
 
-                float3 aim = math.normalizesafe(self.GCoord - (int3)math.round(enemy.e.origin));
-                byte[] nPath = PathFinder.FindPathAlongRay(self.GCoord, ref aim, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                float3 aim = math.normalizesafe(self.GCoord - (int3)math.round(enemy.origin));
+                byte[] nPath = PathFinder.FindPathAlongRay(self.GCoord, ref aim, PathDist + 1,
+                    MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
                 path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
-            } else return false;
+                if (math.all(path.pathFinder.destination == self.GCoord)) return false;
+                return true;
+            }
+
+            bool TryAttackArchEnemy(Entity enemy, float preference) {
+                if (preference > genetics.Genes.Get(settings.FightEnemyAffection))
+                    return false;
+                if (predator != null && predator.settings.Recognize((int)enemy.info.entityType))
+                    return false;
+                if (manager.Transition(settings.ChaseEnemyState)) 
+                    manager.TaskTarget = enemy.info.entityId;
+                return true;
+            }
 
             return true;
         }
@@ -88,6 +141,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ChaseFriends Behavior Requires AnimalSettings to have RideableStateSettings");
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: ChaseFriends Behavior Requires AnimalSettings to have Movement");
+            if (!setting.Is(out mmove)) mmove = null;
             if (!self.Is(out genetics))
                 throw new System.Exception("Entity: ChaseFriends Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
@@ -96,9 +150,9 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ChaseFriends Behavior Requires AnimalInstance to have PathfindingBehavior");
             if (!self.Is(out relations))
                 throw new System.Exception("Entity: ChaseFriends Behavior Requires AnimalInstance to have RelationsBehavior");
+            if (!self.Is(out predator)) predator = null;
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
-            manager.RegisterAnimation(settings.TaskName, ChaseFriendsSetting.AnimationParam);
             this.self = self;
         }
 
@@ -107,6 +161,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ChaseFriends Behavior Requires AnimalSettings to have RideableStateSettings");
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: ChaseFriends Behavior Requires AnimalSettings to have Movement");
+            if (!setting.Is(out mmove)) mmove = null;
             if (!self.Is(out genetics))
                 throw new System.Exception("Entity: ChaseFriends Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
@@ -115,9 +170,9 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ChaseFriends Behavior Requires AnimalInstance to have PathfindingBehavior");
             if (!self.Is(out relations))
                 throw new System.Exception("Entity: ChaseFriends Behavior Requires AnimalInstance to have RelationsBehavior");
+            if (!self.Is(out predator)) predator = null;
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
-            manager.RegisterAnimation(settings.TaskName, ChaseFriendsSetting.AnimationParam);
             this.self = self;
         }
 

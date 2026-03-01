@@ -113,7 +113,7 @@ MonoBehaviour:
             value:
               AttackDamage: 2
               AttackFrequency: 0.25
-              KnockBackStrength: 4
+              KnockBackStrength: 10
               InvincTime: 0.25
               HoldBreathTime: 15
               MaxHealth: 20
@@ -135,27 +135,152 @@ MonoBehaviour:
           BaseColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 0.39215687}
       Environment:
         value:
-          timeMultiplier: 0
-          startHour: 0
-          sunriseHour: 0
-          sunsetHour: 0
-          maxSunIntensity: 0
-          maxMoonIntensity: 0
+          timeMultiplier: 72
+          startHour: 12
+          sunriseHour: 7
+          sunsetHour: 20.5
+          maxSunIntensity: 1.5
+          maxMoonIntensity: 0.8
           sunIntensityCurve:
             value:
               serializedVersion: 2
-              m_Curve: []
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0.29953003
+                inSlope: 7.0046997
+                outSlope: 7.0046997
+                tangentMode: 34
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0.33333334
+              - serializedVersion: 3
+                time: 0.1
+                value: 1
+                inSlope: -0.0013849546
+                outSlope: -0.0013849546
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.3060361
+              - serializedVersion: 3
+                time: 0.4
+                value: 1
+                inSlope: 0.0021330894
+                outSlope: 0.0021330894
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.522165
+                outWeight: 0.36489952
+              - serializedVersion: 3
+                time: 0.5
+                value: 0.29952946
+                inSlope: -3.8144307
+                outSlope: -3.8144307
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.44800943
+              - serializedVersion: 3
+                time: 0.6
+                value: 0
+                inSlope: 0.0022881324
+                outSlope: 0.0022881324
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.33333334
+              - serializedVersion: 3
+                time: 0.9
+                value: 0
+                inSlope: -0.009793245
+                outSlope: -0.009793245
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 1
+              - serializedVersion: 3
+                time: 1
+                value: 0.29953003
+                inSlope: 3.0817742
+                outSlope: 3.0817742
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.37500015
+                outWeight: 0
               m_PreInfinity: 2
               m_PostInfinity: 2
               m_RotationOrder: 4
           moonIntensityCurve:
             value:
               serializedVersion: 2
-              m_Curve: []
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0.6014252
+                inSlope: -6.0142517
+                outSlope: -6.0142517
+                tangentMode: 34
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0.33333334
+              - serializedVersion: 3
+                time: 0.1
+                value: 0
+                inSlope: 0.0010167407
+                outSlope: 0.0010167407
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.22038485
+              - serializedVersion: 3
+                time: 0.4
+                value: 0
+                inSlope: 0.002328521
+                outSlope: 0.002328521
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.10987958
+              - serializedVersion: 3
+                time: 0.5
+                value: 0.6014252
+                inSlope: 5.1831646
+                outSlope: 5.1831646
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.034921933
+              - serializedVersion: 3
+                time: 0.6
+                value: 1
+                inSlope: -0.013943582
+                outSlope: -0.013943582
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.22289018
+              - serializedVersion: 3
+                time: 0.9
+                value: 1
+                inSlope: 0.0049888487
+                outSlope: 0.0049888487
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.33333334
+              - serializedVersion: 3
+                time: 1
+                value: 0.5967063
+                inSlope: -4.032936
+                outSlope: -4.032936
+                tangentMode: 34
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0
               m_PreInfinity: 2
               m_PostInfinity: 2
               m_RotationOrder: 4
-          useSoftCollisions: 0
       Statistics:
         value:
           DisplayEntityStats: 0
@@ -238,21 +363,14 @@ MonoBehaviour:
             AcknowledgeEvent: -1
             Priority: 0
             TriggerEvent: 3009
-            TriggerTime: 2.5
+            TriggerTime: 15
             PrefabPath: Prefabs/GameUI/ToolTips/ToolTip6/Display
             BlockingTooltips: 1
           - AcknowledgeTime: 30
             AcknowledgeEvent: -1
             Priority: 0
             TriggerEvent: 3009
-            TriggerTime: 15
-            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip8/Display
-            BlockingTooltips: 1
-          - AcknowledgeTime: 30
-            AcknowledgeEvent: -1
-            Priority: 0
-            TriggerEvent: 3009
-            TriggerTime: 35
+            TriggerTime: 2.5
             PrefabPath: Prefabs/GameUI/ToolTips/ToolTip7/Display
             BlockingTooltips: 1
         GenericTooltipDismissorEvents:

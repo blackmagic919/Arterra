@@ -21,7 +21,7 @@ public interface IRidable {
     public Transform GetRiderRoot();
     public void WalkInDirection(float3 direction);
     public void Dismount();
-    public Entity AsEntity => this as Entity;
+    [JsonIgnore] public Entity AsEntity => this as Entity;
 }
 
 [CreateAssetMenu(menuName = "Generation/Entity/RidableSurfaceAnimal")]

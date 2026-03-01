@@ -38,6 +38,9 @@ namespace Arterra.Data.Entity.Behavior {
         RandomPath = EntitySMBase.Wander + 100, 
         FollowPath = EntitySMBase.Wander + 200,
         ChaseFriends = EntitySMBase.Wander + 300,
+        ApproachSurface = EntitySMBase.Wander + 400,
+        TestApproach1 = EntitySMBase.Wander + 410,
+        TestApproach2 = EntitySMBase.Wander + 420,
 
         FindMate = EntitySMBase.Desire + 0,
         ChaseMate = EntitySMBase.Desire + 100,
@@ -55,16 +58,15 @@ namespace Arterra.Data.Entity.Behavior {
         RunFromTarget = EntitySMBase.Urgent + 0,
         ChaseTarget = EntitySMBase.Urgent + 100,
         Retaliate = EntitySMBase.Urgent + 200,
+        FlopOnGround = EntitySMBase.Urgent + 1000,
         Death = EntitySMBase.Final,
     }
 
     public class StateMachineManagerBehavior : IBehavior {
         [JsonIgnore] public StateMachineManagerSettings settings;
-        [JsonIgnore] private AnimatedBehavior animator;
+        private MMove mmove;
 
         [JsonIgnore] private Dictionary<EntitySMTasks, Func<bool>> ConditionalTransitions;
-        [JsonIgnore] private Dictionary<EntitySMTasks, string> StateAnimations;
-        [JsonIgnore] private EntitySMTasks AnimatorTask;
 
         public Guid TaskTarget;
         public int3 TaskPosition;
@@ -79,55 +81,37 @@ namespace Arterra.Data.Entity.Behavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: StateMachineManagerBehavior Requires AnimalSettings to have StateMachineManagerSettings");
-            if (!self.Is(out animator)) animator = null; else {
-                AnimatorTask = EntitySMTasks.None;
-                StateAnimations = new Dictionary<EntitySMTasks, string>();
-            }
+            if (!setting.Is(out mmove)) mmove = null;
 
             ConditionalTransitions = new Dictionary<EntitySMTasks, Func<bool> >();
             TaskIndex = settings.StartTask;
             TaskPosition = (int3)GCoord;
             TaskDuration = (float)CustomUtility.Sample(self.random, settings.AverageStartDuration, settings.AverageStartDurationVariance);
             TaskTarget = Guid.Empty;
-            self.Register(this);
 
         }
 
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: StateMachineManagerBehavior Requires AnimalSettings to have StateMachineManagerSettings");
-            if (!self.Is(out animator)) animator = null; else {
-                AnimatorTask = EntitySMTasks.None;
-                StateAnimations = new Dictionary<EntitySMTasks, string>();
-            }
+            if (!setting.Is(out mmove)) mmove = null;
 
             ConditionalTransitions = new Dictionary<EntitySMTasks, Func<bool>>();
-            self.Register(this);
         }
 
         public void Update(BehaviorEntity.Animal self) {
             TaskDuration -= EntityJob.cxt.deltaTime;
+            self.collider.useGravity = MMove.UseGravity(mmove, TaskIndex);
         }
 
         public void UpdateController(BehaviorEntity.Animal self, BehaviorEntity.AnimalController controller) {
 #if UNITY_EDITOR
             if (UnityEditor.Selection.Contains(controller.gameObject)) Debug.Log(TaskIndex);
 #endif
-            if(animator == null) return;
-            if (AnimatorTask == TaskIndex) return;
-            if (StateAnimations.TryGetValue(AnimatorTask, out string animation)) animator.SetBool(animation, false);
-            AnimatorTask = TaskIndex;
-            if (StateAnimations.TryGetValue(AnimatorTask, out animation)) animator.SetBool(animation, true);
         }
 
         public void RegisterTransition(EntitySMTasks name, Func<bool> condition = null) =>
             ConditionalTransitions[name] = condition;
-
-        public void RegisterAnimation(EntitySMTasks name, string animation) {
-            if (StateAnimations == null) return;
-            if (String.IsNullOrEmpty(animation)) return;
-            StateAnimations[name] = animation;
-        }
 
         public bool Transition(EntitySMTasks dest) {
             if (dest == EntitySMTasks.None) return false;

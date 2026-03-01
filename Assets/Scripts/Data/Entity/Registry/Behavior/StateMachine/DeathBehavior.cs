@@ -8,7 +8,6 @@ using Unity.Mathematics;
 
 namespace Arterra.Data.Entity.Behavior {
     public class DeathSettings : IBehaviorSetting {
-        public const string AnimationParam = "IsDead";
         public EntitySMTasks TaskName = EntitySMTasks.Death;
         public EntitySMTasks OnReviveTask = EntitySMTasks.Idle;
         public Genetics.GeneFeature DecompositionTime; //~300 seconds
@@ -36,7 +35,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (manager.TaskIndex != settings.TaskName) {
                 if (!vitality.IsDead) return;
                 manager.TaskDuration = genetics.Genes.Get(settings.DecompositionTime);
-                manager.TaskIndex = settings.TaskName;
+                manager.Transition(settings.TaskName);
             };
             if (!vitality.IsDead) { //Bring back from the dead 
                 manager.Transition(settings.OnReviveTask);
@@ -61,8 +60,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(DeathSettings), new DeathSettings());
-            heirarchy.TryAdd(typeof(ConsumeBehaviorSettings), new ConsumeBehaviorSettings());
-            heirarchy.TryAdd(typeof(FindPlantBehaviorSettings), new FindPlantBehaviorSettings());
         }
 
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
@@ -76,7 +73,6 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have PathFinderBehavior");
             
             self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
-            manager.RegisterAnimation(settings.TaskName, DeathSettings.AnimationParam);
         }
 
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
@@ -90,7 +86,6 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have PathFinderBehavior");
             
             self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
-            manager.RegisterAnimation(settings.TaskName, DeathSettings.AnimationParam);
         }
     }
 }

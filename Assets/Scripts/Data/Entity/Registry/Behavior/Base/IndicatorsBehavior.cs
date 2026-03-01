@@ -18,18 +18,20 @@ public class InidcatorsBehavior : IBehavior {
     public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
         indicators = new Indicators(self.controller.gameObject, self);
         self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
-        self.Register(this);
     }
     public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
         indicators = new Indicators(self.controller.gameObject, self);
         self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
-        self.Register(this);
     }
 
     public void UpdateController(BehaviorEntity.Animal self, BehaviorEntity.AnimalController controller) => indicators.Update();
 
     public void OnDrawGizmos(BehaviorEntity.Animal self) {
-        Gizmos.color = self.info.entityType % 2 == 0 ? Color.red : Color.blue;
+        // Use golden ratio to spread hues evenly across the spectrum
+        float h = (self.info.entityType * 0.618033988749f) % 1f;
+        float s = 0.85f;
+        float v = 0.95f;
+        Gizmos.color = Color.HSVToRGB(h, s, v);
         Gizmos.DrawWireCube(CPUMapManager.GSToWS(self.position), self.settings.collider.size * 2);
     }
 

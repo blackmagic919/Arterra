@@ -9,8 +9,6 @@ namespace Arterra.Data.Entity.Behavior {
     public class IdleStateSettings : IBehaviorSetting {
         public Genetics.GeneFeature AverageIdleTime;
         public Genetics.GeneFeature AverageIdleVariance;
-
-        public const string AnimationParam = "IsIdling";
         public EntitySMTasks TaskName = EntitySMTasks.Idle;
         public EntitySMTasks OnCompleteTransition = EntitySMTasks.RandomPath;
         public Option<List<EntitySMTasks> > CheckTransitions;
@@ -73,7 +71,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: Idle Behavior Requires AnimalInstance to have StateMachineManager");
             
-            manager.RegisterAnimation(settings.TaskName, IdleStateSettings.AnimationParam);
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             this.self = self;
         }
@@ -86,7 +83,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: Idle Behavior Requires AnimalInstance to have StateMachineManager");
             
-            manager.RegisterAnimation(settings.TaskName, IdleStateSettings.AnimationParam);
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             this.self = self;
         }

@@ -7,7 +7,6 @@ using System.Collections.Generic;
 
 namespace Arterra.Data.Entity.Behavior {
     public class RunFromAttackerSettings : IBehaviorSetting {
-        public const string AnimationParam = "IsRunning";
         public EntitySMTasks TaskName = EntitySMTasks.RunFromTarget;
         public EntitySMTasks OverridableStates = EntitySMTasks.AttackTarget;
         public EntitySMTasks OnLostAttacker = EntitySMTasks.Idle;
@@ -26,12 +25,14 @@ namespace Arterra.Data.Entity.Behavior {
         private RunFromPredatorSettings predator; //Optional
         private FleeBehaviorSettings flee;
         private Movement movement;
+        private MMove mmove; //optional
         
 
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager;
         private PathFinderBehavior path;
         private GeneticsBehavior genetics;
+        private RelationsBehavior relations;
         
 
         public void Update(BehaviorEntity.Animal self) {
@@ -50,22 +51,28 @@ namespace Arterra.Data.Entity.Behavior {
             if (!path.pathFinder.hasPath) {
                 int PathDist = flee.fleeDist;
                 float3 rayDir = self.position - target.position;
-                byte[] nPath = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+                byte[] nPath = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1,
+                    MMove.Profile(mmove, settings.TaskName, self.settings), 
+                    EntityJob.cxt, out int pLen);
                 path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
             }
-            Movement.FollowStaticPath(self.settings.profile, ref path.pathFinder, ref self.collider,
-                genetics.Genes.Get(movement.runSpeed), movement.rotSpeed,
-                movement.acceleration);
+            Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
+                ref path.pathFinder, ref self.collider,
+                MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
+                movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.TaskName));
         }
 
         private void RespondToAttack(object caller, object attacker) {
             if (attacker == null) return;
             if (attacker is not Entity entity) return;
             if (entity.info.entityId == self.info.entityId) return;
+            if (relations != null && relations.GetAffection(entity.info.entityId)
+                > relations.settings.SuppressInstinctAffection)
+                return;
             if (predator != null && predator.Recognize((int)entity.info.entityType))
-                manager.TaskIndex = settings.TaskName;
+                manager.Transition(settings.TaskName);
             else if (!flee.FightAggressor)
-                manager.TaskIndex = settings.TaskName;
+                manager.Transition(settings.TaskName);
             if (manager.TaskIndex == settings.TaskName)
                 manager.TaskTarget = entity.info.entityId;
         }
@@ -90,15 +97,16 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out flee))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalSettings to have Flee");
             if (!setting.Is(out predator)) predator = null;
+            if (!setting.Is(out mmove)) mmove = null;
             if (!self.Is(out genetics))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out relations)) relations = null;
             
             self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Damaged, RespondToAttack);
-            manager.RegisterAnimation(settings.TaskName, RunFromAttackerSettings.AnimationParam);
             this.self = self;
         }
 
@@ -110,15 +118,16 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out flee))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalSettings to have Flee");
             if (!setting.Is(out predator)) predator = null;
+            if (!setting.Is(out mmove)) mmove = null;
             if (!self.Is(out genetics))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out relations)) relations = null;
             
             self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Damaged, RespondToAttack);
-            manager.RegisterAnimation(settings.TaskName, RunFromAttackerSettings.AnimationParam);
             this.self = self;
         }
 

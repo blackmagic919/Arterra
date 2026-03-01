@@ -10,7 +10,6 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class RunFromPredatorSettings : IBehaviorSetting {
-        public const string AnimationParam = "IsRunning";
         public EntitySMTasks TaskName = EntitySMTasks.RunFromPredator;
         public EntitySMTasks OverridableStates = EntitySMTasks.AttackTarget;
         public EntitySMTasks OnFinishRunning = EntitySMTasks.Idle;
@@ -41,17 +40,22 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        public bool FindClosestPredator(Entity self, float sightDist, out Entity entity) {
+        public bool FindClosestPredator(Entity self, float sightDist, out Entity entity, RelationsBehavior relations = null) {
             entity = null; if (AwarenessTable == null) return false;
             if (Predators.value == null || Predators.value.Count == 0) return false;
 
             Entity cEntity = null; float closestDist = sightDist + 1;
             Dictionary<int, int> Awareness = AwarenessTable;
             Bounds bounds = new(self.position, 2 * new float3(sightDist));
-            EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
+            EntityManager.ESTree.Query(bounds, nEntity => {
                 if (nEntity == null) return;
                 if (nEntity.info.entityId == self.info.entityId) return;
                 if (!Awareness.ContainsKey((int)nEntity.info.entityType)) return;
+                if (nEntity.Is(out VitalityBehavior vit) && vit.IsDead) return;
+                if (relations != null) {
+                    float suppressThreshold = relations.settings.SuppressInstinctAffection;
+                    if (relations.GetAffection(self.info.entityId) > suppressThreshold) return;
+                }
 
                 float dist = Recognition.GetColliderDist(self, nEntity);
                 if (dist >= closestDist) return;
@@ -76,11 +80,13 @@ namespace Arterra.Data.Entity.Behavior {
         public RunFromPredatorSettings settings;
         private FleeBehaviorSettings flee;
         private Movement movement;
+        private MMove mmove; //optional
 
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager;
         private PathFinderBehavior path;
         private GeneticsBehavior genetics;
+        private RelationsBehavior relations;
 
         public void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex <= settings.OverridableStates) {
@@ -88,9 +94,10 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             } else if (manager.TaskIndex != settings.TaskName) return;
 
-            Movement.FollowStaticPath(self.settings.profile, ref path.pathFinder, ref self.collider,
-                genetics.Genes.Get(movement.runSpeed), movement.rotSpeed,
-                movement.acceleration);
+            Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
+                ref path.pathFinder, ref self.collider,
+                MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
+                movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.TaskName));
             if (!path.pathFinder.hasPath) {
                 manager.Transition(settings.OnFinishRunning);
                 return;
@@ -99,15 +106,16 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void DetectPredator() {
             if (!settings.FindClosestPredator(self, genetics.Genes.Get(
-                flee.detectDist), out Entity predator))
+                flee.detectDist), out Entity predator, relations))
                 return;
 
             int PathDist = flee.fleeDist;
             float3 rayDir = self.position - predator.position;
-            byte[] nPath = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1, self.settings.profile, EntityJob.cxt, out int pLen);
+            byte[] nPath = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1,
+                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
             path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
             manager.TaskTarget = predator.info.entityId;
-            manager.TaskIndex = settings.TaskName;
+            manager.Transition(settings.TaskName);
         }
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
@@ -127,6 +135,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalSettings to have Movement");
+            if (!setting.Is(out mmove)) mmove = null;
             if (!setting.Is(out flee))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalSettings to have Flee");
             if (!self.Is(out genetics))
@@ -135,8 +144,8 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out relations)) relations = null;
             
-            manager.RegisterAnimation(settings.TaskName, RunFromPredatorSettings.AnimationParam);
             this.self = self;
         }
 
@@ -145,6 +154,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalSettings to have Movement");
+            if (!setting.Is(out mmove)) mmove = null;
             if (!setting.Is(out flee))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalSettings to have Flee");
             if (!self.Is(out genetics))
@@ -153,8 +163,8 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out relations)) relations = null;
             
-            manager.RegisterAnimation(settings.TaskName, RunFromPredatorSettings.AnimationParam);
             this.self = self;
         }
 

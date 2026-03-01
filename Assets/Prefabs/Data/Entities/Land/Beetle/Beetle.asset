@@ -61,6 +61,8 @@ MonoBehaviour:
       Settings:
         value:
         - value:
+            rid: 3097084098772992145
+        - value:
             rid: 3097083922518114515
         - value:
             rid: 3097084037468258397
@@ -169,13 +171,13 @@ MonoBehaviour:
       data:
         Mates:
           value:
-          - MateType: Rabbit
-            ChildType: Rabbit
+          - MateType: Beetle
+            ChildType: Beetle
             AmountPerParent:
-              mean: 0
-              var: 0
-              geneWeight: 0
-            GeneMutationRate: 0.05
+              mean: 0.5
+              var: 0.25
+              geneWeight: 0.2
+            GeneMutationRate: 0.02
         MateCost:
           mean: 0.51
           var: 0.4
@@ -194,7 +196,7 @@ MonoBehaviour:
         TaskName: 0
         OnCompleteTransition: 100
         CheckTransitions:
-          value: 204e0000f87500005c760000
+          value: 844e0000f87500005c760000
     - rid: 3097083922518114521
       type: {class: RandomWalkStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -213,9 +215,8 @@ MonoBehaviour:
     - rid: 3097083922518114523
       type: {class: ChaseMateStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        Task1Name: 20000
-        Task2Name: 20100
-        Task3Name: 20200
+        Task1Name: 20100
+        Task2Name: 20200
         OnNotFoundTransition: 100
         OnFinishMateTransition: 100
         MateThreshold:
@@ -321,7 +322,8 @@ MonoBehaviour:
       type: {class: AttackTargetSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         TaskName: 30600
-        OnTargetDeath: 30500
+        OnTargetPreyDeath: 30500
+        OnTargetDeath: 0
         OnSeperateTarget: 50100
         OnLostTarget: 0
     - rid: 3097083922518114531
@@ -342,9 +344,8 @@ MonoBehaviour:
         OnFinishRunning: 0
         Predators:
           value:
-          - EntityType: ArcticFox
-          - EntityType: Fox
-          - EntityType: SnowyOwl
+          - EntityType: Spider
+          - EntityType: Bat
     - rid: 3097083922518114533
       type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -399,3 +400,45 @@ MonoBehaviour:
               mean: 0.013333334
               var: 0.75
               geneWeight: 0.05
+    - rid: 3097084098772992145
+      type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath: 
+        StateAnimations:
+          value:
+          - task: 0
+            Animation: IsIdling
+          - task: 100
+            Animation: IsWalking
+          - task: 200
+            Animation: IsWalking
+          - task: 300
+            Animation: IsWalking
+          - task: 20000
+            Animation: IsWalking
+          - task: 20100
+            Animation: IsWalking
+          - task: 20200
+            Animation: IsCuddling
+          - task: 20300
+            Animation: IsWalking
+          - task: 30200
+            Animation: IsWalking
+          - task: 30300
+            Animation: IsRunning
+          - task: 30400
+            Animation: IsEating
+          - task: 30500
+            Animation: IsEating
+          - task: 30600
+            Animation: IsAttacking
+          - task: 40000
+            Animation: IsRunning
+          - task: 50000
+            Animation: IsRunning
+          - task: 50100
+            Animation: IsRunning
+          - task: 50200
+            Animation: IsAttacking
+          - task: 60000
+            Animation: IsDead

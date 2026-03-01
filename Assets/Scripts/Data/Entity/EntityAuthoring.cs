@@ -129,6 +129,7 @@ public abstract class Entity: IRegistered, IEventControlled{
     /// <typeparam name="T">The type that this is being tested as</typeparam>
     /// <param name="instance">This as the queried type</param>
     /// <returns>Whether or not this is the type</returns>
+    
     public virtual bool Is<T>(out T instance) {
         if (this is T t) {
             instance = t;
@@ -153,6 +154,23 @@ public abstract class Entity: IRegistered, IEventControlled{
             throw new Exception("DynamicTyped(As): Entity is not expected pattern");
         return ret;
     }
+
+    protected Dictionary<Type, object> Constructor;
+
+    /// <summary>Registers a new object used in the construction of an entity </summary>
+    /// <typeparam name="TInterface">The type of the object used in construction</typeparam>
+    /// <param name="instance">The object</param>
+    public void RegisterConstructor<TInterface>(TInterface instance) => (Constructor ??= new Dictionary<Type, object>()).TryAdd(typeof(TInterface), instance);
+    /// <summary> Tests whether an object has a constructor object and retrieves it if it does. </summary>
+    /// <typeparam name="TInstance">The type of the constructor object</typeparam>
+    /// <param name="instance">The instance</param>
+    /// <returns>Whether or not a constructor object of the requested type was found. </returns>
+    public bool TryGetConstructor<TInstance>(out TInstance instance) {
+        if (Constructor == null) {instance = default; return false;}
+        bool IsType = Constructor.TryGetValue(typeof(TInstance), out object value);
+        instance = (TInstance) value;
+        return IsType;
+    } 
     
     /// <summary>
     /// Settings for a structure that is required for the systems governing how entities are identified

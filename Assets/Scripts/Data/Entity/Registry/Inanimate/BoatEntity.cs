@@ -13,6 +13,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.GamePlay.Interaction;
 using Arterra.Editor;
 using Arterra.GamePlay.UI;
+using Arterra.Data.Entity.Behavior;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Boat")]
 public class BoatEntity : Arterra.Data.Entity.Authoring {

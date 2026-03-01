@@ -69,9 +69,11 @@ MonoBehaviour:
           y: 0.8
           z: 0.5
       Behaviors:
-        value: 0000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a270000242700002e27000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000
+        value: 0000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a270000242700002e27000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000
       Settings:
         value:
+        - value:
+            rid: 3097084119023354049
         - value:
             rid: 3097083922518114515
         - value:
@@ -124,7 +126,9 @@ MonoBehaviour:
             rid: 3097084037468258411
         - value:
             rid: 3097084037468258412
-  _prevBehaviorCount: 25
+        - value:
+            rid: 3097084052764622977
+  _prevBehaviorCount: 26
   references:
     version: 2
     RefIds:
@@ -190,16 +194,16 @@ MonoBehaviour:
           - MateType: ArcticHare
             ChildType: ArcticHare
             AmountPerParent:
-              mean: 0
-              var: 0
-              geneWeight: 0
+              mean: 0.5
+              var: 0.25
+              geneWeight: 0.2
             GeneMutationRate: 0.02
           - MateType: Rabbit
             ChildType: Rabbit
             AmountPerParent:
-              mean: 0
-              var: 0
-              geneWeight: 0
+              mean: 0.5
+              var: 0.25
+              geneWeight: 0.2
             GeneMutationRate: 0.05
         MateCost:
           mean: 4.8
@@ -219,7 +223,7 @@ MonoBehaviour:
         TaskName: 0
         OnCompleteTransition: 100
         CheckTransitions:
-          value: 204e0000f87500005c760000
+          value: 844e0000f87500005c760000
     - rid: 3097083922518114521
       type: {class: RandomWalkStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -238,9 +242,8 @@ MonoBehaviour:
     - rid: 3097083922518114523
       type: {class: ChaseMateStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        Task1Name: 20000
-        Task2Name: 20100
-        Task3Name: 20200
+        Task1Name: 20100
+        Task2Name: 20200
         OnNotFoundTransition: 100
         OnFinishMateTransition: 100
         MateThreshold:
@@ -337,7 +340,8 @@ MonoBehaviour:
       type: {class: AttackTargetSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         TaskName: 30600
-        OnTargetDeath: 30500
+        OnTargetPreyDeath: 30500
+        OnTargetDeath: 0
         OnSeperateTarget: 50100
         OnLostTarget: 0
     - rid: 3097083922518114531
@@ -395,11 +399,11 @@ MonoBehaviour:
       type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         walkSpeed:
-          mean: 3
+          mean: 2.75
           var: 0.3
           geneWeight: 0.1
         runSpeed:
-          mean: 6.5
+          mean: 5.2
           var: 0.35
           geneWeight: 0.35
         pathDistance: 28
@@ -422,20 +426,32 @@ MonoBehaviour:
     - rid: 3097084037468258411
       type: {class: RelationsBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        OnFedAffinity:
-          mean: 10
+        OnFedAffection:
+          mean: 8
           var: 0.5
           geneWeight: 0.025
-        OnProtectAffinity:
-          mean: 2
+        OnProtectAffection:
+          mean: 8
           var: 0.75
           geneWeight: 0.025
-        OnSaveAffinity:
+        OnSaveAffection:
+          mean: 15
+          var: 0.5
+          geneWeight: 0.025
+        OnMateAffection:
           mean: 20
           var: 0.5
           geneWeight: 0.025
-        OnAttackAffinity:
-          mean: -7.5
+        OnBetrayalAffection:
+          mean: -2.5
+          var: 0.5
+          geneWeight: 0.025
+        OnRivalMateAffection:
+          mean: -14
+          var: 0.5
+          geneWeight: 0.025
+        OnAttackAffection:
+          mean: -16
           var: 0.5
           geneWeight: 0.025
         ForgetFalloff:
@@ -446,6 +462,27 @@ MonoBehaviour:
           mean: 0.05
           var: 0.7
           geneWeight: 0.025
+        SuppressInstinctAffection: 10
+        GossipCooldown:
+          mean: 5
+          var: 0.25
+          geneWeight: 0.01
+        GossipRadius:
+          mean: 8
+          var: 0.5
+          geneWeight: 0.01
+        GossipCloseness:
+          mean: 0.1
+          var: 0.5
+          geneWeight: 0.01
+        GossipStrength:
+          mean: 0.2
+          var: 0.75
+          geneWeight: 0.01
+        GossipAmount:
+          mean: 2.5
+          var: 0.5
+          geneWeight: 0.01
         EscapingTargetStates:
           value: 409c000050c30000
     - rid: 3097084037468258412
@@ -458,6 +495,66 @@ MonoBehaviour:
           var: 0.25
           geneWeight: 0.01
         ChaseProbability:
-          mean: 0.1
+          mean: 0.02
           var: 0.75
           geneWeight: 0.05
+        FightEnemyAffection:
+          mean: -12.5
+          var: 0.25
+          geneWeight: 0.025
+        ChaseEnemyState: 50100
+    - rid: 3097084052764622977
+      type: {class: DefendFriendSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        CallFriendRadius:
+          mean: 18
+          var: 0.3
+          geneWeight: 0.1
+        HelpFriendAffection:
+          mean: 12
+          var: 0.5
+          geneWeight: 0.1
+        HelpFriendState: 50100
+        OverridableStates: 30200
+    - rid: 3097084119023354049
+      type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath: 
+        StateAnimations:
+          value:
+          - task: 0
+            Animation: IsIdling
+          - task: 100
+            Animation: IsWalking
+          - task: 200
+            Animation: IsWalking
+          - task: 300
+            Animation: IsWalking
+          - task: 20000
+            Animation: IsWalking
+          - task: 20100
+            Animation: IsWalking
+          - task: 20200
+            Animation: IsCuddling
+          - task: 20300
+            Animation: IsWalking
+          - task: 30200
+            Animation: IsWalking
+          - task: 30300
+            Animation: IsRunning
+          - task: 30400
+            Animation: IsEating
+          - task: 30500
+            Animation: IsEating
+          - task: 30600
+            Animation: IsAttacking
+          - task: 40000
+            Animation: IsRunning
+          - task: 50000
+            Animation: IsRunning
+          - task: 50100
+            Animation: IsRunning
+          - task: 50200
+            Animation: IsAttacking
+          - task: 60000
+            Animation: IsDead

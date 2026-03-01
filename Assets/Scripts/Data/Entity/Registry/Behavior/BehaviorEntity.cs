@@ -8,6 +8,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using System.Collections.Generic;
 using System.Linq;
 using Arterra.Core.Storage;
+using UnityEngine.Profiling;
 
 namespace Arterra.Data.Entity.Behavior {
     public interface IBehaviorSetting : ICloneable {
@@ -17,6 +18,8 @@ namespace Arterra.Data.Entity.Behavior {
         public void Unset(uint entityType, BehaviorEntity.AnimalSetting setting) {
             
         }
+
+        public void OnValidate(BehaviorEntity.AnimalSetting setting) {}
     }
 
 
@@ -53,10 +56,16 @@ namespace Arterra.Data.Entity.Behavior {
         Vitality = BehaviorTypes.Creature + 5,
         Feedable = BehaviorTypes.Creature + 6,
         Relations = BehaviorTypes.Creature + 7,
+        DefendFriend = BehaviorTypes.Creature + 8,
+        FlapWing = BehaviorTypes.Creature + 9,
 
         IdleState = BehaviorTypes.StateMachine + 0,
         RandomWalkState = BehaviorTypes.StateMachine + 10,
+        BoidFollowState = BehaviorTypes.StateMachine + 11,
+        RandomFlyBehavior = BehaviorTypes.StateMachine + 12,
         ChaseFriendsState = BehaviorTypes.StateMachine + 15,
+        LandOnGround = BehaviorTypes.StateMachine + 16,
+        SwimToSurface = BehaviorTypes.StateMachine + 17,
         ChaseMateState = BehaviorTypes.StateMachine + 20,
         ReproduceState = BehaviorTypes.StateMachine + 30,
         RidedState = BehaviorTypes.StateMachine + 35,
@@ -68,6 +77,7 @@ namespace Arterra.Data.Entity.Behavior {
         ChaseAttackerState = BehaviorTypes.StateMachine + 90,
         RunFromPredator = BehaviorTypes.StateMachine + 100,
         RunFromAttacker = BehaviorTypes.StateMachine + 110,
+        FlopOnGround = BehaviorTypes.StateMachine + 115,
         DeathState = BehaviorTypes.StateMachine + 120,
         
     }
@@ -89,30 +99,37 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.Indicators, () => new InidcatorsBehavior() },
             { Behaviors.Rideable, () => new RidableBehavior() },
 
-            {Behaviors.StateMachine, () => new StateMachineManagerBehavior()},
-            {Behaviors.Attack, () => new AttackBehavior()},
-            {Behaviors.Genetics, () => new GeneticsBehavior()},
-            {Behaviors.Pathfinding, () => new PathFinderBehavior()},
-            {Behaviors.Reproduction, () => new ReproductionBehavior()},
-            {Behaviors.Vitality, () => new VitalityBehavior()},
-            {Behaviors.Feedable, () => new FeedableBehavior()},
-            {Behaviors.Relations, () => new RelationsBehavior()},
+            { Behaviors.StateMachine, () => new StateMachineManagerBehavior()},
+            { Behaviors.Attack, () => new AttackBehavior()},
+            { Behaviors.Genetics, () => new GeneticsBehavior()},
+            { Behaviors.Pathfinding, () => new PathFinderBehavior()},
+            { Behaviors.Reproduction, () => new ReproductionBehavior()},
+            { Behaviors.Vitality, () => new VitalityBehavior()},
+            { Behaviors.Feedable, () => new FeedableBehavior()},
+            { Behaviors.Relations, () => new RelationsBehavior()},
+            { Behaviors.DefendFriend, () => new DefendFriendBehavior()},
+            { Behaviors.FlapWing, () => new FlapWingsBehavior()},
 
-            {Behaviors.IdleState, () => new IdleStateBehavior()},
-            {Behaviors.RandomWalkState, () => new RandomWalkBehavior()},
-            {Behaviors.ChaseFriendsState, () => new ChaseFriendsBehavior()},
-            {Behaviors.ChaseMateState, () => new ChaseMateBehavior()},
-            {Behaviors.ReproduceState, () => new ReproductionBehavior()},
-            {Behaviors.RidedState, () => new RidableStateBehavior()},
-            {Behaviors.ChasePlantState, () => new ChasePlantBehavior()},
-            {Behaviors.ChasePreyState, () => new ChasePreyBehavior()},
-            {Behaviors.ConsumeMaterialState, () => new ConsumeMaterialBehavior()},
-            {Behaviors.ConsumeEntityState, () => new ConsumeEntityBehavior()},
-            {Behaviors.AttackState, () => new AttackTargetBehavior()},
-            {Behaviors.ChaseAttackerState, () => new ChaseAttackerBehavior()},
-            {Behaviors.RunFromPredator, () => new RunFromPredatorBehavior()},
-            {Behaviors.RunFromAttacker, () => new RunFromAttackerBehavior()},
-            {Behaviors.DeathState, () => new DeathBehavior()},
+            { Behaviors.IdleState, () => new IdleStateBehavior()},
+            { Behaviors.RandomWalkState, () => new RandomWalkBehavior()},
+            { Behaviors.RandomFlyBehavior, () => new RandomFlyBehavior()},
+            { Behaviors.BoidFollowState, () => new BoidFollowBehavior()},
+            { Behaviors.ChaseFriendsState, () => new ChaseFriendsBehavior()},
+            { Behaviors.LandOnGround, () => new LandOnGroundBehavior()},
+            { Behaviors.SwimToSurface, () => new SwimToSurfaceBehavior()},
+            { Behaviors.ChaseMateState, () => new ChaseMateBehavior()},
+            { Behaviors.ReproduceState, () => new ReproductionBehavior()},
+            { Behaviors.RidedState, () => new RidableStateBehavior()},
+            { Behaviors.ChasePlantState, () => new ChasePlantBehavior()},
+            { Behaviors.ChasePreyState, () => new ChasePreyBehavior()},
+            { Behaviors.ConsumeMaterialState, () => new ConsumeMaterialBehavior()},
+            { Behaviors.ConsumeEntityState, () => new ConsumeEntityBehavior()},
+            { Behaviors.AttackState, () => new AttackTargetBehavior()},
+            { Behaviors.ChaseAttackerState, () => new ChaseAttackerBehavior()},
+            { Behaviors.RunFromPredator, () => new RunFromPredatorBehavior()},
+            { Behaviors.RunFromAttacker, () => new RunFromAttackerBehavior()},
+            { Behaviors.FlopOnGround, () => new FlopOnLandBehavior()},
+            { Behaviors.DeathState, () => new DeathBehavior()},
         };
 
         [SerializeField, HideInInspector] private int _prevBehaviorCount = 0;
@@ -161,19 +178,55 @@ namespace Arterra.Data.Entity.Behavior {
             settings.Settings.value = SettingsHeirarchy.Values
                 .Select(a => new ReferenceOption<IBehaviorSetting>{value = a})
                 .ToList();
+            
+            foreach (var setting in settings.Settings.value) {
+                setting.value.OnValidate(settings);
+            }
         }
 
         [Serializable]
         public class AnimalSetting : EntitySetting{
             public Option<List<Behaviors> > Behaviors;
-            [TypeNameElementListAttribute("value")]
+            [TypeNameElementList("value",
+                typeof(Movement),
+                typeof(MMove),
+                typeof(FleeBehaviorSettings),
+                typeof(HuntBehaviorSettings),
+                typeof(FindPlantBehaviorSettings),
+                typeof(PhysicalitySetting),
+                typeof(AttackStats),
+                typeof(AnimatedSettings),
+                typeof(DefendFriendSetting),
+                typeof(FeedableBehaviorSettings),
+                typeof(MapInteractorSettings),
+                typeof(RelationsBehaviorSettings),
+                typeof(MateRecognition),
+                typeof(RideableSettings),
+                typeof(StateMachineManagerSettings),
+                typeof(ConsumeBehaviorSettings),
+                typeof(AttackTargetSettings),
+                typeof(BoidFollowSetting),
+                typeof(ChaseAttackerSettings),
+                typeof(ChaseFriendsSetting),
+                typeof(ChaseMateStateSettings),
+                typeof(ChasePlantSettings),
+                typeof(ChasePreySettings),
+                typeof(ConsumeEntitySettings),
+                typeof(ConsumeMaterialSettings),
+                typeof(DeathSettings),
+                typeof(IdleStateSettings),
+                typeof(RandomWalkStateSettings),
+                typeof(RandomFlyStateSettings),
+                typeof(RideableStateSettings),
+                typeof(RunFromAttackerSettings),
+                typeof(RunFromPredatorSettings)
+            )]
             public Option<List<ReferenceOption<IBehaviorSetting>> > Settings;
 
             [JsonIgnore]
             public Dictionary <Type, object> DynamicTypes;
 
-            public override void Preset(uint entityType)
-            {
+            public override void Preset(uint entityType) {
                 DynamicTypes = new Dictionary<Type, object>();
                 foreach(ReferenceOption<IBehaviorSetting> setting in Settings.value) {
                     setting.value.Preset(entityType, this);
@@ -203,15 +256,17 @@ namespace Arterra.Data.Entity.Behavior {
             [JsonIgnore] public AnimalController controller;
             public Unity.Mathematics.Random random;
             public List<IBehavior> Behaviors;
-            public override ref TerrainCollider.Transform transform => ref collider.transform; 
             public HashSet<Guid> IgnoredEntities;
             public TerrainCollider collider;
 
+            [JsonIgnore] public override ref TerrainCollider.Transform transform => ref collider.transform; 
+
 
             public void Register<TInterface>(TInterface instance) => DynamicTypes.TryAdd(typeof(TInterface), instance);
-            public void Register(Type type, IBehaviorSetting instance) => DynamicTypes.TryAdd(type, instance);
+            public void Register(Type type, IBehavior instance) => DynamicTypes.TryAdd(type, instance);
             
             public override bool Is<TInstance>(out TInstance instance) {
+                if (DynamicTypes == null) {instance = default; return false;}
                 bool IsType = DynamicTypes.TryGetValue(typeof(TInstance), out object value);
                 instance = (TInstance) value;
                 return IsType;
@@ -230,9 +285,14 @@ namespace Arterra.Data.Entity.Behavior {
                         continue;
                     IBehavior behavior = getBehavior.Invoke();
                     if (behavior == null) continue;
-                    behavior.Initialize(this, settings, GCoord);
+                    Register(behavior.GetType(), behavior);
                     Behaviors.Add(behavior);
                 }
+                foreach(IBehavior behavior in Behaviors) {
+                    behavior.Initialize(this, settings, GCoord);
+                }
+                //Clear constructor
+                this.Constructor = null;
             }
 
             public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
@@ -240,6 +300,10 @@ namespace Arterra.Data.Entity.Behavior {
                 DynamicTypes = new Dictionary<Type, object>();
                 this.controller = new AnimalController(Controller, this);
                 GCoord = this.GCoord;
+
+                foreach(IBehavior behavior in Behaviors) {
+                    Register(behavior.GetType(), behavior);
+                }
 
                 foreach(IBehavior behavior in Behaviors) {
                     behavior.Deserialize(this, settings, ref GCoord);
@@ -252,7 +316,9 @@ namespace Arterra.Data.Entity.Behavior {
                 collider.EntityCollisionUpdate(this, IgnoredEntities);
                 EntityManager.AddHandlerEvent(controller.Update);
                 foreach(IBehavior behavior in Behaviors) {
+                    Profiler.BeginSample(behavior.GetType().Name);
                     behavior.Update(this);
+                    Profiler.EndSample();
                 }
             }
 

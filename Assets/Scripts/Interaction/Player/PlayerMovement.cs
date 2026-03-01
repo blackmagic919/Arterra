@@ -7,6 +7,7 @@ using Arterra.Data.Entity;
 using Arterra.Core.Events;
 using Arterra.GamePlay.Interaction;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Configuration.Gameplay.Player{
     /// <summary>

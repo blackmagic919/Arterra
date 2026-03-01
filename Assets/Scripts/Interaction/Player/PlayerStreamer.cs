@@ -13,6 +13,7 @@ using Arterra.Utils;
 using Arterra.GamePlay.Interaction;
 using Arterra.GamePlay.UI;
 using System.Collections.Generic;
+using Arterra.Data.Entity.Behavior;
 
 
 namespace Arterra.GamePlay {

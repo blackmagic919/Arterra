@@ -11,7 +11,6 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class ConsumeEntitySettings : IBehaviorSetting {
-        public const string AnimationParam = "IsEating";
         public EntitySMTasks TaskName = EntitySMTasks.EatEntity;
         public EntitySMTasks OnFinishedEating = EntitySMTasks.Idle;
         public EntitySMTasks OnSeperateTarget = EntitySMTasks.ChaseTarget;
@@ -100,7 +99,6 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ConsumeTarget Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ConsumeTarget Behavior Requires AnimalInstance to have VitalityBehavior");
-            manager.RegisterAnimation(settings.TaskName, ConsumeEntitySettings.AnimationParam);
         }
 
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -116,7 +114,6 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ConsumeTarget Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ConsumeTarget Behavior Requires AnimalInstance to have VitalityBehavior");
-            manager.RegisterAnimation(settings.TaskName, ConsumeEntitySettings.AnimationParam);
         }
     }
 }

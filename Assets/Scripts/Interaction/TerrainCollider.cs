@@ -445,6 +445,12 @@ namespace Arterra.GamePlay.Interaction {
                 if (ignores != null && ignores.Contains(cEntity.info.entityId)) return;
                 if (!TryGetMinimumTranslation(bounds, cBounds, out float3 mtv)) return;
                 float totalWeight = self.weight + cEntity.weight;
+                if (totalWeight == 0) {
+                    // Both entities are weightless, split impact equally
+                    transform.position += mtv * 0.5f;
+                    cEntity.transform.position -= mtv * 0.5f;
+                    return;
+                }
 
                 float myFactor = cEntity.weight / totalWeight;
                 float otherFactor = self.weight / totalWeight;

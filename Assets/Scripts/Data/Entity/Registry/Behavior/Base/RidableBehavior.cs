@@ -8,6 +8,19 @@ using Unity.Mathematics;
 using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
+
+public interface IRider {
+    public void OnMounted(IRidable entity);
+    public void OnDismounted(IRidable entity);
+}
+
+public interface IRidable {
+    public Transform GetRiderRoot();
+    public void WalkInDirection(float3 direction);
+    public void Dismount();
+    [JsonIgnore] public Entity AsEntity => this as Entity;
+}
+
 public class RideableSettings : IBehaviorSetting {
     public string RideRoot = "Armature/root/base";
 
@@ -26,7 +39,7 @@ public class RidableBehavior : IBehavior, IRidable {
     [JsonIgnore] public Guid RiderTarget;
 
     public Transform GetRiderRoot() => RideRoot;
-    public Entity AsEntity => self;
+    [JsonIgnore] public Entity AsEntity => self;
 
     public void Dismount() {
         if (RiderTarget == Guid.Empty) return;
@@ -80,7 +93,6 @@ public class RidableBehavior : IBehavior, IRidable {
         if ((RideRoot = self.controller.gameObject.transform.Find(settings.RideRoot)) == null)
             throw new System.Exception($"Entity: Rideable Behavior Requires AnimalInstance to have Object at {settings.RideRoot}");
 
-        self.Register(this);
         self.Register<IRidable>(this);
         self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Interact, Interact);
         this.self = self;
@@ -92,10 +104,13 @@ public class RidableBehavior : IBehavior, IRidable {
         if ((RideRoot = self.controller.gameObject.transform.Find(settings.RideRoot)) == null)
             throw new System.Exception($"Entity: Rideable Behavior Requires AnimalInstance to have Object at {settings.RideRoot}");
         
-        self.Register(this);
         self.Register<IRidable>(this);
         self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Interact, Interact);
         this.self = self;
+    }
+
+    public void Disable(BehaviorEntity.Animal self) {
+        this.self = null;       
     }
 
 }

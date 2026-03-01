@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9eab86889c170483ea8af671b02e484a, type: 3}
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
   m_Name: Elephant
-  m_EditorClassIdentifier: Assembly-CSharp::SurfaceBoidAnimal
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
   Name: Elephant
   Tags:
     Reg:
@@ -20,246 +20,6 @@ MonoBehaviour:
     value: {fileID: 8980968929498685520, guid: dab2c71c3bfa240b7a9340b8903f7f93, type: 3}
   Profile:
     value:
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 4286643968
-      flags: 2
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
-    - bounds:
-        data: 2130738944
-      flags: 1
     - bounds:
         data: 4286643968
       flags: 2
@@ -512,178 +272,502 @@ MonoBehaviour:
           x: 2
           y: 3
           z: 2
-      movement:
-        walkSpeed:
-          mean: 2
-          var: 0.45
-          geneWeight: 0.25
-        runSpeed:
-          mean: 4.5
+      Behaviors:
+        value: 0000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001b270000242700002e27000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef030000f0030000
+      Settings:
+        value:
+        - value:
+            rid: 3097084098772992144
+        - value:
+            rid: 3097083922518114515
+        - value:
+            rid: 3097084037468258399
+        - value:
+            rid: 3097083922518114516
+        - value:
+            rid: 3097083922518114517
+        - value:
+            rid: 3097083922518114518
+        - value:
+            rid: 3097083922518114519
+        - value:
+            rid: 3097083922518114520
+        - value:
+            rid: 3097084098772992083
+        - value:
+            rid: 3097083922518114640
+        - value:
+            rid: 3097083922518114523
+        - value:
+            rid: 3097083922518114524
+        - value:
+            rid: 3097083922518114525
+        - value:
+            rid: 3097083922518114526
+        - value:
+            rid: 3097083922518114527
+        - value:
+            rid: 3097083922518114528
+        - value:
+            rid: 3097083922518114545
+        - value:
+            rid: 3097083922518114529
+        - value:
+            rid: 3097083922518114530
+        - value:
+            rid: 3097083922518114531
+        - value:
+            rid: 3097083922518114532
+        - value:
+            rid: 3097083922518114533
+        - value:
+            rid: 3097083922518114534
+        - value:
+            rid: 3097083922518114535
+        - value:
+            rid: 3097084037468258413
+        - value:
+            rid: 3097084037468258414
+        - value:
+            rid: 3097084052764622978
+  _prevBehaviorCount: 25
+  references:
+    version: 2
+    RefIds:
+    - rid: 3097083922518114515
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 4309
+        StartHealthPercent: 0.7
+        StartHealthVariance: 0.05
+        MaxHealth:
+          mean: 95
+          var: 0.35
+          geneWeight: 0.4
+        NaturalRegen:
+          mean: -0.05
+          var: 0.25
+          geneWeight: 0.2
+        InvincTime:
+          mean: 0.25
+          var: 0.1
+          geneWeight: 0.025
+        HoldBreathTime:
+          mean: 10
           var: 0.5
-          geneWeight: 0.75
+          geneWeight: 0.01
+    - rid: 3097083922518114516
+      type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseFallDamage: 1
+    - rid: 3097083922518114517
+      type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StartTask: 0
+        AverageStartDuration: 2
+        AverageStartDurationVariance: 1
+        ContactDistance: 2
+    - rid: 3097083922518114518
+      type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AttackDistance:
+          mean: 2.8
+          var: 0.25
+          geneWeight: 0.2
+        AttackDamage:
+          mean: 14
+          var: 0.5
+          geneWeight: 0.6
+        AttackCooldown:
+          mean: 0.94
+          var: 0.5
+          geneWeight: 0.3
+        KBStrength:
+          mean: 3.5
+          var: 0.5
+          geneWeight: 0.1
+        AttackDuration: 0.46
+    - rid: 3097083922518114519
+      type: {class: MateRecognition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Mates:
+          value:
+          - MateType: Elephant
+            ChildType: Elephant
+            AmountPerParent:
+              mean: 0.5
+              var: 0.25
+              geneWeight: 0.2
+            GeneMutationRate: 0.02
+        MateCost:
+          mean: 28.5
+          var: 0.4
+          geneWeight: 0.15
+    - rid: 3097083922518114520
+      type: {class: IdleStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageIdleTime:
+          mean: 2.5
+          var: 0.5
+          geneWeight: 0.025
+        AverageIdleVariance:
+          mean: 0.05
+          var: 0.5
+          geneWeight: 0.01
+        TaskName: 0
+        OnCompleteTransition: 100
+        CheckTransitions:
+          value: 844e0000f87500005c760000
+    - rid: 3097083922518114523
+      type: {class: ChaseMateStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Task1Name: 20100
+        Task2Name: 20200
+        OnNotFoundTransition: 100
+        OnFinishMateTransition: 100
+        MateThreshold:
+          mean: 0.8
+          var: 0.125
+          geneWeight: 0.1
+        PregnacyLength: 4
+        SearchDistance:
+          mean: 32
+          var: 0.25
+          geneWeight: 0.2
+        OnSwitchPath:
+          value: 
+    - rid: 3097083922518114524
+      type: {class: ChasePlantSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30200
+        OnNotFoundTransition: 0
+        OnReachPreyTransition: 30400
+        SearchDistance:
+          mean: 8
+          var: 0.25
+          geneWeight: 0.15
+    - rid: 3097083922518114525
+      type: {class: FindPlantBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Prey:
+          value:
+          - Material: AcaciaLeaves
+            Replacement: 
+            Bounds:
+              data: 4286643968
+          - Material: TallGrass
+            Replacement: Dirt
+            Bounds:
+              data: 4286643968
+          - Material: Grass
+            Replacement: Dirt
+            Bounds:
+              data: 4286643968
+          - Material: DriedGrass
+            Replacement: Dirt
+            Bounds:
+              data: 4286643968
+    - rid: 3097083922518114526
+      type: {class: HuntBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        HuntThreshold:
+          mean: 0.4
+          var: 0.25
+          geneWeight: 0.1
+        StopHuntThreshold:
+          mean: 0.9
+          var: 0.05
+          geneWeight: 0.05
+    - rid: 3097083922518114527
+      type: {class: ChasePreySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30300
+        OnNotFoundTransition: 0
+        OnReachPreyTransition: 30600
+        DesiredPreyState: 0
+        SearchDistance:
+          mean: 32
+          var: 0.25
+          geneWeight: 0.2
+        Prey:
+          value: []
+    - rid: 3097083922518114528
+      type: {class: ConsumeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Edibles:
+          value:
+          - EdibleType: AcaciaLeaves:Solid
+            Nutrition:
+              mean: 6
+              var: 0.25
+              geneWeight: 0.3
+          - EdibleType: TallGrass:Solid
+            Nutrition:
+              mean: 5
+              var: 0.25
+              geneWeight: 0.3
+          - EdibleType: Grass:Solid
+            Nutrition:
+              mean: 4
+              var: 0.25
+              geneWeight: 0.3
+          - EdibleType: DriedGrass:Solid
+            Nutrition:
+              mean: 3
+              var: 0.25
+              geneWeight: 0.3
+        ConsumptionRate: 0.4
+    - rid: 3097083922518114529
+      type: {class: ConsumeEntitySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30500
+        OnFinishedEating: 0
+        OnSeperateTarget: 50100
+        OnLostTarget: 0
+    - rid: 3097083922518114530
+      type: {class: AttackTargetSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30600
+        OnTargetPreyDeath: 30500
+        OnTargetDeath: 0
+        OnSeperateTarget: 50100
+        OnLostTarget: 0
+    - rid: 3097083922518114531
+      type: {class: ChaseAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50100
+        OnLostAttacker: 0
+        OnReachAttacker: 30600
+        ChaseDistance:
+          mean: 32
+          var: 0.25
+          geneWeight: 0.2
+    - rid: 3097083922518114532
+      type: {class: RunFromPredatorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 40000
+        OverridableStates: 30500
+        OnFinishRunning: 0
+        Predators:
+          value:
+          - EntityType: Lion
+          - EntityType: Lioness
+    - rid: 3097083922518114533
+      type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        fleeDist: 5
+        detectDist:
+          mean: 26
+          var: 0.25
+          geneWeight: 0.3
+        FightAggressor: 1
+    - rid: 3097083922518114534
+      type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50000
+        OverridableStates: 30600
+        OnLostAttacker: 0
+    - rid: 3097083922518114535
+      type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 60000
+        OnReviveTask: 0
+        DecompositionTime:
+          mean: 420
+          var: 0.35
+          geneWeight: 0.01
+    - rid: 3097083922518114545
+      type: {class: ConsumeMaterialSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30400
+        OnFinishedEating: 0
+        OnLostTarget: 50100
+    - rid: 3097083922518114640
+      type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        walkSpeed:
+          mean: 2.4
+          var: 0.3
+          geneWeight: 0.1
+        runSpeed:
+          mean: 4.16
+          var: 0.35
+          geneWeight: 0.35
         pathDistance: 31
-        acceleration: 100
+        acceleration: 200
         rotSpeed: 180
-        AverageIdleTime: 2.5
-      herd:
-        profile:
-          bounds:
-            x: 4
-            y: 5
-            z: 4
-        AverageFlightTime:
+    - rid: 3097084037468258399
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
+          value:
+          - ItemName: Meat
+            DropAmount:
+              mean: 0.071428575
+              var: 0.75
+              geneWeight: 0.05
+          - ItemName: Leather:Solid
+            DropAmount:
+              mean: 0.042857144
+              var: 0.75
+              geneWeight: 0.05
+    - rid: 3097084037468258413
+      type: {class: FeedableBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        CanEat: 0
+    - rid: 3097084037468258414
+      type: {class: RelationsBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        OnFedAffection:
+          mean: 8
+          var: 0.5
+          geneWeight: 0.025
+        OnProtectAffection:
+          mean: 8
+          var: 0.75
+          geneWeight: 0.025
+        OnSaveAffection:
+          mean: 15
+          var: 0.5
+          geneWeight: 0.025
+        OnMateAffection:
           mean: 20
           var: 0.5
-          geneWeight: 0.15
+          geneWeight: 0.025
+        OnBetrayalAffection:
+          mean: -2.5
+          var: 0.5
+          geneWeight: 0.025
+        OnRivalMateAffection:
+          mean: -14
+          var: 0.5
+          geneWeight: 0.025
+        OnAttackAffection:
+          mean: -16
+          var: 0.5
+          geneWeight: 0.025
+        ForgetFalloff:
+          mean: 0.2
+          var: 0.5
+          geneWeight: 0.025
+        BaseForgetRate:
+          mean: 0.05
+          var: 0.7
+          geneWeight: 0.025
+        SuppressInstinctAffection: 10
+        GossipCooldown:
+          mean: 5
+          var: 0.25
+          geneWeight: 0.01
+        GossipRadius:
+          mean: 8
+          var: 0.5
+          geneWeight: 0.01
+        GossipCloseness:
+          mean: 0.1
+          var: 0.5
+          geneWeight: 0.01
+        GossipStrength:
+          mean: 0.2
+          var: 0.75
+          geneWeight: 0.01
+        GossipAmount:
+          mean: 2.5
+          var: 0.5
+          geneWeight: 0.01
+        EscapingTargetStates:
+          value: 409c000050c30000
+    - rid: 3097084052764622978
+      type: {class: DefendFriendSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        CallFriendRadius:
+          mean: 24
+          var: 0.3
+          geneWeight: 0.1
+        HelpFriendAffection:
+          mean: 12
+          var: 0.5
+          geneWeight: 0.1
+        HelpFriendState: 50100
+        OverridableStates: 30200
+    - rid: 3097084098772992083
+      type: {class: BoidFollowSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 100
+        OnStopWalkTransition: 0
+        OnPackAttackTransition: 50100
+        OnSwitchPath:
+          value: 
+        AverageFlightTime:
+          mean: 25
+          var: 0.5
+          geneWeight: 0.1
+        AveragFlightVariance:
+          mean: 0.05
+          var: 0.5
+          geneWeight: 0.05
         SeperationWeight:
           mean: 0.75
           var: 0.5
           geneWeight: 0.05
         AlignmentWeight:
-          mean: 0.4
+          mean: 0.6
           var: 0.5
           geneWeight: 0.05
         CohesionWeight:
           mean: 0.3
           var: 0.75
           geneWeight: 0.05
-        InfluenceDist: 12
-        PathDist: 8
-        MaxSwarmSize: 5
-      decomposition:
-        LootTable:
+        SightDistance:
+          mean: 12
+          var: 0.3
+          geneWeight: 0.1
+        LeadTargetStates:
+          value: b4c300005c76000088770000
+        LeadBoidStates:
+          value: b4c3000088770000f87500005c760000887700004c4f0000409c000064000000
+        MaxSwarmSize: 8
+        PathDist: 4
+    - rid: 3097084098772992144
+      type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath: 
+        StateAnimations:
           value:
-          - ItemName: Meat
-            DropAmount:
-              mean: 0.09
-              var: 1
-              geneWeight: 0.05
-          - ItemName: Leather:Solid
-            DropAmount:
-              mean: 0.04
-              var: 1
-              geneWeight: 0.05
-        DecompositionTime:
-          mean: 200
-          var: 0.25
-          geneWeight: 0.05
-      recognition:
-        value:
-          Predators:
-            value:
-            - EntityType: Lion
-            - EntityType: Lioness
-          SightDistance:
-            mean: 15
-            var: 0.25
-            geneWeight: 0.75
-          PlantFindDist:
-            mean: 12
-            var: 0.25
-            geneWeight: 0.2
-          PreyEntity:
-            value: []
-          PreyPlant:
-            value:
-            - Material: AcaciaLeaves
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
-            - Material: TallGrass
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
-            - Material: Grass
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
-            - Material: DriedGrass
-              Replacement: Dirt
-              Bounds:
-                data: 4286643968
-          FleeDistance: 5
-          FightAggressor: 1
-          Mates:
-            value:
-            - MateType: Elephant
-              ChildType: Elephant
-              AmountPerParent:
-                mean: 0.5
-                var: 0.75
-                geneWeight: 0.25
-              GeneMutationRate: 0.05
-          Edibles:
-            value:
-            - EdibleType: AcaciaLeaves:Solid
-              Nutrition:
-                mean: 4
-                var: 0.5
-                geneWeight: 0.1
-            - EdibleType: TallGrass:Solid
-              Nutrition:
-                mean: 2.5
-                var: 0.5
-                geneWeight: 0.1
-            - EdibleType: Grass:Solid
-              Nutrition:
-                mean: 2
-                var: 0.5
-                geneWeight: 0.1
-            - EdibleType: DriedGrass:Solid
-              Nutrition:
-                mean: 1.5
-                var: 0.5
-                geneWeight: 0.1
-      physicality:
-        value:
-          weight: 0.9
-          MaxHealth:
-            mean: 45
-            var: 0.5
-            geneWeight: 1
-          NaturalRegen:
-            mean: -0.015
-            var: 0.75
-            geneWeight: 0.5
-          InvincTime:
-            mean: 0.25
-            var: 1
-            geneWeight: 0.5
-          HoldBreathTime:
-            mean: 10
-            var: 1
-            geneWeight: 0.05
-          AttackDistance:
-            mean: 2
-            var: 0.75
-            geneWeight: 0.75
-          AttackDamage:
-            mean: 8
-            var: 0.75
-            geneWeight: 1
-          AttackCooldown:
-            mean: 1.32
-            var: 0.75
-            geneWeight: 0.5
-          KBStrength:
-            mean: 4
-            var: 0.5
-            geneWeight: 0.25
-          AttackDuration: 0
-          HuntThreshold:
-            mean: 0.4
-            var: 0.25
-            geneWeight: 0.1
-          MateThreshold:
-            mean: 0.8
-            var: 0.125
-            geneWeight: 0.1
-          MateCost:
-            mean: 12
-            var: 0.5
-            geneWeight: 0.66
-          PregnacyLength: 4
-          ConsumptionRate: 0.5
-  references:
-    version: 2
-    RefIds: []
+          - task: 0
+            Animation: IsIdling
+          - task: 100
+            Animation: IsWalking
+          - task: 200
+            Animation: IsWalking
+          - task: 300
+            Animation: IsWalking
+          - task: 20000
+            Animation: IsWalking
+          - task: 20100
+            Animation: IsWalking
+          - task: 20200
+            Animation: IsCuddling
+          - task: 20300
+            Animation: IsWalking
+          - task: 30200
+            Animation: IsWalking
+          - task: 30300
+            Animation: IsRunning
+          - task: 30400
+            Animation: IsEating
+          - task: 30500
+            Animation: IsEating
+          - task: 30600
+            Animation: IsAttacking
+          - task: 40000
+            Animation: IsRunning
+          - task: 50000
+            Animation: IsRunning
+          - task: 50100
+            Animation: IsRunning
+          - task: 50200
+            Animation: IsAttacking
+          - task: 60000
+            Animation: IsDead

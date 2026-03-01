@@ -8,7 +8,6 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class ConsumeMaterialSettings : IBehaviorSetting {
-        public const string AnimationParam = "IsEating";
         public EntitySMTasks TaskName = EntitySMTasks.EatPlant;
         public EntitySMTasks OnFinishedEating = EntitySMTasks.Idle;
         public EntitySMTasks OnLostTarget = EntitySMTasks.ChasePreyPlant;
@@ -87,7 +86,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalInstance to have VitalityBehavior");
             manager.RegisterTransition(settings.TaskName, TransitionTo);
-            manager.RegisterAnimation(settings.TaskName, ConsumeMaterialSettings.AnimationParam);
         }
 
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -104,7 +102,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalInstance to have VitalityBehavior");
             manager.RegisterTransition(settings.TaskName, TransitionTo);
-            manager.RegisterAnimation(settings.TaskName, ConsumeMaterialSettings.AnimationParam);
         }
     }
 }

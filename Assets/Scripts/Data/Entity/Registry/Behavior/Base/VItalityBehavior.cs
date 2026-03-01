@@ -158,7 +158,7 @@ namespace Arterra.Data.Entity.Behavior {
             ProcessSuffocation(self, density);
         }
 
-        private void ProcessSuffocation(Entity self, float density) {
+        public void ProcessSuffocation(Entity self, float density) {
             if (density <= 0) return;
             if (!self.Is(out IAttackable target)) return;
             if (target.IsDead) return;
@@ -182,27 +182,20 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void ProcessInLiquidAquatic(Entity self, ref TerrainCollider tCollider, float density) {
-            if (breath >= 0) breath = -genetics.Get(stats.HoldBreathTime);
-
-            const float Epsilon = 0.001f;
-            breath = math.min(breath + EntityJob.cxt.deltaTime, -Epsilon);
-            tCollider.useGravity = false;
-
+            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, self, null, density);
+            breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
             if (self.Is(out IAttackable target) && target.IsDead) { //If dead float to the surface
                 tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
                 return; //don't process suffocation
             }
 
-            if (breath >= -Epsilon) ProcessSuffocation(self, density);
+            if (breath > 0) return;
+            ProcessSuffocation(self, density);
         }
 
         public void ProcessInGasAquatic(Entity self, ref TerrainCollider tCollider, float density) {
-            if (breath < 0) breath = genetics.Get(stats.HoldBreathTime);
-            breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
-            tCollider.useGravity = true;
-
-            if (self.Is(out IAttackable target) && target.IsDead) return; //If dead don't process suffocation
-            if (breath <= 0) ProcessSuffocation(self, density);
+            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, self, null, density);
+            breath = genetics.Get(stats.HoldBreathTime);
         }
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {}
@@ -228,7 +221,6 @@ namespace Arterra.Data.Entity.Behavior {
             breath = this.genetics.Get(stats.HoldBreathTime);
 
             self.Register<IAttackable>(this);
-            self.Register(this);
         }
 
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -243,7 +235,6 @@ namespace Arterra.Data.Entity.Behavior {
             invincibility = 0;
 
             self.Register<IAttackable>(this);
-            self.Register(this);
         }
 
         public void Disable() {
