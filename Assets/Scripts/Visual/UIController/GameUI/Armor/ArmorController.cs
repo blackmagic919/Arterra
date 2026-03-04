@@ -76,7 +76,7 @@ namespace Arterra.GamePlay.UI {
             cxt.cur.eventCtrl.AddEventHandler(
                 GameEvent.Entity_Respawn,
                 delegate (object actor, object target, object ctx) {
-                    var args = (ctx as EventContext<(PlayerStreamer.Player, PlayerStreamer.Player)>).Data;
+                    var args = (ctx as RefTuple<(PlayerStreamer.Player, PlayerStreamer.Player)>).Value;
                     RebindPlayer(ref args);
                 }
             );

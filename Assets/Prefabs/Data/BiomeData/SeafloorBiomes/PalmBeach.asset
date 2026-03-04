@@ -27,6 +27,7 @@ MonoBehaviour:
         - PalmTree1
         - PalmTree2
         - PalmTree3
+        - Crab
       GroundMaterials:
         value:
         - value:
@@ -69,7 +70,10 @@ MonoBehaviour:
             ChancePerStructurePoint: 0.003
             Structure: 6
       Entities:
-        value: []
+        value:
+        - value:
+            Entity: 7
+            ChancePerCoord: 0.0003
   BiomeConditions:
     value:
       TerrainStart: 0.3

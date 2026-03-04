@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
+using Arterra.Configuration;
 using Arterra.Core.Storage;
+using Arterra.Data.Structure;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -23,5 +27,6 @@ namespace Arterra.Data.Entity.Behavior {
                 }
             }
         }
+
     }
 }

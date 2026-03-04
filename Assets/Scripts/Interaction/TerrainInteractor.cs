@@ -11,9 +11,11 @@ namespace Arterra.GamePlay.Interaction {
 
         private const byte Solid = 0x1;
         private const byte Liquid = 0x2;
-        public static bool IsTouching(byte data) => data != 0;
+        private const byte Gas = 0x4;
+        public static bool IsTouching(byte data) => (data & (Solid | Liquid)) != 0;
         public static bool TouchSolid(byte data) => (data & Solid) != 0;
         public static bool TouchLiquid(byte data) => (data & Liquid) != 0;
+        public static bool TouchGas(byte data) => (data & Gas) != 0;
         private static Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         private static bool TrilinearBlend(ref Span<int> c, float3 d, out int corner) {
             float c00 = c[0] * (1 - d.x) + c[4] * d.x;
@@ -80,7 +82,9 @@ namespace Arterra.GamePlay.Interaction {
                     friction = math.max(mat.Roughness, friction);
                     mat.OnEntityTouchSolid(caller);
                 }
-            }
+            } 
+
+            contact |= IsTouching(contact) ? (byte)0 : Gas;
             return contact;
         }
 
@@ -140,6 +144,8 @@ namespace Arterra.GamePlay.Interaction {
                     mat.OnEntityTouchSolid(caller);
                 }
             }
+
+            contact |= IsTouching(contact) ? (byte)0 : Gas;
             return contact;
         }
 
@@ -178,6 +184,8 @@ namespace Arterra.GamePlay.Interaction {
                 friction = math.max(mat.Roughness, friction);
                 mat.OnEntityTouchSolid(caller);
             }
+
+            contact |= IsTouching(contact) ? (byte)0 : Gas;
             return contact;
         }
 

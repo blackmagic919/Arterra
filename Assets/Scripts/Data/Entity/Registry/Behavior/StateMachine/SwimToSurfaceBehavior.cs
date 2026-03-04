@@ -60,7 +60,7 @@ namespace Arterra.Data.Entity.Behavior{
 
         private StateMachineManagerBehavior manager;
         private GeneticsBehavior genetics;
-        private VitalityBehavior vitality; 
+        private MapInteractBehavior mInteract; 
         private PathFinderBehavior path;
         private bool foundSurface;
         public void Update(BehaviorEntity.Animal self) {
@@ -95,10 +95,10 @@ namespace Arterra.Data.Entity.Behavior{
         }
 
         private bool IsSurfacing() {
-            if (vitality.breath > 0) return false; //In air
+            if (mInteract.breath > 0) return false; //In air
             if (genetics.Genes.Get(settings.SurfaceThreshold) == 0) return false; //Doesn't drown
-            if (vitality.breath > genetics.Genes.Get(settings.SurfaceThreshold)
-                * genetics.Genes.Get(vitality.stats.HoldBreathTime))
+            if (mInteract.breath > genetics.Genes.Get(settings.SurfaceThreshold)
+                * genetics.Genes.Get(mInteract.settings.HoldBreathTime))
                 return false; //Still holding breath
             return true;
         }
@@ -108,7 +108,7 @@ namespace Arterra.Data.Entity.Behavior{
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
+            heirarchy.TryAdd(Behaviors.MapInteraction, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
         }
 
@@ -129,7 +129,7 @@ namespace Arterra.Data.Entity.Behavior{
                 //if we are able to transition 'i.e. the on-land proxy wants to do something', then we try to land
                 if (!manager.Transition(state)) continue;
                 manager.Transition(settings.TaskName);
-                return false;
+                return false;   
             } return false;
         }
 
@@ -146,8 +146,8 @@ namespace Arterra.Data.Entity.Behavior{
                 throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalInstance to have PathFinderBehavior");
-            if (!self.Is(out vitality))
-                throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalSettings to have VitalityBehavior");
+            if (!self.Is(out mInteract))
+                throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalSettings to have MapInteractBehavior");
             
             foundSurface = false;
             manager.RegisterTransition(settings.TaskName, TransitionTo);
@@ -166,8 +166,8 @@ namespace Arterra.Data.Entity.Behavior{
                 throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalInstance to have PathFinderBehavior");
-            if (!self.Is(out vitality))
-                throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalSettings to have VitalityBehavior");
+            if (!self.Is(out mInteract))
+                throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalSettings to have MapInteractBehavior");
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             manager.RegisterTransition(settings.ProxyTestName, TestProxyLand);

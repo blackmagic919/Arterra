@@ -710,6 +710,10 @@ MonoBehaviour:
           x: 0
           y: 0.3
           z: 0
+        FlockEntity:
+          mode: 1
+          tagValue: 0
+          registryValue: Sparrow
         LeadTargetStates:
           value: b4c300005c76000088770000
         LeadBoidStates:

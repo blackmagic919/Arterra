@@ -130,10 +130,15 @@ public class BaseEnemy : Authoring {
             pathFinder.hasPath = false;
         }
 
-        private void ProcessFallDamage(float zVelDelta) {
+        private void ProcessFallDamage(object src, object _, object cxt) {
+            bool useGrav; float zVelDelta;
+            (useGrav, zVelDelta) = ((bool, float))cxt; 
+            if (!useGrav) return;
             if (zVelDelta <= Vitality.FallDmgThresh) return;
             float damage = zVelDelta - Vitality.FallDmgThresh;
-            damage = math.pow(damage, settings.Physicality.weight);
+            double weight = math.max(settings.Physicality.weight, 0) / 25;
+            double falloff = (math.exp(weight) - 1) / (math.exp(weight) + 1); //rescaled sigmoid
+            damage *= (float)falloff;
             EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
 
@@ -150,7 +155,8 @@ public class BaseEnemy : Authoring {
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (BaseEnemySettings)setting;
 
-            this.tCollider = new TerrainCollider(settings.collider, GCoord, ProcessFallDamage);
+            this.tCollider = new TerrainCollider(settings.collider, GCoord);
+            this.eventCtrl.AddEventHandler(GameEvent.Entity_HitGround, ProcessFallDamage);
             random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(0, int.MaxValue));
             this.genetics ??= new Genetics(this.info.entityType, ref random);
             this.vitality = new MediumVitality(settings.Physicality, this.genetics);
@@ -166,7 +172,7 @@ public class BaseEnemy : Authoring {
             controller = new AnimalController(Controller, this);
             vitality.Deserialize(settings.Physicality, genetics);
             launcher.Deserialize(settings.rangedAttack.Projectile, genetics);
-            tCollider.OnHitGround = ProcessFallDamage;
+            this.eventCtrl.AddEventHandler(GameEvent.Entity_HitGround, ProcessFallDamage);
             random.state ^= (uint)GetHashCode();
             GCoord = this.GCoord;
         }

@@ -6,6 +6,10 @@ using static Arterra.Data.Entity.EntitySetting;
 using Arterra.Core.Storage;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;
+using Arterra.Configuration;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 [BurstCompile]
 public struct PathFinder{
 
@@ -28,6 +32,53 @@ public struct PathFinder{
         } 
         if(allC && (!any0 || anyC)) return true;
         else return false;
+    }
+
+    public static bool VerifyMatProfile(in int3 GCoord, in uint3 bounds, in List<MatProfileE> Profile, bool UseExFlag = true){
+        if (Profile == null) return true;
+        var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        bool allC = true; bool anyC = false; bool any0 = false;
+        uint3 dC = new (0);
+        for(dC.x = 0; dC.x < bounds.x; dC.x++){
+            for(dC.y = 0; dC.y < bounds.y; dC.y++){
+                for(dC.z = 0; dC.z < bounds.z; dC.z++){
+                    uint index = dC.x * bounds.y * bounds.z + dC.y * bounds.z + dC.z;
+                    MatProfileE matCheck = Profile[(int)index];
+                    ProfileE profile = matCheck.profile;
+                    if(profile.ExFlag && UseExFlag) continue;
+                    MapData data = CPUMapManager.SampleMap(GCoord + (int3)dC);
+                    bool valid = profile.bounds.Contains(data);
+                    if (valid) {
+                        if (data.IsNull) valid = false;
+                        else if (matCheck.matTag != TagRegistry.Tags.None) 
+                            valid &= mReg.GetMostSpecificTag(matCheck.matTag, data.material, out _);
+                    }
+
+                    allC = allC && (valid || !profile.AndFlag);
+                    anyC = anyC || (valid && profile.OrFlag);
+                    any0 = any0 || profile.OrFlag;
+                }
+            }
+        } 
+        if(allC && (!any0 || anyC)) return true;
+        else return false;
+    }
+
+    [Serializable]
+    public struct MatProfileE {
+        public ProfileE profile;
+        public TagRegistry.Tags matTag;
+
+        public unsafe static (List<MatProfileE>, uint3) ToMatProfile(in ProfileInfo info, in EntityJob.Context context, TagRegistry.Tags tag = TagRegistry.Tags.None) {
+            int count = (int)(info.bounds.x * info.bounds.y * info.bounds.z);
+            MatProfileE[] profile = new MatProfileE[count];
+            for (int i = 0; i < count; i++) {
+                profile[i] = new MatProfileE {
+                    profile = context.Profile[i + info.profileStart],
+                    matTag = tag,
+                };
+            } return (profile.ToList(), info.bounds);
+        }
     }
 
     public struct PathInfo{
@@ -176,6 +227,32 @@ public struct PathFinder{
         //This norm guarantees the vector will be on the edge of a cube
     }
 
+    public static unsafe byte[] RetracePath(ref PathFinder finder, int dest, int start, out int PathLength){
+        PathLength = 0; 
+        int currentInd = dest;
+        while(currentInd != start){ 
+            PathLength++; 
+            byte dir = (byte)finder.MapPtr[currentInd].w;
+            currentInd -= ((dir / 9) - 1) * finder.PathMapSize * finder.PathMapSize + 
+                            ((dir / 3 % 3) - 1) * finder.PathMapSize + ((dir % 3) - 1);
+        }
+
+        byte[] path = new byte[PathLength];
+        currentInd = dest; int index = PathLength - 1;
+        while(currentInd != start){
+            byte dir = (byte)finder.MapPtr[currentInd].w;
+            currentInd -= ((dir / 9) - 1) * finder.PathMapSize * finder.PathMapSize + 
+                            ((dir / 3 % 3) - 1) * finder.PathMapSize + ((dir % 3) - 1);
+            path[index] = dir;
+            index--;
+        } 
+        //First point is always 13(i.e. no move)
+        //This is so a path is always returned(i.e. path = null is impossible)
+        //path[0] = 13; //13 i.e. 0, 0, 0
+
+        return path;
+    }
+
     //Simplified A* algorithm for maximum performance
     //End Coord is relative to the start coord. Start Coord is always PathDistance
     /*
@@ -236,7 +313,7 @@ public struct PathFinder{
     //Find point that matches raw-profile along the path to destination
     public static byte[] FindMatchAlongRay(in int3 Origin, in float3 rayDir, int PathDistance, in ProfileInfo info, in ProfileInfo dest, in EntityJob.Context context, out int PathLength, out bool ReachedEnd){
         PathFinder finder = new (PathDistance);
-        int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance), 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
+        int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
         int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
 
         //Find the closest point to the end
@@ -255,9 +332,10 @@ public struct PathFinder{
             hCost = Get3DDistance(math.abs(End - ECoord));
 
             //Always assume the first point is valid
-            if(current.y != startInd && !VerifyProfile(Origin + ECoord - PathDistance, info, context)) 
-                continue;
-            ReachedEnd = VerifyProfile(Origin + ECoord - PathDistance, dest, context, false);
+            if (!(ReachedEnd = VerifyProfile(Origin + ECoord - PathDistance, dest, context, false))) {
+                if(current.y != startInd && !VerifyProfile(Origin + ECoord - PathDistance, info, context)) 
+                    continue;
+            }
             if(hCost < bestEnd.y || ReachedEnd) bestEnd = new (current.y, hCost);
             if(current.y == pathEndInd || ReachedEnd) break;
             if(current.x - hCost >= PathDistance * 10){
@@ -327,32 +405,6 @@ public struct PathFinder{
 
 
 
-    public static unsafe byte[] RetracePath(ref PathFinder finder, int dest, int start, out int PathLength){
-        PathLength = 0; 
-        int currentInd = dest;
-        while(currentInd != start){ 
-            PathLength++; 
-            byte dir = (byte)finder.MapPtr[currentInd].w;
-            currentInd -= ((dir / 9) - 1) * finder.PathMapSize * finder.PathMapSize + 
-                            ((dir / 3 % 3) - 1) * finder.PathMapSize + ((dir % 3) - 1);
-        }
-
-        byte[] path = new byte[PathLength];
-        currentInd = dest; int index = PathLength - 1;
-        while(currentInd != start){
-            byte dir = (byte)finder.MapPtr[currentInd].w;
-            currentInd -= ((dir / 9) - 1) * finder.PathMapSize * finder.PathMapSize + 
-                            ((dir / 3 % 3) - 1) * finder.PathMapSize + ((dir % 3) - 1);
-            path[index] = dir;
-            index--;
-        } 
-        //First point is always 13(i.e. no move)
-        //This is so a path is always returned(i.e. path = null is impossible)
-        //path[0] = 13; //13 i.e. 0, 0, 0
-
-        return path;
-    }
-
     /// <summary>
     ///An annoying challenge of pathfinding is that we must search all pathable nodes 
     ///to determine a path doesn't exist. However, if the destination is not a pathable point
@@ -374,6 +426,183 @@ public struct PathFinder{
             float3 rayDir = (float3)iEnd;
             int pathDist = math.min(math.cmax(math.abs(iEnd)), PathDistance);
             return FindPathAlongRay(Origin, ref rayDir, pathDist, info, context, out PathLength);
+        }
+    }
+
+
+    public static byte[] FindPath(in int3 Origin, in int3 iEnd, int PathDistance, uint3 bounds, List<MatProfileE> matProfile, out int PathLength){
+        PathFinder finder = new (PathDistance);
+        int3 End = math.clamp(iEnd + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
+        int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
+
+        //Find the closest point to the end
+        int3 pathStart = new (PathDistance, PathDistance, PathDistance);
+        int startInd = pathStart.x * finder.PathMapSize * finder.PathMapSize + pathStart.y * finder.PathMapSize + pathStart.z;
+        int hCost = Get3DDistance(math.abs(End - pathStart)); 
+        int2 bestEnd = new (startInd, hCost);
+    
+        finder.AddNode(pathStart, hCost, 13); //13 means dP = (0, 0, 0)
+        while(finder.HeapEnd > 1){
+            int2 current = finder.RemoveNode();
+            int3 ECoord = new (current.y / (finder.PathMapSize * finder.PathMapSize), 
+                                current.y / finder.PathMapSize % finder.PathMapSize, 
+                                current.y % finder.PathMapSize);
+            hCost = Get3DDistance(math.abs(End - ECoord));
+
+            //Always assume the first point is valid
+            if(current.y != startInd && !VerifyMatProfile(Origin + ECoord - PathDistance, bounds, matProfile)) 
+                continue;
+            if(hCost < bestEnd.y){
+                bestEnd.x = current.y;
+                bestEnd.y = hCost;
+            } 
+            if((int)current.y == pathEndInd) break;
+
+            for(int i = 0; i < 24; i++){
+                int4 delta = dP[i];
+                int3 nCoord = ECoord + delta.xyz;
+                if(math.any(nCoord < 0) || math.any(nCoord >= finder.PathMapSize)) continue;
+                int FScore = current.x + Get3DDistance(math.abs(End - nCoord)) - hCost + delta.w;
+                int dirEnc = (delta.x + 1) * 9 + (delta.y + 1) * 3 + delta.z + 1;
+                finder.AddNode(nCoord, FScore, dirEnc);
+            }
+        }
+
+        byte[] path = RetracePath(ref finder, bestEnd.x, startInd, out PathLength);
+        finder.Release();
+        return path;
+    }
+
+    //Find point that matches raw-profile along the path to destination
+    public static byte[] FindMatchAlongRay(in int3 Origin, in float3 rayDir, int PathDistance, uint3 mBounds, List<MatProfileE> mProf, uint3 dBounds, List<MatProfileE> destProf, out int PathLength, out bool ReachedEnd){
+        PathFinder finder = new (PathDistance);
+        int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
+        int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
+
+        //Find the closest point to the end
+        int3 pathStart = new (PathDistance, PathDistance, PathDistance);
+        int startInd = pathStart.x * finder.PathMapSize * finder.PathMapSize + pathStart.y * finder.PathMapSize + pathStart.z;
+        int hCost = Get3DDistance(math.abs(End - pathStart)); 
+        int2 bestEnd = new (startInd, hCost);
+    
+        ReachedEnd = false;
+        finder.AddNode(pathStart, hCost, 13); //13 means dP = (0, 0, 0)
+        while(finder.HeapEnd > 1){
+            int2 current = finder.RemoveNode();
+            int3 ECoord = new (current.y / (finder.PathMapSize * finder.PathMapSize), 
+                                current.y / finder.PathMapSize % finder.PathMapSize, 
+                                current.y % finder.PathMapSize);
+            hCost = Get3DDistance(math.abs(End - ECoord));
+
+            //Always assume the first point is valid
+            if (!(ReachedEnd = VerifyMatProfile(Origin + ECoord - PathDistance, dBounds, destProf, false))) {
+                if(current.y != startInd && !VerifyMatProfile(Origin + ECoord - PathDistance, mBounds, mProf)) 
+                    continue;//
+            }
+            if(hCost < bestEnd.y || ReachedEnd) bestEnd = new (current.y, hCost);
+            if(current.y == pathEndInd || ReachedEnd) break;
+            if(current.x - hCost >= PathDistance * 10){
+                bestEnd.x = current.y;
+                break;
+            } 
+            
+
+            for(int i = 0; i < 24; i++){
+                int4 delta = dP[i];
+                int3 nCoord = ECoord + delta.xyz;
+                if(math.any(nCoord < 0) || math.any(nCoord >= finder.PathMapSize)) continue;
+                int FScore = current.x + Get3DDistance(math.abs(End - nCoord)) - hCost + delta.w;
+                int dirEnc = (delta.x + 1) * 9 + (delta.y + 1) * 3 + delta.z + 1;
+                finder.AddNode(nCoord, FScore, dirEnc);
+            }
+        }
+
+        byte[] path = RetracePath(ref finder, bestEnd.x, startInd, out PathLength);
+        finder.Release();
+        return path;
+    }
+
+    public static byte[] GetStraightLinePath(int3 p1, int3 p2) {
+        if (p1.Equals(p2)) return Array.Empty<byte>();
+
+        int3 cur = p1;
+        List<byte> path = new ();
+        while (!cur.Equals(p2)) {
+            int3 diff = p2 - cur;
+            int3 step = new int3(math.sign(diff.x), math.sign(diff.y), math.sign(diff.z));
+            byte enc = (byte)((step.x + 1) * 9 + (step.y + 1) * 3 + step.z + 1);
+            path.Add(enc);
+            cur += step;
+        }
+
+        return path.ToArray();
+    }
+
+    //Find point that matches raw-profile along the path to destination with the closest distance to the desired path distance
+    public static byte[] FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, uint3 mBounds, List<MatProfileE> mProf, out int PathLength){
+        PathFinder finder = new (PathDistance);
+        int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
+
+        //Find the closest point to the end
+        int3 pathStart = new (PathDistance, PathDistance, PathDistance);
+        int startInd = pathStart.x * finder.PathMapSize * finder.PathMapSize + pathStart.y * finder.PathMapSize + pathStart.z;
+        int hCost = Get3DDistance(math.abs(End - pathStart)); 
+        int bestEnd = startInd;
+    
+        finder.AddNode(pathStart, hCost, 13); //13 means dP = (0, 0, 0)
+        while(finder.HeapEnd > 1){
+            int2 current = finder.RemoveNode();
+            int3 ECoord = new (current.y / (finder.PathMapSize * finder.PathMapSize), 
+                                current.y / finder.PathMapSize % finder.PathMapSize, 
+                                current.y % finder.PathMapSize);
+            hCost = Get3DDistance(math.abs(End - ECoord));
+
+            //Always assume the first point is valid
+            if(current.y != startInd && !VerifyMatProfile(Origin + ECoord - PathDistance, mBounds, mProf)) 
+                continue;
+            //                 FScore - HScore = GScore
+            if(current.x - hCost >= PathDistance * 10){
+                rayDir = math.normalize(ECoord - pathStart);
+                bestEnd = current.y;
+                break;
+            } 
+
+            for(int i = 0; i < 24; i++){
+                int4 delta = dP[i];
+                int3 nCoord = ECoord + delta.xyz;
+                if(math.any(nCoord < 0) || math.any(nCoord >= finder.PathMapSize)) continue;
+                int FScore = current.x + Get3DDistance(math.abs(End - nCoord)) - hCost + delta.w;
+                int dirEnc = (delta.x + 1) * 9 + (delta.y + 1) * 3 + delta.z + 1;
+                finder.AddNode(nCoord, FScore, dirEnc);
+            }
+        }
+
+        byte[] path = RetracePath(ref finder, bestEnd, startInd, out PathLength);
+        finder.Release();
+        return path;
+    }
+
+    /// <summary>
+    ///An annoying challenge of pathfinding is that we must search all pathable nodes 
+    ///to determine a path doesn't exist. However, if the destination is not a pathable point
+    ///pathfinding will always have to search all nodes which is inefficient. Thus if the destination
+    ///is not a pathable point, simply follow a ray to a certain length to approach the target, which is a
+    ///much cheaper operation than failing to find an exact path.
+    /// </summary>
+    /// <param name="Origin"></param>
+    /// <param name="iEnd"></param>
+    /// <param name="PathDistance"></param>
+    /// <param name="info"></param>
+    /// <param name="context"></param>
+    /// <param name="PathLength"></param>
+    public static byte[] FindPathOrApproachTarget(in int3 Origin, in int3 iEnd, int PathDistance, uint3 mBounds, List<MatProfileE> mProf, out int PathLength){
+        int3 dGC = Origin + iEnd;
+        if(VerifyMatProfile(dGC, mBounds, mProf)){
+            return FindPath(Origin, iEnd, PathDistance, mBounds, mProf, out PathLength);
+        } else {
+            float3 rayDir = (float3)iEnd;
+            int pathDist = math.min(math.cmax(math.abs(iEnd)), PathDistance);
+            return FindPathAlongRay(Origin, ref rayDir, pathDist, mBounds, mProf, out PathLength);
         }
     }
 }

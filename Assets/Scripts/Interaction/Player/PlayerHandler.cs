@@ -94,7 +94,7 @@ namespace Arterra.GamePlay{
         cxt.cur.eventCtrl.AddEventHandler(
             GameEvent.Entity_Respawn,
             delegate (object actor, object target, object ctx) {
-                var args = (ctx as EventContext<(PlayerStreamer.Player, PlayerStreamer.Player)>).Data;
+                var args = (ctx as RefTuple<(PlayerStreamer.Player, PlayerStreamer.Player)>).Value;
                 RebindPlayer(ref args);
             }
         );
@@ -162,7 +162,7 @@ namespace Arterra.GamePlay{
                 //Answer hooks
                 var prms = (data, nPlayer);
                 data.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, data, null, 
-                    new EventContext<(PlayerStreamer.Player, PlayerStreamer.Player)>(ref prms));
+                    new RefTuple<(PlayerStreamer.Player, PlayerStreamer.Player)>(prms));
                 //data.Events.Invoke(EntityEvents.EventType.OnRespawn, ref prms);
                 
                 OctreeTerrain.viewer = nPlayer.player.transform;

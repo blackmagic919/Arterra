@@ -29,7 +29,7 @@ namespace Arterra.Data.Entity.Behavior{
         private FlopOnLandSetting settings;
         private StateMachineManagerBehavior manager;
         private GeneticsBehavior genetics;
-        private VitalityBehavior vitality;
+        private MapInteractBehavior mInteract;
         public float dryOutProgress;
         public void Update(BehaviorEntity.Animal self) {
             if (settings.TaskName != manager.TaskIndex) return;
@@ -48,14 +48,14 @@ namespace Arterra.Data.Entity.Behavior{
 
         public void OnEntityInAir(object self, object _, object density) {
             dryOutProgress -= EntityJob.cxt.deltaTime;
-            if (dryOutProgress <= 0) vitality.ProcessSuffocation(self as Entity, (float)density);
+            if (dryOutProgress <= 0) mInteract.ProcessSuffocation(self as Entity, (float)density);
             manager.Transition(settings.TaskName);
         }
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
+            heirarchy.TryAdd(Behaviors.MapInteraction, heirarchy.Count);
         }
 
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
@@ -70,8 +70,8 @@ namespace Arterra.Data.Entity.Behavior{
                 throw new System.Exception("Entity: FlopOnLand Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: FlopOnLand Behavior Requires AnimalInstance to have StateMachineManager");
-            if (!self.Is(out vitality))
-                throw new System.Exception("Entity: FlopOnLand Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out mInteract))
+                throw new System.Exception("Entity: FlopOnLand Behavior Requires AnimalInstance to have MapInteractBehavior");
             
             self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InLiquid, OnEntityInWater);
             self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InGas, OnEntityInAir);
@@ -84,8 +84,8 @@ namespace Arterra.Data.Entity.Behavior{
                 throw new System.Exception("Entity: FlopOnLand Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: FlopOnLand Behavior Requires AnimalInstance to have StateMachineManager");
-            if (!self.Is(out vitality))
-                throw new System.Exception("Entity: FlopOnLand Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out mInteract))
+                throw new System.Exception("Entity: FlopOnLand Behavior Requires AnimalInstance to have MapInteractBehavior");
             
             self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InLiquid, OnEntityInWater);
             self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InGas, OnEntityInAir);

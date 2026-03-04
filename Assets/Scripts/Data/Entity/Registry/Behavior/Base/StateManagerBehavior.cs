@@ -58,6 +58,9 @@ namespace Arterra.Data.Entity.Behavior {
         RunFromTarget = EntitySMBase.Urgent + 0,
         ChaseTarget = EntitySMBase.Urgent + 100,
         Retaliate = EntitySMBase.Urgent + 200,
+        Burrow = EntitySMBase.Urgent + 500,
+        Unburrow = EntitySMBase.Urgent + 600,
+        Hide = EntitySMBase.Urgent + 750,
         FlopOnGround = EntitySMBase.Urgent + 1000,
         Death = EntitySMBase.Final,
     }

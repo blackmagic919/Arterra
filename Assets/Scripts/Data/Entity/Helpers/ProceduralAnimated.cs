@@ -109,15 +109,14 @@ public class ProceduralAnimated {
 
     public virtual void Initialize<T>(
         Entity entity, PASettings settings, 
-        float3 GCoord, TerrainCollider.Settings RootCollider,
-        Action<float> ProcessFallDamage
+        float3 GCoord, TerrainCollider.Settings RootCollider
     ) where T : Appendage, new() {
         self = entity;
         selfAtk = entity.As<IAttackable>();
         this.settings = settings;
         List<AppendageSettings> AppendageSettings = settings.Appendages;
         appendages ??= new T[AppendageSettings.Count];
-        this.Body = new TerrainCollider(RootCollider, GCoord, ProcessFallDamage);
+        this.Body = new TerrainCollider(RootCollider, GCoord);
         this.Head = new TerrainCollider(settings.Head.value.Collider, GCoord + settings.Head.value.Offset);
         Body.useGravity = settings.BodyUseGravity;
         for(int i = 0; i < AppendageSettings.Count; i++){
@@ -129,13 +128,11 @@ public class ProceduralAnimated {
     }
 
     public virtual void Deserialize<T>(
-        Entity entity, PASettings settings, 
-        Action<float> ProcessFallDamage
+        Entity entity, PASettings settings
     ) where T : Appendage, new() {
         self = entity;
         selfAtk = entity.As<IAttackable>();
         this.settings = settings;
-        Body.OnHitGround = ProcessFallDamage;
 
         List<AppendageSettings> AppendageSettings = settings.Appendages;
         appendages ??= new T[AppendageSettings.Count];

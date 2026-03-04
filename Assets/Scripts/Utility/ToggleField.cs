@@ -1,4 +1,6 @@
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 
 [System.Serializable]
@@ -6,6 +8,8 @@ public struct ToggleField<TValue> {
     public bool enabled;
     public TValue value;
 }
+
+#if UNITY_EDITOR
 
 // A generic property drawer for ToggleField<TValue>.
 // Shows a checkbox next to the field name. When the checkbox is checked
@@ -63,3 +67,4 @@ public class ToggleFieldDrawer : PropertyDrawer
         return height;
     }
 }
+#endif

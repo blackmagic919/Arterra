@@ -96,14 +96,6 @@ namespace Arterra.Core.Events {
     /// <summary> A generic event context wrapper </summary>
     /// <typeparam name="T"> The type of data contained in the context. 
     /// If there're multiple data in the context, first wrap them in a tuple or a custom struct. </typeparam>
-    public class EventContext<T> {
-        public T Data;
-
-        public EventContext(ref T data) {
-            Data = data;
-        }
-    }
-
     public sealed class RefTuple<TTuple> where TTuple : struct {
         public TTuple Value;
 

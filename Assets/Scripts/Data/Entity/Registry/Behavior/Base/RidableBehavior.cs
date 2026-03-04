@@ -35,6 +35,7 @@ public class RidableBehavior : IBehavior, IRidable {
     private RideableSettings settings;
 
     private BehaviorEntity.Animal self;
+    private ColliderUpdateBehavior collider;
     [JsonIgnore] public Transform RideRoot;
     [JsonIgnore] public Guid RiderTarget;
 
@@ -49,7 +50,7 @@ public class RidableBehavior : IBehavior, IRidable {
         
         self.eventCtrl.RaiseEvent(GameEvent.Action_Dismounted, self, rider);
         EntityManager.AddHandlerEvent(() => rider.OnDismounted(this));
-        self.IgnoredEntities.Remove(RiderTarget);
+        collider?.IgnoredEntities.Remove(RiderTarget);
         RiderTarget = Guid.Empty;
     }
 
@@ -70,14 +71,17 @@ public class RidableBehavior : IBehavior, IRidable {
         if (!cxt.Value) return; //Event test whether the given entity should be ridden
 
         RiderTarget = caller.info.entityId;
-        if(self.IgnoredEntities == null) self.IgnoredEntities = new HashSet<Guid>() { RiderTarget };
-        else self.IgnoredEntities.Add(RiderTarget);
+        if (collider != null) {
+            if(collider.IgnoredEntities == null) collider.IgnoredEntities = new HashSet<Guid>() { RiderTarget };
+            else collider.IgnoredEntities.Add(RiderTarget);
+        }
 
         EntityManager.AddHandlerEvent(() => rider.OnMounted(self.As<IRidable>()));
     }
 
 
      public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        heirarchy.TryAdd(Behaviors.Collider, heirarchy.Count);
         heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
         heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
         //Deactivated unless IAttackable is implemented
@@ -92,6 +96,7 @@ public class RidableBehavior : IBehavior, IRidable {
             throw new System.Exception("Entity: Rideable Behavior Requires AnimalSettings to have RandomWalkState");
         if ((RideRoot = self.controller.gameObject.transform.Find(settings.RideRoot)) == null)
             throw new System.Exception($"Entity: Rideable Behavior Requires AnimalInstance to have Object at {settings.RideRoot}");
+        if (!self.Is(out collider)) collider = null;
 
         self.Register<IRidable>(this);
         self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Interact, Interact);
@@ -103,6 +108,7 @@ public class RidableBehavior : IBehavior, IRidable {
             throw new System.Exception("Entity: Rideable Behavior Requires AnimalSettings to have RandomWalkState");
         if ((RideRoot = self.controller.gameObject.transform.Find(settings.RideRoot)) == null)
             throw new System.Exception($"Entity: Rideable Behavior Requires AnimalInstance to have Object at {settings.RideRoot}");
+        if (!self.Is(out collider)) collider = null;
         
         self.Register<IRidable>(this);
         self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Interact, Interact);

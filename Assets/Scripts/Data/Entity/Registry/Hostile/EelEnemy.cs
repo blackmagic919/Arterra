@@ -160,12 +160,18 @@ public class EelEnemy : Authoring {
             pathFinder.hasPath = false;
         }
 
-        private void ProcessFallDamage(float zVelDelta) {
+        private void ProcessFallDamage(object src, object _, object cxt) {
+            bool useGrav; float zVelDelta;
+            (useGrav, zVelDelta) = ((bool, float))cxt; 
+            if (!useGrav) return;
             if (zVelDelta <= Vitality.FallDmgThresh) return;
             float damage = zVelDelta - Vitality.FallDmgThresh;
-            damage = math.pow(damage, settings.Physicality.weight);
+            double weight = math.max(settings.Physicality.weight, 0) / 25;
+            double falloff = (math.exp(weight) - 1) / (math.exp(weight) + 1); //rescaled sigmoid
+            damage *= (float)falloff;
             EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
+
 
         private static bool TestNotDead(Entity e) {
             if (!e.Is(out IAttackable attackable))
@@ -182,7 +188,8 @@ public class EelEnemy : Authoring {
             settings = (EelSettings)setting;
             
             Animate = new Tail();
-            Animate.Initialize<TailSegment>(this, settings.Animation, GCoord, settings.collider, ProcessFallDamage);
+            Animate.Initialize<TailSegment>(this, settings.Animation, GCoord, settings.collider);
+            this.eventCtrl.AddEventHandler(GameEvent.Entity_HitGround, ProcessFallDamage);
 
             random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(0, int.MaxValue));
             this.genetics ??= new Genetics(this.info.entityType, ref random);
@@ -195,7 +202,8 @@ public class EelEnemy : Authoring {
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
             settings = (EelSettings)setting;
-            Animate.Deserialize<TailSegment>(this, settings.Animation, ProcessFallDamage);
+            Animate.Deserialize<TailSegment>(this, settings.Animation);
+            this.eventCtrl.AddEventHandler(GameEvent.Entity_HitGround, ProcessFallDamage);
             
             controller = new AnimalController(Controller, this);
             vitality.Deserialize(settings.Physicality, genetics);
@@ -641,16 +649,16 @@ public class EelEnemy : Authoring {
         internal class Tail : ProceduralAnimated {
             public float SlitherProgress;
             private EelSettings.ProceduralSegmentSettings sSetting;
-            public override void Initialize<T>(Entity entity, PASettings settings, float3 GCoord, TerrainCollider.Settings RootCollider, Action<float> ProcessFallDamage) {
-                base.Initialize<T>(entity, settings, GCoord, RootCollider, ProcessFallDamage);
+            public override void Initialize<T>(Entity entity, PASettings settings, float3 GCoord, TerrainCollider.Settings RootCollider) {
+                base.Initialize<T>(entity, settings, GCoord, RootCollider);
                 this.sSetting = settings as EelSettings.ProceduralSegmentSettings;
                 SlitherProgress = 0;
                 AttachSegments();
             }
 
-            public override void Deserialize<T>(Entity entity, PASettings settings, Action<float> ProcessFallDamage) {
+            public override void Deserialize<T>(Entity entity, PASettings settings) {
                 this.sSetting = settings as EelSettings.ProceduralSegmentSettings;
-                base.Deserialize<T>(entity, settings, ProcessFallDamage);
+                base.Deserialize<T>(entity, settings);
                 AttachSegments();   
             }
 

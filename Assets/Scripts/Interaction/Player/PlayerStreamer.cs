@@ -189,9 +189,9 @@ namespace Arterra.GamePlay {
             public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord)
             {
                 settings = (PlayerSettings)setting;
-                collider.OnHitGround = ProcessFallDamage;
                 player = GameObject.Instantiate(Controller);
                 Effects.Initialize(player, eventCtrl);
+                eventCtrl.AddEventHandler(GameEvent.Entity_HitGround, ProcessFallDamage);
                 player.transform.SetPositionAndRotation(positionWS, collider.transform.rotation);
             }
 
@@ -209,7 +209,7 @@ namespace Arterra.GamePlay {
                 player = GameObject.Instantiate(Controller);
                 Effects.Initialize(player, eventCtrl);
                 player.transform.SetPositionAndRotation(positionWS, collider.transform.rotation);
-                collider.OnHitGround = ProcessFallDamage;
+                eventCtrl.AddEventHandler(GameEvent.Entity_HitGround, ProcessFallDamage);
                 camera.Deserailize(this);
                 if (!IsDead) return;
 
@@ -282,9 +282,11 @@ namespace Arterra.GamePlay {
             }
             
 
-            private void ProcessFallDamage(float zVelDelta)
+            private void ProcessFallDamage(object src, object _, object cxt)
             {
-                eventCtrl.RaiseEvent(GameEvent.Entity_HitGround, this, null, new EventContext<float>(ref zVelDelta));
+                bool useGrav; float zVelDelta;
+                (useGrav, zVelDelta) = ((bool, float))cxt; 
+                if (!useGrav) return;
                 if (zVelDelta <= Vitality.FallDmgThresh) return;
                 float dmgIntensity = zVelDelta - Vitality.FallDmgThresh;
                 dmgIntensity = math.pow(dmgIntensity, Config.CURRENT.GamePlay.Player.value.Physicality.value.weight);

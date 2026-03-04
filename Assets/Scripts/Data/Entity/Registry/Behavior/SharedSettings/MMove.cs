@@ -23,6 +23,7 @@ public class MMove : IBehaviorSetting {
     }
 
     public void OnValidate(BehaviorEntity.AnimalSetting settings) {
+        profiles.value ??= new List<SubProfiles>(1);
         profiles.value[0] = new SubProfiles{
             bounds = settings.profile.bounds,
             offset = 0

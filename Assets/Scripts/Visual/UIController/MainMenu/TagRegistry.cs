@@ -211,13 +211,13 @@ namespace Arterra.Configuration {
         // Once the event is enqueued(potentially displayed), the event that when triggered will auto-acknowledge
         // this popup (i.e. dequeuing it). If the popup is only auto-acknowledged after a certain time, 
         // set this to EventType.None
-        public Arterra.Core.Events.GameEvent AcknowledgeEvent;
+        public GameEvent AcknowledgeEvent;
 
         public TooltipPriority Priority;
 
         // Used to distinguish, for example, between OnInteractEntity and OnAttackEntity since they both read this tag.
         // If the tag is EventType.None then trigger on any of these.
-        public Arterra.Core.Events.GameEvent TriggerEvent;
+        public GameEvent TriggerEvent;
 
         //The time since the trigger event occurred before the popup can be enqueued(potentially displayed). 
         // Set this to TimeSpan.Zero to consider it immediately.
@@ -349,7 +349,11 @@ namespace Arterra.Configuration {
         { Tags.TooltipDismissor, new TooltipDismissorTag() },
         // Projectiles
         { Tags.ArrowTag, new ProjectileTag() },
-        { Tags.BaitTag, null }
+        { Tags.BaitTag, null },
+
+        //Entities
+        { Tags.Butterflies, null },
+        { Tags.Lions, null },
     };
 
         public enum Tags {
@@ -361,11 +365,16 @@ namespace Arterra.Configuration {
             //Converters
             Flammable = 1000, Tillable = 1001, Seedable = 1002, Combustible = 1003,
             //Convertables
-            Grassy = 2000, Vegetative = 2001, AquaMicrobial = 2002,
+            Grassy = 2000, Vegetative = 2001, AquaMicrobial = 2002, 
+            //Material Groups
+            Soft = 5000, 
             //Interactions
             FocusedPlace = 9000, Tooltip = 9001, TooltipDismissor = 9002,
             // Projectiles 
             ArrowTag = 10000, BaitTag = 10001,
+
+            //Entities
+            Butterflies = 21000, Lions = 21001
         }
 
         public Option<List<Pair>> Reg;

@@ -153,10 +153,15 @@ public class MultiPedal : Authoring {
             pathFinder.hasPath = false;
         }
 
-        private void ProcessFallDamage(float zVelDelta) {
+        private void ProcessFallDamage(object src, object _, object cxt) {
+            bool useGrav; float zVelDelta;
+            (useGrav, zVelDelta) = ((bool, float))cxt; 
+            if (!useGrav) return;
             if (zVelDelta <= Vitality.FallDmgThresh) return;
             float damage = zVelDelta - Vitality.FallDmgThresh;
-            damage = math.pow(damage, settings.Physicality.weight);
+            double weight = math.max(settings.Physicality.weight, 0) / 25;
+            double falloff = (math.exp(weight) - 1) / (math.exp(weight) + 1); //rescaled sigmoid
+            damage *= (float)falloff;
             EntityManager.AddHandlerEvent(() => TakeDamage(damage, 0, null));
         }
 
@@ -175,7 +180,8 @@ public class MultiPedal : Authoring {
             settings = (MultiPedalSettings)setting;
             
             Animate = new ProceduralAnimated();
-            Animate.Initialize<Leg>(this, settings.Animation, GCoord, settings.collider, ProcessFallDamage);
+            Animate.Initialize<Leg>(this, settings.Animation, GCoord, settings.collider);
+            this.eventCtrl.AddEventHandler(GameEvent.Entity_HitGround, ProcessFallDamage);
 
             random = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(0, int.MaxValue));
             this.genetics ??= new Genetics(this.info.entityType, ref random);
@@ -188,7 +194,8 @@ public class MultiPedal : Authoring {
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
             settings = (MultiPedalSettings)setting;
-            Animate.Deserialize<Leg>(this, settings.Animation, ProcessFallDamage);
+            Animate.Deserialize<Leg>(this, settings.Animation);
+            this.eventCtrl.AddEventHandler(GameEvent.Entity_HitGround, ProcessFallDamage);
             
             controller = new AnimalController(Controller, this);
             vitality.Deserialize(settings.Physicality, genetics);

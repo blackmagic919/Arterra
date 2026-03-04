@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
+using Arterra.Editor;
 using Arterra.Utils;
 using Newtonsoft.Json;
 using Unity.Mathematics;
@@ -21,6 +22,8 @@ namespace Arterra.Data.Entity.Behavior {
         public Genetics.GeneFeature CohesionWeight = new () {mean = 0.3f, geneWeight = 0.05f, var = 0.75f}; //0.25
         public Genetics.GeneFeature SightDistance = new() {mean = 12, geneWeight = 0.1f, var = 0.3f};
         public float3 DirectionBias = float3.zero;
+        [TagOrRegistryReference("Entities")]
+        public TagOrRegistryReference FlockEntity;
         public Option<List<EntitySMTasks>> LeadTargetStates = new () {value = new () {
             EntitySMTasks.ChaseTarget, EntitySMTasks.ChasePreyEntity,
             EntitySMTasks.AttackTarget
@@ -79,10 +82,11 @@ namespace Arterra.Data.Entity.Behavior {
             float sightDist = genes.Get(SightDistance);
             float PackTargetWeight = 0;
             Guid PackTarget = Guid.Empty;
-            Bounds seperation = new (self.transform.position, self.transform.size * 3.0f);
+            Bounds seperation = new (self.transform.position, self.transform.size * 2.0f);
+            var eReg = Config.CURRENT.Generation.Entities;
             void OnEntityFound(Entity nEntity) {
                 if (nEntity == null) return;
-                if (nEntity.info.entityType != self.info.entityType) return;
+                if (!FlockEntity.Is(nEntity, eReg)) return;
                 if (!nEntity.Is(out IBoid nBoid)) return;
                 float3 nBoidPos = nEntity.transform.position;
                 float3 boidPos = self.transform.position;
@@ -92,7 +96,7 @@ namespace Arterra.Data.Entity.Behavior {
                 float affection = relations != null ? relations.GetAffection(nEntity.info.entityId) + 1 : 1.0f;
                 if (affection < 1) return; //meaning we are enemies with this boid (no follow)
 
-                float3 offset = nBoidPos - boidPos;
+                float3 offset = math.normalizesafe(nBoidPos - boidPos);
                 float dist = math.length(offset);
                 float weight = affection * math.exp(-(dist/sightDist));
 

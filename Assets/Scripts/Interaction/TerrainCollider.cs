@@ -18,8 +18,6 @@ namespace Arterra.GamePlay.Interaction {
     public class TerrainCollider {
         public const float BaseFriction = 0.2f;
         public static readonly float3 VerticalCollisionBias = new(0, 0.05f, 0);
-        [JsonIgnore]
-        public Action<float> OnHitGround;
         public Transform transform;
         public bool useGravity;
 
@@ -373,7 +371,7 @@ namespace Arterra.GamePlay.Interaction {
             return vel - magnitude * dir;
         }
 
-        public void Update(Entity self = null, float baseFriction = BaseFriction) {
+        public void Update(Entity self = null, float baseFriction = BaseFriction, bool tangible = true) {
             byte contact = TerrainInteractor.SampleContact(transform.position, transform.size, out float friction, self);
             if (!TerrainInteractor.IsTouching(contact)) friction = baseFriction;
             if (useGravity) transform.velocity.xz *= 1 - friction;
@@ -382,13 +380,13 @@ namespace Arterra.GamePlay.Interaction {
             transform.position += transform.velocity * cxt.totDeltaTime;
             if (useGravity) transform.velocity += cxt.gravity * cxt.totDeltaTime;
 
-            if (TerrainInteractor.TouchSolid(contact)) {
+            if (TerrainInteractor.TouchSolid(contact) && tangible) {
                 if (!SampleCollision(transform.position, transform.size, cxt.mapContext, out float3 displacement))
                     if(!SampleBlockCollision(transform.position, transform.size, cxt.mapContext, out displacement))
                         return;
                 transform.position += displacement;
                 float3 nVelocity = CancelVel(transform.velocity, displacement);
-                if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
+                self?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_HitGround, self, null, (useGravity, nVelocity.y - transform.velocity.y));
                 transform.velocity = nVelocity;
             }
         }
@@ -410,7 +408,7 @@ namespace Arterra.GamePlay.Interaction {
                     if(!SampleBlockCollision(transform.position, transform.size, cxt.mapContext, out displacement))
                         return;
                 float3 nVelocity = CancelVel(transform.velocity, displacement);
-                if (useGravity) OnHitGround?.Invoke(nVelocity.y - transform.velocity.y);
+                player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_HitGround, player, null, (useGravity, nVelocity.y - transform.velocity.y));
                 transform.position += displacement;
                 transform.velocity = nVelocity;
             }
@@ -468,9 +466,8 @@ namespace Arterra.GamePlay.Interaction {
             });
         }
 
-        public TerrainCollider(in Settings settings, float3 position, Action<float> OnHitGround = null) {
+        public TerrainCollider(in Settings settings, float3 position) {
             this.transform = new Transform(position, 0, settings.size, Quaternion.identity);
-            this.OnHitGround = OnHitGround;
             this.useGravity = true;
         }
 

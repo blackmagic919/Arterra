@@ -723,6 +723,14 @@ MonoBehaviour:
           mean: 12
           var: 0.3
           geneWeight: 0.1
+        DirectionBias:
+          x: 0
+          y: 0
+          z: 0
+        FlockEntity:
+          mode: 1
+          tagValue: 0
+          registryValue: Elephant
         LeadTargetStates:
           value: b4c300005c76000088770000
         LeadBoidStates:

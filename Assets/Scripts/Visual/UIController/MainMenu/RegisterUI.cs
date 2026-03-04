@@ -8,6 +8,61 @@ using System.Linq;
 
 namespace Arterra.Editor {
 
+    /// <summary>
+    /// Determines whether a TagOrRegistryReference stores a Tag or a Registry reference.
+    /// </summary>
+    public enum ReferenceMode {
+        Tag = 0,
+        RegistryReference = 1
+    }
+
+    /// <summary>
+    /// A unified field that can hold either a TagRegistry.Tags value or a registry reference.
+    /// The mode determines which type of value is being stored.
+    /// </summary>
+    [Serializable]
+    public struct TagOrRegistryReference {
+        /// <summary>Determines whether this holds a Tag or a RegistryReference.</summary>
+        public ReferenceMode mode;
+        /// <summary>The tag value when mode == Tag.</summary>
+        public TagRegistry.Tags tagValue;
+        /// <summary>The registry name when mode == RegistryReference.</summary>
+        public string registryValue;
+
+        public TagOrRegistryReference(TagRegistry.Tags tag) {
+            mode = ReferenceMode.Tag;
+            tagValue = tag;
+            registryValue = "";
+        }
+
+        public TagOrRegistryReference(string registryName) {
+            mode = ReferenceMode.RegistryReference;
+            tagValue = TagRegistry.Tags.None;
+            registryValue = registryName;
+        }
+
+        public bool IsTag => mode == ReferenceMode.Tag;
+        public bool IsRegistryReference => mode == ReferenceMode.RegistryReference;
+
+        public bool Is(IRegistered registered, ICatalgoue catalogue) {
+            if (IsTag) return catalogue.GetMostSpecificTag(tagValue, registered.Index, out _);
+            return registered.Index == catalogue.RetrieveIndex(registryValue);
+        }
+    }
+
+    /// <summary>
+    /// Attribute for TagOrRegistryReference fields. Specifies which registry to use when the reference is in RegistryReference mode.
+    /// </summary>
+    public class TagOrRegistryReferenceAttribute : PropertyAttribute {
+        public string RegistryName;
+        public string NamePropertyPath;
+        
+        public TagOrRegistryReferenceAttribute(string registryName, string namePropertyPath = "/Names") {
+            this.RegistryName = registryName;
+            this.NamePropertyPath = namePropertyPath;
+        }
+    }
+
     public class RegistryReference : PropertyAttribute {
         public string RegistryName;
         public string NamePropertyPath;
@@ -23,7 +78,7 @@ namespace Arterra.Editor {
         public int BitShift = 0;
         public uint BitMask = 0xFFFFFFFF;
         public string NameLookupPath = "/Names";
-        private static Dictionary<string, IRegister> RegistryAssociation;
+        public static Dictionary<string, IRegister> RegistryAssociation;
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             SetupRegistries();
 
@@ -80,6 +135,17 @@ namespace Arterra.Editor {
                 Config.TEMPLATE : Resources.Load<Config>("Config");
 
             IRegister.AssociateRegistries(Config.TEMPLATE, ref RegistryAssociation);
+        }
+
+        /// <summary>
+        /// Helper used by other drawers to look up a registry by name.
+        /// </summary>
+        public static bool TryGetRegistry(string registryName, out IRegister registry) {
+            SetupRegistries();
+            if (RegistryAssociation != null)
+                return RegistryAssociation.TryGetValue(registryName, out registry);
+            registry = null;
+            return false;
         }
 
 
@@ -175,6 +241,118 @@ namespace Arterra.Editor {
             }
             if (prop == null || !prop.isArray) return false;
             return true;
+        }
+    }
+
+    [CustomPropertyDrawer(typeof(TagOrRegistryReferenceAttribute))]
+    public class TagOrRegistryReferenceDrawer : PropertyDrawer {
+        private static Dictionary<string, IRegister> RegistryAssociation;
+
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
+            RegistryReferenceDrawer.SetupRegistries();
+            RegistryAssociation = RegistryReferenceDrawer.RegistryAssociation;
+
+            string registryName = ((TagOrRegistryReferenceAttribute)attribute).RegistryName;
+            string nameLookupPath = ((TagOrRegistryReferenceAttribute)attribute).NamePropertyPath;
+
+            EditorGUI.BeginProperty(position, label, property);
+            Rect labelRect = EditorGUI.PrefixLabel(position, label);
+
+            // Get the mode, tagValue, and registryValue properties
+            SerializedProperty modeProp = property.FindPropertyRelative("mode");
+            SerializedProperty tagValueProp = property.FindPropertyRelative("tagValue");
+            SerializedProperty registryValueProp = property.FindPropertyRelative("registryValue");
+
+            if (modeProp == null || tagValueProp == null || registryValueProp == null) {
+                EditorGUI.LabelField(labelRect, "Error: TagOrRegistryReference structure mismatch");
+                EditorGUI.EndProperty();
+                return;
+            }
+
+            ReferenceMode currentMode = (ReferenceMode)modeProp.intValue;
+            string displayText = GetDisplayText(currentMode, tagValueProp, registryValueProp, registryName, nameLookupPath);
+
+            if (GUI.Button(labelRect, string.IsNullOrEmpty(displayText) ? "[Select]" : displayText, EditorStyles.popup)) {
+                BuildAndShowPopup(registryName, nameLookupPath, modeProp, tagValueProp, registryValueProp);
+            }
+
+            EditorGUI.EndProperty();
+        }
+
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
+            return base.GetPropertyHeight(property, label);
+        }
+
+        private string GetDisplayText(ReferenceMode mode, SerializedProperty tagValueProp, SerializedProperty registryValueProp, string registryName, string nameLookupPath) {
+            if (mode == ReferenceMode.Tag) {
+                TagRegistry.Tags tagValue = (TagRegistry.Tags)tagValueProp.intValue;
+                return tagValue == TagRegistry.Tags.None ? "" : tagValue.ToString();
+            } else {
+                string registryValue = registryValueProp.stringValue;
+                if (string.IsNullOrEmpty(registryValue))
+                    return "";
+                return registryValue;
+            }
+        }
+
+        private void BuildAndShowPopup(string registryName, string nameLookupPath, SerializedProperty modeProp, SerializedProperty tagValueProp, SerializedProperty registryValueProp) {
+            List<string> options = new List<string>();
+            Dictionary<string, (ReferenceMode, object)> optionData = new Dictionary<string, (ReferenceMode, object)>();
+
+            // Add Tags section
+            TagRegistry.Tags[] tags = (TagRegistry.Tags[])System.Enum.GetValues(typeof(TagRegistry.Tags));
+            foreach (TagRegistry.Tags tag in tags) {
+                string tagName = tag.ToString();
+                string optionText = $"Tags > {tagName}";
+                options.Add(optionText);
+                optionData[optionText] = (ReferenceMode.Tag, tag);
+            }
+
+            // Add Registry section if registry is available
+            if (registryName != null && RegistryAssociation.TryGetValue(registryName, out IRegister registry)) {
+                for (int i = 0; i < registry.Count(); i++) {
+                    string itemName = registry.RetrieveName(i);
+                    string optionText = $"Registry > {itemName}";
+                    options.Add(optionText);
+                    optionData[optionText] = (ReferenceMode.RegistryReference, itemName);
+                }
+            }
+
+            // Determine current selection
+            ReferenceMode currentMode = (ReferenceMode)modeProp.intValue;
+            int currentIndex = 0;
+            if (currentMode == ReferenceMode.Tag) {
+                TagRegistry.Tags currentTag = (TagRegistry.Tags)tagValueProp.intValue;
+                string searchTag = $"Tags > {currentTag}";
+                currentIndex = options.FindIndex(o => o == searchTag);
+                if (currentIndex < 0) currentIndex = 0;
+            } else {
+                string currentRegistry = registryValueProp.stringValue;
+                string searchRegistry = $"Registry > {currentRegistry}";
+                currentIndex = options.FindIndex(o => o == searchRegistry);
+                if (currentIndex < 0) currentIndex = 0;
+            }
+
+            SearchablePopup popup = new SearchablePopup(
+                options,
+                currentIndex,
+                (i, val) => {
+                    if (optionData.TryGetValue(val, out var data)) {
+                        modeProp.intValue = (int)data.Item1;
+                        
+                        if (data.Item1 == ReferenceMode.Tag) {
+                            tagValueProp.intValue = (int)(TagRegistry.Tags)data.Item2;
+                            registryValueProp.stringValue = "";
+                        } else {
+                            tagValueProp.intValue = (int)TagRegistry.Tags.None;
+                            registryValueProp.stringValue = (string)data.Item2;
+                        }
+                        
+                        modeProp.serializedObject.ApplyModifiedProperties();
+                    }
+                });
+
+            PopupWindow.Show(new Rect(Event.current.mousePosition.x, Event.current.mousePosition.y, 300, 0), popup);
         }
     }
 

@@ -60,9 +60,11 @@ MonoBehaviour:
           y: 0.75
           z: 0.75
       Behaviors:
-        value: 0000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec03000010270000242700002e27000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000832700001b270000
+        value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000832700001b270000
       Settings:
         value:
+        - value:
+            rid: 5205636790779904075
         - value:
             rid: 3097084119023353985
         - value:
@@ -145,14 +147,14 @@ MonoBehaviour:
           mean: 0.25
           var: 0.1
           geneWeight: 0.025
-        HoldBreathTime:
-          mean: Infinity
-          var: 0.5
-          geneWeight: 0.01
     - rid: 3097083922518114516
       type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 1
+        HoldBreathTime:
+          mean: Infinity
+          var: 0.3
+          geneWeight: 0.1
         UseFallDamage: 1
     - rid: 3097083922518114517
       type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -641,7 +643,7 @@ MonoBehaviour:
             offset: 27
         customSpeeds:
           value:
-          - mean: 7.84
+          - mean: 4.41
             var: 0.25
             geneWeight: 0.3
     - rid: 5205636740273930337
@@ -694,9 +696,17 @@ MonoBehaviour:
           x: 0
           y: 0
           z: 0
+        FlockEntity:
+          mode: 1
+          tagValue: 0
+          registryValue: Minnow
         LeadTargetStates:
           value: b4c300005c76000088770000
         LeadBoidStates:
           value: b4c3000088770000f87500005c760000887700004c4f0000409c000064000000
         MaxSwarmSize: 8
-        PathDist: 3
+        PathDist: 4
+    - rid: 5205636790779904075
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0

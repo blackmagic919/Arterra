@@ -47,6 +47,7 @@ namespace Arterra.Data.Entity.Behavior {
         MapInteraction = BehaviorTypes.Base + 1,
         Indicators = BehaviorTypes.Base + 3,
         Rideable = BehaviorTypes.Base + 4,
+        Collider = BehaviorTypes.Base + 5,
 
         StateMachine = BehaviorTypes.Creature + 0,
         Attack = BehaviorTypes.Creature + 1,
@@ -67,7 +68,6 @@ namespace Arterra.Data.Entity.Behavior {
         LandOnGround = BehaviorTypes.StateMachine + 16,
         SwimToSurface = BehaviorTypes.StateMachine + 17,
         ChaseMateState = BehaviorTypes.StateMachine + 20,
-        ReproduceState = BehaviorTypes.StateMachine + 30,
         RidedState = BehaviorTypes.StateMachine + 35,
         ChasePlantState = BehaviorTypes.StateMachine + 40,
         ChasePreyState = BehaviorTypes.StateMachine + 50,
@@ -77,6 +77,7 @@ namespace Arterra.Data.Entity.Behavior {
         ChaseAttackerState = BehaviorTypes.StateMachine + 90,
         RunFromPredator = BehaviorTypes.StateMachine + 100,
         RunFromAttacker = BehaviorTypes.StateMachine + 110,
+        BurrowUnderground = BehaviorTypes.StateMachine + 114,
         FlopOnGround = BehaviorTypes.StateMachine + 115,
         DeathState = BehaviorTypes.StateMachine + 120,
         
@@ -98,6 +99,7 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.MapInteraction, () => new MapInteractBehavior() },
             { Behaviors.Indicators, () => new InidcatorsBehavior() },
             { Behaviors.Rideable, () => new RidableBehavior() },
+            { Behaviors.Collider, () => new ColliderUpdateBehavior() },
 
             { Behaviors.StateMachine, () => new StateMachineManagerBehavior()},
             { Behaviors.Attack, () => new AttackBehavior()},
@@ -118,7 +120,6 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.LandOnGround, () => new LandOnGroundBehavior()},
             { Behaviors.SwimToSurface, () => new SwimToSurfaceBehavior()},
             { Behaviors.ChaseMateState, () => new ChaseMateBehavior()},
-            { Behaviors.ReproduceState, () => new ReproductionBehavior()},
             { Behaviors.RidedState, () => new RidableStateBehavior()},
             { Behaviors.ChasePlantState, () => new ChasePlantBehavior()},
             { Behaviors.ChasePreyState, () => new ChasePreyBehavior()},
@@ -128,6 +129,7 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.ChaseAttackerState, () => new ChaseAttackerBehavior()},
             { Behaviors.RunFromPredator, () => new RunFromPredatorBehavior()},
             { Behaviors.RunFromAttacker, () => new RunFromAttackerBehavior()},
+            { Behaviors.BurrowUnderground, () => new BurrowInGroundBehavior()},
             { Behaviors.FlopOnGround, () => new FlopOnLandBehavior()},
             { Behaviors.DeathState, () => new DeathBehavior()},
         };
@@ -139,6 +141,7 @@ namespace Arterra.Data.Entity.Behavior {
             AnimalSetting settings = _Setting.value;
             Dictionary<Behaviors, int> BehaviorHeirarchy = new ();
             Dictionary<Type, IBehaviorSetting> SettingsHeirarchy = new ();
+            BehaviorHeirarchy.Add(Behaviors.Collider, 0);
 
             //Get full sorted behavior dependency heirarchy
             if (settings.Behaviors.value == null) return;
@@ -147,7 +150,7 @@ namespace Arterra.Data.Entity.Behavior {
                 for(; _prevBehaviorCount < settings.Behaviors.value.Count; _prevBehaviorCount++)
                     settings.Behaviors.value[_prevBehaviorCount] = Behaviors.None - _prevBehaviorCount;
             } else _prevBehaviorCount = settings.Behaviors.value.Count;
-
+            
             foreach(Behaviors name in settings.Behaviors.value) {
                 if (name <= Behaviors.None) BehaviorHeirarchy.Add(name, BehaviorHeirarchy.Count);
                 if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
@@ -256,7 +259,6 @@ namespace Arterra.Data.Entity.Behavior {
             [JsonIgnore] public AnimalController controller;
             public Unity.Mathematics.Random random;
             public List<IBehavior> Behaviors;
-            public HashSet<Guid> IgnoredEntities;
             public TerrainCollider collider;
 
             [JsonIgnore] public override ref TerrainCollider.Transform transform => ref collider.transform; 
@@ -312,8 +314,6 @@ namespace Arterra.Data.Entity.Behavior {
 
             public override void Update() {
                 if (!active) return;
-                collider.Update(this);
-                collider.EntityCollisionUpdate(this, IgnoredEntities);
                 EntityManager.AddHandlerEvent(controller.Update);
                 foreach(IBehavior behavior in Behaviors) {
                     Profiler.BeginSample(behavior.GetType().Name);

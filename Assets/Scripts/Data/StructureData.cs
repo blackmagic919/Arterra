@@ -267,6 +267,7 @@ public class StructureData : Category<StructureData>
         public Option<List<StructureEntity>> Entities;
         /// <summary> List of map meta data that this structure can spawn.</summary>
         public Option<List<MaterialData.MetaConstructor>> MapMetaData;
+        
 
         /// <summary>Spawning information for a
         /// single entity by the structure. </summary>

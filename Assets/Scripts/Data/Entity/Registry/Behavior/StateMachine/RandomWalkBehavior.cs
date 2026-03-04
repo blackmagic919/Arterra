@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using Arterra.Configuration;
 using Arterra.Utils;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class RandomWalkStateSettings : IBehaviorSetting {
@@ -65,7 +65,8 @@ namespace Arterra.Data.Entity.Behavior {
                 self.random.NextInt(-PathDist, PathDist)
             );
 
-            if (PathFinder.VerifyProfile(self.GCoord + dP, self.settings.profile, EntityJob.cxt)) {
+            EntitySetting.ProfileInfo profile = MMove.Profile(mmove, settings.TaskName, self.settings);
+            if (PathFinder.VerifyProfile(self.GCoord + dP, profile, EntityJob.cxt)) {
                 byte[] nPath = PathFinder.FindPath(self.GCoord, dP, PathDist + 1,
                     MMove.Profile(mmove, settings.TaskName, self.settings),
                     EntityJob.cxt, out int pLen);

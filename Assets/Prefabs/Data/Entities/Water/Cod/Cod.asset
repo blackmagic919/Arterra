@@ -60,9 +60,11 @@ MonoBehaviour:
           y: 0.75
           z: 0.5
       Behaviors:
-        value: 0000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec03000010270000242700002e27000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000832700001a270000
+        value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000832700001a270000
       Settings:
         value:
+        - value:
+            rid: 5205636790779904073
         - value:
             rid: 3097084119023353985
         - value:
@@ -145,14 +147,14 @@ MonoBehaviour:
           mean: 0.25
           var: 0.1
           geneWeight: 0.025
-        HoldBreathTime:
-          mean: Infinity
-          var: 0.5
-          geneWeight: 0.01
     - rid: 3097083922518114516
       type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 1
+        HoldBreathTime:
+          mean: Infinity
+          var: 0.3
+          geneWeight: 0.1
         UseFallDamage: 1
     - rid: 3097083922518114517
       type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -664,3 +666,7 @@ MonoBehaviour:
           var: 0.4
           geneWeight: 0.05
         JumpStickDist: 0.05
+    - rid: 5205636790779904073
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0

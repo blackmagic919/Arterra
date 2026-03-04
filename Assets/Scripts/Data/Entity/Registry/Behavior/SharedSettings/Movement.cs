@@ -4,6 +4,7 @@ using UnityEngine;
 using Arterra.Data.Entity;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Data.Entity.Behavior;
+using System.Collections.Generic;
 
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
@@ -100,6 +101,40 @@ namespace Arterra.Data.Entity.Behavior {
             if (!PathFinder.VerifyProfile(nextPos, profile, EntityJob.cxt)) { finder.hasPath = false; }
             if (math.distance(tCollider.transform.position, target) < math.distance(finder.destination, target))
                 finder.hasPath = false;
+
+            float3 aim = Normalize(nextPos - tCollider.transform.position);
+            Quaternion rot = tCollider.transform.rotation;
+            if (!AllowVerticalRotation) {
+                if (math.any(aim.xz != 0)) {
+                    aim = math.normalize(new float3(aim.x, 0, aim.z));
+                    rot = Quaternion.LookRotation(aim);
+                }
+            } else rot = Quaternion.LookRotation(aim);
+
+            tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, rotSpeed * EntityJob.cxt.deltaTime);
+            if (math.length(tCollider.transform.velocity) < moveSpeed)
+                tCollider.transform.velocity += acceleration * EntityJob.cxt.deltaTime * aim;
+
+            int3 GCoord = (int3)math.floor(tCollider.transform.position);
+            if (math.all(math.abs(GCoord - nextPos) <= 1)) {
+                finder.currentPos = nextPos;
+                finder.stepDuration = 0;
+                finder.currentInd++;
+            }
+        }
+
+
+        public static void FollowStaticPath(List<PathFinder.MatProfileE> profile, uint3 bounds, ref PathFinder.PathInfo finder, ref TerrainCollider tCollider, float moveSpeed,
+                            float rotSpeed, float acceleration, bool AllowVerticalRotation = false) {
+            //Entity has fallen off path
+            finder.stepDuration++;
+            if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > bounds)) finder.hasPath = false;
+            if (finder.currentInd == finder.path.Length) finder.hasPath = false;
+            if (finder.stepDuration > pathPersistence) { finder.hasPath = false; }
+            if (!finder.hasPath) return;
+            byte dir = finder.path[finder.currentInd];
+            int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
+            if (!PathFinder.VerifyMatProfile(nextPos, bounds, profile)) { finder.hasPath = false; }
 
             float3 aim = Normalize(nextPos - tCollider.transform.position);
             Quaternion rot = tCollider.transform.rotation;
