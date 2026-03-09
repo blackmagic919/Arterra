@@ -12,7 +12,7 @@ namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class NameTagSettings : IBehaviorSetting {
         /// <summary> How far above the entity's origin the name tag is displayed, in game units. </summary>
-        public float VerticalOffset = 2.5f;
+        public float VerticalOffset = 1.2f;
 
         public object Clone() {
             return new NameTagSettings {
@@ -67,7 +67,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             // Semi-transparent backing panel
             Image bg = nameTagObject.AddComponent<Image>();
-            bg.color = new Color(0f, 0f, 0f, 0.55f);
+            bg.color = new Color(0.75f, 0.08f, 0.08f, 0.80f);
 
             // Name label
             GameObject textObj = new GameObject("NameText");
