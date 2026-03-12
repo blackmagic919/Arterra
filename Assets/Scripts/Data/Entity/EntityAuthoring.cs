@@ -27,7 +27,6 @@ public abstract class Authoring : Category<Authoring>{
     public Option<List<ProfileE>> Profile;
 }
 
-
 /// <summary>
 /// A generic entity that defines a virtual function table that all entities must implement,
 /// as well as some metadata used by the system to manage the entity. All entities in the game
@@ -81,6 +80,7 @@ public abstract class Entity: IRegistered, IEventControlled{
     }
     /// <summary> The position of the entity's head--dictating where it attacks and ray traces from.
     /// By default this is the same as <see cref="position"/>  </summary>
+    [JsonIgnore]
     public virtual float3 head {
         get => position;
         set => position = value;
@@ -108,7 +108,7 @@ public abstract class Entity: IRegistered, IEventControlled{
     public float3 Right => Facing * Vector3.right;
     /// <summary> The weight of the entity </summary>
     [JsonIgnore]
-    public virtual float weight => 0.5f;
+    public float weight = 0.5f;
 
     /// <summary> The event controller responsible for managing all events related to this entity </summary>
     [JsonIgnore]
@@ -183,6 +183,9 @@ public abstract class Entity: IRegistered, IEventControlled{
         /// <summary> The unique identifier of the entity that remains the same throughout the entity's life cycle, regardless of if it's serialized
         /// or saved to disk. </summary>
         public Guid entityId;
+        /// <summary> If this entity belongs to or is a logical part of another entity, the shared Id of the root entity. Certain calculations
+        /// should be preformed on the root entity (e.g. spider rather than leg of a spider). </summary>
+        public Guid rtEntityId;
         /// <summary> The index of the entity's name within the <see cref="Config.GenerationSettings.Entities"/> registry. This is guaranteed to be different
         /// for two different types of entities and can be used to test such. If the entity is serialized, this should be decoupled and recoupled upon deserialization. </summary>
         public uint entityType;

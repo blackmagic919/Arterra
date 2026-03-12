@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1706e0d06cfcf4288909469e2f6f1a46, type: 3}
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
   m_Name: Monolith
-  m_EditorClassIdentifier: Assembly-CSharp::Monolith
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
   Name: Monolith
   Tags:
     Reg:
@@ -167,121 +167,285 @@ MonoBehaviour:
           x: 2.5
           y: 4.5
           z: 2.5
-      EnemyCheckDist:
-        mean: 8
-        var: 0.4
-        geneWeight: 0.3
-      EnemyCheckDelay:
-        mean: 2.5
-        var: 0.5
-        geneWeight: 0.1
-      movement:
+      Behaviors:
+        value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a270000742700007e270000882700008a1300008b130000891300008c1300006f270000
+      Settings:
+        value:
+        - value:
+            rid: 5205636866482634847
+        - value:
+            rid: 3097084098772992145
+        - value:
+            rid: 3097083922518114515
+        - value:
+            rid: 3097084037468258397
+        - value:
+            rid: 3097083922518114516
+        - value:
+            rid: 3097083922518114517
+        - value:
+            rid: 3097083922518114518
+        - value:
+            rid: 3097083922518114520
+        - value:
+            rid: 3097083922518114521
+        - value:
+            rid: 3097083922518114639
+        - value:
+            rid: 5205636866482634848
+        - value:
+            rid: 3097083922518114530
+        - value:
+            rid: 3097083922518114531
+        - value:
+            rid: 3097083922518114532
+        - value:
+            rid: 3097083922518114533
+        - value:
+            rid: 3097083922518114534
+        - value:
+            rid: 3097083922518114535
+        - value:
+            rid: 5205636901062049865
+        - value:
+            rid: 5205636903624769609
+        - value:
+            rid: 5205636901300338763
+        - value:
+            rid: 5205636901300338764
+        - value:
+            rid: 5205636903624769610
+  _prevBehaviorCount: 22
+  references:
+    version: 2
+    RefIds:
+    - rid: 3097083922518114515
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 2500
+        StartHealthPercent: 0.7
+        StartHealthVariance: 0.05
+        MaxHealth:
+          mean: 80
+          var: 0.35
+          geneWeight: 0.4
+        NaturalRegen:
+          mean: 0.01
+          var: 0.25
+          geneWeight: 0.2
+        InvincTime:
+          mean: 0.25
+          var: 0.1
+          geneWeight: 0.025
+    - rid: 3097083922518114516
+      type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        HoldBreathTime:
+          mean: 10
+          var: 0.3
+          geneWeight: 0.1
+        UseFallDamage: 0
+    - rid: 3097083922518114517
+      type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StartTask: 0
+        AverageStartDuration: Infinity
+        AverageStartDurationVariance: 0
+        ContactDistance: 6
+    - rid: 3097083922518114518
+      type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AttackDistance:
+          mean: 6.5
+          var: 0.1
+          geneWeight: 0.2
+        AttackDamage:
+          mean: 6
+          var: 0.5
+          geneWeight: 0.6
+        AttackCooldown:
+          mean: 0.4
+          var: 0.5
+          geneWeight: 0.3
+        KBStrength:
+          mean: 10
+          var: 0.5
+          geneWeight: 0.1
+        AttackDuration: 0.2
+    - rid: 3097083922518114520
+      type: {class: IdleStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageIdleTime:
+          mean: Infinity
+          var: 0.5
+          geneWeight: 0.025
+        AverageIdleVariance:
+          mean: 0.5
+          var: 0.25
+          geneWeight: 0.025
+        TaskName: 0
+        OnCompleteTransition: 100
+        CheckTransitions:
+          value: 5c760000
+    - rid: 3097083922518114521
+      type: {class: RandomWalkStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageWalkTime:
+          mean: 15
+          var: 0.3
+          geneWeight: 0.025
+        AveragWalkVariance:
+          mean: 0
+          var: 0
+          geneWeight: 0
+        TaskName: 100
+        OnStopWalkTransition: 0
+        OnSwitchPath:
+          value: 5c760000
+    - rid: 3097083922518114530
+      type: {class: AttackTargetSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30600
+        OnTargetPreyDeath: 100
+        OnTargetDeath: 100
+        OnSeperateTarget: 50100
+        OnLostTarget: 100
+    - rid: 3097083922518114531
+      type: {class: ChaseAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50100
+        OnLostAttacker: 100
+        OnReachAttacker: 30600
+        ChaseDistance:
+          mean: 24
+          var: 0.25
+          geneWeight: 0.2
+    - rid: 3097083922518114532
+      type: {class: RunFromPredatorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 40000
+        OverridableStates: 30500
+        OnFinishRunning: 100
+        Predators:
+          value: []
+    - rid: 3097083922518114533
+      type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        fleeDist: 5
+        detectDist:
+          mean: 18
+          var: 0.25
+          geneWeight: 0.3
+        FightAggressor: 1
+    - rid: 3097083922518114534
+      type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50000
+        OverridableStates: 30600
+        OnLostAttacker: 100
+    - rid: 3097083922518114535
+      type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 60000
+        OnReviveTask: 0
+        DecompositionTime:
+          mean: 450
+          var: 0.2
+          geneWeight: 0.01
+    - rid: 3097083922518114639
+      type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
         walkSpeed:
           mean: 2
-          var: 0.45
-          geneWeight: 0.25
+          var: 0.3
+          geneWeight: 0.1
         runSpeed:
           mean: 3
-          var: 0.5
-          geneWeight: 0.75
-        pathDistance: 31
+          var: 0.35
+          geneWeight: 0.35
+        pathDistance: 32
         acceleration: 200
         rotSpeed: 180
-        AverageIdleTime: 20
-      recognition:
-        value:
-          Predators:
-            value: []
-          SightDistance:
-            mean: 40
-            var: 0.25
-            geneWeight: 0.5
-          PlantFindDist:
-            mean: 0
-            var: 0
-            geneWeight: 0
-          PreyEntity:
-            value:
-            - EntityType: Player
-          PreyPlant:
-            value: []
-          FleeDistance: 5
-          FightAggressor: 1
-      physicality:
-        value:
-          weight: 0.9
-          MaxHealth:
-            mean: 50
-            var: 0.5
-            geneWeight: 1
-          NaturalRegen:
-            mean: 0.01
-            var: 0.75
-            geneWeight: 0.5
-          InvincTime:
-            mean: 0.25
-            var: 1
-            geneWeight: 0.5
-          HoldBreathTime:
-            mean: 20
-            var: 1
-            geneWeight: 0.05
-          AttackDistance:
-            mean: 8
-            var: 0.25
-            geneWeight: 0.5
-          AttackDamage:
-            mean: 8
-            var: 0.75
-            geneWeight: 0.75
-          AttackCooldown:
-            mean: 0.75
-            var: 0.25
-            geneWeight: 0.25
-          KBStrength:
-            mean: 15
-            var: 0.5
-            geneWeight: 0.25
-          AttackDuration: 0.75
-      decomposition:
+    - rid: 3097084037468258397
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
         LootTable:
-          value: []
-        DecompositionTime:
-          mean: 300
-          var: 0.25
-          geneWeight: 0.1
-      attack:
-        Projectile:
-          ShotDelay: 0.25
-          CheckSightline: 1
-          ChargeTime:
-            mean: 5
-            var: 0.5
-            geneWeight: 0.6
-          Projectile:
-            LaunchSpeedMultiplier: 5
-            FireSound: 2001
-            ProjectileEntity: StoneHorn
-          HasRangedAttack: 1
-        BlindDist:
-          mean: 3
-          var: 0.25
-          geneWeight: 0.5
-      ConsumptionRate: 0.5
-      Animation:
-        Head:
           value:
-            Offset:
-              x: 0
-              y: 4.5
-              z: 0
-            Collider:
-              size:
-                x: 2
-                y: 2
-                z: 2
-            RubberbandStrength: 10
-        RubberbandStrength: 1
+          - ItemName: Stone:Solid
+            DropAmount:
+              mean: 0.06666667
+              var: 0.75
+              geneWeight: 0.05
+    - rid: 3097084098772992145
+      type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath: Monolith
+        StateAnimations:
+          value:
+          - task: 0
+            Animation: IsIdling
+          - task: 20200
+            Animation: IsCuddling
+          - task: 30400
+            Animation: IsEating
+          - task: 30500
+            Animation: IsEating
+          - task: 60000
+            Animation: IsDead
+    - rid: 5205636866482634847
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 1
+    - rid: 5205636866482634848
+      type: {class: ChaseEnemySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30300
+        OnNotFoundTransition: 100
+        OnReachEnemyTransition: 30600
+        SearchChances:
+          value: []
+        SearchDistance:
+          mean: 10
+          var: 0.5
+          geneWeight: 0.2
+        DesiredEnemyState: 1
+        Enemy:
+          value:
+          - EntityType: Player
+    - rid: 5205636901062049865
+      type: {class: MultiAttackSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Variants:
+          value:
+          - TriggerAnim: AttackR
+            AttackChance: 0.07142858
+            AttackDuration: 0.25
+            AttackDamage: 6
+            Knockback: 10
+          - TriggerAnim: AttackL
+            AttackChance: 1
+            AttackDuration: 0.25
+            AttackDamage: 6
+            Knockback: 10
+    - rid: 5205636901300338763
+      type: {class: LeadHeadSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Offset:
+          x: 0
+          y: 4.5
+          z: 0
+        Collider:
+          size:
+            x: 2
+            y: 2
+            z: 2
+        HeadRubberBand: 20
+        BodyRubberBand: 2
+    - rid: 5205636901300338764
+      type: {class: MultiPedalSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
         AnimControl:
         - AnimName: Armature_active_idle
           LegControlBitmap: 15
@@ -292,7 +456,6 @@ MonoBehaviour:
         - AnimName: Armature_ShootHorn
           LegControlBitmap: 13
         OverrideAnimByDefault: 0
-        BodyUseGravity: 1
         Legs:
           value:
           - collider:
@@ -308,7 +471,7 @@ MonoBehaviour:
               x: 0.375
               y: 0
               z: 0.375
-            BonePath: Rig/Leg.Front.control.R/target
+            BonePath: Monolith/Rig/Leg.Front.control.R/target
             StepDistThreshold: 3
             LegRaiseHeight: 2
             MoveAccel: 300
@@ -328,7 +491,7 @@ MonoBehaviour:
               x: 0.375
               y: 0
               z: 0.375
-            BonePath: Rig/Leg.Front.control.L/target
+            BonePath: Monolith/Rig/Leg.Front.control.L/target
             StepDistThreshold: 3
             LegRaiseHeight: 2
             MoveAccel: 300
@@ -348,7 +511,7 @@ MonoBehaviour:
               x: 0.375
               y: 0
               z: 0.375
-            BonePath: Rig/Leg.Back.control.R/target
+            BonePath: Monolith/Rig/Leg.Back.control.R/target
             StepDistThreshold: 3
             LegRaiseHeight: 2
             MoveAccel: 300
@@ -368,14 +531,43 @@ MonoBehaviour:
               x: 0.375
               y: 0
               z: 0.375
-            BonePath: Rig/Leg.Back.control.L/target
+            BonePath: Monolith/Rig/Leg.Back.control.L/target
             StepDistThreshold: 3
             LegRaiseHeight: 2
             MoveAccel: 300
             Friction: 0.25
             RubberbandStrength: 3
             OppositeLeg: 2
-      IndependentWalk: 0
-  references:
-    version: 2
-    RefIds: []
+    - rid: 5205636903624769609
+      type: {class: ProjectileFireSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AttackingStates:
+          value: b4c300005c760000
+        Projectile:
+          ShotDelay: 0.25
+          CheckSightline: 1
+          ChargeTime:
+            mean: 5
+            var: 0.25
+            geneWeight: 0.1
+          Projectile:
+            LaunchSpeedMultiplier: 5
+            FireSound: 2001
+            ProjectileEntity: StoneHorn
+          HasRangedAttack: 1
+        BlindDist:
+          mean: 3
+          var: 0.5
+          geneWeight: 0.1
+    - rid: 5205636903624769610
+      type: {class: StepBackSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30800
+        TestProximityState: 30600
+        OnLostTarget: 100
+        OnSteppedBack: 50100
+        BlindDist:
+          mean: 3
+          var: 0.25
+          geneWeight: 0.025
+        PathDist: 5

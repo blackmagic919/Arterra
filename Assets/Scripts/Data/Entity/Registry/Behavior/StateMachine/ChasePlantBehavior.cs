@@ -49,14 +49,14 @@ namespace Arterra.Data.Entity.Behavior {
             if (manager.TaskIndex != settings.TaskName) return;
             
             Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
-                ref path.pathFinder, ref self.collider,
+                ref path.pathFinder, self.PathCollider,
                 MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.walkSpeed),
-                movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.TaskName));
+                movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.TaskName));
             if (path.pathFinder.hasPath) return;
 
             if (findPlant.FindPreferredPreyPlant((int3)math.round(self.position), genetics.Genes.GetInt(
                 settings.SearchDistance), out int3 preyPos)
-                && Recognition.GetColliderDist(self, preyPos)
+                && ColliderUpdateBehavior.GetColliderDist(self, preyPos)
                 <= manager.settings.ContactDistance
             ) {
                 if(manager.Transition(settings.OnReachPreyTransition)) {
@@ -75,14 +75,14 @@ namespace Arterra.Data.Entity.Behavior {
                 out int3 preyPos
             )) return false;
 
-            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.GCoord, preyPos - self.GCoord, movement.pathDistance,
+            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.PathCoord, preyPos - self.PathCoord, movement.pathDistance,
                 MMove.Profile(mmove, settings.TaskName, self.settings),
                 EntityJob.cxt, out int pLen);
-            path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
-            float dist = Recognition.GetColliderDist(self, preyPos);
+            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+            float dist = ColliderUpdateBehavior.GetColliderDist(self, preyPos);
 
             //If it can't get to the prey and is currently at the closest position it can be
-            if (math.all(path.pathFinder.destination == self.GCoord)) {
+            if (math.all(path.pathFinder.destination == self.PathCoord)) {
                 if (dist <= manager.settings.ContactDistance && manager.Transition(settings.OnReachPreyTransition)) {
                     manager.TaskPosition = preyPos;
                 } return false;

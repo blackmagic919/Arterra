@@ -44,7 +44,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (manager.TaskIndex != settings.TaskName) return;
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity target))
                 manager.TaskTarget = Guid.Empty;
-            else if (Recognition.GetColliderDist(self, target)
+            else if (ColliderUpdateBehavior.GetColliderDist(self, target)
                 > genetics.Genes.Get(settings.ChaseDistance))
                 manager.TaskTarget = Guid.Empty;
             if (manager.TaskTarget == Guid.Empty) {
@@ -54,18 +54,18 @@ namespace Arterra.Data.Entity.Behavior {
 
             if (!path.pathFinder.hasPath) {
                 int PathDist = movement.pathDistance;
-                int3 destination = (int3)math.round(target.origin) - self.GCoord;
-                byte[] nPath = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1,
+                int3 destination = (int3)math.round(target.origin) - self.PathCoord;
+                byte[] nPath = PathFinder.FindPathOrApproachTarget(self.PathCoord, destination, PathDist + 1,
                     MMove.Profile(mmove, manager.TaskIndex, self.settings), EntityJob.cxt, out int pLen);
-                path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
+                path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
             }
             Movement.FollowDynamicPath(MMove.Profile(mmove, manager.TaskIndex, self.settings),
-                ref path.pathFinder, ref self.collider, target.origin,
+                ref path.pathFinder, self.PathCollider, target.origin,
                 MMove.Speed(mmove, manager.TaskIndex, genetics.Genes, movement.runSpeed),
-                movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, manager.TaskIndex)
+                movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, manager.TaskIndex)
             );
 
-            if (Recognition.GetColliderDist(self, target) < manager.settings.ContactDistance) {
+            if (ColliderUpdateBehavior.GetColliderDist(self, target) < manager.settings.ContactDistance) {
                 manager.Transition(settings.OnReachAttacker);
                 return;
             }
@@ -74,8 +74,8 @@ namespace Arterra.Data.Entity.Behavior {
         private void RespondToAttack(object caller, object attacker) {
             if (attacker == null) return;
             if (attacker is not Entity entity) return;
-            if (entity.info.entityId == self.info.entityId) return;
-            if (relations != null && relations.GetAffection(entity.info.entityId)
+            if (entity.info.rtEntityId == self.info.rtEntityId) return;
+            if (relations != null && relations.GetAffection(entity.info.rtEntityId)
                 > relations.settings.SuppressInstinctAffection)
                     return;
             if (prey != null && prey.Recognize((int)entity.info.entityType))
@@ -83,7 +83,7 @@ namespace Arterra.Data.Entity.Behavior {
             else if (flee != null && flee.FightAggressor)
                 manager.Transition(settings.TaskName);
             if (manager.TaskIndex == settings.TaskName) 
-                manager.TaskTarget = entity.info.entityId;
+                manager.TaskTarget = entity.info.rtEntityId;
         }
 
 

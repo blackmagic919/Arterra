@@ -68,7 +68,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             if (caller == null) return;
             if (!caller.Is(out IRider rider)) return;
             if (RiderTarget != Guid.Empty) return; //Already has a rider
-            RiderTarget = caller.info.entityId;
+            RiderTarget = caller.info.rtEntityId;
             EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
 
         }
@@ -78,10 +78,11 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             return item; // Boats are not collectible
         }
 
-        public void TakeDamage(float damage, float3 knockback, Entity attacker = null) {
-            if (!vitality.Damage(damage)) return;
+        public bool TakeDamage(float damage, float3 knockback, Entity attacker = null) {
+            if (!vitality.Damage(damage)) return false;
             Indicators.DisplayDamageParticle(position, knockback);
             velocity += knockback;
+            return true;
         }
 
         // IRidable implementation

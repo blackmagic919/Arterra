@@ -362,7 +362,7 @@ namespace Arterra.GamePlay.Interaction {
         }
 
 
-        float3 CancelVel(in float3 vel, in float3 norm) {
+        public static float3 CancelVel(in float3 vel, in float3 norm) {
             float3 dir = math.normalize(-norm);
             //So surface animals don't get stuck when only edge/face collision
             if (dir.y == 0) dir -= VerticalCollisionBias;
@@ -439,8 +439,8 @@ namespace Arterra.GamePlay.Interaction {
             Bounds bounds = new (transform.position + transform.size/2, transform.size);
             EntityManager.ESTree.Query(bounds, cEntity => {
                 Bounds cBounds = new (cEntity.position , cEntity.transform.size);
-                if (cEntity.info.entityId == self.info.entityId) return;
-                if (ignores != null && ignores.Contains(cEntity.info.entityId)) return;
+                if (cEntity.info.rtEntityId == self.info.rtEntityId) return;
+                if (ignores != null && ignores.Contains(cEntity.info.rtEntityId)) return;
                 if (!TryGetMinimumTranslation(bounds, cBounds, out float3 mtv)) return;
                 float totalWeight = self.weight + cEntity.weight;
                 if (totalWeight == 0) {

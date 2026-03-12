@@ -79,10 +79,10 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             int PathDist = movement.pathDistance;
-            int3 destination = (int3)math.round(mate.origin) - self.GCoord;
-            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1,
+            int3 destination = (int3)math.round(mate.origin) - self.PathCoord;
+            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.PathCoord, destination, PathDist + 1,
                 MMove.Profile(mmove, settings.Task2Name, self.settings), EntityJob.cxt, out int pLen);
-            path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
+            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
             manager.Transition(settings.Task2Name);
             return true;
         }
@@ -96,10 +96,10 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             Movement.FollowDynamicPath(MMove.Profile(mmove, settings.Task2Name, self.settings),
-                ref path.pathFinder, ref self.collider, mate.origin,
+                ref path.pathFinder, self.PathCollider, mate.origin,
                 MMove.Speed(mmove, settings.Task2Name, genetics.Genes, movement.walkSpeed),
-                movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.Task2Name));
-            float mateDist = Recognition.GetColliderDist(self, mate);
+                movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.Task2Name));
+            float mateDist = ColliderUpdateBehavior.GetColliderDist(self, mate);
             if (mateDist < manager.settings.ContactDistance) {
                 EntityManager.AddHandlerEvent(() => mate.As<IMateable>().MateWith(self));
                 reproduction.MateWith(mate);

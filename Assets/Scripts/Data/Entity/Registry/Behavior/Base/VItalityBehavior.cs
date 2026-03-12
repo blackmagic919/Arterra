@@ -13,6 +13,15 @@ using Arterra.Editor;
 
 
 namespace Arterra.Data.Entity.Behavior {
+    /// <summary> An interface for all object that can be attacked and take damage. It is up to the 
+    /// implementer to decide how the request to take damage is handled. </summary>
+    public interface IAttackable {
+        public void Interact(Entity caller, IItem item = null);
+        public IItem Collect(Entity caller, float collectRate);
+        public bool TakeDamage(float damage, float3 knockback, Entity attacker = null);
+        public bool IsDead { get; }
+    }
+    
     [Serializable]
     public class PhysicalitySetting : IBehaviorSetting {
         public float weight;
@@ -114,15 +123,16 @@ namespace Arterra.Data.Entity.Behavior {
         public bool CanDamage => invincibility <= 0;
         public bool IsKillingBlow(float damage) => CanDamage && damage > health;
 
-        public void TakeDamage(float damage, float3 knockback, Entity attacker = null) {
-            if (!CanDamage) return;
+        public bool TakeDamage(float damage, float3 knockback, Entity attacker = null) {
+            if (!CanDamage) return false;
             RefTuple<(float, float3)> cxt = (damage, knockback);
             self.eventCtrl.RaiseEvent(GameEvent.Entity_Damaged, self, attacker, cxt);
             (damage, knockback) = cxt.Value;
 
-            if (!Damage(damage)) return;
+            if (!Damage(damage)) return false;
             Indicators.DisplayDamageParticle(self.position, knockback);
             self.velocity += knockback;
+            return true;
         }
 
 
@@ -170,6 +180,7 @@ namespace Arterra.Data.Entity.Behavior {
             health = (float)CustomUtility.Sample(self.random, stats.StartHealthPercent, stats.StartHealthVariance);
             health = math.clamp(health, 0, 1);
             health *= this.genetics.Get(stats.MaxHealth);
+            self.weight = this.weight;
 
             self.Register<IAttackable>(this);
         }
@@ -184,6 +195,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             this.self = self;
             invincibility = 0;
+            self.weight = this.weight;
 
             self.Register<IAttackable>(this);
         }

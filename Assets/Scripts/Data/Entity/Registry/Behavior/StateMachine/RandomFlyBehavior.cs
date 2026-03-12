@@ -48,9 +48,9 @@ namespace Arterra.Data.Entity.Behavior {
             if (manager.TaskIndex != settings.TaskName) return;
             if (path.pathFinder.hasPath) {
                 Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
-                    ref path.pathFinder, ref self.collider,
+                    ref path.pathFinder, self.PathCollider,
                     MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
-                    movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.TaskName));
+                    movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.TaskName));
                 return;
             }
             
@@ -63,9 +63,9 @@ namespace Arterra.Data.Entity.Behavior {
             float3 flightDir = math.normalizesafe(Movement.RandomDirection(ref self.random));
             flightDir.y *= genetics.Genes.Get(settings.VerticalFreedom);
 
-            byte[] nPath = PathFinder.FindPathAlongRay(self.GCoord, ref flightDir, movement.pathDistance,
+            byte[] nPath = PathFinder.FindPathAlongRay(self.PathCoord, ref flightDir, movement.pathDistance,
                 MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
-            path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
+            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
         }
 
         private bool TransitionTo() {

@@ -43,7 +43,7 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             }
 
-            float preyDist = Recognition.GetColliderDist(self, target);
+            float preyDist = ColliderUpdateBehavior.GetColliderDist(self, target);
             if (preyDist > genetics.Genes.Get(attack.settings.AttackDistance)) {
                 manager.Transition(settings.OnSeperateTarget);
                 return;
@@ -54,7 +54,7 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             float3 atkDir = math.normalize(target.position - self.position); atkDir.y = 0;
-            if (math.any(atkDir != 0)) self.collider.transform.rotation = Quaternion.RotateTowards(self.collider.transform.rotation,
+            if (math.any(atkDir != 0)) self.Rotation = Quaternion.RotateTowards(self.Rotation,
             Quaternion.LookRotation(atkDir), movement.rotSpeed * EntityJob.cxt.deltaTime);
 
             if (atkTarget.IsDead) {

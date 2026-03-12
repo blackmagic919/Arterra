@@ -5,6 +5,7 @@ using Arterra.Configuration.Gameplay.Player;
 using Arterra.Data.Entity;
 using Arterra.Data.Entity.Behavior;
 using Unity.Mathematics;
+using Movement = Arterra.Data.Entity.Behavior.Movement;
 
 public class MMove : IBehaviorSetting {
     public Option<List<StateMovement>> movements;
@@ -13,11 +14,12 @@ public class MMove : IBehaviorSetting {
 
     private Dictionary<EntitySMTasks, StateMovement> _movements;
     private List<EntitySetting.ProfileInfo> _profiles;
+    private bool BaseUseGrav = true;
     [Serializable]
     public struct StateMovement {
         public EntitySMTasks state;
+        public Movement.FollowType movement;
         public int ProfileIndex;
-        public bool allow3DRot;
         public bool useGravity;
         public ToggleField<int> CustomSpeed;
     }
@@ -66,20 +68,23 @@ public class MMove : IBehaviorSetting {
             Genetics.AddGene(entityType, ref geneFeature);
             customSpeeds.value[i] = geneFeature;
         }
+
+        if (setting.Is(out ColliderUpdateSettings cSettings)) 
+            this.BaseUseGrav = cSettings.UseGravity;
     }
 
-    public static bool UseGravity(MMove instance, EntitySMTasks state) {
-        if (instance == null) return true;
+    public static bool UseGravity(MMove instance, bool DefaultGravity, EntitySMTasks state) {
+        if (instance == null) return DefaultGravity;
         if (!instance._movements.TryGetValue(state, out StateMovement sm))
-            return true;
+            return DefaultGravity;
         return sm.useGravity;
     }
 
-    public static bool Allow3DRot(MMove instance, EntitySMTasks state) {
-        if (instance == null) return false;
+    public static Movement.FollowType MovementType(MMove instance, EntitySMTasks state) {
+        if (instance == null) return Movement.FollowType.Planar;
         if (!instance._movements.TryGetValue(state, out StateMovement sm))
-            return false;
-        return sm.allow3DRot;
+            return Movement.FollowType.Planar;
+        return sm.movement;
     }
 
     public static float Speed(MMove instance, EntitySMTasks state, Genetics genes, Genetics.GeneFeature baseValue) {

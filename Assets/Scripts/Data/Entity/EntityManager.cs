@@ -85,7 +85,6 @@ public static class EntityManager
         entity.active = false;
 
         AddHandlerEvent(() => {
-
             ReleaseE(entityId);
             cb?.Invoke();
         });
@@ -101,13 +100,14 @@ public static class EntityManager
         HashSet<Entity> Entities = new HashSet<Entity>();
         ESTree.QueryExclusive(bounds, (entity) => {
             if (entity == null) return;
+            if (!TryGetEntity(entity.info.rtEntityId, out entity)) return; //get root entity
             //If it's inactive it most likely has been recently released by another chunk and
             // moved in the way of this chunk before it can be properly released from memory
             if (!entity.active) return;
             //This is the only entity that is not serialized and saved
-            if (entity.info.entityId == PlayerHandler.data.info.entityId) return;
+            if (entity.info.rtEntityId == PlayerHandler.data.info.rtEntityId) return;
             //This will immediately mark the entity as inactive
-            if(Entities.Add(entity)) ReleaseEntity(entity.info.entityId);
+            if(Entities.Add(entity)) ReleaseEntity(entity.info.rtEntityId);
         });
         Task awaitableTask = Task.Run(() => Chunk.SaveEntitiesToJsonAsync(Entities.ToList(), mapInfo.CCoord));
         if (await) awaitableTask.Wait();
@@ -125,7 +125,8 @@ public static class EntityManager
     
     public static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
-        nEntity.info.entityId = Guid.NewGuid();
+        nEntity.info.rtEntityId = Guid.NewGuid();
+        nEntity.info.entityId = nEntity.info.rtEntityId;
         nEntity.info.entityType = entityIndex;
         nEntity.active = true;
 
@@ -471,7 +472,7 @@ public static class EntityManager
             float cDist = math.distance(startGS, endGS);
             Entity cEntity = null;
             void OnFoundEntity(Entity entity){
-                if(entity.info.entityId == callerId) return; //Ignore the caller
+                if(entity.info.rtEntityId == callerId) return; //Ignore the caller
                 Bounds bounds = new Bounds(entity.position, entity.transform.size);
                 bounds.IntersectRay(viewRay, out float dist);
                 if(dist <= cDist){

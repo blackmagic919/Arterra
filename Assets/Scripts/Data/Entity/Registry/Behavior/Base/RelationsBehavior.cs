@@ -164,31 +164,31 @@ namespace Arterra.Data.Entity.Behavior {
 
             Bounds bounds = new (self.position, new float3(gossipRadius*2));
             EntityManager.ESTree.Query(bounds, nEntity => {
-                if (nEntity.info.entityId == self.info.entityId) return;
+                if (nEntity.info.rtEntityId == self.info.rtEntityId) return;
 
                 float intAffection; float extAffection;
-                if ((intAffection = GetAffection(nEntity.info.entityId)) <= 0) return;
+                if ((intAffection = GetAffection(nEntity.info.rtEntityId)) <= 0) return;
                 if (!nEntity.Is(out RelationsBehavior nRelations)) return;
-                if ((extAffection = nRelations.GetAffection(self.info.entityId)) <= 0) return;
+                if ((extAffection = nRelations.GetAffection(self.info.rtEntityId)) <= 0) return;
                 float closeness = 1 - math.exp(-intAffection * extAffection * Genes.Get(settings.GossipCloseness));
                 DiscussNewTopics(self, nEntity, newTopics, closeness);
                 CatchUpWithFriend(self, nEntity, closeness);
             });
 
             void CatchUpWithFriend(Entity self, Entity friend, float closeness) {
-                if(!Gossip.TryGetValue(friend.info.entityId, out GossipTopic lastGossip))
+                if(!Gossip.TryGetValue(friend.info.rtEntityId, out GossipTopic lastGossip))
                     lastGossip.TalkedTo = 0;
                 if (!friend.Is(out RelationsBehavior friendRelations)) return;
 
-                float affection = math.max(Relationships[friend.info.entityId], 0);
+                float affection = math.max(Relationships[friend.info.rtEntityId], 0);
                 if (lastGossip.TalkedTo >= affection) {
                     lastGossip.TalkedTo = affection;
-                    Gossip[friend.info.entityId] = lastGossip;
+                    Gossip[friend.info.rtEntityId] = lastGossip;
                     return;
                 }
                 float thirdPartyTopics = 0;
                 foreach(var kv in Relationships) {
-                    if (kv.Key == friend.info.entityId) continue;
+                    if (kv.Key == friend.info.rtEntityId) continue;
                     thirdPartyTopics += math.abs(kv.Value);
                 } if (thirdPartyTopics == 0) return;
                 
@@ -197,14 +197,14 @@ namespace Arterra.Data.Entity.Behavior {
                 talkAmount *= thirdPartyTopics / (thirdPartyTopics + affection); 
                 
                 foreach(var kv in Relationships) {
-                    if (kv.Key == friend.info.entityId) continue;
+                    if (kv.Key == friend.info.rtEntityId) continue;
                     float gossipAmount = talkAmount * (kv.Value / thirdPartyTopics) * closeness;
                     float dAffection = gossipAmount * Genes.Get(settings.GossipStrength);
                     friendRelations.AddAffection(kv.Key, dAffection);
                 } 
-                GossipTopic gossipData = Gossip[friend.info.entityId];
+                GossipTopic gossipData = Gossip[friend.info.rtEntityId];
                 gossipData.TalkedTo += talkAmount;
-                Gossip[friend.info.entityId] = gossipData;
+                Gossip[friend.info.rtEntityId] = gossipData;
             }
 
             void DiscussNewTopics(Entity self, Entity friend, List<(Guid, float)> topics, float closeness) {
@@ -214,7 +214,7 @@ namespace Arterra.Data.Entity.Behavior {
                     Guid subject = topic.Item1;
                     float gossipAmount = topic.Item2;
                     //brag about your friend to that friend lol
-                    if (subject == friend.info.entityId) continue; 
+                    if (subject == friend.info.rtEntityId) continue; 
                     gossipAmount = math.sign(gossipAmount) * math.min(math.abs(gossipAmount), Genes.Get(settings.GossipAmount));
                     gossipAmount *= closeness;
                     
@@ -263,11 +263,10 @@ namespace Arterra.Data.Entity.Behavior {
 
             EntityManager.ESTree.Query(bounds, nEntity => {
                 if(nEntity == null) return;
-                if(nEntity.info.entityId == self.info.entityId) return;
+                if(nEntity.info.rtEntityId == self.info.rtEntityId) return;
                 if (nEntity.Is(out VitalityBehavior vit) && vit.IsDead) return;
 
-                float preference = GetAffection(nEntity.info.entityId);
-                
+                float preference = GetAffection(nEntity.info.rtEntityId);
                 if(Friend.e == null || preference > Friend.p) {
                     Friend.e = nEntity;
                     Friend.p = preference;
@@ -313,7 +312,7 @@ namespace Arterra.Data.Entity.Behavior {
             float dAffection = nutrition * Genes.Get(settings.OnFedAffection);
             if (dAffection == 0) return;
 
-            AddAffection(feeder.info.entityId, dAffection);
+            AddAffection(feeder.info.rtEntityId, dAffection);
         }
 
         public void OnPursuerAttacked(object attacker, object savior, object cxt) {
@@ -331,7 +330,7 @@ namespace Arterra.Data.Entity.Behavior {
             float dAffection = Genes.Get(settings.OnProtectAffection) * rate;
             if (vitality != null && vitality.IsKillingBlow(damage))
                 dAffection += Genes.Get(settings.OnSaveAffection);
-            EntityManager.AddHandlerEvent(() => AddAffection(hero.info.entityId, dAffection));
+            EntityManager.AddHandlerEvent(() => AddAffection(hero.info.rtEntityId, dAffection));
         }
 
         public void OnAttacked(object self, object attacker, object cxt) {
@@ -344,7 +343,7 @@ namespace Arterra.Data.Entity.Behavior {
             float rate = damage / genetics.Genes.Get(vitality.stats.MaxHealth);
             float dAffection = Genes.Get(settings.OnAttackAffection) * rate;
 
-            AddAffection(assailant.info.entityId, dAffection);
+            AddAffection(assailant.info.rtEntityId, dAffection);
             
         }
 
@@ -352,22 +351,22 @@ namespace Arterra.Data.Entity.Behavior {
             if (mate == null) return;
             if (mate is not Entity partner) return;
             float dAffection = Genes.Get(settings.OnMateAffection);
-            AddAffection(partner.info.entityId, dAffection);
+            AddAffection(partner.info.rtEntityId, dAffection);
             
             BetrayPreviousPartner();
-            LastMate = partner.info.entityId;
+            LastMate = partner.info.rtEntityId;
 
             void BetrayPreviousPartner() {
                 if (!EntityManager.TryGetEntity(LastMate, out Entity lastPartner)) return;
-                if (lastPartner.info.entityId == partner.info.entityId) return; //Being faithful :)
+                if (lastPartner.info.rtEntityId == partner.info.rtEntityId) return; //Being faithful :)
                 if (!lastPartner.Is(out RelationsBehavior lp)) return;
                 if (src is not Entity self) return;
-                if (lp.LastMate != self.info.entityId) return; //your partner cheated on you first :(
+                if (lp.LastMate != self.info.rtEntityId) return; //your partner cheated on you first :(
                 EntityManager.AddHandlerEvent(() => {
                     //How you feel twoards your partner when they cheat on you
-                    lp.AddAffection(self.info.entityId, Genes.Get(settings.OnBetrayalAffection));
+                    lp.AddAffection(self.info.rtEntityId, Genes.Get(settings.OnBetrayalAffection));
                     //how you feel towards the one who netorared your partner
-                    lp.AddAffection(partner.info.entityId, Genes.Get(settings.OnRivalMateAffection));
+                    lp.AddAffection(partner.info.rtEntityId, Genes.Get(settings.OnRivalMateAffection));
                 });
             }
         }

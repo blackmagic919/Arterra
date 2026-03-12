@@ -34,7 +34,7 @@ namespace Arterra.Data.Entity.Behavior{
         public void Update(BehaviorEntity.Animal self) {
             if (settings.TaskName != manager.TaskIndex) return;
 
-            if (self.collider.SampleCollision(self.origin, new float3(self.settings.collider.size.x,
+            if (self.Collider.SampleCollision(self.origin, new float3(self.settings.collider.size.x,
                 -settings.JumpStickDist, self.settings.collider.size.z), EntityJob.cxt.mapContext, out _)) {
                 self.velocity.y += genetics.Genes.Get(settings.JumpStrength);
             }

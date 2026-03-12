@@ -122,7 +122,7 @@ Shader "Unlit/EditTerrain"
 
                 float3 DynamicLight = LambertShade(albedo, normalWS, shadow);
                 float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
-                ObjectLight = mad((1 - ObjectLight), unity_AmbientGround, ObjectLight * 2.5f); //linear interpolation
+                ObjectLight = mad((1 - ObjectLight), unity_AmbientGround.rgb, ObjectLight * 2.5f); //linear interpolation
                 ObjectLight *= albedo;
 
                 if (flags & 0x2) albedo = lerp(max(DynamicLight, ObjectLight).rgb, _RemoveColor.rgb, _RemoveColor.a);

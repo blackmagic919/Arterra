@@ -8,6 +8,7 @@ using Arterra.Configuration;
 using Arterra.Core.Events;
 using Arterra.Data.Entity;
 using Arterra.Core.Storage;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.GamePlay {}
 public class PlayerActionEffects{

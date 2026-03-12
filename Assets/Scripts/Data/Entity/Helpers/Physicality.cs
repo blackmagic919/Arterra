@@ -12,15 +12,6 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Editor;
 using Arterra.Data.Entity.Behavior;
 
-/// <summary> An interface for all object that can be attacked and take damage. It is up to the 
-/// implementer to decide how the request to take damage is handled. </summary>
-public interface IAttackable {
-    public void Interact(Entity caller, IItem item = null);
-    public IItem Collect(Entity caller, float collectRate);
-    public void TakeDamage(float damage, float3 knockback, Entity attacker = null);
-    public bool IsDead { get; }
-}
-
 public class MinimalVitality {
     [Serializable]
     public class Stats {
@@ -190,7 +181,7 @@ public class MediumVitality : MinimalVitality {
         if (attackCooldown > 0) return false;
         if (!target.Is<IAttackable>()) return false;
         attackProgress = AStats.AttackDuration;
-        AttackTarget = target.info.entityId;
+        AttackTarget = target.info.rtEntityId;
         AttackInProgress = true;
         return true;
     }
@@ -211,7 +202,7 @@ public class MediumVitality : MinimalVitality {
         if (!EntityManager.TryGetEntity(AttackTarget, out Entity target))
             return;
         if (!target.Is<IAttackable>()) return;
-        if (Recognition.GetColliderDist(target, self) > genetics.Get(AStats.AttackDistance))
+        if (ColliderUpdateBehavior.GetColliderDist(target, self) > genetics.Get(AStats.AttackDistance))
             return;
         float damage = genetics.Get(AStats.AttackDamage);
         float3 knockback = math.normalize(target.position - self.position) * genetics.Get(AStats.KBStrength);

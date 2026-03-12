@@ -40,7 +40,7 @@ public class DefendFriendBehavior : IBehavior {
         if (src is not Entity self) return;
         if (vit != null && vit.IsDead) return;
         
-        if (relations.GetAffection(assailant.info.entityId) > relations.settings.SuppressInstinctAffection) 
+        if (relations.GetAffection(assailant.info.rtEntityId) > relations.settings.SuppressInstinctAffection) 
             return;
         
         float radius = genetics.Genes.Get(settings.CallFriendRadius);
@@ -53,13 +53,13 @@ public class DefendFriendBehavior : IBehavior {
     }
 
     private void HeedFriendInTrouble(Entity friend, Entity attacker) {
-        if (relations.GetAffection(friend.info.entityId)
+        if (relations.GetAffection(friend.info.rtEntityId)
             < genetics.Genes.Get(settings.HelpFriendAffection))
             return;
         if (manager.TaskIndex > settings.OverridableStates) return;
         if (manager.TaskIndex == settings.HelpFriendState) return;
         if(manager.Transition(settings.HelpFriendState))
-            manager.TaskTarget = attacker.info.entityId;
+            manager.TaskTarget = attacker.info.rtEntityId;
     }
 
     public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {

@@ -54,17 +54,17 @@ namespace Arterra.Data.Entity.Behavior {
                     path.pathFinder.hasPath = false;
 
                 Movement.FollowDynamicPath(MMove.Profile(mmove, manager.TaskIndex, self.settings), 
-                    ref path.pathFinder, ref self.collider, friend.origin, 
+                    ref path.pathFinder, self.PathCollider, friend.origin, 
                     MMove.Speed(mmove, manager.TaskIndex, genetics.Genes, movement.walkSpeed),
-                    movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, manager.TaskIndex));
+                    movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, manager.TaskIndex));
                 
-                if (Recognition.GetColliderDist(self, friend) < manager.settings.ContactDistance)
+                if (ColliderUpdateBehavior.GetColliderDist(self, friend) < manager.settings.ContactDistance)
                     path.pathFinder.hasPath = false;
             } else {
                 Movement.FollowStaticPath(MMove.Profile(mmove, manager.TaskIndex, self.settings),
-                    ref path.pathFinder, ref self.collider,
+                    ref path.pathFinder, self.PathCollider,
                     MMove.Speed(mmove, manager.TaskIndex, genetics.Genes, movement.walkSpeed),
-                    movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, manager.TaskIndex));
+                    movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, manager.TaskIndex));
             }
         }
 
@@ -75,10 +75,10 @@ namespace Arterra.Data.Entity.Behavior {
             (bool hasFriend, bool hasEnemy) = relations.TryFindBestRelations(self, searchRadius, out (Entity e, float p) friend, out (Entity e, float p) enemy);
 
             if (hasFriend && TryToFollowFriend(friend.e, friend.p)) { //Friends are more important than enemies :)
-                manager.TaskTarget = friend.e.info.entityId;
+                manager.TaskTarget = friend.e.info.rtEntityId;
                 IsFriend = true;
             } else if (hasEnemy && TryToAvoidFriend(enemy.e, enemy.p)) {
-                manager.TaskTarget = friend.e.info.entityId;
+                manager.TaskTarget = friend.e.info.rtEntityId;
                 IsFriend = false;
             } else return false;
 
@@ -87,11 +87,11 @@ namespace Arterra.Data.Entity.Behavior {
                 if (self.random.NextFloat() > chaseProb) return false;
                 if (friend.Is(out VitalityBehavior vit) && vit.IsDead) return false; 
                 
-                int3 destination = (int3)math.round(friend.origin) - self.GCoord;
-                byte[] nPath = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1,
+                int3 destination = (int3)math.round(friend.origin) - self.PathCoord;
+                byte[] nPath = PathFinder.FindPathOrApproachTarget(self.PathCoord, destination, PathDist + 1,
                     MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
-                path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
-                if (math.all(path.pathFinder.destination == self.GCoord)) return false;
+                path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+                if (math.all(path.pathFinder.destination == self.PathCoord)) return false;
                 return true;
             }
 
@@ -102,11 +102,11 @@ namespace Arterra.Data.Entity.Behavior {
                 float avoidProb = 1 - math.exp(-preference * prob);
                 if (self.random.NextFloat() > avoidProb) return false;
 
-                float3 aim = math.normalizesafe(self.GCoord - (int3)math.round(enemy.origin));
-                byte[] nPath = PathFinder.FindPathAlongRay(self.GCoord, ref aim, PathDist + 1,
+                float3 aim = math.normalizesafe(self.PathCoord - (int3)math.round(enemy.origin));
+                byte[] nPath = PathFinder.FindPathAlongRay(self.PathCoord, ref aim, PathDist + 1,
                     MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
-                path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
-                if (math.all(path.pathFinder.destination == self.GCoord)) return false;
+                path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+                if (math.all(path.pathFinder.destination == self.PathCoord)) return false;
                 return true;
             }
 
@@ -116,7 +116,7 @@ namespace Arterra.Data.Entity.Behavior {
                 if (predator != null && predator.settings.Recognize((int)enemy.info.entityType))
                     return false;
                 if (manager.Transition(settings.ChaseEnemyState)) 
-                    manager.TaskTarget = enemy.info.entityId;
+                    manager.TaskTarget = enemy.info.rtEntityId;
                 return true;
             }
 

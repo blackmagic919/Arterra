@@ -39,6 +39,7 @@ namespace Arterra.Data.Entity.Behavior {
         FollowPath = EntitySMBase.Wander + 200,
         ChaseFriends = EntitySMBase.Wander + 300,
         ApproachSurface = EntitySMBase.Wander + 400,
+        ApproachSurface2 = EntitySMBase.Wander + 405,
         TestApproach1 = EntitySMBase.Wander + 410,
         TestApproach2 = EntitySMBase.Wander + 420,
 
@@ -53,6 +54,7 @@ namespace Arterra.Data.Entity.Behavior {
         EatPlant = EntitySMBase.Sustenance + 400,
         EatEntity = EntitySMBase.Sustenance + 500,
         AttackTarget = EntitySMBase.Sustenance + 600,
+        StepBackFromEntity = EntitySMBase.Sustenance + 800,
 
         RunFromPredator = EntitySMBase.Survival + 0,
         RunFromTarget = EntitySMBase.Urgent + 0,
@@ -67,6 +69,7 @@ namespace Arterra.Data.Entity.Behavior {
 
     public class StateMachineManagerBehavior : IBehavior {
         [JsonIgnore] public StateMachineManagerSettings settings;
+        private ColliderUpdateBehavior collider;
         private MMove mmove;
 
         [JsonIgnore] private Dictionary<EntitySMTasks, Func<bool>> ConditionalTransitions;
@@ -85,6 +88,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: StateMachineManagerBehavior Requires AnimalSettings to have StateMachineManagerSettings");
             if (!setting.Is(out mmove)) mmove = null;
+            if (!self.Is(out collider)) collider = null;
 
             ConditionalTransitions = new Dictionary<EntitySMTasks, Func<bool> >();
             TaskIndex = settings.StartTask;
@@ -98,13 +102,17 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: StateMachineManagerBehavior Requires AnimalSettings to have StateMachineManagerSettings");
             if (!setting.Is(out mmove)) mmove = null;
+            if (!self.Is(out collider)) collider = null;
 
             ConditionalTransitions = new Dictionary<EntitySMTasks, Func<bool>>();
         }
 
         public void Update(BehaviorEntity.Animal self) {
             TaskDuration -= EntityJob.cxt.deltaTime;
-            self.collider.useGravity = MMove.UseGravity(mmove, TaskIndex);
+            self.Collider.useGravity = MMove.UseGravity(mmove, 
+                collider == null || collider.settings.UseGravity,
+                TaskIndex
+            );
         }
 
         public void UpdateController(BehaviorEntity.Animal self, BehaviorEntity.AnimalController controller) {

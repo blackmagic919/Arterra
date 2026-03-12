@@ -47,7 +47,12 @@ namespace Arterra.Data.Entity.Behavior {
             if (AttackInProgress) return false;
             if (attackCooldown > 0) return false;
             if (!target.Is<IAttackable>()) return false;
-            attackProgress = settings.AttackDuration;
+            RefTuple<float> cxt = settings.AttackDuration;
+            self.eventCtrl.RaiseEvent(
+                GameEvent.Entity_ReadyAttack,
+                self, target, cxt
+            ); 
+            attackProgress = cxt.Value;
             AttackTarget = target.info.entityId;
             AttackInProgress = true;
             return true;
@@ -67,21 +72,22 @@ namespace Arterra.Data.Entity.Behavior {
             
             if (!EntityManager.TryGetEntity(AttackTarget, out Entity target))
                 return;
-            if (!target.Is<IAttackable>()) return;
-            if (Recognition.GetColliderDist(target, self) > genetics.Genes.Get(settings.AttackDistance))
+            if (!target.Is(out IAttackable atkTarget)) return;
+            if (ColliderUpdateBehavior.GetColliderDist(target, self)
+                > genetics.Genes.Get(settings.AttackDistance))
                 return;
             float damage = genetics.Genes.Get(settings.AttackDamage);
             float3 knockback = math.normalize(target.position - self.position) * genetics.Genes.Get(settings.KBStrength);
-            RealAttack(self, target, damage, knockback);
+            RealAttack(self, atkTarget, damage, knockback);
         }
 
-        public static void RealAttack(Entity self, Entity target, float damage, float3 knockback) {
+        public static void RealAttack(Entity self, IAttackable target, float damage, float3 knockback) {
             RefTuple<(float, float3)> cxt = (damage, knockback);
             self.eventCtrl.RaiseEvent(
                 GameEvent.Entity_Attack,
                 self, target, cxt
             ); (damage, knockback) = cxt.Value;
-            EntityManager.AddHandlerEvent(() => target.As<IAttackable>().TakeDamage(damage, knockback, self));
+            EntityManager.AddHandlerEvent(() => target.TakeDamage(damage, knockback, self));
         }
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {

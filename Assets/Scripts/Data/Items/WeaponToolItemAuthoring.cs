@@ -7,6 +7,7 @@ using static Arterra.GamePlay.PlayerInteraction;
 using Arterra.Core.Events;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
+using Arterra.Data.Entity.Behavior;
 
 
 namespace Arterra.Data.Item
@@ -95,7 +96,7 @@ namespace Arterra.Data.Item
                 effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);
                     
             if (RayTestSolid(out float3 terrHit)) hitPt = terrHit;
-            if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.entityId, out Entity.Entity entity, out _))
+            if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out Entity.Entity entity, out _))
                 return;
             void PlayerDamageEntity(Entity.Entity target) {
                 if (!target.active) return;

@@ -68,9 +68,9 @@ namespace Arterra.Data.Entity.Behavior{
 
             if (path.pathFinder.hasPath) {
                 Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
-                ref path.pathFinder, ref self.collider,
+                ref path.pathFinder, self.PathCollider,
                 MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
-                movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.TaskName));
+                movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.TaskName));
                 return;
             } if (foundSurface) manager.Transition(settings.OnReachSurface);
 
@@ -88,10 +88,10 @@ namespace Arterra.Data.Entity.Behavior{
                  Vector3.up;
             float3 flightTarget = movement.pathDistance * flightDir;
             
-            byte[] nPath = PathFinder.FindMatchAlongRay(self.GCoord, flightTarget, movement.pathDistance + 1,
+            byte[] nPath = PathFinder.FindMatchAlongRay(self.PathCoord, flightTarget, movement.pathDistance + 1,
                 MMove.Profile(mmove, settings.TaskName, self.settings), settings._Profile,
                 EntityJob.cxt, out int pLen, out foundSurface);
-            path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
+            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
         }
 
         private bool IsSurfacing() {

@@ -29,6 +29,7 @@ MonoBehaviour:
         - 
         - PalmTree3
         - Crab
+        - Seagull
       GroundMaterials:
         value:
         - value:
@@ -75,6 +76,9 @@ MonoBehaviour:
         - value:
             Entity: 8
             ChancePerCoord: 0.0003
+        - value:
+            Entity: 9
+            ChancePerCoord: 0.0001
   BiomeConditions:
     value:
       TerrainStart: 0

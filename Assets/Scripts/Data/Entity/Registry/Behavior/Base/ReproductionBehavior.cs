@@ -2,13 +2,23 @@ using System;
 using System.Collections.Generic;
 using Arterra.Editor;
 using Arterra.Configuration;
-using Arterra.Data.Entity;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Core.Events;
+using Arterra.Data.Item;
 
 namespace Arterra.Data.Entity.Behavior {
+
+    public interface IMateable {
+        public void MateWith(Entity entity);
+        public bool CanMateWith(Entity entity);
+        public Genetics Genetics{ get; set; }
+    }
+
+    public interface IEntitySearchItem {
+        public IItem[] GetItems();
+    }
 
     [Serializable]
     public class MateRecognition : IBehaviorSetting{
@@ -74,23 +84,23 @@ namespace Arterra.Data.Entity.Behavior {
             EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
                 if (nEntity == null) return;
                 if (!Awareness.ContainsKey((int)nEntity.info.entityType)) return;
-                if (nEntity.info.entityId == self.info.entityId) return;
+                if (nEntity.info.rtEntityId == self.info.rtEntityId) return;
 
                 int preference = Awareness[(int)nEntity.info.entityType];
                 if (!nEntity.Is(out IMateable mateable)) return;
                 if (!mateable.CanMateWith(self)) return;
                 //If we have relations, prefer higher relations but always under categorical preference differences (in awareness table)
-                if (relations != null) pPref -= 1 - math.exp(relations.GetAffection(nEntity.info.entityId));
+                if (relations != null) pPref -= 1 - math.exp(relations.GetAffection(nEntity.info.rtEntityId));
 
                 if (cEntity != null) {
                     if (preference > pPref) return;
-                    if (pPref == preference && Recognition.GetColliderDist(nEntity, self) >= closestDist)
+                    if (pPref == preference && ColliderUpdateBehavior.GetColliderDist(nEntity, self) >= closestDist)
                         return;
                 }
 
                 cEntity = nEntity;
                 pPref = preference;
-                closestDist = Recognition.GetColliderDist(nEntity, self);
+                closestDist = ColliderUpdateBehavior.GetColliderDist(nEntity, self);
             });
             entity = cEntity;
             return entity != null;

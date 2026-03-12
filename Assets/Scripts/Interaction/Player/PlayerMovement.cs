@@ -306,7 +306,7 @@ namespace Arterra.GamePlay {
         /// <param name="mount"></param>
         public static void AddHandles(IRidable mount) {
             if (mount == null) return;
-            if (mount.AsEntity != null) PlayerHandler.data.attached.Add(mount.AsEntity.info.entityId);
+            if (mount.AsEntity != null) PlayerHandler.data.attached.Add(mount.AsEntity.info.rtEntityId);
             if (!OveridableStates.Contains(InputPoller.PeekTop("Movement::Update"))) {
                 mount.Dismount();
                 return;
@@ -333,7 +333,7 @@ namespace Arterra.GamePlay {
             PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_DismountRideable, PlayerHandler.data, mount);
             SubTransform.transform.localRotation = Quaternion.identity;
 
-            if (mount is Entity entity) PlayerHandler.data.attached.Remove(entity.info.entityId);
+            if (mount is Entity entity) PlayerHandler.data.attached.Remove(entity.info.rtEntityId);
             InputPoller.AddKeyBindChange(() => {
                 InputPoller.RemoveContextFence("PMRideMove", "4.0::Movement");
                 InputPoller.RemoveBinding("PMRideMove:DSM", "5.0::Gameplay");

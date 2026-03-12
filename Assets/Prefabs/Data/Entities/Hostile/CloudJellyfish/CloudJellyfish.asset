@@ -1,0 +1,1361 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
+  m_Name: CloudJellyfish
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
+  Name: CloudJellyfish
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 2627796471264155552, guid: d6e87e35870374043bc7e74b88de0cce, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 1677747200
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 8
+          y: 4
+          z: 8
+      collider:
+        size:
+          x: 7.5
+          y: 3.5
+          z: 7.5
+      Behaviors:
+        value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a270000742700007e270000882700008e13000020270000
+      Settings:
+        value:
+        - value:
+            rid: 5205636866482634847
+        - value:
+            rid: 3097084098772992145
+        - value:
+            rid: 3097083922518114515
+        - value:
+            rid: 3097084037468258397
+        - value:
+            rid: 3097083922518114516
+        - value:
+            rid: 3097083922518114517
+        - value:
+            rid: 3097083922518114518
+        - value:
+            rid: 3097083922518114520
+        - value:
+            rid: 3097083922518114521
+        - value:
+            rid: 3097083922518114639
+        - value:
+            rid: 5205636866482634848
+        - value:
+            rid: 3097083922518114530
+        - value:
+            rid: 3097083922518114531
+        - value:
+            rid: 3097083922518114532
+        - value:
+            rid: 3097083922518114533
+        - value:
+            rid: 3097083922518114534
+        - value:
+            rid: 3097083922518114535
+        - value:
+            rid: 5205636930575269965
+        - value:
+            rid: 5205636930575269966
+        - value:
+            rid: 5205636930575269967
+  _prevBehaviorCount: 19
+  references:
+    version: 2
+    RefIds:
+    - rid: 3097083922518114515
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 5000
+        StartHealthPercent: 0.7
+        StartHealthVariance: 0.05
+        MaxHealth:
+          mean: 350
+          var: 0.35
+          geneWeight: 0.4
+        NaturalRegen:
+          mean: 0.025
+          var: 0.25
+          geneWeight: 0.2
+        InvincTime:
+          mean: 0.25
+          var: 0.1
+          geneWeight: 0.025
+    - rid: 3097083922518114516
+      type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        HoldBreathTime:
+          mean: 10
+          var: 0.3
+          geneWeight: 0.1
+        UseFallDamage: 1
+    - rid: 3097083922518114517
+      type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StartTask: 0
+        AverageStartDuration: 3
+        AverageStartDurationVariance: 0
+        ContactDistance: 8
+    - rid: 3097083922518114518
+      type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AttackDistance:
+          mean: 10
+          var: 0.25
+          geneWeight: 0.2
+        AttackDamage:
+          mean: 0
+          var: 0
+          geneWeight: 0
+        AttackCooldown:
+          mean: Infinity
+          var: 0
+          geneWeight: 0
+        KBStrength:
+          mean: 0
+          var: 0
+          geneWeight: 0
+        AttackDuration: Infinity
+    - rid: 3097083922518114520
+      type: {class: IdleStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageIdleTime:
+          mean: 3
+          var: 0.5
+          geneWeight: 0.025
+        AverageIdleVariance:
+          mean: 0
+          var: 0
+          geneWeight: 0
+        TaskName: 0
+        OnCompleteTransition: 100
+        CheckTransitions:
+          value: 5c760000
+    - rid: 3097083922518114521
+      type: {class: RandomWalkStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageWalkTime:
+          mean: 10
+          var: 0.3
+          geneWeight: 0.025
+        AveragWalkVariance:
+          mean: 0
+          var: 0
+          geneWeight: 0
+        TaskName: 100
+        OnStopWalkTransition: 400
+        OnSwitchPath:
+          value: 5c760000
+    - rid: 3097083922518114530
+      type: {class: AttackTargetSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30600
+        OnTargetPreyDeath: 100
+        OnTargetDeath: 100
+        OnSeperateTarget: 50100
+        OnLostTarget: 100
+    - rid: 3097083922518114531
+      type: {class: ChaseAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50100
+        OnLostAttacker: 100
+        OnReachAttacker: 30600
+        ChaseDistance:
+          mean: 24
+          var: 0.25
+          geneWeight: 0.2
+    - rid: 3097083922518114532
+      type: {class: RunFromPredatorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 40000
+        OverridableStates: 30500
+        OnFinishRunning: 100
+        Predators:
+          value: []
+    - rid: 3097083922518114533
+      type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        fleeDist: 5
+        detectDist:
+          mean: 18
+          var: 0.25
+          geneWeight: 0.3
+        FightAggressor: 1
+    - rid: 3097083922518114534
+      type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50000
+        OverridableStates: 30600
+        OnLostAttacker: 100
+    - rid: 3097083922518114535
+      type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 60000
+        OnReviveTask: 0
+        DecompositionTime:
+          mean: 400
+          var: 0.2
+          geneWeight: 0.01
+    - rid: 3097083922518114639
+      type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        walkSpeed:
+          mean: 2
+          var: 0.3
+          geneWeight: 0.1
+        runSpeed:
+          mean: 3
+          var: 0.35
+          geneWeight: 0.35
+        pathDistance: 32
+        acceleration: 200
+        rotSpeed: 40
+    - rid: 3097084037468258397
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
+          value:
+          - ItemName: BugMush
+            DropAmount:
+              mean: 0.07777778
+              var: 0.75
+              geneWeight: 0.05
+    - rid: 3097084098772992145
+      type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath: CloudJellyfish
+        StateAnimations:
+          value:
+          - task: 60000
+            Animation: IsDead
+    - rid: 5205636866482634847
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 0
+    - rid: 5205636866482634848
+      type: {class: ChaseEnemySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30300
+        OnNotFoundTransition: 100
+        OnReachEnemyTransition: 30600
+        SearchChances:
+          value:
+          - SourceState: 0
+            SearchChance:
+              mean: 0.25
+              var: 0.5
+              geneWeight: 0.2
+        SearchDistance:
+          mean: 32
+          var: 0.5
+          geneWeight: 0.2
+        DesiredEnemyState: 1
+        Enemy:
+          value:
+          - EntityType: Player
+    - rid: 5205636930575269965
+      type: {class: TentacleSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        MaxGrabTentacles: 2
+        GrabBreakDist: 2
+        GrabHoldPos:
+          x: 0
+          y: -10
+          z: 0
+        AttackState: 30600
+        Tentacles:
+          value:
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            RestOffset:
+              x: -2.534139
+              y: -5
+              z: 3.22792
+            BoneOffset:
+              x: 0.5
+              y: 0.5
+              z: 0.5
+            BonePath: CloudJellyfish/Rig/Tentacle.001/target
+            AttackChance: 0.25
+            Length: 15
+            Speed: 8
+            Damage: 7.5
+            Knockback: 6
+            Proximity: 1.5
+            RubberBandStrength: 2
+            Acceleration: 200
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            RestOffset:
+              x: 1.689607
+              y: -5
+              z: 3.23566
+            BoneOffset:
+              x: 0.5
+              y: 0.5
+              z: 0.5
+            BonePath: CloudJellyfish/Rig/Tentacle.002/target
+            AttackChance: 0.25
+            Length: 15
+            Speed: 8
+            Damage: 7.5
+            Knockback: 6
+            Proximity: 1.5
+            RubberBandStrength: 2
+            Acceleration: 200
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            RestOffset:
+              x: -3.853931
+              y: -5
+              z: 2.649323
+            BoneOffset:
+              x: 0.5
+              y: 0.5
+              z: 0.5
+            BonePath: CloudJellyfish/Rig/Tentacle.003/target
+            AttackChance: 0.25
+            Length: 15
+            Speed: 8
+            Damage: 7.5
+            Knockback: 6
+            Proximity: 1.5
+            RubberBandStrength: 2
+            Acceleration: 200
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            RestOffset:
+              x: -4.75431
+              y: -5
+              z: 1.75227
+            BoneOffset:
+              x: 0.5
+              y: 0.5
+              z: 0.5
+            BonePath: CloudJellyfish/Rig/Tentacle.004/target
+            AttackChance: 0.25
+            Length: 15
+            Speed: 8
+            Damage: 7.5
+            Knockback: 6
+            Proximity: 1.5
+            RubberBandStrength: 2
+            Acceleration: 200
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            RestOffset:
+              x: -4.119648
+              y: -5
+              z: -3.409149
+            BoneOffset:
+              x: 0.5
+              y: 0.5
+              z: 0.5
+            BonePath: CloudJellyfish/Rig/Tentacle.005/target
+            AttackChance: 0.25
+            Length: 15
+            Speed: 8
+            Damage: 7.5
+            Knockback: 6
+            Proximity: 1.5
+            RubberBandStrength: 2
+            Acceleration: 200
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            RestOffset:
+              x: -2.409785
+              y: -5
+              z: -4.13486
+            BoneOffset:
+              x: 0.5
+              y: 0.5
+              z: 0.5
+            BonePath: CloudJellyfish/Rig/Tentacle.006/target
+            AttackChance: 0.25
+            Length: 15
+            Speed: 8
+            Damage: 7.5
+            Knockback: 6
+            Proximity: 1.5
+            RubberBandStrength: 2
+            Acceleration: 200
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            RestOffset:
+              x: 0.7122966
+              y: -5
+              z: -4.254016
+            BoneOffset:
+              x: 0.5
+              y: 0.5
+              z: 0.5
+            BonePath: CloudJellyfish/Rig/Tentacle.007/target
+            AttackChance: 0.25
+            Length: 15
+            Speed: 8
+            Damage: 7.5
+            Knockback: 6
+            Proximity: 1.5
+            RubberBandStrength: 2
+            Acceleration: 200
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            RestOffset:
+              x: 2.211572
+              y: -5
+              z: -3.36806
+            BoneOffset:
+              x: 0.5
+              y: 0.5
+              z: 0.5
+            BonePath: CloudJellyfish/Rig/Tentacle.008/target
+            AttackChance: 0.25
+            Length: 15
+            Speed: 8
+            Damage: 7.5
+            Knockback: 6
+            Proximity: 1.5
+            RubberBandStrength: 2
+            Acceleration: 200
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            RestOffset:
+              x: 2.781136
+              y: -5
+              z: 1.958866
+            BoneOffset:
+              x: 0.5
+              y: 0.5
+              z: 0.5
+            BonePath: CloudJellyfish/Rig/Tentacle.009/target
+            AttackChance: 0.25
+            Length: 10
+            Speed: 8
+            Damage: 7.5
+            Knockback: 6
+            Proximity: 1.5
+            RubberBandStrength: 2
+            Acceleration: 200
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            RestOffset:
+              x: 2.294173
+              y: -5
+              z: 2.532124
+            BoneOffset:
+              x: 0.5
+              y: 0.5
+              z: 0.5
+            BonePath: CloudJellyfish/Rig/Tentacle.010/target
+            AttackChance: 0.25
+            Length: 15
+            Speed: 8
+            Damage: 7.5
+            Knockback: 6
+            Proximity: 1.5
+            RubberBandStrength: 2
+            Acceleration: 200
+    - rid: 5205636930575269966
+      type: {class: LandOnGroundSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 400
+        OnReachGround: 0
+        ProxyTestName: 410
+        ProxyTestTransitions:
+          value: 
+        ApproachAngleMax:
+          mean: 0.15
+          var: 0.1
+          geneWeight: 0.075
+        ApproachAngleFalloff:
+          mean: 0.5
+          var: 0.25
+          geneWeight: 0.075
+    - rid: 5205636930575269967
+      type: {class: MMove, ns: , asm: Assembly-CSharp}
+      data:
+        movements:
+          value:
+          - state: 60000
+            movement: 1
+            ProfileIndex: 0
+            useGravity: 1
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 0
+            movement: 1
+            ProfileIndex: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 30300
+            movement: 1
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 100
+            movement: 1
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 50100
+            movement: 1
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 400
+            movement: 1
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 30600
+            movement: 1
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+        profiles:
+          value:
+          - bounds:
+              x: 8
+              y: 4
+              z: 8
+            offset: 0
+          - bounds:
+              x: 1
+              y: 1
+              z: 1
+            offset: 256
+        customSpeeds:
+          value: []

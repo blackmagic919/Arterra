@@ -68,10 +68,10 @@ namespace Arterra.Data.Entity.Behavior {
             Bounds bounds = new (self.position, 2 * new float3(sightDist));
             EntityManager.ESTree.Query(bounds, (nEntity) => {
                 if(nEntity == null) return;
-                if(nEntity.info.entityId == self.info.entityId) return;
+                if(nEntity.info.rtEntityId == self.info.rtEntityId) return;
                 if (relations != null) {
                     float suppressThreshold = relations.settings.SuppressInstinctAffection;
-                    if (relations.GetAffection(self.info.entityId) > suppressThreshold) return;
+                    if (relations.GetAffection(self.info.rtEntityId) > suppressThreshold) return;
                 }
 
                 if (!Awareness.TryGetValue((int)nEntity.info.entityType, out int preference)
@@ -86,12 +86,12 @@ namespace Arterra.Data.Entity.Behavior {
                 
                 if(cEntity != null){
                 if(preference > pPref) return;
-                if(preference == pPref && Recognition.GetColliderDist(nEntity, self) >= closestDist) return;
+                if(preference == pPref && ColliderUpdateBehavior.GetColliderDist(nEntity, self) >= closestDist) return;
                 }
                 
                 cEntity = nEntity;
                 pPref = preference;
-                closestDist = Recognition.GetColliderDist(nEntity, self);
+                closestDist = ColliderUpdateBehavior.GetColliderDist(nEntity, self);
             });
             entity = cEntity;
             return entity != null;
@@ -150,13 +150,13 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             }
             Movement.FollowDynamicPath(MMove.Profile(mmove, settings.TaskName, self.settings), 
-                ref path.pathFinder, ref self.collider, prey.origin,
+                ref path.pathFinder, self.PathCollider, prey.origin,
                 MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
-                movement.rotSpeed,movement.acceleration, MMove.Allow3DRot(mmove, settings.TaskName));
+                movement.rotSpeed,movement.acceleration, MMove.MovementType(mmove, settings.TaskName));
             
-            float preyDist = Recognition.GetColliderDist(self, prey);
+            float preyDist = ColliderUpdateBehavior.GetColliderDist(self, prey);
             if (preyDist < manager.settings.ContactDistance && manager.Transition(settings.OnReachPreyTransition)) {
-                manager.TaskTarget = prey.info.entityId;
+                manager.TaskTarget = prey.info.rtEntityId;
             } else if (!path.pathFinder.hasPath && !FindPrey()) {
                 manager.Transition(settings.OnNotFoundTransition);
             }
@@ -171,17 +171,17 @@ namespace Arterra.Data.Entity.Behavior {
             ) return false;
             
             int PathDist = movement.pathDistance;
-            int3 destination = (int3)math.round(prey.origin) - self.GCoord;
-            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.GCoord, destination, PathDist + 1,
+            int3 destination = (int3)math.round(prey.origin) - self.PathCoord;
+            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.PathCoord, destination, PathDist + 1,
                 MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
-            path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
-            float dist = Recognition.GetColliderDist(self, prey);
+            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+            float dist = ColliderUpdateBehavior.GetColliderDist(self, prey);
 
 
             //If it can't get to the prey and is currently at the closest position it can be
-            if (math.all(path.pathFinder.destination == self.GCoord)) {
+            if (math.all(path.pathFinder.destination == self.PathCoord)) {
                 if (dist <= manager.settings.ContactDistance && manager.Transition(settings.OnReachPreyTransition)) {
-                    manager.TaskTarget = prey.info.entityId;
+                    manager.TaskTarget = prey.info.rtEntityId;
                 } return false;
             } return true;
         }

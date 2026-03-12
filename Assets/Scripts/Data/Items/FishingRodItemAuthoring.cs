@@ -400,7 +400,9 @@ namespace Arterra.Data.Item
                     return;
 
                 float3 dir = tension / mag;
-                float massFactor = 1f - entity.weight;
+                float totalWeight = HookingEntity != null ? HookingEntity.weight : 0.001f;
+                totalWeight += Holder != null ? Holder.weight : 0.001f;
+                float massFactor = 1 - (entity.weight / totalWeight);
                 entity.velocity += mag * massFactor * dir;
             }
 

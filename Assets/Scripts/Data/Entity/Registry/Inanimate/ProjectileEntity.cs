@@ -12,6 +12,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.GamePlay.Interaction;
 using Arterra.Engine.Audio;
 using Arterra.Editor;
+using Arterra.Data.Entity.Behavior;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Projectile")]
 public class Projectile : Arterra.Data.Entity.Authoring
@@ -59,7 +60,6 @@ public class Projectile : Arterra.Data.Entity.Authoring
         private float decomposition;
         [JsonIgnore]
         public override ref TerrainCollider.Transform transform => ref tCollider.transform;
-        public override float weight => settings.weight;
         [JsonIgnore]
         public int3 GCoord => (int3)math.floor(origin);
         [JsonIgnore]
@@ -82,9 +82,10 @@ public class Projectile : Arterra.Data.Entity.Authoring
             return item;
         }
 
-        public void TakeDamage(float damage, float3 knockback, Entity attacker) {
+        public bool TakeDamage(float damage, float3 knockback, Entity attacker) {
             Indicators.DisplayDamageParticle(position, knockback);
             velocity += knockback;
+            return true;
         }
 
         public void SetDecomposition(float time) => decomposition = time;
@@ -96,7 +97,8 @@ public class Projectile : Arterra.Data.Entity.Authoring
             tCollider = new TerrainCollider(this.settings.collider, GCoord);
             controller = new ProjectileController(Controller, this);
             decomposition = settings.DecayTime;
-            ParentId = info.entityId;
+            ParentId = info.rtEntityId;
+            weight = settings.weight;
             HasCollided = false;
         }
 
@@ -105,6 +107,7 @@ public class Projectile : Arterra.Data.Entity.Authoring
             controller = new ProjectileController(Controller, this);
             decomposition = math.min(settings.DecayTime, decomposition);
             tCollider.useGravity = true;
+            weight = settings.weight;
             GCoord = this.GCoord;
         }
 
@@ -157,7 +160,7 @@ public class Projectile : Arterra.Data.Entity.Authoring
 
         private bool CheckEntityRayCollision(float3 startGS, float3 pVel) {
             float3 endGS = startGS + pVel * EntityJob.cxt.deltaTime;
-            if (!EntityManager.ESTree.FindClosestAlongRay(startGS, endGS, info.entityId, out Entity hitEntity, out _))
+            if (!EntityManager.ESTree.FindClosestAlongRay(startGS, endGS, info.rtEntityId, out Entity hitEntity, out _))
                 return false;
             if (!hitEntity.Is(out IAttackable atkEntity)) return false;
 

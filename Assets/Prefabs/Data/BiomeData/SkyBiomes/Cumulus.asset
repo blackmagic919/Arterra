@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Cumulus
   m_EditorClassIdentifier: 
   Name: Cumulus
+  Tags:
+    Reg:
+      value: []
   info:
     value:
       Names:
@@ -20,6 +23,7 @@ MonoBehaviour:
         - Water
         - Air
         - Cloud
+        - CloudJellyfish
       GroundMaterials:
         value:
         - value:
@@ -53,7 +57,10 @@ MonoBehaviour:
       Structures:
         value: []
       Entities:
-        value: []
+        value:
+        - value:
+            Entity: 3
+            ChancePerCoord: 0.00000002
   BiomeConditions:
     value:
       CaveFreqStart: 0
@@ -65,3 +72,6 @@ MonoBehaviour:
       CaveShapeEnd: 1
       HeightEnd: 0.6
       biome: 0
+  references:
+    version: 2
+    RefIds: []

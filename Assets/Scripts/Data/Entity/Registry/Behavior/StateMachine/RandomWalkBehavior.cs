@@ -46,9 +46,9 @@ namespace Arterra.Data.Entity.Behavior {
             if (manager.TaskIndex != settings.TaskName) return;
             if (path.pathFinder.hasPath) {
                 Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
-                    ref path.pathFinder, ref self.collider,
+                    ref path.pathFinder, self.PathCollider,
                     MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.walkSpeed),
-                    movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.TaskName));
+                    movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.TaskName));
                 return;
             }
             
@@ -66,11 +66,11 @@ namespace Arterra.Data.Entity.Behavior {
             );
 
             EntitySetting.ProfileInfo profile = MMove.Profile(mmove, settings.TaskName, self.settings);
-            if (PathFinder.VerifyProfile(self.GCoord + dP, profile, EntityJob.cxt)) {
-                byte[] nPath = PathFinder.FindPath(self.GCoord, dP, PathDist + 1,
+            if (PathFinder.VerifyProfile(self.PathCoord + dP, profile, EntityJob.cxt)) {
+                byte[] nPath = PathFinder.FindPath(self.PathCoord, dP, PathDist + 1,
                     MMove.Profile(mmove, settings.TaskName, self.settings),
                     EntityJob.cxt, out int pLen);
-                path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
+                path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
             }
         }
 

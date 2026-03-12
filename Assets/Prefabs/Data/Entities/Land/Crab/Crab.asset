@@ -141,7 +141,7 @@ MonoBehaviour:
           y: 1
           z: 1
       Behaviors:
-        value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a270000242700002e27000038270000422700004c27000056270000602700006a270000742700007e270000882700008227000021270000
+        value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e270000882700008227000021270000
       Settings:
         value:
         - value:
@@ -200,7 +200,7 @@ MonoBehaviour:
             rid: 5205636776373518492
         - value:
             rid: 5205636776373518519
-  _prevBehaviorCount: 25
+  _prevBehaviorCount: 24
   references:
     version: 2
     RefIds:
@@ -263,8 +263,8 @@ MonoBehaviour:
       data:
         Mates:
           value:
-          - MateType: Beetle
-            ChildType: Beetle
+          - MateType: Crab
+            ChildType: Crab
             AmountPerParent:
               mean: 0.5
               var: 0.25
@@ -303,7 +303,7 @@ MonoBehaviour:
         TaskName: 100
         OnStopWalkTransition: 0
         OnSwitchPath:
-          value: 90010000
+          value: 900100005c760000
     - rid: 3097083922518114523
       type: {class: ChaseMateStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -537,6 +537,7 @@ MonoBehaviour:
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
+        UseGravity: 1
     - rid: 5205636776373518465
       type: {class: BurrowInGroundSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:

@@ -10,6 +10,7 @@ StructuredBuffer<uint> _ChunkInfoBuffer;
 uint IsoLevel;
 #endif
 
+#ifdef USE_GAMELIGHTING
 uint chunkLMOffset; //Light Map
 
 uint2 GetChunkAddress(CInfo cHandle, int3 MCoord){
@@ -117,3 +118,7 @@ uint SampleLightFast(float3 samplePointWS){
                   ((uint)round(light.x));
     return lightC;
 }}
+#else 
+uint SampleLight(float3 samplePointWS) {return 0;}
+uint SampleLightFast(float3 samplePointWS) {return 0;}
+#endif

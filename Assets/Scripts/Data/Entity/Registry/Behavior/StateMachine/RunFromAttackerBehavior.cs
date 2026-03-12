@@ -40,7 +40,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity target))
                 manager.TaskTarget = Guid.Empty;
-            else if (Recognition.GetColliderDist(self, target)
+            else if (ColliderUpdateBehavior.GetColliderDist(self, target)
                 > genetics.Genes.Get(flee.detectDist))
                 manager.TaskTarget = Guid.Empty;
             if (manager.TaskTarget == Guid.Empty) {
@@ -51,22 +51,22 @@ namespace Arterra.Data.Entity.Behavior {
             if (!path.pathFinder.hasPath) {
                 int PathDist = flee.fleeDist;
                 float3 rayDir = self.position - target.position;
-                byte[] nPath = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1,
+                byte[] nPath = PathFinder.FindPathAlongRay(self.PathCoord, ref rayDir, PathDist + 1,
                     MMove.Profile(mmove, settings.TaskName, self.settings), 
                     EntityJob.cxt, out int pLen);
-                path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
+                path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
             }
             Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
-                ref path.pathFinder, ref self.collider,
+                ref path.pathFinder, self.PathCollider,
                 MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
-                movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.TaskName));
+                movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.TaskName));
         }
 
         private void RespondToAttack(object caller, object attacker) {
             if (attacker == null) return;
             if (attacker is not Entity entity) return;
-            if (entity.info.entityId == self.info.entityId) return;
-            if (relations != null && relations.GetAffection(entity.info.entityId)
+            if (entity.info.rtEntityId == self.info.rtEntityId) return;
+            if (relations != null && relations.GetAffection(entity.info.rtEntityId)
                 > relations.settings.SuppressInstinctAffection)
                 return;
             if (predator != null && predator.Recognize((int)entity.info.entityType))
@@ -74,7 +74,7 @@ namespace Arterra.Data.Entity.Behavior {
             else if (!flee.FightAggressor)
                 manager.Transition(settings.TaskName);
             if (manager.TaskIndex == settings.TaskName)
-                manager.TaskTarget = entity.info.entityId;
+                manager.TaskTarget = entity.info.rtEntityId;
         }
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {

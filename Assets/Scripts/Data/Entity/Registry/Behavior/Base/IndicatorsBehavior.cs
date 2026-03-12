@@ -36,7 +36,7 @@ public class InidcatorsBehavior : IBehavior {
     }
 
     public void Disable(BehaviorEntity.Animal self) {
-        indicators.Release();
+        indicators?.Release();
     }
 }
 }

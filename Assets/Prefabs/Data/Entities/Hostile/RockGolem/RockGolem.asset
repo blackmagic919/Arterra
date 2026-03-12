@@ -1,0 +1,445 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
+  m_Name: RockGolem
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
+  Name: RockGolem
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 1513989328087953977, guid: ed44e613a5a8e43eea7ce08f03bf33e3, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 3
+          y: 5
+          z: 3
+      collider:
+        size:
+          x: 2.5
+          y: 4.5
+          z: 2.5
+      Behaviors:
+        value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a270000742700007e270000882700008a130000
+      Settings:
+        value:
+        - value:
+            rid: 5205636866482634847
+        - value:
+            rid: 3097084098772992145
+        - value:
+            rid: 3097083922518114515
+        - value:
+            rid: 3097084037468258397
+        - value:
+            rid: 3097083922518114516
+        - value:
+            rid: 3097083922518114517
+        - value:
+            rid: 3097083922518114518
+        - value:
+            rid: 3097083922518114520
+        - value:
+            rid: 3097083922518114521
+        - value:
+            rid: 3097083922518114639
+        - value:
+            rid: 5205636866482634848
+        - value:
+            rid: 3097083922518114530
+        - value:
+            rid: 3097083922518114531
+        - value:
+            rid: 3097083922518114532
+        - value:
+            rid: 3097083922518114533
+        - value:
+            rid: 3097083922518114534
+        - value:
+            rid: 3097083922518114535
+        - value:
+            rid: 5205636901062049865
+  _prevBehaviorCount: 18
+  references:
+    version: 2
+    RefIds:
+    - rid: 3097083922518114515
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 6000
+        StartHealthPercent: 0.7
+        StartHealthVariance: 0.05
+        MaxHealth:
+          mean: 100
+          var: 0.35
+          geneWeight: 0.4
+        NaturalRegen:
+          mean: 0.01
+          var: 0.25
+          geneWeight: 0.2
+        InvincTime:
+          mean: 0.25
+          var: 0.1
+          geneWeight: 0.025
+    - rid: 3097083922518114516
+      type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        HoldBreathTime:
+          mean: 10
+          var: 0.3
+          geneWeight: 0.1
+        UseFallDamage: 1
+    - rid: 3097083922518114517
+      type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StartTask: 0
+        AverageStartDuration: Infinity
+        AverageStartDurationVariance: 0
+        ContactDistance: 4
+    - rid: 3097083922518114518
+      type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AttackDistance:
+          mean: 5
+          var: 0.25
+          geneWeight: 0.2
+        AttackDamage:
+          mean: 15
+          var: 0.5
+          geneWeight: 0.6
+        AttackCooldown:
+          mean: 0.6
+          var: 0.5
+          geneWeight: 0.3
+        KBStrength:
+          mean: 15
+          var: 0.5
+          geneWeight: 0.1
+        AttackDuration: 0.2
+    - rid: 3097083922518114520
+      type: {class: IdleStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageIdleTime:
+          mean: Infinity
+          var: 0.5
+          geneWeight: 0.025
+        AverageIdleVariance:
+          mean: 0
+          var: 0
+          geneWeight: 0
+        TaskName: 0
+        OnCompleteTransition: 100
+        CheckTransitions:
+          value: 5c760000
+    - rid: 3097083922518114521
+      type: {class: RandomWalkStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageWalkTime:
+          mean: 15
+          var: 0.3
+          geneWeight: 0.025
+        AveragWalkVariance:
+          mean: 0
+          var: 0
+          geneWeight: 0
+        TaskName: 100
+        OnStopWalkTransition: 0
+        OnSwitchPath:
+          value: 5c760000
+    - rid: 3097083922518114530
+      type: {class: AttackTargetSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30600
+        OnTargetPreyDeath: 100
+        OnTargetDeath: 100
+        OnSeperateTarget: 50100
+        OnLostTarget: 100
+    - rid: 3097083922518114531
+      type: {class: ChaseAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50100
+        OnLostAttacker: 100
+        OnReachAttacker: 30600
+        ChaseDistance:
+          mean: 24
+          var: 0.25
+          geneWeight: 0.2
+    - rid: 3097083922518114532
+      type: {class: RunFromPredatorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 40000
+        OverridableStates: 30500
+        OnFinishRunning: 100
+        Predators:
+          value: []
+    - rid: 3097083922518114533
+      type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        fleeDist: 5
+        detectDist:
+          mean: 18
+          var: 0.25
+          geneWeight: 0.3
+        FightAggressor: 1
+    - rid: 3097083922518114534
+      type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50000
+        OverridableStates: 30600
+        OnLostAttacker: 100
+    - rid: 3097083922518114535
+      type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 60000
+        OnReviveTask: 0
+        DecompositionTime:
+          mean: 450
+          var: 0.2
+          geneWeight: 0.01
+    - rid: 3097083922518114639
+      type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        walkSpeed:
+          mean: 2.1
+          var: 0.3
+          geneWeight: 0.1
+        runSpeed:
+          mean: 5.5
+          var: 0.35
+          geneWeight: 0.35
+        pathDistance: 32
+        acceleration: 200
+        rotSpeed: 180
+    - rid: 3097084037468258397
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
+          value:
+          - ItemName: Stone:Solid
+            DropAmount:
+              mean: 0.07777778
+              var: 0.75
+              geneWeight: 0.05
+    - rid: 3097084098772992145
+      type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath: rock_golem
+        StateAnimations:
+          value:
+          - task: 0
+            Animation: IsIdling
+          - task: 100
+            Animation: IsWalking
+          - task: 200
+            Animation: IsWalking
+          - task: 300
+            Animation: IsWalking
+          - task: 20000
+            Animation: IsWalking
+          - task: 20100
+            Animation: IsWalking
+          - task: 20200
+            Animation: IsCuddling
+          - task: 20300
+            Animation: IsWalking
+          - task: 30200
+            Animation: IsWalking
+          - task: 30300
+            Animation: IsRunning
+          - task: 30400
+            Animation: IsEating
+          - task: 30500
+            Animation: IsEating
+          - task: 40000
+            Animation: IsRunning
+          - task: 50000
+            Animation: IsRunning
+          - task: 50100
+            Animation: IsRunning
+          - task: 60000
+            Animation: IsDead
+    - rid: 5205636866482634847
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 1
+    - rid: 5205636866482634848
+      type: {class: ChaseEnemySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30300
+        OnNotFoundTransition: 100
+        OnReachEnemyTransition: 30600
+        SearchChances:
+          value:
+          - SourceState: 0
+            SearchChance:
+              mean: 0.25
+              var: 0.5
+              geneWeight: 0.2
+        SearchDistance:
+          mean: 10
+          var: 0.5
+          geneWeight: 0.2
+        DesiredEnemyState: 1
+        Enemy:
+          value:
+          - EntityType: Player
+    - rid: 5205636901062049865
+      type: {class: MultiAttackSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Variants:
+          value:
+          - TriggerAnim: Attack
+            AttackChance: 1
+            AttackDuration: 0.25
+            AttackDamage: 15
+            Knockback: 15

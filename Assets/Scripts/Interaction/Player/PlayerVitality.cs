@@ -7,6 +7,7 @@ using Arterra.Configuration.Gameplay.Player;
 using Arterra.Data.Entity;
 using Arterra.Core.Events;
 using Arterra.GamePlay.Interaction;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Configuration.Gameplay.Player {
     /// <summary> Settings describing the player's vitaltiy, or the 
@@ -126,7 +127,7 @@ namespace Arterra.GamePlay {
             AttackCooldown = settings.AttackFrequency;
             float3 hitPt = PlayerHandler.data.head + PlayerHandler.data.Forward * interact.ReachDistance;
             if (PlayerInteraction.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
-            if (!EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out Entity entity, out _))
+            if (!EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.rtEntityId, out Entity entity, out _))
                 return;
             
             static void PlayerDamageEntity(Entity target)

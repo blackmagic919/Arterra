@@ -70,7 +70,7 @@ public class RidableBehavior : IBehavior, IRidable {
         self.eventCtrl.RaiseEvent(GameEvent.Action_Mounted, self, caller, cxt);
         if (!cxt.Value) return; //Event test whether the given entity should be ridden
 
-        RiderTarget = caller.info.entityId;
+        RiderTarget = caller.info.rtEntityId;
         if (collider != null) {
             if(collider.IgnoredEntities == null) collider.IgnoredEntities = new HashSet<Guid>() { RiderTarget };
             else collider.IgnoredEntities.Add(RiderTarget);

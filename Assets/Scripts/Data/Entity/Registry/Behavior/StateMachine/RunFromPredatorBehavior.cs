@@ -49,15 +49,15 @@ namespace Arterra.Data.Entity.Behavior {
             Bounds bounds = new(self.position, 2 * new float3(sightDist));
             EntityManager.ESTree.Query(bounds, nEntity => {
                 if (nEntity == null) return;
-                if (nEntity.info.entityId == self.info.entityId) return;
+                if (nEntity.info.rtEntityId == self.info.rtEntityId) return;
                 if (!Awareness.ContainsKey((int)nEntity.info.entityType)) return;
                 if (nEntity.Is(out VitalityBehavior vit) && vit.IsDead) return;
                 if (relations != null) {
                     float suppressThreshold = relations.settings.SuppressInstinctAffection;
-                    if (relations.GetAffection(self.info.entityId) > suppressThreshold) return;
+                    if (relations.GetAffection(self.info.rtEntityId) > suppressThreshold) return;
                 }
 
-                float dist = Recognition.GetColliderDist(self, nEntity);
+                float dist = ColliderUpdateBehavior.GetColliderDist(self, nEntity);
                 if (dist >= closestDist) return;
                 cEntity = nEntity;
                 closestDist = dist;
@@ -95,9 +95,9 @@ namespace Arterra.Data.Entity.Behavior {
             } else if (manager.TaskIndex != settings.TaskName) return;
 
             Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
-                ref path.pathFinder, ref self.collider,
+                ref path.pathFinder, self.PathCollider,
                 MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
-                movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.TaskName));
+                movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.TaskName));
             if (!path.pathFinder.hasPath) {
                 manager.Transition(settings.OnFinishRunning);
                 return;
@@ -111,10 +111,10 @@ namespace Arterra.Data.Entity.Behavior {
 
             int PathDist = flee.fleeDist;
             float3 rayDir = self.position - predator.position;
-            byte[] nPath = PathFinder.FindPathAlongRay(self.GCoord, ref rayDir, PathDist + 1,
+            byte[] nPath = PathFinder.FindPathAlongRay(self.PathCoord, ref rayDir, PathDist + 1,
                 MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
-            path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
-            manager.TaskTarget = predator.info.entityId;
+            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+            manager.TaskTarget = predator.info.rtEntityId;
             manager.Transition(settings.TaskName);
         }
 

@@ -132,7 +132,7 @@ namespace Arterra.Configuration {
                 entity.transform.rotation = Quaternion.LookRotation(math.normalize(velocity));
                 entity.position = position;
                 if (parent != null && entity is Projectile.ProjectileEntity pEntity)
-                    pEntity.ParentId = parent.info.entityId;
+                    pEntity.ParentId = parent.info.rtEntityId;
                 cb?.Invoke(entity);
             });
         }

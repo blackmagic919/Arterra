@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f02090c245ed941d89ad005bb82537b5, type: 3}
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
   m_Name: LeviathanEel
-  m_EditorClassIdentifier: Assembly-CSharp::EelEnemy
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
   Name: LeviathanEel
   Tags:
     Reg:
@@ -332,140 +332,309 @@ MonoBehaviour:
           x: 3
           y: 3
           z: 3
-      EnemyCheckDist:
-        mean: 8
-        var: 0.4
-        geneWeight: 0.3
-      EnemyCheckDelay:
-        mean: 2.5
-        var: 0.5
-        geneWeight: 1
-      movement:
-        walkSpeed:
-          mean: 4
-          var: 0.45
-          geneWeight: 0.25
-        runSpeed:
-          mean: 8
-          var: 0.5
-          geneWeight: 0.75
-        pathDistance: 38
-        acceleration: 200
-        rotSpeed: 180
-        AverageIdleTime: 20
-      aquatic:
-        DrownTime:
+      Behaviors:
+        value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a270000742700007e270000882700008a130000891300008d13000083270000
+      Settings:
+        value:
+        - value:
+            rid: 5205636866482634847
+        - value:
+            rid: 3097084098772992145
+        - value:
+            rid: 3097083922518114515
+        - value:
+            rid: 3097084037468258397
+        - value:
+            rid: 3097083922518114516
+        - value:
+            rid: 3097083922518114517
+        - value:
+            rid: 3097083922518114518
+        - value:
+            rid: 3097083922518114520
+        - value:
+            rid: 3097083922518114521
+        - value:
+            rid: 3097083922518114639
+        - value:
+            rid: 5205636866482634848
+        - value:
+            rid: 3097083922518114530
+        - value:
+            rid: 3097083922518114531
+        - value:
+            rid: 3097083922518114532
+        - value:
+            rid: 3097083922518114533
+        - value:
+            rid: 3097083922518114534
+        - value:
+            rid: 3097083922518114535
+        - value:
+            rid: 5205636901062049865
+        - value:
+            rid: 5205636930575269888
+        - value:
+            rid: 5205636930575269889
+        - value:
+            rid: 5205636955332673609
+        - value:
+            rid: 5205636930575269890
+  _prevBehaviorCount: 21
+  references:
+    version: 2
+    RefIds:
+    - rid: 3097083922518114515
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 5000
+        StartHealthPercent: 0.7
+        StartHealthVariance: 0.05
+        MaxHealth:
+          mean: 150
+          var: 0.35
+          geneWeight: 0.4
+        NaturalRegen:
+          mean: 0.01
+          var: 0.25
+          geneWeight: 0.2
+        InvincTime:
+          mean: 0.25
+          var: 0.1
+          geneWeight: 0.025
+    - rid: 3097083922518114516
+      type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 1
+        HoldBreathTime:
           mean: Infinity
           var: 0
-          geneWeight: 0
-        SurfaceThreshold:
-          mean: 0
-          var: 0
-          geneWeight: 0
-        JumpStickDistance: 0.05
-        JumpStrength: 0.5
-        SurfaceProfile:
-          bounds:
-            x: 1
-            y: 1
-            z: 1
-      recognition:
-        value:
-          Predators:
-            value: []
-          SightDistance:
-            mean: 38
-            var: 0.25
-            geneWeight: 0.5
-          PlantFindDist:
-            mean: 0
-            var: 0
-            geneWeight: 0
-          PreyEntity:
-            value:
-            - EntityType: Player
-          PreyPlant:
-            value: []
-          FleeDistance: 5
-          FightAggressor: 1
-      physicality:
-        value:
-          weight: 0.9
-          MaxHealth:
-            mean: 100
-            var: 0.5
-            geneWeight: 1
-          NaturalRegen:
-            mean: 0.01
-            var: 0.75
-            geneWeight: 0.5
-          InvincTime:
-            mean: 0.25
-            var: 0.5
-            geneWeight: 0.5
-          HoldBreathTime:
-            mean: 30
-            var: 1
-            geneWeight: 0.5
-          AttackDistance:
-            mean: 6
-            var: 0.3
-            geneWeight: 0.5
-          AttackDamage:
-            mean: 10
-            var: 0.75
-            geneWeight: 0.75
-          AttackCooldown:
-            mean: 0.75
-            var: 0.25
-            geneWeight: 0.25
-          KBStrength:
-            mean: 20
-            var: 0.5
-            geneWeight: 0.2
-          AttackDuration: 0.75
-      decomposition:
-        LootTable:
-          value: []
-        DecompositionTime:
-          mean: 300
-          var: 0.25
           geneWeight: 0.1
-      attack:
-        Projectile:
-          ShotDelay: 0.25
-          CheckSightline: 1
-          ChargeTime:
-            mean: 5
-            var: 0.5
-            geneWeight: 0.6
-          Projectile:
-            LaunchSpeedMultiplier: 1
-            FireSound: 0
-            ProjectileEntity: 
-          HasRangedAttack: 0
-        BlindDist:
+        UseFallDamage: 1
+    - rid: 3097083922518114517
+      type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StartTask: 0
+        AverageStartDuration: 3
+        AverageStartDurationVariance: 0.25
+        ContactDistance: 4
+    - rid: 3097083922518114518
+      type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AttackDistance:
+          mean: 4
+          var: 0.25
+          geneWeight: 0.2
+        AttackDamage:
+          mean: 10
+          var: 0.5
+          geneWeight: 0.6
+        AttackCooldown:
+          mean: 0.4
+          var: 0.5
+          geneWeight: 0.3
+        KBStrength:
+          mean: 15
+          var: 0.5
+          geneWeight: 0.1
+        AttackDuration: 0.2
+    - rid: 3097083922518114520
+      type: {class: IdleStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageIdleTime:
+          mean: 3
+          var: 0.5
+          geneWeight: 0.025
+        AverageIdleVariance:
           mean: 0
           var: 0
           geneWeight: 0
-      ConsumptionRate: 0.5
-      Animation:
-        Head:
+        TaskName: 0
+        OnCompleteTransition: 100
+        CheckTransitions:
+          value: 5c760000
+    - rid: 3097083922518114521
+      type: {class: RandomWalkStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageWalkTime:
+          mean: 15
+          var: 0.3
+          geneWeight: 0.025
+        AveragWalkVariance:
+          mean: 0
+          var: 0
+          geneWeight: 0
+        TaskName: 100
+        OnStopWalkTransition: 0
+        OnSwitchPath:
+          value: 5c760000
+    - rid: 3097083922518114530
+      type: {class: AttackTargetSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30600
+        OnTargetPreyDeath: 100
+        OnTargetDeath: 100
+        OnSeperateTarget: 50100
+        OnLostTarget: 100
+    - rid: 3097083922518114531
+      type: {class: ChaseAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50100
+        OnLostAttacker: 100
+        OnReachAttacker: 30600
+        ChaseDistance:
+          mean: 24
+          var: 0.25
+          geneWeight: 0.2
+    - rid: 3097083922518114532
+      type: {class: RunFromPredatorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 40000
+        OverridableStates: 30500
+        OnFinishRunning: 100
+        Predators:
+          value: []
+    - rid: 3097083922518114533
+      type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        fleeDist: 5
+        detectDist:
+          mean: 18
+          var: 0.25
+          geneWeight: 0.3
+        FightAggressor: 1
+    - rid: 3097083922518114534
+      type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50000
+        OverridableStates: 30600
+        OnLostAttacker: 100
+    - rid: 3097083922518114535
+      type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 60000
+        OnReviveTask: 0
+        DecompositionTime:
+          mean: 425
+          var: 0.2
+          geneWeight: 0.01
+    - rid: 3097083922518114639
+      type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        walkSpeed:
+          mean: 2.1
+          var: 0.3
+          geneWeight: 0.1
+        runSpeed:
+          mean: 3
+          var: 0.35
+          geneWeight: 0.35
+        pathDistance: 32
+        acceleration: 200
+        rotSpeed: 180
+    - rid: 3097084037468258397
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
           value:
-            Offset:
-              x: 0
-              y: 0
-              z: 0
-            Collider:
-              size:
-                x: 3
-                y: 3
-                z: 3
-            RubberbandStrength: 5
-        RubberbandStrength: 1
+          - ItemName: FishMeat
+            DropAmount:
+              mean: 0.08235294
+              var: 0.75
+              geneWeight: 0.05
+    - rid: 3097084098772992145
+      type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath: Leviathan
+        StateAnimations:
+          value:
+          - task: 0
+            Animation: IsIdling
+          - task: 100
+            Animation: IsWalking
+          - task: 200
+            Animation: IsWalking
+          - task: 300
+            Animation: IsWalking
+          - task: 20000
+            Animation: IsWalking
+          - task: 20100
+            Animation: IsWalking
+          - task: 20200
+            Animation: IsCuddling
+          - task: 20300
+            Animation: IsWalking
+          - task: 30200
+            Animation: IsWalking
+          - task: 30300
+            Animation: IsRunning
+          - task: 30400
+            Animation: IsEating
+          - task: 30500
+            Animation: IsEating
+          - task: 40000
+            Animation: IsRunning
+          - task: 50000
+            Animation: IsRunning
+          - task: 50100
+            Animation: IsRunning
+          - task: 60000
+            Animation: IsDead
+    - rid: 5205636866482634847
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 1
+    - rid: 5205636866482634848
+      type: {class: ChaseEnemySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30300
+        OnNotFoundTransition: 100
+        OnReachEnemyTransition: 30600
+        SearchChances:
+          value:
+          - SourceState: 0
+            SearchChance:
+              mean: 0.25
+              var: 0.5
+              geneWeight: 0.2
+        SearchDistance:
+          mean: 10
+          var: 0.5
+          geneWeight: 0.2
+        DesiredEnemyState: 1
+        Enemy:
+          value:
+          - EntityType: Player
+    - rid: 5205636901062049865
+      type: {class: MultiAttackSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Variants:
+          value:
+          - TriggerAnim: Attack
+            AttackChance: 1
+            AttackDuration: 0.25
+            AttackDamage: 15
+            Knockback: 15
+    - rid: 5205636930575269888
+      type: {class: LeadHeadSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Offset:
+          x: 0
+          y: 0
+          z: 0
+        Collider:
+          size:
+            x: 3
+            y: 3
+            z: 3
+        HeadRubberBand: 5
+        BodyRubberBand: 1
+    - rid: 5205636930575269889
+      type: {class: SnakeTailSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
         AnimControl: []
         OverrideAnimByDefault: 1
-        BodyUseGravity: 0
         Segments:
           value:
           - collider:
@@ -481,7 +650,7 @@ MonoBehaviour:
               x: 1.25
               y: 1
               z: 1.25
-            BonePath: Rig/BodySegment.001/target
+            BonePath: Leviathan/Rig/BodySegment.001/target
             MoveAccel: 150
             Phase: 1
             RBStrength: 32
@@ -498,7 +667,7 @@ MonoBehaviour:
               x: 1.25
               y: 1
               z: 1.25
-            BonePath: Rig/BodySegment.002/target
+            BonePath: Leviathan/Rig/BodySegment.002/target
             MoveAccel: 150
             Phase: 0.8333333
             RBStrength: 8
@@ -515,7 +684,7 @@ MonoBehaviour:
               x: 1.25
               y: 1
               z: 1.25
-            BonePath: Rig/BodySegment.003/target
+            BonePath: Leviathan/Rig/BodySegment.003/target
             MoveAccel: 150
             Phase: 0.6666667
             RBStrength: 6
@@ -532,7 +701,7 @@ MonoBehaviour:
               x: 1.25
               y: 1
               z: 1.25
-            BonePath: Rig/BodySegment.004/target
+            BonePath: Leviathan/Rig/BodySegment.004/target
             MoveAccel: 150
             Phase: 0.5
             RBStrength: 6
@@ -549,7 +718,7 @@ MonoBehaviour:
               x: 1.25
               y: 1
               z: 1.25
-            BonePath: Rig/BodySegment.005/target
+            BonePath: Leviathan/Rig/BodySegment.005/target
             MoveAccel: 150
             Phase: 0.33333334
             RBStrength: 4
@@ -566,7 +735,7 @@ MonoBehaviour:
               x: 1.25
               y: 1
               z: 1.25
-            BonePath: Rig/BodySegment.006/target
+            BonePath: Leviathan/Rig/BodySegment.006/target
             MoveAccel: 150
             Phase: 0.16666667
             RBStrength: 4
@@ -631,7 +800,139 @@ MonoBehaviour:
             m_RotationOrder: 4
         SlitherSpeed: 1
         MoveAccel: 200
-      IndependentWalk: 1
-  references:
-    version: 2
-    RefIds: []
+    - rid: 5205636930575269890
+      type: {class: MMove, ns: , asm: Assembly-CSharp}
+      data:
+        movements:
+          value:
+          - state: 100
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 30300
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 300
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 40000
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 50100
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 400
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 30600
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 50000
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 30500
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 0
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 20100
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 20200
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 30200
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 30400
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 51000
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 1
+            CustomSpeed:
+              enabled: 1
+              value: 0
+        profiles:
+          value:
+          - bounds:
+              x: 5
+              y: 4
+              z: 5
+            offset: 0
+        customSpeeds:
+          value:
+          - mean: 5
+            var: 0.25
+            geneWeight: 0.3
+    - rid: 5205636955332673609
+      type: {class: FlopOnLandSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 51000
+        OnEnterWater: 0
+        DryOutTime:
+          mean: 10
+          var: 0.5
+          geneWeight: 0.1
+        JumpStrength:
+          mean: 2
+          var: 0.4
+          geneWeight: 0.05
+        JumpStickDist: 0.05

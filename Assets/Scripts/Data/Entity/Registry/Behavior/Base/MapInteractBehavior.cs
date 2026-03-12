@@ -50,21 +50,21 @@ namespace Arterra.Data.Entity.Behavior {
                 case MapInteractorSettings.InteractType.Terrestrial:
                     TerrainInteractor.DetectMapInteraction(self.position,
                         OnInSolid: (dens) => ProcessInSolid(self, dens),
-                        OnInLiquid: (dens) => ProcessInLiquid(self, ref self.collider, dens),
+                        OnInLiquid: (dens) => ProcessInLiquid(self, self.Collider, dens),
                         OnInGas: (dens) => ProcessInGas(self, dens)
                     );
                     break;
                 case MapInteractorSettings.InteractType.Aquatic:
                     TerrainInteractor.DetectMapInteraction(self.position,
                         OnInSolid: (dens) => ProcessInSolid(self, dens),
-                        OnInLiquid: (dens) => ProcessInLiquidAquatic(self, ref self.collider, dens),
-                        OnInGas: (dens) => ProcessInGasAquatic(self, ref self.collider, dens)
+                        OnInLiquid: (dens) => ProcessInLiquidAquatic(self, self.Collider, dens),
+                        OnInGas: (dens) => ProcessInGasAquatic(self, self.Collider, dens)
                     );
                     break;
                 case MapInteractorSettings.InteractType.SubTerraneal:
                     TerrainInteractor.DetectMapInteraction(self.position,
                         OnInSolid: (dens) => ProcessInSolidSubterraneal(self, dens),
-                        OnInLiquid: (dens) => ProcessInLiquidAquatic(self, ref self.collider, dens),
+                        OnInLiquid: (dens) => ProcessInLiquidAquatic(self, self.Collider, dens),
                         OnInGas: (dens) => ProcessInGas(self, dens)
                     );
                     break;
@@ -91,7 +91,7 @@ namespace Arterra.Data.Entity.Behavior {
             breath = genes.Get(settings.HoldBreathTime);
         }
 
-        public void ProcessInLiquid(Entity self, ref TerrainCollider tCollider, float density) {
+        public void ProcessInLiquid(Entity self, TerrainCollider tCollider, float density) {
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, self, null, density);
             breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
             tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
@@ -102,7 +102,7 @@ namespace Arterra.Data.Entity.Behavior {
             ProcessSuffocation(self, density);
         }
 
-        public void ProcessInLiquidAquatic(Entity self, ref TerrainCollider tCollider, float density) {
+        public void ProcessInLiquidAquatic(Entity self, TerrainCollider tCollider, float density) {
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, self, null, density);
             breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
             if (self.Is(out IAttackable target) && target.IsDead) { //If dead float to the surface
@@ -114,7 +114,7 @@ namespace Arterra.Data.Entity.Behavior {
             ProcessSuffocation(self, density);
         }
 
-        public void ProcessInGasAquatic(Entity self, ref TerrainCollider tCollider, float density) {
+        public void ProcessInGasAquatic(Entity self, TerrainCollider tCollider, float density) {
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, self, null, density);
             breath = genes.Get(settings.HoldBreathTime);
         }

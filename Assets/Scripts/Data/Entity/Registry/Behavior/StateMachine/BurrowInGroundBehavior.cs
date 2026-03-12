@@ -112,12 +112,12 @@ namespace Arterra.Data.Entity.Behavior{
         private void BurrowUnderground(BehaviorEntity.Animal self) {
             if (path.pathFinder.hasPath) {
                 float speed = MMove.Speed(mmove, settings.Task1Name, genetics.Genes, movement.walkSpeed);
-                Movement.FollowStaticPath(settings.paths.BurrowProfile, settings.paths.BurrowBounds, ref path.pathFinder, ref self.collider,
-                    speed, movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.Task1Name));
+                Movement.FollowStaticPath(settings.paths.BurrowProfile, settings.paths.BurrowBounds, ref path.pathFinder, self.PathCollider,
+                    speed, movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.Task1Name));
                 return;
             }
 
-            if (!PathFinder.VerifyMatProfile(self.GCoord, settings.paths.HiddenBounds, settings.paths.HiddenProfile, false)) {
+            if (!PathFinder.VerifyMatProfile(self.PathCoord, settings.paths.HiddenBounds, settings.paths.HiddenProfile, false)) {
                 if(!manager.Transition(settings.Task1Name))
                     manager.Transition(settings.OnHitOutState);
                 return;
@@ -130,7 +130,7 @@ namespace Arterra.Data.Entity.Behavior{
         private void HideUnderground(BehaviorEntity.Animal self) {
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity attacker))
                 manager.Transition(settings.Task3Name);
-            if (Recognition.GetColliderDist(attacker, self) > genetics.Genes.Get(settings.MaxAttackerDist))
+            if (ColliderUpdateBehavior.GetColliderDist(attacker, self) > genetics.Genes.Get(settings.MaxAttackerDist))
                 manager.Transition(settings.Task3Name);
             if (mInteract != null && mInteract.breathPercent < genetics.Genes.Get(settings.SurfaceThresh))
                 manager.Transition(settings.Task3Name);
@@ -152,25 +152,25 @@ namespace Arterra.Data.Entity.Behavior{
             }
 
             float speed = MMove.Speed(mmove, settings.Task3Name, genetics.Genes, movement.walkSpeed);
-            Movement.FollowStaticPath(settings.paths.BurrowProfile, settings.paths.BurrowBounds, ref path.pathFinder, ref self.collider,
-                speed, movement.rotSpeed, movement.acceleration, MMove.Allow3DRot(mmove, settings.Task3Name));
+            Movement.FollowStaticPath(settings.paths.BurrowProfile, settings.paths.BurrowBounds, ref path.pathFinder, self.PathCollider,
+                speed, movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.Task3Name));
         }
 
         private void FindPathOut() {
-             byte[] nPath = PathFinder.FindMatchAlongRay(self.GCoord, (float3)Vector3.up, movement.pathDistance,
+             byte[] nPath = PathFinder.FindMatchAlongRay(self.PathCoord, (float3)Vector3.up, movement.pathDistance,
                 settings.paths.BurrowBounds, settings.paths.BurrowProfile,
                 settings.paths.SurfBounds, settings.paths.SurfProfile,
                 out int pLen, out foundSurface);
-            path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
+            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
         }
 
         public bool TransitionToTask1() {
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity attacker)) {
                 return false;}
-            float dist = Recognition.GetColliderDist(attacker, self);
+            float dist = ColliderUpdateBehavior.GetColliderDist(attacker, self);
             if (dist < genetics.Genes.Get(settings.MinAttackerDist) || dist > genetics.Genes.Get(settings.MaxAttackerDist)) {
                 return false;}
-            if (!self.collider.SampleCollision(self.origin, new float3(self.settings.collider.size.x,
+            if (!self.PathCollider.SampleCollision(self.origin, new float3(self.settings.collider.size.x,
                 -settings.GroundStickDist, self.settings.collider.size.z), EntityJob.cxt.mapContext, out _)){
                 return false;}
             
@@ -180,9 +180,9 @@ namespace Arterra.Data.Entity.Behavior{
             int pathLength = (int)genetics.Genes.Get(settings.DigDist);
             byte[] nPath = PathFinder.FindPathAlongRay((int3)origin, ref digDir, pathLength, 
                 settings.paths.BurrowBounds, settings.paths.BurrowProfile, out int pLen);
-            byte[] toStart = PathFinder.GetStraightLinePath(self.GCoord, (int3)origin);
+            byte[] toStart = PathFinder.GetStraightLinePath(self.PathCoord, (int3)origin);
             if (pLen < pathLength) return false;
-            path.pathFinder = new PathFinder.PathInfo(self.GCoord, toStart.Concat(nPath).ToArray(), pLen);
+            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, toStart.Concat(nPath).ToArray(), pLen);
             return true;
         }
  

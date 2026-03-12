@@ -47,6 +47,7 @@ namespace Arterra.Core.Events {
         Entity_PlaceMaterial = GameEventBases.Entity_Base + 20,
         Entity_Interact = GameEventBases.Entity_Base + 21,
         Entity_CanMate = GameEventBases.Entity_Base + 22,
+        Entity_ReadyAttack = GameEventBases.Entity_Base + 23,
 
         
         

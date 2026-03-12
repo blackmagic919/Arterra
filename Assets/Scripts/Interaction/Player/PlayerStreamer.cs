@@ -131,20 +131,19 @@ namespace Arterra.GamePlay {
             /// <param name="knockback">The attempted knockback to deal to the player</param>
             /// <param name="attacker">If the damage was dealt by an entity, the attacker instance.
             /// Otherwise, this field can be omitted. </param>
-            public void TakeDamage(float damage, float3 knockback, Entity attacker = null) {
+            public bool TakeDamage(float damage, float3 knockback, Entity attacker = null) {
                 //Invulnerability means we don't even process the request
-                if (Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability) return;
-                if (vitality.Invincibility > 0) return;
+                if (Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability) return false;
+                if (vitality.Invincibility > 0) return false;
                 
                 RefTuple<(float, float3)> cxt = (damage, knockback);
                 eventCtrl.RaiseEvent(GameEvent.Entity_Damaged, this, attacker, cxt);
                 (damage, knockback) = cxt.Value;
 
-                if (!vitality.Damage(damage)) return;
+                if (!vitality.Damage(damage)) return false;
                 EntityManager.AddHandlerEvent(() => Indicators.DisplayDamageParticle(position, knockback));
                 velocity += knockback;
-
-                if (status == StreamingStatus.Disconnected) return;
+                return true;
             }
             /// <summary>Handler that's called when the player mounts an entity <see cref="IRider"/></summary>
             /// <param name="mount">The mount the player is riding</param>
@@ -170,7 +169,8 @@ namespace Arterra.GamePlay {
                 p.SecondaryI = new InventoryController.Inventory(Config.CURRENT.GamePlay.Inventory.value.SecondarySlotCount);
                 p.ArmorI = new ArmorInventory();
                 p.info.entityType = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
-                p.info.entityId = Guid.NewGuid();
+                p.info.rtEntityId = Guid.NewGuid();
+                p.info.entityId = p.info.rtEntityId;
 
                 p.settings = Config.CURRENT.Generation.Entities.Retrieve((int)p.info.entityType).Setting as PlayerSettings;
                 p.collider = new TerrainCollider(p.settings.collider, 0);
@@ -230,8 +230,8 @@ namespace Arterra.GamePlay {
                 if (status != StreamingStatus.Disconnected)
                     EntityManager.AddHandlerEvent(DetatchStreamer);
                 if (vitality.health <= -PlayerVitality.settings.DecompositionTime){ //the player isn't idling
-                    if (PlayerHandler.data == null || PlayerHandler.data.info.entityId != info.entityId)
-                        EntityManager.ReleaseEntity(this.info.entityId);
+                    if (PlayerHandler.data == null || PlayerHandler.data.info.rtEntityId != info.rtEntityId)
+                        EntityManager.ReleaseEntity(this.info.rtEntityId);
                 }
                 vitality.health -= EntityJob.cxt.deltaTime;
 

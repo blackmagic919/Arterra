@@ -187,6 +187,7 @@ namespace Arterra.Engine.Rendering
         {
             var tSettings = Config.CURRENT.Quality.Terrain.value;
             int IsoValue = Mathf.RoundToInt(tSettings.IsoLevel * 255.0f);
+            mat.EnableKeyword("USE_GAMELIGHTING");
             mat.SetBuffer("_ChunkAddressDict", GPUMapManager.Address);
             mat.SetBuffer("_ChunkInfoBuffer", GPUMapManager.Storage);
             mat.SetInt("chunkLMOffset", GetLightMapStart());
@@ -200,6 +201,7 @@ namespace Arterra.Engine.Rendering
         {
             var tSettings = Config.CURRENT.Quality.Terrain.value;
             int IsoValue = Mathf.RoundToInt(tSettings.IsoLevel * 255.0f);
+            shad.EnableKeyword("USE_GAMELIGHTING");
             shad.SetBuffer(kernel, "_ChunkAddressDict", GPUMapManager.Address);
             shad.SetBuffer(kernel, "_ChunkInfoBuffer", GPUMapManager.Storage);
             shad.SetInt("chunkLMOffset", GetLightMapStart());

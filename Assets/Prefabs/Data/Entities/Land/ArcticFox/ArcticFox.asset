@@ -541,3 +541,4 @@ MonoBehaviour:
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
+        UseGravity: 1

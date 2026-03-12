@@ -11,6 +11,7 @@ using Arterra.Core.Storage;
 using Arterra.Core.Events;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.GamePlay.Interaction;
+using Arterra.Data.Entity.Behavior;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Item")]
 public class EItem : Arterra.Data.Entity.Authoring
@@ -70,9 +71,10 @@ public class EItem : Arterra.Data.Entity.Authoring
             return ret;
         }
 
-        public void TakeDamage(float damage, float3 knockback, Entity attacker) {
+        public bool TakeDamage(float damage, float3 knockback, Entity attacker) {
             Indicators.DisplayDamageParticle(position, knockback);
             velocity += knockback;
+            return true;
         }
 
         public EItemEntity() { }
@@ -148,7 +150,7 @@ public class EItem : Arterra.Data.Entity.Authoring
             Bounds bounds = new Bounds(position, new float3(settings.MergeRadius * 2));
             EntityManager.ESTree.Query(bounds, (Entity nEntity) => {
                 if (nEntity == null) return;
-                if (nEntity.info.entityId == info.entityId) return;
+                if (nEntity.info.rtEntityId == info.rtEntityId) return;
                 if (nEntity.info.entityType != info.entityType) return;
 
                 EItemEntity nItem = nEntity as EItemEntity;

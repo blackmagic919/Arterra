@@ -10,6 +10,7 @@ using Arterra.Core.Events;
 using Arterra.Utils;
 using Arterra.GamePlay.Interaction;
 using Arterra.Configuration.Gameplay;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Configuration.Gameplay.Player {
 /// <summary>
@@ -68,25 +69,52 @@ namespace Arterra.GamePlay{
             InputPoller.AddBinding(new ActionBind("Remove", RemoveTerrain), "PlayerInteraction::RM", "5.0::GamePlay");
         }
 
+        public static bool RayTestSolid<T>(T entity, float reach, out float3 hitPt) where T : Data.Entity.Entity {
+            static uint RayTestSolid(int3 coord) {
+                MapData pointInfo = CPUMapManager.SampleMap(coord);
+                return (uint)pointInfo.viscosity;
+            }
+            return CPUMapManager.RayCastTerrain(entity.head, entity.Forward, reach, RayTestSolid, out hitPt);
+        }
+
+        public static bool RayTestLiquid<T>(T entity, float reach, out float3 hitPt) where T : Data.Entity.Entity {
+            static uint RayTestLiquid(int3 coord) {
+                MapData pointInfo = CPUMapManager.SampleMap(coord);
+                return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
+            }
+            return CPUMapManager.RayCastTerrain(entity.head, entity.Forward, reach, RayTestLiquid, out hitPt);
+        }
+
+        public static bool CylinderTestSolid<T>(T entity, float reach, float radius, out float3 hitPt) where T : Data.Entity.Entity {
+            static uint CylinderTestSolid(int3 coord) {
+                MapData pointInfo = CPUMapManager.SampleMap(coord);
+                return (uint)pointInfo.viscosity;
+            }
+            if (RayTestSolid(entity, reach, out hitPt) && math.lengthsq(hitPt - entity.head) < radius * radius * 4)
+                return true;
+            return CPUMapManager.CylinderCastTerrain(entity.head + 2 * radius * entity.Forward,
+                entity.Forward, radius, reach, CylinderTestSolid, out hitPt);
+        }
+
         /// <summary> Determines where the player's view vector intersects with the solid terrain if 
-        /// under <see cref="Interaction.ReachDistance"/>  away. See <see cref="MinimalRecognition.RayTestSolid"/>
+        /// under <see cref="Interaction.ReachDistance"/>  away. See <see cref="RayTestSolid"/>
         /// for mode info. </summary>
         /// <param name="hitPt">If it does intersect, the first point it intersects in grid space</param>
         /// <returns>Whether or not the view ray intersects solid terrain</returns>
-        public static bool RayTestSolid(out float3 hitPt) => MinimalRecognition.RayTestSolid(PlayerHandler.data, settings.ReachDistance, out hitPt);
+        public static bool RayTestSolid(out float3 hitPt) => RayTestSolid(PlayerHandler.data, settings.ReachDistance, out hitPt);
 
         /// <summary> Determines where a cylinder of radius <see cref="Interaction.CylinderRadius"/> around the player's view vector
-        /// intersects with the solid terrain if under <see cref="Interaction.ReachDistance"/> away. See <see cref="MinimalRecognition.CylinderTestSolid"/>
+        /// intersects with the solid terrain if under <see cref="Interaction.ReachDistance"/> away. See <see cref="CylinderTestSolid"/>
         /// for mode info. </summary>
         /// <param name="hitPt">If it does intersect, the first point it intersects in grid space</param>
         /// <returns>Whether or not the view ray intersects solid terrain</returns>
-        public static bool CylinderTestSolid(out float3 hitPt) => MinimalRecognition.CylinderTestSolid(PlayerHandler.data, settings.ReachDistance, settings.CylinderRadius, out hitPt);
+        public static bool CylinderTestSolid(out float3 hitPt) => CylinderTestSolid(PlayerHandler.data, settings.ReachDistance, settings.CylinderRadius, out hitPt);
         /// <summary> Determines where the player's view vector intersects with the liquid/solid terrain if 
-        /// under <see cref="Interaction.ReachDistance"/>  away. See <see cref="MinimalRecognition.RayTestLiquid"/>
+        /// under <see cref="Interaction.ReachDistance"/>  away. See <see cref="RayTestLiquid"/>
         /// for mode info. </summary>
         /// <param name="hitPt">If it does intersect, the first point it intersects in grid space</param>
         /// <returns>Whether or not the view ray intersects liquid/solid terrain</returns>
-        public static bool RayTestLiquid(out float3 hitPt) => MinimalRecognition.RayTestLiquid(PlayerHandler.data, settings.ReachDistance, out hitPt);
+        public static bool RayTestLiquid(out float3 hitPt) => RayTestLiquid(PlayerHandler.data, settings.ReachDistance, out hitPt);
 
         private static bool RemoveSolidBareHand(int3 GCoord, float speed) {
             MapData mapData = CPUMapManager.SampleMap(GCoord);
@@ -105,7 +133,7 @@ namespace Arterra.GamePlay{
                 rayHit = true;
             };
 
-            if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out var entity, out _)) {
+            if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.rtEntityId, out var entity, out _)) {
                 EntityInteract(entity, InventoryController.Selected);
                 InventoryController.TryClearSelected();
                 return;
@@ -129,7 +157,7 @@ namespace Arterra.GamePlay{
         private static void RemoveTerrain(float _) {
             if (!PlayerHandler.active) return;
             if (!CylinderTestSolid(out float3 hitPt)) return;
-            if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.entityId, out var entity, out _)) {
+            if (EntityManager.ESTree.FindClosestAlongRay(PlayerHandler.data.head, hitPt, PlayerHandler.data.info.rtEntityId, out var entity, out _)) {
                 return;
             }
 

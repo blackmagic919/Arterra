@@ -5,6 +5,7 @@ using System;
 using Arterra.Core.Storage;
 using Arterra.Configuration;
 using Arterra.GamePlay.UI;
+using Arterra.Data.Entity.Behavior;
 
 /*
 y

@@ -93,7 +93,7 @@ namespace Arterra.Data.Entity.Behavior {
 
                 if (!nBoid.IsPartOfPack()) return;
                 
-                float affection = relations != null ? relations.GetAffection(nEntity.info.entityId) + 1 : 1.0f;
+                float affection = relations != null ? relations.GetAffection(nEntity.info.rtEntityId) + 1 : 1.0f;
                 if (affection < 1) return; //meaning we are enemies with this boid (no follow)
 
                 float3 offset = math.normalizesafe(nBoidPos - boidPos);
@@ -190,25 +190,25 @@ namespace Arterra.Data.Entity.Behavior {
             settings.CalculateBoidDirection(self, genetics.Genes, relations);
             if (path.pathFinder.hasPath) {
                 Movement.FollowStaticPath(MMove.Profile(mmove, manager.TaskIndex, self.settings),
-                    ref path.pathFinder, ref self.collider,
+                    ref path.pathFinder, self.PathCollider,
                     MMove.Speed(mmove, manager.TaskIndex, genetics.Genes, movement.walkSpeed),
                     movement.rotSpeed, movement.acceleration,
-                    MMove.Allow3DRot(mmove, manager.TaskIndex)); 
+                    MMove.MovementType(mmove, manager.TaskIndex)); 
                 return;  
             }
             
             byte[] nPath = PathFinder.FindPathAlongRay(
-                self.GCoord, ref moveDirection, settings.PathDist,
+                self.PathCoord, ref moveDirection, settings.PathDist,
                 MMove.Profile(mmove, manager.TaskIndex, self.settings), 
                 EntityJob.cxt, out int pLen
             );
 
-            path.pathFinder = new PathFinder.PathInfo(self.GCoord, nPath, pLen);
+            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
 
             // Blend flocking influences with pathfinding direction
             float3 pathFindDir = math.normalizesafe(path.pathFinder.destination - self.origin);
             moveDirection = math.normalizesafe(pathFindDir + settings.DirectionBias);
-            if(!MMove.Allow3DRot(mmove, manager.TaskIndex))
+            if(MMove.MovementType(mmove, manager.TaskIndex) == Movement.FollowType.Planar)
                 moveDirection.y = 0;
 
             if (manager.TaskDuration <= 0) manager.Transition(settings.OnStopWalkTransition);

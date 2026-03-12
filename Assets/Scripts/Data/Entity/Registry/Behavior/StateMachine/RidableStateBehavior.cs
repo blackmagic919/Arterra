@@ -61,11 +61,11 @@ public class RidableStateBehavior : IBehavior {
 
         if (math.length(self.velocity.xz) < 1E-05f) return;
         float3 aim;
-        if (MMove.Allow3DRot(mmove, settings.TaskName))aim = math.normalize(self.velocity);
+        if (MMove.MovementType(mmove, settings.TaskName) != Movement.FollowType.Planar)
+            aim = math.normalize(self.velocity);
         else aim = math.normalize(new float3(self.velocity.x, 0, self.velocity.z));
         
-        self.collider.transform.rotation = Quaternion.RotateTowards(self.collider.transform.rotation,
-        Quaternion.LookRotation(aim), movement.rotSpeed * EntityJob.cxt.deltaTime);
+        self.Rotation = Quaternion.RotateTowards(self.Rotation, Quaternion.LookRotation(aim), movement.rotSpeed * EntityJob.cxt.deltaTime);
     }
 
     private bool TransitionTo() => ridable.RiderTarget != Guid.Empty;
@@ -74,7 +74,7 @@ public class RidableStateBehavior : IBehavior {
         if (relations != null
             && interactor != null
             && interactor is Entity rider
-            && relations.GetAffection(rider.info.entityId)
+            && relations.GetAffection(rider.info.rtEntityId)
             < genetics.Genes.Get(settings.AffinityThreshold)
         ) {
             valid.Value = false;

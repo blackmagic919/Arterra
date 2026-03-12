@@ -1089,99 +1089,99 @@ MonoBehaviour:
         movements:
           value:
           - state: 100
-            ProfileIndex: 1
-            allow3DRot: 1
+            movement: 2
+            ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 30300
-            ProfileIndex: 1
-            allow3DRot: 1
+            movement: 2
+            ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 300
-            ProfileIndex: 1
-            allow3DRot: 1
+            movement: 2
+            ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 40000
-            ProfileIndex: 1
-            allow3DRot: 1
+            movement: 2
+            ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 50100
-            ProfileIndex: 1
-            allow3DRot: 1
+            movement: 2
+            ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 400
-            ProfileIndex: 1
-            allow3DRot: 1
+            movement: 2
+            ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 30600
-            ProfileIndex: 1
-            allow3DRot: 1
+            movement: 2
+            ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 50000
-            ProfileIndex: 1
-            allow3DRot: 1
+            movement: 2
+            ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 30500
-            ProfileIndex: 1
-            allow3DRot: 1
+            movement: 1
+            ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 0
-            ProfileIndex: 1
-            allow3DRot: 1
+            movement: 1
+            ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 20100
+            movement: 2
             ProfileIndex: 0
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 20200
+            movement: 1
             ProfileIndex: 0
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 30200
+            movement: 2
             ProfileIndex: 0
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 30400
+            movement: 1
             ProfileIndex: 0
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
@@ -1193,11 +1193,6 @@ MonoBehaviour:
               y: 4
               z: 7
             offset: 0
-          - bounds:
-              x: 1
-              y: 1
-              z: 1
-            offset: 196
         customSpeeds:
           value:
           - mean: 3.75
@@ -1267,3 +1262,4 @@ MonoBehaviour:
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
+        UseGravity: 1

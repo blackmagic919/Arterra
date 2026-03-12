@@ -9,6 +9,12 @@ using System.Collections.Generic;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class Movement : IBehaviorSetting {
+
+        public enum FollowType {
+            Planar = 0,
+            Move3D = 1,
+            Full3D = 2,
+        }
         public Genetics.GeneFeature walkSpeed;
         public Genetics.GeneFeature runSpeed;
         public int pathDistance;//~31
@@ -54,8 +60,8 @@ namespace Arterra.Data.Entity.Behavior {
             return math.normalize(var);
         }
 
-        public static void FollowStaticPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, ref TerrainCollider tCollider, float moveSpeed,
-                            float rotSpeed, float acceleration, bool AllowVerticalRotation = false) {
+        public static void FollowStaticPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, TerrainCollider tCollider, float moveSpeed,
+                            float rotSpeed, float acceleration, FollowType movement = FollowType.Planar) {
             //Entity has fallen off path
             finder.stepDuration++;
             if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > profile.bounds)) finder.hasPath = false;
@@ -67,13 +73,19 @@ namespace Arterra.Data.Entity.Behavior {
             if (!PathFinder.VerifyProfile(nextPos, profile, EntityJob.cxt)) { finder.hasPath = false; }
 
             float3 aim = Normalize(nextPos - tCollider.transform.position);
-            Quaternion rot = tCollider.transform.rotation;
-            if (!AllowVerticalRotation) {
-                if (math.any(aim.xz != 0)) {
-                    aim = math.normalize(new float3(aim.x, 0, aim.z));
+            Quaternion rot;
+            switch(movement) {
+                case FollowType.Planar:
+                    aim = math.normalizesafe(new float3(aim.x, 0, aim.z));
                     rot = Quaternion.LookRotation(aim);
-                }
-            } else rot = Quaternion.LookRotation(aim);
+                    break;
+                case FollowType.Move3D:
+                    rot = Quaternion.LookRotation(new float3(aim.x, 0, aim.z));
+                    break;
+                default:
+                    rot = Quaternion.LookRotation(aim);
+                    break;
+            }
 
             tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, rotSpeed * EntityJob.cxt.deltaTime);
             if (math.length(tCollider.transform.velocity) < moveSpeed)
@@ -87,8 +99,8 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        public static void FollowDynamicPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, ref TerrainCollider tCollider, float3 target,
-                                float moveSpeed, float rotSpeed, float acceleration, bool AllowVerticalRotation = false) {
+        public static void FollowDynamicPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, TerrainCollider tCollider, float3 target,
+                                float moveSpeed, float rotSpeed, float acceleration, FollowType movement = FollowType.Planar) {
             finder.stepDuration++;
             if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > profile.bounds))
                 finder.hasPath = false;
@@ -103,13 +115,19 @@ namespace Arterra.Data.Entity.Behavior {
                 finder.hasPath = false;
 
             float3 aim = Normalize(nextPos - tCollider.transform.position);
-            Quaternion rot = tCollider.transform.rotation;
-            if (!AllowVerticalRotation) {
-                if (math.any(aim.xz != 0)) {
-                    aim = math.normalize(new float3(aim.x, 0, aim.z));
+            Quaternion rot;
+            switch(movement) {
+                case FollowType.Planar:
+                    aim = math.normalizesafe(new float3(aim.x, 0, aim.z));
                     rot = Quaternion.LookRotation(aim);
-                }
-            } else rot = Quaternion.LookRotation(aim);
+                    break;
+                case FollowType.Move3D:
+                    rot = Quaternion.LookRotation(new float3(aim.x, 0, aim.z));
+                    break;
+                default:
+                    rot = Quaternion.LookRotation(aim);
+                    break;
+            }
 
             tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, rotSpeed * EntityJob.cxt.deltaTime);
             if (math.length(tCollider.transform.velocity) < moveSpeed)
@@ -124,8 +142,8 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
 
-        public static void FollowStaticPath(List<PathFinder.MatProfileE> profile, uint3 bounds, ref PathFinder.PathInfo finder, ref TerrainCollider tCollider, float moveSpeed,
-                            float rotSpeed, float acceleration, bool AllowVerticalRotation = false) {
+        public static void FollowStaticPath(List<PathFinder.MatProfileE> profile, uint3 bounds, ref PathFinder.PathInfo finder, TerrainCollider tCollider, float moveSpeed,
+                            float rotSpeed, float acceleration, FollowType movement = FollowType.Planar) {
             //Entity has fallen off path
             finder.stepDuration++;
             if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > bounds)) finder.hasPath = false;
@@ -137,13 +155,19 @@ namespace Arterra.Data.Entity.Behavior {
             if (!PathFinder.VerifyMatProfile(nextPos, bounds, profile)) { finder.hasPath = false; }
 
             float3 aim = Normalize(nextPos - tCollider.transform.position);
-            Quaternion rot = tCollider.transform.rotation;
-            if (!AllowVerticalRotation) {
-                if (math.any(aim.xz != 0)) {
-                    aim = math.normalize(new float3(aim.x, 0, aim.z));
+            Quaternion rot;
+            switch(movement) {
+                case FollowType.Planar:
+                    aim = math.normalizesafe(new float3(aim.x, 0, aim.z));
                     rot = Quaternion.LookRotation(aim);
-                }
-            } else rot = Quaternion.LookRotation(aim);
+                    break;
+                case FollowType.Move3D:
+                    rot = Quaternion.LookRotation(new float3(aim.x, 0, aim.z));
+                    break;
+                default:
+                    rot = Quaternion.LookRotation(aim);
+                    break;
+            }
 
             tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, rotSpeed * EntityJob.cxt.deltaTime);
             if (math.length(tCollider.transform.velocity) < moveSpeed)

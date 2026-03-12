@@ -105,9 +105,11 @@ MonoBehaviour:
           y: 0.75
           z: 0.75
       Behaviors:
-        value: 00000000f103000003000000ea030000ed03000001000000e8030000e9030000eb030000ec03000010270000242700002e27000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef030000f0030000202700001b270000
+        value: 0500000000000000f103000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef030000f0030000202700001b270000
       Settings:
         value:
+        - value:
+            rid: 5205636866482634856
         - value:
             rid: 3097084119023353985
         - value:
@@ -190,14 +192,14 @@ MonoBehaviour:
           mean: 0.25
           var: 0.1
           geneWeight: 0.025
-        HoldBreathTime:
-          mean: 10
-          var: 0.5
-          geneWeight: 0.01
     - rid: 3097083922518114516
       type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
+        HoldBreathTime:
+          mean: 10
+          var: 0.3
+          geneWeight: 0.1
         UseFallDamage: 1
     - rid: 3097083922518114517
       type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -574,64 +576,64 @@ MonoBehaviour:
         movements:
           value:
           - state: 100
+            movement: 2
             ProfileIndex: 1
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 30300
+            movement: 2
             ProfileIndex: 1
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 300
+            movement: 2
             ProfileIndex: 1
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 40000
+            movement: 2
             ProfileIndex: 1
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 50100
+            movement: 2
             ProfileIndex: 1
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 400
+            movement: 2
             ProfileIndex: 1
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 30600
+            movement: 2
             ProfileIndex: 1
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 50000
+            movement: 2
             ProfileIndex: 1
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 30500
+            movement: 1
             ProfileIndex: 1
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
@@ -720,3 +722,8 @@ MonoBehaviour:
           value: b4c3000088770000f87500005c760000887700004c4f0000409c000064000000
         MaxSwarmSize: 8
         PathDist: 3
+    - rid: 5205636866482634856
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 1

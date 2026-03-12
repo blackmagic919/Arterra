@@ -38,6 +38,7 @@ namespace Arterra.Data.Entity.Behavior {
     public static class BehaviorTypes {
         public const int Base = 0;
         public const int Creature = 1000;
+        public const int Hostile = 5000;
         public const int StateMachine = 10000;
     }
 
@@ -60,6 +61,14 @@ namespace Arterra.Data.Entity.Behavior {
         DefendFriend = BehaviorTypes.Creature + 8,
         FlapWing = BehaviorTypes.Creature + 9,
 
+        ChaseEnemy = BehaviorTypes.Hostile + 0,
+        LeadHead = BehaviorTypes.Hostile + 1,
+        MultiAttack = BehaviorTypes.Hostile + 2,
+        ProjectileFire = BehaviorTypes.Hostile + 3,
+        MultiPedal = BehaviorTypes.Hostile + 4,
+        SnakeTail = BehaviorTypes.Hostile + 5,
+        Tentacles = BehaviorTypes.Hostile + 6,
+
         IdleState = BehaviorTypes.StateMachine + 0,
         RandomWalkState = BehaviorTypes.StateMachine + 10,
         BoidFollowState = BehaviorTypes.StateMachine + 11,
@@ -71,10 +80,12 @@ namespace Arterra.Data.Entity.Behavior {
         RidedState = BehaviorTypes.StateMachine + 35,
         ChasePlantState = BehaviorTypes.StateMachine + 40,
         ChasePreyState = BehaviorTypes.StateMachine + 50,
+        ChaseEnemyState = BehaviorTypes.StateMachine + 51,
         ConsumeMaterialState = BehaviorTypes.StateMachine + 60,
         ConsumeEntityState = BehaviorTypes.StateMachine + 70,
         AttackState = BehaviorTypes.StateMachine + 80,
         ChaseAttackerState = BehaviorTypes.StateMachine + 90,
+        StepBackFromEntity = BehaviorTypes.StateMachine + 95,
         RunFromPredator = BehaviorTypes.StateMachine + 100,
         RunFromAttacker = BehaviorTypes.StateMachine + 110,
         BurrowUnderground = BehaviorTypes.StateMachine + 114,
@@ -112,11 +123,20 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.DefendFriend, () => new DefendFriendBehavior()},
             { Behaviors.FlapWing, () => new FlapWingsBehavior()},
 
+            { Behaviors.ChaseEnemy, () => new ChaseEnemyBehavior()},
+            { Behaviors.LeadHead, () => new LeadHeadBehavior()},
+            { Behaviors.MultiAttack, () => new MultiAttackBehavior()},
+            { Behaviors.ProjectileFire, () => new ProjectileFireBehavior()},
+            { Behaviors.MultiPedal, () => new MultiPedalBehavior()},
+            { Behaviors.SnakeTail, () => new SnakeTailBehavior()},
+            { Behaviors.Tentacles, () => new TentacleBehavior()},
+
             { Behaviors.IdleState, () => new IdleStateBehavior()},
             { Behaviors.RandomWalkState, () => new RandomWalkBehavior()},
             { Behaviors.RandomFlyBehavior, () => new RandomFlyBehavior()},
             { Behaviors.BoidFollowState, () => new BoidFollowBehavior()},
             { Behaviors.ChaseFriendsState, () => new ChaseFriendsBehavior()},
+            { Behaviors.ChaseEnemyState, () => new ChaseEnemyBehavior()},
             { Behaviors.LandOnGround, () => new LandOnGroundBehavior()},
             { Behaviors.SwimToSurface, () => new SwimToSurfaceBehavior()},
             { Behaviors.ChaseMateState, () => new ChaseMateBehavior()},
@@ -127,6 +147,7 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.ConsumeEntityState, () => new ConsumeEntityBehavior()},
             { Behaviors.AttackState, () => new AttackTargetBehavior()},
             { Behaviors.ChaseAttackerState, () => new ChaseAttackerBehavior()},
+            { Behaviors.StepBackFromEntity, () => new StepBackBehavior()},
             { Behaviors.RunFromPredator, () => new RunFromPredatorBehavior()},
             { Behaviors.RunFromAttacker, () => new RunFromAttackerBehavior()},
             { Behaviors.BurrowUnderground, () => new BurrowInGroundBehavior()},
@@ -255,17 +276,32 @@ namespace Arterra.Data.Entity.Behavior {
         public class Animal : Entity{
             [JsonIgnore] public AnimalSetting settings;
             [JsonIgnore] public Dictionary <Type, object> DynamicTypes;
-            [JsonIgnore] public int3 GCoord => (int3)math.floor(origin);
             [JsonIgnore] public AnimalController controller;
             public Unity.Mathematics.Random random;
             public List<IBehavior> Behaviors;
-            public TerrainCollider collider;
 
-            [JsonIgnore] public override ref TerrainCollider.Transform transform => ref collider.transform; 
+            private IMultiCollider colliderInfo;
+            [JsonIgnore] public TerrainCollider Collider => colliderInfo.Collider;
+            [JsonIgnore] public TerrainCollider PathCollider => colliderInfo.PathCollider;
+            [JsonIgnore] public Quaternion Rotation {
+                get => colliderInfo.Rotation;
+                set => colliderInfo.Rotation = value;
+            }
+
+            [JsonIgnore] public override ref TerrainCollider.Transform transform => ref Collider.transform; 
+            [JsonIgnore] public int3 PathCoord => (int3)math.floor(PathCollider.transform.position);
 
 
-            public void Register<TInterface>(TInterface instance) => DynamicTypes.TryAdd(typeof(TInterface), instance);
-            public void Register(Type type, IBehavior instance) => DynamicTypes.TryAdd(type, instance);
+            public void Register<TInterface>(TInterface instance) {
+                if (typeof(TInterface) == typeof(IMultiCollider))
+                    colliderInfo = instance as IMultiCollider;
+                DynamicTypes.TryAdd(typeof(TInterface), instance);
+            }
+            public void Register(Type type, IBehavior instance) {
+                if (type == typeof(IMultiCollider))
+                    colliderInfo = instance as IMultiCollider;
+                DynamicTypes.TryAdd(type, instance);
+            }
             
             public override bool Is<TInstance>(out TInstance instance) {
                 if (DynamicTypes == null) {instance = default; return false;}
@@ -276,7 +312,6 @@ namespace Arterra.Data.Entity.Behavior {
 
             public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
                 settings = (AnimalSetting)setting;
-                collider = new TerrainCollider(settings.collider, GCoord);
                 this.random = new Unity.Mathematics.Random((uint)GetHashCode());
                 this.controller = new AnimalController(Controller, this);
                 
@@ -295,13 +330,14 @@ namespace Arterra.Data.Entity.Behavior {
                 }
                 //Clear constructor
                 this.Constructor = null;
+                controller.Initialize(transform);
             }
 
             public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
                 settings = (AnimalSetting)setting;
                 DynamicTypes = new Dictionary<Type, object>();
                 this.controller = new AnimalController(Controller, this);
-                GCoord = this.GCoord;
+                GCoord = default;
 
                 foreach(IBehavior behavior in Behaviors) {
                     Register(behavior.GetType(), behavior);
@@ -310,6 +346,8 @@ namespace Arterra.Data.Entity.Behavior {
                 foreach(IBehavior behavior in Behaviors) {
                     behavior.Deserialize(this, settings, ref GCoord);
                 }
+
+                controller.Initialize(transform);
             }
 
             public override void Update() {
@@ -345,8 +383,13 @@ namespace Arterra.Data.Entity.Behavior {
                 this.gameObject = GameObject.Instantiate(GameObject);
                 this.transform = gameObject.transform;
                 this.active = true;
+            }
 
-                transform.position = CPUMapManager.GSToWS(entity.position);
+            public void Initialize(TerrainCollider.Transform transform) {
+                this.transform.SetPositionAndRotation(
+                    CPUMapManager.GSToWS(entity.position),
+                    entity.transform.rotation
+                );
             }
 
             public void Update() {
@@ -354,7 +397,7 @@ namespace Arterra.Data.Entity.Behavior {
                 if (!entity.active) return;
                 if (gameObject == null) return;
 
-                this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), entity.collider.transform.rotation);
+                this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), entity.transform.rotation);
                 foreach(IBehavior behavior in entity.Behaviors) {
                     behavior.UpdateController(entity, this);
                 }
