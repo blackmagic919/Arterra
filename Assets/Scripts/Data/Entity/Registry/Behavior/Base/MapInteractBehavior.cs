@@ -107,6 +107,7 @@ namespace Arterra.Data.Entity.Behavior {
             breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
             if (self.Is(out IAttackable target) && target.IsDead) { //If dead float to the surface
                 tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
+                
                 return; //don't process suffocation
             }
 

@@ -33,6 +33,8 @@ MonoBehaviour:
         - Minnow
         - Limestone
         - LeviathanEel
+        - Seabass
+        - Jellyfish
       GroundMaterials:
         value:
         - value:
@@ -99,6 +101,12 @@ MonoBehaviour:
             ChancePerCoord: 0.0000004
         - value:
             Entity: 9
+            ChancePerCoord: 0.0000075
+        - value:
+            Entity: 14
+            ChancePerCoord: 0.0000025
+        - value:
+            Entity: 13
             ChancePerCoord: 0.00001
         - value:
             Entity: 10

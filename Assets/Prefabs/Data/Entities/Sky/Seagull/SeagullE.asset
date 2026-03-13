@@ -360,6 +360,7 @@ MonoBehaviour:
         Prey:
           value:
           - EntityType: Cod
+          - EntityType: Seabass
           - EntityType: Crab
           - EntityType: Minnow
     - rid: 3097083922518114528

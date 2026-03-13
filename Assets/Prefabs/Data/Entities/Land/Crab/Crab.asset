@@ -605,22 +605,22 @@ MonoBehaviour:
         movements:
           value:
           - state: 50500
+            movement: 2
             ProfileIndex: 1
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 50600
+            movement: 2
             ProfileIndex: 1
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1
               value: 0
           - state: 50750
+            movement: 1
             ProfileIndex: 2
-            allow3DRot: 1
             useGravity: 0
             CustomSpeed:
               enabled: 1

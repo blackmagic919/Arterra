@@ -624,7 +624,7 @@ MonoBehaviour:
           y: 3
           z: 6
       Behaviors:
-        value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f003000083270000212700001a270000
+        value: 050000000000000003000000ea030000ed030000e803000001000000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f003000083270000212700001a270000
       Settings:
         value:
         - value:
@@ -636,9 +636,9 @@ MonoBehaviour:
         - value:
             rid: 3097084037468258398
         - value:
-            rid: 3097083922518114516
-        - value:
             rid: 3097083922518114517
+        - value:
+            rid: 3097083922518114516
         - value:
             rid: 3097083922518114518
         - value:
@@ -1073,13 +1073,13 @@ MonoBehaviour:
       type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         walkSpeed:
-          mean: 1.2
+          mean: 2
           var: 0.25
           geneWeight: 0.2
         runSpeed:
-          mean: 2
+          mean: 2.5
           var: 0.35
-          geneWeight: 0.3
+          geneWeight: 0
         pathDistance: 32
         acceleration: 200
         rotSpeed: 180
@@ -1093,7 +1093,7 @@ MonoBehaviour:
             ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
-              enabled: 1
+              enabled: 0
               value: 0
           - state: 30300
             movement: 2
@@ -1107,7 +1107,7 @@ MonoBehaviour:
             ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
-              enabled: 1
+              enabled: 0
               value: 0
           - state: 40000
             movement: 2
@@ -1128,7 +1128,7 @@ MonoBehaviour:
             ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
-              enabled: 1
+              enabled: 0
               value: 0
           - state: 30600
             movement: 2
@@ -1156,35 +1156,35 @@ MonoBehaviour:
             ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
-              enabled: 1
+              enabled: 0
               value: 0
           - state: 20100
             movement: 2
             ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
-              enabled: 1
+              enabled: 0
               value: 0
           - state: 20200
             movement: 1
             ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
-              enabled: 1
+              enabled: 0
               value: 0
           - state: 30200
             movement: 2
             ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
-              enabled: 1
+              enabled: 0
               value: 0
           - state: 30400
             movement: 1
             ProfileIndex: 0
             useGravity: 0
             CustomSpeed:
-              enabled: 1
+              enabled: 0
               value: 0
         profiles:
           value:
