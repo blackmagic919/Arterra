@@ -25,22 +25,19 @@ float3 GetSocketBasePosition(uint3 size, float2 uv, uint baseFace) {
     return float3(uv.x, uv.y, align) * (float3)size;
 }
 
-uint GetObjectFaceFromBaseFace(uint baseFace, uint rotMeta)
-{
+uint GetObjectFaceFromBaseFace(uint baseFace, uint rotMeta) {
     uint3 rot = GetRot(rotMeta);
     float3x3 rotMatrix = RotationLookupTable[rot.y][rot.x][rot.z];
     return DirToFaceIdx(mul(rotMatrix, FaceIdxToDir(baseFace)));
 }
 
-uint GetBaseFaceFromObjectFace(uint objectFace, uint rotMeta)
-{
+uint GetBaseFaceFromObjectFace(uint objectFace, uint rotMeta) {
     uint3 rot = GetRot(rotMeta);
     float3x3 rotMatrix = RotationLookupTable[rot.y][rot.x][rot.z];
     return DirToFaceIdx(mul(transpose(rotMatrix), FaceIdxToDir(objectFace)));
 }
 
-uint GetRotatedPortMask(uint basePorts, uint rotMeta)
-{
+uint GetRotatedPortMask(uint basePorts, uint rotMeta) {
     uint rotatedMask = 0u;
     [unroll]
     for (uint baseFace = 0u; baseFace < 6u; baseFace++) {
@@ -51,24 +48,20 @@ uint GetRotatedPortMask(uint basePorts, uint rotMeta)
     return rotatedMask;
 }
 
-uint GetBasePortIndex(uint sysStructIndex, uint baseFace)
-{
+uint GetBasePortIndex(uint sysStructIndex, uint baseFace) {
     return sysStructIndex * 6u + baseFace;
 }
 
-uint GetSocketAtlasIndex(uint portIndex, int socketSystemId, uint inputFace)
-{
+uint GetSocketAtlasIndex(uint portIndex, int socketSystemId, uint inputFace) {
     uint sysStructIndex = portIndex / 6u;
     return _SystemStructures[sysStructIndex].socketAtlasStart + (uint)socketSystemId * 6u + inputFace;
 }
 
-uint GetPortBaseFace(uint portIndex)
-{
+uint GetPortBaseFace(uint portIndex) {
     return portIndex % 6u;
 }
 
-int3 GetSocketOffset(uint sysStructIndex, uint rotMeta, uint objectFace)
-{
+int3 GetSocketOffset(uint sysStructIndex, uint rotMeta, uint objectFace) {
     SystemStructure systemStructure = _SystemStructures[sysStructIndex];
     settings structureSettings = _StructureSettings[systemStructure.structureIndex];
     uint baseFace = GetBaseFaceFromObjectFace(objectFace, rotMeta);
@@ -88,8 +81,7 @@ int3 GetSocketObjectPosition(int3 origin, uint sysStructIndex, uint rotMeta, uin
     return origin + GetSocketOffset(sysStructIndex, rotMeta, objectFace);
 }
 
-uint GetSocketFaceAtWorldPos(int3 socketWorldPos, int3 originWorld, uint sysStructIndex, uint rotMeta)
-{
+uint GetSocketFaceAtWorldPos(int3 socketWorldPos, int3 originWorld, uint sysStructIndex, uint rotMeta) {
     [unroll]
     for (uint face = 0u; face < 6u; face++) {
         if (all(GetSocketObjectPosition(originWorld, sysStructIndex, rotMeta, face) == socketWorldPos))
@@ -100,8 +92,7 @@ uint GetSocketFaceAtWorldPos(int3 socketWorldPos, int3 originWorld, uint sysStru
 }
 
 
-bool CanConnectPorts(uint currentPortIndex, uint currentObjectFace, uint nextPortIndex, uint nextObjectFace)
-{
+bool CanConnectPorts(uint currentPortIndex, uint currentObjectFace, uint nextPortIndex, uint nextObjectFace) {
     if (nextObjectFace != (currentObjectFace + 3u) % 6u)
         return false;
 
@@ -125,15 +116,13 @@ bool CanConnectPorts(uint currentPortIndex, uint currentObjectFace, uint nextPor
 }
 
 
-bool InsideBatch(int3 coord, uint axis)
-{
+bool InsideBatch(int3 coord, uint axis) {
     int3 extent = int3((int)axis, (int)axis, (int)axis);
     return !any(coord < 0) && !any(coord >= extent);
 }
 
 
-uint PathIndexFromCoordAxis(int3 coord, uint axis)
-{
+uint PathIndexFromCoordAxis(int3 coord, uint axis) {
     uint safeAxis = max(axis, 1u);
     int maxCoord = (int)safeAxis - 1;
     int3 clamped = clamp(coord, int3(0, 0, 0), int3(maxCoord, maxCoord, maxCoord));

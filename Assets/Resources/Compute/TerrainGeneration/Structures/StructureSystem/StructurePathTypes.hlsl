@@ -1,8 +1,8 @@
 #ifndef STRUCTURE_PATH_TYPES
 #define STRUCTURE_PATH_TYPES
 
-const static uint MAX_TRANSITIONS_PER_NODE = 24u;
-static const uint MAX_BATCH_STEPS = 8u;//
+const static uint MAX_TRANSITIONS_PER_NODE = 12u;
+static const uint MAX_BATCH_STEPS = 6u;//
 static const uint INVALID_VISITED = 0u;
 static const uint FRONTIER_COORD_MASK = 0x1FFFFFFFu;
 static const uint INVALID_PATH = 0xFFFFFFFFu;
@@ -19,7 +19,7 @@ static const uint STRUCT_INFO_PARENT_DEPTH_MASK = 0x3Fu;
 static const uint INVALID_OWNER_ID = 0xFFFFFFu;
 static const int3 NO_ENDS_COORD = int3(-32768, -32768, -32768);
 int numVoxelsPerChunk;
-int oCellOffset;//
+int oCellOffset;
 int batchSize;
 
 struct pathEnds {

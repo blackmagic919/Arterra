@@ -60,13 +60,7 @@ MonoBehaviour:
       Entities:
         value: []
       StructureSystems:
-        value:
-        - value:
-            StructureSystem: 4
-            genSize: 0.244
-            genShape: 0.63
-            frequency: 1
-            height: 0
+        value: []
   BiomeConditions:
     value:
       CaveFreqStart: 0

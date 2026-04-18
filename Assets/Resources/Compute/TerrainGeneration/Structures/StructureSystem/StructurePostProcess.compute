@@ -231,7 +231,9 @@ void CalculateMinDepths(uint3 id : SV_DispatchThreadID)
             uint2 otherInfo = otherEntry.info;
             uint otherDepth = StructInfoDepth(otherInfo);
             bool otherIsCap = StructInfoIsCap(otherInfo);
-            if (otherDepth == 0u)
+            // Depth-0 structures are fixed anchors/mainline roots. Caps still need to lose against them,
+            // otherwise cap pieces can survive while intersecting these root structures. 
+            if (otherDepth == 0u && !isCap)
                 continue;
 
             int3 otherMin;

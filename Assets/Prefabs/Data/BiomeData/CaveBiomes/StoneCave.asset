@@ -33,6 +33,8 @@ MonoBehaviour:
         - Beetle
         - CopperOre
         - SpiderMutant
+        - 
+        - Labyrinth
       GroundMaterials:
         value:
         - value:
@@ -109,6 +111,14 @@ MonoBehaviour:
         - value:
             Entity: 12
             ChancePerCoord: 0.000025
+      StructureSystems:
+        value:
+        - value:
+            StructureSystem: 14
+            genSize: 0.243
+            genShape: 0.597
+            frequency: 0.417
+            height: 0.725
   BiomeConditions:
     value:
       CaveFreqStart: 0

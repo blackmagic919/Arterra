@@ -9,7 +9,7 @@
 
 const static int numThreads2 = 16;
 const static int numThreads3 = 64;
-const static uint MAX_CAP_LENGTH = 6u;
+const static uint MAX_CAP_LENGTH = 12u;
 
 RWStructuredBuffer<PathNode> batchVisit;
 StructuredBuffer<pathEnds> endPoints;

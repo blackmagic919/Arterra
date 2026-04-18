@@ -27,7 +27,7 @@ MonoBehaviour:
   Names:
     value:
     - Air
-    - Stone
+    - StoneBrick
   map:
     value:
     - data: 5397
@@ -52,27 +52,27 @@ MonoBehaviour:
     - data: 31611
     - data: 108969
     - data: 117707
-    - data: 50629
-    - data: 49087
-    - data: 33153
+    - data: 116165
+    - data: 114623
+    - data: 98689
     - data: 14906
     - data: 0
     - data: 5397
     - data: 31611
-    - data: 43433
-    - data: 51914
-    - data: 50629
-    - data: 49087
-    - data: 33153
+    - data: 108969
+    - data: 117450
+    - data: 116165
+    - data: 114623
+    - data: 98689
     - data: 14906
     - data: 0
     - data: 5397
     - data: 31611
-    - data: 43433
-    - data: 51914
-    - data: 49858
-    - data: 49087
-    - data: 33153
+    - data: 108969
+    - data: 117450
+    - data: 115394
+    - data: 114623
+    - data: 98689
     - data: 14906
     - data: 0
     - data: 5397

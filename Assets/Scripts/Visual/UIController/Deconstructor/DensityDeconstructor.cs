@@ -23,7 +23,6 @@ namespace Arterra.Editor {
         public string loadPath;
         public float3 SDFoffset;
 
-        GridManager.SelectionArray SelectedArray;
         Queue<uint> Selected;
         GridManager gridManager;
         ModelManager modelManager;
@@ -31,12 +30,87 @@ namespace Arterra.Editor {
         private bool showGrid = false;
         private bool showModel = false;
 
-        private StructureData.PointInfo curData;
-        private StructureData.PointInfo prevData;
+        private bool isBoxSelecting = false;
+        private Vector2 boxSelectStart;
+        private Vector2 boxSelectCurrent;
+        private bool boxSelectShift;
+        private const float BOX_SELECT_CLICK_THRESHOLD = 4.0f;
+        private const int HISTORY_CAPACITY = 2;
+
+        private struct EditorState {
+            public uint3 GridSize;
+            public GridManager.SelectionArray SelectedArray;
+            public List<StructureData.PointInfo> MapData;
+            public StructureData.PointInfo CurData;
+            public StructureData.PointInfo PrevData;
+
+            public EditorState Clone() {
+                return new EditorState {
+                    GridSize = GridSize,
+                    SelectedArray = SelectedArray.Clone(),
+                    MapData = MapData == null ? null : MapData.ToList(),
+                    CurData = CurData,
+                    PrevData = PrevData
+                };
+            }
+        }
+
+        private sealed class UndoRedoHistory {
+            private readonly int capacity;
+            private readonly List<EditorState> undoHistory = new List<EditorState>();
+            private readonly List<EditorState> redoHistory = new List<EditorState>();
+
+            public UndoRedoHistory(int capacity) {
+                this.capacity = math.max(capacity, 1);
+            }
+
+            private void Trim(List<EditorState> history) {
+                while (history.Count > capacity) history.RemoveAt(0);
+            }
+
+            public void Clear() {
+                undoHistory.Clear();
+                redoHistory.Clear();
+            }
+
+            public void Push(EditorState state) {
+                undoHistory.Add(state);
+                Trim(undoHistory);
+                redoHistory.Clear();
+            }
+
+            public bool TryUndo(EditorState currentState, out EditorState targetState) {
+                targetState = default;
+                if (undoHistory.Count == 0) return false;
+
+                targetState = undoHistory[undoHistory.Count - 1];
+                undoHistory.RemoveAt(undoHistory.Count - 1);
+                redoHistory.Add(currentState);
+                Trim(redoHistory);
+                return true;
+            }
+
+            public bool TryRedo(EditorState currentState, out EditorState targetState) {
+                targetState = default;
+                if (redoHistory.Count == 0) return false;
+
+                targetState = redoHistory[redoHistory.Count - 1];
+                redoHistory.RemoveAt(redoHistory.Count - 1);
+                undoHistory.Add(currentState);
+                Trim(undoHistory);
+                return true;
+            }
+        }
+
+        private readonly UndoRedoHistory undoRedoHistory = new UndoRedoHistory(HISTORY_CAPACITY);
+        private EditorState currentState;
+
+        private StructureData.PointInfo curData { get { return currentState.CurData; } set { currentState.CurData = value; } }
+        private StructureData.PointInfo prevData { get { return currentState.PrevData; } set { currentState.PrevData = value; } }
 
         //Don't ask me why the conversion is like this..
         private Vector2 _MousePos { get { return new Vector2(Event.current.mousePosition.x * 2, Camera.current.scaledPixelHeight - Event.current.mousePosition.y * 2); } }
-        private uint3 GridSize { get { return Structure.settings.value.GridSize; } }
+        private uint3 GridSize { get { return currentState.GridSize; } }
         readonly int3[] adjDelta = new int3[6] {
         new int3(-1, 0, 0),
         new int3(1, 0, 0),
@@ -54,28 +128,44 @@ namespace Arterra.Editor {
             SceneView.duringSceneGui -= OnSceneGUI;
             Release();
         }
-        public void Release() {
+
+        private void ReleaseRuntime(bool clearHistory) {
             if (!initialized) return;
             initialized = false;
 
-            SerializeMaterials();
             gridManager.Release();
             modelManager.Release();
-            Selected.Clear();
+            Selected?.Clear();
+            if (clearHistory) undoRedoHistory.Clear();
         }
 
-        private void InitializeGrid() {
+        public void Release() {
+            ReleaseRuntime(true);
+        }
+
+        private void InitializeGrid(bool reloadFromStructure = true) {
+            if (reloadFromStructure || currentState.MapData == null) {
+                if (Config.CURRENT == null) World.Activate();
+                IRegister.Setup(Config.CURRENT); //Initialize Register LUTS
+                SystemProtocol.MinimalStartup(); // Initialize Material Information
+                Structure.Initialize();
+                DeserializeMaterials();
+
+                currentState = new EditorState {
+                    GridSize = Structure.settings.value.GridSize,
+                    MapData = Structure.map.value.ToList(),
+                    CurData = default,
+                    PrevData = default,
+                    SelectedArray = default
+                };
+            }
+
             if (GridSize.x == 0 || GridSize.y == 0 || GridSize.z == 0)
                 throw new Exception("Grid size cannot be zero");
-            if (initialized) Release();
-            if (Config.CURRENT == null) World.Activate();
-            IRegister.Setup(Config.CURRENT); //Initialize Register LUTS
-            SystemProtocol.MinimalStartup(); // Initialize Material Information
-            Structure.Initialize();
-            DeserializeMaterials();
+            if (initialized) ReleaseRuntime(false);
 
             int numPoints = (int)(GridSize.x * GridSize.y * GridSize.z);
-            SelectedArray = new GridManager.SelectionArray(numPoints);
+            currentState.SelectedArray = new GridManager.SelectionArray(numPoints);
             Selected = new Queue<uint>();
 
             gridManager = new GridManager(GridSize, this.gameObject.transform, UtilityBuffers.GenerationBuffer, numPoints, 0);
@@ -88,45 +178,58 @@ namespace Arterra.Editor {
         }
 
         public void SaveData() {
+            if (currentState.MapData != null) {
+                Structure.map.value = currentState.MapData.ToList();
+                Structure.settings.value.GridSize = currentState.GridSize;
+            }
+
             SerializeMaterials();
             EditorUtility.SetDirty(Structure);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+
+            // Exit edit mode after save so the serialized local material indices
+            // are not accidentally edited as if they were global registry indices.
+            Release();
         }
 
         public void LoadData() {
-            InitializeGrid();
+            InitializeGrid(true);
             //Immediately Render Model
             this.UpdateMapData();
             this.modelManager.GenerateModel();
         }
 
         public void ResizeStructure() {
+            InitializeGrid(true);
+
             int3 offset = (int3)math.floor(SDFoffset);
             int3 nGridSize = math.max((int3)GridSize + offset, int3.zero);
             StructureData.PointInfo[] NewStructure = CustomUtility.RescaleLinearMap(
-                Structure.map.value.ToArray(),
+                currentState.MapData.ToArray(),
                 (int3)GridSize,
                 offset, 0
             );
 
-            Structure.map.value = NewStructure.ToList();
-            Structure.settings.value.GridSize = (uint3)nGridSize;
-            InitializeGrid();
+            currentState.MapData = NewStructure.ToList();
+            currentState.GridSize = (uint3)nGridSize;
+            InitializeGrid(false);
             this.UpdateMapData();
             this.modelManager.GenerateModel();
         }
 
         public void ShiftStructure() {
+            InitializeGrid(true);
+
             int3 offset = (int3)math.floor(SDFoffset);
             StructureData.PointInfo[] NewStructure = CustomUtility.RescaleLinearMap(
-                Structure.map.value.ToArray(),
+                currentState.MapData.ToArray(),
                 (int3)GridSize,
                 0, offset
             );
 
-            Structure.map.value = NewStructure.ToList();
-            InitializeGrid();
+            currentState.MapData = NewStructure.ToList();
+            InitializeGrid(false);
             this.UpdateMapData();
             this.modelManager.GenerateModel();
         }
@@ -134,7 +237,7 @@ namespace Arterra.Editor {
         public void ConvertMesh() {
             Mesh mesh = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + loadPath + ".fbx").GetComponent<MeshFilter>().sharedMesh;
             if (mesh == null) throw new Exception("Mesh not found");
-            InitializeGrid();
+            InitializeGrid(true);
 
             GetDataFromMesh(mesh);
             this.UpdateMapData();
@@ -142,15 +245,16 @@ namespace Arterra.Editor {
         }
 
         public void LoadChunk() {
-            InitializeGrid();
+            InitializeGrid(true);
             MapData[] map = Chunk.ReadChunkBin(loadPath, 0, out _);
             if (map == null) return;
 
             Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
-            Structure.map = CustomUtility.RescaleLinearMap(map, rSettings.mapChunkSize, 2, 1)
+            currentState.MapData = CustomUtility.RescaleLinearMap(map, rSettings.mapChunkSize, 2, 1)
                 .Select(s => new StructureData.PointInfo { data = s.data, preserve = false }).ToList();
-            Structure.settings.value.GridSize = new uint3((uint)rSettings.mapChunkSize,
+            currentState.GridSize = new uint3((uint)rSettings.mapChunkSize,
                 (uint)rSettings.mapChunkSize, (uint)rSettings.mapChunkSize) + 2;
+            InitializeGrid(false);
             this.UpdateMapData();
             this.modelManager.GenerateModel();
         }
@@ -166,7 +270,10 @@ namespace Arterra.Editor {
             if (showModel) this.modelManager.Render();
         }
 
-        public void UpdateMapData() { UtilityBuffers.TransferBuffer.SetData(Structure.map.value.ToArray()); }
+        public void UpdateMapData() {
+            if (currentState.MapData == null) return;
+            UtilityBuffers.TransferBuffer.SetData(currentState.MapData.ToArray());
+        }
         public void OnSceneGUI(SceneView sceneView) {
             if (!initialized) return;
 
@@ -178,16 +285,20 @@ namespace Arterra.Editor {
                 GUILayout.Label("MapData", headerStyle);
                 GUILayout.BeginHorizontal();
                 var reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-                string currentMaterial = reg.RetrieveName(curData.material);
-                GUILayout.Label("Material"); currentMaterial = EditorGUILayout.TextArea(currentMaterial, GUILayout.Width(100));
-                if (reg.Contains(currentMaterial)) curData.material = reg.RetrieveIndex(currentMaterial);
+                StructureData.PointInfo uiData = curData;
+                GUILayout.Label("Material");
+                DrawMaterialDropdown(reg, uiData.material, GUILayout.Width(100));
                 GUILayout.EndHorizontal(); GUILayout.BeginHorizontal();
-                GUILayout.Label("Density"); curData.density = (int)(GUILayout.HorizontalSlider(curData.density / 255.0f, 0.0f, 1.0f, GUILayout.Width(100)) * 255);
+                GUILayout.Label("Density"); uiData.density = (int)(GUILayout.HorizontalSlider(uiData.density / 255.0f, 0.0f, 1.0f, GUILayout.Width(100)) * 255);
                 GUILayout.EndHorizontal(); GUILayout.BeginHorizontal();
-                GUILayout.Label("Viscosity"); curData.viscosity = (int)(GUILayout.HorizontalSlider(curData.viscosity / 255.0f, 0.0f, 1.0f, GUILayout.Width(100)) * 255);
+                GUILayout.Label("Viscosity"); uiData.viscosity = (int)(GUILayout.HorizontalSlider(uiData.viscosity / 255.0f, 0.0f, 1.0f, GUILayout.Width(100)) * 255);
                 GUILayout.EndHorizontal(); GUILayout.BeginHorizontal();
-                GUILayout.Label("Preserve Viscosity"); curData.preserve = GUILayout.Toggle(curData.preserve, "");
+                GUILayout.Label("Preserve Viscosity"); uiData.preserve = GUILayout.Toggle(uiData.preserve, "");
                 GUILayout.EndHorizontal();
+
+                // Keep any material chosen in popup while applying slider/toggle edits.
+                uiData.material = curData.material;
+                curData = uiData;
             }
             GUILayout.Label("Editor Settings", headerStyle);
             showGrid = GUILayout.Button("Toggle Grid") ? !showGrid : showGrid;
@@ -195,13 +306,48 @@ namespace Arterra.Editor {
 
             GUILayout.EndArea();
 
-            if (!GUIBox.Contains(_MousePos)) HandleInputs();
+            if (isBoxSelecting || !GUIBox.Contains(_MousePos)) HandleInputs(sceneView);
+            if (isBoxSelecting) DrawSelectionRect();
             if (Selected.Count > 0) { HandleMapChange(); }
+        }
+
+        private void DrawMaterialDropdown(IRegister registry, int currentMaterialIndex, params GUILayoutOption[] layoutOptions) {
+            string currentMaterial = (currentMaterialIndex >= 0 && currentMaterialIndex < registry.Count())
+                ? registry.RetrieveName(currentMaterialIndex)
+                : "";
+
+            int selectedIndex = 0;
+            if (!string.IsNullOrEmpty(currentMaterial) && registry.Contains(currentMaterial))
+                selectedIndex = registry.RetrieveIndex(currentMaterial) + 1;
+
+            string buttonText = string.IsNullOrEmpty(currentMaterial) ? "[Select]" : currentMaterial;
+            if (!GUILayout.Button(buttonText, EditorStyles.popup, layoutOptions))
+                return;
+
+            List<string> options = new List<string>() { "" };
+            for (int i = 0; i < registry.Count(); i++) {
+                options.Add(registry.RetrieveName(i));
+            }
+
+            SearchablePopup popup = new SearchablePopup(
+                options,
+                selectedIndex,
+                (i, val) => {
+                    if (string.IsNullOrEmpty(val) || !registry.Contains(val))
+                        return;
+
+                    StructureData.PointInfo data = curData;
+                    data.material = registry.RetrieveIndex(val);
+                    curData = data;
+                });
+
+            PopupWindow.Show(new Rect(Event.current.mousePosition.x, Event.current.mousePosition.y, 300, 0), popup);
         }
 
         private void HandleMapChange() {
 
             if (curData.data != prevData.data) {
+                PushUndoState();
                 int deltaDensity = curData.density - prevData.density;
                 int deltaViscosity = curData.viscosity - prevData.viscosity;
 
@@ -223,19 +369,165 @@ namespace Arterra.Editor {
             curData = data; prevData = data;
         }
 
-        void HandleInputs() {
-            if (Event.current.type == EventType.KeyDown && Event.current.command) {
-                if (Event.current.keyCode == KeyCode.I) InvertSelection();
-                if (Event.current.keyCode == KeyCode.N) SwapSelection();
-                if (Event.current.keyCode == KeyCode.D) SelectDensity();
-                if (Event.current.keyCode == KeyCode.M) SelectMaterial();
-                if (Event.current.keyCode == KeyCode.W) SelectWalkable();
-            } else if (Event.current.type == EventType.MouseDown && Event.current.button == 0) SelectPoint();
-            else return;
+        void HandleInputs(SceneView sceneView) {
+            bool selectionChanged = false;
+            Event currentEvent = Event.current;
 
-            Event.current.Use(); //Prevent propogation of default behavior
-            this.gridManager.SetSelectionData(ref SelectedArray);
+            if (currentEvent.type == EventType.KeyDown) {
+                if (currentEvent.command && currentEvent.keyCode == KeyCode.Z) {
+                    if (currentEvent.shift) Redo();
+                    else Undo();
+                } else if (currentEvent.keyCode == KeyCode.F) {
+                    FocusSelection(sceneView);
+                } else if (currentEvent.command) {
+                    PushUndoState();
+                    if (currentEvent.keyCode == KeyCode.I) InvertSelection();
+                    else if (currentEvent.keyCode == KeyCode.N) SwapSelection();
+                    else if (currentEvent.keyCode == KeyCode.D) SelectDensity();
+                    else if (currentEvent.keyCode == KeyCode.M) SelectMaterial();
+                    else if (currentEvent.keyCode == KeyCode.W) SelectWalkable();
+                    else return;
+                    selectionChanged = true;
+                } else return;
+            } else if (HandlePrimaryMouseInput(currentEvent, out bool mouseSelectionChanged)) {
+                selectionChanged = mouseSelectionChanged;
+            } else return;
+
+            currentEvent.Use(); //Prevent propogation of default behavior
+            if (selectionChanged) {
+                this.gridManager.SetSelectionData(ref currentState.SelectedArray);
+                FlushSelection();
+            }
+        }
+
+        private bool HandlePrimaryMouseInput(Event currentEvent, out bool selectionChanged) {
+            selectionChanged = false;
+            if (currentEvent.alt || currentEvent.button != 0) return false;
+
+            if (currentEvent.type == EventType.MouseDown) {
+                isBoxSelecting = true;
+                boxSelectStart = currentEvent.mousePosition;
+                boxSelectCurrent = boxSelectStart;
+                boxSelectShift = currentEvent.shift;
+                return true;
+            }
+
+            if (currentEvent.type == EventType.MouseDrag && isBoxSelecting) {
+                boxSelectCurrent = currentEvent.mousePosition;
+                return true;
+            }
+
+            if (currentEvent.type == EventType.MouseUp && isBoxSelecting) {
+                boxSelectCurrent = currentEvent.mousePosition;
+                PushUndoState();
+                if ((boxSelectCurrent - boxSelectStart).sqrMagnitude <= BOX_SELECT_CLICK_THRESHOLD * BOX_SELECT_CLICK_THRESHOLD)
+                    SelectPoint(boxSelectStart, boxSelectShift);
+                else SelectRect(NormalizeRect(boxSelectStart, boxSelectCurrent), boxSelectShift);
+
+                isBoxSelecting = false;
+                selectionChanged = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        private void ApplyState(EditorState state) {
+            if (state.SelectedArray.SelectionData == null || state.MapData == null) return;
+
+            bool gridChanged = math.any(currentState.GridSize != state.GridSize);
+            GridManager.SelectionArray selectionState = state.SelectedArray.Clone();
+
+            currentState = state.Clone();
+
+            if (gridChanged) {
+                InitializeGrid(false);
+            }
+
+            currentState.SelectedArray = selectionState;
+
+            this.UpdateMapData();
+            this.modelManager.GenerateModel();
+            this.gridManager.SetSelectionData(ref currentState.SelectedArray);
             FlushSelection();
+        }
+
+        private void PushUndoState() {
+            if (!initialized || currentState.MapData == null || currentState.SelectedArray.SelectionData == null) return;
+            undoRedoHistory.Push(currentState.Clone());
+        }
+
+        private bool Undo() {
+            if (!initialized) return false;
+
+            EditorState presentState = currentState.Clone();
+            if (!undoRedoHistory.TryUndo(presentState, out EditorState targetState)) return false;
+            ApplyState(targetState);
+            return true;
+        }
+
+        private bool Redo() {
+            if (!initialized) return false;
+
+            EditorState presentState = currentState.Clone();
+            if (!undoRedoHistory.TryRedo(presentState, out EditorState targetState)) return false;
+            ApplyState(targetState);
+            return true;
+        }
+
+        private void DrawSelectionRect() {
+            Rect dragRect = NormalizeRect(boxSelectStart, boxSelectCurrent);
+            Handles.BeginGUI();
+            EditorGUI.DrawRect(dragRect, new Color(0.2f, 0.55f, 1.0f, 0.15f));
+            Handles.color = new Color(0.2f, 0.55f, 1.0f, 0.9f);
+            Handles.DrawAAPolyLine(2.0f,
+                new Vector3(dragRect.xMin, dragRect.yMin),
+                new Vector3(dragRect.xMax, dragRect.yMin),
+                new Vector3(dragRect.xMax, dragRect.yMax),
+                new Vector3(dragRect.xMin, dragRect.yMax),
+                new Vector3(dragRect.xMin, dragRect.yMin));
+            Handles.EndGUI();
+        }
+
+        private static Rect NormalizeRect(Vector2 from, Vector2 to) {
+            float xMin = Mathf.Min(from.x, to.x);
+            float xMax = Mathf.Max(from.x, to.x);
+            float yMin = Mathf.Min(from.y, to.y);
+            float yMax = Mathf.Max(from.y, to.y);
+            return Rect.MinMaxRect(xMin, yMin, xMax, yMax);
+        }
+
+        bool FocusSelection(SceneView sceneView) {
+            if (sceneView == null || Selected == null || Selected.Count == 0) return false;
+
+            Vector3 min = default;
+            Vector3 max = default;
+            bool hasPoint = false;
+            for (int i = 0, count = Selected.Count; i < count; i++) {
+                uint index = Selected.Dequeue();
+                int3 coord = new int3((int)(index / (GridSize.y * GridSize.z)), (int)((index / GridSize.z) % GridSize.y), (int)(index % GridSize.z));
+                Vector3 worldPoint = this.transform.localToWorldMatrix.MultiplyPoint3x4(new Vector3(coord.x, coord.y, coord.z));
+
+                if (!hasPoint) {
+                    min = worldPoint;
+                    max = worldPoint;
+                    hasPoint = true;
+                } else {
+                    min = Vector3.Min(min, worldPoint);
+                    max = Vector3.Max(max, worldPoint);
+                }
+
+                Selected.Enqueue(index);
+            }
+
+            if (!hasPoint) return false;
+
+            Bounds focusBounds = new Bounds((min + max) * 0.5f, max - min);
+            if (focusBounds.size.sqrMagnitude < 0.0001f) focusBounds.Expand(1.0f);
+            else focusBounds.Expand(0.5f);
+
+            sceneView.Frame(focusBounds, false);
+            return true;
         }
 
         bool RayIntersectsSphere(Ray ray, Vector3 sphereCenter, float sphereRadius) {
@@ -249,31 +541,68 @@ namespace Arterra.Editor {
             return discriminant >= 0;
         }
 
-        private void SelectPoint() {
-            Ray SelectionWS = Camera.current.ScreenPointToRay(_MousePos);
-            if (!Event.current.shift) ReleaseSelection();
+        private Vector2 SceneGUIToCameraPixel(Vector2 mousePos) {
+            return new Vector2(mousePos.x * 2, Camera.current.scaledPixelHeight - mousePos.y * 2);
+        }
+
+        private void SelectPoint(Vector2 mousePos, bool shiftSelect) {
+            Camera sceneCamera = Camera.current;
+            if (sceneCamera == null) return;
+
+            Ray SelectionWS = sceneCamera.ScreenPointToRay(SceneGUIToCameraPixel(mousePos));
+            if (!shiftSelect) ReleaseSelection();
 
             Ray SelectionOS = new Ray(this.transform.worldToLocalMatrix.MultiplyPoint3x4(SelectionWS.origin),
                                         this.transform.TransformDirection(SelectionWS.direction));
 
+            int closestIndex = -1;
+            float minDepth = float.PositiveInfinity;
             int3 point;
             for (point.x = 0; point.x < GridSize.x; point.x++) {
-                for (point.y = 0; point.y < GridSize.y; point.y++) {
-                    for (point.z = 0; point.z < GridSize.z; point.z++) {
-                        if (RayIntersectsSphere(SelectionOS, new Vector3(point.x, point.y, point.z), 0.05f)) {
-                            int index = CustomUtility.irregularIndexFromCoord(point, new int2(GridSize.yz));
-                            SelectedArray[index] = Event.current.shift ? !SelectedArray[index] : true;
-                            SetDisplayMapData(Structure.map.value[index]);
-                        }
-                    }
+            for (point.y = 0; point.y < GridSize.y; point.y++) {
+            for (point.z = 0; point.z < GridSize.z; point.z++) {
+                if (RayIntersectsSphere(SelectionOS, new Vector3(point.x, point.y, point.z), 0.05f)) {
+                    int index = CustomUtility.irregularIndexFromCoord(point, new int2(GridSize.yz));
+                    Vector3 worldPoint = this.transform.localToWorldMatrix.MultiplyPoint3x4(new Vector3(point.x, point.y, point.z));
+                    float depth = Vector3.Dot(sceneCamera.transform.forward, worldPoint - sceneCamera.transform.position);
+                    if (depth < 0.0f) continue;
+                    if (depth >= minDepth) continue;
+                    minDepth = depth;
+                    closestIndex = index;
                 }
-            }
+            }}}
+
+            if (closestIndex < 0) return;
+            currentState.SelectedArray[closestIndex] = shiftSelect ? !currentState.SelectedArray[closestIndex] : true;
+            SetDisplayMapData(currentState.MapData[closestIndex]);
+        }
+
+        private void SelectRect(Rect selectionRect, bool shiftSelect) {
+            if (!shiftSelect) ReleaseSelection();
+
+            bool hasSelection = false;
+            int lastIndex = -1;
+            int3 point;
+            for (point.x = 0; point.x < GridSize.x; point.x++) {
+            for (point.y = 0; point.y < GridSize.y; point.y++) {
+            for (point.z = 0; point.z < GridSize.z; point.z++) {
+                Vector3 worldPoint = this.transform.localToWorldMatrix.MultiplyPoint3x4(new Vector3(point.x, point.y, point.z));
+                Vector2 guiPoint = HandleUtility.WorldToGUIPoint(worldPoint);
+                if (!selectionRect.Contains(guiPoint)) continue;
+
+                int index = CustomUtility.irregularIndexFromCoord(point, new int2(GridSize.yz));
+                currentState.SelectedArray[index] = shiftSelect ? !currentState.SelectedArray[index] : true;
+                hasSelection = true;
+                lastIndex = index;
+            }}}
+
+            if (hasSelection && lastIndex >= 0) SetDisplayMapData(currentState.MapData[lastIndex]);
         }
 
         private void FlushSelection() {
             Selected.Clear();
-            for (uint i = 0; i < Structure.map.value.Count; i++) {
-                if (SelectedArray[(int)i]) Selected.Enqueue(i);
+            for (uint i = 0; i < currentState.MapData.Count; i++) {
+                if (currentState.SelectedArray[(int)i]) Selected.Enqueue(i);
             }
         }
 
@@ -283,8 +612,8 @@ namespace Arterra.Editor {
         }
 
         private void InvertSelection() {
-            for (int i = 0; i < Structure.map.value.Count; i++)
-                SelectedArray[i] = !SelectedArray[i];
+            for (int i = 0; i < currentState.MapData.Count; i++)
+                currentState.SelectedArray[i] = !currentState.SelectedArray[i];
         }
 
         private void SwapSelection() {
@@ -295,24 +624,24 @@ namespace Arterra.Editor {
                 for (int i = 0; i < 6; i++) {
                     int newInd = (int)ind + CustomUtility.irregularIndexFromCoord(adjDelta[i], new int2(GridSize.yz));
                     if (newInd >= numPoints || newInd < 0) return;
-                    SelectedArray[newInd] = Structure.map.value[newInd].material != Structure.map.value[(int)ind].material;
+                    currentState.SelectedArray[newInd] = currentState.MapData[newInd].material != currentState.MapData[(int)ind].material;
                 }
             });
         }
 
         private void SelectDensity() {
             FloodFill((ind) => {
-                if ((Structure.map.value[ind].density < IsoLevel * 255) != (curData.density < IsoLevel * 255)) return false;
-                if (SelectedArray[ind]) return false;
-                SelectedArray[ind] = true;
+                if ((currentState.MapData[ind].density < IsoLevel * 255) != (curData.density < IsoLevel * 255)) return false;
+                if (currentState.SelectedArray[ind]) return false;
+                currentState.SelectedArray[ind] = true;
                 return true;
             });
         }
         private void SelectMaterial() {
             FloodFill((ind) => {
-                if (Structure.map.value[ind].material != curData.material) return false;
-                if (SelectedArray[ind]) return false;
-                SelectedArray[ind] = true;
+                if (currentState.MapData[ind].material != curData.material) return false;
+                if (currentState.SelectedArray[ind]) return false;
+                currentState.SelectedArray[ind] = true;
                 return true;
             });
         }
@@ -322,7 +651,7 @@ namespace Arterra.Editor {
                 bool allC = true; bool anyC = false; bool any0 = false;
                 uint3 dC = new(0);
                 Arterra.Data.Entity.EntitySetting.ProfileInfo p = info.Setting.profile;
-                int3 gridSize = (int3)Structure.settings.value.GridSize;
+                int3 gridSize = (int3)GridSize;
                 for (dC.x = 0; dC.x < p.bounds.x; dC.x++) {
                     for (dC.y = 0; dC.y < p.bounds.y; dC.y++) {
                         for (dC.z = 0; dC.z < p.bounds.z; dC.z++) {
@@ -331,7 +660,7 @@ namespace Arterra.Editor {
                             if (math.any(BaseCoord + (int3)dC >= gridSize)) return false;
                             int3 rCoord = BaseCoord + (int3)dC;
                             int rIndex = rCoord.x * gridSize.y * gridSize.z + rCoord.y * gridSize.z + rCoord.z;
-                            bool valid = profile.bounds.Contains(new MapData { data = Structure.map.value[rIndex].data });
+                            bool valid = profile.bounds.Contains(new MapData { data = currentState.MapData[rIndex].data });
                             allC = allC && (valid || !profile.AndFlag);
                             anyC = anyC || (valid && profile.OrFlag);
                             any0 = any0 || profile.OrFlag;
@@ -343,18 +672,18 @@ namespace Arterra.Editor {
             }
             var info = Config.CURRENT.Generation.Entities.Retrieve("Player");
             if (info == null) return;
-            int3 gridSize = (int3)Structure.settings.value.GridSize;
+            int3 gridSize = (int3)GridSize;
             for (int ind = 0; ind < gridSize.x * gridSize.y * gridSize.z; ind++) {
                 int3 coord = new int3(ind / (gridSize.y * gridSize.z), (ind / gridSize.z) % gridSize.y, ind % gridSize.z);
                 if (!VerifyProfile(info, coord)) continue;
-                SelectedArray[ind] = true;
+                currentState.SelectedArray[ind] = true;
             }
         }
 
         void UpdateSelected(Func<StructureData.PointInfo, StructureData.PointInfo> action) {
             for (int i = 0, count = Selected.Count; i < count; i++) {
                 uint index = Selected.Dequeue();
-                Structure.map.value[(int)index] = action.Invoke(Structure.map.value[(int)index]);
+                currentState.MapData[(int)index] = action.Invoke(currentState.MapData[(int)index]);
                 Selected.Enqueue(index);
             }
         }
@@ -370,7 +699,7 @@ namespace Arterra.Editor {
         void UpdateSelectionState(Func<bool, bool> action) {
             for (int i = 0, count = Selected.Count; i < count; i++) {
                 uint index = Selected.Dequeue();
-                SelectedArray[(int)index] = action.Invoke(SelectedArray[(int)index]);
+                currentState.SelectedArray[(int)index] = action.Invoke(currentState.SelectedArray[(int)index]);
                 Selected.Enqueue(index);
             }
         }
@@ -473,314 +802,11 @@ namespace Arterra.Editor {
             threadsPerAxis.x = (uint)Mathf.CeilToInt((float)numPoints / threadsPerAxis.x);
             SDFConstructor.Dispatch(kernel, (int)threadsPerAxis.x, 1, 1);
 
-            StructureData.PointInfo[] newMap = Structure.map.value.ToArray();
+            StructureData.PointInfo[] newMap = currentState.MapData.ToArray();
             UtilityBuffers.TransferBuffer.GetData(newMap);
-            Structure.map.value = newMap.ToList();
+            currentState.MapData = newMap.ToList();
         }
 
 #endif
-    }
-
-    public class ModelManager {
-        private ComputeBuffer MapBuffer;
-        private ComputeBuffer GeoBuffer;
-        private ComputeShader ModelConstructor;
-        private ComputeShader IndexLinker;
-        private ComputeShader DrawArgsConstructor;
-        public Arterra.Engine.Terrain.Map.Generator.GeoGenOffsets offsets;
-        private uint3 GridSize;
-        private float IsoLevel;
-
-        private Transform transform;
-        private Material[] ModelMaterial =
-        new Material[2];
-        private Arterra.Engine.Terrain.Readback.GeometryHandle[] GeoHandles =
-        new Arterra.Engine.Terrain.Readback.GeometryHandle[2];
-
-        public const int VERTEX_STRIDE_WORD = 3 + 2;
-        public const int TRI_STRIDE_WORD = 3;
-
-        public ModelManager(uint3 GridSize, Transform transform, float IsoLevel, ComputeBuffer MapBuffer, ComputeBuffer GeoBuffer, int bufferStart) {
-            this.ModelConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/ModelConstructor");
-            this.IndexLinker = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/ModelIndexLinker");
-            this.DrawArgsConstructor = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
-            this.GeoBuffer = GeoBuffer;
-            this.MapBuffer = MapBuffer;
-            this.GridSize = GridSize;
-            this.IsoLevel = IsoLevel;
-            this.transform = transform;
-
-            this.offsets = new Arterra.Engine.Terrain.Map.Generator.GeoGenOffsets(new int3(GridSize), 0, bufferStart, VERTEX_STRIDE_WORD);
-            PresetData();
-        }
-
-        ~ModelManager() { Release(); }
-
-        public void Release() {
-            for (int i = 0; i < 2; i++) { GameObject.DestroyImmediate(ModelMaterial[i]); }
-            ReleaseHandles();
-        }
-
-        void ReleaseHandles() { for (int i = 0; i < 2; i++) { GeoHandles[i]?.Release(); } }
-
-        public void Render() { for (int i = 0; i < 2; i++) { GeoHandles[i]?.Update(); } }
-
-
-        public void GenerateModel(Camera camera = null) {
-            ConstructModel();
-            SetupRenderParams(camera);
-            Render(); //Render to apply immediately
-        }
-
-        void SetupRenderParams(Camera camera) {
-            /*For some Ridiculous reason, unity's Update Loop can run on different thread than OnSceneGUI, 
-                so releasing at the same time will cause errors in the way it's handled as it is trying to render
-                between updates
-            */
-
-            GeoHandles[0]?.Release();
-            GeoHandles[0] = SetupGeoHandle(camera, offsets.vertStart, offsets.baseTriStart, offsets.baseTriCounter, 0);
-            GeoHandles[1]?.Release();
-            GeoHandles[1] = SetupGeoHandle(camera, offsets.vertStart, offsets.waterTriStart, offsets.waterTriCounter, 1);
-        }
-
-        void ConstructModel() {
-            //Construct Vertices
-            UtilityBuffers.ClearRange(this.GeoBuffer, 3, offsets.bufferStart);
-            int kernel = ModelConstructor.FindKernel("March");
-
-            uint3 threadsPerAxis;
-            ModelConstructor.GetKernelThreadGroupSizes(kernel, out threadsPerAxis.x, out threadsPerAxis.y, out threadsPerAxis.z);
-            threadsPerAxis = new uint3(
-                (uint)Mathf.CeilToInt((float)GridSize.x / threadsPerAxis.x),
-                (uint)Mathf.CeilToInt((float)GridSize.y / threadsPerAxis.y),
-                (uint)Mathf.CeilToInt((float)GridSize.z / threadsPerAxis.z)
-            );
-
-            ModelConstructor.Dispatch(kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
-            LinkTriangles(offsets.baseTriStart, offsets.baseTriCounter);
-            LinkTriangles(offsets.waterTriStart, offsets.waterTriCounter);
-        }
-
-        void LinkTriangles(int start, int counter) {
-            int kernel = IndexLinker.FindKernel("CSMain");
-            ComputeBuffer args = UtilityBuffers.CountToArgs(IndexLinker, this.GeoBuffer, counter);
-            IndexLinker.SetInt("bCOUNT_Tri", counter);
-            IndexLinker.SetInt("bSTART_Tri", start);
-            IndexLinker.DispatchIndirect(kernel, args);
-        }
-
-        Arterra.Engine.Terrain.Readback.GeometryHandle SetupGeoHandle(Camera camera, int vertStart, int indexStart, int indexCounter, int matInd) {
-            uint drawArgs = UtilityBuffers.DrawArgs.Allocate();
-
-            int kernel = DrawArgsConstructor.FindKernel("CSMain");
-            DrawArgsConstructor.SetBuffer(kernel, "counter", this.GeoBuffer);
-            DrawArgsConstructor.SetInt("bCOUNTER", indexCounter);
-            DrawArgsConstructor.SetInt("argOffset", (int)drawArgs);
-            DrawArgsConstructor.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.DrawArgs.Get());
-            DrawArgsConstructor.Dispatch(kernel, 1, 1, 1);
-
-            Vector3 size = new Vector3(GridSize.x, GridSize.y, GridSize.z);
-            Bounds BoundsWS = CustomUtility.TransformBounds(transform, new Bounds(size / 2f, size));
-
-            RenderParams rp = new RenderParams(this.ModelMaterial[matInd]) {
-                worldBounds = BoundsWS,
-                shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off,
-                receiveShadows = false,
-                matProps = new MaterialPropertyBlock(),
-                camera = camera
-            };
-
-            rp.matProps.SetBuffer("Vertices", this.GeoBuffer);
-            rp.matProps.SetBuffer("Triangles", this.GeoBuffer);
-            rp.matProps.SetInt("triAddress", indexStart);
-            rp.matProps.SetInt("vertAddress", vertStart);
-            rp.matProps.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
-
-            return new Arterra.Engine.Terrain.Readback.GeometryHandle(rp, default, 0, drawArgs, matInd);
-        }
-
-        void PresetData() {
-            this.ModelMaterial[0] = new Material(Shader.Find("Unlit/ModelTerrain"));
-            this.ModelMaterial[1] = new Material(Shader.Find("Unlit/ModelLiquid"));
-
-            int kernel = ModelConstructor.FindKernel("March");
-            ModelConstructor.SetBuffer(kernel, "MapInfo", this.MapBuffer);
-            ModelConstructor.SetBuffer(kernel, "vertexes", this.GeoBuffer);
-            ModelConstructor.SetBuffer(kernel, "triangles", this.GeoBuffer);
-            ModelConstructor.SetBuffer(kernel, "triangleDict", this.GeoBuffer);
-            ModelConstructor.SetBuffer(kernel, "counter", this.GeoBuffer);
-
-            ModelConstructor.SetInts("counterInd", new int[] { offsets.vertexCounter, offsets.baseTriCounter, offsets.waterTriCounter });
-            ModelConstructor.SetInts("GridSize", new int[] { (int)GridSize.x, (int)GridSize.y, (int)GridSize.z });
-
-            ModelConstructor.SetInt("bSTART_dict", offsets.dictStart);
-            ModelConstructor.SetInt("bSTART_verts", offsets.vertStart);
-            ModelConstructor.SetInt("bSTART_baseT", offsets.baseTriStart);
-            ModelConstructor.SetInt("bSTART_waterT", offsets.waterTriStart);
-            ModelConstructor.SetFloat("IsoLevel", IsoLevel);
-
-            kernel = IndexLinker.FindKernel("CSMain");
-            IndexLinker.SetBuffer(kernel, "triDict", this.GeoBuffer);
-            IndexLinker.SetBuffer(kernel, "counter", this.GeoBuffer);
-            IndexLinker.SetBuffer(kernel, "BaseTriangles", this.GeoBuffer);
-            IndexLinker.SetInt("bSTART_Dict", offsets.dictStart);
-        }
-    }
-
-    public class GridManager {
-        public Material GridMaterial;
-        public GridOffsets offsets;
-        private Transform transform;
-        private ComputeBuffer GeoBuffer;
-        private ComputeBuffer SelectionBuffer;
-        private ComputeShader GridConstructor;
-        private Bounds boundsOS;
-        private RenderParams renderParams;
-        private uint3 GridSize;
-        private uint GridPlaneCount {
-            get {
-                return (uint)(GridSize.x * (GridSize.y - 1) * (GridSize.z - 1) +
-                            (GridSize.x - 1) * GridSize.y * (GridSize.z - 1) +
-                            (GridSize.x - 1) * (GridSize.y - 1) * GridSize.z);
-            }
-        }
-
-        public GridManager(uint3 GridSize, Transform transform, ComputeBuffer GeoBuffer, int bufferStart) {
-            this.GridMaterial = new Material(Shader.Find("Unlit/GridShader"));
-            this.GridConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/GridConstructor");
-            this.offsets = new GridOffsets(new int3(GridSize), bufferStart, 4, 3);
-            this.SelectionBuffer = null;
-            this.GeoBuffer = GeoBuffer;
-            this.GridSize = GridSize;
-            this.transform = transform;
-
-            Vector3 size = new Vector3(GridSize.x, GridSize.y, GridSize.z);
-            boundsOS = new Bounds(size / 2f, size);
-        }
-
-        public GridManager(uint3 GridSize, Transform transform, ComputeBuffer GeoBuffer, int selLen, int bufferStart) {
-            this.GridMaterial = new Material(Shader.Find("Unlit/GridShader"));
-            this.GridConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/GridConstructor");
-            this.offsets = new GridOffsets(new int3(GridSize), bufferStart, 4, 3);
-            this.SelectionBuffer = new ComputeBuffer(math.max(selLen, 1), sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
-            this.GeoBuffer = GeoBuffer;
-            this.GridSize = GridSize;
-            this.transform = transform;
-
-            Vector3 size = new Vector3(GridSize.x, GridSize.y, GridSize.z);
-            boundsOS = new Bounds(size / 2f, size);
-        }
-
-        public void GenerateModel(Camera camera = null) {
-            ConstructGridGeometry();
-            SetupRenderParams(camera, out renderParams, transform);
-            Render(); //Render to apply immediately
-        }
-
-        ~GridManager() { Release(); }
-        public void Release() {
-            GameObject.DestroyImmediate(GridMaterial);
-            this.SelectionBuffer?.Release();
-        }
-
-        public void SetSelectionData(ref SelectionArray SelectionArray) {
-            if (this.SelectionBuffer == null) return;
-            this.SelectionBuffer.SetData(SelectionArray.SelectionData);
-        }
-
-        public void Render() { Graphics.RenderPrimitives(renderParams, MeshTopology.Triangles, (int)GridPlaneCount * 4, 1); }
-
-        void SetupRenderParams(Camera camera, out RenderParams rp, Transform transform) {
-            Bounds BoundsWS = CustomUtility.TransformBounds(transform, boundsOS);
-            rp = new RenderParams(GridMaterial) {
-                worldBounds = BoundsWS,
-                shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off,
-                receiveShadows = false,
-                matProps = new MaterialPropertyBlock(),
-                camera = camera
-            };
-
-            rp.matProps.SetBuffer("VertexBuffer", GeoBuffer);
-            rp.matProps.SetBuffer("IndexBuffer", GeoBuffer);
-            rp.matProps.SetInt("bSTART_index", offsets.indexStart);
-            rp.matProps.SetInt("bSTART_vertex", offsets.vertexStart);
-            if (SelectionBuffer != null) {
-                rp.matProps.SetBuffer("SelectionBuffer", SelectionBuffer);
-                rp.matProps.SetInt("_NoSelection", 0);
-            } else rp.matProps.SetInt("_NoSelection", 1);
-            rp.matProps.SetInt("MapSizeX", (int)GridSize.x); rp.matProps.SetInt("MapSizeY", (int)GridSize.y); rp.matProps.SetInt("MapSizeZ", (int)GridSize.z);
-            rp.matProps.SetMatrix("_LocalToWorld", transform.localToWorldMatrix);
-        }
-
-        void ConstructGridGeometry() {
-            UtilityBuffers.ClearRange(GeoBuffer, 1, offsets.bufferStart);
-            int kernel = GridConstructor.FindKernel("CSMain");
-
-            GridConstructor.SetBuffer(kernel, "counter", GeoBuffer);
-            GridConstructor.SetBuffer(kernel, "VertexBuffer", GeoBuffer);
-            GridConstructor.SetBuffer(kernel, "IndexBuffer", GeoBuffer);
-            GridConstructor.SetInt("bCOUNTER_index", offsets.indexCounter);
-            GridConstructor.SetInt("bSTART_index", offsets.indexStart);
-            GridConstructor.SetInt("bSTART_vertex", offsets.vertexStart);
-
-            GridConstructor.SetInts("GridSize", new int[] { (int)GridSize.x, (int)GridSize.y, (int)GridSize.z });
-
-            uint3 threadsPerAxis;
-            GridConstructor.GetKernelThreadGroupSizes(kernel, out threadsPerAxis.x, out threadsPerAxis.y, out threadsPerAxis.z);
-            threadsPerAxis = new uint3(
-                (uint)Mathf.CeilToInt((float)GridSize.x / threadsPerAxis.x),
-                (uint)Mathf.CeilToInt((float)GridSize.y / threadsPerAxis.y),
-                (uint)Mathf.CeilToInt((float)GridSize.z / threadsPerAxis.z)
-            );
-
-            GridConstructor.Dispatch(kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
-        }
-
-        public struct SelectionArray {
-            public uint[] SelectionData;
-            public SelectionArray(int size) {
-                // Initialize the array with the required size
-                SelectionData = new uint[(size + 31) / 32];
-            }
-
-            public bool this[int index] {
-                get {
-                    if (index >= SelectionData.Length * 32) throw new ArgumentOutOfRangeException(nameof(index));
-                    return (SelectionData[index / 32] & (1 << (index % 32))) != 0;
-                }
-                set {
-                    if (index >= SelectionData.Length * 32) throw new ArgumentOutOfRangeException(nameof(index));
-                    if (value) SelectionData[index / 32] |= (uint)(1 << (index % 32));
-                    else SelectionData[index / 32] &= ~(uint)(1 << (index % 32));
-                }
-            }
-        }
-
-        public struct GridOffsets : BufferOffsets {
-            public int indexCounter;
-            public int indexStart;
-            public int vertexStart;
-            private int offsetStart; private int offsetEnd;
-            public int bufferStart { get { return offsetStart; } }
-            public int bufferEnd { get { return offsetEnd; } }
-            public GridOffsets(int3 GridSize, int bufferStart, int indexStride, int vertexStride) {
-                int numPoints = GridSize.x * GridSize.y * GridSize.z;
-                int GridPlaneCount = (GridSize.x * (GridSize.y - 1) * (GridSize.z - 1) +
-                        (GridSize.x - 1) * GridSize.y * (GridSize.z - 1) +
-                        (GridSize.x - 1) * (GridSize.y - 1) * GridSize.z);
-
-                this.offsetStart = bufferStart;
-                this.indexCounter = bufferStart;
-
-                this.indexStart = Mathf.CeilToInt((float)(indexCounter + 1) / indexStride);
-                int indexEnd = indexStart * indexStride + GridPlaneCount * indexStride;
-
-                this.vertexStart = Mathf.CeilToInt((float)indexEnd / vertexStride);
-                int vertexEnd = vertexStart * vertexStride + numPoints * vertexStride;
-
-                this.offsetEnd = vertexEnd;
-            }
-        }
     }
 }

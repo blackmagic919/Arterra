@@ -200,9 +200,11 @@ public static class Generator {
         PathBatchPlanner.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
         PathBatchPlanner.SetBuffer(kernel, "endPoints", UtilityBuffers.GenerationBuffer);
         PathBatchPlanner.SetBuffer(kernel, "pathPrefix", UtilityBuffers.GenerationBuffer);
+        PathBatchPlanner.SetBuffer(kernel, "pathMeet", UtilityBuffers.GenerationBuffer);
         PathBatchPlanner.SetInt("bCOUNT_paths", offsets.anchorPathCounter);
         PathBatchPlanner.SetInt("bSTART_endpts", offsets.pathEndsStart);
         PathBatchPlanner.SetInt("bSTART_pathPrefix", offsets.pathPrefixStart);
+        PathBatchPlanner.SetInt("bSTART_pathMeet", offsets.pathMeetStart);
 
         kernel = PathBatchPlanner.FindKernel("FinalizePathPlanner");
         PathBatchPlanner.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
@@ -503,9 +505,9 @@ public static class Generator {
             PathSetupRetriever.DispatchIndirect(kernel, UtilityBuffers.GenerationBuffer, backtrackArgsOffsetBytes);
         }
 
-        /*kernel = PathSetupRetriever.FindKernel("CapDanglingSockets");
+        kernel = PathSetupRetriever.FindKernel("CapDanglingSockets");
         ComputeBuffer capArgs = UtilityBuffers.CountToArgs(PathSetupRetriever, UtilityBuffers.GenerationBuffer, offsets.batchSocketCapCounter, kernel);
-        PathSetupRetriever.DispatchIndirect(kernel, capArgs);*/
+        PathSetupRetriever.DispatchIndirect(kernel, capArgs);
         //
         //LogAppendBufferRegionCounts("PopulatePathsWithStructures");
     }

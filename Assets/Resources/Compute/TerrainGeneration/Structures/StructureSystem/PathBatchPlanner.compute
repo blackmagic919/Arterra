@@ -17,6 +17,7 @@ uint bSTART_batchPrefix;
 uint bSTART_dispatchArgs;
 uint bSTART_batchRanges;
 uint bSTART_batchPathList;
+uint bSTART_pathMeet;
 uint bSTART_visited;
 
 uint maxBatchCount;
@@ -33,6 +34,7 @@ RWStructuredBuffer<uint2> batchPrefix;
 RWStructuredBuffer<uint2> batchRanges;
 RWStructuredBuffer<uint> dispatchArgs;
 RWStructuredBuffer<int> batchPathList;
+RWStructuredBuffer<uint2> pathMeet;
 RWStructuredBuffer<PathNode> batchVisit;
 
 struct IndirectDispatchArgs {
@@ -105,6 +107,7 @@ void CountPathSizes(uint3 id : SV_DispatchThreadID)
     if (pathId >= pathCount)
         return;
 
+    pathMeet[bSTART_pathMeet + pathId] = uint2(INVALID_PATH, INVALID_VISITED);
     pathEnds endpoints = endPoints[bSTART_endpts + pathId];
     uint requiredSize = ComputePathVisitedSize(endpoints);
     if (requiredSize == 0u || requiredSize > maxVisitedNodesPerBatch) {
