@@ -32,6 +32,7 @@ StructuredBuffer<uint3> pathPrefix;
 struct sysInfo {
     float edgeFrequency;
     float anchorDensity;
+    uint cullIsolatedAnchors;
     uint2 structures;
 };
 

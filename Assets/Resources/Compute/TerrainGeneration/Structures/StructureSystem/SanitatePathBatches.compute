@@ -1,6 +1,7 @@
 #pragma kernel SelectAnchorPieces
 #pragma kernel GetRealEndpoints
-#pragma kernel FilterPathBatches
+#pragma kernel CountAnchorConnections
+#pragma kernel FilterPathAnchors
 
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/Structures/StructureSystem/SolveAnchorRotation.hlsl"
@@ -13,6 +14,7 @@ const static int numThreads = 128;
 struct sysInfo {
     float edgeFrequency;
     float anchorDensity;
+    uint cullIsolatedAnchors;
     uint2 structures;
 };
 
@@ -80,39 +82,24 @@ void SelectAnchorPieces (uint3 id : SV_DispatchThreadID){
         }
     }
 
-    // Anchors are stored at bSTART_anchors in the shared generation buffer.
-    if (bestStructure == -1) {
+    // Structure placement is deferred until post-path filtering.
+    if (bestStructure == -1)
         anchors[index + bSTART_anchors].stct = -1;
-    } else {
+    else
         anchors[index + bSTART_anchors].stct = ConcatStct(bestRotation, bestStructure);
-        
-        //add strucutre to generation queue
-        structureData data;
-        data.structurePos = self.pos;
-        data.meta = PackStctMeta(_SystemStructures[bestStructure].structureIndex, bestRotation);
-        AppendStructureWithInfo(data, PackStructInfo(0u, false, INVALID_OWNER_ID, 0u));
-    }
 }
 
 
 uint bSTART_endpts;
 uint bSTART_paths;
 uint bCOUNT_paths;
+uint bSTART_pathMeet;
+uint bSTART_anchorConnections;
 
 RWStructuredBuffer<uint3> anchorPaths;
 RWStructuredBuffer<pathEnds> endPoints;
-
-bool IsNoEnds(pathEnds value) {
-    return all(value.start == NO_ENDS_COORD) && all(value.end == NO_ENDS_COORD);
-}
-
-bool IsPartialEnds(pathEnds value) {
-    return all(value.start == NO_ENDS_COORD) != all(value.end == NO_ENDS_COORD);
-}
-uint IsPartialStart(pathEnds value) { return all(value.start == NO_ENDS_COORD) ? 1 : 0; }
-int3 GetPartialEnd(pathEnds value) {
-    return IsPartialStart(value) ? value.end : value.start;
-}
+StructuredBuffer<uint2> pathMeet;
+RWStructuredBuffer<uint> anchorConnections;
 
 [numthreads(numThreads,1,1)]
 void GetRealEndpoints (uint3 id : SV_DispatchThreadID){
@@ -140,8 +127,6 @@ void GetRealEndpoints (uint3 id : SV_DispatchThreadID){
     endPoints[id.x + bSTART_endpts] = endPt;
 }
 
-int connectRadius;
-
 uint capCapacity;
 RWStructuredBuffer<uint3> SocketCaps; 
 uint bSTART_capCounts; 
@@ -158,36 +143,57 @@ bool EnqueueCapShared(uint3 capMeta)
     return true;
 }
 
-/* Classify each valid path into one containing batch and enqueue it for either
-mainline pathfinding or dangling-socket capping. */
+[numthreads(numThreads,1,1)]
+void CountAnchorConnections(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= counters[bCOUNT_paths])
+        return;
+
+    uint2 meetData = pathMeet[id.x + bSTART_pathMeet];
+    if (meetData.x == INVALID_PATH)
+        return;
+
+    uint3 path = anchorPaths[id.x + bSTART_paths];
+    uint2 dirs = GetFaceDirs(path.z);
+
+    InterlockedOr(anchorConnections[bSTART_anchorConnections + path.x], FaceBit(dirs.x));
+    InterlockedOr(anchorConnections[bSTART_anchorConnections + path.y], FaceBit(dirs.y));
+}
 
 [numthreads(numThreads,1,1)]
-void FilterPathBatches (uint3 id : SV_DispatchThreadID){
-    if (id.x >= counters[bCOUNT_paths]) return;
-
-    pathEnds ep = endPoints[id.x + bSTART_endpts];
-    if (IsNoEnds(ep)) return;
-
-    int3 minPt = min(ep.start, ep.end);
-    int3 maxPt = max(ep.start, ep.end);
-    if (IsPartialEnds(ep)) {
-        minPt = GetPartialEnd(ep);
-        maxPt = GetPartialEnd(ep);
-    }
-    minPt -= oCellOffset;
-    maxPt -= oCellOffset;
-
-    if (any(maxPt < -connectRadius) || any(minPt > (numVoxelsPerChunk + connectRadius)))
+void FilterPathAnchors(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= counters[bCOUNT_dict])
         return;
-    if (IsPartialEnds(ep)) {
-        uint3 path = anchorPaths[id.x + bSTART_paths];
-        uint2 dirs = GetFaceDirs(path.z);
-        int pInd = IsPartialStart(ep) ? path.y : path.x;
-        int dir = IsPartialStart(ep) ? dirs.y : dirs.x;
-        uint2 stct = UnpackStct(anchors[pInd + bSTART_anchors].stct);
-        uint portIndex = GetBasePortIndex(stct.y, GetBaseFaceFromObjectFace((uint)dir, stct.x));
 
-        uint3 capMeta = MakeSocketCapMeta(portIndex, GetPartialEnd(ep), (uint)dir, INVALID_OWNER_ID, 0u, false);
-        EnqueueCapShared(capMeta);
+    int anchorIndex = anchorDict[id.x + bSTART_dict];
+    anchor self = anchors[anchorIndex + bSTART_anchors];
+    if (self.system == -1 || self.stct == -1)
+        return;
+
+    uint2 stct = UnpackStct((uint)self.stct);
+    SystemStructure selected = _SystemStructures[stct.y];
+    uint rotatedPorts = GetRotatedPortMask(selected.basePorts, stct.x);
+
+    uint connectedMask = anchorConnections[bSTART_anchorConnections + anchorIndex] & SOCKET_USED_MASK;
+    uint connectedCount = countbits(rotatedPorts & connectedMask);
+    bool cullIsolated = _SystemInfo[self.system].cullIsolatedAnchors != 0u;
+    if (cullIsolated && connectedCount == 0u)
+        return;
+
+    structureData data;
+    data.structurePos = self.pos;
+    data.meta = PackStctMeta(selected.structureIndex, stct.x);
+    AppendStructureWithInfo(data, PackStructInfo(0u, false, INVALID_OWNER_ID, 0u));
+
+    uint danglingMask = rotatedPorts & ~connectedMask;
+    [unroll]
+    for (uint face = 0u; face < 6u; face++) {
+        if ((danglingMask & FaceBit(face)) == 0u)
+            continue;
+
+        uint portIndex = GetBasePortIndex(stct.y, GetBaseFaceFromObjectFace(face, stct.x));
+        int3 socketPos = GetSocketObjectPosition(self.pos, stct.y, stct.x, face);
+        EnqueueCapShared(MakeSocketCapMeta(portIndex, socketPos, face, INVALID_OWNER_ID, 0u, false));
     }
 }

@@ -396,6 +396,7 @@ public struct StructSystem {
             systems[i] = new StructSystemInfo {
                 edgeFrequency = system.edgeFrequency,
                 anchorDensity = system.anchorDensity,
+                cullIsolatedAnchors = system.cullIsolatedAnchors ? 1u : 0u,
                 structures = systemStructRange
             };
         }
@@ -636,11 +637,13 @@ public struct StructSystem {
     /// </summary>
     public struct StructSystemInfo {
         /// <summary>The GPU stride for <see cref="StructSystemInfo"/>.</summary>
-        public static int size => sizeof(float) * 2 + 2 * sizeof(uint);
+        public static int size => sizeof(float) * 2 + 3 * sizeof(uint);
         /// <summary>The probability weighting used when seeding edges from biomes.</summary>
         public float edgeFrequency;
         /// <summary>The probability of retaining a sampled anchor for this system.</summary>
         public float anchorDensity;
+        /// <summary>When true, anchors with no successful path connections are dropped.</summary>
+        public uint cullIsolatedAnchors;
         /// <summary>The range of system-structure entries belonging to this system.</summary>
         public uint2 structures;
     };

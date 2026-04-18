@@ -16,6 +16,7 @@ namespace Arterra.Data.Structure.Jigsaw {
         public Option<List<JigsawStructure>> Structures;
         public float edgeFrequency;
         public float anchorDensity = 1.0f;
+        public bool cullIsolatedAnchors = false;
 
         [Serializable]
         public struct JigsawStructure {

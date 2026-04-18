@@ -131,7 +131,6 @@ public static class Generator {
         SanitateBatches.SetBuffer(kernel, "anchorDict", UtilityBuffers.GenerationBuffer);
         SanitateBatches.SetBuffer(kernel, "socketUsage", UtilityBuffers.GenerationBuffer);
         SanitateBatches.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "genStructures", UtilityBuffers.GenerationBuffer);
         SanitateBatches.SetInt("bCOUNT_dict", offsets.anchorDictCounter);
         SanitateBatches.SetInt("bSTART_dict", offsets.anchorDictStart);
         SanitateBatches.SetInt("bSTART_anchors", offsets.anchorsStart);
@@ -139,9 +138,10 @@ public static class Generator {
         SanitateBatches.SetInt("bCOUNT_paths", offsets.anchorPathCounter);
         SanitateBatches.SetInt("bSTART_paths", offsets.anchorPathStart);
         SanitateBatches.SetInt("bSTART_endpts", offsets.pathEndsStart);
+        SanitateBatches.SetInt("bSTART_pathMeet", offsets.pathMeetStart);
+        SanitateBatches.SetInt("bSTART_anchorConnections", offsets.anchorConnectionStart);
         SanitateBatches.SetInt("bCOUNT_struct", offsets.intermediateStructCounter);
         SanitateBatches.SetInt("bSTART_struct", offsets.intermediateStructStart);
-        SanitateBatches.SetInt("connectRadius", jigsaw.MaxConnectionDist);
         Structure.Generator.SetStructIDSettings(SanitateBatches);
 
         kernel = SanitateBatches.FindKernel("GetRealEndpoints");
@@ -150,12 +150,19 @@ public static class Generator {
         SanitateBatches.SetBuffer(kernel, "anchorPaths", UtilityBuffers.GenerationBuffer);
         SanitateBatches.SetBuffer(kernel, "endPoints", UtilityBuffers.GenerationBuffer);
 
-        kernel = SanitateBatches.FindKernel("FilterPathBatches");
+        kernel = SanitateBatches.FindKernel("CountAnchorConnections");
         SanitateBatches.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "anchors", UtilityBuffers.GenerationBuffer);
         SanitateBatches.SetBuffer(kernel, "anchorPaths", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "endPoints", UtilityBuffers.GenerationBuffer);
+        SanitateBatches.SetBuffer(kernel, "pathMeet", UtilityBuffers.GenerationBuffer);
+        SanitateBatches.SetBuffer(kernel, "anchorConnections", UtilityBuffers.GenerationBuffer);
+
+        kernel = SanitateBatches.FindKernel("FilterPathAnchors");
+        SanitateBatches.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
+        SanitateBatches.SetBuffer(kernel, "anchorDict", UtilityBuffers.GenerationBuffer);
+        SanitateBatches.SetBuffer(kernel, "anchors", UtilityBuffers.GenerationBuffer);
         SanitateBatches.SetBuffer(kernel, "SocketCaps", UtilityBuffers.GenerationBuffer);
+        SanitateBatches.SetBuffer(kernel, "anchorConnections", UtilityBuffers.GenerationBuffer);
+        SanitateBatches.SetBuffer(kernel, "genStructures", UtilityBuffers.GenerationBuffer);
         SanitateBatches.SetInt("oCellOffset", originOffset);
         SanitateBatches.SetInt("capCapacity", capSectionCapacity);
         SanitateBatches.SetInt("bSTART_capCounts", offsets.batchSocketCapCounter);
@@ -401,21 +408,12 @@ public static class Generator {
 
     public static void SanitateComputeBatches(int chunkSize, int depth, int3 CCoord) {
         UtilityBuffers.SetSampleData(SanitateBatches, (float3)(CCoord * chunkSize), 1);
-        chunkSize *= 1 << depth;
-        chunkSize += jigsaw.MaxConnectionDist * 4;
 
         int kernel = SanitateBatches.FindKernel("SelectAnchorPieces");
         ComputeBuffer args = UtilityBuffers.CountToArgs(SanitateBatches, UtilityBuffers.GenerationBuffer, offsets.anchorDictCounter, kernel);
         SanitateBatches.DispatchIndirect(kernel, args);
 
         kernel = SanitateBatches.FindKernel("GetRealEndpoints");
-        args = UtilityBuffers.CountToArgs(SanitateBatches, UtilityBuffers.GenerationBuffer, offsets.anchorPathCounter, kernel);
-        SanitateBatches.DispatchIndirect(kernel, args);
-
-        SanitateBatches.SetInt("numPointsPerAxis", 1);
-        SanitateBatches.SetInt("numVoxelsPerChunk", chunkSize);
-
-        kernel = SanitateBatches.FindKernel("FilterPathBatches");
         args = UtilityBuffers.CountToArgs(SanitateBatches, UtilityBuffers.GenerationBuffer, offsets.anchorPathCounter, kernel);
         SanitateBatches.DispatchIndirect(kernel, args);
     }
@@ -505,9 +503,21 @@ public static class Generator {
             PathSetupRetriever.DispatchIndirect(kernel, UtilityBuffers.GenerationBuffer, backtrackArgsOffsetBytes);
         }
 
-        kernel = PathSetupRetriever.FindKernel("CapDanglingSockets");
+        UtilityBuffers.SetSampleData(SanitateBatches, (float3)(CCoord * chunkSize), 1);
+        SanitateBatches.SetInt("numPointsPerAxis", 1);
+        SanitateBatches.SetInt("numVoxelsPerChunk", worldChunkSize);
+
+        kernel = SanitateBatches.FindKernel("CountAnchorConnections");
+        ComputeBuffer args = UtilityBuffers.CountToArgs(SanitateBatches, UtilityBuffers.GenerationBuffer, offsets.anchorPathCounter, kernel);
+        SanitateBatches.DispatchIndirect(kernel, args);
+
+        kernel = SanitateBatches.FindKernel("FilterPathAnchors");
+        args = UtilityBuffers.CountToArgs(SanitateBatches, UtilityBuffers.GenerationBuffer, offsets.anchorDictCounter, kernel);
+        SanitateBatches.DispatchIndirect(kernel, args);
+
+        /*kernel = PathSetupRetriever.FindKernel("CapDanglingSockets");
         ComputeBuffer capArgs = UtilityBuffers.CountToArgs(PathSetupRetriever, UtilityBuffers.GenerationBuffer, offsets.batchSocketCapCounter, kernel);
-        PathSetupRetriever.DispatchIndirect(kernel, capArgs);
+        PathSetupRetriever.DispatchIndirect(kernel, capArgs);*/
         //
         //LogAppendBufferRegionCounts("PopulatePathsWithStructures");
     }
@@ -569,6 +579,7 @@ public static class Generator {
         public int anchorPathStart;
         public int pathEndsStart;
         public int pathMeetStart;
+        public int anchorConnectionStart;
         public int batchPathStart;
         public int batchSocketCapStart;
         public int batchVistStart;
@@ -598,6 +609,7 @@ public static class Generator {
         const int ANCHOR_PATH_WORD = 3;
         const int PATH_ENDS_WORD = 6;
         const int PATH_MEET_WORD = 2;
+        const int ANCHOR_CONNECTION_WORD = 1;
         const int PATH_INDEX_WORD = 1;
         const int STRUCT_SOCKET_WORD = 3;
         const int VISITED_NODE_WORD = 2;
@@ -679,8 +691,11 @@ public static class Generator {
             batchSocketCapCounter = finalStructsCounter + 1;
             binListCounter = batchSocketCapCounter + 1;
             int counterEnd = binListCounter + 1;
+
+            anchorConnectionStart = Mathf.CeilToInt((float)counterEnd / ANCHOR_CONNECTION_WORD);
+            int AnchorConnectionEndInd_W = (anchorConnectionStart + maxCellsPerChunk) * ANCHOR_CONNECTION_WORD;
             
-            batchPrefixStart = Mathf.CeilToInt((float)counterEnd / BATCH_PREFIX_WORD);
+            batchPrefixStart = Mathf.CeilToInt((float)AnchorConnectionEndInd_W / BATCH_PREFIX_WORD);
             int BatchPrefixEndInd_W = (batchPrefixStart + maxBatchesPerChunk) * BATCH_PREFIX_WORD;
 
             batchDispatchArgsStart = BatchPrefixEndInd_W;
@@ -756,6 +771,7 @@ public static class Generator {
 
             string[] regionNames = new string[] {
                 "Counters",
+                "AnchorConnections",
                 "Anchors",
                 "AnchorDict",
                 "SocketUsage",
@@ -780,6 +796,7 @@ public static class Generator {
 
             int[] regionWordCounts = new int[] {
                 counterEnd - anchorDictCounter,
+                maxCellsPerChunk * ANCHOR_CONNECTION_WORD,
                 maxCellsPerChunk * ANCHOR_STRIDE_WORD,
                 maxCellsPerChunk * ANCHOR_DICT_WORD,
                 maxCellsPerChunk * SOCKET_USAGE_WORD,

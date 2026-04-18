@@ -112,13 +112,7 @@ MonoBehaviour:
             Entity: 12
             ChancePerCoord: 0.000025
       StructureSystems:
-        value:
-        - value:
-            StructureSystem: 14
-            genSize: 0.243
-            genShape: 0.597
-            frequency: 0.417
-            height: 0.725
+        value: []
   BiomeConditions:
     value:
       CaveFreqStart: 0

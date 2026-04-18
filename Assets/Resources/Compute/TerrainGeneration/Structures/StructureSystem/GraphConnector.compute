@@ -17,6 +17,7 @@ struct anchor {
 struct sysInfo {
     float edgeFrequency;
     float anchorDensity;
+    uint cullIsolatedAnchors;
     uint2 structures;
 };
 
@@ -98,9 +99,7 @@ void SetSocketConnections (uint3 id : SV_DispatchThreadID){
         uint seed = Random(wCoordNeighbor) ^ Random(wCoordSelf);
         if (RandomFloat(seed) > system.edgeFrequency) continue;
         TrySetSocketConnection(rtInd, index, self.pos, neighbor.pos);
-    }
-    }
-    }
+    }}}
 }
 
 [numthreads(numThreads,1,1)]

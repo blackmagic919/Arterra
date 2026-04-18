@@ -309,6 +309,7 @@ MonoBehaviour:
               chance: 1
   edgeFrequency: 1
   anchorDensity: 1
+  cullIsolatedAnchors: 1
   references:
     version: 2
     RefIds: []
