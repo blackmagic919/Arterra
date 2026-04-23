@@ -158,8 +158,9 @@ namespace Arterra.Configuration.Quality{
         public override ComputeBuffer Storage => curAlloc._Storage;
 
         public override bool GetBlockBufferSafe(int index, out ComputeBuffer buffer) {
-            index = addressBuffers[index]; buffer = null;
+            buffer = null;
             if (!initialized) return false;
+            index = addressBuffers[index]; 
             if (index < 0 || index >= MemoryBlocks.Count)
                 return false;
             buffer = MemoryBlocks[(int)index]._Storage;

@@ -72,7 +72,7 @@ namespace Arterra.Data.Entity.Behavior {
             int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
             if (!PathFinder.VerifyProfile(nextPos, profile, EntityJob.cxt)) { finder.hasPath = false; }
 
-            float3 aim = Normalize(nextPos - tCollider.transform.position);
+            float3 aim = Normalize(nextPos - (float3)tCollider.transform.position);
             Quaternion rot;
             switch(movement) {
                 case FollowType.Planar:
@@ -91,8 +91,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (math.length(tCollider.transform.velocity) < moveSpeed)
                 tCollider.transform.velocity += acceleration * EntityJob.cxt.deltaTime * aim;
 
-            int3 GCoord = (int3)math.floor(tCollider.transform.position);
-            if (math.all(math.abs(GCoord - nextPos) <= 1)) {
+            if (math.all(math.abs(tCollider.transform.position - nextPos) <= 1)) {
                 finder.currentPos = nextPos;
                 finder.stepDuration = 0;
                 finder.currentInd++;
@@ -114,7 +113,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (math.distance(tCollider.transform.position, target) < math.distance(finder.destination, target))
                 finder.hasPath = false;
 
-            float3 aim = Normalize(nextPos - tCollider.transform.position);
+            float3 aim = Normalize(nextPos - (float3)tCollider.transform.position);
             Quaternion rot;
             switch(movement) {
                 case FollowType.Planar:
@@ -133,8 +132,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (math.length(tCollider.transform.velocity) < moveSpeed)
                 tCollider.transform.velocity += acceleration * EntityJob.cxt.deltaTime * aim;
 
-            int3 GCoord = (int3)math.floor(tCollider.transform.position);
-            if (math.all(math.abs(GCoord - nextPos) <= 1)) {
+            if (math.all(math.abs(tCollider.transform.position - nextPos) <= 1)) {
                 finder.currentPos = nextPos;
                 finder.stepDuration = 0;
                 finder.currentInd++;
@@ -154,7 +152,7 @@ namespace Arterra.Data.Entity.Behavior {
             int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
             if (!PathFinder.VerifyMatProfile(nextPos, bounds, profile)) { finder.hasPath = false; }
 
-            float3 aim = Normalize(nextPos - tCollider.transform.position);
+            float3 aim = Normalize(nextPos - (float3)tCollider.transform.position);
             Quaternion rot;
             switch(movement) {
                 case FollowType.Planar:
@@ -173,8 +171,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (math.length(tCollider.transform.velocity) < moveSpeed)
                 tCollider.transform.velocity += acceleration * EntityJob.cxt.deltaTime * aim;
 
-            int3 GCoord = (int3)math.floor(tCollider.transform.position);
-            if (math.all(math.abs(GCoord - nextPos) <= 1)) {
+            if (math.all(math.abs(tCollider.transform.position - nextPos) <= 1)) {
                 finder.currentPos = nextPos;
                 finder.stepDuration = 0;
                 finder.currentInd++;

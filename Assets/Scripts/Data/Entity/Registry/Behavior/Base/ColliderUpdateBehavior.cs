@@ -101,8 +101,8 @@ namespace Arterra.Data.Entity.Behavior {
 
         public static float GetColliderDist(TerrainCollider.Transform a, TerrainCollider.Transform b) {
             var reg = Config.CURRENT.Generation.Entities;
-            Bounds aBounds = new (a.position, a.size);
-            Bounds bBounds = new (b.position, b.size);
+            Bounds aBounds = new ((float3)a.position, a.size);
+            Bounds bBounds = new ((float3)b.position, b.size);
             if (aBounds.Intersects(bBounds)) return 0;
             Vector3 aMin = aBounds.min, aMax = aBounds.max;
             Vector3 bMin = bBounds.min, bMax = bBounds.max;

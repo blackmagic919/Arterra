@@ -17,7 +17,7 @@ namespace Arterra.GamePlay.Interaction {
     [System.Serializable]
     public class TerrainCollider {
         public const float BaseFriction = 0.2f;
-        public static readonly float3 VerticalCollisionBias = new(0, 0.05f, 0);
+        public static readonly float3 VerticalCollisionBias = new(0, 0.0f, 0);
         public Transform transform;
         public bool useGravity;
 
@@ -371,72 +371,118 @@ namespace Arterra.GamePlay.Interaction {
             return vel - magnitude * dir;
         }
 
+        private bool TryResolveTerrainCollision(Entity self, ref float maxFriction, ref byte contactMask, bool resolveSolid = true) {
+            byte contact = TerrainInteractor.SampleContact((float3)transform.position, transform.size, out float friction, self);
+            contactMask |= contact;
+            maxFriction = math.max(maxFriction, friction);
+
+            if (!resolveSolid || !TerrainInteractor.TouchSolid(contact))
+                return false;
+
+            if (!SampleCollision((float3)transform.position, transform.size, cxt.mapContext, out float3 displacement))
+                if (!SampleBlockCollision((float3)transform.position, transform.size, cxt.mapContext, out displacement))
+                    return false;
+
+            transform.position += displacement;
+            float3 nVelocity = CancelVel(transform.velocity, displacement);
+            self?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_HitGround, self, null, (useGravity, nVelocity.y - transform.velocity.y));
+            transform.velocity = nVelocity;
+            return true;
+        }
+
+        private bool SweepMoveVoxelBoundaries(float3 deltaPosition, Entity self, ref float maxFriction, ref byte contactMask) {
+            double3 startPosition = transform.position;
+
+            if (math.lengthsq(deltaPosition) <= 0)
+                return false;
+                
+            float3 leadingCorner = GetLeadingCorner((float3)startPosition, transform.size, deltaPosition);
+            float3 tDelta = new (
+                math.abs(deltaPosition.x) < 1e-6f ? float.PositiveInfinity : 1.0f / math.abs(deltaPosition.x),
+                math.abs(deltaPosition.y) < 1e-6f ? float.PositiveInfinity : 1.0f / math.abs(deltaPosition.y),
+                math.abs(deltaPosition.z) < 1e-6f ? float.PositiveInfinity : 1.0f / math.abs(deltaPosition.z)
+            );
+
+            float3 tMax = new (
+                GetFirstBoundaryProgress(leadingCorner.x, deltaPosition.x),
+                GetFirstBoundaryProgress(leadingCorner.y, deltaPosition.y),
+                GetFirstBoundaryProgress(leadingCorner.z, deltaPosition.z)
+            );
+
+            const float tEpsilon = 1e-5f;
+            while (true) {
+                float tCross = math.cmin(tMax);
+                if (!float.IsFinite(tCross) || tCross > 1.0f)
+                    break;
+
+                float tProbe = math.clamp(tCross * 0.95f, 0, 1);
+                transform.position = startPosition + deltaPosition * tProbe;
+                if (TryResolveTerrainCollision(self, ref maxFriction, ref contactMask))
+                    return true; // first collision wins
+
+                if (math.abs(tMax.x - tCross) <= tEpsilon) tMax.x += tDelta.x;
+                if (math.abs(tMax.y - tCross) <= tEpsilon) tMax.y += tDelta.y;
+                if (math.abs(tMax.z - tCross) <= tEpsilon) tMax.z += tDelta.z;
+            }
+
+            transform.position = startPosition + deltaPosition;
+            return TryResolveTerrainCollision(self, ref maxFriction, ref contactMask);
+
+            static float3 GetLeadingCorner(float3 originGS, float3 boundsGS, float3 moveDelta) {
+                float3 min = math.min(originGS, originGS + boundsGS);
+                float3 max = math.max(originGS, originGS + boundsGS);
+                float3 center = (max + min) / 2;
+                return new float3(
+                    moveDelta.x == 0 ? center.x : moveDelta.x > 0 ? max.x : min.x,
+                    moveDelta.y == 0 ? center.y : moveDelta.y > 0 ? max.y : min.y,
+                    moveDelta.z == 0 ? center.z : moveDelta.z > 0 ? max.z : min.z
+                );
+            }
+
+            static float GetFirstBoundaryProgress(float originAxis, float deltaAxis) {
+                if (math.abs(deltaAxis) < 1e-6f) return float.PositiveInfinity;
+                float frac = originAxis - math.floor(originAxis);
+                float edgeDist = deltaAxis >= 0 ? 1.0f - frac : frac;
+                return edgeDist / math.abs(deltaAxis);
+            }
+        }
+
         public void Update(Entity self = null, float baseFriction = BaseFriction, bool tangible = true) {
-            byte contact = TerrainInteractor.SampleContact(transform.position, transform.size, out float friction, self);
-            if (!TerrainInteractor.IsTouching(contact)) friction = baseFriction;
+            float3 deltaPosition = transform.velocity * cxt.totDeltaTime;
+            float maxFriction = 0;
+            byte contactMask = 0;
+
+            if (tangible) SweepMoveVoxelBoundaries(deltaPosition, self, ref maxFriction, ref contactMask);
+            else transform.position += deltaPosition;
+            
+            float friction = TerrainInteractor.IsTouching(contactMask) ? maxFriction : baseFriction;
             if (useGravity) transform.velocity.xz *= 1 - friction;
             else transform.velocity *= 1 - friction;
 
-            transform.position += transform.velocity * cxt.totDeltaTime;
             if (useGravity) transform.velocity += cxt.gravity * cxt.totDeltaTime;
-
-            if (TerrainInteractor.TouchSolid(contact) && tangible) {
-                if (!SampleCollision(transform.position, transform.size, cxt.mapContext, out float3 displacement))
-                    if(!SampleBlockCollision(transform.position, transform.size, cxt.mapContext, out displacement))
-                        return;
-                transform.position += displacement;
-                float3 nVelocity = CancelVel(transform.velocity, displacement);
-                self?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_HitGround, self, null, (useGravity, nVelocity.y - transform.velocity.y));
-                transform.velocity = nVelocity;
-            }
         }
 
         /// <summary> Updates the collider on a Unity Fixed Update. </summary>
         public void FixedUpdate(Entity player) {
-            float friction = 0;
             bool IsTangible = !Arterra.Configuration.Config.CURRENT.GamePlay.Gamemodes.value.Intangiblity;
-            byte contact = IsTangible ? TerrainInteractor.SampleContact(transform.position, transform.size, out friction, player) : (byte)0;
-            if (!TerrainInteractor.IsTouching(contact)) friction = BaseFriction;
+            float3 deltaPosition = transform.velocity * Time.fixedDeltaTime;
+            float maxFriction = 0;
+            byte contactMask = 0;
+
+            if (IsTangible) SweepMoveVoxelBoundaries(deltaPosition, player, ref maxFriction, ref contactMask);
+            else transform.position += deltaPosition;
+
+            float friction = TerrainInteractor.IsTouching(contactMask) ? maxFriction : BaseFriction;
             if (useGravity) transform.velocity.xz *= 1 - friction;
             else transform.velocity *= 1 - friction;
 
-            transform.position += transform.velocity * Time.fixedDeltaTime;
             if (useGravity) transform.velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
-
-            if (TerrainInteractor.TouchSolid(contact)) {
-                if (!SampleCollision(transform.position, transform.size, cxt.mapContext, out float3 displacement))
-                    if(!SampleBlockCollision(transform.position, transform.size, cxt.mapContext, out displacement))
-                        return;
-                float3 nVelocity = CancelVel(transform.velocity, displacement);
-                player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_HitGround, player, null, (useGravity, nVelocity.y - transform.velocity.y));
-                transform.position += displacement;
-                transform.velocity = nVelocity;
-            }
-        }
-
-        private bool TryGetMinimumTranslation(Bounds A, Bounds B, out float3 mtv) {
-            Vector3 delta = A.center - B.center; mtv = default;
-            float dx = (B.extents.x + A.extents.x) - Mathf.Abs(delta.x);
-            float dy = (B.extents.y + A.extents.y) - Mathf.Abs(delta.y);
-            float dz = (B.extents.z + A.extents.z) - Mathf.Abs(delta.z);
-
-            if (dx <= 0 || dy <= 0 || dz <= 0)
-                return false;
-
-
-            if (dx < dy && dx < dz)
-                mtv = new Vector3(dx * Mathf.Sign(delta.x), 0, 0);
-            else if (dy < dz)
-                mtv = new Vector3(0, dy * Mathf.Sign(delta.y), 0);
-            else
-                mtv = new Vector3(0, 0, dz * Mathf.Sign(delta.z));
-            return true;
         }
 
 
         public void EntityCollisionUpdate(Entity self, HashSet<Guid> ignores = null) {
             bool soft = Configuration.Config.CURRENT.GamePlay.Environment.value.useSoftCollisions;
-            Bounds bounds = new (transform.position + transform.size/2, transform.size);
+            Bounds bounds = new ((float3)transform.position + transform.size / 2, transform.size);
             EntityManager.ESTree.Query(bounds, cEntity => {
                 Bounds cBounds = new (cEntity.position , cEntity.transform.size);
                 if (cEntity.info.rtEntityId == self.info.rtEntityId) return;
@@ -464,19 +510,38 @@ namespace Arterra.GamePlay.Interaction {
                     cEntity.transform.position -= otherFactor * mtv;
                 }
             });
+
+            static bool TryGetMinimumTranslation(Bounds A, Bounds B, out float3 mtv) {
+                Vector3 delta = A.center - B.center; mtv = default;
+                float dx = (B.extents.x + A.extents.x) - Mathf.Abs(delta.x);
+                float dy = (B.extents.y + A.extents.y) - Mathf.Abs(delta.y);
+                float dz = (B.extents.z + A.extents.z) - Mathf.Abs(delta.z);
+
+                if (dx <= 0 || dy <= 0 || dz <= 0)
+                    return false;
+
+
+                if (dx < dy && dx < dz)
+                    mtv = new Vector3(dx * Mathf.Sign(delta.x), 0, 0);
+                else if (dy < dz)
+                    mtv = new Vector3(0, dy * Mathf.Sign(delta.y), 0);
+                else
+                    mtv = new Vector3(0, 0, dz * Mathf.Sign(delta.z));
+                return true;
+            }
         }
 
-        public TerrainCollider(in Settings settings, float3 position) {
+        public TerrainCollider(in Settings settings, double3 position) {
             this.transform = new Transform(position, 0, settings.size, Quaternion.identity);
             this.useGravity = true;
         }
 
         public struct Transform {
-            public float3 position;
+            public double3 position;
             public Quaternion rotation;
             public float3 size;
             public float3 velocity;
-            public Transform(float3 position, float3 velocity, float3 size, Quaternion rotation) {
+            public Transform(double3 position, float3 velocity, float3 size, Quaternion rotation) {
                 this.position = position;
                 this.rotation = rotation;
                 this.size = size;

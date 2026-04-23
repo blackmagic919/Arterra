@@ -2,11 +2,10 @@
 
 #include "Assets/Resources/Compute/Utility/Random.hlsl"
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
-#include "Assets/Resources/Compute/TerrainGeneration/Structures/TerrainAnalyzer.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/Structures/StructureSystem/StructurePathHelpers.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/Structures/StructureSystem/AppendStructure.hlsl"
 
-const static int threadGroupSize = 256;
+const static int threadGroupSize = 128;
 
 uint bSTART_batchPathList;
 uint bSTART_batchRanges;
@@ -37,8 +36,7 @@ struct sysInfo {
 };
 
 StructuredBuffer<sysInfo> _SystemInfo;
-StructuredBuffer<uint2> _StructureIndexes;
-StructuredBuffer<checkData> _StructureChecks;
+float3 sOffset;
 uint batchIndex;
 
 bool TrySetVisited(uint index, int pathId, uint desired, out uint previousVisited) {
@@ -60,42 +58,6 @@ bool TrySetVisited(uint index, int pathId, uint desired, out uint previousVisite
     InterlockedMax(batchVisit[index].visited, desired, old);
     previousVisited = old;
     return old == INVALID_VISITED;
-}
-
-bool VerifyChecks(uint structureIndex, uint3 rot, float3 origin)
-{
-    settings structureSettings = _StructureSettings[structureIndex];
-    float3x3 rotMatrix = RotationLookupTable[rot.y][rot.x][rot.z];
-    float3 length = mul(rotMatrix, (float3)structureSettings.size);
-    float3 newOrigin = min(length, 0.0);
-
-    uint checkStart = _StructureIndexes[structureIndex].y;
-    uint checkEnd = _StructureIndexes[structureIndex + 1u].y;
-    for (uint checkInd = checkStart; checkInd < checkEnd; checkInd++) {
-        checkData data = _StructureChecks[checkInd];
-        float3 rotatedPos = mul(rotMatrix, data.position);
-        float3 transformedPos = rotatedPos - newOrigin;
-        float3 checkPosition = transformedPos + origin;
-        if (!InBounds(SampleTerrain(checkPosition), data.bounds))
-            return false;
-    }
-    return true;
-}
-
-bool VerifyPathBounds(uint pathIndex, uint sysStructIndex, uint rotMeta, int3 origin)
-{
-    SystemStructure systemStructure = _SystemStructures[sysStructIndex];
-    settings structureSettings = _StructureSettings[systemStructure.structureIndex];
-    uint3 rot = GetRot(rotMeta);
-
-    float3x3 rotMatrix = RotationLookupTable[rot.y][rot.x][rot.z];
-    int3 span = max(int3(abs(mul(rotMatrix, (float3)structureSettings.size))), int3(1, 1, 1));
-    int3 farCorner = max(span - 1, int3(0, 0, 0));
-
-    if (!VerifyChecks(systemStructure.structureIndex, rot, (float3)origin))
-        return false;
-
-    return true;
 }
 
 groupshared int gPathIndex;
@@ -357,7 +319,6 @@ void BatchPathfind(uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
                 float outgoingEndDistSq = dot((float3)(targetPos - outgoingObjectPos), (float3)(targetPos - outgoingObjectPos));
                 if (outgoingEndDistSq >= currentEndDistSq) continue;
-                if (!VerifyPathBounds(gPathIndex, nextMeta.y, nextMeta.x, originWorld)) continue;
 
                 uint previousVisited;
                 uint candidateVisited = EncodeVisited(transitionIndex, dir == 1u, step + 1u);

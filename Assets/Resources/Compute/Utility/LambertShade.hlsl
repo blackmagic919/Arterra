@@ -41,5 +41,4 @@ float4 LambertShade(float3 baseAlbedo, float3 normal, float3 positionWS){
     
     return float4(max(DynamicLight, ObjectLight), 1);
 }
-
 #endif

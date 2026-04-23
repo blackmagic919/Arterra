@@ -16,7 +16,7 @@ namespace Arterra.Data.Structure.Jigsaw {
     public class StructureSystem {
         //Warning don't make this too small or memory overflow
         public int CellSizeFactor = 4;
-        public int MaxConnectionDist = 32;
+        public int MaxConnectionDist = 64;
 
         [RegistryReference("Noise")]
         public string coarseSSystemNoise;
@@ -31,6 +31,7 @@ namespace Arterra.Data.Structure.Jigsaw {
         public int MaxSystemLoD = 2;
         [FormerlySerializedAs("PathColoringBinSize")]
         public int StructureColoringBinSize = 8;
+        public int MaxBatchExecute = 16;
     }
 }
 
@@ -187,7 +188,6 @@ public static class Generator {
         StructurePathfinder.SetInt("bSTART_pathMeet", offsets.pathMeetStart);
         StructurePathfinder.SetInt("bSTART_frontier", offsets.frontierStart);
         StructurePathfinder.SetInt("bSTART_pathPrefix", offsets.pathPrefixStart);
-        Structure.Generator.SetStructIDSettings(StructurePathfinder);
         
         StructurePathfinder.SetBuffer(kernel, "genStructures", UtilityBuffers.GenerationBuffer);
         StructurePathfinder.SetInt("bCOUNT_struct", offsets.intermediateStructCounter);
@@ -212,6 +212,7 @@ public static class Generator {
         PathBatchPlanner.SetInt("bSTART_endpts", offsets.pathEndsStart);
         PathBatchPlanner.SetInt("bSTART_pathPrefix", offsets.pathPrefixStart);
         PathBatchPlanner.SetInt("bSTART_pathMeet", offsets.pathMeetStart);
+        PathBatchPlanner.SetInt("connectRadius", jigsaw.MaxConnectionDist);
 
         kernel = PathBatchPlanner.FindKernel("FinalizePathPlanner");
         PathBatchPlanner.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
@@ -332,7 +333,6 @@ public static class Generator {
         StructurePostProcess.SetInt("bSTART_maxDepths", offsets.maxDepthsStart);
         StructurePostProcess.SetInt("bSTART_danglingDepths", offsets.danglingDepthsStart);
         Structure.Generator.SetStructIDSettings(StructurePostProcess);
-        Structure.Generator.SetStructIDSettings(PathSetupRetriever);
         Shader.SetGlobalInt("_StructTestDot", Config.CURRENT.Generation.Structures.value.StructureDictionary.RetrieveIndex("Dot"));
     }
 
@@ -349,7 +349,7 @@ public static class Generator {
         SampleSystemAnchors(chunkSize, depth, CCoord);
         ConnectGraphAnchors(chunkSize, depth, CCoord);
         SanitateComputeBatches(chunkSize, depth, CCoord);
-        PreparePathPlannerBatches();
+        PreparePathPlannerBatches(chunkSize, depth);
         PopulatePathsWithStructures(chunkSize, depth, CCoord);
         PruneIntersectionsAndEmitFinalStructures(chunkSize, depth, CCoord);
 
@@ -418,9 +418,13 @@ public static class Generator {
         SanitateBatches.DispatchIndirect(kernel, args);
     }
 
-    private static void PreparePathPlannerBatches() {
+    private static void PreparePathPlannerBatches(int chunkSize, int depth) {
+        int worldChunkSize = chunkSize * (1 << depth);
+        worldChunkSize += jigsaw.MaxConnectionDist * 4;
+
         PathBatchPlanner.SetInt("maxVisitedNodesPerBatch", offsets.maxVisitedNodesPerBatch);
         PathBatchPlanner.SetInt("maxPathsPerBatch", offsets.maxPathsPerBatch);
+        PathBatchPlanner.SetInt("numVoxelsPerChunk", worldChunkSize);
 
         int kernel = PathBatchPlanner.FindKernel("CountPathSizes");
         ComputeBuffer args = UtilityBuffers.CountToArgs(PathBatchPlanner, UtilityBuffers.GenerationBuffer, offsets.anchorPathCounter, kernel);
@@ -476,7 +480,7 @@ public static class Generator {
         int worldChunkSize = chunkSize * (1 << depth);
         worldChunkSize += jigsaw.MaxConnectionDist * 4;
 
-        int plannerBatchCount = offsets.maxBatchesPerChunk;
+        int plannerBatchCount = math.min(offsets.maxBatchesPerChunk, jigsaw.MaxBatchExecute);
         UtilityBuffers.SetSampleData(PathSetupRetriever, (float3)(CCoord * chunkSize), 1);
         UtilityBuffers.SetSampleData(StructurePathfinder, (float3)(CCoord * chunkSize), 1);
         PathSetupRetriever.SetInt("numPointsPerAxis", worldChunkSize);
@@ -489,7 +493,6 @@ public static class Generator {
         PathBatchPlanner.GetKernelThreadGroupSizes(kernel, out uint clearThreads, out uint _, out _);
         int clearGroups = Mathf.CeilToInt(offsets.maxVisitedNodesPerBatch / (float)clearThreads);
         PathBatchPlanner.Dispatch(kernel, clearGroups, 1, 1);
-        
         
         for (int index = 0; index < plannerBatchCount; index++) {
             kernel = StructurePathfinder.FindKernel("BatchPathfind");
@@ -515,9 +518,9 @@ public static class Generator {
         args = UtilityBuffers.CountToArgs(SanitateBatches, UtilityBuffers.GenerationBuffer, offsets.anchorDictCounter, kernel);
         SanitateBatches.DispatchIndirect(kernel, args);
 
-        /*kernel = PathSetupRetriever.FindKernel("CapDanglingSockets");
+        kernel = PathSetupRetriever.FindKernel("CapDanglingSockets");
         ComputeBuffer capArgs = UtilityBuffers.CountToArgs(PathSetupRetriever, UtilityBuffers.GenerationBuffer, offsets.batchSocketCapCounter, kernel);
-        PathSetupRetriever.DispatchIndirect(kernel, capArgs);*/
+        PathSetupRetriever.DispatchIndirect(kernel, capArgs);
         //
         //LogAppendBufferRegionCounts("PopulatePathsWithStructures");
     }
@@ -533,6 +536,7 @@ public static class Generator {
         int maxPathsPerChunk = maxCellsPerChunk * 6;
         int binListCapacity = maxPathsPerChunk * 3;
 
+        UtilityBuffers.SetSampleData(StructurePostProcess, (float3)(CCoord * chunkSize), 1);
         StructurePostProcess.SetInt("numVoxelsPerChunk", worldChunkSize);
         StructurePostProcess.SetInt("numBinsPerAxis", numBinsPerAxis);
         StructurePostProcess.SetInt("binListCapacity", binListCapacity);
@@ -820,7 +824,7 @@ public static class Generator {
             };
 
             int topCount = Mathf.Min(6, regionNames.Length);
-            LogLargestBufferRegions(regionNames, regionWordCounts, offsetEnd, topCount);
+            //LogLargestBufferRegions(regionNames, regionWordCounts, offsetEnd, topCount);
         }
     }
 }

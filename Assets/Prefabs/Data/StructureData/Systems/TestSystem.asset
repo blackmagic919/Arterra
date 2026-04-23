@@ -176,7 +176,7 @@ MonoBehaviour:
             - TargetName: Lines
               chance: 0.5
   edgeFrequency: 0.25
-  anchorDensity: 1
+  PoissonRadius: 1
   references:
     version: 2
     RefIds: []

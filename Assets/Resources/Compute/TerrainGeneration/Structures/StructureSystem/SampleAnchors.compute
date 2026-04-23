@@ -22,7 +22,7 @@ struct anchor {
 
 struct sysInfo {
     float edgeFrequency;
-    float anchorDensity;
+    float poissonRadius;
     uint cullIsolatedAnchors;
     uint2 structures;
 };
@@ -66,13 +66,7 @@ void SamplePoints (uint3 id : SV_DispatchThreadID){
     float fineNoise = GetNoise(pos, fineSSystemNoise);
     int systemInd = GetMaterial(_BiomeSystems, bounds, coarseNoise, fineNoise, heightFactor, weight);
 
-    if (weight < 0.5f || systemInd < 0) {
-        anchors[index].system = -1;
-    } else {
-        float density = saturate(_SystemInfo[systemInd].anchorDensity);
-        uint densitySeed = seed ^ 0xA511E9B3u;
-        anchors[index].system = RandomFloat(densitySeed) > density ? -1 : systemInd;
-    }
+    anchors[index].system = (weight < 0.5f || systemInd < 0) ? -1 : systemInd;
 }
 
 uint bSTART_dict;
@@ -85,30 +79,40 @@ void PoissonPrune(uint3 id : SV_DispatchThreadID) {
     if (any(id >= numPointsPerAxis)) return;
 
     int index = indexFromCoord(id) + bSTART_anchors;
-    if (anchors[index].system == -1) return;
+    anchor self = anchors[index];
+    if (self.system == -1) return;
 
-    int3 position = anchors[index].pos;
+    float poissonRadius = max(_SystemInfo[self.system].poissonRadius, 0.0f);
+    int pruneRadius = (int)ceil(poissonRadius / max((float)cellSize, 1.0f));
+    if (pruneRadius == 0) {
+        int appendInd;
+        InterlockedAdd(counters[bCOUNT_dict], 1, appendInd);
+        anchorDict[bSTART_dict + appendInd] = index - bSTART_anchors;
+        return;
+    }
+
+    int3 position = self.pos;
     int3 sOffset = oCCoord * cellsPerChunk * cellSize;
     uint myPriority = Random(position + sOffset);
 
     bool alive = true;
 
-    [unroll]
-    for (int z = -1; z <= 1; z++) {
-    [unroll]
-    for (int y = -1; y <= 1; y++) {
-    [unroll]
-    for (int x = -1; x <= 1; x++) {
+    for (int z = -pruneRadius; z <= pruneRadius; z++) {
+    for (int y = -pruneRadius; y <= pruneRadius; y++) {
+    for (int x = -pruneRadius; x <= pruneRadius; x++) {
         if (x == 0 && y == 0 && z == 0) continue;
 
         int3 nid = int3(id) + int3(x, y, z);
         if (any(nid < 0) || any(nid >= numPointsPerAxis)) continue;
 
         int nIndex = indexFromCoord(nid) + bSTART_anchors;
-        int3 neighbor = anchors[nIndex].pos;
+        anchor neighborAnchor = anchors[nIndex];
+        if (neighborAnchor.system == -1) continue;
+
+        int3 neighbor = neighborAnchor.pos;
         float d = length((float3)neighbor - (float3)position);
 
-        if (d < cellSize) {
+        if (d <= poissonRadius) {
             uint neighborPriority = Random(neighbor + sOffset);
 
             if (neighborPriority > myPriority || (neighborPriority == myPriority && nIndex > index)) {

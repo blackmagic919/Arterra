@@ -5,6 +5,7 @@ using Arterra.Configuration;
 using Arterra.Editor;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Arterra.Data.Structure.Jigsaw {
     [CreateAssetMenu(menuName = "Generation/Structure/Jigsaw/System")]
@@ -15,7 +16,8 @@ namespace Arterra.Data.Structure.Jigsaw {
         public Option<List<string>> Names;
         public Option<List<JigsawStructure>> Structures;
         public float edgeFrequency;
-        public float anchorDensity = 1.0f;
+        [FormerlySerializedAs("anchorDensity")]
+        public float PoissonRadius = 1.0f;
         public bool cullIsolatedAnchors = false;
 
         [Serializable]

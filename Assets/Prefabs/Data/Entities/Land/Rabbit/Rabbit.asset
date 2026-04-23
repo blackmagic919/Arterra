@@ -559,7 +559,7 @@ MonoBehaviour:
         TaskName: 0
         OnCompleteTransition: 100
         CheckTransitions:
-          value: 844e000094750000f8750000
+          value: 844e00005c760000f8750000
     - rid: 5205636866482634849
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:

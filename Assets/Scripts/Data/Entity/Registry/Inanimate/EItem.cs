@@ -164,7 +164,7 @@ public class EItem : Arterra.Data.Entity.Authoring
         }
 
         private bool GetGroundDir( out float3 dir) => tCollider.SampleCollision(
-            transform.position,
+            (float3)transform.position,
             new float3(settings.collider.size.x, -settings.GroundStickDist, settings.collider.size.z),
             EntityJob.cxt.mapContext, out dir
         );

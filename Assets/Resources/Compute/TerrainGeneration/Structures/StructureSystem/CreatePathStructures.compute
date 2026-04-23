@@ -3,13 +3,12 @@
 
 #include "Assets/Resources/Compute/Utility/Random.hlsl"
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
-#include "Assets/Resources/Compute/TerrainGeneration/Structures/TerrainAnalyzer.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/Structures/StructureSystem/StructurePathHelpers.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/Structures/StructureSystem/AppendStructure.hlsl"
 
 const static int numThreads2 = 16;
 const static int numThreads3 = 64;
-const static uint MAX_CAP_LENGTH = 12u;
+const static uint MAX_CAP_LENGTH = 6u;
 
 RWStructuredBuffer<PathNode> batchVisit;
 StructuredBuffer<pathEnds> endPoints;
@@ -38,6 +37,7 @@ RWStructuredBuffer<uint2> pathMeet;
 RWStructuredBuffer<uint2> danglingDepths;
 
 uint bSTART_danglingDepths;
+float3 sOffset;
 
 void AppendSharedCap(uint3 capMeta)
 {
@@ -92,8 +92,7 @@ struct BacktrackRequest {
     bool useOverride;
 };
 
-bool BacktrackSegment(BacktrackRequest request, int3 cur, int3 end, bool fromEnd, uint2 startCapPortFace, uint2 endCapPortFace)
-{
+bool BacktrackSegment(BacktrackRequest request, int3 cur, int3 end, bool fromEnd, uint2 startCapPortFace, uint2 endCapPortFace) {
     if (all(cur == end))
         return true;
 
@@ -149,7 +148,7 @@ bool BacktrackSegment(BacktrackRequest request, int3 cur, int3 end, bool fromEnd
         structureData data;
         data.structurePos = originWorld;
         data.meta = PackStctMeta(curSysStruct.structureIndex, rotMeta);
-    AppendStructureWithInfo(data, PackStructInfo(structureDepth, false, (uint)request.pathId, 0u));
+        AppendStructureWithInfo(data, PackStructInfo(structureDepth, false, (uint)request.pathId, 0u));
 
         uint rotatedPorts = GetRotatedPortMask(curSysStruct.basePorts, rotMeta);
         rotatedPorts &= ~(FaceBit(nextFI) | FaceBit(curFI));
@@ -257,45 +256,6 @@ void BacktrackGridPath(uint3 id : SV_DispatchThreadID)
     request.useOverride = useEndOverride;
     if (!BacktrackSegment(request, meetLocal, endLocal, true, uint2(endPortIndex, dirs.y), uint2(endPortIndex, dirs.y)))
         return;
-
-    //structureData data;
-    //data.structurePos = meetLocal + pathOffset;
-    //data.meta = PackStctMeta(_StructTestDot, 0);
-    //AppendStructureWithInfo(data, PackStructInfo(0u, false, (uint)pathId, 0u));
-}
-
-StructuredBuffer<uint2> _StructureIndexes;
-StructuredBuffer<checkData> _StructureChecks;
-
-bool VerifyChecks(uint structureIndex, uint3 rot, float3 origin)
-{
-    settings structureSettings = _StructureSettings[structureIndex];
-    float3x3 rotMatrix = RotationLookupTable[rot.y][rot.x][rot.z];
-    float3 length = mul(rotMatrix, (float3)structureSettings.size);
-    float3 newOrigin = min(length, 0.0);
-
-    uint checkStart = _StructureIndexes[structureIndex].y;
-    uint checkEnd = _StructureIndexes[structureIndex + 1u].y;
-    for (uint checkInd = checkStart; checkInd < checkEnd; checkInd++) {
-        checkData data = _StructureChecks[checkInd];
-        float3 rotatedPos = mul(rotMatrix, data.position);
-        float3 transformedPos = rotatedPos - newOrigin;
-        float3 checkPosition = transformedPos + origin;
-        if (!InBounds(SampleTerrain(checkPosition), data.bounds))
-            return false;
-    }
-    return true;
-}
-
-bool VerifyPathBounds(uint sysStructIndex, uint rotMeta, int3 origin)
-{
-    SystemStructure systemStructure = _SystemStructures[sysStructIndex];
-    uint3 rot = GetRot(rotMeta);
-
-    if (!VerifyChecks(systemStructure.structureIndex, rot, (float3)origin))
-        return false;
-
-    return true;
 }
 
 [numthreads(numThreads3, 1, 1)]
@@ -318,6 +278,11 @@ void CapDanglingSockets(uint3 id : SV_DispatchThreadID){
 
     uint currentDepth = spawnHasParent ? (spawnParentDepth + 1u) : 1u;
     int3 socketWorldSeedPos = socketWorldPos + (int3)sOffset;
+
+    //structureData data;
+    //data.structurePos = socketWorldPos;
+    //data.meta = PackStctMeta(_StructTestDot, 0);
+    //AppendStructureWithInfo(data, PackStructInfo(0u, false, (uint)parentMainPathId, 0u));
 
     [loop]
     for (uint step = 0u; step < MAX_CAP_LENGTH; step++) {
@@ -354,8 +319,6 @@ void CapDanglingSockets(uint3 id : SV_DispatchThreadID){
                     continue;
 
                 int3 originWorld = socketWorldPos + transition.originDelta;
-                if (!VerifyPathBounds(nextSysStructIndex, nextRotMeta, originWorld))
-                    continue;
 
                 structureData data;
                 data.structurePos = originWorld;

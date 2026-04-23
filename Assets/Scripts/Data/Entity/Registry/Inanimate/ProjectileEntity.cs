@@ -139,7 +139,7 @@ public class Projectile : Arterra.Data.Entity.Authoring
         }
 
         private bool CheckTerrainRayCollision() {
-            if (!tCollider.SampleCollision(tCollider.transform.position, tCollider.transform.size * 1.05f, EntityJob.cxt.mapContext, out float3 gDir)) return false;
+            if (!tCollider.SampleCollision((float3)tCollider.transform.position, tCollider.transform.size * 1.05f, EntityJob.cxt.mapContext, out float3 gDir)) return false;
             switch (settings.terrainInteration) {
                 case ProjectileSetting.GroundIntrc.Stick:
                     tCollider.transform.rotation = Quaternion.LookRotation(-gDir, math.up());

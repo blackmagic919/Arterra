@@ -29,6 +29,7 @@ namespace Arterra.Editor {
                 settings.Converters.Add(new Float4Converter());
                 settings.Converters.Add(new Float3Converter());
                 settings.Converters.Add(new Float2Converter());
+                settings.Converters.Add(new Double3Converter());
                 return settings;
             };
         }
@@ -169,6 +170,18 @@ namespace Arterra.Editor {
         public override float3 ReadJson(JsonReader reader, Type objectType, float3 existingValue, bool hasExistingValue, JsonSerializer serializer) {
             JArray array = JArray.Load(reader);
             return new float3((float)array[0], (float)array[1], (float)array[2]);
+        }
+    }
+
+    public class Double3Converter : JsonConverter<double3> {
+        public override void WriteJson(JsonWriter writer, double3 value, JsonSerializer serializer) {
+            JArray array = new(value.x, value.y, value.z);
+            array.WriteTo(writer);
+        }
+
+        public override double3 ReadJson(JsonReader reader, Type objectType, double3 existingValue, bool hasExistingValue, JsonSerializer serializer) {
+            JArray array = JArray.Load(reader);
+            return new double3((double)array[0], (double)array[1], (double)array[2]);
         }
     }
 

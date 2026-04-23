@@ -62,12 +62,13 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 609f1eeab046b4211afcb6b8a0cc7dc1, type: 2}
   StructureSystemSettings:
     value:
-      CellSizeFactor: 5
+      CellSizeFactor: 4
       MaxConnectionDist: 64
-      coarseSSystemNoise: CaveCoarse
-      fineSSystemNoise: CaveFine
+      coarseSSystemNoise: StructureCoarse
+      fineSSystemNoise: StructureFine
       MaxSystemLoD: 2
       StructureColoringBinSize: 8
+      MaxBatchExecute: 16
   StructureChecksPerChunk: 1000
   LoDFalloff: 3
   maxLoD: 3

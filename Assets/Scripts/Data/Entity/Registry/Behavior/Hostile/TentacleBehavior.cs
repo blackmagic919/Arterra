@@ -136,7 +136,7 @@ namespace Arterra.Data.Entity.Behavior
                 if (l.State == Tentacle.TentacleState.Attack) Gizmos.color = Color.red;
                 else Gizmos.color = Color.green;
                 Gizmos.DrawWireCube(CPUMapManager.GSToWS(
-                    l.collider.transform.position + l.collider.transform.size/2),
+					(float3)l.collider.transform.position + l.collider.transform.size/2),
                     l.collider.transform.size * 2);
             }
         }
@@ -234,10 +234,10 @@ namespace Arterra.Data.Entity.Behavior
 
             public void Update(BehaviorEntity.Animal self) {
                 float3 root = self.position + math.mul(self.Rotation, settings.RestOffset);
-                float dist = math.distance(root, collider.transform.position);
+				float dist = math.distance(root, (float3)collider.transform.position);
                 if (dist > settings.Length) { //Rubber banding
                     dist -= settings.Length;
-                    float3 dir = math.normalizesafe(root - collider.transform.position);
+					float3 dir = math.normalizesafe(root - (float3)collider.transform.position);
                     float strength = math.pow(dist, settings.RubberBandStrength);
                     collider.transform.velocity += strength * EntityJob.cxt.deltaTime * dir; 
                 }
@@ -269,7 +269,7 @@ namespace Arterra.Data.Entity.Behavior
                 if (!IsCloseEnough(target)) return false;
                 if (!HasLineOfSight(target)) return false;
                 bool HasLineOfSight(Entity target) {
-                    float3 origin = collider.transform.position;
+					float3 origin = (float3)collider.transform.position;
                     float3 targetPos = target.position;
                     // Simple raycast for line of sight
                     return !CPUMapManager.RayCastTerrain(origin, math.normalizesafe(targetPos - origin), math.distance(origin, targetPos), CPUMapManager.RayTestSolid, out _);
@@ -298,7 +298,7 @@ namespace Arterra.Data.Entity.Behavior
                     return;
                 };
 
-				float3 origin = collider.transform.position;
+				float3 origin = (float3)collider.transform.position;
 				float3 targetPos = target.position;
 				float3 dir = math.normalizesafe(targetPos - origin);
 				if (math.dot(collider.transform.velocity, dir) < settings.Speed)

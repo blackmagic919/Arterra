@@ -82,14 +82,14 @@ namespace Arterra.Data.Entity.Behavior {
             float sightDist = genes.Get(SightDistance);
             float PackTargetWeight = 0;
             Guid PackTarget = Guid.Empty;
-            Bounds seperation = new (self.transform.position, self.transform.size * 2.0f);
+            Bounds seperation = new ((float3)self.transform.position, self.transform.size * 2.0f);
             var eReg = Config.CURRENT.Generation.Entities;
             void OnEntityFound(Entity nEntity) {
                 if (nEntity == null) return;
                 if (!FlockEntity.Is(nEntity, eReg)) return;
                 if (!nEntity.Is(out IBoid nBoid)) return;
-                float3 nBoidPos = nEntity.transform.position;
-                float3 boidPos = self.transform.position;
+                float3 nBoidPos = (float3)nEntity.transform.position;
+                float3 boidPos = (float3)self.transform.position;
 
                 if (!nBoid.IsPartOfPack()) return;
                 

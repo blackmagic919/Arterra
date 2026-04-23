@@ -76,23 +76,23 @@ namespace Arterra.Data.Entity.Behavior {
 
         [JsonIgnore]
         public float3 BodyPosition {
-            get => BodyCollider.transform.position + BodyCollider.transform.size / 2;
+            get => (float3)BodyCollider.transform.position + BodyCollider.transform.size / 2;
             set => BodyCollider.transform.position = value - BodyCollider.transform.size / 2;
         }
         [JsonIgnore]
         public float3 BodyOrigin {
-            get => BodyCollider.transform.position;
+            get => (float3)BodyCollider.transform.position;
             set => BodyCollider.transform.position = value;
         }
 
         [JsonIgnore]
         public float3 HeadPosition {
-            get => HeadCollider.transform.position + HeadCollider.transform.size / 2;
+            get => (float3)HeadCollider.transform.position + HeadCollider.transform.size / 2;
             set => HeadCollider.transform.position = value - HeadCollider.transform.size / 2;
         }
         [JsonIgnore]
         public float3 HeadOrigin {
-            get => HeadCollider.transform.position;
+            get => (float3)HeadCollider.transform.position;
             set => HeadCollider.transform.position = value;
         }
 
@@ -204,13 +204,13 @@ namespace Arterra.Data.Entity.Behavior {
             private void RegisterAppendage() {
                 if (!EntityManager.EntityIndex.TryAdd(info.entityId, this))
                     throw new Exception("Failed to register leg for entity");
-                Bounds bounds = new (collider.transform.position, collider.transform.size);
+                Bounds bounds = new ((float3)collider.transform.position, collider.transform.size);
                 EntityManager.ESTree.Insert(bounds, info.entityId);
             }
 
             public override void Update() {
                 EntityManager.AddHandlerEvent(() => {
-                    Bounds bounds = new Bounds(collider.transform.position, collider.transform.size);
+                    Bounds bounds = new Bounds((float3)collider.transform.position, collider.transform.size);
                     EntityManager.ESTree.AssertEntityLocation(info.entityId, bounds);  
                 });
                 this.collider.Update(self);
@@ -220,7 +220,7 @@ namespace Arterra.Data.Entity.Behavior {
             public void SetConstraint<TConstraint>() => this.constraint = Controller.transform.parent.GetComponent(typeof(TConstraint)) as IRigConstraint;
             public virtual void UpdateController() {
                 if (!visible) return;
-                float3 BonePos = collider.transform.position + aSettings.BoneOffset;
+                float3 BonePos = (float3)collider.transform.position + aSettings.BoneOffset;
                 Controller.SetPositionAndRotation(Arterra.Core.Storage.CPUMapManager.GSToWS(BonePos), collider.transform.rotation * Quaternion.Euler(-90f, 0f, 0f));
             }
 

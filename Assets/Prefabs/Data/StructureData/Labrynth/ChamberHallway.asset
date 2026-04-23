@@ -1056,7 +1056,13 @@ MonoBehaviour:
     - data: 2147542015
     - data: 2147542015
   checks:
-    value: []
+    value:
+    - position:
+        x: 4
+        y: 4
+        z: 8
+      checkInfo:
+        data: 4286643968
   Enhancements:
     Entities:
       value: []

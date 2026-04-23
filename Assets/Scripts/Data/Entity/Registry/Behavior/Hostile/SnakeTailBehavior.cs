@@ -129,7 +129,7 @@ namespace Arterra.Data.Entity.Behavior
         }
 
         private static void ApplyRubberBand(TerrainCollider collider, float3 origin, float strength) {
-                float3 center = collider.transform.position + collider.transform.size/2;
+            float3 center = (float3)collider.transform.position + collider.transform.size/2;
                 float3 dir = math.normalizesafe(origin - center);
                 collider.transform.velocity += strength * EntityJob.cxt.deltaTime * dir; 
             }
@@ -156,7 +156,7 @@ namespace Arterra.Data.Entity.Behavior
             foreach(TailSegment l in appendages) {
                 Gizmos.color = Color.blue;
                 Gizmos.DrawWireCube(CPUMapManager.GSToWS(
-                    l.collider.transform.position + l.collider.transform.size/2),
+                    (float3)l.collider.transform.position + l.collider.transform.size/2),
                     l.collider.transform.size * 2);
             }
         }
@@ -179,10 +179,10 @@ namespace Arterra.Data.Entity.Behavior
             private TailSegment NextSegment;
             private bool HasNext;
 
-            private float3 PrevCenter => PrevSegment.transform.position + PrevSegment.transform.size / 2;
-            private float3 NextCenter => NextSegment.collider.transform.position + NextSegment.collider.transform.size / 2;
+            private float3 PrevCenter => (float3)PrevSegment.transform.position + PrevSegment.transform.size / 2;
+            private float3 NextCenter => (float3)NextSegment.collider.transform.position + NextSegment.collider.transform.size / 2;
             [JsonIgnore]  public float3 desiredBody => center - math.mul(PrevSegment.transform.rotation, settings.RestOffset);
-            [JsonIgnore]  private float3 center => collider.transform.position + collider.transform.size / 2;
+            [JsonIgnore]  private float3 center => (float3)collider.transform.position + collider.transform.size / 2;
 
             public bool IsDead => selfAtk.IsDead;
             public void Interact(Entity caller, IItem item = null) => selfAtk.Interact(caller, item);

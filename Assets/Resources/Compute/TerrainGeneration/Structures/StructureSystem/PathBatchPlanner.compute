@@ -20,6 +20,7 @@ uint bSTART_batchPathList;
 uint bSTART_pathMeet;
 uint bSTART_visited;
 
+int connectRadius;
 uint maxBatchCount;
 uint maxVisitedNodesPerBatch;
 uint maxPathsPerBatch;
@@ -84,12 +85,30 @@ bool IsPartialEnds(pathEnds value) {
     return all(value.start == NO_ENDS_COORD) != all(value.end == NO_ENDS_COORD);
 }
 
+bool IsOutOfConnectionBounds(pathEnds endpoints) {
+    int lowerBound = -connectRadius;
+    int upperBound = numVoxelsPerChunk + connectRadius;
+
+    int3 maxEnds = max(endpoints.start, endpoints.end);
+    if (any(maxEnds < lowerBound))
+        return true;
+
+    int3 minEnds = min(endpoints.start, endpoints.end);
+    if (any(minEnds > upperBound))
+        return true;
+
+    return false;
+}
+
 uint ComputePathVisitedSize(pathEnds endpoints) {
     if (IsNoEnds(endpoints))
         return 0u;
 
     // Partial paths are sanitized into cap work and should not allocate planner pathfinding state.
     if (IsPartialEnds(endpoints))
+        return 0u;
+
+    if (IsOutOfConnectionBounds(endpoints))
         return 0u;
 
     int3 absDelta = abs(endpoints.end - endpoints.start) + int3(1, 1, 1);

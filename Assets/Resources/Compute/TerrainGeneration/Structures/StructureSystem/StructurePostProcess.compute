@@ -7,6 +7,7 @@
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/Utility/Random.hlsl"
 #include "Assets/Resources/Compute/Utility/RotationTables.hlsl"
+#include "Assets/Resources/Compute/TerrainGeneration/Structures/TerrainAnalyzer.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/Structures/StructureSystem/StructurePathTypes.hlsl"
 
 const static int THREADS_3D = 8;
@@ -27,6 +28,8 @@ RWStructuredBuffer<BinNode> binList;
 RWStructuredBuffer<int> maxDepths;
 RWStructuredBuffer<uint2> danglingDepths;
 StructuredBuffer<settings> _StructureSettings;
+StructuredBuffer<uint2> _StructureIndexes;
+StructuredBuffer<checkData> _StructureChecks;
 
 uint bCOUNT_paths;
 uint bCOUNT_intermediate;
@@ -75,6 +78,36 @@ bool GetBounds(int structIndex, out int3 minBounds, out int3 maxBounds) {
     minBounds = int3(floor(structure.structurePos));
     maxBounds = minBounds + span;
     return true;
+}
+
+bool VerifyChecks(uint structureIndex, uint3 rot, float3 origin)
+{
+    settings structureSettings = _StructureSettings[structureIndex];
+    float3x3 rotMatrix = RotationLookupTable[rot.y][rot.x][rot.z];
+    float3 length = mul(rotMatrix, (float3)structureSettings.size);
+    float3 newOrigin = min(length, 0.0);
+
+    uint checkStart = _StructureIndexes[structureIndex].y;
+    uint checkEnd = _StructureIndexes[structureIndex + 1u].y;
+    for (uint checkInd = checkStart; checkInd < checkEnd; checkInd++) {
+        checkData data = _StructureChecks[checkInd];
+        float3 rotatedPos = mul(rotMatrix, data.position);
+        float3 transformedPos = rotatedPos - newOrigin;
+        float3 checkPosition = transformedPos + origin;
+        if (!InBounds(SampleTerrain(checkPosition), data.bounds))
+            return false;
+    }
+
+    return true;
+}
+
+bool VerifyPathBounds(structureData structure)
+{
+    uint structureIndex;
+    uint rotMeta;
+    UnpackStctMetaLocal(structure.meta, structureIndex, rotMeta);
+    uint3 rot = GetRot(rotMeta);
+    return VerifyChecks(structureIndex, rot, structure.structurePos);
 }
 
 bool IntersectsAABB(int3 aMin, int3 aMax, int3 bMin, int3 bMax) {
@@ -198,6 +231,12 @@ void CalculateMinDepths(uint3 id : SV_DispatchThreadID)
         return;
 
     structureData selfStructure = selfEntry.structure;
+    if (!VerifyPathBounds(selfStructure)) {
+        if (isCap) InterlockedMin(danglingDepths[bSTART_danglingDepths + ownerPath].x, depth);
+        else InterlockedMin(maxDepths[bSTART_maxDepths + ownerPath], (int)depth);
+        return;
+    }
+
     uint selfPriority = StructurePriority(selfStructure);
 
     int3 minLocal = selfMin - oCellOffset;
@@ -245,7 +284,6 @@ void CalculateMinDepths(uint3 id : SV_DispatchThreadID)
 
             bool loses = false;
             if (isCap != otherIsCap) {
-                // Preserve main path continuity: caps always lose against non-cap structures.
                 loses = isCap && !otherIsCap;
             } else if (depth > otherDepth) {
                 loses = true;

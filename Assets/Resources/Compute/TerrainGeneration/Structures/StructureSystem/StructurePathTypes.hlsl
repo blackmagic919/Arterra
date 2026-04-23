@@ -2,7 +2,7 @@
 #define STRUCTURE_PATH_TYPES
 
 const static uint MAX_TRANSITIONS_PER_NODE = 12u;
-static const uint MAX_BATCH_STEPS = 6u;//
+static const uint MAX_BATCH_STEPS = 8u;
 static const uint INVALID_VISITED = 0u;
 static const uint FRONTIER_COORD_MASK = 0x1FFFFFFFu;
 static const uint INVALID_PATH = 0xFFFFFFFFu;

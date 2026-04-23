@@ -257,6 +257,7 @@ namespace Arterra.Engine.Terrain{
                 ShrinkMap = TerrainChunk.Status.State.Finished,
                 UpdateMesh = TerrainChunk.Status.State.Finished,
             };
+            
             int3 size = MaxGCoord - MinGCoord;
             int3 center = MinGCoord + size/2;
             Bounds region = new Bounds((float3)center, (float3)size);

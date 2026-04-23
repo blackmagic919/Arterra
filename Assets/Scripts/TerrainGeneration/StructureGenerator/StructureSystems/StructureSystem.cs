@@ -236,7 +236,8 @@ public struct StructSystem {
                 return existingBucket;
 
             int transitionStart = transitionDeltasAtlas.Count;
-            HashSet<(int dx, int dy, int dz, int ox, int oy, int oz, int structMeta, int nextPort)> emittedTransitions = new();
+            // Dedup transitions by spatial move only, since runtime visited state is position-based.
+            HashSet<(int dx, int dy, int dz)> emittedTransitions = new();
 
             for (int nextLocalIndex = 0; nextLocalIndex < authoredStructures.Count; nextLocalIndex++) {
                 int nextSystemStructIndex = systemStructureStart + nextLocalIndex;
@@ -257,7 +258,7 @@ public struct StructSystem {
                     uint inputPort = (uint)GetBasePortIndex((uint)nextSystemStructIndex, nextBaseFace);
 
                     if (nextRotatedPorts == 0u) {
-                        var capKey = (0, 0, 0, originDelta.x, originDelta.y, originDelta.z, structMeta, (int)inputPort);
+                        var capKey = (0, 0, 0);
                         if (emittedTransitions.Add(capKey)) {
                             transitionDeltasAtlas.Add(new TransDeltas {
                                 deltaPosition = int3.zero,
@@ -276,7 +277,7 @@ public struct StructSystem {
 
                         int3 deltaPosition = GetSocketOffset((uint)nextSystemStructIndex, nextAuthored.Settings, nextRotMeta, outgoingFace) - inputOffset;
                         int nextPort = GetBasePortIndex((uint)nextSystemStructIndex, GetBaseFaceFromObjectFace(outgoingFace, nextRotMeta));
-                        var transitionKey = (deltaPosition.x, deltaPosition.y, deltaPosition.z, originDelta.x, originDelta.y, originDelta.z, structMeta, nextPort);
+                        var transitionKey = (deltaPosition.x, deltaPosition.y, deltaPosition.z);
                         if (!emittedTransitions.Add(transitionKey))
                             continue;
 
@@ -395,7 +396,7 @@ public struct StructSystem {
 
             systems[i] = new StructSystemInfo {
                 edgeFrequency = system.edgeFrequency,
-                anchorDensity = system.anchorDensity,
+                poissonRadius = system.PoissonRadius,
                 cullIsolatedAnchors = system.cullIsolatedAnchors ? 1u : 0u,
                 structures = systemStructRange
             };
@@ -640,8 +641,8 @@ public struct StructSystem {
         public static int size => sizeof(float) * 2 + 3 * sizeof(uint);
         /// <summary>The probability weighting used when seeding edges from biomes.</summary>
         public float edgeFrequency;
-        /// <summary>The probability of retaining a sampled anchor for this system.</summary>
-        public float anchorDensity;
+        /// <summary>The poisson-prune radius in object-space units for this system's anchors.</summary>
+        public float poissonRadius;
         /// <summary>When true, anchors with no successful path connections are dropped.</summary>
         public uint cullIsolatedAnchors;
         /// <summary>The range of system-structure entries belonging to this system.</summary>

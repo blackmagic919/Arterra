@@ -307,8 +307,8 @@ MonoBehaviour:
             value:
             - TargetName: Chambers
               chance: 1
-  edgeFrequency: 1
-  anchorDensity: 1
+  edgeFrequency: 0.75
+  PoissonRadius: 32
   cullIsolatedAnchors: 1
   references:
     version: 2

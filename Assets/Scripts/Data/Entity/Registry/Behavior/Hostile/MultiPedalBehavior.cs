@@ -151,7 +151,7 @@ namespace Arterra.Data.Entity.Behavior
                 else if (l.State == Leg.StepState.Raise) Gizmos.color = Color.red;
                 else Gizmos.color = Color.blue;
                 Gizmos.DrawWireCube(CPUMapManager.GSToWS(
-                    l.collider.transform.position + l.collider.transform.size/2),
+                    (float3)l.collider.transform.position + l.collider.transform.size/2),
                     l.collider.transform.size * 2);
                 Gizmos.DrawSphere(CPUMapManager.GSToWS(l.TargetPosition), 0.25f);
             }
@@ -174,7 +174,7 @@ namespace Arterra.Data.Entity.Behavior
 
             [JsonIgnore] public float LegLength => collider.transform.size.y;
             [JsonIgnore] public float3 desiredBody => restPos - math.mul(mp.LeadHead.BodyCollider.transform.rotation, settings.RestOffset);
-            [JsonIgnore] private float3 restPos => collider.transform.position + new float3(collider.transform.size.x, 0, collider.transform.size.z) / 2;
+            [JsonIgnore] private float3 restPos => (float3)collider.transform.position + new float3(collider.transform.size.x, 0, collider.transform.size.z) / 2;
             public enum StepState {
                 Stand,
                 Raise,
@@ -236,7 +236,7 @@ namespace Arterra.Data.Entity.Behavior
                     if(CanStartStep && math.distance(TargetPosition, restPos) > settings.StepDistThreshold) State = StepState.Raise;
                 } 
                 if ( State == StepState.Lower) {
-                    if (collider.SampleCollision(collider.transform.position + (float3)(0.05f * Vector3.down),
+                    if (collider.SampleCollision((float3)collider.transform.position + (float3)(0.05f * Vector3.down),
                         collider.transform.size, EntityJob.cxt.mapContext, out float3 gDir))
                         State = StepState.Stand;
                     if (math.distance(TargetPosition, restPos) < 0.05f)

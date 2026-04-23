@@ -75,7 +75,7 @@ public abstract class Entity: IRegistered, IEventControlled{
     /// this contract if it no system requires its location.  </summary>
     [JsonIgnore] 
     public virtual float3 position {
-        get => transform.position + transform.size / 2;
+        get => (float3)transform.position + transform.size / 2;
         set => transform.position = value - transform.size / 2;
     }
     /// <summary> The position of the entity's head--dictating where it attacks and ray traces from.
@@ -89,7 +89,10 @@ public abstract class Entity: IRegistered, IEventControlled{
     /// Unlike <see cref="position"/>, the origin is the lowest point within the object's collider while
     /// the position describes the center of the collider. </summary>
     [JsonIgnore] 
-    public ref float3 origin => ref transform.position;
+    public virtual float3 origin {
+        get => (float3)transform.position;
+        set => transform.position = value;
+    }
     /// <summary>A single line property for retrieving and setting the entity's velocity. Most entities
     /// require knowledge of other entity's velocities; however entities that aren't spatially bound
     /// may not fulfill this contract if it no system requires its velocity. </summary>

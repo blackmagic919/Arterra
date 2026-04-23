@@ -115,8 +115,6 @@ Shader "Unlit/EditTerrain"
                 if (flags == 0) discard;
 
                 matTerrain tInfo =  _MatTerrainData[material];
-                uint light = SampleLight(IN.positionWS);
-                float shadow = (1.0 - (light >> 30 & 0x3) / 3.0f);
                 float3 normalWS = normalize(IN.normalWS);
                 float3 albedo = triplanar(IN.positionWS, tInfo.baseTextureScale, blendAxes, tInfo.textureIndex);
                 albedo = LambertShade(albedo, IN.normalWS, IN.positionWS).rgb;
