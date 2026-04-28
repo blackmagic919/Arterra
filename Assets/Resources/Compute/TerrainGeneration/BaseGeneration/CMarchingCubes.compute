@@ -84,7 +84,7 @@ MarchCube ReadCube(int3 coord){
 
 
 float InvLerp(float p1Val, float p2Val) {
-    return (IsoLevel - p1Val) / (p2Val - p1Val);
+    return clamp((IsoLevel - p1Val) / (p2Val - p1Val), 0.01, 0.99);
 }
 
 void AddVertices(int3 coord, int caseIndex, uint state, in MarchCube cube){

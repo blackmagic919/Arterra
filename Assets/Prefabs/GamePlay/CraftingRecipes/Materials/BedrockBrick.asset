@@ -10,17 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aba0e1d8d02674d9ca7672d55a581c42, type: 3}
-  m_Name: Brick
+  m_Name: BedrockBrick
   m_EditorClassIdentifier: 
-  Name: Brick
+  Name: BedrockBrick
   Tags:
     Reg:
       value: []
   Names:
     value:
     - 
-    - Brick:Solid
-    - Clay:Solid
+    - BedrockBrick:Solid
+    - Bedrock:Solid
     - Cement:Solid
   Recipe:
     value:

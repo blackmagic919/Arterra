@@ -72,7 +72,7 @@ int Align(int data){ return data & 0xFF; }
 int SkipInc(int data){ return (data >> 8) & 0xFF; }
 bool IsEnd(int data){ return (data & 0x80000000) != 0; }
 bool MergeFace(int data){ return (data & 0x40000000) != 0; }
-float Interpolate(float p1Val, float p2Val) { return ((IsoLevel - p1Val) / (p2Val - p1Val + Epsilon.x));  }
+float Interpolate(float p1Val, float p2Val) { return clamp((IsoLevel - p1Val) / (p2Val - p1Val + Epsilon.x), 0.01, 0.99);  }
 
 void AddVertices(int2 coordUV, int caseIndex, uint state, in GridFace face, in FaceInfo info){
     uint CClass = CellClass(caseIndex);

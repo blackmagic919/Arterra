@@ -25,20 +25,24 @@ float3 AddUnityBaseLights(float3 baseAlbedo, float3 normal, float3 positionWS){
 }
 
 
-float4 LambertShade(float3 baseAlbedo, float3 normal, float3 positionWS){
-    uint light = SampleLight(positionWS);
+
+float4 LambertShadeInternal(float3 baseAlbedo, uint light, float3 BaseIllumination){
     float shadow = 1.0 - (light >> 30 & 0x3) / 3.0f;
     float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
     ObjectLight = mad((1 - ObjectLight), unity_AmbientGround, ObjectLight * 2.5f); //linear interpolation
     ObjectLight *= baseAlbedo.rgb;
 
-    /*float NdotL = saturate(dot(normal, _LightDirection));
-    NdotL = NdotL * (1-MinBrightness) + MinBrightness; 
-    NdotL * _MainLightColor.rgb * baseAlbedo;*/
-    float3 BaseIllumination = AddUnityBaseLights(baseAlbedo, normal, positionWS);
     float3 MinShadow = baseAlbedo * MinBrightness;
     float3 DynamicLight = BaseIllumination * shadow + MinShadow * (1-shadow);
     
     return float4(max(DynamicLight, ObjectLight), 1);
 }
+
+float4 LambertShade(float3 baseAlbedo, float3 normal, float3 positionWS){
+    uint light = SampleLight(positionWS);
+    float3 BaseIllumination = AddUnityBaseLights(baseAlbedo, normal, positionWS);
+    return LambertShadeInternal(baseAlbedo, light, BaseIllumination);
+}
+
+
 #endif

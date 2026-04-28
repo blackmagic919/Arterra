@@ -14,6 +14,7 @@ using Arterra.GamePlay.Interaction;
 using Arterra.Editor;
 using Arterra.GamePlay.UI;
 using Arterra.Data.Entity.Behavior;
+using System.Collections.Generic;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Boat")]
 public class BoatEntity : Arterra.Data.Entity.Authoring {
@@ -45,6 +46,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
         private TerrainCollider tCollider;
         [JsonProperty]
         private Guid RiderTarget = Guid.Empty;
+        private HashSet<Guid> IgnoredEntities;
         private BoatController controller;
         private BoatSetting settings;
         [JsonIgnore]
@@ -61,6 +63,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
                 return;
 
             EntityManager.AddHandlerEvent(() => rider.OnDismounted(this));
+            IgnoredEntities = null;
             RiderTarget = Guid.Empty;
         }
 
@@ -69,6 +72,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             if (!caller.Is(out IRider rider)) return;
             if (RiderTarget != Guid.Empty) return; //Already has a rider
             RiderTarget = caller.info.rtEntityId;
+            IgnoredEntities = new HashSet<Guid>{ RiderTarget };
             EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
 
         }
@@ -126,6 +130,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             GCoord = this.GCoord;
 
             if (RiderTarget == Guid.Empty) return;
+            IgnoredEntities = new HashSet<Guid>{RiderTarget};
             if (EntityManager.TryGetEntity(RiderTarget, out Entity entity)
                 && entity.Is(out IRider rider))
                 EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
@@ -155,7 +160,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             }
 
             tCollider.Update(this);
-            tCollider.EntityCollisionUpdate(this);
+            tCollider.EntityCollisionUpdate(this, IgnoredEntities);
             EntityManager.AddHandlerEvent(controller.Update);
 
             if (!IsDead) return;

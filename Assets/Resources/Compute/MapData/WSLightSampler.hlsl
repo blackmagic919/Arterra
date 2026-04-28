@@ -34,13 +34,12 @@ uint2 GetChunkAddress(CInfo cHandle, int3 MCoord){
 // NOTE: Though Light is stored as 2bytes, because we take a trilinear
 // interpolation, storing as 2 bytes will introduce extreme quantitization artifacts
 // so we rescale to 4 bytes to allow more precision
-uint SampleLight(float3 samplePointWS){
-    int3 CSCoord = WSToCS(samplePointWS);
+uint SampleLightDirect(int3 CSCoord, float3 MSPoint){
     CInfo cHandle = _ChunkAddressDict[HashCoord(CSCoord)];
     float4 light = 0; //rgb -> Light, s -> Shadow
     
     if(!Contains(cHandle, CSCoord)) return 0; else{
-    float3 MSPoint = WSToMS(samplePointWS) / (cHandle.offset & 0xFF);
+    MSPoint /= (cHandle.offset & 0xFF);
     MSPoint += float3(
         (cHandle.offset >> 24) & 0xFF,
         (cHandle.offset >> 16) & 0xFF,
@@ -79,7 +78,9 @@ uint SampleLight(float3 samplePointWS){
     return lightC;
 }}
 
-
+uint SampleLight(float3 samplePointWS){
+    return SampleLightDirect(WSToCS(samplePointWS), WSToMS(samplePointWS));
+}
 
 //We don't allow Out-Of-Bounds Rehashing, and we don't look at if it's underground or not
 uint SampleLightFast(float3 samplePointWS){
@@ -119,6 +120,8 @@ uint SampleLightFast(float3 samplePointWS){
     return lightC;
 }}
 #else 
+uint SampleLightDirect(int3 CSCoord, float3 MSPoint) {return 0;}
 uint SampleLight(float3 samplePointWS) {return 0;}
+uint SampleLight(int3 chunkOriginCS, float3 sampleOffset) {return 0;}
 uint SampleLightFast(float3 samplePointWS) {return 0;}
 #endif

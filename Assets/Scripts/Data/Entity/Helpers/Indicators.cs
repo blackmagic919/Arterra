@@ -38,6 +38,11 @@ public class Indicators
             indicator.transform.SetParent(null, false);
             indicator.SetActive(false);
         }
+        static void OnDeactivateStackable(GameObject indicator) {
+            indicator.transform.GetComponentInChildren<TMPro.TextMeshProUGUI>().text = "";
+            indicator.transform.SetParent(null, false);
+            indicator.SetActive(false);
+        }
         static void OnDestroy(GameObject indicator) {
 #if UNITY_EDITOR
             GameObject.DestroyImmediate(indicator);

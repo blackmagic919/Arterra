@@ -173,7 +173,7 @@ namespace Arterra.GamePlay.UI {
         private List<int> FindClosestEntries(string input, int pageIndex) {
             int[] entryDist = new int[registry.Count()];
             for (int i = 0; i < entryDist.Length; i++) {
-                entryDist[i] = CalculateEditDistance(input, registry.RetrieveName(i));
+                entryDist[i] = CalculateSearchScore(input, registry.RetrieveName(i));
             }
 
             List<int> sortedIndices = Enumerable.Range(0, registry.Count()).ToList();
@@ -182,6 +182,21 @@ namespace Arterra.GamePlay.UI {
             int start = math.max(end - NumSlots, 0);
             return sortedIndices.GetRange(start, end - start).ToList();
         }
+
+        // Tiered search scoring: exact < prefix < substring < fuzzy edit distance.
+        // Lower score = better match.
+        private int CalculateSearchScore(string query, string candidate) {
+            if (query.Length == 0) return 0;
+            string q = query.ToLowerInvariant();
+            string c = candidate.ToLowerInvariant();
+
+            if (c == q) return 0;
+            if (c.StartsWith(q)) return 1000 + (c.Length - q.Length);
+            int subIdx = c.IndexOf(q, StringComparison.Ordinal);
+            if (subIdx >= 0) return 2000 + subIdx + (c.Length - q.Length);
+            return 3000 + CalculateEditDistance(q, c);
+        }
+
         private int CalculateEditDistance(string a, string b) {
             int[,] dp = new int[a.Length + 1, b.Length + 1];
             for (int i = a.Length; i >= 0; i--) dp[i, b.Length] = a.Length - i;
