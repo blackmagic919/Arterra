@@ -24,7 +24,10 @@ public class InidcatorsBehavior : IBehavior {
         self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
     }
 
-    public void UpdateController(BehaviorEntity.Animal self, BehaviorEntity.AnimalController controller) => indicators.Update();
+    public void Update(BehaviorEntity.Animal self) {
+        if (self.context != BehaviorEntity.UpdateContext.Job)
+            indicators.Update();
+    }
 
     public void OnDrawGizmos(BehaviorEntity.Animal self) {
         // Use golden ratio to spread hues evenly across the spectrum

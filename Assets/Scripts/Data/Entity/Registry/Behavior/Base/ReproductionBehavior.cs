@@ -24,7 +24,7 @@ namespace Arterra.Data.Entity.Behavior {
     public class MateRecognition : IBehaviorSetting{
         //Mates are entities that can breed with the entity, and the offspring they create
         public Option<List<Mate>> Mates;
-        public Genetics.GeneFeature MateCost;
+        public float MateCost;
 
         public object Clone() {
             return new MateRecognition {
@@ -46,13 +46,6 @@ namespace Arterra.Data.Entity.Behavior {
                 int entityIndex = eReg.RetrieveIndex(Mates.value[i].MateType);
                 AwarenessTable.TryAdd(entityIndex, i);
             }
-
-            Genetics.AddGene(entityType, ref MateCost);
-            for (int i = 0; i < Mates.value.Count; i++) {
-                Mate mate = Mates.value[i];
-                Genetics.AddGene(entityType, ref mate.AmountPerParent);
-                Mates.value[i] = mate;
-            } 
         }
         [Serializable]
         public struct Mate {
@@ -60,7 +53,7 @@ namespace Arterra.Data.Entity.Behavior {
             public string MateType;
             [RegistryReference("Entities")]
             public string ChildType;
-            public Genetics.GeneFeature AmountPerParent;
+            public float AmountPerParent;
             public float GeneMutationRate;
         }
 
@@ -68,7 +61,7 @@ namespace Arterra.Data.Entity.Behavior {
         public struct Consumable {
             [RegistryReference("Items")]
             public string EdibleType;
-            public Genetics.GeneFeature Nutrition;
+            public float Nutrition;
         }
 
         //Finds the most preferred mate it can see, then the closest one it prefers
@@ -107,7 +100,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
 
-        public bool MateWithEntity(Genetics genetics, Entity entity, ref Unity.Mathematics.Random random) {
+        public bool MateWithEntity(Modifier mod, Entity entity, ref Unity.Mathematics.Random random) {
             if (Mates.value == null) return false;
             if (AwarenessTable == null) return false;
             int index = (int)entity.info.entityType;
@@ -115,7 +108,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!entity.Is(out IMateable mate)) return false;
 
             Mate ofsp = Mates.value[AwarenessTable[index]];
-            float delta = genetics.Get(ofsp.AmountPerParent);
+            float delta = Modifier.Get(mod, MSettings.AmountPerParent, ofsp.AmountPerParent);
             int amount = Mathf.FloorToInt(delta) + (random.NextFloat() < math.frac(delta) ? 1 : 0);
             uint childIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex(ofsp.ChildType);
 
@@ -123,13 +116,14 @@ namespace Arterra.Data.Entity.Behavior {
                 Entity child = Config.CURRENT.Generation.Entities.Retrieve((int)childIndex).Entity;
                 EntityManager.CreateEntity((int3)entity.position, childIndex, child);
 
-
-                child.RegisterConstructor(genetics.CrossGenes(
-                    mate.Genetics,
-                    ofsp.GeneMutationRate,
-                    childIndex,
-                    ref random
-                ));
+                if (mod.genes == null) continue;
+                child.RegisterConstructor(
+                    mod.genes.CrossGenes(
+                        mate.Genetics,
+                        ofsp.GeneMutationRate,
+                        childIndex,
+                        ref random
+                    ));
             }
 
             return true;
@@ -146,15 +140,16 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonIgnore] public MateRecognition settings;
 
         private BehaviorEntity.Animal self;
-        private GeneticsBehavior genetics; 
+        private Modifier mod; 
         private VitalityBehavior vitality;
 
         [JsonIgnore]
         public Genetics Genetics {
-            get => this.genetics.Genes;
-            set => this.genetics.Genes = value;
+            get => this.mod.genes;
+            set => this.mod.genes = value;
         }
-
+        private float MateCost => Modifier.Get(mod, MSettings.MateCost, settings.MateCost);
+        
         public bool CanMateWith(Entity entity) {
             if (vitality.IsDead) return false;
 
@@ -165,14 +160,13 @@ namespace Arterra.Data.Entity.Behavior {
         }
         public void MateWith(Entity entity) {
             if (!CanMateWith(entity)) return;
-            if (settings.MateWithEntity(genetics.Genes, entity, ref self.random))
-                vitality.Damage(genetics.Genes.Get(settings.MateCost));
+            if (settings.MateWithEntity(mod, entity, ref self.random))
+                vitality.Damage(MateCost);
             self.eventCtrl.RaiseEvent(GameEvent.Entity_Mate, self, entity);
         }
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
         }
 
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
@@ -182,10 +176,9 @@ namespace Arterra.Data.Entity.Behavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Reproduction Behavior Requires AnimalSettings to have MateRecognition");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: Reproduction Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: Reproduction Behavior Requires AnimalInstance to have VitalityBehavior");
+            if (!self.Is(out mod)) mod = null;
 
             this.self = self;
             self.Register<IMateable>(this);
@@ -194,10 +187,9 @@ namespace Arterra.Data.Entity.Behavior {
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Reproduction Behavior Requires Animal to have MateRecognition");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: Reproduction Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: Reproduction Behavior Requires AnimalInstance to have VitalityBehavior");
+            if (!self.Is(out mod)) mod = null;
 
             this.self = self;
             self.Register<IMateable>(this);

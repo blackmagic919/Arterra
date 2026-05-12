@@ -4,11 +4,12 @@ using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Data.Material;
 using Arterra.Core.Storage;
-using static Arterra.GamePlay.PlayerInteraction;
+using static Arterra.Data.Entity.Behavior.PlayerInteractionBehavior;
 using Arterra.GamePlay;
 using Arterra.Core.Events;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Data.Item
 {
@@ -105,7 +106,7 @@ namespace Arterra.Data.Item
 
         protected void PlayerRemoveTerrain(ItemContext cxt) {
             if (settings.ToolTag == TagRegistry.Tags.None) return;
-            if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
 
             InputPoller.SuspendKeybindPropogation("Remove", ActionBind.Exclusion.ExcludeLayer);
             if (!RayTestSolid(out float3 hitPt)) return;
@@ -115,7 +116,7 @@ namespace Arterra.Data.Item
             bool RemoveSolid(int3 GCoord, float speed) {
                 MapData mapData = CPUMapManager.SampleMap(GCoord);
                 int material = mapData.material;
-                ToolTag tag = Config.CURRENT.GamePlay.Player.value.Interaction.value.DefaultTerraform;
+                ToolTag tag = PlayerInteractionSettings.GetSingleton().DefaultTerraform;
                 if (MatInfo.GetMostSpecificTag(settings.ToolTag, material, out object prop))
                     tag = prop as ToolTag;
 

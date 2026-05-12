@@ -3,6 +3,7 @@ using UnityEngine;
 using Arterra.Configuration;
 using Arterra.Engine.Terrain;
 using Arterra.GamePlay;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.GamePlay.UI {
     public static class PlayerCrosshair {
@@ -18,7 +19,7 @@ namespace Arterra.GamePlay.UI {
             Crosshair.SetActive(false);
 
             Config.CURRENT.System.GameplayModifyHooks.Add("ToggleUICrosshair", ToggleCrosshair);
-            object show = Config.CURRENT.GamePlay.Player.value.ShowCrosshair;
+            object show = Config.CURRENT.GamePlay.Gamemodes.value.ShowCrosshair;
             ToggleCrosshair(ref show);
         }
 
@@ -59,12 +60,12 @@ namespace Arterra.GamePlay.UI {
 
 
         public static void Update(MonoBehaviour mono) {
-            PlayerStreamer.Player player = PlayerHandler.data;
+            BehaviorEntity.Animal player = PlayerHandler.data;
             float3 hitPt = player.head
                     + player.Forward
-                    * Config.CURRENT.GamePlay.Player.value.Interaction.value.ReachDistance;
+                    * PlayerInteractionSettings.GetSingleton().ReachDistance;
 
-            if (PlayerInteraction.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
+            if (PlayerInteractionBehavior.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
             if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _))
                 Animator.SetBool("Focus", false);
             else Animator.SetBool("Focus", true);

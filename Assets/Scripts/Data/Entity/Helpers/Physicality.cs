@@ -17,47 +17,44 @@ public class MinimalVitality {
     public class Stats {
         [Range(0, 1)]
         public float weight;
-        public Genetics.GeneFeature MaxHealth;
-        public Genetics.GeneFeature NaturalRegen;
-        public Genetics.GeneFeature InvincTime;
-        public Genetics.GeneFeature HoldBreathTime;
-
-        public virtual void InitGenome(uint entityType) {
-            Genetics.AddGene(entityType, ref MaxHealth);
-            Genetics.AddGene(entityType, ref NaturalRegen);
-            Genetics.AddGene(entityType, ref InvincTime);
-            Genetics.AddGene(entityType, ref HoldBreathTime);
-        }
+        public float MaxHealth;
+        public float NaturalRegen;
+        public float InvincTime;
+        public float HoldBreathTime;
     }
 
 
     [JsonIgnore]
     protected Stats stats;
     [JsonIgnore]
-    protected Genetics genetics;
+    protected Modifier mod;
     [JsonIgnore]
     public float weight => stats.weight;
     public float health;
     public float invincibility;
-    public float healthPercent => health / genetics.Get(stats.MaxHealth);
+    public float healthPercent => health / MaxHealth;
     public float breath;
-    public float breathPercent => breath / genetics.Get(stats.HoldBreathTime);
+    public float breathPercent => breath / HoldBreathTime;
     public bool IsDead => health <= 0;
     public const float FallDmgThresh = 10;
+
+    private float MaxHealth => Modifier.Get(mod, MSettings.MaxHealth, stats.MaxHealth);
+    private float HoldBreathTime => Modifier.Get(mod, MSettings.HoldBreathTime, stats.HoldBreathTime);
+    private float NaturalRegen => Modifier.Get(mod, MSettings.NaturalRegen, stats.NaturalRegen);
+    private float InvincTime => Modifier.Get(mod, MSettings.NaturalRegen, stats.InvincTime);
     //Do not name gs genetics or Newtonsoft will try to use this path
-    public MinimalVitality(Stats stats, Genetics gs = null) {
-        this.genetics = gs ?? new Genetics();
+    public MinimalVitality(Stats stats, Modifier mod = null) {
         invincibility = 0;
         if (stats == null) return;
         this.stats = stats;
-        health = this.genetics.Get(stats.MaxHealth);
-        breath = this.genetics.Get(stats.HoldBreathTime);
+        health = MaxHealth;
+        breath = HoldBreathTime;
     }
 
     public MinimalVitality() { }
 
-    public virtual void Deserialize(Stats stats, Genetics genetics = null) {
-        this.genetics = genetics ?? new Genetics();
+    public virtual void Deserialize(Stats stats, Modifier mod = null) {
+        this.mod = mod;
         this.stats = stats;
         invincibility = 0;
     }
@@ -65,15 +62,15 @@ public class MinimalVitality {
     public virtual void Update(Entity self) {
         invincibility = math.max(invincibility - EntityJob.cxt.deltaTime, 0);
         if (IsDead) return;
-        float delta = math.min(health + genetics.Get(stats.NaturalRegen)
-                    * EntityJob.cxt.deltaTime, genetics.Get(stats.MaxHealth))
+        float delta = math.min(health + NaturalRegen
+                    * EntityJob.cxt.deltaTime, MaxHealth)
                     - health;
         health += delta;
     }
 
     public bool Damage(float delta) {
         if (invincibility > 0) return false;
-        invincibility = genetics.Get(stats.InvincTime);
+        invincibility = InvincTime;
         delta = health - math.max(health - delta, 0);
         health -= delta;
         return true;
@@ -82,7 +79,7 @@ public class MinimalVitality {
     public void Heal(float delta, bool force = false) {
         if (force) { health += delta; return; }
         if (IsDead) return;
-        health = math.min(health + delta, genetics.Get(stats.MaxHealth));
+        health = math.min(health + delta, MaxHealth);
     }
 
     public void ProcessInSolid(Entity self, float density) {
@@ -100,7 +97,7 @@ public class MinimalVitality {
 
     public void ProcessInGas(Entity self, float density) {
         self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, self, null, density);
-        breath = genetics.Get(stats.HoldBreathTime);
+        breath = HoldBreathTime;
     }
 
     public void ProcessInLiquid(Entity self, ref TerrainCollider tCollider, float density) {
@@ -130,7 +127,7 @@ public class MinimalVitality {
     }
 
     public void ProcessInGasAquatic(Entity self, ref TerrainCollider tCollider, float density) {
-        if (breath < 0) breath = genetics.Get(stats.HoldBreathTime);
+        if (breath < 0) breath = HoldBreathTime;
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
         tCollider.useGravity = true;
 
@@ -142,20 +139,11 @@ public class MinimalVitality {
 public class MediumVitality : MinimalVitality {
     [Serializable]
     public new class Stats : MinimalVitality.Stats {
-        public Genetics.GeneFeature AttackDistance;
-        public Genetics.GeneFeature AttackDamage;
-        public Genetics.GeneFeature AttackCooldown;
-        public Genetics.GeneFeature KBStrength;
+        public float AttackDistance;
+        public float AttackDamage;
+        public float AttackCooldown;
+        public float KBStrength;
         public float AttackDuration;
-
-        public override void InitGenome(uint entityType) {
-            base.InitGenome(entityType);
-
-            Genetics.AddGene(entityType, ref AttackDistance);
-            Genetics.AddGene(entityType, ref AttackDamage);
-            Genetics.AddGene(entityType, ref AttackCooldown);
-            Genetics.AddGene(entityType, ref KBStrength);
-        }
     }
 
     private float attackProgress;
@@ -165,15 +153,20 @@ public class MediumVitality : MinimalVitality {
     [JsonIgnore]
     private Stats AStats => stats as Stats;
     private Guid AttackTarget;
+    
+    private float AttackCooldown => Modifier.Get(mod, MSettings.AttackCooldown, AStats.AttackCooldown);
+    private float AttackDistance => Modifier.Get(mod, MSettings.AttackDistance, AStats.AttackDistance);
+    private float AttackDamage => Modifier.Get(mod, MSettings.AttackDamage, AStats.AttackDamage);
+    private float KBStrength => Modifier.Get(mod, MSettings.KBStrength, AStats.KBStrength);
 
-    public MediumVitality(Stats stats, Genetics gs = null) : base(stats, gs) {
+    public MediumVitality(Stats stats, Modifier mod = null) : base(stats, mod) {
         if (stats == null) return;
         attackProgress = AStats.AttackDuration;
         attackCooldown = 0;
     }
 
-    public override void Deserialize(MinimalVitality.Stats stats, Genetics gs = null) {
-        base.Deserialize(stats, gs);
+    public override void Deserialize(MinimalVitality.Stats stats, Modifier mod = null) {
+        base.Deserialize(stats, mod);
     }
 
     public bool Attack(Entity target) {
@@ -197,15 +190,15 @@ public class MediumVitality : MinimalVitality {
 
     private void FlushAttack(Entity self) {
         AttackInProgress = false;
-        attackCooldown = genetics.Get(AStats.AttackCooldown);
+        attackCooldown = AttackCooldown;
         
         if (!EntityManager.TryGetEntity(AttackTarget, out Entity target))
             return;
         if (!target.Is<IAttackable>()) return;
-        if (ColliderUpdateBehavior.GetColliderDist(target, self) > genetics.Get(AStats.AttackDistance))
+        if (ColliderUpdateBehavior.GetColliderDist(target, self) > AttackDistance)
             return;
-        float damage = genetics.Get(AStats.AttackDamage);
-        float3 knockback = math.normalize(target.position - self.position) * genetics.Get(AStats.KBStrength);
+        float damage = AttackDamage;
+        float3 knockback = math.normalize(target.position - self.position) * KBStrength;
         RealAttack(self, target, damage, knockback);
     }
 
@@ -216,165 +209,5 @@ public class MediumVitality : MinimalVitality {
             self, target, cxt
         ); (damage, knockback) = cxt.Value;
         EntityManager.AddHandlerEvent(() => target.As<IAttackable>().TakeDamage(damage, knockback, self));
-    }
-}
-
-public class Vitality : MediumVitality {
-    [Serializable]
-    public new class Stats : MediumVitality.Stats {
-        public Genetics.GeneFeature HuntThreshold;
-        public Genetics.GeneFeature MateThreshold;
-        public Genetics.GeneFeature MateCost; //Everything );
-        public float PregnacyLength;
-        public float ConsumptionRate;
-
-        public override void InitGenome(uint entityType) {
-            base.InitGenome(entityType);
-
-            Genetics.AddGene(entityType, ref HuntThreshold);
-            Genetics.AddGene(entityType, ref MateThreshold);
-            Genetics.AddGene(entityType, ref MateCost);
-        }
-    }
-    [JsonIgnore]
-    private Stats CStats => stats as Stats;
-    [JsonProperty]
-    private bool IsHunting;
-    public Vitality(Stats stats, Genetics gs = null) : base(stats, gs) {
-        IsHunting = false;
-        //Higher mate cost => higher starting health for children
-        if (stats == null) return;
-        health = genetics.Get(stats.MaxHealth) * Mathf.Lerp(
-            math.min(genetics.Get(stats.HuntThreshold), genetics.Get(stats.MateThreshold)),
-            genetics.Get(stats.MateThreshold),
-            (genetics.GetRawGene(stats.MateCost) + 1) / 2
-        );
-    }
-    
-
-
-    public override void Deserialize(MinimalVitality.Stats stats, Genetics gs = null) {
-        base.Deserialize(stats, gs);
-    }
-
-
-    public bool BeginHunting() => IsHunting || (IsHunting = healthPercent < genetics.Get(CStats.HuntThreshold));
-    public bool StopHunting() => !IsHunting || !(IsHunting = healthPercent < math.lerp(genetics.Get(CStats.MateThreshold), 1, 0.5f));
-    public bool BeginMating() => healthPercent > genetics.Get(CStats.MateThreshold);
-    public bool StopMating() => healthPercent < genetics.Get(CStats.MateThreshold);
-    [Serializable]
-    public class Decomposition : IBehaviorSetting {
-        public Option<List<LootInfo>> LootTable;
-        public Genetics.GeneFeature DecompositionTime; //~300 seconds
-        public void InitGenome(uint entityType) {
-            Genetics.AddGene(entityType, ref DecompositionTime);
-            ref List<LootInfo> table = ref LootTable.value;
-            for (int i = 0; i < table.Count; i++) {
-                LootInfo loot = table[i];
-                Genetics.AddGene(entityType, ref loot.DropAmount);
-                table[i] = loot;
-            }
-        }
-
-        public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            InitGenome(entityType);
-        }
-
-        public object Clone() {
-            return new Decomposition {
-                LootTable = LootTable,
-                DecompositionTime = DecompositionTime
-            };
-        }
-        public IItem LootItem(Genetics genetics, float collectRate, ref Unity.Mathematics.Random random) {
-            if (LootTable.value == null || LootTable.value.Count == 0) return null;
-            int index = random.NextInt(LootTable.value.Count);
-
-            float amount = genetics.Get(LootTable.value[index].DropAmount) * collectRate;
-            Catalogue<Arterra.Data.Item.Authoring> registry = Config.CURRENT.Generation.Items;
-            int itemindex = registry.RetrieveIndex(LootTable.value[index].ItemName);
-            IItem item = registry.Retrieve(itemindex).Item;
-
-            amount *= item.UnitSize;
-            int delta = Mathf.FloorToInt(amount) + (random.NextFloat() < math.frac(amount) ? 1 : 0);
-            if (delta == 0) return null;
-            delta = math.min(delta, item.StackLimit);
-            item.Create(itemindex, delta);
-            return item;
-        }
-        [Serializable]
-        public struct LootInfo {
-            [RegistryReference("Items")]
-            public string ItemName;
-            //The unit amount given per second of decomposition
-            public Genetics.GeneFeature DropAmount;
-        }
-    }
-}
-
-
-public class ProjectileLauncher {
-    [Serializable]
-    public class Stats {
-        public float ShotDelay;
-        public bool CheckSightline;
-        public Genetics.GeneFeature ChargeTime;
-        public ProjectileTag Projectile;
-        public bool HasRangedAttack = true;
-        public void InitGenome(uint entityType) {
-            if (!HasRangedAttack) return;
-            Genetics.AddGene(entityType, ref ChargeTime);
-        }
-    }
-
-    [JsonIgnore]
-    private Stats stats;
-    [JsonIgnore]
-    private Genetics genetics;
-    private float3 fireDirection;
-    private float chargeCooldown;
-    private float shotProgress;
-    public bool ShotInProgress;
-    
-    public ProjectileLauncher(Stats stats, Genetics gs = null) {
-        this.genetics = gs ?? new Genetics();
-        if (stats == null) return;
-        this.stats = stats;
-        
-        chargeCooldown = gs.Get(stats.ChargeTime);
-        shotProgress = 0;
-        ShotInProgress = false;
-    }
-
-
-    public void Deserialize(Stats stats, Genetics gs = null) {
-        this.genetics = gs ?? new Genetics();
-        this.stats = stats;
-    }
-
-    //This is some whirly logic where if you call fire on a loop, it will
-    public bool Fire(float3 target, Entity self) {
-        if (!stats.HasRangedAttack) return false;
-        if (ShotInProgress) return false;
-        if (chargeCooldown > 0) return false;
-        fireDirection = target - self.position;
-        if (stats.CheckSightline) {
-            if (CPUMapManager.RayCastTerrain(self.head, math.normalizesafe(fireDirection), 
-                math.length(fireDirection), CPUMapManager.RayTestSolid, out float3 hit))
-                return false;
-        } 
-        ShotInProgress = true;
-        shotProgress = stats.ShotDelay;
-        return true;
-    }
-
-    public void Update(Entity parent) {
-        chargeCooldown = math.max(chargeCooldown - EntityJob.cxt.deltaTime, 0);
-        if (!ShotInProgress) return;
-        shotProgress = math.max(shotProgress - EntityJob.cxt.deltaTime, 0);
-        if (shotProgress > 0) return;
-        stats.Projectile.LaunchProjectile(parent, fireDirection);
-        chargeCooldown = genetics.Get(stats.ChargeTime);
-        ShotInProgress = false;
     }
 }

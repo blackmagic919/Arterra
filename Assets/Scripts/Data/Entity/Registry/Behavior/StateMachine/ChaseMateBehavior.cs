@@ -13,10 +13,10 @@ namespace Arterra.Data.Entity.Behavior {
         public EntitySMTasks Task2Name = EntitySMTasks.Reproduce;
         public EntitySMTasks OnNotFoundTransition = EntitySMTasks.RandomPath;
         public EntitySMTasks OnFinishMateTransition = EntitySMTasks.RandomPath;
-        public Genetics.GeneFeature MateThreshold;
+        public float MateThreshold;
         public float PregnacyLength;
 
-        public Genetics.GeneFeature SearchDistance;
+        public float MateSearchDist;
         public Option<List<EntitySMTasks> > OnSwitchPath;
 
         public object Clone() {
@@ -36,14 +36,8 @@ namespace Arterra.Data.Entity.Behavior {
             public string MateType;
             [RegistryReference("Entities")]
             public string ChildType;
-            public Genetics.GeneFeature AmountPerParent;
+            public float AmountPerParent;
             public float GeneMutationRate;
-        }
-
-
-        public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            Genetics.AddGene(entityType, ref SearchDistance);
-            Genetics.AddGene(entityType, ref MateThreshold);
         }
     }
 
@@ -55,16 +49,20 @@ namespace Arterra.Data.Entity.Behavior {
 
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager;
-        private GeneticsBehavior genetics;
+        private Modifier mod;
         private VitalityBehavior vitality;
         private PathFinderBehavior path;
         private ReproductionBehavior reproduction;
         private RelationsBehavior relations;
 
-        public bool BeginMate() => vitality.healthPercent >= genetics.Genes.Get(settings.MateThreshold);
-        public bool StopMating() => vitality.healthPercent < genetics.Genes.Get(settings.MateThreshold);
+        private float MateThreshold => Modifier.Get(mod, MSettings.MateThreshold, settings.MateThreshold);
+        private float MateSearchDist => Modifier.Get(mod, MSettings.MateSearchDist, settings.MateSearchDist);
+        private float WalkSpeed(EntitySMTasks taskName) => MMove.Speed(mmove, taskName, mod, MSettings.WalkSpeed, movement.walkSpeed);
+        public bool BeginMate() => vitality.healthPercent >= MateThreshold;
+        public bool StopMating() => vitality.healthPercent < MateThreshold;
 
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             if (manager.TaskIndex == settings.Task1Name)
                 ChaseMate();
             else if (manager.TaskIndex == settings.Task2Name)
@@ -73,7 +71,7 @@ namespace Arterra.Data.Entity.Behavior {
         
         private bool FindMate() {
             if (StopMating()|| !reproduction.settings.FindPreferredMate(self,
-                genetics.Genes.Get(settings.SearchDistance), out Entity mate, relations)
+                MateSearchDist, out Entity mate, relations)
             ) {
                 return false;
             }
@@ -89,16 +87,17 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void ChaseMate() {//I feel you man
             if (!reproduction.settings.FindPreferredMate(self,
-                genetics.Genes.Get(settings.SearchDistance), out Entity mate, relations)
+                MateSearchDist, out Entity mate, relations)
             ) {
                 manager.Transition(settings.OnNotFoundTransition);
                 return;
             }
 
-            Movement.FollowDynamicPath(MMove.Profile(mmove, settings.Task2Name, self.settings),
+            self.PathCollider.Follow(Movement.DynamicDirect(
+                MMove.Profile(mmove, settings.Task1Name, self.settings), 
                 ref path.pathFinder, self.PathCollider, mate.origin,
-                MMove.Speed(mmove, settings.Task2Name, genetics.Genes, movement.walkSpeed),
-                movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.Task2Name));
+                MMove.MovementType(mmove, settings.Task1Name)
+            ), WalkSpeed(settings.Task1Name), movement.rotSpeed, movement.acceleration, self.DeltaTime);
             float mateDist = ColliderUpdateBehavior.GetColliderDist(self, mate);
             if (mateDist < manager.settings.ContactDistance) {
                 EntityManager.AddHandlerEvent(() => mate.As<IMateable>().MateWith(self));
@@ -136,7 +135,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Reproduction, heirarchy.Count);
@@ -153,8 +151,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: ChaseMate Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: ChaseMate Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: ChaseMate Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out reproduction))
@@ -164,6 +160,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ChaseMate Behavior Requires AnimalInstance to have VitalityBehavior");
             if (!self.Is(out relations)) relations = null;
+            if (!self.Is(out mod)) mod = null;
             
             manager.RegisterTransition(settings.Task1Name, TransitionTo);
             self.eventCtrl.AddEventHandler(GameEvent.Entity_CanMate, TestMate);
@@ -177,8 +174,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: ChaseMate Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: ChaseMate Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: ChaseMate Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out reproduction))
@@ -188,6 +183,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ChaseMate Behavior Requires AnimalInstance to have VitalityBehavior");
             if (!self.Is(out relations)) relations = null;
+            if (!self.Is(out mod)) mod = null;
             
             manager.RegisterTransition(settings.Task1Name, TransitionTo);
             self.eventCtrl.AddEventHandler(GameEvent.Entity_CanMate, TestMate);

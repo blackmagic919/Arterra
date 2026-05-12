@@ -18,7 +18,7 @@ namespace Arterra.Data.Entity.Behavior{
         //E.g. (I need to land to mate, so I perform a test on behalf of MatingBehavior, to 
         //know if I want to mate, and if so, I will attempt to land first)
         public EntitySMTasks ProxyTestName = EntitySMTasks.TestApproach2;
-        public Genetics.GeneFeature SurfaceThreshold = new () {mean = 0.2f, var = 0.5f, geneWeight = 0.1f};
+        public float SurfaceThreshold = 0.2f;
         public Option<List<EntitySMTasks>> ProxyTestTransitions = new () {
             value = new () {
                 EntitySMTasks.ChasePreyPlant,
@@ -27,8 +27,8 @@ namespace Arterra.Data.Entity.Behavior{
         };
         
         //measured in angle phi from positive vertical axis; in terms of pi (e.g. 0.75 => phi = 0.75 * phi)
-        public Genetics.GeneFeature ApproachAngleMax = new Genetics.GeneFeature{mean = 0.85f, var = 0.1f, geneWeight = 0.075f};
-        public Genetics.GeneFeature ApproachAngleFalloff = new Genetics.GeneFeature{mean = 0.5f, var = 0.25f, geneWeight = 0.075f};
+        public float SurfaceAngleMax = 0.85f;
+        public float SurfaceAngleFalloff = 0.5f;
         
 
         public object Clone() {
@@ -47,10 +47,6 @@ namespace Arterra.Data.Entity.Behavior{
                 bounds = SurfaceProfile.bounds,
                 profileStart = SurfaceProfile.offset + setting.profile.profileStart
             };
-
-            Genetics.AddGene(entityType, ref ApproachAngleMax);
-            Genetics.AddGene(entityType, ref ApproachAngleFalloff);
-            Genetics.AddGene(entityType, ref SurfaceThreshold);
         }
     }
     public class SwimToSurfaceBehavior : IBehavior {
@@ -59,24 +55,33 @@ namespace Arterra.Data.Entity.Behavior{
         private MMove mmove; //optional
 
         private StateMachineManagerBehavior manager;
-        private GeneticsBehavior genetics;
         private MapInteractBehavior mInteract; 
         private PathFinderBehavior path;
         private bool foundSurface;
+        private Modifier mod;
+
+        private float HoldBreathTime => Modifier.Get(mod, MSettings.HoldBreathTime, mInteract.settings.HoldBreathTime);
+        private float SurfaceThresh => Modifier.Get(mod, MSettings.SurfaceThresh, settings.SurfaceThreshold);
+        private float SurfaceAngleFalloff => Modifier.Get(mod, MSettings.SurfaceAngleFalloff, settings.SurfaceAngleFalloff);
+        private float SurfaceAngleMax => Modifier.Get(mod, MSettings.SurfaceAngleMax, settings.SurfaceAngleMax);
+        private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
+
         public void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
-
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            
             if (path.pathFinder.hasPath) {
-                Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
-                ref path.pathFinder, self.PathCollider,
-                MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
-                movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.TaskName));
+                self.PathCollider.Follow(Movement.StaticDirect(
+                    MMove.Profile(mmove, settings.TaskName, self.settings), 
+                    ref path.pathFinder, self.PathCollider,
+                    MMove.MovementType(mmove, settings.TaskName)
+                ), RunSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
                 return;
             } if (foundSurface) manager.Transition(settings.OnReachSurface);
 
             float t = math.abs(manager.TaskDuration);
-            float descentAngleProgress = 1 - math.exp(-t *genetics.Genes.Get(settings.ApproachAngleFalloff));
-            float descentAngleMax = math.clamp(genetics.Genes.Get(settings.ApproachAngleMax), 0f, 1.0f);
+            float descentAngleProgress = 1 - math.exp(-t *SurfaceAngleFalloff);
+            float descentAngleMax = math.clamp(SurfaceAngleMax, 0f, 1.0f);
             float descentAngle = 180 * math.lerp(0.5f, descentAngleMax, descentAngleProgress); 
 
             Vector3 e = self.transform.rotation.eulerAngles;
@@ -96,9 +101,8 @@ namespace Arterra.Data.Entity.Behavior{
 
         private bool IsSurfacing() {
             if (mInteract.breath > 0) return false; //In air
-            if (genetics.Genes.Get(settings.SurfaceThreshold) == 0) return false; //Doesn't drown
-            if (mInteract.breath > genetics.Genes.Get(settings.SurfaceThreshold)
-                * genetics.Genes.Get(mInteract.settings.HoldBreathTime))
+            if (SurfaceThresh == 0) return false; //Doesn't drown
+            if (mInteract.breath > SurfaceThresh * HoldBreathTime)
                 return false; //Still holding breath
             return true;
         }
@@ -109,7 +113,6 @@ namespace Arterra.Data.Entity.Behavior{
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.MapInteraction, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
         }
 
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
@@ -121,7 +124,7 @@ namespace Arterra.Data.Entity.Behavior{
             if (!IsSurfacing()) return false;
             foundSurface = false;
             return true;
-        }
+        }//
 
         private bool TestProxyLand() {
             if (settings.ProxyTestTransitions.value == null) return false;
@@ -140,14 +143,13 @@ namespace Arterra.Data.Entity.Behavior{
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out mInteract))
                 throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalSettings to have MapInteractBehavior");
+            if (!self.Is(out mod)) mod = null;
             
             foundSurface = false;
             manager.RegisterTransition(settings.TaskName, TransitionTo);
@@ -160,14 +162,13 @@ namespace Arterra.Data.Entity.Behavior{
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out mInteract))
                 throw new System.Exception("Entity: SwimToSurface Behavior Requires AnimalSettings to have MapInteractBehavior");
+            if (!self.Is(out mod)) mod = null;
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             manager.RegisterTransition(settings.ProxyTestName, TestProxyLand);

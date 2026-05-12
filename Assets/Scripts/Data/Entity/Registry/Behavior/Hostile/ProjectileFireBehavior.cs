@@ -14,7 +14,7 @@ namespace Arterra.Data.Entity.Behavior {
         }};
 
         public Stats Projectile;
-        public Genetics.GeneFeature BlindDist  = new () {mean = 3, var = 0.5f, geneWeight = 0.1f};
+        public float BlindDist = 3;
         [JsonIgnore]
         [UISetting(Ignore = true)]
         [HideInInspector]
@@ -24,18 +24,12 @@ namespace Arterra.Data.Entity.Behavior {
         public class Stats {
             public float ShotDelay = 0.25f;
             public bool CheckSightline = true;
-            public Genetics.GeneFeature ChargeTime = new () {mean = 5, var = 0.25f, geneWeight = 0.1f};
+            public float ChargeTime = 5;
             public ProjectileTag Projectile;
             public bool HasRangedAttack = true;
-            public void InitGenome(uint entityType) {
-                if (!HasRangedAttack) return;
-                Genetics.AddGene(entityType, ref ChargeTime);
-            }
         }
 
         public void Preset(uint entityType, BehaviorEntity.AnimalSetting settings) {
-            Projectile.InitGenome(entityType);
-            Genetics.AddGene(entityType, ref BlindDist);
             AttackStates = new HashSet<EntitySMTasks>(AttackingStates.value);
         }
 
@@ -52,21 +46,31 @@ namespace Arterra.Data.Entity.Behavior {
         private ProjectileFireSettings settings;
         private StateMachineManagerBehavior manager;
         private AnimatedBehavior animated;
-        [JsonIgnore] private Genetics genetics;
+        [JsonIgnore] private Modifier mod;
 
         private float3 fireDirection;
         private float chargeCooldown;
         private float shotProgress;
         public bool ShotInProgress;
 
+        private float BlindDist => Modifier.Get(mod, MSettings.BlindDist, settings.BlindDist);
+        private float ChargeTime => Modifier.Get(mod, MSettings.ChargeTime, settings.Projectile.ChargeTime);
+
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.JobSync)
+                CoreUpdate(self);
+            if (self.context != BehaviorEntity.UpdateContext.Job)
+                ControllerUpdate(self);
+        }
+
+        public void CoreUpdate(BehaviorEntity.Animal self) {
             UpdateFire(self);
             if(!settings.AttackStates.Contains(manager.TaskIndex)) return;
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity entity)) return;
             Fire(entity.head, self);
         }
 
-        public void UpdateController(BehaviorEntity.Animal self, BehaviorEntity.AnimalController controller) {
+        public void ControllerUpdate(BehaviorEntity.Animal self) {
             if (animated == null) return;
             Animator animator = animated.animator;
             animator.SetBool("IsShooting", ShotInProgress);
@@ -78,6 +82,8 @@ namespace Arterra.Data.Entity.Behavior {
             if (ShotInProgress) return false;
             if (chargeCooldown > 0) return false;
             fireDirection = target - self.position;
+            if (math.length(fireDirection) < BlindDist) return false;
+            
             if (settings.Projectile.CheckSightline) {
                 if (CPUMapManager.RayCastTerrain(self.head, math.normalizesafe(fireDirection), 
                     math.length(fireDirection), CPUMapManager.RayTestSolid, out float3 hit))
@@ -89,12 +95,12 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void UpdateFire(BehaviorEntity.Animal parent) {
-            chargeCooldown = math.max(chargeCooldown - EntityJob.cxt.deltaTime, 0);
+            chargeCooldown = math.max(chargeCooldown - parent.DeltaTime, 0);
             if (!ShotInProgress) return;
-            shotProgress = math.max(shotProgress - EntityJob.cxt.deltaTime, 0);
+            shotProgress = math.max(shotProgress - parent.DeltaTime, 0);
             if (shotProgress > 0) return;
             settings.Projectile.Projectile.LaunchProjectile(parent, fireDirection);
-            chargeCooldown = genetics.Get(settings.Projectile.ChargeTime);
+            chargeCooldown = ChargeTime;
             ShotInProgress = false;
         }
 
@@ -113,11 +119,9 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: ProjectileFire Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out animated)) animated = null;
-            if (self.Is(out GeneticsBehavior genes))
-                genetics = genes.Genes;
-            else genetics = new Genetics();
+            if (self.Is(out mod)) mod = null;
 
-            chargeCooldown = genetics.Get(settings.Projectile.ChargeTime);
+            chargeCooldown = ChargeTime;
             shotProgress = 0; ShotInProgress = false;
         }
 
@@ -127,9 +131,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: ProjectileFire Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out animated)) animated = null;
-            if (self.Is(out GeneticsBehavior genes))
-                genetics = genes.Genes;
-            else genetics = new Genetics();
+            if (self.Is(out mod)) mod = null;
         }
         
     }

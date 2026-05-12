@@ -36,12 +36,12 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        public bool CanConsume(Genetics genetics, IItem item, out float nutrition) {
+        public bool CanConsume(Modifier mod, IItem item, out float nutrition) {
             nutrition = 0;
             if (Edibles.value == null) return false;
             if (AwarenessTable == null) return false;
             if (!AwarenessTable.ContainsKey(item.Index)) return false;
-            nutrition = genetics.Get(Edibles.value[AwarenessTable[item.Index]].Nutrition);
+            nutrition = Modifier.Get(mod, MSettings.Nutrition, Edibles.value[AwarenessTable[item.Index]].Nutrition);
             nutrition *= (float)item.AmountRaw / item.UnitSize;
             return true;
         }
@@ -54,7 +54,7 @@ namespace Arterra.Data.Entity.Behavior {
         public struct Consumable {
             [RegistryReference("Items")]
             public string EdibleType;
-            public Genetics.GeneFeature Nutrition;
+            public float Nutrition;
         }
     }
 }

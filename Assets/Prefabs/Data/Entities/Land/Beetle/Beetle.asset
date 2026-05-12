@@ -56,7 +56,7 @@ MonoBehaviour:
           x: 0.3
           y: 0.6
           z: 0.3
-      Behaviors:
+      BehaviorList:
         value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000
       Settings:
         value:
@@ -110,7 +110,9 @@ MonoBehaviour:
             rid: 3097083922518114534
         - value:
             rid: 3097083922518114535
-  _prevBehaviorCount: 22
+        - value:
+            rid: 5205636866482634846
+      _prevBehaviorCount: 23
   references:
     version: 2
     RefIds:
@@ -120,26 +122,14 @@ MonoBehaviour:
         weight: 0.05
         StartHealthPercent: 0.7
         StartHealthVariance: 0.05
-        MaxHealth:
-          mean: 1.7
-          var: 0.35
-          geneWeight: 0.4
-        NaturalRegen:
-          mean: -0.0017
-          var: 0.25
-          geneWeight: 0.2
-        InvincTime:
-          mean: 0.25
-          var: 0.1
-          geneWeight: 0.025
+        MaxHealth: 1.7
+        NaturalRegen: -0.0017
+        InvincTime: 0.25
     - rid: 3097083922518114516
       type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
-        HoldBreathTime:
-          mean: 10
-          var: 0.3
-          geneWeight: 0.1
+        HoldBreathTime: 10
         UseFallDamage: 1
     - rid: 3097083922518114517
       type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -151,22 +141,10 @@ MonoBehaviour:
     - rid: 3097083922518114518
       type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        AttackDistance:
-          mean: 1.5
-          var: 0.25
-          geneWeight: 0.2
-        AttackDamage:
-          mean: 0.4
-          var: 0.5
-          geneWeight: 0.6
-        AttackCooldown:
-          mean: 0.58
-          var: 0.5
-          geneWeight: 0.3
-        KBStrength:
-          mean: 0.4
-          var: 0.5
-          geneWeight: 0.1
+        AttackDistance: 1.5
+        AttackDamage: 0.4
+        AttackCooldown: 0.58
+        KBStrength: 0.4
         AttackDuration: 0.22
     - rid: 3097083922518114519
       type: {class: MateRecognition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -175,26 +153,14 @@ MonoBehaviour:
           value:
           - MateType: Beetle
             ChildType: Beetle
-            AmountPerParent:
-              mean: 0.5
-              var: 0.25
-              geneWeight: 0.2
+            AmountPerParent: 0.5
             GeneMutationRate: 0.02
-        MateCost:
-          mean: 0.51
-          var: 0.4
-          geneWeight: 0.15
+        MateCost: 0.51
     - rid: 3097083922518114520
       type: {class: IdleStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        AverageIdleTime:
-          mean: 2.5
-          var: 0.5
-          geneWeight: 0.025
-        AverageIdleVariance:
-          mean: 0.25
-          var: 1
-          geneWeight: 0.025
+        AverageIdleTime: 2.5
+        AverageIdleVariance: 0.25
         TaskName: 0
         OnCompleteTransition: 100
         CheckTransitions:
@@ -202,14 +168,8 @@ MonoBehaviour:
     - rid: 3097083922518114521
       type: {class: RandomWalkStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        AverageWalkTime:
-          mean: 8
-          var: 0.3
-          geneWeight: 0.025
-        AveragWalkVariance:
-          mean: 0
-          var: 0
-          geneWeight: 0
+        AverageWalkTime: 8
+        AveragWalkVariance: 0
         TaskName: 100
         OnStopWalkTransition: 0
         OnSwitchPath:
@@ -221,15 +181,9 @@ MonoBehaviour:
         Task2Name: 20200
         OnNotFoundTransition: 100
         OnFinishMateTransition: 100
-        MateThreshold:
-          mean: 0.8
-          var: 0.125
-          geneWeight: 0.1
+        MateThreshold: 0.8
         PregnacyLength: 4
-        SearchDistance:
-          mean: 24
-          var: 0.25
-          geneWeight: 0.2
+        SearchDistance: 24
         OnSwitchPath:
           value: 
     - rid: 3097083922518114524
@@ -238,10 +192,7 @@ MonoBehaviour:
         TaskName: 30200
         OnNotFoundTransition: 0
         OnReachPreyTransition: 30400
-        SearchDistance:
-          mean: 8
-          var: 0.25
-          geneWeight: 0.15
+        SearchDistance: 8
     - rid: 3097083922518114525
       type: {class: FindPlantBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -266,14 +217,8 @@ MonoBehaviour:
     - rid: 3097083922518114526
       type: {class: HuntBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        HuntThreshold:
-          mean: 0.4
-          var: 0.25
-          geneWeight: 0.1
-        StopHuntThreshold:
-          mean: 0.9
-          var: 0.05
-          geneWeight: 0.05
+        HuntThreshold: 0.4
+        StopHuntThreshold: 0.9
     - rid: 3097083922518114527
       type: {class: ChasePreySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -281,10 +226,7 @@ MonoBehaviour:
         OnNotFoundTransition: 0
         OnReachPreyTransition: 30600
         DesiredPreyState: 0
-        SearchDistance:
-          mean: 24
-          var: 0.25
-          geneWeight: 0.2
+        SearchDistance: 24
         Prey:
           value: []
     - rid: 3097083922518114528
@@ -293,25 +235,13 @@ MonoBehaviour:
         Edibles:
           value:
           - EdibleType: Moss:Solid
-            Nutrition:
-              mean: 5
-              var: 0.25
-              geneWeight: 0.3
+            Nutrition: 5
           - EdibleType: TallGrass:Solid
-            Nutrition:
-              mean: 5
-              var: 0.25
-              geneWeight: 0.3
+            Nutrition: 5
           - EdibleType: DriedGrass:Solid
-            Nutrition:
-              mean: 3
-              var: 0.25
-              geneWeight: 0.3
+            Nutrition: 3
           - EdibleType: Grass:Solid
-            Nutrition:
-              mean: 4
-              var: 0.25
-              geneWeight: 0.3
+            Nutrition: 4
         ConsumptionRate: 0.25
     - rid: 3097083922518114529
       type: {class: ConsumeEntitySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -334,10 +264,7 @@ MonoBehaviour:
         TaskName: 50100
         OnLostAttacker: 0
         OnReachAttacker: 30600
-        ChaseDistance:
-          mean: 24
-          var: 0.25
-          geneWeight: 0.2
+        ChaseDistance: 24
     - rid: 3097083922518114532
       type: {class: RunFromPredatorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -352,10 +279,7 @@ MonoBehaviour:
       type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         fleeDist: 5
-        detectDist:
-          mean: 18
-          var: 0.25
-          geneWeight: 0.3
+        detectDist: 18
         FightAggressor: 0
     - rid: 3097083922518114534
       type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -368,10 +292,7 @@ MonoBehaviour:
       data:
         TaskName: 60000
         OnReviveTask: 0
-        DecompositionTime:
-          mean: 90
-          var: 0.2
-          geneWeight: 0.01
+        DecompositionTime: 90
     - rid: 3097083922518114545
       type: {class: ConsumeMaterialSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -381,14 +302,8 @@ MonoBehaviour:
     - rid: 3097083922518114639
       type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        walkSpeed:
-          mean: 1.8
-          var: 0.3
-          geneWeight: 0.1
-        runSpeed:
-          mean: 2.8
-          var: 0.35
-          geneWeight: 0.35
+        walkSpeed: 1.8
+        runSpeed: 2.8
         pathDistance: 24
         acceleration: 200
         rotSpeed: 180
@@ -398,10 +313,7 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: BugMush
-            DropAmount:
-              mean: 0.013333334
-              var: 0.75
-              geneWeight: 0.05
+            DropAmount: 0.013333334
     - rid: 3097084098772992145
       type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -449,3 +361,102 @@ MonoBehaviour:
       data:
         interactType: 0
         UseGravity: 1
+    - rid: 5205636866482634846
+      type: {class: GeneticsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Genes:
+          value:
+          - name: 1004
+            var: 0.35
+            geneWeight: 0.4
+          - name: 1006
+            var: 0.25
+            geneWeight: 0.2
+          - name: 1007
+            var: 0.1
+            geneWeight: 0.025
+          - name: 1005
+            var: 0.3
+            geneWeight: 0.1
+          - name: 1000
+            var: 0.25
+            geneWeight: 0.2
+          - name: 1001
+            var: 0.5
+            geneWeight: 0.6
+          - name: 1002
+            var: 0.5
+            geneWeight: 0.3
+          - name: 1003
+            var: 0.5
+            geneWeight: 0.1
+          - name: 4002
+            var: 0.25
+            geneWeight: 0.2
+          - name: 4001
+            var: 0.4
+            geneWeight: 0.15
+          - name: 2039
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2040
+            var: 1
+            geneWeight: 0.025
+          - name: 2044
+            var: 0.3
+            geneWeight: 0.025
+          - name: 2045
+            var: 0
+            geneWeight: 0
+          - name: 2035
+            var: 0.125
+            geneWeight: 0.1
+          - name: 2036
+            var: 0.25
+            geneWeight: 0.2
+          - name: 2037
+            var: 0.25
+            geneWeight: 0.15
+          - name: 2002
+            var: 0.25
+            geneWeight: 0.1
+          - name: 2003
+            var: 0.05
+            geneWeight: 0.05
+          - name: 2038
+            var: 0.25
+            geneWeight: 0.2
+          - name: 4000
+            var: 0.25
+            geneWeight: 0.3
+          - name: 4000
+            var: 0.25
+            geneWeight: 0.3
+          - name: 4000
+            var: 0.25
+            geneWeight: 0.3
+          - name: 4000
+            var: 0.25
+            geneWeight: 0.3
+          - name: 2031
+            var: 0.25
+            geneWeight: 0.2
+          - name: 2030
+            var: 0.25
+            geneWeight: 0.3
+          - name: 1012
+            var: 0.2
+            geneWeight: 0.01
+          - name: 1008
+            var: 0.3
+            geneWeight: 0.1
+          - name: 1009
+            var: 0.35
+            geneWeight: 0.35
+          - name: 4003
+            var: 0.75
+            geneWeight: 0.05
+
+
+
+        NormalizeWeights: 1

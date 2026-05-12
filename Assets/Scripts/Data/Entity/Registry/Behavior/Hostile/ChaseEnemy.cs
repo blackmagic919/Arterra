@@ -13,23 +13,23 @@ namespace Arterra.Data.Entity.Behavior {
         public EntitySMTasks OnNotFoundTransition = EntitySMTasks.Idle;
         public EntitySMTasks OnReachEnemyTransition = EntitySMTasks.AttackTarget;
         public Option<List<StateSearch>> SearchChances = new () { value = new () {
-            new () {SourceState = EntitySMTasks.Idle, SearchChance = new () {mean = 0.25f, var = 0.5f, geneWeight = 0.2f}}
+            new () {SourceState = EntitySMTasks.Idle, SearchChance = 0.5f}
         }};
 
-        public Genetics.GeneFeature SearchDistance = new() {mean = 10, var = 0.5f, geneWeight = 0.2f};
+        public float SearchDistance = 10;
         public EnemyState DesiredEnemyState;
 
         [Serializable]
         public struct StateSearch {
             public EntitySMTasks SourceState;
-            public Genetics.GeneFeature SearchChance;
+            public float SearchChance;
         }
         
 
         [JsonIgnore]
         [UISetting(Ignore = true)]
         [HideInInspector]
-        internal Dictionary<EntitySMTasks, Genetics.GeneFeature> _SearchChances;
+        internal Dictionary<EntitySMTasks, float> _SearchChances;
 
         [JsonIgnore]
         [UISetting(Ignore = true)]
@@ -64,16 +64,13 @@ namespace Arterra.Data.Entity.Behavior {
                 }
             };
 
-            _SearchChances = new Dictionary<EntitySMTasks, Genetics.GeneFeature>();
+            _SearchChances = new Dictionary<EntitySMTasks, float>();
             if(SearchChances.value != null) {
                 foreach(StateSearch s in SearchChances.value) {
                     StateSearch copy = s;
-                    Genetics.AddGene(entityType, ref copy.SearchChance);
                     _SearchChances.TryAdd(s.SourceState, copy.SearchChance);
                 }
             };
-
-            Genetics.AddGene(entityType, ref SearchDistance);
         }
 
         public bool FindPreferredEnemyEntity(Entity self, float sightDist, out Entity entity, RelationsBehavior relations = null){
@@ -135,23 +132,27 @@ namespace Arterra.Data.Entity.Behavior {
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager;
         private PathFinderBehavior path;
-        private GeneticsBehavior genetics;
+        private Modifier mod;
         private RelationsBehavior relations;
+
+        private float SearchDistance => Modifier.Get(mod, MSettings.SearchDistance, settings.SearchDistance);
+        private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
 
 
         //Task 4
         public void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
-            if (!settings.FindPreferredEnemyEntity(self, 
-                genetics.Genes.Get(settings.SearchDistance), out Entity Enemy, relations)
-            ) {
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (!settings.FindPreferredEnemyEntity(self,  SearchDistance, out Entity Enemy, relations)) {
                 manager.Transition(settings.TaskName);
                 return;
             }
-            Movement.FollowDynamicPath(MMove.Profile(mmove, settings.TaskName, self.settings), 
+
+            self.PathCollider.Follow(Movement.DynamicDirect(
+                MMove.Profile(mmove, settings.TaskName, self.settings),
                 ref path.pathFinder, self.PathCollider, Enemy.origin,
-                MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
-                movement.rotSpeed,movement.acceleration, MMove.MovementType(mmove, settings.TaskName));
+                MMove.MovementType(mmove, settings.TaskName)
+            ), RunSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
             
             float EnemyDist = ColliderUpdateBehavior.GetColliderDist(self, Enemy);
             if (EnemyDist < manager.settings.ContactDistance && manager.Transition(settings.OnReachEnemyTransition)) {
@@ -163,7 +164,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private bool FindEnemy() {
             if (!settings.FindPreferredEnemyEntity(
-                self, genetics.Genes.Get(settings.SearchDistance),
+                self, SearchDistance,
                 out Entity Enemy, relations)
             ) return false;
             
@@ -184,9 +185,9 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private float GetSearchChange() {
-            if (!settings._SearchChances.TryGetValue(manager.TaskIndex, out Genetics.GeneFeature feature))
+            if (!settings._SearchChances.TryGetValue(manager.TaskIndex, out float feature))
                 return 1;
-            return genetics.Genes.Get(feature) * EntityJob.cxt.deltaTime;
+            return Modifier.Get(mod, MSettings.SearchChance, feature);
         }
 
         public bool TransitionTo() {
@@ -197,7 +198,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
         }
 
@@ -212,13 +212,12 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: ChaseEnemy Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: ChaseEnemy Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: ChaseEnemy Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: ChaseEnemy Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out relations)) relations = null;
+            if (!self.Is(out mod)) mod = null;
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             this.self = self;
@@ -230,13 +229,12 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: ChaseEnemy Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: ChaseEnemy Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: ChaseEnemy Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: ChaseEnemy Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out relations)) relations = null;
+            if (!self.Is(out mod)) mod = null;
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             this.self = self;

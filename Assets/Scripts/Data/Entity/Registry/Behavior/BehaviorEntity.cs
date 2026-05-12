@@ -27,7 +27,6 @@ namespace Arterra.Data.Entity.Behavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord){}
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){}
         public void Update(BehaviorEntity.Animal self){}
-        public void UpdateController(BehaviorEntity.Animal self, BehaviorEntity.AnimalController controller){}
         public void Disable(BehaviorEntity.Animal self){}
         public void OnDrawGizmos(BehaviorEntity.Animal self) {}
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> Behaviors){}
@@ -49,6 +48,14 @@ namespace Arterra.Data.Entity.Behavior {
         Indicators = BehaviorTypes.Base + 3,
         Rideable = BehaviorTypes.Base + 4,
         Collider = BehaviorTypes.Base + 5,
+        Modifiers = BehaviorTypes.Base + 6,
+        PlayerRoot = BehaviorTypes.Base + 100,
+        PlayerMovement = BehaviorTypes.Base + 101,
+        PlayerCamera = BehaviorTypes.Base + 102,
+        PlayerEffects = BehaviorTypes.Base + 103,
+        PlayerInteraction = BehaviorTypes.Base + 104,
+        PlayerInventories = BehaviorTypes.Base + 105,
+        PlayerBaseLogicHandler = BehaviorTypes.Base + 106,
 
         StateMachine = BehaviorTypes.Creature + 0,
         Attack = BehaviorTypes.Creature + 1,
@@ -111,10 +118,19 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.Indicators, () => new InidcatorsBehavior() },
             { Behaviors.Rideable, () => new RidableBehavior() },
             { Behaviors.Collider, () => new ColliderUpdateBehavior() },
+            { Behaviors.Modifiers, () => new Modifier() },
+
+            { Behaviors.PlayerRoot, () => new PlayerBehavior() },
+            { Behaviors.PlayerMovement, () => new PlayerMovementBehavior() },
+            { Behaviors.PlayerCamera, () => new PlayerCameraBehavior() },
+            { Behaviors.PlayerEffects, () => new PlayerEffectsBehavior() },
+            { Behaviors.PlayerInteraction, () => new PlayerInteractionBehavior() },
+            { Behaviors.PlayerInventories, () => new PlayerInventoriesBehavior() },
+            { Behaviors.PlayerBaseLogicHandler, () => new PlayerBaseLogicHandler() },
 
             { Behaviors.StateMachine, () => new StateMachineManagerBehavior()},
             { Behaviors.Attack, () => new AttackBehavior()},
-            { Behaviors.Genetics, () => new GeneticsBehavior()},
+            { Behaviors.Genetics, () => new Genetics()},
             { Behaviors.Pathfinding, () => new PathFinderBehavior()},
             { Behaviors.Reproduction, () => new ReproductionBehavior()},
             { Behaviors.Vitality, () => new VitalityBehavior()},
@@ -155,62 +171,15 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.DeathState, () => new DeathBehavior()},
         };
 
-        [SerializeField, HideInInspector] private int _prevBehaviorCount = 0;
-        //Verify dependencies and apply 
+        public enum UpdateContext { Job, Fixed, Main, Late, JobSync }
+
         public override void OnValidate() {
             base.OnValidate();
-            AnimalSetting settings = _Setting.value;
-            Dictionary<Behaviors, int> BehaviorHeirarchy = new ();
-            Dictionary<Type, IBehaviorSetting> SettingsHeirarchy = new ();
-            BehaviorHeirarchy.Add(Behaviors.Collider, 0);
-
-            //Get full sorted behavior dependency heirarchy
-            if (settings.Behaviors.value == null) return;
-            //Make sure new elements are always added as None and don't get Deduped
-            if (settings.Behaviors.value.Count > _prevBehaviorCount) {
-                for(; _prevBehaviorCount < settings.Behaviors.value.Count; _prevBehaviorCount++)
-                    settings.Behaviors.value[_prevBehaviorCount] = Behaviors.None - _prevBehaviorCount;
-            } else _prevBehaviorCount = settings.Behaviors.value.Count;
-            
-            foreach(Behaviors name in settings.Behaviors.value) {
-                if (name <= Behaviors.None) BehaviorHeirarchy.Add(name, BehaviorHeirarchy.Count);
-                if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
-                    continue;
-                IBehavior behavior = getBehavior.Invoke();
-                behavior.AddBehaviorDependencies(BehaviorHeirarchy);
-                BehaviorHeirarchy.TryAdd(name, BehaviorHeirarchy.Count);
-            }
-
-            var SortingList = BehaviorHeirarchy.ToList();
-            SortingList.Sort((a, b) => a.Value.CompareTo(b.Value));
-            var BehaviorList = SortingList.Select(a => a.Key).ToList();
-            settings.Behaviors.value = BehaviorList;
-
-            //Get all required settings
-            foreach(Behaviors name in BehaviorList) {
-                if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
-                    continue;
-                IBehavior behavior = getBehavior.Invoke();
-                behavior.AddSettingsDependencies(SettingsHeirarchy);
-            }
-
-            //Merge Settings
-            foreach (var setting in settings.Settings.value) {
-                SettingsHeirarchy[setting.value.GetType()] = setting.value;
-            }
-
-            settings.Settings.value = SettingsHeirarchy.Values
-                .Select(a => new ReferenceOption<IBehaviorSetting>{value = a})
-                .ToList();
-            
-            foreach (var setting in settings.Settings.value) {
-                setting.value.OnValidate(settings);
-            }
         }
 
         [Serializable]
-        public class AnimalSetting : EntitySetting{
-            public Option<List<Behaviors> > Behaviors;
+        public class AnimalSetting : EntitySetting, ISerializationCallbackReceiver{
+            public Option<List<Behaviors> > BehaviorList;
             [TypeNameElementList("value",
                 typeof(Movement),
                 typeof(MMove),
@@ -220,6 +189,7 @@ namespace Arterra.Data.Entity.Behavior {
                 typeof(PhysicalitySetting),
                 typeof(AttackStats),
                 typeof(AnimatedSettings),
+                typeof(GeneticsSettings),
                 typeof(DefendFriendSetting),
                 typeof(FeedableBehaviorSettings),
                 typeof(MapInteractorSettings),
@@ -243,7 +213,12 @@ namespace Arterra.Data.Entity.Behavior {
                 typeof(RandomFlyStateSettings),
                 typeof(RideableStateSettings),
                 typeof(RunFromAttackerSettings),
-                typeof(RunFromPredatorSettings)
+                typeof(RunFromPredatorSettings),
+                typeof(PlayerMovementSettings),
+                typeof(PlayerCameraSettings),
+                typeof(PlayerEffectsSettings),
+                typeof(PlayerInteractionSettings),
+                typeof(PlayerInventorySettings)
             )]
             public Option<List<ReferenceOption<IBehaviorSetting>> > Settings;
 
@@ -260,14 +235,78 @@ namespace Arterra.Data.Entity.Behavior {
                 base.Preset(entityType);
             }
 
+            public void OnBeforeSerialize() {}
+
+            public void OnAfterDeserialize() => OnValidate();
+
+            [SerializeField, HideInInspector] private int _prevBehaviorCount = 0;
+            //Verify dependencies and apply 
+            public void OnValidate() {
+                Dictionary<Behaviors, int> BehaviorHeirarchy = new ();
+                Dictionary<Type, IBehaviorSetting> SettingsHeirarchy = new ();
+                BehaviorHeirarchy.Add(Behaviors.Collider, 0);
+
+                //Get full sorted behavior dependency heirarchy
+                if (this.BehaviorList.value == null) return;
+                //Make sure new elements are always added as None and don't get Deduped
+                if (this.BehaviorList.value.Count > _prevBehaviorCount) {
+                    HashSet<Behaviors> existingBehaviors = new HashSet<Behaviors>();
+                    for (int i = 0; i < _prevBehaviorCount; i++) existingBehaviors.Add(this.BehaviorList.value[i]);
+                    for(; _prevBehaviorCount < this.BehaviorList.value.Count; _prevBehaviorCount++)
+                        if(existingBehaviors.Contains(this.BehaviorList.value[_prevBehaviorCount]))
+                            this.BehaviorList.value[_prevBehaviorCount] = Behaviors.None - _prevBehaviorCount;
+                } else _prevBehaviorCount = this.BehaviorList.value.Count;
+                
+                foreach(Behaviors name in this.BehaviorList.value) {
+                    if (name <= Behaviors.None) BehaviorHeirarchy.Add(name, BehaviorHeirarchy.Count);
+                    if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
+                        continue;
+                    IBehavior behavior = getBehavior.Invoke();
+                    behavior.AddBehaviorDependencies(BehaviorHeirarchy);
+                    BehaviorHeirarchy.TryAdd(name, BehaviorHeirarchy.Count);
+                }
+
+                var SortingList = BehaviorHeirarchy.ToList();
+                SortingList.Sort((a, b) => a.Value.CompareTo(b.Value));
+                var BehaviorList = SortingList.Select(a => a.Key).ToList();
+                this.BehaviorList.value = BehaviorList;
+
+                //Get all required settings
+                foreach(Behaviors name in BehaviorList) {
+                    if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
+                        continue;
+                    IBehavior behavior = getBehavior.Invoke();
+                    behavior.AddSettingsDependencies(SettingsHeirarchy);
+                }
+
+                //Merge Settings
+                foreach (var setting in Settings.value) {
+                    SettingsHeirarchy[setting.value.GetType()] = setting.value;
+                }
+
+                Settings.value = SettingsHeirarchy.Values
+                    .Select(a => new ReferenceOption<IBehaviorSetting>{value = a})
+                    .ToList();
+                
+                foreach (var setting in Settings.value) {
+                    setting.value.OnValidate(this);
+                }
+            }
+
             public void Register<TInterface>(TInterface instance) => DynamicTypes.TryAdd(typeof(TInterface), instance);
 
             public void Register(Type type, IBehaviorSetting instance) => DynamicTypes.TryAdd(type, instance);
 
             public bool Is<TInstance>(out TInstance instance) {
-                bool IsType = DynamicTypes.TryGetValue(typeof(TInstance), out object value);
-                instance = (TInstance)value;
-                return IsType;
+                if (DynamicTypes == null) {instance = default; return false;}
+                if (DynamicTypes.TryGetValue(typeof(TInstance), out object value)) {
+                    instance = (TInstance) value;
+                } else if (this is TInstance i1){
+                    instance = i1;
+                } else {
+                    instance = default;
+                    return false;
+                } return true;
             } 
         }
 
@@ -287,9 +326,29 @@ namespace Arterra.Data.Entity.Behavior {
                 get => colliderInfo.Rotation;
                 set => colliderInfo.Rotation = value;
             }
+            
 
             [JsonIgnore] public override ref TerrainCollider.Transform transform => ref Collider.transform; 
             [JsonIgnore] public int3 PathCoord => (int3)math.floor(PathCollider.transform.position);
+            [JsonIgnore] public UpdateContext context = UpdateContext.Job;
+            [JsonIgnore] public float DeltaTime {
+                get {
+                    if (context == UpdateContext.Job || context == UpdateContext.JobSync)
+                        return EntityJob.cxt.deltaTime;
+                    else if(context == UpdateContext.Fixed)
+                        return Time.fixedDeltaTime;
+                    else return Time.deltaTime;
+                }
+            }
+            [JsonIgnore] public float ExactDeltaTime {
+                get {
+                    if (context == UpdateContext.Job || context == UpdateContext.JobSync)
+                        return EntityJob.cxt.totDeltaTime;
+                    else if(context == UpdateContext.Fixed)
+                        return Time.fixedDeltaTime;
+                    else return Time.deltaTime;
+                }
+            }
 
 
             public void Register<TInterface>(TInterface instance) {
@@ -305,9 +364,14 @@ namespace Arterra.Data.Entity.Behavior {
             
             public override bool Is<TInstance>(out TInstance instance) {
                 if (DynamicTypes == null) {instance = default; return false;}
-                bool IsType = DynamicTypes.TryGetValue(typeof(TInstance), out object value);
-                instance = (TInstance) value;
-                return IsType;
+                if (DynamicTypes.TryGetValue(typeof(TInstance), out object value)) {
+                    instance = (TInstance) value;
+                } else if (this is TInstance i1){
+                    instance = i1;
+                } else {
+                    instance = default;
+                    return false;
+                } return true;
             } 
 
             public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
@@ -317,10 +381,12 @@ namespace Arterra.Data.Entity.Behavior {
                 
                 Behaviors = new List<IBehavior>();
                 DynamicTypes = new Dictionary<Type, object>();
-                foreach(Behaviors name in settings.Behaviors.value) {
+                foreach(Behaviors name in settings.BehaviorList.value) {
                     if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
                         continue;
                     IBehavior behavior = getBehavior.Invoke();
+                    if (TryGetConstructor(behavior.GetType(), out object savedBehav))
+                        behavior = (IBehavior) savedBehav;
                     if (behavior == null) continue;
                     Register(behavior.GetType(), behavior);
                     Behaviors.Add(behavior);
@@ -350,9 +416,30 @@ namespace Arterra.Data.Entity.Behavior {
                 controller.Initialize(transform);
             }
 
+            public void Update(UpdateContext ctx = UpdateContext.Main) {
+                this.context = ctx;
+                UpdateBehaviors();
+            }
+
             public override void Update() {
-                if (!active) return;
-                EntityManager.AddHandlerEvent(controller.Update);
+                if (context == UpdateContext.Job || context == UpdateContext.JobSync)
+                    context = UpdateContext.Job;
+                else return;
+                UpdateBehaviors();
+            }
+
+            public override void UpdateJobSync() {
+                if (context == UpdateContext.Job || context == UpdateContext.JobSync)
+                    context = UpdateContext.JobSync;
+                else return;
+                UpdateBehaviors();
+            }
+
+            public void UpdateBehaviors() {
+                if (!active || !controller.active) return;
+                if (controller.gameObject == null) return;
+                if (context != UpdateContext.Job) controller.Update();
+
                 foreach(IBehavior behavior in Behaviors) {
                     Profiler.BeginSample(behavior.GetType().Name);
                     behavior.Update(this);
@@ -372,11 +459,13 @@ namespace Arterra.Data.Entity.Behavior {
                 } controller.Dispose();
             }
         }
+
         public class AnimalController {
             public Animal entity;
             public GameObject gameObject;
             public Transform transform;
-            private bool active = false;
+            [JsonIgnore]
+            public bool active = false;
 
             public AnimalController(GameObject GameObject, Animal entity) {
                 this.entity = entity;
@@ -392,16 +481,7 @@ namespace Arterra.Data.Entity.Behavior {
                 );
             }
 
-            public void Update() {
-                if (!active) return;
-                if (!entity.active) return;
-                if (gameObject == null) return;
-
-                this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), entity.transform.rotation);
-                foreach(IBehavior behavior in entity.Behaviors) {
-                    behavior.UpdateController(entity, this);
-                }
-            }
+            public void Update() => this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), entity.transform.rotation);
 
             public void Dispose() {
                 if (!active) return;

@@ -6,10 +6,11 @@ using UnityEngine;
 using Arterra.Data.Material;
 using Arterra.Core.Storage;
 using Arterra.GamePlay;
-using static Arterra.GamePlay.PlayerInteraction;
+using static Arterra.Data.Entity.Behavior.PlayerInteractionBehavior;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
 using Arterra.GamePlay.UI;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Data.Item
 {
@@ -108,7 +109,7 @@ namespace Arterra.Data.Item
         private MatConverterAuthoring settings => ItemInfo.Retrieve(Index) as MatConverterAuthoring;
 
         private void PlayerModifyTerrain(ItemContext cxt) {
-            if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
             if (!RayTestSolid(out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _))
                 return;

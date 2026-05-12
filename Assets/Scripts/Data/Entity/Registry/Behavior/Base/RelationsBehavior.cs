@@ -9,27 +9,27 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class RelationsBehaviorSettings : IBehaviorSetting {
-        public Genetics.GeneFeature OnFedAffection = new(){mean = 8f, geneWeight = 0.025f, var = 0.5f}; //per amount of 
-        public Genetics.GeneFeature OnProtectAffection = new(){mean = 8f, geneWeight = 0.025f, var = 0.75f};
-        public Genetics.GeneFeature OnSaveAffection = new(){mean = 15f, geneWeight = 0.025f, var = 0.5f};
+        public float OnFedAffection = 8f; 
+        public float OnProtectAffection = 8f;
+        public float OnSaveAffection = 15f;
 
-        public Genetics.GeneFeature OnMateAffection = new(){mean = 20f, geneWeight = 0.025f, var = 0.5f};
-        public Genetics.GeneFeature OnBetrayalAffection = new(){mean = -2.5f, geneWeight = 0.025f, var = 0.5f};
-        public Genetics.GeneFeature OnRivalMateAffection = new(){mean = -14f, geneWeight = 0.025f, var = 0.5f};
+        public float OnMateAffection = 20f; 
+        public float OnBetrayalAffection = -2.5f;
+        public float OnRivalMateAffection = -14f;
 
-        public Genetics.GeneFeature OnAttackAffection = new(){mean = -18f, geneWeight = 0.025f, var = 0.5f};
-        public Genetics.GeneFeature ForgetFalloff = new(){mean = 0.2f, geneWeight = 0.025f, var = 0.5f};
-        public Genetics.GeneFeature BaseForgetRate = new(){mean = 0.05f, geneWeight = 0.025f, var = 0.7f};
+        public float OnAttackAffection = -18f;
+        public float ForgetFalloff = 0.2f; 
+        public float BaseForgetRate = 0.05f;
         public float SuppressInstinctAffection = 10.0f;
 
-        public Genetics.GeneFeature GossipCooldown = new(){mean = 5f, geneWeight = 0.01f, var = 0.25f};
-        public Genetics.GeneFeature GossipRadius = new(){mean = 8f, geneWeight = 0.01f, var = 0.5f};
+        public float GossipCooldown = 5f; 
+        public float GossipRadius = 8f; 
         //Higher falloff means friends are more likely to gossip with one another
-        public Genetics.GeneFeature GossipCloseness = new(){mean = 0.1f, geneWeight = 0.01f, var = 0.5f};
+        public float GossipCloseness = 0.1f; 
         // The influence on a friend's affection of the affection of our relation (factoring in closeness between us)
-        public Genetics.GeneFeature GossipStrength = new(){mean = 0.2f, geneWeight = 0.01f, var = 0.75f};
+        public float GossipStrength = 0.2f; 
         //The max amount of stuff that can be gossiped at one time
-        public Genetics.GeneFeature GossipAmount = new(){mean = 2.5f, geneWeight = 0.01f, var = 0.5f};
+        public float GossipAmount = 2.5f; 
 
         //Forget rate = BaseForgetRate * e^(-ForgetFalloff * Affection)
         public Option<List<EntitySMTasks>> EscapingTargetStates = new() {
@@ -61,18 +61,6 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            Genetics.AddGene(entityType, ref OnFedAffection);
-            Genetics.AddGene(entityType, ref OnProtectAffection);
-            Genetics.AddGene(entityType, ref OnSaveAffection);
-            Genetics.AddGene(entityType, ref OnMateAffection);
-            Genetics.AddGene(entityType, ref OnAttackAffection);
-            Genetics.AddGene(entityType, ref ForgetFalloff);
-            Genetics.AddGene(entityType, ref GossipCooldown);
-            Genetics.AddGene(entityType, ref GossipRadius);
-            Genetics.AddGene(entityType, ref GossipCloseness);
-            Genetics.AddGene(entityType, ref GossipStrength);
-            Genetics.AddGene(entityType, ref GossipAmount);
-
             if (EscapingTargetStates.value == null) {
                 EscapeStatesSet = new HashSet<EntitySMTasks>();
                 return;
@@ -86,9 +74,8 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonIgnore] public RelationsBehaviorSettings settings;
 
         private VitalityBehavior vitality;
-        private GeneticsBehavior genetics;
         private StateMachineManagerBehavior manager;
-        private Genetics Genes => genetics.Genes;
+        private Modifier mod;
 
         //Basically a list + dictionary to allow us to change the dictionary mid loop
         [JsonProperty] private IndirectDictionary<Guid, float> Relationships;
@@ -98,6 +85,21 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonProperty] private Dictionary<Guid, GossipTopic> Gossip;
         [JsonProperty] private float TimeSinceGossip;
 
+        private float ForgetFalloff => Modifier.Get(mod, MSettings.ForgetFalloff, settings.ForgetFalloff);
+        private float BaseForgetRate => Modifier.Get(mod, MSettings.BaseForgetRate, settings.BaseForgetRate);
+        private float GossipCooldown => Modifier.Get(mod, MSettings.GossipCooldown, settings.GossipCooldown);
+        private float GossipRadius => Modifier.Get(mod, MSettings.GossipRadius, settings.GossipRadius);
+        private float GossipCloseness => Modifier.Get(mod, MSettings.GossipCloseness, settings.GossipCloseness);
+        private float GossipAmount => Modifier.Get(mod, MSettings.GossipAmount, settings.GossipAmount);
+        private float GossipStrength => Modifier.Get(mod, MSettings.GossipStrength, settings.GossipStrength);
+        private float OnFedAffection => Modifier.Get(mod, MSettings.OnFedAffection, settings.OnFedAffection);
+        private float OnProtectAffection => Modifier.Get(mod, MSettings.OnProtectAffection, settings.OnProtectAffection);
+        private float OnSaveAffection => Modifier.Get(mod, MSettings.OnSaveAffection, settings.OnSaveAffection);
+        private float OnAttackAffection => Modifier.Get(mod, MSettings.OnAttackAffection, settings.OnAttackAffection);
+        private float OnMateAffection => Modifier.Get(mod, MSettings.OnMateAffection, settings.OnMateAffection);
+        private float OnBetrayalAffection => Modifier.Get(mod, MSettings.OnBetrayalAffection, settings.OnBetrayalAffection);
+        private float OnRivalMateAffection => Modifier.Get(mod, MSettings.OnRivalMateAffection, settings.OnRivalMateAffection);
+        
         struct GossipTopic {
             public float TalkedAbout;
             public float TalkedTo;
@@ -121,6 +123,9 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.JobSync)
+                return;
+                
             AttachHooksToAttacker();
             GossipWithFriends(self);
             List<Guid> toRemove = null;
@@ -133,8 +138,8 @@ namespace Arterra.Data.Entity.Behavior {
                     continue;
                 }
 
-                float rate = Genes.Get(settings.BaseForgetRate) * math.exp(-Genes.Get(settings.ForgetFalloff) * math.abs(a)); // per second
-                float delta = rate * EntityJob.cxt.deltaTime; // always >= 0
+                float rate = BaseForgetRate * math.exp(-ForgetFalloff * math.abs(a)); // per second
+                float delta = rate * self.DeltaTime; // always >= 0
 
                 // Clamp so we don't overshoot past zero
                 if (math.abs(a) <= delta) (toRemove ??= new List<Guid>()).Add(friend);
@@ -156,10 +161,10 @@ namespace Arterra.Data.Entity.Behavior {
         // That B gains topics about C from talking to A, and then talks back to A about C, however dampening via 
         // closeness and gossip strength should mean this feedback effect diminishes and converges.
         private void GossipWithFriends(BehaviorEntity.Animal self) {
-            TimeSinceGossip -= EntityJob.cxt.deltaTime;
+            TimeSinceGossip -= self.DeltaTime;
             if (TimeSinceGossip > 0) return;
-            TimeSinceGossip = Genes.Get(settings.GossipCooldown);
-            float gossipRadius = Genes.Get(settings.GossipRadius);
+            TimeSinceGossip = GossipCooldown;
+            float gossipRadius = GossipRadius;
             List<(Guid, float)> newTopics = FindNewTopics();
 
             Bounds bounds = new (self.position, new float3(gossipRadius*2));
@@ -170,7 +175,7 @@ namespace Arterra.Data.Entity.Behavior {
                 if ((intAffection = GetAffection(nEntity.info.rtEntityId)) <= 0) return;
                 if (!nEntity.Is(out RelationsBehavior nRelations)) return;
                 if ((extAffection = nRelations.GetAffection(self.info.rtEntityId)) <= 0) return;
-                float closeness = 1 - math.exp(-intAffection * extAffection * Genes.Get(settings.GossipCloseness));
+                float closeness = 1 - math.exp(-intAffection * extAffection * GossipCloseness);
                 DiscussNewTopics(self, nEntity, newTopics, closeness);
                 CatchUpWithFriend(self, nEntity, closeness);
             });
@@ -192,14 +197,14 @@ namespace Arterra.Data.Entity.Behavior {
                     thirdPartyTopics += math.abs(kv.Value);
                 } if (thirdPartyTopics == 0) return;
                 
-                float talkAmount = math.min(affection - lastGossip.TalkedTo, Genes.Get(settings.GossipAmount));
+                float talkAmount = math.min(affection - lastGossip.TalkedTo, GossipAmount);
                 //scale by how much other people mean relative to how much everyone means to you
                 talkAmount *= thirdPartyTopics / (thirdPartyTopics + affection); 
                 
                 foreach(var kv in Relationships) {
                     if (kv.Key == friend.info.rtEntityId) continue;
                     float gossipAmount = talkAmount * (kv.Value / thirdPartyTopics) * closeness;
-                    float dAffection = gossipAmount * Genes.Get(settings.GossipStrength);
+                    float dAffection = gossipAmount * GossipStrength;
                     friendRelations.AddAffection(kv.Key, dAffection);
                 } 
                 GossipTopic gossipData = Gossip[friend.info.rtEntityId];
@@ -215,10 +220,10 @@ namespace Arterra.Data.Entity.Behavior {
                     float gossipAmount = topic.Item2;
                     //brag about your friend to that friend lol
                     if (subject == friend.info.rtEntityId) continue; 
-                    gossipAmount = math.sign(gossipAmount) * math.min(math.abs(gossipAmount), Genes.Get(settings.GossipAmount));
+                    gossipAmount = math.sign(gossipAmount) * math.min(math.abs(gossipAmount), GossipAmount);
                     gossipAmount *= closeness;
                     
-                    float dAffection = gossipAmount * Genes.Get(settings.GossipStrength);
+                    float dAffection = gossipAmount * GossipStrength;
                     friendRelations.AddAffection(subject, dAffection);
                     
                     GossipTopic gossipData = Gossip[subject];
@@ -309,7 +314,7 @@ namespace Arterra.Data.Entity.Behavior {
             Entity feeder; float nutrRaw; float nutrition;
             (feeder, nutrRaw, nutrition) = ((RefTuple<(Entity, float, float)>)cxt).Value;
             if (feeder == null) return;
-            float dAffection = nutrition * Genes.Get(settings.OnFedAffection);
+            float dAffection = nutrition * OnFedAffection;
             if (dAffection == 0) return;
 
             AddAffection(feeder.info.rtEntityId, dAffection);
@@ -324,12 +329,12 @@ namespace Arterra.Data.Entity.Behavior {
             
             float rate = damage;
             if (hero.Is(out VitalityBehavior vitality))
-                rate /= genetics.Genes.Get(vitality.stats.MaxHealth);
+                rate /= Modifier.Get(mod, MSettings.MaxHealth, vitality.stats.MaxHealth);
             else rate /= 10; //10 is base reduction
 
-            float dAffection = Genes.Get(settings.OnProtectAffection) * rate;
+            float dAffection = OnProtectAffection * rate;
             if (vitality != null && vitality.IsKillingBlow(damage))
-                dAffection += Genes.Get(settings.OnSaveAffection);
+                dAffection += OnSaveAffection;
             EntityManager.AddHandlerEvent(() => AddAffection(hero.info.rtEntityId, dAffection));
         }
 
@@ -340,8 +345,8 @@ namespace Arterra.Data.Entity.Behavior {
             float damage; float3 kb;
             (damage, kb) = (cxt as RefTuple<(float, float3)>).Value;
 
-            float rate = damage / genetics.Genes.Get(vitality.stats.MaxHealth);
-            float dAffection = Genes.Get(settings.OnAttackAffection) * rate;
+            float rate = damage / Modifier.Get(mod, MSettings.MaxHealth, vitality.stats.MaxHealth);
+            float dAffection = OnAttackAffection * rate;
 
             AddAffection(assailant.info.rtEntityId, dAffection);
             
@@ -350,7 +355,7 @@ namespace Arterra.Data.Entity.Behavior {
         public void OnMating(object src, object mate, object cxt) {
             if (mate == null) return;
             if (mate is not Entity partner) return;
-            float dAffection = Genes.Get(settings.OnMateAffection);
+            float dAffection = OnMateAffection;
             AddAffection(partner.info.rtEntityId, dAffection);
             
             BetrayPreviousPartner();
@@ -364,15 +369,14 @@ namespace Arterra.Data.Entity.Behavior {
                 if (lp.LastMate != self.info.rtEntityId) return; //your partner cheated on you first :(
                 EntityManager.AddHandlerEvent(() => {
                     //How you feel twoards your partner when they cheat on you
-                    lp.AddAffection(self.info.rtEntityId, Genes.Get(settings.OnBetrayalAffection));
+                    lp.AddAffection(self.info.rtEntityId, OnBetrayalAffection);
                     //how you feel towards the one who netorared your partner
-                    lp.AddAffection(partner.info.rtEntityId, Genes.Get(settings.OnRivalMateAffection));
+                    lp.AddAffection(partner.info.rtEntityId, OnRivalMateAffection);
                 });
             }
         }
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
         }
@@ -384,12 +388,11 @@ namespace Arterra.Data.Entity.Behavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Relations Behavior Requires AnimalSettings to have RelationsBehaviorSettings");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: Relations Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: Relations Behavior Requires AnimalInstance to have VitalityBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: Relations Behavior Requires AnimalInstance to have StateMachineManager");
+            if (!self.Is(out mod)) mod = null;
 
             this.LastMate = Guid.Empty;
             this.HookedTarget = Guid.Empty;
@@ -403,12 +406,11 @@ namespace Arterra.Data.Entity.Behavior {
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Relations Behavior Requires AnimalSettings to have RelationsBehaviorSettings");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: Relations Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: Relations Behavior Requires AnimalInstance to have VitalityBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: Relations Behavior Requires AnimalInstance to have StateMachineManager");
+            if (!self.Is(out mod)) mod = null;
 
             
             this.HookedTarget = Guid.Empty;

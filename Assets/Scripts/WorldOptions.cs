@@ -12,6 +12,8 @@ using Material = Arterra.Data.Material;
 using Structure = Arterra.Data.Structure;
 using Intrinsic = Arterra.Data.Intrinsic;
 using Generation = Arterra.Data.Generation;
+using Arterra.GamePlay;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Configuration {
     /// <summary>
@@ -194,18 +196,18 @@ namespace Arterra.Configuration {
         /// Thus, systems referencing them should be prepared for changes at any time during runtime.
         /// </summary>
         [Serializable]
-        public struct GamePlaySettings {
+        public class GamePlaySettings {
             /// <summary> The registry of all keybinds that are used to bind player input to actions within the game.
             /// See <see cref="Gameplay.KeyBind"/> for more information. </summary>
             [UIModifiable(CallbackName = "KeyBindReconstruct")]
             public Catalogue<Gameplay.KeyBind> Input;
-            /// <summary> Controls how the player moves through the world. See <see cref="Gameplay.Movement"/> for more information. </summary>
-            [UISetting(Message = "Controls How The Player Interacts With The World")]
-            public Option<Gameplay.Player.Settings> Player;
+            /// <summary>
+            /// Behavior-driven player defaults and overrides used by the player registry authoring.
+            /// This is the source of truth for the migrated direct-update player entity.
+            /// </summary>
+            public Option<BehaviorEntity.AnimalSetting> PlayerSettings = new(){ value = PlayerBehavior.DefaultPlayerAnimalSetting};
             /// <summary> Controls how the player experiences the world. See <see cref="Gameplay.Interaction"/> for more information. </summary>
             public Option<Gameplay.Gamemodes> Gamemodes;
-            /// <summary> Controls the players inventory. See <see cref="Gameplay.Inventory"/> for more information. </summary>
-            public Option<Gameplay.Inventory> Inventory;
             /// <summary> Settings controlling environment constants of the world. See <see cref="Gameplay.Environment"/> for more information. </summary>
             public Option<Gameplay.Environment> Environment;
             /// <summary> Settings controlling the optional visual statistics displayed to the player. See <see cref="Gameplay.Statistics"/> for more information. </summary>

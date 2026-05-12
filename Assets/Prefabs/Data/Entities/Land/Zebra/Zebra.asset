@@ -140,7 +140,7 @@ MonoBehaviour:
           x: 1.75
           y: 2.25
           z: 1.75
-      Behaviors:
+      BehaviorList:
         value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001b2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f2700000400000033270000f0030000
       Settings:
         value:
@@ -206,7 +206,9 @@ MonoBehaviour:
             rid: 3097084052764622848
         - value:
             rid: 3097084052764622975
-  _prevBehaviorCount: 28
+        - value:
+            rid: 5205636866482634865
+      _prevBehaviorCount: 28
   references:
     version: 2
     RefIds:
@@ -216,26 +218,14 @@ MonoBehaviour:
         weight: 325
         StartHealthPercent: 0.7
         StartHealthVariance: 0.05
-        MaxHealth:
-          mean: 36
-          var: 0.35
-          geneWeight: 0.4
-        NaturalRegen:
-          mean: -0.035
-          var: 0.25
-          geneWeight: 0.2
-        InvincTime:
-          mean: 0.25
-          var: 0.1
-          geneWeight: 0.025
+        MaxHealth: 36
+        NaturalRegen: -0.035
+        InvincTime: 0.25
     - rid: 3097083922518114516
       type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
-        HoldBreathTime:
-          mean: 10
-          var: 0.3
-          geneWeight: 0.1
+        HoldBreathTime: 10
         UseFallDamage: 1
     - rid: 3097083922518114517
       type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -247,22 +237,10 @@ MonoBehaviour:
     - rid: 3097083922518114518
       type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        AttackDistance:
-          mean: 2.8
-          var: 0.25
-          geneWeight: 0.2
-        AttackDamage:
-          mean: 6.5
-          var: 0.5
-          geneWeight: 0.6
-        AttackCooldown:
-          mean: 0.4
-          var: 0.5
-          geneWeight: 0.3
-        KBStrength:
-          mean: 6.8
-          var: 0.5
-          geneWeight: 0.1
+        AttackDistance: 2.8
+        AttackDamage: 6.5
+        AttackCooldown: 0.4
+        KBStrength: 6.8
         AttackDuration: 0.38
     - rid: 3097083922518114519
       type: {class: MateRecognition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -271,26 +249,14 @@ MonoBehaviour:
           value:
           - MateType: Zebra
             ChildType: Zebra
-            AmountPerParent:
-              mean: 0.5
-              var: 0.25
-              geneWeight: 0.2
+            AmountPerParent: 0.5
             GeneMutationRate: 0.02
-        MateCost:
-          mean: 10.8
-          var: 0.4
-          geneWeight: 0.15
+        MateCost: 10.8
     - rid: 3097083922518114520
       type: {class: IdleStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        AverageIdleTime:
-          mean: 2.5
-          var: 0.5
-          geneWeight: 0.025
-        AverageIdleVariance:
-          mean: 0.01
-          var: 0.25
-          geneWeight: 0.01
+        AverageIdleTime: 2.5
+        AverageIdleVariance: 0.01
         TaskName: 0
         OnCompleteTransition: 100
         CheckTransitions:
@@ -302,15 +268,9 @@ MonoBehaviour:
         Task2Name: 20200
         OnNotFoundTransition: 100
         OnFinishMateTransition: 100
-        MateThreshold:
-          mean: 0.8
-          var: 0.125
-          geneWeight: 0.1
+        MateThreshold: 0.8
         PregnacyLength: 4
-        SearchDistance:
-          mean: 32
-          var: 0.25
-          geneWeight: 0.2
+        SearchDistance: 32
         OnSwitchPath:
           value: 
     - rid: 3097083922518114524
@@ -319,10 +279,7 @@ MonoBehaviour:
         TaskName: 30200
         OnNotFoundTransition: 0
         OnReachPreyTransition: 30400
-        SearchDistance:
-          mean: 7
-          var: 0.25
-          geneWeight: 0.15
+        SearchDistance: 7
     - rid: 3097083922518114525
       type: {class: FindPlantBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -343,14 +300,8 @@ MonoBehaviour:
     - rid: 3097083922518114526
       type: {class: HuntBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        HuntThreshold:
-          mean: 0.4
-          var: 0.25
-          geneWeight: 0.1
-        StopHuntThreshold:
-          mean: 0.9
-          var: 0.05
-          geneWeight: 0.05
+        HuntThreshold: 0.4
+        StopHuntThreshold: 0.9
     - rid: 3097083922518114527
       type: {class: ChasePreySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -358,10 +309,7 @@ MonoBehaviour:
         OnNotFoundTransition: 0
         OnReachPreyTransition: 30600
         DesiredPreyState: 0
-        SearchDistance:
-          mean: 32
-          var: 0.25
-          geneWeight: 0.2
+        SearchDistance: 32
         Prey:
           value: []
     - rid: 3097083922518114528
@@ -370,20 +318,11 @@ MonoBehaviour:
         Edibles:
           value:
           - EdibleType: TallGrass:Solid
-            Nutrition:
-              mean: 5
-              var: 0.25
-              geneWeight: 0.3
+            Nutrition: 5
           - EdibleType: Grass:Solid
-            Nutrition:
-              mean: 4
-              var: 0.25
-              geneWeight: 0.3
+            Nutrition: 4
           - EdibleType: DriedGrass:Solid
-            Nutrition:
-              mean: 3
-              var: 0.25
-              geneWeight: 0.3
+            Nutrition: 3
         ConsumptionRate: 0.2
     - rid: 3097083922518114529
       type: {class: ConsumeEntitySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -406,10 +345,7 @@ MonoBehaviour:
         TaskName: 50100
         OnLostAttacker: 0
         OnReachAttacker: 30600
-        ChaseDistance:
-          mean: 32
-          var: 0.25
-          geneWeight: 0.2
+        ChaseDistance: 32
     - rid: 3097083922518114532
       type: {class: RunFromPredatorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -425,10 +361,7 @@ MonoBehaviour:
       type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         fleeDist: 5
-        detectDist:
-          mean: 24
-          var: 0.25
-          geneWeight: 0.3
+        detectDist: 24
         FightAggressor: 0
     - rid: 3097083922518114534
       type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -441,10 +374,7 @@ MonoBehaviour:
       data:
         TaskName: 60000
         OnReviveTask: 0
-        DecompositionTime:
-          mean: 310
-          var: 0.35
-          geneWeight: 0.01
+        DecompositionTime: 310
     - rid: 3097083922518114545
       type: {class: ConsumeMaterialSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -454,14 +384,8 @@ MonoBehaviour:
     - rid: 3097083922518114640
       type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        walkSpeed:
-          mean: 4
-          var: 0.3
-          geneWeight: 0.1
-        runSpeed:
-          mean: 7.84
-          var: 0.5
-          geneWeight: 0.35
+        walkSpeed: 4
+        runSpeed: 7.84
         pathDistance: 31
         acceleration: 200
         rotSpeed: 180
@@ -471,20 +395,11 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Meat
-            DropAmount:
-              mean: 0.048387095
-              var: 0.75
-              geneWeight: 0.05
+            DropAmount: 0.048387095
           - ItemName: Leather:Solid
-            DropAmount:
-              mean: 0.029032258
-              var: 0.75
-              geneWeight: 0.05
+            DropAmount: 0.029032258
           - ItemName: Hair
-            DropAmount:
-              mean: 0.016129032
-              var: 0.75
-              geneWeight: 0.05
+            DropAmount: 0.016129032
     - rid: 3097084037468258413
       type: {class: FeedableBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -492,63 +407,21 @@ MonoBehaviour:
     - rid: 3097084037468258414
       type: {class: RelationsBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        OnFedAffection:
-          mean: 8
-          var: 0.5
-          geneWeight: 0.025
-        OnProtectAffection:
-          mean: 8
-          var: 0.75
-          geneWeight: 0.025
-        OnSaveAffection:
-          mean: 15
-          var: 0.5
-          geneWeight: 0.025
-        OnMateAffection:
-          mean: 20
-          var: 0.5
-          geneWeight: 0.025
-        OnBetrayalAffection:
-          mean: -2.5
-          var: 0.5
-          geneWeight: 0.025
-        OnRivalMateAffection:
-          mean: -14
-          var: 0.5
-          geneWeight: 0.025
-        OnAttackAffection:
-          mean: -16
-          var: 0.5
-          geneWeight: 0.025
-        ForgetFalloff:
-          mean: 0.2
-          var: 0.5
-          geneWeight: 0.025
-        BaseForgetRate:
-          mean: 0.05
-          var: 0.7
-          geneWeight: 0.025
+        OnFedAffection: 8
+        OnProtectAffection: 8
+        OnSaveAffection: 15
+        OnMateAffection: 20
+        OnBetrayalAffection: -2.5
+        OnRivalMateAffection: -14
+        OnAttackAffection: -16
+        ForgetFalloff: 0.2
+        BaseForgetRate: 0.05
         SuppressInstinctAffection: 10
-        GossipCooldown:
-          mean: 5
-          var: 0.25
-          geneWeight: 0.01
-        GossipRadius:
-          mean: 8
-          var: 0.5
-          geneWeight: 0.01
-        GossipCloseness:
-          mean: 0.1
-          var: 0.5
-          geneWeight: 0.01
-        GossipStrength:
-          mean: 0.2
-          var: 0.75
-          geneWeight: 0.01
-        GossipAmount:
-          mean: 2.5
-          var: 0.5
-          geneWeight: 0.01
+        GossipCooldown: 5
+        GossipRadius: 8
+        GossipCloseness: 0.1
+        GossipStrength: 0.2
+        GossipAmount: 2.5
         EscapingTargetStates:
           value: 409c000050c30000
     - rid: 3097084037468258415
@@ -556,28 +429,16 @@ MonoBehaviour:
       data:
         TaskName: 300
         OnReachTransition: 100
-        SearchDistance:
-          mean: 24
-          var: 0.25
-          geneWeight: 0.01
-        ChaseProbability:
-          mean: 0
-          var: 0
-          geneWeight: 0
-        FightEnemyAffection:
-          mean: -15
-          var: 0.25
-          geneWeight: 0.025
+        SearchDistance: 24
+        ChaseProbability: 0
+        FightEnemyAffection: -15
         ChaseEnemyState: 50100
     - rid: 3097084052764622848
       type: {class: RideableStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         TaskName: 20300
         OnDismount: 0
-        AffinityThreshold:
-          mean: 8.5
-          var: 0.3
-          geneWeight: 0.05
+        AffinityThreshold: 8.5
     - rid: 3097084052764622927
       type: {class: RideableSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -585,14 +446,8 @@ MonoBehaviour:
     - rid: 3097084052764622975
       type: {class: DefendFriendSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        CallFriendRadius:
-          mean: 18
-          var: 0.3
-          geneWeight: 0.1
-        HelpFriendAffection:
-          mean: 12
-          var: 0.5
-          geneWeight: 0.1
+        CallFriendRadius: 18
+        HelpFriendAffection: 12
         HelpFriendState: 50100
         OverridableStates: 30200
     - rid: 3097084098772992150
@@ -645,30 +500,12 @@ MonoBehaviour:
         OnPackAttackTransition: 50100
         OnSwitchPath:
           value: 2c010000
-        AverageFlightTime:
-          mean: 25
-          var: 0.5
-          geneWeight: 0.1
-        AveragFlightVariance:
-          mean: 0.05
-          var: 0.5
-          geneWeight: 0.05
-        SeperationWeight:
-          mean: 0.75
-          var: 0.5
-          geneWeight: 0.05
-        AlignmentWeight:
-          mean: 0.6
-          var: 0.5
-          geneWeight: 0.05
-        CohesionWeight:
-          mean: 0.3
-          var: 0.75
-          geneWeight: 0.05
-        SightDistance:
-          mean: 12
-          var: 0.3
-          geneWeight: 0.1
+        AverageFlightTime: 25
+        AveragFlightVariance: 0.05
+        SeperationWeight: 0.75
+        AlignmentWeight: 0.6
+        CohesionWeight: 0.3
+        SightDistance: 12
         DirectionBias:
           x: 0
           y: 0
@@ -688,3 +525,177 @@ MonoBehaviour:
       data:
         interactType: 0
         UseGravity: 1
+    - rid: 5205636866482634865
+      type: {class: GeneticsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Genes:
+          value:
+          - name: 1004
+            var: 0.35
+            geneWeight: 0.4
+          - name: 1006
+            var: 0.25
+            geneWeight: 0.2
+          - name: 1007
+            var: 0.1
+            geneWeight: 0.025
+          - name: 1005
+            var: 0.3
+            geneWeight: 0.1
+          - name: 1000
+            var: 0.25
+            geneWeight: 0.2
+          - name: 1001
+            var: 0.5
+            geneWeight: 0.6
+          - name: 1002
+            var: 0.5
+            geneWeight: 0.3
+          - name: 1003
+            var: 0.5
+            geneWeight: 0.1
+          - name: 4002
+            var: 0.25
+            geneWeight: 0.2
+          - name: 4001
+            var: 0.4
+            geneWeight: 0.15
+          - name: 2039
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2040
+            var: 0.25
+            geneWeight: 0.01
+          - name: 2035
+            var: 0.125
+            geneWeight: 0.1
+          - name: 2036
+            var: 0.25
+            geneWeight: 0.2
+          - name: 2037
+            var: 0.25
+            geneWeight: 0.15
+          - name: 2002
+            var: 0.25
+            geneWeight: 0.1
+          - name: 2003
+            var: 0.05
+            geneWeight: 0.05
+          - name: 2038
+            var: 0.25
+            geneWeight: 0.2
+          - name: 4000
+            var: 0.25
+            geneWeight: 0.3
+          - name: 4000
+            var: 0.25
+            geneWeight: 0.3
+          - name: 4000
+            var: 0.25
+            geneWeight: 0.3
+          - name: 2031
+            var: 0.25
+            geneWeight: 0.2
+          - name: 2030
+            var: 0.25
+            geneWeight: 0.3
+          - name: 1012
+            var: 0.35
+            geneWeight: 0.01
+          - name: 1008
+            var: 0.3
+            geneWeight: 0.1
+          - name: 1009
+            var: 0.5
+            geneWeight: 0.35
+          - name: 4003
+            var: 0.75
+            geneWeight: 0.05
+          - name: 4003
+            var: 0.75
+            geneWeight: 0.05
+          - name: 4003
+            var: 0.75
+            geneWeight: 0.05
+          - name: 2004
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2005
+            var: 0.75
+            geneWeight: 0.025
+          - name: 2006
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2007
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2008
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2009
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2010
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2011
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2012
+            var: 0.7
+            geneWeight: 0.025
+          - name: 2013
+            var: 0.25
+            geneWeight: 0.01
+          - name: 2014
+            var: 0.5
+            geneWeight: 0.01
+          - name: 2015
+            var: 0.5
+            geneWeight: 0.01
+          - name: 2016
+            var: 0.75
+            geneWeight: 0.01
+          - name: 2017
+            var: 0.5
+            geneWeight: 0.01
+          - name: 2032
+            var: 0.25
+            geneWeight: 0.01
+          - name: 2033
+            var: 0
+            geneWeight: 0
+          - name: 2034
+            var: 0.25
+            geneWeight: 0.025
+          - name: 2046
+            var: 0.3
+            geneWeight: 0.05
+          - name: 2000
+            var: 0.3
+            geneWeight: 0.1
+          - name: 2001
+            var: 0.5
+            geneWeight: 0.1
+          - name: 2018
+            var: 0.5
+            geneWeight: 0.1
+          - name: 2019
+            var: 0.5
+            geneWeight: 0.05
+          - name: 2020
+            var: 0.5
+            geneWeight: 0.05
+          - name: 2021
+            var: 0.5
+            geneWeight: 0.05
+          - name: 2022
+            var: 0.75
+            geneWeight: 0.05
+          - name: 2023
+            var: 0.3
+            geneWeight: 0.1
+
+
+
+        NormalizeWeights: 1

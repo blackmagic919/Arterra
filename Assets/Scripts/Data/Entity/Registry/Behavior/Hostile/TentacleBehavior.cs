@@ -111,6 +111,13 @@ namespace Arterra.Data.Entity.Behavior
 		}
 
 		public void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.JobSync)
+                CoreUpdate(self);
+            if (self.context != BehaviorEntity.UpdateContext.Job)
+                ControllerUpdate(self);
+        }
+
+		public void CoreUpdate(BehaviorEntity.Animal self) {
 			if (manager.TaskIndex == settings.AttackState) 
 				AttackUsingTentacles(self);
              foreach(Tentacle l in tentacles) {
@@ -119,10 +126,10 @@ namespace Arterra.Data.Entity.Behavior
             };
 		}
 
-		public void UpdateController(BehaviorEntity.Animal self, BehaviorEntity.AnimalController controller) {
-			if (controller.gameObject == null) return;
+		public void ControllerUpdate(BehaviorEntity.Animal self) {
+			if (self.controller.gameObject == null) return;
 			if (animated == null) return;
-			foreach(var c in tentacles) c.UpdateController();
+			foreach(var c in tentacles) c.UpdateJobSync();
 		}
 
 		public void Disable(BehaviorEntity.Animal self) {
@@ -209,8 +216,8 @@ namespace Arterra.Data.Entity.Behavior
 			}
 
 
-            public override void UpdateController() {
-				base.UpdateController();
+            public override void UpdateJobSync() {
+				base.UpdateJobSync();
 				if (State == TentacleState.BlendAttack) {
 					constraint.weight = math.lerp(constraint.weight, 1, Time.deltaTime * settings.Speed);
 					if (math.abs(constraint.weight - 1f) < 0.01f) {
@@ -229,7 +236,7 @@ namespace Arterra.Data.Entity.Behavior
 				float3 animatedPos = CPUMapManager.WSToGS(AnimatedTentacle.transform.position);
                 float3 direction = math.normalizesafe(animatedPos - this.position);
                 if(math.dot(collider.transform.velocity, direction) < settings.Speed)
-                    collider.transform.velocity += settings.Acceleration * EntityJob.cxt.deltaTime * direction;
+                    collider.transform.velocity += settings.Acceleration * self.DeltaTime * direction;
 			}
 
             public void Update(BehaviorEntity.Animal self) {
@@ -239,7 +246,7 @@ namespace Arterra.Data.Entity.Behavior
                     dist -= settings.Length;
 					float3 dir = math.normalizesafe(root - (float3)collider.transform.position);
                     float strength = math.pow(dist, settings.RubberBandStrength);
-                    collider.transform.velocity += strength * EntityJob.cxt.deltaTime * dir; 
+                    collider.transform.velocity += strength * self.DeltaTime * dir; 
                 }
 				base.Update();
             }
@@ -264,7 +271,7 @@ namespace Arterra.Data.Entity.Behavior
 
             public bool TryAttack(BehaviorEntity.Animal self, Entity target) {
                 if (State != TentacleState.Animated) return false;
-				float chance = settings.AttackChance * EntityJob.cxt.deltaTime;
+				float chance = settings.AttackChance * self.DeltaTime;
                 if (self.random.NextFloat() > chance) return false;
                 if (!IsCloseEnough(target)) return false;
                 if (!HasLineOfSight(target)) return false;
@@ -302,7 +309,7 @@ namespace Arterra.Data.Entity.Behavior
 				float3 targetPos = target.position;
 				float3 dir = math.normalizesafe(targetPos - origin);
 				if (math.dot(collider.transform.velocity, dir) < settings.Speed)
-					collider.transform.velocity += settings.Acceleration * EntityJob.cxt.deltaTime * dir;
+					collider.transform.velocity += settings.Acceleration * self.DeltaTime * dir;
 				// Check proximity
 				if (ColliderUpdateBehavior.GetColliderDist(collider.transform, target.transform) >
 					settings.Proximity) return;
@@ -343,10 +350,10 @@ namespace Arterra.Data.Entity.Behavior
 				float3 moveTarget = self.position + math.mul(self.Rotation, tb.settings.GrabHoldPos);
 				float3 direction = math.normalizesafe(moveTarget - this.position);
                 if(math.dot(collider.transform.velocity, direction) < settings.Speed)
-                    collider.transform.velocity += settings.Acceleration * EntityJob.cxt.deltaTime * direction;
+                    collider.transform.velocity += settings.Acceleration * self.DeltaTime * direction;
 
 				float3 dir = math.normalizesafe(this.position - target.position);
-				target.transform.velocity += EntityJob.cxt.deltaTime * settings.Acceleration * dir;
+				target.transform.velocity += self.DeltaTime * settings.Acceleration * dir;
 			}
 		}
 	}

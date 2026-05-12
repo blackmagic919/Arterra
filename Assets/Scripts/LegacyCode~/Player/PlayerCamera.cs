@@ -129,7 +129,7 @@ namespace Arterra.GamePlay{
         /// <param name="CamTsf">The transform of the physical Unity Camera object</param>
         public void Update(Transform CamTsf) {
             perspectives[activePersp].Update();
-            CamTsf.SetLocalPositionAndRotation((float3)camTsf.position, camTsf.rotation);
+            CamTsf.SetLocalPositionAndRotation(camTsf.position, camTsf.rotation);
             UnityEngine.Camera cam = CamTsf.GetChild(0).GetComponent<UnityEngine.Camera>();
             if (cullingMask == cam.cullingMask) return;
             cam.cullingMask = cullingMask;

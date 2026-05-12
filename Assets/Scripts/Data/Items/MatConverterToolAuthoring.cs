@@ -4,12 +4,13 @@ using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Data.Material;
 using Arterra.Core.Storage;
-using static Arterra.GamePlay.PlayerInteraction;
+using static Arterra.Data.Entity.Behavior.PlayerInteractionBehavior;
 using Arterra.GamePlay;
 using Arterra.Core.Events;
 using Arterra.GamePlay.Interaction;
 using Arterra.Configuration;
 using Arterra.GamePlay.UI;
+using Arterra.Data.Entity.Behavior;
 
 
 namespace Arterra.Data.Item
@@ -52,8 +53,7 @@ namespace Arterra.Data.Item
         }
 
         private void PlayerModifyTerrain(ItemContext cxt) {
-            if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
             InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
             if (!RayTestSolid(out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _))

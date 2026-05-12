@@ -95,14 +95,37 @@ namespace Arterra.Data.Entity.Behavior
         }
 
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.JobSync)
+                CoreUpdate(self);
+            if (self.context != BehaviorEntity.UpdateContext.Job)
+                ControllerUpdate(self);
+        }
+
+        private void CoreUpdate(BehaviorEntity.Animal self) {
             foreach(Leg l in appendages) {
                 if (selfAtk.IsDead) l.Update(self);
                 else l.UpdateMovement(self);
-                ApplyRubberBand(l.desiredBody, l.LegLength);
+                ApplyRubberBand(self, l.desiredBody, l.LegLength);
             };
         }
 
-        public void ApplyRubberBand(float3 desiredBody, float LegLength) {
+        private void ControllerUpdate(BehaviorEntity.Animal self) {
+            if (self.controller.gameObject == null) return;
+            if (animated == null) return;
+
+            foreach(var c in appendages) c.UpdateJobSync();
+            int hash = animated.animator.GetCurrentAnimatorStateInfo(0).shortNameHash; 
+            if(!settings.AnimToggle.TryGetValue(hash, out uint bitmap))
+                bitmap = settings.OverrideAnimByDefault ? 0xFFFFFFFF : 0;
+            if (bitmap != LastOverrideState) {
+                LastOverrideState = bitmap;
+                for(int i = 0; i < appendages.Length; i++) {
+                    appendages[i].SetActive(((bitmap >> i) & 0x1) != 0);
+                }
+            }
+        }
+
+        public void ApplyRubberBand(BehaviorEntity.Animal self, float3 desiredBody, float LegLength) {
             // PD controller parameters (tune as needed)
             float kpBody = LeadHead.settings.BodyRubberBand;
             float kdBody = 2.0f * math.sqrt(kpBody);
@@ -117,21 +140,21 @@ namespace Arterra.Data.Entity.Behavior
                 // PD spring force for body to leg
                 float3 spring = kpBody * dist * dir;
                 float3 damping = -kdBody * LeadHead.BodyCollider.transform.velocity;
-                LeadHead.BodyCollider.transform.velocity += (spring + damping) * EntityJob.cxt.deltaTime;
+                LeadHead.BodyCollider.transform.velocity += (spring + damping) * self.DeltaTime;
             }
 
             float3 desiredHead = desiredBody + LeadHead.settings.Offset;
             float3 toHead = desiredHead - LeadHead.HeadPosition;
             float3 springH = kpHead * toHead;
             float3 dampingH = -kdHead * LeadHead.HeadCollider.transform.velocity;
-            LeadHead.HeadCollider.transform.velocity += (springH + dampingH) * EntityJob.cxt.deltaTime;
+            LeadHead.HeadCollider.transform.velocity += (springH + dampingH) * self.DeltaTime;
         }
 
         public void UpdateController(BehaviorEntity.Animal self, BehaviorEntity.AnimalController controller) {
             if (controller.gameObject == null) return;
             if (animated == null) return;
 
-            foreach(var c in appendages) c.UpdateController();
+            foreach(var c in appendages) c.UpdateJobSync();
             int hash = animated.animator.GetCurrentAnimatorStateInfo(0).shortNameHash; 
             if(!settings.AnimToggle.TryGetValue(hash, out uint bitmap))
                 bitmap = settings.OverrideAnimByDefault ? 0xFFFFFFFF : 0;
@@ -213,7 +236,7 @@ namespace Arterra.Data.Entity.Behavior
                 if (dist > LegLength) { //Rubber banding
                     float3 dir = math.normalizesafe(origin - restPos);
                     float strength = math.pow(dist, settings.RubberbandStrength);
-                    collider.transform.velocity += strength * EntityJob.cxt.deltaTime * dir; 
+                    collider.transform.velocity += strength * self.DeltaTime * dir; 
                     State = StepState.Stand;
                 }
 
@@ -236,7 +259,7 @@ namespace Arterra.Data.Entity.Behavior
                     if(CanStartStep && math.distance(TargetPosition, restPos) > settings.StepDistThreshold) State = StepState.Raise;
                 } 
                 if ( State == StepState.Lower) {
-                    if (collider.SampleCollision((float3)collider.transform.position + (float3)(0.05f * Vector3.down),
+                    if (TerrainCollider.SampleCollision((float3)collider.transform.position + (float3)(0.05f * Vector3.down),
                         collider.transform.size, EntityJob.cxt.mapContext, out float3 gDir))
                         State = StepState.Stand;
                     if (math.distance(TargetPosition, restPos) < 0.05f)
@@ -252,7 +275,7 @@ namespace Arterra.Data.Entity.Behavior
                 } if (State == StepState.Lower) aim = TargetPosition - restPos;
 
                 aim = math.normalizesafe(aim);
-                collider.transform.velocity += settings.MoveAccel * EntityJob.cxt.deltaTime * aim;
+                collider.transform.velocity += settings.MoveAccel * self.DeltaTime * aim;
             }
         }
     }

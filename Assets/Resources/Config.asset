@@ -81,47 +81,41 @@ MonoBehaviour:
         - {fileID: 11400000, guid: e4d7966289e5e4d3592416715aca0ce4, type: 2}
         - {fileID: 11400000, guid: 2fcf83b298d6d4ad69fa82f5c6b1a940, type: 2}
         - {fileID: 11400000, guid: ad2cddcd4fb8c42438e785480f92c259, type: 2}
-      Player:
+      PlayerSettings:
         value:
-          movement:
+          profile:
+            bounds:
+              x: 2
+              y: 3
+              z: 2
+          collider:
+            size:
+              x: 1
+              y: 2
+              z: 1
+          BehaviorList:
+            value: 05000000ed0300000100000069000000660000006500000068000000670000006a00000064000000
+          Settings:
             value:
-              walkSpeed: 3
-              runSpeed: 6
-              jumpForce: 5
-              acceleration: 100
-              groundStickDist: 0.05
-              flightSpeedMultiplier: 3
-          Camera:
-            value:
-              Sensitivity: 2
-              clampVerticalRotation: 1
-              MinimumX: -90
-              MaximumX: 90
-              smooth: 0
-              smoothTime: 0
-          Interaction:
-            value:
-              TerraformRadius: 1
-              DefaultTerraform:
-                value:
-                  TerraformSpeed: 50
-                  ToolDamage: 0
-                  GivesItem: 1
-              ReachDistance: 8
-              CylinderRadius: 1
-              PickupRate: 1.5
-          Physicality:
-            value:
-              AttackDamage: 2
-              AttackFrequency: 0.25
-              KnockBackStrength: 10
-              InvincTime: 0.25
-              HoldBreathTime: 15
-              MaxHealth: 20
-              NaturalRegen: 0.01
-              DecompositionTime: 300
-              weight: 0.75
-          ShowCrosshair: 1
+            - value:
+                rid: 1481107307757830489
+            - value:
+                rid: 1481107307757830490
+            - value:
+                rid: 1481107307757830491
+            - value:
+                rid: 1481107307757830492
+            - value:
+                rid: 1481107307757830493
+            - value:
+                rid: 1481107307757830494
+            - value:
+                rid: 1481107307757830495
+            - value:
+                rid: 1481107307757830496
+            - value:
+                rid: 1481107307757830497
+          _prevBehaviorCount: 10
       Gamemodes:
         value:
           Flight: 0
@@ -130,12 +124,7 @@ MonoBehaviour:
           KeepInventory: 0
           SpectatorView: 0
           ResourceInventory: 0
-      Inventory:
-        value:
-          PrimarySlotCount: 5
-          SecondarySlotCount: 30
-          SelectedColor: {r: 0.3915094, g: 0.85984695, b: 1, a: 1}
-          BaseColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 0.39215687}
+          ShowCrosshair: 0
       Environment:
         value:
           timeMultiplier: 72
@@ -405,6 +394,8 @@ MonoBehaviour:
         - {fileID: 11400000, guid: e675bf8565f3546efbf877710f603aa2, type: 2}
         - {fileID: 11400000, guid: 3f622d307ed264ecb964727d0b44f77d, type: 2}
         - {fileID: 11400000, guid: 44b6b758ba43a4ba69554e1563d73d17, type: 2}
+        - {fileID: 11400000, guid: 50a939ca5ad96489bb8aafe7a0d97c79, type: 2}
+        - {fileID: 11400000, guid: e8e712355109e437d9dae0fc7b363698, type: 2}
       Terrain:
         value: {fileID: 11400000, guid: 221c0649eba984d51a1426a5a546a7cf, type: 2}
       Surface:
@@ -495,6 +486,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: e8e2cc43e4b5b4fa4bf33feddf0da577, type: 2}
         - {fileID: 11400000, guid: 4c8e386beb113431a9e07a373b4f355c, type: 2}
         - {fileID: 11400000, guid: 631192b1ba2364d9e940415906d2b725, type: 2}
+        - {fileID: 11400000, guid: 2e9ee4f41238f412c8600bd39c730155, type: 2}
         - {fileID: 11400000, guid: 828e0cfa708264ced8f04cfbe8b1d351, type: 2}
         - {fileID: 11400000, guid: 02d09fe1d2b6b429991220bd65558e30, type: 2}
         - {fileID: 11400000, guid: d6bd7cac775fd4cfe9fb66068eb65c15, type: 2}
@@ -521,6 +513,8 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 5ea9df1e485a742b39afbef7c6c2f921, type: 2}
         - {fileID: 11400000, guid: 074083029b95540a88ced0bbf165b0f6, type: 2}
         - {fileID: 11400000, guid: 7aed9bd6aa00f40429adff01d5f23ccd, type: 2}
+        - {fileID: 11400000, guid: ba8900f751a89436ca2898840a6d8739, type: 2}
+        - {fileID: 11400000, guid: a641c3b918974467696f1598d7a36ec3, type: 2}
         - {fileID: 11400000, guid: c142d2ea9973245bca8bc2632e9d4c10, type: 2}
         - {fileID: 11400000, guid: e15f85c38e5de445fafb1fd08af0d165, type: 2}
         - {fileID: 11400000, guid: b88ada38ac05747f59adaf213e589d3a, type: 2}
@@ -530,7 +524,6 @@ MonoBehaviour:
         Category:
           value: {fileID: 11400000, guid: 351f5fc1dca604a80a7275a23a9046fb, type: 2}
         Reg:
-        - {fileID: 11400000, guid: aea5983bb2790423db2800179c58cf00, type: 2}
         - {fileID: 11400000, guid: 79bbe002f165a4f738761b0d06bd1b92, type: 2}
         - {fileID: 11400000, guid: b0f3be4cba83d4f56bf550fc9e42cf2f, type: 2}
         - {fileID: 11400000, guid: 526da19c607884ee484d608177d67659, type: 2}
@@ -611,6 +604,8 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 30e4857c695734194a4e060deeca6551, type: 2}
         - {fileID: 11400000, guid: 812200510afa1431c8c349121f724fc4, type: 2}
         - {fileID: 11400000, guid: cfc4e1fb8f2e143989735ca33dd9a50d, type: 2}
+        - {fileID: 11400000, guid: 39ccfa6573aaa4e6590cbccd863a229f, type: 2}
+        - {fileID: 11400000, guid: ebd68c88f472744c3925b54ede6d2d67, type: 2}
         - {fileID: 11400000, guid: e432d726c515b4c6aa6d67d38eedc0ea, type: 2}
         - {fileID: 11400000, guid: 1b8fc15cb2acc4a318160ab5cb363318, type: 2}
         - {fileID: 11400000, guid: 20525a70c2f5e4649a686c5b99d4e373, type: 2}
@@ -636,6 +631,7 @@ MonoBehaviour:
         - {fileID: 11400000, guid: 3d48d69c889e240e887f9c398e857bae, type: 2}
         - {fileID: 11400000, guid: ff13ac7cbba384f18bfbe796323075e8, type: 2}
         - {fileID: 11400000, guid: ea4469befec2d4f8c86eb627fae5783a, type: 2}
+        - {fileID: 11400000, guid: 9f85ab8a61f1b4c84b96f166755bff26, type: 2}
         - {fileID: 11400000, guid: 717b9bf3d82c74f7db056808bcdff118, type: 2}
         - {fileID: 11400000, guid: b108e2bc0a9984ffab2cb8c8e599e8e4, type: 2}
         - {fileID: 11400000, guid: a908d54cac7a543889802488b49c0a1b, type: 2}
@@ -720,3 +716,78 @@ MonoBehaviour:
         - {fileID: 11400000, guid: a6f17d9a63cc64624a910e05a1373d4e, type: 2}
         - {fileID: 11400000, guid: d95a339e2ae3646938cb62b60af8ba1e, type: 2}
         - {fileID: 11400000, guid: c70df99c70ff1424ea734b51ec847ea8, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1481107307757830489
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 1
+    - rid: 1481107307757830490
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 50
+        StartHealthPercent: 1
+        StartHealthVariance: 0
+        MaxHealth: 20
+        NaturalRegen: 0.01
+        InvincTime: 0.25
+    - rid: 1481107307757830491
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
+          value:
+          - ItemName: Meat
+            DropAmount: 0.075
+    - rid: 1481107307757830492
+      type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        HoldBreathTime: 10
+        Bouyancy: 1
+        UseFallDamage: 1
+    - rid: 1481107307757830493
+      type: {class: PlayerInventorySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        PrimarySlotCount: 5
+        SecondarySlotCount: 30
+        SelectedColor: {r: 0.6792453, g: 0.5261536, b: 0.33641866, a: 0}
+        BaseColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 0}
+    - rid: 1481107307757830494
+      type: {class: PlayerCameraSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Sensitivity: 2
+        clampVerticalRotation: 1
+        MinimumX: -90
+        MaximumX: 90
+        smooth: 0
+        smoothTime: 5
+    - rid: 1481107307757830495
+      type: {class: PlayerMovementSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        walkSpeed: 3
+        runSpeed: 6
+        jumpForce: 5
+        acceleration: 100
+        groundStickDist: 0.05
+        flightSpeedMultiplier: 3
+    - rid: 1481107307757830496
+      type: {class: PlayerInteractionSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TerraformRadius: 1
+        DefaultTerraform:
+          value:
+            TerraformSpeed: 50
+            ToolDamage: 0
+            GivesItem: 1
+        ReachDistance: 8
+        CylinderRadius: 1
+        PickupRate: 1.5
+        AttackDamage: 2
+        AttackFrequency: 0.25
+        KnockBackStrength: 10
+    - rid: 1481107307757830497
+      type: {class: PlayerEffectsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath: Player

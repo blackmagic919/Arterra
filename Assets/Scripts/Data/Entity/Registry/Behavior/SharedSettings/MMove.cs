@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Arterra.Configuration;
-using Arterra.Configuration.Gameplay.Player;
 using Arterra.Data.Entity;
 using Arterra.Data.Entity.Behavior;
 using Unity.Mathematics;
@@ -10,7 +9,7 @@ using Movement = Arterra.Data.Entity.Behavior.Movement;
 public class MMove : IBehaviorSetting {
     public Option<List<StateMovement>> movements;
     public Option<List<SubProfiles>> profiles;
-    public Option<List<Genetics.GeneFeature>> customSpeeds;
+    public Option<List<float>> customSpeeds;
 
     private Dictionary<EntitySMTasks, StateMovement> _movements;
     private List<EntitySetting.ProfileInfo> _profiles;
@@ -57,16 +56,10 @@ public class MMove : IBehaviorSetting {
 
         _movements = new ();
         movements.value ??= new ();
+        customSpeeds.value ??= new();
         for(int i = 0; i < movements.value.Count; i++) {
             StateMovement mv = movements.value[i];
             _movements.Add(mv.state, mv);
-        }
-
-        customSpeeds.value ??= new();
-        for (int i = 0; i < customSpeeds.value.Count; i++) {
-            var geneFeature = customSpeeds.value[i];
-            Genetics.AddGene(entityType, ref geneFeature);
-            customSpeeds.value[i] = geneFeature;
         }
 
         if (setting.Is(out ColliderUpdateSettings cSettings)) 
@@ -87,12 +80,12 @@ public class MMove : IBehaviorSetting {
         return sm.movement;
     }
 
-    public static float Speed(MMove instance, EntitySMTasks state, Genetics genes, Genetics.GeneFeature baseValue) {
-        if (instance == null) return genes.Get(baseValue);
+    public static float Speed(MMove instance, EntitySMTasks state, Modifier mod, MSettings name, float baseValue) {
+        if (instance == null) return Modifier.Get(mod, name, baseValue);
         if (!instance._movements.TryGetValue(state, out StateMovement sm))
-            return genes.Get(baseValue);
-        if (!sm.CustomSpeed.enabled) return genes.Get(baseValue);
-        return genes.Get(instance.customSpeeds.value[sm.CustomSpeed.value]);
+            return Modifier.Get(mod, name, baseValue);
+        if (!sm.CustomSpeed.enabled) return Modifier.Get(mod, name, baseValue);
+        return Modifier.Get(mod, name, instance.customSpeeds.value[sm.CustomSpeed.value]);
     }
 
     public static EntitySetting.ProfileInfo Profile(MMove instance, EntitySMTasks state, EntitySetting settings) {

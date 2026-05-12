@@ -33,9 +33,13 @@ namespace Arterra.Data.Entity.Behavior {
 
         private AttackBehavior attack;
         private StateMachineManagerBehavior manager;
-        private GeneticsBehavior genetics;
+        private Modifier mod;
+
+        private float AttackDistance => Modifier.Get(mod, MSettings.AttackDistance, attack.settings.AttackDistance);
         
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.JobSync)
+                return;
             if (manager.TaskIndex != settings.TaskName) return;
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity target)) {
                 manager.TaskTarget = Guid.Empty;
@@ -44,7 +48,7 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             float preyDist = ColliderUpdateBehavior.GetColliderDist(self, target);
-            if (preyDist > genetics.Genes.Get(attack.settings.AttackDistance)) {
+            if (preyDist > AttackDistance) {
                 manager.Transition(settings.OnSeperateTarget);
                 return;
             } if (!target.Is(out IAttackable atkTarget)) {
@@ -55,7 +59,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             float3 atkDir = math.normalize(target.position - self.position); atkDir.y = 0;
             if (math.any(atkDir != 0)) self.Rotation = Quaternion.RotateTowards(self.Rotation,
-            Quaternion.LookRotation(atkDir), movement.rotSpeed * EntityJob.cxt.deltaTime);
+            Quaternion.LookRotation(atkDir), movement.rotSpeed * self.DeltaTime);
 
             if (atkTarget.IsDead) {
                 if (prey != null && prey.settings.Recognize((int)target.info.entityType))
@@ -66,7 +70,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Attack, heirarchy.Count);
         }
 
@@ -81,13 +84,12 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalSettings to have AttackTargetSettings");
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalSettings to have Movement");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out attack))
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalInstance to have AttackBehavior");
             if (!self.Is(out prey)) prey = null;
+            if (!self.Is(out mod)) mod = null;
         }
 
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -95,13 +97,12 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalSettings to have AttackTargetSettings");
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalSettings to have Movement");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out attack))
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalInstance to have AttackBehavior");
             if (!self.Is(out prey)) prey = null;
+            if (!self.Is(out mod)) mod = null;
         }
     }
 }

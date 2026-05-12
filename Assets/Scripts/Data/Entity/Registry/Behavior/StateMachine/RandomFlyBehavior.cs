@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using Arterra.Configuration;
 using Arterra.Utils;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class RandomFlyStateSettings : IBehaviorSetting {
-        public Genetics.GeneFeature AverageFlyTime = new(){mean = 75.0f, var = 0.5f, geneWeight = 0.1f };
-        public Genetics.GeneFeature AveragFlyVariance = new(){mean = 0.1f, var = 0.5f, geneWeight = 0.1f };
-        public Genetics.GeneFeature VerticalFreedom = new(){mean = 0.3f, var = 0.5f, geneWeight = 0.1f };
+        public float AverageFlightTime = 75.0f;
+        public float AverageFlightVariance = 0.1f;
+        public float VerticalFlightFreedom = 0.3f;
 
         public EntitySMTasks TaskName = EntitySMTasks.RandomPath;
         public EntitySMTasks OnStopFlyTransition = EntitySMTasks.ApproachSurface;
@@ -17,18 +17,12 @@ namespace Arterra.Data.Entity.Behavior {
 
         public object Clone() {
             return new RandomFlyStateSettings(){
-                AverageFlyTime = AverageFlyTime,
-                AveragFlyVariance = AveragFlyVariance,
+                AverageFlightTime = AverageFlightTime,
+                AverageFlightVariance = AverageFlightVariance,
                 TaskName = TaskName,
                 OnStopFlyTransition = OnStopFlyTransition,
                 OnSwitchPath = OnSwitchPath
             };
-        }
-
-        public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            Genetics.AddGene(entityType, ref AverageFlyTime);
-            Genetics.AddGene(entityType, ref AveragFlyVariance);
-            Genetics.AddGene(entityType, ref VerticalFreedom);
         }
     }
 
@@ -40,17 +34,25 @@ namespace Arterra.Data.Entity.Behavior {
 
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager; 
-        private GeneticsBehavior genetics;
         private PathFinderBehavior path;
+        private Modifier mod;
+
+        private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
+        private float AverageFlightTime => Modifier.Get(mod, MSettings.AverageFlightTime, settings.AverageFlightTime);
+        private float AverageFlightVariance => Modifier.Get(mod, MSettings.AverageFlightVariance, settings.AverageFlightVariance);
+        private float VerticalFlightFreedom => Modifier.Get(mod, MSettings.VerticalFlightFreedom, settings.VerticalFlightFreedom);
 
         
         public void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+
             if (path.pathFinder.hasPath) {
-                Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
+                self.PathCollider.Follow(Movement.StaticDirect(
+                    MMove.Profile(mmove, settings.TaskName, self.settings), 
                     ref path.pathFinder, self.PathCollider,
-                    MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
-                    movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.TaskName));
+                    MMove.MovementType(mmove, settings.TaskName)
+                ), RunSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
                 return;
             }
             
@@ -61,7 +63,7 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             float3 flightDir = math.normalizesafe(Movement.RandomDirection(ref self.random));
-            flightDir.y *= genetics.Genes.Get(settings.VerticalFreedom);
+            flightDir.y *= VerticalFlightFreedom;
 
             byte[] nPath = PathFinder.FindPathAlongRay(self.PathCoord, ref flightDir, movement.pathDistance,
                 MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
@@ -70,9 +72,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private bool TransitionTo() {
             manager.TaskDuration = (float)CustomUtility.Sample(
-                self.random,
-                genetics.Genes.Get(settings.AverageFlyTime),
-                genetics.Genes.Get(settings.AveragFlyVariance)
+                self.random, AverageFlightTime, AverageFlightVariance
             );
             return true;
         }
@@ -80,7 +80,6 @@ namespace Arterra.Data.Entity.Behavior {
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
         }
 
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
@@ -95,12 +94,11 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: RandomFly Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: RandomFly Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: RandomFly Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: RandomFly Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out mod)) mod = null;
             
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
@@ -113,12 +111,11 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: RandomFly Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: RandomFly Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: RandomFly Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: RandomFly Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out mod)) mod = null;
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             this.self = self;

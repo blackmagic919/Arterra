@@ -97,6 +97,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             BodyCollider.useGravity = HeadCollider.useGravity;
             HeadCollider.transform.rotation = BodyCollider.transform.rotation;
             switch (BodyCUpdate.settings.interactType) {
@@ -118,7 +119,7 @@ namespace Arterra.Data.Entity.Behavior {
                     break;
             }
         }
-        
+
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.Collider, heirarchy.Count);
         }
@@ -218,7 +219,7 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             public void SetConstraint<TConstraint>() => this.constraint = Controller.transform.parent.GetComponent(typeof(TConstraint)) as IRigConstraint;
-            public virtual void UpdateController() {
+            public override void UpdateJobSync() {
                 if (!visible) return;
                 float3 BonePos = (float3)collider.transform.position + aSettings.BoneOffset;
                 Controller.SetPositionAndRotation(Arterra.Core.Storage.CPUMapManager.GSToWS(BonePos), collider.transform.rotation * Quaternion.Euler(-90f, 0f, 0f));

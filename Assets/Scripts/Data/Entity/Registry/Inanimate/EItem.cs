@@ -99,7 +99,7 @@ public class EItem : Arterra.Data.Entity.Authoring
             GCoord = this.GCoord;
         }
 
-
+        public override void UpdateJobSync() => controller.Update();
         public override void Update() {
             if (!active) return;
             tCollider.useGravity = true;
@@ -126,7 +126,6 @@ public class EItem : Arterra.Data.Entity.Authoring
             }
             tCollider.Update(this);
             tCollider.EntityCollisionUpdate(this);
-            EntityManager.AddHandlerEvent(controller.Update);
         }
 
         private void MergeNearbyEItems() {
@@ -163,7 +162,7 @@ public class EItem : Arterra.Data.Entity.Authoring
             });
         }
 
-        private bool GetGroundDir( out float3 dir) => tCollider.SampleCollision(
+        private bool GetGroundDir( out float3 dir) => TerrainCollider.SampleCollision(
             (float3)transform.position,
             new float3(settings.collider.size.x, -settings.GroundStickDist, settings.collider.size.z),
             EntityJob.cxt.mapContext, out dir

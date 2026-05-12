@@ -22,8 +22,8 @@ namespace Arterra.Data.Entity.Behavior{
         };
         
         //measured in angle phi from positive vertical axis; in terms of pi (e.g. 0.75 => phi = 0.75 * phi)
-        public Genetics.GeneFeature ApproachAngleMax = new Genetics.GeneFeature{mean = 0.85f, var = 0.1f, geneWeight = 0.075f};
-        public Genetics.GeneFeature ApproachAngleFalloff = new Genetics.GeneFeature{mean = 0.5f, var = 0.25f, geneWeight = 0.075f};
+        public float LandAngleMax = 0.85f;
+        public float LandAngleFalloff = 0.5f;
         
 
         public object Clone() {
@@ -34,11 +34,6 @@ namespace Arterra.Data.Entity.Behavior{
                 ProxyTestTransitions = ProxyTestTransitions,
             };
         }
-
-        public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            Genetics.AddGene(entityType, ref ApproachAngleMax);
-            Genetics.AddGene(entityType, ref ApproachAngleFalloff);
-        }
     }
     public class LandOnGroundBehavior : IBehavior {
         protected LandOnGroundSettings settings;
@@ -46,23 +41,30 @@ namespace Arterra.Data.Entity.Behavior{
         protected MMove mmove; //optional
 
         protected StateMachineManagerBehavior manager;
-        protected GeneticsBehavior genetics;
         protected PathFinderBehavior path;
+        protected Modifier mod;
         protected bool foundGround;
+
+        private float LandAngleFalloff => Modifier.Get(mod, MSettings.LandAngleFalloff, settings.LandAngleFalloff);
+        private float LandAngleMax => Modifier.Get(mod, MSettings.LandAngleMax, settings.LandAngleMax);
+        private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
+
         public void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
-
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            
             if (path.pathFinder.hasPath) {
-                Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
-                ref path.pathFinder, self.PathCollider,
-                MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
-                movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.TaskName));
+                self.PathCollider.Follow(Movement.StaticDirect(
+                    MMove.Profile(mmove, settings.TaskName, self.settings), 
+                    ref path.pathFinder, self.PathCollider,
+                    MMove.MovementType(mmove, settings.TaskName)
+                ), RunSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
                 return;
             } if (foundGround) manager.Transition(settings.OnReachGround);
 
             float t = math.abs(manager.TaskDuration);
-            float descentAngleProgress = 1 - math.exp(-t *genetics.Genes.Get(settings.ApproachAngleFalloff));
-            float descentAngleMax = math.clamp(genetics.Genes.Get(settings.ApproachAngleMax), 0f, 1.0f);
+            float descentAngleProgress = 1 - math.exp(-t * LandAngleFalloff);
+            float descentAngleMax = math.clamp(LandAngleMax, 0f, 1.0f);
             float descentAngle = 180 * math.lerp(0.5f, descentAngleMax, descentAngleProgress); 
 
             Vector3 e = self.transform.rotation.eulerAngles;
@@ -85,7 +87,6 @@ namespace Arterra.Data.Entity.Behavior{
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
         }
 
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
@@ -115,12 +116,11 @@ namespace Arterra.Data.Entity.Behavior{
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: LandOnGround Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: LandOnGround Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: LandOnGround Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: LandOnGround Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out mod)) mod = null;
             
             foundGround = false;
             manager.RegisterTransition(settings.TaskName, TransitionTo);
@@ -133,12 +133,11 @@ namespace Arterra.Data.Entity.Behavior{
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: LandOnGround Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: LandOnGround Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: LandOnGround Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: LandOnGround Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out mod)) mod = null;
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             manager.RegisterTransition(settings.ProxyTestName, TestProxyLand);

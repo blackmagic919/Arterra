@@ -3,7 +3,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Engine.Terrain;
 using Arterra.GamePlay;
-using static Arterra.GamePlay.PlayerInteraction;
+using static Arterra.Data.Entity.Behavior.PlayerInteractionBehavior;
 using Arterra.Core.Events;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
@@ -79,18 +79,19 @@ namespace Arterra.Data.Item
 
         public void Update(MonoBehaviour mono = null) {
             if (display == null) return;
-            if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-            float progress = player.vitality.AttackCooldown / settings.AttackCooldown;
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
+            if (!player.Is(out PlayerInteractionBehavior interact)) return;
+            float progress = interact.AttackCooldown / settings.AttackCooldown;
             display.GetComponent<UnityEngine.UI.Image>().fillAmount = 1 - progress;
         }
 
         private void PlayerAttack(float _) {
-            if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-            if (player.vitality.AttackCooldown > 0) return;
-            player.vitality.AttackCooldown = settings.AttackCooldown;
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
+            if (!player.Is(out PlayerInteractionBehavior interact)) return;
+            interact.AttackCooldown = settings.AttackCooldown;
             float3 hitPt = player.head
                 + player.Forward
-                * Config.CURRENT.GamePlay.Player.value.Interaction.value.ReachDistance;
+                * interact.settings.ReachDistance;
 
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
                 effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);

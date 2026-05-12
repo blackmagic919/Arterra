@@ -38,6 +38,11 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonIgnore] public TerrainCollider PathCollider{ get => collider; }
 
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.JobSync)
+                return;
+            if (self.context == BehaviorEntity.UpdateContext.Main)
+                return;
+            
             switch (Interaction) {
                 case ColliderUpdateSettings.InteractType.Regular:
                     collider.Update(self);
@@ -68,7 +73,6 @@ namespace Arterra.Data.Entity.Behavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have MapInteractorSettings");
-
             this.collider = new TerrainCollider(setting.collider, GCoord);
             this.collider.useGravity = settings.UseGravity;
             self.Register<IMultiCollider>(this);

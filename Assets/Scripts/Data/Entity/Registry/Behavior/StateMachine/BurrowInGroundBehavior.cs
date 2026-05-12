@@ -18,10 +18,10 @@ namespace Arterra.Data.Entity.Behavior{
         public EntitySMTasks OnReachSurface = EntitySMTasks.Idle;
         public TagRegistry.Tags DiggableMats;
 
-        public Genetics.GeneFeature MinAttackerDist = new () {mean = 12, var = 0.25f, geneWeight = 0.1f};
-        public Genetics.GeneFeature MaxAttackerDist = new () {mean = 28, var = 0.25f, geneWeight = 0.1f};
-        public Genetics.GeneFeature SurfaceThresh = new () {mean = 0.3f, var = 0.25f, geneWeight = 0.1f};
-        public Genetics.GeneFeature DigDist = new () {mean = 3, var = 0.25f, geneWeight = 0.1f};
+        public float BurrowMinDist = 12;
+        public float BurrowMaxDist = 28;
+        public float UnburrowThresh = 0.3f;
+        public float DigDist = 3f;
         public Option<List<EntitySMTasks> > UnburrowTransitions;
         public Option<List<EntitySMTasks>> EscapingTargetStates = new () {value = new () {
             EntitySMTasks.RunFromTarget, EntitySMTasks.RunFromPredator
@@ -52,9 +52,9 @@ namespace Arterra.Data.Entity.Behavior{
                 OnReachSurface = OnReachSurface,
                 DiggableMats = DiggableMats,
                 
-                MinAttackerDist = MinAttackerDist,
-                MaxAttackerDist = MaxAttackerDist,
-                SurfaceThresh = SurfaceThresh,
+                BurrowMinDist = BurrowMinDist,
+                BurrowMaxDist = BurrowMaxDist,
+                UnburrowThresh = UnburrowThresh,
                 DigDist = DigDist,
                 UnburrowTransitions = UnburrowTransitions,
                 GroundStickDist = GroundStickDist,
@@ -62,10 +62,6 @@ namespace Arterra.Data.Entity.Behavior{
         }
 
         public void Preset(uint entityType, BehaviorEntity.AnimalSetting settings) {
-            Genetics.AddGene(entityType, ref MinAttackerDist);
-            Genetics.AddGene(entityType, ref MaxAttackerDist);
-            Genetics.AddGene(entityType, ref SurfaceThresh);
-            Genetics.AddGene(entityType, ref DigDist);
             _EscapeTargetStates = new HashSet<EntitySMTasks>(EscapingTargetStates.value);
             this.paths.hasPaths = false;
         }
@@ -89,11 +85,18 @@ namespace Arterra.Data.Entity.Behavior{
         private MapInteractBehavior mInteract;
         private PathFinderBehavior path;
         private StateMachineManagerBehavior manager;
-        private GeneticsBehavior genetics;
+        private Modifier mod;
         private bool foundSurface;
         private bool IsAttached;
 
+        private float RunSpeed(EntitySMTasks taskName) => MMove.Speed(mmove, taskName, mod, MSettings.RunSpeed, movement.runSpeed);
+        private float WalkSpeed(EntitySMTasks taskName) => MMove.Speed(mmove, taskName, mod, MSettings.WalkSpeed, movement.walkSpeed);
+        private float BurrowMaxDist => Modifier.Get(mod, MSettings.BurrowMaxDist, settings.BurrowMaxDist);
+        private float BurrowMinDist => Modifier.Get(mod, MSettings.BurrowMinDist, settings.BurrowMinDist);
+        private float UnburrowThresh => Modifier.Get(mod, MSettings.UnburrowThresh, settings.UnburrowThresh);
+        private float DigDist => Modifier.Get(mod, MSettings.DigDist, settings.DigDist);
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             bool IsBurrowing = true;
             if (manager.TaskIndex == settings.Task1Name) 
                 BurrowUnderground(self);
@@ -111,9 +114,11 @@ namespace Arterra.Data.Entity.Behavior{
 
         private void BurrowUnderground(BehaviorEntity.Animal self) {
             if (path.pathFinder.hasPath) {
-                float speed = MMove.Speed(mmove, settings.Task1Name, genetics.Genes, movement.walkSpeed);
-                Movement.FollowStaticPath(settings.paths.BurrowProfile, settings.paths.BurrowBounds, ref path.pathFinder, self.PathCollider,
-                    speed, movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.Task1Name));
+                float speed = WalkSpeed(settings.Task1Name);
+                self.PathCollider.Follow(Movement.StaticDirect(
+                    settings.paths.BurrowProfile, settings.paths.BurrowBounds, ref path.pathFinder, self.PathCollider,
+                    MMove.MovementType(mmove, settings.Task1Name)
+                ), speed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
                 return;
             }
 
@@ -130,9 +135,9 @@ namespace Arterra.Data.Entity.Behavior{
         private void HideUnderground(BehaviorEntity.Animal self) {
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity attacker))
                 manager.Transition(settings.Task3Name);
-            if (ColliderUpdateBehavior.GetColliderDist(attacker, self) > genetics.Genes.Get(settings.MaxAttackerDist))
+            if (ColliderUpdateBehavior.GetColliderDist(attacker, self) > BurrowMaxDist)
                 manager.Transition(settings.Task3Name);
-            if (mInteract != null && mInteract.breathPercent < genetics.Genes.Get(settings.SurfaceThresh))
+            if (mInteract != null && mInteract.breathPercent < UnburrowThresh)
                 manager.Transition(settings.Task3Name);
 
             byte contact = TerrainInteractor.SampleContact(self.position, self.transform.size, out _, null);
@@ -151,9 +156,11 @@ namespace Arterra.Data.Entity.Behavior{
                 else FindPathOut();
             }
 
-            float speed = MMove.Speed(mmove, settings.Task3Name, genetics.Genes, movement.walkSpeed);
-            Movement.FollowStaticPath(settings.paths.BurrowProfile, settings.paths.BurrowBounds, ref path.pathFinder, self.PathCollider,
-                speed, movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.Task3Name));
+            float speed = WalkSpeed(settings.Task3Name);
+            self.PathCollider.Follow(Movement.StaticDirect(
+                settings.paths.BurrowProfile, settings.paths.BurrowBounds, ref path.pathFinder, self.PathCollider,
+                MMove.MovementType(mmove, settings.Task3Name)
+            ), speed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
         }
 
         private void FindPathOut() {
@@ -168,16 +175,16 @@ namespace Arterra.Data.Entity.Behavior{
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity attacker)) {
                 return false;}
             float dist = ColliderUpdateBehavior.GetColliderDist(attacker, self);
-            if (dist < genetics.Genes.Get(settings.MinAttackerDist) || dist > genetics.Genes.Get(settings.MaxAttackerDist)) {
+            if (dist < BurrowMinDist || dist > BurrowMaxDist) {
                 return false;}
-            if (!self.PathCollider.SampleCollision(self.origin, new float3(self.settings.collider.size.x,
+            if (!GamePlay.Interaction.TerrainCollider.SampleCollision(self.origin, new float3(self.settings.collider.size.x,
                 -settings.GroundStickDist, self.settings.collider.size.z), EntityJob.cxt.mapContext, out _)){
                 return false;}
             
             float3 digDir = Vector3.down;
             EntitySetting.ProfileInfo profile = MMove.Profile(mmove, settings.Task1Name, self.settings);
             float3 origin = self.origin + new float3(0, -(int)profile.bounds.y, 0);
-            int pathLength = (int)genetics.Genes.Get(settings.DigDist);
+            int pathLength = (int)DigDist;
             byte[] nPath = PathFinder.FindPathAlongRay((int3)origin, ref digDir, pathLength, 
                 settings.paths.BurrowBounds, settings.paths.BurrowProfile, out int pLen);
             byte[] toStart = PathFinder.GetStraightLinePath(self.PathCoord, (int3)origin);
@@ -204,7 +211,7 @@ namespace Arterra.Data.Entity.Behavior{
         }
 
         private void OnInSolid(object src, object _, object cxt) {
-            mInteract.breath = math.max(mInteract.breath - EntityJob.cxt.deltaTime, 0);
+            mInteract.breath = math.max(mInteract.breath - self.DeltaTime, 0);
             if (mInteract.breath > 0) return;
             mInteract.ProcessSuffocation(self, (float)cxt);
         }
@@ -228,7 +235,6 @@ namespace Arterra.Data.Entity.Behavior{
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
         }
 
@@ -243,14 +249,13 @@ namespace Arterra.Data.Entity.Behavior{
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out collider)) collider = null;
             if (!self.Is(out mInteract)) mInteract = null;
+            if (!self.Is(out mod)) mod = null;
 
             settings.TrySetUpPaths(mmove, self.settings);
             manager.RegisterTransition(settings.Task1Name, TransitionToTask1);
@@ -266,14 +271,13 @@ namespace Arterra.Data.Entity.Behavior{
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out collider)) collider = null;
             if (!self.Is(out mInteract)) mInteract = null;
+            if (!self.Is(out mod)) mod = null;
 
             settings.TrySetUpPaths(mmove, self.settings);
             manager.RegisterTransition(settings.Task1Name, TransitionToTask1);

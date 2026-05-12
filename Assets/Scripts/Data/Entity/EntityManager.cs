@@ -13,10 +13,12 @@ using System.Threading.Tasks;
 using System.Linq;
 using Arterra.Configuration;
 using Arterra.Data.Entity;
+using Arterra.Data.Entity.Behavior;
 using Arterra.Engine.Terrain;
 using Arterra.GamePlay;
 using Arterra.Engine.Terrain.Readback;
 using Arterra.Utils;
+using Arterra.Data.Structure;
 
 public static class EntityManager
 {
@@ -51,6 +53,7 @@ public static class EntityManager
         CurUpdateEntities = EntityReg.ToArray();
         foreach (Entity entity in CurUpdateEntities) {
             ESTree.AssertEntityLocation(entity);
+            entity.UpdateJobSync();
         }
     }
 
@@ -63,7 +66,7 @@ public static class EntityManager
         AddHandlerEvent(() => InitializeE(newEntity, GCoord, genInfo.index));
     }
 
-    public static void CreateEntity(float3 GCoord, uint entityIndex, Entity sEntity = null, Action cb = null) {
+    public static Entity CreateEntity(float3 GCoord, uint entityIndex, Entity sEntity = null, Action cb = null) {
         if (sEntity == null) {
             Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
             sEntity = authoring.Entity;
@@ -73,11 +76,16 @@ public static class EntityManager
             InitializeE(sEntity, GCoord, entityIndex);
             cb?.Invoke();
         });
+        return sEntity;
     }
-    public static void DeserializeEntity(Entity sEntity, Action cb = null) => AddHandlerEvent(() => {
-        DeserializeE(sEntity);
-        cb?.Invoke();
-    });
+    public static Entity DeserializeEntity(Entity sEntity, Action cb = null){
+        AddHandlerEvent(() => {
+            DeserializeE(sEntity);
+            cb?.Invoke();
+        });
+        return sEntity;
+    }
+
     public static void ReleaseEntity(Guid entityId, Action cb = null) {
         if(!TryGetEntity(entityId, out Entity entity))
             return;
@@ -190,18 +198,67 @@ public static class EntityManager
         entityTranscriber.SetInt("bCOUNTER_entities", bufferOffsets.prunedCounter);
         entityTranscriber.SetInt("bSTART_entities", bufferOffsets.prunedStart);
 
-        //Ensure the entity dictionary has the player. This is non-negotiable and must always be ensured
-        Catalogue<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities;
-        if (EntityDictionary.Contains("Player") && EntityDictionary.Retrieve("Player").GetType() != typeof(PlayerStreamer))
-            EntityDictionary.TryRemove("Player");
-        if (!EntityDictionary.Contains("Player")) {
-            PlayerStreamer PlayerEntity = Resources.Load<PlayerStreamer>("Prefabs/GameUI/PlayerEntity");
-            EntityDictionary.Add("Player", PlayerEntity);
-        }
+        EnsurePlayerEntity();
 
-        Genetics.ClearGeneology();
+        Catalogue<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities;
         for (int i = 0; i < EntityDictionary.Reg.Count; i++) {
             EntityDictionary.Retrieve(i).Setting.Preset((uint)i);
+        }
+    }
+
+    //Ensure the entity dictionary has a properly created player. This is non-negotiable and must always be ensured
+    private static void EnsurePlayerEntity() {
+        Catalogue<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities;
+
+        if (EntityDictionary.Contains("Player") && EntityDictionary.Retrieve("Player") is not BehaviorEntity)
+            EntityDictionary.TryRemove("Player");
+        if (!EntityDictionary.Contains("Player")) EntityDictionary.Add("Player", CreateBehaviorPlayerAuthoring());
+        BehaviorEntity playerAuthoring = EntityDictionary.Retrieve("Player") as BehaviorEntity;
+
+        ref var gameplaySettings = ref Config.CURRENT.GamePlay;
+        if (gameplaySettings.PlayerSettings.value == null) {
+            gameplaySettings.PlayerSettings.value = PlayerBehavior.CreateDefaultPlayerAnimalSetting();
+            gameplaySettings.PlayerSettings.IsDirty = true;
+        }
+
+        Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
+        BehaviorEntity.AnimalSetting setting = gameplaySettings.PlayerSettings.value;
+        uint size = setting.profile.bounds.x * setting.profile.bounds.y * setting.profile.bounds.z;
+        playerAuthoring.Profile.value = new List<ProfileE>(new ProfileE[size]);
+        List<ProfileE> playerProfile = playerAuthoring.Profile.value;
+        playerAuthoring._Setting.value = setting;
+        for(int x = 0; x < setting.profile.bounds.x; x++) {
+        for(int y = 0; y < setting.profile.bounds.y; y++) {
+        for(int z = 0; z < setting.profile.bounds.z; z++) {
+            int3 coord = new (x, y, z);
+            ProfileE profile = default;
+            StructureData.CheckInfo check = default;
+            if (math.any(coord == 0)) {
+                check.MinLiquid = 0; check.MaxLiquid = (uint)MapData.MaxDensity;
+                check.MinSolid = (uint)(MapData.MaxDensity * rSettings.IsoLevel); 
+                check.MaxSolid = (uint)MapData.MaxDensity;
+                profile.flags = ProfileE.OR;
+            } else {
+                check.MinLiquid = 0; check.MinSolid = 0;
+                check.MaxLiquid = (uint)MapData.MaxDensity;
+                check.MaxSolid = (uint)(MapData.MaxDensity * rSettings.IsoLevel); 
+                profile.flags = ProfileE.AND;
+            } profile.bounds = check;
+            int index = CustomUtility.irregularIndexFromCoord(coord, new int2(y, z));
+            playerProfile[index] = profile;
+        }}} //Construct profile from size
+
+        static BehaviorEntity CreateBehaviorPlayerAuthoring() {
+            BehaviorEntity behaviorAuthoring = ScriptableObject.CreateInstance<BehaviorEntity>();
+            behaviorAuthoring.Name = "Player";
+
+            behaviorAuthoring._Setting.value = Config.CURRENT != null
+                && Config.CURRENT.GamePlay.PlayerSettings.value != null
+                ? Config.CURRENT.GamePlay.PlayerSettings.value
+                : PlayerBehavior.CreateDefaultPlayerAnimalSetting();
+            behaviorAuthoring.Controller.value = Resources.Load<GameObject>("Prefabs/Player/PlayerController");
+
+            return behaviorAuthoring;
         }
     }
 

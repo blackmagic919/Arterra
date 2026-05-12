@@ -19,7 +19,8 @@ namespace Arterra.Data.Entity.Behavior{
     public class FlapWingsBehavior : IBehavior {
         private FlapWingsBehaviorSettings settings;
         private AnimatedBehavior animator;
-        public void UpdateController(BehaviorEntity.Animal self, BehaviorEntity.AnimalController controller) {
+        public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.Job) return;
             if (animator.GetCurrentAnimation() != settings.FlyingAnimatorParam) return;
             if (self.velocity.y >= -1E-4f) animator.SetBool(settings.FlapWingsAnimatorParam, true);
             else animator.SetBool(settings.FlapWingsAnimatorParam, false);

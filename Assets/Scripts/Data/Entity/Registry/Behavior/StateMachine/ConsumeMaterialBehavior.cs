@@ -39,10 +39,12 @@ namespace Arterra.Data.Entity.Behavior {
 
         private StateMachineManagerBehavior manager;
         private VitalityBehavior vitality;
-        private GeneticsBehavior genetics;
+        private Modifier mod;
         
         public void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            
             if (!findPlant.CanConsume(manager.TaskPosition)) {
                 manager.Transition(settings.OnLostTarget);
                 return;
@@ -51,7 +53,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (manager.TaskDuration > 0) return;
 
             IItem item = findPlant.ConsumePlant(self, manager.TaskPosition);
-            if (item != null && consume.CanConsume(genetics.Genes, item, out float nutrition))
+            if (item != null && consume.CanConsume(mod, item, out float nutrition))
                 vitality?.Heal(nutrition);
         } 
 
@@ -62,7 +64,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
         }
 
@@ -79,12 +80,11 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalSettings to have ConsumeBehaviorSettings");
             if (!setting.Is(out findPlant))
                 throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalSettings to have FindPlant");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalInstance to have VitalityBehavior");
+            if (!self.Is(out mod)) mod = null;
             manager.RegisterTransition(settings.TaskName, TransitionTo);
         }
 
@@ -95,12 +95,11 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalSettings to have ConsumeBehaviorSettings");
             if (!setting.Is(out findPlant))
                 throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalSettings to have FindPlant");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalInstance to have VitalityBehavior");
+            if (!self.Is(out mod)) mod = null;
             manager.RegisterTransition(settings.TaskName, TransitionTo);
         }
     }

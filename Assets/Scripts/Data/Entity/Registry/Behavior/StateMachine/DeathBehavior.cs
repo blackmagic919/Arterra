@@ -10,7 +10,7 @@ namespace Arterra.Data.Entity.Behavior {
     public class DeathSettings : IBehaviorSetting {
         public EntitySMTasks TaskName = EntitySMTasks.Death;
         public EntitySMTasks OnReviveTask = EntitySMTasks.Idle;
-        public Genetics.GeneFeature DecompositionTime; //~300 seconds
+        public float DecompositionTime; //~300 seconds
 
         public object Clone() {
             return new DeathSettings {
@@ -19,22 +19,23 @@ namespace Arterra.Data.Entity.Behavior {
                 DecompositionTime = DecompositionTime
             };
         }
-
-        public void Preset(uint entityType, BehaviorEntity.AnimalSetting settings) {
-            Genetics.AddGene(entityType, ref DecompositionTime);
-        }
     }
     public class DeathBehavior : IBehavior {
         [JsonIgnore]
         public DeathSettings settings;
 
         private StateMachineManagerBehavior manager;
-        private GeneticsBehavior genetics;
         private VitalityBehavior vitality;
+        private Modifier mod;
+
+        private float DecompositionTime => Modifier.Get(mod, MSettings.DecompositionTime, settings.DecompositionTime);
+
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            
             if (manager.TaskIndex != settings.TaskName) {
                 if (!vitality.IsDead) return;
-                manager.TaskDuration = genetics.Genes.Get(settings.DecompositionTime);
+                manager.TaskDuration = DecompositionTime;
                 manager.Transition(settings.TaskName);
             };
             if (!vitality.IsDead) { //Bring back from the dead 
@@ -54,7 +55,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
         }
 
@@ -65,12 +65,11 @@ namespace Arterra.Data.Entity.Behavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Death Behavior Requires AnimalSettings to have DeathSettings");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out mod)) mod = null;
             
             self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
         }
@@ -78,12 +77,11 @@ namespace Arterra.Data.Entity.Behavior {
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Death Behavior Requires AnimalSettings to have DeathSettings");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out mod)) mod = null;
             
             self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
         }

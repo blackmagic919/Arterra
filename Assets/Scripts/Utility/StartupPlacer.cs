@@ -46,14 +46,15 @@ namespace Arterra.Utils {
             WeightedPlacement.SetBuffer(kernel, "Lock", UtilityBuffers.TransferBuffer);
         }
 
-        public static void PlaceOnSurface(Entity entity) {
-            SurfaceFinder.SetFloats("startPosXZ", new float[] { entity.position.x, entity.position.z });
+        public static float3 FindClearingAround(float3 startPos) {
+            SurfaceFinder.SetFloats("startPosXZ", new float[] { startPos.x, startPos.z });
             int kernel = SurfaceFinder.FindKernel("FindSurface");
             SurfaceFinder.Dispatch(kernel, 1, 1, 1);
 
             float[] height = new float[1];
             UtilityBuffers.TransferBuffer.GetData(height, 0, 0, 1);
-            entity.position = new float3(entity.position.x, height[0], entity.position.z);
+            startPos.y = height[0];
+            return startPos;
         }
 
         public static void MoveToClearing(Entity entity) {

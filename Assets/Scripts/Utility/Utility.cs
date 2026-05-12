@@ -176,8 +176,8 @@ namespace Arterra.Utils {
             return x * sizeY * sizeZ + y * sizeZ + z;
         }
 
-        public static int irregularIndexFromCoord(int3 pos, int2 size) {
-            return pos.x * size.x * size.y + pos.y * size.y + pos.z;
+        public static int irregularIndexFromCoord(int3 pos, int2 sizeYZ) {
+            return pos.x * sizeYZ.x * sizeYZ.y + pos.y * sizeYZ.y + pos.z;
         }
 
         public static int indexFromCoord(int x, int y, int z, int numPointsAxis) {

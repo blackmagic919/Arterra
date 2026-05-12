@@ -73,7 +73,8 @@ namespace Arterra.Data.Entity.Behavior {
             SelectedAttack = -1;
         }
 
-        public void UpdateController(BehaviorEntity.Animal self, BehaviorEntity.AnimalController controller) {
+        public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.Job) return;
             if(animated == null || attack == null) return;
             
             if (!attack.AttackInProgress) PlayingAttack = false;

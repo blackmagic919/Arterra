@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using static Arterra.Core.Storage.CPUMapManager;
 using Arterra.Data.Entity;
 using System.Collections.Generic;
+using Arterra.Data.Entity.Behavior;
 
 /*
 Future Note: Make this done on a job system
@@ -361,8 +362,8 @@ namespace Arterra.GamePlay.Interaction {
         }
 
 
-        public bool SampleCollision(float3 originGS, float3 boundsGS) => TerrainInteractor.TouchSolid(TerrainInteractor.SampleContact(originGS, boundsGS, out float friction, null));
-        public bool SampleCollision(in float3 originGS, in float3 boundsGS, in MapContext context, out float3 displacement) {
+        public static bool SampleCollision(float3 originGS, float3 boundsGS) => TerrainInteractor.TouchSolid(TerrainInteractor.SampleContact(originGS, boundsGS, out float friction, null));
+        public static bool SampleCollision(in float3 originGS, in float3 boundsGS, in MapContext context, out float3 displacement) {
             return SampleCollisionBurst(originGS, boundsGS, context, out displacement);
         }
 
@@ -465,8 +466,15 @@ namespace Arterra.GamePlay.Interaction {
             }
         }
 
+        public void Update(BehaviorEntity.Animal self, float baseFriction = BaseFriction, bool tangible = true) {
+            Update(self.ExactDeltaTime, self, baseFriction, tangible);
+        }
+
         public void Update(Entity self = null, float baseFriction = BaseFriction, bool tangible = true) {
-            float3 deltaPosition = transform.velocity * cxt.totDeltaTime;
+            Update(cxt.totDeltaTime, self, baseFriction, tangible);
+        }
+        private void Update(float timeStep, Entity self = null, float baseFriction = BaseFriction, bool tangible = true) {
+            float3 deltaPosition = transform.velocity * timeStep;
             float maxFriction = 0;
             byte contactMask = 0;
 
@@ -477,24 +485,7 @@ namespace Arterra.GamePlay.Interaction {
             if (useGravity) transform.velocity.xz *= 1 - friction;
             else transform.velocity *= 1 - friction;
 
-            if (useGravity) transform.velocity += cxt.gravity * cxt.totDeltaTime;
-        }
-
-        /// <summary> Updates the collider on a Unity Fixed Update. </summary>
-        public void FixedUpdate(Entity player) {
-            bool IsTangible = !Arterra.Configuration.Config.CURRENT.GamePlay.Gamemodes.value.Intangiblity;
-            float3 deltaPosition = transform.velocity * Time.fixedDeltaTime;
-            float maxFriction = 0;
-            byte contactMask = 0;
-
-            if (IsTangible) SweepMoveVoxelBoundaries(deltaPosition, player, ref maxFriction, ref contactMask);
-            else transform.position += deltaPosition;
-
-            float friction = TerrainInteractor.IsTouching(contactMask) ? maxFriction : BaseFriction;
-            if (useGravity) transform.velocity.xz *= 1 - friction;
-            else transform.velocity *= 1 - friction;
-
-            if (useGravity) transform.velocity += (float3)Physics.gravity * Time.fixedDeltaTime;
+            if (useGravity) transform.velocity += cxt.gravity * timeStep;
         }
 
 
@@ -547,6 +538,12 @@ namespace Arterra.GamePlay.Interaction {
                     mtv = new Vector3(0, 0, dz * Mathf.Sign(delta.z));
                 return true;
             }
+        }
+
+        public void Follow((Quaternion r, float3 v) delta, float moveSpeed, float rotSpeed, float acceleration, float timeStep) {
+            if (math.length(this.transform.velocity) < moveSpeed)
+                this.transform.velocity += acceleration * timeStep * delta.v;
+            this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, delta.r, rotSpeed * timeStep);
         }
 
         public TerrainCollider(in Settings settings, double3 position) {

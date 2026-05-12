@@ -2,6 +2,7 @@ using UnityEngine;
 using Arterra.GamePlay;
 using DevEffects;
 using Arterra.Core.Storage;
+using Arterra.Data.Entity.Behavior;
 
 public class FollowRay : MonoBehaviour
 {
@@ -50,7 +51,7 @@ public class FollowRay : MonoBehaviour
         // Get ray start and end
         if (PlayerHandler.data == null) return;
         rayStart = PlayerHandler.data.head;
-        if (!PlayerInteraction.RayTestSolid(out Unity.Mathematics.float3 hit))
+        if (!PlayerInteractionBehavior.RayTestSolid(out Unity.Mathematics.float3 hit))
             rayEnd = rayStart + (Vector3)PlayerHandler.data.Forward * 20f;
         else
             rayEnd = new Vector3(hit.x, hit.y, hit.z);

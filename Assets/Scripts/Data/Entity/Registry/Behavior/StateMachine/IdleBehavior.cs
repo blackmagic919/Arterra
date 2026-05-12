@@ -7,8 +7,8 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class IdleStateSettings : IBehaviorSetting {
-        public Genetics.GeneFeature AverageIdleTime;
-        public Genetics.GeneFeature AverageIdleVariance;
+        public float AverageIdleTime;
+        public float AverageIdleVariance;
         public EntitySMTasks TaskName = EntitySMTasks.Idle;
         public EntitySMTasks OnCompleteTransition = EntitySMTasks.RandomPath;
         public Option<List<EntitySMTasks> > CheckTransitions;
@@ -22,11 +22,6 @@ namespace Arterra.Data.Entity.Behavior {
                 CheckTransitions = CheckTransitions
             };
         }
-
-        public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            Genetics.AddGene(entityType, ref AverageIdleTime);
-            Genetics.AddGene(entityType, ref AverageIdleVariance);
-        }
     }
 
     public class IdleStateBehavior : IBehavior {
@@ -34,10 +29,14 @@ namespace Arterra.Data.Entity.Behavior {
 
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager;
-        private GeneticsBehavior genetics;
+        private Modifier mod;
 
+        private float AverageIdleTime => Modifier.Get(mod, MSettings.AverageIdleTime, settings.AverageIdleTime);
+        private float AverageIdleVariance => Modifier.Get(mod, MSettings.AverageIdleVariance, settings.AverageIdleVariance);
         public void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            
             if (manager.TaskDuration <= 0) manager.Transition(settings.OnCompleteTransition);
             if (settings.CheckTransitions.value == null) return;
             foreach(EntitySMTasks tasks in settings.CheckTransitions.value) {
@@ -46,17 +45,12 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private bool TransitionTo() {
-            manager.TaskDuration = (float)CustomUtility.Sample(
-                self.random,
-                genetics.Genes.Get(settings.AverageIdleTime),
-                genetics.Genes.Get(settings.AverageIdleVariance)
-            );
+            manager.TaskDuration = (float)CustomUtility.Sample(self.random, AverageIdleTime, AverageIdleVariance);
             return true;
         }
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
         }
 
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
@@ -66,10 +60,9 @@ namespace Arterra.Data.Entity.Behavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Idle Behavior Requires AnimalSettings to have IdleStateSettings");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: Idle Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: Idle Behavior Requires AnimalInstance to have StateMachineManager");
+            if (!self.Is(out mod)) mod = null;
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             this.self = self;
@@ -78,10 +71,9 @@ namespace Arterra.Data.Entity.Behavior {
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Idle Behavior Requires AnimalSettings to have IdleStateSettings");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: Idle Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: Idle Behavior Requires AnimalInstance to have StateMachineManager");
+            if (!self.Is(out mod)) mod = null;
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             this.self = self;

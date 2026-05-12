@@ -87,9 +87,10 @@ namespace Arterra.Data.Entity.Behavior {
             animator = self.controller.transform.Find(settings.AnimatorPath).GetComponent<Animator>();
         }
 
-        public void UpdateController(BehaviorEntity.Animal self, BehaviorEntity.AnimalController controller) {
+        public void Update(BehaviorEntity.Animal self) {
             if (manager == null) return;
             if (AnimatorTask == manager.TaskIndex) return;
+            if (self.context == BehaviorEntity.UpdateContext.Job) return;
             if (settings._stateAnims.TryGetValue(AnimatorTask, out string animation)) animator.SetBool(animation, false);
             AnimatorTask = manager.TaskIndex;
             if (settings._stateAnims.TryGetValue(AnimatorTask, out animation)) animator.SetBool(animation, true);

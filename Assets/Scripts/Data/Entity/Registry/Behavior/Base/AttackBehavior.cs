@@ -8,18 +8,11 @@ using Unity.Mathematics;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class AttackStats : IBehaviorSetting {
-        public Genetics.GeneFeature AttackDistance;
-        public Genetics.GeneFeature AttackDamage;
-        public Genetics.GeneFeature AttackCooldown;
-        public Genetics.GeneFeature KBStrength;
+        public float AttackDistance;
+        public float AttackDamage;
+        public float AttackCooldown;
+        public float KBStrength;
         public float AttackDuration;
-
-        public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            Genetics.AddGene(entityType, ref AttackDistance);
-            Genetics.AddGene(entityType, ref AttackDamage);
-            Genetics.AddGene(entityType, ref AttackCooldown);
-            Genetics.AddGene(entityType, ref KBStrength);
-        }
 
         public object Clone() {
             return new AttackStats{
@@ -33,8 +26,8 @@ namespace Arterra.Data.Entity.Behavior {
     }
     public class AttackBehavior : IBehavior {
         [JsonIgnore] public AttackStats settings;
-        private GeneticsBehavior genetics; 
         private BehaviorEntity.Animal self;
+        private Modifier mods; 
         
         public float attackProgress;
         public float attackCooldown;
@@ -59,25 +52,27 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Update(BehaviorEntity.Animal self) {
-            attackCooldown = math.max(attackCooldown - EntityJob.cxt.deltaTime, 0);
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            attackCooldown = math.max(attackCooldown - self.DeltaTime, 0);
             if (!AttackInProgress) return;
-            attackProgress = math.max(attackProgress - EntityJob.cxt.deltaTime, 0);
+            attackProgress = math.max(attackProgress - self.DeltaTime, 0);
             if (attackProgress > 0) return;
             FlushAttack(self);
         }
 
         private void FlushAttack(Entity self) {
             AttackInProgress = false;
-            attackCooldown = genetics.Genes.Get(settings.AttackCooldown);
+            attackCooldown = Modifier.Get(mods, MSettings.AttackCooldown, settings.AttackCooldown);
             
             if (!EntityManager.TryGetEntity(AttackTarget, out Entity target))
                 return;
             if (!target.Is(out IAttackable atkTarget)) return;
             if (ColliderUpdateBehavior.GetColliderDist(target, self)
-                > genetics.Genes.Get(settings.AttackDistance))
+                > Modifier.Get(mods, MSettings.AttackDistance, settings.AttackDistance))
                 return;
-            float damage = genetics.Genes.Get(settings.AttackDamage);
-            float3 knockback = math.normalize(target.position - self.position) * genetics.Genes.Get(settings.KBStrength);
+            float damage = Modifier.Get(mods, MSettings.AttackDamage, settings.AttackDamage);
+            float3 knockback = math.normalize(target.position - self.position) 
+                * Modifier.Get(mods, MSettings.KBStrength, settings.KBStrength);
             RealAttack(self, atkTarget, damage, knockback);
         }
 
@@ -90,10 +85,6 @@ namespace Arterra.Data.Entity.Behavior {
             EntityManager.AddHandlerEvent(() => target.TakeDamage(damage, knockback, self));
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
-        }
-
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(AttackStats), new AttackStats());
         }
@@ -101,8 +92,7 @@ namespace Arterra.Data.Entity.Behavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Attack Behavior Requires AnimalSettings to have AttackStats");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: Attack Behavior Requires AnimalInstance to have GeneticsBehavior");
+            if (!self.Is(out mods)) mods = null;
 
             attackProgress = settings.AttackDuration;
             attackCooldown = 0;
@@ -112,8 +102,7 @@ namespace Arterra.Data.Entity.Behavior {
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Attack Behavior Requires AnimalSettings to have AttackStats");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: Attack Behavior Requires AnimalInstance to have GeneticsBehavior");
+            if (!self.Is(out mods))  mods = null;
             
             this.self = self;
         }

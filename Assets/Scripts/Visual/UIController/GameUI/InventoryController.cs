@@ -15,44 +15,22 @@ using Arterra.GamePlay;
 using Arterra.Data.Material;
 using Arterra.GamePlay.Interaction;
 using Arterra.Utils;
+using Arterra.Data.Entity.Behavior;
+using Arterra.Data.Entity;
 
-namespace Arterra.Configuration.Gameplay {
-    /// <summary> Settings controlling the size and apperance of the inventory,
-    /// a system allowing the player to hold and use 
-    /// <see cref="Generation.Item"> items </see>. </summary>
-    [Serializable]
-    public struct Inventory {
-        /// <summary> The amount of slots in the primary inventory, the hotbar. This is
-        /// equivalent to the maximum amount of items that can be held in the hotbar.  </summary>
-        public int PrimarySlotCount;
-        /// <summary> The amount of slots in the secondary inventory, the hidden inventory. This is
-        /// equivalent to the maximum amount of items that can be held in the hidden inventory. </summary>
-        public int SecondarySlotCount;
-
-        /// <summary>
-        /// The color of the selected slot in the <see cref="InventoryController.Primary">Primary Inventory</see>, or
-        /// the hotbar. This color is used to indicate which item currently has the status of being <see cref="InventoryController.Selected">
-        /// selected. </see> 
-        /// </summary>
-        public Color SelectedColor;
-        /// <summary> The color of the base slot in the Inventory. The color 
-        /// of the slot when it is empty (the item held by the slot is null). </summary>
-        public Color BaseColor;
-    }
-}
 
 namespace Arterra.GamePlay.UI {
     public static class InventoryController {
-        public static Arterra.Configuration.Gameplay.Inventory settings => Config.CURRENT.GamePlay.Inventory.value;
+        public static PlayerInventorySettings settings;
         public static Inventory Primary; //Hotbar
         public static Inventory Secondary; //Inventory
         public static CursorManager Cursor;
         private static GameObject Menu;
         private static ItemDescription itemInfo;
 
-        private static Catalogue<Authoring> ItemSettings;
+        private static Catalogue<Data.Item.Authoring> ItemSettings;
         public static IItem Selected => Primary.Info[SelectedIndex];
-        public static Authoring SelectedSetting => ItemSettings.Retrieve(Primary.Info[SelectedIndex].Index);
+        public static Data.Item.Authoring SelectedSetting => ItemSettings.Retrieve(Primary.Info[SelectedIndex].Index);
         public static int SelectedIndex = 0;
 
         private static ItemContext GetSecondaryCxt(ItemContext cxt) => cxt.SetupScenario(PlayerHandler.data, ItemContext.Scenario.ActivePlayerSecondary);
@@ -74,33 +52,38 @@ namespace Arterra.GamePlay.UI {
             RebindInventories(null, PlayerHandler.data);
             Secondary.Display.parent.SetActive(false);
 
+            if (!Config.CURRENT.GamePlay.PlayerSettings.value.Is(out settings)) throw new Exception("Player Entity must have Inventory Settings");
             InputPoller.AddBinding(new ActionBind("Open Inventory", Activate), "PlayerInventory:OPN", "3.5::Window");
             AddHotbarKeybinds();
         }
 
         public static void Release() => Cursor?.ClearCursor(AddEntry);
-        private static bool RebindInventories(PlayerStreamer.Player old, PlayerStreamer.Player cur) {
+        private static bool RebindInventories(Entity old, Entity cur) {
             var prms = (old, cur);
             return RebindInventories(ref prms);
         }
-        private static bool RebindInventories(ref (PlayerStreamer.Player old, PlayerStreamer.Player cur) cxt) {
-            cxt.old?.PrimaryI.UnapplyHandles();
-            cxt.old?.SecondaryI.UnapplyHandles();
-            cxt.old?.PrimaryI.ReleaseDisplay();
-            cxt.old?.SecondaryI.ReleaseDisplay();
+        private static bool RebindInventories(ref (Entity old, Entity cur) cxt) {
+            if (cxt.old == null || !cxt.old.Is(out PlayerInventoriesBehavior oInvs))
+                oInvs = null;
+            if (cxt.cur == null || !cxt.cur.Is(out PlayerInventoriesBehavior nInvs))
+                nInvs = null;
+            oInvs?.PrimaryI.UnapplyHandles();
+            oInvs?.SecondaryI.UnapplyHandles();
+            oInvs?.PrimaryI.ReleaseDisplay();
+            oInvs?.SecondaryI.ReleaseDisplay();
 
             if (Config.CURRENT.GamePlay.Gamemodes.value.KeepInventory) {
-                var curPrimary = cxt.cur.PrimaryI; var curSecondary = cxt.cur.SecondaryI;
-                cxt.cur.PrimaryI = cxt.old?.PrimaryI ?? cxt.cur.PrimaryI;
-                cxt.cur.SecondaryI = cxt.old?.SecondaryI ?? cxt.cur.SecondaryI;
+                var curPrimary = nInvs.PrimaryI; var curSecondary = nInvs.SecondaryI;
+                nInvs.PrimaryI = oInvs?.PrimaryI ?? nInvs.PrimaryI;
+                nInvs.SecondaryI = oInvs?.SecondaryI ?? nInvs.SecondaryI;
                 if (cxt.old != null) {
-                    cxt.old.PrimaryI = curPrimary;
-                    cxt.old.SecondaryI = curSecondary;
+                    oInvs.PrimaryI = curPrimary;
+                    oInvs.SecondaryI = curSecondary;
                 }
             }
 
-            Primary = cxt.cur.PrimaryI;
-            Secondary = cxt.cur.SecondaryI;
+            Primary = nInvs.PrimaryI;
+            Secondary = nInvs.SecondaryI;
             Primary.InitializeDisplay(Menu.transform.GetChild(0).Find("Primary").gameObject);
             Secondary.InitializeDisplay(Menu.transform.GetChild(0).Find("Secondary").gameObject);
 
@@ -113,7 +96,7 @@ namespace Arterra.GamePlay.UI {
             cxt.cur.eventCtrl.AddEventHandler(
                 GameEvent.Entity_Respawn,
                 delegate (object actor, object target, object ctx) {
-                    var args = (ctx as RefTuple<(PlayerStreamer.Player, PlayerStreamer.Player)>).Value;
+                    var args = (ctx as RefTuple<(Entity, Entity)>).Value;
                     RebindInventories(ref args);
                 }
             );
@@ -189,7 +172,7 @@ namespace Arterra.GamePlay.UI {
         }
         public static void DropItem(IItem item) {
             DropItem(item, PlayerHandler.data.position,
-            PlayerHandler.data.collider.transform.rotation);
+            PlayerHandler.data.Collider.transform.rotation);
         }
 
         public static void DropItem(IItem item, float3 location, Quaternion rotation = default) {
@@ -937,7 +920,7 @@ namespace Arterra.GamePlay.UI {
 
             public void SwitchItem(IItem item) {
                 if (item == null) return;
-                Authoring settings = Config.CURRENT.Generation.Items.Retrieve(item.Index);
+                Data.Item.Authoring settings = Config.CURRENT.Generation.Items.Retrieve(item.Index);
                 Name.text = settings.Name;
                 Description.text = settings.Description;
                 animator.SetTrigger("Fade");

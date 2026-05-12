@@ -6,6 +6,7 @@ using Arterra.Core.Storage;
 using Arterra.GamePlay;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Data.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Bucket")] 
@@ -90,12 +91,12 @@ public class BucketItem : IItem{
     private void PlaceLiquid(ItemContext cxt){
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         
-        if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-        if (content == null || !PlayerInteraction.RayTestLiquid(out float3 hitPt)) return;
+        if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
+        if (content == null || !PlayerInteractionBehavior.RayTestLiquid(out float3 hitPt)) return;
         Authoring authoring = ItemInfo.Retrieve(content.Index);
         if (authoring is not PlaceableItem mat) return;
         if (mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
-        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, AddFromBucket, PlayerInteraction.CallOnMapPlacing);
+        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, AddFromBucket, PlayerInteractionBehavior.CallOnMapPlacing);
         if(content.AmountRaw != 0) return;
         content.ClearDisplay(display.transform);
         content = null;
@@ -131,9 +132,9 @@ public class BucketItem : IItem{
     }
 
     private void RemoveLiquid(ItemContext cxt){
-        if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-        if (!PlayerInteraction.RayTestLiquid(out float3 hitPt)) return;
-        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveToBucket, PlayerInteraction.CallOnMapRemoving);
+        if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
+        if (!PlayerInteractionBehavior.RayTestLiquid(out float3 hitPt)) return;
+        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveToBucket, PlayerInteractionBehavior.CallOnMapRemoving);
     }
 
     private bool RemoveToBucket(int3 GCoord, float brushStrength){

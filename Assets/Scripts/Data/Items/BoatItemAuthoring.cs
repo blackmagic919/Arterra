@@ -4,6 +4,7 @@ using UnityEngine;
 using Arterra.GamePlay;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Data.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Boat")] 
@@ -75,8 +76,8 @@ public class BoatItem : IItem{
     }
 
     private void PlaceBoat(ItemContext cxt){
-        if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-        if (!PlayerInteraction.RayTestLiquid(out float3 hitPt)) return;
+        if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
+        if (!PlayerInteractionBehavior.RayTestLiquid(out float3 hitPt)) return;
         uint eIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Boat");
         EntityManager.CreateEntity(hitPt, eIndex);
         cxt.TryRemove();

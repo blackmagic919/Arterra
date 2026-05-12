@@ -10,6 +10,8 @@ using Arterra.Core.Events;
 using Arterra.GamePlay;
 using Arterra.GamePlay.Interaction;
 using Arterra.GamePlay.UI;
+using System;
+using Arterra.Data.Entity.Behavior;
 
 
 namespace Arterra.GamePlay.UI {
@@ -48,20 +50,25 @@ namespace Arterra.GamePlay.UI {
             RebindPlayer(null, PlayerHandler.data);
         }
 
-        private bool RebindPlayer(PlayerStreamer.Player old, PlayerStreamer.Player cur) {
+        private bool RebindPlayer(Entity old, Entity cur) {
             var prms = (old, cur);
             return RebindPlayer(ref prms);
         }
-        private bool RebindPlayer(ref (PlayerStreamer.Player old, PlayerStreamer.Player cur) cxt) {
-            Transform rig = cxt.cur.player.transform.Find("Player");
+        private bool RebindPlayer(ref (Entity old, Entity cur) cxt) {
+            if (!cxt.cur.Is(out BehaviorEntity.Animal cInst)) throw new Exception("Respawn expected new Player to be BehaviorEntity");
+            if (!cxt.cur.Is(out PlayerInventoriesBehavior cInv)) cInv = null;
+            if (cxt.old == null || !cxt.old.Is(out PlayerInventoriesBehavior oInv))
+                oInv = null;
+
+            Transform rig = cInst.controller.transform.Find("Player");
             settings.BindBones(rig);
 
-            cxt.old?.ArmorI.ReleaseDisplay();
-            cxt.old?.ArmorI.UnapplyHandles();
+            oInv?.ArmorI.ReleaseDisplay();
+            oInv?.ArmorI.UnapplyHandles();
             if (Config.CURRENT.GamePlay.Gamemodes.value.KeepInventory) {
-                cxt.cur.ArmorI = cxt.old?.ArmorI ?? cxt.cur.ArmorI;
+                cInv.ArmorI = oInv?.ArmorI ?? cInv.ArmorI;
             }
-            playerArmor = cxt.cur.ArmorI;
+            playerArmor = cInv.ArmorI;
             playerArmor.AddCallbacks(GetArmorCxt, GetArmorCxt);
             playerArmor.InitializeDisplay(ArmorPanel);
             playerArmor.ReapplyHandles();
@@ -76,7 +83,7 @@ namespace Arterra.GamePlay.UI {
             cxt.cur.eventCtrl.AddEventHandler(
                 GameEvent.Entity_Respawn,
                 delegate (object actor, object target, object ctx) {
-                    var args = (ctx as RefTuple<(PlayerStreamer.Player, PlayerStreamer.Player)>).Value;
+                    var args = (ctx as RefTuple<(Entity, Entity)>).Value;
                     RebindPlayer(ref args);
                 }
             );
@@ -291,7 +298,7 @@ namespace Arterra.GamePlay.UI {
         }
 
         private class FreeCamera {
-            private Arterra.Configuration.Gameplay.Player.Camera S => Config.CURRENT.GamePlay.Player.value.Camera;
+            private PlayerCameraSettings S;
             private Transform CamTsf;
             const float height = 0f;
             const float distance = 7.5f;
@@ -300,6 +307,8 @@ namespace Arterra.GamePlay.UI {
             private float2 Rot;
 
             public FreeCamera(Transform camera) {
+                if (!Config.CURRENT.GamePlay.PlayerSettings.value.Is(out S))
+                    throw new Exception("Free Camera expected to find camera settings on player");
                 this.CamTsf = camera;
                 ClearTransform();
             }

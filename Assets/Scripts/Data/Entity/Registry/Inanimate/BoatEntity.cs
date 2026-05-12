@@ -97,7 +97,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             this.controller.SetAimAngle(aim);
 
             if (math.length(velocity) <= settings.MaxLandSpeed &&
-                PlayerHandler.data.collider.SampleCollision(origin, new float3(
+                TerrainCollider.SampleCollision(origin, new float3(
                 settings.collider.size.x, -settings.groundStickDist, settings.collider.size.z))
             ) {
                 velocity += settings.Acceleration * EntityJob.cxt.deltaTime * aim;
@@ -136,7 +136,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
                 EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
         }
 
-
+        public override void UpdateJobSync() => controller.Update();
         public override void Update() {
             if (!active) return;
 
@@ -161,7 +161,6 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
 
             tCollider.Update(this);
             tCollider.EntityCollisionUpdate(this, IgnoredEntities);
-            EntityManager.AddHandlerEvent(controller.Update);
 
             if (!IsDead) return;
             EntityManager.ReleaseEntity(info.entityId);

@@ -85,19 +85,24 @@ namespace Arterra.Data.Entity.Behavior {
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager;
         private PathFinderBehavior path;
-        private GeneticsBehavior genetics;
         private RelationsBehavior relations;
+        private Modifier mod;
+
+        private float SearchEnemyDist => Modifier.Get(mod, MSettings.SearchEnemyDist, flee.detectDist);
+        private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
 
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             if (manager.TaskIndex <= settings.OverridableStates) {
                 DetectPredator();
                 return;
             } else if (manager.TaskIndex != settings.TaskName) return;
 
-            Movement.FollowStaticPath(MMove.Profile(mmove, settings.TaskName, self.settings),
+            self.PathCollider.Follow(Movement.StaticDirect(
+                MMove.Profile(mmove, settings.TaskName, self.settings), 
                 ref path.pathFinder, self.PathCollider,
-                MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.runSpeed),
-                movement.rotSpeed, movement.acceleration, MMove.MovementType(mmove, settings.TaskName));
+                MMove.MovementType(mmove, settings.TaskName)
+            ), RunSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
             if (!path.pathFinder.hasPath) {
                 manager.Transition(settings.OnFinishRunning);
                 return;
@@ -105,8 +110,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void DetectPredator() {
-            if (!settings.FindClosestPredator(self, genetics.Genes.Get(
-                flee.detectDist), out Entity predator, relations))
+            if (!settings.FindClosestPredator(self, SearchEnemyDist, out Entity predator, relations))
                 return;
 
             int PathDist = flee.fleeDist;
@@ -121,7 +125,6 @@ namespace Arterra.Data.Entity.Behavior {
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
         }
 
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
@@ -138,13 +141,12 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out mmove)) mmove = null;
             if (!setting.Is(out flee))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalSettings to have Flee");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out relations)) relations = null;
+            if (!self.Is(out mod)) mod = null;
             
             this.self = self;
         }
@@ -157,13 +159,12 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out mmove)) mmove = null;
             if (!setting.Is(out flee))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalSettings to have Flee");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out relations)) relations = null;
+            if (!self.Is(out mod)) mod = null;
             
             this.self = self;
         }

@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Arterra.Configuration;
 using Arterra.GamePlay;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.GamePlay.UI {
     public static class PlayerStatDisplay {
@@ -32,11 +33,11 @@ namespace Arterra.GamePlay.UI {
             HealthBar.SetActive(!isVulnerable);
         }
 
-        public static void UpdateIndicator(PlayerVitality vitality) {
+        public static void UpdateIndicator(VitalityBehavior vitality) {
             if (!HealthBar.activeSelf) return;
             healthStat.fillAmount = vitality.healthPercent;
-            breathStat.fillAmount = math.fmod(vitality.breathPercent, 1);
-            if (vitality.Invincibility <= 0) damageStat.fillAmount = math.max(vitality.healthPercent, damageStat.fillAmount - 0.01f);
+            breathStat.fillAmount = 1;
+            if (vitality.invincibility <= 0) damageStat.fillAmount = math.max(vitality.healthPercent, damageStat.fillAmount - 0.01f);
         }
     }
 }

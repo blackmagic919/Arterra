@@ -10,7 +10,8 @@ namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class MapInteractorSettings : IBehaviorSetting{
         public InteractType interactType = InteractType.Terrestrial;
-        public Genetics.GeneFeature HoldBreathTime = new () {mean = 10, geneWeight = 0.1f, var = 0.3f};
+        public float HoldBreathTime;
+        public float Bouyancy;
         public bool UseFallDamage = true;
         public enum InteractType {
             Terrestrial, 
@@ -27,18 +28,16 @@ namespace Arterra.Data.Entity.Behavior {
                 UseFallDamage = UseFallDamage,
             };
         }
-        public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            Genetics.AddGene(entityType, ref HoldBreathTime);
-        }
     }
     public class MapInteractBehavior : IBehavior {
         [JsonIgnore] public MapInteractorSettings settings;
         public MapInteractorSettings.InteractType Interaction;
-        private GeneticsBehavior genetics;
-        private Genetics genes => genetics.Genes;
+        private Modifier mod;
         private VitalityBehavior vitality;
 
-        [JsonIgnore] public float breathPercent => breath / genes.Get(settings.HoldBreathTime);
+        private float maxHoldBreathTime => Modifier.Get(mod, MSettings.HoldBreathTime, settings.HoldBreathTime);
+        [JsonIgnore] public float breathPercent => breath / maxHoldBreathTime;
+        public const float FallDmgThresh = 10;
         public float breath;
 
 
@@ -46,6 +45,11 @@ namespace Arterra.Data.Entity.Behavior {
         public void ResetInteractionType() => Interaction = settings.interactType;
 
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.JobSync)
+                return;
+            if (self.context == BehaviorEntity.UpdateContext.Main)
+                return;
+
             switch (Interaction) {
                 case MapInteractorSettings.InteractType.Terrestrial:
                     TerrainInteractor.DetectMapInteraction(self.position,
@@ -74,27 +78,27 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        public void ProcessInSolid(Entity self, float density) {
+        public void ProcessInSolid(BehaviorEntity.Animal self, float density) {
             self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InSolid, self, null, density);
             ProcessSuffocation(self, density);
         }
 
-        public void ProcessSuffocation(Entity self, float density) {
+        public void ProcessSuffocation(BehaviorEntity.Animal self, float density) {
             if (density <= 0) return;
             if (!self.Is(out IAttackable target)) return;
             if (target.IsDead) return;
             EntityManager.AddHandlerEvent(() => target.TakeDamage(density / 255.0f, 0, null));
         }
 
-        public void ProcessInGas(Entity self, float density) {
+        public void ProcessInGas(BehaviorEntity.Animal self, float density) {
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, self, null, density);
-            breath = genes.Get(settings.HoldBreathTime);
+            breath = maxHoldBreathTime;
         }
 
-        public void ProcessInLiquid(Entity self, TerrainCollider tCollider, float density) {
+        public void ProcessInLiquid(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, self, null, density);
-            breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
-            tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
+            breath = math.max(breath - self.DeltaTime, 0);
+            tCollider.transform.velocity += self.DeltaTime * settings.Bouyancy * -EntityJob.cxt.gravity;
             tCollider.useGravity = false;
             if (breath > 0) return;
             //If dead don't process suffocation
@@ -102,12 +106,12 @@ namespace Arterra.Data.Entity.Behavior {
             ProcessSuffocation(self, density);
         }
 
-        public void ProcessInLiquidAquatic(Entity self, TerrainCollider tCollider, float density) {
+        public void ProcessInLiquidAquatic(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, self, null, density);
-            breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
+            breath = math.max(breath - self.DeltaTime, 0);
+
             if (self.Is(out IAttackable target) && target.IsDead) { //If dead float to the surface
-                tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-                
+                tCollider.transform.velocity += self.DeltaTime * settings.Bouyancy * -EntityJob.cxt.gravity;
                 return; //don't process suffocation
             }
 
@@ -117,7 +121,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void ProcessInGasAquatic(Entity self, TerrainCollider tCollider, float density) {
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, self, null, density);
-            breath = genes.Get(settings.HoldBreathTime);
+            breath = maxHoldBreathTime;
         }
 
         public void ProcessInSolidSubterraneal(Entity self, float density) {
@@ -129,8 +133,8 @@ namespace Arterra.Data.Entity.Behavior {
             bool useGrav; float zVelDelta;
             (useGrav, zVelDelta) = ((bool, float))cxt; 
             if (!useGrav) return;
-            if (zVelDelta <= Vitality.FallDmgThresh) return;
-            float damage = zVelDelta - Vitality.FallDmgThresh;
+            if (zVelDelta <= FallDmgThresh) return;
+            float damage = zVelDelta - FallDmgThresh;
             double weight = math.max(vitality.stats.weight, 0) / 25;
             double falloff = (math.exp(weight) - 1) / (math.exp(weight) + 1); //rescaled sigmoid
             damage *= (float)falloff;
@@ -139,7 +143,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
         }
 
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
@@ -151,9 +154,8 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have MapInteractorSettings");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have VitalityBehavior");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have GeneticsBehavior");
-            breath = this.genes.Get(settings.HoldBreathTime);
+            if (!self.Is(out mod)) mod = null;
+            breath = maxHoldBreathTime;
             if (settings.UseFallDamage) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_HitGround, ProcessFallDamage);
             ResetInteractionType();
         }
@@ -163,8 +165,8 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have MapInteractorSettings");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have VitalityBehavior");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have GeneticsBehavior");
+            if (!self.Is(out mod)) mod = null;
+            breath = maxHoldBreathTime;
             if (settings.UseFallDamage) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_HitGround, ProcessFallDamage);
             ResetInteractionType();
         }

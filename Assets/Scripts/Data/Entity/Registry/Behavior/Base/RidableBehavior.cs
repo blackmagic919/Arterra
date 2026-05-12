@@ -83,7 +83,6 @@ public class RidableBehavior : IBehavior, IRidable {
      public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
         heirarchy.TryAdd(Behaviors.Collider, heirarchy.Count);
         heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
-        heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
         //Deactivated unless IAttackable is implemented
     }
 

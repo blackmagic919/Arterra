@@ -111,7 +111,7 @@ public class Projectile : Arterra.Data.Entity.Authoring
             GCoord = this.GCoord;
         }
 
-
+        public override void UpdateJobSync() => controller.Update();
         public override void Update() {
             if (!active) return;
             tCollider.useGravity = true;
@@ -135,11 +135,10 @@ public class Projectile : Arterra.Data.Entity.Authoring
             } else if (math.length(velocity) > 1) HasCollided = false;
             tCollider.Update(this, 0);
             tCollider.EntityCollisionUpdate(this);
-            EntityManager.AddHandlerEvent(controller.Update);
         }
 
         private bool CheckTerrainRayCollision() {
-            if (!tCollider.SampleCollision((float3)tCollider.transform.position, tCollider.transform.size * 1.05f, EntityJob.cxt.mapContext, out float3 gDir)) return false;
+            if (!TerrainCollider.SampleCollision((float3)tCollider.transform.position, tCollider.transform.size * 1.05f, EntityJob.cxt.mapContext, out float3 gDir)) return false;
             switch (settings.terrainInteration) {
                 case ProjectileSetting.GroundIntrc.Stick:
                     tCollider.transform.rotation = Quaternion.LookRotation(-gDir, math.up());

@@ -15,23 +15,14 @@ namespace Arterra.Data.Entity.Behavior {
             Move3D = 1,
             Full3D = 2,
         }
-        public Genetics.GeneFeature walkSpeed;
-        public Genetics.GeneFeature runSpeed;
+        public float walkSpeed;
+        public float runSpeed;
         public int pathDistance;//~31
         public float acceleration; //~100
         public float rotSpeed;//~180
 
         //This is in game-ticks not real-time
         const uint pathPersistence = 200;
-
-        public void InitGenome(uint entityType) {
-            Genetics.AddGene(entityType, ref walkSpeed);
-            Genetics.AddGene(entityType, ref runSpeed);
-        }
-
-        public void Preset(uint entityType, BehaviorEntity.AnimalSetting settings) {
-            InitGenome(entityType);
-        }
 
         public object Clone() {
             return new Movement {
@@ -60,14 +51,13 @@ namespace Arterra.Data.Entity.Behavior {
             return math.normalize(var);
         }
 
-        public static void FollowStaticPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, TerrainCollider tCollider, float moveSpeed,
-                            float rotSpeed, float acceleration, FollowType movement = FollowType.Planar) {
+        public static (Quaternion, float3) StaticDirect(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, TerrainCollider tCollider, FollowType movement = FollowType.Planar) {
             //Entity has fallen off path
             finder.stepDuration++;
             if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > profile.bounds)) finder.hasPath = false;
             if (finder.currentInd == finder.path.Length) finder.hasPath = false;
             if (finder.stepDuration > pathPersistence) { finder.hasPath = false; }
-            if (!finder.hasPath) return;
+            if (!finder.hasPath) return (tCollider.transform.rotation, float3.zero);
             byte dir = finder.path[finder.currentInd];
             int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
             if (!PathFinder.VerifyProfile(nextPos, profile, EntityJob.cxt)) { finder.hasPath = false; }
@@ -87,26 +77,21 @@ namespace Arterra.Data.Entity.Behavior {
                     break;
             }
 
-            tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, rotSpeed * EntityJob.cxt.deltaTime);
-            if (math.length(tCollider.transform.velocity) < moveSpeed)
-                tCollider.transform.velocity += acceleration * EntityJob.cxt.deltaTime * aim;
-
             if (math.all(math.abs(tCollider.transform.position - nextPos) <= 1)) {
                 finder.currentPos = nextPos;
                 finder.stepDuration = 0;
                 finder.currentInd++;
-            }
+            } return (rot, aim);
         }
 
-        public static void FollowDynamicPath(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, TerrainCollider tCollider, float3 target,
-                                float moveSpeed, float rotSpeed, float acceleration, FollowType movement = FollowType.Planar) {
+        public static (Quaternion, float3) DynamicDirect(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, TerrainCollider tCollider, float3 target, FollowType movement = FollowType.Planar) {
             finder.stepDuration++;
             if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > profile.bounds))
                 finder.hasPath = false;
             if (finder.currentInd >= finder.path.Length) finder.hasPath = false;
             if (finder.stepDuration > pathPersistence) finder.hasPath = false;
+            if (!finder.hasPath) return (tCollider.transform.rotation, float3.zero);
 
-            if (!finder.hasPath) return;
             byte dir = finder.path[finder.currentInd];
             int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
             if (!PathFinder.VerifyProfile(nextPos, profile, EntityJob.cxt)) { finder.hasPath = false; }
@@ -128,26 +113,21 @@ namespace Arterra.Data.Entity.Behavior {
                     break;
             }
 
-            tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, rotSpeed * EntityJob.cxt.deltaTime);
-            if (math.length(tCollider.transform.velocity) < moveSpeed)
-                tCollider.transform.velocity += acceleration * EntityJob.cxt.deltaTime * aim;
-
             if (math.all(math.abs(tCollider.transform.position - nextPos) <= 1)) {
                 finder.currentPos = nextPos;
                 finder.stepDuration = 0;
                 finder.currentInd++;
-            }
+            } return (rot, aim);
         }
 
 
-        public static void FollowStaticPath(List<PathFinder.MatProfileE> profile, uint3 bounds, ref PathFinder.PathInfo finder, TerrainCollider tCollider, float moveSpeed,
-                            float rotSpeed, float acceleration, FollowType movement = FollowType.Planar) {
+        public static (Quaternion, float3) StaticDirect(List<PathFinder.MatProfileE> profile, uint3 bounds, ref PathFinder.PathInfo finder, TerrainCollider tCollider, FollowType movement = FollowType.Planar) {
             //Entity has fallen off path
             finder.stepDuration++;
             if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > bounds)) finder.hasPath = false;
             if (finder.currentInd == finder.path.Length) finder.hasPath = false;
             if (finder.stepDuration > pathPersistence) { finder.hasPath = false; }
-            if (!finder.hasPath) return;
+            if (!finder.hasPath) return  (tCollider.transform.rotation, float3.zero);
             byte dir = finder.path[finder.currentInd];
             int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
             if (!PathFinder.VerifyMatProfile(nextPos, bounds, profile)) { finder.hasPath = false; }
@@ -167,15 +147,11 @@ namespace Arterra.Data.Entity.Behavior {
                     break;
             }
 
-            tCollider.transform.rotation = Quaternion.RotateTowards(tCollider.transform.rotation, rot, rotSpeed * EntityJob.cxt.deltaTime);
-            if (math.length(tCollider.transform.velocity) < moveSpeed)
-                tCollider.transform.velocity += acceleration * EntityJob.cxt.deltaTime * aim;
-
             if (math.all(math.abs(tCollider.transform.position - nextPos) <= 1)) {
                 finder.currentPos = nextPos;
                 finder.stepDuration = 0;
                 finder.currentInd++;
-            }
+            } return (rot, aim);
         }
 
         struct BoidDMtrx {
@@ -184,64 +160,5 @@ namespace Arterra.Data.Entity.Behavior {
             public float3 CohesionDir;
             public uint count;
         }
-
-        [Serializable]
-        public struct Aquatic {
-            public Genetics.GeneFeature DrownTime;
-            //Threshold at which the entity will try to swim to the surface
-            public Genetics.GeneFeature SurfaceThreshold;
-            public float JumpStickDistance;
-            public float JumpStrength;
-            public EntitySetting.ProfileInfo SurfaceProfile;
-
-            public void InitGenome(uint entityType) {
-                Genetics.AddGene(entityType, ref DrownTime);
-                Genetics.AddGene(entityType, ref SurfaceThreshold);
-            }
-        }
-
-        [Serializable]
-        public struct Flight {
-            //Starts after the profile of the ground entity
-            public EntitySetting.ProfileInfo profile;
-            public Genetics.GeneFeature AverageFlightTime; //120
-            public Genetics.GeneFeature FlyBiasWeight; //0.25\
-            [Range(0, 1)]
-            public float VerticalFreedom;
-
-            public void InitGenome(uint entityType) {
-                Genetics.AddGene(entityType, ref AverageFlightTime);
-                Genetics.AddGene(entityType, ref FlyBiasWeight);
-            }
-        }
-        
-        [Serializable]
-        public struct BoidFlight {
-            public EntitySetting.ProfileInfo profile;
-            public Genetics.GeneFeature AverageFlightTime; //120
-            public Genetics.GeneFeature SeperationWeight; //0.75
-            public Genetics.GeneFeature AlignmentWeight; //0.5
-            public Genetics.GeneFeature CohesionWeight; //0.25
-            public int InfluenceDist; //24
-            public int PathDist; //5
-            public int MaxSwarmSize; //8
-            
-            public void InitGenome(uint entityType) {
-                Genetics.AddGene(entityType, ref AverageFlightTime);
-                Genetics.AddGene(entityType, ref SeperationWeight);
-                Genetics.AddGene(entityType, ref AlignmentWeight);
-                Genetics.AddGene(entityType, ref CohesionWeight);
-            }
-        }
-
-        public interface IBoid {
-            public float3 MoveDirection{get; set;}
-            public bool HasPackTarget(out Guid target) {
-                target = default;
-                return false;
-            }
-            public void SetPackTarget(Guid Target) {} 
-        }
-
     }
 }

@@ -27,7 +27,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private BehaviorEntity.Animal self;
         private VitalityBehavior vitality;
-        private GeneticsBehavior genetics;
+        private Modifier mod;
         private HuntBehaviorSettings hunt; //optional
 
         public void OnInteracted(object self, object target, object cxt) {
@@ -35,22 +35,22 @@ namespace Arterra.Data.Entity.Behavior {
             IItem item = cxt as IItem;
             switch(settings.CanEat) {
                 case FeedableBehaviorSettings.EatCondition.OnlyWhenHungry:
-                    if (hunt != null && vitality.healthPercent > genetics.Genes.Get(hunt.HuntThreshold))
+                    if (hunt != null && vitality.healthPercent > Modifier.Get(mod, MSettings.HuntThreshold, hunt.HuntThreshold))
                         return;
                     break;
                 case FeedableBehaviorSettings.EatCondition.OnlyWhenNotFull:
-                    if (hunt != null && vitality.healthPercent > genetics.Genes.Get(hunt.StopHuntThreshold))
+                    if (hunt != null && vitality.healthPercent > Modifier.Get(mod, MSettings.StopHuntThreshold, hunt.HuntThreshold))
                         return;
                     break;
                 default:
                     break;
             }
 
-            if (!consume.CanConsume(genetics.Genes, item, out float nutrition)) return;
+            if (!consume.CanConsume(mod, item, out float nutrition)) return;
             RefTuple<(Entity, float, float)> context = new ((
                 target as Entity,
                 nutrition,
-                nutrition / genetics.Genes.Get(vitality.stats.MaxHealth)
+                nutrition / Modifier.Get(mod, MSettings.MaxHealth, vitality.stats.MaxHealth)
             ));
 
             this.self.eventCtrl.RaiseEvent(GameEvent.Entity_Fed, self, item, context);
@@ -61,7 +61,6 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
         }
 
@@ -75,11 +74,10 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: Feed Behavior Requires AnimalSettings to have FeedableBehaviorSettings");
             if (!setting.Is(out consume))
                 throw new System.Exception("Entity: Feed Behavior Requires AnimalSettings to have ConsumeBehaviorSettings");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: Feed Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: Feed Behavior Requires AnimalInstance to have VitalityBehavior");
             if (!self.Is(out hunt)) hunt = null;
+            if (!self.Is(out mod)) mod = null;
 
             
             this.self = self;
@@ -91,11 +89,10 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: Feed Behavior Requires AnimalSettings to have FeedableBehaviorSettings");
             if (!setting.Is(out consume))
                 throw new System.Exception("Entity: Feed Behavior Requires AnimalSettings to have ConsumeBehaviorSettings");
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: Feed Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: Feed Behavior Requires AnimalInstance to have VitalityBehavior");
             if (!self.Is(out hunt)) hunt = null;
+            if (!self.Is(out mod)) mod = null;
 
             
             this.self = self;

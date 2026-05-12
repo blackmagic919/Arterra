@@ -9,16 +9,12 @@ namespace Arterra.Data.Entity.Behavior {
         public EntitySMTasks TestProximityState = EntitySMTasks.AttackTarget;
         public EntitySMTasks OnLostTarget = EntitySMTasks.RandomPath;
         public EntitySMTasks OnSteppedBack = EntitySMTasks.ChaseTarget;
-        public Genetics.GeneFeature BlindDist = new () {mean = 3, var = 0.25f, geneWeight = 0.025f};
+        public float BlindDist = 3;
         public int PathDist = 5;
         public object Clone() {
             return new StepBackSetting {
                 TaskName = TaskName
             };
-        }
-
-        public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            Genetics.AddGene(entityType, ref BlindDist);
         }
     }
 
@@ -29,10 +25,14 @@ namespace Arterra.Data.Entity.Behavior {
 
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager;
-        private GeneticsBehavior genetics;
+        private Modifier mod;
         private PathFinderBehavior path;
 
+        private float BlindDist => Modifier.Get(mod, MSettings.BlindDist, settings.BlindDist);
+        private float WalkSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.WalkSpeed, movement.walkSpeed);
+
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             if (manager.TaskIndex != settings.TaskName) return;
 
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity target)) {
@@ -40,13 +40,13 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             }
 
-            if (ColliderUpdateBehavior.GetColliderDist(self, target) > genetics.Genes.Get(settings.BlindDist)) {
+            if (ColliderUpdateBehavior.GetColliderDist(self, target) > BlindDist) {
                 manager.Transition(settings.OnSteppedBack);
                 return;
             }
 
             if (!path.pathFinder.hasPath) {
-                if (ColliderUpdateBehavior.GetColliderDist(self, target) > genetics.Genes.Get(settings.BlindDist)) {
+                if (ColliderUpdateBehavior.GetColliderDist(self, target) > BlindDist) {
                     manager.Transition(settings.OnSteppedBack);
                     return;
                 }
@@ -58,17 +58,16 @@ namespace Arterra.Data.Entity.Behavior {
                     EntityJob.cxt, out int pLen);
                 path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
             }
-            Movement.FollowStaticPath(self.settings.profile, ref path.pathFinder, self.PathCollider,
-                MMove.Speed(mmove, settings.TaskName, genetics.Genes, movement.walkSpeed),
-                movement.rotSpeed, movement.acceleration, 
+            self.PathCollider.Follow(Movement.StaticDirect(
+                self.settings.profile, ref path.pathFinder, self.PathCollider,
                 MMove.MovementType(mmove, settings.TaskName)
-            );
+            ), WalkSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
         }
 
         public bool TransitionToAttack() {
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity target))
                 return true;
-            if (ColliderUpdateBehavior.GetColliderDist(target, self)  >= genetics.Genes.Get(settings.BlindDist))
+            if (ColliderUpdateBehavior.GetColliderDist(target, self)  >= BlindDist)
                 return true;
             manager.Transition(settings.TaskName);
             return false;
@@ -77,14 +76,13 @@ namespace Arterra.Data.Entity.Behavior {
         public void TestAttackAtDistance(object src, object trgt, object cxt) {
             if (trgt == null || src == null) return;
             Entity target = trgt as Entity;
-            if (ColliderUpdateBehavior.GetColliderDist(self, target) >= genetics.Genes.Get(settings.BlindDist)) return;
+            if (ColliderUpdateBehavior.GetColliderDist(self, target) >= BlindDist) return;
             (cxt as RefTuple<(float dmg, float3 kb)>).Value.dmg = 0; //no damage if not at attack dist
             if (manager.TaskIndex == settings.TestProximityState) manager.Transition(settings.TaskName);
         }
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
         }
 
@@ -100,12 +98,11 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: StepBack Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: StepBack Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: StepBack Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: StepBack Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out mod)) mod = null;
             manager.RegisterTransition(settings.TestProximityState, TransitionToAttack);
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, TestAttackAtDistance);
             this.self = self;
@@ -117,12 +114,11 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: StepBack Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: StepBack Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: StepBack Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: StepBack Behavior Requires AnimalInstance to have PathFinderBehavior");
+            if (!self.Is(out mod)) mod = null;
             manager.RegisterTransition(settings.TestProximityState, TransitionToAttack);
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, TestAttackAtDistance);
             this.self = self;

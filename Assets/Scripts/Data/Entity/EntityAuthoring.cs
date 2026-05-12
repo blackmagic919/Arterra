@@ -45,6 +45,11 @@ public abstract class Entity: IRegistered, IEventControlled{
     /// exclusivity. Accessing any external resources(e.g. creating an entity) needs to resynchronize using <see cref="EntityManager.AddHandlerEvent(Action)"/>
     /// </summary>
     public abstract void Update();
+
+    /// <summary> An update handle for when the entity is updated in a synchronous environment after the job update
+    /// has been called on all entities. Use this handle for tasks requiring synchronous and safe access to resources
+    /// but avoid using for expensive calculations. </summary>
+    public abstract void UpdateJobSync();
     /// <summary> A callback when the entity is disabled. This will be called whenever the system attempts to destroy an 
     /// entity and should be used to release any resources tied with it. An entity should assume it is destroyed after 
     /// processing this callback. </summary> 
@@ -174,6 +179,16 @@ public abstract class Entity: IRegistered, IEventControlled{
         instance = (TInstance) value;
         return IsType;
     } 
+
+    /// <summary> Tests whether an object has a constructor object and retrieves it if it does. </summary>
+    /// <typeparam name="type">The type of the constructor object</typeparam>
+    /// <param name="instance">The instance</param>
+    /// <returns>Whether or not a constructor object of the requested type was found. </returns>
+    public bool TryGetConstructor(Type type, out object instance) {
+        if (Constructor == null) {instance = default; return false;}
+        bool IsType = Constructor.TryGetValue(type, out instance);
+        return IsType;
+    } 
     
     /// <summary>
     /// Settings for a structure that is required for the systems governing how entities are identified
@@ -274,6 +289,12 @@ public struct ProfileE {
     /// for more information.
     /// </summary>
     public StructureData.CheckInfo bounds;
+    /// <summary> The constant flag setting AND condition to true </summary>
+    public static uint AND => 0x1; 
+    /// <summary> The constant flag setting AND condition to true </summary>
+    public static uint OR => 0x2; 
+    /// <summary> The constant flag setting AND condition to true </summary>
+    public static uint EX => 0x4; 
     /// <summary>
     /// A bitmask representing the flags that should be used when evaluating the profile. The flags are used to determine
     /// how the condition should effect the overall validity of the profile. 

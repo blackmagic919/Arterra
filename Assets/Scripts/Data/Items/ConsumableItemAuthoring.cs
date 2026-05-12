@@ -5,6 +5,7 @@ using Unity.Mathematics;
 using Arterra.GamePlay;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Data.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Consumable")] 
@@ -90,13 +91,14 @@ public class ConsumbaleItem : IItem{
         if (AmountRaw == 0) return;
         int delta = CustomUtility.GetStaggeredDelta(settings.ConsumptionRate);
         if (delta == 0) return;
-        if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
-        if (player.vitality.healthPercent >= 1) return;
+        if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
+        if (!player.Is(out VitalityBehavior vit)) return;
+        if (vit.healthPercent >= 1) return;
 
         delta = AmountRaw - math.max(AmountRaw - delta, 0);
         player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player, this, delta);
 
-        player.vitality.Heal(delta / (float)UnitSize * settings.NutritionValue);
+        vit.Heal(delta / (float)UnitSize * settings.NutritionValue);
         AmountRaw -= delta;
         if(AmountRaw == 0) cxt.TryRemove();
     }

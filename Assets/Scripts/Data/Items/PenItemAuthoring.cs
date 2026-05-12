@@ -8,6 +8,7 @@ using Arterra.GamePlay;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
 using Arterra.GamePlay.UI;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Data.Item
 {
@@ -138,7 +139,7 @@ namespace Arterra.Data.Item
 
         public void SelectPoint(float _)
         {
-            if (!cxt.TryGetHolder(out PlayerStreamer.Player player))
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player))
                 return;
             if (Selector != null) {
                 Ray cRay = new Ray(player.head, player.Forward);
@@ -162,7 +163,7 @@ namespace Arterra.Data.Item
             InputPoller.SuspendKeybindPropogation("Remove");
             InputPoller.SuspendKeybindPropogation("Place");
             if (Selector == null) return;
-            if (!cxt.TryGetHolder(out PlayerStreamer.Player player))
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player))
                 return;
             Ray cRay = new Ray(player.head, player.Forward);
             float3 projection = GetProjOntoRay(cRay, GetCorner(SelectBounds, SelectedCorner));
@@ -232,9 +233,9 @@ namespace Arterra.Data.Item
         private bool FindNearest(out int3 hitCoord)
         {
             hitCoord = int3.zero;
-            if (!cxt.TryGetHolder(out PlayerStreamer.Player player))
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player))
                 return false;
-            if (!PlayerInteraction.RayTestSolid(out float3 hitPt)) return false;
+            if (!PlayerInteractionBehavior.RayTestSolid(out float3 hitPt)) return false;
             Ray ray = new Ray(player.head, player.Forward);
             int3 hitOrig = (int3)math.floor(hitPt);
 
@@ -295,8 +296,8 @@ namespace Arterra.Data.Item
         {
             if (item == null) return;
             MapData orig = CPUMapManager.SampleMap(hitCoord);
-            ToolTag prop = Config.CURRENT.GamePlay.Player.value.Interaction.value.DefaultTerraform.value;
-            if (!PlayerInteraction.HandleAddSolid(AddItem, hitCoord, prop.TerraformSpeed, out MapData change))
+            ToolTag prop = PlayerInteractionSettings.GetSingleton().DefaultTerraform.value;
+            if (!PlayerInteractionBehavior.HandleAddSolid(AddItem, hitCoord, prop.TerraformSpeed, out MapData change))
                 return;
             int delta = math.abs(change.SolidDensity - orig.SolidDensity);
             item.durability -= prop.ToolDamage * delta;
@@ -309,12 +310,12 @@ namespace Arterra.Data.Item
         {
             if (item == null) return;
             MapData orig = CPUMapManager.SampleMap(hitCoord);
-            ToolTag prop = Config.CURRENT.GamePlay.Player.value.Interaction.value.DefaultTerraform.value;
+            ToolTag prop = PlayerInteractionSettings.GetSingleton().DefaultTerraform.value;
             if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out object tag))
                 prop = tag as ToolTag;
 
             MapData prev = orig;
-            if (!PlayerInteraction.HandleRemoveSolid(ref orig, hitCoord, prop.TerraformSpeed))
+            if (!PlayerInteractionBehavior.HandleRemoveSolid(ref orig, hitCoord, prop.TerraformSpeed))
                 return;
             
             int delta = math.abs(prev.SolidDensity - orig.SolidDensity);

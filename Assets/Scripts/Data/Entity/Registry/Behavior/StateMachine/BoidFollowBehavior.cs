@@ -15,12 +15,12 @@ namespace Arterra.Data.Entity.Behavior {
         public EntitySMTasks OnStopWalkTransition = EntitySMTasks.Idle;
         public EntitySMTasks OnPackAttackTransition = EntitySMTasks.ChaseTarget;
         public Option<List<EntitySMTasks> > OnSwitchPath;
-        public Genetics.GeneFeature AverageFlightTime = new () {mean = 25, geneWeight = 0.1f, var = 0.5f}; //120
-        public Genetics.GeneFeature AveragFlightVariance = new () {mean = 0.05f, geneWeight = 0.05f, var = 0.5f};
-        public Genetics.GeneFeature SeperationWeight = new () {mean = 0.75f, geneWeight = 0.05f, var = 0.5f}; //0.75
-        public Genetics.GeneFeature AlignmentWeight = new () {mean = 0.4f, geneWeight = 0.05f, var = 0.5f}; //0.5
-        public Genetics.GeneFeature CohesionWeight = new () {mean = 0.3f, geneWeight = 0.05f, var = 0.75f}; //0.25
-        public Genetics.GeneFeature SightDistance = new() {mean = 12, geneWeight = 0.1f, var = 0.3f};
+        public float AverageFlightTime = 25f;
+        public float AverageFlightVariance = 0.05f;
+        public float SeperationWeight = 0.75f;
+        public float AlignmentWeight = 0.4f;
+        public float CohesionWeight = 0.3f;
+        public float BoidSightDistance = 12;
         public float3 DirectionBias = float3.zero;
         [TagOrRegistryReference("Entities")]
         public TagOrRegistryReference FlockEntity;
@@ -44,12 +44,6 @@ namespace Arterra.Data.Entity.Behavior {
         public int PathDist = 3; //3
         
         public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            Genetics.AddGene(entityType, ref AverageFlightTime);
-            Genetics.AddGene(entityType, ref AveragFlightVariance);
-            Genetics.AddGene(entityType, ref SeperationWeight);
-            Genetics.AddGene(entityType, ref AlignmentWeight);
-            Genetics.AddGene(entityType, ref CohesionWeight);
-            Genetics.AddGene(entityType, ref SightDistance);
             _LeadTargetStates = new HashSet<EntitySMTasks>(LeadTargetStates.value);
             _LeadBoidStates = new HashSet<EntitySMTasks>(LeadBoidStates.value);
         }
@@ -60,18 +54,23 @@ namespace Arterra.Data.Entity.Behavior {
                 OnPackAttackTransition = OnPackAttackTransition,
                 OnSwitchPath = OnSwitchPath,
                 AverageFlightTime = AverageFlightTime,
-                AveragFlightVariance = AveragFlightVariance,
+                AverageFlightVariance = AverageFlightVariance,
                 SeperationWeight = SeperationWeight,
                 AlignmentWeight = AlignmentWeight,
                 CohesionWeight = CohesionWeight,
-                SightDistance = SightDistance,
+                BoidSightDistance = BoidSightDistance,
                 MaxSwarmSize = MaxSwarmSize,
                 PathDist = PathDist,
                 DirectionBias = DirectionBias
             };
         }
 
-        public void CalculateBoidDirection(Entity self, Genetics genes, RelationsBehavior relations = null) {
+        private float S_SeperationWeight(Modifier mod) => Modifier.Get(mod, MSettings.MateCost, SeperationWeight);
+        private float S_CohesionWeight(Modifier mod) => Modifier.Get(mod, MSettings.CohesionWeight, CohesionWeight);
+        private float S_AlignemntWeight(Modifier mod) => Modifier.Get(mod, MSettings.AlignmentWeight, AlignmentWeight);
+        private float S_BoidSightDistance(Modifier mod) => Modifier.Get(mod, MSettings.BoidSightDistance, BoidSightDistance);
+
+        public void CalculateBoidDirection(Entity self, Modifier mod, RelationsBehavior relations = null) {
             BoidDMtrx boidDMtrx = new() {
                 SeperationDir = float3.zero,
                 AlignmentDir = float3.zero,
@@ -79,7 +78,7 @@ namespace Arterra.Data.Entity.Behavior {
                 weight = 0, count = 0, scount = 0,
             };
 
-            float sightDist = genes.Get(SightDistance);
+            float sightDist = S_BoidSightDistance(mod);
             float PackTargetWeight = 0;
             Guid PackTarget = Guid.Empty;
             Bounds seperation = new ((float3)self.transform.position, self.transform.size * 2.0f);
@@ -125,11 +124,11 @@ namespace Arterra.Data.Entity.Behavior {
 
             if (PackTargetWeight > 0) boidSelf.SetPackTarget(PackTarget);
             else if (boidDMtrx.count > MaxSwarmSize) //the sign of seperation is flipped for this case
-                influenceDir = genes.Get(SeperationWeight) * boidDMtrx.SeperationDir -
-                genes.Get(CohesionWeight) * (boidDMtrx.CohesionDir / boidDMtrx.weight);
-            else influenceDir = genes.Get(SeperationWeight) * boidDMtrx.SeperationDir  +
-                genes.Get(AlignmentWeight) * (boidDMtrx.AlignmentDir / boidDMtrx.weight - boidSelf.MoveDirection) +
-                genes.Get(CohesionWeight) * (boidDMtrx.CohesionDir / boidDMtrx.weight);
+                influenceDir = S_SeperationWeight(mod) * boidDMtrx.SeperationDir -
+                S_CohesionWeight(mod) * (boidDMtrx.CohesionDir / boidDMtrx.weight);
+            else influenceDir = S_SeperationWeight(mod) * boidDMtrx.SeperationDir  +
+                S_AlignemntWeight(mod) * (boidDMtrx.AlignmentDir / boidDMtrx.weight - boidSelf.MoveDirection) +
+                S_CohesionWeight(mod) * (boidDMtrx.CohesionDir / boidDMtrx.weight);
             boidSelf.MoveDirection = math.normalizesafe(boidSelf.MoveDirection + influenceDir);
         }
 
@@ -160,11 +159,15 @@ namespace Arterra.Data.Entity.Behavior {
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager;
         private PathFinderBehavior path;
-        private GeneticsBehavior genetics;
+        private Modifier mod;
         private RelationsBehavior relations;
 
         public float3 moveDirection;
         public float3 MoveDirection{ get => moveDirection; set => moveDirection = value; }
+
+        private float AverageFlightTime => Modifier.Get(mod, MSettings.AverageFlightTime, settings.AverageFlightTime);
+        private float AverageFlightVariance => Modifier.Get(mod, MSettings.AverageFlightVariance, settings.AverageFlightVariance);
+        private float WalkSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.WalkSpeed, movement.walkSpeed);
         public bool HasPackTarget(out Guid target) {
             if (settings._LeadTargetStates.Contains(manager.TaskIndex)) {
                 target = manager.TaskTarget;
@@ -182,18 +185,19 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Update(BehaviorEntity.Animal self) {
+            if (self.context == BehaviorEntity.UpdateContext.JobSync)
+                return;
             if (manager.TaskIndex != settings.TaskName) {
                 ReflectPathMoveDir();
                 return;
             }
 
-            settings.CalculateBoidDirection(self, genetics.Genes, relations);
+            settings.CalculateBoidDirection(self, mod, relations);
             if (path.pathFinder.hasPath) {
-                Movement.FollowStaticPath(MMove.Profile(mmove, manager.TaskIndex, self.settings),
-                    ref path.pathFinder, self.PathCollider,
-                    MMove.Speed(mmove, manager.TaskIndex, genetics.Genes, movement.walkSpeed),
-                    movement.rotSpeed, movement.acceleration,
-                    MMove.MovementType(mmove, manager.TaskIndex)); 
+                self.PathCollider.Follow(Movement.StaticDirect(
+                    self.settings.profile, ref path.pathFinder, self.PathCollider,
+                    MMove.MovementType(mmove, settings.TaskName)
+                ), WalkSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
                 return;  
             }
             
@@ -230,9 +234,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private bool TransitionTo() {
             manager.TaskDuration = (float)CustomUtility.Sample(
-                self.random,
-                genetics.Genes.Get(settings.AverageFlightTime),
-                genetics.Genes.Get(settings.AveragFlightVariance)
+                self.random, AverageFlightTime, AverageFlightVariance
             );
             if (math.all(moveDirection == float3.zero))
                 moveDirection = Movement.RandomDirection(ref self.random);
@@ -241,7 +243,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
-            heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
         }
 
@@ -257,13 +258,12 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: BoidFollow Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: BoidFollow Behavior Requires AnimalInstance to have GeneticsBehavior");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: BoidFollow Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))
                 throw new System.Exception("Entity: BoidFollow Behavior Requires AnimalInstance to have PathfindingBehavior");
             if (!self.Is(out relations)) relations = null;
+            if (!self.Is(out mod)) mod = null;
             self.Register<BoidFollowSetting.IBoid>(this);
             moveDirection = Movement.RandomDirection(ref self.random);
             manager.RegisterTransition(settings.TaskName, TransitionTo);
@@ -277,8 +277,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: BoidFollow Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out mmove)) mmove = null;
-            if (!self.Is(out genetics))
-                throw new System.Exception("Entity: BoidFollow Behavior Requires AnimalInstance to have GeneticsBehavior");
+            if (!self.Is(out mod)) mod = null;
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: BoidFollow Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out path))

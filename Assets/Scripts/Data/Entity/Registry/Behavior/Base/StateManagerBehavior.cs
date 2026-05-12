@@ -108,16 +108,24 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Update(BehaviorEntity.Animal self) {
-            TaskDuration -= EntityJob.cxt.deltaTime;
+            if (self.context != BehaviorEntity.UpdateContext.JobSync)
+                CoreUpdate(self);
+            if (self.context != BehaviorEntity.UpdateContext.Job)
+                ControllerUpdate(self);
+        }
+
+        private void CoreUpdate(BehaviorEntity.Animal self) {
+            TaskDuration -= self.DeltaTime;
             self.Collider.useGravity = MMove.UseGravity(mmove, 
                 collider == null || collider.settings.UseGravity,
                 TaskIndex
             );
         }
 
-        public void UpdateController(BehaviorEntity.Animal self, BehaviorEntity.AnimalController controller) {
+        private void ControllerUpdate(BehaviorEntity.Animal self) {
 #if UNITY_EDITOR
-            if (UnityEditor.Selection.Contains(controller.gameObject)) Debug.Log(TaskIndex);
+            if (UnityEditor.Selection.Contains(self.controller.gameObject)) 
+                Debug.Log(TaskIndex);
 #endif
         }
 

@@ -27,15 +27,9 @@ namespace Arterra.Data.Entity.Behavior {
         public float weight;
         public float StartHealthPercent = 0.7f;
         public float StartHealthVariance = 0.2f;
-        public Genetics.GeneFeature MaxHealth;
-        public Genetics.GeneFeature NaturalRegen;
-        public Genetics.GeneFeature InvincTime;
-
-        public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            Genetics.AddGene(entityType, ref MaxHealth);
-            Genetics.AddGene(entityType, ref NaturalRegen);
-            Genetics.AddGene(entityType, ref InvincTime);
-        }
+        public float MaxHealth;
+        public float NaturalRegen;
+        public float InvincTime;
 
         public object Clone() {
             return new PhysicalitySetting {
@@ -52,29 +46,18 @@ namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class Decomposition : IBehaviorSetting {
         public Option<List<LootInfo>> LootTable;
-        public void InitGenome(uint entityType) {
-            ref List<LootInfo> table = ref LootTable.value;
-            for (int i = 0; i < table.Count; i++) {
-                LootInfo loot = table[i];
-                Genetics.AddGene(entityType, ref loot.DropAmount);
-                table[i] = loot;
-            }
-        }
-
-        public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            InitGenome(entityType);
-        }
 
         public object Clone() {
             return new Decomposition {
                 LootTable = LootTable
             };
         }
-        public IItem LootItem(Genetics genetics, float collectRate, ref Unity.Mathematics.Random random) {
+
+        public IItem LootItem(Modifier mod, float collectRate, ref Unity.Mathematics.Random random) {
             if (LootTable.value == null || LootTable.value.Count == 0) return null;
             int index = random.NextInt(LootTable.value.Count);
 
-            float amount = genetics.Get(LootTable.value[index].DropAmount) * collectRate;
+            float amount = Modifier.Get(mod, MSettings.DropAmount, LootTable.value[index].DropAmount) * collectRate;
             Catalogue<Arterra.Data.Item.Authoring> registry = Config.CURRENT.Generation.Items;
             int itemindex = registry.RetrieveIndex(LootTable.value[index].ItemName);
             IItem item = registry.Retrieve(itemindex).Item;
@@ -91,7 +74,7 @@ namespace Arterra.Data.Entity.Behavior {
             [RegistryReference("Items")]
             public string ItemName;
             //The unit amount given per second of decomposition
-            public Genetics.GeneFeature DropAmount;
+            public float DropAmount;
         }
     }
 
@@ -100,14 +83,19 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonIgnore] public PhysicalitySetting stats;
 
         private BehaviorEntity.Animal self;
-        private Genetics genetics;
+        private Modifier mod;
+
+        private float MaxHealth => Modifier.Get(mod, MSettings.MaxHealth, stats.MaxHealth);
+        private float NaturalRegen => Modifier.Get(mod, MSettings.NaturalRegen, stats.NaturalRegen);
+        private float InvincTime => Modifier.Get(mod, MSettings.InvincTime, stats.InvincTime);
 
         [JsonIgnore] public float weight => stats.weight;
-        [JsonIgnore] public float healthPercent => health / genetics.Get(stats.MaxHealth);
+        [JsonIgnore] public float healthPercent => health / MaxHealth;
         [JsonIgnore] public bool IsDead => health <= 0;
 
         public float health;
         public float invincibility;
+        public bool TriggeredDeath;
 
         public const float FallDmgThresh = 10;
 
@@ -115,7 +103,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public IItem Collect(Entity caller, float amount) {
             IItem item = null;
-            if (IsDead && Decomposition != null) item = Decomposition.LootItem(genetics, amount, ref self.random);
+            if (IsDead && Decomposition != null) item = Decomposition.LootItem(mod, amount, ref self.random);
             self.eventCtrl.RaiseEvent(GameEvent.Entity_Collect, self, caller, (item, amount));
             return item;
         }
@@ -137,17 +125,24 @@ namespace Arterra.Data.Entity.Behavior {
 
 
         public void Update(BehaviorEntity.Animal self) {
-            invincibility = math.max(invincibility - EntityJob.cxt.deltaTime, 0);
-            if (IsDead) return;
-            float delta = math.min(health + genetics.Get(stats.NaturalRegen)
-                        * EntityJob.cxt.deltaTime, genetics.Get(stats.MaxHealth))
+            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            invincibility = math.max(invincibility - self.DeltaTime, 0);
+            if (IsDead) {
+                if (TriggeredDeath) return;
+                self.eventCtrl.RaiseEvent(GameEvent.Entity_Death, self, null);
+                TriggeredDeath = true;
+                return;
+            }
+
+            float delta = math.min(health + NaturalRegen
+                        * self.DeltaTime, MaxHealth)
                         - health;
             health += delta;
         }
 
         public bool Damage(float delta) {
             if (invincibility > 0) return false;
-            invincibility = genetics.Get(stats.InvincTime);
+            invincibility = InvincTime;
             delta = health - math.max(health - delta, 0);
             health -= delta;
             return true;
@@ -156,7 +151,7 @@ namespace Arterra.Data.Entity.Behavior {
         public void Heal(float delta, bool force = false) {
             if (force) { health += delta; return; }
             if (IsDead) return;
-            health = math.min(health + delta, genetics.Get(stats.MaxHealth));
+            health = math.min(health + delta, MaxHealth);
         }
 
 
@@ -170,16 +165,15 @@ namespace Arterra.Data.Entity.Behavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out stats))
                 throw new System.Exception("Entity: Vitality Behavior Requires AnimalSettings to have PhysicalitySettings");
-            if (self.Is(out GeneticsBehavior geneticsBehavior))
-                this.genetics = geneticsBehavior.Genes;
-            else this.genetics = new Genetics();
             if (!setting.Is(out Decomposition)) Decomposition = null;
+            if (!self.Is(out mod)) mod = null;
 
             this.self = self;
             invincibility = 0;
             health = (float)CustomUtility.Sample(self.random, stats.StartHealthPercent, stats.StartHealthVariance);
             health = math.clamp(health, 0, 1);
-            health *= this.genetics.Get(stats.MaxHealth);
+            health *= MaxHealth;
+            TriggeredDeath = false;
             self.weight = this.weight;
 
             self.Register<IAttackable>(this);
@@ -188,10 +182,8 @@ namespace Arterra.Data.Entity.Behavior {
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out stats))
                 throw new System.Exception("Entity: Vitality Behavior Requires Animal to have PhysicalitySettings");
-            if (self.Is(out GeneticsBehavior geneticsBehavior))
-                this.genetics = geneticsBehavior.Genes;
-            else this.genetics = new Genetics();
             if (!setting.Is(out Decomposition)) Decomposition = null;
+            if (!self.Is(out mod)) mod = null;
 
             this.self = self;
             invincibility = 0;

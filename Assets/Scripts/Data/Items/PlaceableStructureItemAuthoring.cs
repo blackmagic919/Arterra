@@ -8,10 +8,11 @@ using Arterra.Engine.Terrain;
 using Arterra.Core.Storage;
 using Arterra.Data.Material;
 using Arterra.GamePlay;
-using static Arterra.GamePlay.PlayerInteraction;
+using static Arterra.Data.Entity.Behavior.PlayerInteractionBehavior;
 using Arterra.GamePlay.Interaction;
 using Arterra.Configuration;
 using Arterra.GamePlay.UI;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Data.Item {
     [CreateAssetMenu(menuName = "Generation/Items/StructureItem")]
@@ -24,7 +25,6 @@ namespace Arterra.Data.Item {
         private PlaceableStructureItemAuthoring settings => ItemInfo.Retrieve(Index) as PlaceableStructureItemAuthoring;
         private InteractionHandler handler;
 
-        private static Arterra.Configuration.Gameplay.Player.Interaction interaction => Config.CURRENT.GamePlay.Player.value.Interaction;
 
         [JsonIgnore]
         public int StackLimit => 0xFFFF;
@@ -131,19 +131,19 @@ namespace Arterra.Data.Item {
             }
 
             public void Update(MonoBehaviour _) {
-                if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
+                if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
                 if (!RayTestSolid(out float3 hitPt)) return;
                 
                 if (!IsLocked) Location = (int3)math.round(hitPt);
                 else if (math.cmax(math.abs(Location - hitPt)) >
-                    interaction.TerraformRadius + math.cmax(GetSize()))
+                    PlayerInteractionSettings.GetSingleton().TerraformRadius + math.cmax(GetSize()));
                     IsLocked = false;
 
                 display.ReflectMesh(DeserializeStruct(), Location, GetRotation(player.head - Location));
             }
 
             private void PlaceStructure(float _) {
-                if (!cxt.TryGetHolder(out PlayerStreamer.Player player)) return;
+                if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
                 if (!IsLocked) {
                     if (!RayTestSolid(out float3 hitPt)) return;
                     Location = (int3)math.round(hitPt);
@@ -203,7 +203,7 @@ namespace Arterra.Data.Item {
                 if (totalRemAmount <= 0) return false;
                 IterateStructRemove(edit, GCoord, rot, (c, s, d, gc) => {
                     if (d.density <= 0) return false;
-                    ToolTag tag = interaction.DefaultTerraform;
+                    ToolTag tag = PlayerInteractionSettings.GetSingleton().DefaultTerraform;
                     if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, d.material, out object prop))
                         tag = prop as ToolTag;
                     if (d.viscosity > 0) {
@@ -244,7 +244,7 @@ namespace Arterra.Data.Item {
                 if (PlaceSelf) totPlaceAmt += selfPlaceAmt;
                 if (totPlaceAmt <= 0) return false;
 
-                float placeSpeed = interaction.DefaultTerraform.value.TerraformSpeed;
+                float placeSpeed = PlayerInteractionSettings.GetSingleton().DefaultTerraform.value.TerraformSpeed;
                 IterateStructPlace(edit, GCoord, rot, (c, s, d, gc) => {
                     if (d.density <= 0) return false;
 

@@ -167,7 +167,7 @@ MonoBehaviour:
           x: 2.5
           y: 4.5
           z: 2.5
-      Behaviors:
+      BehaviorList:
         value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a270000742700007e270000882700008a130000
       Settings:
         value:
@@ -207,7 +207,9 @@ MonoBehaviour:
             rid: 3097083922518114535
         - value:
             rid: 5205636901062049865
-  _prevBehaviorCount: 18
+        - value:
+            rid: 5205636901062049866
+      _prevBehaviorCount: 18
   references:
     version: 2
     RefIds:
@@ -217,26 +219,14 @@ MonoBehaviour:
         weight: 6000
         StartHealthPercent: 0.7
         StartHealthVariance: 0.05
-        MaxHealth:
-          mean: 100
-          var: 0.35
-          geneWeight: 0.4
-        NaturalRegen:
-          mean: 0.01
-          var: 0.25
-          geneWeight: 0.2
-        InvincTime:
-          mean: 0.25
-          var: 0.1
-          geneWeight: 0.025
+        MaxHealth: 100
+        NaturalRegen: 0.01
+        InvincTime: 0.25
     - rid: 3097083922518114516
       type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
-        HoldBreathTime:
-          mean: 10
-          var: 0.3
-          geneWeight: 0.1
+        HoldBreathTime: 10
         UseFallDamage: 1
     - rid: 3097083922518114517
       type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -248,34 +238,16 @@ MonoBehaviour:
     - rid: 3097083922518114518
       type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        AttackDistance:
-          mean: 5
-          var: 0.25
-          geneWeight: 0.2
-        AttackDamage:
-          mean: 15
-          var: 0.5
-          geneWeight: 0.6
-        AttackCooldown:
-          mean: 0.6
-          var: 0.5
-          geneWeight: 0.3
-        KBStrength:
-          mean: 15
-          var: 0.5
-          geneWeight: 0.1
+        AttackDistance: 5
+        AttackDamage: 15
+        AttackCooldown: 0.6
+        KBStrength: 15
         AttackDuration: 0.2
     - rid: 3097083922518114520
       type: {class: IdleStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        AverageIdleTime:
-          mean: Infinity
-          var: 0.5
-          geneWeight: 0.025
-        AverageIdleVariance:
-          mean: 0
-          var: 0
-          geneWeight: 0
+        AverageIdleTime: Infinity
+        AverageIdleVariance: 0
         TaskName: 0
         OnCompleteTransition: 100
         CheckTransitions:
@@ -283,14 +255,8 @@ MonoBehaviour:
     - rid: 3097083922518114521
       type: {class: RandomWalkStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        AverageWalkTime:
-          mean: 15
-          var: 0.3
-          geneWeight: 0.025
-        AveragWalkVariance:
-          mean: 0
-          var: 0
-          geneWeight: 0
+        AverageWalkTime: 15
+        AveragWalkVariance: 0
         TaskName: 100
         OnStopWalkTransition: 0
         OnSwitchPath:
@@ -309,10 +275,7 @@ MonoBehaviour:
         TaskName: 50100
         OnLostAttacker: 100
         OnReachAttacker: 30600
-        ChaseDistance:
-          mean: 24
-          var: 0.25
-          geneWeight: 0.2
+        ChaseDistance: 24
     - rid: 3097083922518114532
       type: {class: RunFromPredatorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -325,10 +288,7 @@ MonoBehaviour:
       type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         fleeDist: 5
-        detectDist:
-          mean: 18
-          var: 0.25
-          geneWeight: 0.3
+        detectDist: 18
         FightAggressor: 1
     - rid: 3097083922518114534
       type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -341,21 +301,12 @@ MonoBehaviour:
       data:
         TaskName: 60000
         OnReviveTask: 0
-        DecompositionTime:
-          mean: 450
-          var: 0.2
-          geneWeight: 0.01
+        DecompositionTime: 450
     - rid: 3097083922518114639
       type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        walkSpeed:
-          mean: 2.1
-          var: 0.3
-          geneWeight: 0.1
-        runSpeed:
-          mean: 5.5
-          var: 0.35
-          geneWeight: 0.35
+        walkSpeed: 2.1
+        runSpeed: 5.5
         pathDistance: 32
         acceleration: 200
         rotSpeed: 180
@@ -365,10 +316,7 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Stone:Solid
-            DropAmount:
-              mean: 0.07777778
-              var: 0.75
-              geneWeight: 0.05
+            DropAmount: 0.07777778
     - rid: 3097084098772992145
       type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -421,14 +369,8 @@ MonoBehaviour:
         SearchChances:
           value:
           - SourceState: 0
-            SearchChance:
-              mean: 0.25
-              var: 0.5
-              geneWeight: 0.2
-        SearchDistance:
-          mean: 10
-          var: 0.5
-          geneWeight: 0.2
+            SearchChance: 0.25
+        SearchDistance: 10
         DesiredEnemyState: 1
         Enemy:
           value:
@@ -443,3 +385,72 @@ MonoBehaviour:
             AttackDuration: 0.25
             AttackDamage: 15
             Knockback: 15
+    - rid: 5205636901062049866
+      type: {class: GeneticsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Genes:
+          value:
+          - name: 1004
+            var: 0.35
+            geneWeight: 0.4
+          - name: 1006
+            var: 0.25
+            geneWeight: 0.2
+          - name: 1007
+            var: 0.1
+            geneWeight: 0.025
+          - name: 1005
+            var: 0.3
+            geneWeight: 0.1
+          - name: 1000
+            var: 0.25
+            geneWeight: 0.2
+          - name: 1001
+            var: 0.5
+            geneWeight: 0.6
+          - name: 1002
+            var: 0.5
+            geneWeight: 0.3
+          - name: 1003
+            var: 0.5
+            geneWeight: 0.1
+          - name: 2039
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2040
+            var: 0
+            geneWeight: 0
+          - name: 2044
+            var: 0.3
+            geneWeight: 0.025
+          - name: 2045
+            var: 0
+            geneWeight: 0
+          - name: 2031
+            var: 0.25
+            geneWeight: 0.2
+          - name: 2030
+            var: 0.25
+            geneWeight: 0.3
+          - name: 1012
+            var: 0.2
+            geneWeight: 0.01
+          - name: 1008
+            var: 0.3
+            geneWeight: 0.1
+          - name: 1009
+            var: 0.35
+            geneWeight: 0.35
+          - name: 4003
+            var: 0.75
+            geneWeight: 0.05
+          - name: 2029
+            var: 0.5
+            geneWeight: 0.2
+          - name: 2028
+            var: 0.5
+            geneWeight: 0.2
+
+
+
+        NormalizeWeights: 1

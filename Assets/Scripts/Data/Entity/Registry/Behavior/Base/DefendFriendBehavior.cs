@@ -7,8 +7,8 @@ using System;
 namespace Arterra.Data.Entity.Behavior {
 
 public class DefendFriendSetting : IBehaviorSetting {
-    public Genetics.GeneFeature CallFriendRadius = new () {mean = 18f, geneWeight = 0.1f, var = 0.3f };
-    public Genetics.GeneFeature HelpFriendAffection = new () {mean = 12f, geneWeight = 0.1f, var = 0.5f };
+    public float CallFriendRadius;
+    public float HelpFriendAffection;
     public EntitySMTasks HelpFriendState = EntitySMTasks.ChaseTarget;
     public EntitySMTasks OverridableStates = EntitySMTasks.ChasePreyPlant;
 
@@ -21,17 +21,13 @@ public class DefendFriendSetting : IBehaviorSetting {
         };
     }
 
-    public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-        Genetics.AddGene(entityType, ref CallFriendRadius);
-        Genetics.AddGene(entityType, ref HelpFriendAffection);
-    }
 }
 
 public class DefendFriendBehavior : IBehavior {
     private DefendFriendSetting settings;
 
     private StateMachineManagerBehavior manager;
-    private GeneticsBehavior genetics;
+    private Modifier mod;
     private RelationsBehavior relations;
     private VitalityBehavior vit;
     public void OnAttacked(object src, object attacker, object cxt) {
@@ -43,7 +39,7 @@ public class DefendFriendBehavior : IBehavior {
         if (relations.GetAffection(assailant.info.rtEntityId) > relations.settings.SuppressInstinctAffection) 
             return;
         
-        float radius = genetics.Genes.Get(settings.CallFriendRadius);
+        float radius = Modifier.Get(mod, MSettings.CallFriendRadius, settings.CallFriendRadius);
         Bounds bounds = new (self.position, new float3(radius*2));
         EntityManager.ESTree.Query(bounds, nEntity => {
             if (!nEntity.Is(out DefendFriendBehavior defend))
@@ -54,7 +50,7 @@ public class DefendFriendBehavior : IBehavior {
 
     private void HeedFriendInTrouble(Entity friend, Entity attacker) {
         if (relations.GetAffection(friend.info.rtEntityId)
-            < genetics.Genes.Get(settings.HelpFriendAffection))
+            < Modifier.Get(mod, MSettings.HelpFriendAffection, settings.HelpFriendAffection))
             return;
         if (manager.TaskIndex > settings.OverridableStates) return;
         if (manager.TaskIndex == settings.HelpFriendState) return;
@@ -63,7 +59,6 @@ public class DefendFriendBehavior : IBehavior {
     }
 
     public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
-        heirarchy.TryAdd(Behaviors.Genetics, heirarchy.Count);
         heirarchy.TryAdd(Behaviors.Relations, heirarchy.Count);
         heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
     }
@@ -75,13 +70,12 @@ public class DefendFriendBehavior : IBehavior {
     public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
         if (!setting.Is(out settings))
             throw new System.Exception("Entity: DefendFriend Behavior Requires AnimalSettings to have DefendFriendSettings");
-        if (!self.Is(out genetics))
-            throw new System.Exception("Entity: DefendFriend Behavior Requires AnimalInstance to have GeneticsBehavior");
         if (!self.Is(out relations))
             throw new System.Exception("Entity: DefendFriend Behavior Requires AnimalInstance to have RelationsBehavior");
         if (!self.Is(out manager))
             throw new System.Exception("Entity: DefendFriend Behavior Requires AnimalInstance to have StateMachineManager");
         if (!self.Is(out vit)) vit = null;
+        if (!self.Is(out mod)) mod = null;
 
         self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnAttacked);
     }
@@ -89,13 +83,12 @@ public class DefendFriendBehavior : IBehavior {
     public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
         if (!setting.Is(out settings))
             throw new System.Exception("Entity: DefendFriend Behavior Requires AnimalSettings to have DefendFriendSettings");
-        if (!self.Is(out genetics))
-            throw new System.Exception("Entity: DefendFriend Behavior Requires AnimalInstance to have GeneticsBehavior");
         if (!self.Is(out relations))
             throw new System.Exception("Entity: DefendFriend Behavior Requires AnimalInstance to have RelationsBehavior");
         if (!self.Is(out manager))
             throw new System.Exception("Entity: DefendFriend Behavior Requires AnimalInstance to have StateMachineManager");
         if (!self.Is(out vit)) vit = null;
+        if (!self.Is(out mod)) mod = null;
 
         self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnAttacked);
     }
