@@ -96,7 +96,7 @@ namespace Arterra.Data.Item
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
                 effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);
                     
-            if (RayTestSolid(out float3 terrHit)) hitPt = terrHit;
+            if (interact.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
             if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out Entity.Entity entity, out _))
                 return;
             void PlayerDamageEntity(Entity.Entity target) {

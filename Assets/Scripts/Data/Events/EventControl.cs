@@ -130,7 +130,9 @@ namespace Arterra.Core.Events {
         
         public void RemoveEventHandler(GameEvent type, RefEventHandler handler) {
             if (events.ContainsKey((int)type)) {
-                events[(int)type] = Delegate.Remove(events[(int)type], handler);
+                Delegate newDel = Delegate.Remove(events[(int)type], handler);
+                if (newDel == null) events.Remove((int)type);
+                else events[(int)type] = newDel;
             }
         }
 

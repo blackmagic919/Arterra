@@ -22,6 +22,8 @@ namespace Arterra.Data.Entity.Behavior {
     /// </summary>
     [Serializable]
     public class PlayerInteractionSettings : IBehaviorSetting {
+        ///<summary>Name of settings object in UI generation</summary>
+        [JsonIgnore] public static string Name => "Interaction";
         /// <summary>
         /// Radius, in grid space, of the spherical region modified during terrain edits.
         /// </summary>
@@ -70,15 +72,16 @@ namespace Arterra.Data.Entity.Behavior {
     /// Controls player interaction with world entities and map materials.
     /// </summary>
     public class PlayerInteractionBehavior : IBehavior {
-        [JsonIgnore] public static PlayerInteractionBehavior Active { get; private set; }
         [JsonIgnore] public PlayerInteractionSettings settings;
 
         private bool hasBindings;
         private float attackCooldown;
         private BehaviorEntity.Animal self;
+        private VitalityBehavior vit;
 
         private Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         private Catalogue<ItemAuthoring> itemInfo => Config.CURRENT.Generation.Items;
+        private bool IsActive => (!vit?.IsDead) ?? true;
 
         [JsonIgnore]
         /// <summary>Current cooldown before another attack can be issued.</summary>
@@ -94,32 +97,28 @@ namespace Arterra.Data.Entity.Behavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerInteractionBehavior requires PlayerInteractionSettings");
-
-            this.self = self;
-            Active = this;
+            if (!self.Is(out vit)) vit = null;
             self.Register(this);
             attackCooldown = 0;
+            this.self = self;
+
+            if (!IsActive) return;
             BindInput();
         }
 
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerInteractionBehavior requires PlayerInteractionSettings");
-
-            this.self = self;
-            Active = this;
+            if (!self.Is(out vit)) vit = null;
             self.Register(this);
+            this.self = self;
+
+            if (!IsActive) return;
             BindInput();
         }
 
         public void Disable(BehaviorEntity.Animal self) {
-            if (ReferenceEquals(Active, this)) {
-                Active = null;
-            }
-
-            if (ReferenceEquals(this.self, self)) {
-                this.self = null;
-            }
+            this.self = null;
         }
 
         public void Update(BehaviorEntity.Animal self) {
@@ -130,7 +129,7 @@ namespace Arterra.Data.Entity.Behavior {
             attackCooldown = math.max(attackCooldown - self.DeltaTime, 0);
         }
 
-        public static bool RayTestSolid<T>(T entity, float reach, out float3 hitPt) where T : Entity {
+        public bool RayTestSolid<T>(T entity, float reach, out float3 hitPt) where T : Entity {
             static uint RaySolid(int3 coord) {
                 MapData pointInfo = CPUMapManager.SampleMap(coord);
                 return (uint)pointInfo.viscosity;
@@ -139,7 +138,7 @@ namespace Arterra.Data.Entity.Behavior {
             return CPUMapManager.RayCastTerrain(entity.head, entity.Forward, reach, RaySolid, out hitPt);
         }
 
-        public static bool RayTestLiquid<T>(T entity, float reach, out float3 hitPt) where T : Entity {
+        public bool RayTestLiquid<T>(T entity, float reach, out float3 hitPt) where T : Entity {
             static uint RayLiquid(int3 coord) {
                 MapData pointInfo = CPUMapManager.SampleMap(coord);
                 return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
@@ -147,7 +146,7 @@ namespace Arterra.Data.Entity.Behavior {
             return CPUMapManager.RayCastTerrain(entity.head, entity.Forward, reach, RayLiquid, out hitPt);
         }
 
-        public static bool CylinderTestSolid<T>(T entity, float reach, float radius, out float3 hitPt) where T : Entity {
+        public bool CylinderTestSolid<T>(T entity, float reach, float radius, out float3 hitPt) where T : Entity {
             static uint CylinderSolid(int3 coord) {
                 MapData pointInfo = CPUMapManager.SampleMap(coord);
                 return (uint)pointInfo.viscosity;
@@ -160,29 +159,20 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         // Static facades keep existing item/UI callers decoupled from the legacy PlayerInteraction class.
-        public static bool RayTestSolid(out float3 hitPt) {
-            hitPt = float3.zero;
-            if (PlayerHandler.data == null) return false;
-
-            float reach = Active.settings.ReachDistance;
-            return RayTestSolid(PlayerHandler.data, reach, out hitPt);
+        public bool RayTestSolid(out float3 hitPt) {
+            float reach = settings.ReachDistance;
+            return RayTestSolid(self, reach, out hitPt);
         }
 
-        public static bool RayTestLiquid(out float3 hitPt) {
-            hitPt = float3.zero;
-            if (PlayerHandler.data == null) return false;
-
-            float reach = Active.settings.ReachDistance;
-            return RayTestLiquid(PlayerHandler.data, reach, out hitPt);
+        public bool RayTestLiquid(out float3 hitPt) {
+            float reach = settings.ReachDistance;
+            return RayTestLiquid(self, reach, out hitPt);
         }
 
-        public static bool CylinderTestSolid(out float3 hitPt) {
-            hitPt = float3.zero;
-            if (PlayerHandler.data == null) return false;
-
-            float reach = Active.settings.ReachDistance;
-            float radius = Active.settings.CylinderRadius;
-            return CylinderTestSolid(PlayerHandler.data, reach, radius, out hitPt);
+        public bool CylinderTestSolid(out float3 hitPt) {
+            float reach = settings.ReachDistance;
+            float radius = settings.CylinderRadius;
+            return CylinderTestSolid(self, reach, radius, out hitPt);
         }
 
         private bool RayTestSolidCurrent(out float3 hitPt) => RayTestSolid(self, settings.ReachDistance, out hitPt);
@@ -198,7 +188,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void AttackEntity(float _) {
-            if (!IsControlledPlayer()) return;
+            if (!IsActive) return;
             if (self == null || !self.active) return;
             if (attackCooldown > 0) return;
             attackCooldown = settings.AttackFrequency;
@@ -223,12 +213,6 @@ namespace Arterra.Data.Entity.Behavior {
             EntityManager.AddHandlerEvent(() => attackable.TakeDamage(damage, knockback, self));
         }
 
-        private bool IsControlledPlayer() {
-            if (self == null || !self.active) return false;
-            if (PlayerHandler.data == null) return false;
-            return PlayerHandler.data.info.rtEntityId == self.info.rtEntityId;
-        }
-
         private bool RemoveSolidBareHand(int3 GCoord, float speed) {
             MapData mapData = CPUMapManager.SampleMap(GCoord);
             int material = mapData.material;
@@ -239,7 +223,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void PlaceTerrain(float _) {
-            if (!IsControlledPlayer()) return;
+            if (!IsActive) return;
             if (!PlayerHandler.active) return;
 
             bool rayHit = false;
@@ -269,12 +253,12 @@ namespace Arterra.Data.Entity.Behavior {
                     speed * settings.DefaultTerraform.value.TerraformSpeed,
                     out MapData _
                 ),
-                CallOnMapPlacingInternal
+                CallOnMapPlacing
             );
         }
 
         private void RemoveTerrain(float _) {
-            if (!IsControlledPlayer()) return;
+            if (!IsActive) return;
             if (!PlayerHandler.active) return;
             if (!CylinderTestSolidCurrent(out float3 hitPt)) return;
 
@@ -283,19 +267,7 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Action_RemoveTerrain, self, null, hitPt);
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolidBareHand, CallOnMapRemovingInternal);
-        }
-
-        private bool CallOnMapPlacingInternal(int3 GCoord) {
-            MapData map = CPUMapManager.SampleMap(GCoord);
-            if (map.IsNull) return true;
-            return matInfo.Retrieve(map.material).OnPlacing(GCoord, self);
-        }
-
-        private bool CallOnMapRemovingInternal(int3 GCoord) {
-            MapData map = CPUMapManager.SampleMap(GCoord);
-            if (map.IsNull) return true;
-            return matInfo.Retrieve(map.material).OnRemoving(GCoord, self);
+            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolidBareHand, CallOnMapRemoving);
         }
 
         private bool CanPlaceSolid(IItem selected, MapData pointInfo, out int matIndex) {
@@ -442,44 +414,34 @@ namespace Arterra.Data.Entity.Behavior {
             return true;
         }
 
-        public static bool CallOnMapPlacing(int3 GCoord) {
-            if (Active == null || Active.self == null) {
-                MapData map = CPUMapManager.SampleMap(GCoord);
-                if (map.IsNull || PlayerHandler.data == null) return true;
-                Catalogue<MaterialData> mat = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-                return mat.Retrieve(map.material).OnPlacing(GCoord, PlayerHandler.data);
-            }
-
-            return Active.CallOnMapPlacingInternal(GCoord);
+        public bool CallOnMapPlacing(int3 GCoord) {
+            MapData map = CPUMapManager.SampleMap(GCoord);
+            if (map.IsNull) return true;
+            Catalogue<MaterialData> mat = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            return mat.Retrieve(map.material).OnPlacing(GCoord, self);
         }
 
-        public static bool CallOnMapRemoving(int3 GCoord) {
-            if (Active == null || Active.self == null) {
-                MapData map = CPUMapManager.SampleMap(GCoord);
-                if (map.IsNull || PlayerHandler.data == null) return true;
-                Catalogue<MaterialData> mat = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-                return mat.Retrieve(map.material).OnRemoving(GCoord, PlayerHandler.data);
-            }
-
-            return Active.CallOnMapRemovingInternal(GCoord);
+        public bool CallOnMapRemoving(int3 GCoord) {
+            MapData map = CPUMapManager.SampleMap(GCoord);
+            if (map.IsNull) return true;
+            Catalogue<MaterialData> mat = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            return mat.Retrieve(map.material).OnRemoving(GCoord, self);
         }
 
-        public static bool HandleAddSolid(IItem matItem, int3 GCoord, float brushStrength, out MapData pointInfo) {
-            pointInfo = default;
-            return Active != null && Active.HandleAddSolidInternal(matItem, GCoord, brushStrength, out pointInfo);
+        public bool HandleAddSolid(IItem matItem, int3 GCoord, float brushStrength, out MapData pointInfo) {
+            return HandleAddSolidInternal(matItem, GCoord, brushStrength, out pointInfo);
         }
 
-        public static bool HandleAddLiquid(IItem matItem, int3 GCoord, float brushStrength, out MapData pointInfo) {
-            pointInfo = default;
-            return Active != null && Active.HandleAddLiquidInternal(matItem, GCoord, brushStrength, out pointInfo);
+        public bool HandleAddLiquid(IItem matItem, int3 GCoord, float brushStrength, out MapData pointInfo) {
+            return HandleAddLiquidInternal(matItem, GCoord, brushStrength, out pointInfo);
         }
 
-        public static bool HandleRemoveSolid(ref MapData pointInfo, int3 GCoord, float brushStrength, bool obtainMat = true) {
-            return Active != null && Active.HandleRemoveSolidInternal(ref pointInfo, GCoord, brushStrength, obtainMat);
+        public bool HandleRemoveSolid(ref MapData pointInfo, int3 GCoord, float brushStrength, bool obtainMat = true) {
+            return HandleRemoveSolidInternal(ref pointInfo, GCoord, brushStrength, obtainMat);
         }
 
-        public static bool HandleRemoveLiquid(ref MapData pointInfo, int3 GCoord, float brushStrength, bool obtainMat = true) {
-            return Active != null && Active.HandleRemoveLiquidInternal(ref pointInfo, GCoord, brushStrength, obtainMat);
+        public bool HandleRemoveLiquid(ref MapData pointInfo, int3 GCoord, float brushStrength, bool obtainMat = true) {
+            return HandleRemoveLiquidInternal(ref pointInfo, GCoord, brushStrength, obtainMat);
         }
 
         private void EntityInteract(Entity target, IItem held) {
@@ -489,8 +451,11 @@ namespace Arterra.Data.Entity.Behavior {
             if (!targEnt.IsDead) {
                 targEnt.Interact(self, held);
             } else {
-                IItem slot = targEnt.Collect(self, settings.PickupRate);
-                InventoryController.AddEntry(slot);
+                targEnt.Collect(
+                    self,
+                    InventoryController.AddEntry, 
+                    settings.PickupRate
+                );
             }
         }
     }

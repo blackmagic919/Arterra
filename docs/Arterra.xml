@@ -1638,9 +1638,225 @@
             <param name="GCoord">The location of the map information being</param>
             <returns>The item to give.</returns>
         </member>
+        <member name="T:Arterra.Data.Entity.Behavior.PlayerCameraSettings">
+            <summary>
+            Controls camera responsiveness, sensitivity, and rotation limits.
+            </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerCameraSettings.Sensitivity">
+            <summary>Mouse/controller look sensitivity multiplier.</summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerCameraSettings.clampVerticalRotation">
+            <summary>Whether camera pitch is clamped around the x-axis.</summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerCameraSettings.MinimumX">
+            <summary>Minimum pitch angle (look down limit).</summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerCameraSettings.MaximumX">
+            <summary>Maximum pitch angle (look up limit).</summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerCameraSettings.smooth">
+            <summary>If true, camera and character rotation are interpolated.</summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerCameraSettings.smoothTime">
+            <summary>Interpolation speed when <see cref="F:Arterra.Data.Entity.Behavior.PlayerCameraSettings.smooth"/> is enabled.</summary>
+        </member>
+        <member name="T:Arterra.Data.Entity.Behavior.PlayerCameraBehavior">
+            <summary>
+            Manages the player's camera across first-person and third-person modes.
+            </summary>
+        </member>
         <member name="T:Arterra.Data.Entity.Behavior.IAttackable">
             <summary> An interface for all object that can be attacked and take damage. It is up to the 
             implementer to decide how the request to take damage is handled. </summary>
+        </member>
+        <member name="T:Arterra.Data.Entity.Behavior.PlayerInventorySettings">
+            <summary> Settings controlling the size and apperance of the inventory,
+            a system allowing the player to hold and use 
+            <see cref="!:Generation.Item"> items </see>. </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerInventorySettings.PrimarySlotCount">
+            <summary> The amount of slots in the primary inventory, the hotbar. This is
+            equivalent to the maximum amount of items that can be held in the hotbar.  </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerInventorySettings.SecondarySlotCount">
+            <summary> The amount of slots in the secondary inventory, the hidden inventory. This is
+            equivalent to the maximum amount of items that can be held in the hidden inventory. </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerInventorySettings.RecoverSpeedMultiplier">
+            <summary>How fast the player can recover items from its inventory</summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerInventorySettings.SelectedColor">
+            <summary>
+            The color of the selected slot in the <see cref="F:Arterra.GamePlay.UI.InventoryController.Primary">Primary Inventory</see>, or
+            the hotbar. This color is used to indicate which item currently has the status of being <see cref="P:Arterra.GamePlay.UI.InventoryController.Selected">
+            selected. </see> 
+            </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerInventorySettings.BaseColor">
+            <summary> The color of the base slot in the Inventory. The color 
+            of the slot when it is empty (the item held by the slot is null). </summary>
+        </member>
+        <member name="T:Arterra.Data.Entity.Behavior.PlayerInventoriesBehavior">
+            <summary>
+            Owns player inventories and item transfer/drop helpers for behavior-based player flow.
+            </summary>
+        </member>
+        <member name="T:Arterra.Data.Entity.Behavior.PlayerMovementSettings">
+            <summary>
+            A collection of settings that describe how the player moves.
+            Movement settings may change during gameplay.
+            </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerMovementSettings.walkSpeed">
+            <summary>The maximum speed the player can walk at, in world-space units.</summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerMovementSettings.runSpeed">
+            <summary>The maximum speed the player can run at, in world-space units.</summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerMovementSettings.jumpForce">
+            <summary>The upward impulse applied when the player jumps.</summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerMovementSettings.acceleration">
+            <summary>
+            The acceleration added while moving. Since this is added to velocity,
+            effective friction scales with current speed.
+            </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerMovementSettings.groundStickDist">
+            <summary>
+            How far below the player the ground can be while still counting as grounded
+            for jump and friction behavior.
+            </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerMovementSettings.flightSpeedMultiplier">
+            <summary>
+            Multiplier applied to movement speed caps while flying.
+            </summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerMovementSettings.Clone">
+            <summary>Creates a copy of these movement settings.</summary>
+        </member>
+        <member name="T:Arterra.Data.Entity.Behavior.PlayerMovementBehavior">
+            <summary>
+            Handles all player locomotion patterns (ground, swim, flight, ride)
+            and switches the active movement mode through input stack polls.
+            </summary>
+        </member>
+        <member name="P:Arterra.Data.Entity.Behavior.PlayerMovementBehavior.Active">
+            <summary>The active movement behavior for the currently controlled player entity.</summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerMovementBehavior.settings">
+            <summary>Resolved movement settings for this behavior instance.</summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerMovementBehavior.AddBehaviorDependencies(System.Collections.Generic.Dictionary{Arterra.Data.Entity.Behavior.Behaviors,System.Int32})">
+            <summary>Declares required behavior dependencies.</summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerMovementBehavior.AddSettingsDependencies(System.Collections.Generic.Dictionary{System.Type,Arterra.Data.Entity.Behavior.IBehaviorSetting})">
+            <summary>Declares required settings dependencies.</summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerMovementBehavior.Initialize(Arterra.Data.Entity.Behavior.BehaviorEntity.Animal,Arterra.Data.Entity.Behavior.BehaviorEntity.AnimalSetting,Unity.Mathematics.float3)">
+            <summary>Initializes movement state and input bindings for a newly spawned entity.</summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerMovementBehavior.Deserialize(Arterra.Data.Entity.Behavior.BehaviorEntity.Animal,Arterra.Data.Entity.Behavior.BehaviorEntity.AnimalSetting,Unity.Mathematics.int3@)">
+            <summary>Initializes movement state and bindings after entity deserialization.</summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerMovementBehavior.Disable(Arterra.Data.Entity.Behavior.BehaviorEntity.Animal)">
+            <summary>Disables movement patterns and clears active references.</summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerMovementBehavior.Update(Arterra.Data.Entity.Behavior.BehaviorEntity.Animal)">
+            <summary>Runs per-frame movement input stack processing for the controlled player.</summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerMovementBehavior.ConsumeHorizontalMovementInput(System.Single)">
+            <summary>Consumes horizontal move input for free-rotate camera movement.</summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerMovementBehavior.OnMounted(Arterra.Data.Entity.Behavior.IRidable)">
+            <summary>IRider entrypoint invoked when the player mounts a ridable entity.</summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerMovementBehavior.OnDismounted(Arterra.Data.Entity.Behavior.IRidable)">
+            <summary>IRider entrypoint invoked when the player dismounts a ridable entity.</summary>
+        </member>
+        <member name="T:Arterra.Data.Entity.Behavior.PlayerInteractionSettings">
+            <summary>
+            Settings governing the player's interaction with entities and terrain,
+            including terraforming and melee interactions.
+            </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerInteractionSettings.TerraformRadius">
+            <summary>
+            Radius, in grid space, of the spherical region modified during terrain edits.
+            </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerInteractionSettings.DefaultTerraform">
+            <summary>
+            Default terraform behavior used when no material-specific tag overrides it.
+            </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerInteractionSettings.ReachDistance">
+            <summary>
+            Maximum distance (in grid space) for interaction ray checks.
+            </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerInteractionSettings.CylinderRadius">
+            <summary>
+            Radius used by cylinder casts around the view ray when removing terrain.
+            </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerInteractionSettings.PickupRate">
+            <summary>
+            Collection speed when looting dead entities.
+            </summary>
+        </member>
+        <member name="T:Arterra.Data.Entity.Behavior.PlayerInteractionBehavior">
+            <summary>
+            Controls player interaction with world entities and map materials.
+            </summary>
+        </member>
+        <member name="T:Arterra.Data.Entity.Behavior.PlayerEffectsSettings">
+            <summary>
+            Settings that control how player animation/effect hooks resolve scene objects.
+            </summary>
+        </member>
+        <member name="T:Arterra.Data.Entity.Behavior.PlayerEffectsBehavior">
+            <summary>
+            Bridges gameplay events and movement state into animator parameters and triggers.
+            </summary>
+        </member>
+        <member name="T:Arterra.Data.Entity.Behavior.PlayerBehavior">
+            <summary>
+            Root player behavior that wires player-specific behavior dependencies and
+            handles high-level stream/death detach transitions.
+            </summary>
+        </member>
+        <member name="P:Arterra.Data.Entity.Behavior.PlayerBehavior.Active">
+            <summary>The active player root behavior instance.</summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerBehavior.DefaultPlayerAnimalSetting">
+            <summary>
+            Canonical behavior-side defaults for player entity settings.
+            This is used to seed world options and migration bridges.
+            </summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerBehavior.CreateDefaultPlayerAnimalSetting">
+            <summary>
+            Creates a writable instance of the default player behavior settings.
+            </summary>
+        </member>
+        <member name="F:Arterra.Data.Entity.Behavior.PlayerBehavior.status">
+            <summary> This player instance's relation to the actual
+            user's input and what they see. See <see cref="T:Arterra.Data.Entity.Behavior.PlayerBehavior.StreamingStatus"/> </summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerBehavior.AddBehaviorDependencies(System.Collections.Generic.Dictionary{Arterra.Data.Entity.Behavior.Behaviors,System.Int32})">
+            <summary>Declares required player behavior dependencies.</summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerBehavior.Initialize(Arterra.Data.Entity.Behavior.BehaviorEntity.Animal,Arterra.Data.Entity.Behavior.BehaviorEntity.AnimalSetting,Unity.Mathematics.float3)">
+            <summary>Initializes root player behavior state for a newly created player entity.</summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerBehavior.Deserialize(Arterra.Data.Entity.Behavior.BehaviorEntity.Animal,Arterra.Data.Entity.Behavior.BehaviorEntity.AnimalSetting,Unity.Mathematics.int3@)">
+            <summary>Initializes root player behavior state for a deserialized player entity.</summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Behavior.PlayerBehavior.Disable(Arterra.Data.Entity.Behavior.BehaviorEntity.Animal)">
+            <summary>Disables root player behavior and clears active references.</summary>
         </member>
         <member name="T:Arterra.Data.Entity.Authoring">
             <summary>
@@ -1682,6 +1898,11 @@
             perform computational-heavy tasks related to the entity. Only the Entity in question is provided mutual
             exclusivity. Accessing any external resources(e.g. creating an entity) needs to resynchronize using <see cref="M:EntityManager.AddHandlerEvent(System.Action)"/>
             </summary>
+        </member>
+        <member name="M:Arterra.Data.Entity.Entity.UpdateJobSync">
+            <summary> An update handle for when the entity is updated in a synchronous environment after the job update
+            has been called on all entities. Use this handle for tasks requiring synchronous and safe access to resources
+            but avoid using for expensive calculations. </summary>
         </member>
         <member name="M:Arterra.Data.Entity.Entity.Disable">
             <summary> A callback when the entity is disabled. This will be called whenever the system attempts to destroy an 
@@ -1787,6 +2008,12 @@
             <param name="instance">The instance</param>
             <returns>Whether or not a constructor object of the requested type was found. </returns>
         </member>
+        <member name="M:Arterra.Data.Entity.Entity.TryGetConstructor(System.Type,System.Object@)">
+            <summary> Tests whether an object has a constructor object and retrieves it if it does. </summary>
+            <typeparam name="type">The type of the constructor object</typeparam>
+            <param name="instance">The instance</param>
+            <returns>Whether or not a constructor object of the requested type was found. </returns>
+        </member>
         <member name="T:Arterra.Data.Entity.Entity.Info">
             <summary>
             Settings for a structure that is required for the systems governing how entities are identified
@@ -1879,6 +2106,15 @@
             low byte. The high short is used for viscosity and the low short for density. See <see cref="T:Arterra.Data.Structure.StructureData.CheckInfo"/>
             for more information.
             </summary>
+        </member>
+        <member name="P:Arterra.Data.Entity.ProfileE.AND">
+            <summary> The constant flag setting AND condition to true </summary>
+        </member>
+        <member name="P:Arterra.Data.Entity.ProfileE.OR">
+            <summary> The constant flag setting AND condition to true </summary>
+        </member>
+        <member name="P:Arterra.Data.Entity.ProfileE.EX">
+            <summary> The constant flag setting AND condition to true </summary>
         </member>
         <member name="F:Arterra.Data.Entity.ProfileE.flags">
             <summary>
@@ -5104,152 +5340,13 @@
         <member name="M:Arterra.GamePlay.UI.ISlot.ClearDisplay(UnityEngine.Transform)">
             <summary> This handle is called when the Display UI is to be cleared  </summary>
         </member>
-        <member name="T:Arterra.GamePlay.PlayerStreamer">
-            <summary> The entity instance of the player holding all data specific
-            to a single instance of the player. Note, multiple PlayerStreamers can 
-            exist at the same time. </summary>
-            <remarks>Using the analogy that <see cref="T:Arterra.GamePlay.PlayerHandler"/> is the soul of the player, 
-            <see cref="T:Arterra.GamePlay.PlayerStreamer"/> would be a singular corpreal body of the player. </remarks> 
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerStreamer._Setting">
-            <summary>Reference to the player's entity settings. See <see cref="T:Arterra.GamePlay.PlayerStreamer.PlayerSettings"/></summary>
-        </member>
-        <member name="P:Arterra.GamePlay.PlayerStreamer.Entity">
-            <summary> Obtains a new instance of the player streamer </summary>
-        </member>
-        <member name="P:Arterra.GamePlay.PlayerStreamer.Setting">
-            <summary> Retrieves the player's entity settings. </summary>
-        </member>
-        <member name="T:Arterra.GamePlay.PlayerStreamer.PlayerSettings">
-            <summary>The settings controlling the entity properties of the player. </summary>
-        </member>
-        <member name="T:Arterra.GamePlay.PlayerStreamer.Player">
-            <summary>The entity representing a player instance. </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerStreamer.Player.settings">
-            <summary> The <see cref="T:Arterra.GamePlay.PlayerStreamer.PlayerSettings">entity settings
-            </see> of this player instance </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerStreamer.Player.player">
-            <summary>The root UnityGameObject tied to this player instance. </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerStreamer.Player.camera">
-            <summary> The <see cref="T:Arterra.GamePlay.PlayerStreamer.PlayerSettings"/> managing the camera's
-            movement if this player instance is currently streaming. </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerStreamer.Player.PrimaryI">
-            <summary> The primary inventory/hotbar tied to this player.</summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerStreamer.Player.SecondaryI">
-            <summary> The secondary inventory tied to this player. </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerStreamer.Player.ArmorI">
-            <summary> The armor inventory tied to this player. </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerStreamer.Player.vitality">
-            <summary>This player's health and attack patterns. See <see cref="T:Arterra.GamePlay.PlayerVitality"/> </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerStreamer.Player.collider">
-            <summary>This player's terrain collider. </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerStreamer.Player.attached">
-            <summary>Set of ids of attached (entities) that will be treated as attached 
-            to the player (and thus will not be forced apart by collision. </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerStreamer.Player.status">
-            <summary> This player instance's relation to the actual 
-            user's input and what they see. See <see cref="T:Arterra.GamePlay.PlayerStreamer.Player.StreamingStatus"/> </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerStreamer.Player.Effects">
-            <summary> The Controller responsible for abstracting the player's
-            animations as effects. See <see cref="T:PlayerActionEffects"/> for more info. </summary>
-        </member>
-        <member name="P:Arterra.GamePlay.PlayerStreamer.Player.transform">
-            <summary>Getter for the <see cref="F:Arterra.GamePlay.PlayerStreamer.Player.collider">Player Collider's</see> transform.</summary>
-        </member>
-        <member name="P:Arterra.GamePlay.PlayerStreamer.Player.Facing">
-            <summary> The quaternion for the direction the player instance is facing. </summary>
-        </member>
-        <member name="P:Arterra.GamePlay.PlayerStreamer.Player.head">
-            <summary>The location of the player's head/camera in grid space.</summary>
-        </member>
-        <member name="P:Arterra.GamePlay.PlayerStreamer.Player.positionWS">
-            <summary>The location of the player's <see cref="P:Arterra.Data.Entity.Entity.position"/> in world space. </summary>
-        </member>
-        <member name="P:Arterra.GamePlay.PlayerStreamer.Player.IsDead">
-            <summary> Whether or not the player is dead. <see cref="P:Arterra.Data.Entity.Behavior.IAttackable.IsDead"/> </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerStreamer.Player.Interact(Arterra.Data.Entity.Entity,Arterra.Data.Item.IItem)">
-            <summary>Interacts with the Player Instance. See <see cref="M:Arterra.Data.Entity.Behavior.IAttackable.Interact(Arterra.Data.Entity.Entity,Arterra.Data.Item.IItem)"/></summary>            
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerStreamer.Player.Collect(Arterra.Data.Entity.Entity,System.Single)">
-            <summary> Collects items from the dead player instance
-            if it contains items in its inventories, causing
-            it to slowly decay. <see cref="M:Arterra.Data.Entity.Behavior.IAttackable.Collect(Arterra.Data.Entity.Entity,System.Single)"/> </summary>
-            <param name="target"> The entity collecting the item(or null) </param>
-            <param name="amount">The speed at which items are removed</param>
-            <returns>The collected item, or null.</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerStreamer.Player.TakeDamage(System.Single,Unity.Mathematics.float3,Arterra.Data.Entity.Entity)">
-            <summary>Attempts to apply a specific amount of damage and knockback
-            to the player. Success depends on player's defense systems such as
-            <see cref="F:Arterra.Configuration.Gameplay.Player.Physicality.InvincTime">invincibility </see>  </summary>
-            <param name="damage">The attempted damage to deal to the player</param>
-            <param name="knockback">The attempted knockback to deal to the player</param>
-            <param name="attacker">If the damage was dealt by an entity, the attacker instance.
-            Otherwise, this field can be omitted. </param>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerStreamer.Player.OnMounted(Arterra.Data.Entity.Behavior.IRidable)">
-            <summary>Handler that's called when the player mounts an entity <see cref="T:Arterra.Data.Entity.Behavior.IRider"/></summary>
-            <param name="mount">The mount the player is riding</param>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerStreamer.Player.OnDismounted(Arterra.Data.Entity.Behavior.IRidable)">
-            <summary>Handler that's called when the player dismounts an entity <see cref="T:Arterra.Data.Entity.Behavior.IRider"/></summary>
-            <param name="mount">The mount the player is no longer riding</param>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerStreamer.Player.Build">
-            <summary> Constructs a fresh clean player instance. With 
-            the appropriate settings based off the
-            /// <see cref="P:Arterra.Configuration.Config.CURRENT">current world</see> </summary>
-            <returns>The newly instantiated player instance.</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerStreamer.Player.Initialize(Arterra.Data.Entity.EntitySetting,UnityEngine.GameObject,Unity.Mathematics.float3)">
-            <summary>Initializes the player entity with its entity settings.
-            See <see cref="M:EntityManager.InitializeE(Arterra.Data.Entity.Entity,Unity.Mathematics.float3,System.UInt32)"/> </summary>
-            <param name="setting">The settings of the player entity</param>
-            <param name="Controller">The root Unity Gameobject of the player</param>
-            <param name="GCoord">The coordinate in grid space of the player</param>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerStreamer.Player.Deserialize(Arterra.Data.Entity.EntitySetting,UnityEngine.GameObject,Unity.Mathematics.int3@)">
-            <summary>Deserializes the player entity after it has been serialized for storage.
-            The player entity may be saved by the EntitySystem or in a seperate file depending on 
-            whether it is streaming, but in either case, this function must be called. </summary>
-            <param name="setting">The settings of the player entity</param>
-            <param name="Controller">The root Unity Gameobject of the player</param>
-            <param name="GCoord">Retrievs the saved coordinate in grid space of the player</param>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerStreamer.Player.Update">
-            <summary> Updates the player instance via the Entity system.
-            This function should and will not be called if the player
-            is the current active player tied to the user. </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerStreamer.Player.Disable">
-            <summary>Disables the player instance, releasing all resources tied to it. </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerStreamer.Player.OnDrawGizmos">
-            <summary>Draws Gizmos overlays for the player (Unity Editor Only).</summary>
-        </member>
-        <member name="M:Arterra.GamePlay.Interaction.TerrainCollider.FixedUpdate(Arterra.Data.Entity.Entity)">
-            <summary> Updates the collider on a Unity Fixed Update. </summary>
-        </member>
         <member name="T:Arterra.GamePlay.PlayerHandler">
             <summary> The root handler of the currently active player.  </summary>
-            <remarks> If <see cref="T:Arterra.GamePlay.PlayerStreamer"/> were analogous to the 
+            <remarks> If the player runtime entity were analogous to the 
             player's current body, this class would be the player's soul </remarks>///  
         </member>
         <member name="F:Arterra.GamePlay.PlayerHandler.data">
-            <summary>The current active <see cref="T:Arterra.GamePlay.PlayerStreamer.Player"> streamer </see>
-            or instance of the player. </summary>
+            <summary>The current active runtime player entity.</summary>
         </member>
         <member name="F:Arterra.GamePlay.PlayerHandler.Viewer">
             <summary> The transform of the Unity gameobject representing the viewer </summary>
@@ -5262,270 +5359,19 @@
             the user has control of the player instance  </summary>
         </member>
         <member name="M:Arterra.GamePlay.PlayerHandler.Initialize">
-            <summary> Initializes the player and retrieves/creates
-            a new <see cref="T:Arterra.GamePlay.PlayerStreamer.Player">Player Instance</see>
-            for it. </summary>
+            <summary>
+            Initializes the player and retrieves or creates a behavior-model runtime entity.
+            </summary>
         </member>
         <member name="M:Arterra.GamePlay.PlayerHandler.Release">
             <summary>Releases the player handler and all resources tied to handling the player. </summary>
         </member>
-        <member name="M:Arterra.GamePlay.PlayerHandler.RespawnPlayer(System.Action)">
+        <member name="M:Arterra.GamePlay.PlayerHandler.RespawnPlayer(System.Action,System.Boolean)">
             <summary> Respawns the player initiating the respawn process.
-            This process will create a new  <see cref="T:Arterra.GamePlay.PlayerStreamer.Player">Player Instance</see>
+            This process will create a new runtime player instance
             at a set respawn location, abandoning the current active instance. </summary>
             <param name="cb">The option action to perform once respawned</param>
-        </member>
-        <member name="T:Arterra.GamePlay.PlayerMovement">
-            <summary>The Manager responsible for handling all types of player movement
-            and switching between them depending on the situation.  </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerMovement.IsSprinting">
-            <summary>Whether or not the player is currently sprinting.</summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerMovement.InputDir">
-            <summary>The xz direction the player desires to move </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerMovement.Initialize">
-            <summary>Initializes the players movements and binds the keybind entrypoints to the system. </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerMovement.Update">
-            <summary> Updates the player's movement. </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerMovement.GetSpeed2D(Unity.Mathematics.float3)">
-            <summary>Gets the 2D velocity as a 3D vector normalized over the player's maximum movement speed. </summary>
-            <param name="velocity">The vector whose speed is returned</param>
-            <returns>The maxspeed normalized 3D vector</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerMovement.GetSpeed3D(Unity.Mathematics.float3)">
-            <summary>Gets the 3D velocity as a 3D vector normalized over the player's maximum movement speed. </summary>
-            <param name="velocity">The vector whose speed is returned</param>
-            <returns>The maxspeed normalized 3D vector</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerMovement.AddVelocity2D(Unity.Mathematics.float2,System.Single)">
-            <summary>Adds the 2D delta velocity to the player's xz velocity whilst
-            respecting the player's current and maximum movement speeds. </summary>
-            <param name="delta">The change to the player's xz velocity</param>
-            <param name="maxSpeed">The maximum movement speed of the player</param>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerMovement.AddVelocity3D(Unity.Mathematics.float3,System.Single)">
-            <summary>Adds the 3D delta velocity to the player's velocity whilst
-            respecting the player's current and maximum movement speeds. </summary>
-            <param name="delta">The change to the player's 3D velocity</param>
-            <param name="maxSpeed">The maximum movement speed of the player</param>
-        </member>
-        <member name="T:Arterra.GamePlay.SurfaceMovement">
-            <summary> Controls the player's normal movement on the terrain surface. </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.SurfaceMovement.Initialize">
-            <summary>Initializes the player's surface movement pattern, and enables it</summary>
-        </member>
-        <member name="T:Arterra.GamePlay.SwimMovement">
-            <summary> Controls the player's underwater movement including swimming or wading </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.SwimMovement.Initialize">
-            <summary> Initializes the swimming system. </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.SwimMovement.StartSwim(System.Object,System.Object,System.Object)">
-            <summary>=Enables underwater movement as the player's current movement pattern</summary>
-            <param name="_"></param>
-        </member>
-        <member name="M:Arterra.GamePlay.SwimMovement.StopSwim(System.Object,System.Object,System.Object)">
-            <summary>=Disables underwater movement and returns player to original movement pattern</summary>
-        </member>
-        <member name="T:Arterra.GamePlay.FlightMovement">
-            <summary> The Manager responsible for controlling the player's movement when they fly.
-            See <see cref="F:Arterra.Configuration.Gameplay.Gamemodes.Flight"/>.  </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.FlightMovement.Initialize">
-            <summary> Initializes the player's flight movement and 
-            sets up to the triggers to enable it. </summary>
-        </member>
-        <member name="T:Arterra.GamePlay.RideMovement">
-            <summary> The Manager responsible for translating the player's movement when they are riding something.
-            See <see cref="T:Arterra.Data.Entity.Behavior.IRidable"/> for more info. </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.RideMovement.Initialize">
-            <summary>Initializes the rider movement system.</summary>
-        </member>
-        <member name="M:Arterra.GamePlay.RideMovement.AddHandles(Arterra.Data.Entity.Behavior.IRidable)">
-            <summary>Enables the Rider Movement pattern as the player's current movement pattern.</summary>
-            <param name="mount"></param>
-        </member>
-        <member name="M:Arterra.GamePlay.RideMovement.RemoveHandles">
-            <summary>Disables the Rider Movement Pattern returning the player to their original movement pattern.</summary>
-        </member>
-        <member name="T:Arterra.GamePlay.PlayerVitality">
-            <summary> Manager controlling the player's health, regenertion
-            and base attack functionalities.  </summary>
-        </member>
-        <member name="P:Arterra.GamePlay.PlayerVitality.settings">
-            <summary> The player's physicality settings. </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerVitality.AttackCooldown">
-            <summary>The time in seconds before the player can initiate attacking.</summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerVitality.Invincibility">
-            <summary>The time in seconds before the player can recieve damage again. </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerVitality.health">
-            <summary> The player's current health.</summary>
-        </member>
-        <member name="P:Arterra.GamePlay.PlayerVitality.healthPercent">
-            <summary>The player's health normalized over their <see cref="F:Arterra.Configuration.Gameplay.Player.Physicality.MaxHealth">maximum health</see> </summary>
-        </member>
-        <member name="F:Arterra.GamePlay.PlayerVitality.breath">
-            <summary>The time in seconds before the player will start drowning.</summary>
-        </member>
-        <member name="P:Arterra.GamePlay.PlayerVitality.breathPercent">
-            <summary> The amount of remaining time the player can hold their breath 
-            normalized over the <see cref="F:Arterra.Configuration.Gameplay.Player.Physicality.HoldBreathTime">maximum time</see>
-            the player can hold their breath. </summary>
-        </member>
-        <member name="P:Arterra.GamePlay.PlayerVitality.IsDead">
-            <summary> Whether or not the player is dead. </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerVitality.#ctor">
-            <summary>Creates a new instance of the player's
-            vitality. Attaches keybinds for player attack. </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerVitality.Update">
-            <summary> Updates the player's vitality controller including
-            any relevant cooldown timers.  </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerVitality.Damage(System.Single)">
-            <summary>Requests that the player recieves damage.</summary>
-            <param name="delta">The amount of damage to recieve</param>
-            <returns>Whether or not damage was dealt based on
-            the player's defenses/invincibility.</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerVitality.Heal(System.Single,System.Boolean)">
-            <summary> Attempts to give the player health. </summary>
-            <param name="delta">The amount of health to give the player </param>
-            <param name="force">Whether to force giving the player the requested health,
-            potentially exceeding their maximum health or reviving them. </param>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerVitality.ProcessEntityInSolid(Arterra.Data.Entity.Entity,System.Single)">
-            <summary>Processes damaging the player
-            whose head being trapped in the terrain.</summary>
-            <param name="self">The player entity</param>
-            <param name="density">The density of the terrain around the player's head.
-            The amount of damage to apply to the player</param>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerVitality.ProcessInGas(Arterra.Data.Entity.Entity,System.Single)">
-            <summary>Processes what happens when the player's
-            head is neither underwater or underground. </summary>
-            <param name="density">The density of the gas surrounding the player's head</param>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerVitality.ProcessInLiquid(Arterra.Data.Entity.Entity,System.Single)">
-            <summary>Processes drowning the player whose head
-            is under a liquid material. </summary>
-            <param name="self">The player entity</param>
-            <param name="density">The density of the liquid surrounding the player's head</param>
-        </member>
-        <member name="T:Arterra.GamePlay.PlayerInteraction">
-            <summary>The manager responsible for controlling all player interactions with the world </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerInteraction.Initialize">
-            <summary> Initializes the player's interactions by tying
-            keybinds into the system. </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerInteraction.RayTestSolid(Unity.Mathematics.float3@)">
-            <summary> Determines where the player's view vector intersects with the solid terrain if 
-            under <see cref="!:Interaction.ReachDistance"/>  away. See <see cref="M:Arterra.GamePlay.PlayerInteraction.RayTestSolid(Unity.Mathematics.float3@)"/>
-            for mode info. </summary>
-            <param name="hitPt">If it does intersect, the first point it intersects in grid space</param>
-            <returns>Whether or not the view ray intersects solid terrain</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerInteraction.CylinderTestSolid(Unity.Mathematics.float3@)">
-            <summary> Determines where a cylinder of radius <see cref="!:Interaction.CylinderRadius"/> around the player's view vector
-            intersects with the solid terrain if under <see cref="!:Interaction.ReachDistance"/> away. See <see cref="M:Arterra.GamePlay.PlayerInteraction.CylinderTestSolid(Unity.Mathematics.float3@)"/>
-            for mode info. </summary>
-            <param name="hitPt">If it does intersect, the first point it intersects in grid space</param>
-            <returns>Whether or not the view ray intersects solid terrain</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerInteraction.RayTestLiquid(Unity.Mathematics.float3@)">
-            <summary> Determines where the player's view vector intersects with the liquid/solid terrain if 
-            under <see cref="!:Interaction.ReachDistance"/>  away. See <see cref="M:Arterra.GamePlay.PlayerInteraction.RayTestLiquid(Unity.Mathematics.float3@)"/>
-            for mode info. </summary>
-            <param name="hitPt">If it does intersect, the first point it intersects in grid space</param>
-            <returns>Whether or not the view ray intersects liquid/solid terrain</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerInteraction.CallOnMapPlacing(Unity.Mathematics.int3)">
-            <summary> Calls the default <see cref="M:Arterra.Data.Material.MaterialData.OnPlacing(Unity.Mathematics.int3,Arterra.Data.Entity.Entity)"/> handle
-            for the material being placed on behalf of the player and halts all terraforming 
-            if an error occurs. </summary>
-            <param name="GCoord">The coordinate in grid space of the material being placed</param>
-            <returns>Whether or not to halt the current terraform process</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerInteraction.CallOnMapRemoving(Unity.Mathematics.int3)">
-            <summary> Calls the default <see cref="M:Arterra.Data.Material.MaterialData.OnRemoving(Unity.Mathematics.int3,Arterra.Data.Entity.Entity)"/> handle
-            for the material being removed on behalf of the player and halts all terraforming 
-            if an error occurs. </summary>
-            <param name="GCoord">The coordinate in grid space of the material being removed</param>
-            <returns>Whether or not to halt the current terraform process</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerInteraction.HandleAddSolid(Arterra.Data.Item.IItem,Unity.Mathematics.int3,System.Single,Arterra.Core.Storage.MapData@)">
-            <summary> Adds the solid material translation of an item to a specific position in the map
-            if the item has a solid material translation, and that solid material can be placed 
-            at the position conservatively.  </summary>
-            <remarks> This method resolves all material handles relevant to this operation</remarks>
-            <param name="matItem">The item which has a solid material translation</param>
-            <param name="GCoord">The coordinate in grid space to place the material</param>
-            <param name="brushStrength">The speed at which material will be placed</param>
-            <param name="pointInfo">The existing map information at this location <see cref="M:Arterra.Core.Storage.CPUMapManager.SampleMap(Unity.Mathematics.int3)"/> </param>
-            <returns>Whether or not <b>any</b>(not necessarily all) new material was successfully placed here as a result of this operation.</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerInteraction.HandleAddLiquid(Arterra.Data.Item.IItem,Unity.Mathematics.int3,System.Single,Arterra.Core.Storage.MapData@)">
-            <summary> Adds the liquid material translation of an item to a specific position in the map
-            if the item has a liquid material translation, and that liquid material can be placed 
-            at the position conservatively.  </summary>
-            <remarks> This method resolves all material handles relevant to this operation</remarks>
-            <param name="matItem">The item which has a liquid material translation</param>
-            <param name="GCoord">The coordinate in grid space to place the material</param>
-            <param name="brushStrength">The speed at which material will be placed</param>
-            <param name="pointInfo">The existing map information at this location <see cref="M:Arterra.Core.Storage.CPUMapManager.SampleMap(Unity.Mathematics.int3)"/> </param>
-            <returns>Whether or not <b>any</b>(not necessarily all) new material was successfully placed here as a result of this operation.</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerInteraction.HandleRemoveSolid(Arterra.Core.Storage.MapData@,Unity.Mathematics.int3,System.Single,System.Boolean)">
-            <summary>Removes a specific amount of solid material from a certain position in the map. </summary>
-            <param name="pointInfo">The existing map information at this location <see cref="M:Arterra.Core.Storage.CPUMapManager.SampleMap(Unity.Mathematics.int3)"/> </param>
-            <param name="GCoord">The coordinate in grid space to remove materia</param>
-            <param name="brushStrength">The speed at which material will be removed</param>
-            <param name="ObtainMat">Whether or not the item translation of the solid material will attempt to be 
-            added to the Player's Inventory. </param>
-            <returns>Whether or not <b>any</b>(Not necessarily all) material was removed.</returns>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerInteraction.HandleRemoveLiquid(Arterra.Core.Storage.MapData@,Unity.Mathematics.int3,System.Single,System.Boolean)">
-            <summary>Removes a specific amount of liquid material from a certain position in the map. </summary>
-            <param name="pointInfo">The existing map information at this location <see cref="M:Arterra.Core.Storage.CPUMapManager.SampleMap(Unity.Mathematics.int3)"/> </param>
-            <param name="GCoord">The coordinate in grid space to remove materia</param>
-            <param name="brushStrength">The speed at which material will be removed</param>
-            <param name="ObtainMat">Whether or not the item translation of the liquid material will attempt to be 
-            added to the Player's Inventory. </param>
-            <returns>Whether or not <b>any</b>(Not necessarily all) material was removed.</returns>
-        </member>
-        <member name="T:Arterra.GamePlay.PlayerCamera">
-            <summary> Responsible for managing the player's camera
-            and its movement and angles within the game.  </summary>
-        </member>
-        <member name="P:Arterra.GamePlay.PlayerCamera.Facing">
-            <summary> The quarternion representing the direction the player's camera is facing </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerCamera.#ctor">
-            <summary> Default Constructor </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerCamera.Deserailize(Arterra.GamePlay.PlayerStreamer.Player)">
-            <summary> Deserializes the player's camera, called after it's been deserialized.
-            Reattaches to the player instance and reverts the camera state to the default camera </summary>
-            <param name="context">The instance of the currently streaming player</param>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerCamera.Initialize">
-            <summary> Initializes this object as the current active player camera instance by 
-            tying the keybinds relevant to handling the camera. </summary>
-        </member>
-        <member name="M:Arterra.GamePlay.PlayerCamera.Update(UnityEngine.Transform)">
-            <summary>Updates the player's camera movement and properties.</summary>
-            <param name="CamTsf">The transform of the physical Unity Camera object</param>
+            <param name="immediate"> Whether or not creation happens synchronously with call </param>
         </member>
         <member name="T:Arterra.Configuration.Quality.Memory">
             <summary>
@@ -5918,29 +5764,29 @@
             Constrains both time and memory usage of the light baker.
             Recommended less than 15k </summary>
         </member>
-        <member name="T:Arterra.Configuration.Gameplay.Inventory">
-            <summary> Settings controlling the size and apperance of the inventory,
-            a system allowing the player to hold and use 
-            <see cref="!:Generation.Item"> items </see>. </summary>
+        <member name="F:Arterra.Configuration.ToolTag.TerraformSpeed">
+            <summary> The speed at which the user can terraform the terrain. As terraforming is a 
+            continuous process, the speed is measured in terms of change in density per frame. </summary>
         </member>
-        <member name="F:Arterra.Configuration.Gameplay.Inventory.PrimarySlotCount">
-            <summary> The amount of slots in the primary inventory, the hotbar. This is
-            equivalent to the maximum amount of items that can be held in the hotbar.  </summary>
+        <member name="F:Arterra.Configuration.ToolTag.ToolDamage">
+            <summary> Scales how much a tool is damaged when removing this material. Damaging
+            a tool decreases its durability. If this is a material, this usually scales
+            the amount of material used up instead </summary>
         </member>
-        <member name="F:Arterra.Configuration.Gameplay.Inventory.SecondarySlotCount">
-            <summary> The amount of slots in the secondary inventory, the hidden inventory. This is
-            equivalent to the maximum amount of items that can be held in the hidden inventory. </summary>
+        <member name="F:Arterra.Configuration.ToolTag.GivesItem">
+            <summary> Whether or not the material removed by this tool will give 
+            the player the corresponding item. </summary>
         </member>
-        <member name="F:Arterra.Configuration.Gameplay.Inventory.SelectedColor">
+        <member name="F:Arterra.Configuration.ConvertibleTag._neighborBounds">
+            <summary> The <see cref="T:Arterra.Core.Storage.MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
+        </member>
+        <member name="F:Arterra.Configuration.ConvertibleToolTag._neighborBounds">
+            <summary> The <see cref="T:Arterra.Core.Storage.MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
+        </member>
+        <member name="T:Arterra.Configuration.TooltipTag">
             <summary>
-            The color of the selected slot in the <see cref="!:InventoryController.Primary">Primary Inventory</see>, or
-            the hotbar. This color is used to indicate which item currently has the status of being <see cref="!:InventoryController.Selected">
-            selected. </see> 
+            Tooltip Tag defining the configurations for tooltips associated with an entity/item or other game elements.
             </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Inventory.BaseColor">
-            <summary> The color of the base slot in the Inventory. The color 
-            of the slot when it is empty (the item held by the slot is null). </summary>
         </member>
         <member name="T:Arterra.Configuration.Gameplay.Environment">
             <summary> Settings controlling environment constants of the world. Or aspects of 
@@ -5980,179 +5826,6 @@
         <member name="F:Arterra.Configuration.Gameplay.Environment.useSoftCollisions">
             <summary> Whether or not entity collision is resolved using soft collision instead of hard collision. 
             Soft collision is more akin to minecraft style entity collision. </summary>
-        </member>
-        <member name="T:Arterra.Configuration.Gameplay.Player.Settings">
-            <summary>
-            Settings pertinent to the player object itself, and how the user experiences the world.
-            All settings collected here are volatile during gameplay and the developer should be aware
-            of this when accessing these settings.
-            </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Settings.movement">
-            <summary> Settings describing how the player moves. See <see cref="T:Arterra.Configuration.Gameplay.Player.Movement"/> for more info. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Settings.Camera">
-            <summary> Settings controlling how the inputs get translated into camera rotations. See <see cref="T:Arterra.Configuration.Gameplay.Player.Camera"/> for more info. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Settings.Interaction">
-            <summary> Settings controlling how the player interacts with the world. See <see cref="T:Arterra.Configuration.Gameplay.Player.Interaction"/> for more information.  </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Settings.Physicality">
-            <summary>Settings controlling the player's physical statistics. See <see cref="F:Arterra.Configuration.Gameplay.Player.Settings.Physicality"/> for more info.</summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Settings.ShowCrosshair">
-            <summary> Whether or not the player's cursor is shown. </summary>
-        </member>
-        <member name="T:Arterra.Configuration.Gameplay.Player.Movement">
-            <summary>
-            A collection of settings that describe how the player moves.
-            Movement settings may change during gameplay.
-            </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Movement.walkSpeed">
-            <summary> The maximum speed the player can walk at, in terms of world space. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Movement.runSpeed">
-            <summary> The maximum speed the player can run at, in terms of world space. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Movement.jumpForce">
-            <summary>  How much force is applied to the player when they jump, in terms of world space. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Movement.acceleration">
-            <summary> How much speed the user gains when moving, in terms of world space. The acceleration is added onto velocity
-            meaning the comparative strength of friction increases with velocity. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Movement.groundStickDist">
-            <summary> How far below the player the ground needs to be for the player to be 'on the ground'. 
-            Being on the ground may affect their ability to jump and the friction they experience. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Movement.flightSpeedMultiplier">
-            <summary> A multiplier applied to all movement limits when the player is flying. For example, a multiplier of 2
-            will mean the player will fly twice as fast as they can run </summary>
-        </member>
-        <member name="M:Arterra.Configuration.Gameplay.Player.Movement.Clone">
-            <summary> Creates a new instance of the movement settings, 
-            copying the values from this instance. </summary>
-            <returns>The new instance</returns>
-        </member>
-        <member name="T:Arterra.Configuration.Gameplay.Player.Physicality">
-            <summary> Settings describing the player's vitaltiy, or the 
-            combat ability and/or physical statistics of the player. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Physicality.AttackDamage">
-            <summary>The base damage the player deals when attacking entities without using any items. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Physicality.AttackFrequency">
-            <summary>The amount of time in seconds between successive attacks from the player that will be processed.</summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Physicality.KnockBackStrength">
-            <summary> The strength by entities are knocked back when hit by the player.  </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Physicality.InvincTime">
-            <summary> The amount of time the player is invincible after taking damage. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Physicality.HoldBreathTime">
-            <summary> The amount of time the player can stay underwater before they start suffocating.  </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Physicality.MaxHealth">
-            <summary> The maximum health of the player.  </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Physicality.NaturalRegen">
-            <summary> How much player's health will change per second. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Physicality.DecompositionTime">
-            <summary> The amount of time after the player dies until its body dissapears.  </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Physicality.weight">
-            <summary> The weight of the player </summary>
-        </member>
-        <member name="M:Arterra.Configuration.Gameplay.Player.Physicality.Clone">
-            <summary> Clones the settings </summary>
-            <returns>The cloned object</returns>
-        </member>
-        <member name="T:Arterra.Configuration.Gameplay.Player.Interaction">
-            <summary>
-            Settings governing the user's ability to interact with the world.
-            This includes Terraforming, the act of changing the terrain map's information,
-            and interaction with entities and more.
-            </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Interaction.TerraformRadius">
-            <summary> The radius, in grid space, of the spherical region around the user's
-            cursor that will be modified when the user terraforms the terrain. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Interaction.DefaultTerraform">
-            <summary>  The default information used for terrain terraforming if no tag is applied.
-            See <see cref="T:Arterra.Configuration.ToolTag"/> for more information </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Interaction.ReachDistance">
-            <summary> The maximum distance, in grid space, that the user can terraform the terrain from.
-            That is, the maximum distance the cursor can be from the user's camera for the user
-            to be able to terraform around the cursor.  </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Interaction.CylinderRadius">
-            <summary> The radius around the view vector which will be searched when ray casting to determine
-            where the view ray intersects the ground.  </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Interaction.PickupRate">
-            <summary> When picking up items, the speed at which resources from 
-            <see cref="T:Arterra.Data.Entity.Behavior.IAttackable"> entities that can be collected from </see> are collected. </summary>
-        </member>
-        <member name="M:Arterra.Configuration.Gameplay.Player.Interaction.Clone">
-            <summary> Clones the terraform settings. 
-            Is necessary for modification through the
-            <see cref="T:Arterra.Configuration.Option`1"/> lazy config system. </summary>
-            <returns>The duplicated terraform settings. </returns>
-        </member>
-        <member name="T:Arterra.Configuration.Gameplay.Player.Camera">
-            <summary> Controls how the camera rotates and responds to player input. Notably
-            settings controlling the camera's responsiveness, sensitivity, and limits to 
-            its rotation are contained here.  </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Camera.Sensitivity">
-            <summary> How sensitive the camera is to mouse movements. A higher number will require smaller
-            movements for larger rotations </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Camera.clampVerticalRotation">
-            <summary>Whether or not camera rotations are clamped around the x-axis</summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Camera.MinimumX">
-            <summary>The minimum x-axis angle that the camera can rotate; the farthest the player can look down</summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Camera.MaximumX">
-            <summary>The maximum x-axis angle that the camera can rotate; the farthest the player can look up</summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Camera.smooth">
-            <summary>Whether rotations should slowly follow player inputs. If false, rotations will jump to the forward axis, 
-            possibly making the rotation seem rough and jittery </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Player.Camera.smoothTime">
-            <summary>If <see cref="F:Arterra.Configuration.Gameplay.Player.Camera.smooth"/>, the time, in seconds to rotate to a new orientation.</summary>
-        </member>
-        <member name="T:Arterra.Configuration.Gameplay.Gamemodes">
-            <summary>
-            Settings describing different game settings the player can play with.
-            These settings may drastically change the game's difficulty and
-            can drastically change the player's experience.
-            </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.Flight">
-            <summary> Whether the player can toggle flight; whether the player can fly </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.Invulnerability">
-            <summary> Whether the player can recieve damage or die. Whether health is a concept for the player. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.Intangiblity">
-            <summary> Whether the player will collide with solid objects and be subject to in-game forces.</summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.KeepInventory">
-            <summary> Whether the player can keep their inventory on death </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.SpectatorView">
-            <summary> Whether or not the player can access the spectator camera </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.ResourceInventory">
-            <summary> Whether or not the player can access the infinite resource inventory </summary>
         </member>
         <member name="T:Arterra.Configuration.Gameplay.KeyBind">
             <summary> A list of conditions that is assigned a name. During gameplay, a system
@@ -6225,6 +5898,34 @@
             <summary> Consumes all pressed keys by adding them to the exclusion set. </summary>
             <param name="BlockedExclusion">The exclusion set pressed keys will be added to</param>
         </member>
+        <member name="T:Arterra.Configuration.Gameplay.Gamemodes">
+            <summary>
+            Settings describing different game settings the player can play with.
+            These settings may drastically change the game's difficulty and
+            can drastically change the player's experience.
+            </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.Flight">
+            <summary> Whether the player can toggle flight; whether the player can fly </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.Invulnerability">
+            <summary> Whether the player can recieve damage or die. Whether health is a concept for the player. </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.Intangiblity">
+            <summary> Whether the player will collide with solid objects and be subject to in-game forces.</summary>
+        </member>
+        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.KeepInventory">
+            <summary> Whether the player can keep their inventory on death </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.SpectatorView">
+            <summary> Whether or not the player can access the spectator camera </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.ResourceInventory">
+            <summary> Whether or not the player can access the infinite resource inventory </summary>
+        </member>
+        <member name="F:Arterra.Configuration.Gameplay.Gamemodes.ShowCrosshair">
+            <summary> Whether or not the player's cursor is shown. </summary>
+        </member>
         <member name="T:Arterra.Configuration.Gameplay.Statistics">
             <summary> A collection of settings describing optional statistics that can be displayed in the game.
             These statistics are optional and can be toggled on or off; viewing certain statistics may
@@ -6236,30 +5937,6 @@
         </member>
         <member name="F:Arterra.Configuration.Gameplay.Statistics.DisplayEntityDamage">
             <summary> Whether to display the pop-up damage dealt to an entity in the game. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.ToolTag.TerraformSpeed">
-            <summary> The speed at which the user can terraform the terrain. As terraforming is a 
-            continuous process, the speed is measured in terms of change in density per frame. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.ToolTag.ToolDamage">
-            <summary> Scales how much a tool is damaged when removing this material. Damaging
-            a tool decreases its durability. If this is a material, this usually scales
-            the amount of material used up instead </summary>
-        </member>
-        <member name="F:Arterra.Configuration.ToolTag.GivesItem">
-            <summary> Whether or not the material removed by this tool will give 
-            the player the corresponding item. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.ConvertibleTag._neighborBounds">
-            <summary> The <see cref="T:Arterra.Core.Storage.MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
-        </member>
-        <member name="F:Arterra.Configuration.ConvertibleToolTag._neighborBounds">
-            <summary> The <see cref="T:Arterra.Core.Storage.MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
-        </member>
-        <member name="T:Arterra.Configuration.TooltipTag">
-            <summary>
-            Tooltip Tag defining the configurations for tooltips associated with an entity/item or other game elements.
-            </summary>
         </member>
         <member name="F:Arterra.Configuration.ShellSetting.Names">
             <summary>The registry names of all entries referencing registries within <see cref="F:Arterra.Configuration.ShellSetting.info"/>. When an element such as
@@ -6445,14 +6122,14 @@
             <summary> The registry of all keybinds that are used to bind player input to actions within the game.
             See <see cref="T:Arterra.Configuration.Gameplay.KeyBind"/> for more information. </summary>
         </member>
-        <member name="F:Arterra.Configuration.Config.GamePlaySettings.Player">
-            <summary> Controls how the player moves through the world. See <see cref="!:Gameplay.Movement"/> for more information. </summary>
+        <member name="F:Arterra.Configuration.Config.GamePlaySettings.PlayerSettings">
+            <summary>
+            Behavior-driven player defaults and overrides used by the player registry authoring.
+            This is the source of truth for the migrated direct-update player entity.
+            </summary>
         </member>
         <member name="F:Arterra.Configuration.Config.GamePlaySettings.Gamemodes">
             <summary> Controls how the player experiences the world. See <see cref="!:Gameplay.Interaction"/> for more information. </summary>
-        </member>
-        <member name="F:Arterra.Configuration.Config.GamePlaySettings.Inventory">
-            <summary> Controls the players inventory. See <see cref="T:Arterra.Configuration.Gameplay.Inventory"/> for more information. </summary>
         </member>
         <member name="F:Arterra.Configuration.Config.GamePlaySettings.Environment">
             <summary> Settings controlling environment constants of the world. See <see cref="T:Arterra.Configuration.Gameplay.Environment"/> for more information. </summary>

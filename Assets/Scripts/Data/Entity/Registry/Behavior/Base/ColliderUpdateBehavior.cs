@@ -11,6 +11,8 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class ColliderUpdateSettings : IBehaviorSetting{
+        ///<summary>Name of settings object in UI generation</summary>
+        [JsonIgnore] public static string Name => "Collider";
         public InteractType interactType;
         public bool UseGravity = true;
         public enum InteractType {

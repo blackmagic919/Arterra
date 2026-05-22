@@ -196,7 +196,7 @@ namespace Arterra.Configuration {
         /// Thus, systems referencing them should be prepared for changes at any time during runtime.
         /// </summary>
         [Serializable]
-        public class GamePlaySettings {
+        public class GamePlaySettings : ICloneable {
             /// <summary> The registry of all keybinds that are used to bind player input to actions within the game.
             /// See <see cref="Gameplay.KeyBind"/> for more information. </summary>
             [UIModifiable(CallbackName = "KeyBindReconstruct")]
@@ -205,6 +205,7 @@ namespace Arterra.Configuration {
             /// Behavior-driven player defaults and overrides used by the player registry authoring.
             /// This is the source of truth for the migrated direct-update player entity.
             /// </summary>
+            [UISetting(Collapse = "Settings")]
             public Option<BehaviorEntity.AnimalSetting> PlayerSettings = new(){ value = PlayerBehavior.DefaultPlayerAnimalSetting};
             /// <summary> Controls how the player experiences the world. See <see cref="Gameplay.Interaction"/> for more information. </summary>
             public Option<Gameplay.Gamemodes> Gamemodes;
@@ -212,6 +213,18 @@ namespace Arterra.Configuration {
             public Option<Gameplay.Environment> Environment;
             /// <summary> Settings controlling the optional visual statistics displayed to the player. See <see cref="Gameplay.Statistics"/> for more information. </summary>
             public Option<Gameplay.Statistics> Statistics;
+            /// <summary>Shallow clones the object</summary>
+            /// <returns>A shallow clone</returns>
+
+            public object Clone() {
+                return new GamePlaySettings {
+                    Input = Input,
+                    PlayerSettings = PlayerSettings,
+                    Gamemodes = Gamemodes,
+                    Environment = Environment,
+                    Statistics = Statistics
+                };
+            }
         }
 
         /// <summary>
@@ -251,6 +264,29 @@ namespace Arterra.Configuration {
             [JsonIgnore]
             [UISetting(Ignore = true, Defaulting = true)]
             public Registry<ChildUpdate> GameplayModifyHooks;
+
+            /// <summary>Adds a gameplay hook to <see cref="GameplayModifyHooks"/> while preserving any other
+            /// potentially existing hooks attached. </summary>
+            /// <param name="name"></param>
+            /// <param name="update"></param>
+            public void AddHook(string name, ChildUpdate update) {
+                if (GameplayModifyHooks.Contains(name)){
+                    ChildUpdate newDel =  (ChildUpdate)Delegate.Combine(GameplayModifyHooks.Retrieve(name), update);
+                    GameplayModifyHooks.TrySet(name,newDel); 
+                } else GameplayModifyHooks.Add(name, update);
+            }
+
+            /// <summary>Removes a gameplay hook to <see cref="GameplayModifyHooks"/> while preserving any other
+            /// potentially existing hooks attached. </summary>
+            /// <param name="name"></param>
+            /// <param name="update"></param>
+            public void RemoveHook(string name, ChildUpdate update) {
+                if (GameplayModifyHooks.Contains(name)) {
+                    ChildUpdate newDel = (ChildUpdate)Delegate.Remove(GameplayModifyHooks.Retrieve(name), update);
+                    if (newDel == null) GameplayModifyHooks.TryRemove(name);
+                    else GameplayModifyHooks.TrySet(name, newDel);
+                } else return;
+            }
         }
 
         [OnDeserialized]

@@ -222,7 +222,7 @@ namespace Arterra.Data.Entity.Behavior {
             )]
             public Option<List<ReferenceOption<IBehaviorSetting>> > Settings;
 
-            [JsonIgnore]
+            [JsonIgnore][UISetting(Ignore = true)]
             public Dictionary <Type, object> DynamicTypes;
 
             public override void Preset(uint entityType) {
@@ -326,11 +326,12 @@ namespace Arterra.Data.Entity.Behavior {
                 get => colliderInfo.Rotation;
                 set => colliderInfo.Rotation = value;
             }
-            
 
             [JsonIgnore] public override ref TerrainCollider.Transform transform => ref Collider.transform; 
+            [JsonIgnore] public override float3 head => colliderInfo.HeadPosition;
+            [JsonIgnore] public override Quaternion Facing => Rotation;
             [JsonIgnore] public int3 PathCoord => (int3)math.floor(PathCollider.transform.position);
-            [JsonIgnore] public UpdateContext context = UpdateContext.Job;
+            public UpdateContext context = UpdateContext.Job;
             [JsonIgnore] public float DeltaTime {
                 get {
                     if (context == UpdateContext.Job || context == UpdateContext.JobSync)
@@ -354,12 +355,12 @@ namespace Arterra.Data.Entity.Behavior {
             public void Register<TInterface>(TInterface instance) {
                 if (typeof(TInterface) == typeof(IMultiCollider))
                     colliderInfo = instance as IMultiCollider;
-                DynamicTypes.TryAdd(typeof(TInterface), instance);
+                DynamicTypes[typeof(TInterface)] = instance;
             }
             public void Register(Type type, IBehavior instance) {
                 if (type == typeof(IMultiCollider))
                     colliderInfo = instance as IMultiCollider;
-                DynamicTypes.TryAdd(type, instance);
+                DynamicTypes[type] = instance;
             }
             
             public override bool Is<TInstance>(out TInstance instance) {

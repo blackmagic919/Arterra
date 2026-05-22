@@ -76,12 +76,12 @@ public static class PaginatedUIEditor
     public static Transform GetPageHeader(GameObject page){ return page.transform.Find("TopPanel"); }
     public static void CreatePageDisplay(object setting, GameObject page, ParentUpdate OnUpdate = null){
         FieldInfo[] fields = setting.GetType().GetFields();
-
         for(int i = 0; i < fields.Length; i++){
             if(fields[i].IsStatic) continue;
             string name = fields[i].Name;
+            UISetting UITag = null;
             if(Attribute.IsDefined(fields[i], typeof(UISetting))){
-                UISetting UITag = Attribute.GetCustomAttribute(fields[i], typeof(UISetting)) as UISetting;
+                UITag = Attribute.GetCustomAttribute(fields[i], typeof(UISetting)) as UISetting;
                 if(UITag.Ignore) continue;
                 if(UITag.Alias != null){
                     name = UITag.Alias;
@@ -89,42 +89,94 @@ public static class PaginatedUIEditor
             } 
             
             FieldInfo field = fields[i]; 
-            object value = field.GetValue(setting); object cObject = setting; ParentUpdate nUpdate = OnUpdate;
+            object value = field.GetValue(setting); ParentUpdate nUpdate = OnUpdate;
             GameObject newOption = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Option"), GetPageContent(page));
             newOption = GetOptionContent(newOption).gameObject;
             newOption.transform.Find("Name").GetComponent<TextMeshProUGUI>().text = name;
 
-            //Extract the value of the option
-            //cObject is the Option Field(value type)
-            //setting is the class containing the option
-            //value is the class held by the option
-            if(field.FieldType.GetInterfaces().Contains(typeof(IOption))) {
-                FieldInfo oField = field;
-                cObject = field.GetValue(setting); //Would prefer if GetValueDirect was implemented 
-                field = value.GetType().GetField("value"); 
-                value = field.GetValue(value);
-                if(value == null){ //If it's null, create a new object and mark field as dirty
-                    ((IOption)cObject).Clone(); //clones nothing and marks dirty
-                    value = CreateInstance(field.FieldType);
-                    field.SetValue(cObject, value);
-                    oField.SetValue(setting, cObject);
-                }
-                
-                void ChildRequest(ChildUpdate childCallback) { 
-                    void ParentReceive(ref object parentObject){
-                        ((IOption)cObject).Clone();
-                        childCallback(ref cObject);
-                        VerifyUpdateHooks(oField, ref cObject); //Use the original field
-                        oField.SetValue(parentObject, cObject);
-                    }
-                    OnUpdate(ParentReceive);
-                } nUpdate = ChildRequest;
+            if (field.FieldType.GetInterfaces().Contains(typeof(IOption))) {
+                HandleOptionClosure(field, setting, OnUpdate, out FieldInfo mField, out object mValue, out nUpdate);
+                field = mField; value = mValue; 
             } else if(!field.FieldType.IsValueType && !field.FieldType.IsPrimitive && field.FieldType != typeof(string)) 
                 throw new Exception("Settings objects must contain either only value types or options");
+            
+            if (UITag != null && UITag.Collapse != null) {
+                string[] path = UITag.Collapse.Split('/');
+                CollapseMembers(path, value, newOption, page, nUpdate);
+                continue;
+            }
             CreateInputField(field, value, newOption, page, nUpdate);
-        }  
+        }
         ForceLayoutRefresh(GetPageContent(page));
     }
+
+    private static void HandleOptionClosure(FieldInfo field, object setting, ParentUpdate OnUpdate, 
+        out FieldInfo memberField, out object memberValue, out ParentUpdate memberUpdate) {
+        FieldInfo baseField = field;
+        object option = field.GetValue(setting); //Would prefer if GetValueDirect was implemented 
+        field = option.GetType().GetField("value");
+        object value = field.GetValue(option);
+        if (value == null) { //If it's null, create a new object and mark field as dirty
+            ((IOption)option).Clone(); //clones nothing and marks dirty
+            value = CreateInstance(field.FieldType);
+            field.SetValue(option, value);
+            baseField.SetValue(setting, option);
+        }
+
+        void ChildRequest(ChildUpdate childCallback) {
+            void ParentReceive(ref object parentObject) {
+                ((IOption)option).Clone();
+                childCallback(ref option);
+                baseField.SetValue(parentObject, option);
+            }
+            OnUpdate(ParentReceive);
+        }
+        if (field.FieldType.GetInterfaces().Contains(typeof(IOption))) {
+            HandleOptionClosure(field, option, ChildRequest, out memberField, out memberValue, out memberUpdate);
+        } else {
+            memberField = field;
+            memberValue = value;
+            memberUpdate = ChildRequest;
+        }
+    }
+
+    private static bool CollapseMembers(IEnumerable<string> path, object setting, GameObject parent, GameObject page, ParentUpdate OnUpdate = null) {
+        if (path == null || path.Count() == 0) {
+            Debug.LogError($"UISetting path {String.Join("/", path)} on object does not exist");
+            return false;
+        }
+
+        FieldInfo field = setting.GetType().GetField(path.First());
+        object value = field?.GetValue(setting) ?? null;
+
+        if (field == null || value == null) {
+            Debug.LogError($"UISetting path {String.Join("/", path)} on object does not exist");
+            return false;
+        }
+
+        void ChildRequest(ChildUpdate childCallback) { 
+            void ParentReceive(ref object parentObject){
+                setting = field.GetValue(parentObject);
+                childCallback(ref setting); 
+                //this is necessary because the child may be a value type
+                field.SetValue(parentObject, setting);
+            } OnUpdate(ParentReceive);
+        }
+
+        ParentUpdate nUpdate = ChildRequest;
+        if (field.FieldType.GetInterfaces().Contains(typeof(IOption))) {
+            HandleOptionClosure(field, setting, ChildRequest, out FieldInfo mField, out object mValue, out nUpdate);
+            field = mField; value = mValue;
+        }
+        
+        path = path.Skip(1);
+        if (path == null || path.Count() == 0) {
+            CreateInputField(field, value, parent, page, OnUpdate);
+            return true;
+        } else return CollapseMembers(path, value, parent, page, nUpdate);
+    }
+
+    
 
     //Field -> The fieldInfo of the input field, 
     //Value -> The raw value of the field, 

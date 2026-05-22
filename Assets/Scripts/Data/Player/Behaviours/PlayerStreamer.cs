@@ -17,9 +17,6 @@ namespace Arterra.Data.Entity.Behavior {
     /// handles high-level stream/death detach transitions.
     /// </summary>
     public class PlayerBehavior : IBehavior {
-        /// <summary>The active player root behavior instance.</summary>
-        [JsonIgnore] public static PlayerBehavior Active { get; private set; }
-
         /// <summary>
         /// Canonical behavior-side defaults for player entity settings.
         /// This is used to seed world options and migration bridges.
@@ -114,7 +111,6 @@ namespace Arterra.Data.Entity.Behavior {
         /// <summary>Initializes root player behavior state for a newly created player entity.</summary>
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             this.self = self;
-            Active = this;
             status = StreamingStatus.Live;
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
         }
@@ -122,7 +118,6 @@ namespace Arterra.Data.Entity.Behavior {
         /// <summary>Initializes root player behavior state for a deserialized player entity.</summary>
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             this.self = self;
-            Active = this;
             status = StreamingStatus.Live;
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
 
@@ -134,13 +129,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         /// <summary>Disables root player behavior and clears active references.</summary>
         public void Disable(BehaviorEntity.Animal self) {
-            if (ReferenceEquals(Active, this)) {
-                Active = null;
-            }
-
-            if (ReferenceEquals(this.self, self)) {
-                this.self = null;
-            }
+            this.self = null;
         }
 
         private void TriggerDetach(object source, object _trgt, object _ctx) {

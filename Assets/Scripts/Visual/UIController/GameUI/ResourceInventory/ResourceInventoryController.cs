@@ -21,7 +21,7 @@ namespace Arterra.GamePlay.UI {
         public static void Initialize() {
             Enabled = false;
             Instance = null;
-            Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:ResourceInventory", OnResourceInventoryRuleChanged);
+            Config.CURRENT.System.AddHook("Gamemode:ResourceInventory", OnResourceInventoryRuleChanged);
             object EnableInventory = Config.CURRENT.GamePlay.Gamemodes.value.ResourceInventory;
             OnResourceInventoryRuleChanged(ref EnableInventory);
         }

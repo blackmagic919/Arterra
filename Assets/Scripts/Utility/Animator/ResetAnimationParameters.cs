@@ -4,7 +4,7 @@ using UnityEditor;
 using UnityEditor.Animations;
 #endif
 
-namespace Arterra.GalmePlay.UI {
+namespace Arterra.GamePlay.UI {
     public class ResetAnimatorParameters : StateMachineBehaviour {
         [System.Serializable]
         public enum ParameterType { Bool, Int, Float }

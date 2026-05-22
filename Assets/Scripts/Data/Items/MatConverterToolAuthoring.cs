@@ -54,8 +54,9 @@ namespace Arterra.Data.Item
 
         private void PlayerModifyTerrain(ItemContext cxt) {
             if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
+            if (!player.Is(out PlayerInteractionBehavior interact)) return;
             InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
-            if (!RayTestSolid(out float3 hitPt)) return;
+            if (!interact.RayTestSolid(out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _))
                 return;
             
@@ -76,7 +77,7 @@ namespace Arterra.Data.Item
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
                 effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);
 
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, CallOnMapRemoving);
+            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
             UpdateDisplay();
 
             if (durability > 0) return;

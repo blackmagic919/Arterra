@@ -92,11 +92,12 @@ public class BucketItem : IItem{
         var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         
         if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
-        if (content == null || !PlayerInteractionBehavior.RayTestLiquid(out float3 hitPt)) return;
+        if (!player.Is(out PlayerInteractionBehavior interact)) return;
+        if (content == null || !interact.RayTestLiquid(out float3 hitPt)) return;
         Authoring authoring = ItemInfo.Retrieve(content.Index);
         if (authoring is not PlaceableItem mat) return;
         if (mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
-        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, AddFromBucket, PlayerInteractionBehavior.CallOnMapPlacing);
+        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, AddFromBucket, interact.CallOnMapPlacing);
         if(content.AmountRaw != 0) return;
         content.ClearDisplay(display.transform);
         content = null;
@@ -133,8 +134,9 @@ public class BucketItem : IItem{
 
     private void RemoveLiquid(ItemContext cxt){
         if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
-        if (!PlayerInteractionBehavior.RayTestLiquid(out float3 hitPt)) return;
-        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveToBucket, PlayerInteractionBehavior.CallOnMapRemoving);
+        if (!player.Is(out PlayerInteractionBehavior interact)) interact = null;
+        if (!interact.RayTestLiquid(out float3 hitPt)) return;
+        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveToBucket, interact.CallOnMapRemoving);
     }
 
     private bool RemoveToBucket(int3 GCoord, float brushStrength){

@@ -68,18 +68,17 @@ public class Projectile : Arterra.Data.Entity.Authoring
 
         public Guid ParentId;
         public void Interact(Entity target, Arterra.Data.Item.IItem item) { }
-        public IItem Collect(Entity target, float amount) {
+        public void Collect(Entity target, Action<IItem> collect, float amount) {
             var itemReg = Config.CURRENT.Generation.Items;
-            IItem item  = null;
             if (itemReg.Contains(settings.ItemDrop)) {
                 int index = itemReg.RetrieveIndex(settings.ItemDrop);
-                item = itemReg.Retrieve(index).Item;
+                IItem item = itemReg.Retrieve(index).Item;
                 item.Create(index, item.UnitSize);
                 EntityManager.ReleaseEntity(info.entityId);
+                collect(item);
             }
 
-            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, target, (item, amount));
-            return item;
+            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, target, (collect, amount));
         }
 
         public bool TakeDamage(float damage, float3 knockback, Entity attacker) {

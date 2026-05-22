@@ -71,6 +71,7 @@ namespace Arterra.GamePlay{
             active = false;
             if (LoadPlayerData(out data) && (!data.Is(out VitalityBehavior vitality) || !vitality.IsDead)) {
                 EntityManager.DeserializeE(data);
+                RebindPlayer(data);
             } else RespawnPlayer(immediate: true);
 
             SpectatorController.Initialize();
@@ -85,8 +86,7 @@ namespace Arterra.GamePlay{
             if (!active) return;
 
             data.Update(BehaviorEntity.UpdateContext.Main);
-            if (data.Is(out VitalityBehavior vitality))
-                PlayerStatDisplay.UpdateIndicator(vitality);
+            PlayerStatDisplay.UpdateIndicator(data);
         }
 
         private static void FixedUpdate(MonoBehaviour mono){
@@ -114,12 +114,6 @@ namespace Arterra.GamePlay{
             };
         }
 
-        static (Entity, float3) BuildPlayer() {
-            float3 SpawnPoint = StartupPlacer.FindClearingAround(float3.zero);
-            uint entityIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
-            Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
-            return (authoring.Entity, SpawnPoint);
-        }
 
         static bool LoadPlayerData(out BehaviorEntity.Animal data){
             data = null;
@@ -140,26 +134,25 @@ namespace Arterra.GamePlay{
         public static void RespawnPlayer(Action cb = null, bool immediate = false){
             float3 SpawnPoint = StartupPlacer.FindClearingAround(float3.zero);
             uint entityIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
-            Entity oldPlayer = data;
-            data = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex].Entity as BehaviorEntity.Animal;
-            data.context = BehaviorEntity.UpdateContext.Main;
+            BehaviorEntity.Animal nPlayer = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex].Entity as BehaviorEntity.Animal;
+            nPlayer.context = BehaviorEntity.UpdateContext.Main;
 
             Action callback = () => {
                 //Answer hooks
-                (Entity, Entity) prms = (oldPlayer, data);
-                oldPlayer?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, data, null, 
+                (Entity, Entity) prms = (data, nPlayer);
+                data?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, data, null, 
                     new RefTuple<(Entity, Entity)>(prms));
-                
+                data = nPlayer;
                 RebindPlayer(data);
                 cb?.Invoke();
             };
 
             if (!immediate) {
-                EntityManager.CreateEntity(SpawnPoint, entityIndex, data, cb : callback);
-                return;
+                EntityManager.CreateEntity(SpawnPoint, entityIndex, nPlayer, cb : callback);
+            } else {
+                EntityManager.InitializeE(nPlayer, SpawnPoint, entityIndex);
+                callback?.Invoke();   
             }
-            EntityManager.InitializeE(data, SpawnPoint, entityIndex);
-            callback?.Invoke();
         }
 
         private static bool RebindPlayer(Entity player) {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Arterra.Configuration;
 using Arterra.Data.Item;
 using Arterra.GamePlay.UI;
+using Arterra.Core.Events;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
@@ -13,12 +14,17 @@ namespace Arterra.Data.Entity.Behavior {
     /// <see cref="Generation.Item"> items </see>. </summary>
     [Serializable]
     public class PlayerInventorySettings : IBehaviorSetting {
+		///<summary>Name of settings object in UI generation</summary>
+        [JsonIgnore] public static string Name => "Inventory";
         /// <summary> The amount of slots in the primary inventory, the hotbar. This is
         /// equivalent to the maximum amount of items that can be held in the hotbar.  </summary>
         public int PrimarySlotCount;
         /// <summary> The amount of slots in the secondary inventory, the hidden inventory. This is
         /// equivalent to the maximum amount of items that can be held in the hidden inventory. </summary>
         public int SecondarySlotCount;
+
+		/// <summary>How fast the player can recover items from its inventory</summary>
+		public float RecoverSpeedMultiplier = 25;
 
         /// <summary>
         /// The color of the selected slot in the <see cref="InventoryController.Primary">Primary Inventory</see>, or
@@ -44,9 +50,7 @@ namespace Arterra.Data.Entity.Behavior {
 	/// Owns player inventories and item transfer/drop helpers for behavior-based player flow.
 	/// </summary>
 	public class PlayerInventoriesBehavior : IBehavior {
-		[JsonIgnore] public static PlayerInventoriesBehavior Active { get; private set; }
 		[JsonIgnore] public PlayerInventorySettings settings;
-
 		public InventoryController.Inventory PrimaryI;
 		public InventoryController.Inventory SecondaryI;
 		public ArmorInventory ArmorI;
@@ -70,31 +74,24 @@ namespace Arterra.Data.Entity.Behavior {
 		public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
 			if (!setting.Is(out settings))
 				throw new Exception("Entity: PlayerInventoriesBehavior requires PlayerInventorySettings");
-
 			this.self = self;
-			Active = this;
 			self.Register(this);
 			EnsureInventories();
+			self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, HandleCollect);
 		}
 
 		public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
 			if (!setting.Is(out settings))
 				throw new Exception("Entity: PlayerInventoriesBehavior requires PlayerInventorySettings");
-
 			this.self = self;
-			Active = this;
 			self.Register(this);
 			EnsureInventories();
+			self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, HandleCollect);
 		}
 
 		public void Disable(BehaviorEntity.Animal self) {
-			if (ReferenceEquals(Active, this)) {
-				Active = null;
-			}
-
-			if (ReferenceEquals(this.self, self)) {
-				this.self = null;
-			}
+			self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Collect, HandleCollect);
+			this.self = null;
 		}
 
 		private void EnsureInventories() {
@@ -102,6 +99,21 @@ namespace Arterra.Data.Entity.Behavior {
 			SecondaryI ??= new InventoryController.Inventory(settings.SecondarySlotCount);
 			ArmorI ??= new ArmorInventory();
 			SelectedIndex = math.clamp(SelectedIndex, 0, math.max(settings.PrimarySlotCount - 1, 0));
+		}
+
+		private void HandleCollect(object actor, object target, object ctx) {
+			if (self == null) return;
+			if (!self.Is(out VitalityBehavior vitality)) return;
+
+			int itemCount = PrimaryI.EntryDict.Count + SecondaryI.EntryDict.Count;
+			if (itemCount == 0) return;
+
+			Action<IItem> collect; float amount;
+			(collect, amount) = ((Action<IItem>, float))ctx;
+			amount *= settings.RecoverSpeedMultiplier;
+
+			if (PrimaryI.EntryDict.Count > 0) collect(PrimaryI.LootInventory(amount));
+			if (SecondaryI.EntryDict.Count > 0) collect(SecondaryI.LootInventory(amount));
 		}
 	}
 }

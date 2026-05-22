@@ -65,13 +65,13 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void ConsumeTarget(IAttackable target, BehaviorEntity.Animal self) {
             EntityManager.AddHandlerEvent(() => {
-                IItem item = target.Collect(self, consume.ConsumptionRate);
-                if (item != null && consume.CanConsume(mod, item, out float nutrition)) {
-                    vitality.Heal(nutrition);
-                }
-                if (vitality.healthPercent >= 1) {
-                    manager.Transition(settings.OnFinishedEating);
-                }
+                target.Collect(self, item => {
+                    if (item != null && consume.CanConsume(mod, item, out float nutrition))
+                        vitality.Heal(nutrition);
+
+                    if (vitality.healthPercent >= 1)
+                        manager.Transition(settings.OnFinishedEating);
+                }, consume.ConsumptionRate);
             });
         }
 

@@ -17,6 +17,8 @@ namespace Arterra.Data.Entity.Behavior {
     /// </summary>
     [Serializable]
     public class PlayerCameraSettings : IBehaviorSetting {
+        ///<summary>Name of settings object in UI generation</summary>
+        [JsonIgnore] public static string Name => "Camera";
         /// <summary>Mouse/controller look sensitivity multiplier.</summary>
         public float Sensitivity = 2f;
         /// <summary>Whether camera pitch is clamped around the x-axis.</summary>
@@ -44,31 +46,43 @@ namespace Arterra.Data.Entity.Behavior {
 
     /// <summary>
     /// Manages the player's camera across first-person and third-person modes.
+    /// Also implements <see cref="IMultiCollider"/> to expose the camera's full facing
+    /// direction and eye position to the base entity, overriding the default body collider bindings.
     /// </summary>
-    public class PlayerCameraBehavior : IBehavior {
-        [JsonIgnore] public static PlayerCameraBehavior Active { get; private set; }
+    public class PlayerCameraBehavior : IBehavior, IMultiCollider {
         [JsonIgnore] public PlayerCameraSettings settings;
+        [JsonIgnore] private IMultiCollider baseCollider;
+
+        // IMultiCollider — delegates collider data from the base ColliderUpdateBehavior while
+        // overriding Rotation and HeadPosition to reflect the active camera perspective.
+        [JsonIgnore] public GamePlay.Interaction.TerrainCollider Collider => baseCollider.Collider;
+        [JsonIgnore] public GamePlay.Interaction.TerrainCollider PathCollider => baseCollider.PathCollider;
+        [JsonIgnore] public Quaternion Rotation {
+            get => perspectives?[activePersp].Facing ?? baseCollider.Rotation;
+            set => baseCollider.Rotation = value;
+        }
+        /// <summary>Returns the camera's eye position in grid space, used as the entity head.</summary>
+        [JsonIgnore] public float3 HeadPosition =>
+            (float3)baseCollider.Collider.transform.position + cameraLocalPosition;
 
         private bool hasBindings;
-        private bool moved;
+        internal bool moved;
         private BehaviorEntity.Animal self;
+        private VitalityBehavior vit;
 
-        private float2 lookDelta;
-        private Quaternion cameraLocalRotation = Quaternion.identity;
-        private float3 cameraLocalPosition;
-        private int cullingMask;
+        internal float2 lookDelta;
+        internal Quaternion cameraLocalRotation = Quaternion.identity;
+        internal float3 cameraLocalPosition;
+        internal int cullingMask;
 
-        private Quaternion smoothCharacterRot;
-        private Quaternion smoothCameraRot;
-        private float yaw;
-        private float pitch;
+        private bool IsActive => (!vit?.IsDead) ?? true;
 
-        private PerspectiveMode activePerspective;
+        private ICameraPerspective[] perspectives;
+        private int activePersp;
 
-        private enum PerspectiveMode {
-            FirstPerson,
-            LockedThirdPerson,
-            FreeRotateThirdPerson,
+        public void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
+            // Camera orientation depends on the body collider being initialized first.
+            hierarchy.TryAdd(Behaviors.Collider, hierarchy.Count);
         }
 
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
@@ -78,10 +92,16 @@ namespace Arterra.Data.Entity.Behavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerCameraBehavior requires PlayerCameraSettings");
+            if (!self.Is(out vit)) vit = null;
+            if (!self.Is(out baseCollider))
+                throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
 
-            this.self = self;
-            Active = this;
+            InitPerspectives();
+            self.Register<IMultiCollider>(this);
             self.Register(this);
+            this.self = self;
+
+            if (!IsActive) return;
             BindInput();
             DeserializeCameraState();
         }
@@ -89,22 +109,22 @@ namespace Arterra.Data.Entity.Behavior {
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerCameraBehavior requires PlayerCameraSettings");
+            if (!self.Is(out vit)) vit = null;
+            if (!self.Is(out baseCollider))
+                throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
 
-            this.self = self;
-            Active = this;
+            InitPerspectives();
+            self.Register<IMultiCollider>(this);
             self.Register(this);
+            this.self = self;
+
+            if (!IsActive) return;
             BindInput();
             DeserializeCameraState();
         }
 
         public void Disable(BehaviorEntity.Animal self) {
-            if (ReferenceEquals(Active, this)) {
-                Active = null;
-            }
-
-            if (ReferenceEquals(this.self, self)) {
-                this.self = null;
-            }
+            this.self = null;
         }
 
         public void Update(BehaviorEntity.Animal self) {
@@ -112,195 +132,39 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             if (self.context == BehaviorEntity.UpdateContext.Fixed)
                 return;
-            
-            if (!IsControlledPlayer()) return;
-            if (!moved) return;
-            moved = false;
 
-            if (activePerspective == PerspectiveMode.FirstPerson) {
-                UpdateFirstPerson();
-            } else if (activePerspective == PerspectiveMode.LockedThirdPerson) {
-                UpdateLockedThirdPerson();
-            } else {
-                UpdateFreeThirdPerson();
-            }
+            if (!IsActive) return;
 
+            perspectives[activePersp].Update();
             ApplyCameraTransform();
             lookDelta = float2.zero;
         }
 
-        private bool IsControlledPlayer() {
-            if (self == null || !self.active) return false;
-            if (PlayerHandler.data == null) return false;
-            return PlayerHandler.data.info.rtEntityId == self.info.rtEntityId;
+        private void InitPerspectives() {
+            perspectives = new ICameraPerspective[] {
+                new FirstPersonCamera(this),
+                new LockedThirdPersonCamera(this),
+                new FreeRotateThirdPersonCamera(this),
+            };
+            activePersp = 0;
         }
 
         private void DeserializeCameraState() {
             if (PlayerHandler.Camera == null || PlayerHandler.Camera.childCount == 0) return;
-            UnityEngine.Camera camera = PlayerHandler.Camera.GetChild(0).GetComponent<UnityEngine.Camera>();
+            Camera camera = PlayerHandler.Camera.GetChild(0).GetComponent<UnityEngine.Camera>();
             cullingMask = camera != null ? camera.cullingMask : -1;
 
             moved = true;
-            activePerspective = PerspectiveMode.FirstPerson;
-            ActivatePerspective(activePerspective);
+            activePersp = 0;
+            perspectives[activePersp].Activate();
         }
 
         private void TogglePerspective(float _) {
-            if (!IsControlledPlayer()) return;
+            if (!IsActive) return;
 
-            activePerspective = (PerspectiveMode)(((int)activePerspective + 1) % 3);
-            ActivatePerspective(activePerspective);
+            activePersp = (activePersp + 1) % perspectives.Length;
+            perspectives[activePersp].Activate();
             moved = true;
-        }
-
-        private void ActivatePerspective(PerspectiveMode mode) {
-            int selfLayer = LayerMask.NameToLayer("Self");
-
-            if (mode == PerspectiveMode.FirstPerson) {
-                // Hide the player model in first-person to avoid clipping into self mesh.
-                cameraLocalPosition = new float3(0, 2.5f, 0);
-                cameraLocalRotation.eulerAngles = new(cameraLocalRotation.eulerAngles.x, 0, 0);
-                cullingMask &= ~(1 << selfLayer);
-                smoothCharacterRot = self.Rotation;
-                smoothCameraRot = cameraLocalRotation;
-                PlayerCrosshair.EnableCrosshair();
-            } else if (mode == PerspectiveMode.LockedThirdPerson) {
-                // Locked third-person stays behind the character while sharing yaw with body rotation.
-                cameraLocalPosition = new float3(0, 2.5f, 0);
-                cameraLocalRotation.eulerAngles = new(cameraLocalRotation.eulerAngles.x, 0, 0);
-                cullingMask |= 1 << selfLayer;
-                smoothCharacterRot = self.Rotation;
-                smoothCameraRot = cameraLocalRotation;
-                PlayerCrosshair.DisableCrosshair();
-                SetLockedCameraOffset();
-            } else {
-                // Free third-person allows camera orbit around player-controlled yaw/pitch.
-                cullingMask |= 1 << selfLayer;
-                pitch = 0;
-                yaw = 180;
-                smoothCharacterRot = self.Rotation;
-                smoothCameraRot = Quaternion.AngleAxis(yaw, Vector3.up);
-                cameraLocalRotation = smoothCameraRot;
-                PlayerCrosshair.DisableCrosshair();
-                SetFreeCameraOffset();
-            }
-
-            ApplyCameraTransform();
-        }
-
-        private void UpdateFirstPerson() {
-            smoothCharacterRot *= Quaternion.Euler(0f, lookDelta.y, 0f);
-            smoothCameraRot *= Quaternion.Euler(-lookDelta.x, 0f, 0f);
-
-            if (settings.clampVerticalRotation)
-                smoothCameraRot = ClampRotationAroundXAxis(smoothCameraRot);
-
-            if (settings.smooth) {
-                self.Rotation = Quaternion.Slerp(self.Rotation, smoothCharacterRot, settings.smoothTime * self.DeltaTime);
-                cameraLocalRotation = Quaternion.Slerp(cameraLocalRotation, smoothCharacterRot, settings.smoothTime * self.DeltaTime);
-            } else {
-                self.Rotation = smoothCharacterRot;
-                cameraLocalRotation = smoothCameraRot;
-            }
-
-            RefTuple<(float, float)> cxt = (GetAngleX(cameraLocalRotation), lookDelta.y);
-            self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, self, null, cxt);
-        }
-
-        private void UpdateLockedThirdPerson() {
-            smoothCharacterRot *= Quaternion.Euler(0f, lookDelta.y, 0f);
-            smoothCameraRot *= Quaternion.Euler(-lookDelta.x, 0f, 0f);
-
-            if (settings.clampVerticalRotation)
-                smoothCameraRot = ClampRotationAroundXAxis(smoothCameraRot);
-
-            if (settings.smooth) {
-                self.Rotation = Quaternion.Slerp(self.Rotation, smoothCharacterRot, settings.smoothTime * self.DeltaTime);
-                cameraLocalRotation = Quaternion.Slerp(cameraLocalRotation, smoothCameraRot, settings.smoothTime * self.DeltaTime);
-            } else {
-                self.Rotation = smoothCharacterRot;
-                cameraLocalRotation = smoothCameraRot;
-            }
-
-            SetLockedCameraOffset();
-            RefTuple<(float, float)> cxt = (GetAngleX(cameraLocalRotation), lookDelta.y);
-            self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, self, null, cxt);
-        }
-
-        private void UpdateFreeThirdPerson() {
-            float rotation = 0;
-            if (self.Is(out PlayerMovementBehavior movement)) {
-                // Consume lateral movement input as orbit/turn input while in free-rotate mode.
-                rotation = movement.ConsumeHorizontalMovementInput(settings.Sensitivity);
-            }
-
-            smoothCharacterRot *= Quaternion.Euler(0, rotation, 0);
-            yaw -= rotation;
-            yaw += lookDelta.y;
-            pitch -= lookDelta.x;
-            if (settings.clampVerticalRotation)
-                pitch = Mathf.Clamp(pitch, settings.MinimumX, settings.MaximumX);
-
-            smoothCameraRot = Quaternion.AngleAxis(yaw, Vector3.up) * Quaternion.AngleAxis(pitch, Vector3.right);
-            if (settings.smooth) {
-                self.Rotation = Quaternion.Slerp(self.Rotation, smoothCharacterRot, settings.smoothTime * self.DeltaTime);
-                cameraLocalRotation = Quaternion.Slerp(cameraLocalRotation, smoothCameraRot, settings.smoothTime * self.DeltaTime);
-            } else {
-                self.Rotation = smoothCharacterRot;
-                cameraLocalRotation = smoothCameraRot;
-            }
-
-            SetFreeCameraOffset();
-            RefTuple<(float, float)> cxt = (GetAngleX(cameraLocalRotation), rotation);
-            self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, self, null, cxt);
-        }
-
-        private static uint RayTestSolid(int3 coord) {
-            MapData pointInfo = CPUMapManager.SampleMap(coord);
-            return (uint)pointInfo.viscosity;
-        }
-
-        private void SetLockedCameraOffset() {
-            const float height = 2.5f;
-            const float distance = 10f;
-
-            float backDist = distance;
-            float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
-            // Pull the camera forward if terrain obstructs the ideal follow distance.
-            if (CPUMapManager.RayCastTerrain(self.head, Facing * Vector3.back, distGS, RayTestSolid, out float3 hitPt))
-                backDist = math.distance(hitPt, self.head);
-
-            float3 backOffset = math.mul(math.normalize(cameraLocalRotation), new float3(0, 0, -backDist));
-            cameraLocalPosition = (float3)Vector3.up * height + backOffset;
-        }
-
-        private void SetFreeCameraOffset() {
-            const float height = 2.5f;
-            const float distance = 10f;
-
-            float backDist = distance;
-            float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
-            float3 dir = math.mul(math.normalize(cameraLocalRotation), new float3(0, 0, -1));
-            dir = math.mul(math.normalize(self.Rotation), dir);
-
-            // Collision check is based on full orbit direction (player yaw + camera pitch/yaw).
-            if (CPUMapManager.RayCastTerrain(self.head, dir, distGS, RayTestSolid, out float3 hitPt))
-                backDist = math.distance(hitPt, self.head);
-
-            float3 backOffset = math.mul(math.normalize(cameraLocalRotation), new float3(0, 0, -backDist));
-            cameraLocalPosition = (float3)Vector3.up * height + backOffset;
-        }
-
-        private Quaternion Facing {
-            get {
-                if (activePerspective != PerspectiveMode.FreeRotateThirdPerson) {
-                    return math.mul(math.normalize(self.Rotation), math.normalize(cameraLocalRotation));
-                }
-
-                Quaternion yawRot = Quaternion.Euler(0f, self.Rotation.eulerAngles.y, 0f);
-                Quaternion pitchRot = Quaternion.Euler(cameraLocalRotation.eulerAngles.x, 0f, 0f);
-                return math.mul(yawRot, pitchRot);
-            }
         }
 
         private void ApplyCameraTransform() {
@@ -308,13 +172,18 @@ namespace Arterra.Data.Entity.Behavior {
             PlayerHandler.Camera.SetLocalPositionAndRotation((float3)cameraLocalPosition, cameraLocalRotation);
 
             if (PlayerHandler.Camera.childCount == 0) return;
-            UnityEngine.Camera camera = PlayerHandler.Camera.GetChild(0).GetComponent<UnityEngine.Camera>();
+            Camera camera = PlayerHandler.Camera.GetChild(0).GetComponent<Camera>();
             if (camera == null) return;
             if (camera.cullingMask == cullingMask) return;
             camera.cullingMask = cullingMask;
         }
 
-        private Quaternion ClampRotationAroundXAxis(Quaternion q) {
+        internal static uint RayTestSolid(int3 coord) {
+            MapData pointInfo = CPUMapManager.SampleMap(coord);
+            return (uint)pointInfo.viscosity;
+        }
+
+        internal Quaternion ClampRotationAroundXAxis(Quaternion q) {
             q.x /= q.w;
             q.y /= q.w;
             q.z /= q.w;
@@ -327,7 +196,7 @@ namespace Arterra.Data.Entity.Behavior {
             return q;
         }
 
-        private float GetAngleX(Quaternion q) {
+        internal float GetAngleX(Quaternion q) {
             q.x /= q.w;
             q.y /= q.w;
             q.z /= q.w;
@@ -354,6 +223,211 @@ namespace Arterra.Data.Entity.Behavior {
         private void LookY(float y) {
             lookDelta.y = y * settings.Sensitivity;
             moved = true;
+        }
+
+        // ─── Perspective interface ────────────────────────────────────────────────
+
+        private interface ICameraPerspective {
+            void Activate();
+            void Update();
+            Quaternion Facing { get; }
+        }
+
+        // ─── First-person perspective ─────────────────────────────────────────────
+
+        private class FirstPersonCamera : ICameraPerspective {
+            private readonly PlayerCameraBehavior camera;
+            private Quaternion smoothCharacterRot;
+            private Quaternion smoothCameraRot;
+
+            public Quaternion Facing => math.mul(
+                math.normalize(camera.baseCollider.Collider.transform.rotation),
+                math.normalize(camera.cameraLocalRotation));
+
+            public FirstPersonCamera(PlayerCameraBehavior cam) => camera = cam;
+
+            public void Activate() {
+                camera.cameraLocalPosition = new float3(0, 2.5f, 0);
+                camera.cameraLocalRotation.eulerAngles = new(camera.cameraLocalRotation.eulerAngles.x, 0, 0);
+                camera.cullingMask &= ~(1 << LayerMask.NameToLayer("Self"));
+                smoothCharacterRot = camera.baseCollider.Collider.transform.rotation;
+                smoothCameraRot = camera.cameraLocalRotation;
+                PlayerCrosshair.EnableCrosshair();
+            }
+
+            public void Update() {
+                if (!camera.moved) return;
+                camera.moved = false;
+
+                smoothCharacterRot *= Quaternion.Euler(0f, camera.lookDelta.y, 0f);
+                smoothCameraRot *= Quaternion.Euler(-camera.lookDelta.x, 0f, 0f);
+
+                if (camera.settings.clampVerticalRotation)
+                    smoothCameraRot = camera.ClampRotationAroundXAxis(smoothCameraRot);
+
+                if (camera.settings.smooth) {
+                    camera.baseCollider.Collider.transform.rotation = Quaternion.Slerp(
+                        camera.baseCollider.Collider.transform.rotation, smoothCharacterRot,
+                        camera.settings.smoothTime * camera.self.DeltaTime);
+                    camera.cameraLocalRotation = Quaternion.Slerp(
+                        camera.cameraLocalRotation, smoothCharacterRot,
+                        camera.settings.smoothTime * camera.self.DeltaTime);
+                } else {
+                    camera.baseCollider.Collider.transform.rotation = smoothCharacterRot;
+                    camera.cameraLocalRotation = smoothCameraRot;
+                }
+
+                RefTuple<(float, float)> cxt = (camera.GetAngleX(camera.cameraLocalRotation), camera.lookDelta.y);
+                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self, null, cxt);
+            }
+        }
+
+        // ─── Locked third-person perspective ─────────────────────────────────────
+
+        private class LockedThirdPersonCamera : ICameraPerspective {
+            private readonly PlayerCameraBehavior camera;
+            private Quaternion smoothCharacterRot;
+            private Quaternion smoothCameraRot;
+
+            const float height = 2.5f;
+            const float distance = 10f;
+
+            public Quaternion Facing => math.mul(
+                math.normalize(camera.baseCollider.Collider.transform.rotation),
+                math.normalize(camera.cameraLocalRotation));
+
+            public LockedThirdPersonCamera(PlayerCameraBehavior cam) => camera = cam;
+
+            public void Activate() {
+                camera.cameraLocalPosition = new float3(0, 2.5f, 0);
+                camera.cameraLocalRotation.eulerAngles = new(camera.cameraLocalRotation.eulerAngles.x, 0, 0);
+                camera.cullingMask |= 1 << LayerMask.NameToLayer("Self");
+                smoothCharacterRot = camera.baseCollider.Collider.transform.rotation;
+                smoothCameraRot = camera.cameraLocalRotation;
+                PlayerCrosshair.DisableCrosshair();
+                SetCameraOffset();
+            }
+
+            public void Update() {
+                if (!camera.moved) return;
+                camera.moved = false;
+
+                smoothCharacterRot *= Quaternion.Euler(0f, camera.lookDelta.y, 0f);
+                smoothCameraRot *= Quaternion.Euler(-camera.lookDelta.x, 0f, 0f);
+
+                if (camera.settings.clampVerticalRotation)
+                    smoothCameraRot = camera.ClampRotationAroundXAxis(smoothCameraRot);
+
+                if (camera.settings.smooth) {
+                    camera.baseCollider.Collider.transform.rotation = Quaternion.Slerp(
+                        camera.baseCollider.Collider.transform.rotation, smoothCharacterRot,
+                        camera.settings.smoothTime * camera.self.DeltaTime);
+                    camera.cameraLocalRotation = Quaternion.Slerp(
+                        camera.cameraLocalRotation, smoothCameraRot,
+                        camera.settings.smoothTime * camera.self.DeltaTime);
+                } else {
+                    camera.baseCollider.Collider.transform.rotation = smoothCharacterRot;
+                    camera.cameraLocalRotation = smoothCameraRot;
+                }
+
+                SetCameraOffset();
+                RefTuple<(float, float)> cxt = (camera.GetAngleX(camera.cameraLocalRotation), camera.lookDelta.y);
+                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self, null, cxt);
+            }
+
+            private void SetCameraOffset() {
+                float backDist = distance;
+                float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
+                // Pull the camera forward if terrain obstructs the ideal follow distance.
+                if (CPUMapManager.RayCastTerrain(camera.self.head, Facing * Vector3.back, distGS, RayTestSolid, out float3 hitPt))
+                    backDist = math.distance(hitPt, camera.self.head);
+
+                float3 backOffset = math.mul(math.normalize(camera.cameraLocalRotation), new float3(0, 0, -backDist));
+                camera.cameraLocalPosition = (float3)Vector3.up * height + backOffset;
+            }
+        }
+
+        // ─── Free-rotate third-person perspective ─────────────────────────────────
+
+        private class FreeRotateThirdPersonCamera : ICameraPerspective {
+            private readonly PlayerCameraBehavior camera;
+            private Quaternion smoothCharacterRot;
+            private Quaternion smoothCameraRot;
+            private float yaw;
+            private float pitch;
+
+            const float height = 2.5f;
+            const float distance = 10f;
+
+            public Quaternion Facing {
+                get {
+                    Quaternion yawRot = Quaternion.Euler(0f, camera.baseCollider.Collider.transform.rotation.eulerAngles.y, 0f);
+                    Quaternion pitchRot = Quaternion.Euler(camera.cameraLocalRotation.eulerAngles.x, 0f, 0f);
+                    return math.mul(yawRot, pitchRot);
+                }
+            }
+
+            public FreeRotateThirdPersonCamera(PlayerCameraBehavior cam) => camera = cam;
+
+            public void Activate() {
+                camera.cullingMask |= 1 << LayerMask.NameToLayer("Self");
+                pitch = 0;
+                yaw = 180;
+                smoothCharacterRot = camera.baseCollider.Collider.transform.rotation;
+                smoothCameraRot = Quaternion.AngleAxis(yaw, Vector3.up);
+                camera.cameraLocalRotation = smoothCameraRot;
+                PlayerCrosshair.DisableCrosshair();
+                SetCameraOffset();
+            }
+
+            public void Update() {
+                if (!camera.moved) return;
+                camera.moved = false;
+
+                float rotation = 0;
+                if (camera.self.Is(out PlayerMovementBehavior movement)) {
+                    // Consume lateral movement input as orbit/turn input while in free-rotate mode.
+                    rotation = movement.ConsumeHorizontalMovementInput(camera.settings.Sensitivity);
+                }
+
+                smoothCharacterRot *= Quaternion.Euler(0, rotation, 0);
+                yaw -= rotation;
+                yaw += camera.lookDelta.y;
+                pitch -= camera.lookDelta.x;
+                if (camera.settings.clampVerticalRotation)
+                    pitch = Mathf.Clamp(pitch, camera.settings.MinimumX, camera.settings.MaximumX);
+
+                smoothCameraRot = Quaternion.AngleAxis(yaw, Vector3.up) * Quaternion.AngleAxis(pitch, Vector3.right);
+                if (camera.settings.smooth) {
+                    camera.baseCollider.Collider.transform.rotation = Quaternion.Slerp(
+                        camera.baseCollider.Collider.transform.rotation, smoothCharacterRot,
+                        camera.settings.smoothTime * camera.self.DeltaTime);
+                    camera.cameraLocalRotation = Quaternion.Slerp(
+                        camera.cameraLocalRotation, smoothCameraRot,
+                        camera.settings.smoothTime * camera.self.DeltaTime);
+                } else {
+                    camera.baseCollider.Collider.transform.rotation = smoothCharacterRot;
+                    camera.cameraLocalRotation = smoothCameraRot;
+                }
+
+                SetCameraOffset();
+                RefTuple<(float, float)> cxt = (camera.GetAngleX(camera.cameraLocalRotation), rotation);
+                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self, null, cxt);
+            }
+
+            private void SetCameraOffset() {
+                float backDist = distance;
+                float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
+                float3 dir = math.mul(math.normalize(camera.cameraLocalRotation), new float3(0, 0, -1));
+                dir = math.mul(math.normalize(camera.baseCollider.Collider.transform.rotation), dir);
+
+                // Collision check is based on full orbit direction (player yaw + camera pitch/yaw).
+                if (CPUMapManager.RayCastTerrain(camera.self.head, dir, distGS, RayTestSolid, out float3 hitPt))
+                    backDist = math.distance(hitPt, camera.self.head);
+
+                float3 backOffset = math.mul(math.normalize(camera.cameraLocalRotation), new float3(0, 0, -backDist));
+                camera.cameraLocalPosition = (float3)Vector3.up * height + backOffset;
+            }
         }
     }
 }

@@ -51,7 +51,8 @@ public class FollowRay : MonoBehaviour
         // Get ray start and end
         if (PlayerHandler.data == null) return;
         rayStart = PlayerHandler.data.head;
-        if (!PlayerInteractionBehavior.RayTestSolid(out Unity.Mathematics.float3 hit))
+        if (PlayerHandler.data.Is(out PlayerInteractionBehavior interact)) return;
+        if (!interact.RayTestSolid(out Unity.Mathematics.float3 hit))
             rayEnd = rayStart + (Vector3)PlayerHandler.data.Forward * 20f;
         else
             rayEnd = new Vector3(hit.x, hit.y, hit.z);

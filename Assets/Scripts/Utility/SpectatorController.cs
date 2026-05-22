@@ -30,7 +30,7 @@ public class SpectatorController : MonoBehaviour
     public static void Initialize() {
         Instance = null;
         HasEnabledSpectator = false;
-        Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Spectator", OnSpectatorRuleChanged);
+        Config.CURRENT.System.AddHook("Gamemode:Spectator", OnSpectatorRuleChanged);
         object EnableSpectator = Config.CURRENT.GamePlay.Gamemodes.value.SpectatorView;
         OnSpectatorRuleChanged(ref EnableSpectator);
     }

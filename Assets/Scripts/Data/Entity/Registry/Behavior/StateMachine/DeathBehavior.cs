@@ -28,7 +28,7 @@ namespace Arterra.Data.Entity.Behavior {
         private VitalityBehavior vitality;
         private Modifier mod;
 
-        private float DecompositionTime => Modifier.Get(mod, MSettings.DecompositionTime, settings.DecompositionTime);
+        [JsonIgnore] public float DecompositionTime => Modifier.Get(mod, MSettings.DecompositionTime, settings.DecompositionTime);
 
         public void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
@@ -48,8 +48,8 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void OnCollectedFrom(object self, object collector, object cxt) {
             if (manager.TaskIndex != settings.TaskName) return;
-            IItem item; float amount;
-            (item, amount) = ((IItem, float))cxt;
+            Action<IItem> collect; float amount;
+            (collect, amount) = ((Action<IItem>, float))cxt;
             manager.TaskDuration -= amount;
         }
 

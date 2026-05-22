@@ -18,7 +18,7 @@ namespace Arterra.GamePlay.UI {
             Animator = Crosshair.GetComponent<Animator>();
             Crosshair.SetActive(false);
 
-            Config.CURRENT.System.GameplayModifyHooks.Add("ToggleUICrosshair", ToggleCrosshair);
+            Config.CURRENT.System.AddHook("ToggleUICrosshair", ToggleCrosshair);
             object show = Config.CURRENT.GamePlay.Gamemodes.value.ShowCrosshair;
             ToggleCrosshair(ref show);
         }
@@ -65,7 +65,8 @@ namespace Arterra.GamePlay.UI {
                     + player.Forward
                     * PlayerInteractionSettings.GetSingleton().ReachDistance;
 
-            if (PlayerInteractionBehavior.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
+            if (!player.Is(out PlayerInteractionBehavior interact)) return;
+            if (interact.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
             if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _))
                 Animator.SetBool("Focus", false);
             else Animator.SetBool("Focus", true);

@@ -132,7 +132,8 @@ namespace Arterra.Data.Item {
 
             public void Update(MonoBehaviour _) {
                 if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
-                if (!RayTestSolid(out float3 hitPt)) return;
+                if (!player.Is(out PlayerInteractionBehavior interact)) return;
+                if (!interact.RayTestSolid(out float3 hitPt)) return;
                 
                 if (!IsLocked) Location = (int3)math.round(hitPt);
                 else if (math.cmax(math.abs(Location - hitPt)) >
@@ -144,8 +145,9 @@ namespace Arterra.Data.Item {
 
             private void PlaceStructure(float _) {
                 if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
+                if (!player.Is(out PlayerInteractionBehavior interact)) return;
                 if (!IsLocked) {
-                    if (!RayTestSolid(out float3 hitPt)) return;
+                    if (!interact.RayTestSolid(out float3 hitPt)) return;
                     Location = (int3)math.round(hitPt);
                     IsLocked = true;
                 }
@@ -192,6 +194,7 @@ namespace Arterra.Data.Item {
             }
             private delegate bool CheckIterate(Material.ConditionedGrowthMat.MapSamplePoint check, MapData sample, MapData delta, int3 GCoord);
             private bool RemoveConflictMats(Entity.Entity holder, List<ConditionedGrowthMat.MapSamplePoint> edit, int3 GCoord, int3 rot) {
+                if (!holder.Is(out PlayerInteractionBehavior interact)) interact = null;
                 int totalRemAmount = 0; int totalSolidAmt = 0;
                 if (!IterateStructRemove(edit, GCoord, rot, (c, s, d, gc) => {
                     totalSolidAmt += d.SolidDensity;
@@ -208,12 +211,12 @@ namespace Arterra.Data.Item {
                         tag = prop as ToolTag;
                     if (d.viscosity > 0) {
                         float strength = math.pow((float)d.viscosity / totalRemAmount, 0.5f);
-                        HandleRemoveSolid(ref s, gc, strength * tag.TerraformSpeed, tag.GivesItem);
+                        interact?.HandleRemoveSolid(ref s, gc, strength * tag.TerraformSpeed, tag.GivesItem);
                         d.density -= d.viscosity; d.viscosity = 0;
                     }
                     if (d.density > 0) {
                         float strength = math.pow((float)d.density / totalRemAmount, 0.5f);
-                        HandleRemoveLiquid(ref s, gc, strength * tag.TerraformSpeed, tag.GivesItem);
+                        interact?.HandleRemoveLiquid(ref s, gc, strength * tag.TerraformSpeed, tag.GivesItem);
                     }
                     return false;
                 }); 
@@ -223,6 +226,7 @@ namespace Arterra.Data.Item {
             }
 
             private bool PlaceNewMats(Entity.Entity holder, List<ConditionedGrowthMat.MapSamplePoint> edit, int3 GCoord, int3 rot) {
+                if (!holder.Is(out PlayerInteractionBehavior interact)) return false;
                 int totPlaceAmt = 0; int selfPlaceAmt = 0; bool PlaceSelf = true;
                 int self = MatInfo.RetrieveIndex(item.settings.MaterialName);
                 if (!IterateStructPlace(edit, GCoord, rot, (c, s, d, gc) => {
@@ -255,12 +259,12 @@ namespace Arterra.Data.Item {
 
                     if (d.viscosity > 0 && FindNextMatIndex(out IItem nextSlot, placeMaterial, PlaceableItem.State.Solid)) {
                         float strength = math.pow((float)d.viscosity / totPlaceAmt, 0.5f);
-                        HandleAddSolid(nextSlot, gc, strength * placeSpeed, out _);
+                        interact.HandleAddSolid(nextSlot, gc, strength * placeSpeed, out _);
                         d.density -= d.viscosity; d.viscosity = 0;
                     }
                     if (d.density > 0 && FindNextMatIndex(out nextSlot, placeMaterial, PlaceableItem.State.Liquid)) {
                         float strength = math.pow((float)d.density / totPlaceAmt, 0.5f);
-                        HandleAddLiquid(nextSlot, gc, strength * placeSpeed, out _);
+                        interact.HandleAddLiquid(nextSlot, gc, strength * placeSpeed, out _);
                     }
                     return false;
                 }); return true;

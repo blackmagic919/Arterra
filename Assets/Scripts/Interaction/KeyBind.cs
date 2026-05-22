@@ -145,7 +145,7 @@ namespace Arterra.GamePlay.Interaction {
             public ref Catalogue<KeyBind> DefaultMappings => ref Config.TEMPLATE.GamePlay.Input;
 
             public KeyBinder() {
-                Config.CURRENT.System.GameplayModifyHooks.Add("KeyBindReconstruct", ReconstructMappings);
+                Config.CURRENT.System.AddHook("KeyBindReconstruct", ReconstructMappings);
                 KeyBinds = new SharedLinkedList<ActionBind>(MaxActionBinds);
                 LayerHeads = new Registry<uint>();
                 LayerHeads.Construct();

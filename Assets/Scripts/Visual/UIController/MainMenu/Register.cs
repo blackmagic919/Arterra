@@ -215,7 +215,7 @@ public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
         public void Add(string name, T value) {
             Reg ??= new List<Pair>();
             Index ??= new Dictionary<string, int>();
-
+            
             Reg.Add(new Pair { Name = name, _value = new Option<T> { value = value } });
             Index.Add(name, Reg.Count - 1);
 
@@ -231,9 +231,14 @@ public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
             return true;
         }
 
-        public readonly bool TrySet(string name, T value) {
-            if (Reg == null || Index == null) return false;
-            if (!Index.ContainsKey(name)) return false;
+        public bool TrySet(string name, T value) {
+            Reg ??= new List<Pair>();
+            Index ??= new Dictionary<string, int>();
+            
+            if (!Index.ContainsKey(name)) {
+                Add(name, value);
+                return true;
+            }
 
             int index = Index[name];
             var tPair = Reg[index];

@@ -74,6 +74,20 @@ public class SegmentListSerializer : IConverter{
         }
     }
 
+    private static object TryGetName(object value) {
+        var member = value.GetType().GetMember("Name",
+                BindingFlags.Public | BindingFlags.NonPublic |
+                BindingFlags.Instance | BindingFlags.Static)
+                .FirstOrDefault(m =>
+                    m.MemberType == MemberTypes.Field ||
+                    m.MemberType == MemberTypes.Property);
+        return member switch {
+            FieldInfo f => f.GetValue(value),
+            PropertyInfo p => p.GetValue(value),
+            _ => null
+        };
+    }
+
     private static void CreateList(IList list, GameObject parent, ParentUpdate OnUpdate){
         SetUpLayout(parent);
         for(int i = 0; i < list.Count; i++) {
@@ -81,7 +95,7 @@ public class SegmentListSerializer : IConverter{
             object cObject = list[i]; object value = cObject; Type cObjType = cObject.GetType();
 
             TextMeshProUGUI elementText = GetSegmentName(key);
-            FieldInfo name = value.GetType().GetField("Name");
+            object name = TryGetName(value);
 
             FieldInfo field = null; ParentUpdate nUpdate = OnUpdate; 
             int index = i; //this is not useless--index is captured to streamline changes
@@ -94,7 +108,7 @@ public class SegmentListSerializer : IConverter{
                     field.SetValue(cObject, value);
                 } 
 
-                name = value.GetType().GetField("Name");
+                name = TryGetName(value);
                 void ChildRequest(ChildUpdate childCallback) { 
                     void ParentReceive(ref object parentObject){
                         IList newList = (IList)parentObject;
@@ -126,7 +140,7 @@ public class SegmentListSerializer : IConverter{
             else if(!field.FieldType.IsPrimitive && field.FieldType != typeof(string)) 
                 throw new Exception("Setting objects must contain either only value types or options");
             
-            if(name != null && name.GetValue(value) != null){ elementText.text = name.GetValue(value).ToString(); }
+            if(name != null){ elementText.text = name.ToString(); }
             else elementText.text = "Element " + i.ToString() + ": ";
             CreateInputField(field, key, value, nUpdate);
         }

@@ -59,7 +59,8 @@ namespace Arterra.Data.Entity.Behavior {
                 path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
             }
             self.PathCollider.Follow(Movement.StaticDirect(
-                self.settings.profile, ref path.pathFinder, self.PathCollider,
+                MMove.Profile(mmove, manager.TaskIndex, self.settings),
+                ref path.pathFinder, self.PathCollider,
                 MMove.MovementType(mmove, settings.TaskName)
             ), WalkSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
         }

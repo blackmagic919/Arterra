@@ -77,7 +77,8 @@ public class BoatItem : IItem{
 
     private void PlaceBoat(ItemContext cxt){
         if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
-        if (!PlayerInteractionBehavior.RayTestLiquid(out float3 hitPt)) return;
+        if (!player.Is(out PlayerInteractionBehavior interact)) return;
+        if (!interact.RayTestLiquid(out float3 hitPt)) return;
         uint eIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Boat");
         EntityManager.CreateEntity(hitPt, eIndex);
         cxt.TryRemove();

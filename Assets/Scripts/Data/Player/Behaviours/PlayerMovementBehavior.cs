@@ -16,6 +16,8 @@ namespace Arterra.Data.Entity.Behavior {
     /// </summary>
     [Serializable]
     public class PlayerMovementSettings : IBehaviorSetting {
+        ///<summary>Name of settings object in UI generation</summary>
+        [JsonIgnore] public static string Name => "Movement";
         /// <summary>The maximum speed the player can walk at, in world-space units.</summary>
         public float walkSpeed = 3f;
         /// <summary>The maximum speed the player can run at, in world-space units.</summary>
@@ -55,12 +57,11 @@ namespace Arterra.Data.Entity.Behavior {
     /// and switches the active movement mode through input stack polls.
     /// </summary>
     public class PlayerMovementBehavior : IBehavior, IRider {
-        /// <summary>The active movement behavior for the currently controlled player entity.</summary>
-        [JsonIgnore] public static PlayerMovementBehavior Active { get; private set; }
         /// <summary>Resolved movement settings for this behavior instance.</summary>
         [JsonIgnore] public PlayerMovementSettings settings;
 
         private BehaviorEntity.Animal self;
+        private VitalityBehavior vit;
         private bool hasBindings;
         private bool sprinting;
         private float2 inputDir;
@@ -71,6 +72,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private float MoveSpeed2D => sprinting ? settings.runSpeed : settings.walkSpeed;
         private float FlightMoveSpeed => settings.flightSpeedMultiplier * MoveSpeed2D;
+        private bool IsActive => (!vit?.IsDead) ?? true;
 
         /// <summary>Declares required behavior dependencies.</summary>
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
@@ -86,11 +88,13 @@ namespace Arterra.Data.Entity.Behavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerMovementBehavior requires PlayerMovementSettings");
+            if (!self.Is(out vit)) vit = null;
 
             this.self = self;
-            Active = this;
             self.Register(this);
             self.Register<IRider>(this);
+
+            if (!IsActive) return;
             BindCommonInput();
             InitializePatterns();
         }
@@ -99,33 +103,61 @@ namespace Arterra.Data.Entity.Behavior {
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerMovementBehavior requires PlayerMovementSettings");
+            if (!self.Is(out vit)) vit = null;
 
             this.self = self;
-            Active = this;
             self.Register(this);
             self.Register<IRider>(this);
+
+            if (!IsActive) return;
             BindCommonInput();
             InitializePatterns();
         }
 
         /// <summary>Disables movement patterns and clears active references.</summary>
         public void Disable(BehaviorEntity.Animal self) {
-            if (ReferenceEquals(Active, this)) {
-                Active = null;
-            }
 
+            UnbindCommonInput();
+            groundPattern?.Disable();
             ridePattern?.Disable();
             swimPattern?.Disable();
             flightPattern?.Disable();
-
-            if (ReferenceEquals(this.self, self)) {
-                this.self = null;
-            }
+            this.self = null;
         }
+
+        private void BindCommonInput() {
+            if (hasBindings) return;
+            hasBindings = true;
+
+            InputPoller.AddBinding(new ActionBind("Move Vertical", v => inputDir.y = v), "PlayerMove:MV", "4.0::Movement");
+            InputPoller.AddBinding(new ActionBind("Move Horizontal", v => inputDir.x = v), "PlayerMove:MH", "4.0::Movement");
+            InputPoller.AddBinding(new ActionBind("Sprint", _ => sprinting = true), "PlayerMove:SPR", "4.0::Movement");
+        }
+
+        private void UnbindCommonInput() {
+            if (!hasBindings) return;
+            hasBindings = false;
+
+            InputPoller.RemoveBinding("PlayerMove:MV", "4.0::Movement");
+            InputPoller.RemoveBinding("PlayerMove:MH", "4.0::Movement");
+            InputPoller.RemoveBinding("PlayerMove:SPR", "4.0::Movement");
+        }
+
+        private void InitializePatterns() {
+            groundPattern = new GroundMovementPattern(this);
+            swimPattern = new SwimMovementPattern(this);
+            flightPattern = new FlightMovementPattern(this);
+            ridePattern = new RideMovementPattern(this);
+
+            groundPattern.Initialize();
+            swimPattern.Initialize();
+            flightPattern.Initialize();
+        }
+
 
         /// <summary>Runs per-frame movement input stack processing for the controlled player.</summary>
         public void Update(BehaviorEntity.Animal self) {
-            if (!IsControlledPlayer()) return;
+            if (!IsActive) return;
             if (self.context == BehaviorEntity.UpdateContext.Job)
                 return;
             if (self.context == BehaviorEntity.UpdateContext.Main)
@@ -142,14 +174,14 @@ namespace Arterra.Data.Entity.Behavior {
 
         /// <summary>IRider entrypoint invoked when the player mounts a ridable entity.</summary>
         public void OnMounted(IRidable mount) {
-            if (!IsControlledPlayer()) return;
+            if (!IsActive) return;
             ridePattern?.AddHandles(mount);
             self.eventCtrl.RaiseEvent(GameEvent.Action_Mount, self, mount, null);
         }
 
         /// <summary>IRider entrypoint invoked when the player dismounts a ridable entity.</summary>
         public void OnDismounted(IRidable mount) {
-            if (!IsControlledPlayer()) return;
+            if (!IsActive) return;
             ridePattern?.RemoveHandles();
             self.eventCtrl.RaiseEvent(GameEvent.Action_Dismount, self, mount, null);
         }
@@ -163,32 +195,6 @@ namespace Arterra.Data.Entity.Behavior {
         private void RemoveIgnoredEntity(Guid entityId) {
             if (!self.Is(out ColliderUpdateBehavior collider)) return;
             collider.IgnoredEntities?.Remove(entityId);
-        }
-
-        private void BindCommonInput() {
-            if (hasBindings) return;
-            hasBindings = true;
-
-            InputPoller.AddBinding(new ActionBind("Move Vertical", v => inputDir.y = v), "PlayerMove:MV", "4.0::Movement");
-            InputPoller.AddBinding(new ActionBind("Move Horizontal", v => inputDir.x = v), "PlayerMove:MH", "4.0::Movement");
-            InputPoller.AddBinding(new ActionBind("Sprint", _ => sprinting = true), "PlayerMove:SPR", "4.0::Movement");
-        }
-
-        private void InitializePatterns() {
-            groundPattern = new GroundMovementPattern(this);
-            swimPattern = new SwimMovementPattern(this);
-            flightPattern = new FlightMovementPattern(this);
-            ridePattern = new RideMovementPattern(this);
-
-            groundPattern.Initialize();
-            swimPattern.Initialize();
-            flightPattern.Initialize();
-        }
-
-        private bool IsControlledPlayer() {
-            if (self == null || !self.active) return false;
-            if (PlayerHandler.data == null) return false;
-            return PlayerHandler.data.info.rtEntityId == self.info.rtEntityId;
         }
 
         private void ResetFrameInput() {
@@ -254,6 +260,12 @@ namespace Arterra.Data.Entity.Behavior {
                 InputPoller.AddBinding(new ActionBind("Jump", Jump), "PlayerMove:JMP", "4.0::Movement");
             }
 
+            public void Disable() {
+                InputPoller.RemoveStackPoll("GroundMove::1", "Movement::Update");
+                InputPoller.RemoveStackPoll("GroundMove::2", "Movement::Gravity");
+                InputPoller.RemoveBinding("PlayerMove:JMP", "4.0::Movement");
+            }
+
             private void Jump(float _) {
                 if (owner.self == null || !owner.self.active) return;
                 if (owner.self.Collider == null) return;
@@ -285,6 +297,8 @@ namespace Arterra.Data.Entity.Behavior {
 
             public void Disable() {
                 isSwimming = false;
+                owner.self.eventCtrl.RemoveEventHandler(GameEvent.Entity_InLiquid, StartSwim);
+                owner.self.eventCtrl.RemoveEventHandler(GameEvent.Entity_InGas, StopSwim);
                 RemoveHandles();
             }
 
@@ -353,12 +367,13 @@ namespace Arterra.Data.Entity.Behavior {
             public void Initialize() {
                 hasEnabledFlight = false;
                 isFlying = false;
-                Config.CURRENT.System.GameplayModifyHooks.TrySet("Gamemode:Flight", OnFlightRuleChanged);
+                Config.CURRENT.System.AddHook("Gamemode:Flight", OnFlightRuleChanged);
                 object enableFlight = Config.CURRENT.GamePlay.Gamemodes.value.Flight;
                 OnFlightRuleChanged(ref enableFlight);
             }
 
             public void Disable() {
+                Config.CURRENT.System.RemoveHook("Gamemode:Flight", OnFlightRuleChanged);
                 InputPoller.RemoveBinding("PMFlightMove:TF", "4.0::Movement");
                 RemoveHandles();
             }
@@ -431,9 +446,7 @@ namespace Arterra.Data.Entity.Behavior {
                 this.owner = owner;
             }
 
-            public void Disable() {
-                RemoveHandles();
-            }
+            public void Disable() => RemoveHandles();
 
             public void AddHandles(IRidable mount) {
                 if (mount == null) return;

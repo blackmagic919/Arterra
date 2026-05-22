@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections;
-using Arterra.Configuration;
 using Arterra.Core.Events;
-using Arterra.Data.Entity;
 using Arterra.Engine.Terrain;
 using Arterra.GamePlay;
-using Arterra.Utils;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
@@ -17,6 +14,8 @@ namespace Arterra.Data.Entity.Behavior {
     /// </summary>
     [Serializable]
     public class PlayerEffectsSettings : IBehaviorSetting {
+        ///<summary>Name of settings object in UI generation</summary>
+        [JsonIgnore] public static string Name => "Animator";
         public string AnimatorPath = "Player";
 
         public object Clone() {
@@ -30,7 +29,6 @@ namespace Arterra.Data.Entity.Behavior {
     /// Bridges gameplay events and movement state into animator parameters and triggers.
     /// </summary>
     public class PlayerEffectsBehavior : IBehavior {
-        [JsonIgnore] public static PlayerEffectsBehavior Active { get; private set; }
         [JsonIgnore] public PlayerEffectsSettings settings;
 
         private PhysicalitySetting physicality;
@@ -50,7 +48,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out physicality)) physicality = null;
 
             this.self = self;
-            Active = this;
             self.Register(this);
             ResolveAnimator(self);
             isSwimming = false;
@@ -64,7 +61,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out physicality)) physicality = null;
 
             this.self = self;
-            Active = this;
             self.Register(this);
             ResolveAnimator(self);
             isSwimming = false;
@@ -73,13 +69,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Disable(BehaviorEntity.Animal self) {
-            if (ReferenceEquals(Active, this)) {
-                Active = null;
-            }
-
-            if (ReferenceEquals(this.self, self)) {
-                this.self = null;
-            }
+            this.self = null;
 
             if (heldItem != null) {
                 GameObject.Destroy(heldItem);
@@ -220,12 +210,13 @@ namespace Arterra.Data.Entity.Behavior {
             if (!entity.Is(out IAttackable attackable)) return;
             if (attackable.IsDead) return;
             if (cxt is not RefTuple<(float, float3)> damaged) return;
+            if (damaged.Value.Item1 == 0) return;
 
             if (!isShaking) {
                 OctreeTerrain.MainCoroutines.Enqueue(CameraShake(0.2f, 0.25f));
             }
 
-            quaternion wsToOs = math.inverse(PlayerHandler.data.transform.rotation);
+            quaternion wsToOs = math.inverse(self.transform.rotation);
             float3 knockback = math.mul(wsToOs, damaged.Value.Item2);
             if (math.lengthsq(knockback) < 1E-6f) return;
             knockback = math.normalize(knockback);

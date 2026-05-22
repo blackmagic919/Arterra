@@ -169,7 +169,7 @@ namespace Arterra.Data.Entity.Behavior
 
 			public bool IsDead => selfAtk.IsDead;
             public void Interact(Entity caller, IItem item = null) => selfAtk.Interact(caller, item);
-            public IItem Collect(Entity caller, float collectRate) => selfAtk.Collect(caller, collectRate);
+            public void Collect(Entity caller, Action<IItem> collect, float collectRate) => selfAtk.Collect(caller, collect, collectRate);
             public bool TakeDamage(float damage, float3 knockback, Entity attacker = null) {
                 if (selfAtk.TakeDamage(damage, float3.zero, attacker)) {
                     velocity += knockback;

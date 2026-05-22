@@ -17,13 +17,15 @@ namespace Arterra.Data.Entity.Behavior {
     /// implementer to decide how the request to take damage is handled. </summary>
     public interface IAttackable {
         public void Interact(Entity caller, IItem item = null);
-        public IItem Collect(Entity caller, float collectRate);
+        public void Collect(Entity caller, Action<IItem> Collect, float collectRate);
         public bool TakeDamage(float damage, float3 knockback, Entity attacker = null);
         public bool IsDead { get; }
     }
     
     [Serializable]
     public class PhysicalitySetting : IBehaviorSetting {
+        ///<summary>Name of settings object in UI generation</summary>
+        [JsonIgnore] public static string Name => "Vitality";
         public float weight;
         public float StartHealthPercent = 0.7f;
         public float StartHealthVariance = 0.2f;
@@ -45,6 +47,8 @@ namespace Arterra.Data.Entity.Behavior {
 
     [Serializable]
     public class Decomposition : IBehaviorSetting {
+        ///<summary>Name of settings object in UI generation</summary>
+        [JsonIgnore] public static string Name => "Decomposition";
         public Option<List<LootInfo>> LootTable;
 
         public object Clone() {
@@ -101,11 +105,9 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void Interact(Entity caller, IItem item) => self.eventCtrl.RaiseEvent(GameEvent.Entity_Interact, self, caller, item);
 
-        public IItem Collect(Entity caller, float amount) {
-            IItem item = null;
-            if (IsDead && Decomposition != null) item = Decomposition.LootItem(mod, amount, ref self.random);
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_Collect, self, caller, (item, amount));
-            return item;
+        public void Collect(Entity caller, Action<IItem> collect, float amount) {
+            if (IsDead && Decomposition != null) collect(Decomposition.LootItem(mod, amount, ref self.random));
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_Collect, self, caller, (collect, amount));
         }
 
         public bool CanDamage => invincibility <= 0;
@@ -126,6 +128,8 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context == BehaviorEntity.UpdateContext.Main) return;
+
             invincibility = math.max(invincibility - self.DeltaTime, 0);
             if (IsDead) {
                 if (TriggeredDeath) return;

@@ -114,8 +114,8 @@ namespace Arterra.Data.Item
             h.cxt = cxt;
 
             InputPoller.AddKeyBindChange(() => {
-                InputPoller.AddBinding(new ActionBind("Remove", h.OnTerrainRemove, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:RM", "5.0::GamePlay");
-                InputPoller.AddBinding(new ActionBind("Place", h.OnTerrainAdd, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:PL", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("Remove", _ => h.OnTerrainRemove(cxt), ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:RM", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("Place", _ => h.OnTerrainAdd(cxt), ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:PL", "5.0::GamePlay");
                 //When SelectPoint is triggered, DragPoint will also be triggered on the same frame, make sure SelectPoint happens first 
                 InputPoller.AddBinding(new ActionBind("PenDrag", h.DragPoint, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:DR", "5.0::GamePlay");
                 InputPoller.AddBinding(new ActionBind("PenFocus", h.SelectPoint, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:SEL", "5.0::GamePlay");
@@ -174,13 +174,13 @@ namespace Arterra.Data.Item
             Selector.transform.localScale = SelectBounds.size + new Vector3(1, 1, 1);
         }
 
-        public void OnTerrainAdd(float _)
+        public void OnTerrainAdd(ItemContext cxt)
         {
             if (Selector == null)
             {
                 if (!FindNearest(out int3 hitCoord)) return;
                 if (!FindNextSolidMat(out IItem nextSlot)) return;
-                AddNextSolidWithDurability(hitCoord, nextSlot);
+                AddNextSolidWithDurability(cxt, hitCoord, nextSlot);
                 return;
             }
             int3 coord = 0;
@@ -191,19 +191,19 @@ namespace Arterra.Data.Item
                     for (coord.z = (int)SelectBounds.min.z; coord.z <= SelectBounds.max.z; coord.z++)
                     {
                         if (!FindNextSolidMat(out IItem slot)) return;
-                        AddNextSolidWithDurability(coord, slot);
+                        AddNextSolidWithDurability(cxt, coord, slot);
                     }
                 }
             }
         }
 
 
-        public void OnTerrainRemove(float _)
+        public void OnTerrainRemove(ItemContext cxt)
         {
             if (Selector == null)
             {
                 if (!FindNearest(out int3 hitCoord)) return;
-                RemoveSolidWithDurability(hitCoord);
+                RemoveSolidWithDurability(cxt, hitCoord);
                 return;
             }
 
@@ -214,7 +214,7 @@ namespace Arterra.Data.Item
                 {
                     for (coord.z = (int)SelectBounds.min.z; coord.z <= SelectBounds.max.z; coord.z++)
                     {
-                        RemoveSolidWithDurability(coord);
+                        RemoveSolidWithDurability(cxt, coord);
                     }
                 }
             }
@@ -233,9 +233,9 @@ namespace Arterra.Data.Item
         private bool FindNearest(out int3 hitCoord)
         {
             hitCoord = int3.zero;
-            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player))
-                return false;
-            if (!PlayerInteractionBehavior.RayTestSolid(out float3 hitPt)) return false;
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return false;
+            if (!player.Is(out PlayerInteractionBehavior interact)) return false;
+            if (!interact.RayTestSolid(out float3 hitPt)) return false;
             Ray ray = new Ray(player.head, player.Forward);
             int3 hitOrig = (int3)math.floor(hitPt);
 
@@ -292,12 +292,15 @@ namespace Arterra.Data.Item
             return closest;
         }
 
-        void AddNextSolidWithDurability(int3 hitCoord, IItem AddItem)
+        void AddNextSolidWithDurability(ItemContext cxt, int3 hitCoord, IItem AddItem)
         {
             if (item == null) return;
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
+            if (!player.Is(out PlayerInteractionBehavior interact)) return;
+            
             MapData orig = CPUMapManager.SampleMap(hitCoord);
             ToolTag prop = PlayerInteractionSettings.GetSingleton().DefaultTerraform.value;
-            if (!PlayerInteractionBehavior.HandleAddSolid(AddItem, hitCoord, prop.TerraformSpeed, out MapData change))
+            if (!interact.HandleAddSolid(AddItem, hitCoord, prop.TerraformSpeed, out MapData change))
                 return;
             int delta = math.abs(change.SolidDensity - orig.SolidDensity);
             item.durability -= prop.ToolDamage * delta;
@@ -306,16 +309,19 @@ namespace Arterra.Data.Item
             cxt.TryRemove();
         }
 
-        void RemoveSolidWithDurability(int3 hitCoord)
+        void RemoveSolidWithDurability(ItemContext cxt, int3 hitCoord)
         {
             if (item == null) return;
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
+            if (!player.Is(out PlayerInteractionBehavior interact)) return;
+
             MapData orig = CPUMapManager.SampleMap(hitCoord);
             ToolTag prop = PlayerInteractionSettings.GetSingleton().DefaultTerraform.value;
             if (MatInfo.GetMostSpecificTag(TagRegistry.Tags.BareHand, orig.material, out object tag))
                 prop = tag as ToolTag;
 
             MapData prev = orig;
-            if (!PlayerInteractionBehavior.HandleRemoveSolid(ref orig, hitCoord, prop.TerraformSpeed))
+            if (!interact.HandleRemoveSolid(ref orig, hitCoord, prop.TerraformSpeed))
                 return;
             
             int delta = math.abs(prev.SolidDensity - orig.SolidDensity);

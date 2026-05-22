@@ -107,9 +107,10 @@ namespace Arterra.Data.Item
         protected void PlayerRemoveTerrain(ItemContext cxt) {
             if (settings.ToolTag == TagRegistry.Tags.None) return;
             if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
+            if (!player.Is(out PlayerInteractionBehavior interact)) return;
 
             InputPoller.SuspendKeybindPropogation("Remove", ActionBind.Exclusion.ExcludeLayer);
-            if (!RayTestSolid(out float3 hitPt)) return;
+            if (!interact.RayTestSolid(out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _))
                 return;
             
@@ -121,14 +122,14 @@ namespace Arterra.Data.Item
                     tag = prop as ToolTag;
 
                 MapData prev = mapData;
-                if (!HandleRemoveSolid(ref mapData, GCoord, speed * tag.TerraformSpeed, tag.GivesItem))
+                if (!interact.HandleRemoveSolid(ref mapData, GCoord, speed * tag.TerraformSpeed, tag.GivesItem))
                     return false;
                 float delta = math.abs(prev.SolidDensity - mapData.SolidDensity);
                 durability -= tag.ToolDamage * (delta / 255.0f);
                 return true;
             }
 
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolid, CallOnMapRemoving);
+            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolid, interact.CallOnMapRemoving);
             UpdateDisplay();
 
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)

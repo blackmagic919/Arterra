@@ -55,20 +55,19 @@ public class EItem : Arterra.Data.Entity.Authoring
         public void Interact(Entity target, Arterra.Data.Item.IItem item) { }
         public IItem[] GetItems() => new []{item.Value};
 
-        public IItem Collect(Entity target, float amount) {
-            IItem ret = null;
+        public void Collect(Entity target, Action<IItem> collect, float amount) {
             if (item.Value != null) {
-                ret = (IItem)item.Value.Clone();
+                IItem ret = (IItem)item.Value.Clone();
                 amount *= ret.UnitSize;
                 int delta = Mathf.FloorToInt(amount) 
                     + (random.NextFloat() < math.frac(amount) ? 1 : 0);
                 ret.AmountRaw = math.min(delta, ret.AmountRaw);
                 item.Value.AmountRaw -= ret.AmountRaw;
                 if (item.Value.AmountRaw == 0) item.Value = null;
-            }
+                collect(ret);
+            } 
 
-            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, target, (item, amount));
-            return ret;
+            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, target, (collect, amount));
         }
 
         public bool TakeDamage(float damage, float3 knockback, Entity attacker) {

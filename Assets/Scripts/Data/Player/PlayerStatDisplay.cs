@@ -21,7 +21,7 @@ namespace Arterra.GamePlay.UI {
             damageStat = HealthBar.transform.Find("DamageBar").GetComponent<Image>();
             breathStat = HealthBar.transform.Find("BreathBar").GetComponent<Image>();
 
-            Config.CURRENT.System.GameplayModifyHooks.Add("Gamemode:Invulnerability", ToggleInvulnerability);
+            Config.CURRENT.System.AddHook("Gamemode:Invulnerability", ToggleInvulnerability);
             object vulnerability = Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability;
             ToggleInvulnerability(ref vulnerability);
         }
@@ -33,11 +33,13 @@ namespace Arterra.GamePlay.UI {
             HealthBar.SetActive(!isVulnerable);
         }
 
-        public static void UpdateIndicator(VitalityBehavior vitality) {
+        public static void UpdateIndicator(BehaviorEntity.Animal data) {
             if (!HealthBar.activeSelf) return;
-            healthStat.fillAmount = vitality.healthPercent;
-            breathStat.fillAmount = 1;
-            if (vitality.invincibility <= 0) damageStat.fillAmount = math.max(vitality.healthPercent, damageStat.fillAmount - 0.01f);
+            if (!data.Is(out VitalityBehavior vit)) return;
+            healthStat.fillAmount = vit.healthPercent;
+            if (!data.Is(out MapInteractBehavior map)) return;
+            breathStat.fillAmount = math.fmod(map.breathPercent, 1);
+            if (vit.invincibility <= 0) damageStat.fillAmount = math.max(vit.healthPercent, damageStat.fillAmount - 0.01f);
         }
     }
 }

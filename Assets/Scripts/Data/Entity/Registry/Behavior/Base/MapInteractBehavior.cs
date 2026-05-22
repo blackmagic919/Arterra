@@ -9,6 +9,8 @@ using Unity.Mathematics;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class MapInteractorSettings : IBehaviorSetting{
+        ///<summary>Name of settings object in UI generation</summary>
+        [JsonIgnore] public static string Name => "Medium";
         public InteractType interactType = InteractType.Terrestrial;
         public float HoldBreathTime;
         public float Bouyancy;
@@ -166,7 +168,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have VitalityBehavior");
             if (!self.Is(out mod)) mod = null;
-            breath = maxHoldBreathTime;
             if (settings.UseFallDamage) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_HitGround, ProcessFallDamage);
             ResetInteractionType();
         }

@@ -195,7 +195,8 @@ namespace Arterra.Data.Entity.Behavior {
             settings.CalculateBoidDirection(self, mod, relations);
             if (path.pathFinder.hasPath) {
                 self.PathCollider.Follow(Movement.StaticDirect(
-                    self.settings.profile, ref path.pathFinder, self.PathCollider,
+                    MMove.Profile(mmove, manager.TaskIndex, self.settings),
+                    ref path.pathFinder, self.PathCollider,
                     MMove.MovementType(mmove, settings.TaskName)
                 ), WalkSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
                 return;  

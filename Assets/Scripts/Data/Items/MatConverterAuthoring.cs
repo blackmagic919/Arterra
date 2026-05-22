@@ -110,7 +110,8 @@ namespace Arterra.Data.Item
 
         private void PlayerModifyTerrain(ItemContext cxt) {
             if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
-            if (!RayTestSolid(out float3 hitPt)) return;
+            if (!player.Is(out PlayerInteractionBehavior interact)) return;
+            if (!interact.RayTestSolid(out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _))
                 return;
             if (settings.MaterialName == null) {
@@ -135,7 +136,7 @@ namespace Arterra.Data.Item
                 return true;
             }
 
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, CallOnMapRemoving);
+            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
             UpdateDisplay();
 
             if (AmountRaw > 0) return;

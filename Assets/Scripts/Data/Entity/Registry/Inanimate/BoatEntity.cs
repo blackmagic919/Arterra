@@ -76,10 +76,8 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
 
         }
-        public IItem Collect(Entity caller, float amount) {
-            IItem item = null;
-            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, caller, (item, amount));
-            return item; // Boats are not collectible
+        public void Collect(Entity caller, Action<IItem> collect, float amount) {
+            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, caller, (collect, amount));
         }
 
         public bool TakeDamage(float damage, float3 knockback, Entity attacker = null) {

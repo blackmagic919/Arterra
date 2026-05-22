@@ -5,7 +5,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
 
-namespace Arterra.GalmePlay.UI {
+namespace Arterra.GamePlay.UI {
     public class ToggleLayerOnCondition : StateMachineBehaviour {
         public enum ConditionType { Bool, Int, Float }
         public enum Comparison { Equals, NotEquals, Greater, Less, GreaterOrEqual, LessOrEqual }
