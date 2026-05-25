@@ -102,7 +102,7 @@ public static class PaginatedUIEditor
             
             if (UITag != null && UITag.Collapse != null) {
                 string[] path = UITag.Collapse.Split('/');
-                CollapseMembers(path, value, newOption, page, nUpdate);
+                CollapseMembers(path, field, value, newOption, page, nUpdate);
                 continue;
             }
             CreateInputField(field, value, newOption, page, nUpdate);
@@ -110,7 +110,7 @@ public static class PaginatedUIEditor
         ForceLayoutRefresh(GetPageContent(page));
     }
 
-    public static void HandleOptionClosure(FieldInfo field, object setting, ParentUpdate OnUpdate, 
+    private static void HandleOptionClosure(FieldInfo field, object setting, ParentUpdate OnUpdate, 
         out FieldInfo memberField, out object memberValue, out ParentUpdate memberUpdate) {
         FieldInfo baseField = field;
         object option = field.GetValue(setting); //Would prefer if GetValueDirect was implemented 
@@ -140,7 +140,7 @@ public static class PaginatedUIEditor
         }
     }
 
-    public static bool CollapseMembers(IEnumerable<string> path, object setting, GameObject parent, GameObject page, ParentUpdate OnUpdate = null) {
+    private static bool CollapseMembers(IEnumerable<string> path, FieldInfo baseField, object setting, GameObject parent, GameObject page, ParentUpdate OnUpdate = null) {
         if (path == null || path.Count() == 0) {
             Debug.LogError($"UISetting path {String.Join("/", path)} on object does not exist");
             return false;
@@ -156,16 +156,16 @@ public static class PaginatedUIEditor
 
         void ChildRequest(ChildUpdate childCallback) { 
             void ParentReceive(ref object parentObject){
-                setting = field.GetValue(parentObject);
+                setting = baseField.GetValue(parentObject);
                 childCallback(ref setting); 
                 //this is necessary because the child may be a value type
-                field.SetValue(parentObject, setting);
+                baseField.SetValue(parentObject, setting);
             } OnUpdate(ParentReceive);
         }
 
         ParentUpdate nUpdate = ChildRequest;
         if (field.FieldType.GetInterfaces().Contains(typeof(IOption))) {
-            HandleOptionClosure(field, setting, OnUpdate, out FieldInfo mField, out object mValue, out nUpdate);
+            HandleOptionClosure(field, setting, ChildRequest, out FieldInfo mField, out object mValue, out nUpdate);
             field = mField; value = mValue;
         }
         
@@ -173,7 +173,7 @@ public static class PaginatedUIEditor
         if (path == null || path.Count() == 0) {
             CreateInputField(field, value, parent, page, nUpdate);
             return true;
-        } else return CollapseMembers(path, value, parent, page, nUpdate);
+        } else return CollapseMembers(path, field, value, parent, page, nUpdate);
     }
 
     

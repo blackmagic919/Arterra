@@ -6,6 +6,7 @@ using Arterra.Core.Storage;
 using Arterra.Data.Entity;
 using Arterra.Engine.Audio;
 using Newtonsoft.Json;
+using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Pool;
@@ -147,7 +148,7 @@ public class InidcatorsBehavior : ISpeciesBehavior {
     [JsonIgnore] public Image healthStat;
     [JsonIgnore] public Image damageStat;
     [JsonIgnore] public Transform effectWindow;
-    private Dictionary<IEffect, Transform> Effects;
+    private Dictionary<string, (int, Transform)> Effects;
     private bool active;
 
     private GameObject controller;
@@ -176,10 +177,10 @@ public class InidcatorsBehavior : ISpeciesBehavior {
 
     private void SetupEffectWindow() {
         if (effectWindow == null) return;
-        Effects ??= new Dictionary<IEffect, Transform>();
+        Effects ??= new Dictionary<string, (int, Transform)>();
         if (Effects.Count > 0) {
             foreach (var effect in Effects.Values)
-                GameObject.Destroy(effect.gameObject);
+                GameObject.Destroy(effect.Item2.gameObject);
             Effects.Clear();
         }
         foreach(var behavior in self.Behaviors) {
@@ -190,10 +191,22 @@ public class InidcatorsBehavior : ISpeciesBehavior {
 
     private void AddEffect(IEffect behaviorEffect) {
         if (Effects == null) return;
-        var icon = Config.CURRENT.Generation.Textures.Retrieve(behaviorEffect.Icon);
-        var slot = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Stats/EffectSlot"), effectWindow);
-        slot.transform.Find("Item").GetComponent<Image>().sprite = icon.self;
-        Effects[behaviorEffect] = slot.transform;
+        string iconName = behaviorEffect.Icon;
+        if (Effects.TryGetValue(iconName, out var effectData)) {
+            Effects[iconName] = (effectData.Item1 + 1, effectData.Item2);
+        } else {
+            var icon = Config.CURRENT.Generation.Textures.Retrieve(iconName);
+            var slot = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Stats/EffectSlot"), effectWindow).transform;
+            slot.Find("Item").GetComponent<Image>().sprite = icon.self;
+            Effects[iconName] = (1, slot.transform);
+        } SetCount(iconName);
+    }
+
+    private void SetCount(string iconName) {
+        if (!Effects.TryGetValue(iconName, out (int count, Transform slot)effect))
+            return;
+        TextMeshProUGUI multiplier = effect.slot?.Find("Multiplier")?.GetComponent<TextMeshProUGUI>();
+       if(multiplier != null) multiplier.text = effect.count <= 1 ? null : $"x{Effects[iconName].Item1}";
     }
 
     private void OnAddBehavior(object source, object behavior) {
@@ -203,10 +216,20 @@ public class InidcatorsBehavior : ISpeciesBehavior {
 
     private void OnRemoveBehavior(object source, object behavior) {
         if (behavior is not IEffect behaviorEffect) return;
-        if (!Effects.TryGetValue(behaviorEffect, out Transform effectSlot))
+        if (Effects == null) return;
+
+        string iconName = behaviorEffect.Icon;
+        if (!Effects.TryGetValue(iconName, out var effectData))
             return;
-        GameObject.Destroy(effectSlot);
-        Effects?.Remove(behaviorEffect);
+
+        if (effectData.Item1 > 1) {
+            Effects[iconName] = (effectData.Item1 - 1, effectData.Item2);
+            SetCount(iconName);
+            return;
+        }
+
+        GameObject.Destroy(effectData.Item2.gameObject);
+        Effects.Remove(iconName);
     }
 
     public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {

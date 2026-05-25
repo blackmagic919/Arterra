@@ -70,10 +70,9 @@ public static class SegmentedUIEditor
 
     //To Do: Flatten Options into a list and store index if it isn't dirty to the template list
     public static void SupplementTree(ref object dest, ref object src){
-        System.Reflection.FieldInfo[] fields = src.GetType().GetFields();
+        FieldInfo[] fields = src.GetType().GetFields();
         foreach(FieldInfo field in fields){
-            if (Attribute.IsDefined(field, typeof(JsonIgnoreAttribute)) && (Attribute.GetCustomAttribute(field, typeof(UISetting))
-                as UISetting).Defaulting)
+            if (Attribute.IsDefined(field, typeof(UISetting)) && (Attribute.GetCustomAttribute(field, typeof(UISetting)) as UISetting).Defaulting)
                 continue;
             if (field.IsStatic) continue; //Ignore static fields
             if (field.FieldType.GetInterfaces().Contains(typeof(IOption))) {
@@ -98,7 +97,7 @@ public static class SegmentedUIEditor
                 SupplementTree(ref nDest, ref nSrc);
                 field.SetValue(dest, nDest);
             }
-            else throw new Exception("Settings objects must contain either only value types or options");
+            else throw new Exception($"Config Object {src.GetType()} encountered unexpected filed {field}. Config objects must contain either only value types or options");
         }
     }
     
@@ -184,12 +183,12 @@ public static class SegmentedUIEditor
             } else if (field.FieldType == typeof(string) && value == null) value = "New " + field.Name;
             else if (!field.FieldType.IsValueType && !field.FieldType.IsPrimitive && field.FieldType != typeof(string)) {
                 Debug.LogWarning($"Encountered unexpected {field.FieldType} ");
-                throw new Exception("Settings objects must contain either only value types or options");
+                throw new Exception($"Config Object {setting.GetType()} encountered unexpected filed {field}. Config objects must contain either only value types or options");
             } 
 
             if (UITag != null && UITag.Collapse != null) {
                 string[] path = UITag.Collapse.Split('/');
-                if(CollapseMembers(path, value, newOption, nUpdate))
+                if(CollapseMembers(path, field, value, newOption, nUpdate))
                     continue;
             }
 
@@ -227,7 +226,7 @@ public static class SegmentedUIEditor
         }
     }
 
-    public static bool CollapseMembers(IEnumerable<string> path, object setting, GameObject content, ParentUpdate OnUpdate = null) {
+    public static bool CollapseMembers(IEnumerable<string> path, FieldInfo baseField, object setting, GameObject content, ParentUpdate OnUpdate = null) {
         if (path == null || path.Count() == 0) {
             Debug.LogError($"UISetting path {String.Join("/", path)} on object does not exist");
             return false;
@@ -243,10 +242,10 @@ public static class SegmentedUIEditor
 
         void ChildRequest(ChildUpdate childCallback) { 
             void ParentReceive(ref object parentObject){
-                setting = field.GetValue(parentObject);
+                setting = baseField.GetValue(parentObject);
                 childCallback(ref setting); 
                 //this is necessary because the child may be a value type
-                field.SetValue(parentObject, setting);
+                baseField.SetValue(parentObject, setting);
             } OnUpdate(ParentReceive);
         }
 
@@ -260,7 +259,7 @@ public static class SegmentedUIEditor
         if (path == null || path.Count() == 0) {
             CreateInputField(field, content, value, nUpdate);
             return true;
-        } else return CollapseMembers(path, value, content, nUpdate);
+        } else return CollapseMembers(path, field, value, content, nUpdate);
     }
 
     //Field -> The fieldInfo of the input field, 
