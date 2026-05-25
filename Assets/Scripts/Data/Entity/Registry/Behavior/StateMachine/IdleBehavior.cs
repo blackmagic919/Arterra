@@ -24,7 +24,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class IdleStateBehavior : IBehavior {
+    public class IdleStateBehavior : ISpeciesBehavior {
         private IdleStateSettings settings;
 
         private BehaviorEntity.Animal self;

@@ -75,7 +75,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class RunFromPredatorBehavior : IBehavior {
+    public class RunFromPredatorBehavior : ISpeciesBehavior {
         [JsonIgnore]
         public RunFromPredatorSettings settings;
         private FleeBehaviorSettings flee;

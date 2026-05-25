@@ -82,7 +82,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class VitalityBehavior : IBehavior, IAttackable {
+    public class VitalityBehavior : ISpeciesBehavior, IAttackable {
         [JsonIgnore] public Decomposition Decomposition;
         [JsonIgnore] public PhysicalitySetting stats;
 
@@ -100,6 +100,7 @@ namespace Arterra.Data.Entity.Behavior {
         public float health;
         public float invincibility;
         public bool TriggeredDeath;
+        private float MaxAccDamage;
 
         public const float FallDmgThresh = 10;
 
@@ -110,18 +111,18 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.RaiseEvent(GameEvent.Entity_Collect, self, caller, (collect, amount));
         }
 
-        public bool CanDamage => invincibility <= 0;
-        public bool IsKillingBlow(float damage) => CanDamage && damage > health;
+        public bool IsKillingBlow(float damage) => MaxAccDamage < health && damage > health;
 
         public bool TakeDamage(float damage, float3 knockback, Entity attacker = null) {
-            if (!CanDamage) return false;
-            RefTuple<(float, float3)> cxt = (damage, knockback);
+            if (damage < MaxAccDamage) return false;
+            RefTuple<(float, float3)> cxt = (damage - MaxAccDamage, knockback);
             self.eventCtrl.RaiseEvent(GameEvent.Entity_Damaged, self, attacker, cxt);
             (damage, knockback) = cxt.Value;
-
-            if (!Damage(damage)) return false;
-            Indicators.DisplayDamageParticle(self.position, knockback);
+            if (damage == 0) return false;
+            
+            damage += MaxAccDamage;
             self.velocity += knockback;
+            if (!Damage(damage)) return false;
             return true;
         }
 
@@ -145,10 +146,13 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public bool Damage(float delta) {
+            MaxAccDamage = math.max(MaxAccDamage, delta);
             if (invincibility > 0) return false;
+
             invincibility = InvincTime;
-            delta = health - math.max(health - delta, 0);
-            health -= delta;
+            float damage = health - math.max(health - MaxAccDamage, 0);
+            health -= damage;
+            MaxAccDamage = 0;
             return true;
         }
 
@@ -174,6 +178,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             this.self = self;
             invincibility = 0;
+            MaxAccDamage = 0;
             health = (float)CustomUtility.Sample(self.random, stats.StartHealthPercent, stats.StartHealthVariance);
             health = math.clamp(health, 0, 1);
             health *= MaxHealth;

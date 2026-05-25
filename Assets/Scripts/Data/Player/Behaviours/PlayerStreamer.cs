@@ -16,7 +16,7 @@ namespace Arterra.Data.Entity.Behavior {
     /// Root player behavior that wires player-specific behavior dependencies and
     /// handles high-level stream/death detach transitions.
     /// </summary>
-    public class PlayerBehavior : IBehavior {
+    public class PlayerBehavior : ISpeciesBehavior {
         /// <summary>
         /// Canonical behavior-side defaults for player entity settings.
         /// This is used to seed world options and migration bridges.
@@ -32,6 +32,7 @@ namespace Arterra.Data.Entity.Behavior {
             BehaviorList = new List<Behaviors> {
                 Behaviors.Collider,
                 Behaviors.MapInteraction,
+                Behaviors.Indicators,
                 Behaviors.Vitality,
                 Behaviors.PlayerInventories,
                 Behaviors.PlayerCamera,

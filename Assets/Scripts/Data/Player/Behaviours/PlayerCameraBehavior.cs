@@ -49,7 +49,7 @@ namespace Arterra.Data.Entity.Behavior {
     /// Also implements <see cref="IMultiCollider"/> to expose the camera's full facing
     /// direction and eye position to the base entity, overriding the default body collider bindings.
     /// </summary>
-    public class PlayerCameraBehavior : IBehavior, IMultiCollider {
+    public class PlayerCameraBehavior : ISpeciesBehavior, IMultiCollider {
         [JsonIgnore] public PlayerCameraSettings settings;
         [JsonIgnore] private IMultiCollider baseCollider;
 
@@ -61,9 +61,11 @@ namespace Arterra.Data.Entity.Behavior {
             get => perspectives?[activePersp].Facing ?? baseCollider.Rotation;
             set => baseCollider.Rotation = value;
         }
+
+        internal const float height = 2.5f;
         /// <summary>Returns the camera's eye position in grid space, used as the entity head.</summary>
         [JsonIgnore] public float3 HeadPosition =>
-            (float3)baseCollider.Collider.transform.position + cameraLocalPosition;
+            (float3)baseCollider.Collider.transform.position + (float3)Vector3.up * height;
 
         private bool hasBindings;
         internal bool moved;
@@ -124,6 +126,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Disable(BehaviorEntity.Animal self) {
+            UnbindInput();
             this.self = null;
         }
 
@@ -134,7 +137,6 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
 
             if (!IsActive) return;
-
             perspectives[activePersp].Update();
             ApplyCameraTransform();
             lookDelta = float2.zero;
@@ -206,13 +208,25 @@ namespace Arterra.Data.Entity.Behavior {
             return -(Mathf.InverseLerp(settings.MinimumX, settings.MaximumX, lookPitch) * 2 - 1);
         }
 
+        private string LookHorizontalName => $"PlayerCamera:LH::{self.info.entityId}"; 
+        private string LookVerticalName => $"PlayerCamera:LV::{self.info.entityId}";
+        private string TPerspectiveName => $"PlayerCamera:TP::{self.info.entityId}"; 
         private void BindInput() {
             if (hasBindings) return;
             hasBindings = true;
 
-            InputPoller.AddBinding(new ActionBind("Look Horizontal", LookX), "PlayerCamera:LH", "4.5::Movement");
-            InputPoller.AddBinding(new ActionBind("Look Vertical", LookY), "PlayerCamera:LV", "4.5::Movement");
-            InputPoller.AddBinding(new ActionBind("Toggle Perspective", TogglePerspective), "PlayerCamera:TP", "2.5::Subscene");
+            InputPoller.AddBinding(new ActionBind("Look Horizontal", LookX), LookHorizontalName, "4.5::Movement");
+            InputPoller.AddBinding(new ActionBind("Look Vertical", LookY), LookVerticalName, "4.5::Movement");
+            InputPoller.AddBinding(new ActionBind("Toggle Perspective", TogglePerspective), TPerspectiveName, "2.5::Subscene");
+        }
+
+        private void UnbindInput() {
+            if (!hasBindings) return;
+            hasBindings = false;
+
+            InputPoller.RemoveBinding(LookHorizontalName, "4.5::Movement");
+            InputPoller.RemoveBinding(LookVerticalName, "4.5::Movement");
+            InputPoller.RemoveBinding(TPerspectiveName, "2.5::Subscene");
         }
 
         private void LookX(float x) {
@@ -247,7 +261,7 @@ namespace Arterra.Data.Entity.Behavior {
             public FirstPersonCamera(PlayerCameraBehavior cam) => camera = cam;
 
             public void Activate() {
-                camera.cameraLocalPosition = new float3(0, 2.5f, 0);
+                camera.cameraLocalPosition = new float3(0, height, 0);
                 camera.cameraLocalRotation.eulerAngles = new(camera.cameraLocalRotation.eulerAngles.x, 0, 0);
                 camera.cullingMask &= ~(1 << LayerMask.NameToLayer("Self"));
                 smoothCharacterRot = camera.baseCollider.Collider.transform.rotation;
@@ -288,8 +302,6 @@ namespace Arterra.Data.Entity.Behavior {
             private readonly PlayerCameraBehavior camera;
             private Quaternion smoothCharacterRot;
             private Quaternion smoothCameraRot;
-
-            const float height = 2.5f;
             const float distance = 10f;
 
             public Quaternion Facing => math.mul(
@@ -355,8 +367,6 @@ namespace Arterra.Data.Entity.Behavior {
             private Quaternion smoothCameraRot;
             private float yaw;
             private float pitch;
-
-            const float height = 2.5f;
             const float distance = 10f;
 
             public Quaternion Facing {
@@ -371,8 +381,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             public void Activate() {
                 camera.cullingMask |= 1 << LayerMask.NameToLayer("Self");
-                pitch = 0;
-                yaw = 180;
+                pitch = 0; yaw = 180;
                 smoothCharacterRot = camera.baseCollider.Collider.transform.rotation;
                 smoothCameraRot = Quaternion.AngleAxis(yaw, Vector3.up);
                 camera.cameraLocalRotation = smoothCameraRot;

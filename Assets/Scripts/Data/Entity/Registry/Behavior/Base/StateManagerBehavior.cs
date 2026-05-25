@@ -67,7 +67,7 @@ namespace Arterra.Data.Entity.Behavior {
         Death = EntitySMBase.Final,
     }
 
-    public class StateMachineManagerBehavior : IBehavior {
+    public class StateMachineManagerBehavior : ISpeciesBehavior {
         [JsonIgnore] public StateMachineManagerSettings settings;
         private ColliderUpdateBehavior collider;
         private MMove mmove;

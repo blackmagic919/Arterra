@@ -21,7 +21,7 @@ public class RideableStateSettings : IBehaviorSetting {
     }
 }
 
-public class RidableStateBehavior : IBehavior {
+public class RidableStateBehavior : ISpeciesBehavior {
     private RideableStateSettings settings;
     private Movement movement;
     private MMove mmove; //optional

@@ -68,17 +68,17 @@ namespace Arterra.Data.Item
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
                 effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddBinding(new ActionBind("Remove",
                     _ => PlayerRemoveTerrain(cxt)),
                     "ITEM::Tool:RM", "5.0::GamePlay");
-            });
+            
         }
         public virtual void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
                 effect.RaiseEvent(GameEvent.Item_UnholdTool, effect, this, ref settings.Model.Value);
-            InputPoller.AddKeyBindChange(() => InputPoller.RemoveBinding("ITEM::Tool:RM", "5.0::GamePlay"));
+            InputPoller.RemoveBinding("ITEM::Tool:RM", "5.0::GamePlay");
         }
 
         protected GameObject display;

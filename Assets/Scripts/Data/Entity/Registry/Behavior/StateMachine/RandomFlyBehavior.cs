@@ -27,7 +27,7 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
 
-    public class RandomFlyBehavior : IBehavior {
+    public class RandomFlyBehavior : ISpeciesBehavior {
         private RandomFlyStateSettings settings;
         private Movement movement;
         private MMove mmove; //optional

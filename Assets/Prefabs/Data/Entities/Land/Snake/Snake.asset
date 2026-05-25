@@ -87,13 +87,15 @@ MonoBehaviour:
           y: 0.5
           z: 1
       BehaviorList:
-        value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000f2030000
       Settings:
         value:
         - value:
             rid: 5205636866482634859
         - value:
             rid: 3097084098772992147
+        - value:
+            rid: 5205636866482634860
         - value:
             rid: 3097083922518114515
         - value:
@@ -141,11 +143,29 @@ MonoBehaviour:
         - value:
             rid: 3097083922518114535
         - value:
-            rid: 5205636866482634860
-      _prevBehaviorCount: 22
+            rid: 1481107571315572932
+      _prevBehaviorCount: 24
   references:
     version: 2
     RefIds:
+    - rid: 1481107571315572932
+      type: {class: EffectorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Effectors:
+          value:
+          - trigger: 3
+            effect:
+              name: 1
+              subject: 1
+              chance: 0.5
+              behavior:
+                rid: 1481107571315572933
+    - rid: 1481107571315572933
+      type: {class: PoisonEffect, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Strength: 0.1
+        Duration: 120
+        EffectIcon: PoisonIcon
     - rid: 3097083922518114515
       type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -160,6 +180,7 @@ MonoBehaviour:
       data:
         interactType: 0
         HoldBreathTime: 10
+        Bouyancy: 0
         UseFallDamage: 1
     - rid: 3097083922518114517
       type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -213,7 +234,7 @@ MonoBehaviour:
         OnFinishMateTransition: 100
         MateThreshold: 0.8
         PregnacyLength: 4
-        SearchDistance: 32
+        MateSearchDist: 0
         OnSwitchPath:
           value: 
     - rid: 3097083922518114524
@@ -222,7 +243,7 @@ MonoBehaviour:
         TaskName: 30200
         OnNotFoundTransition: 0
         OnReachPreyTransition: 30400
-        SearchDistance: 6
+        SearchPlantDistance: 0
     - rid: 3097083922518114525
       type: {class: FindPlantBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -240,13 +261,14 @@ MonoBehaviour:
         OnNotFoundTransition: 0
         OnReachPreyTransition: 30600
         DesiredPreyState: 0
-        SearchDistance: 32
+        SearchPreyDist: 32
         Prey:
           value:
           - EntityType: Horse
           - EntityType: Dove
           - EntityType: Rabbit
           - EntityType: ArcticHare
+          - EntityType: Player
     - rid: 3097083922518114528
       type: {class: ConsumeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -296,7 +318,6 @@ MonoBehaviour:
       type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         TaskName: 50000
-        OverridableStates: 30600
         OnLostAttacker: 0
     - rid: 3097083922518114535
       type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -379,86 +400,83 @@ MonoBehaviour:
           value:
           - name: 1004
             var: 0.35
-            geneWeight: 0.4
+            geneWeight: 1.7932477e-11
           - name: 1006
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 8.966238e-12
           - name: 1007
             var: 0.1
-            geneWeight: 0.025
+            geneWeight: 1.1207798e-12
           - name: 1005
             var: 0.3
-            geneWeight: 0.1
+            geneWeight: 4.483119e-12
           - name: 1000
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 8.966238e-12
           - name: 1001
             var: 0.5
-            geneWeight: 0.6
+            geneWeight: 2.6898712e-11
           - name: 1002
             var: 0.5
-            geneWeight: 0.3
+            geneWeight: 1.3449356e-11
           - name: 1003
             var: 0.5
-            geneWeight: 0.1
+            geneWeight: 4.483119e-12
           - name: 4002
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 8.966238e-12
           - name: 4001
             var: 0.4
-            geneWeight: 0.15
+            geneWeight: 6.724678e-12
           - name: 2039
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 1.1207798e-12
           - name: 2040
             var: 1
-            geneWeight: 0.025
+            geneWeight: 1.1207798e-12
           - name: 2044
             var: 0.3
-            geneWeight: 0.025
+            geneWeight: 1.1207798e-12
           - name: 2045
             var: 0
             geneWeight: 0
           - name: 2035
             var: 0.125
-            geneWeight: 0.1
+            geneWeight: 4.483119e-12
           - name: 2036
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 8.966238e-12
           - name: 2037
             var: 0.25
-            geneWeight: 0.15
+            geneWeight: 6.724678e-12
           - name: 2002
             var: 0.25
-            geneWeight: 0.1
+            geneWeight: 4.483119e-12
           - name: 2003
             var: 0.05
-            geneWeight: 0.05
+            geneWeight: 2.2415596e-12
           - name: 2038
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 8.966238e-12
           - name: 4000
             var: 0.25
-            geneWeight: 0.3
+            geneWeight: 1.3449356e-11
           - name: 2031
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 8.966238e-12
           - name: 2030
             var: 0.25
-            geneWeight: 0.3
+            geneWeight: 1.3449356e-11
           - name: 1012
             var: 0.2
-            geneWeight: 0.01
+            geneWeight: 4.483118e-13
           - name: 1008
             var: 0.3
-            geneWeight: 0.1
+            geneWeight: 4.483119e-12
           - name: 1009
             var: 0.35
-            geneWeight: 0.35
+            geneWeight: 1.5690914e-11
           - name: 4003
             var: 0.75
-            geneWeight: 0.05
-
-
-
+            geneWeight: 2.2415596e-12
         NormalizeWeights: 1

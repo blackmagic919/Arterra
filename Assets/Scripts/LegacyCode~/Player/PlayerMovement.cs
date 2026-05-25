@@ -184,23 +184,23 @@ namespace Arterra.GamePlay {
         private static void AddHandles(){
             InputPoller.AddStackPoll(new ActionBind("SwimMove::1", _ => Update()), "Movement::Update");
             InputPoller.AddStackPoll(new ActionBind("SwimMove::2", _ => PlayerHandler.data.collider.useGravity = true), "Movement::Gravity");
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddBinding(new ActionBind("Ascend", (_null_) => {
                     if(velocity.y < MoveSpeed) velocity.y += Setting.acceleration * Time.deltaTime;
                 }), "PMSwimMove:ASD", "4.0::Movement");
                 InputPoller.AddBinding(new ActionBind("Descend", (_null_) => {
                     if(velocity.y > -MoveSpeed) velocity.y -= Setting.acceleration * Time.deltaTime;
                 }), "PMSwimMove:DSD", "4.0::Movement");
-            });
+            
         }
 
         private static void RemoveHandles(){
             InputPoller.RemoveStackPoll("SwimMove::1", "Movement::Update");
             InputPoller.RemoveStackPoll("SwimMove::2", "Movement::Gravity");
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.RemoveBinding("PMSwimMove:ASD", "4.0::Movement");
                 InputPoller.RemoveBinding("PMSwimMove:DSD", "4.0::Movement");
-            });
+            
         }
 
         private static void Update(){
@@ -259,24 +259,24 @@ namespace Arterra.GamePlay {
 
             InputPoller.AddStackPoll(new ActionBind("FlightMove::1", _ => Update()), "Movement::Update");
             InputPoller.AddStackPoll(new ActionBind("FlightMove::2", _ => PlayerHandler.data.collider.useGravity = false), "Movement::Gravity");
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddBinding(new ActionBind("Ascend", (_null_) => {
                     if (velocity.y < MoveSpeed) velocity.y += Setting.acceleration * Time.deltaTime * Setting.flightSpeedMultiplier;
                 }), "PMFlightMove:ASD", "4.0::Movement");
                 InputPoller.AddBinding(new ActionBind("Descend", (_null_) => {
                     if (velocity.y > -MoveSpeed) velocity.y -= Setting.acceleration * Time.deltaTime * Setting.flightSpeedMultiplier;
                 }), "PMFlightMove:DSD", "4.0::Movement");
-            });
+            
         }
 
         private static void RemoveHandles() {
             IsFlying = false;
             InputPoller.RemoveStackPoll("FlightMove::1", "Movement::Update");
             InputPoller.RemoveStackPoll("FlightMove::2", "Movement::Gravity");
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.RemoveBinding("PMFlightMove:ASD", "4.0::Movement");
                 InputPoller.RemoveBinding("PMFlightMove:DSD", "4.0::Movement");
-            });
+            
         }
 
         private static void Update() {
@@ -317,12 +317,12 @@ namespace Arterra.GamePlay {
             InputPoller.AddStackPoll(new ActionBind("RideMove::1", _ => Update()), "Movement::Update");
             PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_MountRideable, PlayerHandler.data, mount);
 
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddContextFence("PMRideMove", "4.0::Movement", ActionBind.Exclusion.ExcludeLayer);
                 InputPoller.AddBinding(new ActionBind("Move Vertical", MoveForward), "PMRideMove:MV", "4.0::Movement");
                 InputPoller.AddBinding(new ActionBind("Move Horizontal", Rotate), "PMRideMove:MH", "4.0::Movement");
                 InputPoller.AddBinding(new ActionBind("Dismount", _ => mount?.Dismount()), "PMRideMove:DSM", "5.0::Gameplay");
-            });
+            
             RideMovement.mount = mount;
         }
 
@@ -334,10 +334,10 @@ namespace Arterra.GamePlay {
             SubTransform.transform.localRotation = Quaternion.identity;
 
             if (mount is Entity entity) PlayerHandler.data.attached.Remove(entity.info.rtEntityId);
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.RemoveContextFence("PMRideMove", "4.0::Movement");
                 InputPoller.RemoveBinding("PMRideMove:DSM", "5.0::Gameplay");
-            });
+            
             mount = null;
         }
 

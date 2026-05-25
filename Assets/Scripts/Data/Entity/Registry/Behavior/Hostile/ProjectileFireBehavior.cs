@@ -42,7 +42,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class ProjectileFireBehavior : IBehavior {
+    public class ProjectileFireBehavior : ISpeciesBehavior {
         private ProjectileFireSettings settings;
         private StateMachineManagerBehavior manager;
         private AnimatedBehavior animated;

@@ -118,7 +118,7 @@ public class SpectatorController : MonoBehaviour
             hasSnapped = true;
         }
         
-        InputPoller.AddKeyBindChange(() => {
+        
             InputPoller.AddContextFence("Spectator", "2.5::Subscene", ActionBind.Exclusion.ExcludeAll);
             InputPoller.AddBinding(new ActionBind("Move Vertical", y => inputDir.y = y), "SpectatorMove:MV", "2.5::Subscene");
             InputPoller.AddBinding(new ActionBind("Move Horizontal", x => inputDir.x = x), "SpectatorMove:MH", "2.5::Subscene");
@@ -131,7 +131,7 @@ public class SpectatorController : MonoBehaviour
                 InputPoller.AddBinding(new ActionBind("Descend", (_null_) => {
                 inputDir.z--;
                 }), "SpecatatorMove:DSD", "2.5::Subscene");
-        });
+        
 
 
         mainCamera = Camera.main;
@@ -147,7 +147,7 @@ public class SpectatorController : MonoBehaviour
     }
 
     private void RemoveHandles() {
-        InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence("Spectator", "2.5::Subscene"));
+        InputPoller.RemoveContextFence("Spectator", "2.5::Subscene");
         // Switch back to other camera
         if (Camera.main == this.cam) {
             Toggle(this.cam, false);

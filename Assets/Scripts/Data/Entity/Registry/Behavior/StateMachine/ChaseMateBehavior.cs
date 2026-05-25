@@ -42,7 +42,7 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
 
-    public class ChaseMateBehavior : IBehavior {
+    public class ChaseMateBehavior : ISpeciesBehavior {
         private ChaseMateStateSettings settings;
         private Movement movement;
         private MMove mmove; //optional

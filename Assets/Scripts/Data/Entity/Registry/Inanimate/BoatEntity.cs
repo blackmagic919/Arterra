@@ -15,6 +15,7 @@ using Arterra.Editor;
 using Arterra.GamePlay.UI;
 using Arterra.Data.Entity.Behavior;
 using System.Collections.Generic;
+using Arterra.Configuration.Gameplay;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Boat")]
 public class BoatEntity : Arterra.Data.Entity.Authoring {
@@ -183,7 +184,6 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             private GameObject gameObject;
             internal Transform transform;
             internal Transform RideRoot;
-            private Indicators indicators;
 
             private bool active = false;
             private float angle;
@@ -196,7 +196,6 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
                 this.active = true;
                 this.angle = 0;
 
-                this.indicators = new Indicators(gameObject, entity);
                 this.transform.position = CPUMapManager.GSToWS(entity.position);
                 this.RideRoot = gameObject.transform.Find("Armature").Find("root").Find("base");
 
@@ -207,7 +206,6 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
                 if (gameObject == null) return;
                 TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
-                indicators.Update();
 
                 float minSpeed = math.min(entity.settings.MaxLandSpeed, entity.settings.MaxWaterSpeed) * 0.5f;
                 if (Vector2.SqrMagnitude(entity.velocity.xz) < minSpeed * minSpeed) {
@@ -225,7 +223,6 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
                 if (!active) return;
                 active = false;
 
-                indicators.Release();
                 Destroy(gameObject);
             }
             ~BoatController() {

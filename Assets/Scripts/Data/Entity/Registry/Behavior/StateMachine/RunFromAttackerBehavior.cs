@@ -8,7 +8,6 @@ using System.Collections.Generic;
 namespace Arterra.Data.Entity.Behavior {
     public class RunFromAttackerSettings : IBehaviorSetting {
         public EntitySMTasks TaskName = EntitySMTasks.RunFromTarget;
-        public EntitySMTasks OverridableStates = EntitySMTasks.AttackTarget;
         public EntitySMTasks OnLostAttacker = EntitySMTasks.Idle;
 
         public object Clone() {
@@ -19,10 +18,11 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class RunFromAttackerBehavior : IBehavior {
+    public class RunFromAttackerBehavior : ISpeciesBehavior {
         [JsonIgnore]
         public RunFromAttackerSettings settings;
         private RunFromPredatorSettings predator; //Optional
+        private ChasePreySettings prey; //optional
         private FleeBehaviorSettings flee;
         private Movement movement;
         private MMove mmove; //optional
@@ -71,8 +71,11 @@ namespace Arterra.Data.Entity.Behavior {
             if (relations != null && relations.GetAffection(entity.info.rtEntityId)
                 > relations.settings.SuppressInstinctAffection)
                 return;
-            if (predator != null && predator.Recognize((int)entity.info.entityType))
+            int entityType = (int)entity.info.entityType;
+            if (predator != null && predator.Recognize(entityType))
                 manager.Transition(settings.TaskName);
+            else if (prey != null && prey.Recognize(entityType))
+                return;
             else if (!flee.FightAggressor)
                 manager.Transition(settings.TaskName);
             if (manager.TaskIndex == settings.TaskName)
@@ -98,6 +101,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out flee))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalSettings to have Flee");
             if (!setting.Is(out predator)) predator = null;
+            if (!setting.Is(out prey)) prey = null;
             if (!setting.Is(out mmove)) mmove = null;
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have StateMachineManager");
@@ -118,6 +122,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out flee))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalSettings to have Flee");
             if (!setting.Is(out predator)) predator = null;
+            if (!setting.Is(out prey)) prey = null;
             if (!setting.Is(out mmove)) mmove = null;
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalInstance to have StateMachineManager");

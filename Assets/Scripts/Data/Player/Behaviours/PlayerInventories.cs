@@ -49,7 +49,7 @@ namespace Arterra.Data.Entity.Behavior {
 	/// <summary>
 	/// Owns player inventories and item transfer/drop helpers for behavior-based player flow.
 	/// </summary>
-	public class PlayerInventoriesBehavior : IBehavior {
+	public class PlayerInventoriesBehavior : ISpeciesBehavior {
 		[JsonIgnore] public PlayerInventorySettings settings;
 		public InventoryController.Inventory PrimaryI;
 		public InventoryController.Inventory SecondaryI;

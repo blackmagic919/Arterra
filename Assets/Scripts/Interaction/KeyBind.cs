@@ -203,6 +203,7 @@ namespace Arterra.GamePlay.Interaction {
         private static HashSet<string> LayerBindExclusion;
 
         private static bool CursorLock = false;
+        private static bool IsAnswering = false;
         private const int MaxActionBinds = 10000;
         private const float TriggerResetTime = 0.25f;
 
@@ -219,6 +220,7 @@ namespace Arterra.GamePlay.Interaction {
             LayerBindExclusion = new HashSet<string>();
             LastTrigger = new Dictionary<string, (float trigTime, uint trigCount)>();
             TaskBindingDict = new TwoWayDict<string, uint>();
+            IsAnswering = false;
         }
 
         public static void SetCursorLock(bool value) {
@@ -280,62 +282,82 @@ namespace Arterra.GamePlay.Interaction {
 
                     }
                 } while (current != head.Value);
-            }
+            } 
         }
         private static void Update(MonoBehaviour mono) {
+            IsAnswering = true;
             AnswerKeyBinds();
+            IsAnswering = false;
             //Fulfill all keybind change requests
             while (KeyBindChanges.Count > 0)
                 KeyBindChanges.Dequeue().Invoke();
         }
 
-        public static void AddKeyBindChange(Action action) { KeyBindChanges.Enqueue(action); }
-
         public static void AddBinding(ActionBind bind, string TaskName, string Layer) {
-            string fullTaskName = String.Join("::", Layer, TaskName);
-            if (TaskBindingDict.TryGetByKey(fullTaskName, out uint bindIndex))
-                RemoveKeyBind(bindIndex, Layer);
-            TaskBindingDict[fullTaskName] = AddKeyBind(bind, Layer);
+            if (IsAnswering) KeyBindChanges.Enqueue(() => _AddBinding(bind, TaskName, Layer));
+            else _AddBinding(bind, TaskName, Layer);
+
+            static void _AddBinding(ActionBind bind, string TaskName, string Layer){
+                string fullTaskName = String.Join("::", Layer, TaskName);
+                if (TaskBindingDict.TryGetByKey(fullTaskName, out uint bindIndex))
+                    RemoveKeyBind(bindIndex, Layer);
+                TaskBindingDict[fullTaskName] = AddKeyBind(bind, Layer);   
+            }
         }
 
         public static void AddContextFence(string TaskName, string Layer, ActionBind.Exclusion exclusion = ActionBind.Exclusion.ExcludeLayer) {
-            string fullTaskName = String.Join("::", Layer, TaskName);
-            if (TaskBindingDict.TryGetByKey(fullTaskName, out uint bindIndex))
-                RemoveKeyBind(bindIndex, Layer);
-            TaskBindingDict[fullTaskName] = AddKeyBind(new ActionBind {
-                Binding = null,
-                action = null,
-                exclusion = exclusion
-            }, Layer);
+            if (IsAnswering) KeyBindChanges.Enqueue(() => _AddContextFence(TaskName, Layer, exclusion));
+            else _AddContextFence(TaskName, Layer, exclusion);
+
+            static void _AddContextFence(string TaskName, string Layer, ActionBind.Exclusion exclusion) {
+                string fullTaskName = String.Join("::", Layer, TaskName);
+                if (TaskBindingDict.TryGetByKey(fullTaskName, out uint bindIndex))
+                    RemoveKeyBind(bindIndex, Layer);
+                TaskBindingDict[fullTaskName] = AddKeyBind(new ActionBind {
+                    Binding = null,
+                    action = null,
+                    exclusion = exclusion
+                }, Layer);
+            }
         }
 
         public static void RemoveBinding(string TaskName, string Layer) {
-            string fullTaskName = String.Join("::", Layer, TaskName);
-            if (!TaskBindingDict.TryGetByKey(fullTaskName, out uint bindIndex))
-                return;
-            RemoveKeyBind(bindIndex, Layer);
-            TaskBindingDict.RemoveByKey(fullTaskName);
+            if (IsAnswering) KeyBindChanges.Enqueue(() => _RemoveBinding(TaskName, Layer));
+            else _RemoveBinding(TaskName, Layer);
+
+            static void _RemoveBinding(string TaskName, string Layer) {
+                string fullTaskName = String.Join("::", Layer, TaskName);
+                if (!TaskBindingDict.TryGetByKey(fullTaskName, out uint bindIndex))
+                    return;
+                RemoveKeyBind(bindIndex, Layer);
+                TaskBindingDict.RemoveByKey(fullTaskName);
+            }
         }
 
 
         //Do not call this with an invalid bindIndex not in the layer, or else it could corrupt all keybinds
         public static void RemoveContextFence(string TaskName, string Layer) {
-            if (!LayerHeads.Contains(Layer))
-                return;
+            if (IsAnswering) KeyBindChanges.Enqueue(() => _RemoveContextFence(TaskName, Layer));
+            else _RemoveContextFence(TaskName, Layer);
 
-            string fullTaskName = String.Join("::", Layer, TaskName);
-            if (!TaskBindingDict.TryGetByKey(fullTaskName, out uint bindIndex))
-                return;
-            uint current = LayerHeads.Retrieve(Layer);
-            while (current != bindIndex) {
-                uint next = KeyBinds.Next(current);
-                TaskBindingDict.RemoveByValue(current);
+            static void _RemoveContextFence(string TaskName, string Layer) {
+                if (!LayerHeads.Contains(Layer))
+                    return;
+
+                string fullTaskName = String.Join("::", Layer, TaskName);
+                if (!TaskBindingDict.TryGetByKey(fullTaskName, out uint bindIndex))
+                    return;
+                uint current = LayerHeads.Retrieve(Layer);
+                while (current != bindIndex) {
+                    uint next = KeyBinds.Next(current);
+                    TaskBindingDict.RemoveByValue(current);
+                    RemoveKeyBind(current, Layer);
+                    current = next;
+                }
+                LayerHeads.TrySet(Layer, KeyBinds.Next(current));
                 RemoveKeyBind(current, Layer);
-                current = next;
+                TaskBindingDict.RemoveByKey(fullTaskName);
             }
-            LayerHeads.TrySet(Layer, KeyBinds.Next(current));
-            RemoveKeyBind(current, Layer);
-            TaskBindingDict.RemoveByKey(fullTaskName);
         }
 
         public static void SuspendKeybindPropogation(string name, ActionBind.Exclusion exclusion = ActionBind.Exclusion.ExcludeLayer) {

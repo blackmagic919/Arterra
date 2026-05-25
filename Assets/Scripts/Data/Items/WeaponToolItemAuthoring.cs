@@ -40,13 +40,13 @@ namespace Arterra.Data.Item
                 effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
             OctreeTerrain.MainLoopUpdateTasks.Enqueue(this);
             this.active = true; this.cxt = cxt;
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddBinding(new ActionBind(
                     "Remove", PlayerAttack,
                     ActionBind.Exclusion.ExcludeLayer),
                     "ITEM::WeaponTool:RM", "5.0::GamePlay"
                 );
-            });
+            
         }
 
         public override void OnLeave(ItemContext cxt) {
@@ -55,9 +55,9 @@ namespace Arterra.Data.Item
                 effect.RaiseEvent(GameEvent.Item_UnholdTool, effect, this, ref settings.Model.Value);
             this.active = false;
             this.cxt = null;
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.RemoveBinding("ITEM::WeaponTool:RM", "5.0::GamePlay");
-            });
+            
         }
 
         public override void AttachDisplay(Transform parent, int itemInd) {

@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 97317afa67db141c7ad2a5d64ba18ff3, type: 3}
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
   m_Name: PlayerEntity
-  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.DirectUpdateBEntity
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
   Name: Player
   Tags:
     Reg:
@@ -33,16 +33,16 @@ MonoBehaviour:
           y: 0
           z: 0
       BehaviorList:
-        value: 05000000feffffff
+        value: 05000000
       Settings:
         value:
         - value:
-            rid: 1481107193507872844
-      _prevBehaviorCount: 2
+            rid: 1481107594490413083
+      _prevBehaviorCount: 0
   references:
     version: 2
     RefIds:
-    - rid: 1481107193507872844
+    - rid: 1481107594490413083
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0

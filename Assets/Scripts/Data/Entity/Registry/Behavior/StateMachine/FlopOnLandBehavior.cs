@@ -21,7 +21,7 @@ namespace Arterra.Data.Entity.Behavior{
             };
         }
     }
-    public class FlopOnLandBehavior : IBehavior {
+    public class FlopOnLandBehavior : ISpeciesBehavior {
         private FlopOnLandSetting settings;
         private StateMachineManagerBehavior manager;
         private MapInteractBehavior mInteract;

@@ -23,7 +23,7 @@ public class DefendFriendSetting : IBehaviorSetting {
 
 }
 
-public class DefendFriendBehavior : IBehavior {
+public class DefendFriendBehavior : ISpeciesBehavior {
     private DefendFriendSetting settings;
 
     private StateMachineManagerBehavior manager;

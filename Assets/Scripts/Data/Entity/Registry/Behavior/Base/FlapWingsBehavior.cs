@@ -16,7 +16,7 @@ namespace Arterra.Data.Entity.Behavior{
         }
     }
 
-    public class FlapWingsBehavior : IBehavior {
+    public class FlapWingsBehavior : ISpeciesBehavior {
         private FlapWingsBehaviorSettings settings;
         private AnimatedBehavior animator;
         public void Update(BehaviorEntity.Animal self) {

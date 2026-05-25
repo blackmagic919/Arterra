@@ -198,11 +198,11 @@ namespace Arterra.Data.Intrinsic.Mortar {
             RecipeSearch.Activate();
             animator.SetBool("IsOpen", true);
             ToggleSearch.Lock();
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddBinding(new ActionBind("Select",
                     FormulaMenuSelect, ActionBind.Exclusion.None),
                     "MAT::MortarSearch:SEL", "3.5::Window");
-            });
+            
         }
 
 
@@ -212,7 +212,7 @@ namespace Arterra.Data.Intrinsic.Mortar {
             ClosingTask?.Disable();
             ClosingTask = new AnimatorAwaitTask(animator, "ClosedAnim", () => {
                 //Does nothing if not bound :)
-                InputPoller.AddKeyBindChange(() => InputPoller.RemoveBinding("MAT::MortarSearch:SEL", "3.5::Window"));
+                InputPoller.RemoveBinding("MAT::MortarSearch:SEL", "3.5::Window");
                 DeactivateRecipeDisplay();
                 RecipeSearch.Deactivate();
                 Menu.gameObject.SetActive(false);

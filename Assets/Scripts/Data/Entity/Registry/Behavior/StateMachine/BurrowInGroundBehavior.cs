@@ -75,7 +75,7 @@ namespace Arterra.Data.Entity.Behavior{
         }
         
     }
-    public class BurrowInGroundBehavior : IBehavior {
+    public class BurrowInGroundBehavior : ISpeciesBehavior {
         private BurrowInGroundSetting settings;
         private Movement movement;
         private MMove mmove;

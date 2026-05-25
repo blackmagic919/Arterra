@@ -22,9 +22,10 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class ChaseAttackerBehavior : IBehavior {
+    public class ChaseAttackerBehavior : ISpeciesBehavior {
         [JsonIgnore]
         public ChaseAttackerSettings settings;
+        private RunFromPredatorSettings predator; //Optional
         private ChasePreySettings prey; //optional
         private FleeBehaviorSettings flee; //optional
         private Movement movement;
@@ -80,8 +81,11 @@ namespace Arterra.Data.Entity.Behavior {
             if (relations != null && relations.GetAffection(entity.info.rtEntityId)
                 > relations.settings.SuppressInstinctAffection)
                     return;
-            if (prey != null && prey.Recognize((int)entity.info.entityType))
+            int entityType = (int)entity.info.entityType;
+            if (prey != null && prey.Recognize(entityType))
                 manager.Transition(settings.TaskName);
+            else if (predator != null && predator.Recognize(entityType))
+                return;
             else if (flee != null && flee.FightAggressor)
                 manager.Transition(settings.TaskName);
             if (manager.TaskIndex == settings.TaskName) 
@@ -106,6 +110,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out flee)) flee = null;
+            if (!setting.Is(out predator)) predator = null;
             if (!setting.Is(out prey)) prey = null;
             if (!setting.Is(out mmove)) mmove = null;
             if (!self.Is(out manager))
@@ -125,6 +130,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out movement))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalSettings to have Movement");
             if (!setting.Is(out flee)) flee = null;
+            if (!setting.Is(out predator)) predator = null;
             if (!setting.Is(out prey)) prey = null;
             if (!setting.Is(out mmove)) mmove = null;
             if (!self.Is(out manager))

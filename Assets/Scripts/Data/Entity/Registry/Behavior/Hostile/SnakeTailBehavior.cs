@@ -44,7 +44,7 @@ namespace Arterra.Data.Entity.Behavior
         }
     }
 
-    public class SnakeTailBehavior : IBehavior {
+    public class SnakeTailBehavior : ISpeciesBehavior {
         private SnakeTailSettings settings;
         private LeadHeadBehavior LeadHead;
         private AnimatedBehavior animated;

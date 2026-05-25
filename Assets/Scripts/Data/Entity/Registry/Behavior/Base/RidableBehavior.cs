@@ -31,7 +31,7 @@ public class RideableSettings : IBehaviorSetting {
     }
 }
 
-public class RidableBehavior : IBehavior, IRidable {
+public class RidableBehavior : ISpeciesBehavior, IRidable {
     private RideableSettings settings;
 
     private BehaviorEntity.Animal self;

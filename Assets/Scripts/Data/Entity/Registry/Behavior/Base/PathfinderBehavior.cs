@@ -7,7 +7,7 @@ using Unity.Mathematics;
 using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
-    public class PathFinderBehavior : IBehavior {
+    public class PathFinderBehavior : ISpeciesBehavior {
         public PathFinder.PathInfo pathFinder;
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             pathFinder.hasPath = false;

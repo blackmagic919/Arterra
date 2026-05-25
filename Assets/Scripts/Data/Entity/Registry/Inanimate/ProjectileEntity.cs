@@ -13,6 +13,7 @@ using Arterra.GamePlay.Interaction;
 using Arterra.Engine.Audio;
 using Arterra.Editor;
 using Arterra.Data.Entity.Behavior;
+using Arterra.Configuration.Gameplay;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Projectile")]
 public class Projectile : Arterra.Data.Entity.Authoring
@@ -194,7 +195,6 @@ public class Projectile : Arterra.Data.Entity.Authoring
             private GameObject gameObject;
             private Transform transform;
             private EventInstance instance;
-            private Indicators indicators;
 
             private bool active = false;
 
@@ -206,7 +206,6 @@ public class Projectile : Arterra.Data.Entity.Authoring
                 this.entity = (ProjectileEntity)Entity;
                 this.active = true;
 
-                this.indicators = new Indicators(gameObject, entity);
                 this.transform.position = CPUMapManager.GSToWS(entity.position);
                 entity.eventCtrl.AddEventHandler(Arterra.Core.Events.GameEvent.Entity_ProjectileHit, PlayHitEffects);
                 instance = AudioManager.CreateEventAttached(entity.settings.FlybySound, gameObject);
@@ -218,7 +217,6 @@ public class Projectile : Arterra.Data.Entity.Authoring
                 TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
 
-                this.indicators.Update();
                 if (entity.HasCollided) return;
                 float speed = math.length(entity.velocity);
                 speed = 1.0f - math.exp(-0.1f * speed);
@@ -230,7 +228,6 @@ public class Projectile : Arterra.Data.Entity.Authoring
                 active = false;
 
                 instance.stop(STOP_MODE.ALLOWFADEOUT);
-                indicators.Release();
                 Destroy(gameObject);
             }
 

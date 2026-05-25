@@ -22,15 +22,25 @@ namespace Arterra.Data.Entity.Behavior {
         public void OnValidate(BehaviorEntity.AnimalSetting setting) {}
     }
 
-
     public interface IBehavior {
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord){}
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){}
         public void Update(BehaviorEntity.Animal self){}
         public void Disable(BehaviorEntity.Animal self){}
         public void OnDrawGizmos(BehaviorEntity.Animal self) {}
+    }
+
+    public interface ISpeciesBehavior : IBehavior {
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> Behaviors){}
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> Settings){}
+    }
+
+    
+
+    public interface ITempBehavior : IBehavior {
+        public bool CanApply(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting) => true;
+        //Create is called before CanApply is called with it
+        public ITempBehavior Create(BehaviorEntity.Animal self = null);
     }
 
 
@@ -39,6 +49,8 @@ namespace Arterra.Data.Entity.Behavior {
         public const int Creature = 1000;
         public const int Hostile = 5000;
         public const int StateMachine = 10000;
+
+        public const int Effects = 50000;
     }
 
     public enum Behaviors {
@@ -67,6 +79,7 @@ namespace Arterra.Data.Entity.Behavior {
         Relations = BehaviorTypes.Creature + 7,
         DefendFriend = BehaviorTypes.Creature + 8,
         FlapWing = BehaviorTypes.Creature + 9,
+        Effector = BehaviorTypes.Creature + 10,
 
         ChaseEnemy = BehaviorTypes.Hostile + 0,
         LeadHead = BehaviorTypes.Hostile + 1,
@@ -99,6 +112,8 @@ namespace Arterra.Data.Entity.Behavior {
         FlopOnGround = BehaviorTypes.StateMachine + 115,
         DeathState = BehaviorTypes.StateMachine + 120,
         
+        Poison = BehaviorTypes.Effects + 0,
+        Bleeding = BehaviorTypes.Effects + 1,
     }
 
     // つぎはぎの生物, stitchwork animal
@@ -138,6 +153,7 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.Relations, () => new RelationsBehavior()},
             { Behaviors.DefendFriend, () => new DefendFriendBehavior()},
             { Behaviors.FlapWing, () => new FlapWingsBehavior()},
+            { Behaviors.Effector, () => new EffectorBehavior()},
 
             { Behaviors.ChaseEnemy, () => new ChaseEnemyBehavior()},
             { Behaviors.LeadHead, () => new LeadHeadBehavior()},
@@ -169,6 +185,9 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.BurrowUnderground, () => new BurrowInGroundBehavior()},
             { Behaviors.FlopOnGround, () => new FlopOnLandBehavior()},
             { Behaviors.DeathState, () => new DeathBehavior()},
+
+            { Behaviors.Poison, () => new PoisonEffect()},
+            { Behaviors.Bleeding, () => new BleedingEffect()},
         };
 
         public enum UpdateContext { Job, Fixed, Main, Late, JobSync }
@@ -262,7 +281,8 @@ namespace Arterra.Data.Entity.Behavior {
                     if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
                         continue;
                     IBehavior behavior = getBehavior.Invoke();
-                    behavior.AddBehaviorDependencies(BehaviorHeirarchy);
+                    if (behavior is ISpeciesBehavior species)
+                        species.AddBehaviorDependencies(BehaviorHeirarchy);
                     BehaviorHeirarchy.TryAdd(name, BehaviorHeirarchy.Count);
                 }
 
@@ -276,7 +296,8 @@ namespace Arterra.Data.Entity.Behavior {
                     if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
                         continue;
                     IBehavior behavior = getBehavior.Invoke();
-                    behavior.AddSettingsDependencies(SettingsHeirarchy);
+                    if (behavior is ISpeciesBehavior species)
+                        species.AddSettingsDependencies(SettingsHeirarchy);
                 }
 
                 //Merge Settings
@@ -362,7 +383,12 @@ namespace Arterra.Data.Entity.Behavior {
                     colliderInfo = instance as IMultiCollider;
                 DynamicTypes[type] = instance;
             }
-            
+
+            public void Unregister(Type type) {
+                if (DynamicTypes.ContainsKey(type))
+                    DynamicTypes.Remove(type);
+            }
+
             public override bool Is<TInstance>(out TInstance instance) {
                 if (DynamicTypes == null) {instance = default; return false;}
                 if (DynamicTypes.TryGetValue(typeof(TInstance), out object value)) {
@@ -385,12 +411,7 @@ namespace Arterra.Data.Entity.Behavior {
                 foreach(Behaviors name in settings.BehaviorList.value) {
                     if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
                         continue;
-                    IBehavior behavior = getBehavior.Invoke();
-                    if (TryGetConstructor(behavior.GetType(), out object savedBehav))
-                        behavior = (IBehavior) savedBehav;
-                    if (behavior == null) continue;
-                    Register(behavior.GetType(), behavior);
-                    Behaviors.Add(behavior);
+                    _addBehavior(getBehavior.Invoke());
                 }
                 foreach(IBehavior behavior in Behaviors) {
                     behavior.Initialize(this, settings, GCoord);
@@ -406,13 +427,11 @@ namespace Arterra.Data.Entity.Behavior {
                 this.controller = new AnimalController(Controller, this);
                 GCoord = default;
 
-                foreach(IBehavior behavior in Behaviors) {
+                foreach(IBehavior behavior in Behaviors)
                     Register(behavior.GetType(), behavior);
-                }
 
-                foreach(IBehavior behavior in Behaviors) {
+                foreach(IBehavior behavior in Behaviors) 
                     behavior.Deserialize(this, settings, ref GCoord);
-                }
 
                 controller.Initialize(transform);
             }
@@ -458,6 +477,39 @@ namespace Arterra.Data.Entity.Behavior {
                 foreach(IBehavior behavior in Behaviors) {
                     behavior.Disable(this);
                 } controller.Dispose();
+            }
+            
+            public void AddBehavior(ITempBehavior behavior) {
+                EntityManager.AddHandlerEvent(() => {
+                    if (behavior == null) return;
+                    if (!behavior.CanApply(this, settings)) return;
+                    eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_AddBehavior, this, behavior);
+                    _addBehavior(behavior, false); //doesn't register type as could have multiple temp effects
+                    if (!active) return;
+                    behavior.Initialize(this, settings, position);
+                }); 
+            }
+
+            public void RemoveBehavior(ITempBehavior behavior) {
+                EntityManager.AddHandlerEvent(() => {
+                    if (behavior == null) return;
+                    int previousCount = Behaviors.Count;
+                    Behaviors = Behaviors.Where(b => !ReferenceEquals(b, behavior)).ToList();
+                    if (Behaviors.Count == previousCount) return;
+                    if (!active) return;
+                    eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_RemoveBehavior, this, behavior);
+                    behavior.Disable(this);
+                });
+            }
+
+            private bool _addBehavior(IBehavior behavior, bool register = true) {
+                if (behavior == null) return false;
+                if (TryGetConstructor(behavior.GetType(), out object savedBehav))
+                    behavior = (IBehavior) savedBehav;
+                if (behavior == null) return false;
+                if (register) Register(behavior.GetType(), behavior);
+                Behaviors.Add(behavior);
+                return true;
             }
         }
 

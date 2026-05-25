@@ -83,7 +83,7 @@ namespace Arterra.Data.Item
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
                 effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddBinding(new ActionBind(
                     "BowDraw", _ => StartDrawingRod(cxt),
                     ActionBind.Exclusion.ExcludeLayer), "ITEM:FishingRod:DRW", "5.0::GamePlay");
@@ -92,7 +92,7 @@ namespace Arterra.Data.Item
                     ActionBind.Exclusion.ExcludeLayer), "ITEM:FishingRod:FIRE", "5.0::GamePlay");
                 InputPoller.AddBinding(new ActionBind("ReelLine", _ => ReelLine(cxt)), "ITEM:FishingRod:REEL", "5.0::GamePlay");
                 InputPoller.AddBinding(new ActionBind("ReleaseLine", _ => ReleaseLine(cxt)), "ITEM:FishingRod:RLS", "5.0::GamePlay");
-            });
+            
         }
         public virtual void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
@@ -103,15 +103,14 @@ namespace Arterra.Data.Item
                 if(line.Active) TryRecollectBait(cxt, line);
                 line?.Release();
             }
-
-            InputPoller.AddKeyBindChange(() => {
-                InputPoller.RemoveBinding("ITEM:FishingRod:DRW", "5.0::GamePlay");
-                InputPoller.RemoveBinding("ITEM:FishingRod:FIRE", "5.0::GamePlay");
-                InputPoller.RemoveBinding("ITEM:FishingRod:REEL", "5.0::GamePlay");
-                InputPoller.RemoveBinding("ITEM:FishingRod:RLS", "5.0::GamePlay");
-                if (cxt.TryGetHolder(out IEventControlled effect))
-                    effect.RaiseEvent(GameEvent.Item_ReleaseBow, effect, this);
-            });
+            
+            InputPoller.RemoveBinding("ITEM:FishingRod:DRW", "5.0::GamePlay");
+            InputPoller.RemoveBinding("ITEM:FishingRod:FIRE", "5.0::GamePlay");
+            InputPoller.RemoveBinding("ITEM:FishingRod:REEL", "5.0::GamePlay");
+            InputPoller.RemoveBinding("ITEM:FishingRod:RLS", "5.0::GamePlay");
+            if (cxt.TryGetHolder(out effect))
+                effect.RaiseEvent(GameEvent.Item_ReleaseBow, effect, this);
+            
         }
 
         protected GameObject display;

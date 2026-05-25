@@ -8,6 +8,7 @@ using Arterra.GamePlay.Interaction;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
+using System.Linq;
 
 namespace Arterra.Data.Entity.Behavior {
     /// <summary>
@@ -56,7 +57,7 @@ namespace Arterra.Data.Entity.Behavior {
     /// Handles all player locomotion patterns (ground, swim, flight, ride)
     /// and switches the active movement mode through input stack polls.
     /// </summary>
-    public class PlayerMovementBehavior : IBehavior, IRider {
+    public class PlayerMovementBehavior : ISpeciesBehavior, IRider {
         /// <summary>Resolved movement settings for this behavior instance.</summary>
         [JsonIgnore] public PlayerMovementSettings settings;
 
@@ -116,7 +117,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         /// <summary>Disables movement patterns and clears active references.</summary>
         public void Disable(BehaviorEntity.Animal self) {
-
             UnbindCommonInput();
             groundPattern?.Disable();
             ridePattern?.Disable();
@@ -125,22 +125,26 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = null;
         }
 
+        private string MoveVerticalName => $"PlayerMove:MV::{self.info.entityId}"; 
+        private string MoveHorizontalName => $"PlayerMove:MH::{self.info.entityId}"; 
+        private string SprintName => $"PlayerMove:SPR::{self.info.entityId}"; 
+
         private void BindCommonInput() {
             if (hasBindings) return;
             hasBindings = true;
 
-            InputPoller.AddBinding(new ActionBind("Move Vertical", v => inputDir.y = v), "PlayerMove:MV", "4.0::Movement");
-            InputPoller.AddBinding(new ActionBind("Move Horizontal", v => inputDir.x = v), "PlayerMove:MH", "4.0::Movement");
-            InputPoller.AddBinding(new ActionBind("Sprint", _ => sprinting = true), "PlayerMove:SPR", "4.0::Movement");
+            InputPoller.AddBinding(new ActionBind("Move Vertical", v => inputDir.y = v), MoveVerticalName, "4.0::Movement");
+            InputPoller.AddBinding(new ActionBind("Move Horizontal", v => inputDir.x = v), MoveHorizontalName, "4.0::Movement");
+            InputPoller.AddBinding(new ActionBind("Sprint", _ => sprinting = true), SprintName, "4.0::Movement");
         }
 
         private void UnbindCommonInput() {
             if (!hasBindings) return;
             hasBindings = false;
 
-            InputPoller.RemoveBinding("PlayerMove:MV", "4.0::Movement");
-            InputPoller.RemoveBinding("PlayerMove:MH", "4.0::Movement");
-            InputPoller.RemoveBinding("PlayerMove:SPR", "4.0::Movement");
+            InputPoller.RemoveBinding(MoveVerticalName, "4.0::Movement");
+            InputPoller.RemoveBinding(MoveHorizontalName, "4.0::Movement");
+            InputPoller.RemoveBinding(SprintName, "4.0::Movement");
         }
 
         private void InitializePatterns() {
@@ -251,19 +255,23 @@ namespace Arterra.Data.Entity.Behavior {
                 this.owner = owner;
             }
 
+            private string GroundMove1Name => $"GroundMove:1::{owner.self.info.entityId}";
+            private string GroundMove2Name => $"GroundMove:2::{owner.self.info.entityId}";
+            private string PlayerJumpName => $"PlayerMove:JMP::{owner.self.info.entityId}";
+
             public void Initialize() {
-                InputPoller.AddStackPoll(new ActionBind("GroundMove::1", _ => owner.UpdateGround()), "Movement::Update");
-                InputPoller.AddStackPoll(new ActionBind("GroundMove::2", _ => owner.self.Collider.useGravity = true), "Movement::Gravity");
+                InputPoller.AddStackPoll(new ActionBind(GroundMove1Name, _ => owner.UpdateGround()), "Movement::Update");
+                InputPoller.AddStackPoll(new ActionBind(GroundMove2Name, _ => owner.self.Collider.useGravity = true), "Movement::Gravity");
 
                 if (hasJumpBinding) return;
                 hasJumpBinding = true;
-                InputPoller.AddBinding(new ActionBind("Jump", Jump), "PlayerMove:JMP", "4.0::Movement");
+                InputPoller.AddBinding(new ActionBind("Jump", Jump), PlayerJumpName, "4.0::Movement");
             }
 
             public void Disable() {
-                InputPoller.RemoveStackPoll("GroundMove::1", "Movement::Update");
-                InputPoller.RemoveStackPoll("GroundMove::2", "Movement::Gravity");
-                InputPoller.RemoveBinding("PlayerMove:JMP", "4.0::Movement");
+                InputPoller.RemoveStackPoll(GroundMove1Name, "Movement::Update");
+                InputPoller.RemoveStackPoll(GroundMove2Name, "Movement::Gravity");
+                InputPoller.RemoveBinding(PlayerJumpName, "4.0::Movement");
             }
 
             private void Jump(float _) {
@@ -281,9 +289,14 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private class SwimMovementPattern {
-            private static readonly HashSet<string> OverridableStates = new() { "GroundMove::1" };
+            private static readonly HashSet<string> OverridableStates = new() { "GroundMove:1" };
             private readonly PlayerMovementBehavior owner;
             private bool isSwimming;
+
+            private string SwimMove1Name => $"SwimMove:1::{owner.self.info.entityId}";
+            private string SwimMove2Name => $"SwimMove:2::{owner.self.info.entityId}";
+            private string SwimAscendName => $"PMSwimMove:ASD::{owner.self.info.entityId}";
+            private string SwimDescendName => $"PMSwimMove:DSD::{owner.self.info.entityId}";
 
             public SwimMovementPattern(PlayerMovementBehavior owner) {
                 this.owner = owner;
@@ -304,7 +317,8 @@ namespace Arterra.Data.Entity.Behavior {
 
             private void StartSwim(object source, object target, object density) {
                 if (isSwimming) return;
-                if (!OverridableStates.Contains(InputPoller.PeekTop("Movement::Update"))) return;
+                string currentState = InputPoller.PeekTop("Movement::Update").Split("::").First();
+                if (!OverridableStates.Contains(currentState)) return;
 
                 isSwimming = true;
                 AddHandles();
@@ -317,25 +331,23 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             private void AddHandles() {
-                InputPoller.AddStackPoll(new ActionBind("SwimMove::1", _ => Update()), "Movement::Update");
-                InputPoller.AddStackPoll(new ActionBind("SwimMove::2", _ => owner.self.Collider.useGravity = true), "Movement::Gravity");
-                InputPoller.AddKeyBindChange(() => {
-                    InputPoller.AddBinding(new ActionBind("Ascend", _ => {
-                        if (owner.self.velocity.y < owner.MoveSpeed2D) owner.self.velocity.y += owner.settings.acceleration * Time.deltaTime;
-                    }), "PMSwimMove:ASD", "4.0::Movement");
-                    InputPoller.AddBinding(new ActionBind("Descend", _ => {
-                        if (owner.self.velocity.y > -owner.MoveSpeed2D) owner.self.velocity.y -= owner.settings.acceleration * Time.deltaTime;
-                    }), "PMSwimMove:DSD", "4.0::Movement");
-                });
+                InputPoller.AddStackPoll(new ActionBind(SwimMove1Name, _ => Update()), "Movement::Update");
+                InputPoller.AddStackPoll(new ActionBind(SwimMove2Name, _ => owner.self.Collider.useGravity = true), "Movement::Gravity");
+                InputPoller.AddBinding(new ActionBind("Ascend", _ => {
+                    if (owner.self.velocity.y < owner.MoveSpeed2D) owner.self.velocity.y += owner.settings.acceleration * Time.deltaTime;
+                }), SwimAscendName, "4.0::Movement");
+                InputPoller.AddBinding(new ActionBind("Descend", _ => {
+                    if (owner.self.velocity.y > -owner.MoveSpeed2D) owner.self.velocity.y -= owner.settings.acceleration * Time.deltaTime;
+                }), SwimDescendName, "4.0::Movement");
+                
             }
 
             private void RemoveHandles() {
-                InputPoller.RemoveStackPoll("SwimMove::1", "Movement::Update");
-                InputPoller.RemoveStackPoll("SwimMove::2", "Movement::Gravity");
-                InputPoller.AddKeyBindChange(() => {
-                    InputPoller.RemoveBinding("PMSwimMove:ASD", "4.0::Movement");
-                    InputPoller.RemoveBinding("PMSwimMove:DSD", "4.0::Movement");
-                });
+                InputPoller.RemoveStackPoll(SwimMove1Name, "Movement::Update");
+                InputPoller.RemoveStackPoll(SwimMove2Name, "Movement::Gravity");
+                InputPoller.RemoveBinding(SwimAscendName, "4.0::Movement");
+                InputPoller.RemoveBinding(SwimDescendName, "4.0::Movement");
+                
             }
 
             private void Update() {
@@ -355,10 +367,16 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private class FlightMovementPattern {
-            private static readonly HashSet<string> OverridableStates = new() { "GroundMove::1", "SwimMove::1" };
+            private static readonly HashSet<string> OverridableStates = new() { "GroundMove:1", "SwimMove:1" };
             private readonly PlayerMovementBehavior owner;
             private bool hasEnabledFlight;
             private bool isFlying;
+
+            private string FlightToggleName => $"PMFlightMove:TF::{owner.self.info.entityId}";
+            private string FlightMove1Name => $"FlightMove:1::{owner.self.info.entityId}";
+            private string FlightMove2Name => $"FlightMove:2::{owner.self.info.entityId}";
+            private string FlightAscendName => $"PMFlightMove:ASD::{owner.self.info.entityId}";
+            private string FlightDescendName => $"PMFlightMove:DSD::{owner.self.info.entityId}";
 
             public FlightMovementPattern(PlayerMovementBehavior owner) {
                 this.owner = owner;
@@ -374,7 +392,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             public void Disable() {
                 Config.CURRENT.System.RemoveHook("Gamemode:Flight", OnFlightRuleChanged);
-                InputPoller.RemoveBinding("PMFlightMove:TF", "4.0::Movement");
+                InputPoller.RemoveBinding(FlightToggleName, "4.0::Movement");
                 RemoveHandles();
             }
 
@@ -384,7 +402,7 @@ namespace Arterra.Data.Entity.Behavior {
                 hasEnabledFlight = enableFlight;
 
                 if (!enableFlight) {
-                    InputPoller.RemoveBinding("PMFlightMove:TF", "4.0::Movement");
+                    InputPoller.RemoveBinding(FlightToggleName, "4.0::Movement");
                     RemoveHandles();
                     return;
                 }
@@ -393,33 +411,32 @@ namespace Arterra.Data.Entity.Behavior {
                     if (isFlying) RemoveHandles();
                     else AddHandles();
                     owner.self.velocity.y = 0;
-                }), "PMFlightMove:TF", "4.0::Movement");
+                }), FlightToggleName, "4.0::Movement");
             }
 
             private void AddHandles() {
-                if (!OverridableStates.Contains(InputPoller.PeekTop("Movement::Update"))) return;
+                string currentState = InputPoller.PeekTop("Movement::Update").Split("::").First();
+                if (!OverridableStates.Contains(currentState)) return;
                 isFlying = true;
 
-                InputPoller.AddStackPoll(new ActionBind("FlightMove::1", _ => Update()), "Movement::Update");
-                InputPoller.AddStackPoll(new ActionBind("FlightMove::2", _ => owner.self.Collider.useGravity = false), "Movement::Gravity");
-                InputPoller.AddKeyBindChange(() => {
-                    InputPoller.AddBinding(new ActionBind("Ascend", _ => {
-                        if (owner.self.velocity.y < owner.FlightMoveSpeed) owner.self.velocity.y += owner.settings.acceleration * Time.deltaTime * owner.settings.flightSpeedMultiplier;
-                    }), "PMFlightMove:ASD", "4.0::Movement");
-                    InputPoller.AddBinding(new ActionBind("Descend", _ => {
-                        if (owner.self.velocity.y > -owner.FlightMoveSpeed) owner.self.velocity.y -= owner.settings.acceleration * Time.deltaTime * owner.settings.flightSpeedMultiplier;
-                    }), "PMFlightMove:DSD", "4.0::Movement");
-                });
+                InputPoller.AddStackPoll(new ActionBind(FlightMove1Name, _ => Update()), "Movement::Update");
+                InputPoller.AddStackPoll(new ActionBind(FlightMove2Name, _ => owner.self.Collider.useGravity = false), "Movement::Gravity");
+                InputPoller.AddBinding(new ActionBind("Ascend", _ => {
+                    if (owner.self.velocity.y < owner.FlightMoveSpeed) owner.self.velocity.y += owner.settings.acceleration * Time.deltaTime * owner.settings.flightSpeedMultiplier;
+                }), FlightAscendName, "4.0::Movement");
+                InputPoller.AddBinding(new ActionBind("Descend", _ => {
+                    if (owner.self.velocity.y > -owner.FlightMoveSpeed) owner.self.velocity.y -= owner.settings.acceleration * Time.deltaTime * owner.settings.flightSpeedMultiplier;
+                }), FlightDescendName, "4.0::Movement");
+                
             }
 
             private void RemoveHandles() {
                 isFlying = false;
-                InputPoller.RemoveStackPoll("FlightMove::1", "Movement::Update");
-                InputPoller.RemoveStackPoll("FlightMove::2", "Movement::Gravity");
-                InputPoller.AddKeyBindChange(() => {
-                    InputPoller.RemoveBinding("PMFlightMove:ASD", "4.0::Movement");
-                    InputPoller.RemoveBinding("PMFlightMove:DSD", "4.0::Movement");
-                });
+                InputPoller.RemoveStackPoll(FlightMove1Name, "Movement::Update");
+                InputPoller.RemoveStackPoll(FlightMove2Name, "Movement::Gravity");
+                InputPoller.RemoveBinding(FlightAscendName, "4.0::Movement");
+                InputPoller.RemoveBinding(FlightDescendName, "4.0::Movement");
+                
             }
 
             private void Update() {
@@ -436,9 +453,16 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private class RideMovementPattern {
-            private static readonly HashSet<string> OverridableStates = new() { "GroundMove::1", "SwimMove::1", "FlightMove::1" };
+            private static readonly HashSet<string> OverridableStates = new() { "GroundMove:1", "SwimMove:1", "FlightMove:1" };
             private readonly PlayerMovementBehavior owner;
             private IRidable mount;
+
+            private string RideMove1Name => $"RideMove:1::{owner.self.info.entityId}";
+            private string RideMove2Name => $"RideMove:2::{owner.self.info.entityId}";
+            private string RideFenceName => $"PMRideMove::{owner.self.info.entityId}";
+            private string RideMoveVerticalName => $"PMRideMove:MV::{owner.self.info.entityId}";
+            private string RideMoveHorizontalName => $"PMRideMove:MH::{owner.self.info.entityId}";
+            private string RideDismountName => $"PMRideMove:DSM::{owner.self.info.entityId}";
 
             private bool IsRideActive => mount != null && mount.AsEntity != null && mount.AsEntity.active;
 
@@ -450,7 +474,8 @@ namespace Arterra.Data.Entity.Behavior {
 
             public void AddHandles(IRidable mount) {
                 if (mount == null) return;
-                if (!OverridableStates.Contains(InputPoller.PeekTop("Movement::Update"))) {
+                string currentState = InputPoller.PeekTop("Movement::Update").Split("::").First();
+                if (!OverridableStates.Contains(currentState)) {
                     mount.Dismount();
                     return;
                 }
@@ -461,22 +486,20 @@ namespace Arterra.Data.Entity.Behavior {
                 }
 
                 owner.self.velocity = float3.zero;
-                InputPoller.AddStackPoll(new ActionBind("RideMove::2", _ => owner.self.Collider.useGravity = false), "Movement::Gravity");
-                InputPoller.AddStackPoll(new ActionBind("RideMove::1", _ => Update()), "Movement::Update");
-                owner.self.eventCtrl.RaiseEvent(GameEvent.Action_MountRideable, owner.self, mount);
-
-                InputPoller.AddKeyBindChange(() => {
-                    InputPoller.AddContextFence("PMRideMove", "4.0::Movement", ActionBind.Exclusion.ExcludeLayer);
-                    InputPoller.AddBinding(new ActionBind("Move Vertical", MoveForward), "PMRideMove:MV", "4.0::Movement");
-                    InputPoller.AddBinding(new ActionBind("Move Horizontal", Rotate), "PMRideMove:MH", "4.0::Movement");
-                    InputPoller.AddBinding(new ActionBind("Dismount", _ => this.mount?.Dismount()), "PMRideMove:DSM", "5.0::Gameplay");
-                });
+                InputPoller.AddStackPoll(new ActionBind(RideMove2Name, _ => owner.self.Collider.useGravity = false), "Movement::Gravity");
+                InputPoller.AddStackPoll(new ActionBind(RideMove1Name, _ => Update()), "Movement::Update");
+                owner.self.eventCtrl.RaiseEvent(GameEvent.Action_MountRideable, owner.self, mount);               
+                InputPoller.AddContextFence(RideFenceName, "4.0::Movement", ActionBind.Exclusion.ExcludeLayer);
+                InputPoller.AddBinding(new ActionBind("Move Vertical", MoveForward), RideMoveVerticalName, "4.0::Movement");
+                InputPoller.AddBinding(new ActionBind("Move Horizontal", Rotate), RideMoveHorizontalName, "4.0::Movement");
+                InputPoller.AddBinding(new ActionBind("Dismount", _ => this.mount?.Dismount()), RideDismountName, "5.0::Gameplay");
+                
             }
 
             public void RemoveHandles() {
                 IRidable oldMount = mount;
-                InputPoller.RemoveStackPoll("RideMove::1", "Movement::Update");
-                InputPoller.RemoveStackPoll("RideMove::2", "Movement::Gravity");
+                InputPoller.RemoveStackPoll(RideMove1Name, "Movement::Update");
+                InputPoller.RemoveStackPoll(RideMove2Name, "Movement::Gravity");
                 owner.self.eventCtrl.RaiseEvent(GameEvent.Action_DismountRideable, owner.self, oldMount);
 
                 Transform subTransform = owner.GetRiderSubTransform();
@@ -487,11 +510,11 @@ namespace Arterra.Data.Entity.Behavior {
                 if (oldMount is Entity entity) {
                     owner.RemoveIgnoredEntity(entity.info.rtEntityId);
                 }
-
-                InputPoller.AddKeyBindChange(() => {
-                    InputPoller.RemoveContextFence("PMRideMove", "4.0::Movement");
-                    InputPoller.RemoveBinding("PMRideMove:DSM", "5.0::Gameplay");
-                });
+                InputPoller.RemoveContextFence(RideFenceName, "4.0::Movement");
+                InputPoller.RemoveBinding(RideMoveVerticalName, "4.0::Movement");
+                InputPoller.RemoveBinding(RideMoveHorizontalName, "4.0::Movement");
+                InputPoller.RemoveBinding(RideDismountName, "5.0::Gameplay");
+                
                 mount = null;
             }
 

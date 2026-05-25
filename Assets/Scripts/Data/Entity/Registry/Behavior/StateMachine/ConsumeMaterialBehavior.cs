@@ -32,7 +32,7 @@ namespace Arterra.Data.Entity.Behavior {
 
     }
 
-    public class ConsumeMaterialBehavior : IBehavior {
+    public class ConsumeMaterialBehavior : ISpeciesBehavior {
         public ConsumeMaterialSettings settings;
         public ConsumeBehaviorSettings consume;
         private FindPlantBehaviorSettings findPlant;

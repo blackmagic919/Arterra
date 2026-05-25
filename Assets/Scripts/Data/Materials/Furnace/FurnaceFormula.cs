@@ -180,11 +180,11 @@ namespace Arterra.Data.Intrinsic.Furnace {
             RecipeSearch.Activate();
             animator.SetBool("IsOpen", true);
             ToggleSearch.Lock();
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddBinding(new ActionBind("Select",
                     FormulaMenuSelect, ActionBind.Exclusion.None),
                     "MAT::FurnaceSearch:SEL", "3.5::Window");
-            });
+            
         }
 
 
@@ -194,7 +194,7 @@ namespace Arterra.Data.Intrinsic.Furnace {
             ClosingTask?.Disable();
             ClosingTask = new AnimatorAwaitTask(animator, "ClosedAnim", () => {
                 //Does nothing if not bound :)
-                InputPoller.AddKeyBindChange(() => InputPoller.RemoveBinding("MAT::FurnaceSearch:SEL", "3.5::Window"));
+                InputPoller.RemoveBinding("MAT::FurnaceSearch:SEL", "3.5::Window");
                 DeactivateRecipeDisplay();
                 RecipeSearch.Deactivate();
                 Menu.gameObject.SetActive(false);

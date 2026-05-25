@@ -31,7 +31,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class MapInteractBehavior : IBehavior {
+    public class MapInteractBehavior : ISpeciesBehavior {
         [JsonIgnore] public MapInteractorSettings settings;
         public MapInteractorSettings.InteractType Interaction;
         private Modifier mod;

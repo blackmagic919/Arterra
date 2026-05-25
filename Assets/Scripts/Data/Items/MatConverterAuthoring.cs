@@ -63,20 +63,20 @@ namespace Arterra.Data.Item
 
         public void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddBinding(new ActionBind(
                     "ConvertMaterial",
                     _ => PlayerModifyTerrain(cxt),
                     ActionBind.Exclusion.ExcludeLayer),
                     "ITEM::MatConverter:CNV", "5.0::GamePlay");
-            });
+            
         }
 
         public void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.RemoveBinding("ITEM::MatConverter:CNV", "5.0::GamePlay");
-            });
+            
         }
 
         private GameObject display;

@@ -94,28 +94,28 @@ MonoBehaviour:
               y: 2
               z: 1
           BehaviorList:
-            value: 05000000ed030000010000006a000000690000006600000065000000680000006700000064000000
+            value: 0500000003000000ed030000010000006a000000690000006600000065000000680000006700000064000000
           Settings:
             value:
             - value:
-                rid: 1481107410932466371
+                rid: 1481107410932466596
             - value:
-                rid: 1481107410932466372
+                rid: 1481107410932466597
             - value:
-                rid: 1481107410932466373
+                rid: 1481107410932466598
             - value:
-                rid: 1481107410932466374
+                rid: 1481107410932466599
             - value:
-                rid: 1481107410932466375
+                rid: 1481107410932466600
             - value:
-                rid: 1481107410932466376
+                rid: 1481107410932466601
             - value:
-                rid: 1481107410932466377
+                rid: 1481107410932466602
             - value:
-                rid: 1481107410932466378
+                rid: 1481107410932466603
             - value:
-                rid: 1481107410932466379
-          _prevBehaviorCount: 10
+                rid: 1481107410932466604
+          _prevBehaviorCount: 11
       Gamemodes:
         value:
           Flight: 0
@@ -719,12 +719,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1481107410932466371
+    - rid: 1481107410932466596
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
         UseGravity: 1
-    - rid: 1481107410932466372
+    - rid: 1481107410932466597
       type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         weight: 50
@@ -733,21 +733,21 @@ MonoBehaviour:
         MaxHealth: 20
         NaturalRegen: 0.01
         InvincTime: 0.25
-    - rid: 1481107410932466373
+    - rid: 1481107410932466598
       type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         LootTable:
           value:
           - ItemName: Meat
             DropAmount: 0.075
-    - rid: 1481107410932466374
+    - rid: 1481107410932466599
       type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
         HoldBreathTime: 10
         Bouyancy: -1
         UseFallDamage: 1
-    - rid: 1481107410932466375
+    - rid: 1481107410932466600
       type: {class: PlayerInventorySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         PrimarySlotCount: 5
@@ -755,7 +755,7 @@ MonoBehaviour:
         RecoverSpeedMultiplier: 0
         SelectedColor: {r: 0.6792453, g: 0.5261536, b: 0.33641866, a: 0.39215687}
         BaseColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 0.39215687}
-    - rid: 1481107410932466376
+    - rid: 1481107410932466601
       type: {class: PlayerCameraSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         Sensitivity: 2
@@ -764,7 +764,7 @@ MonoBehaviour:
         MaximumX: 90
         smooth: 0
         smoothTime: 5
-    - rid: 1481107410932466377
+    - rid: 1481107410932466602
       type: {class: PlayerMovementSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         walkSpeed: 3
@@ -773,7 +773,7 @@ MonoBehaviour:
         acceleration: 100
         groundStickDist: 0.05
         flightSpeedMultiplier: 3
-    - rid: 1481107410932466378
+    - rid: 1481107410932466603
       type: {class: PlayerInteractionSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         TerraformRadius: 1
@@ -788,7 +788,7 @@ MonoBehaviour:
         AttackDamage: 2
         AttackFrequency: 0.25
         KnockBackStrength: 10
-    - rid: 1481107410932466379
+    - rid: 1481107410932466604
       type: {class: PlayerEffectsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         AnimatorPath: Player

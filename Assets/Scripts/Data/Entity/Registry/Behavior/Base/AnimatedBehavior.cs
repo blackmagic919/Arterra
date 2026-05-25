@@ -61,7 +61,7 @@ namespace Arterra.Data.Entity.Behavior {
 
     }
     //ToDo: Support multiple paths for animator
-    public class AnimatedBehavior : IBehavior {
+    public class AnimatedBehavior : ISpeciesBehavior {
         [JsonIgnore] public Animator animator;
         [JsonIgnore] public AnimatedSettings settings;
 

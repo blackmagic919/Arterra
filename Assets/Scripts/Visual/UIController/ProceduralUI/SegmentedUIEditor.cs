@@ -197,7 +197,7 @@ public static class SegmentedUIEditor
         }  
     }
 
-    private static void HandleOptionClosure(FieldInfo field, object setting, ParentUpdate OnUpdate, 
+    public static void HandleOptionClosure(FieldInfo field, object setting, ParentUpdate OnUpdate, 
         out FieldInfo memberField, out object memberValue, out ParentUpdate memberUpdate) {
         FieldInfo baseField = field;
         object option = field.GetValue(setting); //Would prefer if GetValueDirect was implemented 
@@ -227,7 +227,7 @@ public static class SegmentedUIEditor
         }
     }
 
-    private static bool CollapseMembers(IEnumerable<string> path, object setting, GameObject content, ParentUpdate OnUpdate = null) {
+    public static bool CollapseMembers(IEnumerable<string> path, object setting, GameObject content, ParentUpdate OnUpdate = null) {
         if (path == null || path.Count() == 0) {
             Debug.LogError($"UISetting path {String.Join("/", path)} on object does not exist");
             return false;
@@ -252,13 +252,13 @@ public static class SegmentedUIEditor
 
         ParentUpdate nUpdate = ChildRequest;
         if (field.FieldType.GetInterfaces().Contains(typeof(IOption))) {
-            HandleOptionClosure(field, setting, ChildRequest, out FieldInfo mField, out object mValue, out nUpdate);
+            HandleOptionClosure(field, setting, OnUpdate, out FieldInfo mField, out object mValue, out nUpdate);
             field = mField; value = mValue;
         }
         
         path = path.Skip(1);
         if (path == null || path.Count() == 0) {
-            CreateInputField(field, content, value, OnUpdate);
+            CreateInputField(field, content, value, nUpdate);
             return true;
         } else return CollapseMembers(path, value, content, nUpdate);
     }

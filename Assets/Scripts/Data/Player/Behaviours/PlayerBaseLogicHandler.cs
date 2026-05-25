@@ -1,18 +1,23 @@
 using Arterra.Configuration;
 using Arterra.Core.Events;
+using Arterra.GamePlay.UI;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
-    public class PlayerBaseLogicHandler : IBehavior {
+    public class PlayerBaseLogicHandler : ISpeciesBehavior {
         private BehaviorEntity.Animal self;
+        private InidcatorsBehavior indicator;
         private ColliderUpdateBehavior collider;
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!self.Is(out collider)) collider = null;
+            if (!self.Is(out indicator)) indicator = null;
             this.self = self;
             OnStartup();
         }
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!self.Is(out collider)) collider = null;
+            if (!self.Is(out indicator)) indicator = null;
             this.self = self;
             OnStartup();
         }
@@ -31,6 +36,21 @@ namespace Arterra.Data.Entity.Behavior {
             object invulnerability = Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability;
             ToggleIntangibility(ref intangibility);
             ToggleInvulnerability(ref invulnerability);
+            
+            if (indicator == null) return;
+            Config.CURRENT.System.RemoveHook("Statistics:Display", indicator.ToggleStatDisplay);
+            ReMapStatDisplay(!(bool)invulnerability);
+        }
+
+        private void ReMapStatDisplay(bool active) {
+            indicator.SetStatDisplay(active);
+            if (!active) return;
+
+            indicator.stats.transform.SetParent(GameUIManager.UIHandle.transform, false); 
+            RectTransform rect = indicator.stats.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(-0.025f, 0); rect.anchorMax = new Vector2(0.4f, 0.15f);
+            rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero;
+            rect.localScale = Vector3.one;
         }
 
         private void ToggleIntangibility(ref object intangibility) {
@@ -41,11 +61,12 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void ToggleInvulnerability(ref object invulnerability) {
-            if (collider == null) return;
             bool IsVulnerable = !(bool)invulnerability;
-            if (!IsVulnerable) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Damaged, BlockDamage);
+            ReMapStatDisplay(IsVulnerable);
+
+            if (collider == null) return;
+            if (!IsVulnerable) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, BlockDamage, EventHandlePriority.OverridePrimier);
             if (IsVulnerable) self.eventCtrl.RemoveEventHandler(Core.Events.GameEvent.Entity_Damaged, BlockDamage);
-            
         }
 
         private void BlockDamage(object self, object _, object cxt) {

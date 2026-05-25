@@ -5,6 +5,7 @@ using Arterra.GamePlay;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
 using Arterra.Data.Entity.Behavior;
+using Arterra.Configuration.Gameplay;
 
 namespace Arterra.Data.Item{
 [CreateAssetMenu(menuName = "Generation/Items/Boat")] 
@@ -41,20 +42,20 @@ public class BoatItem : IItem{
     public void UpdateEItem(){} 
     public void OnEnter(ItemContext cxt) {
         if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-        InputPoller.AddKeyBindChange(() => {
+        
             InputPoller.AddBinding(new ActionBind(
                 "Place Entity",
                 _ => PlaceBoat(cxt),
                 ActionBind.Exclusion.ExcludeLayer),
                 "ITEM:Boat:PL", "5.0::GamePlay"
             );
-        }); 
+         
     } 
     public void OnLeave(ItemContext cxt) {
         if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-        InputPoller.AddKeyBindChange(() => {
+        
             InputPoller.RemoveBinding("ITEM:Boat:PL", "5.0::GamePlay");
-        });
+        
     } 
     
     private GameObject display;

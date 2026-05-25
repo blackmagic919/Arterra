@@ -70,7 +70,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class RelationsBehavior : IBehavior {
+    public class RelationsBehavior : ISpeciesBehavior {
         [JsonIgnore] public RelationsBehaviorSettings settings;
 
         private VitalityBehavior vitality;

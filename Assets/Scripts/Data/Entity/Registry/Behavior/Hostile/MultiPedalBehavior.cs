@@ -39,7 +39,7 @@ namespace Arterra.Data.Entity.Behavior
         }
     }
 
-    public class MultiPedalBehavior : IBehavior {
+    public class MultiPedalBehavior : ISpeciesBehavior {
         private MultiPedalSettings settings;
         private LeadHeadBehavior LeadHead;
         private AnimatedBehavior animated;

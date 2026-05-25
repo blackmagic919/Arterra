@@ -19,6 +19,7 @@ using Arterra.GamePlay;
 using Arterra.Engine.Terrain.Readback;
 using Arterra.Utils;
 using Arterra.Data.Structure;
+using Arterra.Configuration.Gameplay;
 
 public static class EntityManager
 {

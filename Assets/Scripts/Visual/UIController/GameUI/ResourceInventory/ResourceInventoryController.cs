@@ -75,17 +75,17 @@ namespace Arterra.GamePlay.UI {
         }
 
         public void Activate() {
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddBinding(new ActionBind("Select",
                     ResourceInputSelect, ActionBind.Exclusion.None),
                     "ResourceInventory:SEL", "3.5::Window");
-            });
+            
             InventoryRoot.SetActive(true);
             ItemSearch.Activate();
         }
 
         public void Deactivate() {
-            InputPoller.AddKeyBindChange(() => InputPoller.RemoveBinding("ResourceInventory:SEL", "3.5::Window"));
+            InputPoller.RemoveBinding("ResourceInventory:SEL", "3.5::Window");
             InventoryRoot.SetActive(false);
             ItemSearch.Deactivate();
         }

@@ -28,7 +28,7 @@ namespace Arterra.Data.Entity.Behavior {
     /// <summary>
     /// Bridges gameplay events and movement state into animator parameters and triggers.
     /// </summary>
-    public class PlayerEffectsBehavior : IBehavior {
+    public class PlayerEffectsBehavior : ISpeciesBehavior {
         [JsonIgnore] public PlayerEffectsSettings settings;
 
         private PhysicalitySetting physicality;

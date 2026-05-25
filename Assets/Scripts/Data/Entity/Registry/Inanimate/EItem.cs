@@ -12,6 +12,7 @@ using Arterra.Core.Events;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.GamePlay.Interaction;
 using Arterra.Data.Entity.Behavior;
+using Arterra.Configuration.Gameplay;
 
 [CreateAssetMenu(menuName = "Generation/Entity/Item")]
 public class EItem : Arterra.Data.Entity.Authoring
@@ -176,7 +177,6 @@ public class EItem : Arterra.Data.Entity.Authoring
             private EItemEntity entity;
             private GameObject gameObject;
             private Transform transform;
-            private Indicators indicators;
 
             private bool active = false;
 
@@ -191,7 +191,6 @@ public class EItem : Arterra.Data.Entity.Authoring
 
                 float3 GCoord = new (entity.GCoord);
                 this.transform.position = CPUMapManager.GSToWS(entity.position);
-                indicators = new Indicators(gameObject, entity);
 
                 if(entity.item.Value == null) return; 
                 meshFilter = gameObject.GetComponent<MeshFilter>();
@@ -213,14 +212,12 @@ public class EItem : Arterra.Data.Entity.Authoring
                 if(gameObject == null) return;
                 TerrainCollider.Transform rTransform = entity.tCollider.transform;
                 this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), rTransform.rotation);
-                indicators.Update();
             }
 
             public void Dispose(){ 
                 if(!active) return;
                 active = false;
 
-                indicators.Release();
                 Destroy(gameObject);
             }
             ~EItemController(){

@@ -48,8 +48,8 @@ namespace Arterra.Core.Events {
         Entity_Interact = GameEventBases.Entity_Base + 21,
         Entity_CanMate = GameEventBases.Entity_Base + 22,
         Entity_ReadyAttack = GameEventBases.Entity_Base + 23,
-
-        
+        Entity_AddBehavior = GameEventBases.Entity_Base + 24,
+        Entity_RemoveBehavior = GameEventBases.Entity_Base + 25,
         
         Item_ConsumeFood = GameEventBases.Item_Base + 0,
         Item_HoldTool = GameEventBases.Item_Base + 1,
@@ -81,6 +81,22 @@ namespace Arterra.Core.Events {
         Action_Dismounted = GameEventBases.Action_Base + 16,
 
         System_Deserialize = GameEventBases.System_Base + 0,
+    }
+
+    public enum EventHandlePriority {
+        OverridePrimier = 0,
+        CommutativePrimier = 1,
+        Commutative1 = 1000,
+        Override2 = 1001,
+        Commutative2 = 2000,
+        Override3 = 2001,
+        Commutative3 = 3000,
+        Override4 = 3001,
+        Commutative4 = 4000,
+        Override5 = 4001,
+        Commutative5 = 5000,
+        CommutativeFinal = 10000,
+        OverrideFinal = 10001,
     }
 
     //This is the visual layer, in the future this information would need to be
@@ -116,24 +132,44 @@ namespace Arterra.Core.Events {
 
     // Event control class implement a common control using EventHandlerList
     public class EventControl {
-        private Dictionary<int, Delegate> events = new Dictionary<int, Delegate>();
+        private Dictionary<int, LinkedList<(int, RefEventHandler)>> events = new Dictionary<int, LinkedList<(int, RefEventHandler)>>();
 
 
         // Methods to add, remove, and raise events
-        public void AddEventHandler(GameEvent type, RefEventHandler handler) {
-            if (events.ContainsKey((int)type)) {
-                events[(int)type] = Delegate.Combine(events[(int)type], handler);
-            } else {
-                events[(int)type] = handler;
+        public void AddEventHandler(GameEvent type, RefEventHandler handler, EventHandlePriority priority = EventHandlePriority.Commutative3) {
+            int eventKey = (int)type;
+            if (!events.TryGetValue(eventKey, out var handlers)) {
+                handlers = new LinkedList<(int, RefEventHandler)>();
+                events[eventKey] = handlers;
             }
+
+            int priorityValue = (int)priority;
+            var node = handlers.First;
+            while (node != null && node.Value.Item1 <= priorityValue) {
+                node = node.Next;
+            }
+
+            var entry = (priorityValue, handler);
+            if (node == null) handlers.AddLast(entry);
+            else handlers.AddBefore(node, entry);
         }
         
         public void RemoveEventHandler(GameEvent type, RefEventHandler handler) {
-            if (events.ContainsKey((int)type)) {
-                Delegate newDel = Delegate.Remove(events[(int)type], handler);
-                if (newDel == null) events.Remove((int)type);
-                else events[(int)type] = newDel;
+            int eventKey = (int)type;
+            if (!events.TryGetValue(eventKey, out var handlers)) {
+                return;
             }
+
+            var node = handlers.First;
+            while (node != null) {
+                if (Delegate.Equals(node.Value.Item2, handler)) {
+                    handlers.Remove(node);
+                    break;
+                }
+                node = node.Next;
+            }
+
+            if (handlers.Count == 0) events.Remove(eventKey);
         }
 
         public void RemoveEventHandler(GameEvent type) {
@@ -145,22 +181,28 @@ namespace Arterra.Core.Events {
         /// </summary>
         /// <param name="evt"></param>
         /// <param name="handler"></param>
+        /// <param name="priority"></param>
         /// <returns> The lambda wrapper created so handler may use to remove </returns>/// 
-        public RefEventHandler AddContextlessEventHandler(GameEvent evt, Action<object, object> handler)
+        public RefEventHandler AddContextlessEventHandler(GameEvent evt, Action<object, object> handler, EventHandlePriority priority = EventHandlePriority.Commutative3)
         {
             RefEventHandler lambda = (object actor, object target, object ctx) => {
                 handler(actor, target);
             };
-            AddEventHandler(evt, lambda);
+            AddEventHandler(evt, lambda, priority);
             return lambda;
         }            
 
         public void RaiseEvent(GameEvent type, object actor, object target, object ctx = null) {
             // this  could be entity / player/ item.... 
             // Eventqueu.
-            if (events.ContainsKey((int)type)) {
-                var handler = (RefEventHandler)events[(int)type];
-                handler?.Invoke(actor, target, ctx);
+            if (!events.TryGetValue((int)type, out var handlers))
+                return;
+
+            var node = handlers.First;
+            while (node != null) {
+                var next = node.Next;
+                node.Value.Item2?.Invoke(actor, target, ctx);
+                node = next;
             }
         }
     }

@@ -77,7 +77,7 @@ namespace Arterra.Data.Material
             
             OpenedInventory.InitializeDisplay(this);
             InventoryController.Activate();
-            InputPoller.AddKeyBindChange(() => {
+            
                 //Overrides the default inventory close window
                 InputPoller.AddContextFence("MAT::Container", "3.5::Window", ActionBind.Exclusion.None);
                 InputPoller.AddBinding(new ActionBind("Open Inventory",
@@ -89,7 +89,7 @@ namespace Arterra.Data.Material
                     Select, ActionBind.Exclusion.None), "MAT::Container:SL", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial),  "MAT::Container:SELP", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "MAT::Container:SELA", "3.0::AllWindow");
-            });
+            
             PanelNavbarManager.Add(OpenedInventory, name);
             PanelNavbarManager.Activate(name);
             return true;
@@ -135,11 +135,11 @@ namespace Arterra.Data.Material
             PanelNavbarManager.Remove(name);
             PanelNavbarManager.Deactivate();
             if (OpenedInventory != null) {
-                InputPoller.AddKeyBindChange(() => {
+                
                     InputPoller.RemoveBinding("MAT::Container:SELA", "3.0::AllWindow");
                     InputPoller.RemoveContextFence("MAT::Container", "3.5::Window");
                     OpenedInventory = null;
-                });
+                
             }
             InventoryController.Deactivate();
         }

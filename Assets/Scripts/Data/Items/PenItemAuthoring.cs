@@ -113,13 +113,13 @@ namespace Arterra.Data.Item
             h.item = item; //Watch out, this can create a circular reference
             h.cxt = cxt;
 
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddBinding(new ActionBind("Remove", _ => h.OnTerrainRemove(cxt), ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:RM", "5.0::GamePlay");
                 InputPoller.AddBinding(new ActionBind("Place", _ => h.OnTerrainAdd(cxt), ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:PL", "5.0::GamePlay");
                 //When SelectPoint is triggered, DragPoint will also be triggered on the same frame, make sure SelectPoint happens first 
                 InputPoller.AddBinding(new ActionBind("PenDrag", h.DragPoint, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:DR", "5.0::GamePlay");
                 InputPoller.AddBinding(new ActionBind("PenFocus", h.SelectPoint, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:SEL", "5.0::GamePlay");
-            });
+            
             return h;
         }
 
@@ -128,13 +128,12 @@ namespace Arterra.Data.Item
             Selector?.SetActive(false);
             Selector = null;
             item = null;
-            InputPoller.AddKeyBindChange(() =>
-            {
+            
                 InputPoller.RemoveBinding("ITEM::Pen:RM", "5.0::GamePlay");
                 InputPoller.RemoveBinding("ITEM::Pen:PL", "5.0::GamePlay");
                 InputPoller.RemoveBinding("ITEM::Pen:DR", "5.0::GamePlay");
                 InputPoller.RemoveBinding("ITEM::Pen:SEL", "5.0::GamePlay");
-            });
+            
         }
 
         public void SelectPoint(float _)

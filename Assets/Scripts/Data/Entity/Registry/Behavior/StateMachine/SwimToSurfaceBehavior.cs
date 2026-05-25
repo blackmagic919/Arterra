@@ -49,7 +49,7 @@ namespace Arterra.Data.Entity.Behavior{
             };
         }
     }
-    public class SwimToSurfaceBehavior : IBehavior {
+    public class SwimToSurfaceBehavior : ISpeciesBehavior {
         private SwimToSurfaceSettings settings;
         private Movement movement;
         private MMove mmove; //optional

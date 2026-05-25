@@ -26,7 +26,7 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
 
-    public class RandomWalkBehavior : IBehavior {
+    public class RandomWalkBehavior : ISpeciesBehavior {
         private RandomWalkStateSettings settings;
         private Movement movement;
         private MMove mmove; //optional

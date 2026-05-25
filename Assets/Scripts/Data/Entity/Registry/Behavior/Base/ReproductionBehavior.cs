@@ -136,7 +136,7 @@ namespace Arterra.Data.Entity.Behavior {
             return AwarenessTable.ContainsKey(index);
         }
     }
-    public class ReproductionBehavior : IBehavior, IMateable {
+    public class ReproductionBehavior : ISpeciesBehavior, IMateable {
         [JsonIgnore] public MateRecognition settings;
 
         private BehaviorEntity.Animal self;

@@ -91,8 +91,7 @@ public class PageListSerializer : IConverter{
             if(cObjType.GetInterfaces().Contains(typeof(IOption))){
                 field = cObjType.GetField("value"); 
                 value = field.GetValue(cObject);
-                if (value == null)
-                {
+                if (value == null) {
                     value = CreateInstance(field.FieldType);
                     field.SetValue(cObject, value);
                 } 

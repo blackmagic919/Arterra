@@ -40,7 +40,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class MultiAttackBehavior : IBehavior {
+    public class MultiAttackBehavior : ISpeciesBehavior {
         private MultiAttackSettings settings;
         private AnimatedBehavior animated;
         private AttackBehavior attack;

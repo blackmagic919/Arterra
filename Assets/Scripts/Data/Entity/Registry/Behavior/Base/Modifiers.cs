@@ -6,12 +6,13 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
 
-    public class Modifier : IBehavior {
+    public class Modifier : ISpeciesBehavior {
         public const int Base = 0;
         public const int Physicality = 1000;
         public const int Decision = 2000;
         public const int Mobility = 3000;
         public const int Interaction = 4000;
+        public const int Effects = 5000;
         public const int GroupStep = -65536;
 
         public Dictionary<MSettings, List<SettingModifier>>  ModifiedSettings;
@@ -144,6 +145,15 @@ namespace Arterra.Data.Entity.Behavior {
         MateCost = Modifier.Interaction + 1,
         AmountPerParent = Modifier.Interaction + 2,
         DropAmount = Modifier.Interaction + 3,
+
+        Inflict_PoisonStrength = Modifier.Effects + 0,
+        Recieve_PoisonStrength = Modifier.Effects + 1, 
+        Inflict_PoisonDuration = Modifier.Effects + 2,
+        Recieve_PoisonDuration = Modifier.Effects + 3, 
+        Inflict_BleedingStrength = Modifier.Effects + 4,
+        Recieve_BleedingStrength = Modifier.Effects + 5, 
+        Inflict_BleedingDuration = Modifier.Effects + 6,
+        Recieve_BleedingDuration = Modifier.Effects + 7, 
 
     }
 

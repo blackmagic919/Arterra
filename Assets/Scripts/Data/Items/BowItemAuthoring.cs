@@ -59,26 +59,24 @@ namespace Arterra.Data.Item{
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled)
                 effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
-            InputPoller.AddKeyBindChange(() => {
-                InputPoller.AddBinding(new ActionBind(
-                    "BowDraw", _ => StartDrawingBow(cxt),
-                    ActionBind.Exclusion.ExcludeLayer), "ITEM:Bow:DRW", "5.0::GamePlay");
-                InputPoller.AddBinding(new ActionBind(
-                    "BowRelease", _ => ReleaseBow(cxt),
-                    ActionBind.Exclusion.ExcludeLayer), "ITEM:Bow:RLS", "5.0::GamePlay");
-            });
+            InputPoller.AddBinding(new ActionBind(
+                "BowDraw", _ => StartDrawingBow(cxt),
+                ActionBind.Exclusion.ExcludeLayer), "ITEM:Bow:DRW", "5.0::GamePlay");
+            InputPoller.AddBinding(new ActionBind(
+                "BowRelease", _ => ReleaseBow(cxt),
+                ActionBind.Exclusion.ExcludeLayer), "ITEM:Bow:RLS", "5.0::GamePlay");
+            
             drawTime = 0;
         }
         public void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
                 effect.RaiseEvent(GameEvent.Item_UnholdTool, effect, this, ref settings.Model.Value);
-            InputPoller.AddKeyBindChange(() => {
-                InputPoller.RemoveBinding("ITEM:Bow:DRW", "5.0::GamePlay");
-                InputPoller.RemoveBinding("ITEM:Bow:RLS", "5.0::GamePlay");
-                if (cxt.TryGetHolder(out IEventControlled effect))
-                    effect.RaiseEvent(GameEvent.Item_ReleaseBow, effect, this);
-            });
+            InputPoller.RemoveBinding("ITEM:Bow:DRW", "5.0::GamePlay");
+            InputPoller.RemoveBinding("ITEM:Bow:RLS", "5.0::GamePlay");
+            if (cxt.TryGetHolder(out effect))
+                effect.RaiseEvent(GameEvent.Item_ReleaseBow, effect, this);
+            
         }
 
         private float drawTime;

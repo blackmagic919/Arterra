@@ -21,13 +21,13 @@ namespace Arterra.GamePlay.UI {
 
         public static void Activate() {
             InputPoller.AddStackPoll(new ActionBind("Frame:GameOver", (float _) => InputPoller.SetCursorLock(false)), "CursorLock");
-            InputPoller.AddKeyBindChange(() => InputPoller.AddContextFence("GameOver", "1.0::Menu", ActionBind.Exclusion.ExcludeAll));
+            InputPoller.AddContextFence("GameOver", "1.0::Menu", ActionBind.Exclusion.ExcludeAll);
             EndMenu.SetActive(true);
         }
 
         public static void Deactivate() {
             InputPoller.RemoveStackPoll("Frame:GameOver", "CursorLock");
-            InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence("GameOver", "1.0::Menu"));
+            InputPoller.RemoveContextFence("GameOver", "1.0::Menu");
             EndMenu.SetActive(false);
             PlayerHandler.RespawnPlayer(LoadingHandler.Activate);
         }

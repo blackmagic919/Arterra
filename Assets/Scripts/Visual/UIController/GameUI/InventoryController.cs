@@ -115,7 +115,7 @@ namespace Arterra.GamePlay.UI {
     public static void Activate() {
         PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenInventory, PlayerHandler.data, null);
         InputPoller.AddStackPoll(new ActionBind("Frame:Inventory", _ => InputPoller.SetCursorLock(false)), "CursorLock");
-        InputPoller.AddKeyBindChange(() => {
+        
             InputPoller.AddContextFence("PlayerInventory:AllFrame", "3.0::AllWindow", ActionBind.Exclusion.None);
             InputPoller.AddContextFence("PlayerInventory:WndFrame", "3.5::Window", ActionBind.Exclusion.ExcludeAll);
             InputPoller.AddBinding(new ActionBind("Open Inventory", Deactivate), "PlayerInventory:CLS", "3.5::Window");
@@ -124,17 +124,17 @@ namespace Arterra.GamePlay.UI {
             InputPoller.AddBinding(new ActionBind("SelectPartial", _ => SelectPartial(GetMouseTarget, true)),  "PlayerInventory:SELP", "3.5::Window");
             InputPoller.AddBinding(new ActionBind("SelectAll", _ => { SelectAll(Primary); SelectAll(Secondary); },
                 ActionBind.Exclusion.ExcludeLayer),"PlayerInventory:SELA", "3.0::AllWindow");
-        });
+        
         Cursor.ClearCursor(AddEntry);
         Secondary.Display.parent.SetActive(true);
     }
 
         public static void Deactivate() {
             InputPoller.RemoveStackPoll("Frame:Inventory", "CursorLock");
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.RemoveContextFence("PlayerInventory:WndFrame", "3.5::Window");
                 InputPoller.RemoveContextFence("PlayerInventory:AllFrame", "3.0::AllWindow");
-            });
+            
             Secondary.Display.parent.SetActive(false);
             Cursor.ClearCursor(AddEntry);
         }

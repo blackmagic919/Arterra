@@ -112,22 +112,22 @@ namespace Arterra.Data.Item {
                 h.cxt = cxt;
                 h.active = true;
                 OctreeTerrain.MainLoopUpdateTasks.Enqueue(h);
-                InputPoller.AddKeyBindChange(() => {
+                
                     InputPoller.AddBinding(new ActionBind("Place", h.PlaceStructure, ActionBind.Exclusion.ExcludeLayer),
                     "ITEM::PlaceableStct:PL", "5.0::GamePlay");
                     InputPoller.AddBinding(new ActionBind("GetPlaceFocus", (_) => h.IsLocked = false, ActionBind.Exclusion.ExcludeLayer),
                     "ITEM::PlaceableStct:FP", "5.0::GamePlay");
-                });
+                
                 return h;
             }
             public void Release() {
                 active = false;
                 item = null;
                 display.Release();
-                InputPoller.AddKeyBindChange(() => {
+                
                     InputPoller.RemoveBinding("ITEM::PlaceableStct:PL", "5.0::GamePlay");
                     InputPoller.RemoveBinding("ITEM::PlaceableStct:FP", "5.0::GamePlay");
-                });
+                
             }
 
             public void Update(MonoBehaviour _) {

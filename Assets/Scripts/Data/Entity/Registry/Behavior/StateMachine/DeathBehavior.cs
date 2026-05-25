@@ -20,7 +20,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class DeathBehavior : IBehavior {
+    public class DeathBehavior : ISpeciesBehavior {
         [JsonIgnore]
         public DeathSettings settings;
 

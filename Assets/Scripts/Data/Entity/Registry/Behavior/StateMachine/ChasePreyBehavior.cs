@@ -119,7 +119,7 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
 
-    public class ChasePreyBehavior : IBehavior {
+    public class ChasePreyBehavior : ISpeciesBehavior {
         [JsonIgnore] public ChasePreySettings settings;
         private Movement movement;
         private HuntBehaviorSettings hunt;

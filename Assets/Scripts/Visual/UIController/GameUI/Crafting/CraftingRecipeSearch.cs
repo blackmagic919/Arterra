@@ -90,11 +90,11 @@ namespace Arterra.GamePlay.UI {
             RecipeSearch.Activate();
             animator.SetBool("IsOpen", true);
             ToggleSearch.Lock();
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddBinding(new ActionBind("Select",
                     CraftingMenuSelect, ActionBind.Exclusion.None),
                     "PlayerCraftSearch:SEL", "3.5::Window");
-            });
+            
         }
 
         internal void Deactivate() {
@@ -103,7 +103,7 @@ namespace Arterra.GamePlay.UI {
             ClosingTask?.Disable();
             ClosingTask = new AnimatorAwaitTask(animator, "ClosedAnim", () => {
                 //Does nothing if not bound :)
-                InputPoller.AddKeyBindChange(() => InputPoller.RemoveBinding("PlayerCraftSearch:SEL", "3.5::Window"));
+                InputPoller.RemoveBinding("PlayerCraftSearch:SEL", "3.5::Window");
                 DeactivateRecipeDisplay();
                 RecipeSearch.Deactivate();
                 Menu.gameObject.SetActive(false);

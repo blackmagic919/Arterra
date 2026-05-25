@@ -86,7 +86,6 @@ namespace Arterra.GamePlay{
             if (!active) return;
 
             data.Update(BehaviorEntity.UpdateContext.Main);
-            PlayerStatDisplay.UpdateIndicator(data);
         }
 
         private static void FixedUpdate(MonoBehaviour mono){
@@ -135,9 +134,12 @@ namespace Arterra.GamePlay{
             float3 SpawnPoint = StartupPlacer.FindClearingAround(float3.zero);
             uint entityIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             BehaviorEntity.Animal nPlayer = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex].Entity as BehaviorEntity.Animal;
-            nPlayer.context = BehaviorEntity.UpdateContext.Main;
 
             Action callback = () => {
+                if (nPlayer != null && nPlayer is BehaviorEntity.Animal nEntity)
+                    nEntity.context = BehaviorEntity.UpdateContext.Main;
+                if  (data != null && data is BehaviorEntity.Animal oEntity)
+                    oEntity.context = BehaviorEntity.UpdateContext.Job;
                 //Answer hooks
                 (Entity, Entity) prms = (data, nPlayer);
                 data?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, data, null, 

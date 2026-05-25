@@ -61,7 +61,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class LeadHeadBehavior : IBehavior, IMultiCollider {
+    public class LeadHeadBehavior : ISpeciesBehavior, IMultiCollider {
         [JsonIgnore] public TerrainCollider BodyCollider;
         public TerrainCollider HeadCollider;
 

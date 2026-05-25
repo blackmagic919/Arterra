@@ -13,9 +13,15 @@ using Arterra.Data.Intrinsic;
 
 namespace Arterra.GamePlay.UI {
     public static class GameUIManager {
-        public static GameObject UIHandle;
+        private static GameObject _UIHandle;
+        public static GameObject UIHandle {
+            get {
+                if (_UIHandle == null)
+                    _UIHandle = GameObject.Find("MainUI");
+                return _UIHandle;
+            }
+        }
         public static void Initialize() {
-            UIHandle = GameObject.Find("MainUI");
             PlayerCrosshair.Initialize();
             LoadingHandler.Initialize();
             ToolTips.TooltipSystem.Initialize();
@@ -25,7 +31,6 @@ namespace Arterra.GamePlay.UI {
 
             PauseHandler.Initialize();
             GameOverHandler.Initialize();
-            PlayerStatDisplay.Initialize();
         }
     }
 

@@ -18,7 +18,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class StepBackBehavior : IBehavior {
+    public class StepBackBehavior : ISpeciesBehavior {
         private StepBackSetting settings;
         private Movement movement;
         private MMove mmove; //optional

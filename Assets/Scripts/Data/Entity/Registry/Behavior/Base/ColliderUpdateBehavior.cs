@@ -30,7 +30,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class ColliderUpdateBehavior : IBehavior, IMultiCollider {
+    public class ColliderUpdateBehavior : ISpeciesBehavior, IMultiCollider {
         [JsonIgnore] public ColliderUpdateSettings settings;
         public ColliderUpdateSettings.InteractType Interaction;
         public HashSet<Guid> IgnoredEntities;

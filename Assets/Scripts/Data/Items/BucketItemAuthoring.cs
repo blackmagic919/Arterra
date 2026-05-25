@@ -55,17 +55,17 @@ public class BucketItem : IItem{
     public void UpdateEItem(){} 
     public void OnEnter(ItemContext cxt) {
         if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-        InputPoller.AddKeyBindChange(() => {
+        
             InputPoller.AddBinding(new ActionBind("Place", _ => PlaceLiquid(cxt), ActionBind.Exclusion.ExcludeLayer), "ITEM:Bucket:PL", "5.0::GamePlay");
             InputPoller.AddBinding(new ActionBind("Remove", _ => RemoveLiquid(cxt), ActionBind.Exclusion.ExcludeLayer), "ITEM:Bucket:RM", "5.0::GamePlay");
-        }); 
+         
     } 
     public void OnLeave(ItemContext cxt) {
         if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-        InputPoller.AddKeyBindChange(() => {
+        
             InputPoller.RemoveBinding("ITEM:Bucket:PL", "5.0::GamePlay");
             InputPoller.RemoveBinding("ITEM:Bucket:RM", "5.0::GamePlay");
-        });
+        
     } 
     
     private GameObject display;

@@ -24,7 +24,7 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
 
-    public class ChasePlantBehavior : IBehavior {
+    public class ChasePlantBehavior : ISpeciesBehavior {
         private BehaviorEntity.Animal self;
         private ChasePlantSettings settings;
         private FindPlantBehaviorSettings findPlant;

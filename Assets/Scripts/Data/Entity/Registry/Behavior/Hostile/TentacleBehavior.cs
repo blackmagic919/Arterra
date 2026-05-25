@@ -11,6 +11,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Core.Storage;
 using UnityEngine.Animations.Rigging;
 using Arterra.Data.Item;
+using Mono.Cecil;
 
 namespace Arterra.Data.Entity.Behavior
 {
@@ -41,7 +42,7 @@ namespace Arterra.Data.Entity.Behavior
 		}
 	}
 
-	public class TentacleBehavior : IBehavior {
+	public class TentacleBehavior : ISpeciesBehavior {
 		private TentacleSettings settings;
 		private AnimatedBehavior animated;
 		private StateMachineManagerBehavior manager;
@@ -332,8 +333,7 @@ namespace Arterra.Data.Entity.Behavior
 				}
 
 				State = TentacleState.BlendAnimate;
-                if (!target.Is(out IAttackable atkTarget)) return;
-                AttackBehavior.RealAttack(self, atkTarget, settings.Damage, settings.Knockback);
+                AttackBehavior.RealAttack(self, target, settings.Damage, settings.Knockback);
 			}
 
 			public void GrabState(BehaviorEntity.Animal self) {
@@ -344,7 +344,7 @@ namespace Arterra.Data.Entity.Behavior
 
 				if (ColliderUpdateBehavior.GetColliderDist(this, target) > tb.settings.GrabBreakDist){
 					State = TentacleState.BlendAnimate;
-					return;
+					return;	
 				}
 
 				float3 moveTarget = self.position + math.mul(self.Rotation, tb.settings.GrabHoldPos);

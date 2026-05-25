@@ -50,20 +50,20 @@ public class ConsumbaleItem : IItem{
     public void UpdateEItem() { }
     public void OnEnter(ItemContext cxt) {
         if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-        InputPoller.AddKeyBindChange(() => {
+        
             InputPoller.AddBinding(new ActionBind(
                 "Consume",
                 _ => ConsumeFood(cxt),
                 ActionBind.Exclusion.ExcludeLayer),
                 "ITEM::Consumable:EAT", "5.0::GamePlay"
             );
-        });
+        
     } 
     public void OnLeave(ItemContext cxt) {
         if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-        InputPoller.AddKeyBindChange(() => {
+        
             InputPoller.RemoveBinding("ITEM::Consumable:EAT", "5.0::GamePlay");
-        });
+        
     } 
     
     private GameObject display;

@@ -26,7 +26,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class ConsumeEntityBehavior : IBehavior {
+    public class ConsumeEntityBehavior : ISpeciesBehavior {
         public ConsumeEntitySettings settings;
         public ConsumeBehaviorSettings consume;
         private Movement movement;

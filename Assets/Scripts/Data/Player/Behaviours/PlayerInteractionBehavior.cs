@@ -71,7 +71,7 @@ namespace Arterra.Data.Entity.Behavior {
     /// <summary>
     /// Controls player interaction with world entities and map materials.
     /// </summary>
-    public class PlayerInteractionBehavior : IBehavior {
+    public class PlayerInteractionBehavior : ISpeciesBehavior {
         [JsonIgnore] public PlayerInteractionSettings settings;
 
         private bool hasBindings;
@@ -118,6 +118,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Disable(BehaviorEntity.Animal self) {
+            UnbindInput();
             this.self = null;
         }
 
@@ -178,13 +179,25 @@ namespace Arterra.Data.Entity.Behavior {
         private bool RayTestSolidCurrent(out float3 hitPt) => RayTestSolid(self, settings.ReachDistance, out hitPt);
         private bool CylinderTestSolidCurrent(out float3 hitPt) => CylinderTestSolid(self, settings.ReachDistance, settings.CylinderRadius, out hitPt);
 
+        private string AttackEntityName => $"PlayerInteraction:ATK::{self.info.entityId}"; 
+        private string PlaceTerrainName => $"PlayerInteraction:PL::{self.info.entityId}"; 
+        private string RemoveTerrainName => $"PlayerInteraction:RM::{self.info.entityId}"; 
         private void BindInput() {
             if (hasBindings) return;
             hasBindings = true;
 
-            InputPoller.AddBinding(new ActionBind("Attack", AttackEntity), "PlayerInteraction:ATK", "5.0::GamePlay");
-            InputPoller.AddBinding(new ActionBind("Place", PlaceTerrain), "PlayerInteraction:PL", "5.0::GamePlay");
-            InputPoller.AddBinding(new ActionBind("Remove", RemoveTerrain), "PlayerInteraction:RM", "5.0::GamePlay");
+            InputPoller.AddBinding(new ActionBind("Attack", AttackEntity), AttackEntityName, "5.0::GamePlay");
+            InputPoller.AddBinding(new ActionBind("Place", PlaceTerrain), PlaceTerrainName, "5.0::GamePlay");
+            InputPoller.AddBinding(new ActionBind("Remove", RemoveTerrain), RemoveTerrainName, "5.0::GamePlay");
+        }
+
+        private void UnbindInput() {
+            if (!hasBindings) return;
+            hasBindings = false;
+
+            InputPoller.RemoveBinding(AttackEntityName, "5.0::GamePlay");
+            InputPoller.RemoveBinding(PlaceTerrainName, "5.0::GamePlay");
+            InputPoller.RemoveBinding(RemoveTerrainName, "5.0::GamePlay");
         }
 
         private void AttackEntity(float _) {

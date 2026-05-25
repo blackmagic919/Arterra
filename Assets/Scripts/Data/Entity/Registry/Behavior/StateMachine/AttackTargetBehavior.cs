@@ -26,7 +26,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class AttackTargetBehavior : IBehavior {
+    public class AttackTargetBehavior : ISpeciesBehavior {
         private AttackTargetSettings settings;
         private Movement movement;
         private ChasePreyBehavior prey;

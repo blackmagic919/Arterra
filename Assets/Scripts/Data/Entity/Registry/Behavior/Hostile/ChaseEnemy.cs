@@ -123,7 +123,7 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
 
-    public class ChaseEnemyBehavior : IBehavior {
+    public class ChaseEnemyBehavior : ISpeciesBehavior {
         [JsonIgnore] public ChaseEnemySettings settings;
         private Movement movement;
         private MMove mmove; //optional

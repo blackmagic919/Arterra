@@ -21,7 +21,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class FeedableBehavior : IBehavior {
+    public class FeedableBehavior : ISpeciesBehavior {
         private FeedableBehaviorSettings settings;
         private ConsumeBehaviorSettings consume;
 

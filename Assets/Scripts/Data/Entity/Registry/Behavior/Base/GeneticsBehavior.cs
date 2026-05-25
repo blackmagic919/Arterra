@@ -47,7 +47,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class Genetics : IBehavior {
+    public class Genetics : ISpeciesBehavior {
         private GeneticsSettings settings;
         [JsonProperty]
         private float[] _genes;

@@ -19,10 +19,10 @@ namespace Arterra.GamePlay.UI {
             PauseMenu.SetActive(true);
 
             InputPoller.AddStackPoll(new ActionBind("Frame:Pause", (float _) => InputPoller.SetCursorLock(false)), "CursorLock");
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddContextFence("PauseMenu", "1.0::Menu", ActionBind.Exclusion.ExcludeAll);
                 InputPoller.AddBinding(new ActionBind("Pause", Deactivate), "PauseMenu:CLS", "1.0::Menu");
-            });
+            
 
             Option<Config.GamePlaySettings> settings = Config.CURRENT._GamePlay;
             PaginatedUIEditor.CreateProceduralPagination(settings.value, PauseContent, (ChildUpdate cb) => {
@@ -43,7 +43,7 @@ namespace Arterra.GamePlay.UI {
         public static void Deactivate(float _null_) {
             PaginatedUIEditor.ReleaseAllChildren(PauseContent);
             InputPoller.RemoveStackPoll("Frame:Pause", "CursorLock");
-            InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence("PauseMenu", "1.0::Menu"));
+            InputPoller.RemoveContextFence("PauseMenu", "1.0::Menu");
             PauseMenu.SetActive(false);
         }
 

@@ -24,7 +24,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class AttackBehavior : IBehavior {
+    public class AttackBehavior : ISpeciesBehavior {
         [JsonIgnore] public AttackStats settings;
         private BehaviorEntity.Animal self;
         private Modifier mods; 
@@ -66,23 +66,23 @@ namespace Arterra.Data.Entity.Behavior {
             
             if (!EntityManager.TryGetEntity(AttackTarget, out Entity target))
                 return;
-            if (!target.Is(out IAttackable atkTarget)) return;
             if (ColliderUpdateBehavior.GetColliderDist(target, self)
                 > Modifier.Get(mods, MSettings.AttackDistance, settings.AttackDistance))
                 return;
             float damage = Modifier.Get(mods, MSettings.AttackDamage, settings.AttackDamage);
             float3 knockback = math.normalize(target.position - self.position) 
                 * Modifier.Get(mods, MSettings.KBStrength, settings.KBStrength);
-            RealAttack(self, atkTarget, damage, knockback);
+            RealAttack(self, target, damage, knockback);
         }
 
-        public static void RealAttack(Entity self, IAttackable target, float damage, float3 knockback) {
+        public static void RealAttack(Entity self, Entity target, float damage, float3 knockback) {
+            if (!target.Is(out IAttackable atkTarget)) return;
             RefTuple<(float, float3)> cxt = (damage, knockback);
             self.eventCtrl.RaiseEvent(
                 GameEvent.Entity_Attack,
                 self, target, cxt
             ); (damage, knockback) = cxt.Value;
-            EntityManager.AddHandlerEvent(() => target.TakeDamage(damage, knockback, self));
+            EntityManager.AddHandlerEvent(() => atkTarget.TakeDamage(damage, knockback, self));
         }
 
         public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {

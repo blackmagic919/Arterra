@@ -150,7 +150,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
     }
-    public class BoidFollowBehavior : IBehavior, BoidFollowSetting.IBoid {
+    public class BoidFollowBehavior : ISpeciesBehavior, BoidFollowSetting.IBoid {
         private BoidFollowSetting settings;
         private Movement movement;
         private MMove mmove; //optional

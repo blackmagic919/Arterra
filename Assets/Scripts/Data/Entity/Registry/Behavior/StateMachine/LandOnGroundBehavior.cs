@@ -35,7 +35,7 @@ namespace Arterra.Data.Entity.Behavior{
             };
         }
     }
-    public class LandOnGroundBehavior : IBehavior {
+    public class LandOnGroundBehavior : ISpeciesBehavior {
         protected LandOnGroundSettings settings;
         protected Movement movement;
         protected MMove mmove; //optional

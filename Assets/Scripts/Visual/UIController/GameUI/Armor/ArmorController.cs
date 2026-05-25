@@ -100,7 +100,7 @@ namespace Arterra.GamePlay.UI {
         PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenArmor, PlayerHandler.data, null);
         OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
 
-            InputPoller.AddKeyBindChange(() => {
+            
                 InputPoller.AddContextFence("PlayerArmor", "3.5::Window", ActionBind.Exclusion.None);
                 InputPoller.AddBinding(new ActionBind("Select",
                     _ => Select(), ActionBind.Exclusion.None), "PlayerArmor:SEL", "3.5::Window");
@@ -108,7 +108,7 @@ namespace Arterra.GamePlay.UI {
                     _ => RotateCamera(), ActionBind.Exclusion.None), "PlayerArmor:DSL", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("Look Horizontal", CamMovement.LookX), "PlayerArmor:LH", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("Look Vertical", CamMovement.LookY), "PlayerArmor:LV", "3.5::Window");
-            });
+            
 
             for (int i = 0; i < playerArmor.Display.Length; i++) {
                 float3 originWS = settings.Variants.Retrieve(i).Root.Bone.position;
@@ -120,7 +120,7 @@ namespace Arterra.GamePlay.UI {
             eventTask.Active = false;
             PlayerCamera.SetActive(false);
             ArmorPanel.SetActive(false);
-            InputPoller.AddKeyBindChange(() => InputPoller.RemoveContextFence("PlayerArmor", "3.5::Window"));
+            InputPoller.RemoveContextFence("PlayerArmor", "3.5::Window");
             SetSelectedSlot(-1);
         }
 
