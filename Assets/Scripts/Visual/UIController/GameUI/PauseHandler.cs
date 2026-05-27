@@ -19,16 +19,15 @@ namespace Arterra.GamePlay.UI {
             PauseMenu.SetActive(true);
 
             InputPoller.AddStackPoll(new ActionBind("Frame:Pause", (float _) => InputPoller.SetCursorLock(false)), "CursorLock");
-            
-                InputPoller.AddContextFence("PauseMenu", "1.0::Menu", ActionBind.Exclusion.ExcludeAll);
-                InputPoller.AddBinding(new ActionBind("Pause", Deactivate), "PauseMenu:CLS", "1.0::Menu");
+            InputPoller.AddContextFence("PauseMenu", "1.0::Menu", ActionBind.Exclusion.ExcludeAll);
+            InputPoller.AddBinding(new ActionBind("Pause", Deactivate), "PauseMenu:CLS", "1.0::Menu");
             
 
-            Option<Config.GamePlaySettings> settings = Config.CURRENT._GamePlay;
-            PaginatedUIEditor.CreateProceduralPagination(settings.value, PauseContent, (ChildUpdate cb) => {
-                settings.Clone(); object obj = settings.value;
+            DirtyOption<Config.GamePlaySettings> settings = Config.CURRENT._GamePlay;
+            PaginatedUIEditor.CreateProceduralPagination(settings.Value, PauseContent, (ChildUpdate cb) => {
+                settings.Clone(); object obj = settings.Value;
                 cb.Invoke(ref obj);
-                settings.value = (Config.GamePlaySettings)obj;
+                settings.Value = (Config.GamePlaySettings)obj;
                 Config.CURRENT._GamePlay = settings;
                 Arterra.Core.Storage.World.SaveOptionsSync();
             }, () => { Exit(); });

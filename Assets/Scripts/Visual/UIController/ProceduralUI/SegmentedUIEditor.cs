@@ -70,29 +70,34 @@ public static class SegmentedUIEditor
 
     //To Do: Flatten Options into a list and store index if it isn't dirty to the template list
     public static void SupplementTree(ref object dest, ref object src){
+        if (dest.GetType().GetInterfaces().Contains(typeof(IOption))) {
+            Type destType = dest.GetType();
+            FieldInfo vField = destType.GetField("value");
+            object vDest = vField.GetValue(dest), vSrc = vField.GetValue(src);
+            if (((IOption)dest).IsDirty) {
+                IConverter CustomConvertor = GetCustomSerializerSetting(vDest.GetType(), vField.FieldType);
+                if (CustomConvertor != null) CustomConvertor.Deserialize(ref vDest, ref vSrc);
+                else SupplementTree(ref vDest, ref vSrc);
+                vField.SetValue(dest, vDest);
+            } else {
+                vField.SetValue(dest, vSrc);
+                if(destType.GetInterfaces().Contains(typeof(IDirtyOption))){
+                    (dest as IDirtyOption).Prime();
+                    vDest = vField.GetValue(dest);
+                    SupplementTree(ref vDest, ref vSrc);
+                }
+            }
+            return;
+        }
+        
         FieldInfo[] fields = src.GetType().GetFields();
         foreach(FieldInfo field in fields){
             if (Attribute.IsDefined(field, typeof(UISetting)) && (Attribute.GetCustomAttribute(field, typeof(UISetting)) as UISetting).Defaulting)
                 continue;
             if (field.IsStatic) continue; //Ignore static fields
-            if (field.FieldType.GetInterfaces().Contains(typeof(IOption))) {
-                if (((IOption)field.GetValue(dest)).IsDirty) {
-                    FieldInfo nField = field.FieldType.GetField("value");
-                    object oDest = field.GetValue(dest), oSrc = field.GetValue(src);
-                    object nDest = nField.GetValue(oDest), nSrc = nField.GetValue(oSrc);
-
-                    IConverter CustomConvertor = GetCustomSerializerSetting(nDest.GetType(), nField.FieldType);
-                    if (CustomConvertor != null) CustomConvertor.Deserialize(ref nDest, ref nSrc);
-                    else SupplementTree(ref nDest, ref nSrc);
-
-                    nField.SetValue(oDest, nDest); field.SetValue(dest, oDest);
-                }
-                else field.SetValue(dest, field.GetValue(src)); //This is the only line that actually fills in anything
-            }
             else if (field.FieldType.IsPrimitive || field.FieldType == typeof(string)) continue;
             else if (field.FieldType.IsEnum) continue;
-            else if (field.FieldType.IsValueType)
-            {
+            else if (field.FieldType.IsValueType) {
                 object nDest = field.GetValue(dest), nSrc = field.GetValue(src);
                 SupplementTree(ref nDest, ref nSrc);
                 field.SetValue(dest, nDest);
@@ -182,8 +187,7 @@ public static class SegmentedUIEditor
                 field = mField; value = mValue; 
             } else if (field.FieldType == typeof(string) && value == null) value = "New " + field.Name;
             else if (!field.FieldType.IsValueType && !field.FieldType.IsPrimitive && field.FieldType != typeof(string)) {
-                Debug.LogWarning($"Encountered unexpected {field.FieldType} ");
-                throw new Exception($"Config Object {setting.GetType()} encountered unexpected filed {field}. Config objects must contain either only value types or options");
+                throw new Exception($"Config Object {setting.GetType()} encountered unexpected field {field}. Config objects must contain either only value types or options");
             } 
 
             if (UITag != null && UITag.Collapse != null) {

@@ -62,7 +62,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public static PlayerInteractionSettings GetSingleton() {
-            if (!Config.CURRENT.GamePlay.PlayerSettings.value.Is(out PlayerInteractionSettings interaction))
+            if (!Config.CURRENT.GamePlay.PlayerSettings.value.value.Is(out PlayerInteractionSettings interaction))
                 throw new System.Exception("Expected player to have terraform settings");
             return interaction;
         }

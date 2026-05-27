@@ -10,11 +10,17 @@ namespace Arterra.Data.Entity.Behavior {
         None,
         Poison,
         Bleeding,
+        Nausea,
+        Dizziness,
+        Blindness
     }
     public class EffectorSettings : IBehaviorSetting {
         public static Dictionary<Effects, Func<ITempBehavior>> EffectTemplates = new () {
             { Effects.Poison, () => new PoisonEffect() },
-            { Effects.Bleeding, () => new BleedingEffect() }
+            { Effects.Bleeding, () => new BleedingEffect() },
+            { Effects.Nausea, () => new NauseaEffect() },
+            { Effects.Dizziness, () => new DizzinessEffect() },
+            { Effects.Blindness, () => new BlindnessEffect() }
         };
         public enum Subject {
             Source, Target
@@ -52,6 +58,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void OnValidate(BehaviorEntity.AnimalSetting settings) {
+            Effectors.value ??= new List<EventEffect>();
             for (int i = 0; i < Effectors.value.Count; i++) {
                 EventEffect eventEffect = Effectors.value[i];
                 if (!EffectTemplates.TryGetValue(eventEffect.effect.name, out Func<ITempBehavior> getBehavior))
@@ -107,7 +114,7 @@ namespace Arterra.Data.Entity.Behavior {
                 EffectorSettings.Effect effect = node.Value;
                 node = node.Next;
 
-                if (effect.chance > self.random.NextFloat())
+                if (effect.chance < self.random.NextFloat())
                     continue;
                 var subject = effect.subject == EffectorSettings.Subject.Source ? src : tgt;
                 if (subject == null) continue;

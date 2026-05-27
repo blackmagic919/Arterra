@@ -172,7 +172,9 @@ public class InidcatorsBehavior : ISpeciesBehavior {
     private void OnDamaged(object self, object attacker, object cxt) {
         RefTuple<(float damage, float3 kb)> data = cxt as RefTuple<(float damage, float3 kb)>;
         if (data.Value.damage == 0) return;
-        Indicators.DisplayDamageParticle((self as Entity).position, data.Value.kb);
+        EntityManager.AddHandlerEvent(() => {
+            Indicators.DisplayDamageParticle((self as Entity).position, data.Value.kb);  
+        });
     }
 
     private void SetupEffectWindow() {

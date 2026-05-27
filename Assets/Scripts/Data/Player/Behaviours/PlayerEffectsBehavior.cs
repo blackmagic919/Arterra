@@ -164,6 +164,9 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void PlayStartSwim(object source, object target, object density) {
+            if (source is not Entity entity) return;
+            if (entity.Is(out IAttackable attackable) && attackable.IsDead)
+                return;
             SetBool("IsSwimming", true);
             SetBool("IsJumping", false);
             SetBool("IsSitting", false);
@@ -171,20 +174,19 @@ namespace Arterra.Data.Entity.Behavior {
             if (isSwimming) return;
             isSwimming = true;
 
-            if (source is Entity entity) {
-                Indicators.PlayWaterSplash(entity, physicality.weight);
-            }
+            Indicators.PlayWaterSplash(entity, physicality.weight);
         }
 
         private void PlayStopSwim(object source, object target, object density) {
+            if (source is not Entity entity) return;
+            if (entity.Is(out IAttackable attackable) && attackable.IsDead)
+                return;
             SetBool("IsSwimming", false);
 
             if (!isSwimming) return;
             isSwimming = false;
 
-            if (source is Entity entity) {
-                Indicators.PlayWaterSplash(entity, physicality.weight);
-            }
+            Indicators.PlayWaterSplash(entity, physicality.weight);
         }
 
         private void PlayTouchdown(object source, object target, object cxt) {

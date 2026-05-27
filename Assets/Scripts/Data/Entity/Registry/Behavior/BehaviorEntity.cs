@@ -38,7 +38,7 @@ namespace Arterra.Data.Entity.Behavior {
     
 
     public interface ITempBehavior : IBehavior {
-        public bool CanApply(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting) => true;
+        public bool CanApply(BehaviorEntity.Animal self) => true;
         //Create is called before CanApply is called with it
         public ITempBehavior Create(BehaviorEntity.Animal self = null);
     }
@@ -114,6 +114,9 @@ namespace Arterra.Data.Entity.Behavior {
         
         Poison = BehaviorTypes.Effects + 0,
         Bleeding = BehaviorTypes.Effects + 1,
+        Nausea = BehaviorTypes.Effects + 2,
+        Dizziness = BehaviorTypes.Effects + 3,
+        Blindness = BehaviorTypes.Effects + 4,
     }
 
     // つぎはぎの生物, stitchwork animal
@@ -188,6 +191,9 @@ namespace Arterra.Data.Entity.Behavior {
 
             { Behaviors.Poison, () => new PoisonEffect()},
             { Behaviors.Bleeding, () => new BleedingEffect()},
+            { Behaviors.Nausea, () => new NauseaEffect()},
+            { Behaviors.Dizziness, () => new DizzinessEffect()},
+            { Behaviors.Blindness, () => new BlindnessEffect()},
         };
 
         public enum UpdateContext { Job, Fixed, Main, Late, JobSync }
@@ -197,7 +203,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         [Serializable]
-        public class AnimalSetting : EntitySetting, ISerializationCallbackReceiver{
+        public class AnimalSetting : EntitySetting, ISerializationCallbackReceiver, ICloneable{
             public Option<List<Behaviors> > BehaviorList;
             [TypeNameElementList("value",
                 typeof(Movement),
@@ -239,16 +245,16 @@ namespace Arterra.Data.Entity.Behavior {
                 typeof(PlayerInteractionSettings),
                 typeof(PlayerInventorySettings)
             )]
-            public Option<List<ReferenceOption<IBehaviorSetting>> > Settings;
+            public DirtyOption<List<DirtyReferenceOption<IBehaviorSetting>>> Settings;
 
             [JsonIgnore][UISetting(Defaulting = true)]
             public Dictionary <Type, object> DynamicTypes;
 
             public override void Preset(uint entityType) {
                 DynamicTypes = new Dictionary<Type, object>();
-                foreach(ReferenceOption<IBehaviorSetting> setting in Settings.value) {
-                    setting.value.Preset(entityType, this);
-                    Register(setting.value.GetType(), setting.value);
+                foreach(DirtyReferenceOption<IBehaviorSetting> setting in Settings.Value) {
+                    setting.Value.Preset(entityType, this);
+                    Register(setting.Value.GetType(), setting.Value);
                 }
 
                 base.Preset(entityType);
@@ -261,6 +267,7 @@ namespace Arterra.Data.Entity.Behavior {
             [SerializeField, HideInInspector] private int _prevBehaviorCount = 0;
             //Verify dependencies and apply 
             public void OnValidate() {
+                
                 Dictionary<Behaviors, int> BehaviorHeirarchy = new ();
                 Dictionary<Type, IBehaviorSetting> SettingsHeirarchy = new ();
                 BehaviorHeirarchy.Add(Behaviors.Collider, 0);
@@ -301,16 +308,19 @@ namespace Arterra.Data.Entity.Behavior {
                 }
 
                 //Merge Settings
-                foreach (var setting in Settings.value) {
-                    SettingsHeirarchy[setting.value.GetType()] = setting.value;
+                foreach (var setting in Settings.Value) {
+                    SettingsHeirarchy[setting.Value.GetType()]
+                        = setting.Value;
                 }
 
-                Settings.value = SettingsHeirarchy.Values
-                    .Select(a => new ReferenceOption<IBehaviorSetting>{value = a})
-                    .ToList();
                 
-                foreach (var setting in Settings.value) {
-                    setting.value.OnValidate(this);
+                Settings.value = SettingsHeirarchy.Values
+                    .Select(a => new DirtyReferenceOption<IBehaviorSetting>{
+                        Value = a
+                    }).ToList();
+                
+                foreach (var setting in Settings.value.value) {
+                    setting.value.value.OnValidate(this);
                 }
             }
 
@@ -329,6 +339,17 @@ namespace Arterra.Data.Entity.Behavior {
                     return false;
                 } return true;
             } 
+
+            public object Clone() {
+                return new AnimalSetting {
+                    profile = profile,
+                    collider = collider,
+                    BehaviorList = BehaviorList,
+                    Settings = Settings,
+                    _prevBehaviorCount = _prevBehaviorCount,
+                    DynamicTypes = DynamicTypes,
+                };
+            }
         }
 
         //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
@@ -482,7 +503,7 @@ namespace Arterra.Data.Entity.Behavior {
             public void AddBehavior(ITempBehavior behavior) {
                 EntityManager.AddHandlerEvent(() => {
                     if (behavior == null) return;
-                    if (!behavior.CanApply(this, settings)) return;
+                    if (!behavior.CanApply(this)) return;
                     eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_AddBehavior, this, behavior);
                     _addBehavior(behavior, false); //doesn't register type as could have multiple temp effects
                     if (!active) return;

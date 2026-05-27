@@ -64,8 +64,7 @@ namespace Arterra.Data.Entity.Behavior {
             progress += self.DeltaTime;
 
             float damage = -accDeltaTime * _strength;
-            if (vit.Damage(damage)) accDeltaTime = 0;
-
+            if (vit.TakeDamage(damage, float3.zero)) accDeltaTime = 0;
             if (progress > _duration) self.Unregister(typeof(BleedingEffect));
         }
     }

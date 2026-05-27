@@ -38,7 +38,7 @@ MonoBehaviour:
         value:
         - value:
             rid: 1481107594490413083
-      _prevBehaviorCount: 0
+      _prevBehaviorCount: 1
   references:
     version: 2
     RefIds:

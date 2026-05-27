@@ -59,29 +59,29 @@ namespace Arterra.Configuration {
         public int Seed;
         /// <exclude />
         [UISetting(Alias = "Quality")]
-        public Option<QualitySettings> _Quality;
+        public DirtyOption<QualitySettings> _Quality;
         /// <exclude />
         [UISetting(Alias = "Gameplay")]
-        public Option<GamePlaySettings> _GamePlay;
+        public DirtyOption<GamePlaySettings> _GamePlay;
         /// <exclude />
         [UISetting(Alias = "System")]
-        public Option<SystemSettings> _System;
+        public DirtyOption<SystemSettings> _System;
         /// <exclude />
         [UISetting(Alias = "Generation")]
-        public Option<GenerationSettings> _Generation;
+        public DirtyOption<GenerationSettings> _Generation;
 
         ///<summary> <see cref="QualitySettings"/>  </summary>
         [JsonIgnore]
-        public ref QualitySettings Quality => ref _Quality.value;
+        public ref QualitySettings Quality => ref _Quality.value.value;
         ///<summary> <see cref="GenerationSettings"/>  </summary>
         [JsonIgnore]
-        public ref GenerationSettings Generation => ref _Generation.value;
+        public ref GenerationSettings Generation => ref _Generation.value.value;
         ///<summary> <see cref="GamePlaySettings"/>  </summary>
         [JsonIgnore]
-        public ref GamePlaySettings GamePlay => ref _GamePlay.value;
+        public ref GamePlaySettings GamePlay => ref _GamePlay.value.value;
         ///<summary> <see cref="SystemSettings"/>  </summary>
         [JsonIgnore]
-        public ref SystemSettings System => ref _System.value;
+        public ref SystemSettings System => ref _System.value.value;
 
         /// <summary>
         /// The settings describing factors controlling the quality of the world. Increasing quality
@@ -205,8 +205,10 @@ namespace Arterra.Configuration {
             /// Behavior-driven player defaults and overrides used by the player registry authoring.
             /// This is the source of truth for the migrated direct-update player entity.
             /// </summary>
-            [UISetting(Collapse = "Settings")]
-            public Option<BehaviorEntity.AnimalSetting> PlayerSettings = new(){ value = PlayerBehavior.DefaultPlayerAnimalSetting};
+            /// <remarks>SDouble Option1[Option2[]] wrapper is used as a hack, whereby setting Option2 to Dirty,
+            /// we can avoid object cloning when config is changed, allowing </remarks>
+            [UISetting(Collapse = "Settings")][UIModifiable(CallbackName = "PlayerSettings")]
+            public DirtyOption<BehaviorEntity.AnimalSetting> PlayerSettings = new(){ value = PlayerBehavior.DefaultPlayerAnimalSetting};
             /// <summary> Controls how the player experiences the world. See <see cref="Gameplay.Interaction"/> for more information. </summary>
             public Option<Gameplay.Gamemodes> Gamemodes;
             /// <summary> Settings controlling environment constants of the world. See <see cref="Gameplay.Environment"/> for more information. </summary>
@@ -303,6 +305,7 @@ namespace Arterra.Configuration {
         public static Config Create() {
             Config newOptions = Instantiate(TEMPLATE);
             newOptions.Seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+            newOptions.OnDeserialized();
             return newOptions;
         }
     }
@@ -461,6 +464,138 @@ namespace Arterra.Configuration {
             else if (value is IList list) {
                 value = (T)Activator.CreateInstance(list.GetType(), list);
             }
+        }
+    }
+
+    /// <summary>
+    /// A DirtyOption, an Option wrapper that only holds Options (equivalent to Option[Option[]]). Nested options
+    /// are used for a hacky workaround to prevent breaking references when members are Cloned. By Priming a dirty option, 
+    /// we set the inner option to dirty and the outer option to not-dirty, so it is not saved; but upon cloning, it already
+    /// has a dirty child, so can avoid duplicating the object (breaking the reference).
+    /// </summary>
+    public interface IDirtyOption : IOption {
+        /// <summary>Primes the Dirty Option, cloning its value so references aren't broken
+        /// when it is actually cloned.</summary>
+        public void Prime();
+    }
+
+    /// <summary>  A DirtyOption version of Option[] wrapper. </summary>
+    /// <typeparam name="T">An IOption of another member, a nested option wrapper</typeparam>
+    [Serializable]
+    public struct DirtyOption<T> : IDirtyOption {
+        /// <summary> The instance stored within the option wrapper. </summary>
+        [SerializeField]
+        public Option<T> value;
+        /// <summary> Shortcut accessor to true value </summary>
+        [JsonIgnore] public T Value {
+            readonly get => value.value;
+            set => this.value.value = value;
+        }
+        [HideInInspector]
+        [UISetting(Ignore = true)]
+        private bool isDirty;
+
+        /// <summary> Implicitly converts the option to the value it holds. This is useful for obtaining the value</summary>
+        /// <param name="option"> The option itself </param>
+        public static implicit operator T(DirtyOption<T> option) => option.value.value;
+        /// <summary> Implicitly converts the value to an option. This is useful for setting the value  </summary>
+        /// <param name="val">The value which we want to set to <see cref="value"/></param>
+        public static implicit operator DirtyOption<T>(T val) => new DirtyOption<T> {
+            value = val,
+        };
+
+        /// <summary>
+        /// Returns whether one should serialize(save) this field (i.e. the type it holds).
+        /// An option should be serialized if it <see cref="isDirty"/>. 
+        /// Used by <see cref="Newtonsoft.Json"/> to determine if the field needs to be saved.
+        /// </summary>
+        /// <returns></returns>
+        public bool ShouldSerializevalue() { return isDirty; }
+        //Default value is false so it's the same if we don't store it
+
+        /// <summary> Whether or not the option has been modified (i.e. different from the template) </summary>
+        public bool IsDirty {
+            readonly get { return isDirty; }
+            set { isDirty = value; }
+        }
+
+        /// <summary>
+        /// Primes the Dirty Option, cloning its value so references aren't broken
+        /// when it is actually cloned.
+        /// </summary>
+        public void Prime() {
+            value.Clone();
+        }
+
+        /// <summary>
+        /// Clones the object. If it is a value type, it will be cloned by default. 
+        /// If it is a reference type, it will be cloned if it implements <see cref="ICloneable"/>,
+        /// ILists are cloned by default by creating a new instance of the list and copying the elements.
+        /// </summary>
+        public void Clone() {
+            if (isDirty) return;
+            isDirty = true;
+        }
+    }
+
+    /// <summary>
+    /// A Dirty Option Version of Reference Option.
+    /// </summary>
+    /// <typeparam name="T">An IOption of another member, a nested option wrapper</typeparam>
+    [Serializable]
+    public struct DirtyReferenceOption<T> : IDirtyOption where T : class {
+        /// <summary> The instance stored within the option wrapper. </summary>
+        [SerializeField]
+        public ReferenceOption<T> value;
+        /// <summary> Shortcut accessor to true value </summary>
+        [JsonIgnore] public T Value {
+            readonly get => value.value;
+            set => this.value.value = value;
+        }
+        [HideInInspector]
+        [UISetting(Ignore = true)]
+        private bool isDirty;
+
+        /// <summary> Implicitly converts the option to the value it holds. This is useful for obtaining the value</summary>
+        /// <param name="option"> The option itself </param>
+        public static implicit operator T(DirtyReferenceOption<T> option) => option.value.value;
+        /// <summary> Implicitly converts the value to an option. This is useful for setting the value  </summary>
+        /// <param name="val">The value which we want to set to <see cref="value"/></param>
+        public static implicit operator DirtyReferenceOption<T>(T val) => new () {
+            value = val,
+        };
+
+        /// <summary>
+        /// Returns whether one should serialize(save) this field (i.e. the type it holds).
+        /// An option should be serialized if it <see cref="isDirty"/>. 
+        /// Used by <see cref="Newtonsoft.Json"/> to determine if the field needs to be saved.
+        /// </summary>
+        /// <returns></returns>
+        public bool ShouldSerializevalue() { return isDirty; }
+        //Default value is false so it's the same if we don't store it
+
+        /// <summary> Whether or not the option has been modified (i.e. different from the template) </summary>
+        public bool IsDirty {
+            readonly get { return isDirty; }
+            set { isDirty = value; }
+        }
+
+        /// <summary>
+        /// Primes the Dirty Option, cloning its value so references aren't broken
+        /// when it is actually cloned.
+        /// </summary>
+        public void Prime() {
+            value.Clone();
+        }
+
+        /// <summary>
+        /// Clones the object. If it is a value type, it will be cloned by default. 
+        /// If it is a reference type, it will be cloned if it implements <see cref="ICloneable"/>,
+        /// ILists are cloned by default by creating a new instance of the list and copying the elements.
+        /// </summary>
+        public void Clone() {
+            if (isDirty) return;
+            isDirty = true;
         }
     }
 }

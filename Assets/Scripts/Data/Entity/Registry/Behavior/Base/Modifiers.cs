@@ -154,6 +154,18 @@ namespace Arterra.Data.Entity.Behavior {
         Recieve_BleedingStrength = Modifier.Effects + 5, 
         Inflict_BleedingDuration = Modifier.Effects + 6,
         Recieve_BleedingDuration = Modifier.Effects + 7, 
+        Inflict_NauseaStrength = Modifier.Effects + 8,
+        Recieve_NauseaStrength = Modifier.Effects + 9,
+        Inflict_NauseaDuration = Modifier.Effects + 10,
+        Recieve_NauseaDuration = Modifier.Effects + 11,
+        Inflict_DizzinessStrength = Modifier.Effects + 12,
+        Recieve_DizzinessStrength = Modifier.Effects + 13,
+        Inflict_DizzinessDuration = Modifier.Effects + 14,
+        Recieve_DizzinessDuration = Modifier.Effects + 15,
+        Inflict_BlindnessStrength = Modifier.Effects + 16,
+        Recieve_BlindnessStrength = Modifier.Effects + 17,
+        Inflict_BlindnessDuration = Modifier.Effects + 18,
+        Recieve_BlindnessDuration = Modifier.Effects + 19,
 
     }
 

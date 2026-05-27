@@ -120,9 +120,8 @@ namespace Arterra.Data.Entity.Behavior {
             (damage, knockback) = cxt.Value;
             if (damage == 0) return false;
             
-            damage += MaxAccDamage;
+            MaxAccDamage += damage;
             self.velocity += knockback;
-            if (!Damage(damage)) return false;
             return true;
         }
 
@@ -130,8 +129,8 @@ namespace Arterra.Data.Entity.Behavior {
         public void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             if (self.context == BehaviorEntity.UpdateContext.Main) return;
+            TryApplyAccDamage();
 
-            invincibility = math.max(invincibility - self.DeltaTime, 0);
             if (IsDead) {
                 if (TriggeredDeath) return;
                 self.eventCtrl.RaiseEvent(GameEvent.Entity_Death, self, null);
@@ -145,9 +144,9 @@ namespace Arterra.Data.Entity.Behavior {
             health += delta;
         }
 
-        public bool Damage(float delta) {
-            MaxAccDamage = math.max(MaxAccDamage, delta);
-            if (invincibility > 0) return false;
+        public bool TryApplyAccDamage() {
+            invincibility = math.max(invincibility - self.DeltaTime, 0);
+            if (invincibility > 0 || MaxAccDamage == 0) return false;
 
             invincibility = InvincTime;
             float damage = health - math.max(health - MaxAccDamage, 0);

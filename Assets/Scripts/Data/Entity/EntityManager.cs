@@ -217,13 +217,14 @@ public static class EntityManager
         BehaviorEntity playerAuthoring = EntityDictionary.Retrieve("Player") as BehaviorEntity;
 
         ref var gameplaySettings = ref Config.CURRENT.GamePlay;
-        if (gameplaySettings.PlayerSettings.value == null) {
-            gameplaySettings.PlayerSettings.value = PlayerBehavior.CreateDefaultPlayerAnimalSetting();
+        if (gameplaySettings.PlayerSettings.value.value == null) {
+            gameplaySettings.PlayerSettings.value = PlayerBehavior.DefaultPlayerAnimalSetting;
             gameplaySettings.PlayerSettings.IsDirty = true;
         }
 
         Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         BehaviorEntity.AnimalSetting setting = gameplaySettings.PlayerSettings.value;
+
         uint size = setting.profile.bounds.x * setting.profile.bounds.y * setting.profile.bounds.z;
         playerAuthoring.Profile.value = new List<ProfileE>(new ProfileE[size]);
         List<ProfileE> playerProfile = playerAuthoring.Profile.value;
@@ -254,9 +255,9 @@ public static class EntityManager
             behaviorAuthoring.Name = "Player";
 
             behaviorAuthoring._Setting.value = Config.CURRENT != null
-                && Config.CURRENT.GamePlay.PlayerSettings.value != null
+                && Config.CURRENT.GamePlay.PlayerSettings.value.value != null
                 ? Config.CURRENT.GamePlay.PlayerSettings.value
-                : PlayerBehavior.CreateDefaultPlayerAnimalSetting();
+                : PlayerBehavior.DefaultPlayerAnimalSetting;
             behaviorAuthoring.Controller.value = Resources.Load<GameObject>("Prefabs/Player/PlayerController");
 
             return behaviorAuthoring;

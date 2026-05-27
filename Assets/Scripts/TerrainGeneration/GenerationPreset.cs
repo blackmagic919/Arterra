@@ -60,6 +60,9 @@ public static class SystemProtocol{
         GameUIManager.Initialize();
 
         AtmospherePass.Initialize();
+        NauseaPass.Initialize();
+        DizzinessPass.Initialize();
+        BlindnessPass.Initialize();
         Chunk.Initialize();
 
         Structure.Generator.PresetData();
@@ -111,6 +114,9 @@ public static class SystemProtocol{
         PlayerHandler.Release();
         Arterra.Engine.Rendering.LightBaker.Release();
         AtmospherePass.Release();
+        NauseaPass.Release();
+        DizzinessPass.Release();
+        BlindnessPass.Release();
         SubChunkShaderGraph.Unset();
         Readback.AsyncMeshReadback.Release();
         CPUMapManager.Release();

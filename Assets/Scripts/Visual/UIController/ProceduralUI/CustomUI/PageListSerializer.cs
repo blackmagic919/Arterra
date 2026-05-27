@@ -89,24 +89,8 @@ public class PageListSerializer : IConverter{
             FieldInfo field = null; ParentUpdate nUpdate = OnUpdate; 
             int index = i; //Capture the index to streamline changes
             if(cObjType.GetInterfaces().Contains(typeof(IOption))){
-                field = cObjType.GetField("value"); 
-                value = field.GetValue(cObject);
-                if (value == null) {
-                    value = CreateInstance(field.FieldType);
-                    field.SetValue(cObject, value);
-                } 
-
+                BuildOptionListElementBinding(cObject, index, OnUpdate, out field, out value, out nUpdate);
                 name = TryGetName(value);
-                //List element can't have Attribute, so we don't have to check VerifyUpdateHooks
-                void ChildRequest(ChildUpdate childCallback) { 
-                    void ParentReceive(ref object parentObject){
-                        IList newList = (IList)parentObject;
-                        ((IOption)cObject).Clone();
-                        childCallback(ref cObject);
-                        newList[index] = (IOption)cObject; 
-                    }
-                    OnUpdate(ParentReceive);
-                } nUpdate = ChildRequest;
             } 
             else if(cObjType.IsValueType || cObjType.IsPrimitive || cObjType == typeof(string)){
                 cObject = CreateInstance(typeof(Option<>).MakeGenericType(cObjType));
@@ -130,6 +114,33 @@ public class PageListSerializer : IConverter{
             if(name != null){ elementText.text = name.ToString(); }
             else elementText.text = "Element " + i.ToString() + ": ";
             CreateInputField(field, value, key, page, nUpdate);
+        }
+    }
+
+    private static void BuildOptionListElementBinding(object listOption, int index, ParentUpdate OnUpdate,
+        out FieldInfo field, out object value, out ParentUpdate nUpdate) {
+        field = listOption.GetType().GetField("value");
+        value = field.GetValue(listOption);
+        if (value == null) {
+            value = CreateInstance(field.FieldType);
+            field.SetValue(listOption, value);
+        }
+
+        // List elements are not fields, so updates are routed through list index replacement.
+        void ChildRequest(ChildUpdate childCallback) {
+            void ParentReceive(ref object parentObject){
+                IList newList = (IList)parentObject;
+                ((IOption)listOption).Clone();
+                childCallback(ref listOption);
+                newList[index] = (IOption)listOption;
+            }
+            OnUpdate(ParentReceive);
+        }
+
+        nUpdate = ChildRequest;
+        if (field.FieldType.GetInterfaces().Contains(typeof(IOption))) {
+            HandleOptionClosure(field, listOption, ChildRequest, out field, out value, out nUpdate);
+            return;
         }
     }
 }

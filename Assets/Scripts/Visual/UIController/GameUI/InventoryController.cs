@@ -52,7 +52,8 @@ namespace Arterra.GamePlay.UI {
             RebindInventories(null, PlayerHandler.data);
             Secondary.Display.parent.SetActive(false);
 
-            if (!Config.CURRENT.GamePlay.PlayerSettings.value.Is(out settings)) throw new Exception("Player Entity must have Inventory Settings");
+            if (!Config.CURRENT.GamePlay.PlayerSettings.value.value.Is(out settings))
+                throw new Exception("Player Entity must have Inventory Settings");
             InputPoller.AddBinding(new ActionBind("Open Inventory", Activate), "PlayerInventory:OPN", "3.5::Window");
             AddHotbarKeybinds();
         }

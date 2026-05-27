@@ -98,7 +98,7 @@ public static class PaginatedUIEditor
                 HandleOptionClosure(field, setting, OnUpdate, out FieldInfo mField, out object mValue, out nUpdate);
                 field = mField; value = mValue; 
             } else if(!field.FieldType.IsValueType && !field.FieldType.IsPrimitive && field.FieldType != typeof(string)) 
-                throw new Exception("Settings objects must contain either only value types or options");
+                throw new Exception($"Config Object {setting.GetType()} encountered unexpected field {field}. Config objects must contain either only value types or options");
             
             if (UITag != null && UITag.Collapse != null) {
                 string[] path = UITag.Collapse.Split('/');
@@ -110,7 +110,7 @@ public static class PaginatedUIEditor
         ForceLayoutRefresh(GetPageContent(page));
     }
 
-    private static void HandleOptionClosure(FieldInfo field, object setting, ParentUpdate OnUpdate, 
+    public static void HandleOptionClosure(FieldInfo field, object setting, ParentUpdate OnUpdate, 
         out FieldInfo memberField, out object memberValue, out ParentUpdate memberUpdate) {
         FieldInfo baseField = field;
         object option = field.GetValue(setting); //Would prefer if GetValueDirect was implemented 

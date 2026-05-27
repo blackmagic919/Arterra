@@ -1,10 +1,6 @@
 using System;
 using Arterra.Configuration;
 using Arterra.Core.Events;
-using Arterra.Data.Entity;
-using Arterra.Data.Entity.Behavior;
-using Arterra.GamePlay;
-using Arterra.Utils;
 using Newtonsoft.Json;
 using UnityEngine;
 using Arterra.GamePlay.UI;
@@ -22,7 +18,7 @@ namespace Arterra.Data.Entity.Behavior {
         /// This is used to seed world options and migration bridges.
         /// </summary>
         [JsonIgnore]
-        public static readonly BehaviorEntity.AnimalSetting DefaultPlayerAnimalSetting = new() {
+        public static BehaviorEntity.AnimalSetting DefaultPlayerAnimalSetting => new() {
             profile = new EntitySetting.ProfileInfo {
                 bounds = new uint3(2, 3, 2),
             },
@@ -40,61 +36,48 @@ namespace Arterra.Data.Entity.Behavior {
                 Behaviors.PlayerInteraction,
                 Behaviors.PlayerEffects,
                 Behaviors.PlayerRoot,
-                Behaviors.PlayerBaseLogicHandler
+                Behaviors.PlayerBaseLogicHandler,
             },
-            Settings = new List<ReferenceOption<IBehaviorSetting>> {
-                new MapInteractorSettings {
-                    interactType = MapInteractorSettings.InteractType.Terrestrial,
-                    HoldBreathTime = 10,
-                    UseFallDamage = true,
+            Settings = new List<DirtyReferenceOption<IBehaviorSetting>> {
+                new() {
+                    value = new MapInteractorSettings {
+                        interactType = MapInteractorSettings.InteractType.Terrestrial,
+                        HoldBreathTime = 10,
+                        UseFallDamage = true,
+                    },
                 },
-                new PhysicalitySetting {
-                    weight = 0.5f,
-                    StartHealthPercent = 1f,
-                    StartHealthVariance = 0f,
-                    MaxHealth = 20,
-                    NaturalRegen = 0.01f,
-                    InvincTime = 0.25f,
+                new() {
+                    value = new PhysicalitySetting {
+                        weight = 0.5f,
+                        StartHealthPercent = 1f,
+                        StartHealthVariance = 0f,
+                        MaxHealth = 20,
+                        NaturalRegen = 0.01f,
+                        InvincTime = 0.25f,
+                    },
                 },
-                new PlayerInventorySettings(),
-                new PlayerCameraSettings(),
-                new PlayerMovementSettings(),
-                new PlayerInteractionSettings(),
-                new PlayerEffectsSettings(),
+                new() {
+                    value = new PlayerInventorySettings(),
+                },
+                new() {
+                    value = new PlayerCameraSettings(),
+                },
+                new() {
+                    value = new PlayerMovementSettings(),
+                },
+                new() {
+                    value = new PlayerInteractionSettings(),
+                },
+                new() {
+                    value = new PlayerEffectsSettings(),
+                },
             },
         };
-
-        /// <summary>
-        /// Creates a writable instance of the default player behavior settings.
-        /// </summary>
-        public static BehaviorEntity.AnimalSetting CreateDefaultPlayerAnimalSetting() {
-            BehaviorEntity.AnimalSetting defaults = DefaultPlayerAnimalSetting;
-            List<ReferenceOption<IBehaviorSetting>> clonedSettings = new();
-
-            if (defaults.Settings.value != null) {
-                foreach (ReferenceOption<IBehaviorSetting> setting in defaults.Settings.value) {
-                    clonedSettings.Add(new ReferenceOption<IBehaviorSetting> {
-                        value = setting.value == null ? null : (IBehaviorSetting)setting.value.Clone(),
-                    });
-                }
-            }
-
-            return new BehaviorEntity.AnimalSetting {
-                profile = defaults.profile,
-                collider = defaults.collider,
-                BehaviorList = defaults.BehaviorList.value != null
-                    ? new List<Behaviors>(defaults.BehaviorList.value)
-                    : new List<Behaviors>(),
-                Settings = clonedSettings,
-                DynamicTypes = null,
-            };
-        }
 
         /// <summary> This player instance's relation to the actual
         /// user's input and what they see. See <see cref="StreamingStatus"/> </summary>
         [JsonProperty]
         private StreamingStatus status = StreamingStatus.Activating;
-        [JsonIgnore] private BehaviorEntity.Animal self;
 
         /// <summary>Declares required player behavior dependencies.</summary>
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
@@ -111,14 +94,12 @@ namespace Arterra.Data.Entity.Behavior {
 
         /// <summary>Initializes root player behavior state for a newly created player entity.</summary>
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
-            this.self = self;
             status = StreamingStatus.Live;
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
         }
 
         /// <summary>Initializes root player behavior state for a deserialized player entity.</summary>
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
-            this.self = self;
             status = StreamingStatus.Live;
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
 
@@ -130,7 +111,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         /// <summary>Disables root player behavior and clears active references.</summary>
         public void Disable(BehaviorEntity.Animal self) {
-            this.self = null;
         }
 
         private void TriggerDetach(object source, object _trgt, object _ctx) {

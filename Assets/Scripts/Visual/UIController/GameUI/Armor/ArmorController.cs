@@ -307,7 +307,7 @@ namespace Arterra.GamePlay.UI {
             private float2 Rot;
 
             public FreeCamera(Transform camera) {
-                if (!Config.CURRENT.GamePlay.PlayerSettings.value.Is(out S))
+                if (!Config.CURRENT.GamePlay.PlayerSettings.value.value.Is(out S))
                     throw new Exception("Free Camera expected to find camera settings on player");
                 this.CamTsf = camera;
                 ClearTransform();

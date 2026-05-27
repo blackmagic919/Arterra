@@ -55,15 +55,21 @@ public class SegmentListSerializer : IConverter{
     public void Deserialize(ref object destination, ref object source){
         IList dest = (IList)destination; IList src = (IList)source;
         for(int i = 0; i < dest.Count && i < src.Count; i++){
-            object srcEl = src[i]; object destEl = dest[i]; Type destType = destEl.GetType();
+            object srcEl = src[i]; object destEl = dest[i];
+            Type destType = destEl.GetType();
             if(destType.GetInterfaces().Contains(typeof(IOption))){
+                FieldInfo field = destType.GetField("value");
+                object vDest = field.GetValue(destEl); object vSrc = field.GetValue(srcEl);
                 if(((IOption)destEl).IsDirty) {
-                    object nDest, nSrc; 
-                    FieldInfo field = destType.GetField("value");
-                    nDest = field.GetValue(destEl); nSrc = field.GetValue(srcEl);
-                    SupplementTree(ref nDest, ref nSrc);
-                    field.SetValue(destEl, nDest); dest[i] = destEl;
-                } else dest[i] = src[i];
+                    SupplementTree(ref vDest, ref vSrc);
+                } else {
+                    destEl = srcEl;
+                    if(destType.GetInterfaces().Contains(typeof(IDirtyOption))){
+                        (destEl as IDirtyOption).Prime();
+                        vDest = field.GetValue(destEl);
+                        SupplementTree(ref vDest, ref vSrc);
+                    }
+                } field.SetValue(destEl, vDest); dest[i] = destEl;
             } 
             else if(destType.IsPrimitive || destType == typeof(string)) continue;
             else if (destType.IsEnum) continue;
@@ -99,25 +105,9 @@ public class SegmentListSerializer : IConverter{
 
             FieldInfo field = null; ParentUpdate nUpdate = OnUpdate; 
             int index = i; //this is not useless--index is captured to streamline changes
-            if(cObjType.GetInterfaces().Contains(typeof(IOption))){
-                field = cObjType.GetField("value"); 
-                value = field.GetValue(cObject);
-                if (value == null)
-                {
-                    value = CreateInstance(field.FieldType);
-                    field.SetValue(cObject, value);
-                } 
-
+            if (cObjType.GetInterfaces().Contains(typeof(IOption))) {
+                BuildOptionListElementBinding(cObject, index, OnUpdate, out field, out value, out nUpdate);
                 name = TryGetName(value);
-                void ChildRequest(ChildUpdate childCallback) { 
-                    void ParentReceive(ref object parentObject){
-                        IList newList = (IList)parentObject;
-                        ((IOption)cObject).Clone();
-                        childCallback(ref cObject);
-                        newList[index] = (IOption)cObject; 
-                    }
-                    OnUpdate(ParentReceive);
-                } nUpdate = ChildRequest;
             } 
             //You can't get a field to represent an index in a list so we create a
             //temporary option to fake a field so that the architecture is consistent
@@ -143,6 +133,33 @@ public class SegmentListSerializer : IConverter{
             if(name != null){ elementText.text = name.ToString(); }
             else elementText.text = "Element " + i.ToString() + ": ";
             CreateInputField(field, key, value, nUpdate);
+        }
+    }
+
+    private static void BuildOptionListElementBinding(object listOption, int index, ParentUpdate OnUpdate,
+        out FieldInfo field, out object value, out ParentUpdate nUpdate) {
+        field = listOption.GetType().GetField("value");
+        value = field.GetValue(listOption);
+        if (value == null) {
+            value = CreateInstance(field.FieldType);
+            field.SetValue(listOption, value);
+        }
+
+        // List elements are not fields, so updates are routed through list index replacement.
+        void ChildRequest(ChildUpdate childCallback) {
+            void ParentReceive(ref object parentObject){
+                IList newList = (IList)parentObject;
+                ((IOption)listOption).Clone();
+                childCallback(ref listOption);
+                newList[index] = (IOption)listOption;
+            }
+            OnUpdate(ParentReceive);
+        }
+
+        nUpdate = ChildRequest;
+        if (field.FieldType.GetInterfaces().Contains(typeof(IOption))) {
+            HandleOptionClosure(field, listOption, ChildRequest, out field, out value, out nUpdate);
+            return;
         }
     }
 }

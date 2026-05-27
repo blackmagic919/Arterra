@@ -161,7 +161,7 @@ namespace Arterra.Data.Entity.Behavior {
         public void MateWith(Entity entity) {
             if (!CanMateWith(entity)) return;
             if (settings.MateWithEntity(mod, entity, ref self.random))
-                vitality.Damage(MateCost);
+                vitality.TakeDamage(MateCost, float3.zero);
             self.eventCtrl.RaiseEvent(GameEvent.Entity_Mate, self, entity);
         }
 

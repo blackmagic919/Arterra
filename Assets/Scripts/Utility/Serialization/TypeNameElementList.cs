@@ -43,8 +43,7 @@ namespace Arterra.Utils
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             var listProp = FindInnerListProperty(property);
-            if (listProp == null || !listProp.isArray)
-            {
+            if (listProp == null || !listProp.isArray) {
                 EditorGUI.PropertyField(position, property, label, includeChildren: true);
                 return;
             }
@@ -100,8 +99,28 @@ namespace Arterra.Utils
         /// </summary>
         static SerializedProperty FindInnerListProperty(SerializedProperty optionProp)
         {
-            // Your Option<T> uses a field named "value" (based on your code)
-            return optionProp.FindPropertyRelative("value");
+            if (optionProp == null)
+                return null;
+
+            SerializedProperty current = optionProp;
+
+            // Handle Option<List<T>>, DirtyOption<List<T>>, and nested option wrappers.
+            for (int i = 0; i < 8; i++)
+            {
+                var nested = current.FindPropertyRelative("value");
+                if (nested == null)
+                    return null;
+
+                if (nested.isArray)
+                    return nested;
+
+                if (!IsOptionStyleWrapper(nested))
+                    return nested;
+
+                current = nested;
+            }
+
+            return null;
         }
 
         ReorderableList GetOrCreateList(SerializedProperty optionProp, SerializedProperty listProp, GUIContent label)
@@ -137,6 +156,7 @@ namespace Arterra.Utils
                     return EditorGUIUtility.singleLineHeight;
 
                 var el = sp.GetArrayElementAtIndex(index);
+                el = ResolveElementValueProperty(el, attr.elementValuePath);
                 return EditorGUI.GetPropertyHeight(el, includeChildren: true) + 4;
             };
 
@@ -153,10 +173,10 @@ namespace Arterra.Utils
                 rect.height -= 4;
 
                 var element = sp.GetArrayElementAtIndex(index);
-                var ifaceProp = element.FindPropertyRelative(attr.elementValuePath);
+                var ifaceProp = ResolveElementValueProperty(element, attr.elementValuePath);
 
                 string typeName = GetManagedRefTypeName(ifaceProp) ?? "None";
-                EditorGUI.PropertyField(rect, element, new GUIContent(typeName), includeChildren: true);
+                EditorGUI.PropertyField(rect, ifaceProp, new GUIContent(typeName), includeChildren: true);
             };
 
             #region Add Callback with Type Selection
@@ -215,7 +235,7 @@ namespace Arterra.Utils
             listProp.arraySize++;
 
             var element = listProp.GetArrayElementAtIndex(i);
-            var ifaceProp = element.FindPropertyRelative(attr.elementValuePath);
+            var ifaceProp = ResolveElementValueProperty(element, attr.elementValuePath);
 
             if (ifaceProp != null && ifaceProp.propertyType == SerializedPropertyType.ManagedReference)
             {
@@ -240,6 +260,61 @@ namespace Arterra.Utils
             }
 
             listProp.serializedObject.ApplyModifiedProperties();
+        }
+
+        static SerializedProperty ResolveElementValueProperty(SerializedProperty elementProp, string elementValuePath)
+        {
+            if (elementProp == null)
+                return null;
+
+            SerializedProperty current = string.IsNullOrEmpty(elementValuePath)
+                ? elementProp
+                : elementProp.FindPropertyRelative(elementValuePath);
+
+            if (current == null)
+                return null;
+
+            // Unwrap option-style wrappers (DirtyOption/Option/ReferenceOption/DirtyReferenceOption)
+            // until we reach the actual payload.
+            for (int i = 0; i < 8; i++)
+            {
+                if (!IsOptionStyleWrapper(current))
+                    break;
+
+                var nested = current.FindPropertyRelative("value");
+                if (nested == null)
+                    break;
+
+                current = nested;
+            }
+
+            return current;
+        }
+
+        static bool IsOptionStyleWrapper(SerializedProperty prop)
+        {
+            if (prop == null)
+                return false;
+
+            // All wrappers we care about must have a nested "value" field.
+            if (prop.FindPropertyRelative("value") == null)
+                return false;
+
+            // Prefer type-name detection because isDirty is private and not always serialized.
+            string t = prop.type;
+            if (!string.IsNullOrEmpty(t))
+            {
+                if (t.StartsWith("Option`1", StringComparison.Ordinal)
+                    || t.StartsWith("DirtyOption`1", StringComparison.Ordinal)
+                    || t.StartsWith("ReferenceOption`1", StringComparison.Ordinal)
+                    || t.StartsWith("DirtyReferenceOption`1", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            // Fallback for custom wrappers that still serialize an isDirty marker.
+            return prop.FindPropertyRelative("isDirty") != null;
         }
 
         #endregion

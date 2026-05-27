@@ -9,16 +9,22 @@ namespace Arterra.Data.Entity.Behavior {
         private BehaviorEntity.Animal self;
         private InidcatorsBehavior indicator;
         private ColliderUpdateBehavior collider;
+        private VitalityBehavior vit;
+        private bool IsActive => (!vit?.IsDead) ?? true;
         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!self.Is(out collider)) collider = null;
             if (!self.Is(out indicator)) indicator = null;
+            if (!self.Is(out vit)) vit = null;
             this.self = self;
+            if (!IsActive) return;
             OnStartup();
         }
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!self.Is(out collider)) collider = null;
             if (!self.Is(out indicator)) indicator = null;
+            if (!self.Is(out vit)) vit = null;
             this.self = self;
+            if (!IsActive) return;
             OnStartup();
         }
 
@@ -26,6 +32,8 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.RemoveEventHandler(Core.Events.GameEvent.Entity_Damaged, BlockDamage);
             Config.CURRENT.System.RemoveHook("Gamemode:Intangibility", ToggleIntangibility);
             Config.CURRENT.System.RemoveHook("Gamemode:Invulnerability", ToggleInvulnerability);
+            UnMapStatDisplay();
+            self = null;
         }
 
         private void OnStartup() {
@@ -51,6 +59,16 @@ namespace Arterra.Data.Entity.Behavior {
             rect.anchorMin = new Vector2(-0.025f, 0); rect.anchorMax = new Vector2(0.4f, 0.15f);
             rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero;
             rect.localScale = Vector3.one;
+        }
+
+        private void UnMapStatDisplay() {
+            if (indicator == null || indicator.stats == null) return;
+            if (!self.active) return;
+
+            RectTransform rect = indicator.stats.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero;
+            indicator.stats.transform.SetParent(self.controller.gameObject.transform, false); 
         }
 
         private void ToggleIntangibility(ref object intangibility) {
