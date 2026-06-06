@@ -212,7 +212,8 @@ namespace Arterra.Data.Entity.Behavior {
             if (!entity.Is(out IAttackable attackable)) return;
             if (attackable.IsDead) return;
             if (cxt is not RefTuple<(float, float3)> damaged) return;
-            if (damaged.Value.Item1 == 0) return;
+            float thresh = physicality != null ? physicality.MaxHealth * 0.01f : 0.1f;
+            if (damaged.Value.Item1 < thresh) return;
 
             if (!isShaking) {
                 OctreeTerrain.MainCoroutines.Enqueue(CameraShake(0.2f, 0.25f));

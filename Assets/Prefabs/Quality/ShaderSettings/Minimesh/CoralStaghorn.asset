@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2485f06c465b44e788a840250915e953, type: 3}
+  m_Name: CoralStaghorn
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.MiniMeshSetting
+  Name: StaghornCoral
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - StaghornCoral
+  info:
+    value:
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 4183920191194567773, guid: e8e08d629574b47f8b302a0eacb511ce, type: 3}
+          probability: 0.5
+        - mesh: {fileID: 5180201255292833662, guid: 275116000dc794abfa07b431b83d94bc, type: 3}
+          probability: 0.5
+      frequency: -2
+      sizeMultiplier: 1
+      sizeMultiplierRange: {x: 0.6, y: 1.5}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -4402440209924286211, guid: 5a37a9e65174f485bab3dcfcc86d948b, type: 3}
+          probability: 0.5
+        - mesh: {fileID: 5180201255292833662, guid: 275116000dc794abfa07b431b83d94bc, type: 3}
+          probability: 0.5
+      frequency: -1
+      sizeMultiplier: 1.5
+      sizeMultiplierRange: {x: 1, y: 1.75}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -4912335946503721984, guid: 9bbda43d31918485db1278db1e0ad3af, type: 3}
+          probability: 0.5
+        - mesh: {fileID: 500868953445662508, guid: 929a86f0acaf14426b9af90eee471a82, type: 3}
+          probability: 0.5
+      frequency: -1
+      sizeMultiplier: 1.66
+      sizeMultiplierRange: {x: 1.5, y: 2}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 5568971574520400949, guid: f24f2d6b7067a49edaefd28f243ca44b, type: 3}
+          probability: 0.5
+        - mesh: {fileID: 6370623370068629816, guid: 7599a70e10f3049fd883bee3395aaceb, type: 3}
+          probability: 0.5
+      frequency: -1
+      sizeMultiplier: 2
+      sizeMultiplierRange: {x: 2, y: 3}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+  references:
+    version: 2
+    RefIds: []

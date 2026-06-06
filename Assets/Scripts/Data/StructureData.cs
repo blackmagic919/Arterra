@@ -20,6 +20,62 @@ namespace Arterra.Data.Structure{
 public class StructureData : Category<StructureData>
 {
     
+    /// <summary>
+    /// Prefix used in <see cref="Names"/> entries to indicate the payload encodes a material name.
+    /// </summary>
+    public const string MATERIAL_PREFIX = "M:";
+    /// <summary>
+    /// Prefix used in <see cref="Names"/> entries to indicate the payload encodes a material tag.
+    /// </summary>
+    public const string TAG_PREFIX = "T:";
+
+    /// <summary>
+    /// Encodes a material-name entry for storage in <see cref="Names"/>.
+    /// </summary>
+    /// <param name="materialName">Material name in the current material registry.</param>
+    /// <returns>Encoded entry in the form <c>M:&lt;materialName&gt;</c>.</returns>
+    public static string EncodeMaterialEntry(string materialName) {
+        return MATERIAL_PREFIX + (materialName ?? string.Empty);
+    }
+
+    /// <summary>
+    /// Encodes a tag entry for storage in <see cref="Names"/>.
+    /// </summary>
+    /// <param name="tag">Material tag to encode.</param>
+    /// <returns>Encoded entry in the form <c>T:&lt;tag&gt;</c>.</returns>
+    public static string EncodeTagEntry(TagRegistry.Tags tag) {
+        return TAG_PREFIX + tag;
+    }
+
+    /// <summary>
+    /// Decodes a material-name entry from a serialized <see cref="Names"/> value.
+    /// </summary>
+    /// <param name="encodedEntry">Encoded name entry.</param>
+    /// <returns>
+    /// Material name if the entry is material-encoded; otherwise an empty string.
+    /// </returns>
+    public static string DecodeMaterialEntry(string encodedEntry) {
+        if (string.IsNullOrEmpty(encodedEntry)) return string.Empty;
+        if (!encodedEntry.StartsWith(MATERIAL_PREFIX, System.StringComparison.Ordinal)) return string.Empty;
+        return encodedEntry.Substring(MATERIAL_PREFIX.Length);
+    }
+
+    /// <summary>
+    /// Decodes a tag entry from a serialized <see cref="Names"/> value.
+    /// </summary>
+    /// <param name="encodedEntry">Encoded name entry.</param>
+    /// <returns>
+    /// Parsed tag if the entry is tag-encoded and valid; otherwise <see cref="TagRegistry.Tags.None"/>.
+    /// </returns>
+    public static TagRegistry.Tags DecodeTagEntry(string encodedEntry) {
+        if (string.IsNullOrEmpty(encodedEntry)) return TagRegistry.Tags.None;
+        if (!encodedEntry.StartsWith(TAG_PREFIX, System.StringComparison.Ordinal)) return TagRegistry.Tags.None;
+
+        string tagName = encodedEntry.Substring(TAG_PREFIX.Length);
+        if (string.IsNullOrEmpty(tagName)) return TagRegistry.Tags.None;
+        return System.Enum.TryParse(tagName, out TagRegistry.Tags tag) ? tag : TagRegistry.Tags.None;
+    }
+
     /// <summary>  See <see cref="StructureData.Settings"/> for more information. </summary>
     public Option<Settings> settings;
     /// <summary>
@@ -50,20 +106,6 @@ public class StructureData : Category<StructureData>
     /// See <see cref="EnhancedFeatures"/> </summary>
     public EnhancedFeatures Enhancements;
 
-    /// <summary> A getter property that deserializes the structure's map data by recoupling them with the current world's configuration. This involves
-    /// retrieving the real indices of the materials within the external <see cref="Config.GenerationSettings.Materials"/> registry. </summary>
-    [JsonIgnore]
-    public IEnumerable<PointInfo> SerializePoints{
-        get{
-            Catalogue<Material.MaterialData> reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-            return map.value.Select(x => Serialize(x, reg.RetrieveIndex(Names.value[x.material]))).ToList();
-        }
-    }
-    private PointInfo Serialize(PointInfo x, int Index){
-        x.material = Index;
-        return x;
-    }
-    
     /// <summary> When modifiying a structure through the <see cref="DensityDeconstructor"/> editor, initializes the sturcture's map 
     /// to match the grid size of the structure. Additionally ensures that no elements of the structure are null. </summary>
     public void Initialize(){
@@ -112,13 +154,10 @@ public class StructureData : Category<StructureData>
         /// read with the third(z) component as the minor axis and the first(x) component as the major axis.
         /// </summary>
         public uint3 GridSize;
-        /// <summary>
-        /// The minimum level of detail that the structure can generate from. The minimum LoD is the size of the floor of the 
-        /// largest side-length of the structure in chunk space. It must be less than or equal to <seealso cref="Generation.maxLoD"/>. 
-        /// Larger structures will be generated less frequently by the nature of structure placement so a larger <see cref="minimumLOD"/>
-        /// may inadvertently result in a lower density of structures. Incorrectly setting this value can result in corrupted generation. 
-        /// </summary>
-        public int minimumLOD;
+        /// <summary> When serialized, the index within the material set buffer of the start of the set of materials indexed by 
+        /// the serialized points in this structure. </summary>
+        [HideInInspector][UISetting(Defaulting = true)]
+        public int matSetStart;
 
         /// <summary> The raw configuration bitmap </summary>
         public uint config;
@@ -141,6 +180,13 @@ public class StructureData : Category<StructureData>
 
         /// <summary> Whether or not the structure has enhanced features. See <see cref="Enhancements"/> for more info. </summary>
         public bool IsEnhanced => (config & 0x8) != 0;
+        /// <summary>
+        /// The minimum level of detail that the structure can generate from. The minimum LoD is the size of the floor of the 
+        /// largest side-length of the structure in chunk space. It must be less than or equal to <seealso cref="Generation.maxLoD"/>. 
+        /// Larger structures will be generated less frequently by the nature of structure placement so a larger <see cref="minimumLOD"/>
+        /// may inadvertently result in a lower density of structures. Incorrectly setting this value can result in corrupted generation. 
+        /// </summary>
+        public int minimumLOD => (int)(config >> 8) & 0xFFFFFF;
     }
     /// <summary>
     /// The requirements that are tested against a map entry sampled by a <see cref="CheckPoint"/>. The
@@ -405,7 +451,7 @@ public class SettingsDrawer : PropertyDrawer
         float h = EditorGUIUtility.singleLineHeight;
 
         h += EditorGUI.GetPropertyHeight(property.FindPropertyRelative("GridSize")) + Spacing;
-        h += EditorGUI.GetPropertyHeight(property.FindPropertyRelative("minimumLOD")) + Spacing;
+        h += EditorGUI.GetPropertyHeight(property.FindPropertyRelative("matSetStart")) + Spacing;
 
         // Config header + 4 toggles
         h += (EditorGUIUtility.singleLineHeight + Spacing) * 5;
@@ -438,9 +484,9 @@ public class SettingsDrawer : PropertyDrawer
         line.y += line.height + Spacing;
 
         // minimumLOD
-        var minLod = property.FindPropertyRelative("minimumLOD");
-        line.height = EditorGUI.GetPropertyHeight(minLod);
-        EditorGUI.PropertyField(line, minLod);
+        var matSetStart = property.FindPropertyRelative("matSetStart");
+        line.height = EditorGUI.GetPropertyHeight(matSetStart);
+        EditorGUI.PropertyField(line, matSetStart);
         line.y += line.height + Spacing;
 
         // Config bitmap

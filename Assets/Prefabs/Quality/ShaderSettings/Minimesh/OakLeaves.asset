@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2485f06c465b44e788a840250915e953, type: 3}
+  m_Name: OakLeaves
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.MiniMeshSetting
+  Name: OakLeaves
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - OakLeaf
+  info:
+    value:
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 5345659151901761623, guid: 9a836e34a82db48c2bc0774305bae6c7, type: 3}
+          probability: 1
+      frequency: 1
+      sizeMultiplier: 1
+      sizeMultiplierRange: {x: 1, y: 1}
+      inheritSurfaceNormals: 1
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 9107097516331840872, guid: 35e4b9e26ce0d4444ab2d18045776ba9, type: 3}
+          probability: 1
+      frequency: 0.6
+      sizeMultiplier: 1.25
+      sizeMultiplierRange: {x: 1.25, y: 1.25}
+      inheritSurfaceNormals: 1
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -2686077064084503906, guid: 3790c4e33d6344d859efeacc1f16f7f0, type: 3}
+          probability: 1
+      frequency: 0.4
+      sizeMultiplier: 1.66
+      sizeMultiplierRange: {x: 1.66, y: 1.66}
+      inheritSurfaceNormals: 1
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 1471903096156469557, guid: 0869e698f98114ee0b401421cd34c096, type: 3}
+          probability: 1
+      frequency: 1
+      sizeMultiplier: 2
+      sizeMultiplierRange: {x: 2, y: 2}
+      inheritSurfaceNormals: 1
+      TextureIndex: 0
+  references:
+    version: 2
+    RefIds: []

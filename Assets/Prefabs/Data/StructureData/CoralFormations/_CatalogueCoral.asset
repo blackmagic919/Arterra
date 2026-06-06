@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10515338075f646359ff9dcdea777aca, type: 3}
+  m_Name: _CatalogueCoral
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Structure.StructureCategory
+  Name: Coral
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 83dc1b0c39cfa46f3b5c5cfe85db4193, type: 2}
+    - value: {fileID: 11400000, guid: ac7ada32737894d47bf061ffd48422ec, type: 2}
+    - value: {fileID: 11400000, guid: 8a92bc2812e5e44e3a27ce85c72beadb, type: 2}
+    - value: {fileID: 11400000, guid: 77ccb210db89942afbb86d2fe432d122, type: 2}
+  references:
+    version: 2
+    RefIds: []

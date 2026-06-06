@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2485f06c465b44e788a840250915e953, type: 3}
+  m_Name: Dandelion
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.MiniMeshSetting
+  Name: Dandelion
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - DandelionHead
+  info:
+    value:
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 6444547055474605848, guid: 55edfffef9d00444380707facd640816, type: 3}
+          probability: 1
+      frequency: -8
+      sizeMultiplier: 1
+      sizeMultiplierRange: {x: 0.75, y: 1.25}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 3882123000634206514, guid: 0fd9a1b537c5d4801826be963d7dd13e, type: 3}
+          probability: 1
+      frequency: -4
+      sizeMultiplier: 1.5
+      sizeMultiplierRange: {x: 1, y: 1.75}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 826618457450156934, guid: 57beaf5f18c8a475ab73ec4026c48ff3, type: 3}
+          probability: 1
+      frequency: -2
+      sizeMultiplier: 1.66
+      sizeMultiplierRange: {x: 1.5, y: 2}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -893958460689420875, guid: 0cfebae88823d46208f906928c7e06f3, type: 3}
+          probability: 1
+      frequency: -1
+      sizeMultiplier: 2
+      sizeMultiplierRange: {x: 2, y: 3}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+  references:
+    version: 2
+    RefIds: []

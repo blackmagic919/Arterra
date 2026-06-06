@@ -25,14 +25,14 @@ MonoBehaviour:
     - PalmLeaves:Solid
     - Void
     - PalmLeaves
-    - InsetQuad
     - PalmLeaves
+    - Minimesh
   terrainData:
     Texture: 2
     textureScale: 2
     FlipStateRendering: 0
     GeoShaderIndex:
-      data: 2147680260
+      data: 2147745794
   AtmosphereScatter:
     InScatterCoeffs: {x: 0, y: 0, z: 0}
     OutScatterCoeffs: {x: 0, y: 0, z: 0}
@@ -62,5 +62,7 @@ MonoBehaviour:
         _convertBounds:
           data: 4286643968
         _neighborBounds:
-          data: 2130738944
+          bounds:
+            data: 2130738944
+          flags: 2
         ConvertTarget: Fire

@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using UnityEngine;
 using Arterra.Configuration;
 using Arterra.Configuration.Quality;
+using Unity.Mathematics;
 
 namespace Arterra.Configuration {
     //Curiously recurring template pattern!!
@@ -15,7 +16,7 @@ namespace Arterra.Configuration {
         protected virtual Option<List<Option<Category<T>>>>? GetChildren() => null;
         protected virtual void SetChildren(Option<List<Option<Category<T>>>> value) { }
 
-        public virtual void AddChildren(ref List<T> flat, ref List<BackEdge> inv, BackEdge parent = null) {
+        public virtual void AddChildren(ref List<T> flat, ref List<BackEdge> inv, ref Dictionary<TagRegistry.Tags, LinkedList<int2>> tRanges, BackEdge parent = null) {
             flat ??= new List<T>();
             inv ??= new List<BackEdge>();
 
@@ -23,14 +24,31 @@ namespace Arterra.Configuration {
             var children = GetChildren()?.value;
             BackEdge invertedDependency = new BackEdge(parent, this);
             //If children is null, then it is the leaf type being contained
-            if (children == null)//
-            {
+            int2 range; range.x = flat.Count;
+            if (children == null) {
                 inv.Add(invertedDependency);
                 flat.Add((T)this);
-                return;
-            }
-            foreach (var pair in children) {
-                if (pair.value != null) pair.value.AddChildren(ref flat, ref inv, invertedDependency);
+            } else {
+                foreach (var pair in children) {
+                    if (pair.value == null) continue;
+                    pair.value.AddChildren(
+                        ref flat, ref inv, 
+                        ref tRanges, invertedDependency
+                    );
+                }
+            } range.y = flat.Count;
+            foreach(TagRegistry.Pair pair in Tags.Reg.value) {
+                if (!tRanges.TryGetValue(pair.Tag, out var tRange)) {
+                    tRanges[pair.Tag] = tRange = new LinkedList<int2>();
+                    tRange.AddFirst(range);
+                    continue;
+                }
+
+                var cur = tRange.Last;
+                while (cur != null && cur.Value.x >= range.x)
+                    cur = cur.Previous;
+                if (cur == null) tRange.AddFirst(range);
+                else tRange.AddAfter(cur, range);
             }
         }
 
@@ -62,11 +80,16 @@ public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
     [UISetting(Ignore = true, Defaulting = true)]
     [JsonIgnore]
     private List<Category<T>.BackEdge> InvertedDependency;
+    [HideInInspector]
+    [UISetting(Ignore = true, Defaulting = true)]
+    [JsonIgnore]
+    public Dictionary<TagRegistry.Tags, LinkedList<int2>> TagRanges;
 
         public void Construct() {
             Reg = new List<T>();
             InvertedDependency = new List<Category<T>.BackEdge>();
-            Category.value.AddChildren(ref Reg, ref InvertedDependency);
+            TagRanges = new Dictionary<TagRegistry.Tags, LinkedList<int2>>();
+            Category.value.AddChildren(ref Reg, ref InvertedDependency, ref TagRanges);
             ReconstructIndex();
         }
 

@@ -18,11 +18,11 @@ MonoBehaviour:
       value: []
   Names:
     value:
-    - Connect1
-    - Connect2
-    - Connect3
-    - Connect4
-    - Connect5
+    - M:Connect1
+    - M:Connect2
+    - M:Connect3
+    - M:Connect4
+    - M:Connect5
   Structures:
     value:
     - Structure: 0

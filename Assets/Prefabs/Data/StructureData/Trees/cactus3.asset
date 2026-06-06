@@ -26,8 +26,8 @@ MonoBehaviour:
       config: 1
   Names:
     value:
-    - Air
-    - Cactus
+    - M:Air
+    - M:Cactus
   map:
     value:
     - data: 5911

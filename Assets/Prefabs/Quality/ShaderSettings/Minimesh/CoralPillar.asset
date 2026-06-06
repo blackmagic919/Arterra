@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2485f06c465b44e788a840250915e953, type: 3}
+  m_Name: CoralPillar
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.MiniMeshSetting
+  Name: PillarCoral
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - PillarCoral
+  info:
+    value:
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -1273293384093699074, guid: f1ed1e49c3d9c49539146ac6a664315a, type: 3}
+          probability: 0.33
+        - mesh: {fileID: -1005237890757632526, guid: bb6c42009c137434692948b51640d3a8, type: 3}
+          probability: 0.33
+        - mesh: {fileID: -2371629495245440663, guid: a47e87bf0205d4c8682f9cc00c042a3e, type: 3}
+          probability: 0.33
+      frequency: -2
+      sizeMultiplier: 1
+      sizeMultiplierRange: {x: 0.6, y: 1.5}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -2533361504679227271, guid: 02e93393313684c2f9464a77ee651afc, type: 3}
+          probability: 0.33
+        - mesh: {fileID: -6142613552447798647, guid: 0d669f590da214a21b860b10d5a38537, type: 3}
+          probability: 0.33
+        - mesh: {fileID: -8622642948619157186, guid: 486f2ed5b917e47c69c1d9344ec7df1d, type: 3}
+          probability: 0.33
+      frequency: -1
+      sizeMultiplier: 1.5
+      sizeMultiplierRange: {x: 1, y: 1.75}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -7672764647357186925, guid: 5b8fedd33ffa944498d6c5244176c6f2, type: 3}
+          probability: 0.33
+        - mesh: {fileID: -8969863604290061833, guid: 73e038840573a4312936e18ff5760f61, type: 3}
+          probability: 0.33
+        - mesh: {fileID: -4631331993678254681, guid: 403eeb52651524b389fea126a6f65e44, type: 3}
+          probability: 0.33
+      frequency: -1
+      sizeMultiplier: 1.66
+      sizeMultiplierRange: {x: 1.5, y: 2}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 4051823928434916645, guid: af3a5a0f4b10f407cbe814e5d82cad86, type: 3}
+          probability: 0.33
+        - mesh: {fileID: 4735357748727426060, guid: b5f538ba7a71349df92661cb858e14aa, type: 3}
+          probability: 0.33
+        - mesh: {fileID: -6476924973024705813, guid: 10de50386e823434b807aafb389a442d, type: 3}
+          probability: 0.33
+      frequency: -1
+      sizeMultiplier: 2
+      sizeMultiplierRange: {x: 2, y: 3}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+  references:
+    version: 2
+    RefIds: []

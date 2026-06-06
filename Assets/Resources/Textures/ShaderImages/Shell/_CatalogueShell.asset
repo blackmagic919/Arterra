@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b92ab6716ab84e588c812f4df75143a, type: 3}
+  m_Name: _CatalogueShell
+  m_EditorClassIdentifier: Assembly-CSharp::TextureCategory
+  Name: Shell
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 0bb667c8999684e82837aa87ee1decb3, type: 2}
+    - value: {fileID: 11400000, guid: d06b2b0ad3d794abba77b8b97103f80f, type: 2}
+    - value: {fileID: 11400000, guid: 48870a258de52429fa3920a43f657eb5, type: 2}
+    - value: {fileID: 11400000, guid: 6618ae84c1a1e48b69d25ff73988fbf8, type: 2}
+    - value: {fileID: 11400000, guid: 315f78ddccde946d1850e0765035b8c2, type: 2}
+    - value: {fileID: 11400000, guid: b01a0011eee57402d8cdbb83e05347f9, type: 2}
+  references:
+    version: 2
+    RefIds: []

@@ -17,11 +17,8 @@ namespace Arterra.Data.Entity.Behavior {
         public EntitySMTasks OnReachPreyTransition = EntitySMTasks.AttackTarget;
         public PreyState DesiredPreyState;
         public float SearchPreyDist = 32;
-        
 
-        [JsonIgnore]
-        [UISetting(Ignore = true)]
-        [HideInInspector]
+        [JsonIgnore][UISetting(Ignore = true)][HideInInspector]
         internal Dictionary<int, int> AwarenessTable;
         public Option<List<EntityWrapper>> Prey;
         public bool HasEntityPrey => Prey.value != null && Prey.value.Count > 0;

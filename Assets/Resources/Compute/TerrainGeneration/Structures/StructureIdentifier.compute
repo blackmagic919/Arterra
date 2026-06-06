@@ -12,7 +12,7 @@ const static int numThreads = 256;
 
 struct settings{ 
     uint3 size;
-    int minimumLOD;
+    int matSetStart;
     uint config;
 };
 
@@ -81,6 +81,7 @@ inline bool HadRandYRot(uint config) { return (config & 0x1) != 0; }
 inline bool HadRandXRot(uint config) { return (config & 0x2) != 0; }
 inline bool HadRandZRot(uint config) { return (config & 0x4) != 0; }
 inline bool IsEnhanced(uint config) { return (config & 0x8) != 0; }
+inline uint MinimumLoD(uint config) { return (config >> 8) & 0xFFFFFF; }
 
 float GetNoiseCentered(float val, float center, float bottom, float top){
     float clamped = clamp(val, bottom, top);//
@@ -98,7 +99,7 @@ int BinSearchStructures(uint startIndex, uint arraySize, uint searchLoD) //Retur
     while (low <= high)
     {
         int mid = ((uint)low + (uint)high) / 2; //so it stops complaining about int division
-        uint structLoD = _StructureSettings[_BiomeStructureData[mid].structIndex].minimumLOD;
+        uint structLoD = MinimumLoD(_StructureSettings[_BiomeStructureData[mid].structIndex].config);
 
         if (structLoD == searchLoD)
             return mid;

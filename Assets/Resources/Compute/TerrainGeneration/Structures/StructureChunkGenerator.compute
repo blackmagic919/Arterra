@@ -3,6 +3,7 @@
 
 #include "Assets/Resources/Compute/Utility/RotationTables.hlsl"
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#include "Assets/Resources/Compute/Utility/Random.hlsl"
 
 
 const static int numThreads = 8;
@@ -13,7 +14,7 @@ struct structureInfo{
 
 struct settings{
     uint3 size;
-    int minimumLOD;
+    int matSetStart;
     uint config;
 };
 
@@ -31,6 +32,8 @@ uint addressIndex;
 StructuredBuffer<settings> _StructureSettings; //settings for structure
 StructuredBuffer<uint2> _StructureIndexes;
 StructuredBuffer<uint> _StructureMap;
+StructuredBuffer<int2> _StructureMatSets;
+StructuredBuffer<int> _StructureMatRefs;
 
 struct mapData{
     uint density;
@@ -43,6 +46,7 @@ uint bSTART_map;
 
 StructuredBuffer<uint> numPoints;
 
+int3 sOffset;
 uint skipInc;
 float IsoLevel;
 
@@ -104,17 +108,16 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint3 structLength = uint3(0, 0, 0);
     structLength = max(chunkEndLoD - chunkOriginLoD, 0);
     uint structLength0 = structLength.x * structLength.y * structLength.z;
+    uint seed = Random(sOffset + structure.structurePos);//
 
     //I hope it doesn't complain about the triple loop *nervous laugh*
     //It crashed cause of the triple loop :(
     for(uint pos = 0; pos < structLength0; pos++){
-
         uint x = pos / (structLength.y * structLength.z);
         uint y = (pos / structLength.z) % structLength.y;
         uint z = pos % structLength.z;
 
         uint3 real = uint3(x, y, z) * skipInc;
-        
         uint3 structCoord = structOrigin + xAxis * real.x + yAxis * real.y + zAxis * real.z;
         structCoord = clamp(structCoord, 0, sizes-1);
         uint3 chunkCoord = chunkOriginLoD + uint3(x,y,z) + wOffset;
@@ -126,10 +129,17 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         //This section will have racing issues, but it's negligable
         //If < IsoLevel, don't override ground, but otherwise override
         uint mapInfo = _StructureMap[structIndex]; 
+
+        //get material
+        uint materialIndex = material(mapInfo);
+        int2 range = _StructureMatSets[materialIndex + StructureSettings.matSetStart];
+        materialIndex = (Random(materialIndex ^ seed) % (range.y - range.x)) + range.x;
+        uint material = _StructureMatRefs[materialIndex];
+
         uint force = mapInfo & 0x80000000;
         InterlockedMax(chunkData[chunkIndex].density, force | density(mapInfo));
         InterlockedMax(chunkData[chunkIndex].viscosity, 
             force | (preserve(mapInfo) ? viscosity(mapInfo) : density(mapInfo)));
-        InterlockedMax(chunkData[chunkIndex].material, force | material(mapInfo));
+        InterlockedMax(chunkData[chunkIndex].material, force | material);
     }
 }

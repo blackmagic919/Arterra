@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da19624b8be3244a5876edd4f1951e08, type: 3}
+  m_Name: GeneratorMinimesh
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Engine.Rendering.ProceduralMiniMesh
+  Name: Minimesh
+  Tags:
+    Reg:
+      value: []
+  settings:
+    Category:
+      value: {fileID: 11400000, guid: b13701808c1454c86b0bb9932dd7d900, type: 2}
+    Reg: []
+  material:
+    value: {fileID: 2100000, guid: a313d8159982c4ec9888a789146f26a4, type: 2}
+  references:
+    version: 2
+    RefIds: []

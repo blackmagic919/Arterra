@@ -1,0 +1,235 @@
+#pragma kernel Main
+
+#include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
+#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#include "Assets/Resources/Compute/Utility/Random.hlsl"
+
+const static int numThreads = 256;
+
+struct MiniMeshLevelCompact {
+    int2 optionsRange;
+    float frequency;
+    float2 sizeMultiplierRange;
+    int inheritSurfaceNormals;
+};
+
+struct MiniMeshCompact {
+    int2 vertexRange;
+    float probability;
+    int texIndex;
+};
+
+struct MeshVertex {
+    float3 position;
+    float3 normal;
+    float2 uv;
+    float windStrength;
+};
+
+struct DrawTriangle {
+    uint3 vertices[3];
+    uint BaseSCInd;
+};
+
+float ScaleInverse;
+StructuredBuffer<MiniMeshLevelCompact> LevelSettings;
+StructuredBuffer<MiniMeshCompact> VariantSettings;
+StructuredBuffer<MeshVertex> MeshVertices;
+StructuredBuffer<SourceVertex> SourceVertices;
+StructuredBuffer<uint3> SourceTriangles;
+StructuredBuffer<uint2> _AddressDict;
+
+uint vertAddress;
+uint triAddress;
+int levelsPerVariant;
+int variantCount;
+
+RWStructuredBuffer<uint> Counters;
+RWStructuredBuffer<DrawTriangle> DrawTriangles;
+
+int bSTART_base;
+int bCOUNT_base;
+int bSTART_oGeo;
+int bCOUNT_oGeo;
+
+float3 TriangleCenter(float3 a, float3 b, float3 c)
+{
+    return (a + b + c) / 3.0;
+}
+
+float TriangleArea(float3 a, float3 b, float3 c)
+{
+    return 0.5 * length(cross(b - a, c - a));
+}
+
+float3 BuildTangentX(float3 a, float3 b, float3 c, float3 normal)
+{
+    float3 edge = b - a;
+    float3 xAxis = edge - normal * dot(edge, normal);
+    if (dot(xAxis, xAxis) < 1e-8)
+    {
+        edge = c - a;
+        xAxis = edge - normal * dot(edge, normal);
+    }
+
+    if (dot(xAxis, xAxis) < 1e-8)
+    {
+        float3 ref = (abs(normal.y) < 0.999f) ? float3(0, 1, 0) : float3(1, 0, 0);
+        xAxis = cross(ref, normal);
+    }
+
+    return safeNormalize(xAxis);
+}
+
+float3 RandomPointOnTriangle(float3 a, float3 b, float3 c, float2 rand2)
+{
+    float s = sqrt(rand2.x);
+    float u = 1.0 - s;
+    float v = rand2.y * s;
+    float w = 1.0 - u - v;
+    return a * u + b * v + c * w;
+}
+
+uint3 PackMiniVertex(float3 positionOS, float3 normalOS, uint localVertexOffset, uint variant)
+{
+    uint3 data = PackVertices(positionOS, normalOS, variant);
+    // Store local mesh-vertex offset for UV lookup in the render vertex shader.
+    data.z |= (min(localVertexOffset, 255u) << 24);
+    return data;
+}
+
+void AppendTri(float3 origin, float3 xAxis, float3 yAxis, float3 zAxis, float sizeMul, uint meshStart, uint triOffset, uint variant, uint baseSC, int inheritSurfaceNormals)
+{
+    DrawTriangle tri = (DrawTriangle)0;
+
+    [unroll]
+    for (uint i = 0; i < 3; i++)
+    {
+        MeshVertex mv = MeshVertices[meshStart + triOffset + i];
+
+        float3 pos = mv.position * sizeMul;
+        float3 nrm = mv.normal;
+
+        float3 positionOS = origin + xAxis * pos.x + yAxis * pos.y + zAxis * pos.z;
+        float3 transformedMeshNormal = safeNormalize(xAxis * nrm.x + yAxis * nrm.y + zAxis * nrm.z);
+        float3 normalOS = inheritSurfaceNormals != 0
+            ? yAxis
+            : safeNormalize(transformedMeshNormal + yAxis);
+
+        uint localVertexOffset = triOffset + i;
+        tri.vertices[i] = PackMiniVertex(positionOS, normalOS, localVertexOffset, variant);
+    }
+
+    tri.BaseSCInd = baseSC;
+
+    uint appendInd = 0;
+    InterlockedAdd(Counters[bCOUNT_oGeo], 1, appendInd);
+    DrawTriangles[bSTART_oGeo + appendInd] = tri;
+}
+
+uint SelectOptionIndex(int2 range, float roll)
+{
+    uint start = max(range.x, 0);
+    uint count = max(range.y, 0);
+    uint selected = start;
+
+    for (uint i = 0; i < count; i++)
+    {
+        uint idx = start + i;
+        if (roll <= VariantSettings[idx].probability) {
+            selected = idx;
+            break;
+        }
+        selected = idx;
+    }
+
+    return selected;
+}
+
+uint SpawnCount(float frequency, float areaWS, float3 centerSeed)
+{
+    if (frequency > 0.0) {
+        float p = saturate(frequency);
+        return RandomFloat(centerSeed) < p ? 1u : 0u;
+    }
+
+    if (frequency < 0.0) {
+        float expected = abs(frequency) * areaWS;
+        uint baseCount = (uint)floor(expected);
+        float remainder = frac(expected);
+        return baseCount + (RandomFloat(centerSeed + 0.618f) < remainder ? 1u : 0u);
+    }
+
+    return 0u;
+}
+
+[numthreads(numThreads, 1, 1)]
+void Main(uint3 id : SV_DispatchThreadID)
+{
+    uint startIndex = Counters[bCOUNT_base];
+    uint numSourceTriangles = Counters[bCOUNT_base + 1] - startIndex;
+    if (id.x >= numSourceTriangles)
+    {
+        return;
+    }
+
+    uint triIndex = Counters[bSTART_base + startIndex + id.x];
+    uint3 sourceTri = SourceTriangles[_AddressDict[triAddress].y + triIndex];
+
+    SourceVertex inputs[3];
+    inputs[0] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.x];
+    inputs[1] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.y];
+    inputs[2] = SourceVertices[_AddressDict[vertAddress].y + sourceTri.z];
+
+    uint baseSC = GetBaseSubChunk(inputs);
+    uint variant = GetShaderVariant(inputs);
+    variant = min(variant, (uint)max(variantCount - 1, 0));
+
+    uint level = min(GetDetailLevel(baseSC), (uint)max(levelsPerVariant - 1, 0));
+    uint levelIndex = variant * (uint)levelsPerVariant + level;
+    MiniMeshLevelCompact levelData = LevelSettings[levelIndex];
+
+    if (levelData.optionsRange.y <= 0) {
+        return;
+    }
+
+    float3 a = inputs[0].positionOS;
+    float3 b = inputs[1].positionOS;
+    float3 c = inputs[2].positionOS;
+
+    float3 center = TriangleCenter(a, b, c);
+    float3 normal = safeNormalize(cross(b - a, c - a));
+    float3 xAxis = BuildTangentX(a, b, c, normal);
+    float3 zAxis = safeNormalize(cross(normal, xAxis));
+
+    float areaWS = TriangleArea(a, b, c) * (ScaleInverse * ScaleInverse);
+    uint spawns = SpawnCount(levelData.frequency, areaWS, center);
+
+    for (uint spawnIndex = 0; spawnIndex < spawns; spawnIndex++)
+    {
+        float optionRoll = RandomFloat(center + float3(1.137f * spawnIndex, 2.913f, 0.217f));
+        uint selected = SelectOptionIndex(levelData.optionsRange, optionRoll);
+        MiniMeshCompact mesh = VariantSettings[selected];
+
+        uint triVertexCount = (uint)max(mesh.vertexRange.y, 0);
+        if (triVertexCount < 3) {
+            continue;
+        }
+
+        float2 barySeed = float2(
+            RandomFloat(center + float3(spawnIndex, 0.31f, 1.77f)),
+            RandomFloat(center + float3(spawnIndex, 2.31f, 3.91f))
+        );
+        float3 spawnCenter = RandomPointOnTriangle(a, b, c, barySeed);
+
+        float sizeRoll = RandomFloat(center + float3(5.173f * spawnIndex, 1.419f, 7.071f));
+        float sizeMin = levelData.sizeMultiplierRange.x;
+        float sizeMax = levelData.sizeMultiplierRange.y;
+        float sizeMul = max(sizeRoll * (sizeMax - sizeMin) + sizeMin, 1e-4f) * ScaleInverse;
+        uint meshStart = (uint)max(mesh.vertexRange.x, 0);
+
+        for (uint triOffset = 0; triOffset + 2 < triVertexCount; triOffset += 3) {
+            AppendTri(spawnCenter, xAxis, normal, zAxis, sizeMul, meshStart, triOffset, selected, baseSC, levelData.inheritSurfaceNormals);
+        }
+    }
+}

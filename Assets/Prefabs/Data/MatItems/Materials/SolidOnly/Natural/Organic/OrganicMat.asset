@@ -50,6 +50,7 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: 7b57b4e08c05c4ff386c642fd205567a, type: 2}
     - value: {fileID: 11400000, guid: 21d743594f35c4d6995ac67e51eee6e2, type: 2}
     - value: {fileID: 11400000, guid: 4b674e93068014f6d920d486cc1836af, type: 2}
+    - value: {fileID: 11400000, guid: a2288f191e2c94720a121b9abba68208, type: 2}
   references:
     version: 2
     RefIds:
@@ -80,7 +81,9 @@ MonoBehaviour:
         _convertBounds:
           data: 4286643968
         _neighborBounds:
-          data: 2130738944
+          bounds:
+            data: 2130738944
+          flags: 2
         ConvertTarget: FireAsh
     - rid: 6432723101265428554
       type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}

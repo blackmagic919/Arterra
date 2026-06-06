@@ -63,17 +63,17 @@ namespace Arterra.Data.Entity.Behavior {
             if (!PathFinder.VerifyProfile(nextPos, profile, EntityJob.cxt)) { finder.hasPath = false; }
 
             float3 aim = Normalize(nextPos - (float3)tCollider.transform.position);
-            Quaternion rot;
+            Quaternion rot = Quaternion.identity;
             switch(movement) {
                 case FollowType.Planar:
                     aim = math.normalizesafe(new float3(aim.x, 0, aim.z));
-                    rot = Quaternion.LookRotation(aim);
+                    if (math.any(aim != 0)) rot = Quaternion.LookRotation(aim);
                     break;
                 case FollowType.Move3D:
-                    rot = Quaternion.LookRotation(new float3(aim.x, 0, aim.z));
+                    if (math.any(aim.xz != 0))  rot = Quaternion.LookRotation(new float3(aim.x, 0, aim.z));
                     break;
                 default:
-                    rot = Quaternion.LookRotation(aim);
+                    if (math.any(aim != 0)) rot = Quaternion.LookRotation(aim);
                     break;
             }
 

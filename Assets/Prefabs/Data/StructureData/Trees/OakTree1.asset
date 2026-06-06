@@ -22,15 +22,14 @@ MonoBehaviour:
         x: 12
         y: 18
         z: 12
-      minimumLOD: 0
+      matSetStart: 0
       config: 1
   Names:
     value:
-    - Air
-    - OakLeaves
-    - Wood
-    - Grass
-    - Lion
+    - M:Air
+    - M:OakLeaves
+    - M:Wood
+    - M:Grass
   map:
     value:
     - data: 0

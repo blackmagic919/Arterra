@@ -80,5 +80,7 @@ MonoBehaviour:
         _convertBounds:
           data: 4278255360
         _neighborBounds:
-          data: 4278255360
+          bounds:
+            data: 4278255360
+          flags: 2
         ConvertTarget: Ash

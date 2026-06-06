@@ -26,9 +26,9 @@ MonoBehaviour:
       config: 3
   Names:
     value:
-    - Air
-    - Bedrock
-    - Steel
+    - M:Air
+    - M:Bedrock
+    - M:Steel
   map:
     value:
     - data: 0

@@ -63,6 +63,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void UnMapStatDisplay() {
             if (indicator == null || indicator.stats == null) return;
+            if (self.controller.gameObject == null) return;
             if (!self.active) return;
 
             RectTransform rect = indicator.stats.GetComponent<RectTransform>();

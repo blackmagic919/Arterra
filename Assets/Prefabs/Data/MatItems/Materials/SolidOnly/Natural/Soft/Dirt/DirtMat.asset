@@ -64,7 +64,9 @@ MonoBehaviour:
         _convertBounds:
           data: 4286643968
         _neighborBounds:
-          data: 2130738944
+          bounds:
+            data: 2130738944
+          flags: 2
         ConvertTarget: TilledSoil
     - rid: 6432722988684804190
       type: {class: ConvertibleTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
@@ -72,5 +74,7 @@ MonoBehaviour:
         _convertBounds:
           data: 4286586880
         _neighborBounds:
-          data: 2130738944
+          bounds:
+            data: 2130738944
+          flags: 2
         GivesItem: 0

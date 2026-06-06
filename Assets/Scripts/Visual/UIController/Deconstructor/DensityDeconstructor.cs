@@ -149,7 +149,7 @@ namespace Arterra.Editor {
                 IRegister.Setup(Config.CURRENT); //Initialize Register LUTS
                 SystemProtocol.MinimalStartup(); // Initialize Material Information
                 Structure.Initialize();
-                DeserializeMaterials();
+                EnsureSerializedMaterials();
 
                 currentState = new EditorState {
                     GridSize = Structure.settings.value.GridSize,
@@ -183,7 +183,7 @@ namespace Arterra.Editor {
                 Structure.settings.value.GridSize = currentState.GridSize;
             }
 
-            SerializeMaterials();
+            CompactSerializedMaterials();
             EditorUtility.SetDirty(Structure);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -272,7 +272,9 @@ namespace Arterra.Editor {
 
         public void UpdateMapData() {
             if (currentState.MapData == null) return;
-            UtilityBuffers.TransferBuffer.SetData(currentState.MapData.ToArray());
+
+            StructureData.PointInfo[] gpuMap = BuildGpuMapData(currentState.MapData);
+            UtilityBuffers.TransferBuffer.SetData(gpuMap);
         }
         public void OnSceneGUI(SceneView sceneView) {
             if (!initialized) return;
@@ -311,33 +313,40 @@ namespace Arterra.Editor {
             if (Selected.Count > 0) { HandleMapChange(); }
         }
 
-        private void DrawMaterialDropdown(IRegister registry, int currentMaterialIndex, params GUILayoutOption[] layoutOptions) {
-            string currentMaterial = (currentMaterialIndex >= 0 && currentMaterialIndex < registry.Count())
-                ? registry.RetrieveName(currentMaterialIndex)
-                : "";
-
-            int selectedIndex = 0;
-            if (!string.IsNullOrEmpty(currentMaterial) && registry.Contains(currentMaterial))
-                selectedIndex = registry.RetrieveIndex(currentMaterial) + 1;
-
-            string buttonText = string.IsNullOrEmpty(currentMaterial) ? "[Select]" : currentMaterial;
-            if (!GUILayout.Button(buttonText, EditorStyles.popup, layoutOptions))
-                return;
+        private void DrawMaterialDropdown(Catalogue<Arterra.Data.Material.MaterialData> registry, int currentMaterialIndex, params GUILayoutOption[] layoutOptions) {
+            string currentEntry = GetMaterialNameByLocalIndex(currentMaterialIndex);
 
             List<string> options = new List<string>() { "" };
             for (int i = 0; i < registry.Count(); i++) {
-                options.Add(registry.RetrieveName(i));
+                options.Add(StructureData.EncodeMaterialEntry(registry.RetrieveName(i)));
             }
+
+            if (registry.TagRanges != null) {
+                foreach (TagRegistry.Tags tag in registry.TagRanges.Keys) {
+                    if (tag == TagRegistry.Tags.None) continue;
+                    options.Add(StructureData.EncodeTagEntry(tag));
+                }
+            }
+
+            int selectedIndex = 0;
+            if (!string.IsNullOrEmpty(currentEntry)) {
+                int index = options.IndexOf(currentEntry);
+                if (index >= 0) selectedIndex = index;
+            }
+
+            string buttonText = string.IsNullOrEmpty(currentEntry) ? "[Select]" : currentEntry;
+            if (!GUILayout.Button(buttonText, EditorStyles.popup, layoutOptions))
+                return;
 
             SearchablePopup popup = new SearchablePopup(
                 options,
                 selectedIndex,
                 (i, val) => {
-                    if (string.IsNullOrEmpty(val) || !registry.Contains(val))
+                    if (string.IsNullOrEmpty(val))
                         return;
 
                     StructureData.PointInfo data = curData;
-                    data.material = registry.RetrieveIndex(val);
+                    data.material = GetOrAddLocalMaterialIndex(val);
                     curData = data;
                 });
 
@@ -720,41 +729,158 @@ namespace Arterra.Editor {
             }
         }
 
-        private void SerializeMaterials() {
-            if (Structure.Names.value != null && Structure.Names.value.Count > 0)
-                return; //Already serialized
-            Dictionary<int, int> MaterialDict = new Dictionary<int, int>();
-            for (int i = 0; i < Structure.map.value.Count; i++) {
-                StructureData.PointInfo p = Structure.map.value[i];
-                MaterialDict.TryAdd(p.material, MaterialDict.Count);
-                p.material = MaterialDict[p.material];
-                Structure.map.value[i] = p;
+        private void EnsureSerializedMaterials() {
+            if (Structure.map.value == null)
+                Structure.map.value = new List<StructureData.PointInfo>();
+
+            if (Structure.Names.value != null && Structure.Names.value.Count > 0) {
+                NormalizeNamePrefixes();
+                return;
             }
-            string[] materials = new string[MaterialDict.Count];
+
+            Dictionary<int, int> materialDict = new Dictionary<int, int>();
             var reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-            foreach (var pair in MaterialDict) {
-                materials[pair.Value] = reg.RetrieveName(pair.Key);
+
+            for (int i = 0; i < Structure.map.value.Count; i++) {
+                StructureData.PointInfo point = Structure.map.value[i];
+                if (!materialDict.TryGetValue(point.material, out int localIndex)) {
+                    localIndex = materialDict.Count;
+                    materialDict[point.material] = localIndex;
+                }
+
+                point.material = localIndex;
+                Structure.map.value[i] = point;
             }
+
+            string[] materials = new string[materialDict.Count];
+            foreach (var pair in materialDict) {
+                materials[pair.Value] = (pair.Key >= 0 && pair.Key < reg.Count())
+                    ? StructureData.EncodeMaterialEntry(reg.RetrieveName(pair.Key))
+                    : StructureData.EncodeMaterialEntry(string.Empty);
+            }
+
             Structure.Names.value = materials.ToList();
         }
 
-        private void DeserializeMaterials() {
-            if (Structure.Names.value == null || Structure.Names.value.Count == 0)
-                return;
-            List<int> MaterialLUT = new List<int>();
+        private StructureData.PointInfo[] BuildGpuMapData(List<StructureData.PointInfo> serializedMap) {
+            if (serializedMap == null)
+                return Array.Empty<StructureData.PointInfo>();
+
+            List<string> names = Structure.Names.value ?? new List<string>();
             var reg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            StructureData.PointInfo[] gpuMap = serializedMap.ToArray();
+
+            for (int i = 0; i < gpuMap.Length; i++) {
+                StructureData.PointInfo point = gpuMap[i];
+                if (point.material < 0 || point.material >= names.Count) {
+                    point.material = -1;
+                } else {
+                    point.material = ResolveGpuMaterialIndex(names[point.material], reg);
+                }
+
+                gpuMap[i] = point;
+            }
+
+            return gpuMap;
+        }
+
+        private string GetMaterialNameByLocalIndex(int localIndex) {
+            List<string> names = Structure.Names.value;
+            if (names == null || localIndex < 0 || localIndex >= names.Count)
+                return string.Empty;
+
+            return names[localIndex] ?? string.Empty;
+        }
+
+        private void NormalizeNamePrefixes() {
+            if (Structure.Names.value == null) {
+                Structure.Names.value = new List<string>();
+                return;
+            }
+
             for (int i = 0; i < Structure.Names.value.Count; i++) {
-                if (reg.Contains(Structure.Names.value[i]))
-                    MaterialLUT.Add(reg.RetrieveIndex(Structure.Names.value[i]));
-                else MaterialLUT.Add(-1);
+                string entry = Structure.Names.value[i] ?? string.Empty;
+                if (entry.StartsWith(StructureData.MATERIAL_PREFIX, StringComparison.Ordinal) || entry.StartsWith(StructureData.TAG_PREFIX, StringComparison.Ordinal))
+                    continue;
+
+                Structure.Names.value[i] = StructureData.EncodeMaterialEntry(entry);
             }
-            //Mark it as already deserialized so we don't double deserialize
-            Structure.Names.value = null;
+        }
+
+        private int ResolveGpuMaterialIndex(string encodedEntry, Catalogue<Arterra.Data.Material.MaterialData> materialRegistry) {
+            if (string.IsNullOrEmpty(encodedEntry) || materialRegistry.Count() <= 0)
+                return -1;
+
+            string materialName = StructureData.DecodeMaterialEntry(encodedEntry);
+            if (!string.IsNullOrEmpty(materialName)) {
+                return (!string.IsNullOrEmpty(materialName) && materialRegistry.Contains(materialName))
+                    ? materialRegistry.RetrieveIndex(materialName)
+                    : -1;
+            }
+
+            if (encodedEntry.StartsWith(StructureData.TAG_PREFIX, StringComparison.Ordinal)) {
+                TagRegistry.Tags tag = StructureData.DecodeTagEntry(encodedEntry);
+                if (tag == TagRegistry.Tags.None)
+                    return -1;
+
+                if (materialRegistry.TagRanges == null)
+                    return -1;
+                if (!materialRegistry.TagRanges.TryGetValue(tag, out LinkedList<int2> ranges))
+                    return -1;
+                if (ranges == null || ranges.First == null)
+                    return -1;
+
+                // Choose the first material index covered by the first matching tag range.
+                int firstIndex = ranges.First.Value.x;
+                return materialRegistry.Contains(firstIndex) ? firstIndex : -1;
+            }
+
+            // Backward compatibility for legacy entries without a type prefix.
+            return materialRegistry.Contains(encodedEntry) ? materialRegistry.RetrieveIndex(encodedEntry) : -1;
+        }
+
+        private int GetOrAddLocalMaterialIndex(string materialName) {
+            if (Structure.Names.value == null)
+                Structure.Names.value = new List<string>();
+
+            List<string> names = Structure.Names.value;
+            int existing = names.IndexOf(materialName);
+            if (existing >= 0)
+                return existing;
+
+            names.Add(materialName);
+            return names.Count - 1;
+        }
+
+        private void CompactSerializedMaterials() {
+            if (Structure.map.value == null)
+                Structure.map.value = new List<StructureData.PointInfo>();
+
+            List<string> names = Structure.Names.value ?? new List<string>();
+            Dictionary<int, int> remap = new Dictionary<int, int>();
+            List<string> compactNames = new List<string>();
+
             for (int i = 0; i < Structure.map.value.Count; i++) {
-                StructureData.PointInfo p = Structure.map.value[i];
-                p.material = MaterialLUT[math.clamp(p.material, 0, MaterialLUT.Count() - 1)];
-                Structure.map.value[i] = p;
+                StructureData.PointInfo point = Structure.map.value[i];
+                int oldIndex = point.material;
+
+                if (oldIndex < 0 || oldIndex >= names.Count) {
+                    point.material = -1;
+                    Structure.map.value[i] = point;
+                    continue;
+                }
+
+                if (!remap.TryGetValue(oldIndex, out int newIndex)) {
+                    newIndex = compactNames.Count;
+                    remap[oldIndex] = newIndex;
+                    compactNames.Add(names[oldIndex] ?? string.Empty);
+                }
+
+                point.material = newIndex;
+                Structure.map.value[i] = point;
             }
+
+            Structure.Names.value = compactNames;
         }
 
         void GetDataFromMesh(Mesh mesh) {

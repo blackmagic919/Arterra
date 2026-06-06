@@ -1,0 +1,152 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04a6111a713ec455cbfedb4173f40da6, type: 3}
+  m_Name: CoralReef
+  m_EditorClassIdentifier: 
+  Name: CoralReef
+  Tags:
+    Reg:
+      value: []
+  info:
+    value:
+      Names:
+        value:
+        - Sand
+        - Clay
+        - Gravel
+        - BlueFanCoral
+        - RedFanCoral
+        - CupCoral
+        - TubeCoral
+        - Water
+        - SaturatedWater
+        - PillarCoral
+        - StaghornCoral
+        - Air
+        - CoralFormation1
+        - CoralFormation2
+        - CoralFormation3
+        - CoralFormation4
+      GroundMaterials:
+        value:
+        - value:
+            Material: 0
+            genSize: 0.8
+            genShape: 0.662
+            frequency: 1
+            height: 1
+        - value:
+            Material: 1
+            genSize: 0.2
+            genShape: 0.4
+            frequency: 0.6
+            height: 0
+        - value:
+            Material: 2
+            genSize: 0.425
+            genShape: 0.291
+            frequency: 0.467
+            height: 0
+        - value:
+            Material: 4
+            genSize: 0
+            genShape: 1
+            frequency: 0.327
+            height: 0
+        - value:
+            Material: 3
+            genSize: 0
+            genShape: 0
+            frequency: 0.278
+            height: 0
+        - value:
+            Material: 5
+            genSize: 0.234
+            genShape: 0.27
+            frequency: 0.347
+            height: 0
+        - value:
+            Material: 6
+            genSize: 0.121
+            genShape: 0.806
+            frequency: 0.435
+            height: 0
+        - value:
+            Material: 9
+            genSize: 0.403
+            genShape: 0.319
+            frequency: 0.399
+            height: 0
+        - value:
+            Material: 10
+            genSize: 0.31
+            genShape: 0.685
+            frequency: 0.379
+            height: 0
+      SurfaceMaterials:
+        value:
+        - value:
+            Material: 11
+            genSize: 0.659
+            genShape: 0
+            frequency: 1
+            height: 0
+      LiquidMaterials:
+        value:
+        - value:
+            Material: 7
+            genSize: 0.418
+            genShape: 0.72
+            frequency: 1
+            height: 0
+        - value:
+            Material: 8
+            genSize: 0.889
+            genShape: 0.199
+            frequency: 0.667
+            height: 0
+      Structures:
+        value:
+        - value:
+            ChancePerStructurePoint: 0.2
+            Structure: 12
+        - value:
+            ChancePerStructurePoint: 0.225
+            Structure: 13
+        - value:
+            ChancePerStructurePoint: 0.25
+            Structure: 14
+        - value:
+            ChancePerStructurePoint: 0.3
+            Structure: 15
+      Entities:
+        value: []
+      StructureSystems:
+        value: []
+  BiomeConditions:
+    value:
+      TerrainStart: 0.275
+      ErosionStart: 0
+      SquashStart: 0
+      InfluenceStart: 0
+      InfluenceOffStart: 0
+      AtmosphereStart: 0
+      TerrainEnd: 0.35
+      ErosionEnd: 0.6
+      SquashEnd: 1
+      InfluenceEnd: 1
+      InfluenceOffEnd: 1
+      AtmosphereEnd: 1
+      biome: 0
+  references:
+    version: 2
+    RefIds: []

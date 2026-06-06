@@ -101,7 +101,6 @@ namespace Arterra.Data.Entity.Behavior {
         public float invincibility;
         public bool TriggeredDeath;
         private float MaxAccDamage;
-
         public const float FallDmgThresh = 10;
 
         public void Interact(Entity caller, IItem item) => self.eventCtrl.RaiseEvent(GameEvent.Entity_Interact, self, caller, item);

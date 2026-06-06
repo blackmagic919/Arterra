@@ -21,7 +21,7 @@ MonoBehaviour:
     - Kelp:Solid
     - Void
     - Kelp
-    - InsetQuad
+    - Minimesh
     - KelpLeaves
   terrainData:
     Texture: 2

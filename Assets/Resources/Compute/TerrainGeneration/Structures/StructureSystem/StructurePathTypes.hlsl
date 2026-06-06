@@ -62,7 +62,7 @@ struct Transition {
 
 struct settings {
     uint3 size;
-    int minimumLOD;
+    int matSetStart;
     uint config;
 };
 

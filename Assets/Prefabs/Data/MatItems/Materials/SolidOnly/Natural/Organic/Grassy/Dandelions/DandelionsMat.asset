@@ -21,8 +21,8 @@ MonoBehaviour:
     - Dandelions:Solid
     - Void
     - Dandelions
-    - Shell
-    - Dandelions
+    - Minimesh
+    - Dandelion
     - Dirt
   terrainData:
     Texture: 2

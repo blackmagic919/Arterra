@@ -109,17 +109,18 @@ public class Creator
     /// <param name="mapStart">The start of the chunk's terrain map within the <see cref="UtilityBuffers.GenerationBuffer"/>. See <see cref="Map.Generator.GeoGenOffsets.rawMapStart"/>
     /// for more info. </param>
     /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Configuration.Quality.Terrain.IsoLevel"/> for more info.</param>
+    /// <param name="sampleOffset">The world-space offset used when sampling or seeding structure placement for this chunk.</param>
     /// <param name="wChunkSize">The axis size of the chunk's terrain map as it currently is in <see cref="GenerationBuffer"> working memory </see>.</param>
     /// <param name="wOffset">The offset within the chunk's map generated structures will be transcribed to. If the chunk's map
     /// extends beyond what it exclusively contains, this should be used to indicate the axis offest relative to the chunk map's first
     /// entry of the first entry exclusively contained by the chunk. </param>
-    public void GenerateStrucutresGPU(int chunkSize, int skipInc, int mapStart, float IsoLevel, int wChunkSize = -1, int wOffset = 0)
+    public void GenerateStrucutresGPU(int chunkSize, int skipInc, int mapStart, float IsoLevel, float3 sampleOffset, int wChunkSize = -1, int wOffset = 0)
     {
         if(wChunkSize == -1) wChunkSize = chunkSize;
         ComputeBuffer blockSource = GenerationPreset.memoryHandle.GetBlockBuffer(StructureDataIndex);
         ComputeBuffer structCount = Generator.GetStructCount(blockSource, GenerationPreset.memoryHandle.Address, (int)StructureDataIndex, STRUCTURE_STRIDE_WORD);
         Generator.ApplyStructures(blockSource, GenerationPreset.memoryHandle.Address, structCount, 
-                (int)StructureDataIndex, mapStart, chunkSize, skipInc, wOffset, wChunkSize, IsoLevel);
+                (int)StructureDataIndex, mapStart, chunkSize, skipInc, sampleOffset, wOffset, wChunkSize, IsoLevel);
 
         return;
     }
@@ -388,12 +389,13 @@ public static class Generator
     /// <param name="chunkSize">The size of a <see cref="TerrainChunk.RealChunk"/> in grid space. </param>
     /// <param name="skipInc">The distance in grid space between two adjacent samples in the chunk's terrain map. Used to convert
     /// a structure's coordinate from grid space to map space(the location within the chunk's terrain map).</param>
+    /// <param name="sampleOffset">The world-space offset used when sampling or seeding structure placement for this chunk.</param>
     /// <param name="wOffset">The offset within the chunk's map generated structures will be transcribed to. If the chunk's map
     /// extends beyond what it exclusively contains, this should be used to indicate the axis offest relative to the chunk map's first
     /// entry of the first entry exclusively contained by the chunk.</param>
     /// <param name="wChunkSize">The axis size of the chunk's terrain map as it currently is in <see cref="GenerationBuffer"> working memory </see>.</param>
     /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Configuration.Quality.Terrain.IsoLevel"/> for more info.</param>
-    public static void ApplyStructures(ComputeBuffer memory, GraphicsBuffer addresses, ComputeBuffer count, int addressIndex, int mapStart, int chunkSize, int skipInc, int wOffset, int wChunkSize, float IsoLevel)
+    public static void ApplyStructures(ComputeBuffer memory, GraphicsBuffer addresses, ComputeBuffer count, int addressIndex, int mapStart, int chunkSize, int skipInc, float3 sampleOffset, int wOffset, int wChunkSize, float IsoLevel)
     {
         ComputeBuffer args = UtilityBuffers.CountToArgs(structureChunkGenerator, count);
 
@@ -406,7 +408,7 @@ public static class Generator
         structureChunkGenerator.SetBuffer(0, ShaderIDProps.ChunkData, UtilityBuffers.GenerationBuffer);
         structureChunkGenerator.SetInt(ShaderIDProps.StartMap, mapStart);
         structureChunkGenerator.SetInt(ShaderIDProps.MapChunkSize, chunkSize);
-        structureChunkGenerator.SetInt(ShaderIDProps.SkipInc, skipInc);
+        UtilityBuffers.SetSampleData(structureChunkGenerator, sampleOffset, skipInc);
         structureChunkGenerator.SetFloat(ShaderIDProps.IsoLevel, IsoLevel);
 
         structureChunkGenerator.SetInt(ShaderIDProps.WriteOffset, wOffset);

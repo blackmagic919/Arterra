@@ -21,7 +21,7 @@ MonoBehaviour:
     - Hydrangea:Solid
     - Void
     - Hydrangea
-    - Shell
+    - Minimesh
     - Hydrangea
     - Dirt
   terrainData:

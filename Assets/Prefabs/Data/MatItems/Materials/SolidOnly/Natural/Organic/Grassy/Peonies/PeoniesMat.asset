@@ -21,7 +21,7 @@ MonoBehaviour:
     - Peonies:Solid
     - Void
     - Peonies
-    - Shell
+    - Minimesh
     - Peony
     - Dirt
   terrainData:

@@ -9,7 +9,7 @@ struct settings{
     int sizeY;
     int sizeZ;
 
-    int minimumLoD;
+    int matSetStart ;
     uint config;
 };
 

@@ -78,10 +78,12 @@ MonoBehaviour:
         - value:
             Entity: 8
             ChancePerCoord: 0.0001
+      StructureSystems:
+        value: []
   BiomeConditions:
     value:
       TerrainStart: 0.3
-      ErosionStart: 0
+      ErosionStart: 0.6
       SquashStart: 0
       InfluenceStart: 0
       InfluenceOffStart: 0

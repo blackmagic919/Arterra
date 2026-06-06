@@ -25,7 +25,7 @@ MonoBehaviour:
     - PineLeaves:Solid
     - Void
     - PineLeaves
-    - InsetQuad
+    - Minimesh
     - PineLeaves
   terrainData:
     Texture: 2
@@ -62,5 +62,7 @@ MonoBehaviour:
         _convertBounds:
           data: 4286643968
         _neighborBounds:
-          data: 2130738944
+          bounds:
+            data: 2130738944
+          flags: 2
         ConvertTarget: Fire

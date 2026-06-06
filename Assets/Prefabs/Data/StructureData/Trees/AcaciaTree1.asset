@@ -26,9 +26,9 @@ MonoBehaviour:
       config: 1
   Names:
     value:
-    - Air
-    - AcaciaLeaves
-    - Wood
+    - M:Air
+    - M:AcaciaLeaves
+    - M:Wood
   map:
     value:
     - data: 0

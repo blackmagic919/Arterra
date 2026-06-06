@@ -120,7 +120,7 @@ Material:
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
     - _Surface: 0
-    - _WindAmplitude: 0.35
+    - _WindAmplitude: 0.5
     - _WindTimeMult: 0.2
     - _WorkflowMode: 1
     - _ZWrite: 1

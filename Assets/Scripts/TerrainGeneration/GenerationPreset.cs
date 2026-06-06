@@ -17,6 +17,7 @@ using Arterra.GamePlay.Interaction;
 using Arterra.Engine.Audio;
 using Arterra.GamePlay.UI;
 using Arterra.Engine.Rendering;
+using Unity.Mathematics;
 
 namespace Arterra.Engine.Terrain{
 /// <summary>  The factory protocol for the collective game system. This
@@ -499,6 +500,8 @@ public static class GenerationPreset
         ComputeBuffer mapBuffer;
         ComputeBuffer checksBuffer;
         ComputeBuffer settingsBuffer;
+        ComputeBuffer matSetsBuffer;
+        ComputeBuffer matRefsBuffer;
 
 
         /// <summary>
@@ -511,8 +514,25 @@ public static class GenerationPreset
         public void Initialize()
         {
             Release();
+
+            Catalogue<MaterialData> matReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            Dictionary<TagRegistry.Tags, int2> CollapsedTagSpan = new Dictionary<TagRegistry.Tags, int2>();
+            List<int> matReferences = Enumerable.Range(0, matReg.Count()).ToList();
+            foreach(var tagRange in matReg.TagRanges) {
+                if (tagRange.Value.Count() <= 1) {
+                    CollapsedTagSpan[tagRange.Key] = tagRange.Value.First();
+                    continue;
+                } 
+                int start = matReferences.Count();
+                foreach(var range in tagRange.Value)
+                    matReferences.AddRange(Enumerable.Range(range.x, range.y - range.x));
+                int end = matReferences.Count();
+                CollapsedTagSpan[tagRange.Key] = new int2(start, end);
+            }
+
             List<StructureData> StructureDictionary = Config.CURRENT.Generation.Structures.value.StructureDictionary.Reg;
             StructureData.Settings[] settings = new StructureData.Settings[StructureDictionary.Count];
+            List<int2> matSets = new ();
             List<StructureData.PointInfo> map = new ();
             List<StructureData.CheckPoint> checks = new ();
             uint[] indexPrefixSum = new uint[(StructureDictionary.Count+1)*2];
@@ -522,8 +542,23 @@ public static class GenerationPreset
                 StructureData data = StructureDictionary[i];
                 indexPrefixSum[2 * (i + 1)] = (uint)data.map.value.Count + indexPrefixSum[2*i]; //Density is same length as materials
                 indexPrefixSum[2 * (i + 1) + 1] = (uint)data.checks.value.Count + indexPrefixSum[2 * i + 1];
-                settings[i] = data.settings.value;
-                map.AddRange(data.SerializePoints);
+                settings[i] = data.settings.value;    
+                settings[i].matSetStart =  matSets.Count();
+                
+                foreach(string name in data.Names.value) {
+                    int2 range; 
+                    if (name.StartsWith(StructureData.MATERIAL_PREFIX)) {
+                        if (!matReg.Contains(StructureData.DecodeMaterialEntry(name)))
+                            Debug.Log(data.name);
+                        range.x = matReg.RetrieveIndex(StructureData.DecodeMaterialEntry(name));
+                        range.y = range.x + 1;
+                    } else {
+                        if (!CollapsedTagSpan.TryGetValue(StructureData.DecodeTagEntry(name), out range))
+                            range = new int2(0, matReg.Count());
+                    } matSets.Add(range);
+                }
+           
+                map.AddRange(data.map.value);
                 checks.AddRange(data.checks.value);
             }
 
@@ -531,17 +566,23 @@ public static class GenerationPreset
             mapBuffer = new ComputeBuffer(map.Count, sizeof(uint), ComputeBufferType.Structured);
             checksBuffer = new ComputeBuffer(checks.Count, sizeof(float) * 3 + sizeof(uint), ComputeBufferType.Structured);
             settingsBuffer = new ComputeBuffer(StructureDictionary.Count, sizeof(int) * 1 + sizeof(uint) * 4, ComputeBufferType.Structured);
+            matSetsBuffer = new ComputeBuffer(matSets.Count, sizeof(int) * 2, ComputeBufferType.Structured);
+            matRefsBuffer = new ComputeBuffer(matReferences.Count, sizeof(uint), ComputeBufferType.Structured);
 
             indexBuffer.SetData(indexPrefixSum);
             mapBuffer.SetData(map.ToArray());
             checksBuffer.SetData(checks.ToArray());
             settingsBuffer.SetData(settings);
+            matSetsBuffer.SetData(matSets);
+            matRefsBuffer.SetData(matReferences); 
 
 
             Shader.SetGlobalBuffer("_StructureIndexes", indexBuffer);
             Shader.SetGlobalBuffer("_StructureMap", mapBuffer);
             Shader.SetGlobalBuffer("_StructureChecks", checksBuffer);
             Shader.SetGlobalBuffer("_StructureSettings", settingsBuffer);
+            Shader.SetGlobalBuffer("_StructureMatSets", matSetsBuffer);
+            Shader.SetGlobalBuffer("_StructureMatRefs", matRefsBuffer);
             
             systems = new StructSystem();
             systems.Initialize();
@@ -558,6 +599,8 @@ public static class GenerationPreset
             mapBuffer?.Release();
             checksBuffer?.Release();
             settingsBuffer?.Release();
+            matSetsBuffer?.Release();
+            matRefsBuffer?.Release();
             systems.Release();
         }
     }

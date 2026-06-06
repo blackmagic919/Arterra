@@ -26,9 +26,9 @@ MonoBehaviour:
       config: 3
   Names:
     value:
-    - Air
-    - Embers
-    - Fire
+    - M:Air
+    - M:Embers
+    - M:Fire
   map:
     value:
     - data: 2147680255

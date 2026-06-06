@@ -171,7 +171,8 @@ public class InidcatorsBehavior : ISpeciesBehavior {
 
     private void OnDamaged(object self, object attacker, object cxt) {
         RefTuple<(float damage, float3 kb)> data = cxt as RefTuple<(float damage, float3 kb)>;
-        if (data.Value.damage == 0) return;
+        float thresh = vit != null ? vit.stats.MaxHealth * 0.01f : 0.1f;
+        if (data.Value.damage < thresh) return;
         EntityManager.AddHandlerEvent(() => {
             Indicators.DisplayDamageParticle((self as Entity).position, data.Value.kb);  
         });

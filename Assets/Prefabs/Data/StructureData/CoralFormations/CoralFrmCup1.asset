@@ -1,0 +1,255 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0ed4b06c60c74eb3a1638cff170e3f8, type: 3}
+  m_Name: CoralFrmCup1
+  m_EditorClassIdentifier: 
+  Name: CoralFormation1
+  Tags:
+    Reg:
+      value: []
+  settings:
+    value:
+      GridSize:
+        x: 5
+        y: 8
+        z: 5
+      matSetStart: 0
+      config: 1
+  Names:
+    value:
+    - M:Air
+    - T:Coral1
+    - T:Coral2
+  map:
+    value:
+    - data: 0
+    - data: 24694
+    - data: 23912
+    - data: 24675
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 26748
+    - data: 108460
+    - data: 173996
+    - data: 173996
+    - data: 24675
+    - data: 0
+    - data: 112321
+    - data: 112321
+    - data: 112321
+    - data: 0
+    - data: 0
+    - data: 27507
+    - data: 174019
+    - data: 27507
+    - data: 0
+    - data: 0
+    - data: 18778
+    - data: 104862
+    - data: 18778
+    - data: 0
+    - data: 0
+    - data: 2319
+    - data: 108258
+    - data: 25468
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 101289
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 22393
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 97429
+    - data: 108460
+    - data: 108460
+    - data: 108460
+    - data: 96647
+    - data: 0
+    - data: 112321
+    - data: 112321
+    - data: 112321
+    - data: 0
+    - data: 0
+    - data: 108483
+    - data: 108483
+    - data: 174019
+    - data: 0
+    - data: 0
+    - data: 170398
+    - data: 104862
+    - data: 104862
+    - data: 0
+    - data: 0
+    - data: 108258
+    - data: 131071
+    - data: 108258
+    - data: 0
+    - data: 0
+    - data: 102287
+    - data: 108972
+    - data: 173794
+    - data: 0
+    - data: 0
+    - data: 22393
+    - data: 108972
+    - data: 22393
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 15437
+    - data: 0
+    - data: 0
+    - data: 27508
+    - data: 108460
+    - data: 108460
+    - data: 108460
+    - data: 92041
+    - data: 0
+    - data: 177857
+    - data: 112321
+    - data: 112321
+    - data: 0
+    - data: 0
+    - data: 27507
+    - data: 108483
+    - data: 27507
+    - data: 0
+    - data: 0
+    - data: 18778
+    - data: 104862
+    - data: 18778
+    - data: 0
+    - data: 0
+    - data: 5403
+    - data: 98717
+    - data: 5403
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 164253
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 22393
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 27508
+    - data: 95111
+    - data: 92041
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+  checks:
+    value:
+    - position:
+        x: 2.5
+        y: -1
+        z: 2.5
+      checkInfo:
+        data: 4286643968
+    - position:
+        x: 2.5
+        y: 4
+        z: 2.5
+      checkInfo:
+        data: 2130771712
+  Enhancements:
+    Entities:
+      value: []
+    MapMetaData:
+      value: []
+  references:
+    version: 2
+    RefIds: []

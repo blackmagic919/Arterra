@@ -21,7 +21,7 @@ MonoBehaviour:
     - Lupines:Solid
     - Void
     - Lupines
-    - Shell
+    - Minimesh
     - Lupine
     - Dirt
   terrainData:

@@ -4,7 +4,7 @@ Shader "Unlit/Foliage"
     {
         _FresnelFalloff ("Highlight Falloff", float) = 0.5
         _AlphaClip ("Clip Value", float) = 0.2
-        _WindNoiseTexture("Wind Noise Texture", 2D) = "white" {} 
+        _WindNoiseTexture("Wind Noise Texture", 2D) = "white" {}
         _WindTimeMult("Wind Frequency", Float) = 1 
         _WindAmplitude("Wind Strength", Float) = 1
     }

@@ -198,16 +198,18 @@ public class StructCheckDrawer : PropertyDrawer {
         if (!_foldouts.ContainsKey(path))
             _foldouts[path] = false;
 
-        _foldouts[path] = EditorGUI.Foldout(
-            new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight),
-            _foldouts[path], label, true); // triangle on left, label is clickable
+        Rect foldoutRect = new(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+        _foldouts[path] = EditorGUI.Foldout(foldoutRect, _foldouts[path], label, true); // triangle on left, label is clickable
 
         if (!_foldouts[path]) return;
+
+        EditorGUI.indentLevel++;
 
         // Draw check bounds normally
         SerializedProperty checkProp = property.FindPropertyRelative("check");
         Rect rect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
         rect.y += EditorGUIUtility.singleLineHeight;
+        rect = EditorGUI.IndentedRect(rect);
 
         EditorGUI.PropertyField(rect, checkProp);
         rect.y += EditorGUI.GetPropertyHeight(checkProp);
@@ -249,6 +251,8 @@ public class StructCheckDrawer : PropertyDrawer {
         materialProp.uintValue = (materialProp.uintValue & 0x7FFFFFFF) | (hasCheck ? 0x80000000u : 0u);
         offsetProp.intValue = ((offset[0] + 512) & 0x3FF) << 20 |
             ((offset[1] + 512) & 0x3FF) << 10 | ((offset[2] + 512) & 0x3FF);
+
+        EditorGUI.indentLevel--;
 
     }
 

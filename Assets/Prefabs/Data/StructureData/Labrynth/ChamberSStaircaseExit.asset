@@ -26,9 +26,9 @@ MonoBehaviour:
       config: 1
   Names:
     value:
-    - StoneBrick
-    - Air
-    - BedrockBrick
+    - M:StoneBrick
+    - M:Air
+    - M:BedrockBrick
   map:
     value:
     - data: 2147541730

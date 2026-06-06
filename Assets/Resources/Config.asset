@@ -128,7 +128,7 @@ MonoBehaviour:
                   - value:
                       value:
                         rid: 1481107629540114723
-                _prevBehaviorCount: 11
+              _prevBehaviorCount: 11
         Gamemodes:
           value:
             Flight: 0

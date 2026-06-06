@@ -37,6 +37,8 @@ TEXTURE2D(_WindNoiseTexture); SAMPLER(sampler_WindNoiseTexture); float4 _WindNoi
 float _WindTimeMult;
 float _WindAmplitude;
 
+float2 mapCoordinates(float3 worldPos);
+
 VertexOutput Vertex(uint vertexID: SV_VertexID){
     VertexOutput output = (VertexOutput)0;
     if(_AddressDict[addressIndex].x == 0)
@@ -52,6 +54,19 @@ VertexOutput Vertex(uint vertexID: SV_VertexID){
     uv.y = (input.z >> 28) & 0xF;
 
     output.positionWS = mul(_LocalToWorld, float4(v.positionOS, 1)).xyz;
+
+    float2 worldWindUV = mapCoordinates(output.positionWS);
+    float2 windNoiseUV = TRANSFORM_TEX(worldWindUV, _WindNoiseTexture) + _Time.y * _WindTimeMult;
+    float3 windNoise = SAMPLE_TEXTURE2D_LOD(_WindNoiseTexture, sampler_WindNoiseTexture, windNoiseUV, 0).rgb * 2 - 1;
+    float windStrength = windNoise.r;
+    float3 windDirection = windNoise;
+    float windDirLength = length(windDirection);
+    if (windDirLength > 1e-4)
+    {
+        windDirection /= windDirLength;
+        output.positionWS += windDirection * (windStrength * _WindAmplitude);
+    }
+
     output.normalWS = normalize(mul(_LocalToWorld, float4(v.normalOS, 0)).xyz);
     output.positionCS = TransformWorldToHClip(output.positionWS);
     output.variant = v.variant;
@@ -73,11 +88,6 @@ float2 mapCoordinates(float3 worldPos)
 
 
 half3 Fragment(VertexOutput IN) : SV_TARGET{
-    float2 windUV = TRANSFORM_TEX(mapCoordinates(IN.positionWS), _WindNoiseTexture) + _Time.y * _WindTimeMult;
-    // Sample the wind noise texture and remap to range from -1 to 1
-    float2 windNoise = SAMPLE_TEXTURE2D(_WindNoiseTexture, sampler_WindNoiseTexture, windUV).xy * 2 - 1;
-    IN.uv = clamp(IN.uv + windNoise * _WindAmplitude, 0, 0.992);
-
     Settings cxt = VariantSettings[IN.variant];
     clip(_Textures.Sample(sampler_Textures, float3(IN.uv, cxt.TexIndex)).a - _AlphaClip);
     float3 normal = NormalizeNormalPerPixel(IN.normalWS);

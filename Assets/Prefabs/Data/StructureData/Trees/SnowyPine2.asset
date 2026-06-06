@@ -26,10 +26,10 @@ MonoBehaviour:
       config: 1
   Names:
     value:
-    - Air
-    - Snow
-    - PineLeaves
-    - Wood
+    - M:Air
+    - M:Snow
+    - M:PineLeaves
+    - M:Wood
   map:
     value:
     - data: 0

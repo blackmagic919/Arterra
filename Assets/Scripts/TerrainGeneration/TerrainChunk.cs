@@ -471,7 +471,7 @@ namespace Arterra.Engine.Terrain{
                 } else { //Otherwise create new data
                     Map.Generator.GeoGenOffsets bufferOffsets = Map.Generator.bufferOffsets;
                     Generator.MeshCreator.GenerateBaseChunk(origin, Generator.SurfCreator.SurfaceMapAddress, mapChunkSize, mapSkipInc, IsoLevel);
-                    Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel);
+                    Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel, origin);
                     Generator.MeshCreator.CompressMap(mapChunkSize);
                     GPUMapManager.RegisterChunkReal(CCoord, depth, UtilityBuffers.GenerationBuffer, Map.Generator.bufferOffsets.mapStart);
                 }
@@ -613,7 +613,7 @@ namespace Arterra.Engine.Terrain{
                 Map.Generator.GeoGenOffsets bufferOffsets = Map.Generator.bufferOffsets;
                 Generator.MeshCreator.GenerateBaseChunk(sOrigin, Generator.SurfCreator.SurfaceMapAddress, sChunkSize, mapSkipInc, IsoLevel);
                 if (depth <= rSettings.MaxStructureDepth)
-                    Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize + 1, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel, sChunkSize, 1);
+                    Generator.StructCreator.GenerateStrucutresGPU(mapChunkSize + 1, mapSkipInc, bufferOffsets.rawMapStart, IsoLevel, sOrigin, sChunkSize, 1);
                 Generator.MeshCreator.CompressMap(sChunkSize);
             }
 

@@ -11,6 +11,7 @@ using Arterra.GamePlay.UI.ToolTips;
 using Arterra.Core.Events;
 using Arterra.Engine.Audio;
 using Arterra.Editor;
+using System.Linq;
 
 
 namespace Arterra.Configuration {
@@ -40,11 +41,11 @@ namespace Arterra.Configuration {
     public class ConvertibleTag : IMaterialConverting {
         public Arterra.Data.Structure.StructureData.CheckInfo _convertBounds;
         /// <summary> The <see cref="MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
-        public Arterra.Data.Structure.StructureData.CheckInfo _neighborBounds;
+        public ProfileE _neighborBounds;
         [JsonIgnore]
         public Arterra.Data.Structure.StructureData.CheckInfo ConvertBounds => _convertBounds;
         [JsonIgnore]
-        public Arterra.Data.Structure.StructureData.CheckInfo NeighborBounds => _neighborBounds;
+        public ProfileE NeighborBounds => _neighborBounds;
 
         public bool GivesItem;
 
@@ -61,11 +62,11 @@ namespace Arterra.Configuration {
     public class ConvertibleToolTag : ToolTag, IMaterialConverting {
         public Arterra.Data.Structure.StructureData.CheckInfo _convertBounds;
         /// <summary> The <see cref="MapData"/> requirements of at least one neighbor of the material that the grass can spread onto.  </summary>
-        public Arterra.Data.Structure.StructureData.CheckInfo _neighborBounds;
+        public ProfileE _neighborBounds;
         [JsonIgnore]
         public Arterra.Data.Structure.StructureData.CheckInfo ConvertBounds => _convertBounds;
         [JsonIgnore]
-        public Arterra.Data.Structure.StructureData.CheckInfo NeighborBounds => _neighborBounds;
+        public ProfileE NeighborBounds => _neighborBounds;
 
         public override object Clone() {
             return new ConvertibleToolTag {
@@ -283,7 +284,7 @@ namespace Arterra.Configuration {
 
     public interface IMaterialConverting : ICloneable {
         public Arterra.Data.Structure.StructureData.CheckInfo ConvertBounds { get; }
-        public Arterra.Data.Structure.StructureData.CheckInfo NeighborBounds { get; }
+        public ProfileE NeighborBounds { get; }
 
         static readonly Unity.Mathematics.int3[] dP = new Unity.Mathematics.int3[6]{
         new (0,1,0),
@@ -293,68 +294,83 @@ namespace Arterra.Configuration {
         new (-1,0,0),
         new (0,0,1),
     };
-        public static bool CanConvert<T>(MapData neighbor, Unity.Mathematics.int3 GCoord, TagRegistry.Tags tag, out T TagInfo)
+        public static bool CanConvert<T>(MapData neighbor, int3 GCoord, TagRegistry.Tags tag, out T TagInfo)
             where T : class, IMaterialConverting {
             var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             TagInfo = null;
 
             if (matInfo.GetMostSpecificTag(tag, neighbor.material, out object prop))
                 TagInfo = prop as T; //matInfo.RetrieveIndex((prop as ConverterToolTag).ConvertTarget);
-            else return false;
-            if (!TagInfo.ConvertBounds.Contains(neighbor)) return false;
+            return CanConvert(TagInfo, neighbor, GCoord);
+        }
+
+        public static bool CanConvert(IMaterialConverting convert, MapData neighbor, int3 GCoord) {
+            if (convert == null) return false;
+            if (!convert.ConvertBounds.Contains(neighbor)) return false;
             //No neighbor bounds, so always valid
-            if (TagInfo.NeighborBounds.IsNull) return true;
+            ProfileE profile = convert.NeighborBounds;
+            if (profile.bounds.IsNull) return true;
+            bool allC = true; bool anyC = false; bool any0 = false;
             for (int i = 0; i < 6; i++) {
-                MapData nNeighbor = CPUMapManager.SampleMap(GCoord + dP[i]);
-                if (TagInfo.NeighborBounds.Contains(nNeighbor)) return true;
+                if(profile.ExFlag) continue;
+                 MapData data = CPUMapManager.SampleMap(GCoord + dP[i]);
+                bool valid = profile.bounds.Contains(data);
+                if (valid && data.IsNull) valid = false;
+
+                allC = allC && (valid || !profile.AndFlag);
+                anyC = anyC || (valid && profile.OrFlag);
+                any0 = any0 || profile.OrFlag;
             }
-            return false;
+            return allC && (!any0 || anyC);
         }
     }
 
     [Serializable]
     public struct TagRegistry {
         public static readonly Dictionary<Tags, ICloneable> TagTemplates = new(){
-        //Tool Tags
-        { Tags.None, null },
-        { Tags.BareHand, new ToolTag() },
-        { Tags.WoodAxe, new ToolTag() },
-        { Tags.WoodShovel, new ToolTag() },
-        { Tags.WoodPickaxe, new ToolTag() },
-        { Tags.WoodHoe, new ToolTag() },
-        { Tags.StoneAxe, new ToolTag() },
-        { Tags.StoneShovel, new ToolTag() },
-        { Tags.StonePickaxe, new ToolTag() },
-        { Tags.StoneHoe, new ToolTag() },
-        { Tags.SteelAxe, new ToolTag() },
-        { Tags.SteelShovel, new ToolTag() },
-        { Tags.SteelPickaxe, new ToolTag() },
-        { Tags.SteelHoe, new ToolTag() },
-        { Tags.BronzeHoe, new ToolTag() },
-        { Tags.BronzeAxe, new ToolTag() },
-        { Tags.BronzeShovel, new ToolTag() },
-        { Tags.BronzePickaxe, new ToolTag() },
-        //Converter Tags
-        { Tags.Flammable, new ConverterToolTag() },
-        { Tags.Tillable, new ConverterToolTag() },
-        { Tags.Seedable, new ConvertibleToolTag() },
-        //Convertable Tags
-        { Tags.Grassy, new ConvertibleTag() },
-        { Tags.Vegetative, new ConvertibleTag() },
-        { Tags.AquaMicrobial, new ConvertibleTag() },
-        { Tags.Combustible, new CombustibleTag() },
-        //Interaction Type
-        { Tags.FocusedPlace, null },
-        { Tags.Tooltip, new TooltipTag() },
-        { Tags.TooltipDismissor, new TooltipDismissorTag() },
-        // Projectiles
-        { Tags.ArrowTag, new ProjectileTag() },
-        { Tags.BaitTag, null },
+            //Tool Tags
+            { Tags.None, null },
+            { Tags.BareHand, new ToolTag() },
+            { Tags.WoodAxe, new ToolTag() },
+            { Tags.WoodShovel, new ToolTag() },
+            { Tags.WoodPickaxe, new ToolTag() },
+            { Tags.WoodHoe, new ToolTag() },
+            { Tags.StoneAxe, new ToolTag() },
+            { Tags.StoneShovel, new ToolTag() },
+            { Tags.StonePickaxe, new ToolTag() },
+            { Tags.StoneHoe, new ToolTag() },
+            { Tags.SteelAxe, new ToolTag() },
+            { Tags.SteelShovel, new ToolTag() },
+            { Tags.SteelPickaxe, new ToolTag() },
+            { Tags.SteelHoe, new ToolTag() },
+            { Tags.BronzeHoe, new ToolTag() },
+            { Tags.BronzeAxe, new ToolTag() },
+            { Tags.BronzeShovel, new ToolTag() },
+            { Tags.BronzePickaxe, new ToolTag() },
+            //Converter Tags
+            { Tags.Flammable, new ConverterToolTag() },
+            { Tags.Tillable, new ConverterToolTag() },
+            { Tags.Seedable, new ConvertibleToolTag() },
+            //Convertable Tags
+            { Tags.Grassy, new ConvertibleTag() },
+            { Tags.Vegetative, new ConvertibleTag() },
+            { Tags.AquaMicrobial, new ConvertibleTag() },
+            { Tags.Combustible, new CombustibleTag() },
+            //Material Types
+            { Tags.Coral1, null },
+            { Tags.Coral2, null },
+            //Interaction Type
+            { Tags.FocusedPlace, null },
+            { Tags.Tooltip, new TooltipTag() },
+            { Tags.TooltipDismissor, new TooltipDismissorTag() },
+            // Projectiles
+            { Tags.ArrowTag, new ProjectileTag() },
+            { Tags.BaitTag, null },
 
-        //Entities
-        { Tags.Butterflies, null },
-        { Tags.Lions, null },
-    };
+            //Entities
+            { Tags.Butterflies, null },
+            { Tags.Lions, null },
+        };
 
         public enum Tags {
             //Tools
@@ -367,7 +383,7 @@ namespace Arterra.Configuration {
             //Convertables
             Grassy = 2000, Vegetative = 2001, AquaMicrobial = 2002, 
             //Material Groups
-            Soft = 5000, 
+            Soft = 5000, Organic = 6000, Coral = 6050, Coral1 = 6051, Coral2 = 6052,
             //Interactions
             FocusedPlace = 9000, Tooltip = 9001, TooltipDismissor = 9002,
             // Projectiles 

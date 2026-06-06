@@ -9,40 +9,35 @@ using System.Linq;
 namespace Arterra.Editor {
 
     /// <summary>
-    /// Determines whether a TagOrRegistryReference stores a Tag or a Registry reference.
-    /// </summary>
-    public enum ReferenceMode {
-        Tag = 0,
-        RegistryReference = 1
-    }
-
-    /// <summary>
     /// A unified field that can hold either a TagRegistry.Tags value or a registry reference.
-    /// The mode determines which type of value is being stored.
+    /// If tagValue is None, registryValue is used.
     /// </summary>
     [Serializable]
     public struct TagOrRegistryReference {
-        /// <summary>Determines whether this holds a Tag or a RegistryReference.</summary>
-        public ReferenceMode mode;
-        /// <summary>The tag value when mode == Tag.</summary>
+        /// <summary>The tag value. If None, registryValue is used.</summary>
         public TagRegistry.Tags tagValue;
-        /// <summary>The registry name when mode == RegistryReference.</summary>
+        /// <summary>The registry name when tagValue == None.</summary>
         public string registryValue;
 
+        /// <summary> Implicitly converts the option to the value it holds. This is useful for obtaining the value</summary>
+        /// <param name="option"> The option itself </param>
+        public static implicit operator string(TagOrRegistryReference val) => val.registryValue;
+        /// <summary> Implicitly converts the value to an option. This is useful for setting the value  </summary>
+        /// <param name="val">The value which we want to set to <see cref="value"/></param>
+        public static implicit operator TagOrRegistryReference(string val) => new TagOrRegistryReference(val);
+
         public TagOrRegistryReference(TagRegistry.Tags tag) {
-            mode = ReferenceMode.Tag;
             tagValue = tag;
             registryValue = "";
         }
 
         public TagOrRegistryReference(string registryName) {
-            mode = ReferenceMode.RegistryReference;
             tagValue = TagRegistry.Tags.None;
             registryValue = registryName;
         }
 
-        public bool IsTag => mode == ReferenceMode.Tag;
-        public bool IsRegistryReference => mode == ReferenceMode.RegistryReference;
+        public bool IsTag => tagValue != TagRegistry.Tags.None;
+        public bool IsRegistryReference => !IsTag;
 
         public bool Is(IRegistered registered, ICatalgoue catalogue) {
             if (IsTag) return catalogue.GetMostSpecificTag(tagValue, registered.Index, out _);
@@ -51,7 +46,7 @@ namespace Arterra.Editor {
     }
 
     /// <summary>
-    /// Attribute for TagOrRegistryReference fields. Specifies which registry to use when the reference is in RegistryReference mode.
+    /// Attribute for TagOrRegistryReference fields. Specifies which registry to use when this stores a registry reference.
     /// </summary>
     public class TagOrRegistryReferenceAttribute : PropertyAttribute {
         public string RegistryName;
@@ -90,11 +85,61 @@ namespace Arterra.Editor {
                 return;
             }
 
+            if (IsSupportedList(property)) {
+                DrawRegistryDropdownList(position, property, label, registry);
+                return;
+            }
+
             DrawRegistryDropdown(position, property, label, registry);
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
+            if (IsSupportedList(property)) {
+                float line = EditorGUIUtility.singleLineHeight;
+                float spacing = EditorGUIUtility.standardVerticalSpacing;
+                return (line * (property.arraySize + 1)) + (spacing * property.arraySize);
+            }
             return base.GetPropertyHeight(property, label);
+        }
+
+        private static bool IsSupportedList(SerializedProperty property) {
+            if (property == null || !property.isArray || property.propertyType != SerializedPropertyType.Generic)
+                return false;
+            if (property.arrayElementType == "int" || property.arrayElementType == "string")
+                return true;
+            if (property.arraySize == 0)
+                return false;
+            SerializedProperty first = property.GetArrayElementAtIndex(0);
+            return first.propertyType == SerializedPropertyType.Integer || first.propertyType == SerializedPropertyType.String;
+        }
+
+        private void DrawRegistryDropdownList(Rect position, SerializedProperty property, GUIContent label, IRegister registry) {
+            EditorGUI.BeginProperty(position, label, property);
+
+            float line = EditorGUIUtility.singleLineHeight;
+            float spacing = EditorGUIUtility.standardVerticalSpacing;
+            Rect row = new Rect(position.x, position.y, position.width, line);
+
+            Rect prefixRect = EditorGUI.PrefixLabel(row, label);
+            int newSize = EditorGUI.IntField(prefixRect, property.arraySize);
+            if (newSize != property.arraySize)
+                property.arraySize = Math.Max(0, newSize);
+
+            List<string> options = BuildRegistryOptions(registry);
+
+            for (int i = 0; i < property.arraySize; i++) {
+                row.y += line + spacing;
+                SerializedProperty element = property.GetArrayElementAtIndex(i);
+                string currentValue = GetReferenceName(element);
+                int selectedIndex = Math.Max(0, options.IndexOf(currentValue));
+
+                DrawDropdownPopup(row, currentValue, options, selectedIndex, val => {
+                    SetReferenceName(element, val);
+                    property.serializedObject.ApplyModifiedProperties();
+                });
+            }
+
+            EditorGUI.EndProperty();
         }
 
         public void DrawRegistryDropdown(Rect position, SerializedProperty property, GUIContent label, IRegister registry) {
@@ -109,24 +154,34 @@ namespace Arterra.Editor {
             else
                 currentIndex = 0;
 
-            List<string> options = new List<string>() { "" };
-            for (int i = 0; i < registry.Count(); i++) {
-                options.Add(registry.RetrieveName(i));
-            }
-
-            if (GUI.Button(labelRect, string.IsNullOrEmpty(currentValue) ? "[Select]" : currentValue, EditorStyles.popup)) {
-                SearchablePopup popup = new SearchablePopup(
-                    options,
-                    currentIndex + 1,
-                    (i, val) => {
-                        SetReferenceName(property, val);
-                        property.serializedObject.ApplyModifiedProperties();
-                    });
-
-                PopupWindow.Show(labelRect, popup);
-            }
+            List<string> options = BuildRegistryOptions(registry);
+            DrawDropdownPopup(labelRect, currentValue, options, currentIndex + 1, val => {
+                SetReferenceName(property, val);
+                property.serializedObject.ApplyModifiedProperties();
+            });
 
             EditorGUI.EndProperty();
+        }
+
+        private static List<string> BuildRegistryOptions(IRegister registry) {
+            List<string> options = new List<string>() { "" };
+            for (int i = 0; i < registry.Count(); i++)
+                options.Add(registry.RetrieveName(i));
+            return options;
+        }
+
+        private static void DrawDropdownPopup(Rect rect, string currentValue, List<string> options, int selectedIndex, Action<string> onSelect) {
+            string buttonText = string.IsNullOrEmpty(currentValue) ? "[Select]" : currentValue;
+            if (!GUI.Button(rect, buttonText, EditorStyles.popup))
+                return;
+
+            int clampedIndex = math.clamp(selectedIndex, 0, math.max(options.Count - 1, 0));
+            SearchablePopup popup = new SearchablePopup(
+                options,
+                clampedIndex,
+                (i, val) => onSelect(val));
+
+            PopupWindow.Show(rect, popup);
         }
 
         public static void SetupRegistries() {
@@ -147,8 +202,6 @@ namespace Arterra.Editor {
             registry = null;
             return false;
         }
-
-
 
         public string GetReferenceName(SerializedProperty property) {
             if (property.propertyType == SerializedPropertyType.String)
@@ -253,51 +306,103 @@ namespace Arterra.Editor {
             RegistryAssociation = RegistryReferenceDrawer.RegistryAssociation;
 
             string registryName = ((TagOrRegistryReferenceAttribute)attribute).RegistryName;
-            string nameLookupPath = ((TagOrRegistryReferenceAttribute)attribute).NamePropertyPath;
+
+            if (IsSupportedList(property)) {
+                DrawTagOrRegistryList(position, property, label, registryName);
+                return;
+            }
 
             EditorGUI.BeginProperty(position, label, property);
             Rect labelRect = EditorGUI.PrefixLabel(position, label);
 
-            // Get the mode, tagValue, and registryValue properties
-            SerializedProperty modeProp = property.FindPropertyRelative("mode");
+            // Get the tagValue and registryValue properties
             SerializedProperty tagValueProp = property.FindPropertyRelative("tagValue");
             SerializedProperty registryValueProp = property.FindPropertyRelative("registryValue");
 
-            if (modeProp == null || tagValueProp == null || registryValueProp == null) {
+            if (tagValueProp == null || registryValueProp == null) {
                 EditorGUI.LabelField(labelRect, "Error: TagOrRegistryReference structure mismatch");
                 EditorGUI.EndProperty();
                 return;
             }
 
-            ReferenceMode currentMode = (ReferenceMode)modeProp.intValue;
-            string displayText = GetDisplayText(currentMode, tagValueProp, registryValueProp, registryName, nameLookupPath);
+            string displayText = GetDisplayText(tagValueProp, registryValueProp);
 
             if (GUI.Button(labelRect, string.IsNullOrEmpty(displayText) ? "[Select]" : displayText, EditorStyles.popup)) {
-                BuildAndShowPopup(registryName, nameLookupPath, modeProp, tagValueProp, registryValueProp);
+                BuildAndShowPopup(registryName, tagValueProp, registryValueProp);
             }
 
             EditorGUI.EndProperty();
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
+            if (IsSupportedList(property)) {
+                float line = EditorGUIUtility.singleLineHeight;
+                float spacing = EditorGUIUtility.standardVerticalSpacing;
+                return (line * (property.arraySize + 1)) + (spacing * property.arraySize);
+            }
             return base.GetPropertyHeight(property, label);
         }
 
-        private string GetDisplayText(ReferenceMode mode, SerializedProperty tagValueProp, SerializedProperty registryValueProp, string registryName, string nameLookupPath) {
-            if (mode == ReferenceMode.Tag) {
-                TagRegistry.Tags tagValue = (TagRegistry.Tags)tagValueProp.intValue;
-                return tagValue == TagRegistry.Tags.None ? "" : tagValue.ToString();
-            } else {
-                string registryValue = registryValueProp.stringValue;
-                if (string.IsNullOrEmpty(registryValue))
-                    return "";
-                return registryValue;
-            }
+        private static bool IsSupportedList(SerializedProperty property) {
+            if (property == null || !property.isArray || property.propertyType != SerializedPropertyType.Generic)
+                return false;
+            if (property.arrayElementType == "TagOrRegistryReference")
+                return true;
+            if (property.arraySize == 0)
+                return false;
+
+            SerializedProperty first = property.GetArrayElementAtIndex(0);
+            return first != null
+                && first.FindPropertyRelative("tagValue") != null
+                && first.FindPropertyRelative("registryValue") != null;
         }
 
-        private void BuildAndShowPopup(string registryName, string nameLookupPath, SerializedProperty modeProp, SerializedProperty tagValueProp, SerializedProperty registryValueProp) {
+        private void DrawTagOrRegistryList(Rect position, SerializedProperty property, GUIContent label, string registryName) {
+            EditorGUI.BeginProperty(position, label, property);
+
+            float line = EditorGUIUtility.singleLineHeight;
+            float spacing = EditorGUIUtility.standardVerticalSpacing;
+            Rect row = new Rect(position.x, position.y, position.width, line);
+
+            Rect prefixRect = EditorGUI.PrefixLabel(row, label);
+            int newSize = EditorGUI.IntField(prefixRect, property.arraySize);
+            if (newSize != property.arraySize)
+                property.arraySize = Math.Max(0, newSize);
+
+            for (int i = 0; i < property.arraySize; i++) {
+                row.y += line + spacing;
+
+                SerializedProperty element = property.GetArrayElementAtIndex(i);
+                SerializedProperty tagValueProp = element.FindPropertyRelative("tagValue");
+                SerializedProperty registryValueProp = element.FindPropertyRelative("registryValue");
+
+                if (tagValueProp == null || registryValueProp == null) {
+                    EditorGUI.LabelField(row, "Error: TagOrRegistryReference list element mismatch");
+                    continue;
+                }
+
+                string displayText = GetDisplayText(tagValueProp, registryValueProp);
+                if (GUI.Button(row, string.IsNullOrEmpty(displayText) ? "[Select]" : displayText, EditorStyles.popup))
+                    BuildAndShowPopup(registryName, tagValueProp, registryValueProp);
+            }
+
+            EditorGUI.EndProperty();
+        }
+
+        private string GetDisplayText(SerializedProperty tagValueProp, SerializedProperty registryValueProp) {
+            TagRegistry.Tags tagValue = (TagRegistry.Tags)tagValueProp.intValue;
+            if (tagValue != TagRegistry.Tags.None)
+                return tagValue.ToString();
+
+            string registryValue = registryValueProp.stringValue;
+            if (string.IsNullOrEmpty(registryValue))
+                return "";
+            return registryValue;
+        }
+
+        private void BuildAndShowPopup(string registryName, SerializedProperty tagValueProp, SerializedProperty registryValueProp) {
             List<string> options = new List<string>();
-            Dictionary<string, (ReferenceMode, object)> optionData = new Dictionary<string, (ReferenceMode, object)>();
+            Dictionary<string, (bool isTag, object value)> optionData = new Dictionary<string, (bool isTag, object value)>();
 
             // Add Tags section
             TagRegistry.Tags[] tags = (TagRegistry.Tags[])System.Enum.GetValues(typeof(TagRegistry.Tags));
@@ -305,7 +410,7 @@ namespace Arterra.Editor {
                 string tagName = tag.ToString();
                 string optionText = $"Tags > {tagName}";
                 options.Add(optionText);
-                optionData[optionText] = (ReferenceMode.Tag, tag);
+                optionData[optionText] = (true, tag);
             }
 
             // Add Registry section if registry is available
@@ -314,15 +419,14 @@ namespace Arterra.Editor {
                     string itemName = registry.RetrieveName(i);
                     string optionText = $"Registry > {itemName}";
                     options.Add(optionText);
-                    optionData[optionText] = (ReferenceMode.RegistryReference, itemName);
+                    optionData[optionText] = (false, itemName);
                 }
             }
 
             // Determine current selection
-            ReferenceMode currentMode = (ReferenceMode)modeProp.intValue;
             int currentIndex = 0;
-            if (currentMode == ReferenceMode.Tag) {
-                TagRegistry.Tags currentTag = (TagRegistry.Tags)tagValueProp.intValue;
+            TagRegistry.Tags currentTag = (TagRegistry.Tags)tagValueProp.intValue;
+            if (currentTag != TagRegistry.Tags.None) {
                 string searchTag = $"Tags > {currentTag}";
                 currentIndex = options.FindIndex(o => o == searchTag);
                 if (currentIndex < 0) currentIndex = 0;
@@ -338,17 +442,15 @@ namespace Arterra.Editor {
                 currentIndex,
                 (i, val) => {
                     if (optionData.TryGetValue(val, out var data)) {
-                        modeProp.intValue = (int)data.Item1;
-                        
-                        if (data.Item1 == ReferenceMode.Tag) {
-                            tagValueProp.intValue = (int)(TagRegistry.Tags)data.Item2;
+                        if (data.isTag) {
+                            tagValueProp.intValue = (int)(TagRegistry.Tags)data.value;
                             registryValueProp.stringValue = "";
                         } else {
                             tagValueProp.intValue = (int)TagRegistry.Tags.None;
-                            registryValueProp.stringValue = (string)data.Item2;
+                            registryValueProp.stringValue = (string)data.value;
                         }
-                        
-                        modeProp.serializedObject.ApplyModifiedProperties();
+
+                        tagValueProp.serializedObject.ApplyModifiedProperties();
                     }
                 });
 

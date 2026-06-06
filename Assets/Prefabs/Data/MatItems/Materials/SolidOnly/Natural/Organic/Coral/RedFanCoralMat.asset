@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c14023f60fba149f790c1b3abdaafdbe, type: 3}
+  m_Name: RedFanCoralMat
+  m_EditorClassIdentifier: 
+  Name: RedFanCoral
+  Tags:
+    Reg:
+      value:
+      - Tag: 2000
+        value:
+          value:
+            rid: 6432723091861012552
+      - Tag: 1002
+        value:
+          value:
+            rid: 6432723091861012553
+  Names:
+    value:
+    - SeabedStone
+    - Minimesh
+    - RedCoralFan
+    - PlantMatter
+    - Void
+  terrainData:
+    Texture: 0
+    textureScale: 2
+    FlipStateRendering: 0
+    GeoShaderIndex:
+      data: 2147549186
+  AtmosphereScatter:
+    InScatterCoeffs: {x: 0, y: 0, z: 0}
+    OutScatterCoeffs: {x: 0, y: 0, z: 0}
+    GroundExtinction: {x: 0, y: 0, z: 0}
+    LightIntensity: 0
+  liquidData:
+    shallowCol: {r: 0, g: 0, b: 0, a: 0}
+    deepCol: {r: 0, g: 0, b: 0, a: 0}
+    colFalloff: 0
+    waveBlend: 0
+    waveStrength: 0
+    waveScale: {x: 0, y: 0}
+    waveSpeed: {x: 0, y: 0}
+  Roughness: 0.2
+  SelfCondition:
+    data: 4286611200
+  NeighborCondition:
+    bounds:
+      data: 4278222592
+    flags: 1
+  DecayResult:
+    check:
+      bounds:
+        data: 2945843200
+      flags: 0
+    _material: 2147483651
+    _offset: 537395712
+  DecayChance: 0.25
+  MaterialDrops:
+    SolidLootTable:
+      value: []
+    DefaultSolidLoot:
+      DropItem: 4
+      DropMultiplier: 1
+    LiquidLootTable:
+      value: []
+    DefaultLiquidLoot:
+      DropItem: 4
+      DropMultiplier: 1
+  references:
+    version: 2
+    RefIds:
+    - rid: 6432723091861012552
+      type: {class: ConvertibleTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        _convertBounds:
+          data: 4286643968
+        _neighborBounds:
+          bounds:
+            data: 2130738944
+          flags: 2
+        GivesItem: 0
+    - rid: 6432723091861012553
+      type: {class: ConvertibleToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0.5
+        ToolDamage: 0.5
+        GivesItem: 0
+        _convertBounds:
+          data: 4286643968
+        _neighborBounds:
+          bounds:
+            data: 2130738944
+          flags: 2

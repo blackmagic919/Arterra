@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b92ab6716ab84e588c812f4df75143a, type: 3}
+  m_Name: _CatalogueMinimesh
+  m_EditorClassIdentifier: Assembly-CSharp::TextureCategory
+  Name: Minimesh
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: cd9269cb420a34d15a8c349b5fff465f, type: 2}
+    - value: {fileID: 11400000, guid: d9b2e1d4e63ed4ece968d33d4ece5b95, type: 2}
+    - value: {fileID: 11400000, guid: 49e8f6c7b4d304bc48519df7ca3beeee, type: 2}
+    - value: {fileID: 11400000, guid: 865d8a128c2684c069317889e6967f55, type: 2}
+    - value: {fileID: 11400000, guid: 827c80aa093044df0a664979543802ac, type: 2}
+    - value: {fileID: 11400000, guid: a409bf7f6c8d24fd6b76ac53e511d2d8, type: 2}
+    - value: {fileID: 11400000, guid: ef296e58c16134f4a86b81aa8a8b90fd, type: 2}
+    - value: {fileID: 11400000, guid: 9ad6297ba574a494fa3bcb37190fc975, type: 2}
+    - value: {fileID: 11400000, guid: 85433bfaf44df470db8492efcbdf8451, type: 2}
+    - value: {fileID: 11400000, guid: 42f8256a273ac49edab38dece6e4f6cd, type: 2}
+    - value: {fileID: 11400000, guid: 3aa4d8114b9774f49b6323a1adee1819, type: 2}
+    - value: {fileID: 11400000, guid: bb349176c390640af8dd021f612929d4, type: 2}
+    - value: {fileID: 11400000, guid: 733119097cea642c195ef3f34980eb8d, type: 2}
+    - value: {fileID: 11400000, guid: 896f06be382924c888ec262030563261, type: 2}
+    - value: {fileID: 11400000, guid: 905f09ec879834f01b3dc688653d9522, type: 2}
+    - value: {fileID: 11400000, guid: d3a8b9fe9f11e4edfbc4ef2aacefb168, type: 2}
+  references:
+    version: 2
+    RefIds: []

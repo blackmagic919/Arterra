@@ -31,6 +31,7 @@ namespace Arterra.Core.Events {
         Entity_Guided = GameEventBases.Entity_Base + 6,
         Entity_Fed = GameEventBases.Entity_Base + 7,
         Entity_HitGround = GameEventBases.Entity_Base + 8,
+        Entity_FlushDamage = GameEventBases.Entity_Base + 9,
 
         Entity_ItemEnterPrimaryInventory = GameEventBases.Entity_Base + 9,
         Entity_ItemEnterSecondaryInventory = GameEventBases.Entity_Base + 10,

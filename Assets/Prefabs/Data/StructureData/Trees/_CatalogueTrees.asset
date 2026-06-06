@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10515338075f646359ff9dcdea777aca, type: 3}
+  m_Name: _CatalogueTrees
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Structure.StructureCategory
+  Name: Trees
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: e6b21e984b6fd4423a13276606ed02f7, type: 2}
+    - value: {fileID: 11400000, guid: 2b630cea8e224482c929150699fdf4a7, type: 2}
+    - value: {fileID: 11400000, guid: ec1f6974e36e542b0a9b9a26a52c7e19, type: 2}
+    - value: {fileID: 11400000, guid: 49bbfac31bd4d49bda439a6be79dd6c3, type: 2}
+    - value: {fileID: 11400000, guid: b0b24da144a9e49cb82c871e70f40ad3, type: 2}
+    - value: {fileID: 11400000, guid: 3b15969d5cb414c4c8bccb5c0bbe68b8, type: 2}
+    - value: {fileID: 11400000, guid: 223a31f324fab4c83ab64f10979b618f, type: 2}
+    - value: {fileID: 11400000, guid: db047a8eca3694f298f672e5fb810709, type: 2}
+    - value: {fileID: 11400000, guid: e564494ef96da44efb91e2c799d8180c, type: 2}
+    - value: {fileID: 11400000, guid: 6dddc7078a14f4a3a8b0b6f7331b0bb1, type: 2}
+    - value: {fileID: 11400000, guid: d796ca45828054dff8080782e5967c80, type: 2}
+    - value: {fileID: 11400000, guid: 5cf56ca1d2b1e4adf950b740e522c47e, type: 2}
+    - value: {fileID: 11400000, guid: c393766b615194cf983fec462dae4706, type: 2}
+    - value: {fileID: 11400000, guid: ebcb9324d40584b2b98158e9ad1832f2, type: 2}
+    - value: {fileID: 11400000, guid: f57a3ff4c55b74f3181b05d46c96e6aa, type: 2}
+  references:
+    version: 2
+    RefIds: []

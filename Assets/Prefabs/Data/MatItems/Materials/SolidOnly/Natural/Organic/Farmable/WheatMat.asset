@@ -24,7 +24,7 @@ MonoBehaviour:
     - WheatKernels
     - PlantStem
     - Wheat
-    - InsetQuad
+    - Minimesh
     - WheatBristle
   terrainData:
     Texture: 3

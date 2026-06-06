@@ -1,0 +1,151 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0ed4b06c60c74eb3a1638cff170e3f8, type: 3}
+  m_Name: CoralFrmCup3
+  m_EditorClassIdentifier: 
+  Name: CoralFormation3
+  Tags:
+    Reg:
+      value: []
+  settings:
+    value:
+      GridSize:
+        x: 4
+        y: 6
+        z: 4
+      matSetStart: 0
+      config: 1
+  Names:
+    value:
+    - M:Air
+    - T:Coral1
+    - T:Coral2
+  map:
+    value:
+    - data: 0
+    - data: 24694
+    - data: 23912
+    - data: 24675
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 24697
+    - data: 118489
+    - data: 118489
+    - data: 24697
+    - data: 0
+    - data: 118489
+    - data: 118489
+    - data: 0
+    - data: 0
+    - data: 118489
+    - data: 118489
+    - data: 0
+    - data: 96898
+    - data: 104108
+    - data: 100263
+    - data: 0
+    - data: 100749
+    - data: 108978
+    - data: 21074
+    - data: 0
+    - data: 108465
+    - data: 25980
+    - data: 0
+    - data: 0
+    - data: 24697
+    - data: 118489
+    - data: 118489
+    - data: 24697
+    - data: 0
+    - data: 118489
+    - data: 118489
+    - data: 0
+    - data: 0
+    - data: 118489
+    - data: 118489
+    - data: 0
+    - data: 96898
+    - data: 104108
+    - data: 100263
+    - data: 0
+    - data: 95885
+    - data: 174514
+    - data: 21074
+    - data: 0
+    - data: 108465
+    - data: 108465
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 24697
+    - data: 24697
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+  checks:
+    value:
+    - position:
+        x: 2
+        y: -1
+        z: 2
+      checkInfo:
+        data: 4286643968
+    - position:
+        x: 2
+        y: 3
+        z: 2
+      checkInfo:
+        data: 2130771712
+  Enhancements:
+    Entities:
+      value: []
+    MapMetaData:
+      value: []
+  references:
+    version: 2
+    RefIds: []
