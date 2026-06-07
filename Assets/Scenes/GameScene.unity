@@ -130,7 +130,7 @@ GameObject:
   - component: {fileID: 258622662}
   - component: {fileID: 258622663}
   m_Layer: 0
-  m_Name: MapGenerator
+  m_Name: RuntimeController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -160,9 +160,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 258622659}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 48b05e1669a6440dca4885d4eb707be2, type: 3}
+  m_Script: {fileID: 11500000, guid: e7154ab3e33ed44bba062d19ed637b3b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Core.ArterraRuntime
 --- !u!1 &332922499
 GameObject:
   m_ObjectHideFlags: 0

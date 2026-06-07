@@ -8,8 +8,7 @@ using UnityEngine.UI;
 using Arterra.Configuration;
 using Arterra.Data.Item;
 using System.Collections;
-using Arterra.GamePlay.UI;
-using Arterra.Data.Intrinsic;
+using Arterra.Core;
 
 namespace Arterra.GamePlay.UI {
     public static class GameUIManager {
@@ -50,7 +49,7 @@ namespace Arterra.GamePlay.UI {
         private int index;
         private bool active = false;
         private static Catalogue<TextureContainer> texInfo => Config.CURRENT.Generation.Textures;
-        private static Catalogue<Arterra.Data.Item.Authoring> itemInfo => Config.CURRENT.Generation.Items;
+        private static Catalogue<Authoring> itemInfo => Config.CURRENT.Generation.Items;
         public ScrollingResultDisplay(Transform parent, List<int> outputs) {
             this.outputs = outputs;
             this.image = parent.transform.GetChild(0).GetComponentInChildren<Image>();
@@ -63,7 +62,7 @@ namespace Arterra.GamePlay.UI {
             image.sprite = texInfo.Retrieve(resultItem.TexIndex).self;
             image.color = new Color(1, 1, 1, 1);
             if (outputs.Count <= 1) return;
-            Arterra.Engine.Terrain.OctreeTerrain.MainCoroutines.Enqueue(UpdateRoutine());
+            ArterraRuntime.MainCoroutines.Enqueue(UpdateRoutine());
         }
 
         public void Release() {

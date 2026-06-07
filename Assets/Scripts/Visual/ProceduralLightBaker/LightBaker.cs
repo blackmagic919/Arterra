@@ -5,6 +5,7 @@ using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Arterra.Engine.Terrain;
 using Arterra.Utils;
+using Arterra.Core;
 
 namespace Arterra.Configuration.Quality
 {
@@ -156,7 +157,7 @@ namespace Arterra.Engine.Rendering
             ChunkLightPrimer.SetInt("IsoLevel", IsoValue); //as int
             GPUMapManager.SetCCoordHash(ChunkLightPrimer);
 
-            OctreeTerrain.MainLateUpdateTasks.Enqueue(new IndirectUpdate(IterateLightUpdate));
+            ArterraRuntime.MainLateUpdateTasks.Enqueue(new ArterraRuntime.IndirectUpdate(IterateLightUpdate));
         }
 
         public static void Release()

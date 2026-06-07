@@ -39,7 +39,7 @@ namespace Arterra.Data.Entity.Behavior {
             public ReferenceOption<ITempBehavior> behavior;
         }
         public Option<List<EventEffect>> Effectors;
-        [UISetting(Ignore = true)][HideInInspector]
+        [UISetting(Defaulting = true)][HideInInspector]
         public Dictionary<GameEvent, LinkedList<Effect>> TriggerEffects;
         public object Clone() {
 

@@ -62,10 +62,10 @@ namespace Arterra.Data.Entity.Behavior {
             set => baseCollider.Rotation = value;
         }
 
-        internal const float height = 2.5f;
+        internal const float height = 0.65f;
+        internal static float heightReal => Config.CURRENT.Quality.Terrain.value.lerpScale * height;
         /// <summary>Returns the camera's eye position in grid space, used as the entity head.</summary>
-        [JsonIgnore] public float3 HeadPosition =>
-            (float3)baseCollider.Collider.transform.position + (float3)Vector3.up * height;
+        [JsonIgnore] public float3 HeadPosition => baseCollider.HeadPosition + new float3(0, height, 0);
 
         private bool hasBindings;
         internal bool moved;
@@ -171,13 +171,23 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void ApplyCameraTransform() {
             if (PlayerHandler.Camera == null) return;
-            PlayerHandler.Camera.SetLocalPositionAndRotation((float3)cameraLocalPosition, cameraLocalRotation);
+            PlayerHandler.Camera.SetLocalPositionAndRotation(GetCameraScaledLocalPosition(), cameraLocalRotation);
 
             if (PlayerHandler.Camera.childCount == 0) return;
             Camera camera = PlayerHandler.Camera.GetChild(0).GetComponent<Camera>();
             if (camera == null) return;
             if (camera.cullingMask == cullingMask) return;
             camera.cullingMask = cullingMask;
+        }
+
+        private Vector3 GetCameraScaledLocalPosition() {
+            Transform cameraTransform = PlayerHandler.Camera;
+            if (cameraTransform == null || cameraTransform.parent == null)
+                return cameraLocalPosition;
+
+            // cameraLocalPosition is authored as an unscaled offset in the parent's local axes.
+            Vector3 desiredWorldOffset = cameraTransform.parent.rotation * (Vector3)cameraLocalPosition;
+            return cameraTransform.parent.worldToLocalMatrix.MultiplyVector(desiredWorldOffset);
         }
 
         internal static uint RayTestSolid(int3 coord) {
@@ -261,7 +271,7 @@ namespace Arterra.Data.Entity.Behavior {
             public FirstPersonCamera(PlayerCameraBehavior cam) => camera = cam;
 
             public void Activate() {
-                camera.cameraLocalPosition = new float3(0, height, 0);
+                camera.cameraLocalPosition = new float3(0, heightReal, 0);
                 camera.cameraLocalRotation.eulerAngles = new(camera.cameraLocalRotation.eulerAngles.x, 0, 0);
                 camera.cullingMask &= ~(1 << LayerMask.NameToLayer("Self"));
                 smoothCharacterRot = camera.baseCollider.Collider.transform.rotation;
@@ -284,7 +294,7 @@ namespace Arterra.Data.Entity.Behavior {
                         camera.baseCollider.Collider.transform.rotation, smoothCharacterRot,
                         camera.settings.smoothTime * camera.self.DeltaTime);
                     camera.cameraLocalRotation = Quaternion.Slerp(
-                        camera.cameraLocalRotation, smoothCharacterRot,
+                        camera.cameraLocalRotation, smoothCameraRot,
                         camera.settings.smoothTime * camera.self.DeltaTime);
                 } else {
                     camera.baseCollider.Collider.transform.rotation = smoothCharacterRot;
@@ -302,7 +312,7 @@ namespace Arterra.Data.Entity.Behavior {
             private readonly PlayerCameraBehavior camera;
             private Quaternion smoothCharacterRot;
             private Quaternion smoothCameraRot;
-            const float distance = 10f;
+            const float distance = 2.5f;
 
             public Quaternion Facing => math.mul(
                 math.normalize(camera.baseCollider.Collider.transform.rotation),
@@ -355,7 +365,7 @@ namespace Arterra.Data.Entity.Behavior {
                     backDist = math.distance(hitPt, camera.self.head);
 
                 float3 backOffset = math.mul(math.normalize(camera.cameraLocalRotation), new float3(0, 0, -backDist));
-                camera.cameraLocalPosition = (float3)Vector3.up * height + backOffset;
+                camera.cameraLocalPosition = (float3)Vector3.up * heightReal + backOffset;
             }
         }
 
@@ -367,7 +377,7 @@ namespace Arterra.Data.Entity.Behavior {
             private Quaternion smoothCameraRot;
             private float yaw;
             private float pitch;
-            const float distance = 10f;
+            const float distance = 2.5f;
 
             public Quaternion Facing {
                 get {
@@ -435,7 +445,7 @@ namespace Arterra.Data.Entity.Behavior {
                     backDist = math.distance(hitPt, camera.self.head);
 
                 float3 backOffset = math.mul(math.normalize(camera.cameraLocalRotation), new float3(0, 0, -backDist));
-                camera.cameraLocalPosition = (float3)Vector3.up * height + backOffset;
+                camera.cameraLocalPosition = (float3)Vector3.up * heightReal + backOffset;
             }
         }
     }

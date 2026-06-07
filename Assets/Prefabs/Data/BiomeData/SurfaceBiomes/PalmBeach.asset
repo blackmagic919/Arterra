@@ -79,6 +79,8 @@ MonoBehaviour:
         - value:
             Entity: 9
             ChancePerCoord: 0.0001
+      StructureSystems:
+        value: []
   BiomeConditions:
     value:
       TerrainStart: 0

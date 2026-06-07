@@ -40,7 +40,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            Catalogue<Arterra.Data.Entity.Authoring> eReg = Config.CURRENT.Generation.Entities;
+            Catalogue<Authoring> eReg = Config.CURRENT.Generation.Entities;
             AwarenessTable = new Dictionary<int, int>();
             if(Prey.value == null) return;
 
@@ -53,7 +53,7 @@ namespace Arterra.Data.Entity.Behavior {
         public bool FindPreferredPreyEntity(Entity self, ConsumeBehaviorSettings cnsm, float sightDist, out Entity entity, RelationsBehavior relations = null){
             entity = null; if(AwarenessTable == null) return false;
             if((Prey.value == null || Prey.value.Count == 0)
-                && (cnsm.Edibles.value == null || cnsm.Edibles.value.Count == 0))
+                && (cnsm == null || cnsm.Edibles.value == null || cnsm.Edibles.value.Count == 0))
                 return false;
 
             Entity cEntity = null; int pPref = -1;
@@ -66,7 +66,7 @@ namespace Arterra.Data.Entity.Behavior {
                 if(nEntity.info.rtEntityId == self.info.rtEntityId) return;
                 if (relations != null) {
                     float suppressThreshold = relations.settings.SuppressInstinctAffection;
-                    if (relations.GetAffection(self.info.rtEntityId) > suppressThreshold) return;
+                    if (relations.GetAffection(nEntity.info.rtEntityId) > suppressThreshold) return;
                 }
 
                 if (!Awareness.TryGetValue((int)nEntity.info.entityType, out int preference)
@@ -131,6 +131,8 @@ namespace Arterra.Data.Entity.Behavior {
         private Modifier mod;
         private RelationsBehavior relations;
         private bool IsHunting;
+        private float notFoundCooldown;
+        private const float NotFoundRetryDelay = 0.25f;
 
         private int SearchPreyDist => Modifier.GetInt(mod, MSettings.SearchPreyDist, settings.SearchPreyDist);
         private float HuntThreshold => Modifier.Get(mod, MSettings.HuntThreshold, hunt.HuntThreshold);
@@ -143,13 +145,18 @@ namespace Arterra.Data.Entity.Behavior {
         public void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (notFoundCooldown > 0) notFoundCooldown -= self.DeltaTime;
             
             if (!settings.FindPreferredPreyEntity(self, consumables,
                 SearchPreyDist, out Entity prey, relations)
             ) {
-                manager.Transition(settings.TaskName);
+                if (notFoundCooldown <= 0) {
+                    manager.Transition(settings.OnNotFoundTransition);
+                    notFoundCooldown = NotFoundRetryDelay;
+                }
                 return;
             }
+            notFoundCooldown = 0;
 
             self.PathCollider.Follow(Movement.DynamicDirect(
                 MMove.Profile(mmove, settings.TaskName, self.settings), 
@@ -160,12 +167,16 @@ namespace Arterra.Data.Entity.Behavior {
             float preyDist = ColliderUpdateBehavior.GetColliderDist(self, prey);
             if (preyDist < manager.settings.ContactDistance && manager.Transition(settings.OnReachPreyTransition)) {
                 manager.TaskTarget = prey.info.rtEntityId;
-            } else if (!path.pathFinder.hasPath && !FindPrey()) {
-                manager.Transition(settings.OnNotFoundTransition);
+            } else if (!path.pathFinder.hasPath && !FindPrey(out bool Locked)) {
+                if (notFoundCooldown <= 0) {
+                    manager.Transition(settings.OnNotFoundTransition);
+                    notFoundCooldown = NotFoundRetryDelay;
+                }
             }
         }
 
-        private bool FindPrey() {
+        private bool FindPrey(out bool LockedOn) {
+            LockedOn = false;
             if (StopHunting()) return false;
             if (!settings.FindPreferredPreyEntity(
                 self, consumables,
@@ -175,12 +186,14 @@ namespace Arterra.Data.Entity.Behavior {
             
             int PathDist = movement.pathDistance;
             int3 destination = (int3)math.round(prey.origin) - self.PathCoord;
-            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.PathCoord, destination, PathDist + 1,
-                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
-            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+            if (path.FindPathOrApproachTarget(settings.TaskName, self.PathCoord, destination, PathDist + 1,
+                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath)){
+                path.SetPath(nPath);
+                LockedOn = true;
+                notFoundCooldown = 0;
+            } else return true;
+
             float dist = ColliderUpdateBehavior.GetColliderDist(self, prey);
-
-
             //If it can't get to the prey and is currently at the closest position it can be
             if (math.all(path.pathFinder.destination == self.PathCoord)) {
                 if (dist <= manager.settings.ContactDistance && manager.Transition(settings.OnReachPreyTransition)) {
@@ -191,7 +204,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public bool TransitionTo() {
             if (!BeginHunting()) return false;
-            return FindPrey();
+            return FindPrey(out bool Locked) && Locked;
         }
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
@@ -226,6 +239,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out mod)) mod = null;
             
             IsHunting = false;
+            notFoundCooldown = 0;
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             this.self = self;
         }
@@ -248,6 +262,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out relations)) relations = null;
             if (!self.Is(out mod)) mod = null;
             
+            notFoundCooldown = 0;
             manager.RegisterTransition(settings.TaskName, TransitionTo);
             this.self = self;
         }

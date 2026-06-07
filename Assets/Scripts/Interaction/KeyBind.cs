@@ -5,6 +5,7 @@ using UnityEngine;
 using Arterra.Utils;
 using Arterra.Configuration;
 using Arterra.Configuration.Gameplay;
+using Arterra.Core;
 
 /*
 1.0::Menu
@@ -196,7 +197,7 @@ namespace Arterra.GamePlay.Interaction {
         private static ref SharedLinkedList<ActionBind> KeyBinds => ref Binder.KeyBinds;
         private static ref Registry<uint> LayerHeads => ref Binder.LayerHeads;
         private static Queue<Action> KeyBindChanges;
-        private static IUpdateSubscriber eventTask;
+        private static ArterraRuntime.IUpdateSubscriber eventTask;
         private static HashSet<KeyCode> GlobalKeyExclusion;
         private static HashSet<KeyCode> LayerKeyExclusion;
         private static HashSet<string> GlobalBindExclusion;
@@ -212,8 +213,8 @@ namespace Arterra.GamePlay.Interaction {
             SStack = new StateStack();
             KeyBindChanges = new Queue<Action>();
             AddStackPoll(new ActionBind("BASE", (float _) => SetCursorLock(true)), "CursorLock");
-            eventTask = new IndirectUpdate(Update);
-            Arterra.Engine.Terrain.OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
+            eventTask = new ArterraRuntime.IndirectUpdate(Update);
+            ArterraRuntime.MainLoopUpdateTasks.Enqueue(eventTask);
             GlobalKeyExclusion = new HashSet<KeyCode>();
             LayerKeyExclusion = new HashSet<KeyCode>();
             GlobalBindExclusion = new HashSet<string>();

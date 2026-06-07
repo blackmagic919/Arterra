@@ -20,7 +20,7 @@ namespace Arterra.GamePlay.UI {
         private KTree Recipe;
         private GameObject craftingMenu;
         public Display Rendering;
-        private IUpdateSubscriber eventTask;
+        private Core.ArterraRuntime.IUpdateSubscriber eventTask;
         private ComputeBuffer craftingBuffer;
         private int TotalGrids;
 
@@ -57,8 +57,8 @@ namespace Arterra.GamePlay.UI {
         public GameObject GetDispContent() => craftingMenu;
 
         public void Activate() {
-            eventTask = new IndirectUpdate(Update);
-            OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
+            eventTask = new Core.ArterraRuntime.IndirectUpdate(Update);
+            Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(eventTask);
             PlayerHandler.data.eventCtrl.RaiseEvent(Core.Events.GameEvent.Action_OpenCrafting, PlayerHandler.data, null);
             
                 InputPoller.AddContextFence("PlayerCraft", "3.5::Window", ActionBind.Exclusion.None);

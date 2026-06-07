@@ -75,6 +75,7 @@ public static class SystemProtocol{
 
         Readback.AsyncGenInfoReadback.PresetData();
         Readback.AsyncMeshReadback.PresetData();
+        OctreeTerrain.Initialize();
     }
 
     /// <summary>  Sets up the minimal amount of information to operate and use
@@ -110,21 +111,32 @@ public static class SystemProtocol{
     }
 
     private static void ShutdownAll(){
-        AudioManager.Instance.Release();
-        EntityManager.Release();
-        PlayerHandler.Release();
-        Arterra.Engine.Rendering.LightBaker.Release();
-        AtmospherePass.Release();
-        NauseaPass.Release();
-        DizzinessPass.Release();
-        BlindnessPass.Release();
-        SubChunkShaderGraph.Unset();
-        Readback.AsyncMeshReadback.Release();
-        CPUMapManager.Release();
-        GPUMapManager.Release();
-        GenerationPreset.Release();
-        WorldDataHandler.Release();
-        UtilityBuffers.Release();
+        // Startup marks state as Active before all systems are guaranteed initialized.
+        // Shutdown must therefore tolerate partially initialized systems.
+        static void TryShutdown(System.Action action, string systemName) {
+            try {
+                action?.Invoke();
+            } catch (System.Exception ex) {
+                Debug.LogWarning($"ShutdownAll: Failed while releasing {systemName}: {ex.Message}");
+            }
+        }
+
+        TryShutdown(() => OctreeTerrain.Disable(), nameof(OctreeTerrain));
+        TryShutdown(() => AudioManager.Instance?.Release(), nameof(AudioManager));
+        TryShutdown(() => EntityManager.Release(), nameof(EntityManager));
+        TryShutdown(() => PlayerHandler.Release(), nameof(PlayerHandler));
+        TryShutdown(() => Rendering.LightBaker.Release(), nameof(Rendering.LightBaker));
+        TryShutdown(() => AtmospherePass.Release(), nameof(AtmospherePass));
+        TryShutdown(() => NauseaPass.Release(), nameof(NauseaPass));
+        TryShutdown(() => DizzinessPass.Release(), nameof(DizzinessPass));
+        TryShutdown(() => BlindnessPass.Release(), nameof(BlindnessPass));
+        TryShutdown(() => SubChunkShaderGraph.Unset(), nameof(SubChunkShaderGraph));
+        TryShutdown(() => Readback.AsyncMeshReadback.Release(), nameof(Readback.AsyncMeshReadback));
+        TryShutdown(() => CPUMapManager.Release(), nameof(CPUMapManager));
+        TryShutdown(() => GPUMapManager.Release(), nameof(GPUMapManager));
+        TryShutdown(() => GenerationPreset.Release(), nameof(GenerationPreset));
+        TryShutdown(() => WorldDataHandler.Release(), nameof(WorldDataHandler));
+        TryShutdown(() => UtilityBuffers.Release(), nameof(UtilityBuffers));
     }
 
     private static void ShutdownMinimal() {

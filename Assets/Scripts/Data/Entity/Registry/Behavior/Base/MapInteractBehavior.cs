@@ -28,6 +28,7 @@ namespace Arterra.Data.Entity.Behavior {
                 interactType = interactType,
                 HoldBreathTime = HoldBreathTime,
                 UseFallDamage = UseFallDamage,
+                Bouyancy = Bouyancy
             };
         }
     }

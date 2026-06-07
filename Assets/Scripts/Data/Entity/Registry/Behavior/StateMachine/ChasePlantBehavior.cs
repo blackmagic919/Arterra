@@ -65,10 +65,11 @@ namespace Arterra.Data.Entity.Behavior {
                     return;
                 }
             } 
-            if (!FindPrey()) manager.Transition(settings.OnNotFoundTransition);
+            if (!FindPrey(out bool Locked)) manager.Transition(settings.OnNotFoundTransition);
         }
 
-        public bool FindPrey() {
+        public bool FindPrey(out bool LockedOn) {
+            LockedOn = false;
             if (StopHunting()) return false;
             if(!findPlant.FindPreferredPreyPlant(
                 (int3)math.round(self.position),
@@ -76,10 +77,13 @@ namespace Arterra.Data.Entity.Behavior {
                 out int3 preyPos
             )) return false;
 
-            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.PathCoord, preyPos - self.PathCoord, movement.pathDistance,
+            if(path.FindPathOrApproachTarget(settings.TaskName, self.PathCoord, preyPos - self.PathCoord, movement.pathDistance,
                 MMove.Profile(mmove, settings.TaskName, self.settings),
-                EntityJob.cxt, out int pLen);
-            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+                EntityJob.cxt, out byte[] nPath)) {
+                path.SetPath(nPath);
+                LockedOn = true;
+            } else return true;
+
             float dist = ColliderUpdateBehavior.GetColliderDist(self, preyPos);
 
             //If it can't get to the prey and is currently at the closest position it can be
@@ -92,7 +96,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public bool TransitionTo() {
             if (!BeginHunting()) return false;
-            return FindPrey();
+            return FindPrey(out bool Locked) && Locked;
         }
 
         public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {

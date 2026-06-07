@@ -26,7 +26,7 @@ namespace Arterra.GamePlay.UI {
         private Camera Camera;
         private GameObject PlayerCamera;
         private FreeCamera CamMovement;
-        private IUpdateSubscriber eventTask;
+        private Core.ArterraRuntime.IUpdateSubscriber eventTask;
         private ArmorInventory playerArmor;
         private bool IsDragging = false;
         private bool ShowAllSlots = false;
@@ -96,9 +96,9 @@ namespace Arterra.GamePlay.UI {
         this.SelectedIndex = -1;
         PlayerCamera.SetActive(true);
         ArmorPanel.SetActive(true);
-        eventTask = new IndirectUpdate(Update);
+        eventTask = new Core.ArterraRuntime.IndirectUpdate(Update);
         PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenArmor, PlayerHandler.data, null);
-        OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
+        Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(eventTask);
 
             
                 InputPoller.AddContextFence("PlayerArmor", "3.5::Window", ActionBind.Exclusion.None);
@@ -339,7 +339,15 @@ namespace Arterra.GamePlay.UI {
 
             private void SetCameraOffset() {
                 float3 backOffset = math.mul(math.normalize(CamTsf.localRotation), new float3(0, 0, -distance));
-                CamTsf.localPosition = (float3)Vector3.up * height + backOffset;
+                CamTsf.localPosition = GetScaledLocalPosition((float3)Vector3.up * height + backOffset);
+            }
+
+            private Vector3 GetScaledLocalPosition(float3 localOffset) {
+                if (CamTsf.parent == null)
+                    return localOffset;
+
+                Vector3 desiredWorldOffset = CamTsf.parent.rotation * (Vector3)localOffset;
+                return CamTsf.parent.worldToLocalMatrix.MultiplyVector(desiredWorldOffset);
             }
         }
     }

@@ -14,6 +14,7 @@ using Arterra.Utils;
 using Arterra.GamePlay.Interaction;
 using Arterra.GamePlay.UI;
 using Arterra.GamePlay;
+using Arterra.Core;
 
 namespace Arterra.Data.Material
 {
@@ -299,7 +300,7 @@ namespace Arterra.Data.Material
                 if (FurnaceFormula.GetMatchingFormula(fuelTag, FuelInventory, InputInventory, OutputInventory) == null)
                     return;
                 LightFurnace();
-                OctreeTerrain.MainCoroutines.Enqueue(UpdateRoutine());
+                ArterraRuntime.MainCoroutines.Enqueue(UpdateRoutine());
             }
 
             internal void InitializeDisplay(FurnaceMaterial settings) {

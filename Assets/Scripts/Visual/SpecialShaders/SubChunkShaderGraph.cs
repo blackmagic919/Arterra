@@ -9,6 +9,7 @@ using Arterra.Configuration.Quality;
 using Arterra.Engine.Terrain;
 using Arterra.Engine.Terrain.Readback;
 using Arterra.Utils;
+using Arterra.Core;
 
 namespace Arterra.Engine.Rendering
 {
@@ -28,7 +29,7 @@ namespace Arterra.Engine.Rendering
         private static ComputeShader subChunkInfo;
         private static GeoShaderOffsets offsets;
         private static LogicalBlockBuffer SortedSubChunks;
-        private IndirectUpdate executor;
+        private ArterraRuntime.IndirectUpdate executor;
         private BaseGeoHandle baseHandle;
         private static int SubChunkSizeOS;
         private static int SubChunksPerAxis;
@@ -215,8 +216,8 @@ namespace Arterra.Engine.Rendering
         public void ComputeGeoShaderGeometry(GeometryHandle vertHandle, GeometryHandle triHandle)
         {
             ReleaseGeometry(); tree?.VerifyChunks();
-            this.executor = new IndirectUpdate(Update);
-            OctreeTerrain.MainLoopUpdateTasks.Enqueue(executor);
+            this.executor = new ArterraRuntime.IndirectUpdate(Update);
+            ArterraRuntime.MainLoopUpdateTasks.Enqueue(executor);
 
             int triAddress = (int)triHandle.addressIndex;
             int vertAddress = (int)vertHandle.addressIndex;

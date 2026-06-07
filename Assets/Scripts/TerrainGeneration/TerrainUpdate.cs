@@ -9,6 +9,7 @@ using Arterra.Core.Storage;
 using Arterra.GamePlay;
 using System.Threading;
 using System;
+using Arterra.Core;
 
 namespace Arterra.Data.Intrinsic{
     /// <summary>
@@ -86,7 +87,7 @@ namespace Arterra.Engine.Terrain{
             UpdateCoordinates = new ConcurrentQueue<int3>();
             IncludedCoords = new FlagList(numPoints);
             Executor = new Manager();
-            OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
+            ArterraRuntime.MainFixedUpdateTasks.Enqueue(Executor);
             UpdateTick = 0;
         }
 
@@ -108,7 +109,7 @@ namespace Arterra.Engine.Terrain{
         /// Update Task that is tied with the <see cref="OctreeTerrain.MainFixedUpdateTasks"/>. 
         /// It is responsible for updating the map entries within Unity's fixed update loop.
         /// </summary>
-        public class Manager : IUpdateSubscriber {
+        public class Manager : Core.ArterraRuntime.IUpdateSubscriber {
             private bool active = false;
             /// <exclude />
             public bool Active {

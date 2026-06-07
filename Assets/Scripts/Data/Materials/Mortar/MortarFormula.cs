@@ -13,6 +13,7 @@ using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
 using Arterra.GamePlay.UI;
 using Arterra.Editor;
+using Arterra.Core;
 
 namespace Arterra.Data.Intrinsic.Mortar {
     /// <summary>
@@ -101,7 +102,7 @@ namespace Arterra.Data.Intrinsic.Mortar {
                 image.sprite = texInfo.Retrieve(resultItem.TexIndex).self;
                 image.color = new Color(1, 1, 1, 1);
                 if (outputs.Count <= 1) return;
-                Arterra.Engine.Terrain.OctreeTerrain.MainCoroutines.Enqueue(UpdateRoutine());
+                ArterraRuntime.MainCoroutines.Enqueue(UpdateRoutine());
             }
 
             public void Release() {

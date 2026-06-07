@@ -34,11 +34,11 @@ namespace Arterra.Data.Entity.Behavior{
         public Profiles paths;
         
         public struct Profiles {
-            public List<PathFinder.MatProfileE> HiddenProfile;
+            public List<PathFinderBehavior.MatProfileE> HiddenProfile;
             public uint3 HiddenBounds;
-            public List<PathFinder.MatProfileE> BurrowProfile;
+            public List<PathFinderBehavior.MatProfileE> BurrowProfile;
             public uint3 BurrowBounds;
-            public List<PathFinder.MatProfileE> SurfProfile;
+            public List<PathFinderBehavior.MatProfileE> SurfProfile;
             public uint3 SurfBounds;  
             public bool hasPaths;
         }
@@ -68,9 +68,9 @@ namespace Arterra.Data.Entity.Behavior{
 
         public void TrySetUpPaths(MMove mmove, EntitySetting settings) {
             if (paths.hasPaths) return;
-            (paths.BurrowProfile, paths.BurrowBounds)= PathFinder.MatProfileE.ToMatProfile(MMove.Profile(mmove, Task1Name, settings), EntityJob.cxt, DiggableMats);
-            (paths.HiddenProfile, paths.HiddenBounds)= PathFinder.MatProfileE.ToMatProfile(MMove.Profile(mmove, Task2Name, settings), EntityJob.cxt, DiggableMats);
-            (paths.SurfProfile, paths.SurfBounds)= PathFinder.MatProfileE.ToMatProfile(MMove.Profile(mmove, OnReachSurface, settings), EntityJob.cxt);
+            (paths.BurrowProfile, paths.BurrowBounds)= PathFinderBehavior.MatProfileE.ToMatProfile(MMove.Profile(mmove, Task1Name, settings), EntityJob.cxt, DiggableMats);
+            (paths.HiddenProfile, paths.HiddenBounds)= PathFinderBehavior.MatProfileE.ToMatProfile(MMove.Profile(mmove, Task2Name, settings), EntityJob.cxt, DiggableMats);
+            (paths.SurfProfile, paths.SurfBounds)= PathFinderBehavior.MatProfileE.ToMatProfile(MMove.Profile(mmove, OnReachSurface, settings), EntityJob.cxt);
             paths.hasPaths = true;
         }
         
@@ -122,7 +122,7 @@ namespace Arterra.Data.Entity.Behavior{
                 return;
             }
 
-            if (!PathFinder.VerifyMatProfile(self.PathCoord, settings.paths.HiddenBounds, settings.paths.HiddenProfile, false)) {
+            if (!PathFinderBehavior.VerifyMatProfile(self.PathCoord, settings.paths.HiddenBounds, settings.paths.HiddenProfile, false)) {
                 if(!manager.Transition(settings.Task1Name))
                     manager.Transition(settings.OnHitOutState);
                 return;
@@ -164,11 +164,11 @@ namespace Arterra.Data.Entity.Behavior{
         }
 
         private void FindPathOut() {
-             byte[] nPath = PathFinder.FindMatchAlongRay(self.PathCoord, (float3)Vector3.up, movement.pathDistance,
+             if(!path.FindMatchAlongRay(settings.Task3Name, self.PathCoord, (float3)Vector3.up, movement.pathDistance,
                 settings.paths.BurrowBounds, settings.paths.BurrowProfile,
                 settings.paths.SurfBounds, settings.paths.SurfProfile,
-                out int pLen, out foundSurface);
-            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+                out foundSurface, out byte[] nPath)) return;
+            path.SetPath(nPath);
         }
 
         public bool TransitionToTask1() {
@@ -185,11 +185,13 @@ namespace Arterra.Data.Entity.Behavior{
             EntitySetting.ProfileInfo profile = MMove.Profile(mmove, settings.Task1Name, self.settings);
             float3 origin = self.origin + new float3(0, -(int)profile.bounds.y, 0);
             int pathLength = (int)DigDist;
-            byte[] nPath = PathFinder.FindPathAlongRay((int3)origin, ref digDir, pathLength, 
-                settings.paths.BurrowBounds, settings.paths.BurrowProfile, out int pLen);
-            byte[] toStart = PathFinder.GetStraightLinePath(self.PathCoord, (int3)origin);
-            if (pLen < pathLength) return false;
-            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, toStart.Concat(nPath).ToArray(), pLen);
+
+            if(!path.FindPathAlongRay(settings.Task1Name, (int3)origin, ref digDir, pathLength, 
+                settings.paths.BurrowBounds, settings.paths.BurrowProfile, out byte[] nPath)) 
+                return false;
+            byte[] toStart = PathFinderBehavior.GetStraightLinePath(self.PathCoord, (int3)origin);
+            if (nPath.Length < pathLength) return false;
+            path.SetPath(toStart.Concat(nPath).ToArray());
             return true;
         }
  

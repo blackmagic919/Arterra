@@ -170,9 +170,10 @@ namespace Arterra.Data.Entity.Behavior {
             
             int PathDist = movement.pathDistance;
             int3 destination = (int3)math.round(Enemy.origin) - self.PathCoord;
-            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.PathCoord, destination, PathDist + 1,
-                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
-            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+            if(!path.FindPathOrApproachTarget(settings.TaskName, self.PathCoord, destination, PathDist + 1,
+                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
+                return false;
+            path.SetPath(nPath);
             float dist = ColliderUpdateBehavior.GetColliderDist(self, Enemy);
 
 

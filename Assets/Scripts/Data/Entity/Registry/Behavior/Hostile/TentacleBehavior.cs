@@ -11,7 +11,6 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Core.Storage;
 using UnityEngine.Animations.Rigging;
 using Arterra.Data.Item;
-using Mono.Cecil;
 
 namespace Arterra.Data.Entity.Behavior
 {

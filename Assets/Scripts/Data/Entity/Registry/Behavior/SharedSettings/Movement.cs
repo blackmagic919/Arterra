@@ -5,6 +5,7 @@ using Arterra.Data.Entity;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Data.Entity.Behavior;
 using System.Collections.Generic;
+using static Arterra.Data.Entity.Behavior.PathFinderBehavior;
 
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
@@ -51,7 +52,7 @@ namespace Arterra.Data.Entity.Behavior {
             return math.normalize(var);
         }
 
-        public static (Quaternion, float3) StaticDirect(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, TerrainCollider tCollider, FollowType movement = FollowType.Planar) {
+        public static (Quaternion, float3) StaticDirect(EntitySetting.ProfileInfo profile, ref PathInfo finder, TerrainCollider tCollider, FollowType movement = FollowType.Planar) {
             //Entity has fallen off path
             finder.stepDuration++;
             if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > profile.bounds)) finder.hasPath = false;
@@ -60,7 +61,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!finder.hasPath) return (tCollider.transform.rotation, float3.zero);
             byte dir = finder.path[finder.currentInd];
             int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
-            if (!PathFinder.VerifyProfile(nextPos, profile, EntityJob.cxt)) { finder.hasPath = false; }
+            if (!VerifyProfile(nextPos, profile, EntityJob.cxt)) { finder.hasPath = false; }
 
             float3 aim = Normalize(nextPos - (float3)tCollider.transform.position);
             Quaternion rot = Quaternion.identity;
@@ -84,7 +85,7 @@ namespace Arterra.Data.Entity.Behavior {
             } return (rot, aim);
         }
 
-        public static (Quaternion, float3) DynamicDirect(EntitySetting.ProfileInfo profile, ref PathFinder.PathInfo finder, TerrainCollider tCollider, float3 target, FollowType movement = FollowType.Planar) {
+        public static (Quaternion, float3) DynamicDirect(EntitySetting.ProfileInfo profile, ref PathInfo finder, TerrainCollider tCollider, float3 target, FollowType movement = FollowType.Planar) {
             finder.stepDuration++;
             if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > profile.bounds))
                 finder.hasPath = false;
@@ -94,22 +95,23 @@ namespace Arterra.Data.Entity.Behavior {
 
             byte dir = finder.path[finder.currentInd];
             int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
-            if (!PathFinder.VerifyProfile(nextPos, profile, EntityJob.cxt)) { finder.hasPath = false; }
+            if (!VerifyProfile(nextPos, profile, EntityJob.cxt)) { finder.hasPath = false; }
             if (math.distance(tCollider.transform.position, target) < math.distance(finder.destination, target))
                 finder.hasPath = false;
 
             float3 aim = Normalize(nextPos - (float3)tCollider.transform.position);
-            Quaternion rot;
+            Quaternion rot = tCollider.transform.rotation;
             switch(movement) {
                 case FollowType.Planar:
                     aim = math.normalizesafe(new float3(aim.x, 0, aim.z));
-                    rot = Quaternion.LookRotation(aim);
+                    if (math.any(aim != 0)) rot = Quaternion.LookRotation(aim);
                     break;
                 case FollowType.Move3D:
-                    rot = Quaternion.LookRotation(new float3(aim.x, 0, aim.z));
+                    float3 planarAim = new float3(aim.x, 0, aim.z);
+                    if (math.any(planarAim != 0)) rot = Quaternion.LookRotation(planarAim);
                     break;
                 default:
-                    rot = Quaternion.LookRotation(aim);
+                    if (math.any(aim != 0)) rot = Quaternion.LookRotation(aim);
                     break;
             }
 
@@ -121,7 +123,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
 
-        public static (Quaternion, float3) StaticDirect(List<PathFinder.MatProfileE> profile, uint3 bounds, ref PathFinder.PathInfo finder, TerrainCollider tCollider, FollowType movement = FollowType.Planar) {
+        public static (Quaternion, float3) StaticDirect(List<MatProfileE> profile, uint3 bounds, ref PathInfo finder, TerrainCollider tCollider, FollowType movement = FollowType.Planar) {
             //Entity has fallen off path
             finder.stepDuration++;
             if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > bounds)) finder.hasPath = false;
@@ -130,20 +132,21 @@ namespace Arterra.Data.Entity.Behavior {
             if (!finder.hasPath) return  (tCollider.transform.rotation, float3.zero);
             byte dir = finder.path[finder.currentInd];
             int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
-            if (!PathFinder.VerifyMatProfile(nextPos, bounds, profile)) { finder.hasPath = false; }
+            if (!VerifyMatProfile(nextPos, bounds, profile)) { finder.hasPath = false; }
 
             float3 aim = Normalize(nextPos - (float3)tCollider.transform.position);
-            Quaternion rot;
+            Quaternion rot = tCollider.transform.rotation;
             switch(movement) {
                 case FollowType.Planar:
                     aim = math.normalizesafe(new float3(aim.x, 0, aim.z));
-                    rot = Quaternion.LookRotation(aim);
+                    if (math.any(aim != 0)) rot = Quaternion.LookRotation(aim);
                     break;
                 case FollowType.Move3D:
-                    rot = Quaternion.LookRotation(new float3(aim.x, 0, aim.z));
+                    float3 planarAim = new float3(aim.x, 0, aim.z);
+                    if (math.any(planarAim != 0)) rot = Quaternion.LookRotation(planarAim);
                     break;
                 default:
-                    rot = Quaternion.LookRotation(aim);
+                    if (math.any(aim != 0)) rot = Quaternion.LookRotation(aim);
                     break;
             }
 

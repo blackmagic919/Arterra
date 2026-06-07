@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using UnityEngine.Profiling;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
+using Arterra.Core;
 
 namespace Arterra.Engine.Terrain{
     /// <summary>
@@ -17,56 +18,9 @@ namespace Arterra.Engine.Terrain{
     /// MainLoopUpdateTasks, MainLateUpdateTasks, or MainFixedUpdateTasks. This is so that
     /// these static systems can hook into the update loop without needing to be a MonoBehaviour.
     /// </summary>
-    public class OctreeTerrain : MonoBehaviour {
-        /// <summary>
-        /// The load for each task as ordered in <see cref="Utils.priorities.planning"/>.
-        /// Each task's load is cumilated until the frame's load is exceeded at which point generation stops.
-        /// </summary>
-        public static readonly int[] taskLoadTable = { 4, 3, 3, 1, 4, 0, 3 };
-        /// <summary>
-        /// A queue containing subscribed tasks that are executed
-        /// once every update loop. The update loop occurs
-        /// once every frame before the late update loop.
-        /// </summary>
-        public static Queue<IUpdateSubscriber> MainLoopUpdateTasks;
-        /// <summary>
-        /// A queue containing subscribed tasks that are executed
-        /// once every late update loop. The late update loop
-        /// occurs once every frame after the update loop.
-        /// </summary>
-        public static Queue<IUpdateSubscriber> MainLateUpdateTasks;
-        /// <summary>
-        /// A queue containing subscribed tasks that are executed
-        /// once every fixed update loop. The fixed update loop is
-        /// akin to a game-tick and is frame-independent. 
-        /// </summary>
-        public static Queue<IUpdateSubscriber> MainFixedUpdateTasks;
-        /// <summary>
-        /// A queue containing coroutines which will be synchronized and updated
-        /// by Unity's main update loop. Unity does not allow injection into its synchronization
-        /// outside monobehavior, so OctreeTerrain has to manage this.
-        /// </summary>
-        public static Queue<System.Collections.IEnumerator> MainCoroutines;
-        /// <summary>
-        /// A queue of generation actions which are processed
-        /// sequentially and discarded once they are called. All tasks 
-        /// are channeled through this queue to manage the resource load
-        /// and facilitate expensive operations. 
-        /// </summary>
-        /// <remarks>
-        /// The concurrent queue may also be used to reinject tasks
-        /// on different threads back into the main thread.
-        /// </remarks>
-        public static ConcurrentQueue<GenTask> RequestQueue;
-
-        /// <summary> A queue to reinjects events into the main thread
-        /// not directly tied to a specific chunk.
-        /// </summary>
-        public static ConcurrentQueue<Action> ActionReinjectionQueue;
-
+    public class OctreeTerrain : Core.ArterraRuntime.IUpdateSubscriber {
+        public static OctreeTerrain instance {get; private set;}
         private static Configuration.Quality.Terrain s;
-        private int3 prevViewerPos;
-        private static Transform origin;
         /// <summary> The root octree structure responsible for dividing the world into
         /// <see cref="TerrainChunk"/>s in a manner according to the rules defined by
         /// <see cref="BalancedOctree"/> </summary>
@@ -88,67 +42,30 @@ namespace Arterra.Engine.Terrain{
         /// generation(the octree) is centered.
         /// </summary>
         public static Transform viewer;
+        public static Transform root;
+        private int3 prevViewerPos;
+        public bool Active {get => true; set{ return; }}
 
-        /// <summary>
-        /// A struct that defines a generation process. GenTasks
-        /// are buffered into <see cref="RequestQueue"/> and processed sequentially.
-        /// GenTasks are called from main thread and allow for reinjection of async tasks.
-        /// </summary>
-        public struct GenTask {
-            /// <summary> The action that is executed when the task is processed.</summary>
-            public Action task;
-            /// <summary>Whether or not the task can be performed. If null, it is assumed the task can be performed.</summary>
-            public Func<bool> CanProcess;
-            /// <summary> 
-            /// The priority of the task as defined in <see cref="Utils.priorities.planning"/>. 
-            /// Used to identify the load and loading message of the task.
-            /// </summary>
-            public int id;
-            /// <summary>
-            /// The chunk that the task is associated with. If the chunk is destroyed,
-            /// deactivated, or null, the task will be ignored and discarded when answering.
-            /// </summary>
-            public IOctreeChunk chunk;
-            /// <summary>
-            /// Constructs a new GenTask with the given action, id, and chunk.
-            /// </summary>
-            public GenTask(Action task, int id, IOctreeChunk chunk, Func<bool> CanProcess = null) {
-                this.task = task;
-                this.id = id;
-                this.chunk = chunk;
-                this.CanProcess = CanProcess;
-            }
-        }
-
-        private void OnEnable() {
+        public static void Initialize() {
             s = Config.CURRENT.Quality.Terrain.value;
-            origin = this.transform; //This means origin in Unity's scene heiharchy
+            root = new GameObject("GeneratedContent").transform;
+
+            instance = new OctreeTerrain();
             octree = new BalancedOctree(
                 s.MaxDepth, s.Balance,
                 s.MinChunkRadius, s.mapChunkSize
             );
 
-            MainLoopUpdateTasks = new Queue<IUpdateSubscriber>();
-            MainLateUpdateTasks = new Queue<IUpdateSubscriber>();
-            MainFixedUpdateTasks = new Queue<IUpdateSubscriber>();
-            MainCoroutines = new Queue<System.Collections.IEnumerator>();
-            RequestQueue = new ConcurrentQueue<GenTask>();
-            SystemProtocol.Startup();
-        }
-
-        void Start() {
             UpdateViewerPos();
             octree.Initialize();
+            octree.ForEachChunk(chunk => chunk.Update());
+            ArterraRuntime.MainLoopUpdateTasks.Enqueue(instance);
         }
 
-        private void OnDisable() {
-            octree.ForEachChunk(chunk => chunk.Destroy());
-            SystemProtocol.Shutdown();
-        }
-
+        public static void Disable() => octree.ForEachChunk(chunk => chunk.Destroy());
 
 #if UNITY_EDITOR
-        private void OnDrawGizmos() {
+        public static void OnDrawGizmos() {
             UnityEditor.SceneView sceneView = UnityEditor.SceneView.lastActiveSceneView;
             float3 sceneViewPos = sceneView.camera.transform.position;
             int3 GCoord = (int3)CPUMapManager.WSToGS(math.floor(sceneViewPos));
@@ -169,56 +86,9 @@ namespace Arterra.Engine.Terrain{
         }
 #endif
 
-        private void Update() {
+        public void Update(MonoBehaviour mono) {
             VerifyChunks();
             octree.ForEachChunk(chunk => chunk.Update());
-            StartGeneration();
-
-            ProcessUpdateTasks(MainLoopUpdateTasks);
-            ProcessCoroutines(MainCoroutines);
-        }
-        private void LateUpdate() { ProcessUpdateTasks(MainLateUpdateTasks); }
-        private void FixedUpdate() { ProcessUpdateTasks(MainFixedUpdateTasks); }
-        private void ProcessUpdateTasks(Queue<IUpdateSubscriber> taskQueue) {
-            int UpdateTaskCount = taskQueue.Count;
-            for (int i = 0; i < UpdateTaskCount; i++) {
-                IUpdateSubscriber task = taskQueue.Dequeue();
-                if (!task.Active)
-                    continue;
-                task.Update(this);
-                taskQueue.Enqueue(task);
-            }
-        }
-        
-
-        private void ProcessCoroutines(Queue<System.Collections.IEnumerator> taskQueue) {
-            int UpdateTaskCount = taskQueue.Count;
-            for (int i = 0; i < UpdateTaskCount; i++) {
-                var task = taskQueue.Dequeue();
-                if (task != null) StartCoroutine(task);
-            }
-        }
-        private void StartGeneration() {
-            int count = RequestQueue.Count;
-            int FrameGPULoad = 0;
-            for(int i = 0; i < count; i++) {
-                if (!RequestQueue.TryDequeue(out GenTask gen))
-                    return;
-                if (gen.chunk != null && !gen.chunk.Active)
-                    continue;
-                
-                if(gen.CanProcess != null && !gen.CanProcess()) { //If currently unable to process task
-                    RequestQueue.Enqueue(gen);
-                    continue;
-                } 
-
-                Profiler.BeginSample("Task Number: " + gen.id);
-                gen.task();
-                Profiler.EndSample();
-
-                FrameGPULoad += taskLoadTable[gen.id];
-                if (FrameGPULoad > s.maxFrameLoad) break;
-            }
         }
 
         private void VerifyChunks() {
@@ -237,7 +107,7 @@ namespace Arterra.Engine.Terrain{
             }
         }
 
-        private void UpdateViewerPos() {
+        private static void UpdateViewerPos() {
             int3 ViewerPosition = (int3)((float3)viewer.position / s.lerpScale + s.mapChunkSize / 2);
             int3 intraOffset = ((ViewerPosition % s.mapChunkSize) + s.mapChunkSize) % s.mapChunkSize;
             ViewPosCS = (ViewerPosition - intraOffset) / s.mapChunkSize;
@@ -355,9 +225,9 @@ namespace Arterra.Engine.Terrain{
                 ref Node node = ref nodes[octreeIndex];
                 TerrainChunk nChunk;
                 if (node.size == MinChunkSize) {
-                    nChunk = new TerrainChunk.RealChunk(origin, node.origin, (int)node.size, octreeIndex);
+                    nChunk = new TerrainChunk.RealChunk(root, node.origin, (int)node.size, octreeIndex);
                 } else {
-                    nChunk = new TerrainChunk.VisualChunk(origin, node.origin, (int)node.size, octreeIndex);
+                    nChunk = new TerrainChunk.VisualChunk(root, node.origin, (int)node.size, octreeIndex);
                 }
                 node.Chunk = chunks.Enqueue(nChunk);
                 node.IsComplete = false;

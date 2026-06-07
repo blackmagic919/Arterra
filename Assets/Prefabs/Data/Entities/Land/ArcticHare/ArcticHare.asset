@@ -75,98 +75,251 @@ MonoBehaviour:
           value:
           - value:
               value:
-                  rid: 5205636866482634862
+                rid: 5205636866482634862
           - value:
               value:
-                  rid: 3097084119023354049
+                rid: 3097084119023354049
           - value:
               value:
-                  rid: 3097083922518114515
+                rid: 1481107117025525870
           - value:
               value:
-                  rid: 3097084037468258400
+                rid: 3097083922518114515
           - value:
               value:
-                  rid: 3097083922518114516
+                rid: 3097084037468258400
           - value:
               value:
-                  rid: 3097083922518114517
+                rid: 3097083922518114516
           - value:
               value:
-                  rid: 3097083922518114518
+                rid: 3097083922518114517
           - value:
               value:
-                  rid: 3097083922518114519
+                rid: 3097083922518114518
           - value:
               value:
-                  rid: 3097083922518114520
+                rid: 3097083922518114519
           - value:
               value:
-                  rid: 3097083922518114521
+                rid: 3097083922518114520
           - value:
               value:
-                  rid: 3097083922518114639
+                rid: 3097083922518114521
           - value:
               value:
-                  rid: 3097083922518114523
+                rid: 3097083922518114639
           - value:
               value:
-                  rid: 3097083922518114524
+                rid: 3097083922518114523
           - value:
               value:
-                  rid: 3097083922518114525
+                rid: 3097083922518114524
           - value:
               value:
-                  rid: 3097083922518114526
+                rid: 3097083922518114525
           - value:
               value:
-                  rid: 3097083922518114527
+                rid: 3097083922518114526
           - value:
               value:
-                  rid: 3097083922518114528
+                rid: 3097083922518114527
           - value:
               value:
-                  rid: 3097083922518114545
+                rid: 3097083922518114528
           - value:
               value:
-                  rid: 3097083922518114529
+                rid: 3097083922518114545
           - value:
               value:
-                  rid: 3097083922518114530
+                rid: 3097083922518114529
           - value:
               value:
-                  rid: 3097083922518114531
+                rid: 3097083922518114530
           - value:
               value:
-                  rid: 3097083922518114532
+                rid: 3097083922518114531
           - value:
               value:
-                  rid: 3097083922518114533
+                rid: 3097083922518114532
           - value:
               value:
-                  rid: 3097083922518114534
+                rid: 3097083922518114533
           - value:
               value:
-                  rid: 3097083922518114535
+                rid: 3097083922518114534
           - value:
               value:
-                  rid: 3097084037468258410
+                rid: 3097083922518114535
           - value:
               value:
-                  rid: 3097084037468258411
+                rid: 3097084037468258410
           - value:
               value:
-                  rid: 3097084037468258412
+                rid: 3097084037468258411
           - value:
               value:
-                  rid: 3097084052764622977
+                rid: 3097084037468258412
           - value:
               value:
-                  rid: 1481107117025525870
-        _prevBehaviorCount: 27
+                rid: 3097084052764622977
+      _prevBehaviorCount: 27
   references:
     version: 2
     RefIds:
+    - rid: 1481107117025525870
+      type: {class: GeneticsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Genes:
+          value:
+          - name: 1004
+            var: 0.35
+            geneWeight: 0.022068966
+          - name: 1006
+            var: 0.25
+            geneWeight: 0.011034483
+          - name: 1007
+            var: 0.1
+            geneWeight: 0.0013793104
+          - name: 1005
+            var: 0.3
+            geneWeight: 0.0055172415
+          - name: 1000
+            var: 0.25
+            geneWeight: 0.011034483
+          - name: 1001
+            var: 0.5
+            geneWeight: 0.03310345
+          - name: 1002
+            var: 0.5
+            geneWeight: 0.016551726
+          - name: 1003
+            var: 0.5
+            geneWeight: 0.0055172415
+          - name: 4002
+            var: 0.25
+            geneWeight: 0.011034483
+          - name: 4002
+            var: 0.25
+            geneWeight: 0.011034483
+          - name: 4001
+            var: 0.4
+            geneWeight: 0.008275863
+          - name: 2039
+            var: 0.5
+            geneWeight: 0.0013793104
+          - name: 2040
+            var: 0
+            geneWeight: 0
+          - name: 2044
+            var: 0.3
+            geneWeight: 0.0013793104
+          - name: 2045
+            var: 0
+            geneWeight: 0
+          - name: 2035
+            var: 0.125
+            geneWeight: 0.0055172415
+          - name: 2036
+            var: 0.25
+            geneWeight: 0.011034483
+          - name: 2037
+            var: 0.25
+            geneWeight: 0.008275863
+          - name: 2002
+            var: 0.25
+            geneWeight: 0.0055172415
+          - name: 2003
+            var: 0.05
+            geneWeight: 0.0027586208
+          - name: 2038
+            var: 0.25
+            geneWeight: 0.011034483
+          - name: 4000
+            var: 0.25
+            geneWeight: 0.016551726
+          - name: 4000
+            var: 0.25
+            geneWeight: 0.016551726
+          - name: 4000
+            var: 0.25
+            geneWeight: 0.016551726
+          - name: 2031
+            var: 0.25
+            geneWeight: 0.011034483
+          - name: 2030
+            var: 0.25
+            geneWeight: 0.016551726
+          - name: 1012
+            var: 0.35
+            geneWeight: 0.0005517241
+          - name: 1008
+            var: 0.3
+            geneWeight: 0.0055172415
+          - name: 1009
+            var: 0.35
+            geneWeight: 0.019310344
+          - name: 4003
+            var: 0.75
+            geneWeight: 0.0027586208
+          - name: 2004
+            var: 0.5
+            geneWeight: 0.0013793104
+          - name: 2005
+            var: 0.75
+            geneWeight: 0.0013793104
+          - name: 2006
+            var: 0.5
+            geneWeight: 0.0013793104
+          - name: 2007
+            var: 0.5
+            geneWeight: 0.0013793104
+          - name: 2008
+            var: 0.5
+            geneWeight: 0.0013793104
+          - name: 2009
+            var: 0.5
+            geneWeight: 0.0013793104
+          - name: 2010
+            var: 0.5
+            geneWeight: 0.0013793104
+          - name: 2011
+            var: 0.5
+            geneWeight: 0.0013793104
+          - name: 2012
+            var: 0.7
+            geneWeight: 0.0013793104
+          - name: 2013
+            var: 0.25
+            geneWeight: 0.0005517241
+          - name: 2014
+            var: 0.5
+            geneWeight: 0.0005517241
+          - name: 2015
+            var: 0.5
+            geneWeight: 0.0005517241
+          - name: 2016
+            var: 0.75
+            geneWeight: 0.0005517241
+          - name: 2017
+            var: 0.5
+            geneWeight: 0.0005517241
+          - name: 2032
+            var: 0.25
+            geneWeight: 0.0005517241
+          - name: 2033
+            var: 0.75
+            geneWeight: 0.0027586208
+          - name: 2034
+            var: 0.25
+            geneWeight: 0.0013793104
+          - name: 2000
+            var: 0.3
+            geneWeight: 0.0055172415
+          - name: 2001
+            var: 0.5
+            geneWeight: 0.0055172415
+        NormalizeWeights: 1
     - rid: 3097083922518114515
       type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -181,6 +334,7 @@ MonoBehaviour:
       data:
         interactType: 0
         HoldBreathTime: 10
+        Bouyancy: 0
         UseFallDamage: 1
     - rid: 3097083922518114517
       type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -329,13 +483,12 @@ MonoBehaviour:
       type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         fleeDist: 5
-        detectDist: 0
+        detectDist: 21
         FightAggressor: 0
     - rid: 3097083922518114534
       type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         TaskName: 50000
-        OverridableStates: 30600
         OnLostAttacker: 0
     - rid: 3097083922518114535
       type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -352,8 +505,8 @@ MonoBehaviour:
     - rid: 3097083922518114639
       type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        walkSpeed: 0
-        runSpeed: 0
+        walkSpeed: 2.75
+        runSpeed: 5.2
         pathDistance: 28
         acceleration: 200
         rotSpeed: 180
@@ -451,161 +604,3 @@ MonoBehaviour:
       data:
         interactType: 0
         UseGravity: 1
-    - rid: 1481107117025525870
-      type: {class: GeneticsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
-      data:
-        Genes:
-          value:
-          - name: 1004
-            var: 0.35
-            geneWeight: 0.4
-          - name: 1006
-            var: 0.25
-            geneWeight: 0.2
-          - name: 1007
-            var: 0.1
-            geneWeight: 0.025
-          - name: 1005
-            var: 0.3
-            geneWeight: 0.1
-          - name: 1000
-            var: 0.25
-            geneWeight: 0.2
-          - name: 1001
-            var: 0.5
-            geneWeight: 0.6
-          - name: 1002
-            var: 0.5
-            geneWeight: 0.3
-          - name: 1003
-            var: 0.5
-            geneWeight: 0.1
-          - name: 4002
-            var: 0.25
-            geneWeight: 0.2
-          - name: 4002
-            var: 0.25
-            geneWeight: 0.2
-          - name: 4001
-            var: 0.4
-            geneWeight: 0.15
-          - name: 2039
-            var: 0.5
-            geneWeight: 0.025
-          - name: 2040
-            var: 0
-            geneWeight: 0
-          - name: 2044
-            var: 0.3
-            geneWeight: 0.025
-          - name: 2045
-            var: 0
-            geneWeight: 0
-          - name: 2035
-            var: 0.125
-            geneWeight: 0.1
-          - name: 2036
-            var: 0.25
-            geneWeight: 0.2
-          - name: 2037
-            var: 0.25
-            geneWeight: 0.15
-          - name: 2002
-            var: 0.25
-            geneWeight: 0.1
-          - name: 2003
-            var: 0.05
-            geneWeight: 0.05
-          - name: 2038
-            var: 0.25
-            geneWeight: 0.2
-          - name: 4000
-            var: 0.25
-            geneWeight: 0.3
-          - name: 4000
-            var: 0.25
-            geneWeight: 0.3
-          - name: 4000
-            var: 0.25
-            geneWeight: 0.3
-          - name: 2031
-            var: 0.25
-            geneWeight: 0.2
-          - name: 2030
-            var: 0.25
-            geneWeight: 0.3
-          - name: 1012
-            var: 0.35
-            geneWeight: 0.01
-          - name: 1008
-            var: 0.3
-            geneWeight: 0.1
-          - name: 1009
-            var: 0.35
-            geneWeight: 0.35
-          - name: 4003
-            var: 0.75
-            geneWeight: 0.05
-          - name: 2004
-            var: 0.5
-            geneWeight: 0.025
-          - name: 2005
-            var: 0.75
-            geneWeight: 0.025
-          - name: 2006
-            var: 0.5
-            geneWeight: 0.025
-          - name: 2007
-            var: 0.5
-            geneWeight: 0.025
-          - name: 2008
-            var: 0.5
-            geneWeight: 0.025
-          - name: 2009
-            var: 0.5
-            geneWeight: 0.025
-          - name: 2010
-            var: 0.5
-            geneWeight: 0.025
-          - name: 2011
-            var: 0.5
-            geneWeight: 0.025
-          - name: 2012
-            var: 0.7
-            geneWeight: 0.025
-          - name: 2013
-            var: 0.25
-            geneWeight: 0.01
-          - name: 2014
-            var: 0.5
-            geneWeight: 0.01
-          - name: 2015
-            var: 0.5
-            geneWeight: 0.01
-          - name: 2016
-            var: 0.75
-            geneWeight: 0.01
-          - name: 2017
-            var: 0.5
-            geneWeight: 0.01
-          - name: 2032
-            var: 0.25
-            geneWeight: 0.01
-          - name: 2033
-            var: 0.75
-            geneWeight: 0.05
-          - name: 2034
-            var: 0.25
-            geneWeight: 0.025
-          - name: 2000
-            var: 0.3
-            geneWeight: 0.1
-          - name: 2001
-            var: 0.5
-            geneWeight: 0.1
-
-
-
-
-
-        NormalizeWeights: 1

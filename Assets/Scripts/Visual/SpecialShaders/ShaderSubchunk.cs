@@ -7,6 +7,7 @@ using Arterra.Utils;
 using Arterra.Configuration;
 using Arterra.Configuration.Quality;
 using Arterra.Engine.Terrain;
+using Arterra.Core;
 
 namespace Arterra.Engine.Rendering 
 {
@@ -76,11 +77,10 @@ namespace Arterra.Engine.Rendering
             if (RefreshState == TerrainChunk.Status.State.Pending)
             {
                 RefreshState = TerrainChunk.Status.State.InProgress;
-                OctreeTerrain.RequestQueue.Enqueue(new OctreeTerrain.GenTask
-                {
+                ArterraRuntime.Register(new () {
                     task = RegenerateChunk,
                     id = (int)priorities.geoshader,
-                    chunk = this
+                    cancelToken = () => !this.Active
                 });
             }
         }
@@ -158,7 +158,7 @@ namespace Arterra.Engine.Rendering
                 uint2 info = shadInfo[i];
                 RenderParams rp = SetupShaderMaterials(i, GenerationPreset.memoryHandle, info.x);
                 ShaderUpdateTask shader = new ShaderUpdateTask(info.x, info.y, rp);
-                OctreeTerrain.MainLateUpdateTasks.Enqueue(shader);
+                ArterraRuntime.MainLateUpdateTasks.Enqueue(shader);
                 activeRenders[i] = shader;
 
                 GenerationPreset.memoryHandle.TestAllocIsEmpty((int)shader.address, address =>
@@ -183,7 +183,7 @@ namespace Arterra.Engine.Rendering
 
 
 
-        public class ShaderUpdateTask : IUpdateSubscriber
+        public class ShaderUpdateTask : Core.ArterraRuntime.IUpdateSubscriber
         {
             private bool active = false;
             public bool Active

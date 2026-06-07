@@ -11,6 +11,7 @@ using Arterra.Core.Storage;
 using Arterra.Data.Entity.Behavior;
 using Arterra.Utils;
 using Arterra.Data.Entity;
+using Arterra.Core;
 
 
 
@@ -75,14 +76,13 @@ namespace Arterra.GamePlay{
             } else RespawnPlayer(immediate: true);
 
             SpectatorController.Initialize();
-            OctreeTerrain.MainLoopUpdateTasks.Enqueue(new IndirectUpdate(Update));
-            OctreeTerrain.MainFixedUpdateTasks.Enqueue(new IndirectUpdate(FixedUpdate));
+            ArterraRuntime.MainLoopUpdateTasks.Enqueue(new ArterraRuntime.IndirectUpdate(Update));
+            ArterraRuntime.MainFixedUpdateTasks.Enqueue(new ArterraRuntime.IndirectUpdate(FixedUpdate));
+            LoadingHandler.OnStartupTasksFinished += () => active = true;
         }
 
         private static void Update(MonoBehaviour mono) {
             if (!data.active) return;
-            if (!active && OctreeTerrain.RequestQueue.IsEmpty)
-                active = true;
             if (!active) return;
 
             data.Update(BehaviorEntity.UpdateContext.Main);

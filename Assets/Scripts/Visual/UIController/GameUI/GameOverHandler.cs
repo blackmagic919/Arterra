@@ -28,8 +28,8 @@ namespace Arterra.GamePlay.UI {
         public static void Deactivate() {
             InputPoller.RemoveStackPoll("Frame:GameOver", "CursorLock");
             InputPoller.RemoveContextFence("GameOver", "1.0::Menu");
-            EndMenu.SetActive(false);
             PlayerHandler.RespawnPlayer(LoadingHandler.Activate);
+            EndMenu.SetActive(false);
         }
 
         public static void Exit() {

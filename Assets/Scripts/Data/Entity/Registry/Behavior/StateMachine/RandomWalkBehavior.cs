@@ -67,11 +67,11 @@ namespace Arterra.Data.Entity.Behavior {
             );
 
             EntitySetting.ProfileInfo profile = MMove.Profile(mmove, settings.TaskName, self.settings);
-            if (PathFinder.VerifyProfile(self.PathCoord + dP, profile, EntityJob.cxt)) {
-                byte[] nPath = PathFinder.FindPath(self.PathCoord, dP, PathDist + 1,
+            if (PathFinderBehavior.VerifyProfile(self.PathCoord + dP, profile, EntityJob.cxt)) {
+                if(!path.FindPath(settings.TaskName, self.PathCoord, dP, PathDist + 1,
                     MMove.Profile(mmove, settings.TaskName, self.settings),
-                    EntityJob.cxt, out int pLen);
-                path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+                    EntityJob.cxt, out byte[] nPath)) return;
+                path.SetPath(nPath);
             }
         }
 

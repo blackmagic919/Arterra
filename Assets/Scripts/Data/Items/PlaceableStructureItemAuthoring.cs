@@ -4,15 +4,13 @@ using Unity.Mathematics;
 using System.Collections.Generic;
 using Arterra.Utils;
 using System.Linq;
-using Arterra.Engine.Terrain;
 using Arterra.Core.Storage;
 using Arterra.Data.Material;
-using Arterra.GamePlay;
-using static Arterra.Data.Entity.Behavior.PlayerInteractionBehavior;
 using Arterra.GamePlay.Interaction;
 using Arterra.Configuration;
 using Arterra.GamePlay.UI;
 using Arterra.Data.Entity.Behavior;
+using Arterra.Core;
 
 namespace Arterra.Data.Item {
     [CreateAssetMenu(menuName = "Generation/Items/StructureItem")]
@@ -91,7 +89,7 @@ namespace Arterra.Data.Item {
             amount.text = ((data & 0xFFFF) / (float)UnitSize).ToString();
         }
 
-        private class InteractionHandler : IUpdateSubscriber{
+        private class InteractionHandler : ArterraRuntime.IUpdateSubscriber{
             private bool active;
             public bool Active {
                 get => active;
@@ -111,7 +109,7 @@ namespace Arterra.Data.Item {
                 h.item = item;
                 h.cxt = cxt;
                 h.active = true;
-                OctreeTerrain.MainLoopUpdateTasks.Enqueue(h);
+                ArterraRuntime.MainLoopUpdateTasks.Enqueue(h);
                 
                     InputPoller.AddBinding(new ActionBind("Place", h.PlaceStructure, ActionBind.Exclusion.ExcludeLayer),
                     "ITEM::PlaceableStct:PL", "5.0::GamePlay");

@@ -1,9 +1,9 @@
 using UnityEngine;
-using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.Animations;
+#endif
 
 namespace Arterra.GamePlay.UI {
     public class ToggleLayerOnCondition : StateMachineBehaviour {
@@ -70,10 +70,12 @@ namespace Arterra.GamePlay.UI {
         public override void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex) {
             // Check all conditions (AND logic)
             bool allTrue = true;
-            foreach (var condition in conditions) {
-                if (!condition.Evaluate(animator)) {
-                    allTrue = false;
-                    break;
+            if (conditions != null) {
+                foreach (var condition in conditions) {
+                    if (!condition.Evaluate(animator)) {
+                        allTrue = false;
+                        break;
+                    }
                 }
             }
 
@@ -88,6 +90,8 @@ namespace Arterra.GamePlay.UI {
             }
         }
     }
+
+#if UNITY_EDITOR
     
     [CustomPropertyDrawer(typeof(ToggleLayerOnCondition.Condition))]
     public class ConditionDrawer : PropertyDrawer {
@@ -180,5 +184,5 @@ namespace Arterra.GamePlay.UI {
             EditorGUI.EndProperty();
         }
     }
-}
 #endif
+}

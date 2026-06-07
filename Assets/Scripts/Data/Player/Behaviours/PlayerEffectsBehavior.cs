@@ -4,6 +4,7 @@ using System.Collections;
 using Arterra.Core.Events;
 using Arterra.Engine.Terrain;
 using Arterra.GamePlay;
+using Arterra.Core;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
@@ -215,9 +216,7 @@ namespace Arterra.Data.Entity.Behavior {
             float thresh = physicality != null ? physicality.MaxHealth * 0.01f : 0.1f;
             if (damaged.Value.Item1 < thresh) return;
 
-            if (!isShaking) {
-                OctreeTerrain.MainCoroutines.Enqueue(CameraShake(0.2f, 0.25f));
-            }
+            if (!isShaking) ArterraRuntime.MainCoroutines.Enqueue(CameraShake(0.2f, 0.25f));
 
             quaternion wsToOs = math.inverse(self.transform.rotation);
             float3 knockback = math.mul(wsToOs, damaged.Value.Item2);

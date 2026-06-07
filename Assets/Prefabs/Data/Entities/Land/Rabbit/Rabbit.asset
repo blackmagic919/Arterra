@@ -69,101 +69,101 @@ MonoBehaviour:
           y: 0.8
           z: 0.5
       BehaviorList:
-        value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000
       Settings:
         value:
           value:
           - value:
               value:
-                  rid: 5205636866482634849
+                rid: 5205636866482634849
           - value:
               value:
-                  rid: 3097084098772992129
+                rid: 3097084098772992129
           - value:
               value:
-                  rid: 3097083922518114515
+                rid: 5205636866482634850
           - value:
               value:
-                  rid: 3097084037468258401
+                rid: 3097083922518114515
           - value:
               value:
-                  rid: 3097083922518114516
+                rid: 3097084037468258401
           - value:
               value:
-                  rid: 3097083922518114517
+                rid: 3097083922518114516
           - value:
               value:
-                  rid: 3097083922518114518
+                rid: 3097083922518114517
           - value:
               value:
-                  rid: 3097083922518114519
+                rid: 3097083922518114518
           - value:
               value:
-                  rid: 3097084098772992130
+                rid: 3097083922518114519
           - value:
               value:
-                  rid: 3097083922518114521
+                rid: 3097084098772992130
           - value:
               value:
-                  rid: 3097083922518114639
+                rid: 3097083922518114521
           - value:
               value:
-                  rid: 3097083922518114523
+                rid: 3097083922518114639
           - value:
               value:
-                  rid: 3097083922518114524
+                rid: 3097083922518114523
           - value:
               value:
-                  rid: 3097083922518114525
+                rid: 3097083922518114524
           - value:
               value:
-                  rid: 3097083922518114526
+                rid: 3097083922518114525
           - value:
               value:
-                  rid: 3097083922518114527
+                rid: 3097083922518114526
           - value:
               value:
-                  rid: 3097083922518114528
+                rid: 3097083922518114527
           - value:
               value:
-                  rid: 3097083922518114545
+                rid: 3097083922518114528
           - value:
               value:
-                  rid: 3097083922518114529
+                rid: 3097083922518114545
           - value:
               value:
-                  rid: 3097083922518114530
+                rid: 3097083922518114529
           - value:
               value:
-                  rid: 3097083922518114531
+                rid: 3097083922518114530
           - value:
               value:
-                  rid: 3097083922518114532
+                rid: 3097083922518114531
           - value:
               value:
-                  rid: 3097083922518114533
+                rid: 3097083922518114532
           - value:
               value:
-                  rid: 3097083922518114534
+                rid: 3097083922518114533
           - value:
               value:
-                  rid: 3097083922518114535
+                rid: 3097083922518114534
           - value:
               value:
-                  rid: 3097084037468258416
+                rid: 3097083922518114535
           - value:
               value:
-                  rid: 3097084037468258417
+                rid: 3097084037468258416
           - value:
               value:
-                  rid: 3097084037468258418
+                rid: 3097084037468258417
           - value:
               value:
-                  rid: 3097084052764622980
+                rid: 3097084037468258418
           - value:
               value:
-                  rid: 5205636866482634850
-        _prevBehaviorCount: 26
+                rid: 3097084052764622980
+      _prevBehaviorCount: 27
   references:
     version: 2
     RefIds:
@@ -181,6 +181,7 @@ MonoBehaviour:
       data:
         interactType: 0
         HoldBreathTime: 10
+        Bouyancy: 0
         UseFallDamage: 1
     - rid: 3097083922518114517
       type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -229,7 +230,7 @@ MonoBehaviour:
         OnFinishMateTransition: 100
         MateThreshold: 0.8
         PregnacyLength: 4
-        SearchDistance: 28
+        MateSearchDist: 0
         OnSwitchPath:
           value: 
     - rid: 3097083922518114524
@@ -238,7 +239,7 @@ MonoBehaviour:
         TaskName: 30200
         OnNotFoundTransition: 0
         OnReachPreyTransition: 30400
-        SearchDistance: 8
+        SearchPlantDistance: 0
     - rid: 3097083922518114525
       type: {class: FindPlantBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -268,7 +269,7 @@ MonoBehaviour:
         OnNotFoundTransition: 0
         OnReachPreyTransition: 30600
         DesiredPreyState: 0
-        SearchDistance: 28
+        SearchPreyDist: 32
         Prey:
           value: []
     - rid: 3097083922518114528
@@ -326,7 +327,6 @@ MonoBehaviour:
       type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         TaskName: 50000
-        OverridableStates: 30600
         OnLostAttacker: 0
     - rid: 3097083922518114535
       type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -384,8 +384,8 @@ MonoBehaviour:
       data:
         TaskName: 300
         OnReachTransition: 100
-        SearchDistance: 20
-        ChaseProbability: 0.02
+        SearchFriendDist: 30
+        ChaseFriendProbability: 0.04
         FightEnemyAffection: -12.5
         ChaseEnemyState: 50100
     - rid: 3097084052764622980
@@ -440,7 +440,7 @@ MonoBehaviour:
     - rid: 3097084098772992130
       type: {class: IdleStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        AverageIdleTime: 0
+        AverageIdleTime: 2.5
         AverageIdleVariance: 0
         TaskName: 0
         OnCompleteTransition: 100
@@ -458,152 +458,149 @@ MonoBehaviour:
           value:
           - name: 1004
             var: 0.35
-            geneWeight: 0.4
+            geneWeight: 0.022695037
           - name: 1006
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.011347518
           - name: 1007
             var: 0.1
-            geneWeight: 0.025
+            geneWeight: 0.0014184398
           - name: 1005
             var: 0.3
-            geneWeight: 0.1
+            geneWeight: 0.005673759
           - name: 1000
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.011347518
           - name: 1001
             var: 0.5
-            geneWeight: 0.6
+            geneWeight: 0.034042556
           - name: 1002
             var: 0.5
-            geneWeight: 0.3
+            geneWeight: 0.017021278
           - name: 1003
             var: 0.5
-            geneWeight: 0.1
+            geneWeight: 0.005673759
           - name: 4002
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.011347518
           - name: 4002
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.011347518
           - name: 4001
             var: 0.4
-            geneWeight: 0.15
+            geneWeight: 0.008510639
           - name: 2044
             var: 0.3
-            geneWeight: 0.025
+            geneWeight: 0.0014184398
           - name: 2045
             var: 0
             geneWeight: 0
           - name: 2035
             var: 0.125
-            geneWeight: 0.1
+            geneWeight: 0.005673759
           - name: 2036
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.011347518
           - name: 2037
             var: 0.25
-            geneWeight: 0.15
+            geneWeight: 0.008510639
           - name: 2002
             var: 0.25
-            geneWeight: 0.1
+            geneWeight: 0.005673759
           - name: 2003
             var: 0.05
-            geneWeight: 0.05
+            geneWeight: 0.0028368796
           - name: 2038
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.011347518
           - name: 4000
             var: 0.25
-            geneWeight: 0.3
+            geneWeight: 0.017021278
           - name: 4000
             var: 0.25
-            geneWeight: 0.3
+            geneWeight: 0.017021278
           - name: 4000
             var: 0.25
-            geneWeight: 0.3
+            geneWeight: 0.017021278
           - name: 2031
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.011347518
           - name: 2030
             var: 0.25
-            geneWeight: 0.3
+            geneWeight: 0.017021278
           - name: 1012
             var: 0.35
-            geneWeight: 0.01
+            geneWeight: 0.00056737586
           - name: 1008
             var: 0.3
-            geneWeight: 0.1
+            geneWeight: 0.005673759
           - name: 1009
             var: 0.35
-            geneWeight: 0.35
+            geneWeight: 0.019858155
           - name: 4003
             var: 0.75
-            geneWeight: 0.05
+            geneWeight: 0.0028368796
           - name: 2004
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.0014184398
           - name: 2005
             var: 0.75
-            geneWeight: 0.025
+            geneWeight: 0.0014184398
           - name: 2006
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.0014184398
           - name: 2007
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.0014184398
           - name: 2008
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.0014184398
           - name: 2009
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.0014184398
           - name: 2010
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.0014184398
           - name: 2011
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.0014184398
           - name: 2012
             var: 0.7
-            geneWeight: 0.025
+            geneWeight: 0.0014184398
           - name: 2013
             var: 0.25
-            geneWeight: 0.01
+            geneWeight: 0.00056737586
           - name: 2014
             var: 0.5
-            geneWeight: 0.01
+            geneWeight: 0.00056737586
           - name: 2015
             var: 0.5
-            geneWeight: 0.01
+            geneWeight: 0.00056737586
           - name: 2016
             var: 0.75
-            geneWeight: 0.01
+            geneWeight: 0.00056737586
           - name: 2017
             var: 0.5
-            geneWeight: 0.01
+            geneWeight: 0.00056737586
           - name: 2032
             var: 0.25
-            geneWeight: 0.01
+            geneWeight: 0.00056737586
           - name: 2033
             var: 0.75
-            geneWeight: 0.05
+            geneWeight: 0.0028368796
           - name: 2034
             var: 0.25
-            geneWeight: 0.025
+            geneWeight: 0.0014184398
           - name: 2000
             var: 0.3
-            geneWeight: 0.1
+            geneWeight: 0.005673759
           - name: 2001
             var: 0.5
-            geneWeight: 0.1
+            geneWeight: 0.005673759
           - name: 2039
             var: 0
             geneWeight: 0
           - name: 2040
             var: 0
             geneWeight: 0
-
-
-
         NormalizeWeights: 1

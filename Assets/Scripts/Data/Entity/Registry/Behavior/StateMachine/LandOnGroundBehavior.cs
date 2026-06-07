@@ -76,11 +76,12 @@ namespace Arterra.Data.Entity.Behavior{
                  Vector3.up;
             float3 flightTarget = movement.pathDistance * flightDir;
             
-            byte[] nPath = PathFinder.FindMatchAlongRay(self.PathCoord, flightTarget, movement.pathDistance + 1,
+            if(!path.FindMatchAlongRay(settings.TaskName,
+                self.PathCoord, flightTarget, movement.pathDistance + 1,
                 MMove.Profile(mmove, settings.TaskName, self.settings),
                 MMove.Profile(mmove, settings.OnReachGround, self.settings),
-                EntityJob.cxt, out int pLen, out foundGround);
-            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+                EntityJob.cxt, out foundGround, out byte[] nPath)) return;
+            path.SetPath(nPath);
         }
 
 

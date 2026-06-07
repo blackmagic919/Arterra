@@ -10,6 +10,7 @@ using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using Arterra.Core;
 
 #nullable enable
 
@@ -236,7 +237,7 @@ namespace Arterra.GamePlay.UI.ToolTips {
 
             // Set timer to check tooltipQueue and display tooltips.
             // Need slot count timers, staggered by MinDisplayTimeInSeconds / SlotCount.
-            OctreeTerrain.MainCoroutines.Enqueue(ProcessTooltipQueue());
+            ArterraRuntime.MainCoroutines.Enqueue(ProcessTooltipQueue());
         }
 
         private void InitializeButtons() {

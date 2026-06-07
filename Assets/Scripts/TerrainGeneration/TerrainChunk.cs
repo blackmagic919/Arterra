@@ -9,6 +9,7 @@ using static Arterra.Engine.Terrain.Readback.IVertFormat;
 using Arterra.Core.Storage;
 using Arterra.Engine.Rendering;
 using System.Threading.Tasks;
+using Arterra.Core;
 
 namespace Arterra.Engine.Terrain{
 
@@ -316,7 +317,7 @@ namespace Arterra.Engine.Terrain{
 
         /// <summary>Overridable event when deleting CPU-cached mesh information </summary>
         public void ClearFilter() {
-
+            if (meshFilter == null) return;
             if (meshFilter.sharedMesh != null) {
 #if UNITY_EDITOR
                 UnityEngine.Object.DestroyImmediate(meshFilter.sharedMesh);
@@ -334,15 +335,15 @@ namespace Arterra.Engine.Terrain{
         public virtual void Update() {}
 
         private void SetupChunk() {
-            RequestQueue.Enqueue(new GenTask {
+            ArterraRuntime.Register(new () {
                 task = () => GetSurface(),
                 id = (int)priorities.planning,
-                chunk = this,
+                cancelToken = () => !this.Active,
             });
-            RequestQueue.Enqueue(new GenTask {
+            ArterraRuntime.Register(new () {
                 task = () => PlanStructures(),
                 id = (int)priorities.structure,
-                chunk = this,
+                cancelToken = () => !this.Active,
             });
         }
 
@@ -404,35 +405,35 @@ namespace Arterra.Engine.Terrain{
                 base.Update();
                 if (status.ReadSaveState == Status.State.Pending) {
                    status.ReadSaveState = Status.State.InProgress;
-                    RequestQueue.Enqueue(new GenTask {
+                    ArterraRuntime.Register(new () {
                         task = () => ReadSavedState(),
                         id = (int)priorities.propogation,
-                        chunk = this
+                        cancelToken = () => !this.Active,
                     });
                 } if (status.CreateMap == Status.State.Pending) {
                     status.CreateMap = Status.State.InProgress;
-                    RequestQueue.Enqueue(new GenTask {
+                    ArterraRuntime.Register(new () {
                         task = () => CreateMapData(),
-                        CanProcess = CanCreateMap,
                         id = (int)priorities.generation,
-                        chunk = this
+                        cancelToken = () => !this.Active,
+                        processToken = CanCreateMap,
                     });
                 } else if (status.SetMap == Status.State.Pending) {
                     status.SetMap = Status.State.InProgress;
-                    RequestQueue.Enqueue(new GenTask {
+                    ArterraRuntime.Register(new () {
                         task = () => SetChunkData(),
                         id = (int)priorities.generation,
-                        chunk = this
+                        cancelToken = () => !this.Active,
                     });
                 }
 
                 if (status.UpdateMesh == Status.State.Pending) {
                     status.UpdateMesh = Status.State.InProgress;
-                    RequestQueue.Enqueue(new GenTask {
+                    ArterraRuntime.Register(new () {
                         task = () => CreateMesh(OnChunkCreated),
-                        CanProcess = CanCreateMesh,
                         id = (int)priorities.mesh,
-                        chunk = this
+                        cancelToken = () => !this.Active,
+                        processToken = CanCreateMesh,
                     });
                 }
             }
@@ -568,27 +569,27 @@ namespace Arterra.Engine.Terrain{
                 base.Update();
                 if (status.ReadSaveState == Status.State.Pending) {
                    status.ReadSaveState = Status.State.InProgress;
-                    RequestQueue.Enqueue(new GenTask {
+                    ArterraRuntime.Register(new () {
                         task = () => ReadSavedState(),
                         id = (int)priorities.propogation,
-                        chunk = this
+                        cancelToken = () => !this.Active,
                     });
                 } if (status.CreateMap == Status.State.Pending) {
                     status.CreateMap = Status.State.InProgress;
-                    RequestQueue.Enqueue(new GenTask {
+                    ArterraRuntime.Register(new () {
                         task = () => CreateMapData(),
-                        CanProcess = CanCreateMap,
                         id = (int)priorities.generation,
-                        chunk = this
+                        cancelToken = () => !this.Active,
+                        processToken = CanCreateMap,
                     });
                 }
                 if (status.UpdateMesh == Status.State.Pending) {
                     status.UpdateMesh = Status.State.InProgress;
-                    RequestQueue.Enqueue(new GenTask {
+                    ArterraRuntime.Register(new () {
                         task = () => CreateMesh(OnChunkCreated),
-                        CanProcess = CanCreateMesh,
                         id = (int)priorities.mesh,
-                        chunk = this
+                        cancelToken = () => !this.Active,
+                        processToken = CanCreateMesh,
                     });
                 }
             }

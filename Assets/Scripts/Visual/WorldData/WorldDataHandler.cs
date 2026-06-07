@@ -7,6 +7,7 @@ using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Arterra.Engine.Terrain;
 using Arterra.GamePlay;
+using Arterra.Core;
 
 namespace Arterra.Configuration.Gameplay{
     /// <summary> Settings controlling environment constants of the world. Or aspects of 
@@ -64,7 +65,7 @@ public static class WorldDataHandler
     private static LensFlareComponentSRP sunFlare;
     private static Light Sun;
     private static Light Moon;
-    private static IUpdateSubscriber eventTask;
+    private static ArterraRuntime.IUpdateSubscriber eventTask;
 
     // Start is called before the first frame update
     public static void Initialize()
@@ -77,8 +78,8 @@ public static class WorldDataHandler
         Sun.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
         Moon.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
         sunFlare = Sun.GetComponent<LensFlareComponentSRP>();
-        eventTask = new IndirectUpdate(Update);
-        OctreeTerrain.MainLoopUpdateTasks.Enqueue(eventTask);
+        eventTask = new ArterraRuntime.IndirectUpdate(Update);
+        ArterraRuntime.MainLoopUpdateTasks.Enqueue(eventTask);
     }
 
     public static void Release() => SaveWorldData();

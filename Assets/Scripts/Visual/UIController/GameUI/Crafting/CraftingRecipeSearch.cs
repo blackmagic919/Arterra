@@ -12,6 +12,7 @@ using Arterra.Data.Item;
 using Arterra.Engine.Terrain;
 using System.Linq;
 using Arterra.GamePlay.Interaction;
+using Arterra.Core;
 
 namespace Arterra.GamePlay.UI {
     public class CraftingRecipeSearch {
@@ -24,7 +25,7 @@ namespace Arterra.GamePlay.UI {
 
         private Transform RecipeDisplay;
         private CraftingGrid RecipeGrid;
-        private IndirectUpdate HighlightTask;
+        private ArterraRuntime.IndirectUpdate HighlightTask;
         private IngredientTable IngredientList;
         private CraftingRecipe ActiveRecipe;
         private AnimatorAwaitTask ClosingTask;
@@ -119,8 +120,8 @@ namespace Arterra.GamePlay.UI {
             List<(int, float)> ing = ActiveRecipe.items.value.Concat(ActiveRecipe.materials.value).Select(i => (i.Index, i.Amount)).ToList();
             this.IngredientList = new IngredientTable(RecipeDisplay.Find("IngredientTable"), ing);
 
-            HighlightTask = new IndirectUpdate(HighlightGrid);
-            OctreeTerrain.MainLoopUpdateTasks.Enqueue(HighlightTask);
+            HighlightTask = new ArterraRuntime.IndirectUpdate(HighlightGrid);
+            ArterraRuntime.MainLoopUpdateTasks.Enqueue(HighlightTask);
             RecipeGrid.RefreshGridWithRecipe(ActiveRecipe, instance.GridWidth);
             SearchContainer.gameObject.SetActive(false);
             RecipeDisplay.gameObject.SetActive(true);

@@ -65,9 +65,10 @@ namespace Arterra.Data.Entity.Behavior {
             float3 flightDir = math.normalizesafe(Movement.RandomDirection(ref self.random));
             flightDir.y *= VerticalFlightFreedom;
 
-            byte[] nPath = PathFinder.FindPathAlongRay(self.PathCoord, ref flightDir, movement.pathDistance,
-                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
-            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+            if(!path.FindPathAlongRay(settings.TaskName, self.PathCoord, ref flightDir, movement.pathDistance,
+                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
+                return;
+            path.SetPath(nPath);
         }
 
         private bool TransitionTo() {

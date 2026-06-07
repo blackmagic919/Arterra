@@ -97,9 +97,11 @@ namespace Arterra.Data.Entity.Behavior {
                 if (friend.Is(out VitalityBehavior vit) && vit.IsDead) return false; 
                 
                 int3 destination = (int3)math.round(friend.origin) - self.PathCoord;
-                byte[] nPath = PathFinder.FindPathOrApproachTarget(self.PathCoord, destination, PathDist + 1,
-                    MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
-                path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+                if(!path.FindPathOrApproachTarget(settings.TaskName, self.PathCoord, destination, PathDist + 1,
+                    MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
+                    return false;
+                path.SetPath(nPath);
+
                 if (math.all(path.pathFinder.destination == self.PathCoord)) return false;
                 return true;
             }
@@ -112,9 +114,11 @@ namespace Arterra.Data.Entity.Behavior {
                 if (self.random.NextFloat() > avoidProb) return false;
 
                 float3 aim = math.normalizesafe(self.PathCoord - (int3)math.round(enemy.origin));
-                byte[] nPath = PathFinder.FindPathAlongRay(self.PathCoord, ref aim, PathDist + 1,
-                    MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out int pLen);
-                path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+                if(!path.FindPathAlongRay(settings.TaskName, self.PathCoord, ref aim, PathDist + 1,
+                    MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
+                    return false;
+                path.SetPath(nPath);
+                
                 if (math.all(path.pathFinder.destination == self.PathCoord)) return false;
                 return true;
             }

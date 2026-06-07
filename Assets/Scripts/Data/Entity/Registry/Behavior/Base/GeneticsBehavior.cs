@@ -76,9 +76,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             for (int i = 0; i < geneCount; i++) {
                 _genes[i] = self.random.NextFloat(-1f, 1f);
-            }
-            
-            NormalizeGenes();
+            } NormalizeGenes(this);
         }
 
         public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -103,10 +101,8 @@ namespace Arterra.Data.Entity.Behavior {
         }
         public float Get(MSettings name, float baseValue) {
             if (!initialized) return 0;
-            if (!settings.GeneIndex.TryGetValue(name, out int geneIndex)) {
-                Debug.Log($"{Config.CURRENT.Generation.Entities.RetrieveName((int)entityIndex)} Lacks Gene {name}");
+            if (!settings.GeneIndex.TryGetValue(name, out int geneIndex))
                 return baseValue;
-            }
             GeneticsSettings.GeneFeature feature = settings.Genetics[geneIndex];
             if (!float.IsFinite(baseValue)) return baseValue;
             float interp = math.clamp(_genes[geneIndex], -1, 1);
@@ -133,29 +129,30 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             Genetics child = new(entityIndex, childGenes);
-            child.NormalizeGenes();
+            NormalizeGenes(child);
             return child;
         }
 
-        private void NormalizeGenes() {
+        private void NormalizeGenes(Genetics child) {
             double totalWeight = 0;
             double avgGeneStrength = 0;
-
-            for (int i = 0; i < _genes.Length; i++) {
+            
+            float[] genes = child._genes;
+            for (int i = 0; i < genes.Length; i++) {
                 totalWeight += settings.Genetics[i].geneWeight;
             }
-            for (int i = 0; i < _genes.Length; i++) {
-                _genes[i] = math.clamp(_genes[i], -1, 1);
-                avgGeneStrength += _genes[i] * _genes[i] * (settings.Genetics[i].geneWeight / totalWeight);
+            for (int i = 0; i < genes.Length; i++) {
+                genes[i] = math.clamp(genes[i], -1, 1);
+                avgGeneStrength += genes[i] * genes[i] * (settings.Genetics[i].geneWeight / totalWeight);
             }
             avgGeneStrength = math.sqrt(avgGeneStrength);
             //Only apply normalization if avg gene strength is abnormally high
             if (avgGeneStrength <= 0.5f) return;
 
-            for (int i = 0; i < _genes.Length; i++) {
-                float magnitude = math.abs(_genes[i]);
-                float sign = math.sign(_genes[i]);
-                _genes[i] = sign * magnitude *
+            for (int i = 0; i < genes.Length; i++) {
+                float magnitude = math.abs(genes[i]);
+                float sign = math.sign(genes[i]);
+                genes[i] = sign * magnitude *
                     (float)(1 - avgGeneStrength *
                     (settings.Genetics[i].geneWeight / totalWeight));
             }

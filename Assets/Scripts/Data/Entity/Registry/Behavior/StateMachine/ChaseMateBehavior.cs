@@ -78,9 +78,10 @@ namespace Arterra.Data.Entity.Behavior {
 
             int PathDist = movement.pathDistance;
             int3 destination = (int3)math.round(mate.origin) - self.PathCoord;
-            byte[] nPath = PathFinder.FindPathOrApproachTarget(self.PathCoord, destination, PathDist + 1,
-                MMove.Profile(mmove, settings.Task2Name, self.settings), EntityJob.cxt, out int pLen);
-            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
+            if(!path.FindPathOrApproachTarget(settings.Task1Name, self.PathCoord, destination, PathDist + 1,
+                MMove.Profile(mmove, settings.Task2Name, self.settings), EntityJob.cxt, out byte[] nPath))
+                return false;
+            path.SetPath(nPath);
             manager.Transition(settings.Task2Name);
             return true;
         }

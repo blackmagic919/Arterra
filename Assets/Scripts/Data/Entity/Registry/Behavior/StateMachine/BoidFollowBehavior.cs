@@ -202,14 +202,14 @@ namespace Arterra.Data.Entity.Behavior {
                 return;  
             }
             
-            byte[] nPath = PathFinder.FindPathAlongRay(
+            if(!path.FindPathAlongRay(
+                settings.TaskName,
                 self.PathCoord, ref moveDirection, settings.PathDist,
                 MMove.Profile(mmove, manager.TaskIndex, self.settings), 
-                EntityJob.cxt, out int pLen
-            );
+                EntityJob.cxt, out byte[] nPath
+            )) return;
 
-            path.pathFinder = new PathFinder.PathInfo(self.PathCoord, nPath, pLen);
-
+            path.SetPath(nPath);
             // Blend flocking influences with pathfinding direction
             float3 pathFindDir = math.normalizesafe(path.pathFinder.destination - self.origin);
             moveDirection = math.normalizesafe(pathFindDir + settings.DirectionBias);

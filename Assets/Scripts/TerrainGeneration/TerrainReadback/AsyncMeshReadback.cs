@@ -6,7 +6,7 @@ using System.Linq;
 using Unity.Collections;
 using Arterra.Utils;
 using Arterra.Configuration.Quality;
-using static Arterra.Engine.Terrain.OctreeTerrain;
+using static Arterra.Core.ArterraRuntime;
 
 namespace Arterra.Engine.Terrain.Readback{
 /// <summary>
@@ -331,7 +331,7 @@ public enum ReadbackMaterial{
 /// <summary> A handle to geometry that is stored in <see cref="GenerationPreset.MemoryHandle._GPUMemorySource"> long term GPU storage </see>. 
 /// If the geometry is triangles(an index buffer), the handle will also store information for rendering the geometry indirectly,
 /// by using vertex information stored in a <see cref="AsyncMeshReadback.vertexHandle"> seperate geometry handle </see>.  </summary>
-public class GeometryHandle : IUpdateSubscriber
+public class GeometryHandle : Core.ArterraRuntime.IUpdateSubscriber
 {
     private bool active = false;
     public bool Active {

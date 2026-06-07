@@ -11,7 +11,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Arterra.Configuration;
 using Arterra.Data.Item;
-using Arterra.GamePlay;
+using Arterra.Core;
 using Arterra.Data.Material;
 using Arterra.GamePlay.Interaction;
 using Arterra.Utils;
@@ -814,7 +814,7 @@ namespace Arterra.GamePlay.UI {
             public bool IsHolding => Item != null;
             public bool IsPlacing => State != PlaceState.None;
             public PlaceState State;
-            private IUpdateSubscriber EventTask;
+            private ArterraRuntime.IUpdateSubscriber EventTask;
 
             public CursorManager() {
                 Item = null;
@@ -823,8 +823,8 @@ namespace Arterra.GamePlay.UI {
                 Display = new InventorySlotDisplay(Indicators.ItemSlots.Get());
                 Display.Object.transform.SetParent(Menu.transform);
                 Display.Object.SetActive(false);
-                EventTask = new IndirectUpdate(Update);
-                Arterra.Engine.Terrain.OctreeTerrain.MainLoopUpdateTasks.Enqueue(EventTask);
+                EventTask = new ArterraRuntime.IndirectUpdate(Update);
+                ArterraRuntime.MainLoopUpdateTasks.Enqueue(EventTask);
             }
 
             public bool SplitNewItem(out IItem nItem) {

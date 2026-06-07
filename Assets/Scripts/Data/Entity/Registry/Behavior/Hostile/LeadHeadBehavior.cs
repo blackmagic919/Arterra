@@ -15,7 +15,7 @@ namespace Arterra.Data.Entity.Behavior {
             get => Collider.transform.rotation;
             set => Collider.transform.rotation = value;
         }
-        [JsonIgnore] public float3 HeadPosition => (float3)Collider.transform.position;
+        [JsonIgnore] public float3 HeadPosition => (float3)Collider.transform.position + Collider.transform.size / 2;
     }
 
     [Serializable]

@@ -25,7 +25,7 @@ namespace Arterra.Data.Item
     }
 
     [Serializable]
-    public class WeaponToolItem : ToolItem, IUpdateSubscriber {
+    public class WeaponToolItem : ToolItem, Core.ArterraRuntime.IUpdateSubscriber {
         private ItemContext cxt;
         private bool active = false;
         public bool Active {
@@ -38,7 +38,7 @@ namespace Arterra.Data.Item
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
                 effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
-            OctreeTerrain.MainLoopUpdateTasks.Enqueue(this);
+            Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(this);
             this.active = true; this.cxt = cxt;
             
                 InputPoller.AddBinding(new ActionBind(

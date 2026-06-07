@@ -2,14 +2,14 @@ using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Configuration;
 using Arterra.Engine.Terrain;
-using Arterra.GamePlay;
 using Arterra.Data.Entity.Behavior;
+using Arterra.Core;
 
 namespace Arterra.GamePlay.UI {
     public static class PlayerCrosshair {
         private static GameObject Crosshair;
         private static Animator Animator;
-        private static IndirectUpdate executor;
+        private static ArterraRuntime.IndirectUpdate executor;
         private static bool enabled;
         private static bool active;
         public static void Initialize() {
@@ -52,8 +52,8 @@ namespace Arterra.GamePlay.UI {
             }
 
             if (Crosshair.activeSelf) {
-                executor = new IndirectUpdate(Update);
-                OctreeTerrain.MainLoopUpdateTasks.Enqueue(executor);
+                executor = new ArterraRuntime.IndirectUpdate(Update);
+                ArterraRuntime.MainLoopUpdateTasks.Enqueue(executor);
             }
         }
 

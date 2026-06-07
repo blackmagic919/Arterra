@@ -12,6 +12,7 @@ using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Editor;
+using Arterra.Core;
 
 namespace Arterra.Data.Item
 {
@@ -240,7 +241,7 @@ namespace Arterra.Data.Item
             return true;
         }
 
-        private class FishingLine : IUpdateSubscriber{
+        private class FishingLine : Core.ArterraRuntime.IUpdateSubscriber{
             public Entity.Entity Holder;
             public Entity.Entity HookingEntity;
             private bool active = false;
@@ -278,7 +279,7 @@ namespace Arterra.Data.Item
 
                 LineObject = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/FishingLine"));
                 renderer = LineObject.GetComponent<LineRenderer>();
-                OctreeTerrain.MainLoopUpdateTasks.Enqueue(this);
+                ArterraRuntime.MainLoopUpdateTasks.Enqueue(this);
 
                 HookingEntity.eventCtrl.AddContextlessEventHandler(HookEvent, OnHookedEntity);
                 HookingEntity.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_InLiquid, SinkEntity);

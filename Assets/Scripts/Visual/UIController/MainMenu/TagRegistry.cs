@@ -357,6 +357,7 @@ namespace Arterra.Configuration {
             { Tags.AquaMicrobial, new ConvertibleTag() },
             { Tags.Combustible, new CombustibleTag() },
             //Material Types
+            { Tags.Coral, null },
             { Tags.Coral1, null },
             { Tags.Coral2, null },
             //Interaction Type

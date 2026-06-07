@@ -19,7 +19,7 @@ using Arterra.GamePlay;
 using Arterra.Engine.Terrain.Readback;
 using Arterra.Utils;
 using Arterra.Data.Structure;
-using Arterra.Configuration.Gameplay;
+using Arterra.Core;
 
 public static class EntityManager
 {
@@ -171,7 +171,7 @@ public static class EntityManager
         EntityIndex = new Dictionary<Guid, Entity>();
         HandlerEvents = new ConcurrentQueue<Action>();
         Executor = new EntityJob();
-        OctreeTerrain.MainFixedUpdateTasks.Enqueue(Executor);
+        ArterraRuntime.MainFixedUpdateTasks.Enqueue(Executor);
         Indicators.Initialize();
 
         int numPointsPerAxis = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
@@ -650,7 +650,7 @@ public static class EntityManager
     }
 }
 
-public class EntityJob : IUpdateSubscriber{
+public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
     //Always active
     public bool Active {
         get => true;
