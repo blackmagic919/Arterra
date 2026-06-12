@@ -118,6 +118,7 @@
 			<destination>{46e38953-1e14-4f7e-9a19-f38a6ad65a81}</destination>
 			<destination>{d029c711-6b94-41f3-8f85-568b4f7ccc7a}</destination>
 			<destination>{1ed9d2e5-8a37-4bba-afd8-4592a9d83784}</destination>
+			<destination>{84791bf4-7686-4c5a-8224-f21f359c8ec2}</destination>
 		</relationship>
 		<relationship name="mixerGroup">
 			<destination>{fdb29d6c-fb7e-4dd4-84cf-3362a7fd5a85}</destination>
@@ -611,6 +612,7 @@
 			<destination>{b6adb18a-f80f-453d-91f2-24af166afabb}</destination>
 			<destination>{99181303-0b51-4cbe-bdf7-4d73824f433c}</destination>
 			<destination>{c795ec24-38bf-4f48-87be-deb20ac813b7}</destination>
+			<destination>{84791bf4-7686-4c5a-8224-f21f359c8ec2}</destination>
 		</relationship>
 		<relationship name="markers">
 			<destination>{e9e35c50-8dc2-421d-b22f-eddf1ad7de94}</destination>
@@ -731,6 +733,17 @@
 		</property>
 		<relationship name="fadeInCurve">
 			<destination>{b9982f1a-3f9d-4b72-a75a-b496f9ece937}</destination>
+		</relationship>
+	</object>
+	<object class="SingleSound" id="{84791bf4-7686-4c5a-8224-f21f359c8ec2}">
+		<property name="start">
+			<value>446</value>
+		</property>
+		<property name="length">
+			<value>172.8522448979592</value>
+		</property>
+		<relationship name="audioFile">
+			<destination>{6b473976-af9e-43e4-84e2-0b8c92988a37}</destination>
 		</relationship>
 	</object>
 	<object class="EventMixerGroup" id="{fdb29d6c-fb7e-4dd4-84cf-3362a7fd5a85}">
