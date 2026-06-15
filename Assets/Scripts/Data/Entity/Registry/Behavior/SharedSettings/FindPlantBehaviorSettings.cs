@@ -11,21 +11,32 @@ using Arterra.Data.Item;
 using Arterra.Data.Structure;
 using Arterra.Core.Storage;
 using Arterra.Data.Material;
+using Arterra.Utils;
 
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class FindPlantBehaviorSettings : IBehaviorSetting {
-        [JsonIgnore]
-        [UISetting(Ignore = true)]
-        [HideInInspector]
-        internal Dictionary<int, int> AwarenessTable;
-        public Option<List<Plant>> Prey;
-        public bool HasPlantyPrey => Prey.value != null && Prey.value.Count > 0;
+        public Option<RangeMap<Plant>> Prey;
+        public static bool HasPrey(FindPlantBehaviorSettings val) => !(val == null 
+        || val.Prey.value == null || val.Prey.value.AllowList.value == null
+        || val.Prey.value.AllowList.value == null || val.Prey.value.AllowList.value.Count == 0);
 
         [Serializable]
-        public struct Plant{
-            [RegistryReference("Materials")]
-            public string Material;
+        public struct Plant : IRangeBlock{
+            [TagOrRegistryReference("Materials")]
+            public TagOrRegistryReference Material;
+            public IRangeBlock.Policy Policy;
+            [JsonIgnore]
+            public TagOrRegistryReference selection {
+                readonly get => Material;
+                set => Material = value;
+            }
+            [JsonIgnore]
+            public IRangeBlock.Policy policy {
+                readonly get => Policy;
+                set => Policy = value;
+            }
+
             [RegistryReference("Materials")]
             //If null, gradually removes it
             public string Replacement;
@@ -39,27 +50,22 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            IRegister mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-            AwarenessTable ??= new Dictionary<int, int>();
+            ICatalgoue mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             if(Prey.value == null) return;
-
-            for(int i = 0; i < Prey.value.Count; i++){
-                int materialIndex = mReg.RetrieveIndex(Prey.value[i].Material);
-                AwarenessTable.TryAdd(materialIndex,  i);
-            }
+            Prey.value.Construct(mReg);
         }
         public bool FindPreferredPreyPlant(int3 center, int pFindDist, out int3 entry){
             int3 dx = new(0); entry = new int3(0);
-            if(Prey.value == null || Prey.value.Count == 0) return false;
-            Dictionary<int, int> Awareness = AwarenessTable;
+            if(!HasPrey(this)) return false;
             float minDist = -1;
             for(dx.x = -pFindDist; dx.x < pFindDist; dx.x++){
             for(dx.y = -pFindDist; dx.y < pFindDist; dx.y++){
             for(dx.z = -pFindDist; dx.z < pFindDist; dx.z++){
                 int3 GCoord = center + dx;
                 MapData mapInfo = CPUMapManager.SampleMap(GCoord);
-                if(!Awareness.TryGetValue(mapInfo.material, out int preference)) continue;
-                if(!Prey.value[preference].Bounds.Contains(mapInfo)) continue;
+                if(!Prey.value.TryGetInfo(mapInfo.material, out Plant plant))
+                    continue;
+                if(!plant.Bounds.Contains(mapInfo)) continue;
                 float dist = math.csum(math.abs(dx)); //manhattan distance
                 if(minDist == -1 || dist < minDist) {
                     minDist = dist;
@@ -73,9 +79,8 @@ namespace Arterra.Data.Entity.Behavior {
             MapData mapData = CPUMapManager.SampleMap(preyCoord);
             if (mapData.IsNull) return null;
             
-            Dictionary<int, int> Awareness = AwarenessTable;
-            if(!Awareness.TryGetValue(mapData.material, out int preference)) return null;
-            Plant plant = Prey.value[preference];
+            if(!Prey.value.TryGetInfo(mapData.material, out Plant plant))
+                return null;
             if(!plant.Bounds.Contains(mapData)) return null;
             Catalogue<MaterialData> matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
 
@@ -103,7 +108,7 @@ namespace Arterra.Data.Entity.Behavior {
         public bool CanConsume(int3 preyCoord) {
             MapData mapData = CPUMapManager.SampleMap(preyCoord);
             if (mapData.IsNull) return false;
-            return AwarenessTable.ContainsKey(mapData.material);
+            return Prey.value.IsAllowListed(mapData.material, out int _);
         }
     }
 }

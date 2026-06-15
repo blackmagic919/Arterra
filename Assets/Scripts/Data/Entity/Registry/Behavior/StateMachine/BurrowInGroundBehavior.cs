@@ -75,7 +75,7 @@ namespace Arterra.Data.Entity.Behavior{
         }
         
     }
-    public class BurrowInGroundBehavior : ISpeciesBehavior {
+    public class BurrowInGroundBehavior : SpeciesBehavior {
         private BurrowInGroundSetting settings;
         private Movement movement;
         private MMove mmove;
@@ -95,7 +95,7 @@ namespace Arterra.Data.Entity.Behavior{
         private float BurrowMinDist => Modifier.Get(mod, MSettings.BurrowMinDist, settings.BurrowMinDist);
         private float UnburrowThresh => Modifier.Get(mod, MSettings.UnburrowThresh, settings.UnburrowThresh);
         private float DigDist => Modifier.Get(mod, MSettings.DigDist, settings.DigDist);
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             bool IsBurrowing = true;
             if (manager.TaskIndex == settings.Task1Name) 
@@ -115,10 +115,10 @@ namespace Arterra.Data.Entity.Behavior{
         private void BurrowUnderground(BehaviorEntity.Animal self) {
             if (path.pathFinder.hasPath) {
                 float speed = WalkSpeed(settings.Task1Name);
-                self.PathCollider.Follow(Movement.StaticDirect(
+                self.PathCollider.Follow(self, Movement.StaticDirect(
                     settings.paths.BurrowProfile, settings.paths.BurrowBounds, ref path.pathFinder, self.PathCollider,
                     MMove.MovementType(mmove, settings.Task1Name)
-                ), speed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
+                ), speed, movement.rotSpeed, self.DeltaTime, GameEvent.Entity_Burrow);
                 return;
             }
 
@@ -157,10 +157,10 @@ namespace Arterra.Data.Entity.Behavior{
             }
 
             float speed = WalkSpeed(settings.Task3Name);
-            self.PathCollider.Follow(Movement.StaticDirect(
+            self.PathCollider.Follow(self, Movement.StaticDirect(
                 settings.paths.BurrowProfile, settings.paths.BurrowBounds, ref path.pathFinder, self.PathCollider,
                 MMove.MovementType(mmove, settings.Task3Name)
-            ), speed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
+            ), speed, movement.rotSpeed, self.DeltaTime, GameEvent.Entity_Unburrow);
         }
 
         private void FindPathOut() {
@@ -235,17 +235,17 @@ namespace Arterra.Data.Entity.Behavior{
             }
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(BurrowInGroundSetting), new BurrowInGroundSetting());
             heirarchy.TryAdd(typeof(Movement), new Movement());
         }
         
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
@@ -267,7 +267,7 @@ namespace Arterra.Data.Entity.Behavior{
             this.self = self;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
@@ -289,7 +289,7 @@ namespace Arterra.Data.Entity.Behavior{
             this.self = self;
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
         }
     }

@@ -29,7 +29,7 @@ namespace Arterra.Data.Entity.Behavior {
     /// <summary>
     /// Bridges gameplay events and movement state into animator parameters and triggers.
     /// </summary>
-    public class PlayerEffectsBehavior : ISpeciesBehavior {
+    public class PlayerEffectsBehavior : SpeciesBehavior {
         [JsonIgnore] public PlayerEffectsSettings settings;
 
         private PhysicalitySetting physicality;
@@ -39,11 +39,11 @@ namespace Arterra.Data.Entity.Behavior {
         private bool isSwimming;
         private bool isShaking;
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
             hierarchy.TryAdd(typeof(PlayerEffectsSettings), new PlayerEffectsSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerEffectsBehavior requires PlayerEffectsSettings");
             if (!setting.Is(out physicality)) physicality = null;
@@ -56,7 +56,7 @@ namespace Arterra.Data.Entity.Behavior {
             BindEvents(self);
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerEffectsBehavior requires PlayerEffectsSettings");
             if (!setting.Is(out physicality)) physicality = null;
@@ -69,7 +69,7 @@ namespace Arterra.Data.Entity.Behavior {
             BindEvents(self);
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
 
             if (heldItem != null) {
@@ -80,7 +80,7 @@ namespace Arterra.Data.Entity.Behavior {
             animator = null;
         }
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (animator == null) return;
             if (self.context == BehaviorEntity.UpdateContext.Job)
                 return;

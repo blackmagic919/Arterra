@@ -21,7 +21,7 @@ public class RideableStateSettings : IBehaviorSetting {
     }
 }
 
-public class RidableStateBehavior : ISpeciesBehavior {
+public class RidableStateBehavior : SpeciesBehavior {
     private RideableStateSettings settings;
     private Movement movement;
     private MMove mmove; //optional
@@ -34,6 +34,7 @@ public class RidableStateBehavior : ISpeciesBehavior {
 
     private float AllowRideAffinity => Modifier.Get(mod, MSettings.AllowRideAffinity, settings.AllowRideAffinity);
     private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
+    const float AccelTime = 0.075f;
 
     public void OnDismounted(object src, object caller) {
         if (manager.TaskIndex == EntitySMTasks.FollowRider)
@@ -47,10 +48,10 @@ public class RidableStateBehavior : ISpeciesBehavior {
         if (math.length(self.velocity) > RunSpeed)
             return;
 
-        self.velocity += movement.acceleration * self.DeltaTime * aim;
+        self.velocity += (RunSpeed / AccelTime) * self.DeltaTime * aim;
     }
 
-    public void Update(BehaviorEntity.Animal self) {
+    public override void Update(BehaviorEntity.Animal self) {
         if (manager.TaskIndex != settings.TaskName) return;
         if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
         
@@ -86,17 +87,17 @@ public class RidableStateBehavior : ISpeciesBehavior {
     }
 
 
-    public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+    public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
         heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
         //Deactivated unless IAttackable is implemented
     }
 
-    public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+    public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
         heirarchy.TryAdd(typeof(RideableStateSettings), new RideableStateSettings());
         heirarchy.TryAdd(typeof(Movement), new Movement());
     }
 
-    public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+    public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
         if (!setting.Is(out settings))
             throw new System.Exception("Entity: RideableState Behavior Requires AnimalSettings to have RideableStateSettings");
         if (!setting.Is(out movement))
@@ -115,7 +116,7 @@ public class RidableStateBehavior : ISpeciesBehavior {
         this.self = self;
     }
 
-    public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
+    public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
         if (!setting.Is(out settings))
             throw new System.Exception("Entity: RideableState Behavior Requires AnimalSettings to have RideableStateSettings");
         if (!setting.Is(out movement))
@@ -134,7 +135,7 @@ public class RidableStateBehavior : ISpeciesBehavior {
         this.self = self;
     }
 
-    public void Disable(BehaviorEntity.Animal self) {
+    public override void Disable(BehaviorEntity.Animal self) {
         this.self = null;
     }
 

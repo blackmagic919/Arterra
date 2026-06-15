@@ -16,32 +16,32 @@ namespace Arterra.Data.Entity.Behavior{
         }
     }
 
-    public class FlapWingsBehavior : ISpeciesBehavior {
+    public class FlapWingsBehavior : SpeciesBehavior {
         private FlapWingsBehaviorSettings settings;
         private AnimatedBehavior animator;
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.Job) return;
             if (animator.GetCurrentAnimation() != settings.FlyingAnimatorParam) return;
             if (self.velocity.y >= -1E-4f) animator.SetBool(settings.FlapWingsAnimatorParam, true);
             else animator.SetBool(settings.FlapWingsAnimatorParam, false);
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.Animator, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(FlapWingsBehaviorSettings), new FlapWingsBehaviorSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: FlapWing Behavior Requires AnimalSettings to have FlapWingSettings");
             if (!self.Is(out animator))
                 throw new System.Exception("Entity: FlapWing Behavior Requires AnimalInstance to have AnimatedBehavior");
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: FlapWing Behavior Requires AnimalSettings to have FlapWingSettings");
             if (!self.Is(out animator))

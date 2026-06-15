@@ -47,24 +47,25 @@ namespace Arterra.Data.Item
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
                 effect.RaiseEvent(GameEvent.Item_UnholdTool, effect, this, ref settings.Model.Value);
             
-                InputPoller.RemoveBinding("ITEM::MCTool:CNV", "5.0::GamePlay");
-                InputPoller.RemoveBinding("ITEM::MCTool:RM", "5.0::GamePlay");
+            InputPoller.RemoveBinding("ITEM::MCTool:CNV", "5.0::GamePlay");
+            InputPoller.RemoveBinding("ITEM::MCTool:RM", "5.0::GamePlay");
             
         }
 
         private void PlayerModifyTerrain(ItemContext cxt) {
             if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
             if (!player.Is(out PlayerInteractionBehavior interact)) return;
-            InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
             if (!interact.RayTestSolid(out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _))
                 return;
             
+            bool targetted = false;
             bool ModifySolid(int3 GCoord, float speed) {
                 MapData mapData = CPUMapManager.SampleMap(GCoord);
                 int material = mapData.material;
                 if (!IMaterialConverting.CanConvert(mapData, GCoord, settings.ConverterTag, out ConverterToolTag tag))
                     return false;
+                targetted = true;
                 if (UnityEngine.Random.Range(0.0f, 1.0f) >= tag.TerraformSpeed)
                     return false;
                 if (!MaterialData.SwapMaterial(GCoord, MatInfo.RetrieveIndex(tag.ConvertTarget), out IItem origItem))
@@ -78,6 +79,7 @@ namespace Arterra.Data.Item
                 effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);
 
             CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
+            if (targetted) InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
             UpdateDisplay();
 
             if (durability > 0) return;

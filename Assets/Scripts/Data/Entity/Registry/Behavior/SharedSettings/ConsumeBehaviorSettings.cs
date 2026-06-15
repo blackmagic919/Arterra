@@ -4,19 +4,19 @@ using System.Collections.Generic;
 using Arterra.Configuration;
 using Arterra.Data.Item;
 using Arterra.Editor;
+using Arterra.Utils;
 using Newtonsoft.Json;
 using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class ConsumeBehaviorSettings : IBehaviorSetting {
-        public Option<List<Consumable>> Edibles;
+        public Option<RangeMap<Consumable>> Edibles;
         public float ConsumptionRate;
 
-        [JsonIgnore]
-        [UISetting(Ignore = true)]
-        [HideInInspector]
-        internal Dictionary<int, int> AwarenessTable;
+        public static bool HasEdibles(ConsumeBehaviorSettings val) => !(val == null 
+            || val.Edibles.value == null || val.Edibles.value.AllowList.value == null
+            || val.Edibles.value.AllowList.value == null || val.Edibles.value.AllowList.value.Count == 0);
 
         public object Clone() {
             return new ConsumeBehaviorSettings(){
@@ -26,34 +26,39 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            Catalogue<Arterra.Data.Item.Authoring> iReg = Config.CURRENT.Generation.Items;
-            AwarenessTable ??= new Dictionary<int, int>();
+            Catalogue<Item.Authoring> iReg = Config.CURRENT.Generation.Items;
             if(Edibles.value == null) return;
-
-            for(int i = 0; i < Edibles.value.Count; i++){
-                int itemIndex = iReg.RetrieveIndex(Edibles.value[i].EdibleType);
-                AwarenessTable.TryAdd(itemIndex, i);
-            }
+            Edibles.value.Construct(iReg);
         }
 
         public bool CanConsume(Modifier mod, IItem item, out float nutrition) {
             nutrition = 0;
             if (Edibles.value == null) return false;
-            if (AwarenessTable == null) return false;
-            if (!AwarenessTable.ContainsKey(item.Index)) return false;
-            nutrition = Modifier.Get(mod, MSettings.Nutrition, Edibles.value[AwarenessTable[item.Index]].Nutrition);
+            if (!Edibles.value.TryGetInfo(item.Index, out Consumable consumable)) return false;
+            nutrition = Modifier.Get(mod, MSettings.Nutrition, consumable.Nutrition);
             nutrition *= (float)item.AmountRaw / item.UnitSize;
             return true;
         }
 
         public bool CanConsume(int itemIndex, out int preference) {
-            return AwarenessTable.TryGetValue(itemIndex, out preference);
+            return Edibles.value.IsAllowListed(itemIndex, out preference);
         }
 
         [Serializable]
-        public struct Consumable {
-            [RegistryReference("Items")]
-            public string EdibleType;
+        public struct Consumable : IRangeBlock {
+            [TagOrRegistryReference("Items")]
+            public TagOrRegistryReference EdibleType;
+            public IRangeBlock.Policy Policy;
+            [JsonIgnore]
+            public TagOrRegistryReference selection {
+                readonly get => EdibleType;
+                set => EdibleType = value;
+            }
+            [JsonIgnore]
+            public IRangeBlock.Policy policy {
+                readonly get => Policy;
+                set => Policy = value;
+            }
             public float Nutrition;
         }
     }

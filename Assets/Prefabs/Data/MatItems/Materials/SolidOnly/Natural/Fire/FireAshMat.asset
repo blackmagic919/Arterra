@@ -26,6 +26,7 @@ MonoBehaviour:
   terrainData:
     Texture: 1
     textureScale: 3
+    FlipStateRendering: 0
     GeoShaderIndex:
       data: 2147614723
   AtmosphereScatter:
@@ -41,69 +42,21 @@ MonoBehaviour:
     waveStrength: 0
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
-  metaData:
-    LightIntensity: 271
-    FlipStateRendeing: 0
+  Roughness: 0.2
   SelfCondition:
     data: 4286643968
-  ConversionData:
-    value:
-    - check:
-        bounds:
-          data: 4278255360
-        flags: 4
-      _material: 2147483652
-      _offset: 537395712
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 2
-      _material: 0
-      _offset: 537396736
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 2
-      _material: 0
-      _offset: 537394688
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 2
-      _material: 0
-      _offset: 538444288
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 2
-      _material: 2147483648
-      _offset: 536347136
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 2
-      _material: 0
-      _offset: 537395713
-    - check:
-        bounds:
-          data: 2130738944
-        flags: 2
-      _material: 0
-      _offset: 537395711
-  ConvertRegions:
-    value:
-    - checkStart: 1
-      checkEnd: 6
-      convertStart: 0
-      convertEnd: 0
-  DefaultDecay:
+  NeighborCondition:
+    bounds:
+      data: 2130738944
+    flags: 2
+  DecayResult:
     check:
       bounds:
         data: 4278255360
       flags: 4
     _material: 2147483652
     _offset: 537395712
-  DefaultDecayChance: 0.5
+  DecayChance: 0.5
   MaterialDrops:
     SolidLootTable:
       value: []

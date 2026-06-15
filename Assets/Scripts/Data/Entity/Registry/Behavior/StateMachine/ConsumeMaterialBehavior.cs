@@ -32,7 +32,7 @@ namespace Arterra.Data.Entity.Behavior {
 
     }
 
-    public class ConsumeMaterialBehavior : ISpeciesBehavior {
+    public class ConsumeMaterialBehavior : SpeciesBehavior {
         public ConsumeMaterialSettings settings;
         public ConsumeBehaviorSettings consume;
         private FindPlantBehaviorSettings findPlant;
@@ -41,7 +41,7 @@ namespace Arterra.Data.Entity.Behavior {
         private VitalityBehavior vitality;
         private Modifier mod;
         
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
@@ -62,18 +62,18 @@ namespace Arterra.Data.Entity.Behavior {
             return true;
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(ConsumeMaterialSettings), new ConsumeMaterialSettings());
             heirarchy.TryAdd(typeof(ConsumeBehaviorSettings), new ConsumeBehaviorSettings());
             heirarchy.TryAdd(typeof(FindPlantBehaviorSettings), new FindPlantBehaviorSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalSettings to have ConsumeEntitySettings");
             if (!setting.Is(out consume))
@@ -88,7 +88,7 @@ namespace Arterra.Data.Entity.Behavior {
             manager.RegisterTransition(settings.TaskName, TransitionTo);
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: ConsumeMaterial Behavior Requires AnimalSettings to have ConsumeEntitySettings");
             if (!setting.Is(out consume))

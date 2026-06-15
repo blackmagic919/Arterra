@@ -54,25 +54,25 @@ namespace Arterra.Data.Item
             }
         }
         public IRegister GetRegistry() => Config.CURRENT.Generation.Items;
-        public object Clone() => new MatConverterItem { data = data };
+        public virtual object Clone() => new MatConverterItem { data = data };
         public void Create(int Index, int AmountRaw) {
             this.Index = Index;
             this.AmountRaw = AmountRaw;
         }
         public void UpdateEItem() { }
 
-        public void OnEnter(ItemContext cxt) {
+        public virtual void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             
                 InputPoller.AddBinding(new ActionBind(
                     "ConvertMaterial",
                     _ => PlayerModifyTerrain(cxt),
-                    ActionBind.Exclusion.ExcludeLayer),
-                    "ITEM::MatConverter:CNV", "5.0::GamePlay");
+                    ActionBind.Exclusion.None
+                ), "ITEM::MatConverter:CNV", "5.0::GamePlay");
             
         }
 
-        public void OnLeave(ItemContext cxt) {
+        public virtual void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             
                 InputPoller.RemoveBinding("ITEM::MatConverter:CNV", "5.0::GamePlay");
@@ -119,13 +119,18 @@ namespace Arterra.Data.Item
                 return;
             }
 
+            //Exclude only on hit (consume keybind only when pointing at ground)
+            bool targetted = false;
             int curMat = MatInfo.RetrieveIndex(settings.MaterialName);
             bool ModifySolid(int3 GCoord, float speed) {
                 MapData mapData = CPUMapManager.SampleMap(GCoord);
                 
-                if (mapData.material == curMat) return false;
-                if (!IMaterialConverting.CanConvert(mapData, GCoord, settings.ConverterTag, out ConvertibleToolTag tag))
+                if (mapData.material == curMat) {
+                    targetted = true;
                     return false;
+                } if (!IMaterialConverting.CanConvert(mapData, GCoord, settings.ConverterTag, out ConvertibleToolTag tag))
+                    return false;
+                targetted = true;
                 if (UnityEngine.Random.Range(0.0f, 1.0f) > tag.TerraformSpeed)
                     return false;
                 if (!MaterialData.SwapMaterial(GCoord, curMat, out IItem origItem))
@@ -135,10 +140,11 @@ namespace Arterra.Data.Item
                 AmountRaw -= CustomUtility.GetStaggeredDelta(AmountRaw, -tag.ToolDamage * mapData.density, StackLimit);
                 return true;
             }
-
+            
             CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
+            if (targetted) InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
             UpdateDisplay();
-
+            
             if (AmountRaw > 0) return;
             //Removes itself
             cxt.TryRemove();

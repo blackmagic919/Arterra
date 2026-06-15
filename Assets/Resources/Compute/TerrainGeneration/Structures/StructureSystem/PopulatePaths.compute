@@ -5,7 +5,7 @@
 #include "Assets/Resources/Compute/TerrainGeneration/Structures/StructureSystem/StructurePathHelpers.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/Structures/StructureSystem/AppendStructure.hlsl"
 
-const static int threadGroupSize = 128;
+const static int threadGroupSize = 256;
 
 uint bSTART_batchPathList;
 uint bSTART_batchRanges;

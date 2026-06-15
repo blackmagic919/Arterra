@@ -32,7 +32,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class MapInteractBehavior : ISpeciesBehavior {
+    public class MapInteractBehavior : SpeciesBehavior {
         [JsonIgnore] public MapInteractorSettings settings;
         public MapInteractorSettings.InteractType Interaction;
         private Modifier mod;
@@ -47,7 +47,7 @@ namespace Arterra.Data.Entity.Behavior {
         public void SetInteractionType(MapInteractorSettings.InteractType type) => Interaction = type;
         public void ResetInteractionType() => Interaction = settings.interactType;
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync)
                 return;
             if (self.context == BehaviorEntity.UpdateContext.Main)
@@ -144,15 +144,15 @@ namespace Arterra.Data.Entity.Behavior {
             EntityManager.AddHandlerEvent(() => vitality.TakeDamage(damage, 0, null));
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(MapInteractorSettings), new MapInteractorSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have MapInteractorSettings");
             if (!self.Is(out vitality))
@@ -163,7 +163,7 @@ namespace Arterra.Data.Entity.Behavior {
             ResetInteractionType();
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have MapInteractorSettings");
             if (!self.Is(out vitality))

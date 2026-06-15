@@ -40,7 +40,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class MultiAttackBehavior : ISpeciesBehavior {
+    public class MultiAttackBehavior : SpeciesBehavior {
         private MultiAttackSettings settings;
         private AnimatedBehavior animated;
         private AttackBehavior attack;
@@ -73,7 +73,7 @@ namespace Arterra.Data.Entity.Behavior {
             SelectedAttack = -1;
         }
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.Job) return;
             if(animated == null || attack == null) return;
             
@@ -86,11 +86,11 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(MultiAttackSettings), new MultiAttackSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: MultiAttack Behavior Requires AnimalSettings to have MultiAttackSettings");
             if (!self.Is(out animated)) animated = null;
@@ -101,7 +101,7 @@ namespace Arterra.Data.Entity.Behavior {
             PlayingAttack = false;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: MultiAttack Behavior Requires AnimalSettings to have MultiAttackSettings");
             if (!self.Is(out animated)) animated = null;

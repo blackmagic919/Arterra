@@ -41,23 +41,23 @@ namespace Arterra.Data.Entity.Behavior
 		}
 	}
 
-	public class TentacleBehavior : ISpeciesBehavior {
+	public class TentacleBehavior : SpeciesBehavior {
 		private TentacleSettings settings;
 		private AnimatedBehavior animated;
 		private StateMachineManagerBehavior manager;
 		[JsonProperty] private Tentacle[] tentacles;
 		private IAttackable selfAtk;
 
-		public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+		public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
 			heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
 			heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
 		}
 
-		public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+		public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
 			heirarchy.TryAdd(typeof(TentacleSettings), new TentacleSettings());
 		}
 
-		public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+		public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
 			if (!setting.Is(out settings))
 				throw new Exception("Entity: TentacleBehavior requires TentacleSettings");
 			if (!self.Is(out selfAtk))
@@ -68,7 +68,7 @@ namespace Arterra.Data.Entity.Behavior
 			SetUp(self);
 		}
 
-		public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+		public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
 			if (!setting.Is(out settings))
 				throw new Exception("Entity: TentacleBehavior requires TentacleSettings");
 			if (!self.Is(out selfAtk))
@@ -110,7 +110,7 @@ namespace Arterra.Data.Entity.Behavior
 			return true;
 		}
 
-		public void Update(BehaviorEntity.Animal self) {
+		public override void Update(BehaviorEntity.Animal self) {
             if (self.context != BehaviorEntity.UpdateContext.JobSync)
                 CoreUpdate(self);
             if (self.context != BehaviorEntity.UpdateContext.Job)
@@ -132,12 +132,12 @@ namespace Arterra.Data.Entity.Behavior
 			foreach(var c in tentacles) c.UpdateJobSync();
 		}
 
-		public void Disable(BehaviorEntity.Animal self) {
+		public override void Disable(BehaviorEntity.Animal self) {
 			if (tentacles == null) return;
 			foreach(Tentacle t in tentacles) t.Disable();
 		}
 
-		public void OnDrawGizmos(BehaviorEntity.Animal self) {
+		public override void OnDrawGizmos(BehaviorEntity.Animal self) {
             Gizmos.color = Color.green;
             foreach(Tentacle l in tentacles) {
                 if (l.State == Tentacle.TentacleState.Attack) Gizmos.color = Color.red;

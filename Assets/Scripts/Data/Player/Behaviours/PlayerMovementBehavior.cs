@@ -26,11 +26,6 @@ namespace Arterra.Data.Entity.Behavior {
         /// <summary>The upward impulse applied when the player jumps.</summary>
         public float jumpForce = 5f;
         /// <summary>
-        /// The acceleration added while moving. Since this is added to velocity,
-        /// effective friction scales with current speed.
-        /// </summary>
-        public float acceleration = 100f;
-        /// <summary>
         /// How far below the player the ground can be while still counting as grounded
         /// for jump and friction behavior.
         /// </summary>
@@ -46,7 +41,6 @@ namespace Arterra.Data.Entity.Behavior {
                 walkSpeed = walkSpeed,
                 runSpeed = runSpeed,
                 jumpForce = jumpForce,
-                acceleration = acceleration,
                 groundStickDist = groundStickDist,
                 flightSpeedMultiplier = flightSpeedMultiplier,
             };
@@ -57,9 +51,10 @@ namespace Arterra.Data.Entity.Behavior {
     /// Handles all player locomotion patterns (ground, swim, flight, ride)
     /// and switches the active movement mode through input stack polls.
     /// </summary>
-    public class PlayerMovementBehavior : ISpeciesBehavior, IRider {
+    public class PlayerMovementBehavior : SpeciesBehavior, IRider {
         /// <summary>Resolved movement settings for this behavior instance.</summary>
         [JsonIgnore] public PlayerMovementSettings settings;
+        private Modifier mod;
 
         private BehaviorEntity.Animal self;
         private VitalityBehavior vit;
@@ -71,25 +66,33 @@ namespace Arterra.Data.Entity.Behavior {
         private FlightMovementPattern flightPattern;
         private RideMovementPattern ridePattern;
 
-        private float MoveSpeed2D => sprinting ? settings.runSpeed : settings.walkSpeed;
-        private float FlightMoveSpeed => settings.flightSpeedMultiplier * MoveSpeed2D;
+        private float RunSpeed => Modifier.GetInt(mod, MSettings.RunSpeed, settings.runSpeed);
+        private float WalkSpeed => Modifier.GetInt(mod, MSettings.WalkSpeed, settings.walkSpeed);
+        private float FlightSpeedMultiplier => Modifier.GetInt(mod, MSettings.FlightSpeedMult, settings.flightSpeedMultiplier);
+        private float JumpForce => Modifier.GetInt(mod, MSettings.JumpForce, settings.jumpForce);
+
+        private float MoveSpeed2D => sprinting ? RunSpeed : WalkSpeed;
+        private GameEvent MoveEvent => sprinting ? GameEvent.Action_Run : GameEvent.Action_Walk;
+        private float FlightMoveSpeed => FlightSpeedMultiplier * MoveSpeed2D;
         private bool IsActive => (!vit?.IsDead) ?? true;
+        const float AccelTime = 0.075f;
 
         /// <summary>Declares required behavior dependencies.</summary>
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
             hierarchy.TryAdd(Behaviors.Collider, hierarchy.Count);
         }
 
         /// <summary>Declares required settings dependencies.</summary>
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
             hierarchy.TryAdd(typeof(PlayerMovementSettings), new PlayerMovementSettings());
         }
 
         /// <summary>Initializes movement state and input bindings for a newly spawned entity.</summary>
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerMovementBehavior requires PlayerMovementSettings");
             if (!self.Is(out vit)) vit = null;
+            if (!self.Is(out mod)) mod = null;
 
             this.self = self;
             self.Register(this);
@@ -101,10 +104,11 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         /// <summary>Initializes movement state and bindings after entity deserialization.</summary>
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerMovementBehavior requires PlayerMovementSettings");
             if (!self.Is(out vit)) vit = null;
+            if (!self.Is(out mod)) mod = null;
 
             this.self = self;
             self.Register(this);
@@ -116,7 +120,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         /// <summary>Disables movement patterns and clears active references.</summary>
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             UnbindCommonInput();
             groundPattern?.Disable();
             ridePattern?.Disable();
@@ -160,7 +164,7 @@ namespace Arterra.Data.Entity.Behavior {
 
 
         /// <summary>Runs per-frame movement input stack processing for the controlled player.</summary>
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (!IsActive) return;
             if (self.context == BehaviorEntity.UpdateContext.Job)
                 return;
@@ -208,8 +212,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void UpdateGround() {
             float2 desiredMove = (self.Forward * inputDir.y + self.Right * inputDir.x).xz;
-            float2 deltaV = settings.acceleration * self.DeltaTime * desiredMove;
-            AddVelocity2D(deltaV, MoveSpeed2D);
+            AddVelocity2D(desiredMove, MoveSpeed2D, MoveEvent);
 
             if (self.Is(out PlayerEffectsBehavior effects)) {
                 effects.PlayAnimatorMove(GetSpeed2D(self.velocity));
@@ -227,22 +230,32 @@ namespace Arterra.Data.Entity.Behavior {
         private float3 GetSpeed2D(float3 velocity) {
             quaternion wsToOSNoScale = Quaternion.Inverse(math.normalize(self.Facing));
             velocity = math.mul(wsToOSNoScale, velocity);
-            return new float3(velocity.x, 0, velocity.z) / settings.runSpeed;
+            return new float3(velocity.x, 0, velocity.z) / RunSpeed;
         }
 
         private float3 GetSpeed3D(float3 velocity) {
             quaternion wsToOSNoScale = Quaternion.Inverse(math.normalize(self.Facing));
             velocity = math.mul(wsToOSNoScale, velocity);
-            return velocity / settings.runSpeed;
+            return velocity / RunSpeed;
         }
 
-        private void AddVelocity2D(float2 delta, float maxSpeed) {
+        private void AddVelocity2D(float2 aim, float maxSpeed, GameEvent moveEvent) {
             if (math.length(self.velocity.xz) > maxSpeed) return;
-            self.velocity.xz += delta;
+            float3 delta = 0; delta.xz = (maxSpeed / AccelTime) * self.DeltaTime * aim;;
+            RefTuple<float3> cxt = new RefTuple<float3>(delta);
+            self.eventCtrl.RaiseEvent(moveEvent, self, null, cxt);
+            delta = cxt;
+            
+            self.velocity += delta;
         }
 
-        private void AddVelocity3D(float3 delta, float maxSpeed) {
+        private void AddVelocity3D(float3 aim, float maxSpeed, GameEvent moveEvent) {
             if (math.length(self.velocity) > maxSpeed) return;
+            float3 delta = (maxSpeed / AccelTime) * self.DeltaTime * aim;
+            RefTuple<float3> cxt = new RefTuple<float3>(delta);
+            self.eventCtrl.RaiseEvent(moveEvent, self, null, cxt);
+            delta = cxt;
+
             self.velocity += delta;
         }
 
@@ -282,9 +295,9 @@ namespace Arterra.Data.Entity.Behavior {
                 bool onGround = GamePlay.Interaction.TerrainCollider.SampleCollision(owner.self.origin, sampleSize);
                 if (!onGround) return;
 
-                float3 jumpVelocity = owner.settings.jumpForce * (float3)Vector3.up;
+                float3 jumpVelocity = owner.JumpForce * (float3)Vector3.up;
                 owner.self.eventCtrl.RaiseEvent(GameEvent.Action_Jump, owner.self, null, jumpVelocity);
-                owner.self.velocity += jumpVelocity;
+                owner.self.velocity = math.max(jumpVelocity, owner.self.velocity);
             }
         }
 
@@ -334,10 +347,10 @@ namespace Arterra.Data.Entity.Behavior {
                 InputPoller.AddStackPoll(new ActionBind(SwimMove1Name, _ => Update()), "Movement::Update");
                 InputPoller.AddStackPoll(new ActionBind(SwimMove2Name, _ => owner.self.Collider.useGravity = true), "Movement::Gravity");
                 InputPoller.AddBinding(new ActionBind("Ascend", _ => {
-                    if (owner.self.velocity.y < owner.MoveSpeed2D) owner.self.velocity.y += owner.settings.acceleration * Time.deltaTime;
+                    owner.AddVelocity3D(Vector3.up, owner.MoveSpeed2D, owner.MoveEvent);
                 }), SwimAscendName, "4.0::Movement");
                 InputPoller.AddBinding(new ActionBind("Descend", _ => {
-                    if (owner.self.velocity.y > -owner.MoveSpeed2D) owner.self.velocity.y -= owner.settings.acceleration * Time.deltaTime;
+                    owner.AddVelocity3D(Vector3.down, owner.MoveSpeed2D, owner.MoveEvent);
                 }), SwimDescendName, "4.0::Movement");
                 
             }
@@ -352,11 +365,9 @@ namespace Arterra.Data.Entity.Behavior {
 
             private void Update() {
                 float3 desiredMove = owner.self.Forward * owner.inputDir.y + owner.self.Right * owner.inputDir.x;
-                float3 deltaV = owner.settings.acceleration * owner.self.DeltaTime * desiredMove;
-
                 owner.self.velocity.y *= 1 - GamePlay.Interaction.TerrainCollider.BaseFriction;
-                if (owner.sprinting) owner.AddVelocity3D(deltaV, owner.MoveSpeed2D);
-                else owner.AddVelocity2D(deltaV.xz, owner.MoveSpeed2D);
+                if (owner.sprinting) owner.AddVelocity3D(desiredMove, owner.MoveSpeed2D, owner.MoveEvent);
+                else owner.AddVelocity2D(desiredMove.xz, owner.MoveSpeed2D, owner.MoveEvent);
 
                 if (owner.self.Is(out PlayerEffectsBehavior effects)) {
                     effects.PlayAnimatorMove(owner.GetSpeed2D(owner.self.velocity));
@@ -422,10 +433,10 @@ namespace Arterra.Data.Entity.Behavior {
                 InputPoller.AddStackPoll(new ActionBind(FlightMove1Name, _ => Update()), "Movement::Update");
                 InputPoller.AddStackPoll(new ActionBind(FlightMove2Name, _ => owner.self.Collider.useGravity = false), "Movement::Gravity");
                 InputPoller.AddBinding(new ActionBind("Ascend", _ => {
-                    if (owner.self.velocity.y < owner.FlightMoveSpeed) owner.self.velocity.y += owner.settings.acceleration * Time.deltaTime * owner.settings.flightSpeedMultiplier;
+                    owner.AddVelocity3D(Vector3.up, owner.FlightMoveSpeed, owner.MoveEvent);
                 }), FlightAscendName, "4.0::Movement");
                 InputPoller.AddBinding(new ActionBind("Descend", _ => {
-                    if (owner.self.velocity.y > -owner.FlightMoveSpeed) owner.self.velocity.y -= owner.settings.acceleration * Time.deltaTime * owner.settings.flightSpeedMultiplier;
+                    owner.AddVelocity3D(Vector3.down, owner.FlightMoveSpeed, owner.MoveEvent);
                 }), FlightDescendName, "4.0::Movement");
                 
             }
@@ -441,8 +452,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             private void Update() {
                 float2 desiredMove = (owner.self.Forward * owner.inputDir.y + owner.self.Right * owner.inputDir.x).xz;
-                float2 deltaV = owner.settings.acceleration * owner.self.DeltaTime * desiredMove * owner.settings.flightSpeedMultiplier;
-                owner.AddVelocity2D(deltaV, owner.FlightMoveSpeed);
+                owner.AddVelocity2D(desiredMove, owner.FlightMoveSpeed, owner.MoveEvent);
 
                 if (owner.self.Is(out PlayerEffectsBehavior effects)) {
                     effects.PlayAnimatorMove(owner.GetSpeed3D(owner.self.velocity));

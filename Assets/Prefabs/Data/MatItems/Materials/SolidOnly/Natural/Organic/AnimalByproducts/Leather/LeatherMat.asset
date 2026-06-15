@@ -41,8 +41,12 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   MaterialDrops:
-    SolidItem: 2
-    LiquidItem: 1
+    SolidItem:
+      DropItem: 2
+      DropMultiplier: 1
+    LiquidItem:
+      DropItem: 1
+      DropMultiplier: 1
   references:
     version: 2
     RefIds: []

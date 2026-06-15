@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Arterra.Configuration;
+using Arterra.Core.Events;
 using Arterra.Utils;
 using Unity.Mathematics;
 using UnityEngine;
@@ -26,7 +27,7 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
 
-    public class RandomWalkBehavior : ISpeciesBehavior {
+    public class RandomWalkBehavior : SpeciesBehavior {
         private RandomWalkStateSettings settings;
         private Movement movement;
         private MMove mmove; //optional
@@ -40,16 +41,16 @@ namespace Arterra.Data.Entity.Behavior {
         private float AverageWalkTime => Modifier.Get(mod, MSettings.AverageWalkTime, settings.AverageWalkTime);
         private float AverageWalkVariance => Modifier.Get(mod, MSettings.AverageWalkVariance, settings.AveragWalkVariance);
         
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             if (path.pathFinder.hasPath) {
-                self.PathCollider.Follow(Movement.StaticDirect(
+                self.PathCollider.Follow(self, Movement.StaticDirect(
                     MMove.Profile(mmove, settings.TaskName, self.settings), 
                     ref path.pathFinder, self.PathCollider,
                     MMove.MovementType(mmove, settings.TaskName)
-                ), WalkSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
+                ), WalkSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk);
                 return;
             }
             
@@ -82,18 +83,18 @@ namespace Arterra.Data.Entity.Behavior {
             return true;
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(RandomWalkStateSettings), new RandomWalkStateSettings());
             heirarchy.TryAdd(typeof(Movement), new Movement());
         }
 
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: RandomWalk Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
@@ -109,7 +110,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: RandomWalk Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
@@ -125,7 +126,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
         }
     }

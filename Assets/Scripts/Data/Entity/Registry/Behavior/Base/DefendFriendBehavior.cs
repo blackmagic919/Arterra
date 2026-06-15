@@ -23,7 +23,7 @@ public class DefendFriendSetting : IBehaviorSetting {
 
 }
 
-public class DefendFriendBehavior : ISpeciesBehavior {
+public class DefendFriendBehavior : SpeciesBehavior {
     private DefendFriendSetting settings;
 
     private StateMachineManagerBehavior manager;
@@ -58,16 +58,16 @@ public class DefendFriendBehavior : ISpeciesBehavior {
             manager.TaskTarget = attacker.info.rtEntityId;
     }
 
-    public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+    public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
         heirarchy.TryAdd(Behaviors.Relations, heirarchy.Count);
         heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
     }
 
-    public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+    public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
         heirarchy.TryAdd(typeof(DefendFriendSetting), new DefendFriendSetting());
     }
 
-    public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+    public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
         if (!setting.Is(out settings))
             throw new System.Exception("Entity: DefendFriend Behavior Requires AnimalSettings to have DefendFriendSettings");
         if (!self.Is(out relations))
@@ -80,7 +80,7 @@ public class DefendFriendBehavior : ISpeciesBehavior {
         self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnAttacked);
     }
     
-    public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+    public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
         if (!setting.Is(out settings))
             throw new System.Exception("Entity: DefendFriend Behavior Requires AnimalSettings to have DefendFriendSettings");
         if (!self.Is(out relations))

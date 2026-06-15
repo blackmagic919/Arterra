@@ -138,8 +138,12 @@ MonoBehaviour:
   MaxSlotCount: 10
   MaxRecipeSlotCount: 20
   MaterialDrops:
-    SolidItem: 2
-    LiquidItem: 3
+    SolidItem:
+      DropItem: 2
+      DropMultiplier: 1
+    LiquidItem:
+      DropItem: 3
+      DropMultiplier: 1
   references:
     version: 2
     RefIds: []

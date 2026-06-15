@@ -30,7 +30,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class ColliderUpdateBehavior : ISpeciesBehavior, IMultiCollider {
+    public class ColliderUpdateBehavior : SpeciesBehavior, IMultiCollider {
         [JsonIgnore] public ColliderUpdateSettings settings;
         public ColliderUpdateSettings.InteractType Interaction;
         public HashSet<Guid> IgnoredEntities;
@@ -39,7 +39,7 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonIgnore] public TerrainCollider Collider{ get => collider; }
         [JsonIgnore] public TerrainCollider PathCollider{ get => collider; }
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync)
                 return;
             if (self.context == BehaviorEntity.UpdateContext.Main)
@@ -68,11 +68,11 @@ namespace Arterra.Data.Entity.Behavior {
         public void SetInteractionType(ColliderUpdateSettings.InteractType type) => Interaction = type;
         public void ResetInteractionType() => Interaction = settings.interactType;
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(ColliderUpdateSettings), new ColliderUpdateSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have MapInteractorSettings");
             this.collider = new TerrainCollider(setting.collider, GCoord);
@@ -81,7 +81,7 @@ namespace Arterra.Data.Entity.Behavior {
             ResetInteractionType();
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have MapInteractorSettings");
             

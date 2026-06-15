@@ -32,6 +32,10 @@ MonoBehaviour:
         value:
           value:
             rid: 5273703469288783978
+      - Tag: 5000
+        value:
+          value:
+            rid: -2
   Children:
     value:
     - value: {fileID: 11400000, guid: f59c26f6a7afe4b8da7d243b73968ab8, type: 2}
@@ -44,6 +48,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 5273703469288783961
       type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:

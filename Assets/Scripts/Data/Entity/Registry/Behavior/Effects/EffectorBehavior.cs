@@ -15,7 +15,7 @@ namespace Arterra.Data.Entity.Behavior {
         Blindness
     }
     public class EffectorSettings : IBehaviorSetting {
-        public static Dictionary<Effects, Func<ITempBehavior>> EffectTemplates = new () {
+        public static Dictionary<Effects, Func<TempBehavior>> EffectTemplates = new () {
             { Effects.Poison, () => new PoisonEffect() },
             { Effects.Bleeding, () => new BleedingEffect() },
             { Effects.Nausea, () => new NauseaEffect() },
@@ -36,7 +36,19 @@ namespace Arterra.Data.Entity.Behavior {
             public Subject subject;
             public float chance;
             [SerializeReference]
-            public ReferenceOption<ITempBehavior> behavior;
+            public ReferenceOption<TempBehavior> behavior;
+
+            public void OnValidate() {
+                if (!EffectTemplates.TryGetValue(name, out Func<TempBehavior> getBehavior))
+                    return;
+                TempBehavior newBehavior = getBehavior.Invoke();
+                if (newBehavior == null) return;
+                TempBehavior existingBehavior = behavior.value;
+                if (existingBehavior != null && newBehavior.GetType() == existingBehavior.GetType())
+                    return;
+
+                behavior.value = newBehavior;
+            }
         }
         public Option<List<EventEffect>> Effectors;
         [UISetting(Defaulting = true)][HideInInspector]
@@ -60,43 +72,33 @@ namespace Arterra.Data.Entity.Behavior {
         public void OnValidate(BehaviorEntity.AnimalSetting settings) {
             Effectors.value ??= new List<EventEffect>();
             for (int i = 0; i < Effectors.value.Count; i++) {
-                EventEffect eventEffect = Effectors.value[i];
-                if (!EffectTemplates.TryGetValue(eventEffect.effect.name, out Func<ITempBehavior> getBehavior))
-                    continue;
-                ITempBehavior newBehavior = getBehavior.Invoke();
-                if (newBehavior == null) continue;
-                ITempBehavior existingBehavior = eventEffect.effect.behavior.value;
-                if (existingBehavior != null && newBehavior.GetType() == existingBehavior.GetType())
-                    continue;
-
-                eventEffect.effect.behavior.value = newBehavior;
-                Effectors.value[i] = eventEffect;
+                Effectors.value[i].effect.OnValidate();
             }
         }
     }
-    public class EffectorBehavior : ISpeciesBehavior {
+    public class EffectorBehavior : SpeciesBehavior {
         private EffectorSettings settings;
         private BehaviorEntity.Animal self;
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(EffectorSettings), new EffectorSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Effector Behavior Requires AnimalSettings to have EffectorSettings");
             this.self = self;
             HookEffectors();
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Effector Behavior Requires AnimalSettings to have EffectorSettings");
             this.self = self;
             HookEffectors();
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
         }
 
@@ -118,7 +120,7 @@ namespace Arterra.Data.Entity.Behavior {
                     continue;
                 var subject = effect.subject == EffectorSettings.Subject.Source ? src : tgt;
                 if (subject == null) continue;
-                subject.AddBehavior(effect.behavior.value.Create(self));
+                subject.TryAddBehavior(effect.behavior.value.Create(self));
             }
         }
 

@@ -36,6 +36,9 @@ MonoBehaviour:
         - CoralFormation2
         - CoralFormation3
         - CoralFormation4
+        - Clownfish
+        - MoorishIdol
+        - BlueTang
       GroundMaterials:
         value:
         - value:
@@ -129,7 +132,16 @@ MonoBehaviour:
             ChancePerStructurePoint: 0.3
             Structure: 15
       Entities:
-        value: []
+        value:
+        - value:
+            Entity: 16
+            ChancePerCoord: 0.00001
+        - value:
+            Entity: 18
+            ChancePerCoord: 0.00001
+        - value:
+            Entity: 17
+            ChancePerCoord: 0.00002
       StructureSystems:
         value: []
   BiomeConditions:

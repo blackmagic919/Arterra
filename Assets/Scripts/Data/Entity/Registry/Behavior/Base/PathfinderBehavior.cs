@@ -12,37 +12,37 @@ using Unity.Collections;
 using System.Linq;
 
 namespace Arterra.Data.Entity.Behavior {
-    public class PathFinderBehavior : ISpeciesBehavior {
+    public class PathFinderBehavior : SpeciesBehavior {
         public PathInfo pathFinder;
         private BehaviorEntity.Animal self;
         private Dictionary<EntitySMTasks, long> TaskBouncer;
         private long updateCycles;
-        const double CyclesPerNode = 0.001f;
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        const double CyclesPerNode = 0.0025f;
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             pathFinder.hasPath = false;
             TaskBouncer = new ();
             updateCycles = 0;
             this.self = self;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             TaskBouncer = new ();
             updateCycles = 0;
             this.self = self;
         }
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             if (self.context == BehaviorEntity.UpdateContext.Main) return;
             updateCycles++;
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
         }
         
 
-        public void OnDrawGizmos(BehaviorEntity.Animal self) {
+        public override void OnDrawGizmos(BehaviorEntity.Animal self) {
             PathInfo finder = pathFinder; //copy so we don't modify the original
             if (finder.hasPath) {
                 int ind = finder.currentInd;

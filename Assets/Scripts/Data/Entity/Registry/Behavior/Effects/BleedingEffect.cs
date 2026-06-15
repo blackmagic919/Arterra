@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
-    public class BleedingEffect : ITempBehavior, IEffect {
+    public class BleedingEffect : TempBehavior, IEffect {
         public float Strength;
         public float Duration;
         [RegistryReference("Textures")]
@@ -24,7 +24,7 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonProperty] private float accDeltaTime;
         private float _strength => math.max(Modifier.Get(mod, MSettings.Recieve_BleedingStrength, Strength), 0);
         private float _duration => Modifier.Get(mod, MSettings.Recieve_BleedingDuration, Duration);
-        public ITempBehavior Create(BehaviorEntity.Animal self = null) {
+        public override TempBehavior Create(BehaviorEntity.Animal self = null) {
             if (self == null || !self.Is(out Modifier inflictMod))
                 inflictMod = null;
             return new BleedingEffect(){
@@ -34,7 +34,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
 
-        public bool CanApply(BehaviorEntity.Animal self) {
+        public override bool CanApply(BehaviorEntity.Animal self) {
             if(!self.Is(out vit)) return false;
             if(self.Is(out PoisonEffect p)) {
                 p.Strength = math.max(p.Strength, Strength);
@@ -43,7 +43,7 @@ namespace Arterra.Data.Entity.Behavior {
             } return true;
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!self.Is(out vit))
                 throw new System.Exception("Entity: Effector Poison Requires Animal to have Vitality Behavior");
             if (!self.Is(out mod)) mod = null;
@@ -51,13 +51,13 @@ namespace Arterra.Data.Entity.Behavior {
             progress = 0;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!self.Is(out vit))
                 throw new System.Exception("Entity: Effector Poison Requires Animal to have Vitality Behavior");
             if (!self.Is(out mod)) mod = null;
         }
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             if (self.context == BehaviorEntity.UpdateContext.Main) return;
             accDeltaTime += self.DeltaTime;

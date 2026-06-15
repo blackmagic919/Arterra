@@ -133,8 +133,12 @@ MonoBehaviour:
   MaxFuelSlotCount: 3
   MaxRecipeSlotCount: 12
   MaterialDrops:
-    SolidItem: 0
-    LiquidItem: 2
+    SolidItem:
+      DropItem: 0
+      DropMultiplier: 1
+    LiquidItem:
+      DropItem: 2
+      DropMultiplier: 1
   references:
     version: 2
     RefIds: []

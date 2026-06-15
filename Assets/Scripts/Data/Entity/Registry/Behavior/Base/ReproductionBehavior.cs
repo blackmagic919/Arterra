@@ -136,7 +136,7 @@ namespace Arterra.Data.Entity.Behavior {
             return AwarenessTable.ContainsKey(index);
         }
     }
-    public class ReproductionBehavior : ISpeciesBehavior, IMateable {
+    public class ReproductionBehavior : SpeciesBehavior, IMateable {
         [JsonIgnore] public MateRecognition settings;
 
         private BehaviorEntity.Animal self;
@@ -165,15 +165,15 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.RaiseEvent(GameEvent.Entity_Mate, self, entity);
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(MateRecognition), new MateRecognition());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Reproduction Behavior Requires AnimalSettings to have MateRecognition");
             if (!self.Is(out vitality))
@@ -184,7 +184,7 @@ namespace Arterra.Data.Entity.Behavior {
             self.Register<IMateable>(this);
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Reproduction Behavior Requires Animal to have MateRecognition");
             if (!self.Is(out vitality))

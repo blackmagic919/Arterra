@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80ae62d4a8db64373ab2031aa7690b4a, type: 3}
+  m_Name: _CookedMeatsCatalogue
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Item.ItemCategory
+  Name: CookedMeats
+  Tags:
+    Reg:
+      value:
+      - Tag: 6101
+        value:
+          value:
+            rid: -2
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 9657388ba37a74729b5ff31bac7404d9, type: 2}
+    - value: {fileID: 11400000, guid: c40a396cae79e46ed992cef3343b8553, type: 2}
+    - value: {fileID: 11400000, guid: 77e667902870b41d2a1a5e647358065f, type: 2}
+    - value: {fileID: 11400000, guid: eea0aaf7b45984920b7a25f6489ed008, type: 2}
+    - value: {fileID: 11400000, guid: 0f743b07fd1f04119b2c48b8eb0ad27d, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }

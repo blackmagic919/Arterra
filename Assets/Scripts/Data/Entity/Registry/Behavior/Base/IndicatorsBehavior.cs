@@ -139,7 +139,7 @@ public static class Indicators {
 
 namespace Arterra.Data.Entity.Behavior {
 //ToDo: Support multiple paths for animator
-public class InidcatorsBehavior : ISpeciesBehavior {
+public class InidcatorsBehavior : SpeciesBehavior {
     private static Statistics Stats => Config.CURRENT.GamePlay.Statistics;
     private VitalityBehavior vit;
     private MapInteractBehavior map;
@@ -235,7 +235,7 @@ public class InidcatorsBehavior : ISpeciesBehavior {
         Effects.Remove(iconName);
     }
 
-    public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+    public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
         if (!self.Is(out vit)) vit = null;
         if (!self.Is(out map)) map = null;
         this.controller = self.controller.gameObject;
@@ -244,7 +244,7 @@ public class InidcatorsBehavior : ISpeciesBehavior {
         SetStatDisplay(Stats.DisplayEntityStats);
         HookEvents();
     }
-    public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+    public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
         if (!self.Is(out vit)) vit = null;
         if (!self.Is(out map)) map = null;
         this.controller = self.controller.gameObject;
@@ -282,13 +282,13 @@ public class InidcatorsBehavior : ISpeciesBehavior {
         Config.CURRENT.System.AddHook("Statistics:Display", ToggleStatDisplay);
     }
     
-    public void Disable(BehaviorEntity.Animal self) {
+    public override void Disable(BehaviorEntity.Animal self) {
         Config.CURRENT.System.RemoveHook("Statistics:Display", ToggleStatDisplay);
         this.self = null;
     }
     
 
-    public void Update(BehaviorEntity.Animal self) {
+    public override void Update(BehaviorEntity.Animal self) {
         if (self.context == BehaviorEntity.UpdateContext.Job)
             return;
         if (self.context == BehaviorEntity.UpdateContext.Fixed)
@@ -301,7 +301,7 @@ public class InidcatorsBehavior : ISpeciesBehavior {
         if(damageStat != null && vit != null) damageStat.fillAmount = math.max(vit.healthPercent, damageStat.fillAmount - 0.01f);
     }
 
-    public void OnDrawGizmos(BehaviorEntity.Animal self) {
+    public override void OnDrawGizmos(BehaviorEntity.Animal self) {
         // Use golden ratio to spread hues evenly across the spectrum
         float h = (self.info.entityType * 0.618033988749f) % 1f;
         float s = 0.85f;

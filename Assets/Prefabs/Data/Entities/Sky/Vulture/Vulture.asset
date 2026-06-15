@@ -105,110 +105,110 @@ MonoBehaviour:
           y: 0.75
           z: 0.75
       BehaviorList:
-        value: 0500000000000000f103000003000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000202700001c270000
+        value: 0500000000000000f10300000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000202700001c270000
       Settings:
         value:
           value:
           - value:
               value:
-                  rid: 5205636790779904354
+                rid: 5205636790779904354
           - value:
               value:
-                  rid: 3097084119023353985
+                rid: 3097084119023353985
           - value:
               value:
-                  rid: 3097084119023354038
+                rid: 3097084119023354038
           - value:
               value:
-                  rid: 3097083922518114515
+                rid: 5205636790779904355
           - value:
               value:
-                  rid: 3097084037468258398
+                rid: 3097083922518114515
           - value:
               value:
-                  rid: 3097083922518114516
+                rid: 3097084037468258398
           - value:
               value:
-                  rid: 3097083922518114517
+                rid: 3097083922518114516
           - value:
               value:
-                  rid: 3097083922518114518
+                rid: 3097083922518114517
           - value:
               value:
-                  rid: 3097083922518114519
+                rid: 3097083922518114518
           - value:
               value:
-                  rid: 3097083922518114520
+                rid: 3097083922518114519
           - value:
               value:
-                  rid: 3097083922518114523
+                rid: 3097083922518114520
           - value:
               value:
-                  rid: 3097084119023353989
+                rid: 3097083922518114523
           - value:
               value:
-                  rid: 3097083922518114524
+                rid: 3097084119023353989
           - value:
               value:
-                  rid: 3097083922518114525
+                rid: 3097083922518114524
           - value:
               value:
-                  rid: 3097083922518114526
+                rid: 3097083922518114525
           - value:
               value:
-                  rid: 3097083922518114527
+                rid: 3097083922518114526
           - value:
               value:
-                  rid: 3097083922518114528
+                rid: 3097083922518114527
           - value:
               value:
-                  rid: 3097083922518114545
+                rid: 3097083922518114528
           - value:
               value:
-                  rid: 3097083922518114529
+                rid: 3097083922518114545
           - value:
               value:
-                  rid: 3097083922518114530
+                rid: 3097083922518114529
           - value:
               value:
-                  rid: 3097083922518114531
+                rid: 3097083922518114530
           - value:
               value:
-                  rid: 3097083922518114532
+                rid: 3097083922518114531
           - value:
               value:
-                  rid: 3097083922518114533
+                rid: 3097083922518114532
           - value:
               value:
-                  rid: 3097083922518114534
+                rid: 3097083922518114533
           - value:
               value:
-                  rid: 3097083922518114535
+                rid: 3097083922518114534
           - value:
               value:
-                  rid: 3097084037468258406
+                rid: 3097083922518114535
           - value:
               value:
-                  rid: 3097084037468258407
+                rid: 3097084037468258406
           - value:
               value:
-                  rid: 3097084037468258408
+                rid: 3097084037468258407
           - value:
               value:
-                  rid: 3097084052764622976
+                rid: 3097084037468258408
           - value:
               value:
-                  rid: 3097084119023354002
+                rid: 3097084052764622976
           - value:
               value:
-                  rid: 3097084119023354028
+                rid: 3097084119023354002
           - value:
               value:
-                  rid: 3097084119023353994
+                rid: 3097084119023354028
           - value:
               value:
-                  rid: 5205636790779904355
-        _prevBehaviorCount: 29
+                rid: 3097084119023353994
+      _prevBehaviorCount: 29
   references:
     version: 2
     RefIds:
@@ -226,6 +226,7 @@ MonoBehaviour:
       data:
         interactType: 0
         HoldBreathTime: 10
+        Bouyancy: 0
         UseFallDamage: 1
     - rid: 3097083922518114517
       type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -270,7 +271,6 @@ MonoBehaviour:
         OnFinishMateTransition: 0
         MateThreshold: 0.8
         PregnacyLength: 4
-        SearchDistance: 32
         OnSwitchPath:
           value: 
     - rid: 3097083922518114524
@@ -279,12 +279,14 @@ MonoBehaviour:
         TaskName: 30200
         OnNotFoundTransition: 0
         OnReachPreyTransition: 30400
-        SearchDistance: 8
+        SearchPlantDistance: 0
     - rid: 3097083922518114525
       type: {class: FindPlantBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         Prey:
-          value: []
+          value:
+            AllowList:
+              value: []
     - rid: 3097083922518114526
       type: {class: HuntBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -297,21 +299,22 @@ MonoBehaviour:
         OnNotFoundTransition: 100
         OnReachPreyTransition: 30600
         DesiredPreyState: 2
-        SearchDistance: 32
         Prey:
           value:
-          - EntityType: Camel
-          - EntityType: Coyote
-          - EntityType: Lion
-          - EntityType: Lioness
-          - EntityType: Elephant
+            AllowList:
+              value: []
     - rid: 3097083922518114528
       type: {class: ConsumeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         Edibles:
           value:
-          - EdibleType: Meat
-            Nutrition: 10
+            AllowList:
+              value:
+              - EdibleType:
+                  tagValue: 6100
+                  registryValue: 
+                Policy: 0
+                Nutrition: 10
         ConsumptionRate: 0.4
     - rid: 3097083922518114529
       type: {class: ConsumeEntitySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -342,7 +345,29 @@ MonoBehaviour:
         OverridableStates: 30500
         OnFinishRunning: 100
         Predators:
-          value: []
+          value:
+            AllowList:
+              value:
+              - EntityType:
+                  tagValue: 6150
+                  registryValue: 
+                Policy: 1
+              - EntityType:
+                  tagValue: 6161
+                  registryValue: 
+                Policy: 1
+              - EntityType:
+                  tagValue: 6153
+                  registryValue: 
+                Policy: 0
+              - EntityType:
+                  tagValue: 6154
+                  registryValue: 
+                Policy: 0
+              - EntityType:
+                  tagValue: 6155
+                  registryValue: 
+                Policy: 0
     - rid: 3097083922518114533
       type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -353,7 +378,6 @@ MonoBehaviour:
       type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         TaskName: 50000
-        OverridableStates: 30600
         OnLostAttacker: 100
     - rid: 3097083922518114535
       type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -372,7 +396,7 @@ MonoBehaviour:
       data:
         LootTable:
           value:
-          - ItemName: Meat
+          - ItemName: Poultry
             DropAmount: 0.026086956
           - ItemName: Feather
             DropAmount: 0.034782607
@@ -405,8 +429,7 @@ MonoBehaviour:
       data:
         TaskName: 300
         OnReachTransition: 100
-        SearchDistance: 30
-        ChaseProbability: 0.02
+        ChaseFriendProbability: 0.04
         FightEnemyAffection: -12.5
         ChaseEnemyState: 50100
     - rid: 3097084052764622976
@@ -466,7 +489,6 @@ MonoBehaviour:
         walkSpeed: 1.75
         runSpeed: 2.2
         pathDistance: 32
-        acceleration: 200
         rotSpeed: 180
     - rid: 3097084119023353994
       type: {class: MMove, ns: , asm: Assembly-CSharp}
@@ -559,14 +581,14 @@ MonoBehaviour:
         ProxyTestName: 410
         ProxyTestTransitions:
           value: f8750000844e0000
-        ApproachAngleMax: 0.85
-        ApproachAngleFalloff: 0.5
+        LandAngleMax: 0.85
+        LandAngleFalloff: 0.5
     - rid: 3097084119023354028
       type: {class: RandomFlyStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        AverageFlyTime: 37.5
-        AveragFlyVariance: 0.1
-        VerticalFreedom: 0.3
+        AverageFlightTime: 75
+        AverageFlightVariance: 0.1
+        VerticalFlightFreedom: 0.3
         TaskName: 100
         OnStopFlyTransition: 400
         OnSwitchPath:
@@ -736,7 +758,4 @@ MonoBehaviour:
           - name: 2043
             var: 0.5
             geneWeight: 0.1
-
-
-
         NormalizeWeights: 1

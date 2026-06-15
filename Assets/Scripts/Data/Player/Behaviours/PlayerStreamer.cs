@@ -12,7 +12,7 @@ namespace Arterra.Data.Entity.Behavior {
     /// Root player behavior that wires player-specific behavior dependencies and
     /// handles high-level stream/death detach transitions.
     /// </summary>
-    public class PlayerBehavior : ISpeciesBehavior {
+    public class PlayerBehavior : SpeciesBehavior {
         /// <summary>
         /// Canonical behavior-side defaults for player entity settings.
         /// This is used to seed world options and migration bridges.
@@ -37,6 +37,8 @@ namespace Arterra.Data.Entity.Behavior {
                 Behaviors.PlayerEffects,
                 Behaviors.PlayerRoot,
                 Behaviors.PlayerBaseLogicHandler,
+                Behaviors.Modifiers,
+                Behaviors.Hunger
             },
             Settings = new List<DirtyReferenceOption<IBehaviorSetting>> {
                 new() {
@@ -71,6 +73,9 @@ namespace Arterra.Data.Entity.Behavior {
                 new() {
                     value = new PlayerEffectsSettings(),
                 },
+                new() {
+                    value = new HungerSettings(),
+                },
             },
         };
 
@@ -80,7 +85,7 @@ namespace Arterra.Data.Entity.Behavior {
         private StreamingStatus status = StreamingStatus.Activating;
 
         /// <summary>Declares required player behavior dependencies.</summary>
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
             hierarchy.TryAdd(Behaviors.Collider, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.MapInteraction, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.Vitality, hierarchy.Count);
@@ -93,13 +98,13 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         /// <summary>Initializes root player behavior state for a newly created player entity.</summary>
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             status = StreamingStatus.Live;
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
         }
 
         /// <summary>Initializes root player behavior state for a deserialized player entity.</summary>
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             status = StreamingStatus.Live;
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
 
@@ -110,7 +115,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         /// <summary>Disables root player behavior and clears active references.</summary>
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
         }
 
         private void TriggerDetach(object source, object _trgt, object _ctx) {

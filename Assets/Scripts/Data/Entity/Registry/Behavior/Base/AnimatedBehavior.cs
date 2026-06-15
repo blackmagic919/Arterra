@@ -61,25 +61,25 @@ namespace Arterra.Data.Entity.Behavior {
 
     }
     //ToDo: Support multiple paths for animator
-    public class AnimatedBehavior : ISpeciesBehavior {
+    public class AnimatedBehavior : SpeciesBehavior {
         [JsonIgnore] public Animator animator;
         [JsonIgnore] public AnimatedSettings settings;
 
         private StateMachineManagerBehavior manager;
         private EntitySMTasks AnimatorTask;
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(AnimatedSettings), new AnimatedSettings());
         }
         
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Animated Behavior Requires AnimalSettings to have AnimatedSettings");
             if (!self.Is(out manager)) manager = null;
             AnimatorTask = EntitySMTasks.None;
             animator = self.controller.transform.Find(settings.AnimatorPath).GetComponent<Animator>();
         }
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Animated Behavior Requires AnimalSettings to have AnimatedSettings");
             if (!self.Is(out manager)) manager = null;
@@ -87,7 +87,7 @@ namespace Arterra.Data.Entity.Behavior {
             animator = self.controller.transform.Find(settings.AnimatorPath).GetComponent<Animator>();
         }
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (manager == null) return;
             if (AnimatorTask == manager.TaskIndex) return;
             if (self.context == BehaviorEntity.UpdateContext.Job) return;

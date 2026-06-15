@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b92ab6716ab84e588c812f4df75143a, type: 3}
+  m_Name: _MeatsCatalogue
+  m_EditorClassIdentifier: Assembly-CSharp::TextureCategory
+  Name: Meats
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: efe6daca01d354276a0a75a25a51ef52, type: 2}
+    - value: {fileID: 11400000, guid: 7f8905d33e3f444b7a334ade4c6bbf85, type: 2}
+    - value: {fileID: 11400000, guid: d5a275733ce5541c894d14b3d3c5d117, type: 2}
+    - value: {fileID: 11400000, guid: 10e44a0aef12f452a913db76199c2d3d, type: 2}
+    - value: {fileID: 11400000, guid: 6bb17c694a09c46c7a7c50ec4fee1bd3, type: 2}
+  references:
+    version: 2
+    RefIds: []

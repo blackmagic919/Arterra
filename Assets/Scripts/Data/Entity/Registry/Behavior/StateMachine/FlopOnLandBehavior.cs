@@ -21,7 +21,7 @@ namespace Arterra.Data.Entity.Behavior{
             };
         }
     }
-    public class FlopOnLandBehavior : ISpeciesBehavior {
+    public class FlopOnLandBehavior : SpeciesBehavior {
         private FlopOnLandSetting settings;
         private StateMachineManagerBehavior manager;
         private MapInteractBehavior mInteract;
@@ -30,7 +30,7 @@ namespace Arterra.Data.Entity.Behavior{
 
         private float FlopStrength => Modifier.Get(mod, MSettings.FlopStrength, settings.FlopStrength);
         private float DryOutTime => Modifier.Get(mod, MSettings.DryOutTime, settings.DryOutTime);
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (settings.TaskName != manager.TaskIndex) return;
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
@@ -53,17 +53,17 @@ namespace Arterra.Data.Entity.Behavior{
             manager.Transition(settings.TaskName);
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.MapInteraction, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(FlopOnLandSetting), new FlopOnLandSetting());
         }
 
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: FlopOnLand Behavior Requires AnimalSettings to have FlopOnLandSettings");
             if (!self.Is(out manager))
@@ -76,7 +76,7 @@ namespace Arterra.Data.Entity.Behavior{
             self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InGas, OnEntityInAir);
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: FlopOnLand Behavior Requires AnimalSettings to have FlopOnLandSettings");
             if (!self.Is(out manager))

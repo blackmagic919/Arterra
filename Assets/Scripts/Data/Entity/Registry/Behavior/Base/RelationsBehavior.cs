@@ -70,7 +70,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class RelationsBehavior : ISpeciesBehavior {
+    public class RelationsBehavior : SpeciesBehavior {
         [JsonIgnore] public RelationsBehaviorSettings settings;
 
         private VitalityBehavior vitality;
@@ -122,7 +122,7 @@ namespace Arterra.Data.Entity.Behavior {
                 Relationships[target] += dAffection;
         }
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync)
                 return;
                 
@@ -376,16 +376,16 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(RelationsBehaviorSettings), new RelationsBehaviorSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Relations Behavior Requires AnimalSettings to have RelationsBehaviorSettings");
             if (!self.Is(out vitality))
@@ -403,7 +403,7 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Mate, OnMating);
         }
         
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Relations Behavior Requires AnimalSettings to have RelationsBehaviorSettings");
             if (!self.Is(out vitality))

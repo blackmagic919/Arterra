@@ -352,14 +352,20 @@ namespace Arterra.Configuration {
             { Tags.Tillable, new ConverterToolTag() },
             { Tags.Seedable, new ConvertibleToolTag() },
             //Convertable Tags
-            { Tags.Grassy, new ConvertibleTag() },
-            { Tags.Vegetative, new ConvertibleTag() },
-            { Tags.AquaMicrobial, new ConvertibleTag() },
+            { Tags.GrassSpreadable, new ConvertibleTag() },
+            { Tags.VegetativeSpreadable, new ConvertibleTag() },
+            { Tags.AquaMicrobialSpreadable, new ConvertibleTag() },
             { Tags.Combustible, new CombustibleTag() },
             //Material Types
-            { Tags.Coral, null },
-            { Tags.Coral1, null },
-            { Tags.Coral2, null },
+            { Tags.Soft, null },
+            { Tags.Organic, null },
+            { Tags.Coral, null }, { Tags.Coral1, null }, { Tags.Coral2, null },
+            { Tags.Grassy, null }, { Tags.Flowering, null }, { Tags.Leafy, null },
+            { Tags.Meat, null }, { Tags.CookedMeat, null },
+            { Tags.Aquatic, null }, { Tags.Terrestrial, null }, { Tags.Aerial, null },
+            { Tags.GargantuanAnimal, null }, { Tags.LargeAnimal, null }, { Tags.MidSizedAnimal, null },
+            { Tags.SmallAnimal, null }, { Tags.TinyAnimal, null },
+            { Tags.Carnivore, null }, { Tags.Herbivore, null }, { Tags.SelectDiet, null },
             //Interaction Type
             { Tags.FocusedPlace, null },
             { Tags.Tooltip, new TooltipTag() },
@@ -382,9 +388,18 @@ namespace Arterra.Configuration {
             //Converters
             Flammable = 1000, Tillable = 1001, Seedable = 1002, Combustible = 1003,
             //Convertables
-            Grassy = 2000, Vegetative = 2001, AquaMicrobial = 2002, 
-            //Material Groups
-            Soft = 5000, Organic = 6000, Coral = 6050, Coral1 = 6051, Coral2 = 6052,
+            GrassSpreadable = 2000, VegetativeSpreadable = 2001, AquaMicrobialSpreadable = 2002, 
+            //Groups
+            Soft = 5000, 
+            Organic = 6001, Coral = 6050, Coral1 = 6051, Coral2 = 6052, Grassy = 6053,
+            Flowering = 6054, Leafy = 6055,
+            Meat = 6100, CookedMeat = 6101,
+            Aquatic = 6150, Terrestrial = 6151, Aerial = 6152, 
+            //MidSizedAnimal -> Large Dog Size
+            GargantuanAnimal = 6153, LargeAnimal = 6154, MidSizedAnimal = 6155,
+            SmallAnimal = 6156, TinyAnimal = 6157,
+            Carnivore = 6160, Herbivore = 6161, SelectDiet = 6162,
+
             //Interactions
             FocusedPlace = 9000, Tooltip = 9001, TooltipDismissor = 9002,
             // Projectiles 

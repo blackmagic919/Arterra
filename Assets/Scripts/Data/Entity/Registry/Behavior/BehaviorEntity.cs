@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Arterra.Core.Storage;
 using UnityEngine.Profiling;
+using System.Runtime.CompilerServices;
 
 namespace Arterra.Data.Entity.Behavior {
     public interface IBehaviorSetting : ICloneable {
@@ -22,25 +23,26 @@ namespace Arterra.Data.Entity.Behavior {
         public void OnValidate(BehaviorEntity.AnimalSetting setting) {}
     }
 
-    public interface IBehavior {
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord){}
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){}
-        public void Update(BehaviorEntity.Animal self){}
-        public void Disable(BehaviorEntity.Animal self){}
-        public void OnDrawGizmos(BehaviorEntity.Animal self) {}
+    public abstract class Behavior {
+        public virtual void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord){}
+        public virtual void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){}
+        public virtual void Update(BehaviorEntity.Animal self){}
+        public virtual void Disable(BehaviorEntity.Animal self){}
+        public virtual void OnDrawGizmos(BehaviorEntity.Animal self) {}
+        public Guid Id;
     }
 
-    public interface ISpeciesBehavior : IBehavior {
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> Behaviors){}
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> Settings){}
+    public abstract class SpeciesBehavior : Behavior {
+        public virtual void AddBehaviorDependencies(Dictionary<Behaviors, int> Behaviors){}
+        public virtual void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> Settings){}
     }
 
     
 
-    public interface ITempBehavior : IBehavior {
-        public bool CanApply(BehaviorEntity.Animal self) => true;
+    public abstract class TempBehavior : Behavior {
+        public virtual bool CanApply(BehaviorEntity.Animal self) => true;
         //Create is called before CanApply is called with it
-        public ITempBehavior Create(BehaviorEntity.Animal self = null);
+        public abstract TempBehavior Create(BehaviorEntity.Animal self = null);
     }
 
 
@@ -80,6 +82,7 @@ namespace Arterra.Data.Entity.Behavior {
         DefendFriend = BehaviorTypes.Creature + 8,
         FlapWing = BehaviorTypes.Creature + 9,
         Effector = BehaviorTypes.Creature + 10,
+        Hunger = BehaviorTypes.Creature + 11,
 
         ChaseEnemy = BehaviorTypes.Hostile + 0,
         LeadHead = BehaviorTypes.Hostile + 1,
@@ -130,7 +133,7 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonIgnore]
         public override EntitySetting Setting { get => _Setting.value; set => _Setting.value = (AnimalSetting)value; }
 
-        public static Dictionary<Behaviors, Func<IBehavior>> BehaviorTemplates = new Dictionary<Behaviors, Func<IBehavior>> {
+        public static Dictionary<Behaviors, Func<Behavior>> BehaviorTemplates = new Dictionary<Behaviors, Func<Behavior>> {
             { Behaviors.Animator, () => new AnimatedBehavior() },
             { Behaviors.MapInteraction, () => new MapInteractBehavior() },
             { Behaviors.Indicators, () => new InidcatorsBehavior() },
@@ -157,6 +160,7 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.DefendFriend, () => new DefendFriendBehavior()},
             { Behaviors.FlapWing, () => new FlapWingsBehavior()},
             { Behaviors.Effector, () => new EffectorBehavior()},
+            { Behaviors.Hunger, () => new HungerBehavior()},
 
             { Behaviors.ChaseEnemy, () => new ChaseEnemyBehavior()},
             { Behaviors.LeadHead, () => new LeadHeadBehavior()},
@@ -217,6 +221,7 @@ namespace Arterra.Data.Entity.Behavior {
                 typeof(GeneticsSettings),
                 typeof(DefendFriendSetting),
                 typeof(FeedableBehaviorSettings),
+                typeof(HungerSettings),
                 typeof(MapInteractorSettings),
                 typeof(RelationsBehaviorSettings),
                 typeof(MateRecognition),
@@ -287,8 +292,8 @@ namespace Arterra.Data.Entity.Behavior {
                     if (name <= Behaviors.None) BehaviorHeirarchy.Add(name, BehaviorHeirarchy.Count);
                     if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
                         continue;
-                    IBehavior behavior = getBehavior.Invoke();
-                    if (behavior is ISpeciesBehavior species)
+                    Behavior behavior = getBehavior.Invoke();
+                    if (behavior is SpeciesBehavior species)
                         species.AddBehaviorDependencies(BehaviorHeirarchy);
                     BehaviorHeirarchy.TryAdd(name, BehaviorHeirarchy.Count);
                 }
@@ -302,8 +307,8 @@ namespace Arterra.Data.Entity.Behavior {
                 foreach(Behaviors name in BehaviorList) {
                     if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
                         continue;
-                    IBehavior behavior = getBehavior.Invoke();
-                    if (behavior is ISpeciesBehavior species)
+                    Behavior behavior = getBehavior.Invoke();
+                    if (behavior is SpeciesBehavior species)
                         species.AddSettingsDependencies(SettingsHeirarchy);
                 }
 
@@ -359,7 +364,8 @@ namespace Arterra.Data.Entity.Behavior {
             [JsonIgnore] public Dictionary <Type, object> DynamicTypes;
             [JsonIgnore] public AnimalController controller;
             public Unity.Mathematics.Random random;
-            public List<IBehavior> Behaviors;
+            public List<Behavior> Behaviors;
+            [JsonIgnore] private Dictionary<Guid, Behavior> BehaviorIndex;
 
             private IMultiCollider colliderInfo;
             [JsonIgnore] public TerrainCollider Collider => colliderInfo.Collider;
@@ -399,7 +405,7 @@ namespace Arterra.Data.Entity.Behavior {
                     colliderInfo = instance as IMultiCollider;
                 DynamicTypes[typeof(TInterface)] = instance;
             }
-            public void Register(Type type, IBehavior instance) {
+            public void Register(Type type, Behavior instance) {
                 if (type == typeof(IMultiCollider))
                     colliderInfo = instance as IMultiCollider;
                 DynamicTypes[type] = instance;
@@ -427,14 +433,15 @@ namespace Arterra.Data.Entity.Behavior {
                 this.random = new Unity.Mathematics.Random((uint)GetHashCode());
                 this.controller = new AnimalController(Controller, this);
                 
-                Behaviors = new List<IBehavior>();
+                Behaviors = new List<Behavior>();
                 DynamicTypes = new Dictionary<Type, object>();
+                BehaviorIndex = new Dictionary<Guid, Behavior>();
                 foreach(Behaviors name in settings.BehaviorList.value) {
                     if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
                         continue;
                     _addBehavior(getBehavior.Invoke());
                 }
-                foreach(IBehavior behavior in Behaviors) {
+                foreach(Behavior behavior in Behaviors) {
                     behavior.Initialize(this, settings, GCoord);
                 }
                 //Clear constructor
@@ -445,13 +452,18 @@ namespace Arterra.Data.Entity.Behavior {
             public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
                 settings = (AnimalSetting)setting;
                 DynamicTypes = new Dictionary<Type, object>();
+                BehaviorIndex = new Dictionary<Guid, Behavior>();
                 this.controller = new AnimalController(Controller, this);
                 GCoord = default;
 
-                foreach(IBehavior behavior in Behaviors)
-                    Register(behavior.GetType(), behavior);
+                Behaviors ??= new List<Behavior>();
 
-                foreach(IBehavior behavior in Behaviors) 
+                foreach(Behavior behavior in Behaviors) {
+                    Register(behavior.GetType(), behavior);
+                    BehaviorIndex[behavior.Id] = behavior;
+                }
+
+                foreach(Behavior behavior in Behaviors) 
                     behavior.Deserialize(this, settings, ref GCoord);
 
                 controller.Initialize(transform);
@@ -481,7 +493,7 @@ namespace Arterra.Data.Entity.Behavior {
                 if (controller.gameObject == null) return;
                 if (context != UpdateContext.Job) controller.Update();
 
-                foreach(IBehavior behavior in Behaviors) {
+                foreach(Behavior behavior in Behaviors) {
                     Profiler.BeginSample(behavior.GetType().Name);
                     behavior.Update(this);
                     Profiler.EndSample();
@@ -489,47 +501,57 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             public override void OnDrawGizmos() {
-                foreach(IBehavior behavior in Behaviors) {
+                foreach(Behavior behavior in Behaviors) {
                     behavior.OnDrawGizmos(this);
                 }
             }
 
             public override void Disable() {
-                foreach(IBehavior behavior in Behaviors) {
+                foreach(Behavior behavior in Behaviors) {
                     behavior.Disable(this);
                 } controller.Dispose();
             }
             
-            public void AddBehavior(ITempBehavior behavior) {
+            public bool TryAddBehavior(TempBehavior behavior) {
+                if (behavior == null) return false;
+                if (!behavior.CanApply(this)) return false;
+                behavior.Id = Guid.NewGuid();
+
                 EntityManager.AddHandlerEvent(() => {
-                    if (behavior == null) return;
-                    if (!behavior.CanApply(this)) return;
                     eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_AddBehavior, this, behavior);
-                    _addBehavior(behavior, false); //doesn't register type as could have multiple temp effects
+                    _addBehavior(behavior, false, false); //doesn't register type as could have multiple temp effects
                     if (!active) return;
                     behavior.Initialize(this, settings, position);
                 }); 
+
+                return true;
             }
 
-            public void RemoveBehavior(ITempBehavior behavior) {
+            public void RemoveBehavior(Guid behaviorId) {
                 EntityManager.AddHandlerEvent(() => {
-                    if (behavior == null) return;
+                    if (!BehaviorIndex.TryGetValue(behaviorId, out Behavior behavior))
+                        return;
                     int previousCount = Behaviors.Count;
-                    Behaviors = Behaviors.Where(b => !ReferenceEquals(b, behavior)).ToList();
+                    Behaviors = Behaviors.Where(b => b.Id != behaviorId).ToList();
                     if (Behaviors.Count == previousCount) return;
+                    BehaviorIndex.Remove(behaviorId);
                     if (!active) return;
                     eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_RemoveBehavior, this, behavior);
                     behavior.Disable(this);
                 });
             }
 
-            private bool _addBehavior(IBehavior behavior, bool register = true) {
+            private bool _addBehavior(Behavior behavior, bool register = true, bool createId = true) {
                 if (behavior == null) return false;
                 if (TryGetConstructor(behavior.GetType(), out object savedBehav))
-                    behavior = (IBehavior) savedBehav;
-                if (behavior == null) return false;
+                    behavior = savedBehav == null ? behavior :  (Behavior) savedBehav;
+
+                if (createId) behavior.Id = Guid.NewGuid();
+                Guid behaviorId = behavior.Id;
+                
                 if (register) Register(behavior.GetType(), behavior);
                 Behaviors.Add(behavior);
+                BehaviorIndex[behaviorId] = behavior;
                 return true;
             }
         }

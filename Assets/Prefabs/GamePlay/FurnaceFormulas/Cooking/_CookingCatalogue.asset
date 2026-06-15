@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e76be5772a53ae4b9b235569a229911, type: 3}
+  m_Name: _CookingCatalogue
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Intrinsic.Furnace.FornaceFormulaCat
+  Name: Cooking
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 18ee8ae61b58d4982a6a9678e28abf96, type: 2}
+    - value: {fileID: 11400000, guid: d6f55fb74f79940a7aaeca151f3357bf, type: 2}
+    - value: {fileID: 11400000, guid: de2f3a01edb51440cbfc2d25bab9611f, type: 2}
+    - value: {fileID: 11400000, guid: d2d454e8aff934f7eb2bf97115f2902d, type: 2}
+    - value: {fileID: 11400000, guid: 372859b076a254d9ab5d56cfadea08da, type: 2}
+  references:
+    version: 2
+    RefIds: []

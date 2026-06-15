@@ -21,7 +21,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class FeedableBehavior : ISpeciesBehavior {
+    public class FeedableBehavior : SpeciesBehavior {
         private FeedableBehaviorSettings settings;
         private ConsumeBehaviorSettings consume;
 
@@ -60,16 +60,16 @@ namespace Arterra.Data.Entity.Behavior {
             vitality.Heal(nutrition);
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(FeedableBehaviorSettings), new FeedableBehaviorSettings());
             heirarchy.TryAdd(typeof(ConsumeBehaviorSettings), new ConsumeBehaviorSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Feed Behavior Requires AnimalSettings to have FeedableBehaviorSettings");
             if (!setting.Is(out consume))
@@ -84,7 +84,7 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Interact, OnInteracted);
         }
         
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Feed Behavior Requires AnimalSettings to have FeedableBehaviorSettings");
             if (!setting.Is(out consume))
@@ -99,7 +99,7 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Interact, OnInteracted);
         }
         
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
         }
     }

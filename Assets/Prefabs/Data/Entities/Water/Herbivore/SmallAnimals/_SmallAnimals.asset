@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2983eef72a70244a28e76d3fd1b716cd, type: 3}
+  m_Name: _SmallAnimals
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.EntityCategory
+  Name: Small
+  Tags:
+    Reg:
+      value:
+      - Tag: 6156
+        value:
+          value:
+            rid: -2
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 8526fc578677a4af2aa5dc95540702d8, type: 2}
+    - value: {fileID: 11400000, guid: f2dbd2e4d689f436b9f190bf4975fed4, type: 2}
+    - value: {fileID: 11400000, guid: c939daf84875147ea8d8bf15522a1e03, type: 2}
+    - value: {fileID: 11400000, guid: 0e30982e219c445a986b80f0284e0686, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }

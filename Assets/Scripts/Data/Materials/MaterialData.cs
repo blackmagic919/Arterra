@@ -299,47 +299,45 @@ namespace Arterra.Data.Material
         /// are given in return for removing a specified amount of material
         /// depending on the state of the material removed. </summary>
         [Serializable]
-            public struct ItemLooter {
-                
-                /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
-                /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is solid. 
-                /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
-                [RegistryReference("Items")]
-                public int SolidItem;
-                /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
-                /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when the material is picked up when it is liquid. 
-                /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
-                [RegistryReference("Items")]
-                public int LiquidItem;
+        public struct ItemLooter {
+            
+            /// <summary> The default loot to give when the material is picked up in solid form. </summary>
+            public MultiLooter.DefaultLoot SolidItem;
+            /// <summary> The default loot to give when the material is picked up in liquid form. </summary>
+            public MultiLooter.DefaultLoot LiquidItem;
 
-                /// <summary>  Creates a generic item from map information of what has been removed. 
-                /// This is the standard logic for item acquirement for most materials. Returns a 
-                /// solid item if <see cref="MapData.SolidDensity"/> is nonzero, a liquid material otherwise,
-                /// or null if a suitable item cannot be found. </summary>
-                /// <param name="mapData">The map data indicating the amount of material removed
-                /// and the state it was removed as</param>
-                /// <param name="Names">The <see cref="Names"> name registry </see> specific to the material
-                /// holding this object. </param>
-                /// <returns>The item that was created from this operation, or null.</returns>
-                public Item.IItem LootItem(in MapData mapData, in List<string> Names) {
-                    if (mapData.IsNull) return null;
-                    if (mapData.density == 0) return null;
-                    Item.IItem item;
-                    if (mapData.SolidDensity > 0) {
-                        if (SolidItem >= Names.Count || SolidItem < 0) return null;
-                        int SIndex = ItemInfo.RetrieveIndex(Names[SolidItem]);
-                        item = ItemInfo.Retrieve(SIndex).Item;
-                        item.Create(SIndex, mapData.SolidDensity);
-                    } else {
-                        if (LiquidItem >= Names.Count || LiquidItem < 0) return null;
-                        int LIndex = ItemInfo.RetrieveIndex(Names[LiquidItem]);
-                        item = ItemInfo.Retrieve(LIndex).Item;
-                        item.Create(LIndex, mapData.LiquidDensity);
-                    }
-                    return item;
+            /// <summary>  Creates a generic item from map information of what has been removed. 
+            /// This is the standard logic for item acquirement for most materials. Returns a 
+            /// solid item if <see cref="MapData.SolidDensity"/> is nonzero, a liquid material otherwise,
+            /// or null if a suitable item cannot be found. </summary>
+            /// <param name="mapData">The map data indicating the amount of material removed
+            /// and the state it was removed as</param>
+            /// <param name="Names">The <see cref="Names"> name registry </see> specific to the material
+            /// holding this object. </param>
+            /// <returns>The item that was created from this operation, or null.</returns>
+            public Item.IItem LootItem(in MapData mapData, in List<string> Names) {
+                if (mapData.IsNull) return null;
+                if (mapData.density == 0) return null;
+                Item.IItem item;
+                if (mapData.SolidDensity > 0) {
+                    if (SolidItem.DropItem >= Names.Count || SolidItem.DropItem < 0) return null;
+                    int SIndex = ItemInfo.RetrieveIndex(Names[SolidItem.DropItem]);
+                    int amount = Mathf.RoundToInt(mapData.SolidDensity * SolidItem.DropMultiplier);
+                    if (amount <= 0) return null;
+                    item = ItemInfo.Retrieve(SIndex).Item;
+                    item.Create(SIndex, amount);
+                } else {
+                    if (LiquidItem.DropItem >= Names.Count || LiquidItem.DropItem < 0) return null;
+                    int LIndex = ItemInfo.RetrieveIndex(Names[LiquidItem.DropItem]);
+                    int amount = Mathf.RoundToInt(mapData.LiquidDensity * LiquidItem.DropMultiplier);
+                    if (amount <= 0) return null;
+                    item = ItemInfo.Retrieve(LIndex).Item;
+                    item.Create(LIndex, amount);
                 }
+                return item;
             }
-        
+        }
+    
         /// <summary>Information determining how meta-data of a single 
         /// map data point is generated</summary>
         [Serializable]

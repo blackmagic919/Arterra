@@ -44,7 +44,7 @@ namespace Arterra.Data.Entity.Behavior
         }
     }
 
-    public class SnakeTailBehavior : ISpeciesBehavior {
+    public class SnakeTailBehavior : SpeciesBehavior {
         private SnakeTailSettings settings;
         private LeadHeadBehavior LeadHead;
         private AnimatedBehavior animated;
@@ -54,17 +54,17 @@ namespace Arterra.Data.Entity.Behavior
         private float SlitherProgress;
         private uint LastOverrideState;
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.LeadHead, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(SnakeTailSettings), new SnakeTailSettings());
         }
 
         
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: MultiPedal Behavior Requires AnimalSettings to have SnakeTailSettings");
             if (!self.Is(out LeadHead)) 
@@ -76,7 +76,7 @@ namespace Arterra.Data.Entity.Behavior
             SetUp(self);
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: MultiPedal Behavior Requires AnimalSettings to have SnakeTailSettings");
             if (!self.Is(out LeadHead)) 
@@ -102,7 +102,7 @@ namespace Arterra.Data.Entity.Behavior
             this.LastOverrideState = 0;
         }
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context != BehaviorEntity.UpdateContext.JobSync)
                 CoreUpdate(self);
             if (self.context != BehaviorEntity.UpdateContext.Job)
@@ -157,7 +157,7 @@ namespace Arterra.Data.Entity.Behavior
                 collider.transform.velocity += strength * self.DeltaTime * dir; 
         }
 
-        public void OnDrawGizmos(BehaviorEntity.Animal self) {
+        public override void OnDrawGizmos(BehaviorEntity.Animal self) {
             Gizmos.color = Color.green;
             Gizmos.DrawWireCube(CPUMapManager.GSToWS(LeadHead.HeadPosition), LeadHead.settings.Collider.size * 2);
             foreach(TailSegment l in appendages) {
@@ -168,7 +168,7 @@ namespace Arterra.Data.Entity.Behavior
             }
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             if (appendages == null) return;
             foreach(TailSegment l in appendages) l.Disable();
         }

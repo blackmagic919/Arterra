@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2485f06c465b44e788a840250915e953, type: 3}
+  m_Name: PotatoFruiting
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.MiniMeshSetting
+  Name: PotatoFruiting
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - PotatoFruitingStem
+  info:
+    value:
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 6370057475083350220, guid: d695264bd5e5343598438444eeac19bd, type: 3}
+          probability: 1
+      frequency: -2
+      sizeMultiplier: 1
+      sizeMultiplierRange: {x: 0.6, y: 1.5}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 1862713571832367693, guid: 6e564d8b349e24b229b4c03c3ba1e3e4, type: 3}
+          probability: 1
+      frequency: -1
+      sizeMultiplier: 1.5
+      sizeMultiplierRange: {x: 1, y: 1.75}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -9106629087141549259, guid: 1aa1e17710789407e8f89215b74177c8, type: 3}
+          probability: 1
+      frequency: -1
+      sizeMultiplier: 1.66
+      sizeMultiplierRange: {x: 1.5, y: 2}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 6308158996582192534, guid: 81fddb946b7c044abaf194cd2bb21fd4, type: 3}
+          probability: 1
+      frequency: -1
+      sizeMultiplier: 2
+      sizeMultiplierRange: {x: 2, y: 3}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+  references:
+    version: 2
+    RefIds: []

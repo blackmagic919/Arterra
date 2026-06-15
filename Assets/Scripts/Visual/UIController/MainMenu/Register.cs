@@ -16,7 +16,7 @@ namespace Arterra.Configuration {
         protected virtual Option<List<Option<Category<T>>>>? GetChildren() => null;
         protected virtual void SetChildren(Option<List<Option<Category<T>>>> value) { }
 
-        public virtual void AddChildren(ref List<T> flat, ref List<BackEdge> inv, ref Dictionary<TagRegistry.Tags, LinkedList<int2>> tRanges, BackEdge parent = null) {
+        public virtual void AddChildren(ref List<T> flat, ref List<BackEdge> inv, Dictionary<TagRegistry.Tags, LinkedList<int2>> tRanges, BackEdge parent = null) {
             flat ??= new List<T>();
             inv ??= new List<BackEdge>();
 
@@ -33,7 +33,7 @@ namespace Arterra.Configuration {
                     if (pair.value == null) continue;
                     pair.value.AddChildren(
                         ref flat, ref inv, 
-                        ref tRanges, invertedDependency
+                        tRanges, invertedDependency
                     );
                 }
             } range.y = flat.Count;
@@ -80,112 +80,110 @@ public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
     [UISetting(Ignore = true, Defaulting = true)]
     [JsonIgnore]
     private List<Category<T>.BackEdge> InvertedDependency;
-    [HideInInspector]
-    [UISetting(Ignore = true, Defaulting = true)]
-    [JsonIgnore]
-    public Dictionary<TagRegistry.Tags, LinkedList<int2>> TagRanges;
+    [HideInInspector][JsonIgnore]
+    public Dictionary<TagRegistry.Tags, LinkedList<int2>> TagRanges {get; set;}
 
-        public void Construct() {
-            Reg = new List<T>();
-            InvertedDependency = new List<Category<T>.BackEdge>();
-            TagRanges = new Dictionary<TagRegistry.Tags, LinkedList<int2>>();
-            Category.value.AddChildren(ref Reg, ref InvertedDependency, ref TagRanges);
-            ReconstructIndex();
+    public void Construct() {
+        Reg = new List<T>();
+        InvertedDependency = new List<Category<T>.BackEdge>();
+        TagRanges = new Dictionary<TagRegistry.Tags, LinkedList<int2>>();
+        Category.value.AddChildren(ref Reg, ref InvertedDependency, TagRanges);
+        ReconstructIndex();
+    }
+
+    public readonly int RetrieveIndex(string name) {
+        return Index[name];
+    }
+    public readonly string RetrieveName(int index) {
+        return Reg[index].Name;
+    }
+
+    public readonly T Retrieve(string name) {
+        return Reg[Index[name]];
+    }
+    public readonly T Retrieve(int index) {
+        return Reg[index];
+    }
+    public readonly bool Contains(string name) {
+        if (Index == null) return false;
+        return Index.ContainsKey(name);
+    }
+    public readonly bool Contains(int index) {
+        return index >= 0 && index < Reg.Count;
+    }
+    public void Add(string name, T value) {
+        Reg ??= new List<T>();
+        Index ??= new Dictionary<string, int>();
+        InvertedDependency ??= new List<Category<T>.BackEdge>();
+
+        Reg.Add(value);
+        Index.Add(name, Reg.Count - 1);
+        InvertedDependency.Add(new Category<T>.BackEdge(null, value));
+    }
+
+    public bool TryRemove(string name) {
+        if (Reg == null || Index == null) return false;
+        if (InvertedDependency == null) return false;
+        if (!Index.ContainsKey(name)) return false;
+
+        InvertedDependency.RemoveAt(Index[name]);
+        Reg.RemoveAt(Index[name]);
+        ReconstructIndex();
+        return true;
+    }
+
+    public readonly bool TrySet(string name, T value) {
+        if (Reg == null || Index == null) return false;
+        if (!Index.ContainsKey(name)) return false;
+
+        int index = Index[name];
+        InvertedDependency[index].Category = value;
+        Reg[index] = value;
+        return true;
+    }
+
+    public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, string name, out object prop) => GetMostSpecificTag(tag, RetrieveIndex(name), out prop);
+    public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, int index, out object prop) {
+        prop = null;
+        if (index < 0 || index >= Reg.Count) return false;
+        Category<T>.BackEdge cur = InvertedDependency[index];
+        while (cur != null) {
+            if (cur.Category.Tags.Contains(tag))
+                break;
+            cur = cur.Parent;
         }
+        if (cur == null) return false;
+        prop = cur.Category.Tags.Retrieve(tag);
+        return true;
+    }
 
-        public readonly int RetrieveIndex(string name) {
-            return Index[name];
-        }
-        public readonly string RetrieveName(int index) {
-            return Reg[index].Name;
-        }
-
-        public readonly T Retrieve(string name) {
-            return Reg[Index[name]];
-        }
-        public readonly T Retrieve(int index) {
-            return Reg[index];
-        }
-        public readonly bool Contains(string name) {
-            if (Index == null) return false;
-            return Index.ContainsKey(name);
-        }
-        public readonly bool Contains(int index) {
-            return index >= 0 && index < Reg.Count;
-        }
-        public void Add(string name, T value) {
-            Reg ??= new List<T>();
-            Index ??= new Dictionary<string, int>();
-            InvertedDependency ??= new List<Category<T>.BackEdge>();
-
-            Reg.Add(value);
-            Index.Add(name, Reg.Count - 1);
-            InvertedDependency.Add(new Category<T>.BackEdge(null, value));
-        }
-
-        public bool TryRemove(string name) {
-            if (Reg == null || Index == null) return false;
-            if (InvertedDependency == null) return false;
-            if (!Index.ContainsKey(name)) return false;
-
-            InvertedDependency.RemoveAt(Index[name]);
-            Reg.RemoveAt(Index[name]);
-            ReconstructIndex();
-            return true;
-        }
-
-        public readonly bool TrySet(string name, T value) {
-            if (Reg == null || Index == null) return false;
-            if (!Index.ContainsKey(name)) return false;
-
-            int index = Index[name];
-            InvertedDependency[index].Category = value;
-            Reg[index] = value;
-            return true;
-        }
-
-        public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, string name, out object prop) => GetMostSpecificTag(tag, RetrieveIndex(name), out prop);
-        public readonly bool GetMostSpecificTag(TagRegistry.Tags tag, int index, out object prop) {
-            prop = null;
-            if (index < 0 || index >= Reg.Count) return false;
-            Category<T>.BackEdge cur = InvertedDependency[index];
-            while (cur != null) {
-                if (cur.Category.Tags.Contains(tag))
-                    break;
-                cur = cur.Parent;
-            }
-            if (cur == null) return false;
-            prop = cur.Category.Tags.Retrieve(tag);
-            return true;
-        }
-
-        private void ReconstructIndex() {
-            Index = new Dictionary<string, int>();
-            for (int i = 0; i < Reg.Count; i++) {
-                Index.Add(Reg[i].Name, i);
-            }
-        }
-
-        public object Clone() => new Catalogue<T> { Reg = Reg };
-
-        public int Count() => Reg.Count;
-
-        [Serializable]
-        public struct Pair : ICloneable {
-            public string Name;
-            [UISetting(Alias = "Value")]
-            public Option<T> _value;
-            [JsonIgnore]
-            public readonly T Value => _value.value;
-
-            public object Clone() {
-                return new Pair {
-                    Name = Name,
-                    _value = _value
-                };
-            }
+    private void ReconstructIndex() {
+        Index = new Dictionary<string, int>();
+        for (int i = 0; i < Reg.Count; i++) {
+            Index.Add(Reg[i].Name, i);
         }
     }
+
+    public object Clone() => new Catalogue<T> { Reg = Reg };
+
+    public int Count() => Reg.Count;
+
+    [Serializable]
+    public struct Pair : ICloneable {
+        public string Name;
+        [UISetting(Alias = "Value")]
+        public Option<T> _value;
+        [JsonIgnore]
+        public readonly T Value => _value.value;
+
+        public object Clone() {
+            return new Pair {
+                Name = Name,
+                _value = _value
+            };
+        }
+    }
+}
 
     [Serializable]
     public struct Registry<T> : IRegister, ICloneable {
@@ -364,6 +362,7 @@ public interface IRegistered{
 public interface ICatalgoue : IRegister {
     public bool GetMostSpecificTag(TagRegistry.Tags tag, string index, out object prop);
     public bool GetMostSpecificTag(TagRegistry.Tags tag, int index, out object prop);
+    public Dictionary<TagRegistry.Tags, LinkedList<int2>> TagRanges {get; set;}
 }
 
     public struct Registerable<T> where T : IRegistered {

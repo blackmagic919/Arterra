@@ -3,29 +3,45 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using System;
 using UnityEngine;
+using System.Linq;
 
 namespace Arterra.Data.Entity.Behavior {
 
-    public class Modifier : ISpeciesBehavior {
+    public class Modifier : SpeciesBehavior {
         public const int Base = 0;
         public const int Physicality = 1000;
         public const int Decision = 2000;
         public const int Mobility = 3000;
         public const int Interaction = 4000;
         public const int Effects = 5000;
+        public const int Player = 6000;
         public const int GroupStep = -65536;
 
         public Dictionary<MSettings, List<SettingModifier>>  ModifiedSettings;
         [JsonIgnore]
+        private Dictionary<Guid, SettingModifier> ModifierIndex;
+        [JsonIgnore]
         public Genetics genes;
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!self.Is(out genes)) genes = null;
             ModifiedSettings = new Dictionary<MSettings, List<SettingModifier>>();
+            ModifierIndex = new Dictionary<Guid, SettingModifier>();
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!self.Is(out genes)) genes = null;
+            ModifiedSettings ??= new Dictionary<MSettings, List<SettingModifier>>();
+            ModifierIndex = new Dictionary<Guid, SettingModifier>();
+            foreach (var pair in ModifiedSettings) {
+                if (pair.Value == null) continue;
+                foreach (SettingModifier modifier in pair.Value) {
+                    if (modifier == null) continue;
+                    if (modifier.Id == Guid.Empty)
+                        modifier._Create();
+                    ModifierIndex[modifier.Id] = modifier;
+                }
+            }
         }
 
         public static float Get(Modifier self, MSettings name, float defaultValue) {
@@ -49,11 +65,24 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void ApplyModifier(MSettings name, SettingModifier modifier) {
+            modifier._Create();
+            ModifierIndex[modifier.Id] = modifier;
             if(!ModifiedSettings.TryGetValue(name, out List<SettingModifier> mList)) 
                 ModifiedSettings[name] = new List<SettingModifier>{ modifier };
             else {
-                mList.Add(modifier); mList.Sort((a, b) => a.type.CompareTo(b));
-            }
+                mList.Add(modifier); mList.Sort((a, b) => a.type.CompareTo(b.type));
+            } 
+        }
+
+        public void RemoveModifier(MSettings name, Guid Id) {
+            if(!ModifiedSettings.TryGetValue(name, out List<SettingModifier> mList)) 
+                return;
+            mList = mList.Where(m => m.Id != Id).ToList();
+            if (mList.Count == 0) ModifiedSettings.Remove(name);
+        }
+
+        public bool TryGetModifier(Guid Id, out SettingModifier m) {
+            m = null; return ModifierIndex?.TryGetValue(Id, out m) ?? false;
         }
     }
 
@@ -77,6 +106,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         DryOutTime = Modifier.Physicality + 13,
         FlopStrength = Modifier.Physicality + 14,
+        StarveRate = Modifier.Physicality + 15,
 
 
         CallFriendRadius = Modifier.Decision + 0,
@@ -167,9 +197,21 @@ namespace Arterra.Data.Entity.Behavior {
         Inflict_BlindnessDuration = Modifier.Effects + 18,
         Recieve_BlindnessDuration = Modifier.Effects + 19,
 
+        CameraSensitivity = Modifier.Player + 0,
+        MinimumX = Modifier.Player + 1,
+        MaximumX = Modifier.Player + 2,
+        TerraformRadius = Modifier.Player + 3,
+        ReachDistance = Modifier.Player + 4,
+        CylinderRadius = Modifier.Player + 5,
+        PickupRate = Modifier.Player + 6,
+        RecoverRate = Modifier.Player + 7,
+        FlightSpeedMult = Modifier.Player + 8,
+        JumpForce = Modifier.Player + 9,
+        AccelTime = Modifier.Player + 10,
     }
 
-    public struct SettingModifier {
+    public class SettingModifier {
+        private Guid id;
         public MType type;
         public float value;
         public enum MType {
@@ -178,6 +220,9 @@ namespace Arterra.Data.Entity.Behavior {
             Add = 2, 
             Override = 3,
         }
+
+        public void _Create() => id = Guid.NewGuid();
+        public Guid Id => id;
 
         public float ApplyModiifer(MSettings name, float input) {
             if (type == MType.Add) return input + this.value;

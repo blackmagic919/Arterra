@@ -22,8 +22,8 @@ MonoBehaviour:
             rid: -2
   Children:
     value:
-    - value: {fileID: 11400000, guid: 6f1920b30fba441eea92435ac07b665b, type: 2}
-    - value: {fileID: 11400000, guid: 0814592f1c7174fdc8759ffaef574e9f, type: 2}
+    - value: {fileID: 11400000, guid: afd41219e1f8c4399bdc92e66dc62c68, type: 2}
+    - value: {fileID: 11400000, guid: 2ee7acbf7e0c5478daa3b7615f88cba4, type: 2}
   references:
     version: 2
     RefIds:

@@ -26,7 +26,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class AttackTargetBehavior : ISpeciesBehavior {
+    public class AttackTargetBehavior : SpeciesBehavior {
         private AttackTargetSettings settings;
         private Movement movement;
         private ChasePreyBehavior prey;
@@ -37,7 +37,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private float AttackDistance => Modifier.Get(mod, MSettings.AttackDistance, attack.settings.AttackDistance);
         
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync)
                 return;
             if (manager.TaskIndex != settings.TaskName) return;
@@ -68,18 +68,18 @@ namespace Arterra.Data.Entity.Behavior {
             } else attack.Attack(target);
         } 
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Attack, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(AttackTargetSettings), new AttackTargetSettings());
             heirarchy.TryAdd(typeof(Movement), new Movement());
         }
 
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalSettings to have AttackTargetSettings");
             if (!setting.Is(out movement))
@@ -92,7 +92,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out mod)) mod = null;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: AttackTarget Behavior Requires AnimalSettings to have AttackTargetSettings");
             if (!setting.Is(out movement))

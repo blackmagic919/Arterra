@@ -67,7 +67,7 @@ namespace Arterra.Data.Entity.Behavior {
         Death = EntitySMBase.Final,
     }
 
-    public class StateMachineManagerBehavior : ISpeciesBehavior {
+    public class StateMachineManagerBehavior : SpeciesBehavior {
         [JsonIgnore] public StateMachineManagerSettings settings;
         private ColliderUpdateBehavior collider;
         private MMove mmove;
@@ -79,12 +79,12 @@ namespace Arterra.Data.Entity.Behavior {
         public EntitySMTasks TaskIndex;
         public float TaskDuration;
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {}
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {}
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(StateMachineManagerSettings), new StateMachineManagerSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: StateMachineManagerBehavior Requires AnimalSettings to have StateMachineManagerSettings");
             if (!setting.Is(out mmove)) mmove = null;
@@ -98,7 +98,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: StateMachineManagerBehavior Requires AnimalSettings to have StateMachineManagerSettings");
             if (!setting.Is(out mmove)) mmove = null;
@@ -107,7 +107,7 @@ namespace Arterra.Data.Entity.Behavior {
             ConditionalTransitions = new Dictionary<EntitySMTasks, Func<bool>>();
         }
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context != BehaviorEntity.UpdateContext.JobSync)
                 CoreUpdate(self);
             if (self.context != BehaviorEntity.UpdateContext.Job)

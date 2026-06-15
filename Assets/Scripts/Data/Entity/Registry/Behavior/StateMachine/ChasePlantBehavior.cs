@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Arterra.Configuration;
+using Arterra.Core.Events;
 using Unity.Mathematics;
-using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
@@ -24,7 +23,7 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
 
-    public class ChasePlantBehavior : ISpeciesBehavior {
+    public class ChasePlantBehavior : SpeciesBehavior {
         private BehaviorEntity.Animal self;
         private ChasePlantSettings settings;
         private FindPlantBehaviorSettings findPlant;
@@ -45,15 +44,15 @@ namespace Arterra.Data.Entity.Behavior {
         public bool StopHunting() => !IsHunting || !(IsHunting = vitality.healthPercent < StopHuntThreshold);
         private float WalkSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.WalkSpeed, movement.walkSpeed);
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
-            self.PathCollider.Follow(Movement.StaticDirect(
+            self.PathCollider.Follow(self, Movement.StaticDirect(
                 MMove.Profile(mmove, settings.TaskName, self.settings), 
                 ref path.pathFinder, self.PathCollider,
                 MMove.MovementType(mmove, settings.TaskName)
-            ), WalkSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
+            ), WalkSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk);
             if (path.pathFinder.hasPath) return;
 
             if (findPlant.FindPreferredPreyPlant((int3)math.round(self.position), SearchPlantDist, out int3 preyPos)
@@ -99,20 +98,20 @@ namespace Arterra.Data.Entity.Behavior {
             return FindPrey(out bool Locked) && Locked;
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(ChasePlantSettings), new ChasePlantSettings());
             heirarchy.TryAdd(typeof(Movement), new Movement());
             heirarchy.TryAdd(typeof(FindPlantBehaviorSettings), new FindPlantBehaviorSettings());
             heirarchy.TryAdd(typeof(HuntBehaviorSettings), new HuntBehaviorSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: ChasePlant Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
@@ -135,7 +134,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: ChasePlant Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
@@ -157,7 +156,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
         }
     }

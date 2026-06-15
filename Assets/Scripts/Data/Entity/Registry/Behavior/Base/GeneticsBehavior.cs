@@ -47,7 +47,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class Genetics : ISpeciesBehavior {
+    public class Genetics : SpeciesBehavior {
         private GeneticsSettings settings;
         [JsonProperty]
         private float[] _genes;
@@ -56,15 +56,15 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonProperty]
         private bool initialized = false;
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.Modifiers, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(GeneticsSettings), new GeneticsSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Behavior Genetics requires GeenticsSettings object");
             if (initialized) return;
@@ -79,7 +79,7 @@ namespace Arterra.Data.Entity.Behavior {
             } NormalizeGenes(this);
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Behavior Genetics requires GeenticsSettings object");
             entityIndex = self.info.entityType;

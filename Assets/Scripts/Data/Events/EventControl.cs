@@ -32,6 +32,9 @@ namespace Arterra.Core.Events {
         Entity_Fed = GameEventBases.Entity_Base + 7,
         Entity_HitGround = GameEventBases.Entity_Base + 8,
         Entity_FlushDamage = GameEventBases.Entity_Base + 9,
+        Entity_Burrow = GameEventBases.Entity_Base + 10,
+        Entity_Unburrow = GameEventBases.Entity_Base + 11,
+
 
         Entity_ItemEnterPrimaryInventory = GameEventBases.Entity_Base + 9,
         Entity_ItemEnterSecondaryInventory = GameEventBases.Entity_Base + 10,
@@ -80,6 +83,8 @@ namespace Arterra.Core.Events {
         Action_Dismount = GameEventBases.Action_Base + 15,
         Action_Mounted = GameEventBases.Action_Base + 15,
         Action_Dismounted = GameEventBases.Action_Base + 16,
+        Action_Run = GameEventBases.Action_Base + 17,
+        Action_Walk = GameEventBases.Action_Base + 18,
 
         System_Deserialize = GameEventBases.System_Base + 0,
     }

@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2485f06c465b44e788a840250915e953, type: 3}
+  m_Name: PotatoSprout
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.MiniMeshSetting
+  Name: PotatoSprout
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - PotatoSproutStem
+  info:
+    value:
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 6573619849286980418, guid: 107c4b0f2e4f549a5b8956146a3bc83f, type: 3}
+          probability: 1
+      frequency: -2
+      sizeMultiplier: 1
+      sizeMultiplierRange: {x: 0.6, y: 1.5}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 2792554267055724860, guid: 7ac167558c0094078960f6bbd7184a48, type: 3}
+          probability: 1
+      frequency: -1
+      sizeMultiplier: 1.5
+      sizeMultiplierRange: {x: 1, y: 1.75}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -769611461803901909, guid: d051fe41217fd494bb5b091b7810b50b, type: 3}
+          probability: 1
+      frequency: -1
+      sizeMultiplier: 1.66
+      sizeMultiplierRange: {x: 1.5, y: 2}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 3714799385337089232, guid: 93167b825b44c47d3bb19bc1b76af07b, type: 3}
+          probability: 1
+      frequency: -1
+      sizeMultiplier: 2
+      sizeMultiplierRange: {x: 2, y: 3}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+  references:
+    version: 2
+    RefIds: []

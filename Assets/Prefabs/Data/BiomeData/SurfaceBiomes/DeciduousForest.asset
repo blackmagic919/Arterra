@@ -31,6 +31,7 @@ MonoBehaviour:
         - Air
         - Water
         - StoneRuins1
+        - PotatoFruitingSoil
       GroundMaterials:
         value:
         - value:
@@ -44,6 +45,12 @@ MonoBehaviour:
             genSize: 0.2
             genShape: 0.408
             frequency: 0.9
+            height: 0
+        - value:
+            Material: 11
+            genSize: 0.1
+            genShape: 0
+            frequency: 0.4
             height: 0
       SurfaceMaterials:
         value:
@@ -83,6 +90,8 @@ MonoBehaviour:
         - value:
             Entity: 5
             ChancePerCoord: 0.0001
+      StructureSystems:
+        value: []
   BiomeConditions:
     value:
       TerrainStart: 0.375

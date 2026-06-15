@@ -24,7 +24,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class IdleStateBehavior : ISpeciesBehavior {
+    public class IdleStateBehavior : SpeciesBehavior {
         private IdleStateSettings settings;
 
         private BehaviorEntity.Animal self;
@@ -33,7 +33,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private float AverageIdleTime => Modifier.Get(mod, MSettings.AverageIdleTime, settings.AverageIdleTime);
         private float AverageIdleVariance => Modifier.Get(mod, MSettings.AverageIdleVariance, settings.AverageIdleVariance);
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
@@ -49,15 +49,15 @@ namespace Arterra.Data.Entity.Behavior {
             return true;
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(IdleStateSettings), new IdleStateSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Idle Behavior Requires AnimalSettings to have IdleStateSettings");
             if (!self.Is(out manager))
@@ -68,7 +68,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Idle Behavior Requires AnimalSettings to have IdleStateSettings");
             if (!self.Is(out manager))
@@ -79,7 +79,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
         }
     }

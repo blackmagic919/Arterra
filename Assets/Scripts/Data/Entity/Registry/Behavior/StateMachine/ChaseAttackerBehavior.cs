@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Arterra.Core.Events;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
@@ -22,7 +23,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class ChaseAttackerBehavior : ISpeciesBehavior {
+    public class ChaseAttackerBehavior : SpeciesBehavior {
         [JsonIgnore]
         public ChaseAttackerSettings settings;
         private RunFromPredatorSettings predator; //Optional
@@ -41,7 +42,7 @@ namespace Arterra.Data.Entity.Behavior {
         public float ChaseDistance => Modifier.Get(mod, MSettings.ChaseDistance, settings.ChaseDistance);
         private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
@@ -63,11 +64,11 @@ namespace Arterra.Data.Entity.Behavior {
                 path.SetPath(nPath);
             }
 
-            self.PathCollider.Follow(Movement.DynamicDirect(
+            self.PathCollider.Follow(self, Movement.DynamicDirect(
                 MMove.Profile(mmove, settings.TaskName, self.settings), 
                 ref path.pathFinder, self.PathCollider, target.origin,
                 MMove.MovementType(mmove, settings.TaskName)
-            ), RunSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
+            ), RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run);
 
             if (ColliderUpdateBehavior.GetColliderDist(self, target) < manager.settings.ContactDistance) {
                 manager.Transition(settings.OnReachAttacker);
@@ -94,18 +95,18 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(ChaseAttackerSettings), new ChaseAttackerSettings());
             heirarchy.TryAdd(typeof(Movement), new Movement());
         }
 
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
@@ -125,7 +126,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: RunFromAttacker Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
@@ -145,7 +146,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
         }
     }

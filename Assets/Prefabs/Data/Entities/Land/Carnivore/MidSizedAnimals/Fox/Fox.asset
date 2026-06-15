@@ -1,0 +1,620 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
+  m_Name: Fox
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
+  Name: Fox
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 5025472046583946829, guid: 419a2bdc199a94b1e86df75c0fc27a4d, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 2
+          y: 3
+          z: 2
+      collider:
+        size:
+          x: 0.75
+          y: 1
+          z: 0.75
+      BehaviorList:
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000
+      Settings:
+        value:
+          value:
+          - value:
+              value:
+                rid: 5205636866482634863
+          - value:
+              value:
+                rid: 3097084119023354051
+          - value:
+              value:
+                rid: 5205636866482634864
+          - value:
+              value:
+                rid: 3097083922518114515
+          - value:
+              value:
+                rid: 3097084037468258399
+          - value:
+              value:
+                rid: 3097083922518114516
+          - value:
+              value:
+                rid: 3097083922518114517
+          - value:
+              value:
+                rid: 3097083922518114518
+          - value:
+              value:
+                rid: 3097083922518114519
+          - value:
+              value:
+                rid: 3097083922518114520
+          - value:
+              value:
+                rid: 3097083922518114521
+          - value:
+              value:
+                rid: 3097083922518114640
+          - value:
+              value:
+                rid: 3097083922518114523
+          - value:
+              value:
+                rid: 3097083922518114524
+          - value:
+              value:
+                rid: 3097083922518114525
+          - value:
+              value:
+                rid: 3097083922518114526
+          - value:
+              value:
+                rid: 3097083922518114527
+          - value:
+              value:
+                rid: 3097083922518114528
+          - value:
+              value:
+                rid: 3097083922518114545
+          - value:
+              value:
+                rid: 3097083922518114529
+          - value:
+              value:
+                rid: 3097083922518114530
+          - value:
+              value:
+                rid: 3097083922518114531
+          - value:
+              value:
+                rid: 3097083922518114532
+          - value:
+              value:
+                rid: 3097083922518114533
+          - value:
+              value:
+                rid: 3097083922518114534
+          - value:
+              value:
+                rid: 3097083922518114535
+          - value:
+              value:
+                rid: 3097084037468258413
+          - value:
+              value:
+                rid: 3097084037468258414
+          - value:
+              value:
+                rid: 3097084037468258415
+          - value:
+              value:
+                rid: 3097084052764622979
+      _prevBehaviorCount: 27
+  references:
+    version: 2
+    RefIds:
+    - rid: 3097083922518114515
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 8.35
+        StartHealthPercent: 0.7
+        StartHealthVariance: 0.05
+        MaxHealth: 16
+        NaturalRegen: -0.016
+        InvincTime: 0.25
+    - rid: 3097083922518114516
+      type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        HoldBreathTime: 10
+        Bouyancy: 0
+        UseFallDamage: 1
+    - rid: 3097083922518114517
+      type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StartTask: 0
+        AverageStartDuration: 2
+        AverageStartDurationVariance: 1
+        ContactDistance: 2
+    - rid: 3097083922518114518
+      type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AttackDistance: 2
+        AttackDamage: 2.5
+        AttackCooldown: 0.17
+        KBStrength: 3
+        AttackDuration: 0.28
+    - rid: 3097083922518114519
+      type: {class: MateRecognition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Mates:
+          value:
+          - MateType: Fox
+            ChildType: Fox
+            AmountPerParent: 0.5
+            GeneMutationRate: 0.02
+          - MateType: ArcticFox
+            ChildType: ArcticFox
+            AmountPerParent: 0.5
+            GeneMutationRate: 0.05
+        MateCost: 4.8
+    - rid: 3097083922518114520
+      type: {class: IdleStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageIdleTime: 2.5
+        AverageIdleVariance: 0
+        TaskName: 0
+        OnCompleteTransition: 100
+        CheckTransitions:
+          value: 844e0000f87500005c760000
+    - rid: 3097083922518114521
+      type: {class: RandomWalkStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageWalkTime: 8
+        AveragWalkVariance: 0
+        TaskName: 100
+        OnStopWalkTransition: 0
+        OnSwitchPath:
+          value: 2c010000
+    - rid: 3097083922518114523
+      type: {class: ChaseMateStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Task1Name: 20100
+        Task2Name: 20200
+        OnNotFoundTransition: 100
+        OnFinishMateTransition: 100
+        MateThreshold: 0.8
+        PregnacyLength: 4
+        OnSwitchPath:
+          value: 
+    - rid: 3097083922518114524
+      type: {class: ChasePlantSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30200
+        OnNotFoundTransition: 0
+        OnReachPreyTransition: 30400
+        SearchPlantDistance: 0
+    - rid: 3097083922518114525
+      type: {class: FindPlantBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Prey:
+          value:
+            AllowList:
+              value: []
+    - rid: 3097083922518114526
+      type: {class: HuntBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        HuntThreshold: 0.4
+        StopHuntThreshold: 0.9
+    - rid: 3097083922518114527
+      type: {class: ChasePreySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30300
+        OnNotFoundTransition: 0
+        OnReachPreyTransition: 30600
+        DesiredPreyState: 0
+        Prey:
+          value:
+            AllowList:
+              value:
+              - EntityType:
+                  tagValue: 6156
+                  registryValue: 
+                Policy: 0
+              - EntityType:
+                  tagValue: 6150
+                  registryValue: 
+                Policy: 1
+              - EntityType:
+                  tagValue: 6160
+                  registryValue: 
+                Policy: 1
+              - EntityType:
+                  tagValue: 6155
+                  registryValue: 
+                Policy: 0
+    - rid: 3097083922518114528
+      type: {class: ConsumeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Edibles:
+          value:
+            AllowList:
+              value:
+              - EdibleType:
+                  tagValue: 6100
+                  registryValue: 
+                Policy: 0
+                Nutrition: 10
+        ConsumptionRate: 0.4
+    - rid: 3097083922518114529
+      type: {class: ConsumeEntitySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30500
+        OnFinishedEating: 0
+        OnSeperateTarget: 50100
+        OnLostTarget: 0
+    - rid: 3097083922518114530
+      type: {class: AttackTargetSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30600
+        OnTargetPreyDeath: 30500
+        OnTargetDeath: 0
+        OnSeperateTarget: 50100
+        OnLostTarget: 0
+    - rid: 3097083922518114531
+      type: {class: ChaseAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50100
+        OnLostAttacker: 0
+        OnReachAttacker: 30600
+        ChaseDistance: 32
+    - rid: 3097083922518114532
+      type: {class: RunFromPredatorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 40000
+        OverridableStates: 30500
+        OnFinishRunning: 0
+        Predators:
+          value:
+            AllowList:
+              value:
+              - EntityType:
+                  tagValue: 6150
+                  registryValue: 
+                Policy: 1
+              - EntityType:
+                  tagValue: 6161
+                  registryValue: 
+                Policy: 1
+              - EntityType:
+                  tagValue: 6154
+                  registryValue: 
+                Policy: 0
+              - EntityType:
+                  tagValue: 6153
+                  registryValue: 
+                Policy: 0
+    - rid: 3097083922518114533
+      type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        fleeDist: 5
+        detectDist: 24
+        FightAggressor: 0
+    - rid: 3097083922518114534
+      type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50000
+        OnLostAttacker: 0
+    - rid: 3097083922518114535
+      type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 60000
+        OnReviveTask: 0
+        DecompositionTime: 175
+    - rid: 3097083922518114545
+      type: {class: ConsumeMaterialSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30400
+        OnFinishedEating: 0
+        OnLostTarget: 50100
+    - rid: 3097083922518114640
+      type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        walkSpeed: 3
+        runSpeed: 6.24
+        pathDistance: 31
+        rotSpeed: 180
+    - rid: 3097084037468258399
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
+          value:
+          - ItemName: GameMeat
+            DropAmount: 0.03428571
+    - rid: 3097084037468258413
+      type: {class: FeedableBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        CanEat: 0
+    - rid: 3097084037468258414
+      type: {class: RelationsBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        OnFedAffection: 8
+        OnProtectAffection: 8
+        OnSaveAffection: 15
+        OnMateAffection: 20
+        OnBetrayalAffection: -2.5
+        OnRivalMateAffection: -14
+        OnAttackAffection: -16
+        ForgetFalloff: 0.2
+        BaseForgetRate: 0.05
+        SuppressInstinctAffection: 10
+        GossipCooldown: 5
+        GossipRadius: 8
+        GossipCloseness: 0.1
+        GossipStrength: 0.2
+        GossipAmount: 2.5
+        EscapingTargetStates:
+          value: 409c000050c30000
+    - rid: 3097084037468258415
+      type: {class: ChaseFriendsSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 300
+        OnReachTransition: 100
+        ChaseFriendProbability: 0.04
+        FightEnemyAffection: -12.5
+        ChaseEnemyState: 50100
+    - rid: 3097084052764622979
+      type: {class: DefendFriendSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        CallFriendRadius: 18
+        HelpFriendAffection: 12
+        HelpFriendState: 50100
+        OverridableStates: 30200
+    - rid: 3097084119023354051
+      type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath: 
+        StateAnimations:
+          value:
+          - task: 0
+            Animation: IsIdling
+          - task: 100
+            Animation: IsWalking
+          - task: 200
+            Animation: IsWalking
+          - task: 300
+            Animation: IsWalking
+          - task: 20000
+            Animation: IsWalking
+          - task: 20100
+            Animation: IsWalking
+          - task: 20200
+            Animation: IsCuddling
+          - task: 20300
+            Animation: IsWalking
+          - task: 30200
+            Animation: IsWalking
+          - task: 30300
+            Animation: IsRunning
+          - task: 30400
+            Animation: IsEating
+          - task: 30500
+            Animation: IsEating
+          - task: 30600
+            Animation: IsAttacking
+          - task: 40000
+            Animation: IsRunning
+          - task: 50000
+            Animation: IsRunning
+          - task: 50100
+            Animation: IsRunning
+          - task: 50200
+            Animation: IsAttacking
+          - task: 60000
+            Animation: IsDead
+    - rid: 5205636866482634863
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 1
+    - rid: 5205636866482634864
+      type: {class: GeneticsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Genes:
+          value:
+          - name: 1004
+            var: 0.35
+            geneWeight: 0.4
+          - name: 1006
+            var: 0.25
+            geneWeight: 0.2
+          - name: 1007
+            var: 0.1
+            geneWeight: 0.025
+          - name: 1005
+            var: 0.3
+            geneWeight: 0.1
+          - name: 1000
+            var: 0.25
+            geneWeight: 0.2
+          - name: 1001
+            var: 0.5
+            geneWeight: 0.6
+          - name: 1002
+            var: 0.5
+            geneWeight: 0.3
+          - name: 1003
+            var: 0.5
+            geneWeight: 0.1
+          - name: 4002
+            var: 0.25
+            geneWeight: 0.2
+          - name: 4002
+            var: 0.25
+            geneWeight: 0.2
+          - name: 4001
+            var: 0.4
+            geneWeight: 0.15
+          - name: 2039
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2040
+            var: 0
+            geneWeight: 0
+          - name: 2044
+            var: 0.3
+            geneWeight: 0.025
+          - name: 2045
+            var: 0
+            geneWeight: 0
+          - name: 2035
+            var: 0.125
+            geneWeight: 0.1
+          - name: 2036
+            var: 0.25
+            geneWeight: 0.2
+          - name: 2037
+            var: 0.25
+            geneWeight: 0.15
+          - name: 2002
+            var: 0.25
+            geneWeight: 0.1
+          - name: 2003
+            var: 0.05
+            geneWeight: 0.05
+          - name: 2038
+            var: 0.25
+            geneWeight: 0.2
+          - name: 4000
+            var: 0.25
+            geneWeight: 0.3
+          - name: 2031
+            var: 0.25
+            geneWeight: 0.2
+          - name: 2030
+            var: 0.25
+            geneWeight: 0.3
+          - name: 1012
+            var: 0.35
+            geneWeight: 0.01
+          - name: 1008
+            var: 0.3
+            geneWeight: 0.1
+          - name: 1009
+            var: 0.35
+            geneWeight: 0.35
+          - name: 4003
+            var: 0.75
+            geneWeight: 0.05
+          - name: 2004
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2005
+            var: 0.75
+            geneWeight: 0.025
+          - name: 2006
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2007
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2008
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2009
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2010
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2011
+            var: 0.5
+            geneWeight: 0.025
+          - name: 2012
+            var: 0.7
+            geneWeight: 0.025
+          - name: 2013
+            var: 0.25
+            geneWeight: 0.01
+          - name: 2014
+            var: 0.5
+            geneWeight: 0.01
+          - name: 2015
+            var: 0.5
+            geneWeight: 0.01
+          - name: 2016
+            var: 0.75
+            geneWeight: 0.01
+          - name: 2017
+            var: 0.5
+            geneWeight: 0.01
+          - name: 2032
+            var: 0.25
+            geneWeight: 0.01
+          - name: 2033
+            var: 0.75
+            geneWeight: 0.05
+          - name: 2034
+            var: 0.25
+            geneWeight: 0.025
+          - name: 2000
+            var: 0.3
+            geneWeight: 0.1
+          - name: 2001
+            var: 0.5
+            geneWeight: 0.1
+        NormalizeWeights: 1

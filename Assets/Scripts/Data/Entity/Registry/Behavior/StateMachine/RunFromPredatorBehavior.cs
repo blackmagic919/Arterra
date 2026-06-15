@@ -4,21 +4,20 @@ using Arterra.Core.Events;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using Arterra.Configuration;
-using Arterra.Editor;
 using System.Collections.Generic;
 using UnityEngine;
+using Arterra.Utils;
 
 namespace Arterra.Data.Entity.Behavior {
     public class RunFromPredatorSettings : IBehaviorSetting {
         public EntitySMTasks TaskName = EntitySMTasks.RunFromPredator;
         public EntitySMTasks OverridableStates = EntitySMTasks.AttackTarget;
         public EntitySMTasks OnFinishRunning = EntitySMTasks.Idle;
-        public Option<List<EntityWrapper>> Predators;
+        public Option<RangeSet<ChasePreySettings.EntityWrapper>> Predators;
+        public static bool HasPredators(RunFromPredatorSettings val) => !(val == null 
+        || val.Predators.value == null || val.Predators.value.AllowList.value == null
+        || val.Predators.value.AllowList.value == null || val.Predators.value.AllowList.value.Count == 0);
 
-        [UISetting(Ignore = true)]
-        [JsonIgnore]
-        [HideInInspector]
-        internal Dictionary<int, int> AwarenessTable;
 
         public object Clone() {
             return new RunFromPredatorSettings {
@@ -30,27 +29,21 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
-            AwarenessTable = new Dictionary<int, int>();
             Catalogue<Authoring> eReg = Config.CURRENT.Generation.Entities;
-            if (Predators.value == null || Predators.value.Count == 0) return;
-
-            for(int i = 0; i < Predators.value.Count; i++){
-                int entityIndex = eReg.RetrieveIndex(Predators.value[i].EntityType);
-                AwarenessTable.TryAdd(entityIndex, i);
-            }
+            if (Predators.value == null) return;
+            Predators.value.Construct(eReg);
         }
 
         public bool FindClosestPredator(Entity self, float sightDist, out Entity entity, RelationsBehavior relations = null) {
-            entity = null; if (AwarenessTable == null) return false;
-            if (Predators.value == null || Predators.value.Count == 0) return false;
+            entity = null; 
+            if (!HasPredators(this)) return false;
 
             Entity cEntity = null; float closestDist = sightDist + 1;
-            Dictionary<int, int> Awareness = AwarenessTable;
             Bounds bounds = new(self.position, 2 * new float3(sightDist));
             EntityManager.ESTree.Query(bounds, nEntity => {
                 if (nEntity == null) return;
                 if (nEntity.info.rtEntityId == self.info.rtEntityId) return;
-                if (!Awareness.ContainsKey((int)nEntity.info.entityType)) return;
+                if (!Predators.value.IsAllowListed((int)nEntity.info.entityType, out _)) return;
                 if (nEntity.Is(out VitalityBehavior vit) && vit.IsDead) return;
                 if (relations != null) {
                     float suppressThreshold = relations.settings.SuppressInstinctAffection;
@@ -66,16 +59,10 @@ namespace Arterra.Data.Entity.Behavior {
             return entity != null;
         }
 
-        public bool Recognize(int index) => AwarenessTable.ContainsKey(index);
-
-        [Serializable]
-        public struct EntityWrapper {
-            [RegistryReference("Entities")]
-            public string EntityType;
-        }
+        public bool Recognize(int index) => Predators.value.IsAllowListed(index, out _);
     }
 
-    public class RunFromPredatorBehavior : ISpeciesBehavior {
+    public class RunFromPredatorBehavior : SpeciesBehavior {
         [JsonIgnore]
         public RunFromPredatorSettings settings;
         private FleeBehaviorSettings flee;
@@ -91,18 +78,18 @@ namespace Arterra.Data.Entity.Behavior {
         private float SearchEnemyDist => Modifier.Get(mod, MSettings.SearchEnemyDist, flee.detectDist);
         private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             if (manager.TaskIndex <= settings.OverridableStates) {
                 DetectPredator();
                 return;
             } else if (manager.TaskIndex != settings.TaskName) return;
 
-            self.PathCollider.Follow(Movement.StaticDirect(
+            self.PathCollider.Follow(self, Movement.StaticDirect(
                 MMove.Profile(mmove, settings.TaskName, self.settings), 
                 ref path.pathFinder, self.PathCollider,
                 MMove.MovementType(mmove, settings.TaskName)
-            ), RunSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
+            ), RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run);
             if (!path.pathFinder.hasPath) {
                 manager.Transition(settings.OnFinishRunning);
                 return;
@@ -123,18 +110,18 @@ namespace Arterra.Data.Entity.Behavior {
             manager.Transition(settings.TaskName);
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(RunFromPredatorSettings), new RunFromPredatorSettings());
             heirarchy.TryAdd(typeof(FleeBehaviorSettings), new FleeBehaviorSettings());
             heirarchy.TryAdd(typeof(Movement), new Movement());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
@@ -152,7 +139,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: RunFromPredator Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
@@ -170,7 +157,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
         }
     }

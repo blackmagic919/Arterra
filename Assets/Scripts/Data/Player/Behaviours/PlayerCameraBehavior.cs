@@ -49,9 +49,10 @@ namespace Arterra.Data.Entity.Behavior {
     /// Also implements <see cref="IMultiCollider"/> to expose the camera's full facing
     /// direction and eye position to the base entity, overriding the default body collider bindings.
     /// </summary>
-    public class PlayerCameraBehavior : ISpeciesBehavior, IMultiCollider {
+    public class PlayerCameraBehavior : SpeciesBehavior, IMultiCollider {
         [JsonIgnore] public PlayerCameraSettings settings;
         [JsonIgnore] private IMultiCollider baseCollider;
+        private Modifier mod;
 
         // IMultiCollider — delegates collider data from the base ColliderUpdateBehavior while
         // overriding Rotation and HeadPosition to reflect the active camera perspective.
@@ -66,6 +67,9 @@ namespace Arterra.Data.Entity.Behavior {
         internal static float heightReal => Config.CURRENT.Quality.Terrain.value.lerpScale * height;
         /// <summary>Returns the camera's eye position in grid space, used as the entity head.</summary>
         [JsonIgnore] public float3 HeadPosition => baseCollider.HeadPosition + new float3(0, height, 0);
+        private float Sensitivity => Modifier.Get(mod, MSettings.CameraSensitivity, settings.Sensitivity);
+        private float MinimumX => Modifier.Get(mod, MSettings.MinimumX, settings.MinimumX);
+        private float MaximumX => Modifier.Get(mod, MSettings.MaximumX, settings.MaximumX);
 
         private bool hasBindings;
         internal bool moved;
@@ -82,19 +86,20 @@ namespace Arterra.Data.Entity.Behavior {
         private ICameraPerspective[] perspectives;
         private int activePersp;
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
             // Camera orientation depends on the body collider being initialized first.
             hierarchy.TryAdd(Behaviors.Collider, hierarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
             hierarchy.TryAdd(typeof(PlayerCameraSettings), new PlayerCameraSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerCameraBehavior requires PlayerCameraSettings");
             if (!self.Is(out vit)) vit = null;
+            if (!self.Is(out mod)) mod = null;
             if (!self.Is(out baseCollider))
                 throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
 
@@ -108,10 +113,11 @@ namespace Arterra.Data.Entity.Behavior {
             DeserializeCameraState();
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerCameraBehavior requires PlayerCameraSettings");
             if (!self.Is(out vit)) vit = null;
+            if (!self.Is(out mod)) mod = null;
             if (!self.Is(out baseCollider))
                 throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
 
@@ -125,12 +131,12 @@ namespace Arterra.Data.Entity.Behavior {
             DeserializeCameraState();
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             UnbindInput();
             this.self = null;
         }
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.Job)
                 return;
             if (self.context == BehaviorEntity.UpdateContext.Fixed)
@@ -202,7 +208,7 @@ namespace Arterra.Data.Entity.Behavior {
             q.w = 1.0f;
 
             float angleX = 2.0f * Mathf.Rad2Deg * Mathf.Atan(q.x);
-            angleX = Mathf.Clamp(angleX, settings.MinimumX, settings.MaximumX);
+            angleX = Mathf.Clamp(angleX, MinimumX, MaximumX);
             q.x = Mathf.Tan(0.5f * Mathf.Deg2Rad * angleX);
 
             return q;
@@ -215,7 +221,7 @@ namespace Arterra.Data.Entity.Behavior {
             q.w = 1.0f;
 
             float lookPitch = 2.0f * Mathf.Rad2Deg * Mathf.Atan(q.x);
-            return -(Mathf.InverseLerp(settings.MinimumX, settings.MaximumX, lookPitch) * 2 - 1);
+            return -(Mathf.InverseLerp(MinimumX, MaximumX, lookPitch) * 2 - 1);
         }
 
         private string LookHorizontalName => $"PlayerCamera:LH::{self.info.entityId}"; 
@@ -240,12 +246,12 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void LookX(float x) {
-            lookDelta.x = x * settings.Sensitivity;
+            lookDelta.x = x * Sensitivity;
             moved = true;
         }
 
         private void LookY(float y) {
-            lookDelta.y = y * settings.Sensitivity;
+            lookDelta.y = y * Sensitivity;
             moved = true;
         }
 
@@ -406,7 +412,7 @@ namespace Arterra.Data.Entity.Behavior {
                 float rotation = 0;
                 if (camera.self.Is(out PlayerMovementBehavior movement)) {
                     // Consume lateral movement input as orbit/turn input while in free-rotate mode.
-                    rotation = movement.ConsumeHorizontalMovementInput(camera.settings.Sensitivity);
+                    rotation = movement.ConsumeHorizontalMovementInput(camera.Sensitivity);
                 }
 
                 smoothCharacterRot *= Quaternion.Euler(0, rotation, 0);
@@ -414,7 +420,7 @@ namespace Arterra.Data.Entity.Behavior {
                 yaw += camera.lookDelta.y;
                 pitch -= camera.lookDelta.x;
                 if (camera.settings.clampVerticalRotation)
-                    pitch = Mathf.Clamp(pitch, camera.settings.MinimumX, camera.settings.MaximumX);
+                    pitch = Mathf.Clamp(pitch, camera.MinimumX, camera.MaximumX);
 
                 smoothCameraRot = Quaternion.AngleAxis(yaw, Vector3.up) * Quaternion.AngleAxis(pitch, Vector3.right);
                 if (camera.settings.smooth) {

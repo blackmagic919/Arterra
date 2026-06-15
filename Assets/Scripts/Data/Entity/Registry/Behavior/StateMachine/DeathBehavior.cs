@@ -20,7 +20,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class DeathBehavior : ISpeciesBehavior {
+    public class DeathBehavior : SpeciesBehavior {
         [JsonIgnore]
         public DeathSettings settings;
 
@@ -30,7 +30,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         [JsonIgnore] public float DecompositionTime => Modifier.Get(mod, MSettings.DecompositionTime, settings.DecompositionTime);
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             if (manager.TaskIndex != settings.TaskName) {
@@ -53,16 +53,16 @@ namespace Arterra.Data.Entity.Behavior {
             manager.TaskDuration -= amount;
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(DeathSettings), new DeathSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Death Behavior Requires AnimalSettings to have DeathSettings");
             if (!self.Is(out manager))
@@ -74,7 +74,7 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: Death Behavior Requires AnimalSettings to have DeathSettings");
             if (!self.Is(out manager))

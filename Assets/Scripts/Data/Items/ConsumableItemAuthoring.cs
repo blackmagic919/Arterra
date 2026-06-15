@@ -92,13 +92,13 @@ public class ConsumbaleItem : IItem{
         int delta = CustomUtility.GetStaggeredDelta(settings.ConsumptionRate);
         if (delta == 0) return;
         if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
-        if (!player.Is(out VitalityBehavior vit)) return;
-        if (vit.healthPercent >= 1) return;
+        if (!player.Is(out HungerBehavior hung)) return;
+        if (hung.IsFull) return;
 
         delta = AmountRaw - math.max(AmountRaw - delta, 0);
         player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player, this, delta);
 
-        vit.Heal(delta / (float)UnitSize * settings.NutritionValue);
+        hung.Feed(delta / (float)UnitSize * settings.NutritionValue);
         AmountRaw -= delta;
         if(AmountRaw == 0) cxt.TryRemove();
     }

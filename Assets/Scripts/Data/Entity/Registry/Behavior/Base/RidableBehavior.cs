@@ -31,7 +31,7 @@ public class RideableSettings : IBehaviorSetting {
     }
 }
 
-public class RidableBehavior : ISpeciesBehavior, IRidable {
+public class RidableBehavior : SpeciesBehavior, IRidable {
     private RideableSettings settings;
 
     private BehaviorEntity.Animal self;
@@ -80,17 +80,17 @@ public class RidableBehavior : ISpeciesBehavior, IRidable {
     }
 
 
-     public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+     public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
         heirarchy.TryAdd(Behaviors.Collider, heirarchy.Count);
         heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
         //Deactivated unless IAttackable is implemented
     }
 
-    public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+    public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
         heirarchy.TryAdd(typeof(RideableSettings), new RideableSettings());
     }
 
-    public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+    public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
         if (!setting.Is(out settings))
             throw new System.Exception("Entity: Rideable Behavior Requires AnimalSettings to have RandomWalkState");
         if ((RideRoot = self.controller.gameObject.transform.Find(settings.RideRoot)) == null)
@@ -102,7 +102,7 @@ public class RidableBehavior : ISpeciesBehavior, IRidable {
         this.self = self;
     }
 
-    public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
+    public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
         if (!setting.Is(out settings))
             throw new System.Exception("Entity: Rideable Behavior Requires AnimalSettings to have RandomWalkState");
         if ((RideRoot = self.controller.gameObject.transform.Find(settings.RideRoot)) == null)
@@ -114,7 +114,7 @@ public class RidableBehavior : ISpeciesBehavior, IRidable {
         this.self = self;
     }
 
-    public void Disable(BehaviorEntity.Animal self) {
+    public override void Disable(BehaviorEntity.Animal self) {
         this.self = null;       
     }
 

@@ -19,7 +19,6 @@ namespace Arterra.Data.Entity.Behavior {
         public float walkSpeed;
         public float runSpeed;
         public int pathDistance;//~31
-        public float acceleration; //~100
         public float rotSpeed;//~180
 
         //This is in game-ticks not real-time
@@ -30,7 +29,6 @@ namespace Arterra.Data.Entity.Behavior {
                 walkSpeed = walkSpeed,
                 runSpeed = runSpeed,
                 pathDistance = pathDistance,
-                acceleration = acceleration,
                 rotSpeed = rotSpeed
             };
         }

@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Arterra.Configuration;
+using Arterra.Core.Events;
 using Unity.Mathematics;
-using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
 
@@ -10,7 +9,6 @@ namespace Arterra.Data.Entity.Behavior {
         public const string AnimationParam = "IsWalking";
         public EntitySMTasks TaskName = EntitySMTasks.ChaseFriends;
         public EntitySMTasks OnReachTransition = EntitySMTasks.RandomPath;
-        public float SearchFriendDist = 30;
         //Scales with affinity; chance = 1 - e^(-affinity * chaseProbability)
         public float ChaseFriendProbability = 0.04f;
         public float FightEnemyAffection = -12.5f;
@@ -18,14 +16,13 @@ namespace Arterra.Data.Entity.Behavior {
          public object Clone() {
             return new ChaseFriendsSetting {
                 TaskName = TaskName,
-                SearchFriendDist = SearchFriendDist,
                 ChaseFriendProbability = ChaseFriendProbability,
                 FightEnemyAffection = FightEnemyAffection
             };
         }
     }
 
-    public class ChaseFriendsBehavior : ISpeciesBehavior {
+    public class ChaseFriendsBehavior : SpeciesBehavior {
         private ChaseFriendsSetting settings;
         private Movement movement;
         private MMove mmove; //optional
@@ -38,12 +35,11 @@ namespace Arterra.Data.Entity.Behavior {
         private RunFromPredatorBehavior predator;
         private bool IsFriend;
 
-        private float SearchFriendDist => Modifier.Get(mod, MSettings.SearchFriendDist, settings.SearchFriendDist);
         private float ChaseFriendProbability => Modifier.Get(mod, MSettings.ChaseFriendProbability, settings.ChaseFriendProbability);
         private float FightEnemyAffection => Modifier.Get(mod, MSettings.FightEnemyAffection, settings.FightEnemyAffection);
         private float WalkSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.WalkSpeed, movement.walkSpeed);
         
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
@@ -60,25 +56,25 @@ namespace Arterra.Data.Entity.Behavior {
                 if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity friend))
                     path.pathFinder.hasPath = false;
 
-                self.PathCollider.Follow(Movement.DynamicDirect(
+                self.PathCollider.Follow(self, Movement.DynamicDirect(
                     MMove.Profile(mmove, settings.TaskName, self.settings), 
                     ref path.pathFinder, self.PathCollider, friend.origin,
                     MMove.MovementType(mmove, settings.TaskName)
-                ), WalkSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
+                ), WalkSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk);
 
                 if (ColliderUpdateBehavior.GetColliderDist(self, friend) < manager.settings.ContactDistance)
                     path.pathFinder.hasPath = false;
             } else {
-                self.PathCollider.Follow(Movement.StaticDirect(
+                self.PathCollider.Follow(self, Movement.StaticDirect(
                     MMove.Profile(mmove, settings.TaskName, self.settings), 
                     ref path.pathFinder, self.PathCollider,
                     MMove.MovementType(mmove, settings.TaskName)
-                ), WalkSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
+                ), WalkSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk);
             }
         }
 
         private bool TransitionTo() {
-            float searchRadius = SearchFriendDist;
+            float searchRadius = movement.pathDistance;
             float prob = ChaseFriendProbability;
             int PathDist = movement.pathDistance;
             (bool hasFriend, bool hasEnemy) = relations.TryFindBestRelations(self, searchRadius, out (Entity e, float p) friend, out (Entity e, float p) enemy);
@@ -136,19 +132,19 @@ namespace Arterra.Data.Entity.Behavior {
             return true;
         }
         
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Relations, heirarchy.Count);
             //Deactivated unless IAttackable is implemented
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(ChaseFriendsSetting), new ChaseFriendsSetting());
             heirarchy.TryAdd(typeof(Movement), new Movement());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: ChaseFriends Behavior Requires AnimalSettings to have RideableStateSettings");
             if (!setting.Is(out movement))
@@ -167,7 +163,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: ChaseFriends Behavior Requires AnimalSettings to have RideableStateSettings");
             if (!setting.Is(out movement))
@@ -186,7 +182,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
         }
         

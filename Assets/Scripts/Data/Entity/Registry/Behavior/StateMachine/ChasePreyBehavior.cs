@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 using Arterra.Configuration;
 using Arterra.Editor;
-using Arterra.Data.Entity;
+using Arterra.Core.Events;
 using Unity.Mathematics;
 using Arterra.Data.Item;
 using Arterra.Utils;
@@ -16,17 +16,27 @@ namespace Arterra.Data.Entity.Behavior {
         public EntitySMTasks OnNotFoundTransition = EntitySMTasks.Idle;
         public EntitySMTasks OnReachPreyTransition = EntitySMTasks.AttackTarget;
         public PreyState DesiredPreyState;
-        public float SearchPreyDist = 32;
 
-        [JsonIgnore][UISetting(Ignore = true)][HideInInspector]
-        internal Dictionary<int, int> AwarenessTable;
-        public Option<List<EntityWrapper>> Prey;
-        public bool HasEntityPrey => Prey.value != null && Prey.value.Count > 0;
+        public Option<RangeSet<EntityWrapper>> Prey;
+        public static bool HasPrey(ChasePreySettings val) => !(val == null 
+        || val.Prey.value == null || val.Prey.value.AllowList.value == null
+        || val.Prey.value.AllowList.value == null || val.Prey.value.AllowList.value.Count == 0);
 
         [Serializable]
-        public struct EntityWrapper {
-            [RegistryReference("Entities")]
-            public string EntityType;
+        public struct EntityWrapper : IRangeBlock {
+            [TagOrRegistryReference("Entities")]
+            public TagOrRegistryReference EntityType;
+            public IRangeBlock.Policy Policy;
+            [JsonIgnore]
+            public TagOrRegistryReference selection {
+                readonly get => EntityType;
+                set => EntityType = value;
+            }
+            [JsonIgnore]
+            public IRangeBlock.Policy policy {
+                readonly get => Policy;
+                set => Policy = value;
+            }
         }
 
         public object Clone() {
@@ -34,32 +44,24 @@ namespace Arterra.Data.Entity.Behavior {
                 TaskName = TaskName,
                 OnNotFoundTransition = OnNotFoundTransition,
                 OnReachPreyTransition = OnReachPreyTransition,
-                SearchPreyDist = SearchPreyDist,
                 DesiredPreyState = DesiredPreyState
             };
         }
 
         public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
             Catalogue<Authoring> eReg = Config.CURRENT.Generation.Entities;
-            AwarenessTable = new Dictionary<int, int>();
             if(Prey.value == null) return;
-
-            for(int i = 0; i < Prey.value.Count; i++){
-                int entityIndex = eReg.RetrieveIndex(Prey.value[i].EntityType);
-                AwarenessTable.TryAdd(entityIndex, i);
-            }
+            Prey.value.Construct(eReg);
         }
 
         public bool FindPreferredPreyEntity(Entity self, ConsumeBehaviorSettings cnsm, float sightDist, out Entity entity, RelationsBehavior relations = null){
-            entity = null; if(AwarenessTable == null) return false;
-            if((Prey.value == null || Prey.value.Count == 0)
-                && (cnsm == null || cnsm.Edibles.value == null || cnsm.Edibles.value.Count == 0))
+            entity = null; 
+            if( !HasPrey(this) && !ConsumeBehaviorSettings.HasEdibles(cnsm))
                 return false;
 
             Entity cEntity = null; int pPref = -1;
             float closestDist = sightDist + 1;
 
-            Dictionary<int, int> Awareness = AwarenessTable;
             Bounds bounds = new (self.position, 2 * new float3(sightDist));
             EntityManager.ESTree.Query(bounds, (nEntity) => {
                 if(nEntity == null) return;
@@ -69,8 +71,8 @@ namespace Arterra.Data.Entity.Behavior {
                     if (relations.GetAffection(nEntity.info.rtEntityId) > suppressThreshold) return;
                 }
 
-                if (!Awareness.TryGetValue((int)nEntity.info.entityType, out int preference)
-                    && !TrySearchEntityItems(nEntity, cnsm, Awareness, out preference))
+                if (!Prey.value.IsAllowListed((int)nEntity.info.entityType, out int preference)
+                    && !TrySearchEntityItems(nEntity, cnsm, out preference))
                     return;
                 
                 if (DesiredPreyState != PreyState.Any) {
@@ -92,7 +94,7 @@ namespace Arterra.Data.Entity.Behavior {
             return entity != null;
         }
 
-        private bool TrySearchEntityItems(Entity entity, ConsumeBehaviorSettings consumables, Dictionary<int, int> awareness, out int preference) {
+        private bool TrySearchEntityItems(Entity entity, ConsumeBehaviorSettings consumables, out int preference) {
             preference = default;
             if (consumables == null) return false;
             if (!entity.Is(out IEntitySearchItem itemHolder)) return false;
@@ -106,7 +108,7 @@ namespace Arterra.Data.Entity.Behavior {
             } return false;
         }
 
-        public bool Recognize(int index) => AwarenessTable.ContainsKey(index);
+        public bool Recognize(int index) => Prey.value.IsAllowListed(index, out _);
 
         public enum PreyState {
             Any = 0,
@@ -116,7 +118,7 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
 
-    public class ChasePreyBehavior : ISpeciesBehavior {
+    public class ChasePreyBehavior : SpeciesBehavior {
         [JsonIgnore] public ChasePreySettings settings;
         private Movement movement;
         private HuntBehaviorSettings hunt;
@@ -134,7 +136,6 @@ namespace Arterra.Data.Entity.Behavior {
         private float notFoundCooldown;
         private const float NotFoundRetryDelay = 0.25f;
 
-        private int SearchPreyDist => Modifier.GetInt(mod, MSettings.SearchPreyDist, settings.SearchPreyDist);
         private float HuntThreshold => Modifier.Get(mod, MSettings.HuntThreshold, hunt.HuntThreshold);
         private float StopHuntThreshold => Modifier.Get(mod, MSettings.StopHuntThreshold, hunt.StopHuntThreshold);
         private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
@@ -142,13 +143,13 @@ namespace Arterra.Data.Entity.Behavior {
         public bool StopHunting() => !IsHunting || !(IsHunting = vitality.healthPercent < StopHuntThreshold);
 
         //Task 4
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             if (notFoundCooldown > 0) notFoundCooldown -= self.DeltaTime;
             
             if (!settings.FindPreferredPreyEntity(self, consumables,
-                SearchPreyDist, out Entity prey, relations)
+                movement.pathDistance, out Entity prey, relations)
             ) {
                 if (notFoundCooldown <= 0) {
                     manager.Transition(settings.OnNotFoundTransition);
@@ -158,11 +159,11 @@ namespace Arterra.Data.Entity.Behavior {
             }
             notFoundCooldown = 0;
 
-            self.PathCollider.Follow(Movement.DynamicDirect(
+            self.PathCollider.Follow(self, Movement.DynamicDirect(
                 MMove.Profile(mmove, settings.TaskName, self.settings), 
                 ref path.pathFinder, self.PathCollider, prey.origin,
                 MMove.MovementType(mmove, settings.TaskName)
-            ), RunSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
+            ), RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run);
             
             float preyDist = ColliderUpdateBehavior.GetColliderDist(self, prey);
             if (preyDist < manager.settings.ContactDistance && manager.Transition(settings.OnReachPreyTransition)) {
@@ -180,7 +181,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (StopHunting()) return false;
             if (!settings.FindPreferredPreyEntity(
                 self, consumables,
-                SearchPreyDist,
+                movement.pathDistance,
                 out Entity prey, relations)
             ) return false;
             
@@ -207,20 +208,20 @@ namespace Arterra.Data.Entity.Behavior {
             return FindPrey(out bool Locked) && Locked;
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(ChasePreySettings), new ChasePreySettings());
             heirarchy.TryAdd(typeof(Movement), new Movement());
             heirarchy.TryAdd(typeof(ConsumeBehaviorSettings), new ConsumeBehaviorSettings());
             heirarchy.TryAdd(typeof(HuntBehaviorSettings), new HuntBehaviorSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: ChasePrey Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
@@ -244,7 +245,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: ChasePrey Behavior Requires AnimalSettings to have RandomWalkState");
             if (!setting.Is(out movement))
@@ -267,7 +268,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
         }
     }

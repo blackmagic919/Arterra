@@ -42,7 +42,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class ProjectileFireBehavior : ISpeciesBehavior {
+    public class ProjectileFireBehavior : SpeciesBehavior {
         private ProjectileFireSettings settings;
         private StateMachineManagerBehavior manager;
         private AnimatedBehavior animated;
@@ -56,7 +56,7 @@ namespace Arterra.Data.Entity.Behavior {
         private float BlindDist => Modifier.Get(mod, MSettings.BlindDist, settings.BlindDist);
         private float ChargeTime => Modifier.Get(mod, MSettings.ChargeTime, settings.Projectile.ChargeTime);
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context != BehaviorEntity.UpdateContext.JobSync)
                 CoreUpdate(self);
             if (self.context != BehaviorEntity.UpdateContext.Job)
@@ -104,16 +104,16 @@ namespace Arterra.Data.Entity.Behavior {
             ShotInProgress = false;
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(ProjectileFireSettings), new ProjectileFireSettings());
         }
 
 
-         public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: ProjectileFire Behavior Requires AnimalSettings to have ProjectileFireSettings");
             if (!self.Is(out manager))
@@ -125,7 +125,7 @@ namespace Arterra.Data.Entity.Behavior {
             shotProgress = 0; ShotInProgress = false;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: ProjectileFire Behavior Requires AnimalSettings to have ProjectileFireSettings");
             if (!self.Is(out manager))

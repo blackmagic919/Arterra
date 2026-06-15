@@ -22,6 +22,7 @@ MonoBehaviour:
     - Fire
     - Shell
     - Flames
+    - Air
   terrainData:
     Texture: 1
     textureScale: 3
@@ -44,18 +45,18 @@ MonoBehaviour:
   Roughness: 0.2
   SelfCondition:
     data: 4286643968
-  ConversionData:
-    value: []
-  ConvertRegions:
-    value: []
-  DefaultDecay:
+  NeighborCondition:
+    bounds:
+      data: 4278255360
+    flags: 0
+  DecayResult:
     check:
       bounds:
         data: 1679360000
       flags: 0
-    _material: 0
+    _material: 4
     _offset: 537395712
-  DefaultDecayChance: 0.5
+  DecayChance: 0.5
   MaterialDrops:
     SolidLootTable:
       value: []

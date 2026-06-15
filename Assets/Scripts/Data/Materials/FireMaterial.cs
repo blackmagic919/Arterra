@@ -25,7 +25,7 @@ namespace Arterra.Data.Material{
     /// when and only when  randomly updated. </summary>
     [BurstCompile]
     [CreateAssetMenu(menuName = "Generation/MaterialData/FireMat")]
-    public class FireMaterial : ConditionedDecayMat {
+    public class FireMaterial : DecayMaterial {
         /// <summary> The chance that grass will spread to a neighboring entry. </summary>
         [Range(0, 1)]
         public float SpreadChance;

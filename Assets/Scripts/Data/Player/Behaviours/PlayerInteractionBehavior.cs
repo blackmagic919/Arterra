@@ -40,9 +40,7 @@ namespace Arterra.Data.Entity.Behavior {
         /// Radius used by cylinder casts around the view ray when removing terrain.
         /// </summary>
         public float CylinderRadius = 1f;
-        /// <summary>
-        /// Collection speed when looting dead entities.
-        /// </summary>
+        /// <summary> Collection speed when looting dead entities. </summary>
         public float PickupRate = 1.5f;
         public float AttackDamage = 2f;
         public float AttackFrequency = 0.25f;
@@ -71,17 +69,25 @@ namespace Arterra.Data.Entity.Behavior {
     /// <summary>
     /// Controls player interaction with world entities and map materials.
     /// </summary>
-    public class PlayerInteractionBehavior : ISpeciesBehavior {
+    public class PlayerInteractionBehavior : SpeciesBehavior {
         [JsonIgnore] public PlayerInteractionSettings settings;
 
         private bool hasBindings;
         private float attackCooldown;
         private BehaviorEntity.Animal self;
         private VitalityBehavior vit;
+        private Modifier mod;
 
         private Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         private Catalogue<ItemAuthoring> itemInfo => Config.CURRENT.Generation.Items;
         private bool IsActive => (!vit?.IsDead) ?? true;
+        private int TerraformRadius => Modifier.GetInt(mod, MSettings.TerraformRadius, settings.TerraformRadius);
+        private int ReachDistance => Modifier.GetInt(mod, MSettings.ReachDistance, settings.ReachDistance);
+        private int CylinderRadius => Modifier.GetInt(mod, MSettings.CylinderRadius, settings.CylinderRadius);
+        private float PickupRate => Modifier.GetInt(mod, MSettings.PickupRate, settings.PickupRate);
+        private float AttackDamage => Modifier.GetInt(mod, MSettings.AttackDamage, settings.AttackDamage);
+        private float AttackFrequency => Modifier.GetInt(mod, MSettings.AttackCooldown, settings.AttackFrequency);
+        private float KnockBackStrength => Modifier.GetInt(mod, MSettings.KBStrength, settings.KnockBackStrength);
 
         [JsonIgnore]
         /// <summary>Current cooldown before another attack can be issued.</summary>
@@ -90,13 +96,14 @@ namespace Arterra.Data.Entity.Behavior {
             set => attackCooldown = math.max(value, 0);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
             hierarchy.TryAdd(typeof(PlayerInteractionSettings), new PlayerInteractionSettings());
         }
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerInteractionBehavior requires PlayerInteractionSettings");
+            if (!self.Is(out mod)) mod = null;
             if (!self.Is(out vit)) vit = null;
             self.Register(this);
             attackCooldown = 0;
@@ -106,9 +113,10 @@ namespace Arterra.Data.Entity.Behavior {
             BindInput();
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerInteractionBehavior requires PlayerInteractionSettings");
+            if (!self.Is(out mod)) mod = null;
             if (!self.Is(out vit)) vit = null;
             self.Register(this);
             this.self = self;
@@ -117,12 +125,12 @@ namespace Arterra.Data.Entity.Behavior {
             BindInput();
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             UnbindInput();
             this.self = null;
         }
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync)
                 return;
             if (self.context == BehaviorEntity.UpdateContext.Fixed)
@@ -160,24 +168,12 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         // Static facades keep existing item/UI callers decoupled from the legacy PlayerInteraction class.
-        public bool RayTestSolid(out float3 hitPt) {
-            float reach = settings.ReachDistance;
-            return RayTestSolid(self, reach, out hitPt);
-        }
+        public bool RayTestSolid(out float3 hitPt) => RayTestSolid(self, ReachDistance, out hitPt);
+        public bool RayTestLiquid(out float3 hitPt) => RayTestLiquid(self, ReachDistance, out hitPt);
+        public bool CylinderTestSolid(out float3 hitPt) => CylinderTestSolid(self, ReachDistance, CylinderRadius, out hitPt);
 
-        public bool RayTestLiquid(out float3 hitPt) {
-            float reach = settings.ReachDistance;
-            return RayTestLiquid(self, reach, out hitPt);
-        }
-
-        public bool CylinderTestSolid(out float3 hitPt) {
-            float reach = settings.ReachDistance;
-            float radius = settings.CylinderRadius;
-            return CylinderTestSolid(self, reach, radius, out hitPt);
-        }
-
-        private bool RayTestSolidCurrent(out float3 hitPt) => RayTestSolid(self, settings.ReachDistance, out hitPt);
-        private bool CylinderTestSolidCurrent(out float3 hitPt) => CylinderTestSolid(self, settings.ReachDistance, settings.CylinderRadius, out hitPt);
+        private bool RayTestSolidCurrent(out float3 hitPt) => RayTestSolid(self, ReachDistance, out hitPt);
+        private bool CylinderTestSolidCurrent(out float3 hitPt) => CylinderTestSolid(self, ReachDistance, CylinderRadius, out hitPt);
 
         private string AttackEntityName => $"PlayerInteraction:ATK::{self.info.entityId}"; 
         private string PlaceTerrainName => $"PlayerInteraction:PL::{self.info.entityId}"; 
@@ -204,10 +200,10 @@ namespace Arterra.Data.Entity.Behavior {
             if (!IsActive) return;
             if (self == null || !self.active) return;
             if (attackCooldown > 0) return;
-            attackCooldown = settings.AttackFrequency;
+            attackCooldown = AttackFrequency;
 
-            float3 hitPt = self.head + self.Forward * settings.ReachDistance;
-            if (RayTestSolid(self, settings.ReachDistance, out float3 terrHit)) {
+            float3 hitPt = self.head + self.Forward * ReachDistance;
+            if (RayTestSolid(self, ReachDistance, out float3 terrHit)) {
                 hitPt = terrHit;
             }
 
@@ -216,8 +212,8 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             if (!entity.Is(out IAttackable attackable)) return;
-            float3 knockback = math.normalize(entity.position - self.head) * settings.KnockBackStrength;
-            float damage = settings.AttackDamage;
+            float3 knockback = math.normalize(entity.position - self.head) * KnockBackStrength;
+            float damage = AttackDamage;
 
             RefTuple<(float, float3)> cxt = (damage, knockback);
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_Attack, self, entity, cxt);
@@ -240,7 +236,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!PlayerHandler.active) return;
 
             bool rayHit = false;
-            float3 hitPt = self.head + self.Forward * settings.ReachDistance;
+            float3 hitPt = self.head + self.Forward * ReachDistance;
             if (RayTestSolidCurrent(out float3 terrHit)) {
                 hitPt = terrHit;
                 rayHit = true;
@@ -258,8 +254,8 @@ namespace Arterra.Data.Entity.Behavior {
             if (selMat is not PlaceableItem setting) return;
             if (!setting.IsSolid || !matInfo.Contains(setting.MaterialName)) return;
 
-            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Action_PlaceTerrain, self, null, hitPt);
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius,
+            self.eventCtrl.RaiseEvent(GameEvent.Action_PlaceTerrain, self, null, hitPt);
+            CPUMapManager.Terraform(hitPt, TerraformRadius,
                 (GCoord, speed) => HandleAddSolidInternal(
                     InventoryController.Selected,
                     GCoord,
@@ -279,8 +275,8 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             }
 
-            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Action_RemoveTerrain, self, null, hitPt);
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolidBareHand, CallOnMapRemoving);
+            self.eventCtrl.RaiseEvent(GameEvent.Action_RemoveTerrain, self, null, hitPt);
+            CPUMapManager.Terraform(hitPt, TerraformRadius, RemoveSolidBareHand, CallOnMapRemoving);
         }
 
         private bool CanPlaceSolid(IItem selected, MapData pointInfo, out int matIndex) {
@@ -467,7 +463,7 @@ namespace Arterra.Data.Entity.Behavior {
                 targEnt.Collect(
                     self,
                     InventoryController.AddEntry, 
-                    settings.PickupRate
+                    PickupRate
                 );
             }
         }

@@ -49,14 +49,18 @@ namespace Arterra.Data.Entity.Behavior {
 	/// <summary>
 	/// Owns player inventories and item transfer/drop helpers for behavior-based player flow.
 	/// </summary>
-	public class PlayerInventoriesBehavior : ISpeciesBehavior {
+	public class PlayerInventoriesBehavior : SpeciesBehavior {
 		[JsonIgnore] public PlayerInventorySettings settings;
+		private Modifier mod;
+
 		public InventoryController.Inventory PrimaryI;
 		public InventoryController.Inventory SecondaryI;
 		public ArmorInventory ArmorI;
 		public int SelectedIndex;
 
 		private BehaviorEntity.Animal self;
+
+		private float RecoverSpeedMultiplier => Modifier.GetInt(mod, MSettings.RecoverRate, settings.RecoverSpeedMultiplier);
 
 		[JsonIgnore]
 		public IItem Selected {
@@ -67,29 +71,31 @@ namespace Arterra.Data.Entity.Behavior {
 			}
 		}
 
-		public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
+		public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
 			hierarchy.TryAdd(typeof(PlayerInventorySettings), new PlayerInventorySettings());
 		}
 
-		public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+		public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
 			if (!setting.Is(out settings))
 				throw new Exception("Entity: PlayerInventoriesBehavior requires PlayerInventorySettings");
+			if (!self.Is(out mod)) mod = null;
 			this.self = self;
 			self.Register(this);
 			EnsureInventories();
 			self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, HandleCollect);
 		}
 
-		public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+		public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
 			if (!setting.Is(out settings))
 				throw new Exception("Entity: PlayerInventoriesBehavior requires PlayerInventorySettings");
+			if (!self.Is(out mod)) mod = null;
 			this.self = self;
 			self.Register(this);
 			EnsureInventories();
 			self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, HandleCollect);
 		}
 
-		public void Disable(BehaviorEntity.Animal self) {
+		public override void Disable(BehaviorEntity.Animal self) {
 			self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Collect, HandleCollect);
 			this.self = null;
 		}
@@ -110,7 +116,7 @@ namespace Arterra.Data.Entity.Behavior {
 
 			Action<IItem> collect; float amount;
 			(collect, amount) = ((Action<IItem>, float))ctx;
-			amount *= settings.RecoverSpeedMultiplier;
+			amount *= RecoverSpeedMultiplier;
 
 			if (PrimaryI.EntryDict.Count > 0) collect(PrimaryI.LootInventory(amount));
 			if (SecondaryI.EntryDict.Count > 0) collect(SecondaryI.LootInventory(amount));

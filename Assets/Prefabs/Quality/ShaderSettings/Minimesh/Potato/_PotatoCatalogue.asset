@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f68eaf5f537b4d2e93b8edaed6cb041, type: 3}
+  m_Name: _PotatoCatalogue
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.MiniMeshCategory
+  Name: Potatoes
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: a325ce1500c00432999199b5f94e9332, type: 2}
+    - value: {fileID: 11400000, guid: acbfb2171b14749a29fb3159c5c33f9d, type: 2}
+    - value: {fileID: 11400000, guid: 39bcc4ec403a94b76b25e04bca967492, type: 2}
+  references:
+    version: 2
+    RefIds: []

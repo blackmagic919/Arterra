@@ -5,13 +5,13 @@ using Unity.Mathematics;
 using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
-    public class PlayerBaseLogicHandler : ISpeciesBehavior {
+    public class PlayerBaseLogicHandler : SpeciesBehavior {
         private BehaviorEntity.Animal self;
         private InidcatorsBehavior indicator;
         private ColliderUpdateBehavior collider;
         private VitalityBehavior vit;
         private bool IsActive => (!vit?.IsDead) ?? true;
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!self.Is(out collider)) collider = null;
             if (!self.Is(out indicator)) indicator = null;
             if (!self.Is(out vit)) vit = null;
@@ -19,7 +19,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!IsActive) return;
             OnStartup();
         }
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!self.Is(out collider)) collider = null;
             if (!self.Is(out indicator)) indicator = null;
             if (!self.Is(out vit)) vit = null;
@@ -28,7 +28,7 @@ namespace Arterra.Data.Entity.Behavior {
             OnStartup();
         }
 
-        public void Disable(BehaviorEntity.Animal self) {
+        public override void Disable(BehaviorEntity.Animal self) {
             self.eventCtrl.RemoveEventHandler(Core.Events.GameEvent.Entity_Damaged, BlockDamage);
             Config.CURRENT.System.RemoveHook("Gamemode:Intangibility", ToggleIntangibility);
             Config.CURRENT.System.RemoveHook("Gamemode:Invulnerability", ToggleInvulnerability);

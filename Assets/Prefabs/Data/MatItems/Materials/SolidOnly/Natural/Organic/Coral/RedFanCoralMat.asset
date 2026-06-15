@@ -9,34 +9,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c14023f60fba149f790c1b3abdaafdbe, type: 3}
+  m_Script: {fileID: 11500000, guid: 2cb3c737a29ce4a28ae2d74f4ff5e31d, type: 3}
   m_Name: RedFanCoralMat
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Material.FireMaterial
   Name: RedFanCoral
   Tags:
     Reg:
-      value:
-      - Tag: 2000
-        value:
-          value:
-            rid: 6432723091861012552
-      - Tag: 1002
-        value:
-          value:
-            rid: 6432723091861012553
+      value: []
   Names:
     value:
+    - PlantMatter
     - SeabedStone
     - Minimesh
     - RedCoralFan
-    - PlantMatter
     - Void
   terrainData:
-    Texture: 0
+    Texture: 1
     textureScale: 2
     FlipStateRendering: 0
     GeoShaderIndex:
-      data: 2147549186
+      data: 2147614723
   AtmosphereScatter:
     InScatterCoeffs: {x: 0, y: 0, z: 0}
     OutScatterCoeffs: {x: 0, y: 0, z: 0}
@@ -52,7 +44,7 @@ MonoBehaviour:
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
   SelfCondition:
-    data: 4286611200
+    data: 4278222592
   NeighborCondition:
     bounds:
       data: 4278222592
@@ -60,9 +52,9 @@ MonoBehaviour:
   DecayResult:
     check:
       bounds:
-        data: 2945843200
+        data: 4278255360
       flags: 0
-    _material: 2147483651
+    _material: 2147483648
     _offset: 537395712
   DecayChance: 0.25
   MaterialDrops:
@@ -70,34 +62,15 @@ MonoBehaviour:
       value: []
     DefaultSolidLoot:
       DropItem: 4
-      DropMultiplier: 1
+      DropMultiplier: 0
     LiquidLootTable:
       value: []
     DefaultLiquidLoot:
       DropItem: 4
-      DropMultiplier: 1
+      DropMultiplier: 0
+  SpreadChance: 0.5
+  SpreadTag: 2001
+  ContactDamage: 0
   references:
     version: 2
-    RefIds:
-    - rid: 6432723091861012552
-      type: {class: ConvertibleTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
-      data:
-        _convertBounds:
-          data: 4286643968
-        _neighborBounds:
-          bounds:
-            data: 2130738944
-          flags: 2
-        GivesItem: 0
-    - rid: 6432723091861012553
-      type: {class: ConvertibleToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
-      data:
-        TerraformSpeed: 0.5
-        ToolDamage: 0.5
-        GivesItem: 0
-        _convertBounds:
-          data: 4286643968
-        _neighborBounds:
-          bounds:
-            data: 2130738944
-          flags: 2
+    RefIds: []

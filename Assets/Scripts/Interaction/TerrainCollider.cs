@@ -8,6 +8,7 @@ using static Arterra.Core.Storage.CPUMapManager;
 using Arterra.Data.Entity;
 using System.Collections.Generic;
 using Arterra.Data.Entity.Behavior;
+using Arterra.Core.Events;
 
 /*
 Future Note: Make this done on a job system
@@ -540,10 +541,19 @@ namespace Arterra.GamePlay.Interaction {
             }
         }
 
-        public void Follow((Quaternion r, float3 v) delta, float moveSpeed, float rotSpeed, float acceleration, float timeStep) {
-            if (math.length(this.transform.velocity) < moveSpeed)
-                this.transform.velocity += acceleration * timeStep * delta.v;
+        const float AccelTime = 0.075f;
+        public void Follow(Entity self, (Quaternion r, float3 v) delta,
+            float moveSpeed, float rotSpeed, float timeStep, GameEvent moveType) {
+            float acceleration = moveSpeed / AccelTime;
             this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, delta.r, rotSpeed * timeStep);
+
+            if (math.length(this.transform.velocity) >= moveSpeed) return;
+            float3 deltVelocity = acceleration * timeStep * delta.v;
+            if (math.all(deltVelocity == 0)) return;
+
+            RefTuple<float3> cxt = new RefTuple<float3>(deltVelocity);
+            self.eventCtrl.RaiseEvent(moveType, self, null, cxt);
+            deltVelocity = cxt; this.transform.velocity += deltVelocity;
         }
 
         public TerrainCollider(in Settings settings, double3 position) {

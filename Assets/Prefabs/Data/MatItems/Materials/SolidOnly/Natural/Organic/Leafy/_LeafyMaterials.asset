@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb5ab28ebaf0240359baf1d92ea3df1e, type: 3}
+  m_Name: _LeafyMaterials
+  m_EditorClassIdentifier: Assembly-CSharp::MaterialCategory
+  Name: Leafy
+  Tags:
+    Reg:
+      value:
+      - Tag: 6055
+        value:
+          value:
+            rid: -2
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 13b32365c984f48a9ad983ffee7dd3cd, type: 2}
+    - value: {fileID: 11400000, guid: c380c92b4a7924877be21ff28071a36e, type: 2}
+    - value: {fileID: 11400000, guid: 4b674e93068014f6d920d486cc1836af, type: 2}
+    - value: {fileID: 11400000, guid: 07d2832ea77354ad688f41842d2458f8, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }

@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb5ab28ebaf0240359baf1d92ea3df1e, type: 3}
+  m_Name: _FloweringMats
+  m_EditorClassIdentifier: Assembly-CSharp::MaterialCategory
+  Name: Flowering
+  Tags:
+    Reg:
+      value:
+      - Tag: 1001
+        value:
+          value:
+            rid: 5778504437381988449
+      - Tag: 6054
+        value:
+          value:
+            rid: -2
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: b84c38f6f2e5b4a43bc8e91cc973d061, type: 2}
+    - value: {fileID: 11400000, guid: 97944f8888ed848af8ee0254b9acf91b, type: 2}
+    - value: {fileID: 11400000, guid: 91d2fe59fd0fb4794b499fc43effd541, type: 2}
+    - value: {fileID: 11400000, guid: a70ff850dbb6e4430aa5c218a292e16b, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 5778504437381988449
+      type: {class: ConverterToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 100
+        ToolDamage: 1
+        GivesItem: 1
+        _convertBounds:
+          data: 4286643968
+        _neighborBounds:
+          bounds:
+            data: 2130738944
+          flags: 2
+        ConvertTarget: TilledSoil

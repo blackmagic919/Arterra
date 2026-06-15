@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Arterra.Configuration;
+using Arterra.Core.Events;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -35,7 +36,7 @@ namespace Arterra.Data.Entity.Behavior{
             };
         }
     }
-    public class LandOnGroundBehavior : ISpeciesBehavior {
+    public class LandOnGroundBehavior : SpeciesBehavior {
         protected LandOnGroundSettings settings;
         protected Movement movement;
         protected MMove mmove; //optional
@@ -49,16 +50,16 @@ namespace Arterra.Data.Entity.Behavior{
         private float LandAngleMax => Modifier.Get(mod, MSettings.LandAngleMax, settings.LandAngleMax);
         private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (manager.TaskIndex != settings.TaskName) return;
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             if (path.pathFinder.hasPath) {
-                self.PathCollider.Follow(Movement.StaticDirect(
+                self.PathCollider.Follow(self, Movement.StaticDirect(
                     MMove.Profile(mmove, settings.TaskName, self.settings), 
                     ref path.pathFinder, self.PathCollider,
                     MMove.MovementType(mmove, settings.TaskName)
-                ), RunSpeed, movement.rotSpeed, movement.acceleration, self.DeltaTime);
+                ), RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run);
                 return;
             } if (foundGround) manager.Transition(settings.OnReachGround);
 
@@ -85,12 +86,12 @@ namespace Arterra.Data.Entity.Behavior{
         }
 
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Pathfinding, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(LandOnGroundSettings), new LandOnGroundSettings());
             heirarchy.TryAdd(typeof(Movement), new Movement());
         }
@@ -111,7 +112,7 @@ namespace Arterra.Data.Entity.Behavior{
         }
 
 
-        public virtual void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: LandOnGround Behavior Requires AnimalSettings to have LandOnGroundState");
             if (!setting.Is(out movement))
@@ -128,7 +129,7 @@ namespace Arterra.Data.Entity.Behavior{
             manager.RegisterTransition(settings.ProxyTestName, TestProxyLand);
         }
 
-        public virtual void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: LandOnGround Behavior Requires AnimalSettings to have LandOnGroundState");
             if (!setting.Is(out movement))

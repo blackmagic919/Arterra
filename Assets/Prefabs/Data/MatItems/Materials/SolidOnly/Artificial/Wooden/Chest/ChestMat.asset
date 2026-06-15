@@ -101,8 +101,12 @@ MonoBehaviour:
   DisplayIcon: 3
   MaxSlotCount: 20
   MaterialDrops:
-    SolidItem: 0
-    LiquidItem: 1
+    SolidItem:
+      DropItem: 0
+      DropMultiplier: 1
+    LiquidItem:
+      DropItem: 1
+      DropMultiplier: 1
   references:
     version: 2
     RefIds: []

@@ -24,6 +24,9 @@ MonoBehaviour:
     - Shell
     - WheatSeeds
     - LettuceSeeds
+    - Minimesh
+    - PotatoFruiting
+    - 
   terrainData:
     Texture: 2
     textureScale: 2

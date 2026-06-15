@@ -61,7 +61,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class LeadHeadBehavior : ISpeciesBehavior, IMultiCollider {
+    public class LeadHeadBehavior : SpeciesBehavior, IMultiCollider {
         [JsonIgnore] public TerrainCollider BodyCollider;
         public TerrainCollider HeadCollider;
 
@@ -97,7 +97,7 @@ namespace Arterra.Data.Entity.Behavior {
             set => HeadCollider.transform.position = value;
         }
 
-        public void Update(BehaviorEntity.Animal self) {
+        public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             BodyCollider.useGravity = HeadCollider.useGravity;
             HeadCollider.transform.rotation = BodyCollider.transform.rotation;
@@ -121,16 +121,16 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        public void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.Collider, heirarchy.Count);
         }
 
-        public void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
+        public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(LeadHeadSettings), new LeadHeadSettings());
         }
 
 
-        public void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: LeadHead Behavior Requires AnimalSettings to have LeadHeadSettings");
             if (!self.Is(out BodyCUpdate)) 
@@ -141,7 +141,7 @@ namespace Arterra.Data.Entity.Behavior {
             HeadCollider.useGravity = false;
         }
 
-        public void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: LeadHead Behavior Requires AnimalSettings to have LeadHeadSettings");
             if (!self.Is(out BodyCUpdate)) 
