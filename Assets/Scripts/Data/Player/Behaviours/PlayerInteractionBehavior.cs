@@ -80,7 +80,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         private Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         private Catalogue<ItemAuthoring> itemInfo => Config.CURRENT.Generation.Items;
-        private bool IsActive => (!vit?.IsDead) ?? true;
         private int TerraformRadius => Modifier.GetInt(mod, MSettings.TerraformRadius, settings.TerraformRadius);
         private int ReachDistance => Modifier.GetInt(mod, MSettings.ReachDistance, settings.ReachDistance);
         private int CylinderRadius => Modifier.GetInt(mod, MSettings.CylinderRadius, settings.CylinderRadius);
@@ -109,7 +108,6 @@ namespace Arterra.Data.Entity.Behavior {
             attackCooldown = 0;
             this.self = self;
 
-            if (!IsActive) return;
             BindInput();
         }
 
@@ -121,7 +119,6 @@ namespace Arterra.Data.Entity.Behavior {
             self.Register(this);
             this.self = self;
 
-            if (!IsActive) return;
             BindInput();
         }
 
@@ -182,6 +179,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (hasBindings) return;
             hasBindings = true;
 
+            self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));
             InputPoller.AddBinding(new ActionBind("Attack", AttackEntity), AttackEntityName, "5.0::GamePlay");
             InputPoller.AddBinding(new ActionBind("Place", PlaceTerrain), PlaceTerrainName, "5.0::GamePlay");
             InputPoller.AddBinding(new ActionBind("Remove", RemoveTerrain), RemoveTerrainName, "5.0::GamePlay");
@@ -197,7 +195,6 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void AttackEntity(float _) {
-            if (!IsActive) return;
             if (self == null || !self.active) return;
             if (attackCooldown > 0) return;
             attackCooldown = AttackFrequency;
@@ -232,7 +229,6 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void PlaceTerrain(float _) {
-            if (!IsActive) return;
             if (!PlayerHandler.active) return;
 
             bool rayHit = false;
@@ -267,7 +263,6 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void RemoveTerrain(float _) {
-            if (!IsActive) return;
             if (!PlayerHandler.active) return;
             if (!CylinderTestSolidCurrent(out float3 hitPt)) return;
 

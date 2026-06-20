@@ -12,10 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5df74709edb6408e828c39b51ca7e68, type: 3}
   m_Name: MortarMat
   m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Material.MortarMaterial
-  Name: Mortar
-  Tags:
-    Reg:
-      value: []
   Names:
     value:
     - MortarStone
@@ -24,26 +20,7 @@ MonoBehaviour:
     - MortarIcon
     - Mortar
     - Bedrock
-  terrainData:
-    Texture: 0
-    textureScale: 1
-    FlipStateRendering: 0
-    GeoShaderIndex:
-      data: 0
-  AtmosphereScatter:
-    InScatterCoeffs: {x: 0, y: 0, z: 0}
-    OutScatterCoeffs: {x: 0, y: 0, z: 0}
-    GroundExtinction: {x: 0, y: 0, z: 0}
-    LightIntensity: 0
-  liquidData:
-    shallowCol: {r: 0, g: 0, b: 0, a: 0}
-    deepCol: {r: 0, g: 0, b: 0, a: 0}
-    colFalloff: 0
-    waveBlend: 0
-    waveStrength: 0
-    waveScale: {x: 0, y: 0}
-    waveSpeed: {x: 0, y: 0}
-  Roughness: 0.2
+    - 
   Structure:
     value:
     - check:
@@ -137,13 +114,11 @@ MonoBehaviour:
   DisplayIcon: 3
   MaxSlotCount: 10
   MaxRecipeSlotCount: 20
+  OpenEvent: 3013
   MaterialDrops:
     SolidItem:
-      DropItem: 2
+      DropItem: 1
       DropMultiplier: 1
     LiquidItem:
-      DropItem: 3
-      DropMultiplier: 1
-  references:
-    version: 2
-    RefIds: []
+      DropItem: 6
+      DropMultiplier: 0

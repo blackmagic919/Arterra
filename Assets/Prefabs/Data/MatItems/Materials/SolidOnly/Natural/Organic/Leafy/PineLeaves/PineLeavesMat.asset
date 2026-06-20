@@ -25,7 +25,7 @@ MonoBehaviour:
     - PineLeaves:Solid
     - Void
     - PineLeaves
-    - Minimesh
+    - InsetQuad
     - PineLeaves
   terrainData:
     Texture: 2
@@ -47,13 +47,6 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  MaterialDrops:
-    SolidItem:
-      DropItem: 0
-      DropMultiplier: 1
-    LiquidItem:
-      DropItem: 1
-      DropMultiplier: 1
   references:
     version: 2
     RefIds:

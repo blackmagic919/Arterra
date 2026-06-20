@@ -12,7 +12,8 @@ namespace Arterra.Data.Entity.Behavior {
         Bleeding,
         Nausea,
         Dizziness,
-        Blindness
+        Blindness,
+        Burning
     }
     public class EffectorSettings : IBehaviorSetting {
         public static Dictionary<Effects, Func<TempBehavior>> EffectTemplates = new () {
@@ -20,7 +21,8 @@ namespace Arterra.Data.Entity.Behavior {
             { Effects.Bleeding, () => new BleedingEffect() },
             { Effects.Nausea, () => new NauseaEffect() },
             { Effects.Dizziness, () => new DizzinessEffect() },
-            { Effects.Blindness, () => new BlindnessEffect() }
+            { Effects.Blindness, () => new BlindnessEffect() },
+            { Effects.Burning, () => new BurningEffect() }
         };
         public enum Subject {
             Source, Target

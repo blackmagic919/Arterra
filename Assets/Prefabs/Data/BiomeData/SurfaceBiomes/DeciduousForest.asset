@@ -32,6 +32,7 @@ MonoBehaviour:
         - Water
         - StoneRuins1
         - PotatoFruitingSoil
+        - CarrotFruitingSoil
       GroundMaterials:
         value:
         - value:
@@ -50,7 +51,13 @@ MonoBehaviour:
             Material: 11
             genSize: 0.1
             genShape: 0
-            frequency: 0.4
+            frequency: 0.3
+            height: 0
+        - value:
+            Material: 12
+            genSize: 0.1
+            genShape: 1
+            frequency: 0.3
             height: 0
       SurfaceMaterials:
         value:

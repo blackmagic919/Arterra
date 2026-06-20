@@ -14,11 +14,24 @@ using System.Runtime.Serialization;
 
 namespace Arterra.Data.Material
 {
+    public interface IMaterial {
+        public virtual string RetrieveKey(int index) => null;
+        public virtual void Preset(MaterialData self){}
+        public virtual void PropogateMaterialUpdate(int3 GCoord, ref Unity.Mathematics.Random prng){}
+        public virtual void RandomMaterialUpdate(int3 GCoord, ref Unity.Mathematics.Random prng){}
+        public virtual bool OnRemoving(int3 GCoord, Entity.Entity caller) => false;
+        public virtual bool OnPlacing(int3 GCoord, Entity.Entity caller)  => false;
+        public virtual Item.IItem OnRemoved(int3 GCoord, in MapData amount) => null;
+        public virtual void OnPlaced(int3 GCoord, in MapData amount){}
+        public virtual void OnEntityTouchSolid(Entity.Entity entity){}
+        public virtual void OnEntityTouchLiquid(Entity.Entity entity){}
+        public virtual object ConstructMetaData(int3 GCoord, MaterialData.MetaConstructor constructor) => null;
+    }
     /// <summary> All settings related to the apperance and interaction of 
     /// materials in the game world. Different materials are allowed
     /// to define their own subclass of <see cref="MaterialData"/> to define 
     /// different interaction behaviors. </summary>
-    public abstract class MaterialData : Category<MaterialData>
+    public abstract class MaterialData : Category<MaterialData>, IMaterial
     {
         /// <summary>
         /// The registry names of all entries referencing registries within <see cref="MaterialData"/>. When an element needs to 
@@ -34,11 +47,33 @@ namespace Arterra.Data.Material
         public AtmosphericData AtmosphereScatter;
         /// <summary> Settings controlling the appearance of the terrain when the material is liquid. See <see cref="LiquidData"/> for more info. </summary>
         public LiquidData liquidData;
+        [JsonIgnore][UISetting(Defaulting = true)]
+        public Dictionary <Type, object> DynamicTypes;
+
+        public void Register<TInterface>(TInterface instance) => DynamicTypes.TryAdd(typeof(TInterface), instance);
+
+        public void Register(Type type, IMaterial instance) => DynamicTypes.TryAdd(type, instance);
+
+        public bool Is<TInstance>(out TInstance instance) {
+            if (DynamicTypes == null) {instance = default; return false;}
+            if (DynamicTypes.TryGetValue(typeof(TInstance), out object value)) {
+                instance = (TInstance) value;
+            } else if (this is TInstance i1){
+                instance = i1;
+            } else {
+                instance = default;
+                return false;
+            } return true;
+        } 
         /// <summary> The amount of friction entities touching this material will experience </summary>
         public float Roughness = TerrainCollider.BaseFriction;
         /// <summary>Gets the material registry, Implementation of <see cref="IRegistered.GetRegistry"/>. </summary>
         /// <returns></returns>
         public IRegister GetRegistry() => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        
+        ///<summary>Called once per material type on startup. Note this is not every instance,
+        /// but every TYPE of material (i.e. once for all sand not every sand block).</summary>
+        public virtual void Preset(MaterialData self) {}
         /// <summary>
         /// Called whenever a map entry of this material has been modified. This method can be
         /// overrided to provide specific behavior when a certain material has been modified. See
@@ -320,15 +355,17 @@ namespace Arterra.Data.Material
                 if (mapData.density == 0) return null;
                 Item.IItem item;
                 if (mapData.SolidDensity > 0) {
-                    if (SolidItem.DropItem >= Names.Count || SolidItem.DropItem < 0) return null;
+                    if (SolidItem.DropItem < 0 || SolidItem.DropItem > Names.Count) return null;
                     int SIndex = ItemInfo.RetrieveIndex(Names[SolidItem.DropItem]);
+                    if (SIndex < 0) return null;
                     int amount = Mathf.RoundToInt(mapData.SolidDensity * SolidItem.DropMultiplier);
                     if (amount <= 0) return null;
                     item = ItemInfo.Retrieve(SIndex).Item;
                     item.Create(SIndex, amount);
                 } else {
-                    if (LiquidItem.DropItem >= Names.Count || LiquidItem.DropItem < 0) return null;
+                    if (LiquidItem.DropItem < 0 || LiquidItem.DropItem > Names.Count) return null;
                     int LIndex = ItemInfo.RetrieveIndex(Names[LiquidItem.DropItem]);
+                    if (LIndex < 0) return null;
                     int amount = Mathf.RoundToInt(mapData.LiquidDensity * LiquidItem.DropMultiplier);
                     if (amount <= 0) return null;
                     item = ItemInfo.Retrieve(LIndex).Item;
@@ -389,7 +426,7 @@ namespace Arterra.Data.Material
                     (uint)Environment.TickCount ^ mapData.data
                 );
                 if (mapData.SolidDensity > 0)
-                    return GetTableItem(mapData.SolidDensity, DefaultSolidLoot, SolidLootTable,
+                     return GetTableItem(mapData.SolidDensity, DefaultSolidLoot, SolidLootTable,
                     Names, ref random);
                 else
                     return GetTableItem(mapData.LiquidDensity, DefaultLiquidLoot, LiquidLootTable,
@@ -419,12 +456,11 @@ namespace Arterra.Data.Material
             }
 
             private static Item.IItem CreateItem(List<string> Names, int DropItem, float amount) {
-                if (DropItem < 0 || DropItem >= Names.Count) return null;
-                string name = Names[DropItem];
-                if (String.IsNullOrEmpty(name)) return null;
+                if (DropItem < 0 || DropItem > Names.Count) return null;
                 if (amount == 0) return null;
 
-                int Index = ItemInfo.RetrieveIndex(name);
+                int Index = ItemInfo.RetrieveIndex(Names[DropItem]);
+                if (Index < 0) return null;
                 Item.IItem item = ItemInfo.Retrieve(Index).Item;
                 int dropAmount = Mathf.RoundToInt(amount * item.UnitSize / MapData.MaxDensity);
                 item.Create(Index, dropAmount);
@@ -434,9 +470,9 @@ namespace Arterra.Data.Material
             /// and how often it should be dropped. </summary>
             [Serializable]
             public struct LootInfo {
-                /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
-                /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when if the material is randomly selected.
-                /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
+                /// <summary> The name within the external registry <see cref="Config.GenerationSettings.Items"/> 
+                /// of the item to be given when the material is randomly selected.
+                /// If the name is null or empty, no item will be picked up when the material is removed. </summary>
                 [RegistryReference("Items")]
                 public int DropItem;
                 /// <summary> The chance the material is dropped. This is resampled 
@@ -451,9 +487,9 @@ namespace Arterra.Data.Material
             /// specify a drop chance as it will always be dropped if no other loot is dropped. </summary>
             [Serializable]
             public struct DefaultLoot {
-                /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the name within the external registry, 
-                /// <see cref="Config.GenerationSettings.Items"/>, of the item to be given when if the material is randomly selected.
-                /// If the index does not point to a valid name (e.g. -1), no item will be picked up when the material is removed. </summary>
+                /// <summary> The name within the external registry <see cref="Config.GenerationSettings.Items"/> 
+                /// of the item to be given when the material is randomly selected.
+                /// If the name is null or empty, no item will be picked up when the material is removed. </summary>
                 [RegistryReference("Items")]
                 public int DropItem;
                 /// <summary> How much the material is multiplied by when it is dropped. </summary>

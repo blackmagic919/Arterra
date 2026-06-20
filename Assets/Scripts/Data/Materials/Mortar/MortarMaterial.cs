@@ -17,7 +17,7 @@ namespace Arterra.Data.Material
 {
     /// <summary> A mortar material which can crush items put into it to produced
     /// crushed variants. </summary>
-    [CreateAssetMenu(menuName = "Generation/MaterialData/MortarMat")]
+    [CreateAssetMenu(menuName = "Generation/MaterialData/Behaviors/MortarMat")]
     public class MortarMaterial : PlaceableStructureMat {
         /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the 
         /// texture within the texture registry of the icon displayed on the <see cref="PanelNavbarManager">Navbar</see>
@@ -37,14 +37,14 @@ namespace Arterra.Data.Material
         /// that it can be used in the same way as other materials. </summary>
         /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
-        public override void PropogateMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng) {
+        public override void PropogateMaterialUpdate(int3 GCoord, ref Unity.Mathematics.Random prng) {
 
         }
         /// <summary> Even though it does nothing, it needs to fufill the contract so
         /// that it can be used in the same way as other materials. </summary>
         /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
-        public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng) {
+        public override void RandomMaterialUpdate(int3 GCoord, ref Unity.Mathematics.Random prng) {
 
         }
 
@@ -52,14 +52,10 @@ namespace Arterra.Data.Material
         /// <param name="GCoord">The coordinate in grid space of the material</param>
         /// <param name="constructor">The constructor used to populate the inventory</param>
         /// <returns>The container instance</returns>
-        public override object ConstructMetaData(int3 GCoord, MetaConstructor constructor) {
+        public override object ConstructMetaData(int3 GCoord, MaterialData.MetaConstructor constructor) {
             return new MortarInventory(constructor, GCoord, MaxSlotCount);
         }
 
-        /// <summary> The handler controlling how materials are dropped when
-        /// <see cref="OnRemoved"/> is called. See 
-        /// <see cref="MaterialData.ItemLooter"/> for more info.  </summary>
-        public ItemLooter MaterialDrops;
 
         private MortarInventory OpenedInventory = null;
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
@@ -107,14 +103,15 @@ namespace Arterra.Data.Material
         public override Item.IItem OnRemoved(int3 GCoord, in MapData amount) {
              MapData info = CPUMapManager.SampleMap(GCoord);
             if (info.IsNull || amount.IsNull) return null;
-            if (!info.IsSolid) return MaterialDrops.LootItem(amount, Names);
+            if (!info.IsSolid) return null;
+
             if (OpenedInventory != null && math.all(OpenedInventory.position == GCoord))
                 DeactivateWindow();
             int SolidDensity = info.SolidDensity - amount.SolidDensity;
             if (!VerifyStructurePlaceement(GCoord) || SolidDensity < CPUMapManager.IsoValue)
                 DropInventoryContent(GCoord);
 
-            return MaterialDrops.LootItem(amount, Names);
+            return null;
         }
 
         private void DropInventoryContent(int3 GCoord) {
@@ -245,7 +242,7 @@ namespace Arterra.Data.Material
                 position = GCoord;
             }
 
-            public MortarInventory(MetaConstructor constructor, int3 GCoord,  int MaxSlotCount) : base(GCoord){
+            public MortarInventory(MaterialData.MetaConstructor constructor, int3 GCoord,  int MaxSlotCount) : base(GCoord){
                 Inventory = new StackInventory(constructor, GCoord, MaxSlotCount);
                 position = GCoord;
             }

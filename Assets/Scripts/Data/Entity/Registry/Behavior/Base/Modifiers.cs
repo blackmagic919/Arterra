@@ -196,6 +196,10 @@ namespace Arterra.Data.Entity.Behavior {
         Recieve_BlindnessStrength = Modifier.Effects + 17,
         Inflict_BlindnessDuration = Modifier.Effects + 18,
         Recieve_BlindnessDuration = Modifier.Effects + 19,
+        Inflict_BurningStrength = Modifier.Effects + 20,
+        Recieve_BurningStrength = Modifier.Effects + 21,
+        Inflict_BurningDuration = Modifier.Effects + 22,
+        Recieve_BurningDuration = Modifier.Effects + 23,
 
         CameraSensitivity = Modifier.Player + 0,
         MinimumX = Modifier.Player + 1,

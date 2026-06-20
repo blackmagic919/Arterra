@@ -26,14 +26,14 @@ namespace Arterra.Data.Material{
     /// <summary> A concrete material that will attempt to decay to one other state
     /// after a certain amount of time. </summary>
     [BurstCompile]
-    [CreateAssetMenu(menuName = "Generation/MaterialData/SourceDecayMat")]
-    public class SourceDecayMaterial : MaterialData {
+    [CreateAssetMenu(menuName = "Generation/MaterialData/Behaviors/SourceDecayMat")]
+    public class SourceDecayMaterial : MaterialBehavior {
         [RegistryReference("Materials")]
         public string SourceMaterial;
         public int MaxSourceDistance;
         public StructureData.CheckInfo SelfCondition;
         public StructureData.CheckInfo SourceCondition;
-        public ConditionedGrowthMat.MapSamplePoint DecayResult;
+        public MapSamplePoint DecayResult;
         /// <summary>The chance that the grass will decay and become <see cref="DecayMaterial"/> when randomly updated. </summary>
         [Range(0, 1)]
         public float DecayChance = 0;
@@ -45,7 +45,7 @@ namespace Arterra.Data.Material{
         /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
         [BurstCompile]
-        public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng) {
+        public override void RandomMaterialUpdate(int3 GCoord, ref Unity.Mathematics.Random prng) {
             MapData cur = CPUMapManager.SampleMap(GCoord); //Current 
             if (!SelfCondition.Contains(cur)) return;
             if (DecayChance < prng.NextFloat()) return;
@@ -57,7 +57,7 @@ namespace Arterra.Data.Material{
         /// <summary> Mandatory callback for when grass is forcibly updated. Do nothing here. </summary>
         /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
-        public override void PropogateMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default) {
+        public override void PropogateMaterialUpdate(int3 GCoord, ref Unity.Mathematics.Random prng) {
             //nothing to do here
         }
 
@@ -113,13 +113,6 @@ namespace Arterra.Data.Material{
             return delta - extents;
         }
         
-
-        /// <summary> The handler controlling how materials are dropped when
-        /// <see cref="OnRemoved"/> is called. See <see cref="MaterialData.MultiLooter"/> 
-        /// for more info.  </summary>
-        public MultiLooter MaterialDrops;
-
-
         /// <summary> See <see cref="MaterialData.OnRemoved"/> for more information. </summary>
         /// <param name="amount">The map data indicating the amount of material removed
         /// and the state it was removed as</param>
@@ -127,14 +120,10 @@ namespace Arterra.Data.Material{
         /// <returns>The item to give.</returns>
         public override Item.IItem OnRemoved(int3 GCoord, in MapData amount) {
             MapData info = CPUMapManager.SampleMap(GCoord);
-            if (info.IsNull || amount.IsNull) return null;
-            if (!info.IsSolid) return MaterialDrops.LootItem(amount, Names);
-
             int SolidDensity = info.SolidDensity - amount.SolidDensity;
             if (SolidDensity < CPUMapManager.IsoValue)
                 CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
-
-            return MaterialDrops.LootItem(amount, Names);
+            return null;
         }
     }
 }

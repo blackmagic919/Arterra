@@ -5,8 +5,8 @@ using Arterra.Utils;
 using Arterra.Configuration;
 
 namespace Arterra.Data.Material {
-    public abstract class PlaceableStructureMat : MaterialData {
-        public Option<List<ConditionedGrowthMat.MapSamplePoint>> Structure;
+    public abstract class PlaceableStructureMat : MaterialBehavior {
+        public Option<List<MapSamplePoint>> Structure;
         public int SelfIndex;
         /// <summary> Whether or not placement of the structure may include random rotations around the vertical-axis. </summary>
         public bool randYRot;
@@ -44,9 +44,9 @@ namespace Arterra.Data.Material {
 
         private bool VerifySampleChecks(int3 GCoord, int3 rot, bool UseExFlag = true) {
             bool anyC = false; bool any0 = false;
-            List<ConditionedGrowthMat.MapSamplePoint> checks = Structure.value;
+            List<MapSamplePoint> checks = Structure.value;
             for(int i = 0; i < checks.Count; i++){
-                ConditionedGrowthMat.MapSamplePoint samplePoint = checks[i];
+                MapSamplePoint samplePoint = checks[i];
                 if (samplePoint.check.ExFlag && UseExFlag) continue;
                 bool valid = SatisfiesCheck(samplePoint, GCoord, rot);
                 if (samplePoint.check.AndFlag && !valid) return false;
@@ -55,14 +55,21 @@ namespace Arterra.Data.Material {
             } 
             return !any0 || anyC;
         }
-        private bool SatisfiesCheck(ConditionedGrowthMat.MapSamplePoint pt, int3 BaseCoord, int3 rot) {
+        private bool SatisfiesCheck(MapSamplePoint pt, int3 BaseCoord, int3 rot) {
             int3 offset = math.mul(CustomUtility.RotationLookupTable[rot.y, rot.x, rot.z], pt.Offset);
             int3 GCoord = BaseCoord + offset;
             MapData mapData = CPUMapManager.SampleMap(GCoord);
             if (!pt.check.bounds.Contains(mapData)) return false;
             if (!pt.HasMaterialCheck) return true;
-            int checkMat = matInfo.RetrieveIndex(
-                RetrieveKey((int)pt.material));
+            
+            // Retrieve material name from cached names list using index
+            if (Names.value == null || (int)pt.material < 0 || (int)pt.material >= Names.value.Count)
+                return false;
+            string materialName = Names.value[(int)pt.material];
+            if (string.IsNullOrEmpty(materialName))
+                return false;
+            
+            int checkMat = matInfo.RetrieveIndex(materialName);
             return mapData.material == checkMat;
         }
     }

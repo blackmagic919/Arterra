@@ -13,7 +13,7 @@ Shader "Unlit/LiquidShader"
         Pass
         {
             Name "ForwardLit"
-            Tags {"LightMode" = "UniversalForward"}
+            Tags {"LightMode" = "PreFogTransparents"}
             Cull Back
             ZTest LEqual
             Blend SrcAlpha OneMinusSrcAlpha

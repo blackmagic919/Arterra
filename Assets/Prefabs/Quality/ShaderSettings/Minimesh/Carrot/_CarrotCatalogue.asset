@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f68eaf5f537b4d2e93b8edaed6cb041, type: 3}
+  m_Name: _CarrotCatalogue
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.MiniMeshCategory
+  Name: Carrots
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: a79f7fe070f824d959c8663fbb955a40, type: 2}
+    - value: {fileID: 11400000, guid: 7246ae82926944847aaa413ac8a180d0, type: 2}
+    - value: {fileID: 11400000, guid: b876d8de019e04fadb9140d1c54d447d, type: 2}
+  references:
+    version: 2
+    RefIds: []

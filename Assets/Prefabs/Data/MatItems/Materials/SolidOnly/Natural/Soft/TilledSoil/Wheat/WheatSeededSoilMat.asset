@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74c1ef1e375144bdc82f6b13a3f540fb, type: 3}
+  m_Name: WheatSeededSoilMat
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Material.MultiMaterial
+  Name: WheatSeededSoil
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - PlantStem
+    - Wheat
+    - WheatSeededSoil
+    - WheatSeeds
+    - Dirt:Solid
+  terrainData:
+    Texture: 2
+    textureScale: 2
+    FlipStateRendering: 0
+    GeoShaderIndex:
+      data: 0
+  AtmosphereScatter:
+    InScatterCoeffs: {x: 0, y: 0, z: 0}
+    OutScatterCoeffs: {x: 0, y: 0, z: 0}
+    GroundExtinction: {x: 0, y: 0, z: 0}
+    LightIntensity: 0
+  liquidData:
+    shallowCol: {r: 0, g: 0, b: 0, a: 0}
+    deepCol: {r: 0, g: 0, b: 0, a: 0}
+    colFalloff: 0
+    waveBlend: 0
+    waveStrength: 0
+    waveScale: {x: 0, y: 0}
+    waveSpeed: {x: 0, y: 0}
+  Roughness: 0.2
+  Behaviors:
+    Reg:
+    - Name: Stage1
+      _value:
+        value: {fileID: 11400000, guid: 1e0dba9337f3c488eb4d9256ecff8081, type: 2}
+    - Name: Stage2
+      _value:
+        value: {fileID: 11400000, guid: 02c9a9e88112a401bb460666fe138f5e, type: 2}
+    - Name: Stage3
+      _value:
+        value: {fileID: 11400000, guid: 2cc6392b668334957ade36a4849d0846, type: 2}
+  looter:
+    SolidLootTable:
+      value:
+      - DropItem: 3
+        DropChance: 0.5
+        DropMultiplier: 2
+    DefaultSolidLoot:
+      DropItem: 4
+      DropMultiplier: 1
+    LiquidLootTable:
+      value: []
+    DefaultLiquidLoot:
+      DropItem: 2
+      DropMultiplier: 0
+  references:
+    version: 2
+    RefIds: []

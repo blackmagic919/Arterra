@@ -1,8 +1,12 @@
-fileFormatVersion: 2
-guid: 269fc7ece590e4ce8aa60a04f07ddddd
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-1
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000
   userData: 
   assetBundleName: 
   assetBundleVariant: 
+  guid: f6789d330fd05b748d8942e48a7eeb31
+  timeCreated: 1
+  licenseType: 

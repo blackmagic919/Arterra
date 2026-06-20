@@ -6,6 +6,7 @@ using Arterra.Configuration;
 using Arterra.GamePlay;
 using Arterra.GamePlay.Interaction;
 using Arterra.Data.Entity.Behavior;
+using Arterra.Core.Storage;
 
 namespace Arterra.Data.Item {
     [CreateAssetMenu(menuName = "Generation/Items/ConsumableMatConverter")]
@@ -54,8 +55,9 @@ namespace Arterra.Data.Item {
 
             delta = AmountRaw - math.max(AmountRaw - delta, 0);
             player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player, this, delta);
-
-            hung.Feed(delta / (float)UnitSize * settings.NutritionValue);
+            float nutrition = (float)delta / UnitSize * settings.NutritionValue;
+            hung.Feed(ref nutrition);
+            delta = CustomUtility.GetStaggeredDelta(nutrition * UnitSize / settings.NutritionValue);
             AmountRaw -= delta;
             if (AmountRaw == 0) cxt.TryRemove();
         }

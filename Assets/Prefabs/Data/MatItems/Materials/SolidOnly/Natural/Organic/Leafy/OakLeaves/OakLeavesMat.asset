@@ -27,7 +27,7 @@ MonoBehaviour:
     - Void
     - OakLeaves:Solid
     - Embers
-    - Minimesh
+    - InsetQuad
     - DeciduousLeaves
   terrainData:
     Texture: 0
@@ -64,17 +64,6 @@ MonoBehaviour:
     _offset: 537395712
   DecayChance: 0.25
   DropChance: 0.025
-  MaterialDrops:
-    SolidLootTable:
-      value: []
-    DefaultSolidLoot:
-      DropItem: 3
-      DropMultiplier: 1
-    LiquidLootTable:
-      value: []
-    DefaultLiquidLoot:
-      DropItem: 2
-      DropMultiplier: 0
   references:
     version: 2
     RefIds:

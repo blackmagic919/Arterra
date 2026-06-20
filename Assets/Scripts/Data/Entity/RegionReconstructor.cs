@@ -52,7 +52,7 @@ public class RegionReconstructor{
         GameObject.Destroy(regionObj);
     }
 
-    public void ReflectMesh(List<ConditionedGrowthMat.MapSamplePoint> change, int3 GCoord, int3 rot) {
+    public void ReflectMesh(List<MapSamplePoint> change, int3 GCoord, int3 rot) {
         int3 cMin; int3 cMax; (cMin, cMax) = FindModificationMinMax(change, GCoord, rot);
         int3 cAxis = cMax - cMin; MapData[] map = CaptureBaseMap(cMin, cMax);
         uint[] flags = ApplyModificationToMap(change, map, GCoord, rot, cMax, cMin);
@@ -100,9 +100,9 @@ public class RegionReconstructor{
         meshHandler.BeginMeshReadback(cb);
     }
 
-    private static (int3, int3) FindModificationMinMax(List<ConditionedGrowthMat.MapSamplePoint> change, int3 GCoord, int3 rot) {
+    private static (int3, int3) FindModificationMinMax(List<MapSamplePoint> change, int3 GCoord, int3 rot) {
         int3 min = int3.zero; int3 max = int3.zero;
-        foreach (ConditionedGrowthMat.MapSamplePoint pt in change) {
+        foreach (MapSamplePoint pt in change) {
             min = math.min(pt.Offset, min);
             max = math.max(pt.Offset, max);
         }
@@ -123,12 +123,12 @@ public class RegionReconstructor{
         return map;
     }
 
-    private static uint[] ApplyModificationToMap(List<ConditionedGrowthMat.MapSamplePoint> change, MapData[] map, int3 GCoord, int3 rot, int3 cMax, int3 cMin) {
+    private static uint[] ApplyModificationToMap(List<MapSamplePoint> change, MapData[] map, int3 GCoord, int3 rot, int3 cMax, int3 cMin) {
         bool any0 = false;
         int3 cAxis = cMax - cMin + 1;
         int numPoints = Mathf.CeilToInt(cAxis.x * cAxis.y * cAxis.z / 4.0f);
         uint[] flags = new uint[numPoints];
-        foreach (ConditionedGrowthMat.MapSamplePoint pt in change) {
+        foreach (MapSamplePoint pt in change) {
             int3 sCoord = GCoord + math.mul(CustomUtility.RotationLookupTable[rot.y, rot.x, rot.z], pt.Offset);
             int index = CustomUtility.irregularIndexFromCoord(sCoord - cMin, cAxis.yz);
             if (pt.check.OrFlag) {

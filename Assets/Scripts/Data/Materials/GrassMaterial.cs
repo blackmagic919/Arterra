@@ -24,8 +24,8 @@ namespace Arterra.Data.Material{
     /// <summary> A concrete material that will attempt to spread itself to neighboring entries 
     /// when and only when  randomly updated. </summary>
     [BurstCompile]
-    [CreateAssetMenu(menuName = "Generation/MaterialData/GrassMat")]
-    public class GrassMaterial : MaterialData {
+    [CreateAssetMenu(menuName = "Generation/MaterialData/Behaviors/GrassMat")]
+    public class GrassMaterial : MaterialBehavior {
         public StructureData.CheckInfo SelfCondition;
         /// <summary> The chance that grass will spread to a neighboring entry. </summary>
         [Range(0, 1)]
@@ -39,17 +39,10 @@ namespace Arterra.Data.Material{
         /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
         [BurstCompile]
-        public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng) {
+        public override void RandomMaterialUpdate(int3 GCoord, ref Unity.Mathematics.Random prng) {
             MapData cur = CPUMapManager.SampleMap(GCoord); //Current 
             if (!SelfCondition.Contains(cur)) return;
             SpreadGrass(cur, GCoord, ref prng);
-        }
-
-        /// <summary> Mandatory callback for when grass is forcibly updated. Do nothing here. </summary>
-        /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
-        /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
-        public override void PropogateMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default) {
-            //nothing to do here
         }
         
         private void SpreadGrass(MapData cur, int3 GCoord, ref Unity.Mathematics.Random prng) {
@@ -66,7 +59,8 @@ namespace Arterra.Data.Material{
                         if (!IMaterialConverting.CanConvert(neighbor, NCoord,
                                     SpreadTag, out ConvertibleTag tag))
                             continue;
-                        if (!SwapMaterial(NCoord,
+                        if (cur.material == neighbor.material) continue;
+                        if (!MaterialData.SwapMaterial(NCoord,
                             cur.material,
                             out Item.IItem origItem))
                             continue;
@@ -75,22 +69,6 @@ namespace Arterra.Data.Material{
                     }
                 }
             }
-        }
-
-
-        /// <summary> The handler controlling how materials are dropped when
-        /// <see cref="OnRemoved"/> is called. See <see cref="MaterialData.MultiLooter"/> 
-        /// for more info.  </summary>
-        public MultiLooter MaterialDrops;
-
-
-        /// <summary> See <see cref="MaterialData.OnRemoved"/> for more information. </summary>
-        /// <param name="amount">The map data indicating the amount of material removed
-        /// and the state it was removed as</param>
-        /// <param name="GCoord">The location of the map information being</param>
-        /// <returns>The item to give.</returns>
-        public override Item.IItem OnRemoved(int3 GCoord, in MapData amount) {
-            return MaterialDrops.LootItem(amount, Names);
         }
     }
 }

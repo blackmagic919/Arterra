@@ -12,10 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c41f9b649b76234e928db08e337b04b, type: 3}
   m_Name: FurnaceMat
   m_EditorClassIdentifier: 
-  Name: Furnace
-  Tags:
-    Reg:
-      value: []
   Names:
     value:
     - Furnace:Solid
@@ -23,26 +19,6 @@ MonoBehaviour:
     - Void
     - Furnace
     - Stone
-  terrainData:
-    Texture: 0
-    textureScale: 1
-    FlipStateRendering: 0
-    GeoShaderIndex:
-      data: 0
-  AtmosphereScatter:
-    InScatterCoeffs: {x: 0, y: 0, z: 0}
-    OutScatterCoeffs: {x: 0, y: 0, z: 0}
-    GroundExtinction: {x: 0, y: 0, z: 0}
-    LightIntensity: 0
-  liquidData:
-    shallowCol: {r: 0, g: 0, b: 0, a: 0}
-    deepCol: {r: 0, g: 0, b: 0, a: 0}
-    colFalloff: 0
-    waveBlend: 0
-    waveStrength: 0
-    waveScale: {x: 0, y: 0}
-    waveSpeed: {x: 0, y: 0}
-  Roughness: 0.2
   Structure:
     value:
     - check:
@@ -129,13 +105,11 @@ MonoBehaviour:
   MaxOutputSlotCount: 3
   MaxFuelSlotCount: 3
   MaxRecipeSlotCount: 12
+  OpenEvent: 3012
   MaterialDrops:
     SolidItem:
       DropItem: 0
       DropMultiplier: 1
     LiquidItem:
-      DropItem: 2
-      DropMultiplier: 1
-  references:
-    version: 2
-    RefIds: []
+      DropItem: 0
+      DropMultiplier: 0

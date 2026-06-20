@@ -10,13 +10,11 @@ namespace Arterra.Data.Entity.Behavior {
         private InidcatorsBehavior indicator;
         private ColliderUpdateBehavior collider;
         private VitalityBehavior vit;
-        private bool IsActive => (!vit?.IsDead) ?? true;
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!self.Is(out collider)) collider = null;
             if (!self.Is(out indicator)) indicator = null;
             if (!self.Is(out vit)) vit = null;
             this.self = self;
-            if (!IsActive) return;
             OnStartup();
         }
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -24,7 +22,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out indicator)) indicator = null;
             if (!self.Is(out vit)) vit = null;
             this.self = self;
-            if (!IsActive) return;
             OnStartup();
         }
 
@@ -39,6 +36,7 @@ namespace Arterra.Data.Entity.Behavior {
         private void OnStartup() {
             Config.CURRENT.System.AddHook("Gamemode:Intangibility", ToggleIntangibility);
             Config.CURRENT.System.AddHook("Gamemode:Invulnerability", ToggleInvulnerability);
+            self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));
             
             object intangibility = Config.CURRENT.GamePlay.Gamemodes.value.Intangiblity;
             object invulnerability = Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability;

@@ -57,17 +57,6 @@ MonoBehaviour:
     _material: 2147483652
     _offset: 537395712
   DecayChance: 0.5
-  MaterialDrops:
-    SolidLootTable:
-      value: []
-    DefaultSolidLoot:
-      DropItem: 2
-      DropMultiplier: 1
-    LiquidLootTable:
-      value: []
-    DefaultLiquidLoot:
-      DropItem: 3
-      DropMultiplier: 0
   references:
     version: 2
     RefIds: []

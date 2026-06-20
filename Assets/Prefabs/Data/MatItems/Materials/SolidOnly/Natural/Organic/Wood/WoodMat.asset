@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
+  m_Script: {fileID: 11500000, guid: 6f61df03b0d75404298deab86aa68c9f, type: 3}
   m_Name: WoodMat
   m_EditorClassIdentifier: 
   Name: Wood
@@ -19,23 +19,23 @@ MonoBehaviour:
       - Tag: 2
         value:
           value:
-            rid: 5818089297814487231
+            rid: 5778504664064983168
       - Tag: 12
         value:
           value:
-            rid: 6083762182251610192
+            rid: 5778504664064983169
       - Tag: 22
         value:
           value:
-            rid: 3097083492271390837
+            rid: 5778504664064983170
       - Tag: 32
         value:
           value:
-            rid: 3097083492271390838
+            rid: 5778504664064983171
       - Tag: 9001
         value:
           value:
-            rid: 3097083492271390839
+            rid: 5778504664064983172
   Names:
     value:
     - Wood:Solid
@@ -61,49 +61,47 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  MaterialDrops:
-    SolidItem:
+  Logic: {fileID: 11400000, guid: 72eb2a86f07ef473ca5c536aeec133ce, type: 2}
+  looter:
+    SolidLootTable:
+      value: []
+    DefaultSolidLoot:
       DropItem: 0
       DropMultiplier: 1
-    LiquidItem:
+    LiquidLootTable:
+      value: []
+    DefaultLiquidLoot:
       DropItem: 1
       DropMultiplier: 1
   references:
     version: 2
     RefIds:
-    - rid: 3097083492271390837
+    - rid: 5778504664064983168
       type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
-        TerraformSpeed: 250
-        ToolDamage: 1
-        GivesItem: 1
-    - rid: 3097083492271390838
+        TerraformSpeed: 0
+        ToolDamage: 0
+        GivesItem: 0
+    - rid: 5778504664064983169
       type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
-        TerraformSpeed: 200
-        ToolDamage: 1
-        GivesItem: 1
-    - rid: 3097083492271390839
+        TerraformSpeed: 0
+        ToolDamage: 0
+        GivesItem: 0
+    - rid: 5778504664064983170
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0
+        ToolDamage: 0
+        GivesItem: 0
+    - rid: 5778504664064983171
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0
+        ToolDamage: 0
+        GivesItem: 0
+    - rid: 5778504664064983172
       type: {class: TooltipTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         Tooltips:
-          value:
-          - AcknowledgeTime: 300
-            AcknowledgeEvent: -1
-            Priority: 0
-            TriggerEvent: 19
-            TriggerTime: 2.5
-            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip3/Display
-            BlockingTooltips: 0
-    - rid: 5818089297814487231
-      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
-      data:
-        TerraformSpeed: 100
-        ToolDamage: 1
-        GivesItem: 1
-    - rid: 6083762182251610192
-      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
-      data:
-        TerraformSpeed: 150
-        ToolDamage: 1
-        GivesItem: 1
+          value: []

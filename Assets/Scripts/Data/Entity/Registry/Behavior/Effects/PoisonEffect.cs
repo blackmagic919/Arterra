@@ -60,7 +60,7 @@ namespace Arterra.Data.Entity.Behavior {
             
             float damage = (1 - math.exp(-accDeltaTime * _strength)) * vit.health;
             if (vit.TakeDamage(damage, float3.zero)) accDeltaTime = 0;
-            if (progress > _duration) self.RemoveBehavior(((Behavior)this).Id);
+            if (progress > _duration) self.RemoveBehavior(Id);
         }
     }
 }

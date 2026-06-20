@@ -19,31 +19,402 @@ MonoBehaviour:
   Controller:
     value: {fileID: 2758236328317862729, guid: 3f474f15b1873425baffca027dfebe50, type: 3}
   Profile:
-    value: []
+    value:
+    - bounds:
+        data: 4286578432
+      flags: 2
+    - bounds:
+        data: 4286578432
+      flags: 2
+    - bounds:
+        data: 4286578432
+      flags: 2
+    - bounds:
+        data: 2130771712
+      flags: 1
+    - bounds:
+        data: 0
+      flags: 0
+    - bounds:
+        data: 2130771712
+      flags: 1
+    - bounds:
+        data: 0
+      flags: 0
+    - bounds:
+        data: 0
+      flags: 0
+    - bounds:
+        data: 0
+      flags: 0
+    - bounds:
+        data: 0
+      flags: 0
+    - bounds:
+        data: 0
+      flags: 0
+    - bounds:
+        data: 0
+      flags: 0
   _Setting:
     value:
       profile:
         bounds:
-          x: 0
-          y: 0
-          z: 0
+          x: 2
+          y: 3
+          z: 2
       collider:
         size:
-          x: 0
-          y: 0
-          z: 0
+          x: 1
+          y: 2
+          z: 1
       BehaviorList:
-        value: 05000000
+        value: 050000000600000003000000ed030000010000006a000000690000006600000065000000680000006700000064000000f3030000
       Settings:
         value:
-        - value:
-            rid: 1481107594490413083
-      _prevBehaviorCount: 1
+          value:
+          - value:
+              value:
+                rid: 5778504641502773497
+          - value:
+              value:
+                rid: 5778504641502773498
+          - value:
+              value:
+                rid: 5778504641502773499
+          - value:
+              value:
+                rid: 5778504641502773500
+          - value:
+              value:
+                rid: 5778504641502773501
+          - value:
+              value:
+                rid: 5778504641502773502
+          - value:
+              value:
+                rid: 5778504641502773503
+          - value:
+              value:
+                rid: 5778504641502773504
+          - value:
+              value:
+                rid: 5778504641502773505
+          - value:
+              value:
+                rid: 5778504641502773506
+      _prevBehaviorCount: 13
   references:
     version: 2
     RefIds:
-    - rid: 1481107594490413083
+    - rid: 5778504641502773497
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
         UseGravity: 1
+    - rid: 5778504641502773498
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 50
+        StartHealthPercent: 1
+        StartHealthVariance: 0
+        MaxHealth: 20
+        NaturalRegen: 0.01
+        InvincTime: 0.25
+    - rid: 5778504641502773499
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
+          value:
+          - ItemName: RedMeat
+            DropAmount: 0.075
+    - rid: 5778504641502773500
+      type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        HoldBreathTime: 10
+        Bouyancy: -1
+        UseFallDamage: 1
+    - rid: 5778504641502773501
+      type: {class: PlayerInventorySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        PrimarySlotCount: 5
+        SecondarySlotCount: 30
+        RecoverSpeedMultiplier: 25
+        SelectedColor: {r: 0.6792453, g: 0.5261536, b: 0.33641866, a: 0.39215687}
+        BaseColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 0.39215687}
+    - rid: 5778504641502773502
+      type: {class: PlayerCameraSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Sensitivity: 2
+        clampVerticalRotation: 1
+        MinimumX: -90
+        MaximumX: 90
+        smooth: 0
+        smoothTime: 5
+    - rid: 5778504641502773503
+      type: {class: PlayerMovementSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        walkSpeed: 3
+        runSpeed: 6
+        jumpForce: 5
+        groundStickDist: 0.05
+        flightSpeedMultiplier: 3
+    - rid: 5778504641502773504
+      type: {class: PlayerInteractionSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TerraformRadius: 1
+        DefaultTerraform:
+          value:
+            TerraformSpeed: 50
+            ToolDamage: 0
+            GivesItem: 1
+        ReachDistance: 8
+        CylinderRadius: 1
+        PickupRate: 1.5
+        AttackDamage: 2
+        AttackFrequency: 0.25
+        KnockBackStrength: 10
+    - rid: 5778504641502773505
+      type: {class: PlayerEffectsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath: Player
+    - rid: 5778504641502773506
+      type: {class: HungerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        MaxHungerHealthColor: {r: 1, g: 0, b: 0, a: 1}
+        MinHungerHealthColor: {r: 0.41509432, g: 0.3191527, b: 0.3191527, a: 1}
+        Modifiers:
+          value:
+          - modify:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0.35165405
+                inSlope: 2
+                outSlope: 2
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              - serializedVersion: 3
+                time: 0.99951017
+                value: 0.9997295
+                inSlope: -0.0035183553
+                outSlope: -0.0035183553
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.54072654
+              - serializedVersion: 3
+                time: 1.6096308
+                value: 0.9993291
+                inSlope: -0.0013824587
+                outSlope: -0.0013824587
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.36149198
+                outWeight: 1
+              - serializedVersion: 3
+                time: 2.000885
+                value: 0.7003258
+                inSlope: -2.2674375
+                outSlope: -2.2674375
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.20891973
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 0
+            policy: 1
+            setting: 1008
+          - modify:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0.35009766
+                inSlope: 2
+                outSlope: 2
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              - serializedVersion: 3
+                time: 0.99951017
+                value: 0.9997295
+                inSlope: -0.0035183553
+                outSlope: -0.0035183553
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.54072654
+              - serializedVersion: 3
+                time: 1.693249
+                value: 0.9993291
+                inSlope: -0.0013824587
+                outSlope: -0.0013824587
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.36149198
+                outWeight: 1
+              - serializedVersion: 3
+                time: 2.000885
+                value: 0.7003187
+                inSlope: -2.2674375
+                outSlope: -2.2674375
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.20891973
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 0
+            policy: 1
+            setting: 1009
+          - modify:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0
+                inSlope: -0.008669773
+                outSlope: -0.008669773
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0.54653937
+              - serializedVersion: 3
+                time: 0.5024832
+                value: 0.8845954
+                inSlope: 0.24778347
+                outSlope: 0.24778347
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.46080488
+              - serializedVersion: 3
+                time: 1.0050436
+                value: 1.0013611
+                inSlope: 0.20525709
+                outSlope: 0.20525709
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.33333334
+              - serializedVersion: 3
+                time: 2.0147018
+                value: 10.0293045
+                inSlope: 8.388738
+                outSlope: 8.388738
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.24422115
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 0
+            policy: 1
+            setting: 1006
+          - modify:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0.5000001
+                inSlope: -0.008669773
+                outSlope: -0.008669773
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0.54653937
+              - serializedVersion: 3
+                time: 1
+                value: 1
+                inSlope: 0.18315141
+                outSlope: 0.18315141
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.3991843
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 0
+            policy: 1
+            setting: 1001
+          - modify:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 1.2502196
+                inSlope: -0.4119944
+                outSlope: -0.4119944
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0.35259724
+              - serializedVersion: 3
+                time: 0.99426264
+                value: 0.9988847
+                inSlope: -0.0029484774
+                outSlope: -0.0029484774
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 0.31371552
+              - serializedVersion: 3
+                time: 1.7383019
+                value: 0.9940631
+                inSlope: -0.00044343006
+                outSlope: -0.00044343006
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.33333334
+                outWeight: 1
+              - serializedVersion: 3
+                time: 2.0147817
+                value: 1.201378
+                inSlope: 0.30213976
+                outSlope: 0.30213976
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0.3475236
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 0
+            policy: 1
+            setting: 1002
+        Effects:
+          value:
+          - boundary: 0.2
+            partition: 1
+            name: 4
+            behavior:
+              rid: 5778504641502773507
+        Exercises:
+          value:
+          - trigger: 3017
+            policy: 1
+            cost: 0.00333
+          - trigger: 3018
+            policy: 1
+            cost: 0.00666
+          - trigger: 4
+            policy: 0
+            cost: 0.01
+          - trigger: 3
+            policy: 0
+            cost: 0.01
+        startingPercent: 1.5
+        baseStarveRate: 0.00025
+        feedMultiplier: 0.1
+    - rid: 5778504641502773507
+      type: {class: DizzinessEffect, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Strength: 0.5
+        Duration: Infinity
+        EffectIcon: DizzinessIcon

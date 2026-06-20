@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
+  m_Script: {fileID: 11500000, guid: 6f61df03b0d75404298deab86aa68c9f, type: 3}
   m_Name: AshMat
   m_EditorClassIdentifier: 
   Name: Ash
@@ -19,15 +19,15 @@ MonoBehaviour:
       - Tag: 2
         value:
           value:
-            rid: 5818089297814487231
+            rid: 5778504664064983160
       - Tag: 3
         value:
           value:
-            rid: 6432722648275615828
+            rid: 5778504664064983161
       - Tag: 1000
         value:
           value:
-            rid: 6432722696530559049
+            rid: 5778504664064983162
   Names:
     value:
     - Ash:Solid
@@ -53,38 +53,43 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  MaterialDrops:
-    SolidItem:
+  Logic: {fileID: 11400000, guid: 7b57b4e08c05c4ff386c642fd205567a, type: 2}
+  looter:
+    SolidLootTable:
+      value: []
+    DefaultSolidLoot:
       DropItem: 0
       DropMultiplier: 1
-    LiquidItem:
+    LiquidLootTable:
+      value: []
+    DefaultLiquidLoot:
       DropItem: 1
       DropMultiplier: 1
   references:
     version: 2
     RefIds:
-    - rid: 5818089297814487231
+    - rid: 5778504664064983160
       type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
-        TerraformSpeed: 25
-        ToolDamage: 1
-        GivesItem: 1
-    - rid: 6432722648275615828
+        TerraformSpeed: 0
+        ToolDamage: 0
+        GivesItem: 0
+    - rid: 5778504664064983161
       type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
-        TerraformSpeed: 75
-        ToolDamage: 1
-        GivesItem: 1
-    - rid: 6432722696530559049
+        TerraformSpeed: 0
+        ToolDamage: 0
+        GivesItem: 0
+    - rid: 5778504664064983162
       type: {class: ConverterToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         TerraformSpeed: 0
         ToolDamage: 0
         GivesItem: 0
         _convertBounds:
-          data: 4278255360
+          data: 0
         _neighborBounds:
           bounds:
-            data: 4278255360
-          flags: 2
-        ConvertTarget: Ash
+            data: 0
+          flags: 0
+        ConvertTarget: 

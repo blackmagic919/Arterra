@@ -1,0 +1,91 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb5ab28ebaf0240359baf1d92ea3df1e, type: 3}
+  m_Name: _OrganicMat
+  m_EditorClassIdentifier: 
+  Name: C:Organic
+  Tags:
+    Reg:
+      value:
+      - Tag: 1000
+        value:
+          value:
+            rid: 6432722648275615824
+      - Tag: 5
+        value:
+          value:
+            rid: 6432723101265428554
+      - Tag: 15
+        value:
+          value:
+            rid: 6083762182251610188
+      - Tag: 25
+        value:
+          value:
+            rid: 5273703469288783960
+      - Tag: 35
+        value:
+          value:
+            rid: 5273703469288783977
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 1471a3ce72283487c8625fe6783bedb0, type: 2}
+    - value: {fileID: 11400000, guid: cd825e373659345f5a7a582d99ed686b, type: 2}
+    - value: {fileID: 11400000, guid: 7b57b4e08c05c4ff386c642fd205567a, type: 2}
+    - value: {fileID: 11400000, guid: 41e82d35bb1c24f42a49d7f35d6a0ccf, type: 2}
+    - value: {fileID: 11400000, guid: 203f2fc8f7ec524492a539700da809d0, type: 2}
+    - value: {fileID: 11400000, guid: 797a3fe4eb0e144cd8e57086ef253166, type: 2}
+    - value: {fileID: 11400000, guid: 72eb2a86f07ef473ca5c536aeec133ce, type: 2}
+    - value: {fileID: 11400000, guid: 21d743594f35c4d6995ac67e51eee6e2, type: 2}
+    - value: {fileID: 11400000, guid: a2288f191e2c94720a121b9abba68208, type: 2}
+    - value: {fileID: 11400000, guid: 38cac5397e0ef47ec9e129ff1feac70d, type: 2}
+    - value: {fileID: 11400000, guid: 6f2843b2c36884b0c8df286c863d9954, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 5273703469288783960
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 250
+        ToolDamage: 2
+        GivesItem: 1
+    - rid: 5273703469288783977
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 200
+        ToolDamage: 2
+        GivesItem: 1
+    - rid: 6083762182251610188
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 150
+        ToolDamage: 2
+        GivesItem: 1
+    - rid: 6432722648275615824
+      type: {class: ConverterToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 0.25
+        ToolDamage: 2
+        GivesItem: 0
+        _convertBounds:
+          data: 4286643968
+        _neighborBounds:
+          bounds:
+            data: 2130738944
+          flags: 2
+        ConvertTarget: FireAsh
+    - rid: 6432723101265428554
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 100
+        ToolDamage: 2
+        GivesItem: 1

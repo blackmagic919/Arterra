@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f61df03b0d75404298deab86aa68c9f, type: 3}
+  m_Name: LettuceMat
+  m_EditorClassIdentifier: 
+  Name: Lettuce
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - Lettuce
+    - LettuceSeeds
+    - Void
+    - LettuceLeaves
+  terrainData:
+    Texture: 3
+    textureScale: 0.75
+    FlipStateRendering: 0
+    GeoShaderIndex:
+      data: 262149
+  AtmosphereScatter:
+    InScatterCoeffs: {x: 0, y: 0, z: 0}
+    OutScatterCoeffs: {x: 0, y: 0, z: 0}
+    GroundExtinction: {x: 0, y: 0, z: 0}
+    LightIntensity: 0
+  liquidData:
+    shallowCol: {r: 0, g: 0, b: 0, a: 0}
+    deepCol: {r: 0, g: 0, b: 0, a: 0}
+    colFalloff: 0
+    waveBlend: 0
+    waveStrength: 0
+    waveScale: {x: 0, y: 0}
+    waveSpeed: {x: 0, y: 0}
+  Roughness: 0.2
+  Logic: {fileID: 11400000, guid: b124ae93ecbf34f0e83c43202abe34c5, type: 2}
+  looter:
+    SolidLootTable:
+      value:
+      - DropItem: 1
+        DropChance: 0.25
+        DropMultiplier: 2
+    DefaultSolidLoot:
+      DropItem: 0
+      DropMultiplier: 1
+    LiquidLootTable:
+      value: []
+    DefaultLiquidLoot:
+      DropItem: 2
+      DropMultiplier: 1
+  references:
+    version: 2
+    RefIds: []

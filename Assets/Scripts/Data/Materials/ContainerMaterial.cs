@@ -13,7 +13,7 @@ namespace Arterra.Data.Material
 {
     /// <summary> A container material which can hold items in its meta-data
     /// and is accessible to users who click on the item. </summary>
-    [CreateAssetMenu(menuName = "Generation/MaterialData/ContainerMat")]
+    [CreateAssetMenu(menuName = "Generation/MaterialData/Behaviors/ContainerMat")]
     public class ContainerMaterial : PlaceableStructureMat {
         /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the 
         /// texture within the texture registry of the icon displayed on the <see cref="PanelNavbarManager">Navbar</see>
@@ -27,19 +27,11 @@ namespace Arterra.Data.Material
         /// <summary>The event that is triggered when this chest is opened.</summary>
         public Core.Events.GameEvent OpenEvent = Core.Events.GameEvent.Action_OpenChest;
 
-
         /// <summary> Even though it does nothing, it needs to fufill the contract so
         /// that it can be used in the same way as other materials. </summary>
         /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
-        public override void PropogateMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng) {
-
-        }
-        /// <summary> Even though it does nothing, it needs to fufill the contract so
-        /// that it can be used in the same way as other materials. </summary>
-        /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
-        /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
-        public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng) {
+        public override void RandomMaterialUpdate(int3 GCoord, ref Unity.Mathematics.Random prng) {
             if (!VerifyStructurePlaceement(GCoord))
                 DropInventoryContent(GCoord);
         }
@@ -48,14 +40,9 @@ namespace Arterra.Data.Material
         /// <param name="GCoord">The coordinate in grid space of the material</param>
         /// <param name="constructor">The constructor used to populate the inventory</param>
         /// <returns>The container instance</returns>
-        public override object ConstructMetaData(int3 GCoord, MetaConstructor constructor) {
+        public override object ConstructMetaData(int3 GCoord, MaterialData.MetaConstructor constructor) {
             return new ContainerInventory(constructor, GCoord, MaxSlotCount);
         }
-
-        /// <summary> The handler controlling how materials are dropped when
-        /// <see cref="OnRemoved"/> is called. See 
-        /// <see cref="MaterialData.ItemLooter"/> for more info.  </summary>
-        public ItemLooter MaterialDrops;
 
         private ContainerInventory OpenedInventory = null;
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
@@ -100,17 +87,18 @@ namespace Arterra.Data.Material
         /// and the state it was removed as</param>
         /// <param name="GCoord">The location of the map information being</param>
         /// <returns>The item to give.</returns>
-        public override Item.IItem OnRemoved(int3 GCoord, in MapData amount) {
+        public override IItem OnRemoved(int3 GCoord, in MapData amount) {
             MapData info = CPUMapManager.SampleMap(GCoord);
             if (info.IsNull || amount.IsNull) return null;
-            if (!info.IsSolid) return MaterialDrops.LootItem(amount, Names);
+            if (!info.IsSolid) return null;
+
             if (OpenedInventory != null && math.all(OpenedInventory.position == GCoord))
                 DeactivateWindow();
             int SolidDensity = info.SolidDensity - amount.SolidDensity;
             if (!VerifyStructurePlaceement(GCoord) || SolidDensity < CPUMapManager.IsoValue)
                 DropInventoryContent(GCoord);
 
-            return MaterialDrops.LootItem(amount, Names);
+            return null;
         }
 
         public override void OnPlaced(int3 GCoord, in MapData amount) {
@@ -181,7 +169,7 @@ namespace Arterra.Data.Material
                 inv = new InventoryController.Inventory(SlotCount);
             }
 
-            internal ContainerInventory(MetaConstructor constructor, int3 GCoord, int SlotCount) : base(GCoord)  {
+            internal ContainerInventory(MaterialData.MetaConstructor constructor, int3 GCoord, int SlotCount) : base(GCoord)  {
                 inv = new InventoryController.Inventory(constructor, GCoord, SlotCount);
             }
 

@@ -100,8 +100,7 @@ namespace Arterra.Data.Entity.Behavior {
                 DizzinessPass.SetDizziness(normalized * envelope, holdTime);
             }
 
-            if (progress > _duration)
-                self.RemoveBehavior(((Behavior)this).Id);
+            if (progress > _duration) self.RemoveBehavior(Id);
         }
     }
 }

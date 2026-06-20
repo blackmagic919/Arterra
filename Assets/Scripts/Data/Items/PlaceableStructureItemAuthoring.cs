@@ -151,16 +151,16 @@ namespace Arterra.Data.Item {
                 }
 
                 MaterialData placeMat = MatInfo.Retrieve(item.settings.MaterialName);
-                if (placeMat is not PlaceableStructureMat stctMat) return;
+                if (!placeMat.Is(out PlaceableStructureMat stctMat)) return;
                 int3 rot = GetRotation(player.head - Location);
-                List<ConditionedGrowthMat.MapSamplePoint> edit = DeserializeStruct();
+                List<MapSamplePoint> edit = DeserializeStruct();
                 if (RemoveConflictMats(player, edit, Location, rot)) return;
                 PlaceNewMats(player, edit, Location, rot);
             }
 
             private int3 GetRotation(float3 direction) {
                 MaterialData placeMat = MatInfo.Retrieve(item.settings.MaterialName);
-                if (placeMat is not PlaceableStructureMat mat) return int3.zero;
+                if (!placeMat.Is(out PlaceableStructureMat mat)) return int3.zero;
                 float3 angleRot = Quaternion.LookRotation(direction).eulerAngles;
                 //clamp to 360 via modulo
                 angleRot = (angleRot % 360 + 360) % 360; int3 rot = int3.zero; 
@@ -170,9 +170,9 @@ namespace Arterra.Data.Item {
                 return rot;
             }
 
-            private List<ConditionedGrowthMat.MapSamplePoint> DeserializeStruct() {
+            private List<MapSamplePoint> DeserializeStruct() {
                 MaterialData placeMat = MatInfo.Retrieve(item.settings.MaterialName);
-                if (placeMat is not PlaceableStructureMat key) return null;
+                if (!placeMat.Is(out PlaceableStructureMat key)) return null;
                 return key.Structure.value.Select(s => {
                     if (s.HasMaterialCheck) s.material = (uint)MatInfo.RetrieveIndex(
                         key.RetrieveKey((int)s.material));
@@ -182,7 +182,7 @@ namespace Arterra.Data.Item {
 
             private int3 GetSize() {
                 MaterialData placeMat = MatInfo.Retrieve(item.settings.MaterialName);
-                if (placeMat is not PlaceableStructureMat key) return int3.zero;
+                if (!placeMat.Is(out PlaceableStructureMat key)) return int3.zero;
                 int3 max = new (int.MinValue); int3 min = new (int.MaxValue);
                 foreach(var mat in key.Structure.value) {
                     max = math.max(mat.Offset, max);
@@ -190,8 +190,8 @@ namespace Arterra.Data.Item {
                 }
                 return key.Structure.value.Count <= 0 ? int3.zero : max - min;
             }
-            private delegate bool CheckIterate(Material.ConditionedGrowthMat.MapSamplePoint check, MapData sample, MapData delta, int3 GCoord);
-            private bool RemoveConflictMats(Entity.Entity holder, List<ConditionedGrowthMat.MapSamplePoint> edit, int3 GCoord, int3 rot) {
+            private delegate bool CheckIterate(MapSamplePoint check, MapData sample, MapData delta, int3 GCoord);
+            private bool RemoveConflictMats(Entity.Entity holder, List<MapSamplePoint> edit, int3 GCoord, int3 rot) {
                 if (!holder.Is(out PlayerInteractionBehavior interact)) interact = null;
                 int totalRemAmount = 0; int totalSolidAmt = 0;
                 if (!IterateStructRemove(edit, GCoord, rot, (c, s, d, gc) => {
@@ -223,7 +223,7 @@ namespace Arterra.Data.Item {
                 return totalSolidAmt > 0;
             }
 
-            private bool PlaceNewMats(Entity.Entity holder, List<ConditionedGrowthMat.MapSamplePoint> edit, int3 GCoord, int3 rot) {
+            private bool PlaceNewMats(Entity.Entity holder, List<MapSamplePoint> edit, int3 GCoord, int3 rot) {
                 if (!holder.Is(out PlayerInteractionBehavior interact)) return false;
                 int totPlaceAmt = 0; int selfPlaceAmt = 0; bool PlaceSelf = true;
                 int self = MatInfo.RetrieveIndex(item.settings.MaterialName);
@@ -269,10 +269,10 @@ namespace Arterra.Data.Item {
 
             }
 
-            private bool IterateStructRemove(List<ConditionedGrowthMat.MapSamplePoint> edit, int3 GCoord, int3 rot, CheckIterate OnRemove) {
+            private bool IterateStructRemove(List<MapSamplePoint> edit, int3 GCoord, int3 rot, CheckIterate OnRemove) {
                 bool any0 = false;
                 for (int i = 0; i < edit.Count; i++) {
-                    Material.ConditionedGrowthMat.MapSamplePoint pt = edit[i];
+                    Material.MapSamplePoint pt = edit[i];
                     if (pt.check.OrFlag) { //Only fill first or flag
                         if (any0) continue;
                         else any0 = true;
@@ -299,10 +299,10 @@ namespace Arterra.Data.Item {
             }
 
 
-            private bool IterateStructPlace(List<ConditionedGrowthMat.MapSamplePoint> edit, int3 GCoord, int3 rot, CheckIterate OnAdd) {
+            private bool IterateStructPlace(List<MapSamplePoint> edit, int3 GCoord, int3 rot, CheckIterate OnAdd) {
                 bool any0 = false;
                 for (int i = 0; i < edit.Count; i++) {
-                    Material.ConditionedGrowthMat.MapSamplePoint pt = edit[i];
+                    MapSamplePoint pt = edit[i];
                     if (pt.check.OrFlag) { //Only fill first or flag
                         if (any0) continue;
                         else any0 = true;

@@ -262,6 +262,7 @@ public static class GenerationPreset
 
                     if (textureInfo.Contains(Key)) terrain.Texture = textureInfo.RetrieveIndex(Key);
                     SerializeGeoShader(material, ref terrain);
+                    material.Preset(material);
 
                     MaterialTerrain[i] = terrain;
                 }

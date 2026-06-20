@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2485f06c465b44e788a840250915e953, type: 3}
+  m_Name: CarrotSprout
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.MiniMeshSetting
+  Name: CarrotSprout
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - CarrotSproutStem
+  info:
+    value:
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -5337438527024701055, guid: 6ae79f488a1354bdb84f81d7a489fdea, type: 3}
+          probability: 1
+      frequency: -4
+      sizeMultiplier: 1
+      sizeMultiplierRange: {x: 0.6, y: 1.5}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -1105334494196482515, guid: d25c112a3452c4a8fabfaf86223e8853, type: 3}
+          probability: 1
+      frequency: -2
+      sizeMultiplier: 1
+      sizeMultiplierRange: {x: 1, y: 1.75}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -1105334494196482515, guid: d25c112a3452c4a8fabfaf86223e8853, type: 3}
+          probability: 1
+      frequency: -1
+      sizeMultiplier: 1.5
+      sizeMultiplierRange: {x: 1.5, y: 2}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -5788013533641766931, guid: 6b74c595f23ad4813ba0d5adfc7eb5f4, type: 3}
+          probability: 1
+      frequency: -1
+      sizeMultiplier: 1.5
+      sizeMultiplierRange: {x: 2, y: 3}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+  references:
+    version: 2
+    RefIds: []

@@ -57,20 +57,20 @@ MonoBehaviour:
     _material: 4
     _offset: 537395712
   DecayChance: 0.5
-  MaterialDrops:
-    SolidLootTable:
-      value: []
-    DefaultSolidLoot:
-      DropItem: 0
-      DropMultiplier: 0
-    LiquidLootTable:
-      value: []
-    DefaultLiquidLoot:
-      DropItem: 0
-      DropMultiplier: 0
   SpreadChance: 1
   SpreadTag: 1000
-  ContactDamage: 0.5
+  ContactEffects:
+    value:
+    - name: 6
+      chance: 1
+      behavior:
+        rid: 5778504641502773248
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 5778504641502773248
+      type: {class: BurningEffect, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Strength: 1
+        Duration: 15
+        EffectIcon: BurningIcon

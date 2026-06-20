@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af1043e16fe784861aae129d13680fb9, type: 3}
+  m_Name: Stage3Growth
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Material.BooleanConditionMaterial
+  Names:
+    value:
+    - PlantStem
+    - Wheat
+    - WheatSeededSoil
+    - WheatSeeds
+  SelfCondition:
+    data: 4286643968
+  ConversionData:
+    value:
+    - check:
+        bounds:
+          data: 3365273600
+        flags: 0
+      _material: 2147483649
+      _offset: 537398784
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
+      _material: 0
+      _offset: 538447360
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
+      _material: 0
+      _offset: 536350208
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
+      _material: 0
+      _offset: 537398785
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
+      _material: 0
+      _offset: 537398783
+  Checks:
+    value:
+    - Condition:
+        data: 4286643968
+      _offset: 2048
+      _material: 2147483649
+    - Condition:
+        data: 4286643968
+      _offset: 2048
+      _material: 2147483648
+    - Condition:
+        data: 2130738944
+      _offset: 3072
+      _material: 0
+    - Condition:
+        data: 2130738944
+      _offset: 1051648
+      _material: 0
+    - Condition:
+        data: 2130738944
+      _offset: 1072696320
+      _material: 0
+    - Condition:
+        data: 2130738944
+      _offset: 3073
+      _material: 0
+    - Condition:
+        data: 2130738944
+      _offset: 4095
+      _material: 0
+  RandomUpdateCheckChance: 0.75
+  PropogateUpdateCheckChance: 0
+  Expression: (0v1)^(2^3^4^5^6)
+  _normalizedExpression: (0 v 1) ^ (2 ^ (3 ^ (4 ^ (5 ^ 6))))
+  _compileError: 

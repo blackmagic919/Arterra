@@ -34,8 +34,8 @@ namespace Arterra.Data.Material{
     /// amount of updates </see> defined by the system at which point liquid physics may prevent other terrain updates from occuring.
     /// </summary>
     [BurstCompile]
-    [CreateAssetMenu(menuName = "Generation/MaterialData/LiquidMat")]
-    public class LiquidMaterial : MaterialData {
+    [CreateAssetMenu(menuName = "Generation/MaterialData/Behaviors/LiquidMat")]
+    public class LiquidMaterial : MaterialBehavior {
         /// <summary> The chance that a random update will perform checks to 
         /// propogate the liquid. Increasing this value may reduce performance. </summary>
         public float RandomUpdatePropogateChance;
@@ -121,7 +121,7 @@ namespace Arterra.Data.Material{
         /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
         [BurstCompile]
-        public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng) {
+        public override void RandomMaterialUpdate(int3 GCoord, ref Unity.Mathematics.Random prng) {
             if (prng.NextFloat() < RandomUpdatePropogateChance) PropogateLiquid(GCoord, prng);
         }
 
@@ -129,22 +129,8 @@ namespace Arterra.Data.Material{
         /// <param name="GCoord">The coordinate in grid space of a map entry that is this material</param>
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
         [BurstCompile]
-        public override void PropogateMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default) {
+        public override void PropogateMaterialUpdate(int3 GCoord, ref Unity.Mathematics.Random prng) {
             PropogateLiquid(GCoord, prng);
-        }
-
-        /// <summary> The handler controlling how materials are dropped when
-        /// <see cref="OnRemoved"/> is called. See 
-        /// <see cref="MaterialData.ItemLooter"/> for more info.  </summary>
-        public ItemLooter MaterialDrops;
-
-        /// <summary> See <see cref="MaterialData.OnRemoved"/> for more information. </summary>
-        /// <param name="amount">The map data indicating the amount of material removed
-        /// and the state it was removed as</param>
-        /// <param name="GCoord">The location of the map information being</param>
-        /// <returns>The item to give.</returns>
-        public override Item.IItem OnRemoved(int3 GCoord, in MapData amount) {
-            return MaterialDrops.LootItem(amount, Names);
         }
     }
 }

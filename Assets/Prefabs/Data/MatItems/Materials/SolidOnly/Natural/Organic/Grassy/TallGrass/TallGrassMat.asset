@@ -26,7 +26,6 @@ MonoBehaviour:
     - LettuceSeeds
     - Minimesh
     - PotatoFruiting
-    - 
   terrainData:
     Texture: 2
     textureScale: 2
@@ -51,23 +50,6 @@ MonoBehaviour:
     data: 4286643968
   SpreadChance: 0.025
   SpreadTag: 2000
-  MaterialDrops:
-    SolidLootTable:
-      value:
-      - DropItem: 4
-        DropChance: 0.15
-        DropMultiplier: 1
-      - DropItem: 5
-        DropChance: 0.05
-        DropMultiplier: 2
-    DefaultSolidLoot:
-      DropItem: 0
-      DropMultiplier: 1
-    LiquidLootTable:
-      value: []
-    DefaultLiquidLoot:
-      DropItem: 1
-      DropMultiplier: 1
   references:
     version: 2
     RefIds: []

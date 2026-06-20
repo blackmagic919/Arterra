@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2485f06c465b44e788a840250915e953, type: 3}
+  m_Name: CarrotBudding
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.MiniMeshSetting
+  Name: CarrotBudding
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - CarrotBuddingStem
+  info:
+    value:
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 9123485159628041807, guid: 68659ded0d5fa4539a51b2d8648be893, type: 3}
+          probability: 1
+      frequency: -4
+      sizeMultiplier: 1
+      sizeMultiplierRange: {x: 0.6, y: 1.5}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -6159153059930757857, guid: 7554cf158cac641948c751527ea85e3c, type: 3}
+          probability: 1
+      frequency: -2
+      sizeMultiplier: 1
+      sizeMultiplierRange: {x: 1, y: 1.75}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -6159153059930757857, guid: 7554cf158cac641948c751527ea85e3c, type: 3}
+          probability: 1
+      frequency: -1
+      sizeMultiplier: 1.5
+      sizeMultiplierRange: {x: 1.5, y: 2}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 5870644514594670124, guid: d4c40f3964ad64834b23bf861ee9cea4, type: 3}
+          probability: 1
+      frequency: -1
+      sizeMultiplier: 1.5
+      sizeMultiplierRange: {x: 2, y: 3}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+  references:
+    version: 2
+    RefIds: []

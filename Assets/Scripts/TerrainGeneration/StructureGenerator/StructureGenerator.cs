@@ -536,7 +536,7 @@ public static class Generator
 
         void SpawnMeta() {
             foreach(var spawn in eh.MapMetaData.value) {
-                int index = Config.CURRENT.Generation.Entities.RetrieveIndex(spawn.Material);
+                int index = Config.CURRENT.Generation.Materials.value.MaterialDictionary.RetrieveIndex(spawn.Material);
                 float3x3 rot =  CustomUtility.RotationLookupTable[genInfo.rotY,genInfo.rotX,genInfo.rotZ];
                 int3 GCoord = genInfo.position + (int3)math.mul(rot, spawn.offset);
 

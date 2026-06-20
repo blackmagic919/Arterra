@@ -62,8 +62,8 @@ public static class Indicators {
 #endif
         }
 
-        SelectionIndicator = Object.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Selection"));
-        DamageIndicator = Resources.Load<GameObject>("Prefabs/GameUI/DamageEffect");
+        SelectionIndicator = Object.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Effects/Selection"));
+        DamageIndicator = Resources.Load<GameObject>("Prefabs/GameUI/Effects/DamageEffect");
         BarIndicator = Resources.Load<GameObject>("Prefabs/GameUI/Stats/EntityStats");
         SelectionIndicator.SetActive(false);
 

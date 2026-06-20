@@ -164,14 +164,19 @@ namespace Arterra.Data.Entity.Behavior {
 
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context == BehaviorEntity.UpdateContext.JobSync || 
+                self.context == BehaviorEntity.UpdateContext.Main) {
+                UpdateHungerDisplay();
+                return;
+            };
+            
             if (self.context == BehaviorEntity.UpdateContext.Main) return;
             this.HungerPercent = math.clamp(HungerPercent - StarveRate * self.DeltaTime, 0f, 2f);
             SyncTrackingArrays();
             UpdateEffects();
             UpdateModifiers();
-            UpdateHungerDisplay();
         }
+        
 
         private void UpdateHungerDisplay() {
             if (indicators == null || indicators.healthStat == null) return;
@@ -221,9 +226,10 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        public void Feed(float delta, bool force = false) {
+        public void Feed(ref float delta, bool force = false) {
             if (force) { HungerPercent += delta * settings.feedMultiplier; return; }
-            HungerPercent = math.min(HungerPercent + delta * settings.feedMultiplier, 2);
+            delta = math.min(HungerPercent + delta * settings.feedMultiplier, 2) - HungerPercent;
+            HungerPercent += delta;
         }
 
         public void HandleExerciseEvent(HungerSettings.Exercise exercise) {

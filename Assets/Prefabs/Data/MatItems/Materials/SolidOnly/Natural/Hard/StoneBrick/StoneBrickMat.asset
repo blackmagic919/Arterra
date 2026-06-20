@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
+  m_Script: {fileID: 11500000, guid: 6f61df03b0d75404298deab86aa68c9f, type: 3}
   m_Name: StoneBrickMat
   m_EditorClassIdentifier: 
   Name: StoneBrick
@@ -41,11 +41,16 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  MaterialDrops:
-    SolidItem:
+  Logic: {fileID: 11400000, guid: d1bf7b029e23a49ec887f5d4c446e16d, type: 2}
+  looter:
+    SolidLootTable:
+      value: []
+    DefaultSolidLoot:
       DropItem: 2
       DropMultiplier: 1
-    LiquidItem:
+    LiquidLootTable:
+      value: []
+    DefaultLiquidLoot:
       DropItem: 0
       DropMultiplier: 1
   references:

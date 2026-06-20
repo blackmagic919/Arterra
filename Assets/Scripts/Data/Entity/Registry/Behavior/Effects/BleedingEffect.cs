@@ -47,6 +47,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vit))
                 throw new System.Exception("Entity: Effector Poison Requires Animal to have Vitality Behavior");
             if (!self.Is(out mod)) mod = null;
+            self.Register(this);
             accDeltaTime = 0;
             progress = 0;
         }
@@ -55,6 +56,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vit))
                 throw new System.Exception("Entity: Effector Poison Requires Animal to have Vitality Behavior");
             if (!self.Is(out mod)) mod = null;
+            self.Register(this);
         }
 
         public override void Update(BehaviorEntity.Animal self) {
@@ -63,9 +65,9 @@ namespace Arterra.Data.Entity.Behavior {
             accDeltaTime += self.DeltaTime;
             progress += self.DeltaTime;
 
-            float damage = -accDeltaTime * _strength;
+            float damage = accDeltaTime * _strength;
             if (vit.TakeDamage(damage, float3.zero)) accDeltaTime = 0;
-            if (progress > _duration) self.Unregister(typeof(BleedingEffect));
+            if (progress > _duration) self.RemoveBehavior(Id);
         }
     }
 }

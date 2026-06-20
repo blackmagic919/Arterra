@@ -46,13 +46,6 @@ MonoBehaviour:
     waveSpeed: {x: 2, y: 5}
   Roughness: 0.2
   RandomUpdatePropogateChance: 0.2
-  MaterialDrops:
-    SolidItem:
-      DropItem: 0
-      DropMultiplier: 1
-    LiquidItem:
-      DropItem: 1
-      DropMultiplier: 1
   references:
     version: 2
     RefIds:

@@ -9,21 +9,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1cbb11f6eccf844d2bbaa784a6cd4cdf, type: 3}
+  m_Script: {fileID: 11500000, guid: 74c1ef1e375144bdc82f6b13a3f540fb, type: 3}
   m_Name: CactusMat
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Material.MultiMaterial
   Name: Cactus
   Tags:
     Reg:
       value: []
   Names:
     value:
-    - Cactus:Solid
-    - Void
     - Cactus
-    - PlantMatter
   terrainData:
-    Texture: 2
+    Texture: 0
     textureScale: 2
     FlipStateRendering: 0
     GeoShaderIndex:
@@ -42,11 +39,15 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  SelfCondition:
-    data: 4286643968
-  SpreadChance: 0.5
-  SpreadTag: 2001
-  MaterialDrops:
+  Behaviors:
+    Reg:
+    - Name: Damage
+      _value:
+        value: {fileID: 11400000, guid: 45ac2ede189f94c36991d7a767670165, type: 2}
+    - Name: Spread
+      _value:
+        value: {fileID: 11400000, guid: e147a9651f2c14490ac0e307fbd6d60b, type: 2}
+  looter:
     SolidLootTable:
       value: []
     DefaultSolidLoot:
@@ -55,8 +56,8 @@ MonoBehaviour:
     LiquidLootTable:
       value: []
     DefaultLiquidLoot:
-      DropItem: 1
-      DropMultiplier: 1
+      DropItem: 0
+      DropMultiplier: 0
   references:
     version: 2
     RefIds: []

@@ -48,17 +48,6 @@ MonoBehaviour:
     data: 4286643968
   SpreadChance: 0.025
   SpreadTag: 2000
-  MaterialDrops:
-    SolidLootTable:
-      value: []
-    DefaultSolidLoot:
-      DropItem: 0
-      DropMultiplier: 1
-    LiquidLootTable:
-      value: []
-    DefaultLiquidLoot:
-      DropItem: 1
-      DropMultiplier: 1
   references:
     version: 2
     RefIds: []

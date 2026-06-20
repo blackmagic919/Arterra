@@ -120,6 +120,7 @@ namespace Arterra.Data.Entity.Behavior {
         Nausea = BehaviorTypes.Effects + 2,
         Dizziness = BehaviorTypes.Effects + 3,
         Blindness = BehaviorTypes.Effects + 4,
+        Burning = BehaviorTypes.Effects + 5,
     }
 
     // つぎはぎの生物, stitchwork animal
@@ -198,6 +199,7 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.Nausea, () => new NauseaEffect()},
             { Behaviors.Dizziness, () => new DizzinessEffect()},
             { Behaviors.Blindness, () => new BlindnessEffect()},
+            { Behaviors.Burning, () => new BurningEffect()},
         };
 
         public enum UpdateContext { Job, Fixed, Main, Late, JobSync }
@@ -514,10 +516,10 @@ namespace Arterra.Data.Entity.Behavior {
             
             public bool TryAddBehavior(TempBehavior behavior) {
                 if (behavior == null) return false;
-                if (!behavior.CanApply(this)) return false;
                 behavior.Id = Guid.NewGuid();
 
                 EntityManager.AddHandlerEvent(() => {
+                    if (!behavior.CanApply(this)) return; //race condition when multiple behaviors get added in same update cycle
                     eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_AddBehavior, this, behavior);
                     _addBehavior(behavior, false, false); //doesn't register type as could have multiple temp effects
                     if (!active) return;

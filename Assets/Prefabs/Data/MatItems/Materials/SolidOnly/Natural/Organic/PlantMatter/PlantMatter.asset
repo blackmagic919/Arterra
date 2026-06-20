@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
+  m_Script: {fileID: 11500000, guid: 6f61df03b0d75404298deab86aa68c9f, type: 3}
   m_Name: PlantMatter
   m_EditorClassIdentifier: 
   Name: PlantMatter
@@ -19,7 +19,7 @@ MonoBehaviour:
       - Tag: 2001
         value:
           value:
-            rid: 6432722988684804183
+            rid: 5778504664064983167
   Names:
     value:
     - PlantMatter:Solid
@@ -45,23 +45,28 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  MaterialDrops:
-    SolidItem:
+  Logic: {fileID: 11400000, guid: 797a3fe4eb0e144cd8e57086ef253166, type: 2}
+  looter:
+    SolidLootTable:
+      value: []
+    DefaultSolidLoot:
       DropItem: 0
       DropMultiplier: 1
-    LiquidItem:
+    LiquidLootTable:
+      value: []
+    DefaultLiquidLoot:
       DropItem: 1
       DropMultiplier: 1
   references:
     version: 2
     RefIds:
-    - rid: 6432722988684804183
+    - rid: 5778504664064983167
       type: {class: ConvertibleTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         _convertBounds:
-          data: 4286643968
+          data: 0
         _neighborBounds:
           bounds:
-            data: 4278255360
-          flags: 2
+            data: 0
+          flags: 0
         GivesItem: 0

@@ -74,7 +74,6 @@ namespace Arterra.Data.Entity.Behavior {
         private float MoveSpeed2D => sprinting ? RunSpeed : WalkSpeed;
         private GameEvent MoveEvent => sprinting ? GameEvent.Action_Run : GameEvent.Action_Walk;
         private float FlightMoveSpeed => FlightSpeedMultiplier * MoveSpeed2D;
-        private bool IsActive => (!vit?.IsDead) ?? true;
         const float AccelTime = 0.075f;
 
         /// <summary>Declares required behavior dependencies.</summary>
@@ -98,7 +97,6 @@ namespace Arterra.Data.Entity.Behavior {
             self.Register(this);
             self.Register<IRider>(this);
 
-            if (!IsActive) return;
             BindCommonInput();
             InitializePatterns();
         }
@@ -114,7 +112,6 @@ namespace Arterra.Data.Entity.Behavior {
             self.Register(this);
             self.Register<IRider>(this);
 
-            if (!IsActive) return;
             BindCommonInput();
             InitializePatterns();
         }
@@ -137,6 +134,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (hasBindings) return;
             hasBindings = true;
 
+            self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));
             InputPoller.AddBinding(new ActionBind("Move Vertical", v => inputDir.y = v), MoveVerticalName, "4.0::Movement");
             InputPoller.AddBinding(new ActionBind("Move Horizontal", v => inputDir.x = v), MoveHorizontalName, "4.0::Movement");
             InputPoller.AddBinding(new ActionBind("Sprint", _ => sprinting = true), SprintName, "4.0::Movement");
@@ -165,7 +163,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         /// <summary>Runs per-frame movement input stack processing for the controlled player.</summary>
         public override void Update(BehaviorEntity.Animal self) {
-            if (!IsActive) return;
             if (self.context == BehaviorEntity.UpdateContext.Job)
                 return;
             if (self.context == BehaviorEntity.UpdateContext.Main)
@@ -182,14 +179,12 @@ namespace Arterra.Data.Entity.Behavior {
 
         /// <summary>IRider entrypoint invoked when the player mounts a ridable entity.</summary>
         public void OnMounted(IRidable mount) {
-            if (!IsActive) return;
             ridePattern?.AddHandles(mount);
             self.eventCtrl.RaiseEvent(GameEvent.Action_Mount, self, mount, null);
         }
 
         /// <summary>IRider entrypoint invoked when the player dismounts a ridable entity.</summary>
         public void OnDismounted(IRidable mount) {
-            if (!IsActive) return;
             ridePattern?.RemoveHandles();
             self.eventCtrl.RaiseEvent(GameEvent.Action_Dismount, self, mount, null);
         }

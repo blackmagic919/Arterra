@@ -81,8 +81,6 @@ namespace Arterra.Data.Entity.Behavior {
         internal float3 cameraLocalPosition;
         internal int cullingMask;
 
-        private bool IsActive => (!vit?.IsDead) ?? true;
-
         private ICameraPerspective[] perspectives;
         private int activePersp;
 
@@ -108,7 +106,6 @@ namespace Arterra.Data.Entity.Behavior {
             self.Register(this);
             this.self = self;
 
-            if (!IsActive) return;
             BindInput();
             DeserializeCameraState();
         }
@@ -126,7 +123,6 @@ namespace Arterra.Data.Entity.Behavior {
             self.Register(this);
             this.self = self;
 
-            if (!IsActive) return;
             BindInput();
             DeserializeCameraState();
         }
@@ -142,7 +138,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (self.context == BehaviorEntity.UpdateContext.Fixed)
                 return;
 
-            if (!IsActive) return;
             perspectives[activePersp].Update();
             ApplyCameraTransform();
             lookDelta = float2.zero;
@@ -168,8 +163,6 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void TogglePerspective(float _) {
-            if (!IsActive) return;
-
             activePersp = (activePersp + 1) % perspectives.Length;
             perspectives[activePersp].Activate();
             moved = true;
@@ -231,6 +224,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (hasBindings) return;
             hasBindings = true;
 
+            self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));
             InputPoller.AddBinding(new ActionBind("Look Horizontal", LookX), LookHorizontalName, "4.5::Movement");
             InputPoller.AddBinding(new ActionBind("Look Vertical", LookY), LookVerticalName, "4.5::Movement");
             InputPoller.AddBinding(new ActionBind("Toggle Perspective", TogglePerspective), TPerspectiveName, "2.5::Subscene");

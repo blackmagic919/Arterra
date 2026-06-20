@@ -43,13 +43,6 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  MaterialDrops:
-    SolidItem:
-      DropItem: 4
-      DropMultiplier: 4
-    LiquidItem:
-      DropItem: 3
-      DropMultiplier: 0
   references:
     version: 2
     RefIds: []

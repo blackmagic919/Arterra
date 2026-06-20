@@ -25,11 +25,12 @@ MonoBehaviour:
     probeSamplingDebugTexture: {fileID: 0}
     probeVolumeBlendStatesCS: {fileID: 0}
   m_RendererFeatures:
+  - {fileID: 7596733421782062376}
   - {fileID: 5841424627466265696}
   - {fileID: 6180443710054432772}
   - {fileID: 2330197726377553760}
   - {fileID: 7996313539932710011}
-  m_RendererFeatureMap: 606458debfe8105104801714cf58c555602f28797c8656207be4555ccc9cf86e
+  m_RendererFeatureMap: 2855a842cc046d69606458debfe8105104801714cf58c555602f28797c8656207be4555ccc9cf86e
   m_UseNativeRenderPass: 0
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
@@ -87,7 +88,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Active: 1
   passSettings:
-    renderPassEvent: 500
+    renderPassEvent: 450
 --- !u!114 &6180443710054432772
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -103,6 +104,30 @@ MonoBehaviour:
   m_Active: 1
   passSettings:
     renderPassEvent: 500
+--- !u!114 &7596733421782062376
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43fe4232229754d59a8a6c279af84d98, type: 3}
+  m_Name: PreFogTransparentsFeature
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Engine.Rendering.PreFogTransparentsFeature
+  m_Active: 1
+  passSettings:
+    renderPassEvent: 450
+    useLayerMask: 0
+    preFogTransparentsLayerMask:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    drawTransparentQueueOnly: 1
+    primaryShaderPassTag: PreFogTransparents
+    overrideMaterialPassIndex: 0
+    materialPassIndex: 0
+    overrideMaterial: {fileID: 0}
 --- !u!114 &7996313539932710011
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -277,7 +277,7 @@ namespace Arterra.Data.Item
                 this.damping = 1 - damping; //higher damp => less transmission
                 this.active = true;
 
-                LineObject = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/FishingLine"));
+                LineObject = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Effects/FishingLine"));
                 renderer = LineObject.GetComponent<LineRenderer>();
                 ArterraRuntime.MainLoopUpdateTasks.Enqueue(this);
 

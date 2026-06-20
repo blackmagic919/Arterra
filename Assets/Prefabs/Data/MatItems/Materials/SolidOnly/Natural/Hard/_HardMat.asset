@@ -1,0 +1,140 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb5ab28ebaf0240359baf1d92ea3df1e, type: 3}
+  m_Name: _HardMat
+  m_EditorClassIdentifier: 
+  Name: C:Hard
+  Tags:
+    Reg:
+      value:
+      - Tag: 1
+        value:
+          value:
+            rid: 5818089297814487225
+      - Tag: 3
+        value:
+          value:
+            rid: 5818089297814487234
+      - Tag: 13
+        value:
+          value:
+            rid: 6083762182251610189
+      - Tag: 23
+        value:
+          value:
+            rid: 5273703469288783958
+      - Tag: 33
+        value:
+          value:
+            rid: 5273703469288783975
+      - Tag: 4
+        value:
+          value:
+            rid: 5818089297814487226
+      - Tag: 14
+        value:
+          value:
+            rid: 6083762182251610190
+      - Tag: 24
+        value:
+          value:
+            rid: 5273703469288783959
+      - Tag: 34
+        value:
+          value:
+            rid: 5273703469288783976
+      - Tag: 9001
+        value:
+          value:
+            rid: 5273703790595276884
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: a379ea77d6f8543c58c09392df10b026, type: 2}
+    - value: {fileID: 11400000, guid: 9038fb4f0472d49a1b3d0295214c04a2, type: 2}
+    - value: {fileID: 11400000, guid: 9f7d828b67813391d99e889d8dc37e15, type: 2}
+    - value: {fileID: 11400000, guid: a506a272f2eb02dab370623fe499801f, type: 2}
+    - value: {fileID: 11400000, guid: 145cf7a07fbc69edbd511fbe865f837f, type: 2}
+    - value: {fileID: 11400000, guid: 0ad66ba60620702d9f1d8a4674b1ae04, type: 2}
+    - value: {fileID: 11400000, guid: 446e093ae4bdc35ad12a696a4039d7ae, type: 2}
+    - value: {fileID: 11400000, guid: 22abcaae394a29a6ee44ef367c6352bd, type: 2}
+    - value: {fileID: 11400000, guid: 31ecf97f7213c4151a08d43a0264d4e7, type: 2}
+    - value: {fileID: 11400000, guid: 8955b69172d2b4feb98c9a2d158c442c, type: 2}
+    - value: {fileID: 11400000, guid: d1bf7b029e23a49ec887f5d4c446e16d, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 5273703469288783958
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 4
+        ToolDamage: 2
+        GivesItem: 0
+    - rid: 5273703469288783959
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 250
+        ToolDamage: 1
+        GivesItem: 1
+    - rid: 5273703469288783975
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 3
+        ToolDamage: 2
+        GivesItem: 0
+    - rid: 5273703469288783976
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 200
+        ToolDamage: 1
+        GivesItem: 1
+    - rid: 5273703790595276884
+      type: {class: TooltipTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        Tooltips:
+          value:
+          - AcknowledgeTime: 300
+            AcknowledgeEvent: -1
+            Priority: 0
+            TriggerEvent: 19
+            TriggerTime: 2.5
+            PrefabPath: Prefabs/GameUI/ToolTips/ToolTip2/Display
+            BlockingTooltips: 0
+    - rid: 5818089297814487225
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 1
+        ToolDamage: 2
+        GivesItem: 0
+    - rid: 5818089297814487226
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 100
+        ToolDamage: 1
+        GivesItem: 1
+    - rid: 5818089297814487234
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 2
+        ToolDamage: 2
+        GivesItem: 0
+    - rid: 6083762182251610189
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 3
+        ToolDamage: 2
+        GivesItem: 0
+    - rid: 6083762182251610190
+      type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        TerraformSpeed: 150
+        ToolDamage: 1
+        GivesItem: 1
