@@ -25,7 +25,9 @@ public class ConsumbaleItem : IItem{
     public int UnitSize => 0xFF;
     [JsonIgnore]
     public int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
-    private ConsumableItemAuthoring settings => ItemInfo.Retrieve(Index) as ConsumableItemAuthoring;
+    protected virtual ConsumableItemAuthoring Settings => ItemInfo.Retrieve(Index) as ConsumableItemAuthoring;
+    protected virtual float ConsumptionRate => Settings != null ? Settings.ConsumptionRate : 0f;
+    protected virtual float NutritionValue => Settings != null ? Settings.NutritionValue : 0f;
 
     [JsonIgnore]
     public int Index{
@@ -42,7 +44,7 @@ public class ConsumbaleItem : IItem{
         }
     }
     public IRegister GetRegistry() => Config.CURRENT.Generation.Items;
-    public object Clone() => new ConsumbaleItem{data = data};
+    public virtual object Clone() => new ConsumbaleItem{data = data};
     public void Create(int Index, int AmountRaw){
         this.Index = Index;
         this.AmountRaw = AmountRaw;
@@ -86,22 +88,25 @@ public class ConsumbaleItem : IItem{
         display = null;
     }
 
-    private void ConsumeFood(ItemContext cxt)
+    protected virtual int ConsumeFood(ItemContext cxt)
     {
-        if (AmountRaw == 0) return;
-        int delta = CustomUtility.GetStaggeredDelta(settings.ConsumptionRate);
-        if (delta == 0) return;
-        if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
-        if (!player.Is(out HungerBehavior hung)) return;
-        if (hung.IsFull) return;
+        if (AmountRaw == 0) return 0;
+        if (ConsumptionRate <= 0f || NutritionValue <= 0f) return 0;
+
+        int delta = CustomUtility.GetStaggeredDelta(ConsumptionRate);
+        if (delta == 0) return 0;
+        if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return 0;
+        if (!player.Is(out HungerBehavior hung)) return 0;
+        if (hung.IsFull) return 0;
 
         delta = AmountRaw - math.max(AmountRaw - delta, 0);
         player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player, this, delta);
-        float nutrition = (float)delta / UnitSize * settings.NutritionValue;
+        float nutrition = (float)delta / UnitSize * NutritionValue;
         hung.Feed(ref nutrition);
-        delta = CustomUtility.GetStaggeredDelta(nutrition * UnitSize / settings.NutritionValue);
+        delta = CustomUtility.GetStaggeredDelta(nutrition * UnitSize / NutritionValue);
         AmountRaw -= delta;
         if(AmountRaw == 0) cxt.TryRemove();
+        return delta;
     }
     
     private void UpdateDisplay(){

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b92ab6716ab84e588c812f4df75143a, type: 3}
+  m_Name: _VegetableCatalogue
+  m_EditorClassIdentifier: Assembly-CSharp::TextureCategory
+  Name: Vegetables
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 071e11533a031410a8709cac0ff178b2, type: 2}
+    - value: {fileID: 11400000, guid: 5da1873ed991744f1a071d9c5a834943, type: 2}
+    - value: {fileID: 11400000, guid: 27090e495931c4c71a14ec337860ef86, type: 2}
+    - value: {fileID: 11400000, guid: 549a362a995034d0eb1402609c578df2, type: 2}
+    - value: {fileID: 11400000, guid: 55aa73fe544b84ec0b7c9b3bd014a36f, type: 2}
+    - value: {fileID: 11400000, guid: d5a5c4017424e40899c47217b012e337, type: 2}
+    - value: {fileID: 11400000, guid: 592746ddbe7b941508d010282e2919c8, type: 2}
+  references:
+    version: 2
+    RefIds: []

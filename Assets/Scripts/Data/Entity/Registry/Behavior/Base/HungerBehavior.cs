@@ -171,7 +171,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
             
             if (self.context == BehaviorEntity.UpdateContext.Main) return;
-            this.HungerPercent = math.clamp(HungerPercent - StarveRate * self.DeltaTime, 0f, 2f);
+            FlushDeltaHunger(-StarveRate * self.DeltaTime);
             SyncTrackingArrays();
             UpdateEffects();
             UpdateModifiers();
@@ -185,6 +185,14 @@ namespace Arterra.Data.Entity.Behavior {
                 settings.MaxHungerHealthColor,
                 HungerPercent
             );
+        }
+
+        private void FlushDeltaHunger(float delta) {
+            RefTuple<float> cxt = delta;
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_FlushHungerDelta, self, null, cxt);
+            delta = cxt;
+
+            HungerPercent = math.clamp(HungerPercent + delta, 0f, 2f);
         }
 
         private void UpdateModifiers() {
@@ -226,17 +234,21 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        public void Feed(ref float delta, bool force = false) {
-            if (force) { HungerPercent += delta * settings.feedMultiplier; return; }
-            delta = math.min(HungerPercent + delta * settings.feedMultiplier, 2) - HungerPercent;
-            HungerPercent += delta;
+        public void Feed(ref float nutrition) {
+            float delta = nutrition * settings.feedMultiplier;
+            FlushDeltaHunger(delta);
         }
 
         public void HandleExerciseEvent(HungerSettings.Exercise exercise) {
+            float delta;
             if (exercise.policy == HungerSettings.Exercise.Policy.deltaTime)
-                HungerPercent = math.max(HungerPercent - exercise.cost * self.DeltaTime, 0f);
-            else
-                HungerPercent = math.max(HungerPercent - exercise.cost, 0f);
+                delta = -exercise.cost * self.DeltaTime;
+            else delta = -exercise.cost;
+            RefTuple<float> cxt = delta;
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_ExertHunger, self, null, cxt);
+            delta = cxt;
+
+            FlushDeltaHunger(delta);
         }
     }
 }

@@ -36,7 +36,7 @@ MonoBehaviour:
       MinDamagingSpeed: 2.5
       DamageMultiplier: 0.01
       KnockbackMultiplier: 0.1
-      weight: 0.1
+      weight: 20
       terrainInteration: 0
       entityInteraction: 1
       FlybySound: 3000

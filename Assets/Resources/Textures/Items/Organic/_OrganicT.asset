@@ -21,15 +21,9 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: f37caa8ca70fe4315917f00eeb882126, type: 2}
     - value: {fileID: 11400000, guid: 22c43a811976b4dd4843b4cf9b006ebc, type: 2}
     - value: {fileID: 11400000, guid: c5970441f27614b13b100e2bf080ee53, type: 2}
-    - value: {fileID: 11400000, guid: 5da1873ed991744f1a071d9c5a834943, type: 2}
-    - value: {fileID: 11400000, guid: 27090e495931c4c71a14ec337860ef86, type: 2}
-    - value: {fileID: 11400000, guid: d5a5c4017424e40899c47217b012e337, type: 2}
-    - value: {fileID: 11400000, guid: 592746ddbe7b941508d010282e2919c8, type: 2}
-    - value: {fileID: 11400000, guid: c1b1ffa7e15e4423197324a6bd92d9d1, type: 2}
     - value: {fileID: 11400000, guid: 79524365ac8cc4a4e8e53b54a7e12c40, type: 2}
     - value: {fileID: 11400000, guid: 31f0f9a733bcb42ffbe0133a7121b734, type: 2}
-    - value: {fileID: 11400000, guid: 549a362a995034d0eb1402609c578df2, type: 2}
-    - value: {fileID: 11400000, guid: 071e11533a031410a8709cac0ff178b2, type: 2}
+    - value: {fileID: 11400000, guid: 0bb2091e4e529487ebc145ce40646755, type: 2}
   references:
     version: 2
     RefIds: []

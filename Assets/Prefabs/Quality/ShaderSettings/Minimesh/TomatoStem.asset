@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2485f06c465b44e788a840250915e953, type: 3}
+  m_Name: TomatoStem
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.MiniMeshSetting
+  Name: TomatoStem
+  Tags:
+    Reg:
+      value: []
+  Names:
+    value:
+    - TomatoStem
+  info:
+    value:
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -1799662274627782897, guid: ff29af5a2ea14463d900be5f189be7cb, type: 3}
+          probability: 0.25
+        - mesh: {fileID: -1773725651450637467, guid: 27a961fcb8a294c92929fb18301adb27, type: 3}
+          probability: 0.75
+      frequency: -4
+      sizeMultiplier: 1
+      sizeMultiplierRange: {x: 0.6, y: 1.5}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 5426437604827722043, guid: 79ee84c19372b400f9ea74e5297eee84, type: 3}
+          probability: 0.25
+        - mesh: {fileID: 1741713741294493130, guid: b75c856fc7cf04ba8a622137520cf868, type: 3}
+          probability: 0.75
+      frequency: -3
+      sizeMultiplier: 1.5
+      sizeMultiplierRange: {x: 1, y: 1.75}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: 5426437604827722043, guid: 79ee84c19372b400f9ea74e5297eee84, type: 3}
+          probability: 0.25
+        - mesh: {fileID: 1741713741294493130, guid: b75c856fc7cf04ba8a622137520cf868, type: 3}
+          probability: 0.75
+      frequency: -2
+      sizeMultiplier: 1.66
+      sizeMultiplierRange: {x: 1.5, y: 2}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+    - MMeshOptions:
+        value:
+        - mesh: {fileID: -1650291058400135154, guid: 75ae9ec229672421f88cc70f912ce8bd, type: 3}
+          probability: 0.25
+        - mesh: {fileID: -8707038887097119898, guid: 46ce335e58e5a4d3c88774b39a618cd5, type: 3}
+          probability: 0.75
+      frequency: -1
+      sizeMultiplier: 2
+      sizeMultiplierRange: {x: 2, y: 3}
+      inheritSurfaceNormals: 0
+      TextureIndex: 0
+  references:
+    version: 2
+    RefIds: []

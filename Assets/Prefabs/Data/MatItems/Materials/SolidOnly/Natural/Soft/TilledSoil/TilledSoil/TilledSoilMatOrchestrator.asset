@@ -53,7 +53,10 @@ MonoBehaviour:
   Logic: {fileID: 11400000, guid: 842b9330f12c541cdb47052235fed43b, type: 2}
   looter:
     SolidLootTable:
-      value: []
+      value:
+      - DropItem: 0
+        DropChance: 0
+        DropMultiplier: 0
     DefaultSolidLoot:
       DropItem: 0
       DropMultiplier: 1

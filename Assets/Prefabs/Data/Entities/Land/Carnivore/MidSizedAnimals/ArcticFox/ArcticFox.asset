@@ -335,7 +335,7 @@ MonoBehaviour:
               - EntityType:
                   tagValue: 6150
                   registryValue: 
-                Policy: 0
+                Policy: 1
               - EntityType:
                   tagValue: 6161
                   registryValue: 
@@ -478,143 +478,143 @@ MonoBehaviour:
           value:
           - name: 1004
             var: 0.35
-            geneWeight: 0.4
+            geneWeight: 0.00000023518756
           - name: 1006
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.00000011759378
           - name: 1007
             var: 0.1
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 1005
             var: 0.3
-            geneWeight: 0.1
+            geneWeight: 0.00000005879689
           - name: 1000
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.00000011759378
           - name: 1001
             var: 0.5
-            geneWeight: 0.6
+            geneWeight: 0.00000035278137
           - name: 1002
             var: 0.5
-            geneWeight: 0.3
+            geneWeight: 0.00000017639069
           - name: 1003
             var: 0.5
-            geneWeight: 0.1
+            geneWeight: 0.00000005879689
           - name: 4002
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.00000011759378
           - name: 4002
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.00000011759378
           - name: 4001
             var: 0.4
-            geneWeight: 0.15
+            geneWeight: 0.00000008819534
           - name: 2039
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 2040
             var: 0
             geneWeight: 0
           - name: 2044
             var: 0.3
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 2045
             var: 0
             geneWeight: 0
           - name: 2035
             var: 0.125
-            geneWeight: 0.1
+            geneWeight: 0.00000005879689
           - name: 2036
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.00000011759378
           - name: 2037
             var: 0.25
-            geneWeight: 0.15
+            geneWeight: 0.00000008819534
           - name: 2002
             var: 0.25
-            geneWeight: 0.1
+            geneWeight: 0.00000005879689
           - name: 2003
             var: 0.05
-            geneWeight: 0.05
+            geneWeight: 0.000000029398445
           - name: 2038
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.00000011759378
           - name: 4000
             var: 0.25
-            geneWeight: 0.3
+            geneWeight: 0.00000017639069
           - name: 2031
             var: 0.25
-            geneWeight: 0.2
+            geneWeight: 0.00000011759378
           - name: 2030
             var: 0.25
-            geneWeight: 0.3
+            geneWeight: 0.00000017639069
           - name: 1012
             var: 0.35
-            geneWeight: 0.01
+            geneWeight: 0.000000005879689
           - name: 1008
             var: 0.3
-            geneWeight: 0.1
+            geneWeight: 0.00000005879689
           - name: 1009
             var: 0.35
-            geneWeight: 0.35
+            geneWeight: 0.00000020578909
           - name: 4003
             var: 0.75
-            geneWeight: 0.05
+            geneWeight: 0.000000029398445
           - name: 2004
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 2005
             var: 0.75
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 2006
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 2007
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 2008
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 2009
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 2010
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 2011
             var: 0.5
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 2012
             var: 0.7
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 2013
             var: 0.25
-            geneWeight: 0.01
+            geneWeight: 0.000000005879689
           - name: 2014
             var: 0.5
-            geneWeight: 0.01
+            geneWeight: 0.000000005879689
           - name: 2015
             var: 0.5
-            geneWeight: 0.01
+            geneWeight: 0.000000005879689
           - name: 2016
             var: 0.75
-            geneWeight: 0.01
+            geneWeight: 0.000000005879689
           - name: 2017
             var: 0.5
-            geneWeight: 0.01
+            geneWeight: 0.000000005879689
           - name: 2032
             var: 0.25
-            geneWeight: 0.01
+            geneWeight: 0.000000005879689
           - name: 2033
             var: 0.75
-            geneWeight: 0.05
+            geneWeight: 0.000000029398445
           - name: 2034
             var: 0.25
-            geneWeight: 0.025
+            geneWeight: 0.000000014699222
           - name: 2000
             var: 0.3
-            geneWeight: 0.1
+            geneWeight: 0.00000005879689
           - name: 2001
             var: 0.5
-            geneWeight: 0.1
+            geneWeight: 0.00000005879689
         NormalizeWeights: 1

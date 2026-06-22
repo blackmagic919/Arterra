@@ -82,14 +82,28 @@ namespace Arterra.Data.Entity.Behavior {
             ReMapStatDisplay(IsVulnerable);
 
             if (collider == null) return;
-            if (!IsVulnerable) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, BlockDamage, EventHandlePriority.OverridePrimier);
-            if (IsVulnerable) self.eventCtrl.RemoveEventHandler(Core.Events.GameEvent.Entity_Damaged, BlockDamage);
+            if (!IsVulnerable) {
+                self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, BlockDamage, EventHandlePriority.OverridePrimier);
+                self.eventCtrl.AddEventHandler(GameEvent.Entity_FlushHealthDelta, BlockNegativeDelta, EventHandlePriority.OverridePrimier);
+                self.eventCtrl.AddEventHandler(GameEvent.Entity_ExertHunger, BlockNegativeDelta, EventHandlePriority.OverridePrimier);
+                self.eventCtrl.AddEventHandler(GameEvent.Entity_FlushHungerDelta, BlockNegativeDelta, EventHandlePriority.OverridePrimier);
+            } if (IsVulnerable) {
+                self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Damaged, BlockDamage);
+                self.eventCtrl.RemoveEventHandler(GameEvent.Entity_FlushHealthDelta, BlockNegativeDelta);
+                self.eventCtrl.RemoveEventHandler(GameEvent.Entity_ExertHunger, BlockNegativeDelta);
+                self.eventCtrl.RemoveEventHandler(GameEvent.Entity_FlushHungerDelta, BlockNegativeDelta);
+            }
         }
 
         private void BlockDamage(object self, object _, object cxt) {
             RefTuple<(float dmg, float3 kb)> info = (RefTuple<(float, float3)>)cxt;
             info.Value.dmg = 0;
             info.Value.kb = 0;
+        }
+
+        private void BlockNegativeDelta(object self, object _, object cxt) {
+            RefTuple<float> info = (RefTuple<float>)cxt;
+            info.Value = math.max(info.Value, 0);
         }
     }
 }

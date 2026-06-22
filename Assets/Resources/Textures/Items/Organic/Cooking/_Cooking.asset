@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b92ab6716ab84e588c812f4df75143a, type: 3}
+  m_Name: _Cooking
+  m_EditorClassIdentifier: Assembly-CSharp::TextureCategory
+  Name: CookedMeats
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: e04aa5edad71b4bc8a39e52fb127bf4b, type: 2}
+    - value: {fileID: 11400000, guid: 87973ea6918e84df992dd49c49e12d62, type: 2}
+    - value: {fileID: 11400000, guid: 296309212484540678d9d48afcec2988, type: 2}
+    - value: {fileID: 11400000, guid: 63c2ed201fc6c43c08de0b3edf82c4fd, type: 2}
+    - value: {fileID: 11400000, guid: 3c3c319f8119644aca8ce4e965d3ab3e, type: 2}
+    - value: {fileID: 11400000, guid: b016644c133e44de9aa6412b78809a67, type: 2}
+    - value: {fileID: 11400000, guid: c1b1ffa7e15e4423197324a6bd92d9d1, type: 2}
+    - value: {fileID: 11400000, guid: a43eedaff7b91438caec33c664dcf8b1, type: 2}
+    - value: {fileID: 11400000, guid: 592914cf0946840edae50b726efa5b46, type: 2}
+    - value: {fileID: 11400000, guid: 41485aeb782d64507962ac85412a950b, type: 2}
+    - value: {fileID: 11400000, guid: 026f7f929ef164f8ab4cb4dc7af04782, type: 2}
+  references:
+    version: 2
+    RefIds: []

@@ -124,6 +124,13 @@ namespace Arterra.Data.Entity.Behavior {
             return true;
         }
 
+        private void FlushDeltaHealth(float delta) {
+            RefTuple<float> cxt = delta;
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_FlushHealthDelta, self, cxt);
+            delta = cxt.Value;
+            health = math.clamp(health + delta, 0, MaxHealth);
+        }
+
 
         public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
@@ -137,10 +144,7 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             }
 
-            float delta = math.min(health + NaturalRegen
-                        * self.DeltaTime, MaxHealth)
-                        - health;
-            health += delta;
+            FlushDeltaHealth(NaturalRegen * self.DeltaTime);
         }
 
         public bool TryApplyAccDamage() {
@@ -148,8 +152,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (invincibility > 0 || MaxAccDamage == 0) return false;
 
             invincibility = InvincTime;
-            float damage = health - math.max(health - MaxAccDamage, 0);
-            health -= damage;
+            FlushDeltaHealth(-MaxAccDamage);
             MaxAccDamage = 0;
             return true;
         }

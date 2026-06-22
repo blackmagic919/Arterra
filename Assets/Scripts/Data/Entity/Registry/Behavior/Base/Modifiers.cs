@@ -60,7 +60,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private float ApplyModifiedSettings(MSettings name, float value) {
             if (!ModifiedSettings.TryGetValue(name, out var mList)) return value;
-            foreach (var modifier in mList) value = modifier.ApplyModiifer(name, value);
+            foreach (var modifier in mList) value = modifier.ApplyModiifer(value);
             return value;
         }
 
@@ -200,6 +200,22 @@ namespace Arterra.Data.Entity.Behavior {
         Recieve_BurningStrength = Modifier.Effects + 21,
         Inflict_BurningDuration = Modifier.Effects + 22,
         Recieve_BurningDuration = Modifier.Effects + 23,
+        Inflict_RegenerationStrength = Modifier.Effects + 24,
+        Recieve_RegenerationStrength = Modifier.Effects + 25,
+        Inflict_RegenerationDuration = Modifier.Effects + 26,
+        Recieve_RegenerationDuration = Modifier.Effects + 27,
+        Inflict_SpeedStrength = Modifier.Effects + 28,
+        Recieve_SpeedStrength = Modifier.Effects + 29,
+        Inflict_SpeedDuration = Modifier.Effects + 30,
+        Recieve_SpeedDuration = Modifier.Effects + 31,
+        Inflict_MaxHealthStrength = Modifier.Effects + 32,
+        Recieve_MaxHealthStrength = Modifier.Effects + 33,
+        Inflict_MaxHealthDuration = Modifier.Effects + 34,
+        Recieve_MaxHealthDuration = Modifier.Effects + 35,
+        Inflict_StaminaStrength = Modifier.Effects + 36,
+        Recieve_StaminaStrength = Modifier.Effects + 37,
+        Inflict_StaminaDuration = Modifier.Effects + 38,
+        Recieve_StaminaDuration = Modifier.Effects + 39,
 
         CameraSensitivity = Modifier.Player + 0,
         MinimumX = Modifier.Player + 1,
@@ -220,19 +236,28 @@ namespace Arterra.Data.Entity.Behavior {
         public float value;
         public enum MType {
             Set = 0, //Defining order of application
+            //Scales away from origin (regular multiply)
             Multiply = 1,
-            Add = 2, 
-            Override = 3,
+            //Always scales in positive direction when value is positive (and vice versa)
+            MultiplyPositive = 3,
+            //Always scales in negative direction when value is positive (and vice versa)
+            MultiplyNegative = 4,
+            Add = 5, 
+            Override = 6,
         }
+
 
         public void _Create() => id = Guid.NewGuid();
         public Guid Id => id;
 
-        public float ApplyModiifer(MSettings name, float input) {
-            if (type == MType.Add) return input + this.value;
-            if (type == MType.Multiply) return input * this.value;
-            else input = this.value;
-            return input;
+        public float ApplyModiifer(float input) {
+            return type switch {
+                MType.Add => input + value,
+                MType.Multiply => input * value,
+                MType.MultiplyPositive => input * (input >= 0 ?  value : (2 - value)),
+                MType.MultiplyNegative => input * (input <= 0 ? value : (2 - value)),
+                _ => value,
+            };
         }
     }
 

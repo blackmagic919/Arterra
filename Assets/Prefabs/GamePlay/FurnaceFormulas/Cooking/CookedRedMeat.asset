@@ -21,6 +21,7 @@ MonoBehaviour:
     - CookedMeat
     - Meat
     - RedMeat
+    - CookedRedMeat
   StartTemperature: 150
   EndTemperature: 350
   Inputs:
@@ -29,7 +30,7 @@ MonoBehaviour:
       Rate: 0.1
   Outputs:
     value:
-    - Index: 0
+    - Index: 3
       Rate: 0.1
   references:
     version: 2

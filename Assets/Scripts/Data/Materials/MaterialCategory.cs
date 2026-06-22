@@ -6,7 +6,7 @@ using Arterra.Configuration;
 using Arterra.Data.Material;
 
 [Serializable]
-[CreateAssetMenu(menuName = "Generation/MaterialData/Behaviors/Category")]
+[CreateAssetMenu(menuName = "Generation/MaterialData/Category")]
 public class MaterialCategory : Category<MaterialData>
 {
     public Option<List<Option<Category<MaterialData>>>> Children;

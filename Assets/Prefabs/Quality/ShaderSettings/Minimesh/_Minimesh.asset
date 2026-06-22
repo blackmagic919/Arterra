@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f68eaf5f537b4d2e93b8edaed6cb041, type: 3}
+  m_Name: _Minimesh
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Configuration.MiniMeshCategory
+  Name: Minimesh
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 006d4f116e67f4445ac5cb4c8f88c91c, type: 2}
+    - value: {fileID: 11400000, guid: c1f4234f57bf84b4aadbbc9592fc6c50, type: 2}
+    - value: {fileID: 11400000, guid: 08b99e503d3694f148c491683056201c, type: 2}
+    - value: {fileID: 11400000, guid: 186f2eb7b88de42829eb0358d6d1bd82, type: 2}
+    - value: {fileID: 11400000, guid: 66deecba32ea84ad492f97d00db9b5a7, type: 2}
+    - value: {fileID: 11400000, guid: 253e001f623174094b293610095d3888, type: 2}
+    - value: {fileID: 11400000, guid: 68808e0a45bf74c23b77c0023e2db130, type: 2}
+    - value: {fileID: 11400000, guid: 75a85655d1c1341be97484bb32586672, type: 2}
+    - value: {fileID: 11400000, guid: 914dfc9e311f74f839df0f10c95ee87e, type: 2}
+    - value: {fileID: 11400000, guid: e22d8940271cb4692a1935cfb4ebe910, type: 2}
+    - value: {fileID: 11400000, guid: 1dc899416ce22497f92716f54ac97616, type: 2}
+    - value: {fileID: 11400000, guid: ce10a82b22a5d4868a6cde804c8f310d, type: 2}
+    - value: {fileID: 11400000, guid: 3bdaa7a06819541f3afa5f66189d8439, type: 2}
+    - value: {fileID: 11400000, guid: c719c1908c8c040728dbd909168305bc, type: 2}
+    - value: {fileID: 11400000, guid: cf1d10815d55044038f0f181c5303919, type: 2}
+    - value: {fileID: 11400000, guid: 7fd678006a4c146dc961e1b43203d64f, type: 2}
+    - value: {fileID: 11400000, guid: f90c31f93d9944be09eeb38ef86d4615, type: 2}
+    - value: {fileID: 11400000, guid: 4526a681d28b348ecb5f5bda073fc12c, type: 2}
+    - value: {fileID: 11400000, guid: 8ba4429d8e2bb414c9b0fa1c77384817, type: 2}
+  references:
+    version: 2
+    RefIds: []

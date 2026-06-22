@@ -1,0 +1,112 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af1043e16fe784861aae129d13680fb9, type: 3}
+  m_Name: StemGrowRight
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Material.BooleanConditionMaterial
+  Names:
+    value:
+    - TomatoStemRight
+    - Tomato
+    - 
+  SelfCondition:
+    data: 4286643968
+  ConversionData:
+    value:
+    - check:
+        bounds:
+          data: 2945843200
+        flags: 2
+      _material: 2147483648
+      _offset: 538444288
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
+      _material: 1
+      _offset: 538445312
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
+      _material: 1
+      _offset: 538443264
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
+      _material: 1
+      _offset: 538444289
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
+      _material: 1
+      _offset: 538444287
+    - check:
+        bounds:
+          data: 840499200
+        flags: 0
+      _material: 1
+      _offset: 539492864
+  Checks:
+    value:
+    - Condition:
+        data: 4286643968
+      _offset: 1048576
+      _material: 0
+    - Condition:
+        data: 4286643968
+      _offset: 1047552
+      _material: 0
+    - Condition:
+        data: 4286643968
+      _offset: 1024
+      _material: 0
+    - Condition:
+        data: 4286643968
+      _offset: 1072693248
+      _material: 0
+    - Condition:
+        data: 4286643968
+      _offset: 1023
+      _material: 0
+    - Condition:
+        data: 4286643968
+      _offset: 1
+      _material: 0
+    - Condition:
+        data: 4286643968
+      _offset: 2096128
+      _material: 0
+    - Condition:
+        data: 4286643968
+      _offset: 1049600
+      _material: 0
+    - Condition:
+        data: 4286643968
+      _offset: 1049599
+      _material: 0
+    - Condition:
+        data: 4286643968
+      _offset: 1048577
+      _material: 0
+    - Condition:
+        data: 4286643968
+      _offset: 2097152
+      _material: 0
+  RandomUpdateCheckChance: 0.2
+  PropogateUpdateCheckChance: 0
+  DropsMaterial: 0
+  Expression: ~(0v6v7v8v9v10)^~(1^2)^((~3^~(4^5))v~(4v5))^(~(1v2)v~(3v4v5))
+  _normalizedExpression: (~(0 v (6 v (7 v (8 v (9 v 10)))))) ^ ((~(1 ^ 2)) ^ ((((~3)
+    ^ (~(4 ^ 5))) v (~(4 v 5))) ^ ((~(1 v 2)) v (~(3 v (4 v 5))))))
+  _compileError: 

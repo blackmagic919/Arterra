@@ -36,6 +36,10 @@ namespace Arterra.Data.Material
                 DropInventoryContent(GCoord);
         }
 
+        public override void Preset(MaterialData materialData) {
+            materialData.Register(typeof(PlaceableStructureMat), this);
+        }
+
         /// <summary>Returns a container inventory created using the meta constructor.</summary>
         /// <param name="GCoord">The coordinate in grid space of the material</param>
         /// <param name="constructor">The constructor used to populate the inventory</param>
@@ -64,18 +68,17 @@ namespace Arterra.Data.Material
             
             OpenedInventory.InitializeDisplay(this);
             InventoryController.Activate();
-            
-                //Overrides the default inventory close window
-                InputPoller.AddContextFence("MAT::Container", "3.5::Window", ActionBind.Exclusion.None);
-                InputPoller.AddBinding(new ActionBind("Open Inventory",
-                    DeactivateWindow, ActionBind.Exclusion.ExcludeLayer), "MAT::Container:CL", "3.5::Window");
-                //Naturally propogate to inventory handles unless suspended manually
-                InputPoller.AddBinding(new ActionBind("Deselect",
-                    DeselectDrag, ActionBind.Exclusion.None), "MAT::Container:DS", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("Select",
-                    Select, ActionBind.Exclusion.None), "MAT::Container:SL", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial),  "MAT::Container:SELP", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "MAT::Container:SELA", "3.0::AllWindow");
+            //Overrides the default inventory close window
+            InputPoller.AddContextFence("MAT::Container", "3.5::Window", ActionBind.Exclusion.None);
+            InputPoller.AddBinding(new ActionBind("Open Inventory",
+                DeactivateWindow, ActionBind.Exclusion.ExcludeLayer), "MAT::Container:CL", "3.5::Window");
+            //Naturally propogate to inventory handles unless suspended manually
+            InputPoller.AddBinding(new ActionBind("Deselect",
+                DeselectDrag, ActionBind.Exclusion.None), "MAT::Container:DS", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Select",
+                Select, ActionBind.Exclusion.None), "MAT::Container:SL", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial),  "MAT::Container:SELP", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "MAT::Container:SELA", "3.0::AllWindow");
             
             PanelNavbarManager.Add(OpenedInventory, name);
             PanelNavbarManager.Activate(name);

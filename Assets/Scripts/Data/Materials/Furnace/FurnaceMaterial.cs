@@ -58,6 +58,10 @@ namespace Arterra.Data.Material
             return new FurnaceInventory(constructor, GCoord, MaxInputSlotCount, MaxOutputSlotCount, MaxFuelSlotCount);
         }
 
+        public override void Preset(MaterialData materialData) {
+            materialData.Register(typeof(PlaceableStructureMat), this);
+        }
+
         private FurnaceInventory OpenedInventory = null;
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
             if (caller == null || caller.info.entityType != Config.CURRENT.Generation.Entities.RetrieveIndex("Player"))

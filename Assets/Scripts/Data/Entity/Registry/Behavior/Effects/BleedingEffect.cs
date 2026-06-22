@@ -35,12 +35,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override bool CanApply(BehaviorEntity.Animal self) {
-            if(!self.Is(out vit)) return false;
-            if(self.Is(out PoisonEffect p)) {
-                p.Strength = math.max(p.Strength, Strength);
-                p.Duration = math.max(p.Duration, Duration);
-                return false;
-            } return true;
+            return self.Is(out vit);
         }
 
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {

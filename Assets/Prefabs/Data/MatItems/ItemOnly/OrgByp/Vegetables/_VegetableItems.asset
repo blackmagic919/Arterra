@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80ae62d4a8db64373ab2031aa7690b4a, type: 3}
+  m_Name: _VegetableItems
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Item.ItemCategory
+  Name: Vegetables
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: f380d9599ad5f4b0297adc01f813c995, type: 2}
+    - value: {fileID: 11400000, guid: 42853399eb5784d1e8b46bd19c8a60ec, type: 2}
+    - value: {fileID: 11400000, guid: 5e2f5d0d3c75f424bb0a66130c5f22d4, type: 2}
+    - value: {fileID: 11400000, guid: da33e6c28b25947d793578cfdc433f32, type: 2}
+    - value: {fileID: 11400000, guid: 59e6d6f1bf79440108b884269673ac2d, type: 2}
+    - value: {fileID: 11400000, guid: 7b4e2faa5dd7946afa734226a4f31e69, type: 2}
+  references:
+    version: 2
+    RefIds: []

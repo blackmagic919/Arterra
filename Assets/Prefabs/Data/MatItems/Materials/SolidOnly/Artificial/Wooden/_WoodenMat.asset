@@ -39,9 +39,9 @@ MonoBehaviour:
   Children:
     value:
     - value: {fileID: 11400000, guid: 7eca864d997bbcac39c7cfc7a34daaba, type: 2}
-    - value: {fileID: 11400000, guid: b53adb9714cdefc0d68c547f849c216d, type: 2}
-    - value: {fileID: 11400000, guid: 8ebedd2f77450d3288ef3c9a212fef5f, type: 2}
-    - value: {fileID: 11400000, guid: 359b5407952ad2db5a37bb1b5332212c, type: 2}
+    - value: {fileID: 11400000, guid: b04a7904e687b4c758cd8ecaf397bfde, type: 2}
+    - value: {fileID: 11400000, guid: f685fed15df9a42eebfdf7102d8ab63d, type: 2}
+    - value: {fileID: 11400000, guid: fa9350f30572d40709f475bf0405249b, type: 2}
   references:
     version: 2
     RefIds:

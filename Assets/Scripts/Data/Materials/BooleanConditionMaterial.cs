@@ -94,13 +94,12 @@ namespace Arterra.Data.Material {
         public string NormalizedExpression => _normalizedExpression;
 
         public override void Preset(MaterialData self) {
-            Names = self != null ? self.Names : default;
             CompileExpression();
         }
 
         public override void PropogateMaterialUpdate(int3 GCoord, ref Unity.Mathematics.Random prng) {
             MapData cur = CPUMapManager.SampleMap(GCoord);
-            if (prng.NextFloat() >= RandomUpdateCheckChance) return;
+            if (prng.NextFloat() >= PropogateUpdateCheckChance) return;
             if (!SelfCondition.Contains(cur)) return;
             if (!Evaluate(GCoord)) return;
             PlaceResult(GCoord, prng);
@@ -108,7 +107,7 @@ namespace Arterra.Data.Material {
 
         public override void RandomMaterialUpdate(int3 GCoord, ref Unity.Mathematics.Random prng) {
             MapData cur = CPUMapManager.SampleMap(GCoord);
-            if (prng.NextFloat() >= PropogateUpdateCheckChance) return;
+            if (prng.NextFloat() >= RandomUpdateCheckChance) return;
             if (!SelfCondition.Contains(cur)) return;
             if (!Evaluate(GCoord)) return;
             PlaceResult(GCoord, prng);
@@ -117,9 +116,7 @@ namespace Arterra.Data.Material {
         private void PlaceResult(int3 GCoord, Unity.Mathematics.Random prng) {
             List<MapSamplePoint> result = ConversionData.value;
             if (result == null) return;
-            foreach (var point in result) {
-                point.PlaceEntry(this, GCoord, ref prng, DropsMaterial);
-            }
+            MapSamplePoint.PlaceRegion(result, this, GCoord, ref prng, DropsMaterial);
         }
 
         public bool Evaluate(int3 gCoord) {
@@ -403,6 +400,33 @@ namespace Arterra.Data.Material {
             return mapData.material == checkMat;
         }
 
+        //No flag means always place
+        //Or designates start of section
+        //And means place if we select section 
+        //Ex flag means only change material
+        public static void PlaceRegion(
+            List<MapSamplePoint> checks, IMaterial mat,
+            int3 BaseCoord, ref Unity.Mathematics.Random prng, bool DropItem = false
+        ) {
+            int sectionCount = 1;
+            int sectionIndex = checks.Count;
+            for (int i = 0; i < checks.Count; i++) {
+                MapSamplePoint pt = checks[i];
+                if (pt.check.OrFlag) {
+                    float probability = 1/(float)sectionCount;
+                    if(prng.NextFloat() < probability) sectionIndex = i;
+                    sectionCount++;
+                } else if(!pt.check.AndFlag) {
+                    pt.PlaceEntry(mat, BaseCoord, ref prng, DropItem);
+                }
+            } for(int i = sectionIndex; i < checks.Count; i++) {
+                MapSamplePoint pt = checks[i];
+                if (i == sectionIndex) pt.PlaceEntry(mat, BaseCoord, ref prng, DropItem);
+                else if (pt.check.OrFlag) break;
+                else if (pt.check.AndFlag) pt.PlaceEntry(mat, BaseCoord, ref prng, DropItem);
+            }
+        } 
+
         public void PlaceEntry(IMaterial mat, int3 BaseCoord, ref Unity.Mathematics.Random prng, bool DropItem = false) {
             int3 GCoord = BaseCoord + Offset;
             MapData cur = CPUMapManager.SampleMap(GCoord);
@@ -415,7 +439,7 @@ namespace Arterra.Data.Material {
             } else newData.material = cur.material;
 
 
-            if (check.flags != 0) {
+            if (check.ExFlag) {
                 newData.viscosity = cur.viscosity;
                 newData.density = cur.density;
             } else {

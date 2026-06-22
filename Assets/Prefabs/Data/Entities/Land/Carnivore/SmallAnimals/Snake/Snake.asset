@@ -356,11 +356,11 @@ MonoBehaviour:
             AllowList:
               value:
               - EntityType:
-                  tagValue: 6157
+                  tagValue: 6161
                   registryValue: 
                 Policy: 1
               - EntityType:
-                  tagValue: 6161
+                  tagValue: 6157
                   registryValue: 
                 Policy: 1
               - EntityType:
@@ -372,7 +372,7 @@ MonoBehaviour:
       data:
         fleeDist: 5
         detectDist: 24
-        FightAggressor: 0
+        FightAggressor: 1
     - rid: 3097083922518114534
       type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -458,83 +458,83 @@ MonoBehaviour:
           value:
           - name: 1004
             var: 0.35
-            geneWeight: 1.7932477e-11
+            geneWeight: 3.5466072e-16
           - name: 1006
             var: 0.25
-            geneWeight: 8.966238e-12
+            geneWeight: 1.7733036e-16
           - name: 1007
             var: 0.1
-            geneWeight: 1.1207798e-12
+            geneWeight: 2.2166295e-17
           - name: 1005
             var: 0.3
-            geneWeight: 4.483119e-12
+            geneWeight: 8.866518e-17
           - name: 1000
             var: 0.25
-            geneWeight: 8.966238e-12
+            geneWeight: 1.7733036e-16
           - name: 1001
             var: 0.5
-            geneWeight: 2.6898712e-11
+            geneWeight: 5.3199095e-16
           - name: 1002
             var: 0.5
-            geneWeight: 1.3449356e-11
+            geneWeight: 2.6599548e-16
           - name: 1003
             var: 0.5
-            geneWeight: 4.483119e-12
+            geneWeight: 8.866518e-17
           - name: 4002
             var: 0.25
-            geneWeight: 8.966238e-12
+            geneWeight: 1.7733036e-16
           - name: 4001
             var: 0.4
-            geneWeight: 6.724678e-12
+            geneWeight: 1.3299774e-16
           - name: 2039
             var: 0.5
-            geneWeight: 1.1207798e-12
+            geneWeight: 2.2166295e-17
           - name: 2040
             var: 1
-            geneWeight: 1.1207798e-12
+            geneWeight: 2.2166295e-17
           - name: 2044
             var: 0.3
-            geneWeight: 1.1207798e-12
+            geneWeight: 2.2166295e-17
           - name: 2045
             var: 0
             geneWeight: 0
           - name: 2035
             var: 0.125
-            geneWeight: 4.483119e-12
+            geneWeight: 8.866518e-17
           - name: 2036
             var: 0.25
-            geneWeight: 8.966238e-12
+            geneWeight: 1.7733036e-16
           - name: 2037
             var: 0.25
-            geneWeight: 6.724678e-12
+            geneWeight: 1.3299774e-16
           - name: 2002
             var: 0.25
-            geneWeight: 4.483119e-12
+            geneWeight: 8.866518e-17
           - name: 2003
             var: 0.05
-            geneWeight: 2.2415596e-12
+            geneWeight: 4.433259e-17
           - name: 2038
             var: 0.25
-            geneWeight: 8.966238e-12
+            geneWeight: 1.7733036e-16
           - name: 4000
             var: 0.25
-            geneWeight: 1.3449356e-11
+            geneWeight: 2.6599548e-16
           - name: 2031
             var: 0.25
-            geneWeight: 8.966238e-12
+            geneWeight: 1.7733036e-16
           - name: 2030
             var: 0.25
-            geneWeight: 1.3449356e-11
+            geneWeight: 2.6599548e-16
           - name: 1012
             var: 0.2
-            geneWeight: 4.483118e-13
+            geneWeight: 8.866516e-18
           - name: 1008
             var: 0.3
-            geneWeight: 4.483119e-12
+            geneWeight: 8.866518e-17
           - name: 1009
             var: 0.35
-            geneWeight: 1.5690914e-11
+            geneWeight: 3.1032807e-16
           - name: 4003
             var: 0.75
-            geneWeight: 2.2415596e-12
+            geneWeight: 4.433259e-17
         NormalizeWeights: 1

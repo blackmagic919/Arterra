@@ -135,8 +135,9 @@ namespace Arterra.Data.Item {
                 
                 if (!IsLocked) Location = (int3)math.round(hitPt);
                 else if (math.cmax(math.abs(Location - hitPt)) >
-                    PlayerInteractionSettings.GetSingleton().TerraformRadius + math.cmax(GetSize()));
+                    PlayerInteractionSettings.GetSingleton().TerraformRadius + math.cmax(GetSize())) {
                     IsLocked = false;
+                }
 
                 display.ReflectMesh(DeserializeStruct(), Location, GetRotation(player.head - Location));
             }
