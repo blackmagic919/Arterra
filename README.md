@@ -91,6 +91,20 @@ Arterra is a procedurally generated 3D sandbox-style game built with Unity. User
 #### Crafting SandStone
 <img src="https://github.com/blackmagic919/Arterra/blob/main/Assets/Images/Recipe.png" alt="drawing" width="200"/> 
 
+
+## Releasing
+
+```bash
+./release.sh patch   # 1.0.0 -> 1.0.1
+./release.sh minor   # 1.0.0 -> 1.1.0
+./release.sh major   # 1.0.0 -> 2.0.0
+```
+
+Keep records of changes in [CHANGELOG.md](CHANGELOG.md). Recommended change log format is [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). 
+
+release.sh will automatically replace [UNRELEASED] with the current date and version number in CHANGELOG.md. It will also create a new [UNRELEASED] section for future changes.
+
+
 ## Other Sources
 <ins>For More Information About Implementation Refer Here:</ins>
 - https://blackmagic919.github.io/AboutMe/ <-- Blog
