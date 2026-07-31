@@ -9,12 +9,30 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
+  m_Script: {fileID: 11500000, guid: cc4387a5048a840cab468aa750bc07c1, type: 3}
   m_Name: AcaciaLeavesMat
   m_EditorClassIdentifier: 
   Names:
     value:
-    - AcaciaLeaves:Solid
-    - Void
+    - OakLeaves
     - InsetQuad
-    - AcaciaLeaves
+    - Void
+    - OakLeaves:Solid
+    - Embers
+    - InsetQuad
+    - DeciduousLeaves
+  SourceMaterial: Wood
+  MaxSourceDistance: 13
+  SelfCondition:
+    data: 4286643968
+  SourceCondition:
+    data: 4286643968
+  DecayResult:
+    check:
+      bounds:
+        data: 1680998400
+      flags: 0
+    _material: 4
+    _offset: 537395712
+  DecayChance: 0.25
+  DropChance: 0.025

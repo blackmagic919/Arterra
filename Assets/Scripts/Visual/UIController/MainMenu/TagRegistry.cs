@@ -12,6 +12,7 @@ using Arterra.Core.Events;
 using Arterra.Engine.Audio;
 using Arterra.Editor;
 using System.Linq;
+using Arterra.Data.Entity.Behavior;
 
 
 namespace Arterra.Configuration {
@@ -126,14 +127,13 @@ namespace Arterra.Configuration {
 
         protected void LaunchProjectile(Entity entity, Entity parent, float3 position, float3 velocity, Action<Entity> cb) {
             var entityInfo = Config.CURRENT.Generation.Entities;
+            if(parent != null) entity.RegisterConstructor(ProjectileFlightBehavior.Build(parent.info.entityId));
             EntityManager.AddHandlerEvent(() => AudioManager.CreateEvent(FireSound, position));
             EntityManager.CreateEntity(position, (uint)entity.Index, entity, () => {
                 entity.transform.position = position;
                 entity.transform.velocity = velocity * LaunchSpeedMultiplier;
                 entity.transform.rotation = Quaternion.LookRotation(math.normalize(velocity));
                 entity.position = position;
-                if (parent != null && entity is Projectile.ProjectileEntity pEntity)
-                    pEntity.ParentId = parent.info.rtEntityId;
                 cb?.Invoke(entity);
             });
         }
@@ -158,10 +158,11 @@ namespace Arterra.Configuration {
             LaunchProjectile(entity, null, position, velocity, null);
         }
 
-        public void LaunchProjectile(Entity parent, float3 velocity, Action<Entity> cb = null) {
+        public void LaunchProjectile(Entity parent, float3 velocity, Action<Entity> construct = null, Action<Entity> cb = null) {
             int entityType = Config.CURRENT.Generation.Entities.RetrieveIndex(ProjectileEntity);
             var entity = Config.CURRENT.Generation.Entities.Retrieve(entityType).Entity;
             entity.Index = entityType;
+            construct?.Invoke(entity);
             LaunchProjectile(entity, parent, velocity, cb);
         }
     }

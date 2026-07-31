@@ -22,7 +22,7 @@ MonoBehaviour:
         x: 9
         y: 17
         z: 9
-      minimumLOD: 0
+      matSetStart: 0
       config: 1
   Names:
     value:
@@ -739,7 +739,7 @@ MonoBehaviour:
     - data: 29555
     - data: 250064
     - data: 249550
-    - data: 249550
+    - data: 184014
     - data: 249550
     - data: 234387
     - data: 293241
@@ -748,7 +748,7 @@ MonoBehaviour:
     - data: 102030
     - data: 241326
     - data: 262143
-    - data: 262143
+    - data: 196607
     - data: 260858
     - data: 108712
     - data: 98946
@@ -757,7 +757,7 @@ MonoBehaviour:
     - data: 100488
     - data: 239527
     - data: 262143
-    - data: 262143
+    - data: 196607
     - data: 258031
     - data: 101773
     - data: 99460
@@ -766,7 +766,7 @@ MonoBehaviour:
     - data: 24415
     - data: 241069
     - data: 260858
-    - data: 262143
+    - data: 196607
     - data: 249550
     - data: 234130
     - data: 13107
@@ -775,7 +775,7 @@ MonoBehaviour:
     - data: 4112
     - data: 230532
     - data: 256232
-    - data: 262143
+    - data: 196607
     - data: 243382
     - data: 25186
     - data: 3598

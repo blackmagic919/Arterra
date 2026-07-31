@@ -178,9 +178,11 @@ namespace Arterra.GamePlay.UI {
 
         public static void DropItem(IItem item, float3 location, Quaternion rotation = default) {
             if (item == null) return;
-            Arterra.Data.Entity.Entity Entity = new EItem.EItemEntity(item, rotation);
-            uint eIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("EntityItem");
-            EntityManager.CreateEntity(math.round(location), eIndex, Entity);
+            var eReg = Config.CURRENT.Generation.Entities;
+            int eIndex = eReg.RetrieveIndex("EntityItem");
+            Entity Entity = eReg.Retrieve("EntityItem").Entity;
+            Entity.Index = eIndex; Entity.RegisterConstructor(item);
+            EntityManager.CreateEntity(location, (uint)eIndex, Entity);
         }
 
         public delegate bool MouseInvSelect(out IInventory Inv, out int index);

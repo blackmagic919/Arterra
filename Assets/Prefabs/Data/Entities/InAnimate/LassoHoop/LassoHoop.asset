@@ -1,0 +1,108 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
+  m_Name: LassoHoop
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
+  Name: LassoHoop
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 5489795332452210488, guid: 218351a49ec694253b39ec99517e5336, type: 3}
+  Profile:
+    value: []
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 0
+          y: 0
+          z: 0
+      collider:
+        size:
+          x: 0.3
+          y: 0.1
+          z: 0.3
+      BehaviorList:
+        value: 05000000ed030000f7030000f6030000f8030000fa030000
+      Settings:
+        value:
+          value:
+          - value:
+              value:
+                rid: 5778504888424333508
+          - value:
+              value:
+                rid: 5778504888424333511
+          - value:
+              value:
+                rid: 5778504888424333512
+          - value:
+              value:
+                rid: 5778504888424333509
+          - value:
+              value:
+                rid: 5778504888424333510
+          - value:
+              value:
+                rid: 5778504888424333536
+          - value:
+              value:
+                rid: 5778504888424333633
+      _prevBehaviorCount: 6
+  references:
+    version: 2
+    RefIds:
+    - rid: 5778504888424333508
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 1
+    - rid: 5778504888424333509
+      type: {class: ProjectileFlightSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        MinDamagingSpeed: 2.5
+        DamageMultiplier: 0.01
+        KnockbackMultiplier: 0.0025
+        FrictionReduction: 1
+        entityInteraction: 0
+    - rid: 5778504888424333510
+      type: {class: ProjectileTerrainSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        terrainInteraction: 2
+    - rid: 5778504888424333511
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 0.1
+        StartHealthPercent: 1
+        StartHealthVariance: 0
+        MaxHealth: 0
+        NaturalRegen: 0
+        InvincTime: 0.25
+    - rid: 5778504888424333512
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
+          value: []
+    - rid: 5778504888424333536
+      type: {class: ProjectileEffectsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        FlybySound: 3000
+        HitSound: 3001
+    - rid: 5778504888424333633
+      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 25
+        InteractEvents:
+          value:
+          - Event: 18
+            DeltaTime: -100

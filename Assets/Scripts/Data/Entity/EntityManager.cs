@@ -682,17 +682,21 @@ public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
     }
 
 
-    public bool Complete(){
+    public bool TryComplete(){
         if(!dispatched) return true;
         if(!handle.IsCompleted) return false; 
+        Complete();
+        return true;
+    }
+
+    public void Complete(){
         handle.Complete();
         dispatched = false;
-        return true;
     }
 
     public void Update(MonoBehaviour mono){
         accumulatedTime += Time.fixedDeltaTime;
-        if (!Complete()) return;
+        if (!TryComplete()) return;
         cxt.totDeltaTime = accumulatedTime;
         cxt.deltaTime = Time.fixedDeltaTime;
         cxt.UpdateCount++;

@@ -11,6 +11,7 @@ StructuredBuffer<settings> _StructureSettings;
 
 StructuredBuffer<SystemStructure> _SystemStructures;
 StructuredBuffer<StructurePort> _StructurePorts;
+StructuredBuffer<uint> _PortAllowedSockets;
 StructuredBuffer<PortSocketOption> _PortSocketOptions;
 StructuredBuffer<SocketPortTransitions> _SocketPortAtlas;
 StructuredBuffer<TransDeltas> _TransitionDeltasAtlas;
@@ -93,26 +94,15 @@ uint GetSocketFaceAtWorldPos(int3 socketWorldPos, int3 originWorld, uint sysStru
 
 
 bool CanConnectPorts(uint currentPortIndex, uint currentObjectFace, uint nextPortIndex, uint nextObjectFace) {
-    if (nextObjectFace != (currentObjectFace + 3u) % 6u)
+    if (nextObjectFace != OppositeFace(currentObjectFace))
         return false;
 
-    StructurePort currentPort = _StructurePorts[currentPortIndex];
     StructurePort nextPort = _StructurePorts[nextPortIndex];
-    if (nextPort.socketSystemId < 0)
+    if (nextPort.socketSystemId < 0 || nextPort.socketSystemId >= 32)
         return false;
 
-    [loop][fastopt]
-    for (int optionIndex = currentPort.sockets.x; optionIndex < currentPort.sockets.y; optionIndex++) {
-        PortSocketOption option = _PortSocketOptions[optionIndex];
-        if (option.socketSystemId != nextPort.socketSystemId)
-            continue;
-
-        SocketPortTransitions bucket = _SocketPortAtlas[GetSocketAtlasIndex(currentPortIndex, option.socketSystemId, OppositeFace(currentObjectFace))];
-        if (bucket.range.x < bucket.range.y)
-            return true;
-    }
-
-    return false;
+    uint allowedMask = _PortAllowedSockets[currentPortIndex * 6u + currentObjectFace];
+    return (allowedMask & (1u << (uint)nextPort.socketSystemId)) != 0u;
 }
 
 

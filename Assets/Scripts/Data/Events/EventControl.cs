@@ -56,6 +56,9 @@ namespace Arterra.Core.Events {
         Entity_ReadyAttack = GameEventBases.Entity_Base + 23,
         Entity_AddBehavior = GameEventBases.Entity_Base + 24,
         Entity_RemoveBehavior = GameEventBases.Entity_Base + 25,
+        Entity_MergeAbsorb = GameEventBases.Entity_Base + 26,
+        Entity_MergeAbsorbed = GameEventBases.Entity_Base + 27,
+        Entity_AttemptMerge = GameEventBases.Entity_Base + 28,
         
         Item_ConsumeFood = GameEventBases.Item_Base + 0,
         Item_HoldTool = GameEventBases.Item_Base + 1,

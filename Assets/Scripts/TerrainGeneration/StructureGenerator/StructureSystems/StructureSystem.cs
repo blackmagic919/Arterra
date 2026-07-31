@@ -13,6 +13,7 @@ public struct StructSystem {
     ComputeBuffer StructureSystems;
     ComputeBuffer SystemStructures;
     ComputeBuffer StructurePorts;
+    ComputeBuffer PortAllowedSockets;
 
     ComputeBuffer PortSocketOptions;
     ComputeBuffer SocketPortAtlas;
@@ -29,6 +30,7 @@ public struct StructSystem {
         private readonly List<StructureData> structureDictionary;
         private readonly List<JigsawSystem.SystemStructure> structures;
         private readonly List<StructurePort> structurePorts;
+        private readonly List<uint> portAllowedSockets;
         private readonly List<PortSocketOption> portSocketOptions;
         private readonly List<SocketPortTransitions> socketPortAtlas;
         private readonly List<TransDeltas> transitionDeltasAtlas;
@@ -77,6 +79,7 @@ public struct StructSystem {
             List<StructureData> structureDictionary,
             List<JigsawSystem.SystemStructure> structures,
             List<StructurePort> structurePorts,
+            List<uint> portAllowedSockets,
             List<PortSocketOption> portSocketOptions,
             List<SocketPortTransitions> socketPortAtlas,
             List<TransDeltas> transitionDeltasAtlas)
@@ -86,6 +89,7 @@ public struct StructSystem {
             this.structureDictionary = structureDictionary;
             this.structures = structures;
             this.structurePorts = structurePorts;
+            this.portAllowedSockets = portAllowedSockets;
             this.portSocketOptions = portSocketOptions;
             this.socketPortAtlas = socketPortAtlas;
             this.transitionDeltasAtlas = transitionDeltasAtlas;
@@ -101,6 +105,7 @@ public struct StructSystem {
             BuildStructureMetadata();
             systemStructureEnd = structures.Count;
             BuildTransitionAtlas();
+            BuildPortAllowedSockets();
             return new uint2((uint)systemStructureStart, (uint)systemStructureEnd);
         }
 
@@ -206,6 +211,37 @@ public struct StructSystem {
                     basePort.sockets = new int2(optionStart, portSocketOptions.Count);
                     structurePorts[basePortIndex] = basePort;
                     ConvertChanceRangeToSequential(portSocketOptions, optionStart, portSocketOptions.Count);
+                }
+            }
+        }
+
+        private void BuildPortAllowedSockets()
+        {
+            int systemSocketAtlasStart = (int)structures[systemStructureStart].socketAtlasStart;
+            for (int localIndex = 0; localIndex < authoredStructures.Count; localIndex++) {
+                int systemStructIndex = systemStructureStart + localIndex;
+                for (uint baseFace = 0u; baseFace < 6u; baseFace++) {
+                    int basePortIndex = GetBasePortIndex((uint)systemStructIndex, baseFace);
+                    StructurePort basePort = structurePorts[basePortIndex];
+
+                    for (uint objectFace = 0u; objectFace < 6u; objectFace++) {
+                        uint allowedMask = 0u;
+                        uint oppFace = (objectFace + 3u) % 6u;
+
+                        for (int optionIndex = basePort.sockets.x; optionIndex < basePort.sockets.y; optionIndex++) {
+                            PortSocketOption option = portSocketOptions[optionIndex];
+                            int targetSocketId = option.socketSystemId;
+                            if (targetSocketId < 0 || targetSocketId >= 32)
+                                continue;
+
+                            int atlasIdx = GetSocketAtlasIndex(systemSocketAtlasStart, targetSocketId, oppFace);
+                            if (atlasIdx >= 0 && atlasIdx < socketPortAtlas.Count && socketPortAtlas[atlasIdx].range.x < socketPortAtlas[atlasIdx].range.y) {
+                                allowedMask |= (1u << targetSocketId);
+                            }
+                        }
+
+                        portAllowedSockets.Add(allowedMask);
+                    }
                 }
             }
         }
@@ -372,6 +408,7 @@ public struct StructSystem {
         bool hasAnySystemData = false;
         List<JigsawSystem.SystemStructure> structures = new ();
         List<StructurePort> structurePorts = new ();
+        List<uint> portAllowedSockets = new ();
         List<PortSocketOption> portSocketOptions = new ();
         List<SocketPortTransitions> socketPortAtlas = new ();
         List<TransDeltas> transitionDeltasAtlas = new ();
@@ -388,6 +425,7 @@ public struct StructSystem {
                 i, system,
                 StructureDictionary, structures,
                 structurePorts,
+                portAllowedSockets,
                 portSocketOptions,
                 socketPortAtlas,
                 transitionDeltasAtlas);
@@ -402,6 +440,8 @@ public struct StructSystem {
             };
         }
 
+        if (portAllowedSockets.Count == 0)
+            portAllowedSockets.Add(default);
         if (portSocketOptions.Count == 0)
             portSocketOptions.Add(default);
         if (socketPortAtlas.Count == 0)
@@ -413,6 +453,7 @@ public struct StructSystem {
         StructureSystems = new ComputeBuffer(SystemDictionary.Count, StructSystemInfo.size, ComputeBufferType.Structured); //By doubling stride, we compress the prefix sums
         SystemStructures = new ComputeBuffer(structures.Count, JigsawSystem.SystemStructure.size, ComputeBufferType.Structured);
         StructurePorts = new ComputeBuffer(structurePorts.Count, StructurePort.size, ComputeBufferType.Structured);
+        PortAllowedSockets = new ComputeBuffer(portAllowedSockets.Count, sizeof(uint), ComputeBufferType.Structured);
         PortSocketOptions = new ComputeBuffer(portSocketOptions.Count, PortSocketOption.size, ComputeBufferType.Structured);
         SocketPortAtlas = new ComputeBuffer(socketPortAtlas.Count, SocketPortTransitions.size, ComputeBufferType.Structured);
         TransitionDeltasAtlas = new ComputeBuffer(transitionDeltasAtlas.Count, TransDeltas.size, ComputeBufferType.Structured);
@@ -420,6 +461,7 @@ public struct StructSystem {
         StructureSystems.SetData(systems);
         SystemStructures.SetData(structures);
         StructurePorts.SetData(structurePorts);
+        PortAllowedSockets.SetData(portAllowedSockets);
         PortSocketOptions.SetData(portSocketOptions);
         SocketPortAtlas.SetData(socketPortAtlas);
         TransitionDeltasAtlas.SetData(transitionDeltasAtlas);
@@ -427,6 +469,7 @@ public struct StructSystem {
         Shader.SetGlobalBuffer("_SystemInfo", StructureSystems);
         Shader.SetGlobalBuffer("_SystemStructures", SystemStructures);
         Shader.SetGlobalBuffer("_StructurePorts", StructurePorts);
+        Shader.SetGlobalBuffer("_PortAllowedSockets", PortAllowedSockets);
         Shader.SetGlobalBuffer("_PortSocketOptions", PortSocketOptions);
         Shader.SetGlobalBuffer("_SocketPortAtlas", SocketPortAtlas);
         Shader.SetGlobalBuffer("_TransitionDeltasAtlas", TransitionDeltasAtlas);
@@ -657,6 +700,7 @@ public struct StructSystem {
         StructureSystems?.Release();
         SystemStructures?.Release();
         StructurePorts?.Release();
+        PortAllowedSockets?.Release();
         PortSocketOptions?.Release();
         SocketPortAtlas?.Release();
         TransitionDeltasAtlas?.Release();

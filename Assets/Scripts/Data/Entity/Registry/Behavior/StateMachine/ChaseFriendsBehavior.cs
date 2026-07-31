@@ -53,17 +53,19 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             if (IsFriend) {
-                if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity friend))
+                if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity friend)) {
                     path.pathFinder.hasPath = false;
+                    return;
+                } if (ColliderUpdateBehavior.GetColliderDist(self, friend) < manager.settings.ContactDistance) {
+                    path.pathFinder.hasPath = false;
+                    return;
+                }
 
                 self.PathCollider.Follow(self, Movement.DynamicDirect(
                     MMove.Profile(mmove, settings.TaskName, self.settings), 
                     ref path.pathFinder, self.PathCollider, friend.origin,
                     MMove.MovementType(mmove, settings.TaskName)
                 ), WalkSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk);
-
-                if (ColliderUpdateBehavior.GetColliderDist(self, friend) < manager.settings.ContactDistance)
-                    path.pathFinder.hasPath = false;
             } else {
                 self.PathCollider.Follow(self, Movement.StaticDirect(
                     MMove.Profile(mmove, settings.TaskName, self.settings), 

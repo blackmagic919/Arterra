@@ -9,57 +9,30 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f009c3412cd3144aebe921a4f1c37723, type: 3}
+  m_Script: {fileID: 11500000, guid: cc4387a5048a840cab468aa750bc07c1, type: 3}
   m_Name: PalmLeavesMat
   m_EditorClassIdentifier: 
-  Name: PalmLeaves
-  Tags:
-    Reg:
-      value:
-      - Tag: 1000
-        value:
-          value:
-            rid: 6432722648275615826
   Names:
     value:
-    - PalmLeaves:Solid
-    - Void
-    - PalmLeaves
-    - PalmLeaves
+    - OakLeaves
     - InsetQuad
-  terrainData:
-    Texture: 2
-    textureScale: 2
-    FlipStateRendering: 0
-    GeoShaderIndex:
-      data: 2147745794
-  AtmosphereScatter:
-    InScatterCoeffs: {x: 0, y: 0, z: 0}
-    OutScatterCoeffs: {x: 0, y: 0, z: 0}
-    GroundExtinction: {x: 0, y: 0, z: 0}
-    LightIntensity: 0
-  liquidData:
-    shallowCol: {r: 0, g: 0, b: 0, a: 0}
-    deepCol: {r: 0, g: 0, b: 0, a: 0}
-    colFalloff: 0.061
-    waveBlend: 0
-    waveStrength: 0
-    waveScale: {x: 0, y: 0}
-    waveSpeed: {x: 0, y: 0}
-  Roughness: 0.2
-  references:
-    version: 2
-    RefIds:
-    - rid: 6432722648275615826
-      type: {class: ConverterToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
-      data:
-        TerraformSpeed: 0.25
-        ToolDamage: 2
-        GivesItem: 0
-        _convertBounds:
-          data: 4286643968
-        _neighborBounds:
-          bounds:
-            data: 2130738944
-          flags: 2
-        ConvertTarget: Fire
+    - Void
+    - OakLeaves:Solid
+    - Embers
+    - InsetQuad
+    - DeciduousLeaves
+  SourceMaterial: Wood
+  MaxSourceDistance: 13
+  SelfCondition:
+    data: 4286643968
+  SourceCondition:
+    data: 4286643968
+  DecayResult:
+    check:
+      bounds:
+        data: 1680998400
+      flags: 0
+    _material: 4
+    _offset: 537395712
+  DecayChance: 0.25
+  DropChance: 0.025

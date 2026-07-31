@@ -9,15 +9,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b034b027c96fe450b96e91acc87dbc1c, type: 3}
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
   m_Name: EItem
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
   Name: EntityItem
   Tags:
     Reg:
       value: []
   Controller:
-    value: {fileID: 5653881121737289674, guid: cdde00980c1ea4ddea86e60f5d7f261c, type: 3}
+    value: {fileID: 5653881121737289674, guid: b67ed8c7396614e0082806b1792cbf68, type: 3}
   Profile:
     value:
     - bounds:
@@ -51,22 +51,81 @@ MonoBehaviour:
           x: 2
           y: 2
           z: 2
-        profileStart: 12
       collider:
         size:
           x: 0.5
           y: 0.5
           z: 0.5
-        friction: 0.25
-      GroundStickDist: 0.05
-      StickFriction: 0.15
-      SpriteSampleSize:
-        x: 32
-        y: 32
-      AlphaClip: 0.2
-      ExtrudeHeight: 2.5
-      MergeRadius: 1
-      DecayTime: 300
+      BehaviorList:
+        value: 05000000ed030000f9030000f4030000f5030000f6030000
+      Settings:
+        value:
+          value:
+          - value:
+              value:
+                rid: 5778504888424333422
+          - value:
+              value:
+                rid: 5778504888424333426
+          - value:
+              value:
+                rid: 5778504888424333427
+          - value:
+              value:
+                rid: 5778504888424333428
+          - value:
+              value:
+                rid: 5778504888424333423
+          - value:
+              value:
+                rid: 5778504888424333424
+          - value:
+              value:
+                rid: 5778504888424333425
+      _prevBehaviorCount: 6
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 5778504888424333422
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 1
+    - rid: 5778504888424333423
+      type: {class: EntityItemSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 300
+        MergeRadius: 2.5
+    - rid: 5778504888424333424
+      type: {class: EntityItemDisplaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        MeshFilterPath: 
+        SpriteSampleSize:
+          x: 32
+          y: 32
+        AlphaClip: 0.2
+        ExtrudeHeight: 2
+    - rid: 5778504888424333425
+      type: {class: ProjectileTerrainSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        terrainInteraction: 3
+    - rid: 5778504888424333426
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 0.25
+        StartHealthPercent: 1
+        StartHealthVariance: 0
+        MaxHealth: 0
+        NaturalRegen: 0
+        InvincTime: 0.25
+    - rid: 5778504888424333427
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
+          value: []
+    - rid: 5778504888424333428
+      type: {class: TestMergeSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        MergeRadius: 2.5
+        Check: 0
+        ForceNoConsent: 1

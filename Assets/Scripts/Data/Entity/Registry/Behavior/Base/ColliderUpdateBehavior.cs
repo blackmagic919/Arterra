@@ -35,9 +35,13 @@ namespace Arterra.Data.Entity.Behavior {
         public ColliderUpdateSettings.InteractType Interaction;
         public HashSet<Guid> IgnoredEntities;
         public TerrainCollider collider;
+        private float friction = TerrainCollider.BaseFriction;
 
         [JsonIgnore] public TerrainCollider Collider{ get => collider; }
         [JsonIgnore] public TerrainCollider PathCollider{ get => collider; }
+
+        public void SetFrictionNonPersisted(float value) => friction = value;
+        public void MultiplyFrictionNonPersisted(float value) => friction *= value;
 
         public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync)
@@ -47,18 +51,18 @@ namespace Arterra.Data.Entity.Behavior {
             
             switch (Interaction) {
                 case ColliderUpdateSettings.InteractType.Regular:
-                    collider.Update(self);
+                    collider.Update(self, friction);
                     collider.EntityCollisionUpdate(self, IgnoredEntities);
                     break;
                 case ColliderUpdateSettings.InteractType.NoEntity:
-                    collider.Update(self);
+                    collider.Update(self, friction);
                     break;
                 case ColliderUpdateSettings.InteractType.NoGround:
-                    collider.Update(self, tangible: false);
+                    collider.Update(self, friction, tangible: false);
                     collider.EntityCollisionUpdate(self, IgnoredEntities);
                     break;
                 case ColliderUpdateSettings.InteractType.None:
-                    collider.Update(self, tangible: false);
+                    collider.Update(self, friction, tangible: false);
                     break;
                 default:
                     break;

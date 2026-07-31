@@ -133,9 +133,10 @@ namespace Arterra.Data.Entity.Behavior{
         }
 
         private void HideUnderground(BehaviorEntity.Animal self) {
-            if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity attacker))
+            if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity attacker)) {
                 manager.Transition(settings.Task3Name);
-            if (ColliderUpdateBehavior.GetColliderDist(attacker, self) > BurrowMaxDist)
+                return;
+            } if (ColliderUpdateBehavior.GetColliderDist(attacker, self) > BurrowMaxDist)
                 manager.Transition(settings.Task3Name);
             if (mInteract != null && mInteract.breathPercent < UnburrowThresh)
                 manager.Transition(settings.Task3Name);

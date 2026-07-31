@@ -28,6 +28,7 @@ MonoBehaviour:
   MinLaunchSpeed: 5
   ReelSpeed: 0.5
   HookEntity: Hook
+  ItemHolderEntity: HookedItem
   HookEntityEvent: 18
   HookProjectile:
     LaunchSpeedMultiplier: 1

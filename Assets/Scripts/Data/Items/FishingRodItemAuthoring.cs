@@ -13,6 +13,7 @@ using Arterra.GamePlay.Interaction;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Editor;
 using Arterra.Core;
+using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Data.Item
 {
@@ -36,6 +37,8 @@ namespace Arterra.Data.Item
 
         [RegistryReference("Entities")]
         public string HookEntity;
+        [RegistryReference("Entities")]
+        public string ItemHolderEntity = "EntityItem";
         public GameEvent HookEntityEvent;
         public MinimalProjectileTag HookProjectile;
         /// <summary> If none, it will always cast Hook Entity, which can be useful
@@ -168,8 +171,9 @@ namespace Arterra.Data.Item
             Entity.Entity Bait;
             var EntityReg = Config.CURRENT.Generation.Entities;
             if (TryGetBaitItem(cxt, out IItem item)) {
-                Bait = new EItem.EItemEntity(item);
-                Bait.Index = EntityReg.RetrieveIndex("EntityItem");
+                Entity.Authoring auth = EntityReg.Retrieve(settings.ItemHolderEntity);
+                Bait = auth.Entity; Bait.Index = EntityReg.RetrieveIndex(settings.ItemHolderEntity);
+                Bait.RegisterConstructor(item);
             } else {
                 int entInd = EntityReg.RetrieveIndex(settings.HookEntity);
                 Bait = EntityReg.Retrieve(entInd).Entity;
@@ -233,11 +237,11 @@ namespace Arterra.Data.Item
         private bool TryRecollectBait(ItemContext cxt, FishingLine line) {
             if (!cxt.TryGetInventory(out IInventory inv))
                 return false;
-            if (line.HookingEntity is not EItem.EItemEntity eItem)
+            if (!line.HookingEntity.Is(out EntityItemBehavior eItem))
                 return false;
             foreach(IItem item in eItem.GetItems())
                 inv.AddStackable(item);   
-            EntityManager.ReleaseEntity(eItem.info.entityId);
+            EntityManager.ReleaseEntity(line.HookingEntity.info.entityId);
             return true;
         }
 
@@ -253,6 +257,7 @@ namespace Arterra.Data.Item
             private readonly int MaxLineSegs;
             private readonly float MaxLineLength;
 
+            private int HookEntityType;
             public int RealSegments => Mathf.CeilToInt(LineSegments);
             private float LineSegments;
             private float LineSegLength;
@@ -265,12 +270,13 @@ namespace Arterra.Data.Item
                 public float3 prevPos;
             }
             private List<LinePoint> points = new();
-            public FishingLine(Entity.Entity holder, Entity.Entity hook, GameEvent HookEvent,  float LineLength, float lineDetail, float damping) {
+            public FishingLine(Entity.Entity holder, Entity.Entity hook, GameEvent HookEvent, float LineLength, float lineDetail, float damping) {
                 Holder = holder;
                 HookingEntity = hook;
                 LineSegLength = lineDetail;
                 MaxLineSegs = math.max(2, (int)(LineLength / LineSegLength));
                 MaxLineLength = LineSegLength;
+                HookEntityType = (int)hook.info.entityType;
 
                 this.hookedOffset = 0;
                 this.LineSegments = MaxLineSegs;
@@ -407,8 +413,8 @@ namespace Arterra.Data.Item
             }
 
             private void PreventProjectileDecay() {
-                if (HookingEntity is not Projectile.ProjectileEntity p) return;
-                p.ResetDecomposition(); //Prevent hook from despawning
+                if (HookingEntity.info.entityType != HookEntityType) return;
+                if (HookingEntity.Is(out IDecaying decay)) decay.ResetDecay();
             }
 
             private void ApplyTensionAndExtendLine() {

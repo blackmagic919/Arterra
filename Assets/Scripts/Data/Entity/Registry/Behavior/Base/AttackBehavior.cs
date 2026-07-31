@@ -85,6 +85,11 @@ namespace Arterra.Data.Entity.Behavior {
             EntityManager.AddHandlerEvent(() => atkTarget.TakeDamage(damage, knockback, self));
         }
 
+        public static void RealAttackIndirect(Entity self, Entity target, float damage, float3 knockback) {
+            if (!target.Is(out IAttackable atkTarget)) return;
+            EntityManager.AddHandlerEvent(() => atkTarget.TakeDamage(damage, knockback, self));
+        }
+
         public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(AttackStats), new AttackStats());
         }

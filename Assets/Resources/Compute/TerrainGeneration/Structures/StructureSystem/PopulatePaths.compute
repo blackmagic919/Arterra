@@ -48,7 +48,7 @@ bool TrySetVisited(uint index, int pathId, uint desired, out uint previousVisite
         batchVisit[index] = node;
     }
 
-    uint currentVisited = batchVisit[index].visited;
+    uint currentVisited = node.visited;
     if (VisitedTransitionIndex(currentVisited) == VISITED_SEED_TRANSITION) {
         previousVisited = currentVisited;
         return false;

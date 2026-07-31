@@ -25,6 +25,7 @@ public class RidableStateBehavior : SpeciesBehavior {
     private RideableStateSettings settings;
     private Movement movement;
     private MMove mmove; //optional
+    private float3 aim;
 
     private BehaviorEntity.Animal self;
     private RidableBehavior ridable;
@@ -42,16 +43,22 @@ public class RidableStateBehavior : SpeciesBehavior {
     }
 
     public void WalkInDirection(object src, object caller, object cxt) {
-        float3 aim = (cxt as RefTuple<float3>).Value;
-        aim = new(aim.x, 0, aim.z);
+        aim = (cxt as RefTuple<float3>).Value;
+         if (MMove.MovementType(mmove, settings.TaskName) != Movement.FollowType.Planar)
+            aim = math.normalizesafe(aim);
+        else aim = math.normalizesafe(new float3(aim.x, 0, aim.z));
         if (Vector3.Magnitude(aim) <= 1E-05f) return;
         if (math.length(self.velocity) > RunSpeed)
             return;
 
+        
         self.velocity += (RunSpeed / AccelTime) * self.DeltaTime * aim;
     }
 
     public override void Update(BehaviorEntity.Animal self) {
+        if (HatesMounter()) ridable?.Dismount();
+        if (manager.TaskIndex < settings.TaskName)
+            manager.Transition(settings.TaskName);
         if (manager.TaskIndex != settings.TaskName) return;
         if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
         
@@ -60,16 +67,19 @@ public class RidableStateBehavior : SpeciesBehavior {
             return;
         }
 
-        if (math.length(self.velocity.xz) < 1E-05f) return;
-        float3 aim;
-        if (MMove.MovementType(mmove, settings.TaskName) != Movement.FollowType.Planar)
-            aim = math.normalize(self.velocity);
-        else aim = math.normalize(new float3(self.velocity.x, 0, self.velocity.z));
-        
+        if (Vector3.Magnitude(aim) < 1E-05f) return;
         self.Rotation = Quaternion.RotateTowards(self.Rotation, Quaternion.LookRotation(aim), movement.rotSpeed * self.DeltaTime);
     }
 
-    private bool TransitionTo() => ridable.RiderTarget != Guid.Empty;
+    private bool HatesMounter() {
+        if (ridable.RiderTarget == Guid.Empty) return false;
+        return relations.GetAffection(ridable.RiderTarget) < AllowRideAffinity;
+    }
+
+    private bool TransitionTo(){
+        aim = float3.zero;
+        return ridable.RiderTarget != Guid.Empty;
+    }
     private void Mounted(object src, object interactor, object reject) {
         RefTuple<bool> valid = reject as RefTuple<bool>;
         if (relations != null
@@ -113,6 +123,7 @@ public class RidableStateBehavior : SpeciesBehavior {
         manager.RegisterTransition(settings.TaskName, TransitionTo);
         self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Guided, WalkInDirection);
         self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Action_Mounted, Mounted);
+        self.eventCtrl.AddContextlessEventHandler(Core.Events.GameEvent.Action_Dismounted, OnDismounted);
         this.self = self;
     }
 
@@ -132,6 +143,7 @@ public class RidableStateBehavior : SpeciesBehavior {
         manager.RegisterTransition(settings.TaskName, TransitionTo);
         self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Guided, WalkInDirection);
         self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Action_Mounted, Mounted);
+        self.eventCtrl.AddContextlessEventHandler(Core.Events.GameEvent.Action_Dismounted, OnDismounted);
         this.self = self;
     }
 

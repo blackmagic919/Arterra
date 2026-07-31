@@ -32,7 +32,6 @@ MonoBehaviour:
           x: 2.5
           y: 1.5
           z: 2.5
-        friction: 0.2
       rotSpeed: 180
       MaxWaterSpeed: 10
       MaxLandSpeed: 1
@@ -40,22 +39,10 @@ MonoBehaviour:
       groundStickDist: 0.1
       durability:
         weight: 0.05
-        MaxHealth:
-          mean: 2
-          var: 0
-          geneWeight: 0
-        NaturalRegen:
-          mean: 0.75
-          var: 0
-          geneWeight: 0
-        InvincTime:
-          mean: 0
-          var: 0
-          geneWeight: 0
-        HoldBreathTime:
-          mean: 0
-          var: 0
-          geneWeight: 0
+        MaxHealth: 2
+        NaturalRegen: 1
+        InvincTime: 0.05
+        HoldBreathTime: Infinity
       ItemDrop: Boat
   references:
     version: 2

@@ -28,6 +28,6 @@ MonoBehaviour:
     - rid: 6083762249953443912
       type: {class: ProjectileTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
-        ProjectileEntity: Arrow
-        LaunchSpeedMultiplier: 1
+        LaunchSpeedMultiplier: 2.5
         FireSound: 2001
+        ProjectileEntity: Arrow

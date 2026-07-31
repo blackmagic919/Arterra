@@ -18,7 +18,7 @@ Shader "Unlit/OutlineShader"
         Pass
         {
             Cull Off
-            ZWrite On
+            ZWrite Off
 
             HLSLPROGRAM
             #pragma vertex vert

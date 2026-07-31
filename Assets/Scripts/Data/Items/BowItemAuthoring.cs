@@ -129,8 +129,12 @@ namespace Arterra.Data.Item{
             if (!ItemInfo.GetMostSpecificTag(this.settings.ArrowItemTag, inv.PeekItem(slot).Index, out object prop))
                 return false;
             ProjectileTag tag = (ProjectileTag)prop;
-            tag.LaunchProjectile(h, h.Forward * launchSpeed);
-            inv.RemoveStackableSlot(slot, inv.PeekItem(slot).UnitSize);
+            IItem item = inv.PeekItem(slot);
+            IItem ShotArrowItem = item.Clone() as IItem;
+            ShotArrowItem.AmountRaw = inv.RemoveStackableSlot(slot, item.UnitSize);
+            if (ShotArrowItem.AmountRaw == 0) return false;
+
+            tag.LaunchProjectile(h, h.Forward * launchSpeed, construct: entity => entity.RegisterConstructor(ShotArrowItem));
             return true;
         }
 

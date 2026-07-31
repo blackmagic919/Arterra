@@ -216,6 +216,10 @@ namespace Arterra.Data.Entity.Behavior {
         Recieve_StaminaStrength = Modifier.Effects + 37,
         Inflict_StaminaDuration = Modifier.Effects + 38,
         Recieve_StaminaDuration = Modifier.Effects + 39,
+        Inflict_ShockedStrength = Modifier.Effects + 40,
+        Recieve_ShockedStrength = Modifier.Effects + 41,
+        Inflict_ShockedDuration = Modifier.Effects + 42,
+        Recieve_ShockedDuration = Modifier.Effects + 43,
 
         CameraSensitivity = Modifier.Player + 0,
         MinimumX = Modifier.Player + 1,

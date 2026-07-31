@@ -8,6 +8,7 @@ using Arterra.Engine.Terrain.Readback;
 using static Arterra.Engine.Terrain.Readback.IVertFormat;
 using Arterra.Configuration;
 using Arterra.Utils;
+using Arterra.Data.Entity.Behavior;
 
 public static class SpriteExtruder{
     public static ComputeShader ImageExtruder;
@@ -23,7 +24,11 @@ public static class SpriteExtruder{
         ImageExtruder = Resources.Load<ComputeShader>("Compute/CGeometry/Extruder/SpriteExtruder");
         triangleTranscriber = Resources.Load<ComputeShader>("Compute/CGeometry/Extruder/TranscribeTriangles");
         vertexTranscriber = Resources.Load<ComputeShader>("Compute/CGeometry/Extruder/TranscribeVertices");
-        int2 maxSampleSize = ((EItem.EItemSetting)Config.CURRENT.Generation.Entities.Retrieve("EntityItem").Setting).SpriteSampleSize;
+
+        int2 maxSampleSize = new (0);
+        if(((BehaviorEntity.AnimalSetting)Config.CURRENT.Generation.Entities.Retrieve("EntityItem").Setting).Is(out EntityItemDisplaySettings settings))
+            maxSampleSize = new (settings.SpriteSampleSize);
+
         offsets = new ExtruderOffsets(maxSampleSize, 0, VERTEX_STRIDE_WORD, TRI_STRIDE_WORD);
 
         int kernel = ImageExtruder.FindKernel("March");

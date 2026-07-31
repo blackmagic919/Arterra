@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: acf83e0356e9941999c34c16cdba0ab8, type: 3}
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
   m_Name: StoneHorn
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
   Name: StoneHorn
   Tags:
     Reg:
@@ -32,15 +32,75 @@ MonoBehaviour:
           x: 0.5
           y: 0.5
           z: 0.5
-      DecayTime: 100
-      MinDamagingSpeed: 2.5
-      DamageMultiplier: 0.05
-      KnockbackMultiplier: 0.25
-      terrainInteration: 0
-      entityInteraction: 1
-      FlybySound: 3000
-      HitSound: 3001
-      ItemDrop: Stone:Solid
+      BehaviorList:
+        value: 05000000ed030000f7030000f6030000f8030000f4030000
+      Settings:
+        value:
+          value:
+          - value:
+              value:
+                rid: 5778504888424333508
+          - value:
+              value:
+                rid: 5778504888424333511
+          - value:
+              value:
+                rid: 5778504888424333512
+          - value:
+              value:
+                rid: 5778504888424333509
+          - value:
+              value:
+                rid: 5778504888424333510
+          - value:
+              value:
+                rid: 5778504888424333536
+          - value:
+              value:
+                rid: 5778504888424333635
+      _prevBehaviorCount: 6
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 5778504888424333508
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 1
+    - rid: 5778504888424333509
+      type: {class: ProjectileFlightSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        MinDamagingSpeed: 2.5
+        DamageMultiplier: 0.1
+        KnockbackMultiplier: 0.25
+        FrictionReduction: 1
+        entityInteraction: 1
+    - rid: 5778504888424333510
+      type: {class: ProjectileTerrainSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        terrainInteraction: 0
+    - rid: 5778504888424333511
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 5
+        StartHealthPercent: 1
+        StartHealthVariance: 0
+        MaxHealth: 0
+        NaturalRegen: 0
+        InvincTime: 0.25
+    - rid: 5778504888424333512
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
+          value: []
+    - rid: 5778504888424333536
+      type: {class: ProjectileEffectsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        FlybySound: 3000
+        HitSound: 3001
+    - rid: 5778504888424333635
+      type: {class: EntityItemSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 100
+        MergeRadius: 0
+        DefaultItem: Stone:Solid

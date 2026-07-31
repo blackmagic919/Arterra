@@ -17,7 +17,8 @@ namespace Arterra.Data.Entity.Behavior {
         Regeneration,
         Speed,
         MaxHealth,
-        Stamina
+        Stamina,
+        Shocked
     }
     public class EffectorSettings : IBehaviorSetting {
         public static Dictionary<Effects, Func<TempBehavior>> EffectTemplates = new () {
@@ -30,7 +31,8 @@ namespace Arterra.Data.Entity.Behavior {
             { Effects.Regeneration, () => new RegenerationEffect() },
             { Effects.Speed, () => new SpeedEffect() },
             { Effects.MaxHealth, () => new MaxHealthEffect() },
-            { Effects.Stamina, () => new StaminaEffect() }
+            { Effects.Stamina, () => new StaminaEffect() },
+            { Effects.Shocked, () => new ShockedEffect() }
         };
         public enum Subject {
             Source, Target
@@ -41,7 +43,7 @@ namespace Arterra.Data.Entity.Behavior {
             public Effect effect;
         }
         [Serializable]
-        public struct Effect {
+        public class Effect {
             public Effects name;
             public Subject subject;
             public float chance;

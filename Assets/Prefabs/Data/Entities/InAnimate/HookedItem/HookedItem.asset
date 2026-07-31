@@ -1,0 +1,142 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
+  m_Name: HookedItem
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
+  Name: HookedItem
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: {fileID: 5653881121737289674, guid: cdde00980c1ea4ddea86e60f5d7f261c, type: 3}
+  Profile:
+    value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130738944
+      flags: 1
+    - bounds:
+        data: 2130738944
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 2
+          y: 2
+          z: 2
+      collider:
+        size:
+          x: 0.5
+          y: 0.5
+          z: 0.5
+      BehaviorList:
+        value: 05000000ed030000f9030000f4030000f5030000f6030000f7030000
+      Settings:
+        value:
+          value:
+          - value:
+              value:
+                rid: 5778504888424333422
+          - value:
+              value:
+                rid: 5778504888424333426
+          - value:
+              value:
+                rid: 5778504888424333427
+          - value:
+              value:
+                rid: 5778504888424333428
+          - value:
+              value:
+                rid: 5778504888424333423
+          - value:
+              value:
+                rid: 5778504888424333424
+          - value:
+              value:
+                rid: 5778504888424333425
+          - value:
+              value:
+                rid: 5778504888424333463
+      _prevBehaviorCount: 7
+  references:
+    version: 2
+    RefIds:
+    - rid: 5778504888424333422
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 1
+    - rid: 5778504888424333423
+      type: {class: EntityItemSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 300
+        MergeRadius: 2.5
+    - rid: 5778504888424333424
+      type: {class: EntityItemDisplaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        MeshFilterPath: 
+        SpriteSampleSize:
+          x: 32
+          y: 32
+        AlphaClip: 0.2
+        ExtrudeHeight: 2
+    - rid: 5778504888424333425
+      type: {class: ProjectileTerrainSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        terrainInteraction: 3
+    - rid: 5778504888424333426
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 0.25
+        StartHealthPercent: 1
+        StartHealthVariance: 0
+        MaxHealth: 0
+        NaturalRegen: 0
+        InvincTime: 0.25
+    - rid: 5778504888424333427
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
+          value: []
+    - rid: 5778504888424333428
+      type: {class: TestMergeSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        MergeRadius: 2.5
+        Check: 0
+        ForceNoConsent: 1
+    - rid: 5778504888424333463
+      type: {class: ProjectileFlightSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        MinDamagingSpeed: 5
+        DamageMultiplier: 0.025
+        KnockbackMultiplier: 0.5
+        FrictionReduction: 1
+        entityInteraction: 2

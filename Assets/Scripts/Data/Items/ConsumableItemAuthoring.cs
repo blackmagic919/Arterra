@@ -93,20 +93,20 @@ public class ConsumbaleItem : IItem{
         if (AmountRaw == 0) return 0;
         if (ConsumptionRate <= 0f || NutritionValue <= 0f) return 0;
 
-        int delta = CustomUtility.GetStaggeredDelta(ConsumptionRate);
-        if (delta == 0) return 0;
         if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return 0;
         if (!player.Is(out HungerBehavior hung)) return 0;
         if (hung.IsFull) return 0;
 
-        delta = AmountRaw - math.max(AmountRaw - delta, 0);
+        float delta = AmountRaw - math.max(AmountRaw - ConsumptionRate, 0);
+        if (delta == 0) return 0;
+
         player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player, this, delta);
         float nutrition = (float)delta / UnitSize * NutritionValue;
         hung.Feed(ref nutrition);
-        delta = CustomUtility.GetStaggeredDelta(nutrition * UnitSize / NutritionValue);
-        AmountRaw -= delta;
+        int deltaInt = CustomUtility.GetStaggeredDelta(nutrition * UnitSize / NutritionValue);
+        AmountRaw -= deltaInt;
         if(AmountRaw == 0) cxt.TryRemove();
-        return delta;
+        return deltaInt;
     }
     
     private void UpdateDisplay(){

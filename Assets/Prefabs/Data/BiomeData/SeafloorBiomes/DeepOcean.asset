@@ -32,6 +32,7 @@ MonoBehaviour:
         - Kelp1
         - KelpShort1
         - Kelp2
+        - ElectricEel
       GroundMaterials:
         value:
         - value:
@@ -99,6 +100,11 @@ MonoBehaviour:
         - value:
             Entity: 8
             ChancePerCoord: 0.00012
+        - value:
+            Entity: 12
+            ChancePerCoord: 0.00005
+      StructureSystems:
+        value: []
   BiomeConditions:
     value:
       TerrainStart: 0

@@ -125,8 +125,8 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void FlushDeltaHealth(float delta) {
-            RefTuple<float> cxt = delta;
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_FlushHealthDelta, self, cxt);
+            RefTuple<float> cxt = new RefTuple<float>(delta);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_FlushHealthDelta, self, null, cxt);
             delta = cxt.Value;
             health = math.clamp(health + delta, 0, MaxHealth);
         }

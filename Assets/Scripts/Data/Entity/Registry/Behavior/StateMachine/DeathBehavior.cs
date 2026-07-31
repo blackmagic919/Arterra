@@ -20,7 +20,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class DeathBehavior : SpeciesBehavior {
+    public class DeathBehavior : SpeciesBehavior, IDecaying {
         [JsonIgnore]
         public DeathSettings settings;
 
@@ -28,14 +28,17 @@ namespace Arterra.Data.Entity.Behavior {
         private VitalityBehavior vitality;
         private Modifier mod;
 
-        [JsonIgnore] public float DecompositionTime => Modifier.Get(mod, MSettings.DecompositionTime, settings.DecompositionTime);
+        [JsonIgnore] public float DecayTime => Modifier.Get(mod, MSettings.DecompositionTime, settings.DecompositionTime);
+        [JsonIgnore] public float DecayedDuration => manager.TaskDuration;
+
+        public void ResetDecay() => manager.TaskDuration = math.max(DecayTime, 0);
 
         public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             if (manager.TaskIndex != settings.TaskName) {
                 if (!vitality.IsDead) return;
-                manager.TaskDuration = DecompositionTime;
+                manager.TaskDuration = DecayTime;
                 manager.Transition(settings.TaskName);
             };
             if (!vitality.IsDead) { //Bring back from the dead 
@@ -72,6 +75,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out mod)) mod = null;
             
             self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
+            self.Register<IDecaying>(this);
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
@@ -84,6 +88,12 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out mod)) mod = null;
             
             self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
+            self.Register<IDecaying>(this);
+        }
+
+        public override void Disable(BehaviorEntity.Animal self) {
+            self.eventCtrl.RemoveEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
+            self.Unregister(typeof(IDecaying));
         }
     }
 }

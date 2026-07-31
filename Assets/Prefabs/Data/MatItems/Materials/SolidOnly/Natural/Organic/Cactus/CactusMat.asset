@@ -19,6 +19,8 @@ MonoBehaviour:
   Names:
     value:
     - Cactus
+    - Cactus:Solid
+    - Void
   terrainData:
     Texture: 0
     textureScale: 2
@@ -51,12 +53,12 @@ MonoBehaviour:
     SolidLootTable:
       value: []
     DefaultSolidLoot:
-      DropItem: 0
+      DropItem: 1
       DropMultiplier: 1
     LiquidLootTable:
       value: []
     DefaultLiquidLoot:
-      DropItem: 0
+      DropItem: 2
       DropMultiplier: 0
   references:
     version: 2

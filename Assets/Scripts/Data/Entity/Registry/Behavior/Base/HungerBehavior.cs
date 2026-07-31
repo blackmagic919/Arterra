@@ -187,12 +187,14 @@ namespace Arterra.Data.Entity.Behavior {
             );
         }
 
-        private void FlushDeltaHunger(float delta) {
-            RefTuple<float> cxt = delta;
+        private float FlushDeltaHunger(float delta) {
+            RefTuple<float> cxt = new RefTuple<float>(delta);
             self.eventCtrl.RaiseEvent(GameEvent.Entity_FlushHungerDelta, self, null, cxt);
             delta = cxt;
 
-            HungerPercent = math.clamp(HungerPercent + delta, 0f, 2f);
+            delta = math.clamp(HungerPercent + delta, 0f, 2f) - HungerPercent;
+            HungerPercent += delta;
+            return delta;
         }
 
         private void UpdateModifiers() {
@@ -236,7 +238,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void Feed(ref float nutrition) {
             float delta = nutrition * settings.feedMultiplier;
-            FlushDeltaHunger(delta);
+            nutrition = FlushDeltaHunger(delta) / settings.feedMultiplier;
         }
 
         public void HandleExerciseEvent(HungerSettings.Exercise exercise) {

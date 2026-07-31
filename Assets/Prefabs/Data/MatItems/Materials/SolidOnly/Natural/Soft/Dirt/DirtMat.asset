@@ -49,7 +49,7 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  Logic: {fileID: 11400000, guid: bf7bfe910da0946f786b5ae896fe7aaf, type: 2}
+  Logic: {fileID: 0}
   looter:
     SolidLootTable:
       value: []
@@ -77,13 +77,13 @@ MonoBehaviour:
     - rid: 5778504664064983181
       type: {class: ConverterToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
-        TerraformSpeed: 0
-        ToolDamage: 0
-        GivesItem: 0
+        TerraformSpeed: 100
+        ToolDamage: 1
+        GivesItem: 1
         _convertBounds:
-          data: 0
+          data: 4286643968
         _neighborBounds:
           bounds:
-            data: 0
-          flags: 0
-        ConvertTarget: 
+            data: 2130738944
+          flags: 2
+        ConvertTarget: TilledSoil

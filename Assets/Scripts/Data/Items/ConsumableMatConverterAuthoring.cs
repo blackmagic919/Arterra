@@ -47,18 +47,19 @@ namespace Arterra.Data.Item {
 
         private void ConsumeFood(ItemContext cxt) {
             if (AmountRaw == 0) return;
-            int delta = CustomUtility.GetStaggeredDelta(settings.ConsumptionRate);
-            if (delta == 0) return;
+            if (settings.ConsumptionRate == 0) return;
             if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
             if (!player.Is(out HungerBehavior hung)) return;
             if (hung.IsFull) return;
 
-            delta = AmountRaw - math.max(AmountRaw - delta, 0);
+            float delta = AmountRaw - math.max(AmountRaw - settings.ConsumptionRate, 0);
+            if (delta == 0) return;
+
             player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player, this, delta);
-            float nutrition = (float)delta / UnitSize * settings.NutritionValue;
+            float nutrition = delta / UnitSize * settings.NutritionValue;
             hung.Feed(ref nutrition);
-            delta = CustomUtility.GetStaggeredDelta(nutrition * UnitSize / settings.NutritionValue);
-            AmountRaw -= delta;
+            int deltaInt = CustomUtility.GetStaggeredDelta(nutrition * UnitSize / settings.NutritionValue);
+            AmountRaw -= deltaInt;
             if (AmountRaw == 0) cxt.TryRemove();
         }
     }

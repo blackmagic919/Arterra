@@ -3,11 +3,13 @@ using System;
 using System.Collections.Generic;
 using Arterra.Core.Events;
 using Arterra.Data.Item;
+using Arterra.Utils;
 using Unity.Mathematics;
 
 namespace Arterra.Data.Entity.Behavior {
     public class FeedableBehaviorSettings : IBehaviorSetting {
         public EatCondition CanEat = EatCondition.OnlyWhenHungry;
+        public float ConsumeRate = 1;
 
         public enum EatCondition {
             OnlyWhenHungry,
@@ -45,17 +47,21 @@ namespace Arterra.Data.Entity.Behavior {
                 default:
                     break;
             }
+            
+            IItem delta = item.Clone() as IItem;
+            delta.AmountRaw = CustomUtility.GetStaggeredDelta(item.UnitSize * this.self.DeltaTime * settings.ConsumeRate);
+            delta.AmountRaw = math.min(delta.AmountRaw, item.AmountRaw);
+            
+            if (!consume.CanConsume(mod, delta, out float nutrition)) return;
 
-            if (!consume.CanConsume(mod, item, out float nutrition)) return;
             RefTuple<(Entity, float, float)> context = new ((
                 target as Entity,
                 nutrition,
                 nutrition / Modifier.Get(mod, MSettings.MaxHealth, vitality.stats.MaxHealth)
             ));
 
-            this.self.eventCtrl.RaiseEvent(GameEvent.Entity_Fed, self, item, context);
-
-            item.AmountRaw = 0;
+            this.self.eventCtrl.RaiseEvent(GameEvent.Entity_Fed, self, delta, context);
+            item.AmountRaw -= delta.AmountRaw;
             nutrition = context.Value.Item2; 
             vitality.Heal(nutrition);
         }
