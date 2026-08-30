@@ -95,6 +95,39 @@ jobs:
           name: Arterra-macOS
           path: Arterra-macOS.zip
 
+  deploy-steam-qa:
+    name: Deploy to Steam QA
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set release version
+        run: echo "RELEASE_VERSION=${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare Steam depot contents
+        run: |
+          mkdir -p steam-content/windows steam-content/macos
+          unzip -q artifacts/Arterra-Windows-x64/Arterra-Windows-x64.zip -d steam-content/windows
+          unzip -q artifacts/Arterra-macOS/Arterra-macOS.zip -d steam-content/macos
+          find steam-content -maxdepth 3 -type f -o -type l | sort | head -200
+
+      - name: Deploy to Steam QA branch
+        uses: game-ci/steam-deploy@v3
+        with:
+          username: ${{ secrets.STEAM_USERNAME }}
+          configVdf: ${{ secrets.STEAM_CONFIG_VDF }}
+          appId: ${{ secrets.STEAM_APP_ID }}
+          buildDescription: ${{ env.RELEASE_VERSION }}
+          rootPath: steam-content
+          releaseBranch: alpha
+          depot1Path: windows/StandaloneWindows64
+          depot2Path: macos/StandaloneOSX
+
   release:
     name: Create GitHub Release
     needs: [build-windows, build-macos]
