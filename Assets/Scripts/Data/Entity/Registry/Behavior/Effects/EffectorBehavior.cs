@@ -47,7 +47,6 @@ namespace Arterra.Data.Entity.Behavior {
             public Effects name;
             public Subject subject;
             public float chance;
-            [SerializeReference]
             public ReferenceOption<TempBehavior> behavior;
 
             public void OnValidate() {

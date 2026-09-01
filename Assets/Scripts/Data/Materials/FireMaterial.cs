@@ -31,7 +31,6 @@ namespace Arterra.Data.Material{
         public struct TouchEffect {
             public Effects name;
             [Range(0f, 1f)] public float chance;
-            [SerializeReference]
             public ReferenceOption<TempBehavior> behavior;
 
             public void OnValidate() {

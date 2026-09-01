@@ -1,11 +1,14 @@
 // ScriptableRenderPass template created for URP 12 and Unity 2021.2
-// Made by Alexander Ameye 
+// Made by Alexander Ameye
 // https://alexanderameye.github.io/
 
-using System;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
+using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering.Universal.Internal;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Arterra.GamePlay;
@@ -18,24 +21,38 @@ namespace Arterra.Engine.Rendering
         const string ProfilerTag = "Atmosphere Pass";
 
         static AtmosphereBake AtmosphereSettings;
-
-        static RTHandle temporaryBuffer;
-        static RTHandle colorBuffer; static RTHandle depthBuffer;
-
         static Material material;
-
-        // It is good to cache the shader property IDs here.
         static bool initialized = false;
+        static CopyDepthPass depthCopyPass;
 
-        // The constructor of the pass. Here you can set any material properties that do not need to be updated on a per-frame basis.
+        private class PassData
+        {
+            public AtmosphereBake atmosphereSettings;
+            public Vector4 lightDirection;
+            public Vector4 lightColor;
+        }
+
         public AtmospherePass(AtmosphereFeature.PassSettings passSettings)
         {
             renderPassEvent = passSettings.renderPassEvent;
+            ConfigureInput(ScriptableRenderPassInput.Color);
             initialized = false;
         }
 
         public static void Initialize()
         {
+            if (depthCopyPass == null)
+            {
+                Shader copyDepthShader = Shader.Find("Hidden/Universal Render Pipeline/CopyDepth");
+                if (copyDepthShader == null)
+                {
+                    Debug.LogError("AtmospherePass: URP CopyDepth shader was not found.");
+                    return;
+                }
+
+                depthCopyPass = new CopyDepthPass(RenderPassEvent.AfterRenderingTransparents, copyDepthShader, customPassName: "Atmosphere Depth Copy");
+            }
+
             if (material == null) material = CoreUtils.CreateEngineMaterial("Hidden/Fog");
 
             Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
@@ -52,76 +69,72 @@ namespace Arterra.Engine.Rendering
         public static void Release()
         {
             if (material != null) UnityEngine.Object.Destroy(material);
-            AtmosphereSettings.ReleaseData();
+            material = null;
+            depthCopyPass?.Dispose();
+            depthCopyPass = null;
+            AtmosphereSettings?.ReleaseData();
             initialized = false;
         }
 
-        [Obsolete]
-        public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
         {
-            if (!initialized) return;
-            RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
+            if (!initialized || Camera.main == null) return;
+
+            UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
+            if (cameraData.camera != Camera.main) return;
+            if (!GPUMapManager.initialized || !AtmosphereSettings.initialized) return;
+
+            UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
+            if (resourceData.isActiveTargetBackBuffer) return;
+
+            RenderTextureDescriptor descriptor = cameraData.cameraTargetDescriptor;
             descriptor.depthBufferBits = 0;
+            descriptor.msaaSamples = 1;
 
-            colorBuffer = renderingData.cameraData.renderer.cameraColorTargetHandle;
-            //We need copy from depth buffer because transparent pass needs depth texture of opaque pass, and fog needs depth texture of transparent pass
-            depthBuffer = renderingData.cameraData.renderer.cameraDepthTargetHandle;
-            temporaryBuffer = RTHandles.Alloc(descriptor, FilterMode.Bilinear);
+            TextureHandle colorTexture = resourceData.activeColorTexture;
+            TextureHandle activeDepthTexture = resourceData.activeDepthTexture;
+            if (!activeDepthTexture.IsValid()) return;
+            RenderTextureDescriptor depthDescriptor = cameraData.cameraTargetDescriptor;
+            depthDescriptor.depthBufferBits = 0;
+            depthDescriptor.depthStencilFormat = GraphicsFormat.None;
+            depthDescriptor.graphicsFormat = GraphicsFormat.R32_SFloat;
+            depthDescriptor.msaaSamples = 1;
+            TextureHandle depthTexture = UniversalRenderer.CreateRenderGraphTexture(renderGraph, depthDescriptor, "Atmosphere Depth After Transparents", false);
+            TextureHandle temporaryTexture = UniversalRenderer.CreateRenderGraphTexture(renderGraph, descriptor, "Atmosphere Temporary", false);
+            depthCopyPass.Render(renderGraph, frameData, depthTexture, activeDepthTexture, true, "Atmosphere Depth Copy");
 
-        }
-
-        [Obsolete]
-        // The actual execution of the pass. This is where custom rendering occurs.
-        public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
-        {
-            if (!initialized) return;
-            //if (renderingData.cameraData.camera == PlayerHandler.Camera.GetChild(0).GetComponent<UnityEngine.Camera>()) return;
-            if (renderingData.cameraData.camera != Camera.main) return;
-            if (GPUMapManager.initialized && AtmosphereSettings.initialized)
+            using (var builder = renderGraph.AddUnsafePass<PassData>(ProfilerTag, out var passData))
             {
-                CommandBuffer cmd = CommandBufferPool.Get();
-                using (new ProfilingScope(cmd, new ProfilingSampler(ProfilerTag)))
+                UniversalLightData lightData = frameData.Get<UniversalLightData>();
+                passData.atmosphereSettings = AtmosphereSettings;
+                if (lightData.mainLightIndex >= 0 && lightData.mainLightIndex < lightData.visibleLights.Length)
                 {
-                    SetGlobalLightProperties(cmd, ref renderingData);
-                    AtmosphereSettings.Execute(cmd);
-                    cmd.SetGlobalTexture("_CameraDepthTexture", depthBuffer);//Make sure camera depth is available in shader
-                    cmd.Blit(colorBuffer.rt, temporaryBuffer.rt, material, 0); // shader pass 0
-                    cmd.Blit(temporaryBuffer.rt, colorBuffer.rt);
+                    var mainLight = lightData.visibleLights[lightData.mainLightIndex];
+                    passData.lightDirection = -mainLight.localToWorldMatrix.GetColumn(2);
+                    passData.lightColor = mainLight.finalColor;
                 }
 
-                // Execute the command buffer and release it.
-                context.ExecuteCommandBuffer(cmd);
-                CommandBufferPool.Release(cmd);
+                builder.UseTexture(colorTexture, AccessFlags.Read);
+                builder.UseTexture(depthTexture, AccessFlags.Read);
+                builder.AllowGlobalStateModification(true);
+                builder.AllowPassCulling(false);
+                builder.SetRenderFunc((PassData data, UnsafeGraphContext context) =>
+                {
+                    CommandBuffer cmd = CommandBufferHelpers.GetNativeCommandBuffer(context.cmd);
+                    SetGlobalLightProperties(cmd, data);
+                    data.atmosphereSettings.Execute(cmd);
+                });
             }
+
+            RenderGraphUtils.AddBlitPass(renderGraph, new RenderGraphUtils.BlitMaterialParameters(colorTexture, temporaryTexture, material, 0), "Atmosphere Fog");
+            resourceData.cameraColor = temporaryTexture;
         }
 
-        // Called when the camera has finished rendering.
-        // Here we release/cleanup any allocated resources that were created by this pass.
-        // Gets called for all cameras i na camera stack.
-        public override void OnCameraCleanup(CommandBuffer cmd)
+        private static void SetGlobalLightProperties(CommandBuffer cmd, PassData passData)
         {
-            if (cmd == null) throw new ArgumentNullException("cmd");
-
-            // Since we created a temporary render texture in OnCameraSetup, we need to release the memory here to avoid a leak.
-            temporaryBuffer?.Release();
-        }
-
-        //Usually these properties are set in URP, but disabling default shadows prevents propogation of this information.
-        private void SetGlobalLightProperties(CommandBuffer cmd, ref RenderingData renderingData)
-        {
-            var lightData = renderingData.lightData;
-            if (lightData.mainLightIndex >= 0 && lightData.mainLightIndex < lightData.visibleLights.Length)
-            {
-                var mainLight = lightData.visibleLights[lightData.mainLightIndex];
-
-                // Convert Unity's internal light data to shader properties
-                Vector4 lightDirection = -mainLight.localToWorldMatrix.GetColumn(2); // Forward vector
-                Vector4 lightColor = mainLight.finalColor;
-
-                cmd.SetGlobalVector("_LightDirection", lightDirection);
-                cmd.SetGlobalVector("_MainLightColor", lightColor);
-                cmd.SetGlobalVector("_MainLightPosition", lightDirection);
-            }
+            cmd.SetGlobalVector("_LightDirection", passData.lightDirection);
+            cmd.SetGlobalVector("_MainLightColor", passData.lightColor);
+            cmd.SetGlobalVector("_MainLightPosition", passData.lightDirection);
         }
     }
 }

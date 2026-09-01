@@ -1,6 +1,6 @@
-using System;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 
 namespace Arterra.Engine.Rendering {
@@ -9,9 +9,6 @@ namespace Arterra.Engine.Rendering {
 #pragma warning disable 0618
         const string ProfilerTag = "Blindness Pass";
 
-        static RTHandle temporaryBuffer;
-        static RTHandle colorBuffer;
-        static RTHandle depthBuffer;
         static Material material;
 
         static bool initialized;
@@ -30,11 +27,18 @@ namespace Arterra.Engine.Rendering {
         static readonly int DepthEndID = Shader.PropertyToID("_DepthEnd");
         static readonly int MaxBlurPixelsID = Shader.PropertyToID("_MaxBlurPixels");
         static readonly int KernelRadiusID = Shader.PropertyToID("_KernelRadius");
+        static readonly int BlitTextureTexelSizeID = Shader.PropertyToID("_BlitTexture_TexelSize");
 
         const float StrengthSmooth = 10f;
 
+        private class PassData {
+            public TextureHandle source;
+            public Material material;
+        }
+
         public BlindnessPass(BlindnessFeature.PassSettings passSettings) {
             renderPassEvent = passSettings.renderPassEvent;
+            ConfigureInput(ScriptableRenderPassInput.Color | ScriptableRenderPassInput.Depth);
             initialized = false;
         }
 
@@ -84,22 +88,21 @@ namespace Arterra.Engine.Rendering {
             holdUntilTime = Mathf.Max(holdUntilTime, Time.unscaledTime + Mathf.Max(holdTime, 0f));
         }
 
-        [Obsolete]
-        public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData) {
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData) {
             if (!IsActive()) return;
+            UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
+            if (cameraData.camera != Camera.main) return;
+            UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
+            if (resourceData.isActiveTargetBackBuffer) return;
 
-            RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
+            TextureHandle depthTexture = resourceData.cameraDepthTexture;
+            if (!depthTexture.IsValid()) return;
+
+            RenderTextureDescriptor descriptor = cameraData.cameraTargetDescriptor;
             descriptor.depthBufferBits = 0;
-
-            colorBuffer = renderingData.cameraData.renderer.cameraColorTargetHandle;
-            depthBuffer = renderingData.cameraData.renderer.cameraDepthTargetHandle;
-            temporaryBuffer = RTHandles.Alloc(descriptor, FilterMode.Bilinear);
-        }
-
-        [Obsolete]
-        public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData) {
-            if (!IsActive()) return;
-            if (renderingData.cameraData.camera != Camera.main) return;
+            descriptor.msaaSamples = 1;
+            TextureHandle source = resourceData.activeColorTexture;
+            TextureHandle destination = UniversalRenderer.CreateRenderGraphTexture(renderGraph, descriptor, "Blindness Temporary", false);
 
             if (Time.unscaledTime > holdUntilTime) {
                 requestedStrength = 0f;
@@ -113,27 +116,25 @@ namespace Arterra.Engine.Rendering {
 
             if (currentStrength < 0.0005f) return;
 
-            CommandBuffer cmd = CommandBufferPool.Get();
-            using (new ProfilingScope(cmd, new ProfilingSampler(ProfilerTag))) {
-                cmd.SetGlobalTexture("_CameraDepthTexture", depthBuffer);
+            material.SetFloat(StrengthID, currentStrength);
+            material.SetFloat(DepthStartID, currentDepthStart);
+            material.SetFloat(DepthEndID, currentDepthEnd);
+            material.SetFloat(MaxBlurPixelsID, Mathf.Lerp(4f, 24f, currentStrength));
+            material.SetInt(KernelRadiusID, Mathf.RoundToInt(Mathf.Lerp(2f, 6f, currentStrength)));
+            material.SetVector(BlitTextureTexelSizeID, new Vector4(1f / descriptor.width, 1f / descriptor.height, descriptor.width, descriptor.height));
 
-                material.SetFloat(StrengthID, currentStrength);
-                material.SetFloat(DepthStartID, currentDepthStart);
-                material.SetFloat(DepthEndID, currentDepthEnd);
-                material.SetFloat(MaxBlurPixelsID, Mathf.Lerp(4f, 24f, currentStrength));
-                material.SetInt(KernelRadiusID, Mathf.RoundToInt(Mathf.Lerp(2f, 6f, currentStrength)));
-
-                cmd.Blit(colorBuffer.rt, temporaryBuffer.rt, material, 0);
-                cmd.Blit(temporaryBuffer.rt, colorBuffer.rt);
+            using (var builder = renderGraph.AddUnsafePass<PassData>(ProfilerTag, out var passData)) {
+                passData.source = source;
+                passData.material = material;
+                builder.UseTexture(source, AccessFlags.Read);
+                builder.UseTexture(depthTexture, AccessFlags.Read);
+                builder.UseTexture(destination, AccessFlags.Write);
+                builder.SetRenderFunc((PassData data, UnsafeGraphContext context) => {
+                    Blitter.BlitTexture(context.cmd, data.source, new Vector4(1f, 1f, 0f, 0f), data.material, 0);
+                });
             }
 
-            context.ExecuteCommandBuffer(cmd);
-            CommandBufferPool.Release(cmd);
-        }
-
-        public override void OnCameraCleanup(CommandBuffer cmd) {
-            if (cmd == null) throw new ArgumentNullException(nameof(cmd));
-            temporaryBuffer?.Release();
+            resourceData.cameraColor = destination;
         }
     }
 }

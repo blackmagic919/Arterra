@@ -31,7 +31,6 @@ namespace Arterra.Data.Entity.Behavior {
             public float boundary;
             public Partition partition;
             public Effects name;
-            [SerializeReference]
             public ReferenceOption<TempBehavior> behavior;
             public enum Partition {
                 greaterthan, lessthan

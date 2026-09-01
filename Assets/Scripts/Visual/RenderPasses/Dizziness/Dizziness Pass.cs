@@ -1,25 +1,22 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
+using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
 
 namespace Arterra.Engine.Rendering {
     public class DizzinessPass : ScriptableRenderPass {
-#pragma warning disable 0618
         const string ProfilerTag = "Dizziness Pass";
 
-        static RTHandle temporaryBuffer;
-        static RTHandle colorBuffer;
         static RTHandle[] historyBuffers;
         static float[] historyTimes;
         static int historyWriteIndex;
         static int historyCount;
         static int historyCapacity;
         static Material material;
-
         static bool initialized;
         static bool active;
-
         static float requestedStrength;
         static float currentStrength;
         static float holdUntilTime;
@@ -44,8 +41,16 @@ namespace Arterra.Engine.Rendering {
         const int MinHistoryFrames = 8;
         const int MaxHistoryFrames = 120;
 
+        private class PassData {
+            public TextureHandle source;
+            public TextureHandle history1;
+            public TextureHandle history2;
+            public Material material;
+        }
+
         public DizzinessPass(DizzinessFeature.PassSettings passSettings) {
             renderPassEvent = passSettings.renderPassEvent;
+            ConfigureInput(ScriptableRenderPassInput.Color);
             initialized = false;
         }
 
@@ -107,68 +112,58 @@ namespace Arterra.Engine.Rendering {
             holdUntilTime = Mathf.Max(holdUntilTime, Time.unscaledTime + Mathf.Max(holdTime, 0f));
         }
 
-        [Obsolete]
-        public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData) {
+        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData) {
             if (!IsActive()) return;
-            if (renderingData.cameraData.camera != Camera.main) return;
 
-            RenderTextureDescriptor descriptor = renderingData.cameraData.cameraTargetDescriptor;
+            UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
+            if (cameraData.camera != Camera.main) return;
+            UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
+            if (resourceData.isActiveTargetBackBuffer) return;
+
+            RenderTextureDescriptor descriptor = cameraData.cameraTargetDescriptor;
             descriptor.depthBufferBits = 0;
             descriptor.msaaSamples = 1;
-
-            colorBuffer = renderingData.cameraData.renderer.cameraColorTargetHandle;
-            temporaryBuffer = RTHandles.Alloc(descriptor, FilterMode.Bilinear);
-
             EnsureHistoryBuffers(descriptor);
-        }
 
-        [Obsolete]
-        public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData) {
-            if (!IsActive()) return;
-            if (renderingData.cameraData.camera != Camera.main) return;
-
-            if (Time.unscaledTime > holdUntilTime) {
-                requestedStrength = 0f;
-            }
+            if (Time.unscaledTime > holdUntilTime) requestedStrength = 0f;
 
             float dt = Mathf.Max(Time.unscaledDeltaTime, 1f / 240f);
             smoothedDeltaTime = Mathf.Lerp(smoothedDeltaTime, dt, 0.1f);
-
             float t = 1f - Mathf.Exp(-StrengthSmooth * Mathf.Max(Time.unscaledDeltaTime, 0f));
             currentStrength = Mathf.Lerp(currentStrength, requestedStrength, t);
 
-            CommandBuffer cmd = CommandBufferPool.Get();
-            using (new ProfilingScope(cmd, new ProfilingSampler(ProfilerTag))) {
-                CaptureCurrentFrame(cmd);
+            TextureHandle source = resourceData.activeColorTexture;
+            CaptureCurrentFrame(renderGraph, source);
+            if (currentStrength < 0.0005f) return;
 
-                if (currentStrength >= 0.0005f) {
-                    float w1 = Mathf.Lerp(0.08f, 1.65f, currentStrength);
-                    float w2 = Mathf.Lerp(0.04f, 0.75f, currentStrength);
-                    RTHandle delayed1 = GetDelayedHistory(DelaySeconds1);
-                    RTHandle delayed2 = GetDelayedHistory(DelaySeconds2);
+            RTHandle history1Buffer = GetDelayedHistory(DelaySeconds1);
+            RTHandle history2Buffer = GetDelayedHistory(DelaySeconds2);
+            if (history1Buffer == null || history2Buffer == null) return;
 
-                    if (delayed1 == null) delayed1 = colorBuffer;
-                    if (delayed2 == null) delayed2 = delayed1;
+            float weight1 = Mathf.Lerp(0.08f, 1.65f, currentStrength);
+            float weight2 = Mathf.Lerp(0.04f, 0.75f, currentStrength);
+            material.SetFloat(StrengthID, currentStrength);
+            material.SetTexture(History1TexID, history1Buffer.rt);
+            material.SetTexture(History2TexID, history2Buffer.rt);
+            material.SetFloat(HistoryWeight1ID, weight1);
+            material.SetFloat(HistoryWeight2ID, weight2);
 
-                    material.SetFloat(StrengthID, currentStrength);
-                    material.SetTexture(History1TexID, delayed1);
-                    material.SetTexture(History2TexID, delayed2);
-                    material.SetFloat(HistoryWeight1ID, w1);
-                    material.SetFloat(HistoryWeight2ID, w2);
-
-                    cmd.Blit(colorBuffer.rt, temporaryBuffer.rt, material, 0);
-                    cmd.Blit(temporaryBuffer.rt, colorBuffer.rt);
-                }
+            TextureHandle destination = UniversalRenderer.CreateRenderGraphTexture(renderGraph, descriptor, "Dizziness Temporary", false);
+            using (var builder = renderGraph.AddUnsafePass<PassData>(ProfilerTag, out var passData)) {
+                passData.source = source;
+                passData.history1 = renderGraph.ImportTexture(history1Buffer);
+                passData.history2 = renderGraph.ImportTexture(history2Buffer);
+                passData.material = material;
+                builder.UseTexture(passData.source, AccessFlags.Read);
+                builder.UseTexture(passData.history1, AccessFlags.Read);
+                builder.UseTexture(passData.history2, AccessFlags.Read);
+                builder.UseTexture(destination, AccessFlags.Write);
+                builder.SetRenderFunc((PassData data, UnsafeGraphContext context) => {
+                    Blitter.BlitTexture(context.cmd, data.source, new Vector4(1f, 1f, 0f, 0f), data.material, 0);
+                });
             }
 
-            context.ExecuteCommandBuffer(cmd);
-            CommandBufferPool.Release(cmd);
-        }
-
-        public override void OnCameraCleanup(CommandBuffer cmd) {
-            if (cmd == null) throw new ArgumentNullException(nameof(cmd));
-            temporaryBuffer?.Release();
-            temporaryBuffer = null;
+            resourceData.cameraColor = destination;
         }
 
         static void EnsureHistoryBuffers(RenderTextureDescriptor descriptor) {
@@ -178,16 +173,14 @@ namespace Arterra.Engine.Rendering {
             descriptor.height = Mathf.Max(1, descriptor.height / Mathf.Max(HistoryDownsample, 1));
             bool sizeChanged = historyWidth != descriptor.width || historyHeight != descriptor.height;
             bool countChanged = historyBuffers == null || targetCapacity != historyCapacity;
-
             if (!sizeChanged && !countChanged) return;
 
             ReleaseHistoryBuffers();
-
             historyBuffers = new RTHandle[targetCapacity];
             historyTimes = new float[targetCapacity];
-            for (int i = 0; i < targetCapacity; i++) {
-                historyBuffers[i] = RTHandles.Alloc(descriptor, FilterMode.Bilinear);
-                historyTimes[i] = float.NegativeInfinity;
+            for (int index = 0; index < targetCapacity; index++) {
+                historyBuffers[index] = RTHandles.Alloc(descriptor, FilterMode.Bilinear);
+                historyTimes[index] = float.NegativeInfinity;
             }
 
             historyCapacity = targetCapacity;
@@ -201,9 +194,7 @@ namespace Arterra.Engine.Rendering {
 
         static void ReleaseHistoryBuffers() {
             if (historyBuffers != null) {
-                for (int i = 0; i < historyBuffers.Length; i++) {
-                    historyBuffers[i]?.Release();
-                }
+                for (int index = 0; index < historyBuffers.Length; index++) historyBuffers[index]?.Release();
             }
 
             historyBuffers = null;
@@ -215,18 +206,16 @@ namespace Arterra.Engine.Rendering {
             lastCaptureTime = float.NegativeInfinity;
         }
 
-        static void CaptureCurrentFrame(CommandBuffer cmd) {
+        static void CaptureCurrentFrame(RenderGraph renderGraph, TextureHandle source) {
             if (historyBuffers == null || historyCapacity == 0) return;
 
             float now = Time.unscaledTime;
             float captureInterval = 1f / Mathf.Max(HistoryCaptureHz, 1f);
-            bool shouldCapture = historyCount == 0 || (now - lastCaptureTime) >= captureInterval;
-            if (!shouldCapture) return;
+            if (historyCount != 0 && now - lastCaptureTime < captureInterval) return;
 
-            RTHandle writeBuffer = historyBuffers[historyWriteIndex];
-            cmd.Blit(colorBuffer.rt, writeBuffer.rt);
+            TextureHandle destination = renderGraph.ImportTexture(historyBuffers[historyWriteIndex]);
+            RenderGraphUtils.AddBlitPass(renderGraph, source, destination, Vector2.one, Vector2.zero, passName: "Dizziness History Capture");
             historyTimes[historyWriteIndex] = now;
-
             historyWriteIndex = (historyWriteIndex + 1) % historyCapacity;
             historyCount = Mathf.Min(historyCount + 1, historyCapacity);
             historyReady = historyCount > 0;
@@ -239,18 +228,12 @@ namespace Arterra.Engine.Rendering {
             float targetTime = Time.unscaledTime - Mathf.Max(delaySeconds, 0f);
             int latestIndex = (historyWriteIndex - 1 + historyCapacity) % historyCapacity;
             int bestIndex = latestIndex;
-
-            // Walk backwards through valid samples and pick the first frame at or before targetTime.
-            for (int i = 0; i < historyCount; i++) {
-                int idx = (latestIndex - i + historyCapacity) % historyCapacity;
-                if (historyTimes[idx] <= targetTime) {
-                    bestIndex = idx;
-                    return historyBuffers[bestIndex];
-                }
-                bestIndex = idx;
+            for (int index = 0; index < historyCount; index++) {
+                int historyIndex = (latestIndex - index + historyCapacity) % historyCapacity;
+                if (historyTimes[historyIndex] <= targetTime) return historyBuffers[historyIndex];
+                bestIndex = historyIndex;
             }
 
-            // Not enough history yet: return oldest available sample.
             return historyBuffers[bestIndex];
         }
     }

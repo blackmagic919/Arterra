@@ -20,8 +20,7 @@ Shader "Hidden/NauseaOverlay"
 
         struct Attributes
         {
-            float4 positionOS : POSITION;
-            float2 uv : TEXCOORD0;
+            uint vertexID : SV_VertexID;
         };
 
         struct Varyings
@@ -30,9 +29,8 @@ Shader "Hidden/NauseaOverlay"
             float2 uv : TEXCOORD0;
         };
 
-        TEXTURE2D(_MainTex);
-        SAMPLER(sampler_MainTex);
-        float4 _MainTex_TexelSize;
+        TEXTURE2D_X(_BlitTexture);
+        float4 _BlitTexture_TexelSize;
 
         float _Strength;
         float _NoiseScale;
@@ -43,8 +41,12 @@ Shader "Hidden/NauseaOverlay"
         Varyings vert(Attributes input)
         {
             Varyings output;
-            output.positionHCS = TransformObjectToHClip(input.positionOS.xyz);
-            output.uv = input.uv;
+            float2 positionUV = float2((input.vertexID << 1) & 2, input.vertexID & 2);
+            output.positionHCS = float4(positionUV * 2.0 - 1.0, 0.0, 1.0);
+            output.uv = positionUV;
+#if UNITY_UV_STARTS_AT_TOP
+            output.uv.y = 1.0 - output.uv.y;
+#endif
             return output;
         }
 
@@ -92,11 +94,11 @@ Shader "Hidden/NauseaOverlay"
             float edgeDistance = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
             float edgeMask = smoothstep(_EdgePadding, _EdgePadding + max(_EdgeFeather, 0.0001), edgeDistance);
 
-            float pixelSafety = max(_MainTex_TexelSize.x, _MainTex_TexelSize.y) * 2.0;
+            float pixelSafety = max(_BlitTexture_TexelSize.x, _BlitTexture_TexelSize.y) * 2.0;
             float2 distortedUV = uv + distVector * (_Strength * 0.06 * edgeMask);
             distortedUV = clamp(distortedUV, pixelSafety.xx, 1.0 - pixelSafety.xx);
 
-            half4 color = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, distortedUV);
+            half4 color = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, distortedUV);
 
             half vignette = smoothstep(0.2, 0.95, edgeDistance * 2.0);
             color.rgb *= lerp(1.02, 0.98, _Strength * (1.0 - vignette));

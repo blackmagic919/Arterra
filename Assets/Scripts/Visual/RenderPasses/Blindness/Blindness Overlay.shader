@@ -21,8 +21,7 @@ Shader "Hidden/BlindnessOverlay"
 
         struct Attributes
         {
-            float4 positionOS : POSITION;
-            float2 uv : TEXCOORD0;
+            uint vertexID : SV_VertexID;
         };
 
         struct Varyings
@@ -31,9 +30,8 @@ Shader "Hidden/BlindnessOverlay"
             float2 uv : TEXCOORD0;
         };
 
-        TEXTURE2D(_MainTex);
-        SAMPLER(sampler_MainTex);
-        float4 _MainTex_TexelSize;
+        TEXTURE2D_X(_BlitTexture);
+        float4 _BlitTexture_TexelSize;
 
         float _Strength;
         float _DepthStart;
@@ -46,15 +44,19 @@ Shader "Hidden/BlindnessOverlay"
         Varyings vert(Attributes input)
         {
             Varyings output;
-            output.positionHCS = TransformObjectToHClip(input.positionOS.xyz);
-            output.uv = input.uv;
+            float2 positionUV = float2((input.vertexID << 1) & 2, input.vertexID & 2);
+            output.positionHCS = float4(positionUV * 2.0 - 1.0, 0.0, 1.0);
+            output.uv = positionUV;
+#if UNITY_UV_STARTS_AT_TOP
+            output.uv.y = 1.0 - output.uv.y;
+#endif
             return output;
         }
 
         half4 frag(Varyings input) : SV_TARGET
         {
             float2 uv = input.uv;
-            half4 center = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv);
+            half4 center = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv);
 
             float rawDepth = SampleSceneDepth(uv);
             float eyeDepth = LinearEyeDepth(rawDepth, _ZBufferParams);
@@ -65,7 +67,7 @@ Shader "Hidden/BlindnessOverlay"
                 return center;
 
             int kernelRadius = clamp(_KernelRadius, 1, MAX_KERNEL_RADIUS);
-            float2 kernelStep = _MainTex_TexelSize.xy * (blurPixels / max((float)kernelRadius, 1.0));
+            float2 kernelStep = _BlitTexture_TexelSize.xy * (blurPixels / max((float)kernelRadius, 1.0));
 
             half4 sum = 0;
             float sampleCount = 0;
@@ -80,7 +82,7 @@ Shader "Hidden/BlindnessOverlay"
                         continue;
 
                     float2 offset = float2((float)x, (float)y) * kernelStep;
-                    sum += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + offset);
+                    sum += SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv + offset);
                     sampleCount += 1.0;
                 }
             }

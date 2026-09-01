@@ -18,9 +18,6 @@ Shader "Hidden/Fog"
         ZWrite Off
         
         HLSLINCLUDE
-        #pragma vertex vert
-        #pragma fragment frag
-
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -29,10 +26,9 @@ Shader "Hidden/Fog"
 
         struct Attributes
         {
-            float4 positionOS : POSITION;
-            float2 uv : TEXCOORD0;
+            uint vertexID : SV_VertexID;
         };
-
+//
         struct v2f
         {
             float4 positionHCS : SV_POSITION;
@@ -40,8 +36,7 @@ Shader "Hidden/Fog"
             float3 viewVector : TEXCOORD1;
         };
 
-        TEXTURE2D(_MainTex);
-        SAMPLER(sampler_MainTex);
+        TEXTURE2D_X(_BlitTexture);
         TEXTURE2D(_CameraDepthTexture);
         SAMPLER(sampler_CameraDepthTexture);
 
@@ -60,11 +55,16 @@ Shader "Hidden/Fog"
         v2f vert(Attributes IN)
         {
             v2f OUT;
-            OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
-            OUT.uv = IN.uv;
+            float2 positionUV = float2((IN.vertexID << 1) & 2, IN.vertexID & 2);
+            OUT.positionHCS = float4(positionUV * 2.0 - 1.0, 0.0, 1.0);
+            OUT.uv = positionUV;
+#if UNITY_UV_STARTS_AT_TOP
+            OUT.uv.y = 1.0 - OUT.uv.y;
+#endif
 
             //Z is forward
-            float3 viewVector = mul(unity_CameraInvProjection, float4(IN.uv.xy * 2 - 1, 0, -1)).xyz;
+
+            float3 viewVector = mul(unity_CameraInvProjection, float4(OUT.uv.xy * 2 - 1, 0, -1)).xyz;
 			OUT.viewVector = mul(unity_CameraToWorld, float4(viewVector, 0)).xyz;
 
             return OUT;
@@ -76,6 +76,9 @@ Shader "Hidden/Fog"
             Name "Fog"
 
             HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+
             float2 raySphere(float3 s0, float sr, float3 r0, float3 rd) {
                 float a = dot(rd, rd);
                 float3 s0_r0 = r0 - s0;
@@ -127,7 +130,7 @@ Shader "Hidden/Fog"
 
             half4 frag(v2f IN) : SV_TARGET
             {
-                half4 originalColor = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv);
+                half4 originalColor = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, IN.uv);
                 float screenDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, IN.uv);
                 float linearDepth = LinearEyeDepth(screenDepth, _ZBufferParams) * length(IN.viewVector);
 
@@ -144,5 +147,6 @@ Shader "Hidden/Fog"
             }
             ENDHLSL
         }
+
     }
 }

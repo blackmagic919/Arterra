@@ -20,8 +20,7 @@ Shader "Hidden/DizzinessOverlay"
 
         struct Attributes
         {
-            float4 positionOS : POSITION;
-            float2 uv : TEXCOORD0;
+            uint vertexID : SV_VertexID;
         };
 
         struct Varyings
@@ -30,8 +29,7 @@ Shader "Hidden/DizzinessOverlay"
             float2 uv : TEXCOORD0;
         };
 
-        TEXTURE2D(_MainTex);
-        SAMPLER(sampler_MainTex);
+        TEXTURE2D_X(_BlitTexture);
         TEXTURE2D(_History1Tex);
         SAMPLER(sampler_History1Tex);
         TEXTURE2D(_History2Tex);
@@ -44,15 +42,19 @@ Shader "Hidden/DizzinessOverlay"
         Varyings vert(Attributes input)
         {
             Varyings output;
-            output.positionHCS = TransformObjectToHClip(input.positionOS.xyz);
-            output.uv = input.uv;
+            float2 positionUV = float2((input.vertexID << 1) & 2, input.vertexID & 2);
+            output.positionHCS = float4(positionUV * 2.0 - 1.0, 0.0, 1.0);
+            output.uv = positionUV;
+#if UNITY_UV_STARTS_AT_TOP
+            output.uv.y = 1.0 - output.uv.y;
+#endif
             return output;
         }
 
         half4 frag(Varyings input) : SV_TARGET
         {
             float2 uv = input.uv;
-            half4 current = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv);
+            half4 current = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv);
             half4 history1 = SAMPLE_TEXTURE2D(_History1Tex, sampler_History1Tex, uv);
             half4 history2 = SAMPLE_TEXTURE2D(_History2Tex, sampler_History2Tex, uv);
 

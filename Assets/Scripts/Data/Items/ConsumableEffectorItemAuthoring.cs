@@ -17,7 +17,6 @@ namespace Arterra.Data.Item {
         public struct ConsumptionEffect {
             public Effects name;
             [Range(0f, 1f)] public float chance;
-            [SerializeReference]
             public ReferenceOption<TempBehavior> behavior;
 
             public void OnValidate() {
